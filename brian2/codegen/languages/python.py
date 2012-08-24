@@ -1,5 +1,6 @@
 from base import Language
 from brian2.codegen.symbolic import symbolic_eval
+import sympy
 
 __all__ = ['PythonLanguage']
 
@@ -67,12 +68,22 @@ class PythonLanguage(Language):
         return _cond.nonzero()[0]
         '''
 
-def convert_expr_to_inplace(expr):
-    lines = []
-    expr = symbolic_eval(expr)
-    
-    return '\n'.join(lines)
-
-if __name__=='__main__':
-    print convert_expr_to_inplace('x+y*z')
+# THIS DOESN'T WORK
+#def convert_expr_to_inplace(expr):
+#    lines = []
+#    expr = symbolic_eval(expr)
+#    curstep = 0
+#    def step(subexpr):
+#        myargs = map(step, subexpr.args)
+#        name = '_temp_'+str(curstep)
+#        curstep += 1
+#        if isinstance(subexpr, sympy.Add):
+#            args = subexpr.args
+#            while len(args)>=2:
+#                lines.append('add({')
+#        return name
+#    return '\n'.join(lines)
+#
+#if __name__=='__main__':
+#    print convert_expr_to_inplace('x+y*z')
     
