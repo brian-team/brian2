@@ -1,4 +1,5 @@
 from base import Language
+from brian2.codegen.symbolic import symbolic_eval
 
 __all__ = ['PythonLanguage']
 
@@ -66,12 +67,12 @@ class PythonLanguage(Language):
         return _cond.nonzero()[0]
         '''
 
+def convert_expr_to_inplace(expr):
+    lines = []
+    expr = symbolic_eval(expr)
+    
+    return '\n'.join(lines)
 
 if __name__=='__main__':
-    from sympy import *
-    
-    x = Symbol('x')
-    y = Symbol('y')
-    z = Symbol('z')
-    z = x+y*x
+    print convert_expr_to_inplace('x+y*z')
     
