@@ -28,18 +28,25 @@ class PythonLanguage(Language):
         # the actual code
         lines.extend([self.translate_statement(stmt) for stmt in statements])
         # write arrays
-        # TODO: optimisation, if we have never done var = expr but always
-        # var += expr or things like that, AND if we are iterating over the
-        # whole array, then we do not need to do this final write of the
-        # variable, and this is a common use-case in state update code.
         for var in write:
-            line = specifiers[var].array
-            if index_spec.all:
-                line = line+'[:]'
+            # check if all operations were inplace and we're operating on the
+            # whole vector, if so we don't need to write the array back
+            if not index_spec.all:
+                all_inplace = False
             else:
-                line = line+'['+index_var+']'
-            line = line+' = '+var
-            lines.append(line)
+                all_inplace = True
+                for stmt in statements:
+                    if stmt.var==var and not stmt.inplace:
+                        all_inplace = False
+                        break
+            if not all_inplace:
+                line = specifiers[var].array
+                if index_spec.all:
+                    line = line+'[:]'
+                else:
+                    line = line+'['+index_var+']'
+                line = line+' = '+var
+                lines.append(line)
         return '\n'.join(lines)
 
     def template_iterate_all(self, index, size):
