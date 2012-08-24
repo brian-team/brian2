@@ -65,3 +65,13 @@ class PythonLanguage(Language):
         %CODE%
         return _cond.nonzero()[0]
         '''
+
+
+if __name__=='__main__':
+    from sympy import *
+    
+    x = Symbol('x')
+    y = Symbol('y')
+    z = Symbol('z')
+    z = x+y*x
+    

@@ -2,7 +2,8 @@ from numpy import float64
 from brian2.codegen.specifiers import (Function, Value, ArrayVariable,
                                        Subexpression, Index)
 from brian2.codegen.translation import translate, make_statements
-from brian2.codegen.languages import CLanguage, PythonLanguage, CUDALanguage
+from brian2.codegen.languages import (CLanguage, PythonLanguage, CUDALanguage,
+                                      NumexprPythonLanguage)
 from brian2.codegen.templating import apply_code_template
 from brian2.utils.stringtools import deindent
 
@@ -40,6 +41,7 @@ print
 
 for lang in [
         PythonLanguage(),
+        NumexprPythonLanguage(),
         CLanguage(),
         CUDALanguage(),
         ]:
