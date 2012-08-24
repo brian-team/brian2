@@ -26,28 +26,6 @@ specifiers = {
     '_neuron_idx':Index(all=True),
     }
 
-def template(lang):
-    if isinstance(lang, CUDALanguage):
-        return deindent('''
-        __global__ stateupdate(int _num_neurons, double dt)
-        {
-            const int _neuron_idx = threadIdx.x+blockIdx.x*blockDim.x;
-            if(_neuron_idx>=_num_neurons) return;
-            %CODE%
-        }
-        ''')
-    elif isinstance(lang, CLanguage):
-        return deindent('''
-        for(int _neuron_idx=0; _neuron_idx<_num_neurons; _neuron_idx++)
-        {
-            %CODE%
-        }
-        ''')
-    elif isinstance(lang, PythonLanguage):
-        return deindent('''
-        %CODE%
-        ''')
-
 intermediate = make_statements(abstract, specifiers, float64)
 
 print 'EQUATIONS:'
@@ -66,7 +44,7 @@ for lang in [
         CUDALanguage(),
         ]:
     innercode = translate(abstract, specifiers, float64, lang)
-    code = apply_code_template(innercode, template(lang))
+    code = apply_code_template(innercode, deindent(lang.template_state_update()))
     print lang.__class__.__name__
     print '='*len(lang.__class__.__name__)
     print code

@@ -2,6 +2,7 @@ import numpy
 from base import Language
 from brian2.codegen.symbolic import symbolic_eval
 from sympy.printing.ccode import CCodePrinter
+from brian2.codegen.templating import apply_code_template
 
 __all__ = ['CLanguage',
            'c_data_type',
@@ -79,3 +80,32 @@ class CLanguage(Language):
             line = spec.array+'['+index_var+'] = '+var+';'
             lines.append(line)
         return '\n'.join(lines)
+
+    def template_iterate_all(self, index, size):
+        return '''
+        for(int {index}=0; {index}<{size}; {index}++)
+        {{
+            %CODE%
+        }}
+        '''.format(index=index, size=size)
+    
+    def template_iterate_index_array(self, index, array, size):
+        return '''
+        for(int _index_{array}=0; _index_{array}<{size}; _index_{array}++)
+        {{
+            const int {index} = {array}[_index_{array}];
+            %CODE%
+        }}
+        '''.format(index=index, array=array, size=size)
+
+    def template_threshold(self):
+        return '''
+        int _numspikes = 0;
+        for(int _neuron_idx=0; _neuron_idx<_num_neurons; _neuron_idx++)
+        {
+            %CODE%
+            if(_cond) {
+                _spikes[_numspikes++] = _neuron_idx;
+            }
+        }
+        '''

@@ -20,34 +20,6 @@ specifiers = {
     '_neuron_idx':Index(all=True),
     }
 
-def template(lang):
-    if isinstance(lang, CUDALanguage):
-        return deindent('''
-        __global__ threshold(int _num_neurons)
-        {
-            const int _neuron_idx = threadIdx.x+blockIdx.x*blockDim.x;
-            if(_neuron_idx>=_num_neurons) return;
-            %CODE%
-            _array_cond[_neuron_idx] = _cond;
-        }
-        ''')
-    elif isinstance(lang, CLanguage):
-        return deindent('''
-        int _numspikes = 0;
-        for(int _neuron_idx=0; _neuron_idx<_num_neurons; _neuron_idx++)
-        {
-            %CODE%
-            if(_cond) {
-                _spikes[_numspikes++] = _neuron_idx;
-            }
-        }
-        ''')
-    elif isinstance(lang, PythonLanguage):
-        return deindent('''
-        %CODE%
-        return _cond.nonzero()[0]
-        ''')
-
 intermediate = make_statements(abstract, specifiers, float64)
 
 print 'THRESHOLD:', threshold
@@ -65,7 +37,7 @@ for lang in [
         CUDALanguage(),
         ]:
     innercode = translate(abstract, specifiers, float64, lang)
-    code = apply_code_template(innercode, template(lang))
+    code = apply_code_template(innercode, lang.template_threshold())
     print lang.__class__.__name__
     print '='*len(lang.__class__.__name__)
     print code

@@ -46,3 +46,36 @@ class Language(object):
         read = set(var for var, spec in specifiers.items() if isinstance(spec, ArrayVariable) and var in read)
         write = set(var for var, spec in specifiers.items() if isinstance(spec, ArrayVariable) and var in write)
         return read, write
+
+    def template_iterate_all(self, index, size):
+        '''
+        Return a template where the variable ``index`` ranges from ``0:size``.
+        Both ``index`` and ``size`` should be strings.
+        '''
+        raise NotImplementedError
+    
+    def template_iterate_index_array(self, index, array, size):
+        '''
+        Return a template where the variable ``index`` ranges through the
+        values in ``array`` which is of length ``size``, each of these should
+        be a string.
+        '''
+        raise NotImplementedError
+
+    def template_state_update(self):
+        '''
+        Template for state updater code, by default just iterate over all neurons
+        '''
+        return self.template_iterate_all('_neuron_idx', '_num_neurons')
+    
+    def template_reset(self):
+        '''
+        Template for state updater code, by default just iterate over ``_spikes``
+        '''
+        return self.template_iterate_index_array('_neuron_idx', '_spikes', '_num_spikes')
+    
+    def template_threshold(self):
+        '''
+        Template for threshold code
+        '''
+        raise NotImplementedError

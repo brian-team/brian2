@@ -8,6 +8,8 @@ class PythonLanguage(Language):
         return expr.strip()
     
     def translate_statement(self, statement):
+        # TODO: optimisation, translate arithmetic to a sequence of inplace
+        # operations like a=b+c -> add(b, c, a)
         var, op, expr = statement.var, statement.op, statement.expr
         if op==':=':
             op = '='
@@ -39,3 +41,20 @@ class PythonLanguage(Language):
             line = line+' = '+var
             lines.append(line)
         return '\n'.join(lines)
+
+    def template_iterate_all(self, index, size):
+        return '''
+        %CODE%
+        '''
+    
+    def template_iterate_index_array(self, index, array, size):
+        return '''
+        {index} = {array}
+        %CODE%
+        '''.format(index=index, array=array)
+
+    def template_threshold(self):
+        return '''
+        %CODE%
+        return _cond.nonzero()[0]
+        '''

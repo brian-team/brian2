@@ -21,31 +21,6 @@ specifiers = {
     '_neuron_idx':Index(all=False),
     }
 
-def template(lang):
-    if isinstance(lang, CUDALanguage):
-        return deindent('''
-        __global__ reset(int _num_spikes)
-        {
-            const int _spike_idx = threadIdx.x+blockIdx.x*blockDim.x;
-            if(_spike_idx>=_num_spikes) return;
-            const int _neuron_idx = _spikes[_spike_idx];
-            %CODE%
-        }
-        ''')
-    elif isinstance(lang, CLanguage):
-        return deindent('''
-        for(int _spike_idx=0; _spike_idx<_num_spikes; _spike_idx++)
-        {
-            const int _neuron_idx = _spikes[_spike_idx];
-            %CODE%
-        }
-        ''')
-    elif isinstance(lang, PythonLanguage):
-        return deindent('''
-        _neuron_idx = _spikes
-        %CODE%
-        ''')
-
 intermediate = make_statements(abstract, specifiers, float64)
 
 print 'RESET:'
@@ -64,7 +39,7 @@ for lang in [
         CUDALanguage(),
         ]:
     innercode = translate(abstract, specifiers, float64, lang)
-    code = apply_code_template(innercode, template(lang))
+    code = apply_code_template(innercode, lang.template_reset())
     print lang.__class__.__name__
     print '='*len(lang.__class__.__name__)
     print code
