@@ -65,6 +65,12 @@ class CLanguage(Language):
             line = line+c_data_type(spec.dtype)+' '+var+' = '
             line = line+spec.array+'['+index_var+'];'
             lines.append(line)
+        # simply declare variables that will be written but not read
+        for var in write:
+            if var not in read:
+                spec = specifiers[var]
+                line = c_data_type(spec.dtype)+' '+var+';'
+                lines.append(line)
         # the actual code
         lines.extend([self.translate_statement(stmt) for stmt in statements])
         # write arrays

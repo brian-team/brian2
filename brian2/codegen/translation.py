@@ -13,8 +13,6 @@ The input information needed:
   dtype is.
 * The dtype to use for newly created variables
 * The language to translate to
-
-TODO: handle OutputVariable correctly (see example_threshold.py)
 '''
 
 from brian2.codegen.specifiers import (Function, Value, ArrayVariable,
@@ -53,7 +51,8 @@ def make_statements(code, specifiers, dtype):
         print code
     dtypes = dict((name, value.dtype) for name, value in specifiers.items() if hasattr(value, 'dtype'))
     # we will do inference to work out which lines are := and which are =
-    defined = set(specifiers.keys()) # variables which are already defined
+    #defined = set(specifiers.keys()) # variables which are already defined
+    defined = set(var for var, spec in specifiers.items() if not isinstance(spec, OutputVariable))
     for line in lines:
         # parse statement into "var op expr"
         m = re.search(r'[^><=]=', line.code)
@@ -64,12 +63,13 @@ def make_statements(code, specifiers, dtype):
         var = line.code[:start].strip()
         expr = line.code[end:].strip()
         # var should be a single word
-        if len(re.findall(r'\b\w+\b', var))!=1: # TODO: improve this regex, e.g. var+ would pass
+        if len(re.findall(r'^[A-Za-z_][A-Za-z0-9_]*$', var))!=1:
             raise ValueError("LHS in statement must be single variable name, line: "+line.code)
         if op=='=' and var not in defined:
             op = ':='
             defined.add(var)
-            dtypes[var] = dtype
+            if var not in dtypes:
+                dtypes[var] = dtype
         statement = Statement(var, op, expr, dtypes[var])
         line.statement = statement
         # for each line will give the variable being written to
@@ -215,6 +215,7 @@ if __name__=='__main__':
         _tmp_V = x
         I += 1
         V += _tmp_V*x*dt
+        _cond = V>x
         '''
     else:
         # x valid on last line
@@ -228,12 +229,13 @@ if __name__=='__main__':
         'x':Subexpression('-(V+I)/tau'),
         'tau':Value(float64),
         'dt':Value(float64),
+        '_cond':OutputVariable(bool),
         #'_neuron_idx':Index(),
         '_neuron_idx':Index(all=False),
         }
     for lang in [
                  CLanguage(),
-                 PythonLanguage()
+                 #PythonLanguage()
                  ]:
         print lang.__class__.__name__
         print '='*len(lang.__class__.__name__)

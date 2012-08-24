@@ -38,7 +38,7 @@ def template(lang):
         {
             %CODE%
             if(_cond) {
-                _spikes[_numspikes++] = _neuron_idx];
+                _spikes[_numspikes++] = _neuron_idx;
             }
         }
         ''')

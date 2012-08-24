@@ -6,8 +6,6 @@ from brian2.codegen.languages import CLanguage, PythonLanguage, CUDALanguage
 from brian2.codegen.templating import apply_code_template
 from brian2.utils.stringtools import deindent
 
-# TODO: bug in CLanguage (V = Vr has no dtype)
-
 # we don't actually use these, but this is what we would start from
 reset = '''
 V = Vr
