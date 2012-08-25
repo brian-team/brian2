@@ -28,7 +28,8 @@ class Value(Specifier):
 class ArrayVariable(Specifier):
     '''
     Used to specify that the variable comes from an array (named ``array``) with
-    given ``dtype``.
+    given ``dtype`` using index variable ``index``. The creation of these
+    index variables should be done in the template.
     
     For example, for::
     
@@ -38,8 +39,9 @@ class ArrayVariable(Specifier):
     
         double &v = _array_v[_index];
     '''
-    def __init__(self, array, dtype):
+    def __init__(self, array, index, dtype):
         self.array = array
+        self.index = index
         self.dtype = dtype
 
 class OutputVariable(Specifier):

@@ -1,6 +1,6 @@
 import numpy
 from base import Language
-from brian2.codegen.symbolic import symbolic_eval
+import sympy
 from sympy.printing.ccode import CCodePrinter
 from brian2.codegen.templating import apply_code_template
 
@@ -38,7 +38,7 @@ def c_data_type(dtype):
 
 class CLanguage(Language):
     def translate_expression(self, expr):
-        expr = symbolic_eval(expr)
+        expr = sympy.sympify(expr)
         return CCodePrinter().doprint(expr)
 
     def translate_statement(self, statement):
@@ -52,12 +52,13 @@ class CLanguage(Language):
             decl = ''
         return decl+var+' '+op+' '+self.translate_expression(expr)+';'
 
-    def translate_statement_sequence(self, statements, specifiers,
-                                     index_var, index_spec):
+    def translate_statement_sequence(self, statements, specifiers):
         read, write = self.array_read_write(statements, specifiers)
         lines = []
         # read arrays
         for var in read:
+            index_var = specifiers[var].index
+            index_spec = specifiers[index_var]
             spec = specifiers[var]
             if var not in write:
                 line = 'const '
@@ -76,6 +77,8 @@ class CLanguage(Language):
         lines.extend([self.translate_statement(stmt) for stmt in statements])
         # write arrays
         for var in write:
+            index_var = specifiers[var].index
+            index_spec = specifiers[index_var]
             spec = specifiers[var]
             line = spec.array+'['+index_var+'] = '+var+';'
             lines.append(line)
@@ -107,5 +110,18 @@ class CLanguage(Language):
             if(_cond) {
                 _spikes[_numspikes++] = _neuron_idx;
             }
+        }
+        '''
+
+    def template_synapses(self):
+        return '''
+        for(int _spiking_synapse_idx=0;
+            _spiking_synapse_idx<_num_spiking_synapses;
+            _spiking_synapse_idx++)
+        {
+                const int _synapse_idx = _spiking_synapses[_spiking_synapse_idx];
+                const int _postsynaptic_idx = _postsynaptic[_synapse_idx];
+                const int _presynaptic_idx = _presynaptic[_synapse_idx];
+                %CODE%
         }
         '''

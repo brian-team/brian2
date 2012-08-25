@@ -35,5 +35,9 @@ class CUDALanguage(CLanguage):
             _array_cond[_neuron_idx] = _cond;
         }
         '''
+        
+    def template_synapses(self):
+        raise NotImplementedError
+    
     # TODO: optimisation of translate_statement_sequence, interleave read/write
     # accesses with computations

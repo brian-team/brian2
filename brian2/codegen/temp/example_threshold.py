@@ -14,8 +14,8 @@ _cond = V>Vt
 '''
 
 specifiers = {
-    'V':ArrayVariable('_array_V', float64),
-    'Vt':ArrayVariable('_array_Vt', float64),
+    'V':ArrayVariable('_array_V', '_neuron_idx', float64),
+    'Vt':ArrayVariable('_array_Vt', '_neuron_idx', float64),
     '_cond':OutputVariable(bool),
     '_neuron_idx':Index(all=True),
     }

@@ -16,8 +16,8 @@ V = Vr
 '''
 
 specifiers = {
-    'V':ArrayVariable('_array_V', float64),
-    'Vr':ArrayVariable('_array_Vr', float64),
+    'V':ArrayVariable('_array_V', '_neuron_idx', float64),
+    'Vr':ArrayVariable('_array_Vr', '_neuron_idx', float64),
     '_neuron_idx':Index(all=False),
     }
 

@@ -195,13 +195,7 @@ def translate(code, specifiers, dtype, language):
     Returns a multi-line string.
     '''
     statements = make_statements(code, specifiers, dtype)
-    # sanity check: there should only be one Index specifier
-    indices = set((var, spec) for var, spec in specifiers.items() if isinstance(spec, Index))
-    if not len(indices)==1:
-        raise ValueError("There should only be one index, in fact there was: "+str(indices))
-    index_var, index_spec = indices.pop()
-    return language.translate_statement_sequence(statements, specifiers,
-                                                 index_var, index_spec)
+    return language.translate_statement_sequence(statements, specifiers)
     
 
 if __name__=='__main__':
@@ -224,8 +218,8 @@ if __name__=='__main__':
         V += _tmp_V*x*dt
         '''
     specifiers = {
-        'V':ArrayVariable('_array_V', float64),
-        'I':ArrayVariable('_array_I', float64),
+        'V':ArrayVariable('_array_V', '_neuron_idx', float64),
+        'I':ArrayVariable('_array_I', '_neuron_idx', float64),
         'x':Subexpression('-(V+I)/tau'),
         'tau':Value(float64),
         'dt':Value(float64),
@@ -235,7 +229,7 @@ if __name__=='__main__':
         }
     for lang in [
                  CLanguage(),
-                 #PythonLanguage()
+                 PythonLanguage()
                  ]:
         print lang.__class__.__name__
         print '='*len(lang.__class__.__name__)

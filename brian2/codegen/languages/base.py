@@ -22,12 +22,10 @@ class Language(object):
         '''
         raise NotImplementedError
 
-    def translate_statement_sequence(self, statements, specifiers,
-                                     index_var, index_spec):
+    def translate_statement_sequence(self, statements, specifiers):
         '''
         Translate a sequence of Statements into the target language, taking
-        care to declare variables, etc. if necessary. The ``index_var`` and
-        ``index_spec`` are the values which will be iterated over.
+        care to declare variables, etc. if necessary.
         '''
         raise NotImplementedError
 
@@ -41,6 +39,9 @@ class Language(object):
         write = set()
         for stmt in statements:
             ids = set(get_identifiers(stmt.expr))
+            # if the operation is inplace this counts as a read.
+            if stmt.inplace:
+                ids.add(stmt.var)
             read = read.union(ids)
             write.add(stmt.var)
         read = set(var for var, spec in specifiers.items() if isinstance(spec, ArrayVariable) and var in read)
@@ -77,5 +78,11 @@ class Language(object):
     def template_threshold(self):
         '''
         Template for threshold code
+        '''
+        raise NotImplementedError
+
+    def template_synapses(self):
+        '''
+        Template for synapses code
         '''
         raise NotImplementedError

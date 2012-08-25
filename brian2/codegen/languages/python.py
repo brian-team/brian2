@@ -1,5 +1,4 @@
 from base import Language
-from brian2.codegen.symbolic import symbolic_eval
 import sympy
 
 __all__ = ['PythonLanguage']
@@ -17,20 +16,23 @@ class PythonLanguage(Language):
             op = '='
         return var+' '+op+' '+self.translate_expression(expr)
 
-    def translate_statement_sequence(self, statements, specifiers,
-                                     index_var, index_spec):
+    def translate_statement_sequence(self, statements, specifiers):
         read, write = self.array_read_write(statements, specifiers)
         lines = []
         # read arrays
         for var in read:
-            line = var+' = '+specifiers[var].array
+            spec = specifiers[var]
+            index_spec = specifiers[spec.index]
+            line = var+' = '+spec.array
             if not index_spec.all:
-                line = line+'['+index_var+']'
+                line = line+'['+spec.index+']'
             lines.append(line)
         # the actual code
         lines.extend([self.translate_statement(stmt) for stmt in statements])
         # write arrays
         for var in write:
+            index_var = specifiers[var].index
+            index_spec = specifiers[index_var]
             # check if all operations were inplace and we're operating on the
             # whole vector, if so we don't need to write the array back
             if not index_spec.all:
@@ -66,6 +68,30 @@ class PythonLanguage(Language):
         return '''
         %CODE%
         return _cond.nonzero()[0]
+        '''
+
+    def template_synapses(self):
+        return '''
+        # TODO: check and improve this
+        _post_neurons = _postsynaptic.data.take(_spiking_synapses)
+        _perm = _post_neurons.argsort()
+        _aux = _post_neurons.take(_perm)
+        _flag = empty(len(_aux)+1, dtype=bool)
+        _flag[0] = _flag[-1] = 1
+        not_equal(_aux[1:], _aux[:-1], _flag[1:-1])
+        _F = _flag.nonzero()[0][:-1]
+        logical_not(_flag, _flag)
+        while len(_F):
+            _u = _aux.take(_F)
+            _i = _perm.take(_F)
+            _postsynaptic_idx = _u
+            _synapse_idx = _spiking_synapse[_i]
+            # TODO: how do we get presynaptic indices? do we need to?
+        
+            %CODE%
+        
+            _F += 1
+            _F = extract(_flag.take(_F), _F)
         '''
 
 # THIS DOESN'T WORK

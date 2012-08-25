@@ -20,8 +20,8 @@ V += _tmp_V*dt
 '''
 
 specifiers = {
-    'V':ArrayVariable('_array_V', float64),
-    'tau':ArrayVariable('_array_tau', float64),
+    'V':ArrayVariable('_array_V', '_neuron_idx', float64),
+    'tau':ArrayVariable('_array_tau', '_neuron_idx', float64),
     'x':Subexpression('-V/tau'),
     'dt':Value(float64),
     '_neuron_idx':Index(all=True),
