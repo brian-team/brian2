@@ -16,7 +16,7 @@ class Language(object):
         '''
         raise NotImplementedError
     
-    def translate_statement(statement):
+    def translate_statement(self,statement):
         '''
         Translate a single line Statement into the target language.
         '''
