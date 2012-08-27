@@ -1,3 +1,6 @@
+'''
+TODO: restrict keyword optimisations
+'''
 import numpy
 from base import Language
 import sympy
