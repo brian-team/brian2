@@ -41,9 +41,11 @@ def c_data_type(dtype):
     return dtype
 
 class CLanguage(Language):
-    def __init__(self, compiler='gcc', extra_compile_args=['-O3'], ):
+    def __init__(self, compiler='gcc', extra_compile_args=['-O3'],
+                 restrict='__restrict__'):
         self.compiler = compiler
         self.extra_compile_args = extra_compile_args
+        self.restrict = restrict+' '
     
     def translate_expression(self, expr):
         expr = sympy.sympify(expr)
@@ -73,7 +75,7 @@ class CLanguage(Language):
             else:
                 line = ''
             line = line+c_data_type(spec.dtype)+' '+var+' = '
-            line = line+spec.array+'['+index_var+'];'
+            line = line+'_ptr'+spec.array+'['+index_var+'];'
             lines.append(line)
         # simply declare variables that will be written but not read
         for var in write:
@@ -88,9 +90,21 @@ class CLanguage(Language):
             index_var = specifiers[var].index
             index_spec = specifiers[index_var]
             spec = specifiers[var]
-            line = spec.array+'['+index_var+'] = '+var+';'
+            line = '_ptr'+spec.array+'['+index_var+'] = '+var+';'
             lines.append(line)
-        return '\n'.join(lines)
+        code = '\n'.join(lines)
+        # set up the restricted pointers, these are used so that the compiler
+        # knows there is no aliasing in the pointers, for optimisation
+        lines = []
+        for var in read.union(write):
+            spec = specifiers[var]
+            line = c_data_type(spec.dtype)+' * '+self.restrict+'_ptr'+spec.array+' = '+spec.array+';'
+            lines.append(line)
+        pointers = '\n'.join(lines)
+        translation = {'%CODE%': code,
+                       '%POINTERS%': pointers,
+                       }
+        return translation
     
     def code_object(self, code):
         return CCodeObject(code, compiler=self.compiler,
@@ -98,6 +112,7 @@ class CLanguage(Language):
 
     def template_iterate_all(self, index, size):
         return '''
+        %POINTERS%
         for(int {index}=0; {index}<{size}; {index}++)
         {{
             %CODE%
@@ -106,6 +121,7 @@ class CLanguage(Language):
     
     def template_iterate_index_array(self, index, array, size):
         return '''
+        %POINTERS%
         for(int _index_{array}=0; _index_{array}<{size}; _index_{array}++)
         {{
             const int {index} = {array}[_index_{array}];
@@ -115,6 +131,7 @@ class CLanguage(Language):
 
     def template_threshold(self):
         return '''
+        %POINTERS%
         int _numspikes = 0;
         for(int _neuron_idx=0; _neuron_idx<_num_neurons; _neuron_idx++)
         {
@@ -127,6 +144,7 @@ class CLanguage(Language):
 
     def template_synapses(self):
         return '''
+        %POINTERS%
         for(int _spiking_synapse_idx=0;
             _spiking_synapse_idx<_num_spiking_synapses;
             _spiking_synapse_idx++)
@@ -140,7 +158,7 @@ class CLanguage(Language):
 
 class CCodeObject(CodeObject):
     def __init__(self, code, compiler='gcc', extra_compile_args=['-O3']):
-        self.code = code
+        self.code = code+'  '
         self.compiler = compiler
         self.extra_compile_args = extra_compile_args
         

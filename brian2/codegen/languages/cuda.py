@@ -13,6 +13,7 @@ class CUDALanguage(CLanguage):
         {{
             const int {index} = threadIdx.x+blockIdx.x*blockDim.x;
             if({index}>={size}) return;
+            %POINTERS%
             %CODE%
         }}
         '''.format(index=index, size=size)
@@ -24,6 +25,7 @@ class CUDALanguage(CLanguage):
             const int _index_{array} = threadIdx.x+blockIdx.x*blockDim.x;
             if(_index_{array}>={size}) return;
             const int {index} = {array}[_index_{array}];
+            %POINTERS%
             %CODE%
         }}
         '''.format(index=index, array=array, size=size)
@@ -34,6 +36,7 @@ class CUDALanguage(CLanguage):
         {
             const int _neuron_idx = threadIdx.x+blockIdx.x*blockDim.x;
             if(_neuron_idx>=_num_neurons) return;
+            %POINTERS%
             %CODE%
             _array_cond[_neuron_idx] = _cond;
         }

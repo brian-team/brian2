@@ -9,6 +9,8 @@ from brian2.utils.stringtools import deindent
 import pylab
 import time
 
+test_compile = True
+
 # we don't actually use these, but this is what we would start from
 eqs = '''
 dV/dt = x : volt
@@ -44,7 +46,7 @@ print
 languages = [
     PythonLanguage(),
     NumexprPythonLanguage(),
-    CLanguage(extra_compile_args=['-O3', '-ffast-math', '-march=native']),
+    CLanguage(extra_compile_args=['-O3', '-ffast-math', '-march=native'], restrict='__restrict__'),
     CUDALanguage(),
     ]
 
@@ -52,11 +54,15 @@ codestrings = {}
 
 for lang in languages:
     innercode = translate(abstract, specifiers, float64, lang)
-    code = apply_code_template(innercode, deindent(lang.template_state_update()))
+    #code = apply_code_template(innercode, deindent(lang.template_state_update()))
+    code = lang.apply_template(innercode, lang.template_state_update())
     codestrings[lang] = code
     print lang.__class__.__name__
     print '='*len(lang.__class__.__name__)
     print code
+
+if not test_compile:
+    exit()
 
 N = 10000
 Nshow = 10

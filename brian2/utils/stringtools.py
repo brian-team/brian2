@@ -64,7 +64,11 @@ def deindent(text, numtabs=None, spacespertab=4, docstring=False):
     if numtabs is not None:
         indentlevel = numtabs*spacespertab
     else:
-        indentlevel = min(len(line)-len(line.lstrip()) for line in lines[start:] if len(line.strip()))
+        lineseq = [len(line)-len(line.lstrip()) for line in lines[start:] if len(line.strip())]
+        if len(lineseq)==0:
+            indentlevel = 0
+        else:
+            indentlevel = min(lineseq)
     # remove the common indentation
     lines[start:] = [line[indentlevel:] for line in lines[start:]]
     return '\n'.join(lines)
