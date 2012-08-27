@@ -17,6 +17,11 @@ class NumexprPythonLanguage(PythonLanguage):
         '''
         self.complexity_threshold = complexity_threshold
         
+    # TODO: there is now an out argument in numexpr, so we can do:
+    #   numexpr.evaluate('y+z', {'y':y, 'z':z}, out=x)
+    # for maximum efficiency. Once this is done, we also need to consider
+    # whether we do all operations in-place or rebind, and handle correctly
+    # the other parts of code generation.
     def translate_expression(self, expr):
         if expression_complexity(expr)>=self.complexity_threshold:
             return '_numexpr.evaluate("'+expr.strip()+'")'
