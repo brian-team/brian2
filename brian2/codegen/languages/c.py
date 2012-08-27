@@ -2,12 +2,13 @@
 TODO: restrict keyword optimisations
 '''
 import numpy
-from base import Language
+from base import Language, CodeObject
 import sympy
 from sympy.printing.ccode import CCodePrinter
 from brian2.codegen.templating import apply_code_template
+from scipy import weave
 
-__all__ = ['CLanguage',
+__all__ = ['CLanguage', 'CCodeObject',
            'c_data_type',
            ]
 
@@ -40,6 +41,10 @@ def c_data_type(dtype):
     return dtype
 
 class CLanguage(Language):
+    def __init__(self, compiler='gcc', extra_compile_args=['-O3'], ):
+        self.compiler = compiler
+        self.extra_compile_args = extra_compile_args
+    
     def translate_expression(self, expr):
         expr = sympy.sympify(expr)
         return CCodePrinter().doprint(expr)
@@ -86,6 +91,10 @@ class CLanguage(Language):
             line = spec.array+'['+index_var+'] = '+var+';'
             lines.append(line)
         return '\n'.join(lines)
+    
+    def code_object(self, code):
+        return CCodeObject(code, compiler=self.compiler,
+                           extra_compile_args=self.extra_compile_args)
 
     def template_iterate_all(self, index, size):
         return '''
@@ -128,3 +137,20 @@ class CLanguage(Language):
                 %CODE%
         }
         '''
+
+class CCodeObject(CodeObject):
+    def __init__(self, code, compiler='gcc', extra_compile_args=['-O3']):
+        self.code = code
+        self.compiler = compiler
+        self.extra_compile_args = extra_compile_args
+        
+    def compile(self, namespace):
+        self.namespace = namespace
+        
+    def __call__(self, **kwds):
+        self.namespace.update(kwds)
+        weave.inline(self.code, self.namespace.keys(),
+                     local_dict = self.namespace,
+                     #support_code=c_support_code,
+                     compiler=self.compiler,
+                     extra_compile_args=self.extra_compile_args)

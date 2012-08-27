@@ -4,6 +4,9 @@ from c import CLanguage
 __all__ = ['CUDALanguage']
 
 class CUDALanguage(CLanguage):
+    def code_object(self, code):
+        raise NotImplementedError
+    
     def template_iterate_all(self, index, size):
         return '''
         __global__ stateupdate(int _num_neurons, double t, double dt)

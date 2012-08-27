@@ -1,7 +1,7 @@
-from base import Language
+from base import Language, CodeObject
 import sympy
 
-__all__ = ['PythonLanguage']
+__all__ = ['PythonLanguage', 'PythonCodeObject']
 
 class PythonLanguage(Language):
     
@@ -52,6 +52,9 @@ class PythonLanguage(Language):
                 line = line+' = '+var
                 lines.append(line)
         return '\n'.join(lines)
+    
+    def code_object(self, code):
+        return PythonCodeObject(code)
 
     def template_iterate_all(self, index, size):
         return '''
@@ -93,6 +96,16 @@ class PythonLanguage(Language):
             _F += 1
             _F = extract(_flag.take(_F), _F)
         '''
+
+
+class PythonCodeObject(CodeObject):
+    def compile(self, namespace):
+        self.namespace = namespace
+        self.compiled_code = compile(self.code, '(string)', 'exec')
+    
+    def __call__(self, **kwds):
+        self.namespace.update(kwds)
+        exec self.compiled_code in self.namespace
 
 # THIS DOESN'T WORK
 #def convert_expr_to_inplace(expr):

@@ -6,7 +6,7 @@ implement a new language.
 from brian2.codegen.specifiers import ArrayVariable
 from brian2.utils.stringtools import get_identifiers
 
-__all__ = ['Language']
+__all__ = ['Language', 'CodeObject']
 
 class Language(object):
     def translate_expression(self, expr):
@@ -26,6 +26,12 @@ class Language(object):
         '''
         Translate a sequence of Statements into the target language, taking
         care to declare variables, etc. if necessary.
+        '''
+        raise NotImplementedError
+    
+    def code_object(self, code):
+        '''
+        Return an executable code object from the given code string.
         '''
         raise NotImplementedError
 
@@ -85,4 +91,27 @@ class Language(object):
         '''
         Template for synapses code
         '''
+        raise NotImplementedError
+
+
+class CodeObject(object):
+    '''
+    Executable code object, returned by Language
+    
+    Code object is initialised by Language object, typically just by doing
+    ``CodeObject(code)``.
+    
+    After initialisation, the code is compiled with the given namespace
+    using ``code.compile(namespace)``.
+    
+    Calling ``code(key1=val1, key2=val2)`` executes the code with the given
+    variables inserted into the namespace.
+    '''
+    def __init__(self, code):
+        self.code = code
+    
+    def compile(self, namespace):
+        raise NotImplementedError
+    
+    def __call__(self, **kwds):
         raise NotImplementedError

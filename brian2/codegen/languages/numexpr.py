@@ -1,8 +1,8 @@
 from base import Language
-from python import PythonLanguage
+from python import PythonLanguage, PythonCodeObject
 import sympy
 
-__all__ = ['NumexprPythonLanguage']
+__all__ = ['NumexprPythonLanguage', 'NumexprPythonCodeObject']
 
 class NumexprPythonLanguage(PythonLanguage):
     def __init__(self, complexity_threshold=2):
@@ -28,6 +28,9 @@ class NumexprPythonLanguage(PythonLanguage):
         else:
             return expr.strip()
 
+    def code_object(self, code):
+        return NumexprPythonCodeObject(code)
+
 
 def expression_complexity(expr):
     '''
@@ -40,6 +43,16 @@ def expression_complexity(expr):
         return 1
     else:
         return 1+sum(map(expression_complexity, expr.args))
+
+
+class NumexprPythonCodeObject(PythonCodeObject):
+    def compile(self, namespace):
+        #self.code = 'import numexpr as _numexpr\n'+self.code
+        PythonCodeObject.compile(self, namespace)
+        exec 'import numexpr as _numexpr' in self.namespace
+#        import numexpr as _numexpr
+#        self.namespace['_numexpr'] = _numexpr
+    
     
 if __name__=='__main__':
     print expression_complexity('x+y+z')
