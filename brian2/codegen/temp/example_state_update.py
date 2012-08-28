@@ -10,6 +10,7 @@ import pylab
 import time
 
 test_compile = True
+do_plot = False
 
 # we don't actually use these, but this is what we would start from
 eqs = '''
@@ -44,10 +45,10 @@ for stmt in intermediate:
 print
 
 languages = [
-    PythonLanguage(),
+#    PythonLanguage(),
     NumexprPythonLanguage(),
-    CLanguage(extra_compile_args=['-O3', '-ffast-math', '-march=native'], restrict='__restrict__'),
-    CUDALanguage(),
+#    CLanguage(extra_compile_args=['-O3', '-ffast-math', '-march=native'], restrict='__restrict__', flush_denormals=True),
+#    CUDALanguage(),
     ]
 
 codestrings = {}
@@ -63,10 +64,10 @@ for lang in languages:
 if not test_compile:
     exit()
 
-N = 100000
+N = 1000
 Nshow = 10
 tshow = 100
-ttest = 1000
+ttest = 100000
 dt = 0.001
 _array_V = pylab.rand(N)
 _array_tau = pylab.ones(N)*30*0.001
@@ -127,4 +128,5 @@ pylab.title('Comparison of single neuron')
 for k, v in Mall.items():
     pylab.plot(T, v, label=k)
 pylab.legend(loc='upper right')
-pylab.show()
+if do_plot:
+    pylab.show()

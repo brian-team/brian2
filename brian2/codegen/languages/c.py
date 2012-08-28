@@ -41,11 +41,38 @@ def c_data_type(dtype):
     return dtype
 
 class CLanguage(Language):
-    def __init__(self, compiler='gcc', extra_compile_args=['-O3'],
-                 restrict='__restrict__'):
+    '''
+    Initialisation arguments:
+    
+    ``compiler``
+        The distutils name of the compiler.
+    ``extra_compile_args``
+        Extra compilation arguments, e.g. for optimisation. Best performance is
+        often gained by using
+        ``extra_compile_args=['-O3', '-ffast-math', '-march=native']`` 
+        however the ``'-march=native'`` is not compatible with all versions of
+        gcc so is switched off by default.
+    ``restrict``
+        The keyword used for the given compiler to declare pointers as
+        restricted (different on different compilers).
+    ``flush_denormals``
+        Adds code to flush denormals to zero, but the code is gcc and
+        architecture specific, so may not compile on all platforms, therefore
+        it is off by default. The code, for reference is::
+
+            #define CSR_FLUSH_TO_ZERO         (1 << 15)
+            unsigned csr = __builtin_ia32_stmxcsr();
+            csr |= CSR_FLUSH_TO_ZERO;
+            __builtin_ia32_ldmxcsr(csr);
+            
+        Found at `<http://stackoverflow.com/questions/2487653/avoiding-denormal-values-in-c>`_.
+    '''
+    def __init__(self, compiler='gcc', extra_compile_args=['-O3', '-ffast-math'],
+                 restrict='__restrict__', flush_denormals=False):
         self.compiler = compiler
         self.extra_compile_args = extra_compile_args
         self.restrict = restrict+' '
+        self.flush_denormals = flush_denormals
     
     def translate_expression(self, expr):
         expr = sympy.sympify(expr)
@@ -109,9 +136,20 @@ class CLanguage(Language):
     def code_object(self, code):
         return CCodeObject(code, compiler=self.compiler,
                            extra_compile_args=self.extra_compile_args)
+        
+    def denormals_to_zero_code(self):
+        if self.flush_denormals:
+            return '''
+        #define CSR_FLUSH_TO_ZERO         (1 << 15)
+        unsigned csr = __builtin_ia32_stmxcsr();
+        csr |= CSR_FLUSH_TO_ZERO;
+        __builtin_ia32_ldmxcsr(csr);
+            '''
+        else:
+            return ''
 
     def template_iterate_all(self, index, size):
-        return '''
+        return self.denormals_to_zero_code()+'''
         %POINTERS%
         for(int {index}=0; {index}<{size}; {index}++)
         {{
@@ -120,7 +158,7 @@ class CLanguage(Language):
         '''.format(index=index, size=size)
     
     def template_iterate_index_array(self, index, array, size):
-        return '''
+        return self.denormals_to_zero_code()+'''
         %POINTERS%
         for(int _index_{array}=0; _index_{array}<{size}; _index_{array}++)
         {{
@@ -130,7 +168,7 @@ class CLanguage(Language):
         '''.format(index=index, array=array, size=size)
 
     def template_threshold(self):
-        return '''
+        return self.denormals_to_zero_code()+'''
         %POINTERS%
         int _numspikes = 0;
         for(int _neuron_idx=0; _neuron_idx<_num_neurons; _neuron_idx++)
@@ -143,7 +181,7 @@ class CLanguage(Language):
         '''
 
     def template_synapses(self):
-        return '''
+        return self.denormals_to_zero_code()+'''
         %POINTERS%
         for(int _spiking_synapse_idx=0;
             _spiking_synapse_idx<_num_spiking_synapses;

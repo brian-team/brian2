@@ -60,7 +60,7 @@ class NumexprPythonLanguage(PythonLanguage):
         # I don't know, but it works fine if N=1 and not if N>1 therefore I
         # suspect a bug with numexpr?
         return PythonLanguage.translate_statement(self, statement)
-#        # other statement.op is [?]=, e.g. +=, *=, **=, /=
+        # other statement.op is [?]=, e.g. +=, *=, **=, /=
 #        opfirst = statement.op[:-1]
 #        return '_numexpr.evaluate("{var}{opfirst}({expr})", out={var})'.format(
 #                        var=statement.var, opfirst=opfirst, expr=statement.expr)
