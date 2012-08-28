@@ -57,6 +57,8 @@ class NumexprPythonLanguage(PythonLanguage):
             return '_numexpr.evaluate("{expr}", out={var})'.format(
                                         expr=statement.expr, var=statement.var)
         # TODO: why does this not work in example_state_update.py??
+        # I don't know, but it works fine if N=1 and not if N>1 therefore I
+        # suspect a bug with numexpr?
         return PythonLanguage.translate_statement(self, statement)
 #        # other statement.op is [?]=, e.g. +=, *=, **=, /=
 #        opfirst = statement.op[:-1]
