@@ -9,22 +9,22 @@ except ImportError:
 __all__ = ['NumexprPythonLanguage', 'NumexprPythonCodeObject']
 
 class NumexprPythonLanguage(PythonLanguage):
-    def __init__(self, complexity_threshold=2, multicore=True):
-        '''
-        ``complexity_threshold``
-            The minimum complexity (as defined in
+    '''
+    ``complexity_threshold``
+        The minimum complexity (as defined in
         :func:`expression_complexity`) of an expression for numexpr to be used.
         This stops numexpr being used for simple things like ``x = y``. The
         default is to use numexpr whenever it is more complicated than this,
         but you can set the threshold higher so that e.g. ``x=y+z`` would
         be excluded as well, which will improve performance when
         operating over small vectors.
-        
-        ``multicore``
-            Whether or not to use multiple cores in numexpr evaluation, set
-            to True, False or number of cores, including negative numbers
-            for number_of_cores()-1, etc.
-        '''
+    
+    ``multicore``
+        Whether or not to use multiple cores in numexpr evaluation, set
+        to True, False or number of cores, including negative numbers
+        for number_of_cores()-1, etc.
+    '''
+    def __init__(self, complexity_threshold=2, multicore=True):
         self.complexity_threshold = complexity_threshold
         nc = numexpr.detect_number_of_cores()
         if multicore is True:
@@ -60,7 +60,7 @@ class NumexprPythonLanguage(PythonLanguage):
         # I don't know, but it works fine if N=1 and not if N>1 therefore I
         # suspect a bug with numexpr?
         return PythonLanguage.translate_statement(self, statement)
-        # other statement.op is [?]=, e.g. +=, *=, **=, /=
+#        # other statement.op is [?]=, e.g. +=, *=, **=, /=
 #        opfirst = statement.op[:-1]
 #        return '_numexpr.evaluate("{var}{opfirst}({expr})", out={var})'.format(
 #                        var=statement.var, opfirst=opfirst, expr=statement.expr)

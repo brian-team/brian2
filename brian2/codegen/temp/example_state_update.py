@@ -10,7 +10,7 @@ import pylab
 import time
 
 test_compile = True
-do_plot = False
+do_plot = True
 
 # we don't actually use these, but this is what we would start from
 eqs = '''
@@ -64,10 +64,10 @@ for lang in languages:
 if not test_compile:
     exit()
 
-N = 1000
+N = 100000
 Nshow = 10
 tshow = 100
-ttest = 100000
+ttest = 1000
 dt = 0.001
 _array_V = pylab.rand(N)
 _array_tau = pylab.ones(N)*30*0.001
