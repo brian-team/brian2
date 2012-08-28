@@ -45,10 +45,10 @@ for stmt in intermediate:
 print
 
 languages = [
-#    PythonLanguage(),
+    PythonLanguage(),
     NumexprPythonLanguage(),
-#    CLanguage(extra_compile_args=['-O3', '-ffast-math', '-march=native'], restrict='__restrict__', flush_denormals=True),
-#    CUDALanguage(),
+    CLanguage(extra_compile_args=['-O3', '-ffast-math', '-march=native'], restrict='__restrict__', flush_denormals=True),
+    CUDALanguage(),
     ]
 
 codestrings = {}
