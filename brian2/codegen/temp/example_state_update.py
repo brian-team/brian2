@@ -54,7 +54,6 @@ codestrings = {}
 
 for lang in languages:
     innercode = translate(abstract, specifiers, float64, lang)
-    #code = apply_code_template(innercode, deindent(lang.template_state_update()))
     code = lang.apply_template(innercode, lang.template_state_update())
     codestrings[lang] = code
     print lang.__class__.__name__
@@ -64,10 +63,10 @@ for lang in languages:
 if not test_compile:
     exit()
 
-N = 10000
+N = 100000
 Nshow = 10
 tshow = 100
-ttest = 10000
+ttest = 1000
 dt = 0.001
 _array_V = pylab.rand(N)
 _array_tau = pylab.ones(N)*30*0.001
@@ -100,14 +99,26 @@ for lang in languages:
     T = []
     Mc = []
     for t in pylab.arange(100)*dt:
-        codeobj(t=t, dt=dt)
         M.append(namespace['_array_V'].copy()[:Nshow])
         Mc.append(namespace['_array_V'][0])
         T.append(t)
+        # TODO: debug numexpr
+#        for k, v in namespace.items():
+#            if not k.startswith('__'):
+#                print k, v
+#        print
+        codeobj(t=t, dt=dt)
+#        for k, v in namespace.items():
+#            if not k.startswith('__'):
+#                print k, v
+#        exit()
     Mall[lang.__class__.__name__] = Mc
     pylab.plot(T, M)
     start = time.time()
     for i in xrange(ttest):
+        # use this to cope with slow performance due to denormals
+        if i%10000==0:
+            namespace['_array_V'][:] = 1
         codeobj(t=t, dt=dt)
     end = time.time()
     print lang.__class__.__name__+':', end-start

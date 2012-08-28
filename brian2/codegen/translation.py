@@ -200,7 +200,7 @@ def translate(code, specifiers, dtype, language):
 
 if __name__=='__main__':
     from numpy import float64
-    from languages import CLanguage, PythonLanguage
+    from languages import CLanguage, PythonLanguage, NumexprPythonLanguage
     DEBUG = True
     # switch between these two to invalidate x on the last line
     if 1:
@@ -229,11 +229,17 @@ if __name__=='__main__':
         }
     for lang in [
                  CLanguage(),
-                 PythonLanguage()
+                 PythonLanguage(),
+                 NumexprPythonLanguage()
                  ]:
         print lang.__class__.__name__
         print '='*len(lang.__class__.__name__)
-        output = indent(translate(code, specifiers, float64, lang))
+        output = translate(code, specifiers, float64, lang)
         print 'OUTPUT CODE:'
-        print output
+        if isinstance(output, str):
+            print indent(output)
+        else:
+            for k, v in output.items():
+                print k+':'
+                print indent(v)
         print
