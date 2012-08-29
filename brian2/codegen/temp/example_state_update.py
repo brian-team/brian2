@@ -46,9 +46,9 @@ print
 
 languages = [
     PythonLanguage(),
-    NumexprPythonLanguage(),
-    CLanguage(extra_compile_args=['-O3', '-ffast-math', '-march=native'], restrict='__restrict__', flush_denormals=True),
-    CUDALanguage(),
+    #NumexprPythonLanguage(),
+    #CLanguage(extra_compile_args=['-O3', '-ffast-math', '-march=native'], restrict='__restrict__', flush_denormals=True),
+    #CUDALanguage(),
     ]
 
 codestrings = {}
