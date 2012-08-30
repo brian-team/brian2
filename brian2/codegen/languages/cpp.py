@@ -68,6 +68,23 @@ class CPPLanguage(Language):
             __builtin_ia32_ldmxcsr(csr);
             
         Found at `<http://stackoverflow.com/questions/2487653/avoiding-denormal-values-in-c>`_.
+        
+    When C++ code is generated to be compiled, there are two keys to provide:
+    
+    ``%MAIN%``
+        The main loop.
+    ``%SUPPORT_CODE%``
+        The support code (function definitions, etc.), compiled in a separate
+        file.
+        
+    For user-defined functions, there are two keys to provide:
+    
+    ``support_code``
+        The function definition which will be added to the support code.
+    ``hashdefine_code``
+        The ``#define`` code added to the main loop.
+        
+    See :class:`TimedArray` for an example of these keys.
     '''
     
     language_id = 'cpp'
