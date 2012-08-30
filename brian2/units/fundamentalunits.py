@@ -118,12 +118,11 @@ __all__ = [
     'display_in_unit', 'Quantity', 'Unit', 'register_new_unit',
     'check_units', 'is_scalar_type', 'get_unit', 'get_unit_fast',
     'scalar_representation',
-    'check_units' # TODO:
+    'unit_checking'
     ]
 
 warn_if_no_unit_checking = True
 
-#from brian.utils.approximatecomparisons import *
 
 def wrap_function_dimensionless(func):
     def f(x, *args, **kwds):
@@ -135,6 +134,7 @@ def wrap_function_dimensionless(func):
         f.__dict__.update(func.__dict__)
     return f
 
+
 def wrap_function_keep_dimensions(func):
     def f(x, *args, **kwds):
             return Quantity(func(np.asarray(x), *args, **kwds), dim=x.dim)
@@ -143,6 +143,7 @@ def wrap_function_keep_dimensions(func):
     if hasattr(func, '__dict__'):
         f.__dict__.update(func.__dict__)
     return f
+
 
 def wrap_function_change_dimensions(func, change_dim_func):
     def f(x, *args, **kwds):
@@ -155,6 +156,7 @@ def wrap_function_change_dimensions(func, change_dim_func):
         f.__dict__.update(func.__dict__)
     return f
 
+
 def wrap_function_remove_dimensions(func):
     def f(x, *args, **kwds):
             return func(np.asarray(x), *args, **kwds)
@@ -164,6 +166,7 @@ def wrap_function_remove_dimensions(func):
         f.__dict__.update(func.__dict__)
     return f        
 
+
 def wrap_function_no_check_warning(func):    
     def f(*args, **kwds):
             warn('%s does not check the units of its arguments.' % func.__name__)
@@ -172,17 +175,18 @@ def wrap_function_no_check_warning(func):
     f.__doc__ = func.__doc__
     if hasattr(func, '__dict__'):
         f.__dict__.update(func.__dict__)
-    return f    
+    return f
 
-check_units = True
+unit_checking = True
+
+
 def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
-    if not check_units:
+    if not unit_checking:
         return
-    
-    #TODO: Decide whether to treat unitless arrays in a special way
-    dim1 = get_dimensions(np.asanyarray(obj1))    
+
+    dim1 = get_dimensions(np.asanyarray(obj1))
     dim2 = get_dimensions(np.asanyarray(obj2)) if not obj2 is None else DIMENSIONLESS   
-    
+
     if not dim1 is dim2:
         # Special treatment for "0":
         # if it is not a Quantity, it has "any dimension".
@@ -202,28 +206,29 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
 # SI dimensions (see table at end of file) and various descriptions,
 # each description maps to an index i, and the power of each dimension
 # is stored in the variable dims[i]
-_di = { "Length":0, "length": 0, "metre":0, "metres":0, "metre": 0, "metres":0,
-       "metre":0, "metres":0, "metre": 0, "metres":0, "m": 0, "Mass":1,
-       "mass": 1, "kilogram":1, "kilograms":1, "kilogram": 1, "kilograms":1,
-       "kg": 1, "Time":2, "time": 2, "second":2, "seconds":2, "second": 2,
-       "seconds":2, "s": 2, "Electric Current":3, "Electric Current":3,
-       "electric current": 3, "Current":3, "current":3, "ampere":3, "amperes":3,
-       "ampere": 3, "amperes":3, "A": 3, "Temperature":4, "temperature": 4,
-       "kelvin":4, "kelvins":4, "kelvin": 4, "kelvins":4, "K": 4,
-       "Quantity of Substance":5, "Quantity of substance": 5,
-       "quantity of substance": 5, "Substance":5, "substance":5, "mole":5,
-       "moles":5, "mole": 5, "moles":5, "mol": 5, "Luminosity":6,
-       "luminosity": 6, "candle":6, "candles":6, "candle": 6, "candles":6,
-       "cd": 6 }
+_di = { "Length": 0, "length": 0, "metre": 0, "metres": 0, "metre": 0,
+       "metres": 0, "metre": 0, "metres": 0, "metre": 0, "metres": 0, "m": 0,
+       "Mass": 1, "mass": 1, "kilogram": 1, "kilograms": 1, "kilogram": 1,
+       "kilograms": 1, "kg": 1, "Time": 2, "time": 2, "second": 2, "seconds": 2,
+       "second": 2, "seconds": 2, "s": 2, "Electric Current":3,
+       "Electric Current": 3, "electric current": 3, "Current": 3,
+       "current": 3, "ampere": 3, "amperes": 3, "ampere": 3, "amperes": 3,
+       "A": 3, "Temperature": 4, "temperature": 4, "kelvin": 4, "kelvins": 4,
+       "kelvin": 4, "kelvins": 4, "K": 4, "Quantity of Substance": 5,
+       "Quantity of substance": 5, "quantity of substance": 5, "Substance": 5,
+       "substance": 5, "mole": 5, "moles": 5, "mole": 5, "moles": 5, "mol": 5,
+       "Luminosity": 6, "luminosity": 6, "candle": 6, "candles": 6, "candle": 6,
+       "candles": 6, "cd": 6 }
 _ilabel = ["m", "kg", "s", "A", "K", "mol", "cd"]
 # The same labels with the names used for constructing them in Python code
 _iclass_label = ["metre", "kilogram", "second", "amp", "kelvin", "mole",
                  "candle"]
 # SI unit _prefixes, see table at end of file
-_siprefixes = {"y":1e-24, "z":1e-21, "a":1e-18, "f":1e-15, "p":1e-12, "n":1e-9,
-               "u":1e-6, "m":1e-3, "c":1e-2, "d":1e-1, "":1, "da":1e1, "h":1e2,
-               "k":1e3, "M":1e6, "G":1e9, "T":1e12, "P":1e15, "E":1e18,
-               "Z":1e21, "Y":1e24}
+_siprefixes = {"y": 1e-24, "z": 1e-21, "a": 1e-18, "f": 1e-15, "p": 1e-12,
+               "n": 1e-9, "u": 1e-6, "m": 1e-3, "c": 1e-2, "d": 1e-1, "": 1,
+               "da": 1e1, "h": 1e2, "k": 1e3, "M": 1e6, "G": 1e9, "T": 1e12,
+               "P": 1e15, "E": 1e18, "Z": 1e21, "Y": 1e24}
+
 
 class _Dimension(object):
     '''Stores the indices of the 7 basic SI unit dimension (length, mass, etc.)
@@ -647,7 +652,7 @@ class Quantity(np.ndarray):
                                              orig.dim)
         else:
             self.dim = getattr(orig, 'dim', DIMENSIONLESS)
-    
+
     def __array_prepare__(self, array, context=None):
         if context is None:
             return array
@@ -873,6 +878,14 @@ class Quantity(np.ndarray):
     def __rmul__(self, other):
         return self.__mul__(other)
 
+    def __imul__(self, other):
+        if isinstance(other, np.ndarray) or is_scalar_type(other):
+            super(Quantity, self).__imul__(other)
+            self.dim = self.dim * get_dimensions(other)
+            return self
+        else:
+            return NotImplemented
+
     def __div__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
             return Quantity.with_dimensions(np.asarray(self) / np.asarray(other),
@@ -882,7 +895,7 @@ class Quantity(np.ndarray):
 
     def __truediv__(self, other):
         return self.__div__(other)
-    
+
     def __rdiv__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
             return Quantity.with_dimensions(np.asarray(other) / np.asarray(self),
@@ -893,24 +906,48 @@ class Quantity(np.ndarray):
     def __rtruediv__(self, other):
         return self.__rdiv__(self, other)
 
+    def __idiv__(self, other):
+        if isinstance(other, np.ndarray) or is_scalar_type(other):
+            super(Quantity, self).__idiv__(other)
+            self.dim = self.dim / get_dimensions(other)
+            return self
+        else:
+            return NotImplemented
+
+    def __itruediv__(self, other):
+        if isinstance(other, np.ndarray) or is_scalar_type(other):
+            super(Quantity, self).__itruediv__(other)
+            self.dim = self.dim / get_dimensions(other)
+            return self
+        else:
+            return NotImplemented
+
     def __mod__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
             fail_for_dimension_mismatch(self, other, 'Modulo')
             return Quantity.with_dimensions(np.asarray(self) % np.asarray(other),
                                             self.dim)
         else:
-            return NotImplemented    
+            return NotImplemented
 
     def __add__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
             fail_for_dimension_mismatch(self, other, 'Addition')
             return Quantity.with_dimensions(np.asarray(self) + np.asarray(other),
-                                            self.dim)            
+                                            self.dim)
         else:
-            return NotImplemented    
+            return NotImplemented
 
     def __radd__(self, other):
         return self.__add__(other)
+
+    def __iadd__(self, other):
+        if isinstance(other, np.ndarray) or is_scalar_type(other):
+            fail_for_dimension_mismatch(self, other, 'Addition')
+            super(Quantity, self).__iadd__(other)
+            return self
+        else:
+            return NotImplemented
 
     def __sub__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
@@ -922,9 +959,17 @@ class Quantity(np.ndarray):
 
     def __rsub__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
-            fail_for_dimension_mismatch(self, other, 'Subtraction (R)')            
+            fail_for_dimension_mismatch(self, other, 'Subtraction (R)')
             return Quantity.with_dimensions(np.asarray(other) - np.asarray(self),
-                                                self.dim)            
+                                                self.dim)
+        else:
+            return NotImplemented
+
+    def __isub__(self, other):
+        if isinstance(other, np.ndarray) or is_scalar_type(other):
+            fail_for_dimension_mismatch(self, other, 'Subtraction')
+            super(Quantity, self).__isub__(other)
+            return self
         else:
             return NotImplemented
 
@@ -947,6 +992,16 @@ class Quantity(np.ndarray):
         else:
             raise DimensionMismatchError("Power(R)", self.dim)
 
+    def __ipow__(self, other):
+        if isinstance(other, np.ndarray) or is_scalar_type(other):
+            fail_for_dimension_mismatch(other, error_message='Power')
+            # FIXME do not allow multiple values for exponent
+            super(Quantity, self).__ipow__(np.asarray(other))
+            self.dim = self.dim ** np.asarray(other)
+            return self
+        else:
+            return NotImplemented
+
     def __neg__(self):
         return Quantity.with_dimensions(-np.asarray(self), self.dim)
 
@@ -967,7 +1022,7 @@ class Quantity(np.ndarray):
     std = wrap_function_keep_dimensions(np.ndarray.std)
     sum = wrap_function_keep_dimensions(np.ndarray.sum)
     trace = wrap_function_keep_dimensions(np.ndarray.trace)
-    
+
     def prod(self, *args, **kwds):
         if not self.is_dimensionless():
             raise NotImplementedError('Product over array elements on quantities '
@@ -1227,8 +1282,9 @@ class Unit(Quantity):
     __array_priority__ = 10000
     
     #### CONSTRUCTION ####
-    def __new__(cls, *args, **kw):
-        obj = super(Unit, cls).__new__(cls, *args, **kw)
+    def __new__(cls, arr, dim=None, scale=None, dtype=None, copy=False):
+        obj = super(Unit, cls).__new__(cls, arr, dim=dim, dtype=dtype,
+                                       copy=copy)
         global automatically_register_units
         if automatically_register_units:
             register_new_unit(obj)
@@ -1247,11 +1303,15 @@ class Unit(Quantity):
         return self  
         
     def __init__(self, value, dim=None, scale=None):
-        """Initialises a dimensionless unit
+        """Initialises a unit
         """
         super(Unit, self).__init__(value)
-        self.dim = DIMENSIONLESS
-        self.scale = [ "", "", "", "", "", "", "" ]
+        self.dim = dim
+        if scale is None:
+            scale = ("", "", "", "", "", "", "")
+        if not len(scale) == 7:
+            raise ValueError('scale needs seven entries')
+        self.scale = scale
         self.scalefactor = ""
         self.name = ""
         self.dispname = ""
@@ -1273,9 +1333,7 @@ class Unit(Quantity):
         v = 1.0
         for s, i in izip(scale, dim._dims):
             if i: v *= _siprefixes[s] ** i
-        u = Unit(v * _siprefixes[scalefactor])
-        u.dim = dim
-        u.scale = scale
+        u = Unit(v * _siprefixes[scalefactor], dim=dim, scale=tuple(scale))
         u.scalefactor = scalefactor + ""
         u.name = name + ""
         u.dispname = dispname + ""
@@ -1289,9 +1347,8 @@ class Unit(Quantity):
         baseunit -- e.g. volt, amp
         scalefactor -- e.g. "m" for mvolt, mamp
         """
-        u = Unit(np.asarray(baseunit) * _siprefixes[scalefactor])
-        u.dim = baseunit.dim
-        u.scale = baseunit.scale
+        u = Unit(np.asarray(baseunit) * _siprefixes[scalefactor],
+                 dim=baseunit.dim, scale=baseunit.scale)
         u.scalefactor = scalefactor
         u.name = scalefactor + baseunit.name
         u.dispname = scalefactor + baseunit.dispname
@@ -1356,6 +1413,9 @@ class Unit(Quantity):
         else:
             return super(Unit, self).__mul__(other)
 
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
     def __div__(self, other):
         if isinstance(other, Unit):
             u = Unit(np.asarray(self) / np.asarray(other))            
@@ -1379,6 +1439,12 @@ class Unit(Quantity):
         else:
             return super(Unit, self).__div__(other)
 
+    def __rdiv__(self, other):
+        if isinstance(other, Unit):
+            return other.__div__(self)
+        else:
+            return super(Unit, self).__rdiv__(other)
+
     def __pow__(self, other):
         if is_scalar_type(other):
             u = Unit(np.asarray(self) ** other)            
@@ -1393,7 +1459,7 @@ class Unit(Quantity):
             u.dim = self.dim ** other
             return u
         else:
-            return super(Unit, self).__mul__(other)
+            return super(Unit, self).__pow__(other)
 
     def __iadd__(self, other):
         raise TypeError('Units cannot be modified in-place')

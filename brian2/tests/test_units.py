@@ -85,9 +85,57 @@ def test_multiplication_division():
 
 
 def test_addition_subtraction():
-    #TODO
-    pass
+    quantities = [3 * mV, np.array([1, 2]) * mV, np.ones((3, 3)) * mV]
+    q2 = 5 * volt
 
+    for q in quantities:
+        # arrays with units
+        assert_quantity(q + q, np.asarray(q) + np.asarray(q), volt)
+        assert_quantity(q - q, 0, volt)
+        assert_quantity(q + q2, np.asarray(q) + np.asarray(q2), volt)
+        assert_quantity(q2 + q, np.asarray(q2) + np.asarray(q), volt)
+        assert_quantity(q - q2, np.asarray(q) - np.asarray(q2), volt)
+        assert_quantity(q2 - q, np.asarray(q2) - np.asarray(q), volt)
+        
+        # mismatching units
+        assert_raises(DimensionMismatchError, lambda: q + 5 * second)
+        assert_raises(DimensionMismatchError, lambda: 5 * second + q)
+        assert_raises(DimensionMismatchError, lambda: q - 5 * second)
+        assert_raises(DimensionMismatchError, lambda: 5 * second - q)
+        
+        # scalar        
+        assert_raises(DimensionMismatchError, lambda: q + 5)
+        assert_raises(DimensionMismatchError, lambda: 5 + q)
+        assert_raises(DimensionMismatchError, lambda: q + np.float32(5))
+        assert_raises(DimensionMismatchError, lambda: np.float32(5) + q)
+        assert_raises(DimensionMismatchError, lambda: q - 5)
+        assert_raises(DimensionMismatchError, lambda: 5 - q)
+        assert_raises(DimensionMismatchError, lambda: q - np.float32(5))
+        assert_raises(DimensionMismatchError, lambda: np.float32(5) - q)
+        
+        # unitless array
+        assert_raises(DimensionMismatchError, lambda: q + np.array([5]))
+        assert_raises(DimensionMismatchError, lambda: np.array([5]) + q)
+        assert_raises(DimensionMismatchError,
+                      lambda: q + np.array([5], dtype=np.float32))
+        assert_raises(DimensionMismatchError,
+                      lambda: np.array([5], dtype=np.float32) + q)
+        assert_raises(DimensionMismatchError, lambda: q - np.array([5]))
+        assert_raises(DimensionMismatchError, lambda: np.array([5]) - q)
+        assert_raises(DimensionMismatchError,
+                      lambda: q - np.array([5], dtype=np.float32))
+        assert_raises(DimensionMismatchError,
+                      lambda: np.array([5], dtype=np.float32) - q)                        
+
+        # Check that operations with 0 work
+        assert_quantity(q + 0, np.asarray(q), volt)
+        assert_quantity(0 + q, np.asarray(q), volt)
+        assert_quantity(q - 0, np.asarray(q), volt)
+        assert_quantity(0 - q, -np.asarray(q), volt)
+        assert_quantity(q + np.float32(0), np.asarray(q), volt)
+        assert_quantity(np.float32(0) + q, np.asarray(q), volt)
+        assert_quantity(q - np.float32(0), np.asarray(q), volt)
+        assert_quantity(np.float32(0) - q, -np.asarray(q), volt)
 
 def test_binary_operations():
     ''' Test whether binary operations work when they should and raise
@@ -174,8 +222,42 @@ def test_binary_operations():
         assert_operations_do_not_work(a, b)
 
     # TODO: Comparisons to inf/-inf (?)
-    # TODO: Operations with 0
 
+def test_inplace_operations():
+    q = np.arange(10) * volt
+    q_orig = q.copy()
+    q_id = id(q)
+    
+    q *= 2
+    assert np.all(q == 2 * q_orig) and id(q) == q_id 
+    q /= 2
+    assert np.all(q == q_orig) and id(q) == q_id
+    q += 1 * volt
+    assert np.all(q == q_orig + 1 * volt) and id(q) == q_id
+    q -= 1 * volt
+    assert np.all(q == q_orig) and id(q) == q_id
+    q **= 2
+    assert np.all(q == q_orig**2) and id(q) == q_id
+    q **= 0.5
+    assert np.all(q == q_orig) and id(q) == q_id
+
+    def illegal_add(q2):
+        q = np.arange(10) * volt
+        q += q2
+    assert_raises(DimensionMismatchError, lambda: illegal_add(1 * second))
+    assert_raises(DimensionMismatchError, lambda: illegal_add(1))
+
+    def illegal_sub(q2):
+        q = np.arange(10) * volt
+        q -= q2
+    assert_raises(DimensionMismatchError, lambda: illegal_add(1 * second))
+    assert_raises(DimensionMismatchError, lambda: illegal_add(1))
+    
+    def illegal_pow(q2):
+        q = np.arange(10) * volt
+        q **= q2
+    assert_raises(DimensionMismatchError, lambda: illegal_pow(1 * volt)) 
+    
 
 # Functions that should not change units
 def test_numpy_functions_same_dimensions():
@@ -198,9 +280,11 @@ def test_numpy_functions_same_dimensions():
 
 # Functions that should change units in a simple way
 
+
 if __name__ == '__main__':
     test_construction()
     test_multiplication_division()
     test_addition_subtraction()
     test_binary_operations()
+    test_inplace_operations()
     test_numpy_functions_same_dimensions()
