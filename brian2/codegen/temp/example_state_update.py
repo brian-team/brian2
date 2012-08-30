@@ -2,12 +2,13 @@ from numpy import float64
 from brian2.codegen.specifiers import (Function, Value, ArrayVariable,
                                        Subexpression, Index)
 from brian2.codegen.translation import translate, make_statements
-from brian2.codegen.languages import (CLanguage, PythonLanguage, CUDALanguage,
+from brian2.codegen.languages import (CPPLanguage, PythonLanguage, CUDALanguage,
                                       NumexprPythonLanguage)
 from brian2.codegen.templating import apply_code_template
 from brian2.utils.stringtools import deindent
 import pylab
 import time
+from codeprint import codeprint
 
 test_compile = True
 do_plot = True
@@ -44,12 +45,19 @@ for stmt in intermediate:
     print stmt
 print
 
-languages = [
-    PythonLanguage(),
-    #NumexprPythonLanguage(),
-    #CLanguage(extra_compile_args=['-O3', '-ffast-math', '-march=native'], restrict='__restrict__', flush_denormals=True),
-    #CUDALanguage(),
-    ]
+def getlang(cls, *args, **kwds):
+    try:
+        return cls(*args, **kwds)
+    except Exception as e:
+        warnings.warn("Couldn't load language "+cls.__name__+'\n'+str(e))
+        return None
+
+languages = [lang for lang in [
+    getlang(PythonLanguage),
+    getlang(NumexprPythonLanguage),
+    getlang(CPPLanguage, extra_compile_args=['-O3', '-ffast-math', '-march=native'], restrict='__restrict__', flush_denormals=True),
+    getlang(CUDALanguage),
+    ] if lang is not None]
 
 codestrings = {}
 
@@ -59,7 +67,7 @@ for lang in languages:
     codestrings[lang] = code
     print lang.__class__.__name__
     print '='*len(lang.__class__.__name__)
-    print code
+    codeprint(code)
 
 if not test_compile:
     exit()
@@ -84,6 +92,8 @@ Mall = {}
 pylab.subplot(211)
 pylab.title('All languages, some neurons')
 for lang in languages:
+    if lang not in codestrings:
+        continue
     namespace = {
         '_array_V': _array_V.copy(),
         '_array_tau': _array_tau.copy(),
@@ -91,7 +101,7 @@ for lang in languages:
         }
     code = codestrings[lang]
     try:
-        codeobj = lang.code_object(code)
+        codeobj = lang.code_object(code, specifiers)
     except NotImplementedError:
         print lang.__class__.__name__+':', 'not implemented'
         continue
@@ -103,16 +113,7 @@ for lang in languages:
         M.append(namespace['_array_V'].copy()[:Nshow])
         Mc.append(namespace['_array_V'][0])
         T.append(t)
-        # TODO: debug numexpr
-#        for k, v in namespace.items():
-#            if not k.startswith('__'):
-#                print k, v
-#        print
         codeobj(t=t, dt=dt)
-#        for k, v in namespace.items():
-#            if not k.startswith('__'):
-#                print k, v
-#        exit()
     Mall[lang.__class__.__name__] = Mc
     pylab.plot(T, M)
     start = time.time()

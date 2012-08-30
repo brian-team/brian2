@@ -18,7 +18,6 @@ def apply_code_template(code, template, placeholder='%CODE%'):
     All tab characters are replaced by four spaces.
     '''
     code = deindent(code)
-    #code = '\n'.join(line for line in code.split('\n') if line.strip())
     code = strip_empty_lines(code)
     template = template.replace('\t', ' '*4)
     lines = template.split('\n')

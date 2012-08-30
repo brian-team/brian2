@@ -3,13 +3,26 @@ Base class for languages, gives the methods which should be overridden to
 implement a new language.
 '''
 
-from brian2.codegen.specifiers import ArrayVariable
-from brian2.utils.stringtools import get_identifiers, deindent
-from brian2.codegen.templating import apply_code_template
+from ..specifiers import ArrayVariable
+from ...utils.stringtools import get_identifiers, deindent
+from ..templating import apply_code_template
+from ..functions import UserFunction
+import functools
 
 __all__ = ['Language', 'CodeObject']
 
 class Language(object):
+    '''
+    Base class for all languages.
+    
+    See definition of methods below.
+    
+    TODO: more details here
+    '''
+    
+    # Subclasses should override this
+    language_id = ''
+    
     def translate_expression(self, expr):
         '''
         Translate the given expression string into a string in the target
@@ -43,20 +56,41 @@ class Language(object):
         '''
         raise NotImplementedError
     
+    def compile_methods(self, specifiers):
+        meths = []
+        for var, spec in specifiers.items():
+            if isinstance(spec, UserFunction):
+                meths.append(functools.partial(spec.on_compile, language=self,
+                                               var=var))
+        return meths
+    
     def apply_template(self, code, template):
         '''
         Applies the inner code to the template. The code should either be a
         string (in which case it goes in the ``%CODE%`` slot) or it should be
         a dict of pairs ``(slot, section)`` where the string ``section``
-        goes in slot ``slot``.
+        goes in slot ``slot``. The template should be a string (in which case
+        it is assigned to the slot ``%MAIN%`` or a dict of ``(slot, code)``
+        pairs. Returns either a string (if the template was a string) or a
+        dict with the same keys as the template.
         '''
         if isinstance(code, str):
-            return apply_code_template(code, deindent(template))
+            code = {'%CODE%': code}
+        if isinstance(template, str):
+            return_str = True
+            template = {'%MAIN%': template}
         else:
-            tmp = deindent(template)
-            for k, v in code.items():
-                tmp = apply_code_template(v, tmp, placeholder=k)
-            return tmp
+            return_str = False
+        output = template.copy()
+        for name, tmp in output.items():
+            tmp = deindent(tmp)
+            for slot, section in code.items():
+                tmp = apply_code_template(section, tmp, placeholder=slot)
+            output[name] = tmp
+        if return_str:
+            return output['%MAIN%']
+        else:
+            return output
 
     def array_read_write(self, statements, specifiers):
         '''
@@ -132,7 +166,8 @@ class CodeObject(object):
     Executable code object, returned by Language
     
     Code object is initialised by Language object, typically just by doing
-    ``CodeObject(code)``.
+    ``CodeObject(code)``. The ``code`` can either be a string, or a dict
+    of ``(name, code)`` pairs if there are multiple elements of the code.
     
     After initialisation, the code is compiled with the given namespace
     using ``code.compile(namespace)``.
@@ -140,11 +175,14 @@ class CodeObject(object):
     Calling ``code(key1=val1, key2=val2)`` executes the code with the given
     variables inserted into the namespace.
     '''
-    def __init__(self, code):
+    def __init__(self, code, compile_methods=[]):
         self.code = code
+        self.compile_methods = compile_methods
     
     def compile(self, namespace):
-        raise NotImplementedError
+        self.namespace = namespace
+        for meth in self.compile_methods:
+            meth(namespace)
     
     def __call__(self, **kwds):
         raise NotImplementedError

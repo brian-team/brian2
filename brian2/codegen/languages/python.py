@@ -5,6 +5,8 @@ __all__ = ['PythonLanguage', 'PythonCodeObject']
 
 class PythonLanguage(Language):
     
+    language_id = 'python'
+    
     def translate_expression(self, expr):
         return expr.strip()
     
@@ -53,8 +55,8 @@ class PythonLanguage(Language):
                 lines.append(line)
         return '\n'.join(lines)
     
-    def code_object(self, code):
-        return PythonCodeObject(code)
+    def code_object(self, code, specifiers):
+        return PythonCodeObject(code, self.compile_methods(specifiers))
 
     def template_iterate_all(self, index, size):
         return '''
@@ -100,7 +102,7 @@ class PythonLanguage(Language):
 
 class PythonCodeObject(CodeObject):
     def compile(self, namespace):
-        self.namespace = namespace
+        super(PythonCodeObject, self).compile(namespace)
         self.compiled_code = compile(self.code, '(string)', 'exec')
     
     def __call__(self, **kwds):

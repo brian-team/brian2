@@ -3,8 +3,14 @@ from python import PythonLanguage, PythonCodeObject
 import sympy
 try:
     import numexpr
+    numexpr_ver = tuple(map(int, numexpr.__version__.split('.')))
+    if len(numexpr_ver)<3:
+        numexpr_ver = numexpr_ver+(0,)*(3-len(numexpr_ver))
+    if numexpr_ver<(2, 0, 0):
+        numexpr = None
 except ImportError:
     numexpr = None
+    numexpr_ver = None
 
 __all__ = ['NumexprPythonLanguage', 'NumexprPythonCodeObject']
 
@@ -25,6 +31,8 @@ class NumexprPythonLanguage(PythonLanguage):
         for number_of_cores()-1, etc.
     '''
     def __init__(self, complexity_threshold=2, multicore=True):
+        if numexpr_ver is None or numexpr_ver<(2, 0, 0):
+            raise ImportError("numexpr version 2.0.0 or better required.")
         self.complexity_threshold = complexity_threshold
         nc = numexpr.detect_number_of_cores()
         if multicore is True:
@@ -65,8 +73,8 @@ class NumexprPythonLanguage(PythonLanguage):
 #        return '_numexpr.evaluate("{var}{opfirst}({expr})", out={var})'.format(
 #                        var=statement.var, opfirst=opfirst, expr=statement.expr)
 
-    def code_object(self, code):
-        return NumexprPythonCodeObject(code)
+    def code_object(self, code, specifiers):
+        return NumexprPythonCodeObject(code, self.compile_methods(specifiers))
 
 
 def expression_complexity(expr):

@@ -5,10 +5,12 @@ import numpy
 from base import Language, CodeObject
 import sympy
 from sympy.printing.ccode import CCodePrinter
-from brian2.codegen.templating import apply_code_template
+from ..templating import apply_code_template
+from ..functions import UserFunction
 from scipy import weave
+from brian2.utils.stringtools import deindent
 
-__all__ = ['CLanguage', 'CCodeObject',
+__all__ = ['CPPLanguage', 'CPPCodeObject',
            'c_data_type',
            ]
 
@@ -40,7 +42,7 @@ def c_data_type(dtype):
         raise ValueError("dtype "+str(dtype)+" not known.")
     return dtype
 
-class CLanguage(Language):
+class CPPLanguage(Language):
     '''
     Initialisation arguments:
     
@@ -67,6 +69,9 @@ class CLanguage(Language):
             
         Found at `<http://stackoverflow.com/questions/2487653/avoiding-denormal-values-in-c>`_.
     '''
+    
+    language_id = 'cpp'
+    
     def __init__(self, compiler='gcc', extra_compile_args=['-O3', '-ffast-math'],
                  restrict='__restrict__', flush_denormals=False):
         self.compiler = compiler
@@ -128,85 +133,131 @@ class CLanguage(Language):
             line = c_data_type(spec.dtype)+' * '+self.restrict+'_ptr'+spec.array+' = '+spec.array+';'
             lines.append(line)
         pointers = '\n'.join(lines)
+        # set up the user-defined functions
+        support_code = ''
+        hash_defines = ''
+        for var, spec in specifiers.items():
+            if isinstance(spec, UserFunction):
+                speccode = spec.code(self, var)
+                support_code += '\n'+deindent(speccode['support_code'])
+                hash_defines += deindent(speccode['hashdefine_code'])
+        # return
         translation = {'%CODE%': code,
                        '%POINTERS%': pointers,
+                       '%SUPPORT_CODE%': support_code,
+                       '%HASHDEFINES%': hash_defines,
                        }
         return translation
     
-    def code_object(self, code):
-        return CCodeObject(code, compiler=self.compiler,
-                           extra_compile_args=self.extra_compile_args)
+    def code_object(self, code, specifiers):
+        return CPPCodeObject(code,
+                             compile_methods=self.compile_methods(specifiers),
+                             compiler=self.compiler,
+                             extra_compile_args=self.extra_compile_args)
         
     def denormals_to_zero_code(self):
         if self.flush_denormals:
             return '''
-        #define CSR_FLUSH_TO_ZERO         (1 << 15)
-        unsigned csr = __builtin_ia32_stmxcsr();
-        csr |= CSR_FLUSH_TO_ZERO;
-        __builtin_ia32_ldmxcsr(csr);
+            #define CSR_FLUSH_TO_ZERO         (1 << 15)
+            unsigned csr = __builtin_ia32_stmxcsr();
+            csr |= CSR_FLUSH_TO_ZERO;
+            __builtin_ia32_ldmxcsr(csr);
             '''
         else:
             return ''
 
     def template_iterate_all(self, index, size):
-        return self.denormals_to_zero_code()+'''
-        %POINTERS%
-        for(int {index}=0; {index}<{size}; {index}++)
-        {{
-            %CODE%
-        }}
-        '''.format(index=index, size=size)
+        return {
+            '%MAIN%':self.denormals_to_zero_code()+'''
+            /*
+            %SUPPORT_CODE%
+            */
+            %HASHDEFINES%
+            %POINTERS%
+            for(int {index}=0; {index}<{size}; {index}++)
+            {{
+                %CODE%
+            }}
+            '''.format(index=index, size=size),
+            '%SUPPORT_CODE%':'%SUPPORT_CODE%',
+            }
     
     def template_iterate_index_array(self, index, array, size):
-        return self.denormals_to_zero_code()+'''
-        %POINTERS%
-        for(int _index_{array}=0; _index_{array}<{size}; _index_{array}++)
-        {{
-            const int {index} = {array}[_index_{array}];
-            %CODE%
-        }}
-        '''.format(index=index, array=array, size=size)
+        return {
+            '%MAIN%':self.denormals_to_zero_code()+'''
+            /*
+            %SUPPORT_CODE%
+            */
+            %HASHDEFINES%
+            %POINTERS%
+            for(int _index_{array}=0; _index_{array}<{size}; _index_{array}++)
+            {{
+                const int {index} = {array}[_index_{array}];
+                %CODE%
+            }}
+            '''.format(index=index, array=array, size=size),
+            '%SUPPORT_CODE%':'%SUPPORT_CODE%',
+            }
 
     def template_threshold(self):
-        return self.denormals_to_zero_code()+'''
-        %POINTERS%
-        int _numspikes = 0;
-        for(int _neuron_idx=0; _neuron_idx<_num_neurons; _neuron_idx++)
-        {
-            %CODE%
-            if(_cond) {
-                _spikes[_numspikes++] = _neuron_idx;
+        return {
+            '%MAIN%':self.denormals_to_zero_code()+'''
+            /*
+            %SUPPORT_CODE%
+            */
+            %HASHDEFINES%
+            %POINTERS%
+            int _numspikes = 0;
+            for(int _neuron_idx=0; _neuron_idx<_num_neurons; _neuron_idx++)
+            {
+                %CODE%
+                if(_cond) {
+                    _spikes[_numspikes++] = _neuron_idx;
+                }
             }
-        }
-        '''
+            ''',
+            '%SUPPORT_CODE%':'%SUPPORT_CODE%',
+            }
 
     def template_synapses(self):
-        return self.denormals_to_zero_code()+'''
-        %POINTERS%
-        for(int _spiking_synapse_idx=0;
-            _spiking_synapse_idx<_num_spiking_synapses;
-            _spiking_synapse_idx++)
-        {
-                const int _synapse_idx = _spiking_synapses[_spiking_synapse_idx];
-                const int _postsynaptic_idx = _postsynaptic[_synapse_idx];
-                const int _presynaptic_idx = _presynaptic[_synapse_idx];
-                %CODE%
-        }
-        '''
+        return {
+            '%MAIN%':self.denormals_to_zero_code()+'''
+            /*
+            %SUPPORT_CODE%
+            */
+            %HASHDEFINES%
+            %POINTERS%
+            for(int _spiking_synapse_idx=0;
+                _spiking_synapse_idx<_num_spiking_synapses;
+                _spiking_synapse_idx++)
+            {
+                    const int _synapse_idx = _spiking_synapses[_spiking_synapse_idx];
+                    const int _postsynaptic_idx = _postsynaptic[_synapse_idx];
+                    const int _presynaptic_idx = _presynaptic[_synapse_idx];
+                    %CODE%
+            }
+            ''',
+            '%SUPPORT_CODE%':'%SUPPORT_CODE%',
+            }
 
-class CCodeObject(CodeObject):
-    def __init__(self, code, compiler='gcc', extra_compile_args=['-O3']):
-        self.code = code+'  '
+class CPPCodeObject(CodeObject):
+    '''
+    C++ code object
+    
+    The ``code`` should be a dict with two keys, ``'%MAIN%'`` for the main loop
+    code, and ``'%SUPPORT_CODE%'`` for any support code (e.g. function
+    definitions).
+    '''
+    def __init__(self, code, compile_methods=[], compiler='gcc', extra_compile_args=['-O3']):
+        super(CPPCodeObject, self).__init__(code,
+                                            compile_methods=compile_methods)
         self.compiler = compiler
         self.extra_compile_args = extra_compile_args
         
-    def compile(self, namespace):
-        self.namespace = namespace
-        
     def __call__(self, **kwds):
         self.namespace.update(kwds)
-        weave.inline(self.code, self.namespace.keys(),
-                     local_dict = self.namespace,
-                     #support_code=c_support_code,
+        weave.inline(self.code['%MAIN%'], self.namespace.keys(),
+                     local_dict=self.namespace,
+                     support_code=self.code['%SUPPORT_CODE%'],
                      compiler=self.compiler,
                      extra_compile_args=self.extra_compile_args)

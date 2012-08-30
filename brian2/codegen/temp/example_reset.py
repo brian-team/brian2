@@ -2,9 +2,10 @@ from numpy import float64
 from brian2.codegen.specifiers import (Function, Value, ArrayVariable,
                                        Subexpression, Index)
 from brian2.codegen.translation import translate, make_statements
-from brian2.codegen.languages import CLanguage, PythonLanguage, CUDALanguage
+from brian2.codegen.languages import CPPLanguage, PythonLanguage, CUDALanguage
 from brian2.codegen.templating import apply_code_template
 from brian2.utils.stringtools import deindent
+from codeprint import codeprint
 
 # we don't actually use these, but this is what we would start from
 reset = '''
@@ -35,11 +36,11 @@ print
 
 for lang in [
         PythonLanguage(),
-        CLanguage(),
+        CPPLanguage(),
         CUDALanguage(),
         ]:
     innercode = translate(abstract, specifiers, float64, lang)
-    code = apply_code_template(innercode, lang.template_reset())
+    code = lang.apply_template(innercode, lang.template_reset())
     print lang.__class__.__name__
     print '='*len(lang.__class__.__name__)
-    print code
+    codeprint(code)

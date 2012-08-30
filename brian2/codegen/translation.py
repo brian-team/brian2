@@ -15,9 +15,9 @@ The input information needed:
 * The language to translate to
 '''
 
-from brian2.codegen.specifiers import (Function, Value, ArrayVariable,
-                                       OutputVariable, Subexpression, Index)
-from brian2.codegen.statements import Statement
+from specifiers import (Function, Value, ArrayVariable, OutputVariable,
+                        Subexpression, Index)
+from statements import Statement
 from brian2.utils.stringtools import (deindent, strip_empty_lines, indent,
                                       get_identifiers)
 import re

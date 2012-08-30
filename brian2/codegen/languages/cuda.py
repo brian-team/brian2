@@ -1,10 +1,13 @@
 from base import Language
-from c import CLanguage
+from cpp import CPPLanguage
 
 __all__ = ['CUDALanguage']
 
-class CUDALanguage(CLanguage):
-    def code_object(self, code):
+class CUDALanguage(CPPLanguage):
+    
+    language_id = 'cuda'
+    
+    def code_object(self, code, specifiers):
         raise NotImplementedError
     
     def template_iterate_all(self, index, size):
