@@ -41,7 +41,7 @@ import re
 import uuid
 
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
-                       Combine, Suppress, restOfLine, LineEnd)
+                       Combine, Suppress, restOfLine, LineEnd, ParseException)
 
 
 from brian2.units.stdunits import stdunits
@@ -242,7 +242,12 @@ class Equations(object):
         Parses a string defining equations and builds an Equations object.
         Uses the namespace in the given level of the stack.
         """
-        parsed = EQUATIONS.parseString(eqns, parseAll=True)
+        try:
+            parsed = EQUATIONS.parseString(eqns, parseAll=True)
+        except ParseException as p_exc:
+            # TODO: Any way to have colorful output when run under ipython?
+            raise ValueError('Parsing failed: \n' + str(p_exc.line) + '\n' +
+                             ' '*(p_exc.column - 1) + '^\n' + str(p_exc))
         for eq in parsed:
             eq_type = eq.getName()
             eq_content = dict(eq.items())
@@ -466,3 +471,6 @@ if __name__ == '__main__':
     ''')
     print 'Long equation string containing comments'
     print eq
+    
+    print 'Incorrect equation string:'
+    Equations('dv/dt = -v / (1 * ms) : volt (active')
