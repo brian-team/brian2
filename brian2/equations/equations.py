@@ -42,14 +42,13 @@ import uuid
 
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
-
+from sympy import sympify, Symbol, Wild
+from sympy.core.sympify import SympifyError
 
 from brian2.units.stdunits import stdunits
 from brian2.units.fundamentalunits import (Quantity, Unit, all_registered_units,
                                            DIMENSIONLESS)
 from brian2.units import second
-
-from brian.inspection import get_identifiers
 
 # Definitions of equation structure for parsing with pyparsing
 ###############################################################################
@@ -120,7 +119,53 @@ def unique_id():
     return '_' + str(uuid.uuid1().int) 
 
 
-def get_unit_from_string(unit_string):
+def get_default_unit_namespace():    
+    namespace = dict([(u.name, u) for u in all_registered_units()])
+    namespace.update(stdunits)
+    return namespace
+
+
+def get_expression_parts(expr):
+    '''
+    Returns a tuple containing the functions f and g (as sympy expressions),
+    assuming expressions of the form ``f + g * xi``, where ``xi`` is the
+    symbol for the random variable.
+    
+    ``expr`` can be a string or a sympy expression.
+    
+    Always returns expressions for f and g, but these can be ``0`` if the
+    corresponding part is not present. 
+    
+    Examples::
+    
+        >>> get_expression_parts('-v / (1 * ms)')
+        (-v/ms, 0)
+        >>> get_expression_parts('sigma * xi')
+        (0, sigma)
+        >>> get_expression_parts('mu / tau + sigma / tau**.5 * xi')
+        (mu/tau, sigma*tau**-0.5)
+        >>> get_expression_parts('-v + xi ** 2')
+        Traceback (most recent call last):
+            ...    
+        ValueError: Expression "-v + xi**2" cannot be separated into stochastic and non-stochastic term
+    '''
+    expr = sympify(expr)
+    xi = Symbol('xi')
+    f = Wild('f', exclude=[xi]) # non-stochastic part
+    g = Wild('g', exclude=[xi]) # stochastic part
+    matches = expr.match(f + g * xi)
+    if matches is None:
+        raise ValueError(('Expression "%s" cannot be separated into stochastic '
+                         'and non-stochastic term') % expr)
+
+    return (matches[f], matches[g])
+
+
+def get_unit_from_string(unit_string, unit_namespace=None):
+    if unit_namespace is None:
+        namespace = get_default_unit_namespace()
+    else:
+        namespace = unit_namespace
     unit_string = unit_string.strip()
     
     # Special case: dimensionless unit
@@ -130,8 +175,6 @@ def get_unit_from_string(unit_string):
     # Check first whether the expression evaluates at all, using only
     # registered units
     try:
-        namespace = dict([(u.name, u) for u in all_registered_units()])
-        namespace.update(stdunits)        
         evaluated_unit = eval(unit_string, namespace)
     except Exception as ex:
         raise ValueError('"%s" does not evaluate to a unit: %s' %
@@ -168,8 +211,8 @@ class Equations(object):
     
     with arguments:
     
-    ``expr``
-        A string equation
+    ``eqns``
+        String equation(s) (possibly multi-line)
     ``allowed_flags``:
         A dictionary with a list of allowed flags (strings) for the equation
         types ``diff_equation``, ``static_equation`` and ``parameter``. Not
@@ -182,11 +225,8 @@ class Equations(object):
         A list or set of strings that are not allowed as identifiers. Will be
         added to ['t', 'dt', 'xi'] which are always forbidden. This is used by
         the :class:``Synapses`` class which forbids "i" and "j" as identifiers.        
-    ``keywords``
-        Any sequence of keyword pairs ``key=value`` where the string ``key``
-        in the string equations will be replaced with ``value`` which can
-        be either a string, value or ``None``, in the latter case a unique
-        name will be generated automatically (but it won't be pretty).
+    ``namespace``:
+        TODO
     
     **String equations**
     
@@ -194,16 +234,18 @@ class Equations(object):
     
     (1) ``dx/dt = f : unit (flags)`` (differential equation)
     (2) ``x = f : unit (flags)`` (equation)
-    (4) ``x : unit (flags)`` (parameter)
+    (3) ``x : unit (flags)`` (parameter)
     
     """
-    def __init__(self, expr='', level=0, allowed_flags=None, 
-                 reserved_identifiers=None, **kwds):
+    def __init__(self, eqns='', level=0, allowed_flags=None, 
+                 reserved_identifiers=None, namespace=None):
         # Empty object        
         self._string_expressions = {} # dictionary of strings (defining the functions)
-        self._namespace = {} # dictionary of namespaces for the strings (globals,locals)        
+        self._sympy_expressions = {} # dictionary of sympy expressions
+        self._namespace = {} # dictionary of namespaces for the strings        
         self._units = {'t':second} # dictionary of units
         self._flags = {} # dictionary of "flags", e.g. "const" or "event-driven"
+        self._identifiers = set() # all identifiers (union of the next 3 lists)
         self._diff_equation_names = [] # differential equation variables
         self._static_equation_names = [] # static equation variables
         self._parameter_names = [] # parameters
@@ -218,18 +260,7 @@ class Equations(object):
         if not reserved_identifiers is None:
             self.reserved_identifiers = self.reserved_identifiers.union(set(reserved_identifiers))
         
-        # Check keyword arguments
-        param_dict = {}
-        for name, value in kwds.iteritems():
-            if value is None: # name is not important: choose unique name
-                value = unique_id()
-            if isinstance(value, str): # variable name substitution
-                expr = re.sub('\\b' + name + '\\b', value, expr)
-                expr = re.sub('\\bd' + name + '\\b', 'd' + value, expr) # derivative
-            else:
-                param_dict[name] = value
-
-        self.parse_string_equations(expr, namespace=param_dict, level=level + 1)
+        self.parse_string_equations(eqns)
 
     """
     -----------------------------------------------------------------------
@@ -237,7 +268,7 @@ class Equations(object):
     -----------------------------------------------------------------------
     """
 
-    def parse_string_equations(self, eqns, level=1, namespace=None):
+    def parse_string_equations(self, eqns):
         """
         Parses a string defining equations and builds an Equations object.
         Uses the namespace in the given level of the stack.
@@ -268,8 +299,7 @@ class Equations(object):
             # TODO: Take care of namespaces
             self.add_equation(identifier, eq_type, expression, unit, flags)
 
-    def add_equation(self, identifier, eq_type, eq, unit, flags,
-                     global_namespace={}, local_namespace={}):
+    def add_equation(self, identifier, eq_type, eq, unit, flags):
         """
         Inserts a differential equation.
         name = variable name
@@ -277,25 +307,21 @@ class Equations(object):
         unit = unit of the variable (possibly a string)
         *_namespace = namespaces associated to the string        
         """
-        if identifier in self._namespace:
+        if identifier in self._identifiers:
             raise ValueError('Duplicate definition of "%s".' % identifier)
-        
-        # Find external objects
-        if not eq is None:
-            identifiers = list(get_identifiers(eq))
         else:
-            identifiers = []
-        
-        self._namespace[identifier] = {}
-        for var in identifiers:
-            if var in local_namespace: #local
-                self._namespace[identifier][var] = local_namespace[var]
-            elif var in global_namespace: #global
-                self._namespace[identifier][var] = global_namespace[var]
+            self._identifiers.add(identifier)
         
         self._units[identifier] = unit
+
         self._string_expressions[identifier] = eq
-        
+        if eq is not None:
+            try:
+                self._sympy_expressions[identifier] = sympify(eq)
+            except SympifyError as s_exc:
+                raise ValueError('Sympy parsing failed for equation definining %s:\n%s' %
+                                 (identifier, s_exc))
+
         if eq_type == 'diff_equation':
             self._diff_equation_names.append(identifier)
         elif eq_type == 'static_equation':
@@ -431,6 +457,8 @@ class Equations(object):
                 p.text('\n')
 
 if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
     eq = Equations('''
     dv/dt = (gl*(El-v)+ge*(Ee-v)+gi*(Ei-v)-\
         g_na*(m*m*m)*h*(v-ENa)-\
