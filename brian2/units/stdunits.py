@@ -48,6 +48,9 @@ Hz, kHz, MHz, cm, cm2, cm3, mm, mm2, mm3, um, um2, um3
 from .units import *
 from .units import all_units
 
+__all__ = ['mV', 'mA', 'uA', 'nA', 'pA', 'pF', 'uF', 'nF', 'nS', 'uS', 'ms',
+           'Hz', 'kHz', 'MHz', 'cm', 'cm2', 'cm3', 'mm', 'mm2', 'mm3', 'um',
+           'um2', 'um3']
 mV = mvolt
 
 mA = mamp
@@ -78,5 +81,8 @@ um = umetre
 um2 = umetre2
 um3 = umetre3
 
-all_units.extend([mV, mA, uA, nA, pA, pF, uF, nF, nS, uS, ms, Hz, kHz,
-                  MHz, cm, cm2, cm3, mm, mm2, mm3, um, um2, um3])
+stdunits = {'mV': mV, 'mA': mA, 'uA': uA, 'nA': nA, 'pA': pA, 'pF': pF,
+            'uF': uF, 'nF': nF, 'nS': nS, 'uS': uS, 'ms': ms, 'Hz' : Hz,
+            'kHz': kHz, 'MHz': MHz, 'cm': cm, 'cm2': cm2, 'cm3': cm3, 'mm': mm,
+            'mm2': mm2, 'mm3': mm3, 'um': um, 'um2': um2, 'um3': um3}
+all_units.extend(stdunits)

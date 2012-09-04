@@ -638,8 +638,10 @@ class Quantity(np.ndarray):
                 # Not iterable
                 pass
 
-        if not dim is None:
+        if dim is not None:
             subarr.dim = dim
+        elif not hasattr(subarr, 'dim'):
+            subarr.dim = DIMENSIONLESS
 
         return subarr
 
@@ -1395,9 +1397,10 @@ class Unit(Quantity):
                     if self.dim._dims[i] != 1:
                         s += "^" + str(self.dim._dims[i])
                     s += " "
+            s = s.strip()
             if not len(s):
                 return "1"
-            return s.strip()
+            return s
         else:
             return self.dispname
 

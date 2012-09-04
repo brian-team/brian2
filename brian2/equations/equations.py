@@ -37,13 +37,19 @@ Differential equations for Brian models.
 '''
 import string
 import keyword
-import inspect
+import re
+import uuid
 
-import sympy
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd)
 
-from brian2.units.fundamentalunits import Quantity, Unit, all_registered_units
+
+from brian2.units.stdunits import stdunits
+from brian2.units.fundamentalunits import (Quantity, Unit, all_registered_units,
+                                           DIMENSIONLESS)
+from brian2.units import second
+
+from brian.inspection import get_identifiers
 
 # Definitions of equation structure for parsing with pyparsing
 ###############################################################################
@@ -67,7 +73,7 @@ EXPRESSION = Combine(OneOrMore((CharsNotIn(':#\n') +
 # a unit
 # very broad definition here, again. Whether this corresponds to a valid unit
 # string will be checked later
-UNIT = EXPRESSION.setResultsName('unit')
+UNIT = Word(string.ascii_letters + string.digits + '*/ ').setResultsName('unit')
 
 # a single Flag (e.g. "const" or "event-driven")
 FLAG = Word(string.ascii_letters + '_-')
@@ -75,6 +81,12 @@ FLAG = Word(string.ascii_letters + '_-')
 # Flags are comma-separated and enclosed in parantheses: "(flag1, flag2)"
 FLAGS = (Suppress('(') + FLAG + ZeroOrMore(Suppress(',') + FLAG) +
          Suppress(')')).setResultsName('flags')
+
+# allowed flags for equation types. Is not used by the parsing directly but
+# later for checking
+ALLOWED_FLAGS = {'diff_equation': ['active'],
+                 'static_equation': [],
+                 'parameter': ['constant']}
 
 ###############################################################################
 # Equations
@@ -105,74 +117,21 @@ def unique_id():
     """
     Returns a unique name (e.g. for internal hidden variables).
     """
-    return '_' + str(uuid.uuid1().int)
+    return '_' + str(uuid.uuid1().int) 
 
-
-def is_reserved_identifier(identifier):
-    # TODO: Should "i" and "j" always be forbidden or only in Synapses code?
-    return identifier in ['t', 'dt', 'xi', 'i', 'j'] 
-
-
-def check_identifier(identifier, internal=False):
-    '''
-    Check an identifier (usually resulting from an equation string provided by
-    the user) for conformity with the rules:
-    
-        1. Only ASCII characters
-        2. Starts with underscore or character, then mix of alphanumerical
-           characters and underscore
-        3. Is not a reserved keyword of Python
-        4. Is not an identifier which has a special meaning for equations 
-           (e.g. "t", "dt", ...)
-    
-    Arguments:
-    
-    ``identifier``
-        The string that should be checked
-    
-    ``internal``
-        Whether the identifier is defined internally (defaults to ``False``),
-        i.e. not by the user. Internal identifiers are allowed to start with an
-        underscore whereas user-defined identifiers are not.
-    
-    The function raises a ``ValueError`` if the identifier does not conform to
-    the above rules.
-    '''
-    
-    # Check whether the identifier is parsed correctly -- this is always the
-    # case, if the identifier results from the parsing of an equation but there
-    # might be situations where the identifier is specified directly
-    parse_result = list(IDENTIFIER.scanString(identifier))
-    
-    # parse_result[0][0][0] refers to the matched string -- this should be the
-    # full identifier, if not it is an illegal identifier like "3foo" which only
-    # matched on "foo" 
-    if len(parse_result) != 1 or parse_result[0][0][0] != identifier:
-        raise ValueError('"%s" is not a valid identifier string.' % identifier)
-
-    if keyword.iskeyword(identifier):
-        raise ValueError('"%s" is a Python keyword and cannot be used as an identifier.' % identifier)
-    
-    if is_reserved_identifier(identifier):
-        raise ValueError(('"%s" has a special meaning in equations and cannot be '
-                         'used as an identifier.') % identifier)
-    
-    if not internal and identifier.startswith('_'):
-        raise ValueError(('Identifier "%s" starts with an underscore, '
-                          'this is only allowed for variables used internally') % identifier)
-    
 
 def get_unit_from_string(unit_string):
-    unit_string = unit_string.trim()
+    unit_string = unit_string.strip()
     
     # Special case: dimensionless unit
     if unit_string == '1':
-        return Unit(1)
+        return Unit(1, dim=DIMENSIONLESS)
     
     # Check first whether the expression evaluates at all, using only
     # registered units
     try:
         namespace = dict([(u.name, u) for u in all_registered_units()])
+        namespace.update(stdunits)        
         evaluated_unit = eval(unit_string, namespace)
     except Exception as ex:
         raise ValueError('"%s" does not evaluate to a unit: %s' %
@@ -192,10 +151,12 @@ def get_unit_from_string(unit_string):
     # We only want base units, otherwise e.g. setting a unit to mV might lead to 
     # unexpected results (as it is internally saved in volts)
     # TODO: Maybe this restriction is unnecessary with unit arrays?
-
     if float(evaluated_unit) != 1.0:
         raise ValueError(('"%s" is not a base unit, but only base units are '
                          'allowed in the units part of equations.') % unit_string)
+
+    # No error has been raised, all good
+    return evaluated_unit
 
 
 class Equations(object):
@@ -209,6 +170,18 @@ class Equations(object):
     
     ``expr``
         A string equation
+    ``allowed_flags``:
+        A dictionary with a list of allowed flags (strings) for the equation
+        types ``diff_equation``, ``static_equation`` and ``parameter``. Not
+        defining allowed flags for a key corresponds to setting it to an empty
+        list. This is used e.g. by the :class:``Synapses`` class, allowing
+        "event-driven" for differential equations. If ``allowed_flags`` is
+        ``None`` (the default), standard settings are used: ``active`` is
+        allowed for differential equations, ``constant`` is used for parameters.
+    ``reserved_identifiers``:
+        A list or set of strings that are not allowed as identifiers. Will be
+        added to ['t', 'dt', 'xi'] which are always forbidden. This is used by
+        the :class:``Synapses`` class which forbids "i" and "j" as identifiers.        
     ``keywords``
         Any sequence of keyword pairs ``key=value`` where the string ``key``
         in the string equations will be replaced with ``value`` which can
@@ -224,38 +197,37 @@ class Equations(object):
     (4) ``x : unit (flags)`` (parameter)
     
     """
-    def __init__(self, expr='', level=0, **kwds):
-        # Empty object
-        self._Vm = None # name of variable with membrane potential
-        self._eq_names = [] # equations names
-        self._diffeq_names = [] # differential equations names
-        self._diffeq_names_nonzero = [] # differential equations names
-        self._function = {} # dictionary of functions
-        self._string = {} # dictionary of strings (defining the functions)
-        self._namespace = {} # dictionary of namespaces for the strings (globals,locals)
-        self._alias = {} # aliases (mapping name1 -> name2)
+    def __init__(self, expr='', level=0, allowed_flags=None, 
+                 reserved_identifiers=None, **kwds):
+        # Empty object        
+        self._string_expressions = {} # dictionary of strings (defining the functions)
+        self._namespace = {} # dictionary of namespaces for the strings (globals,locals)        
         self._units = {'t':second} # dictionary of units
+        self._flags = {} # dictionary of "flags", e.g. "const" or "event-driven"
+        self._diff_equation_names = [] # differential equation variables
+        self._static_equation_names = [] # static equation variables
+        self._parameter_names = [] # parameters
         self._dependencies = {} # dictionary of dependencies (on static equations)
+        
+        if allowed_flags is None:
+            self.allowed_flags = ALLOWED_FLAGS
+        else:
+            self.allowed_flags = allowed_flags
 
-        self._frozen = False # True if all units and parameters are gone
-        self._prepared = False
-
-        if not isinstance(expr, str): # assume it is a sequence of Equations objects
-            for eqs in expr:
-                if not isinstance(eqs, Equations):
-                    eqs = Equations(eqs, level=level + 1)
-                self += eqs
-        elif expr != '':
-            # Check keyword arguments
-            param_dict = {}
-            for name, value in kwds.iteritems():
-                if value is None: # name is not important: choose unique name
-                    value = unique_id()
-                if isinstance(value, str): # variable name substitution
-                    expr = re.sub('\\b' + name + '\\b', value, expr)
-                    expr = re.sub('\\bd' + name + '\\b', 'd' + value, expr) # derivative
-                else:
-                    param_dict[name] = value
+        self.reserved_identifiers = set(['t', 'dt', 'xi'])
+        if not reserved_identifiers is None:
+            self.reserved_identifiers = self.reserved_identifiers.union(set(reserved_identifiers))
+        
+        # Check keyword arguments
+        param_dict = {}
+        for name, value in kwds.iteritems():
+            if value is None: # name is not important: choose unique name
+                value = unique_id()
+            if isinstance(value, str): # variable name substitution
+                expr = re.sub('\\b' + name + '\\b', value, expr)
+                expr = re.sub('\\bd' + name + '\\b', 'd' + value, expr) # derivative
+            else:
+                param_dict[name] = value
 
         self.parse_string_equations(expr, namespace=param_dict, level=level + 1)
 
@@ -273,10 +245,224 @@ class Equations(object):
         parsed = EQUATIONS.parseString(eqns, parseAll=True)
         for eq in parsed:
             eq_type = eq.getName()
-            eq_content = dict(eq.get_items())
+            eq_content = dict(eq.items())
             # Check for reserved keywords
-            check_identifier(eq_content['identifier'])
+            identifier = eq_content['identifier']
+            self.check_identifier(identifier)
             
             # Convert unit string to Unit object
             unit = get_unit_from_string(eq_content['unit'])
+            
+            expression = eq_content.get('expression', None)
+            if not expression is None:
+                # Replace multiple whitespaces (arising from joining multiline
+                # strings) with single space
+                p = re.compile(r'\s{2,}')
+                expression = p.sub(' ', expression)
+            flags = eq_content.get('flags', None)
+            # TODO: Take care of namespaces
+            self.add_equation(identifier, eq_type, expression, unit, flags)
 
+    def add_equation(self, identifier, eq_type, eq, unit, flags,
+                     global_namespace={}, local_namespace={}):
+        """
+        Inserts a differential equation.
+        name = variable name
+        eq = string definition
+        unit = unit of the variable (possibly a string)
+        *_namespace = namespaces associated to the string        
+        """
+        if identifier in self._namespace:
+            raise ValueError('Duplicate definition of "%s".' % identifier)
+        
+        # Find external objects
+        if not eq is None:
+            identifiers = list(get_identifiers(eq))
+        else:
+            identifiers = []
+        
+        self._namespace[identifier] = {}
+        for var in identifiers:
+            if var in local_namespace: #local
+                self._namespace[identifier][var] = local_namespace[var]
+            elif var in global_namespace: #global
+                self._namespace[identifier][var] = global_namespace[var]
+        
+        self._units[identifier] = unit
+        self._string_expressions[identifier] = eq
+        
+        if eq_type == 'diff_equation':
+            self._diff_equation_names.append(identifier)
+        elif eq_type == 'static_equation':
+            self._static_equation_names.append(identifier)
+        elif eq_type == 'parameter':
+            self._parameter_names.append(identifier)
+        else:
+            raise ValueError('Unknown equation type "%s"' % eq_type)
+        
+        if flags is None:
+            self._flags[identifier] = []
+        else:
+            self.check_flags(flags, eq_type)
+            self._flags[identifier] = flags
+
+    def check_identifier(self, identifier, internal=False):
+        '''
+        Check an identifier (usually resulting from an equation string provided by
+        the user) for conformity with the rules:
+        
+            1. Only ASCII characters
+            2. Starts with underscore or character, then mix of alphanumerical
+               characters and underscore
+            3. Is not a reserved keyword of Python
+            4. Is not an identifier which has a special meaning for equations 
+               (e.g. "t", "dt", ...)
+        
+        Arguments:
+        
+        ``identifier``
+            The string that should be checked
+        
+        ``internal``
+            Whether the identifier is defined internally (defaults to ``False``),
+            i.e. not by the user. Internal identifiers are allowed to start with an
+            underscore whereas user-defined identifiers are not.
+        
+        The function raises a ``ValueError`` if the identifier does not conform to
+        the above rules.
+        '''
+        
+        # Check whether the identifier is parsed correctly -- this is always the
+        # case, if the identifier results from the parsing of an equation but there
+        # might be situations where the identifier is specified directly
+        parse_result = list(IDENTIFIER.scanString(identifier))
+        
+        # parse_result[0][0][0] refers to the matched string -- this should be the
+        # full identifier, if not it is an illegal identifier like "3foo" which only
+        # matched on "foo" 
+        if len(parse_result) != 1 or parse_result[0][0][0] != identifier:
+            raise ValueError('"%s" is not a valid identifier string.' % identifier)
+    
+        if keyword.iskeyword(identifier):
+            raise ValueError('"%s" is a Python keyword and cannot be used as an identifier.' % identifier)
+        
+        if identifier in self.reserved_identifiers:
+            raise ValueError(('"%s" has a special meaning in equations and cannot be '
+                             'used as an identifier.') % identifier)
+        
+        if not internal and identifier.startswith('_'):
+            raise ValueError(('Identifier "%s" starts with an underscore, '
+                              'this is only allowed for variables used internally') % identifier)            
+
+    def check_flags(self, flags, eq_type):        
+        for flag in flags:
+            allowed = self.allowed_flags.get(eq_type, [])
+            if not flag in allowed:
+                raise ValueError(('Flag "%s" is not allowed for equations of '
+                                 'type "%s". Allowed flags are: %s') % 
+                                 (flag, eq_type, allowed))
+
+    #
+    # Representation
+    # 
+
+    def __str__(self):
+        s = ''
+        for var in self._diff_equation_names:
+            s += ('d' + var + '/dt = ' + self._string_expressions[var] + ': ' +
+                  str(self._units[var]))
+            if len(self._flags[var]):
+                s += ' (' + ' ,'.join(self._flags[var]) + ')'
+            s += '\n'
+        for var in self._static_equation_names:
+            s += (var + ' = ' + self._string_expressions[var] + ': ' +
+                  str(self._units[var]))
+            if len(self._flags[var]):
+                s += ' (' + ', '.join(self._flags[var]) + ')'            
+            s += '\n'
+        for var in self._parameter_names:
+            s += (var + ': ' + str(self._units[var]))
+            if len(self._flags[var]):
+                s += ' (' + ', '.join(self._flags[var]) + ')'            
+            s += '\n'
+        return s
+
+    def _repr_pretty_(self, p, cycle):
+        ''' Pretty printing for ipython '''
+        if cycle: 
+            # Should never happen actually
+            return 'Equations(...)'
+        for var in self._diff_equation_names:
+            with p.group(len(var) + 7, 'd' + var + '/dt = ', ''):
+                p.pretty(self._string_expressions[var])
+                p.text(' :')
+                p.breakable()
+                p.pretty(self._units[var])
+                if len(self._flags[var]):
+                    p.text(' (')
+                    p.text(self._flags[var].join(', '))
+                    p.text(' )')
+                p.text('\n')
+        for var in self._static_equation_names:
+            with p.group(len(var) + 3,  var + ' = ', ''):
+                p.pretty(self._string_expressions[var])
+                p.text(' :')
+                p.breakable()
+                p.pretty(self._units[var])
+                if len(self._flags[var]):
+                    p.text(' (')
+                    p.text(self._flags[var].join(', '))
+                    p.text(' )')                
+                p.text('\n')
+        for var in self._parameter_names:
+                p.text(var)
+                p.text(' :')
+                p.breakable()
+                p.pretty(self._units[var])
+                if len(self._flags[var]):
+                    p.text(' (')
+                    p.text(self._flags[var].join(', '))
+                    p.text(' )')                
+                p.text('\n')
+
+if __name__ == '__main__':
+    eq = Equations('''
+    dv/dt = (gl*(El-v)+ge*(Ee-v)+gi*(Ei-v)-\
+        g_na*(m*m*m)*h*(v-ENa)-\
+        g_kd*(n*n*n*n)*(v-EK))/Cm : volt
+    dm/dt = alpham*(1-m)-betam*m : 1
+    dn/dt = alphan*(1-n)-betan*n : 1
+    dh/dt = alphah*(1-h)-betah*h : 1
+    dge/dt = -ge*(1./taue) : siemens # a comment
+    dgi/dt = -gi*(1./taui) : siemens
+    alpham = 0.32*(mV**-1)*(13*mV-v+VT)/ \
+        (exp((13*mV-v+VT)/(4*mV))-1.)/ms : Hz
+    betam = 0.28*(mV**-1)*(v-VT-40*mV)/ \
+    (exp((v-VT-40*mV)/(5*mV))-1)/ms : Hz
+    alphah = 0.128*exp((17*mV-v+VT)/(18*mV))/ms : Hz
+    betah = 4./(1+exp((40*mV-v+VT)/(5*mV)))/ms : Hz
+    alphan = 0.032*(mV**-1)*(15*mV-v+VT)/ \
+        (exp((15*mV-v+VT)/(5*mV))-1.)/ms : Hz
+    betan = .5*exp((10*mV-v+VT)/(40*mV))/ms : Hz
+''')
+    print 'Complicated equation without flags:'
+    print eq
+    
+    eq = Equations('''w:1 # synaptic weight
+         dApre/dt=-Apre/taupre : 1 (event-driven)
+         dApost/dt=-Apost/taupost : 1 (event-driven) # comment
+        ''', allowed_flags={'diff_equation': ['event-driven']})
+    print 'Synaptic equation with flags:'
+    print eq
+    
+    eq = Equations('''
+    dv/dt = (
+             gl*(El-v) + # passive leak
+             ge*(Ee-v) + # excitatory synapses
+             gi*(Ei-v) - # inhibitory synapses
+             g_na*(m*m*m)*h*(v-ENa) -# sodium channels-
+             g_kd*(n*n*n*n)*(v-EK) # potassium channels
+             )/Cm : volt
+    ''')
+    print 'Long equation string containing comments'
+    print eq
