@@ -35,9 +35,10 @@
 '''
 Differential equations for Brian models.
 '''
-import string
+import inspect
 import keyword
 import re
+import string
 import uuid
 
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
@@ -47,8 +48,12 @@ from sympy.core.sympify import SympifyError
 
 from brian2.units.stdunits import stdunits
 from brian2.units.fundamentalunits import (Quantity, Unit, all_registered_units,
-                                           DIMENSIONLESS)
+                                           have_same_dimensions, DIMENSIONLESS,
+                                           DimensionMismatchError,
+                                           get_dimensions)
 from brian2.units import second
+
+from brian.inspection import get_identifiers
 
 # Definitions of equation structure for parsing with pyparsing
 ###############################################################################
@@ -151,6 +156,9 @@ def get_expression_parts(expr):
     '''
     expr = sympify(expr)
     xi = Symbol('xi')
+    if not xi in expr:
+        return (expr, sympify('0'))
+    
     f = Wild('f', exclude=[xi]) # non-stochastic part
     g = Wild('g', exclude=[xi]) # stochastic part
     matches = expr.match(f + g * xi)
@@ -201,6 +209,68 @@ def get_unit_from_string(unit_string, unit_namespace=None):
     # No error has been raised, all good
     return evaluated_unit
 
+def get_namespace_for_codestring(codestring, other_identifiers, local_namespace,
+                                 global_namespace):
+    '''
+    Returns a namespace for the given codestring, containing resolved
+    references to externally defined variables and functions. Raises an error
+    if a variable/function cannot be resolved.
+    
+    The resulting namespace includes units but does not include anything
+    present in the ``other_identifiers`` set.
+    '''
+    unit_namespace = get_default_unit_namespace()
+
+    identifiers = set(get_identifiers(codestring))
+    namespace = {}
+    for identifier in identifiers:
+        if identifier in other_identifiers:
+            pass
+        elif identifier in local_namespace:
+            namespace[identifier] = local_namespace[identifier]
+        elif identifier in global_namespace:
+            namespace[identifier] = global_namespace[identifier]
+        elif identifier in unit_namespace:
+            namespace[identifier] = unit_namespace[identifier]
+        else:
+            raise ValueError(('The string "%s" refers to an unknown '
+                              'identifier "%s"') % (codestring, identifier))    
+    return namespace
+
+
+def get_dimensions_for_codestring(codestring, identifier_units, namespace):
+    '''
+    Returns the dimensions of the ``codestring`` by evaluating it in the given
+    ``namespace``, replacing all identifiers with their units. The units have
+    to be given in the dictionary ``identifier_units``.
+    
+    May raise an DimensionMismatchError during the evaluation.
+    '''
+    namespace = namespace.copy()
+    namespace.update(identifier_units)
+    return get_dimensions(eval(codestring, namespace))
+
+
+def get_frozen_codestring_and_namespace(codestring, namespace):
+    '''
+    Returns a tuple containing a codestring and a namespace, resulting from
+    replacing everything in the given ``codestring`` from ``namespace`` by its
+    float value. Removes the corresponding entries from the namespace.
+    '''
+    new_namespace = {}    
+    #TODO: Use sympy instead to simplify the expression?
+    for key, value in namespace.iteritems():
+        try:
+            float_value = float(value)
+            codestring = re.sub(r'\b' + key + r'\b', str(float_value),
+                                codestring)            
+        except (TypeError, ValueError):
+            # could not convert the identifier to a float, keep it in the
+            # namespace
+            new_namespace[key] = value
+    
+    return (codestring, new_namespace)
+
 
 class Equations(object):
     """Container that stores equations from which models can be created
@@ -242,10 +312,12 @@ class Equations(object):
         # Empty object        
         self._string_expressions = {} # dictionary of strings (defining the functions)
         self._sympy_expressions = {} # dictionary of sympy expressions
-        self._namespace = {} # dictionary of namespaces for the strings        
-        self._units = {'t':second} # dictionary of units
+        self._sympy_expressions_non_stochastic = {} # non-stochastic parts of diff equations
+        self._sympy_expressions_stochastic = {} # stochastic parts of diff equations
+        self._namespaces = {} # dictionary of namespaces for the strings        
+        self._units = {'t':second, 'dt': second, 'xi': second ** -.5} # dictionary of units
         self._flags = {} # dictionary of "flags", e.g. "const" or "event-driven"
-        self._identifiers = set() # all identifiers (union of the next 3 lists)
+        self._identifiers = set(['t', 'dt', 'xi']) # all identifiers (union of the next 3 lists)
         self._diff_equation_names = [] # differential equation variables
         self._static_equation_names = [] # static equation variables
         self._parameter_names = [] # parameters
@@ -261,6 +333,23 @@ class Equations(object):
             self.reserved_identifiers = self.reserved_identifiers.union(set(reserved_identifiers))
         
         self.parse_string_equations(eqns)
+
+        if namespace is None:
+            frame = inspect.stack()[level + 1][0]
+            ns_global, ns_local = frame.f_globals, frame.f_locals
+        else:
+            ns_local = namespace
+            ns_global = {}
+
+        # build the namespaces
+        for var in self._static_equation_names + self._diff_equation_names:
+            self._namespaces[var] = get_namespace_for_codestring(self._string_expressions[var],
+                                                                 self._identifiers,
+                                                                 ns_local,
+                                                                 ns_global)
+        
+        # check the units
+        self.check_units()
 
     """
     -----------------------------------------------------------------------
@@ -321,9 +410,12 @@ class Equations(object):
             except SympifyError as s_exc:
                 raise ValueError('Sympy parsing failed for equation definining %s:\n%s' %
                                  (identifier, s_exc))
-
         if eq_type == 'diff_equation':
             self._diff_equation_names.append(identifier)
+            # get stochastic and non-stochastic parts of equation
+            (f, g) = get_expression_parts(self._sympy_expressions[identifier])
+            self._sympy_expressions_non_stochastic[identifier] = f
+            self._sympy_expressions_stochastic[identifier] = g
         elif eq_type == 'static_equation':
             self._static_equation_names.append(identifier)
         elif eq_type == 'parameter':
@@ -393,6 +485,33 @@ class Equations(object):
                                  'type "%s". Allowed flags are: %s') % 
                                  (flag, eq_type, allowed))
 
+    def _get_units_for_RHS(self, var):
+        try:
+            dim_RHS = get_dimensions_for_codestring(self._string_expressions[var],
+                                                    self._units, self._namespaces[var])                
+        except DimensionMismatchError as dme:
+            raise DimensionMismatchError(('Error during unit check of expression '
+                                          'defining %s: %s') % (var, dme.desc),
+                                         *dme._dims)
+        return dim_RHS
+
+    def check_units(self):
+        for var in self._diff_equation_names:            
+            dim_RHS = self._get_units_for_RHS(var)
+            dim_LHS = get_dimensions(self._units[var] / second)
+            if not dim_LHS is dim_RHS:
+                raise DimensionMismatchError(('Differential equation defining '
+                                              '%s is not homogeneous') % var,
+                                             dim_LHS, dim_RHS)
+        for var in self._static_equation_names:
+            dim_RHS = self._get_units_for_RHS(var)            
+            dim_LHS = get_dimensions(self._units[var])
+            if not dim_LHS is dim_RHS:
+                raise DimensionMismatchError(('Static equation defining '
+                                              '%s is not homogeneous') % var,
+                                             dim_LHS, dim_RHS)
+
+        
     #
     # Representation
     # 
@@ -425,7 +544,7 @@ class Equations(object):
             return 'Equations(...)'
         for var in self._diff_equation_names:
             with p.group(len(var) + 7, 'd' + var + '/dt = ', ''):
-                p.pretty(self._string_expressions[var])
+                p.pretty(self._sympy_expressions[var])
                 p.text(' :')
                 p.breakable()
                 p.pretty(self._units[var])
@@ -436,7 +555,7 @@ class Equations(object):
                 p.text('\n')
         for var in self._static_equation_names:
             with p.group(len(var) + 3,  var + ' = ', ''):
-                p.pretty(self._string_expressions[var])
+                p.pretty(self._sympy_expressions[var])
                 p.text(' :')
                 p.breakable()
                 p.pretty(self._units[var])
@@ -458,47 +577,3 @@ class Equations(object):
 
 if __name__ == '__main__':
     import doctest
-    doctest.testmod()
-    eq = Equations('''
-    dv/dt = (gl*(El-v)+ge*(Ee-v)+gi*(Ei-v)-\
-        g_na*(m*m*m)*h*(v-ENa)-\
-        g_kd*(n*n*n*n)*(v-EK))/Cm : volt
-    dm/dt = alpham*(1-m)-betam*m : 1
-    dn/dt = alphan*(1-n)-betan*n : 1
-    dh/dt = alphah*(1-h)-betah*h : 1
-    dge/dt = -ge*(1./taue) : siemens # a comment
-    dgi/dt = -gi*(1./taui) : siemens
-    alpham = 0.32*(mV**-1)*(13*mV-v+VT)/ \
-        (exp((13*mV-v+VT)/(4*mV))-1.)/ms : Hz
-    betam = 0.28*(mV**-1)*(v-VT-40*mV)/ \
-    (exp((v-VT-40*mV)/(5*mV))-1)/ms : Hz
-    alphah = 0.128*exp((17*mV-v+VT)/(18*mV))/ms : Hz
-    betah = 4./(1+exp((40*mV-v+VT)/(5*mV)))/ms : Hz
-    alphan = 0.032*(mV**-1)*(15*mV-v+VT)/ \
-        (exp((15*mV-v+VT)/(5*mV))-1.)/ms : Hz
-    betan = .5*exp((10*mV-v+VT)/(40*mV))/ms : Hz
-''')
-    print 'Complicated equation without flags:'
-    print eq
-    
-    eq = Equations('''w:1 # synaptic weight
-         dApre/dt=-Apre/taupre : 1 (event-driven)
-         dApost/dt=-Apost/taupost : 1 (event-driven) # comment
-        ''', allowed_flags={'diff_equation': ['event-driven']})
-    print 'Synaptic equation with flags:'
-    print eq
-    
-    eq = Equations('''
-    dv/dt = (
-             gl*(El-v) + # passive leak
-             ge*(Ee-v) + # excitatory synapses
-             gi*(Ei-v) - # inhibitory synapses
-             g_na*(m*m*m)*h*(v-ENa) -# sodium channels-
-             g_kd*(n*n*n*n)*(v-EK) # potassium channels
-             )/Cm : volt
-    ''')
-    print 'Long equation string containing comments'
-    print eq
-    
-    print 'Incorrect equation string:'
-    Equations('dv/dt = -v / (1 * ms) : volt (active')
