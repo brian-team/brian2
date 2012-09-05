@@ -21,7 +21,7 @@ def test_construction():
 
     q = 500 * ms
     assert_quantity(q, 0.5, second)
-    q = np.int32(500) * ms
+    q = np.float64(500) * ms
     assert_quantity(q, 0.5, second)
     q = np.array(500) * ms
     assert_quantity(q, 0.5, second)
@@ -61,10 +61,10 @@ def test_multiplication_division():
         assert_quantity(3 / q, 3 / np.asarray(q), 1 / volt)
         assert_quantity(q * 3, np.asarray(q) * 3, volt)
         assert_quantity(3 * q, 3 * np.asarray(q), volt)
-        assert_quantity(q / np.int32(3), np.asarray(q) / 3, volt)
-        assert_quantity(np.int32(3) / q, 3 / np.asarray(q), 1 / volt)
-        assert_quantity(q * np.int32(3), np.asarray(q) * 3, volt)
-        assert_quantity(np.int32(3) * q, 3 * np.asarray(q), volt)
+        assert_quantity(q / np.float64(3), np.asarray(q) / 3, volt)
+        assert_quantity(np.float64(3) / q, 3 / np.asarray(q), 1 / volt)
+        assert_quantity(q * np.float64(3), np.asarray(q) * 3, volt)
+        assert_quantity(np.float64(3) * q, 3 * np.asarray(q), volt)
         assert_quantity(q / np.array(3), np.asarray(q) / 3, volt)
         assert_quantity(np.array(3) / q, 3 / np.asarray(q), 1 / volt)
         assert_quantity(q * np.array(3), np.asarray(q) * 3, volt)
@@ -106,36 +106,36 @@ def test_addition_subtraction():
         # scalar        
         assert_raises(DimensionMismatchError, lambda: q + 5)
         assert_raises(DimensionMismatchError, lambda: 5 + q)
-        assert_raises(DimensionMismatchError, lambda: q + np.float32(5))
-        assert_raises(DimensionMismatchError, lambda: np.float32(5) + q)
+        assert_raises(DimensionMismatchError, lambda: q + np.float64(5))
+        assert_raises(DimensionMismatchError, lambda: np.float64(5) + q)
         assert_raises(DimensionMismatchError, lambda: q - 5)
         assert_raises(DimensionMismatchError, lambda: 5 - q)
-        assert_raises(DimensionMismatchError, lambda: q - np.float32(5))
-        assert_raises(DimensionMismatchError, lambda: np.float32(5) - q)
+        assert_raises(DimensionMismatchError, lambda: q - np.float64(5))
+        assert_raises(DimensionMismatchError, lambda: np.float64(5) - q)
         
         # unitless array
         assert_raises(DimensionMismatchError, lambda: q + np.array([5]))
         assert_raises(DimensionMismatchError, lambda: np.array([5]) + q)
         assert_raises(DimensionMismatchError,
-                      lambda: q + np.array([5], dtype=np.float32))
+                      lambda: q + np.array([5], dtype=np.float64))
         assert_raises(DimensionMismatchError,
-                      lambda: np.array([5], dtype=np.float32) + q)
+                      lambda: np.array([5], dtype=np.float64) + q)
         assert_raises(DimensionMismatchError, lambda: q - np.array([5]))
         assert_raises(DimensionMismatchError, lambda: np.array([5]) - q)
         assert_raises(DimensionMismatchError,
-                      lambda: q - np.array([5], dtype=np.float32))
+                      lambda: q - np.array([5], dtype=np.float64))
         assert_raises(DimensionMismatchError,
-                      lambda: np.array([5], dtype=np.float32) - q)                        
+                      lambda: np.array([5], dtype=np.float64) - q)                        
 
         # Check that operations with 0 work
         assert_quantity(q + 0, np.asarray(q), volt)
         assert_quantity(0 + q, np.asarray(q), volt)
         assert_quantity(q - 0, np.asarray(q), volt)
         assert_quantity(0 - q, -np.asarray(q), volt)
-        assert_quantity(q + np.float32(0), np.asarray(q), volt)
-        assert_quantity(np.float32(0) + q, np.asarray(q), volt)
-        assert_quantity(q - np.float32(0), np.asarray(q), volt)
-        assert_quantity(np.float32(0) - q, -np.asarray(q), volt)
+        assert_quantity(q + np.float64(0), np.asarray(q), volt)
+        assert_quantity(np.float64(0) + q, np.asarray(q), volt)
+        assert_quantity(q - np.float64(0), np.asarray(q), volt)
+        assert_quantity(np.float64(0) - q, -np.asarray(q), volt)
 
 def test_binary_operations():
     ''' Test whether binary operations work when they should and raise
@@ -155,7 +155,7 @@ def test_binary_operations():
             # Test equivalent numpy functions
             numpy_funcs = [np.add, np.subtract, np.less, np.less_equal,
                            np.greater, np.greater_equal, np.equal,
-                           np.not_equal]
+                           np.not_equal, np.maximum, np.minimum]
             for numpy_func in numpy_funcs:
                 numpy_func(a, b)
                 numpy_func(b, a)
@@ -172,7 +172,8 @@ def test_binary_operations():
 
         # Test equivalent numpy functions
         numpy_funcs = [np.add, np.subtract, np.less, np.less_equal,
-                       np.greater, np.greater_equal, np.equal, np.not_equal]
+                       np.greater, np.greater_equal, np.equal, np.not_equal,
+                       np.maximum, np.minimum]
         for numpy_func in numpy_funcs:
             assert_raises(DimensionMismatchError, lambda: numpy_func(a, b))
             assert_raises(DimensionMismatchError, lambda: numpy_func(b, a))

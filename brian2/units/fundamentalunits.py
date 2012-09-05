@@ -121,10 +121,42 @@ __all__ = [
     'unit_checking'
     ]
 
+# Note: A list of numpy ufuncs can be found here:
+# http://docs.scipy.org/doc/numpy/reference/ufuncs.html#available-ufuncs
+
+# ufuncs that work on all dimensions and preserve the dimensions, e.g. abs
+UFUNCS_PRESERVE_DIMENSIONS = ['absolute', 'rint', 'negative']
+
+# ufuncs that work on all dimensions but change the dimensions, e.g. square
+UFUNCS_CHANGE_DIMENSIONS = ['multiply', 'divide', 'sqrt', 'square']
+
+# ufuncs that work with matching dimensions, e.g. add
+UFUNCS_MATCHING_DIMENSIONS = ['add', 'subtract', 'maximum', 'minimum']
+
+# ufuncs that compare values, i.e. work only with matching dimensions but do
+# not result in a value with dimensions, e.g. equals
+UFUNCS_COMPARISONS = ['less', 'less_equal', 'greater', 'greater_equal',
+                      'equal', 'not_equal'] 
+
+# ufuncs that only work on dimensionless quantities
+UFUNCS_DIMENSIONLESS = ['sin', 'sinh', 'arcsin', 'arcsinh', 'cos', 'cosh',
+                        'arccos', 'arccosh', 'tan', 'tanh', 'arctan',
+                        'arctanh', 'log', 'log2', 'log10', 'log1p',
+                        'exp', 'exp2', 'expm1']
+
 warn_if_no_unit_checking = True
 
 
 def wrap_function_dimensionless(func):
+    '''
+    Returns a new function that wraps the given function ``func``so that it
+    raises a DimensionMismatchError if the function is called on a quantity with
+    dimensions (excluding dimensionless quantitities). Quantities are
+    transformed to unitless numpy arrays before calling ``func``.
+    
+    These checks/transformations apply only to the very first argument, all
+    other arguments are ignored/untouched.
+    '''
     def f(x, *args, **kwds):
         fail_for_dimension_mismatch(x, error_message=func.__name__)
         return func(np.asarray(x), *args, **kwds)
@@ -136,6 +168,16 @@ def wrap_function_dimensionless(func):
 
 
 def wrap_function_keep_dimensions(func):
+    '''
+    Returns a new function that wraps the given function ``func``so that it
+    keeps the dimensions of its input. Quantities are transformed to
+    unitless numpy arrays before calling ``func``, the output is a quantity
+    with the original dimensions re-attached.
+    
+    These transformations apply only to the very first argument, all
+    other arguments are ignored/untouched, allowing to work functions like
+    ``sum`` to work as expected with additional ``axis`` etc. arguments.
+    '''
     def f(x, *args, **kwds):
             return Quantity(func(np.asarray(x), *args, **kwds), dim=x.dim)
     f.__name__ = func.__name__
@@ -146,6 +188,17 @@ def wrap_function_keep_dimensions(func):
 
 
 def wrap_function_change_dimensions(func, change_dim_func):
+    '''
+    Returns a new function that wraps the given function ``func``so that it
+    changes the dimensions of its input. Quantities are transformed to
+    unitless numpy arrays before calling ``func``, the output is a quantity
+    with the original dimensions passed through the function
+    ``change_dim_func``. A typical use would be a ``sqrt`` function that uses
+    ``lambda d: d ** 0.5`` as ``change_dim_func``.
+    
+    These transformations apply only to the very first argument, all
+    other arguments are ignored/untouched.
+    '''
     def f(x, *args, **kwds):
             ar = np.asarray(x)
             return Quantity(func(ar, *args, **kwds),
@@ -158,6 +211,15 @@ def wrap_function_change_dimensions(func, change_dim_func):
 
 
 def wrap_function_remove_dimensions(func):
+    '''
+    Returns a new function that wraps the given function ``func``so that it
+    removes any dimensions from its input. Useful for functions that are
+    returning integers (indices) or booleans, irrespective of the datatype
+    contained in the array.
+    
+    These transformations apply only to the very first argument, all
+    other arguments are ignored/untouched.
+    '''    
     def f(x, *args, **kwds):
             return func(np.asarray(x), *args, **kwds)
     f.__name__ = func.__name__
@@ -167,7 +229,12 @@ def wrap_function_remove_dimensions(func):
     return f        
 
 
-def wrap_function_no_check_warning(func):    
+def wrap_function_no_check_warning(func):
+    '''
+    Returns a new function that wraps the given function ``func``so that it
+    raises a warning about not checking units. Used mostly as a placeholder
+    to make users aware that the function is not prepared for units yet.
+    '''    
     def f(*args, **kwds):
             warn('%s does not check the units of its arguments.' % func.__name__)
             return func(*args, **kwds)
@@ -181,6 +248,15 @@ unit_checking = True
 
 
 def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
+    '''
+    Raises a DimensionMismatchError if the dimensions of ``obj1`` and ``obj2``
+    (can be scalars, arrays or Quantities) do not match. if ``obj2`` is None it
+    is assumed to be dimensionless. An optional ``error_message`` can be given
+    that is used for the DimensionMismatchError.
+    
+    Implements special checking for ``0``, treating it as having
+    "any dimensions".
+    '''
     if not unit_checking:
         return
 
@@ -206,23 +282,24 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
 # SI dimensions (see table at end of file) and various descriptions,
 # each description maps to an index i, and the power of each dimension
 # is stored in the variable dims[i]
-_di = { "Length": 0, "length": 0, "metre": 0, "metres": 0, "metre": 0,
-       "metres": 0, "metre": 0, "metres": 0, "metre": 0, "metres": 0, "m": 0,
-       "Mass": 1, "mass": 1, "kilogram": 1, "kilograms": 1, "kilogram": 1,
-       "kilograms": 1, "kg": 1, "Time": 2, "time": 2, "second": 2, "seconds": 2,
-       "second": 2, "seconds": 2, "s": 2, "Electric Current":3,
-       "Electric Current": 3, "electric current": 3, "Current": 3,
-       "current": 3, "ampere": 3, "amperes": 3, "ampere": 3, "amperes": 3,
-       "A": 3, "Temperature": 4, "temperature": 4, "kelvin": 4, "kelvins": 4,
-       "kelvin": 4, "kelvins": 4, "K": 4, "Quantity of Substance": 5,
-       "Quantity of substance": 5, "quantity of substance": 5, "Substance": 5,
-       "substance": 5, "mole": 5, "moles": 5, "mole": 5, "moles": 5, "mol": 5,
-       "Luminosity": 6, "luminosity": 6, "candle": 6, "candles": 6, "candle": 6,
-       "candles": 6, "cd": 6 }
+_di = { "Length": 0, "length": 0, "metre": 0, "metres": 0, "meter": 0,
+       "meters": 0, "m": 0,
+       "Mass": 1, "mass": 1, "kilogram": 1, "kilograms": 1, "kg": 1,
+       "Time": 2, "time": 2, "second": 2, "seconds": 2, "s": 2,
+       "Electric Current":3, "electric current": 3, "Current": 3, "current": 3,
+       "ampere": 3, "amperes": 3, "A": 3,
+       "Temperature": 4, "temperature": 4, "kelvin": 4, "kelvins": 4, "K": 4,
+       "Quantity of Substance": 5, "Quantity of substance": 5,
+       "quantity of substance": 5, "Substance": 5, "substance": 5, "mole": 5,
+       "moles": 5, "mol": 5,
+       "Luminosity": 6, "luminosity": 6, "candle": 6, "candles": 6, "cd": 6 }
+
 _ilabel = ["m", "kg", "s", "A", "K", "mol", "cd"]
+
 # The same labels with the names used for constructing them in Python code
 _iclass_label = ["metre", "kilogram", "second", "amp", "kelvin", "mole",
                  "candle"]
+
 # SI unit _prefixes, see table at end of file
 _siprefixes = {"y": 1e-24, "z": 1e-21, "a": 1e-18, "f": 1e-15, "p": 1e-12,
                "n": 1e-9, "u": 1e-6, "m": 1e-3, "c": 1e-2, "d": 1e-1, "": 1,
@@ -595,6 +672,8 @@ class Quantity(np.ndarray):
     """
     __slots__ = ["dim"]
     
+    __array_priority__ = 1000
+    
     #### CONSTRUCTION ####
 
     def __new__(cls, arr, dim=None, dtype=None, copy=False):
@@ -661,26 +740,18 @@ class Quantity(np.ndarray):
 
         uf, args, _ = context
 
-        if uf.__name__ in ['multiply', 'divide', 'absolute', 'rint', 'sqrt',
-                           'square', 'negative']:
+        if uf.__name__ in UFUNCS_PRESERVE_DIMENSIONS + UFUNCS_CHANGE_DIMENSIONS:
             # always allowed
             pass
-        elif uf.__name__ in ['sin', 'sinh', 'arcsin', 'arcsinh',
-                             'cos', 'cosh', 'arccos', 'arccosh',
-                             'tan', 'tanh', 'arctan', 'arctanh',
-                             'log', 'exp']:
+        elif uf.__name__ in UFUNCS_MATCHING_DIMENSIONS + UFUNCS_COMPARISONS:
+            # Ok if dimension of arguments match 
+            fail_for_dimension_mismatch(args[0], args[1], uf.__name__)        
+        elif uf.__name__ in UFUNCS_DIMENSIONLESS:
             # Ok, if argument is dimensionless
             fail_for_dimension_mismatch(args[0], error_message=uf.__name__)
         elif uf.__name__ in ['power']:
             # FIXME: do not allow several values for exponent
             fail_for_dimension_mismatch(args[1], error_message=uf.__name__)
-        elif uf.__name__ in ['add', 'subtract']:
-            # Ok if dimension of arguments match 
-            fail_for_dimension_mismatch(args[0], args[1], uf.__name__)
-        elif uf.__name__ in  ['less', 'less_equal', 'greater', 'greater_equal',
-                              'equal', 'not_equal']:
-            # TODO: Special status for inf and -inf for comparisons?
-            fail_for_dimension_mismatch(args[0], args[1], uf.__name__)
         else:
             warn("Unknown ufunc '%s' in __array_prepare__" % uf.__name__)            
 
@@ -689,37 +760,38 @@ class Quantity(np.ndarray):
     def __array_wrap__(self, array, context=None):
         dim = DIMENSIONLESS
 
-        # TODO: Does not always work?
         if not context is None:
             uf, args, _ = context
-            if uf.__name__ == 'sqrt':
+            if uf.__name__ in UFUNCS_PRESERVE_DIMENSIONS + UFUNCS_MATCHING_DIMENSIONS:
+                dim = self.dim
+            elif uf.__name__ in UFUNCS_DIMENSIONLESS:
+                # We should have been arrived here only for dimensionless
+                # quantities
+                dim = DIMENSIONLESS
+            elif uf.__name__ in UFUNCS_COMPARISONS:
+                # Do not touch the return value (boolean array)
+                return array
+            elif uf.__name__ == 'sqrt':
                 dim = self.dim ** 0.5
             elif uf.__name__ == 'power':
                 dim = get_dimensions(args[0]) ** np.asarray(args[1])
             elif uf.__name__ == 'square':
                 dim = self.dim ** 2
-            elif uf.__name__ in ['absolute', 'negative', 'rint', 'add',
-                                 'subtract']:
-                dim = self.dim
             elif uf.__name__ == 'divide':
                 dim = get_dimensions(args[0]) / get_dimensions(args[1])
             elif uf.__name__ == 'multiply':
                 dim = get_dimensions(args[0]) * get_dimensions(args[1])
-            elif uf.__name__ in ['sin', 'sinh', 'arcsin', 'arcsinh',
-                             'cos', 'cosh', 'arccos', 'arccosh',
-                             'tan', 'tanh', 'arctan', 'arctanh',
-                             'log', 'exp']:
-                # We should have been arrived here only for dimensionless
-                # quantities
-                dim = DIMENSIONLESS
-            elif uf.__name__ in  ['less', 'less_equal', 'greater', 'greater_equal',
-                                  'equal', 'not_equal']:
-                return array
             else:
                 warn("Unknown ufunc '%s' in __array_wrap__" % uf.__name__)
                 #TODO: Remove units in this case?
 
-        result = array.view(type(self))
+        # This seems to be better than using type(self) instead of quantity
+        # This may convert units to Quantities, e.g. np.square(volt) leads to
+        # a 1 * volt ** 2 quantitiy instead of volt ** 2. But this should
+        # rarely be an issue. The alternative leads to more confusing
+        # behaviour: np.float64(3) * mV would result in a dimensionless float64
+         
+        result = array.view(Quantity)
         result.dim = dim
         return result
 
@@ -1281,7 +1353,7 @@ class Unit(Quantity):
     """
     __slots__ = ["dim", "scale", "scalefactor", "dispname", "name", "iscompound"]
     
-    __array_priority__ = 10000
+    __array_priority__ = 100
     
     #### CONSTRUCTION ####
     def __new__(cls, arr, dim=None, scale=None, dtype=None, copy=False):
@@ -1293,15 +1365,12 @@ class Unit(Quantity):
         return obj
     
     def __array_finalize__(self, orig):
-        try:
-            self.dim = orig.dim
-            self.scale = orig.scale
-            self.scalefactor = orig.scalefactor
-            self.name = orig.name
-            self.dispname = orig.dispame
-            self.iscompound = orig.iscompound
-        except AttributeError:
-            pass
+        self.dim = getattr(orig, 'dim', DIMENSIONLESS)
+        self.scale = getattr(orig, 'scale', ("", "", "", "", "", "", ""))
+        self.scalefactor = getattr(orig, 'scalefactor', '')
+        self.name = getattr(orig, 'name', '')
+        self.dispname = getattr(orig, 'dispname', '')
+        self.iscompound = getattr(orig, 'iscompound', False)
         return self  
         
     def __init__(self, value, dim=None, scale=None):
