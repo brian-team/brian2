@@ -32,28 +32,22 @@
 # knowledge of the CeCILL license and that you accept its terms.
 # ----------------------------------------------------------------------------------
 # 
+
 '''
 Differential equations for Brian models.
 '''
-import inspect
 import keyword
 import re
 import string
-import uuid
 
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
-from sympy import sympify, Symbol, Wild
-from sympy.core.sympify import SympifyError
 
-from brian2.units.stdunits import stdunits
-from brian2.units.fundamentalunits import (Quantity, Unit, all_registered_units,
-                                           have_same_dimensions, DIMENSIONLESS,
-                                           DimensionMismatchError,
+from brian2.units.fundamentalunits import (DimensionMismatchError,
                                            get_dimensions)
-from brian2.units import second
-
-from brian.inspection import get_identifiers
+from brian2.units.units import second
+from brian2.equations.unitcheck import get_unit_from_string
+from brian2.equations.codestrings import Expression
 
 # Definitions of equation structure for parsing with pyparsing
 ###############################################################################
@@ -117,159 +111,59 @@ EQUATION = (PARAMETER | STATIC_EQ | DIFF_EQ).ignore('#' + restOfLine)
 EQUATIONS = ZeroOrMore(EQUATION)
 
 
-def unique_id():
-    """
-    Returns a unique name (e.g. for internal hidden variables).
-    """
-    return '_' + str(uuid.uuid1().int) 
-
-
-def get_default_unit_namespace():    
-    namespace = dict([(u.name, u) for u in all_registered_units()])
-    namespace.update(stdunits)
-    return namespace
-
-
-def get_expression_parts(expr):
+def check_identifier(identifier, internal=False,
+                     reserved_identifiers=('t', 'dt', 'xi')):
     '''
-    Returns a tuple containing the functions f and g (as sympy expressions),
-    assuming expressions of the form ``f + g * xi``, where ``xi`` is the
-    symbol for the random variable.
+    Check an identifier (usually resulting from an equation string provided by
+    the user) for conformity with the rules:
     
-    ``expr`` can be a string or a sympy expression.
+        1. Only ASCII characters
+        2. Starts with underscore or character, then mix of alphanumerical
+           characters and underscore
+        3. Is not a reserved keyword of Python
+        4. Is not an identifier which has a special meaning for equations, 
+           (e.g. "t", "dt", ...)
     
-    Always returns expressions for f and g, but these can be ``0`` if the
-    corresponding part is not present. 
+    Arguments:
     
-    Examples::
+    ``identifier``
+        The string that should be checked
     
-        >>> get_expression_parts('-v / (1 * ms)')
-        (-v/ms, 0)
-        >>> get_expression_parts('sigma * xi')
-        (0, sigma)
-        >>> get_expression_parts('mu / tau + sigma / tau**.5 * xi')
-        (mu/tau, sigma*tau**-0.5)
-        >>> get_expression_parts('-v + xi ** 2')
-        Traceback (most recent call last):
-            ...    
-        ValueError: Expression "-v + xi**2" cannot be separated into stochastic and non-stochastic term
+    ``internal``
+        Whether the identifier is defined internally (defaults to ``False``),
+        i.e. not by the user. Internal identifiers are allowed to start with an
+        underscore whereas user-defined identifiers are not.
+    
+    ``reserved_identifiers``
+        A container of strings, containing identifiers not to be used.
+        Defaults to ('t', 'dt', 'xi')
+    
+    The function raises a ``ValueError`` if the identifier does not conform to
+    the above rules.
     '''
-    expr = sympify(expr)
-    xi = Symbol('xi')
-    if not xi in expr:
-        return (expr, sympify('0'))
     
-    f = Wild('f', exclude=[xi]) # non-stochastic part
-    g = Wild('g', exclude=[xi]) # stochastic part
-    matches = expr.match(f + g * xi)
-    if matches is None:
-        raise ValueError(('Expression "%s" cannot be separated into stochastic '
-                         'and non-stochastic term') % expr)
-
-    return (matches[f], matches[g])
-
-
-def get_unit_from_string(unit_string, unit_namespace=None):
-    if unit_namespace is None:
-        namespace = get_default_unit_namespace()
-    else:
-        namespace = unit_namespace
-    unit_string = unit_string.strip()
+    # Check whether the identifier is parsed correctly -- this is always the
+    # case, if the identifier results from the parsing of an equation but there
+    # might be situations where the identifier is specified directly
+    parse_result = list(IDENTIFIER.scanString(identifier))
     
-    # Special case: dimensionless unit
-    if unit_string == '1':
-        return Unit(1, dim=DIMENSIONLESS)
+    # parse_result[0][0][0] refers to the matched string -- this should be the
+    # full identifier, if not it is an illegal identifier like "3foo" which only
+    # matched on "foo" 
+    if len(parse_result) != 1 or parse_result[0][0][0] != identifier:
+        raise ValueError('"%s" is not a valid identifier string.' % identifier)
+
+    if keyword.iskeyword(identifier):
+        raise ValueError(('"%s" is a Python keyword and cannot be used as an '
+                          'identifier.') % identifier)
     
-    # Check first whether the expression evaluates at all, using only
-    # registered units
-    try:
-        evaluated_unit = eval(unit_string, namespace)
-    except Exception as ex:
-        raise ValueError('"%s" does not evaluate to a unit: %s' %
-                         (unit_string, ex))
+    if identifier in reserved_identifiers:
+        raise ValueError(('"%s" has a special meaning in equations and cannot be '
+                         'used as an identifier.') % identifier)
     
-    # Check whether the result is a unit
-    if not isinstance(evaluated_unit, Unit):
-        if isinstance(evaluated_unit, Quantity):
-            raise ValueError(('"%s" does not evaluate to a unit but to a '
-                              'quantity -- make sure to only use units, e.g. '
-                              '"siemens/m**2" and not "1 * siemens/m**2"') %
-                             unit_string)
-        else:
-            raise ValueError(('"%s" does not evaluate to a unit, the result '
-                             'has type %s instead.' % (unit_string,
-                                                       type(evaluated_unit))))
-    # We only want base units, otherwise e.g. setting a unit to mV might lead to 
-    # unexpected results (as it is internally saved in volts)
-    # TODO: Maybe this restriction is unnecessary with unit arrays?
-    if float(evaluated_unit) != 1.0:
-        raise ValueError(('"%s" is not a base unit, but only base units are '
-                         'allowed in the units part of equations.') % unit_string)
-
-    # No error has been raised, all good
-    return evaluated_unit
-
-def get_namespace_for_codestring(codestring, other_identifiers, local_namespace,
-                                 global_namespace):
-    '''
-    Returns a namespace for the given codestring, containing resolved
-    references to externally defined variables and functions. Raises an error
-    if a variable/function cannot be resolved.
-    
-    The resulting namespace includes units but does not include anything
-    present in the ``other_identifiers`` set.
-    '''
-    unit_namespace = get_default_unit_namespace()
-
-    identifiers = set(get_identifiers(codestring))
-    namespace = {}
-    for identifier in identifiers:
-        if identifier in other_identifiers:
-            pass
-        elif identifier in local_namespace:
-            namespace[identifier] = local_namespace[identifier]
-        elif identifier in global_namespace:
-            namespace[identifier] = global_namespace[identifier]
-        elif identifier in unit_namespace:
-            namespace[identifier] = unit_namespace[identifier]
-        else:
-            raise ValueError(('The string "%s" refers to an unknown '
-                              'identifier "%s"') % (codestring, identifier))    
-    return namespace
-
-
-def get_dimensions_for_codestring(codestring, identifier_units, namespace):
-    '''
-    Returns the dimensions of the ``codestring`` by evaluating it in the given
-    ``namespace``, replacing all identifiers with their units. The units have
-    to be given in the dictionary ``identifier_units``.
-    
-    May raise an DimensionMismatchError during the evaluation.
-    '''
-    namespace = namespace.copy()
-    namespace.update(identifier_units)
-    return get_dimensions(eval(codestring, namespace))
-
-
-def get_frozen_codestring_and_namespace(codestring, namespace):
-    '''
-    Returns a tuple containing a codestring and a namespace, resulting from
-    replacing everything in the given ``codestring`` from ``namespace`` by its
-    float value. Removes the corresponding entries from the namespace.
-    '''
-    new_namespace = {}    
-    #TODO: Use sympy instead to simplify the expression?
-    for key, value in namespace.iteritems():
-        try:
-            float_value = float(value)
-            codestring = re.sub(r'\b' + key + r'\b', str(float_value),
-                                codestring)            
-        except (TypeError, ValueError):
-            # could not convert the identifier to a float, keep it in the
-            # namespace
-            new_namespace[key] = value
-    
-    return (codestring, new_namespace)
+    if not internal and identifier.startswith('_'):
+        raise ValueError(('Identifier "%s" starts with an underscore, '
+                          'this is only allowed for variables used internally') % identifier)
 
 
 class Equations(object):
@@ -307,61 +201,78 @@ class Equations(object):
     (3) ``x : unit (flags)`` (parameter)
     
     """
-    def __init__(self, eqns='', level=0, allowed_flags=None, 
-                 reserved_identifiers=None, namespace=None):
-        # Empty object        
-        self._string_expressions = {} # dictionary of strings (defining the functions)
-        self._sympy_expressions = {} # dictionary of sympy expressions
-        self._sympy_expressions_non_stochastic = {} # non-stochastic parts of diff equations
-        self._sympy_expressions_stochastic = {} # stochastic parts of diff equations
-        self._namespaces = {} # dictionary of namespaces for the strings        
-        self._units = {'t':second, 'dt': second, 'xi': second ** -.5} # dictionary of units
-        self._flags = {} # dictionary of "flags", e.g. "const" or "event-driven"
-        self._identifiers = set(['t', 'dt', 'xi']) # all identifiers (union of the next 3 lists)
-        self._diff_equation_names = [] # differential equation variables
-        self._static_equation_names = [] # static equation variables
-        self._parameter_names = [] # parameters
-        self._dependencies = {} # dictionary of dependencies (on static equations)
-        
-        if allowed_flags is None:
-            self.allowed_flags = ALLOWED_FLAGS
-        else:
-            self.allowed_flags = allowed_flags
+    
+    class _Equation():
+        '''
+        Class for internal use, encapsulates a single equation or parameter.
+        '''
+        def __init__(self, eq_type, varname, expr, unit, flags,
+                     namespace, exhaustive, level):
+            '''
+            Create a new :class:`_Equation` object.
+            '''
+            self.eq_type = eq_type
+            self.varname = varname
+            if eq_type != 'parameter':
+                self.expr = Expression(expr, namespace=namespace,
+                                       exhaustive=exhaustive, level=level + 1)
+            else:
+                self.expr = None
+            self.unit = unit
+            self.flags = flags
 
-        self.reserved_identifiers = set(['t', 'dt', 'xi'])
-        if not reserved_identifiers is None:
-            self.reserved_identifiers = self.reserved_identifiers.union(set(reserved_identifiers))
-        
-        self.parse_string_equations(eqns)
+        def resolve(self, internal_variables):
+            if not self.expr is None:
+                self.expr.resolve(internal_variables)
 
-        if namespace is None:
-            frame = inspect.stack()[level + 1][0]
-            ns_global, ns_local = frame.f_globals, frame.f_locals
-        else:
-            ns_local = namespace
-            ns_global = {}
+        def __str__(self):
+            if self.eq_type == 'diff_equation':
+                s = 'd' + self.varname + '/dt'
+            else:
+                s = self.varname
+            
+            if self.eq_type in ['diff_equation', 'static_equation']:
+                s += ' = ' + str(self.expr)
+            
+            s += ' : ' + str(self.unit)
+            
+            if len(self.flags):
+                s += '(' + ', '.join(self.flags) + ')'
+            
+            return s
 
-        # build the namespaces
-        for var in self._static_equation_names + self._diff_equation_names:
-            self._namespaces[var] = get_namespace_for_codestring(self._string_expressions[var],
-                                                                 self._identifiers,
-                                                                 ns_local,
-                                                                 ns_global)
+    
+    def __init__(self, eqns='', namespace=None, exhaustive=False, level=0):
+                
+        self._equations = self._parse_string_equations(eqns, namespace,
+                                                       exhaustive, level)
         
-        # check the units
+        # For convenience, a dictionary with all the units
+        self._units = dict([(var, eq.unit) for var, eq in
+                            self._equations.iteritems()])
+        # Add the special variables to the unit dicitionary
+        self._units.update({'t': second, 'dt': second, 'xi': second**0.5})
+        
+        # A set of all the state variables / parameters
+        self._variables = set(self._units.keys())
+        
+        # Build the namespaces, resolve all external variables and rearrange
+        # static equations
+        self._resolve()
+        
+        # Check the units for consistency
         self.check_units()
+        
+        # TODO: Separate stochastic and non-stochastic parts
+        
 
-    """
-    -----------------------------------------------------------------------
-    PARSING AND BUILDING NAMESPACES
-    -----------------------------------------------------------------------
-    """
-
-    def parse_string_equations(self, eqns):
+    def _parse_string_equations(self, eqns, namespace, exhaustive, level):
         """
-        Parses a string defining equations and builds an Equations object.
-        Uses the namespace in the given level of the stack.
+        Parses a string defining equations and returns a dictionary, mapping
+        variable names to :class:`Equations._Equation` objects.
         """
+        equations = {}
+        
         try:
             parsed = EQUATIONS.parseString(eqns, parseAll=True)
         except ParseException as p_exc:
@@ -373,7 +284,7 @@ class Equations(object):
             eq_content = dict(eq.items())
             # Check for reserved keywords
             identifier = eq_content['identifier']
-            self.check_identifier(identifier)
+            check_identifier(identifier)
             
             # Convert unit string to Unit object
             unit = get_unit_from_string(eq_content['unit'])
@@ -384,196 +295,71 @@ class Equations(object):
                 # strings) with single space
                 p = re.compile(r'\s{2,}')
                 expression = p.sub(' ', expression)
-            flags = eq_content.get('flags', None)
-            # TODO: Take care of namespaces
-            self.add_equation(identifier, eq_type, expression, unit, flags)
-
-    def add_equation(self, identifier, eq_type, eq, unit, flags):
-        """
-        Inserts a differential equation.
-        name = variable name
-        eq = string definition
-        unit = unit of the variable (possibly a string)
-        *_namespace = namespaces associated to the string        
-        """
-        if identifier in self._identifiers:
-            raise ValueError('Duplicate definition of "%s".' % identifier)
-        else:
-            self._identifiers.add(identifier)
-        
-        self._units[identifier] = unit
-
-        self._string_expressions[identifier] = eq
-        if eq is not None:
-            try:
-                self._sympy_expressions[identifier] = sympify(eq)
-            except SympifyError as s_exc:
-                raise ValueError('Sympy parsing failed for equation definining %s:\n%s' %
-                                 (identifier, s_exc))
-        if eq_type == 'diff_equation':
-            self._diff_equation_names.append(identifier)
-            # get stochastic and non-stochastic parts of equation
-            (f, g) = get_expression_parts(self._sympy_expressions[identifier])
-            self._sympy_expressions_non_stochastic[identifier] = f
-            self._sympy_expressions_stochastic[identifier] = g
-        elif eq_type == 'static_equation':
-            self._static_equation_names.append(identifier)
-        elif eq_type == 'parameter':
-            self._parameter_names.append(identifier)
-        else:
-            raise ValueError('Unknown equation type "%s"' % eq_type)
-        
-        if flags is None:
-            self._flags[identifier] = []
-        else:
-            self.check_flags(flags, eq_type)
-            self._flags[identifier] = flags
-
-    def check_identifier(self, identifier, internal=False):
-        '''
-        Check an identifier (usually resulting from an equation string provided by
-        the user) for conformity with the rules:
-        
-            1. Only ASCII characters
-            2. Starts with underscore or character, then mix of alphanumerical
-               characters and underscore
-            3. Is not a reserved keyword of Python
-            4. Is not an identifier which has a special meaning for equations 
-               (e.g. "t", "dt", ...)
-        
-        Arguments:
-        
-        ``identifier``
-            The string that should be checked
-        
-        ``internal``
-            Whether the identifier is defined internally (defaults to ``False``),
-            i.e. not by the user. Internal identifiers are allowed to start with an
-            underscore whereas user-defined identifiers are not.
-        
-        The function raises a ``ValueError`` if the identifier does not conform to
-        the above rules.
-        '''
-        
-        # Check whether the identifier is parsed correctly -- this is always the
-        # case, if the identifier results from the parsing of an equation but there
-        # might be situations where the identifier is specified directly
-        parse_result = list(IDENTIFIER.scanString(identifier))
-        
-        # parse_result[0][0][0] refers to the matched string -- this should be the
-        # full identifier, if not it is an illegal identifier like "3foo" which only
-        # matched on "foo" 
-        if len(parse_result) != 1 or parse_result[0][0][0] != identifier:
-            raise ValueError('"%s" is not a valid identifier string.' % identifier)
+            flags = eq_content.get('flags', [])
     
-        if keyword.iskeyword(identifier):
-            raise ValueError('"%s" is a Python keyword and cannot be used as an identifier.' % identifier)
+            equation = Equations._Equation(eq_type, identifier, expression,
+                                           unit, flags, namespace,
+                                           exhaustive, level + 1) 
+            
+            if identifier in equations:
+                raise ValueError('Duplicate definition of variable "%s"' %
+                                 identifier)
+                                           
+            equations[identifier] = equation
         
-        if identifier in self.reserved_identifiers:
-            raise ValueError(('"%s" has a special meaning in equations and cannot be '
-                             'used as an identifier.') % identifier)
+        return equations            
+
+    def _resolve(self):
+        for eq in self._equations.itervalues():
+            eq.resolve(self._variables)
         
-        if not internal and identifier.startswith('_'):
-            raise ValueError(('Identifier "%s" starts with an underscore, '
-                              'this is only allowed for variables used internally') % identifier)            
-
-    def check_flags(self, flags, eq_type):        
-        for flag in flags:
-            allowed = self.allowed_flags.get(eq_type, [])
-            if not flag in allowed:
-                raise ValueError(('Flag "%s" is not allowed for equations of '
-                                 'type "%s". Allowed flags are: %s') % 
-                                 (flag, eq_type, allowed))
-
-    def _get_units_for_RHS(self, var):
-        try:
-            dim_RHS = get_dimensions_for_codestring(self._string_expressions[var],
-                                                    self._units, self._namespaces[var])                
-        except DimensionMismatchError as dme:
-            raise DimensionMismatchError(('Error during unit check of expression '
-                                          'defining %s: %s') % (var, dme.desc),
-                                         *dme._dims)
-        return dim_RHS
+        #TODO: Build a single namespace for the equations object
+        #TODO: Check for dependencies and reorder static equations
 
     def check_units(self):
-        for var in self._diff_equation_names:            
-            dim_RHS = self._get_units_for_RHS(var)
-            dim_LHS = get_dimensions(self._units[var] / second)
-            if not dim_LHS is dim_RHS:
-                raise DimensionMismatchError(('Differential equation defining '
-                                              '%s is not homogeneous') % var,
-                                             dim_LHS, dim_RHS)
-        for var in self._static_equation_names:
-            dim_RHS = self._get_units_for_RHS(var)            
-            dim_LHS = get_dimensions(self._units[var])
-            if not dim_LHS is dim_RHS:
-                raise DimensionMismatchError(('Static equation defining '
-                                              '%s is not homogeneous') % var,
-                                             dim_LHS, dim_RHS)
-
+        for var, eq in self._equations.iteritems():
+            if eq.eq_type == 'parameter':
+                # no need to check units for parameters
+                continue
+            
+            if eq.eq_type == 'diff_equation':
+                try:
+                    eq.expr.check_unit_against(self._units[var] / second,
+                                               self._units)
+                except DimensionMismatchError as dme:
+                    raise DimensionMismatchError(('Differential equation defining '
+                                                  '%s does not use consistent units: %s') % 
+                                                 (var, dme.desc), *dme._dims)
+            elif eq.eq_type == 'static_equation':
+                try:
+                    eq.expr.check_unit_against(self._units[var],
+                                               self._units)
+                except DimensionMismatchError as dme:
+                    raise DimensionMismatchError(('Static equation defining '
+                                                  '%s does not use consistent units: %s') % 
+                                                 (var, dme.desc), *dme._dims)                
+            else:
+                raise AssertionError('Unknown equation type: "%s"' % eq.eq_type)
         
     #
     # Representation
     # 
 
     def __str__(self):
-        s = ''
-        for var in self._diff_equation_names:
-            s += ('d' + var + '/dt = ' + self._string_expressions[var] + ': ' +
-                  str(self._units[var]))
-            if len(self._flags[var]):
-                s += ' (' + ' ,'.join(self._flags[var]) + ')'
-            s += '\n'
-        for var in self._static_equation_names:
-            s += (var + ' = ' + self._string_expressions[var] + ': ' +
-                  str(self._units[var]))
-            if len(self._flags[var]):
-                s += ' (' + ', '.join(self._flags[var]) + ')'            
-            s += '\n'
-        for var in self._parameter_names:
-            s += (var + ': ' + str(self._units[var]))
-            if len(self._flags[var]):
-                s += ' (' + ', '.join(self._flags[var]) + ')'            
-            s += '\n'
-        return s
+        strings = [str(eq) for eq in self._equations.itervalues()]
+        return '\n'.join(strings)
 
     def _repr_pretty_(self, p, cycle):
         ''' Pretty printing for ipython '''
         if cycle: 
             # Should never happen actually
             return 'Equations(...)'
-        for var in self._diff_equation_names:
-            with p.group(len(var) + 7, 'd' + var + '/dt = ', ''):
-                p.pretty(self._sympy_expressions[var])
-                p.text(' :')
-                p.breakable()
-                p.pretty(self._units[var])
-                if len(self._flags[var]):
-                    p.text(' (')
-                    p.text(self._flags[var].join(', '))
-                    p.text(' )')
-                p.text('\n')
-        for var in self._static_equation_names:
-            with p.group(len(var) + 3,  var + ' = ', ''):
-                p.pretty(self._sympy_expressions[var])
-                p.text(' :')
-                p.breakable()
-                p.pretty(self._units[var])
-                if len(self._flags[var]):
-                    p.text(' (')
-                    p.text(self._flags[var].join(', '))
-                    p.text(' )')                
-                p.text('\n')
-        for var in self._parameter_names:
-                p.text(var)
-                p.text(' :')
-                p.breakable()
-                p.pretty(self._units[var])
-                if len(self._flags[var]):
-                    p.text(' (')
-                    p.text(self._flags[var].join(', '))
-                    p.text(' )')                
-                p.text('\n')
+        for eq in self._equations.itervalues():
+            p.pretty(eq)            
 
 if __name__ == '__main__':
-    import doctest
+    tau = 5 * second
+    eqs = Equations('''dv/dt = -(v + x)/ tau : volt
+                       x : 1
+                       y = 2 * v : volt''')
+    
