@@ -1,12 +1,45 @@
 import inspect
 from warnings import warn
 
-from sympy import sympify, Symbol, Wild
+from sympy import sympify, Symbol, Wild, diff
 from sympy.core.sympify import SympifyError
 
 from brian2.units.fundamentalunits import get_dimensions, DimensionMismatchError
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.equations.unitcheck import get_default_unit_namespace
+
+def check_linearity(expression_string, variable):
+    '''
+    Returns whether the expression given as ``expression_string`` is linear
+    with respect to ``variable``, assuming that all other variables are
+    constants. The expression should not contain any functions.
+    '''
+    
+    try:
+        sympy_expr = sympify(expression_string)
+    except SympifyError:
+        raise ValueError('Expression "%s" cannot be parsed with sympy' %
+                         expression_string)
+    
+    x = Symbol(variable)
+    
+    if not x in sympy_expr:
+        return True
+    
+#    # This tries to check whether the expression can be rewritten in an a*x + b
+#    # but apparently this does not work very well
+#    a = Wild('a', exclude=[x])
+#    b = Wild('b', exclude=[x])
+#    matches = sympy_expr.match(a * x + b) 
+#    
+#    return not matches is None
+
+    # This seems to be more robust: Take the derivative with respect to the
+    # variable
+    diff_f = diff(sympy_expr, x).simplify()
+    
+    # if the expression is linear, x should have disappeared
+    return not x in diff_f 
 
 class ResolutionConflictWarning(UserWarning):
     pass
@@ -226,6 +259,47 @@ class CodeString(object):
 
 class Expression(CodeString):
     
+    # An expression is stochastic if split_stochastic returns a stochastic part
+    is_stochastic = property(lambda self: not self.split_stochastic()[1] is None,
+                             'Whether the expression is stochastic')
+        
+    def _is_time_dependent(self):
+        '''
+        Whether this expression depends on time (i.e. on the variable "t")
+        '''
+        if not self.is_resolved:
+            raise AttributeError('Can only determine this for resolved '
+                                 'expressions')
+        return 't' in self.dependencies
+    
+    is_time_dependent = property(_is_time_dependent)
+    
+    def _is_linear(self):
+        '''
+        Whether this expression is linear. If it depends on time or uses 
+        external functions, it is always considered non-linear.
+        '''
+        if not self.is_resolved:
+            raise AttributeError('Can only determine this for resolved '
+                                 'expressions')
+        if self.is_time_dependent:
+            return False
+        
+        if any([hasattr(ref, '__call__') for ref in self.namespace.itervalues()]):
+            return False
+        
+        # test linearity by checking whether the equation can be rewritten
+        # as "a * x + b" for each internal variable x that this expression
+        # depends on, assuming that all other variables can be considered
+        # constant
+        for var in self.dependencies:
+            if not check_linearity(self.code, var):
+                return False
+        
+        return True 
+
+    is_linear = property(_is_linear)
+            
     def eval(self, internal_variables):
         '''
         Evaluates the expression in its namespace, augmented by the values
@@ -297,24 +371,3 @@ class Expression(CodeString):
                             exhaustive=True)
         
         return (f_expr, g_expr)
-    
-
-if __name__ == '__main__':
-    tau = 3
-    cs = CodeString('-v / (tau * ms)')
-    cs.resolve(['v'])
-    expr = Expression('-v / (tau * ms)')
-    expr.resolve(['v'])
-    cs2 = cs.freeze()
-    expr2 = expr.freeze()
-    print repr(cs)
-    print repr(expr)
-    print repr(cs2)
-    print repr(expr2)
-    
-    from brian2.units import ms
-    tau2 = 20 * ms
-    sigma = 3
-    s_expr = Expression('v / tau2 + sigma * xi')
-    s_expr.resolve(['v', 'xi'])
-    print s_expr.split_stochastic()

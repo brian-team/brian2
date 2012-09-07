@@ -1,9 +1,6 @@
 from brian2.units.stdunits import stdunits
 from brian2.units.fundamentalunits import (Quantity, Unit, all_registered_units,
-                                           have_same_dimensions, DIMENSIONLESS,
-                                           DimensionMismatchError,
-                                           get_dimensions)
-from brian2.units import second
+                                           DIMENSIONLESS)
 
 
 def get_default_unit_namespace():    

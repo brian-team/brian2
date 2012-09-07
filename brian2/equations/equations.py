@@ -43,11 +43,13 @@ import string
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 
-from brian2.units.fundamentalunits import (DimensionMismatchError,
-                                           get_dimensions)
+from brian2.units.fundamentalunits import DimensionMismatchError
 from brian2.units.units import second
 from brian2.equations.unitcheck import get_unit_from_string
-from brian2.equations.codestrings import Expression
+from brian2.equations.codestrings import Expression, check_linearity
+
+# Units of the special variables that are always defined
+UNITS_SPECIAL_VARS = {'t': second, 'dt': second, 'xi': second**0.5}
 
 # Definitions of equation structure for parsing with pyparsing
 ###############################################################################
@@ -71,7 +73,7 @@ EXPRESSION = Combine(OneOrMore((CharsNotIn(':#\n') +
 # a unit
 # very broad definition here, again. Whether this corresponds to a valid unit
 # string will be checked later
-UNIT = Word(string.ascii_letters + string.digits + '*/ ').setResultsName('unit')
+UNIT = Word(string.ascii_letters + string.digits + '*/. ').setResultsName('unit')
 
 # a single Flag (e.g. "const" or "event-driven")
 FLAG = Word(string.ascii_letters + '_-')
@@ -79,12 +81,6 @@ FLAG = Word(string.ascii_letters + '_-')
 # Flags are comma-separated and enclosed in parantheses: "(flag1, flag2)"
 FLAGS = (Suppress('(') + FLAG + ZeroOrMore(Suppress(',') + FLAG) +
          Suppress(')')).setResultsName('flags')
-
-# allowed flags for equation types. Is not used by the parsing directly but
-# later for checking
-ALLOWED_FLAGS = {'diff_equation': ['active'],
-                 'static_equation': [],
-                 'parameter': ['constant']}
 
 ###############################################################################
 # Equations
@@ -224,6 +220,27 @@ class Equations(object):
             # will be set later in the sort_static_equations method of Equations
             self.update_order = -1
 
+        # parameters do not depend on time
+        is_time_dependent = property(lambda self: self.expr.is_time_dependent
+                                     if not self.expr is None else False,
+                                     doc='Whether this equation is time dependent')
+        
+        # parameters are linear
+        # FIXME: This will result in False if an equation non-linearly depends
+        # on a constant parameter
+        is_linear = property(lambda self: self.expr.is_linear
+                                     if not self.expr is None else True,
+                                     doc='Whether this equation is linear')
+        
+        is_conditionally_linear = property(lambda self: check_linearity(self.expr,
+                                                                        self.varname)
+                                           if not self.expr is None else True,
+                                           doc='Whether this equation is conditionally linear')
+
+        dependencies = property(lambda self: self.expr.dependencies
+                                if not self.expr is None else [],
+                                doc='List of dependencies for this equation')
+
         def resolve(self, internal_variables):
             if not self.expr is None:
                 self.expr.resolve(internal_variables)        
@@ -267,24 +284,14 @@ class Equations(object):
         self._equations = self._parse_string_equations(eqns, namespace,
                                                        exhaustive, level)
         
-        # For convenience, a dictionary with all the units
-        self._units = dict([(var, eq.unit) for var, eq in
-                            self._equations.iteritems()])
-        # Add the special variables to the unit dicitionary
-        self._units.update({'t': second, 'dt': second, 'xi': second**0.5})
-        
-        # A set of all the state variables / parameters
-        self._variables = set(self._units.keys())
-        
         # Build the namespaces, resolve all external variables and rearrange
         # static equations
         self._resolve()
         
         # Check the units for consistency
         self.check_units()
-        
-        # TODO: Separate stochastic and non-stochastic parts
-        
+
+
     equations = property(lambda self: self._equations,
                         doc='A dictionary mapping variable names to equations')
     equations_ordered = property(lambda self: sorted(self._equations.itervalues(),
@@ -292,6 +299,46 @@ class Equations(object):
                                  doc='A list of all equations, sorted '
                                  'according to the order in which they should '
                                  'be updated')
+    
+    def _is_linear(self):
+        '''
+        Whether all equations are linear and only refer to constant parameters.
+        '''       
+        all_linear = all([eq.is_linear for eq in self.equations.itervalues()])
+        
+        if not all_linear:
+            return False
+        
+        # Check the dependencies of all equations for non-constant parameters
+        for eq in self.equations.itervalues():
+            for dep in eq.dependencies:
+                dep_eq = self.equations.get(dep, None)
+                if (not dep_eq is None and dep_eq.eq_type == 'parameter' and
+                    not 'constant' in dep_eq.flags):
+                    return False
+        
+        return True
+    
+    is_linear = property(_is_linear)
+    
+    is_conditionally_linear = property(lambda self: all([eq.is_conditionally_linear
+                                                         for eq in self.equations.itervalues()]),
+                                       doc='Whether all equations are conditionally linear')
+    
+    def get_units(self):
+        '''
+        Dictionary of all internal variables (including t, dt, xi) and their
+        corresponding units
+        '''
+        units = dict([(var, eq.unit) for var, eq in
+                      self._equations.iteritems()])
+        units.update(UNITS_SPECIAL_VARS)
+        return units
+    
+    units = property(get_units)
+    
+    variables = property(lambda self: set(self.units.keys()),
+                         doc='Set of all variables')
 
     def _parse_string_equations(self, eqns, namespace, exhaustive, level):
         """
@@ -303,7 +350,6 @@ class Equations(object):
         try:
             parsed = EQUATIONS.parseString(eqns, parseAll=True)
         except ParseException as p_exc:
-            # TODO: Any way to have colorful output when run under ipython?
             raise ValueError('Parsing failed: \n' + str(p_exc.line) + '\n' +
                              ' '*(p_exc.column - 1) + '^\n' + str(p_exc))
         for eq in parsed:
@@ -322,7 +368,7 @@ class Equations(object):
                 # strings) with single space
                 p = re.compile(r'\s{2,}')
                 expression = p.sub(' ', expression)
-            flags = eq_content.get('flags', [])
+            flags = list(eq_content.get('flags', []))
     
             equation = Equations._Equation(eq_type, identifier, expression,
                                            unit, flags, namespace,
@@ -338,7 +384,7 @@ class Equations(object):
 
     def _resolve(self):
         for eq in self._equations.itervalues():
-            eq.resolve(self._variables)
+            eq.resolve(self.variables)
         
         self._namespace = {}
         # Make absolutely sure there are no conflicts and nothing weird is
@@ -372,7 +418,7 @@ class Equations(object):
         static_deps = {}
         for eq in self._equations.itervalues():
             if eq.eq_type == 'static_equation':
-                static_deps[eq.varname] = [dep for dep in eq.expr.dependencies if
+                static_deps[eq.varname] = [dep for dep in eq.dependencies if
                                            dep in self._equations and
                                            self._equations[dep].eq_type == 'static_equation']
         
@@ -418,10 +464,11 @@ class Equations(object):
             update_order = lambda var: (self._equations[var].update_order if
                                         var in self._equations else -1)
             order_dict = dict([(dep, update_order(dep)) for
-                               dep in eq.expr.dependencies])
+                               dep in eq.dependencies])
             eq.expr.sort_dependencies(order_dict)
 
     def check_units(self):
+        units = self.units
         for var, eq in self._equations.iteritems():
             if eq.eq_type == 'parameter':
                 # no need to check units for parameters
@@ -429,23 +476,20 @@ class Equations(object):
             
             if eq.eq_type == 'diff_equation':
                 try:
-                    eq.expr.check_unit_against(self._units[var] / second,
-                                               self._units)
+                    eq.expr.check_unit_against(units[var] / second, units)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Differential equation defining '
                                                   '%s does not use consistent units: %s') % 
                                                  (var, dme.desc), *dme._dims)
             elif eq.eq_type == 'static_equation':
                 try:
-                    eq.expr.check_unit_against(self._units[var],
-                                               self._units)
+                    eq.expr.check_unit_against(units[var], units)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Static equation defining '
                                                   '%s does not use consistent units: %s') % 
                                                  (var, dme.desc), *dme._dims)                
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.eq_type)
-
 
     #
     # Representation
@@ -461,16 +505,5 @@ class Equations(object):
             # Should never happen actually
             return 'Equations(...)'
         for eq in self._equations.itervalues():
-            p.pretty(eq)            
-
-if __name__ == '__main__':
-    tau = 5 * second
-    eqs = Equations('''dv/dt = -(v + x)/ tau : volt
-                       x : volt                       
-                       z = 2 * Hz * v: volt/second
-                       y = 2 * v + z * second: volt
-                       xx = v + x + y + z*second : volt''')
-    print eqs.equations_ordered
-    for eq in eqs.equations.itervalues():
-        if not eq.expr is None:
-            print eq.expr.dependencies
+            p.pretty(eq)
+    
