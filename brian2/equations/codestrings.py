@@ -63,6 +63,10 @@ class CodeString(object):
         
         # The namespace containing resolved references
         self._namespace = None
+        
+        # The dependencies (other internal variables that are used) of this
+        # code string
+        self._dependencies = None
     
     code = property(lambda self: self._code,
                     doc='The code string')
@@ -78,6 +82,9 @@ class CodeString(object):
         
     namespace = property(lambda self: self._namespace,
                          doc='The namespace resolving external identifiers')
+    
+    dependencies = property(lambda self: self._dependencies,
+                         doc='The internal variables referenced by this code string')    
         
     def resolve(self, internal_variables):
         '''
@@ -85,7 +92,9 @@ class CodeString(object):
         resolved references to externally defined variables and functions.
 
         The resulting namespace includes units but does not include anything
-        present in the ``internal variables`` collection.
+        present in the ``internal variables`` collection. All referenced
+        internal variables are included in the CodeString's ``dependency``
+        attribute. 
         
         Raises an error if a variable/function cannot be resolved and is
         not contained in ``internal_variables``. Raises a
@@ -99,6 +108,7 @@ class CodeString(object):
         unit_namespace = get_default_unit_namespace()
              
         namespace = {}
+        dependencies = []
         for identifier in self.identifiers:
             # We save tuples of (namespace description, referred object) to
             # give meaningful warnings in case of duplicate definitions
@@ -118,6 +128,8 @@ class CodeString(object):
             
             if identifier in internal_variables:
                 # The identifier is an internal variable
+                dependencies.append(identifier)
+                
                 if len(matches) == 1:
                     warn(('The name "%s" in the code string "%s" refers to an '
                           'internal variable but also to a variable in the %s '
@@ -151,6 +163,7 @@ class CodeString(object):
                 namespace[identifier] = matches[0][1]
                 
         self._namespace = namespace
+        self._dependencies = dependencies
 
     def freeze(self):
         '''
@@ -191,6 +204,19 @@ class CodeString(object):
                              exhaustive=True)
         
         return new_obj
+
+    def sort_dependencies(self, order_dict):
+        '''
+        Sorts the dependencies in the order given by the dictionary
+        ``order_dict``, which should map all variable names to a numeric value
+        used for ordering.
+        '''
+        if not self.is_resolved:
+            raise TypeError('Can only sort the dependencies of resolved '
+                            'CodeString objects.')
+        deps = [(order_dict[dep], dep) for dep in self._dependencies]
+        deps.sort()
+        self._dependencies = [dep[1] for dep in deps]
 
     def __str__(self):
         return self.code

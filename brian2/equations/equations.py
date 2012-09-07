@@ -220,10 +220,13 @@ class Equations(object):
                 self.expr = None
             self.unit = unit
             self.flags = flags
+            
+            # will be set later in the sort_static_equations method of Equations
+            self.update_order = -1
 
         def resolve(self, internal_variables):
             if not self.expr is None:
-                self.expr.resolve(internal_variables)
+                self.expr.resolve(internal_variables)        
 
         def __str__(self):
             if self.eq_type == 'diff_equation':
@@ -231,7 +234,7 @@ class Equations(object):
             else:
                 s = self.varname
             
-            if self.eq_type in ['diff_equation', 'static_equation']:
+            if not self.expr is None:
                 s += ' = ' + str(self.expr)
             
             s += ' : ' + str(self.unit)
@@ -239,6 +242,23 @@ class Equations(object):
             if len(self.flags):
                 s += '(' + ', '.join(self.flags) + ')'
             
+            return s
+        
+        def __repr__(self):
+            nice_names = {'parameter': 'Parameter',
+                          'diff_equation': 'Differential equation',                          
+                          'static_equation': 'Static equation'}
+            s = '<' + nice_names[self.eq_type] + ' ' + self.varname
+            
+            if not self.expr is None:
+                s += ': ' + self.expr.code
+
+            s += ' (Unit: ' + str(self.unit)
+            
+            if len(self.flags):
+                s += ', flags: ' + ', '.join(self.flags)
+            
+            s += ')>'
             return s
 
     
@@ -265,6 +285,13 @@ class Equations(object):
         
         # TODO: Separate stochastic and non-stochastic parts
         
+    equations = property(lambda self: self._equations,
+                        doc='A dictionary mapping variable names to equations')
+    equations_ordered = property(lambda self: sorted(self._equations.itervalues(),
+                                                     key=lambda key: key.update_order),
+                                 doc='A list of all equations, sorted '
+                                 'according to the order in which they should '
+                                 'be updated')
 
     def _parse_string_equations(self, eqns, namespace, exhaustive, level):
         """
@@ -313,8 +340,86 @@ class Equations(object):
         for eq in self._equations.itervalues():
             eq.resolve(self._variables)
         
-        #TODO: Build a single namespace for the equations object
-        #TODO: Check for dependencies and reorder static equations
+        self._namespace = {}
+        # Make absolutely sure there are no conflicts and nothing weird is
+        # going on
+        for eq in self._equations.itervalues():
+            if eq.expr is None:
+                # Parameters do not have/need a namespace
+                continue
+            for key, value in eq.expr._namespace.iteritems():
+                if key in self._namespace:
+                    # Should refer to exactly the same object
+                    assert value is self._namespace[key] 
+                else:
+                    self._namespace[key] = value
+        
+        self._sort_static_equations()
+    
+    def _sort_static_equations(self):
+        '''
+        Sorts the static equations in a way that resolves their dependencies
+        upon each other. After this method has been run:
+        
+        1. The static equations in ``_equations`` are in the order in which
+           they should be updated
+        2. Each :class:`CodeString`'s ``dependencies`` properties contains
+           the variables referring to static equations in the correct order.
+        '''
+        
+        # Get a dictionary of all the dependencies on other static equations,
+        # i.e. ignore dependencies on parameters and differential equations
+        static_deps = {}
+        for eq in self._equations.itervalues():
+            if eq.eq_type == 'static_equation':
+                static_deps[eq.varname] = [dep for dep in eq.expr.dependencies if
+                                           dep in self._equations and
+                                           self._equations[dep].eq_type == 'static_equation']
+        
+        # Use the standard algorithm for topological sorting:
+        # http://en.wikipedia.org/wiki/Topological_sorting
+                
+        # List that will contain the sorted elements
+        sorted_eqs = [] 
+        # set of all nodes with no incoming edges:
+        no_incoming = set([var for var, deps in static_deps.iteritems()
+                           if len(deps) == 0]) 
+        
+        while len(no_incoming):
+            n = no_incoming.pop()
+            sorted_eqs.append(n)
+            # find variables m depending on n
+            dependent = [m for m, deps in static_deps.iteritems()
+                         if n in deps]
+            for m in dependent:
+                static_deps[m].remove(n)
+                if len(static_deps[m]) == 0:
+                    # no other dependencies
+                    no_incoming.add(m)
+        if any([len(deps) > 0 for deps in static_deps.itervalues()]):
+            raise ValueError('Cannot resolve dependencies between static '
+                             'equations, dependencies contain a cycle.')
+        
+        # put the equations objects in the correct order
+        for order, static_variable in enumerate(sorted_eqs):
+            self._equations[static_variable].update_order = order
+        
+        # Sort differential equations and parameters after static equations
+        for eq in self._equations.itervalues():
+            if eq.eq_type == 'diff_equation':
+                eq.update_order = len(sorted_eqs)
+            elif eq.eq_type == 'parameter':
+                eq.update_order = len(sorted_eqs) + 1
+        
+        # Also sort the dependencies saved in the code string
+        for eq in self._equations.itervalues():
+            if eq.expr is None:
+                continue
+            update_order = lambda var: (self._equations[var].update_order if
+                                        var in self._equations else -1)
+            order_dict = dict([(dep, update_order(dep)) for
+                               dep in eq.expr.dependencies])
+            eq.expr.sort_dependencies(order_dict)
 
     def check_units(self):
         for var, eq in self._equations.iteritems():
@@ -340,7 +445,8 @@ class Equations(object):
                                                  (var, dme.desc), *dme._dims)                
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.eq_type)
-        
+
+
     #
     # Representation
     # 
@@ -360,6 +466,11 @@ class Equations(object):
 if __name__ == '__main__':
     tau = 5 * second
     eqs = Equations('''dv/dt = -(v + x)/ tau : volt
-                       x : 1
-                       y = 2 * v : volt''')
-    
+                       x : volt                       
+                       z = 2 * Hz * v: volt/second
+                       y = 2 * v + z * second: volt
+                       xx = v + x + y + z*second : volt''')
+    print eqs.equations_ordered
+    for eq in eqs.equations.itervalues():
+        if not eq.expr is None:
+            print eq.expr.dependencies
