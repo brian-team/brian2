@@ -1,4 +1,5 @@
 import inspect
+from copy import copy
 from warnings import warn
 
 from sympy import sympify, Symbol, Wild, diff
@@ -8,71 +9,76 @@ from brian2.units.fundamentalunits import get_dimensions, DimensionMismatchError
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.equations.unitcheck import get_default_unit_namespace
 
+__all__ = ['CodeString', 'Expression']
+
+
 def check_linearity(expression_string, variable):
     '''
     Returns whether the expression given as ``expression_string`` is linear
     with respect to ``variable``, assuming that all other variables are
     constants. The expression should not contain any functions.
     '''
-    
+
     try:
         sympy_expr = sympify(expression_string)
     except SympifyError:
         raise ValueError('Expression "%s" cannot be parsed with sympy' %
                          expression_string)
-    
+
     x = Symbol(variable)
-    
+
     if not x in sympy_expr:
         return True
-    
+
 #    # This tries to check whether the expression can be rewritten in an a*x + b
 #    # but apparently this does not work very well
 #    a = Wild('a', exclude=[x])
 #    b = Wild('b', exclude=[x])
 #    matches = sympy_expr.match(a * x + b) 
-#    
+#
 #    return not matches is None
 
     # This seems to be more robust: Take the derivative with respect to the
     # variable
     diff_f = diff(sympy_expr, x).simplify()
-    
+
     # if the expression is linear, x should have disappeared
     return not x in diff_f 
+
 
 class ResolutionConflictWarning(UserWarning):
     pass
 
+
 class CodeString(object):
-    
+
     def __init__(self, code, namespace=None, exhaustive=False, level=0):
         '''
         Creates a new :class:`CodeString`.
-        
+
         If ``exhaustive`` is not ``False`` (meaning that the namespace for the
         string is explicitly specified), the :class:`CodeString` object saves
         the current local and global namespace for later use in resolving
         identifiers.
-        
+
         Arguments:
-        
+
         ``code``:
             The code string, may be an expression or a statement.
             TODO: Allow multi-line/semicolon-separated strings here or put
             them in separate CodeString objects?
-        
+
         ``namespace``:
             A mapping (e.g. a dictionary), mapping identifiers (strings) to
             objects. Will be used as a namespace for the ``code``.
-        
+
         ``exhaustive``:
             If set to ``True``, no local/global namespace will be saved,
             meaning that the given namespace has to be exhaustive (except for
             units). Defaults to ``False``, meaning that the given namespace
             augments the local and global namespace (taking precedence over
             them in case of conflicting definitions).
-        
+
         '''
         self._code = code
         
@@ -198,7 +204,7 @@ class CodeString(object):
         self._namespace = namespace
         self._dependencies = dependencies
 
-    def freeze(self):
+    def frozen(self):
         '''
         Returns a new :class:`CodeString` object, where all external variables
         are replaced by their floating point values and removed from the
@@ -212,7 +218,7 @@ class CodeString(object):
         '''
         
         if not self.is_resolved:
-            raise TypeError('Can only freeze resolved CodeString objects.')
+            raise TypeError('Can only frozen resolved CodeString objects.')
         
         #TODO: For expressions, this could be done more elegantly with sympy
         
@@ -235,7 +241,8 @@ class CodeString(object):
         # Create a new CodeString object with the new code and namespace
         new_obj = type(self)(new_code, namespace=new_namespace,
                              exhaustive=True)
-        
+        new_obj._namespace = new_namespace.copy()
+        new_obj._depdencies = copy(self._dependencies)
         return new_obj
 
     def sort_dependencies(self, order_dict):

@@ -48,6 +48,8 @@ from brian2.units.units import second
 from brian2.equations.unitcheck import get_unit_from_string
 from brian2.equations.codestrings import Expression, check_linearity
 
+__all__ = ['Equations']
+
 # Units of the special variables that are always defined
 UNITS_SPECIAL_VARS = {'t': second, 'dt': second, 'xi': second**0.5}
 
@@ -282,7 +284,7 @@ class Equations(object):
     def __init__(self, eqns='', namespace=None, exhaustive=False, level=0):
                 
         self._equations = self._parse_string_equations(eqns, namespace,
-                                                       exhaustive, level)
+                                                       exhaustive, level + 1)
         
         # Build the namespaces, resolve all external variables and rearrange
         # static equations
