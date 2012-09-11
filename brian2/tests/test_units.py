@@ -1,8 +1,14 @@
 import itertools
+import warnings
+from exceptions import RuntimeWarning
 
 import numpy as np
-from numpy.testing import assert_raises
+from numpy.testing import assert_raises, assert_equal
 
+from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
+                                           UFUNCS_DIMENSIONLESS_TWOARGS,
+                                           UFUNCS_INTEGERS,
+                                           UFUNCS_LOGICAL)
 from brian2.units.units import (second, volt, siemens, kilogram, Quantity,
                                 have_same_dimensions, get_dimensions,
                                 DimensionMismatchError)
@@ -279,6 +285,80 @@ def test_numpy_functions_same_dimensions():
                                                q_ar.dim,
                                                get_dimensions(test_ar)))
 
+def test_numpy_functions_dimensionless():
+    '''
+    Test that numpy functions that should work on dimensionless quantities only
+    work dimensionless arrays and return the correct result.
+    '''
+    unitless_values = [3 * mV/mV, np.array([1, 2]) * mV/mV,
+                       np.ones((3, 3)) * mV/mV]
+    unit_values = [3 * mV, np.array([1, 2]) * mV,
+                       np.ones((3, 3)) * mV]
+    with warnings.catch_warnings():
+        # ignore division by 0 warnings
+        warnings.simplefilter("ignore", RuntimeWarning)    
+        for value in unitless_values:
+            for ufunc in UFUNCS_DIMENSIONLESS:
+                result_unitless = eval('np.%s(value)' % ufunc)
+                result_array = eval('np.%s(np.array(value))' % ufunc)
+                assert result_unitless.is_dimensionless()
+                assert_equal(np.asarray(result_unitless), result_array)
+            for ufunc in UFUNCS_DIMENSIONLESS_TWOARGS:
+                result_unitless = eval('np.%s(value, value)' % ufunc)
+                result_array = eval('np.%s(np.array(value), np.array(value))' % ufunc)
+                assert result_unitless.is_dimensionless()
+                assert_equal(np.asarray(result_unitless), result_array)
+        
+        for value in unit_values:
+            for ufunc in UFUNCS_DIMENSIONLESS:
+                assert_raises(DimensionMismatchError,
+                              lambda: eval('np.%s(value)' % ufunc,
+                                           globals(), {'value': value}))
+            for ufunc in UFUNCS_DIMENSIONLESS_TWOARGS:
+                assert_raises(DimensionMismatchError,
+                              lambda: eval('np.%s(value, value)' % ufunc,
+                                           globals(), {'value': value}))                
+
+def test_numpy_functions_typeerror():
+    '''
+    Assures that certain numpy functions raise a TypeError when called on
+    quantities.
+    '''
+    unitless_values = [3 * mV/mV, np.array([1, 2]) * mV/mV,
+                       np.ones((3, 3)) * mV/mV]
+    unit_values = [3 * mV, np.array([1, 2]) * mV,
+                       np.ones((3, 3)) * mV]
+    for value in unitless_values + unit_values:
+        for ufunc in UFUNCS_INTEGERS:
+            if ufunc == 'invert': 
+                # only takes one argument
+                assert_raises(TypeError, lambda: eval('np.%s(value)' % ufunc,
+                                                   globals(), {'value': value}))
+            else:
+                assert_raises(TypeError, lambda: eval('np.%s(value, value)' % ufunc,
+                                                   globals(), {'value': value}))
+
+def test_numpy_functions_logical():
+    '''
+    Assure that logical numpy functions work on all quantities and return
+    unitless boolean arrays.
+    '''
+    unit_values1 = [3 * mV, np.array([1, 2]) * mV, np.ones((3, 3)) * mV]
+    unit_values2 = [3 * second, np.array([1, 2]) * second,
+                    np.ones((3, 3)) * second]
+    for ufunc in UFUNCS_LOGICAL:
+        for value1, value2 in zip(unit_values1, unit_values2):
+            try:
+                # one argument
+                result_units = eval('np.%s(value1)' % ufunc)        
+                result_array = eval('np.%s(np.array(value1))' % ufunc)
+            except ValueError:
+                # two arguments
+                result_units = eval('np.%s(value1, value2)' % ufunc)        
+                result_array = eval('np.%s(np.array(value1), np.array(value2))' % ufunc)
+            assert not isinstance(result_units, Quantity)
+            assert_equal(result_units, result_array)
+
 # Functions that should change units in a simple way
 
 
@@ -289,3 +369,7 @@ if __name__ == '__main__':
     test_binary_operations()
     test_inplace_operations()
     test_numpy_functions_same_dimensions()
+    test_numpy_functions_dimensionless()
+    test_numpy_functions_typeerror()
+    test_numpy_functions_logical()
+    

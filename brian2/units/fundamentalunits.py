@@ -125,24 +125,39 @@ __all__ = [
 # http://docs.scipy.org/doc/numpy/reference/ufuncs.html#available-ufuncs
 
 # ufuncs that work on all dimensions and preserve the dimensions, e.g. abs
-UFUNCS_PRESERVE_DIMENSIONS = ['absolute', 'rint', 'negative']
+UFUNCS_PRESERVE_DIMENSIONS = ['absolute', 'rint', 'negative', 'conj',
+                              'floor', 'ceil', 'trunc']
 
 # ufuncs that work on all dimensions but change the dimensions, e.g. square
-UFUNCS_CHANGE_DIMENSIONS = ['multiply', 'divide', 'sqrt', 'square']
+UFUNCS_CHANGE_DIMENSIONS = ['multiply', 'divide', 'true_divide', 'floor_divide',
+                            'sqrt', 'square', 'reciprocal']
 
 # ufuncs that work with matching dimensions, e.g. add
-UFUNCS_MATCHING_DIMENSIONS = ['add', 'subtract', 'maximum', 'minimum']
+UFUNCS_MATCHING_DIMENSIONS = ['add', 'subtract', 'maximum', 'minimum',
+                              'remainder', 'mod', 'fmod']
 
 # ufuncs that compare values, i.e. work only with matching dimensions but do
 # not result in a value with dimensions, e.g. equals
 UFUNCS_COMPARISONS = ['less', 'less_equal', 'greater', 'greater_equal',
                       'equal', 'not_equal'] 
 
+# Logical operations that work on all quantities and return boolean arrays
+UFUNCS_LOGICAL = ['logical_and', 'logical_or', 'logical_xor', 'logical_not',
+                  'isreal', 'iscomplex', 'isfinite', 'isinf', 'isnan']
+
 # ufuncs that only work on dimensionless quantities
 UFUNCS_DIMENSIONLESS = ['sin', 'sinh', 'arcsin', 'arcsinh', 'cos', 'cosh',
                         'arccos', 'arccosh', 'tan', 'tanh', 'arctan',
                         'arctanh', 'log', 'log2', 'log10', 'log1p',
                         'exp', 'exp2', 'expm1']
+
+# ufuncs that only work on two dimensionless quantities
+UFUNCS_DIMENSIONLESS_TWOARGS = ['logaddexp', 'logaddexp2', 'arctan2',
+                                'hypot']
+
+# ufuncs that only work on integers and therefore never on quantities
+UFUNCS_INTEGERS = ['bitwise_and', 'bitwise_or', 'bitwise_xor', 'invert',
+                   'left_shift', 'right_shift']
 
 warn_if_no_unit_checking = True
 
@@ -740,18 +755,31 @@ class Quantity(np.ndarray):
 
         uf, args, _ = context
 
-        if uf.__name__ in UFUNCS_PRESERVE_DIMENSIONS + UFUNCS_CHANGE_DIMENSIONS:
+        if uf.__name__ in (UFUNCS_PRESERVE_DIMENSIONS +
+                           UFUNCS_CHANGE_DIMENSIONS + 
+                           UFUNCS_LOGICAL):
             # always allowed
             pass
+        elif uf.__name__ in UFUNCS_INTEGERS:
+            # Numpy should already raise a TypeError by itself
+            raise TypeError('%s cannot be used on quantities.' % uf.__name__)
         elif uf.__name__ in UFUNCS_MATCHING_DIMENSIONS + UFUNCS_COMPARISONS:
             # Ok if dimension of arguments match 
             fail_for_dimension_mismatch(args[0], args[1], uf.__name__)        
         elif uf.__name__ in UFUNCS_DIMENSIONLESS:
-            # Ok, if argument is dimensionless
+            # Ok if argument is dimensionless
             fail_for_dimension_mismatch(args[0], error_message=uf.__name__)
-        elif uf.__name__ in ['power']:
-            # FIXME: do not allow several values for exponent
+        elif uf.__name__ in UFUNCS_DIMENSIONLESS_TWOARGS:
+            # Ok if both arguments are dimensionless
+            fail_for_dimension_mismatch(args[0], error_message=uf.__name__)
             fail_for_dimension_mismatch(args[1], error_message=uf.__name__)
+        elif uf.__name__ == 'power':            
+            fail_for_dimension_mismatch(args[1], error_message=uf.__name__)
+            if np.asarray(args[1]).size != 1:
+                raise TypeError('Only length-1 arrays can be used as an '
+                                'exponent for quantities.')
+        elif uf.__name__ in ('sign', 'ones_like'):
+            return np.asarray(array)
         else:
             warn("Unknown ufunc '%s' in __array_prepare__" % uf.__name__)            
 
@@ -764,12 +792,14 @@ class Quantity(np.ndarray):
             uf, args, _ = context
             if uf.__name__ in UFUNCS_PRESERVE_DIMENSIONS + UFUNCS_MATCHING_DIMENSIONS:
                 dim = self.dim
-            elif uf.__name__ in UFUNCS_DIMENSIONLESS:
+            elif uf.__name__ in UFUNCS_DIMENSIONLESS + UFUNCS_DIMENSIONLESS_TWOARGS:
                 # We should have been arrived here only for dimensionless
                 # quantities
                 dim = DIMENSIONLESS
-            elif uf.__name__ in UFUNCS_COMPARISONS:
-                # Do not touch the return value (boolean array)
+            elif uf.__name__ in (UFUNCS_COMPARISONS +
+                                 UFUNCS_LOGICAL + 
+                                 ['sign', 'ones_like']):
+                # Do not touch the return value (boolean or integer array)
                 return array
             elif uf.__name__ == 'sqrt':
                 dim = self.dim ** 0.5
@@ -777,8 +807,10 @@ class Quantity(np.ndarray):
                 dim = get_dimensions(args[0]) ** np.asarray(args[1])
             elif uf.__name__ == 'square':
                 dim = self.dim ** 2
-            elif uf.__name__ == 'divide':
+            elif uf.__name__ in ('divide', 'true_divide', 'floor_divide'):
                 dim = get_dimensions(args[0]) / get_dimensions(args[1])
+            elif uf.__name__ == 'reciprocal':
+                dim = get_dimensions(1 / get_dimensions(args[0]))
             elif uf.__name__ == 'multiply':
                 dim = get_dimensions(args[0]) * get_dimensions(args[1])
             else:
@@ -789,8 +821,7 @@ class Quantity(np.ndarray):
         # This may convert units to Quantities, e.g. np.square(volt) leads to
         # a 1 * volt ** 2 quantitiy instead of volt ** 2. But this should
         # rarely be an issue. The alternative leads to more confusing
-        # behaviour: np.float64(3) * mV would result in a dimensionless float64
-         
+        # behaviour: np.float64(3) * mV would result in a dimensionless float64         
         result = array.view(Quantity)
         result.dim = dim
         return result
