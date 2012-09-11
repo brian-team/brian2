@@ -50,6 +50,11 @@ from brian2.equations.codestrings import Expression, check_linearity
 
 __all__ = ['Equations']
 
+# A dictionary mapping equation types to nice names for error messages
+EQUATION_TYPE = {'parameter': 'parameter',
+                 'diff_equation': 'differential equation',
+                 'static_equation': 'static equation'}
+
 # Units of the special variables that are always defined
 UNITS_SPECIAL_VARS = {'t': second, 'dt': second, 'xi': second**0.5}
 
@@ -109,8 +114,7 @@ EQUATION = (PARAMETER | STATIC_EQ | DIFF_EQ).ignore('#' + restOfLine)
 EQUATIONS = ZeroOrMore(EQUATION)
 
 
-def check_identifier(identifier, internal=False,
-                     reserved_identifiers=('t', 'dt', 'xi')):
+def check_identifier(identifier, reserved_identifiers, internal=False):
     '''
     Check an identifier (usually resulting from an equation string provided by
     the user) for conformity with the rules:
@@ -285,6 +289,9 @@ class Equations(object):
                 
         self._equations = self._parse_string_equations(eqns, namespace,
                                                        exhaustive, level + 1)
+
+        # Do a basic check for the identifiers
+        self.check_identifiers(('t', 'dt', 'xi'))
         
         # Build the namespaces, resolve all external variables and rearrange
         # static equations
@@ -293,7 +300,9 @@ class Equations(object):
         # Check the units for consistency
         self.check_units()
 
-
+    def __iter__(self):
+        return iter(self.equations.iteritems())
+    
     equations = property(lambda self: self._equations,
                         doc='A dictionary mapping variable names to equations')
     equations_ordered = property(lambda self: sorted(self._equations.itervalues(),
@@ -301,6 +310,20 @@ class Equations(object):
                                  doc='A list of all equations, sorted '
                                  'according to the order in which they should '
                                  'be updated')
+    diff_eq_expressions = property(lambda self: dict([(varname, eq.expr) for 
+                                                      varname, eq in self.equations.iteritems()
+                                                      if eq.eq_type == 'diff_equation']),
+                                  doc='A dictionary mapping variable names to '
+                                  'expressions for all differential equations.')
+    
+    names = property(lambda self: [eq.varname for eq in self.equations_ordered])
+    
+    diff_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
+                                           if eq.eq_type == 'diff_equation'])
+    static_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
+                                           if eq.eq_type == 'static_equation'])
+    parameter_names = property(lambda self: [eq.varname for eq in self.equations_ordered
+                                             if eq.eq_type == 'parameter'])
     
     def _is_linear(self):
         '''
@@ -359,7 +382,6 @@ class Equations(object):
             eq_content = dict(eq.items())
             # Check for reserved keywords
             identifier = eq_content['identifier']
-            check_identifier(identifier)
             
             # Convert unit string to Unit object
             unit = get_unit_from_string(eq_content['unit'])
@@ -493,6 +515,34 @@ class Equations(object):
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.eq_type)
 
+    def check_identifiers(self, reserved_identifiers):
+        '''
+        Checks the list of identifiers used in this equation against the given
+        list of reserved identifiers (also performs some standard checks like
+        not allowing Python keywords, see :func:`check_identifier`).
+        '''
+        for name in self.names:
+            check_identifier(name, reserved_identifiers)
+
+    def check_flags(self, allowed_flags):
+        '''
+        Checks the list of flags against the flags contained in
+        ``allowed_flags``, which should be a dictionary mapping equation types
+        (``parameter``, ``diff_equation``, ``static_equation``) to a list
+        of strings (the allowed flags for that equation type). Not specifying
+        allowed flags for an equation type is the same as specifying an empty
+        list for it.
+        '''
+        for eq in self.equations.itervalues():
+            for flag in eq.flags:
+                if not eq.eq_type in allowed_flags or len(allowed_flags[eq.eq_type]) == 0:
+                    raise ValueError('Equations of type "%s" cannot have any flags.' % EQUATION_TYPE[eq.eq_type])
+                if not flag in allowed_flags[eq.eq_type]:
+                    raise ValueError(('Equations of type "%s" cannot have a '
+                                      'flag "%s", only the following flags '
+                                      'are allowed: %s') % (EQUATION_TYPE[eq.eq_type],
+                                                            flag, allowed_flags[eq.eq_type]))
+
     #
     # Representation
     # 
@@ -508,4 +558,16 @@ class Equations(object):
             return 'Equations(...)'
         for eq in self._equations.itervalues():
             p.pretty(eq)
-    
+
+if __name__ == '__main__':
+    from brian2.units import ms
+    tau = 10*ms
+    Vt0 = 1.0
+    taut = 100*ms
+    eqs = Equations('''
+    dV/dt = (-V+I)/tau : 1
+    dI/dt = -I/tau : 1
+    dVt/dt = (Vt0-Vt)/taut : 1
+    ''')
+    for var, eq in eqs:
+        print var, eq
