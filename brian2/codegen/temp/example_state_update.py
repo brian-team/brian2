@@ -1,4 +1,7 @@
 from numpy import float64
+
+from brian2.groups.neurongroup import NeuronGroup
+
 from brian2.codegen.specifiers import (Function, Value, ArrayVariable,
                                        Subexpression, Index)
 from brian2.codegen.translation import translate, make_statements
@@ -6,6 +9,8 @@ from brian2.codegen.languages import (CPPLanguage, PythonLanguage, CUDALanguage,
                                       NumexprPythonLanguage)
 from brian2.codegen.templating import apply_code_template
 from brian2.utils.stringtools import deindent
+from brian2.units import *
+
 import pylab
 import time
 from codeprint import codeprint
@@ -13,32 +18,20 @@ from codeprint import codeprint
 test_compile = True
 do_plot = True
 
-# we don't actually use these, but this is what we would start from
+tau_plus = 10 * ms # external variable
 eqs = '''
 dV/dt = x : volt
-x = -V/tau : volt/second
+x = -V/(tau + tau_plus): volt/second
 tau : second
 '''
+G = NeuronGroup(1, model=eqs)
 
-abstract = '''
-_tmp_V = x
-V += _tmp_V*dt
-'''
-
-specifiers = {
-    'V':ArrayVariable('_array_V', '_neuron_idx', float64),
-    'tau':ArrayVariable('_array_tau', '_neuron_idx', float64),
-    'x':Subexpression('-V/tau'),
-    'dt':Value(float64),
-    '_neuron_idx':Index(all=True),
-    }
-
-intermediate = make_statements(abstract, specifiers, float64)
+intermediate = make_statements(G.abstract_code, G.specifiers, float64)
 
 print 'EQUATIONS:'
 print eqs
 print 'ABSTRACT CODE:'
-print abstract
+print G.abstract_code
 print 'INTERMEDIATE STATEMENTS:'
 print
 for stmt in intermediate:
@@ -62,7 +55,7 @@ languages = [lang for lang in [
 codestrings = {}
 
 for lang in languages:
-    innercode = translate(abstract, specifiers, float64, lang)
+    innercode = translate(G.abstract_code, G.specifiers, float64, lang)
     code = lang.apply_template(innercode, lang.template_state_update())
     codestrings[lang] = code
     print lang.__class__.__name__
@@ -101,7 +94,7 @@ for lang in languages:
         }
     code = codestrings[lang]
     try:
-        codeobj = lang.code_object(code, specifiers)
+        codeobj = lang.code_object(code, G.specifiers)
     except NotImplementedError:
         print lang.__class__.__name__+':', 'not implemented'
         continue
