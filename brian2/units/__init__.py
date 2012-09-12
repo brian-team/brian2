@@ -20,6 +20,7 @@ from .allunits import (
                        kmetre, Mmetre, Gmetre, Tmetre,
                        pmeter, nmeter, umeter, mmeter, meter,
                        kmeter, Mmeter, Gmeter, Tmeter,
+                       cmetre, cmeter, # quite commonly used
                        psecond, nsecond, usecond, msecond, second,
                        ksecond, Msecond, Gsecond, Tsecond,                       
                        # derived units
@@ -39,12 +40,12 @@ from .allunits import (
                        kpascal, Mpascal, Gpascal, Tpascal,
                        pohm, nohm, uohm, mohm, ohm,
                        kohm, Mohm, Gohm, Tohm,
-                       pwatt, nwatt, uwatt, mwatt, watt,
-                       kwatt, Mwatt, Gwatt, Twatt,
                        psiemens, nsiemens, usiemens, msiemens, siemens,
                        ksiemens, Msiemens, Gsiemens, Tsiemens,
                        pvolt, nvolt, uvolt, mvolt, volt,
-                       kvolt, Mvolt, Gvolt, Tvolt
+                       kvolt, Mvolt, Gvolt, Tvolt,
+                       pwatt, nwatt, uwatt, mwatt, watt,
+                       kwatt, Mwatt, Gwatt, Twatt
                        )
 from .unitsafefunctions import (log, exp, sin, cos, tan, arcsin, arccos, arctan,
                                 sinh, cosh, tanh, arcsinh, arccosh, arctanh,
@@ -57,6 +58,7 @@ ___all__ = ['pamp', 'namp', 'uamp', 'mamp', 'amp',
             'kmetre', 'Mmetre', 'Gmetre', 'Tmetre',
             'pmeter', 'nmeter', 'umeter', 'mmeter', 'meter',
             'kmeter', 'Mmeter', 'Gmeter', 'Tmeter',
+            'cmetre', 'cmeter',
             'psecond', 'nsecond', 'usecond', 'msecond', 'second',
             'ksecond', 'Msecond', 'Gsecond', 'Tsecond',
             # derived units
@@ -76,12 +78,12 @@ ___all__ = ['pamp', 'namp', 'uamp', 'mamp', 'amp',
             'kpascal', 'Mpascal', 'Gpascal', 'Tpascal',
             'pohm', 'nohm', 'uohm', 'mohm', 'ohm',
             'kohm', 'Mohm', 'Gohm', 'Tohm',
-            'pwatt', 'nwatt', 'uwatt', 'mwatt', 'watt',
-            'kwatt', 'Mwatt', 'Gwatt', 'Twatt',
             'psiemens', 'nsiemens', 'usiemens', 'msiemens', 'siemens',
             'ksiemens', 'Msiemens', 'Gsiemens', 'Tsiemens',
             'pvolt', 'nvolt', 'uvolt', 'mvolt', 'volt',
             'kvolt', 'Mvolt', 'Gvolt', 'Tvolt',
+            'pwatt', 'nwatt', 'uwatt', 'mwatt', 'watt',
+            'kwatt', 'Mwatt', 'Gwatt', 'Twatt',
             'log', 'exp', 'sin', 'cos', 'tan',
             'arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh',
             'arcsinh', 'arccosh', 'arctanh', 'diagonal', 'ravel', 'trace'
