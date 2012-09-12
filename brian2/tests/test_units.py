@@ -20,7 +20,9 @@ from brian2.units.stdunits import ms, mV, kHz
 def assert_quantity(q, values, unit):
     assert isinstance(q, Quantity)
     assert np.all(np.asarray(q) == values)
-    assert have_same_dimensions(q, unit)
+    assert have_same_dimensions(q, unit), ('Dimension mismatch: (%s) (%s)' %
+                                           (get_dimensions(q),
+                                            get_dimensions(unit)))
 
 
 # Construct quantities
@@ -319,7 +321,22 @@ def test_numpy_functions_dimensionless():
             for ufunc in UFUNCS_DIMENSIONLESS_TWOARGS:
                 assert_raises(DimensionMismatchError,
                               lambda: eval('np.%s(value, value)' % ufunc,
-                                           globals(), {'value': value}))                
+                                           globals(), {'value': value}))
+
+def test_numpy_functions_change_dimensions():
+    '''
+    Test some numpy functions that change the dimensions of the quantity.
+    '''
+    unit_values = [3 * mV, np.array([1, 2]) * mV,
+                       np.ones((3, 3)) * 2 * mV]
+    for value in unit_values:
+        assert_quantity(np.var(value), np.var(np.array(value)), volt ** 2)
+        assert_quantity(np.square(value), np.square(np.array(value)),
+                        volt ** 2)        
+        assert_quantity(np.sqrt(value), np.sqrt(np.array(value)), volt ** 0.5)
+        assert_quantity(np.reciprocal(value), np.reciprocal(np.array(value)),
+                        1.0 / volt)
+
 
 def test_numpy_functions_typeerror():
     '''
@@ -361,8 +378,6 @@ def test_numpy_functions_logical():
             assert not isinstance(result_units, Quantity)
             assert_equal(result_units, result_array)
 
-# Functions that should change units in a simple way
-
 
 if __name__ == '__main__':
     test_construction()
@@ -372,6 +387,7 @@ if __name__ == '__main__':
     test_inplace_operations()
     test_numpy_functions_same_dimensions()
     test_numpy_functions_dimensionless()
+    test_numpy_functions_change_dimensions()
     test_numpy_functions_typeerror()
     test_numpy_functions_logical()
     

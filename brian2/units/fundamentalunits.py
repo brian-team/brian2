@@ -817,7 +817,7 @@ class Quantity(np.ndarray):
             elif uf.__name__ in ('divide', 'true_divide', 'floor_divide'):
                 dim = get_dimensions(args[0]) / get_dimensions(args[1])
             elif uf.__name__ == 'reciprocal':
-                dim = get_dimensions(1 / get_dimensions(args[0]))
+                dim = get_dimensions(args[0]) ** -1
             elif uf.__name__ in ('multiply', 'dot'):
                 dim = get_dimensions(args[0]) * get_dimensions(args[1])
             else:

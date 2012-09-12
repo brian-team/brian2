@@ -1,8 +1,8 @@
 import numpy as np
 import scipy as sp
 
-from brian2.units import *
-
+from brian2 import *
+from brian2.units.fundamentalunits import DimensionMismatchError, Quantity
 
 def print_eval(expr):
     print expr, '=', eval(expr)
@@ -134,4 +134,3 @@ print_eval('sp.sqrt(np.array([1.5, 3]) * mV)')
 print_eval('sp.interp(np.array([1.5]) * mV, np.array([1, 2, 3]) * mV, np.array([1, 2, 3]) * second)')
 print_eval('sp.fft(np.array([1.5, 3]) * mV)')
 print_eval('sp.average(np.array([1.5, 3]) * mV, weights=[1, 2])')
-
