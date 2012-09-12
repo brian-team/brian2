@@ -167,33 +167,105 @@ def check_identifier(identifier, reserved_identifiers, internal=False):
         raise ValueError(('Identifier "%s" starts with an underscore, '
                           'this is only allowed for variables used internally') % identifier)
 
+def parse_string_equations(eqns, namespace, exhaustive, level):
+        """
+        Parses a string defining equations and returns a dictionary, mapping
+        variable names to :class:`Equations._Equation` objects.
+        
+        Arguments:
+        ``namespace``
+            An explictly given namespace (dictionary mapping names to objects)
+        ``exhaustive``
+            Whether the namespace in the namespace argument specifies the
+            namespace completely (``True``) or should be used in addition to
+            the locals/globals dictionaries (``False``)
+        ``level``
+            The level in the stack (an integer >=0) where to look for locals
+            and globals
+        
+        """
+        equations = {}
+        
+        try:
+            parsed = EQUATIONS.parseString(eqns, parseAll=True)
+        except ParseException as p_exc:
+            raise ValueError('Parsing failed: \n' + str(p_exc.line) + '\n' +
+                             ' '*(p_exc.column - 1) + '^\n' + str(p_exc))
+        for eq in parsed:
+            eq_type = eq.getName()
+            eq_content = dict(eq.items())
+            # Check for reserved keywords
+            identifier = eq_content['identifier']
+            
+            # Convert unit string to Unit object
+            unit = get_unit_from_string(eq_content['unit'])
+            
+            expression = eq_content.get('expression', None)
+            if not expression is None:
+                # Replace multiple whitespaces (arising from joining multiline
+                # strings) with single space
+                p = re.compile(r'\s{2,}')
+                expression = p.sub(' ', expression)
+            flags = list(eq_content.get('flags', []))
+    
+            equation = Equations._Equation(eq_type, identifier, expression,
+                                           unit, flags, namespace,
+                                           exhaustive, level + 1) 
+            
+            if identifier in equations:
+                raise ValueError('Duplicate definition of variable "%s"' %
+                                 identifier)
+                                           
+            equations[identifier] = equation
+        
+        return equations            
+
+def resolve_equations(equations, variables):
+    '''
+    Resolve all the equations in the ``equations`` dictionary (see
+    :meth:`CodeString.resolve`), treating the list of ``variables`` as internal
+    variables.
+    '''
+    for eq in equations.itervalues():
+        eq.resolve(variables)
+    
+    namespace = {}
+    # Make absolutely sure there are no conflicts and nothing weird is
+    # going on
+    for eq in equations.itervalues():
+        if eq.expr is None:
+            # Parameters do not have/need a namespace
+            continue
+        for key, value in eq.expr._namespace.iteritems():
+            if key in namespace:
+                # Should refer to exactly the same object
+                assert value is namespace[key] 
+            else:
+                namespace[key] = value
+    
+    return namespace
 
 class Equations(object):
-    """Container that stores equations from which models can be created
+    """Container that stores equations from which models can be created.
     
     Initialised as::
     
-        Equations(expr[,level=0[,keywords...]])
+        Equations(eqs[, namespace=None][, exhaustive=False][, level=0])
     
     with arguments:
     
-    ``eqns``
-        String equation(s) (possibly multi-line)
-    ``allowed_flags``:
-        A dictionary with a list of allowed flags (strings) for the equation
-        types ``diff_equation``, ``static_equation`` and ``parameter``. Not
-        defining allowed flags for a key corresponds to setting it to an empty
-        list. This is used e.g. by the :class:``Synapses`` class, allowing
-        "event-driven" for differential equations. If ``allowed_flags`` is
-        ``None`` (the default), standard settings are used: ``active`` is
-        allowed for differential equations, ``constant`` is used for parameters.
-    ``reserved_identifiers``:
-        A list or set of strings that are not allowed as identifiers. Will be
-        added to ['t', 'dt', 'xi'] which are always forbidden. This is used by
-        the :class:``Synapses`` class which forbids "i" and "j" as identifiers.        
-    ``namespace``:
-        TODO
-    
+    ``eqs``
+        A multiline string of equations (see below)
+    ``namespace=None``
+        An explictly given namespace (dictionary mapping names to objects)
+    ``exhaustive=False``
+        Whether the namespace in the namespace argument specifies the
+        namespace completely (``True``) or should be used in addition to
+        the locals/globals dictionaries (``False``)
+    ``level=0``
+        The level in the stack (an integer >=0) where to look for locals
+        and globals 
+           
     **String equations**
     
     String equations can be of any of the following forms:
@@ -202,9 +274,12 @@ class Equations(object):
     (2) ``x = f : unit (flags)`` (equation)
     (3) ``x : unit (flags)`` (parameter)
     
+    Equations can span several line and contain Python-style comments starting
+    with ``#``
+    
     """
     
-    class _Equation():
+    class _Equation(object):
         '''
         Class for internal use, encapsulates a single equation or parameter.
         '''
@@ -248,6 +323,10 @@ class Equations(object):
                                 doc='List of dependencies for this equation')
 
         def resolve(self, internal_variables):
+            '''
+            Resolve all the variables (see :meth:`CodeString.resolve`),
+            treating the list ``internal_variables`` as internal variables.
+            '''
             if not self.expr is None:
                 self.expr.resolve(internal_variables)        
 
@@ -268,10 +347,7 @@ class Equations(object):
             return s
         
         def __repr__(self):
-            nice_names = {'parameter': 'Parameter',
-                          'diff_equation': 'Differential equation',                          
-                          'static_equation': 'Static equation'}
-            s = '<' + nice_names[self.eq_type] + ' ' + self.varname
+            s = '<' + EQUATION_TYPE[self.eq_type] + ' ' + self.varname
             
             if not self.expr is None:
                 s += ': ' + self.expr.code
@@ -286,16 +362,20 @@ class Equations(object):
 
     
     def __init__(self, eqns='', namespace=None, exhaustive=False, level=0):
+        '''
+        Constructs a new equations object from the multiline string ``eqns``,
+        see :class:`Equations` for more details.
+        '''
                 
-        self._equations = self._parse_string_equations(eqns, namespace,
-                                                       exhaustive, level + 1)
+        self._equations = parse_string_equations(eqns, namespace, exhaustive,
+                                                  level + 1)
 
         # Do a basic check for the identifiers
         self.check_identifiers(('t', 'dt', 'xi'))
         
         # Build the namespaces, resolve all external variables and rearrange
         # static equations
-        self._resolve()
+        self._namespace = resolve_equations(self._equations, self.variables)
         
         # Check the units for consistency
         self.check_units()
@@ -363,68 +443,7 @@ class Equations(object):
     units = property(get_units)
     
     variables = property(lambda self: set(self.units.keys()),
-                         doc='Set of all variables')
-
-    def _parse_string_equations(self, eqns, namespace, exhaustive, level):
-        """
-        Parses a string defining equations and returns a dictionary, mapping
-        variable names to :class:`Equations._Equation` objects.
-        """
-        equations = {}
-        
-        try:
-            parsed = EQUATIONS.parseString(eqns, parseAll=True)
-        except ParseException as p_exc:
-            raise ValueError('Parsing failed: \n' + str(p_exc.line) + '\n' +
-                             ' '*(p_exc.column - 1) + '^\n' + str(p_exc))
-        for eq in parsed:
-            eq_type = eq.getName()
-            eq_content = dict(eq.items())
-            # Check for reserved keywords
-            identifier = eq_content['identifier']
-            
-            # Convert unit string to Unit object
-            unit = get_unit_from_string(eq_content['unit'])
-            
-            expression = eq_content.get('expression', None)
-            if not expression is None:
-                # Replace multiple whitespaces (arising from joining multiline
-                # strings) with single space
-                p = re.compile(r'\s{2,}')
-                expression = p.sub(' ', expression)
-            flags = list(eq_content.get('flags', []))
-    
-            equation = Equations._Equation(eq_type, identifier, expression,
-                                           unit, flags, namespace,
-                                           exhaustive, level + 1) 
-            
-            if identifier in equations:
-                raise ValueError('Duplicate definition of variable "%s"' %
-                                 identifier)
-                                           
-            equations[identifier] = equation
-        
-        return equations            
-
-    def _resolve(self):
-        for eq in self._equations.itervalues():
-            eq.resolve(self.variables)
-        
-        self._namespace = {}
-        # Make absolutely sure there are no conflicts and nothing weird is
-        # going on
-        for eq in self._equations.itervalues():
-            if eq.expr is None:
-                # Parameters do not have/need a namespace
-                continue
-            for key, value in eq.expr._namespace.iteritems():
-                if key in self._namespace:
-                    # Should refer to exactly the same object
-                    assert value is self._namespace[key] 
-                else:
-                    self._namespace[key] = value
-        
-        self._sort_static_equations()
+                         doc='Set of all variables')        
     
     def _sort_static_equations(self):
         '''
@@ -492,6 +511,10 @@ class Equations(object):
             eq.expr.sort_dependencies(order_dict)
 
     def check_units(self):
+        '''
+        Check all the units for consistency and raise a 
+        :class:`DimensionMismatchError` in case of errors.
+        '''
         units = self.units
         for var, eq in self._equations.iteritems():
             if eq.eq_type == 'parameter':
@@ -558,16 +581,3 @@ class Equations(object):
             return 'Equations(...)'
         for eq in self._equations.itervalues():
             p.pretty(eq)
-
-if __name__ == '__main__':
-    from brian2.units import ms
-    tau = 10*ms
-    Vt0 = 1.0
-    taut = 100*ms
-    eqs = Equations('''
-    dV/dt = (-V+I)/tau : 1
-    dI/dt = -I/tau : 1
-    dVt/dt = (Vt0-Vt)/taut : 1
-    ''')
-    for var, eq in eqs:
-        print var, eq

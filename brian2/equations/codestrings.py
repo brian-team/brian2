@@ -47,10 +47,17 @@ def check_linearity(expression_string, variable):
 
 
 class ResolutionConflictWarning(UserWarning):
+    '''
+    A warning for situations where an identifier can refer to more than one
+    object in the namespaces used for resolving identifiers.
+    '''
     pass
 
 
 class CodeString(object):
+    '''
+    A class for representing strings and an attached namespace.
+    '''
 
     def __init__(self, code, namespace=None, exhaustive=False, level=0):
         '''
@@ -265,6 +272,10 @@ class CodeString(object):
         return '%s(%r)' % (self.__class__.__name__, self.code)
 
 class Expression(CodeString):
+    '''
+    Stores an expression, a string that should be possible to evaluate with
+    sympy, providing information about properties like linearity.
+    '''
     
     # An expression is stochastic if split_stochastic returns a stochastic part
     is_stochastic = property(lambda self: not self.split_stochastic()[1] is None,
