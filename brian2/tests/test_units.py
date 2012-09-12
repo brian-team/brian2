@@ -8,10 +8,12 @@ from numpy.testing import assert_raises, assert_equal
 from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            UFUNCS_DIMENSIONLESS_TWOARGS,
                                            UFUNCS_INTEGERS,
-                                           UFUNCS_LOGICAL)
-from brian2.units.units import (second, volt, siemens, kilogram, Quantity,
-                                have_same_dimensions, get_dimensions,
-                                DimensionMismatchError)
+                                           UFUNCS_LOGICAL,
+                                           Quantity,
+                                           have_same_dimensions,
+                                           get_dimensions,
+                                           DimensionMismatchError)
+from brian2.units import second, volt, siemens, kilogram
 from brian2.units.stdunits import ms, mV, kHz
 
 

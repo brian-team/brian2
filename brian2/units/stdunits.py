@@ -45,12 +45,15 @@ mV, mA, uA (micro_amp), nA, pA, mF, uF, nF, mS, uS, ms,
 Hz, kHz, MHz, cm, cm2, cm3, mm, mm2, mm3, um, um2, um3
 """
 
-from .units import *
-from .units import all_units
+from .allunits import (mvolt, mamp, uamp, namp, pamp, pfarad, ufarad, nfarad,
+                       nsiemens, usiemens, msecond, usecond, hertz, khertz,
+                       Mhertz, cmetre, cmetre2, cmetre3, mmetre, mmetre2,
+                       mmetre3, umetre, umetre2, umetre3)
+from .allunits import all_units
 
 __all__ = ['mV', 'mA', 'uA', 'nA', 'pA', 'pF', 'uF', 'nF', 'nS', 'uS', 'ms',
-           'Hz', 'kHz', 'MHz', 'cm', 'cm2', 'cm3', 'mm', 'mm2', 'mm3', 'um',
-           'um2', 'um3']
+           'us', 'Hz', 'kHz', 'MHz', 'cm', 'cm2', 'cm3', 'mm', 'mm2', 'mm3',
+           'um', 'um2', 'um3']
 mV = mvolt
 
 mA = mamp
@@ -66,6 +69,7 @@ nS = nsiemens
 uS = usiemens
 
 ms = msecond
+us = usecond
 
 Hz = hertz
 kHz = khertz
@@ -82,7 +86,8 @@ um2 = umetre2
 um3 = umetre3
 
 stdunits = {'mV': mV, 'mA': mA, 'uA': uA, 'nA': nA, 'pA': pA, 'pF': pF,
-            'uF': uF, 'nF': nF, 'nS': nS, 'uS': uS, 'ms': ms, 'Hz' : Hz,
-            'kHz': kHz, 'MHz': MHz, 'cm': cm, 'cm2': cm2, 'cm3': cm3, 'mm': mm,
-            'mm2': mm2, 'mm3': mm3, 'um': um, 'um2': um2, 'um3': um3}
+            'uF': uF, 'nF': nF, 'nS': nS, 'uS': uS, 'ms': ms, 'us': us,
+            'Hz' : Hz, 'kHz': kHz, 'MHz': MHz, 'cm': cm, 'cm2': cm2,
+            'cm3': cm3, 'mm': mm, 'mm2': mm2, 'mm3': mm3, 'um': um, 'um2': um2,
+            'um3': um3}
 all_units.extend(stdunits)

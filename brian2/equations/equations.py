@@ -44,7 +44,7 @@ from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 
 from brian2.units.fundamentalunits import DimensionMismatchError
-from brian2.units.units import second
+from brian2.units.allunits import second
 from brian2.equations.unitcheck import get_unit_from_string
 from brian2.equations.codestrings import Expression, check_linearity
 
@@ -168,57 +168,57 @@ def check_identifier(identifier, reserved_identifiers, internal=False):
                           'this is only allowed for variables used internally') % identifier)
 
 def parse_string_equations(eqns, namespace, exhaustive, level):
-        """
-        Parses a string defining equations and returns a dictionary, mapping
-        variable names to :class:`Equations._Equation` objects.
-        
-        Arguments:
-        ``namespace``
-            An explictly given namespace (dictionary mapping names to objects)
-        ``exhaustive``
-            Whether the namespace in the namespace argument specifies the
-            namespace completely (``True``) or should be used in addition to
-            the locals/globals dictionaries (``False``)
-        ``level``
-            The level in the stack (an integer >=0) where to look for locals
-            and globals
-        
-        """
-        equations = {}
-        
-        try:
-            parsed = EQUATIONS.parseString(eqns, parseAll=True)
-        except ParseException as p_exc:
-            raise ValueError('Parsing failed: \n' + str(p_exc.line) + '\n' +
-                             ' '*(p_exc.column - 1) + '^\n' + str(p_exc))
-        for eq in parsed:
-            eq_type = eq.getName()
-            eq_content = dict(eq.items())
-            # Check for reserved keywords
-            identifier = eq_content['identifier']
-            
-            # Convert unit string to Unit object
-            unit = get_unit_from_string(eq_content['unit'])
-            
-            expression = eq_content.get('expression', None)
-            if not expression is None:
-                # Replace multiple whitespaces (arising from joining multiline
-                # strings) with single space
-                p = re.compile(r'\s{2,}')
-                expression = p.sub(' ', expression)
-            flags = list(eq_content.get('flags', []))
+    """
+    Parses a string defining equations and returns a dictionary, mapping
+    variable names to :class:`Equations._Equation` objects.
     
-            equation = Equations._Equation(eq_type, identifier, expression,
-                                           unit, flags, namespace,
-                                           exhaustive, level + 1) 
-            
-            if identifier in equations:
-                raise ValueError('Duplicate definition of variable "%s"' %
-                                 identifier)
-                                           
-            equations[identifier] = equation
+    Arguments:
+    ``namespace``
+        An explictly given namespace (dictionary mapping names to objects)
+    ``exhaustive``
+        Whether the namespace in the namespace argument specifies the
+        namespace completely (``True``) or should be used in addition to
+        the locals/globals dictionaries (``False``)
+    ``level``
+        The level in the stack (an integer >=0) where to look for locals
+        and globals
+    
+    """
+    equations = {}
+    
+    try:
+        parsed = EQUATIONS.parseString(eqns, parseAll=True)
+    except ParseException as p_exc:
+        raise ValueError('Parsing failed: \n' + str(p_exc.line) + '\n' +
+                         ' '*(p_exc.column - 1) + '^\n' + str(p_exc))
+    for eq in parsed:
+        eq_type = eq.getName()
+        eq_content = dict(eq.items())
+        # Check for reserved keywords
+        identifier = eq_content['identifier']
         
-        return equations            
+        # Convert unit string to Unit object
+        unit = get_unit_from_string(eq_content['unit'])
+        
+        expression = eq_content.get('expression', None)
+        if not expression is None:
+            # Replace multiple whitespaces (arising from joining multiline
+            # strings) with single space
+            p = re.compile(r'\s{2,}')
+            expression = p.sub(' ', expression)
+        flags = list(eq_content.get('flags', []))
+
+        equation = Equations._Equation(eq_type, identifier, expression,
+                                       unit, flags, namespace,
+                                       exhaustive, level + 1) 
+        
+        if identifier in equations:
+            raise ValueError('Duplicate definition of variable "%s"' %
+                             identifier)
+                                       
+        equations[identifier] = equation
+    
+    return equations            
 
 def resolve_equations(equations, variables):
     '''

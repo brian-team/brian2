@@ -9,8 +9,9 @@ Instead edit the template in the SVN:
 This file has been changed for the new unit system, changes to the code
 generation tool are not yet done.
 '''
-from .fundamentalunits import *
-from .fundamentalunits import standard_unit_register, additional_unit_register
+from .fundamentalunits import (Unit, get_or_create_dimension,
+                               standard_unit_register,
+                               additional_unit_register)
 from brian_unit_prefs import bup
 
 automatically_register_units = False
@@ -11111,70 +11112,3 @@ automatically_register_units = True
 
 map(standard_unit_register.add, base_units + scaled_units + powered_units)
 map(additional_unit_register.add, additional_units)
-
-if __name__ == "__main__":
-    from numpy import *
-    # shorthand function used for example code below
-    def pE(vname, str):
-        uname = vname
-        if vname == "": uname = "temp"
-        exec(uname + "=" + str)
-        if vname != "": print vname, "=",
-        print str,
-        if locals()[uname] != None:
-            print '=', locals()[uname]
-        else:
-            print
-        return locals()[uname]
-
-    V = pE("V", "3 * volt")
-    I = pE("I", "2 * amp")
-    a = pE("a", "array([1,2,3])")
-    print
-    R = pE("R", "V/I")
-    pE("", "I*R")
-    print
-    pE("", "a*V")
-    pE("", "V*a")
-    try:
-        print pE("", "V+a")
-    except DimensionMismatchError, i:
-        print "DimensionMismatchError:", i
-    print
-    pE("", "1000*metre")
-    pE("", "1000*mmetre")
-    print
-    pE("", "(2*volt).in_unit(mvolt)")
-    pE("", "(2*volt)/mvolt")
-    print "(2*volt).in_unit(amp) =",
-    try:
-        print (2 * volt).in_unit(amp)
-    except DimensionMismatchError, i:
-        print "DimensionMismatchError:", i
-    print
-    pE("", "have_same_dimensions(1*volt,1*amp*ohm)")
-    pE("", "have_same_dimensions(1*volt*second,1*amp*ohm)")
-    print
-    pE("", "(ufarad/nmetre)**2")
-    print
-    pE("", "2.0*farad/metre**2")
-    pE("", "register_new_unit(pfarad / mmetre**2)")
-    pE("", "2.0*farad/metre**2")
-
-    print
-    print "Some decorator examples (see code):"
-    print
-
-    @check_units(I=amp, R=ohm, wibble=metre, result=volt)
-    def getvoltage(I, R, *args, **k):
-        return I * R
-
-    try:
-        print getvoltage(1 * amp, 2 * ohm, 20)
-        print getvoltage(R=2 * ohm, I=1 * amp, wibble=7 * mmetre)
-        print getvoltage(1 * amp, 2 * ohm * metre)
-    except DimensionMismatchError, inst:
-        print "DME:", inst
-
-    print
-    pE("", "get_unit(3*msecond)")
