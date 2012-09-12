@@ -286,8 +286,8 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
         # or comparisons like 3 * mV == 0 to return False instead of failing
         # with a DimensionMismatchError. Note that 3 * mV == 0 * second or
         # 3 * mV == 0 * mV/mV is not allowed, though.
-        if ((not isinstance(obj1, Quantity) and obj1 == 0) or
-            (not isinstance(obj2, Quantity) and obj2 == 0)):
+        if ((not isinstance(obj1, Quantity) and np.all(obj1 == 0)) or
+            (not isinstance(obj2, Quantity) and np.all(obj2 == 0))):
             return
 
         if error_message is None:
@@ -1127,6 +1127,24 @@ class Quantity(np.ndarray):
     std = wrap_function_keep_dimensions(np.ndarray.std)
     sum = wrap_function_keep_dimensions(np.ndarray.sum)
     trace = wrap_function_keep_dimensions(np.ndarray.trace)
+    
+    def fill(self, values):
+        fail_for_dimension_mismatch(self, values, 'fill')
+        super(Quantity, self).fill(values)
+    fill.__doc__ = np.ndarray.fill.__doc__
+
+    def put(self, indices, values, *args, **kwds):
+        fail_for_dimension_mismatch(self, values, 'fill')
+        super(Quantity, self).put(indices, values, *args, **kwds)
+    put.__doc__ = np.ndarray.put.__doc__
+
+    def clip(self, a_min, a_max, *args, **kwds):
+        fail_for_dimension_mismatch(self, a_min, 'clip')
+        fail_for_dimension_mismatch(self, a_max, 'clip')        
+        return super(Quantity, self).clip(np.asarray(a_min),
+                                          np.asarray(a_max),
+                                          *args, **kwds)
+    clip.__doc__ = np.ndarray.clip.__doc__
 
     def prod(self, *args, **kwds):
         if not self.is_dimensionless():
@@ -1149,15 +1167,6 @@ class Quantity(np.ndarray):
     argmin = wrap_function_remove_dimensions(np.ndarray.argmax)
     argsort = wrap_function_remove_dimensions(np.ndarray.argsort)
     
-    # The functions could check the units of their arguments -- on the other
-    # hand this would add a maintenance burden as this code would have to be
-    # changed if they add a new argument, for example. Therefore, all they do
-    # right now is show a warning (maybe off by default, or at least possible
-    # to suppress with a global option or the general warning mechanism)
-    fill = wrap_function_no_check_warning(np.ndarray.fill)
-    put = wrap_function_no_check_warning(np.ndarray.put)
-    clip = wrap_function_no_check_warning(np.ndarray.clip)
-
     #### COMPARISONS ####
     def __lt__(self, other):
         is_scalar = is_scalar_type(other)
