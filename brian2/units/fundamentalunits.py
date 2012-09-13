@@ -1425,12 +1425,13 @@ class Unit(Quantity):
     
     __array_priority__ = 100
     
+    automatically_register_units = True
+    
     #### CONSTRUCTION ####
     def __new__(cls, arr, dim=None, scale=None, dtype=None, copy=False):
         obj = super(Unit, cls).__new__(cls, arr, dim=dim, dtype=dtype,
                                        copy=copy)
-        global automatically_register_units
-        if automatically_register_units:
+        if Unit.automatically_register_units:
             register_new_unit(obj)
         return obj
     
@@ -1627,7 +1628,6 @@ class Unit(Quantity):
     def __ipow__(self, other, modulo=None):
         raise TypeError('Units cannot be modified in-place')
 
-automatically_register_units = True
 
 class UnitRegistry(object):
     """Stores known units for printing in best units

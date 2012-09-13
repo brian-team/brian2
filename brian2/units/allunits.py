@@ -4,67 +4,15 @@ DO NOT EDIT BY HAND
 
 Instead edit the template in the SVN:
 
-    /dec/tools/static_codegen/units_template.py
-
-This file has been changed for the new unit system, changes to the code
-generation tool are not yet done.
+    /dev/tools/static_codegen/units_template.py
 '''
 from .fundamentalunits import (Unit, get_or_create_dimension,
                                standard_unit_register,
                                additional_unit_register)
 from brian_unit_prefs import bup
 
-automatically_register_units = False
-
-#### FUNDAMENTAL UNITS
-metre = Unit.create(get_or_create_dimension(m=1), "metre", "m")
-meter = Unit.create(get_or_create_dimension(m=1), "meter", "m")
-kilogram = Unit.create(get_or_create_dimension(kg=1), "kilogram", "kg")
-gram = Unit.create_scaled_unit(kilogram, "m")
-gram.set_name('gram')
-gram.set_display_name('g')
-gramme = Unit.create_scaled_unit(kilogram, "m")
-gramme.set_name('gramme')
-gramme.set_display_name('g')
-second = Unit.create(get_or_create_dimension(s=1), "second", "s")
-amp = Unit.create(get_or_create_dimension(A=1), "amp", "A")
-kelvin = Unit.create(get_or_create_dimension(K=1), "kelvin", "K")
-mole = Unit.create(get_or_create_dimension(mol=1), "mole", "mol")
-candle = Unit.create(get_or_create_dimension(candle=1), "candle", "cd")
-fundamental_units = [ metre, meter, gram, second, amp, kelvin, mole, candle ]
-
-radian = Unit.create(get_or_create_dimension(), "radian", "rad")
-steradian = Unit.create(get_or_create_dimension(), "steradian", "sr")
-hertz = Unit.create(get_or_create_dimension(s= -1), "hertz", "Hz")
-newton = Unit.create(get_or_create_dimension(m=1, kg=1, s= -2), "newton", "N")
-pascal = Unit.create(get_or_create_dimension(m= -1, kg=1, s= -2), "pascal", "Pa")
-joule = Unit.create(get_or_create_dimension(m=2, kg=1, s= -2), "joule", "J")
-watt = Unit.create(get_or_create_dimension(m=2, kg=1, s= -3), "watt", "W")
-coulomb = Unit.create(get_or_create_dimension(s=1, A=1), "coulomb", "C")
-volt = Unit.create(get_or_create_dimension(m=2, kg=1, s= -3, A= -1), "volt", "V")
-farad = Unit.create(get_or_create_dimension(m= -2, kg= -1, s=4, A=2), "farad", "F")
-ohm = Unit.create(get_or_create_dimension(m=2, kg=1, s= -3, A= -2), "ohm", "ohm")
-siemens = Unit.create(get_or_create_dimension(m= -2, kg= -1, s=3, A=2), "siemens", "S")
-weber = Unit.create(get_or_create_dimension(m=2, kg=1, s= -2, A= -1), "weber", "Wb")
-tesla = Unit.create(get_or_create_dimension(kg=1, s= -2, A= -1), "tesla", "T")
-henry = Unit.create(get_or_create_dimension(m=2, kg=1, s= -2, A= -2), "henry", "H")
-celsius = Unit.create(get_or_create_dimension(K=1), "celsius", "degC")
-lumen = Unit.create(get_or_create_dimension(cd=1), "lumen", "lm")
-lux = Unit.create(get_or_create_dimension(m= -2, cd=1), "lux", "lx")
-becquerel = Unit.create(get_or_create_dimension(s= -1), "becquerel", "Bq")
-gray = Unit.create(get_or_create_dimension(m=2, s= -2), "gray", "Gy")
-sievert = Unit.create(get_or_create_dimension(m=2, s= -2), "sievert", "Sv")
-katal = Unit.create(get_or_create_dimension(s= -1, mol=1), "katal", "kat")
-
-
 
 __all__ = [
-    'DimensionMismatchError',
-    'get_dimensions', 'is_dimensionless', 'have_same_dimensions',
-    'display_in_unit', 'Quantity', 'Unit', 'register_new_unit',
-    'check_units', 'is_scalar_type', 'get_unit', 'get_unit_fast',
-    'scalar_representation',
-    
     "metre",
     "meter",
     "gram",
@@ -2082,6 +2030,49 @@ __all__ = [
     "Ykatal2",
     "Ykatal3",
     ]
+
+
+Unit.automatically_register_units = False
+
+#### FUNDAMENTAL UNITS
+metre = Unit.create(get_or_create_dimension(m=1), "metre", "m")
+meter = Unit.create(get_or_create_dimension(m=1), "meter", "m")
+kilogram = Unit.create(get_or_create_dimension(kg=1), "kilogram", "kg")
+gram = Unit.create_scaled_unit(kilogram, "m")
+gram.set_name('gram')
+gram.set_display_name('g')
+gramme = Unit.create_scaled_unit(kilogram, "m")
+gramme.set_name('gramme')
+gramme.set_display_name('g')
+second = Unit.create(get_or_create_dimension(s=1), "second", "s")
+amp = Unit.create(get_or_create_dimension(A=1), "amp", "A")
+kelvin = Unit.create(get_or_create_dimension(K=1), "kelvin", "K")
+mole = Unit.create(get_or_create_dimension(mol=1), "mole", "mol")
+candle = Unit.create(get_or_create_dimension(candle=1), "candle", "cd")
+fundamental_units = [metre, meter, gram, second, amp, kelvin, mole, candle]
+
+radian = Unit.create(get_or_create_dimension(), "radian", "rad")
+steradian = Unit.create(get_or_create_dimension(), "steradian", "sr")
+hertz = Unit.create(get_or_create_dimension(s= -1), "hertz", "Hz")
+newton = Unit.create(get_or_create_dimension(m=1, kg=1, s=-2), "newton", "N")
+pascal = Unit.create(get_or_create_dimension(m= -1, kg=1, s=-2), "pascal", "Pa")
+joule = Unit.create(get_or_create_dimension(m=2, kg=1, s=-2), "joule", "J")
+watt = Unit.create(get_or_create_dimension(m=2, kg=1, s=-3), "watt", "W")
+coulomb = Unit.create(get_or_create_dimension(s=1, A=1), "coulomb", "C")
+volt = Unit.create(get_or_create_dimension(m=2, kg=1, s=-3, A=-1), "volt", "V")
+farad = Unit.create(get_or_create_dimension(m= -2, kg=-1, s=4, A=2), "farad", "F")
+ohm = Unit.create(get_or_create_dimension(m=2, kg=1, s= -3, A=-2), "ohm", "ohm")
+siemens = Unit.create(get_or_create_dimension(m= -2, kg=-1, s=3, A=2), "siemens", "S")
+weber = Unit.create(get_or_create_dimension(m=2, kg=1, s=-2, A=-1), "weber", "Wb")
+tesla = Unit.create(get_or_create_dimension(kg=1, s=-2, A=-1), "tesla", "T")
+henry = Unit.create(get_or_create_dimension(m=2, kg=1, s=-2, A=-2), "henry", "H")
+celsius = Unit.create(get_or_create_dimension(K=1), "celsius", "degC")
+lumen = Unit.create(get_or_create_dimension(cd=1), "lumen", "lm")
+lux = Unit.create(get_or_create_dimension(m=-2, cd=1), "lux", "lx")
+becquerel = Unit.create(get_or_create_dimension(s=-1), "becquerel", "Bq")
+gray = Unit.create(get_or_create_dimension(m=2, s=-2), "gray", "Gy")
+sievert = Unit.create(get_or_create_dimension(m=2, s=-2), "sievert", "Sv")
+katal = Unit.create(get_or_create_dimension(s=-1, mol=1), "katal", "kat")
 
 
 ######### SCALED BASE UNITS ###########
@@ -11108,7 +11099,7 @@ all_units = [
     ]
 
 
-automatically_register_units = True
+Unit.automatically_register_units = True
 
 map(standard_unit_register.add, base_units + scaled_units + powered_units)
 map(additional_unit_register.add, additional_units)
