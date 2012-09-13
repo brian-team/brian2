@@ -686,7 +686,6 @@ class Quantity(np.ndarray):
     -- get_dimensions() return Dimension
     -- set_dimensions(dim)
     -- is_dimensionless() return boolean
-    -- at_scale(scale) return string
     -- has_same_dimensions(other) return boolean
     -- in_unit(unit) return string
     -- in_best_unit() return string
@@ -878,13 +877,6 @@ class Quantity(np.ndarray):
         """Tells you whether this is a dimensionless object
         """
         return self.dim.is_dimensionless()
-
-    def at_scale(self, scale):
-        # FIXME, do not use Scale object, move some functions to _Dimension
-        """Returns a string representation at given scale
-        """
-        return (str(np.asarray(self) / scale.scale_factor(self.dim)) + " " +
-                scale.unit_representation(self.dim))
 
     def has_same_dimensions(self, other):
         """Tells you if this object has the same dimensions as another.
