@@ -1304,6 +1304,10 @@ class Quantity(np.ndarray):
         return Quantity(np.asarray(self).cumprod(*args, **kwds))
     cumprod.__doc__ = np.ndarray.cumprod.__doc__
 
+    def setasflat(self, arr, **kwds):
+        fail_for_dimension_mismatch(self, arr, 'setasflat')
+        super(Quantity, self).setasflat(np.asarray(arr))
+    setasflat.__doc__ = np.ndarray.setasflat.__doc__
 
 class Unit(Quantity):
     '''

@@ -49,7 +49,7 @@ from .allunits import (
                        )
 from .unitsafefunctions import (log, exp, sin, cos, tan, arcsin, arccos, arctan,
                                 sinh, cosh, tanh, arcsinh, arccosh, arctanh,
-                                diagonal, ravel, trace)
+                                diagonal, ravel, trace, dot)
                     
 ___all__ = ['pamp', 'namp', 'uamp', 'mamp', 'amp',
             'kamp', 'Mamp', 'Gamp', 'Tamp',
@@ -86,5 +86,6 @@ ___all__ = ['pamp', 'namp', 'uamp', 'mamp', 'amp',
             'kwatt', 'Mwatt', 'Gwatt', 'Twatt',
             'log', 'exp', 'sin', 'cos', 'tan',
             'arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh',
-            'arcsinh', 'arccosh', 'arctanh', 'diagonal', 'ravel', 'trace'
+            'arcsinh', 'arccosh', 'arctanh',
+            'diagonal', 'ravel', 'trace', 'dot'
             ]

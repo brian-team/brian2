@@ -70,7 +70,7 @@ __all__ = [
          'arcsin', 'arccos', 'arctan',
          'sinh', 'cosh', 'tanh',
          'arcsinh', 'arccosh', 'arctanh',
-         'diagonal', 'ravel', 'trace'
+         'diagonal', 'ravel', 'trace', 'dot'
          ]
 
 sin = wrap_function_dimensionless(np.sin)
@@ -106,3 +106,4 @@ def wrap_function_to_method(func):
 ravel = wrap_function_to_method(np.ravel)
 diagonal = wrap_function_to_method(np.ravel)
 trace = wrap_function_to_method(np.ravel)
+dot = wrap_function_to_method(np.ravel)
