@@ -10,6 +10,7 @@ from brian2.codegen.languages import (CPPLanguage, PythonLanguage, CUDALanguage,
 from brian2.codegen.templating import apply_code_template
 from brian2.utils.stringtools import deindent
 from brian2.units import *
+from brian2.units.stdunits import *
 
 import pylab
 import time

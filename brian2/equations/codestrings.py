@@ -225,7 +225,7 @@ class CodeString(object):
         '''
         
         if not self.is_resolved:
-            raise TypeError('Can only frozen resolved CodeString objects.')
+            raise TypeError('Can only freeze resolved CodeString objects.')
         
         #TODO: For expressions, this could be done more elegantly with sympy
         

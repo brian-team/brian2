@@ -56,7 +56,7 @@ EQUATION_TYPE = {'parameter': 'parameter',
                  'static_equation': 'static equation'}
 
 # Units of the special variables that are always defined
-UNITS_SPECIAL_VARS = {'t': second, 'dt': second, 'xi': second**0.5}
+UNITS_SPECIAL_VARS = {'t': second, 'dt': second, 'xi': second**-0.5}
 
 # Definitions of equation structure for parsing with pyparsing
 ###############################################################################
@@ -208,9 +208,8 @@ def parse_string_equations(eqns, namespace, exhaustive, level):
             expression = p.sub(' ', expression)
         flags = list(eq_content.get('flags', []))
 
-        equation = Equations._Equation(eq_type, identifier, expression,
-                                       unit, flags, namespace,
-                                       exhaustive, level + 1) 
+        equation = Equation(eq_type, identifier, expression, unit, flags,
+                            namespace, exhaustive, level + 1) 
         
         if identifier in equations:
             raise ValueError('Duplicate definition of variable "%s"' %
@@ -245,6 +244,87 @@ def resolve_equations(equations, variables):
     
     return namespace
 
+class Equation(object):
+    '''
+    Class for internal use, encapsulates a single equation or parameter.
+    '''
+    def __init__(self, eq_type, varname, expr, unit, flags,
+                 namespace, exhaustive, level):
+        '''
+        Create a new :class:`_Equation` object.
+        '''
+        self.eq_type = eq_type
+        self.varname = varname
+        if eq_type != 'parameter':
+            self.expr = Expression(expr, namespace=namespace,
+                                   exhaustive=exhaustive, level=level + 1)
+        else:
+            self.expr = None
+        self.unit = unit
+        self.flags = flags
+        
+        # will be set later in the sort_static_equations method of Equations
+        self.update_order = -1
+
+    # parameters do not depend on time
+    is_time_dependent = property(lambda self: self.expr.is_time_dependent
+                                 if not self.expr is None else False,
+                                 doc='Whether this equation is time dependent')
+    
+    # parameters are linear
+    # FIXME: This will result in False if an equation non-linearly depends
+    # on a constant parameter
+    is_linear = property(lambda self: self.expr.is_linear
+                                 if not self.expr is None else True,
+                                 doc='Whether this equation is linear')
+    
+    is_conditionally_linear = property(lambda self: check_linearity(self.expr,
+                                                                    self.varname)
+                                       if not self.expr is None else True,
+                                       doc='Whether this equation is conditionally linear')
+
+    dependencies = property(lambda self: self.expr.dependencies
+                            if not self.expr is None else [],
+                            doc='List of dependencies for this equation')
+
+    def resolve(self, internal_variables):
+        '''
+        Resolve all the variables (see :meth:`CodeString.resolve`),
+        treating the list ``internal_variables`` as internal variables.
+        '''
+        if not self.expr is None:
+            self.expr.resolve(internal_variables)        
+
+    def __str__(self):
+        if self.eq_type == 'diff_equation':
+            s = 'd' + self.varname + '/dt'
+        else:
+            s = self.varname
+        
+        if not self.expr is None:
+            s += ' = ' + str(self.expr)
+        
+        s += ' : ' + str(self.unit)
+        
+        if len(self.flags):
+            s += '(' + ', '.join(self.flags) + ')'
+        
+        return s
+    
+    def __repr__(self):
+        s = '<' + EQUATION_TYPE[self.eq_type] + ' ' + self.varname
+        
+        if not self.expr is None:
+            s += ': ' + self.expr.code
+
+        s += ' (Unit: ' + str(self.unit)
+        
+        if len(self.flags):
+            s += ', flags: ' + ', '.join(self.flags)
+        
+        s += ')>'
+        return s
+
 class Equations(object):
     """Container that stores equations from which models can be created.
     
@@ -278,89 +358,7 @@ class Equations(object):
     with ``#``
     
     """
-    
-    class _Equation(object):
-        '''
-        Class for internal use, encapsulates a single equation or parameter.
-        '''
-        def __init__(self, eq_type, varname, expr, unit, flags,
-                     namespace, exhaustive, level):
-            '''
-            Create a new :class:`_Equation` object.
-            '''
-            self.eq_type = eq_type
-            self.varname = varname
-            if eq_type != 'parameter':
-                self.expr = Expression(expr, namespace=namespace,
-                                       exhaustive=exhaustive, level=level + 1)
-            else:
-                self.expr = None
-            self.unit = unit
-            self.flags = flags
-            
-            # will be set later in the sort_static_equations method of Equations
-            self.update_order = -1
 
-        # parameters do not depend on time
-        is_time_dependent = property(lambda self: self.expr.is_time_dependent
-                                     if not self.expr is None else False,
-                                     doc='Whether this equation is time dependent')
-        
-        # parameters are linear
-        # FIXME: This will result in False if an equation non-linearly depends
-        # on a constant parameter
-        is_linear = property(lambda self: self.expr.is_linear
-                                     if not self.expr is None else True,
-                                     doc='Whether this equation is linear')
-        
-        is_conditionally_linear = property(lambda self: check_linearity(self.expr,
-                                                                        self.varname)
-                                           if not self.expr is None else True,
-                                           doc='Whether this equation is conditionally linear')
-
-        dependencies = property(lambda self: self.expr.dependencies
-                                if not self.expr is None else [],
-                                doc='List of dependencies for this equation')
-
-        def resolve(self, internal_variables):
-            '''
-            Resolve all the variables (see :meth:`CodeString.resolve`),
-            treating the list ``internal_variables`` as internal variables.
-            '''
-            if not self.expr is None:
-                self.expr.resolve(internal_variables)        
-
-        def __str__(self):
-            if self.eq_type == 'diff_equation':
-                s = 'd' + self.varname + '/dt'
-            else:
-                s = self.varname
-            
-            if not self.expr is None:
-                s += ' = ' + str(self.expr)
-            
-            s += ' : ' + str(self.unit)
-            
-            if len(self.flags):
-                s += '(' + ', '.join(self.flags) + ')'
-            
-            return s
-        
-        def __repr__(self):
-            s = '<' + EQUATION_TYPE[self.eq_type] + ' ' + self.varname
-            
-            if not self.expr is None:
-                s += ': ' + self.expr.code
-
-            s += ' (Unit: ' + str(self.unit)
-            
-            if len(self.flags):
-                s += ', flags: ' + ', '.join(self.flags)
-            
-            s += ')>'
-            return s
-
-    
     def __init__(self, eqns='', namespace=None, exhaustive=False, level=0):
         '''
         Constructs a new equations object from the multiline string ``eqns``,
@@ -372,6 +370,22 @@ class Equations(object):
 
         # Do a basic check for the identifiers
         self.check_identifiers(('t', 'dt', 'xi'))
+        
+        # Check for special symbol xi (stochastic term)
+        uses_xi = None
+        for eq in self._equations.itervalues():
+            if not eq.expr is None and 'xi' in eq.expr.identifiers:
+                if not eq.eq_type == 'diff_equation':
+                    raise ValueError(('The equation defining %s contains the '
+                                      'symbol "xi" but is not a differential '
+                                      'equation.') % eq.varname)
+                elif not uses_xi is None:
+                    raise ValueError(('The equation defining %s contains the '
+                                      'symbol "xi", but it is already used '
+                                      'in the equation defining %s.') %
+                                     (eq.varname, uses_xi))
+                else:
+                    uses_xi = eq.varname
         
         # Build the namespaces, resolve all external variables and rearrange
         # static equations
@@ -390,11 +404,12 @@ class Equations(object):
                                  doc='A list of all equations, sorted '
                                  'according to the order in which they should '
                                  'be updated')
-    diff_eq_expressions = property(lambda self: dict([(varname, eq.expr) for 
-                                                      varname, eq in self.equations.iteritems()
-                                                      if eq.eq_type == 'diff_equation']),
-                                  doc='A dictionary mapping variable names to '
-                                  'expressions for all differential equations.')
+    
+    diff_eq_expressions = property(lambda self: [(varname, eq.expr.frozen()) for 
+                                                 varname, eq in self.equations.iteritems()
+                                                 if eq.eq_type == 'diff_equation'],
+                                  doc='A list of (variable name, expression) '
+                                  'tuples of all differential equations.')
     
     names = property(lambda self: [eq.varname for eq in self.equations_ordered])
     
@@ -408,7 +423,7 @@ class Equations(object):
     def _is_linear(self):
         '''
         Whether all equations are linear and only refer to constant parameters.
-        '''       
+        '''
         all_linear = all([eq.is_linear for eq in self.equations.itervalues()])
         
         if not all_linear:
@@ -527,14 +542,14 @@ class Equations(object):
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Differential equation defining '
                                                   '%s does not use consistent units: %s') % 
-                                                 (var, dme.desc), *dme._dims)
+                                                 (var, dme.desc), *dme.dims)
             elif eq.eq_type == 'static_equation':
                 try:
                     eq.expr.check_unit_against(units[var], units)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Static equation defining '
                                                   '%s does not use consistent units: %s') % 
-                                                 (var, dme.desc), *dme._dims)                
+                                                 (var, dme.desc), *dme.dims)                
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.eq_type)
 
