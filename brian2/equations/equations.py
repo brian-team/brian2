@@ -46,7 +46,9 @@ from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
 from brian2.units.fundamentalunits import DimensionMismatchError
 from brian2.units.allunits import second
 from brian2.equations.unitcheck import get_unit_from_string
-from brian2.equations.codestrings import Expression, check_linearity
+from brian2.equations.codestrings import (CodeString, check_linearity,
+                                          check_unit_against)
+from brian2.utils.stringtools import word_substitute
 
 __all__ = ['Equations']
 
@@ -256,7 +258,7 @@ class Equation(object):
         self.eq_type = eq_type
         self.varname = varname
         if eq_type != 'parameter':
-            self.expr = Expression(expr, namespace=namespace,
+            self.expr = CodeString(expr, namespace=namespace,
                                    exhaustive=exhaustive, level=level + 1)
         else:
             self.expr = None
@@ -411,40 +413,79 @@ class Equations(object):
                                   doc='A list of (variable name, expression) '
                                   'tuples of all differential equations.')
     
+    eq_expressions = property(lambda self: [(varname, eq.expr.frozen()) for 
+                                            varname, eq in self.equations.iteritems()
+                                            if eq.eq_type in ('static_equation',
+                                                              'diff_equation')],
+                                  doc='A list of (variable name, expression) '
+                                  'tuples of all equations.') 
+    
     names = property(lambda self: [eq.varname for eq in self.equations_ordered])
     
     diff_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
                                            if eq.eq_type == 'diff_equation'])
     static_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
                                            if eq.eq_type == 'static_equation'])
+    eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
+                                           if eq.eq_type in ('diff_equation', 'static_equation')])
     parameter_names = property(lambda self: [eq.varname for eq in self.equations_ordered
                                              if eq.eq_type == 'parameter'])
     
-    def _is_linear(self):
+    def _is_linear(self, conditionally_linear=False):
         '''
         Whether all equations are linear and only refer to constant parameters.
+        if ``conditionally_linear`` is ``True``, only checks for conditional
+        linearity (i.e. all differential equations are linear with respect to
+        themselves but not necessarily with respect to other differential
+        equations).
         '''
-        all_linear = all([eq.is_linear for eq in self.equations.itervalues()])
-        
-        if not all_linear:
-            return False
-        
-        # Check the dependencies of all equations for non-constant parameters
-        for eq in self.equations.itervalues():
-            for dep in eq.dependencies:
-                dep_eq = self.equations.get(dep, None)
-                if (not dep_eq is None and dep_eq.eq_type == 'parameter' and
-                    not 'constant' in dep_eq.flags):
+        substitutions = {}        
+        for eq in self.equations_ordered:
+            # Skip parameters
+            if eq.expr is None:
+                continue
+            
+            expr = CodeString(word_substitute(eq.expr.code, substitutions),
+                              self._namespace, exhaustive=True)
+            
+            if eq.eq_type == 'static_equation':
+                substitutions.update({eq.varname: '(%s)' % expr.code})
+            else:
+                # This is a differential equation that we have to check
+                                
+                expr.resolve(self.names)
+                
+                identifiers = expr.identifiers
+                
+                # Check that it does not depend on time
+                if 't' in identifiers:
                     return False
-        
+                
+                # Check that it does not depend on non-constant parameters
+                for parameter in self.parameter_names:
+                    if (parameter in identifiers and
+                        not 'constant' in self.equations[parameter].flags):
+                        return False
+
+                if conditionally_linear:
+                    # Check for linearity against itself
+                    if not check_linearity(expr, eq.varname):
+                        return False
+                else:
+                    # Check against all state variables (not against static
+                    # equation variables, these are already replaced)
+                    for diff_eq_var in self.diff_eq_names:                    
+                        if not check_linearity(expr, diff_eq_var):
+                            return False
+
+        # No non-linearity found
         return True
     
     is_linear = property(_is_linear)
     
-    is_conditionally_linear = property(lambda self: all([eq.is_conditionally_linear
-                                                         for eq in self.equations.itervalues()]),
+    is_conditionally_linear = property(lambda self: self._is_linear(conditionally_linear=True),
                                        doc='Whether all equations are conditionally linear')
-    
+
     def get_units(self):
         '''
         Dictionary of all internal variables (including t, dt, xi) and their
@@ -538,14 +579,14 @@ class Equations(object):
             
             if eq.eq_type == 'diff_equation':
                 try:
-                    eq.expr.check_unit_against(units[var] / second, units)
+                    check_unit_against(eq.expr, units[var] / second, units)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Differential equation defining '
                                                   '%s does not use consistent units: %s') % 
                                                  (var, dme.desc), *dme.dims)
             elif eq.eq_type == 'static_equation':
                 try:
-                    eq.expr.check_unit_against(units[var], units)
+                    check_unit_against(eq.expr, units[var], units)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Static equation defining '
                                                   '%s does not use consistent units: %s') % 
@@ -596,3 +637,13 @@ class Equations(object):
             return 'Equations(...)'
         for eq in self._equations.itervalues():
             p.pretty(eq)
+
+if __name__ == '__main__':
+    from brian2 import *
+    tau = 10 * ms
+    eqs = Equations('''dv/dt = -(v + x)/ tau : volt
+                       dw/dt = -(w + v**2) / tau: volt**2
+                       x = 2 * y : volt
+                       y = 2 * v : volt''')
+    print 'Linear:', eqs.is_linear
+    print 'Conditionally linear:', eqs.is_conditionally_linear

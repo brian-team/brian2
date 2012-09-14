@@ -9,7 +9,7 @@ from brian2.units.fundamentalunits import get_dimensions, DimensionMismatchError
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.equations.unitcheck import get_default_unit_namespace
 
-__all__ = ['CodeString', 'Expression']
+__all__ = ['CodeString']
 
 
 def check_linearity(expression_string, variable):
@@ -18,7 +18,6 @@ def check_linearity(expression_string, variable):
     with respect to ``variable``, assuming that all other variables are
     constants. The expression should not contain any functions.
     '''
-
     try:
         sympy_expr = sympify(expression_string)
     except SympifyError:
@@ -44,6 +43,83 @@ def check_linearity(expression_string, variable):
 
     # if the expression is linear, x should have disappeared
     return not x in diff_f 
+
+
+def eval_expr(expr, internal_variables):
+    '''
+    Evaluates the expression ``expr`` (a :class:`CodeString` object) in its
+    namespace, augmented by the values for the ``internal_variables``
+    (as a dictionary).
+    '''
+
+    if not expr.is_resolved:
+        raise TypeError('Can only evaluate resolved CodeString objects.')
+    
+    namespace = expr.namespace.copy()
+    namespace.update(internal_variables)
+    return eval(expr.code, namespace)
+
+
+def get_expr_dimensions(expr, variable_units):
+    '''
+    Returns the dimensions of the expression ``expr`` (a :class:`CodeString`
+    object) by evaluating it in its namespace, replacing all internal variables
+    with their units. The units have to be given in the mapping
+    ``variable_units``. 
+    
+    The namespace has to be resolved using the :meth:`resolve` method first.
+    
+    May raise an DimensionMismatchError during the evaluation.
+    '''
+    return get_dimensions(eval_expr(expr, variable_units))
+
+
+def check_unit_against(expr, unit, variable_units):
+    '''
+    Checks whether the dimensions of the expression ``expr`` (a
+    :class:`CodeString` object) match the expected dimension of ``unit``.
+    The units of all internal variables have  to be given in the mapping
+    ``variable_units``. 
+    
+    The namespace has to be resolved using the :meth:`resolve` method first.
+    
+    May raise an DimensionMismatchError during the evaluation.
+    '''
+    expr_dimensions = get_expr_dimensions(expr, variable_units)
+    expected_dimensions = get_dimensions(unit)
+    if not expr_dimensions == expected_dimensions:
+        raise DimensionMismatchError('Dimensions of expression does not '
+                                     'match its definition',
+                                     expr_dimensions, expected_dimensions)
+
+
+def split_stochastic(expr):
+    '''
+    Splits the expression ``expr`` (a :class:`CodeString` object) into a tuple
+    of two :class:`CodeString` objects f and g, assuming an expression of the
+    form ``f + g * xi``, where ``xi`` is the symbol for the random variable.
+    
+    If no ``xi`` symbol is present in the code string, a tuple ``(expr, None)``
+    will be returned with the unchanged :class:`CodeString` object.
+    '''
+    s_expr = sympify(expr.code)
+    xi = Symbol('xi')
+    if not xi in s_expr:
+        return (expr, None)
+    
+    f = Wild('f', exclude=[xi]) # non-stochastic part
+    g = Wild('g', exclude=[xi]) # stochastic part
+    matches = s_expr.match(f + g * xi)
+    if matches is None:
+        raise ValueError(('Expression "%s" cannot be separated into stochastic '
+                         'and non-stochastic term') % expr)
+
+    f_expr = CodeString(str(matches[f]), namespace=expr.namespace.copy(),
+                        exhaustive=True)
+    g_expr = CodeString(str(matches[g] * xi), namespace=expr.namespace.copy(),
+                        exhaustive=True)
+    
+    return (f_expr, g_expr)
 
 
 class ResolutionConflictWarning(UserWarning):
@@ -300,11 +376,14 @@ class Expression(CodeString):
         if not self.is_resolved:
             raise AttributeError('Can only determine this for resolved '
                                  'expressions')
+            
         if self.is_time_dependent:
+            print 'time dependent'
             return False
         
-        if any([hasattr(ref, '__call__') for ref in self.namespace.itervalues()]):
-            return False
+#        if any([hasattr(ref, '__call__') for
+#                ref in self.namespace.itervalues()]):
+#            return False
         
         # test linearity by checking whether the equation can be rewritten
         # as "a * x + b" for each internal variable x that this expression
@@ -317,75 +396,3 @@ class Expression(CodeString):
         return True 
 
     is_linear = property(_is_linear)
-            
-    def eval(self, internal_variables):
-        '''
-        Evaluates the expression in its namespace, augmented by the values
-        for the ``internal_variables`` (as a dictionary).
-        '''
-
-        if not self.is_resolved:
-            raise TypeError('Can only evaluate resolved Expression objects.')
-        
-        namespace = self.namespace.copy()
-        namespace.update(internal_variables)
-        return eval(self.code, namespace)
-    
-    def get_dimensions(self, variable_units):
-        '''
-        Returns the dimensions of the expression by evaluating it in its
-        namespace, replacing all internal variables with their units. The units
-        have to be given in the mapping ``variable_units``. 
-        
-        The namespace has to be resolved using the :meth:`resolve` method first.
-        
-        May raise an DimensionMismatchError during the evaluation.
-        '''
-        return get_dimensions(self.eval(variable_units))
-
-    def check_unit_against(self, unit, variable_units):
-        '''
-        Checks whether the dimensions of the expression match the expected
-        dimension of ``unit``. The units of all internal variables have 
-        to be given in the mapping ``variable_units``. 
-        
-        The namespace has to be resolved using the :meth:`resolve` method first.
-        
-        May raise an DimensionMismatchError during the evaluation.
-        '''
-        expr_dimensions = self.get_dimensions(variable_units)
-        expected_dimensions = get_dimensions(unit)
-        if not expr_dimensions is expected_dimensions:
-            raise DimensionMismatchError('Dimensions of expression does not '
-                                         'match its definition',
-                                         expr_dimensions, expected_dimensions)
-    
-
-    def split_stochastic(self):
-        '''
-        Returns a tuple of two :class:`Expression` objects f and g, 
-        assuming expressions of the form ``f + g * xi``, where ``xi`` is the
-        symbol for the random variable.
-        
-        If no ``xi`` symbol is present in the code string, a tuple
-        ``(self, None)`` will be returned with the unchanged :class:`Expression`
-        object.
-        '''
-        expr = sympify(self.code)
-        xi = Symbol('xi')
-        if not xi in expr:
-            return (self, None)
-        
-        f = Wild('f', exclude=[xi]) # non-stochastic part
-        g = Wild('g', exclude=[xi]) # stochastic part
-        matches = expr.match(f + g * xi)
-        if matches is None:
-            raise ValueError(('Expression "%s" cannot be separated into stochastic '
-                             'and non-stochastic term') % expr)
-    
-        f_expr = Expression(str(matches[f]), namespace=self.namespace.copy(),
-                            exhaustive=True)
-        g_expr = Expression(str(matches[g] * xi), namespace=self.namespace.copy(),
-                            exhaustive=True)
-        
-        return (f_expr, g_expr)
