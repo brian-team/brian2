@@ -19,13 +19,14 @@ from codeprint import codeprint
 test_compile = True
 do_plot = True
 
-tau_plus = 10 * ms # external variable
-eqs = '''
-dV/dt = x : volt
-x = -V/(tau + tau_plus): volt/second
-tau : second
-'''
-G = NeuronGroup(1, model=eqs)
+tau = 10 * ms # external variable
+eqs = '''   
+    dV/dt = (-V + I + J)/tau : 1
+    dI/dt = -I/tau : 1
+    J = V * 0.1 : 1
+    '''
+from brian2.stateupdaters.integration import euler, rk2, rk4
+G = NeuronGroup(1, model=eqs, method=rk4)
 
 intermediate = make_statements(G.abstract_code, G.specifiers, float64)
 
@@ -50,7 +51,7 @@ languages = [lang for lang in [
     getlang(PythonLanguage),
     getlang(NumexprPythonLanguage),
     getlang(CPPLanguage, extra_compile_args=['-O3', '-ffast-math', '-march=native'], restrict='__restrict__', flush_denormals=True),
-    getlang(CUDALanguage),
+    #getlang(CUDALanguage),
     ] if lang is not None]
 
 codestrings = {}
@@ -72,6 +73,7 @@ tshow = 100
 ttest = 1000
 dt = 0.001
 _array_V = pylab.rand(N)
+_array_I = pylab.rand(N)
 _array_tau = pylab.ones(N)*30*0.001
 
 print
@@ -90,6 +92,7 @@ for lang in languages:
         continue
     namespace = {
         '_array_V': _array_V.copy(),
+        '_array_I': _array_I.copy(),
         '_array_tau': _array_tau.copy(),
         '_num_neurons': N,
         }
