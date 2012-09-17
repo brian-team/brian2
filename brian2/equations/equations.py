@@ -46,8 +46,7 @@ from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
 from brian2.units.fundamentalunits import DimensionMismatchError
 from brian2.units.allunits import second
 from brian2.equations.unitcheck import get_unit_from_string
-from brian2.equations.codestrings import (CodeString, check_linearity,
-                                          check_unit_against)
+from brian2.equations.codestrings import CodeString
 from brian2.utils.stringtools import word_substitute
 
 __all__ = ['Equations']
@@ -280,8 +279,7 @@ class Equation(object):
                                  if not self.expr is None else True,
                                  doc='Whether this equation is linear')
     
-    is_conditionally_linear = property(lambda self: check_linearity(self.expr,
-                                                                    self.varname)
+    is_conditionally_linear = property(lambda self: self.expr.check_linearity(self.varname)
                                        if not self.expr is None else True,
                                        doc='Whether this equation is conditionally linear')
 
@@ -465,13 +463,13 @@ class Equations(object):
 
                 if conditionally_linear:
                     # Check for linearity against itself
-                    if not check_linearity(expr, eq.varname):
+                    if not expr.check_linearity(eq.varname):
                         return False
                 else:
                     # Check against all state variables (not against static
                     # equation variables, these are already replaced)
                     for diff_eq_var in self.diff_eq_names:                    
-                        if not check_linearity(expr, diff_eq_var):
+                        if not expr.check_linearity(diff_eq_var):
                             return False
 
         # No non-linearity found
@@ -562,14 +560,14 @@ class Equations(object):
             
             if eq.eq_type == 'diff_equation':
                 try:
-                    check_unit_against(eq.expr, units[var] / second, units)
+                    eq.expr.check_unit_against(units[var] / second, units)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Differential equation defining '
                                                   '%s does not use consistent units: %s') % 
                                                  (var, dme.desc), *dme.dims)
             elif eq.eq_type == 'static_equation':
                 try:
-                    check_unit_against(eq.expr, units[var], units)
+                    eq.expr.check_unit_against(units[var], units)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Static equation defining '
                                                   '%s does not use consistent units: %s') % 
