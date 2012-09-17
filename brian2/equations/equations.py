@@ -271,17 +271,6 @@ class Equation(object):
     is_time_dependent = property(lambda self: self.expr.is_time_dependent
                                  if not self.expr is None else False,
                                  doc='Whether this equation is time dependent')
-    
-    # parameters are linear
-    # FIXME: This will result in False if an equation non-linearly depends
-    # on a constant parameter
-    is_linear = property(lambda self: self.expr.is_linear
-                                 if not self.expr is None else True,
-                                 doc='Whether this equation is linear')
-    
-    is_conditionally_linear = property(lambda self: self.expr.check_linearity(self.varname)
-                                       if not self.expr is None else True,
-                                       doc='Whether this equation is conditionally linear')
 
     def resolve(self, internal_variables):
         '''
@@ -392,39 +381,7 @@ class Equations(object):
 
     def __iter__(self):
         return iter(self.equations.iteritems())
-    
-    equations = property(lambda self: self._equations,
-                        doc='A dictionary mapping variable names to equations')
-    equations_ordered = property(lambda self: sorted(self._equations.itervalues(),
-                                                     key=lambda key: key.update_order),
-                                 doc='A list of all equations, sorted '
-                                 'according to the order in which they should '
-                                 'be updated')
-    
-    diff_eq_expressions = property(lambda self: [(varname, eq.expr.frozen()) for 
-                                                 varname, eq in self.equations.iteritems()
-                                                 if eq.eq_type == 'diff_equation'],
-                                  doc='A list of (variable name, expression) '
-                                  'tuples of all differential equations.')
-    
-    eq_expressions = property(lambda self: [(varname, eq.expr.frozen()) for 
-                                            varname, eq in self.equations.iteritems()
-                                            if eq.eq_type in ('static_equation',
-                                                              'diff_equation')],
-                                  doc='A list of (variable name, expression) '
-                                  'tuples of all equations.') 
-    
-    names = property(lambda self: [eq.varname for eq in self.equations_ordered])
-    
-    diff_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
-                                           if eq.eq_type == 'diff_equation'])
-    static_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
-                                           if eq.eq_type == 'static_equation'])
-    eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
-                                           if eq.eq_type in ('diff_equation', 'static_equation')])
-    parameter_names = property(lambda self: [eq.varname for eq in self.equations_ordered
-                                             if eq.eq_type == 'parameter'])
-    
+
     def _is_linear(self, conditionally_linear=False):
         '''
         Whether all equations are linear and only refer to constant parameters.
@@ -474,13 +431,8 @@ class Equations(object):
 
         # No non-linearity found
         return True
-    
-    is_linear = property(_is_linear)
-    
-    is_conditionally_linear = property(lambda self: self._is_linear(conditionally_linear=True),
-                                       doc='Whether all equations are conditionally linear')
 
-    def get_units(self):
+    def _get_units(self):
         '''
         Dictionary of all internal variables (including t, dt, xi) and their
         corresponding units
@@ -489,11 +441,50 @@ class Equations(object):
                       self._equations.iteritems()])
         units.update(UNITS_SPECIAL_VARS)
         return units
+
+    # Properties
     
-    units = property(get_units)
+    equations = property(lambda self: self._equations,
+                        doc='A dictionary mapping variable names to equations')
+    equations_ordered = property(lambda self: sorted(self._equations.itervalues(),
+                                                     key=lambda key: key.update_order),
+                                 doc='A list of all equations, sorted '
+                                 'according to the order in which they should '
+                                 'be updated')
+    
+    diff_eq_expressions = property(lambda self: [(varname, eq.expr.frozen()) for 
+                                                 varname, eq in self.equations.iteritems()
+                                                 if eq.eq_type == 'diff_equation'],
+                                  doc='A list of (variable name, expression) '
+                                  'tuples of all differential equations.')
+    
+    eq_expressions = property(lambda self: [(varname, eq.expr.frozen()) for 
+                                            varname, eq in self.equations.iteritems()
+                                            if eq.eq_type in ('static_equation',
+                                                              'diff_equation')],
+                                  doc='A list of (variable name, expression) '
+                                  'tuples of all equations.') 
+    
+    names = property(lambda self: [eq.varname for eq in self.equations_ordered])
+    
+    diff_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
+                                           if eq.eq_type == 'diff_equation'])
+    static_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
+                                           if eq.eq_type == 'static_equation'])
+    eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
+                                           if eq.eq_type in ('diff_equation', 'static_equation')])
+    parameter_names = property(lambda self: [eq.varname for eq in self.equations_ordered
+                                             if eq.eq_type == 'parameter'])    
+    
+    is_linear = property(_is_linear)
+    
+    is_conditionally_linear = property(lambda self: self._is_linear(conditionally_linear=True),
+                                       doc='Whether all equations are conditionally linear')
+    
+    units = property(_get_units)
     
     variables = property(lambda self: set(self.units.keys()),
-                         doc='Set of all variables')        
+                         doc='Set of all variables')
     
     def _sort_static_equations(self):
         '''
@@ -618,13 +609,3 @@ class Equations(object):
             return 'Equations(...)'
         for eq in self._equations.itervalues():
             p.pretty(eq)
-
-if __name__ == '__main__':
-    from brian2 import *
-    tau = 10 * ms
-    eqs = Equations('''dv/dt = -(v + x)/ tau : volt
-                       dw/dt = -(w + v**2) / tau: volt**2
-                       x = 2 * y : volt
-                       y = 2 * v : volt''')
-    print 'Linear:', eqs.is_linear
-    print 'Conditionally linear:', eqs.is_conditionally_linear

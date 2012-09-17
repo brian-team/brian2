@@ -1,3 +1,9 @@
+'''
+Defines the :class:`CodeString` object, encapsulating a string of code together
+with a namespace. Is used directly for thresholds and resets and is the basis
+for :class:`Equations`.
+'''
+
 import inspect
 from warnings import warn
 
@@ -35,9 +41,8 @@ class CodeString(object):
         Arguments:
 
         ``code``:
-            The code string, may be an expression or a statement.
-            TODO: Allow multi-line/semicolon-separated strings here or put
-            them in separate CodeString objects?
+            The code string, may be an expression or a statement (possibly
+            multi-line).
 
         ``namespace``:
             A mapping (e.g. a dictionary), mapping identifiers (strings) to

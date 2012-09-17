@@ -24,12 +24,22 @@ DESCRIPTION = ZeroOrMore(STATEMENT) + OUTPUT
 #===============================================================================
 # Class for simple definition of explicit state updaters
 #===============================================================================
+
 # reserved standard symbols
 SYMBOLS = {'x' : Symbol('x'),
            't' : Symbol('t'),
            'dt': Symbol('dt'),
            'f' : Function('f')}
+
 class ExplicitStateUpdater(object):
+    '''
+    An object that can be used for defining state updaters via a simple
+    description (see :meth:`__init__` for details). Objects can be passed to
+    the ``method`` argument of the :class:`NeuronGroup` constructor. As other
+    state updater functions the :class:`ExplicitStateUpdater` objects are 
+    callable, returning abstract code when called with an :class:`Equations`
+    object.
+    ''' 
     
     def __init__(self, description):
         '''

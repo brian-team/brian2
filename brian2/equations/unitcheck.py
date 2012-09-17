@@ -5,7 +5,12 @@ from brian2.units.fundamentalunits import (Quantity, Unit, all_registered_units,
 __all__ = ['get_default_unit_namespace', 'get_unit_from_string']
 
 
-def get_default_unit_namespace():    
+def get_default_unit_namespace():
+    '''
+    Returns the namespace that is used by default for looking up units when
+    defining equations. Contains all registered units and everything from
+    ``brian2.units.stdunits`` (ms, mV, nS, etc.).
+    '''    
     namespace = dict([(u.name, u) for u in all_registered_units()])
     namespace.update(stdunits)
     return namespace
