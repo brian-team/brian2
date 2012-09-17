@@ -1,5 +1,4 @@
 import inspect
-from copy import copy
 from warnings import warn
 
 from sympy import sympify, Symbol, Wild, diff
@@ -185,10 +184,6 @@ class CodeString(object):
         
         # The namespace containing resolved references
         self._namespace = None
-        
-        # The dependencies (other internal variables that are used) of this
-        # code string
-        self._dependencies = None
     
     code = property(lambda self: self._code,
                     doc='The code string')
@@ -203,10 +198,7 @@ class CodeString(object):
                            doc='Whether the external identifiers have been resolved')
         
     namespace = property(lambda self: self._namespace,
-                         doc='The namespace resolving external identifiers')
-    
-    dependencies = property(lambda self: self._dependencies,
-                         doc='The internal variables referenced by this code string')    
+                         doc='The namespace resolving external identifiers')    
         
     def resolve(self, internal_variables):
         '''
@@ -230,7 +222,6 @@ class CodeString(object):
         unit_namespace = get_default_unit_namespace()
              
         namespace = {}
-        dependencies = []
         for identifier in self.identifiers:
             # We save tuples of (namespace description, referred object) to
             # give meaningful warnings in case of duplicate definitions
@@ -250,7 +241,6 @@ class CodeString(object):
             
             if identifier in internal_variables:
                 # The identifier is an internal variable
-                dependencies.append(identifier)
                 
                 if len(matches) == 1:
                     warn(('The name "%s" in the code string "%s" refers to an '
@@ -285,7 +275,6 @@ class CodeString(object):
                 namespace[identifier] = matches[0][1]
                 
         self._namespace = namespace
-        self._dependencies = dependencies
 
     def frozen(self):
         '''
@@ -325,74 +314,10 @@ class CodeString(object):
         new_obj = type(self)(new_code, namespace=new_namespace,
                              exhaustive=True)
         new_obj._namespace = new_namespace.copy()
-        new_obj._depdencies = copy(self._dependencies)
         return new_obj
-
-    def sort_dependencies(self, order_dict):
-        '''
-        Sorts the dependencies in the order given by the dictionary
-        ``order_dict``, which should map all variable names to a numeric value
-        used for ordering.
-        '''
-        if not self.is_resolved:
-            raise TypeError('Can only sort the dependencies of resolved '
-                            'CodeString objects.')
-        deps = [(order_dict[dep], dep) for dep in self._dependencies]
-        deps.sort()
-        self._dependencies = [dep[1] for dep in deps]
 
     def __str__(self):
         return self.code
     
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self.code)
-
-class Expression(CodeString):
-    '''
-    Stores an expression, a string that should be possible to evaluate with
-    sympy, providing information about properties like linearity.
-    '''
-    
-    # An expression is stochastic if split_stochastic returns a stochastic part
-    is_stochastic = property(lambda self: not self.split_stochastic()[1] is None,
-                             'Whether the expression is stochastic')
-        
-    def _is_time_dependent(self):
-        '''
-        Whether this expression depends on time (i.e. on the variable "t")
-        '''
-        if not self.is_resolved:
-            raise AttributeError('Can only determine this for resolved '
-                                 'expressions')
-        return 't' in self.dependencies
-    
-    is_time_dependent = property(_is_time_dependent)
-    
-    def _is_linear(self):
-        '''
-        Whether this expression is linear. If it depends on time or uses 
-        external functions, it is always considered non-linear.
-        '''
-        if not self.is_resolved:
-            raise AttributeError('Can only determine this for resolved '
-                                 'expressions')
-            
-        if self.is_time_dependent:
-            print 'time dependent'
-            return False
-        
-#        if any([hasattr(ref, '__call__') for
-#                ref in self.namespace.itervalues()]):
-#            return False
-        
-        # test linearity by checking whether the equation can be rewritten
-        # as "a * x + b" for each internal variable x that this expression
-        # depends on, assuming that all other variables can be considered
-        # constant
-        for var in self.dependencies:
-            if not check_linearity(self.code, var):
-                return False
-        
-        return True 
-
-    is_linear = property(_is_linear)

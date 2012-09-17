@@ -285,10 +285,6 @@ class Equation(object):
                                        if not self.expr is None else True,
                                        doc='Whether this equation is conditionally linear')
 
-    dependencies = property(lambda self: self.expr.dependencies
-                            if not self.expr is None else [],
-                            doc='List of dependencies for this equation')
-
     def resolve(self, internal_variables):
         '''
         Resolve all the variables (see :meth:`CodeString.resolve`),
@@ -504,12 +500,9 @@ class Equations(object):
     def _sort_static_equations(self):
         '''
         Sorts the static equations in a way that resolves their dependencies
-        upon each other. After this method has been run:
-        
-        1. The static equations in ``_equations`` are in the order in which
-           they should be updated
-        2. Each :class:`CodeString`'s ``dependencies`` properties contains
-           the variables referring to static equations in the correct order.
+        upon each other. After this method has been run, the static equations
+        returned by the ``equations_ordered`` property are in the order in which
+        they should be updated
         '''
         
         # Get a dictionary of all the dependencies on other static equations,
@@ -517,7 +510,7 @@ class Equations(object):
         static_deps = {}
         for eq in self._equations.itervalues():
             if eq.eq_type == 'static_equation':
-                static_deps[eq.varname] = [dep for dep in eq.dependencies if
+                static_deps[eq.varname] = [dep for dep in eq.identifiers if
                                            dep in self._equations and
                                            self._equations[dep].eq_type == 'static_equation']
         
@@ -555,16 +548,6 @@ class Equations(object):
                 eq.update_order = len(sorted_eqs)
             elif eq.eq_type == 'parameter':
                 eq.update_order = len(sorted_eqs) + 1
-        
-        # Also sort the dependencies saved in the code string
-        for eq in self._equations.itervalues():
-            if eq.expr is None:
-                continue
-            update_order = lambda var: (self._equations[var].update_order if
-                                        var in self._equations else -1)
-            order_dict = dict([(dep, update_order(dep)) for
-                               dep in eq.dependencies])
-            eq.expr.sort_dependencies(order_dict)
 
     def check_units(self):
         '''
