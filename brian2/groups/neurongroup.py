@@ -22,8 +22,7 @@ class NeuronGroup(object):
             raise ValueError(('model has to be a string or an Equations '
                               'object, is "%s" instead.') % type(model))
         
-        # Check flags and identifiers        
-        model.check_identifiers(('t', 'dt', 'xi')) # not necessary...
+        # Check flags
         model.check_flags({'diff_equation': ('active'),
                            'parameter': ('constant')})
         

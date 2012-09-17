@@ -115,7 +115,7 @@ EQUATION = (PARAMETER | STATIC_EQ | DIFF_EQ).ignore('#' + restOfLine)
 EQUATIONS = ZeroOrMore(EQUATION)
 
 
-def check_identifier(identifier, reserved_identifiers, internal=False):
+def check_identifier_basic(identifier):
     '''
     Check an identifier (usually resulting from an equation string provided by
     the user) for conformity with the rules:
@@ -124,22 +124,11 @@ def check_identifier(identifier, reserved_identifiers, internal=False):
         2. Starts with underscore or character, then mix of alphanumerical
            characters and underscore
         3. Is not a reserved keyword of Python
-        4. Is not an identifier which has a special meaning for equations, 
-           (e.g. "t", "dt", ...)
     
     Arguments:
     
     ``identifier``
         The string that should be checked
-    
-    ``internal``
-        Whether the identifier is defined internally (defaults to ``False``),
-        i.e. not by the user. Internal identifiers are allowed to start with an
-        underscore whereas user-defined identifiers are not.
-    
-    ``reserved_identifiers``
-        A container of strings, containing identifiers not to be used.
-        Defaults to ('t', 'dt', 'xi')
     
     The function raises a ``ValueError`` if the identifier does not conform to
     the above rules.
@@ -154,19 +143,35 @@ def check_identifier(identifier, reserved_identifiers, internal=False):
     # full identifier, if not it is an illegal identifier like "3foo" which only
     # matched on "foo" 
     if len(parse_result) != 1 or parse_result[0][0][0] != identifier:
-        raise ValueError('"%s" is not a valid identifier string.' % identifier)
+        raise ValueError('"%s" is not a valid variable name.' % identifier)
 
     if keyword.iskeyword(identifier):
-        raise ValueError(('"%s" is a Python keyword and cannot be used as an '
-                          'identifier.') % identifier)
+        raise ValueError(('"%s" is a Python keyword and cannot be used as a '
+                          'variable.') % identifier)
     
-    if identifier in reserved_identifiers:
-        raise ValueError(('"%s" has a special meaning in equations and cannot be '
-                         'used as an identifier.') % identifier)
-    
-    if not internal and identifier.startswith('_'):
-        raise ValueError(('Identifier "%s" starts with an underscore, '
-                          'this is only allowed for variables used internally') % identifier)
+    if identifier.startswith('_'):
+        raise ValueError(('Variable "%s" starts with an underscore, '
+                          'this is only allowed for variables used '
+                          'internally') % identifier)
+
+def check_identifier_reserved(identifier):
+    '''
+    Check that identifiers do not use the
+    '''
+    if identifier in ('t', 'dt', 'xi'):
+        raise ValueError(('"%s" has a special meaning in equations and cannot '
+                         ' be used as a variable name.') % identifier)
+
+
+def check_identifier(identifier):
+    '''
+    Performs all the registered checks (via
+    :meth:`Equations.register_identifier_check`) against ``identifier``, each
+    raising a ValueError for illegal identfiers.
+    '''
+    for check_func in Equations.identifier_checks:
+        check_func(identifier)
+
 
 def parse_string_equations(eqns, namespace, exhaustive, level):
     """
@@ -354,7 +359,7 @@ class Equations(object):
                                                   level + 1)
 
         # Do a basic check for the identifiers
-        self.check_identifiers(('t', 'dt', 'xi'))
+        self.check_identifiers()
         
         # Check for special symbol xi (stochastic term)
         uses_xi = None
@@ -381,6 +386,20 @@ class Equations(object):
 
     def __iter__(self):
         return iter(self.equations.iteritems())
+
+    # Class attribute: A set of functions that are used to check identifiers
+    # Functions can be registered with the static method 
+    # `:meth:Equations.register_identifier_check` and will be automatically
+    # used when checking identifiers
+    identifier_checks = set([check_identifier_basic,
+                             check_identifier_reserved])
+    
+    @staticmethod
+    def register_identifier_check(func):
+        if not hasattr(func, '__call__'):
+            raise ValueError('Can only register callables.')
+        
+        Equations.identifier_checks.add(func)
 
     def _is_linear(self, conditionally_linear=False):
         '''
@@ -566,14 +585,14 @@ class Equations(object):
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.eq_type)
 
-    def check_identifiers(self, reserved_identifiers):
+    def check_identifiers(self):
         '''
         Checks the list of identifiers used in this equation against the given
         list of reserved identifiers (also performs some standard checks like
-        not allowing Python keywords, see :func:`check_identifier`).
+        not allowing Python keywords, see :func:`check_identifier_basic`).
         '''
-        for name in self.names:
-            check_identifier(name, reserved_identifiers)
+        for name in self.names:            
+            check_identifier(name)
 
     def check_flags(self, allowed_flags):
         '''
