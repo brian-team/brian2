@@ -1,4 +1,3 @@
-from .codestrings import CodeString
-from .equations import Equations
+from .equations import Equations, CodeString
 
 __all__ = ['CodeString', 'Equations']
