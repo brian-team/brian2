@@ -13,8 +13,8 @@ from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            have_same_dimensions,
                                            get_dimensions,
                                            DimensionMismatchError)
-from brian2.units import second, volt, siemens, kilogram
-from brian2.units.stdunits import ms, mV, kHz
+from brian2.units.allunits import *
+from brian2.units.stdunits import ms, mV, kHz, nS, cm
 
 
 def assert_quantity(q, values, unit):
@@ -270,6 +270,79 @@ def test_inplace_operations():
     assert_raises(DimensionMismatchError, lambda: illegal_pow(1 * volt)) 
     
 
+def test_unitsafe_functions():
+    '''
+    Test the unitsafe functions wrapping their numpy counterparts.
+    '''
+    from brian2 import (sin, sinh, arcsin, arcsinh,
+                        cos, cosh, arccos, arccosh,
+                        tan, tanh, arctan, arctanh,
+                        log, exp)
+    
+    # All functions with their numpy counterparts
+    funcs = [(sin, np.sin), (sinh, np.sinh), (arcsin, np.arcsin), (arcsinh, np.arcsinh),
+             (cos, np.cos), (cosh, np.cosh), (arccos, np.arccos), (arccosh, np.arccosh),
+             (tan, np.tan), (tanh, np.tanh), (arctan, np.arctan), (arctanh, np.arctanh),
+             (log, np.log), (exp, np.exp)]
+    
+    unitless_values = [3 * mV/mV, np.array([1, 2]) * mV/mV,
+                       np.ones((3, 3)) * mV/mV]
+    numpy_values = [3, np.array([1, 2]),
+                       np.ones((3, 3))]
+    unit_values = [3 * mV, np.array([1, 2]) * mV,
+                       np.ones((3, 3)) * mV]
+        
+    for func, np_func in funcs:
+        #make sure these functions raise errors when run on values with dimensions
+        for val in unit_values:
+            assert_raises(DimensionMismatchError, lambda : func(val))
+        
+        # make sure the functions are equivalent to their numpy counterparts
+        # when run on unitless values while ignoring warnings about invalid
+        # values or divisions by zero        
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            
+            for val in unitless_values:
+                assert_equal(func(val), np_func(val))
+
+            for val in numpy_values:
+                assert_equal(func(val), np_func(val))
+
+def test_str_repr():
+    '''
+    Test that str representations do not raise any errors and that repr
+    fullfills eval(repr(x)) == x.
+    '''
+    from numpy import array # necessary for evaluating repr    
+    
+    units_which_should_exist = [metre, meter, kilogram, second, amp, kelvin, mole, candle,
+                                radian, steradian, hertz, newton, pascal, joule, watt,
+                                coulomb, volt, farad, ohm, siemens, weber, tesla, henry,
+                                celsius, lumen, lux, becquerel, gray, sievert, katal,
+                                gram, gramme]
+    
+    # scaled versions of all these units should exist (we just check farad as an example)
+    some_scaled_units = [Yfarad, Zfarad, Efarad, Pfarad, Tfarad, Gfarad, Mfarad, kfarad,
+                         hfarad, dafarad, dfarad, cfarad, mfarad, ufarad, nfarad, pfarad,
+                         ffarad, afarad, zfarad, yfarad]
+    
+    # some powered units
+    powered_units = [cmetre2, Yfarad3]
+    
+    # Combined units
+    complex_units = [(kgram * metre2)/(amp * second3),
+                     5 * (kgram * metre2)/(amp * second3),
+                     metre * second**-1, 10 * metre * second**-1,
+                     array([1, 2, 3]) * kmetre / second,
+                     np.ones(3) * nS / cm**2]
+        
+    for u in itertools.chain(units_which_should_exist, some_scaled_units,
+                              powered_units, complex_units):
+        assert(len(str(u)) > 0)
+        assert_equal(eval(repr(u)), u)
+
+
 # Functions that should not change units
 def test_numpy_functions_same_dimensions():
     values = [3, np.array([1, 2]), np.ones((3, 3))]
@@ -385,6 +458,8 @@ if __name__ == '__main__':
     test_addition_subtraction()
     test_binary_operations()
     test_inplace_operations()
+    test_unitsafe_functions()
+    test_str_repr()
     test_numpy_functions_same_dimensions()
     test_numpy_functions_dimensionless()
     test_numpy_functions_change_dimensions()
