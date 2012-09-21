@@ -329,7 +329,7 @@ _siprefixes = {"y": 1e-24, "z": 1e-21, "a": 1e-18, "f": 1e-15, "p": 1e-12,
                "P": 1e15, "E": 1e18, "Z": 1e21, "Y": 1e24}
 
 
-class _Dimension(object):
+class Dimension(object):
     '''Stores the indices of the 7 basic SI unit dimension (length, mass, etc.)
     
     Provides a subset of arithmetic operations appropriate to dimensions:
@@ -353,7 +353,7 @@ class _Dimension(object):
     
     def __init__(self, dims):
         '''
-        Initializes a new :class:`_Dimension` object. This should never be
+        Initializes a new :class:`Dimension` object. This should never be
         done directly, use :func:`get_or_create_dimension` instead.
         '''
         self._dims = dims
@@ -453,12 +453,12 @@ class _Dimension(object):
     def __setstate__(self, state):
         self._dims = state
 
-DIMENSIONLESS = _Dimension((0, 0, 0, 0, 0, 0, 0))
+DIMENSIONLESS = Dimension((0, 0, 0, 0, 0, 0, 0))
 _dimensions = {(0, 0, 0, 0, 0, 0, 0): DIMENSIONLESS}
 
 
 def get_or_create_dimension(*args, **kwds):
-    """Get a _Dimension object with a vector or keywords. This takes care of
+    """Get a Dimension object with a vector or keywords. This takes care of
     only creating new objects if they were not created before and otherwise
     returning a reference to an existing object. This allows to compare
     dimensions very efficiently using ``is``.
@@ -501,11 +501,11 @@ def get_or_create_dimension(*args, **kwds):
 
     dims = tuple(dims)
     
-    # check whether this _Dimension object has already been created
+    # check whether this Dimension object has already been created
     if dims in _dimensions:
         return _dimensions[dims]
     else:
-        new_dim = _Dimension(dims)
+        new_dim = Dimension(dims)
         _dimensions[dims] = new_dim
         return new_dim
 
@@ -619,7 +619,7 @@ def quantity_with_dimensions(floatval, dims):
     Create a new :class:`Quantity` object with the given units. Calls
     :func:`get_or_create_dimensions` with the ``dims`` argument to make sure
     that unpickling (which calls this function) does not accidentally create
-    new :class:`_Dimension` objects which should instead refer to existing
+    new :class:`Dimension` objects which should instead refer to existing
     ones.
     '''
     return Quantity.with_dimensions(floatval,
@@ -843,20 +843,23 @@ class Quantity(np.ndarray):
                Quantity.with_dimensions(value,dimlist) or
                Quantity.with_dimensions(value,keywords...)
                
-        -- value is a float or other scalar type
-        -- dim is a dimension object
-        -- dimlist, keywords (see the Dimension constructor)
+        ``value``
+            is a float or other scalar type
+        ``dim``
+            is a dimension object
+        ``dimlist``
+            keywords (see the Dimension constructor)
         
-        e.g.
+        e.g.::
         
-        x = Quantity.with_dimensions(2,Dimension(length=1))
-        x = Quantity.with_dimensions(2,length=1)
-        x = 2 * metre
+            x = Quantity.with_dimensions(2,Dimension(length=1))
+            x = Quantity.with_dimensions(2,length=1)
+            x = 2 * metre
         
         all define the same object.
         """
         x = Quantity(value)
-        if len(args) and isinstance(args[0], _Dimension):
+        if len(args) and isinstance(args[0], Dimension):
             x.set_dimensions(args[0])
         else:
             x.set_dimensions(get_or_create_dimension(*args, **keywords))
@@ -1318,10 +1321,6 @@ class Unit(Quantity):
     :class:`Quantity` objects, so for efficiency if you do not need the
     extra information that a :class:`Unit` object carries around, write
     ``1*second`` in preference to ``second``.
-    '''
-
-    # original documentation
-    """A physical unit
     
     Basically, a unit is just a quantity with given dimensions, e.g.
     mvolt = 0.001 with the dimensions of voltage. The units module
@@ -1332,10 +1331,10 @@ class Unit(Quantity):
     to define it so as to generate a nice string representation of it.
     See Representation below.
     
-    Typical usage:
+    Typical usage::
     
-    x = 3 * mvolt # returns a quantity
-    print x.in_unit(uvolt) # returns 3000 uV 
+        x = 3 * mvolt # returns a quantity
+        print x.in_unit(uvolt) # returns 3000 uV 
     
     Standard units:
     
@@ -1352,8 +1351,9 @@ class Unit(Quantity):
     And additionally, it includes all scaled versions of these
     units using the following prefixes
 
+     ======     ======  ==============
      Factor     Name    Prefix
-     -----      ----    ------
+     ======     ======  ==============
      10^24      yotta   Y
      10^21      zetta   Z
      10^18      exa     E
@@ -1375,7 +1375,8 @@ class Unit(Quantity):
      10^-18     atto    a
      10^-21     zepto   z
      10^-24     yocto   y
-    
+     ======     ======  ==============
+     
     So for example nohm, ytesla, etc. are all defined.
     
     Defining your own:
@@ -1415,7 +1416,7 @@ class Unit(Quantity):
     example the name for pfarad/mmetre**2 is "pF/mm^2", etc. If you
     don't like the automatically generated name, use the 
     set_display_name(name) method.
-    """
+    '''
     __slots__ = ["dim", "scale", "scalefactor", "dispname", "name",
                  "iscompound"]
     
@@ -1459,11 +1460,17 @@ class Unit(Quantity):
     def create(dim, name="", dispname="", scalefactor="", **keywords):
         """Creates a new named unit
         
-        dim -- the dimensions of the unit
-        name -- the full name of the unit, e.g. volt
-        dispname -- the display name, e.g. V
-        scalefactor -- scaling factor, e.g. m for mvolt
-        keywords -- the scaling for each SI dimension, e.g. length="m", mass="-1", etc.
+        ``dim``
+            the dimensions of the unit
+        ``name``
+            the full name of the unit, e.g. volt
+        ``dispname``
+            the display name, e.g. V
+        ``scalefactor``
+            scaling factor, e.g. m for mvolt
+        ``keywords``
+            the scaling for each SI dimension, e.g. length="m", mass="-1", etc.
+
         """
         scale = [ "", "", "", "", "", "", "" ]
         for k in keywords:
@@ -1482,8 +1489,11 @@ class Unit(Quantity):
     def create_scaled_unit(baseunit, scalefactor):
         """Create a scaled unit from a base unit
         
-        baseunit -- e.g. volt, amp
-        scalefactor -- e.g. "m" for mvolt, mamp
+        ``baseunit``
+            e.g. volt, amp
+        ``scalefactor``
+            e.g. "m" for mvolt, mamp
+            
         """
         u = Unit(np.asarray(baseunit) * _siprefixes[scalefactor],
                  dim=baseunit.dim, scale=baseunit.scale)
@@ -1684,11 +1694,12 @@ class UnitRegistry(object):
 def register_new_unit(u):
     """Register a new unit for automatic displaying of quantities
     
-    Example usage:
+    Example usage::
     
-    2.0*farad/metre**2 = 2.0 m^-4 kg^-1 s^4 A^2
-    register_new_unit(pfarad / mmetre**2)
-    2.0*farad/metre**2 = 2000000.0 pF/mm^2
+        2.0*farad/metre**2 = 2.0 m^-4 kg^-1 s^4 A^2
+        register_new_unit(pfarad / mmetre**2)
+        2.0*farad/metre**2 = 2000000.0 pF/mm^2
+
     """
     UserUnitRegister.add(u)
 

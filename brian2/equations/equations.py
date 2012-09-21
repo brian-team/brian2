@@ -427,10 +427,6 @@ class CodeString(object):
         namespace.
         
         The namespace has to be resolved using the :meth:`resolve` method first.
-        
-        When called on an object of a subclass, returns an instance of the
-        subclass (otherwise an :class:`Expression` would be converted to
-        a :class:`CodeString` object after freezing).  
         '''
         
         if not self.is_resolved:
