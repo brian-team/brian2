@@ -3,6 +3,7 @@ All Brian objects should derive from :class:`BrianObject`.
 '''
 
 from weakref import ref
+import clocks
 
 __all__ = ['BrianObject', 'get_instances', 'InstanceTracker']
 
@@ -74,20 +75,28 @@ class BrianObject(InstanceTracker):
     derived from this class. Each such object should define a method
     :meth:`~BrianObject.update` which is called each time step. Initialised with
     arguments ``when``, which sets the ``when`` attribute and defines at which
-    stage in the run loop the object is called.
+    stage in the run loop the object is called, and ``clock`` the update
+    :class:`Clock` (set to ``None`` to use the default clock).
     
     The list of all instances of a particular class and its derived classes
-    can be returned using the :func:`get_instances` function.
-    
-    .. attribute:: when
-    
-        The ID string determining when the object should be updated in
-        :meth:`Network.run`.
+    can be returned using the :func:`get_instances` function.    
     '''
-    def __init__(self, when='start'):
+    
+    when = 'start'
+    'The ID string determining when the object should be updated in :meth:`Network.run`.'
+    
+    clock = None
+    'The :class:`Clock` determining when the object should be updated.'
+    
+    def __init__(self, when='start', clock=None):
         if not isinstance(when, str):
             raise TypeError("when attribute should be a string, was "+repr(when))
+        if clock is None:
+            clock = clocks.defaultclock
+        if not isinstance(clock, clock.Clock):
+            raise TypeError("clock should have type Clock, was "+clock.__class__.__name__)
         self.when = when
+        self.clock = clock
         
     def update(self):
         '''
