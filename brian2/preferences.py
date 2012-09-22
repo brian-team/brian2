@@ -4,6 +4,7 @@ object ``brian_prefs``.
 '''
 
 from .utils.stringtools import deindent, indent
+from .units import have_same_dimensions, Quantity, DimensionMismatchError
 
 __all__ = ['brian_prefs']
 
@@ -21,6 +22,12 @@ class DefaultValidator(object):
                             '{self.value.__class__.__name__}, value {valstr} '
                             'has class {value.__class__.__name__}'.format(
                                    self=self, value=value, valstr=valstr))
+        if isinstance(self.value, Quantity):
+            if not have_same_dimensions(self.value, value):
+                raise DimensionMismatchError('Parameter {self.name}, current '
+                                             'value = {self.value}, tried to '
+                                             'change to {value}'.format(
+                                                self=self, value=value))
 
 
 class BrianGlobalPreferences(object):
@@ -62,7 +69,9 @@ class BrianGlobalPreferences(object):
             An optional function ``validator(value)`` that checks that ``value``
             is an appropriate value for this preference, and raises an error
             if not. By default, it will check that the class of the value is
-            derived from the class of the default value.
+            derived from the class of the default value, and if it is a
+            :class:`Quantity` it will check that the units match the default
+            value.
         '''
         if name in self._values:
             raise KeyError("Preference %s already defined.")
@@ -85,7 +94,7 @@ class BrianGlobalPreferences(object):
         return s
     
     documentation = property(fget=get_documentation,
-                             doc='Get a restructuredtext format documentation'
+                             doc='Get a restructuredtext format documentation '
                                  'string for the defined parameters')
 
             

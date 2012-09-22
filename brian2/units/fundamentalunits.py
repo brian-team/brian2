@@ -1,37 +1,3 @@
-# ----------------------------------------------------------------------------------
-# Copyright ENS, INRIA, CNRS
-# Contributors: Romain Brette (brette@di.ens.fr) and Dan Goodman (goodman@di.ens.fr)
-# 
-# Brian is a computer program whose purpose is to simulate models
-# of biological neural networks.
-# 
-# This software is governed by the CeCILL license under French law and
-# abiding by the rules of distribution of free software.  You can  use, 
-# modify and/ or redistribute the software under the terms of the CeCILL
-# license as circulated by CEA, CNRS and INRIA at the following URL
-# "http://www.cecill.info". 
-# 
-# As a counterpart to the access to the source code and  rights to copy,
-# modify and redistribute granted by the license, users are provided only
-# with a limited warranty  and the software's author,  the holder of the
-# economic rights,  and the successive licensors  have only  limited
-# liability. 
-# 
-# In this respect, the user's attention is drawn to the risks associated
-# with loading,  using,  modifying and/or developing or reproducing the
-# software by the user in light of its specific status of free software,
-# that may mean  that it is complicated to manipulate,  and  that  also
-# therefore means  that it is reserved for developers  and  experienced
-# professionals having in-depth computer knowledge. Users are therefore
-# encouraged to load and test the software's suitability as regards their
-# requirements in conditions enabling the security of their systems and/or 
-# data to be ensured and,  more generally, to use and operate it in the 
-# same conditions as regards security. 
-# 
-# The fact that you are presently reading this means that you have had
-# knowledge of the CeCILL license and that you accept its terms.
-# ----------------------------------------------------------------------------------
-# 
 """Defines physical units and quantities
 
 The standard way to use this class is as follows:
@@ -218,7 +184,7 @@ def wrap_function_dimensionless(func):
         fail_for_dimension_mismatch(x, error_message=func.__name__)
         return func(np.asarray(x), *args, **kwds)
     f.__name__ = func.__name__
-    f.__doc__ = func.__doc__
+#    f.__doc__ = func.__doc__
     if hasattr(func, '__dict__'):
         f.__dict__.update(func.__dict__)
     return f
@@ -236,9 +202,9 @@ def wrap_function_keep_dimensions(func):
     ``sum`` to work as expected with additional ``axis`` etc. arguments.
     '''
     def f(x, *args, **kwds):
-            return Quantity(func(np.asarray(x), *args, **kwds), dim=x.dim)
+        return Quantity(func(np.asarray(x), *args, **kwds), dim=x.dim)
     f.__name__ = func.__name__
-    f.__doc__ = func.__doc__
+#    f.__doc__ = func.__doc__
     if hasattr(func, '__dict__'):
         f.__dict__.update(func.__dict__)
     return f
@@ -257,11 +223,11 @@ def wrap_function_change_dimensions(func, change_dim_func):
     other arguments are ignored/untouched.
     '''
     def f(x, *args, **kwds):
-            ar = np.asarray(x)
-            return Quantity(func(ar, *args, **kwds),
-                            dim=change_dim_func(ar, x.dim))
+        ar = np.asarray(x)
+        return Quantity(func(ar, *args, **kwds),
+                        dim=change_dim_func(ar, x.dim))
     f.__name__ = func.__name__
-    f.__doc__ = func.__doc__
+#    f.__doc__ = func.__doc__
     if hasattr(func, '__dict__'):
         f.__dict__.update(func.__dict__)
     return f
@@ -280,7 +246,7 @@ def wrap_function_remove_dimensions(func):
     def f(x, *args, **kwds):
             return func(np.asarray(x), *args, **kwds)
     f.__name__ = func.__name__
-    f.__doc__ = func.__doc__
+#    f.__doc__ = func.__doc__
     if hasattr(func, '__dict__'):
         f.__dict__.update(func.__dict__)
     return f        
@@ -296,7 +262,7 @@ def wrap_function_no_check_warning(func):
             warn('%s does not check the units of its arguments.' % func.__name__)
             return func(*args, **kwds)
     f.__name__ = func.__name__
-    f.__doc__ = func.__doc__
+#    f.__doc__ = func.__doc__
     if hasattr(func, '__dict__'):
         f.__dict__.update(func.__dict__)
     return f
@@ -1249,12 +1215,12 @@ class Quantity(np.ndarray):
     def fill(self, values):
         fail_for_dimension_mismatch(self, values, 'fill')
         super(Quantity, self).fill(values)
-    fill.__doc__ = np.ndarray.fill.__doc__
+#    fill.__doc__ = np.ndarray.fill.__doc__
 
     def put(self, indices, values, *args, **kwds):
         fail_for_dimension_mismatch(self, values, 'fill')
         super(Quantity, self).put(indices, values, *args, **kwds)
-    put.__doc__ = np.ndarray.put.__doc__
+#    put.__doc__ = np.ndarray.put.__doc__
 
     def clip(self, a_min, a_max, *args, **kwds):
         fail_for_dimension_mismatch(self, a_min, 'clip')
@@ -1262,17 +1228,17 @@ class Quantity(np.ndarray):
         return super(Quantity, self).clip(np.asarray(a_min),
                                           np.asarray(a_max),
                                           *args, **kwds)
-    clip.__doc__ = np.ndarray.clip.__doc__
+#    clip.__doc__ = np.ndarray.clip.__doc__
 
     def dot(self, other, **kwds):
         return Quantity.with_dimensions(np.array(self).dot(np.array(other)),
                                         self.dim * get_dimensions(other))
-    dot.__doc__ = np.ndarray.dot.__doc__
+#    dot.__doc__ = np.ndarray.dot.__doc__
 
     def searchsorted(self, v, **kwds):
         fail_for_dimension_mismatch(self, v, 'searchsorted')
         return super(Quantity, self).searchsorted(np.asarray(v))
-    searchsorted.__doc__ = np.ndarray.searchsorted.__doc__
+#    searchsorted.__doc__ = np.ndarray.searchsorted.__doc__
 
     def prod(self, *args, **kwds):
         prod_result = super(Quantity, self).prod(*args, **kwds)
@@ -1290,19 +1256,19 @@ class Quantity(np.ndarray):
         if dim_exponent.size > 1:
             dim_exponent = dim_exponent[0]
         return Quantity.with_dimensions(prod_result, self.dim ** dim_exponent)
-    prod.__doc__ = np.ndarray.prod.__doc__        
+#    prod.__doc__ = np.ndarray.prod.__doc__        
 
     def cumprod(self, *args, **kwds):
         if not self.is_dimensionless():
             raise ValueError('cumprod over array elements on quantities '
                              'with dimensions is not possible.')
         return Quantity(np.asarray(self).cumprod(*args, **kwds))
-    cumprod.__doc__ = np.ndarray.cumprod.__doc__
+#    cumprod.__doc__ = np.ndarray.cumprod.__doc__
 
     def setasflat(self, arr, **kwds):
         fail_for_dimension_mismatch(self, arr, 'setasflat')
         super(Quantity, self).setasflat(np.asarray(arr))
-    setasflat.__doc__ = np.ndarray.setasflat.__doc__
+#    setasflat.__doc__ = np.ndarray.setasflat.__doc__
 
 class Unit(Quantity):
     '''
@@ -1444,7 +1410,7 @@ class Unit(Quantity):
     def __init__(self, value, dim=None, scale=None):
         """Initialises a unit
         """
-        super(Unit, self).__init__(value)
+        #super(Unit, self).__init__(value)
         self.dim = dim
         if scale is None:
             scale = ("", "", "", "", "", "", "")
