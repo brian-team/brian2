@@ -184,7 +184,7 @@ def wrap_function_dimensionless(func):
         fail_for_dimension_mismatch(x, error_message=func.__name__)
         return func(np.asarray(x), *args, **kwds)
     f.__name__ = func.__name__
-#    f.__doc__ = func.__doc__
+    f.__doc__ = func.__doc__
     if hasattr(func, '__dict__'):
         f.__dict__.update(func.__dict__)
     return f
@@ -204,7 +204,7 @@ def wrap_function_keep_dimensions(func):
     def f(x, *args, **kwds):
         return Quantity(func(np.asarray(x), *args, **kwds), dim=x.dim)
     f.__name__ = func.__name__
-#    f.__doc__ = func.__doc__
+    f.__doc__ = func.__doc__
     if hasattr(func, '__dict__'):
         f.__dict__.update(func.__dict__)
     return f
@@ -227,7 +227,7 @@ def wrap_function_change_dimensions(func, change_dim_func):
         return Quantity(func(ar, *args, **kwds),
                         dim=change_dim_func(ar, x.dim))
     f.__name__ = func.__name__
-#    f.__doc__ = func.__doc__
+    f.__doc__ = func.__doc__
     if hasattr(func, '__dict__'):
         f.__dict__.update(func.__dict__)
     return f
@@ -246,7 +246,7 @@ def wrap_function_remove_dimensions(func):
     def f(x, *args, **kwds):
             return func(np.asarray(x), *args, **kwds)
     f.__name__ = func.__name__
-#    f.__doc__ = func.__doc__
+    f.__doc__ = func.__doc__
     if hasattr(func, '__dict__'):
         f.__dict__.update(func.__dict__)
     return f        
@@ -262,7 +262,7 @@ def wrap_function_no_check_warning(func):
             warn('%s does not check the units of its arguments.' % func.__name__)
             return func(*args, **kwds)
     f.__name__ = func.__name__
-#    f.__doc__ = func.__doc__
+    f.__doc__ = func.__doc__
     if hasattr(func, '__dict__'):
         f.__dict__.update(func.__dict__)
     return f
@@ -610,18 +610,18 @@ class Quantity(np.ndarray):
     The class also defines default and other representations
     of a number for printing purposes.
     
-    Typical usage:
+    Typical usage::
     
-    I = 3 * amp # I is a Quantity object
-    R = 2 * ohm # same for R
-    print I * R # displays "6 V"
-    print (I * R).in_unit(mvolt) # displays "6000 mV"
-    print (I * R) / mvolt # displays "6000"
-    x = I + R # raises DimensionMismatchError
+        I = 3 * amp # I is a Quantity object
+        R = 2 * ohm # same for R
+        print I * R # displays "6 V"
+        print (I * R).in_unit(mvolt) # displays "6000 mV"
+        print (I * R) / mvolt # displays "6000"
+        x = I + R # raises DimensionMismatchError
     
-    Is = np.array([1, 2, 3]) * amp #Is is a Quantity object
-    print Is * R # displays "[ 2.  4.  6.] V"
-    print np.asarray(Is * R) # displays "[2. 4. 6.]" (no units)
+        Is = np.array([1, 2, 3]) * amp #Is is a Quantity object
+        print Is * R # displays "[ 2.  4.  6.] V"
+        print np.asarray(Is * R) # displays "[2. 4. 6.]" (no units)
     
     See the documentation on the Unit class for more details
     about the available unit names like mvolt, etc.
@@ -1215,12 +1215,12 @@ class Quantity(np.ndarray):
     def fill(self, values):
         fail_for_dimension_mismatch(self, values, 'fill')
         super(Quantity, self).fill(values)
-#    fill.__doc__ = np.ndarray.fill.__doc__
+    fill.__doc__ = np.ndarray.fill.__doc__
 
     def put(self, indices, values, *args, **kwds):
         fail_for_dimension_mismatch(self, values, 'fill')
         super(Quantity, self).put(indices, values, *args, **kwds)
-#    put.__doc__ = np.ndarray.put.__doc__
+    put.__doc__ = np.ndarray.put.__doc__
 
     def clip(self, a_min, a_max, *args, **kwds):
         fail_for_dimension_mismatch(self, a_min, 'clip')
@@ -1228,17 +1228,17 @@ class Quantity(np.ndarray):
         return super(Quantity, self).clip(np.asarray(a_min),
                                           np.asarray(a_max),
                                           *args, **kwds)
-#    clip.__doc__ = np.ndarray.clip.__doc__
+    clip.__doc__ = np.ndarray.clip.__doc__
 
     def dot(self, other, **kwds):
         return Quantity.with_dimensions(np.array(self).dot(np.array(other)),
                                         self.dim * get_dimensions(other))
-#    dot.__doc__ = np.ndarray.dot.__doc__
+    dot.__doc__ = np.ndarray.dot.__doc__
 
     def searchsorted(self, v, **kwds):
         fail_for_dimension_mismatch(self, v, 'searchsorted')
         return super(Quantity, self).searchsorted(np.asarray(v))
-#    searchsorted.__doc__ = np.ndarray.searchsorted.__doc__
+    searchsorted.__doc__ = np.ndarray.searchsorted.__doc__
 
     def prod(self, *args, **kwds):
         prod_result = super(Quantity, self).prod(*args, **kwds)
@@ -1256,19 +1256,19 @@ class Quantity(np.ndarray):
         if dim_exponent.size > 1:
             dim_exponent = dim_exponent[0]
         return Quantity.with_dimensions(prod_result, self.dim ** dim_exponent)
-#    prod.__doc__ = np.ndarray.prod.__doc__        
+    prod.__doc__ = np.ndarray.prod.__doc__        
 
     def cumprod(self, *args, **kwds):
         if not self.is_dimensionless():
             raise ValueError('cumprod over array elements on quantities '
                              'with dimensions is not possible.')
         return Quantity(np.asarray(self).cumprod(*args, **kwds))
-#    cumprod.__doc__ = np.ndarray.cumprod.__doc__
+    cumprod.__doc__ = np.ndarray.cumprod.__doc__
 
     def setasflat(self, arr, **kwds):
         fail_for_dimension_mismatch(self, arr, 'setasflat')
         super(Quantity, self).setasflat(np.asarray(arr))
-#    setasflat.__doc__ = np.ndarray.setasflat.__doc__
+    setasflat.__doc__ = np.ndarray.setasflat.__doc__
 
 class Unit(Quantity):
     '''
