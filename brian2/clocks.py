@@ -4,30 +4,45 @@ Clocks for the simulator.
 
 __docformat__ = "restructuredtext en"
 
-__all__ = ['Clock', 'defaultclock',
-           ]
+__all__ = ['Clock', 'defaultclock']
 
-from .units import second, msecond, check_units
+from brian2.units import second, msecond, check_units
 from time import time
 from numpy import ceil
 
 
 class Clock(object):
     '''
+    Clock(dt=0.1*ms, order=0)
+    
     An object that holds the simulation time and the time step.
     
-    Initialisation arguments:
-    
-    ``dt``
+    Parameters
+    ----------
+    dt: Quantity, optional
         The time step of the simulation, will be set to ``0.1*ms`` if
         unspecified.
-    ``order``
+    order: int, optional
         If two clocks have the same time, the order of the clock is used to
         resolve which clock is processed first, lower orders first.
-    
-    The times returned by this clock are always off the form ``i*dt``
-    for integer ``i``.
-    
+
+    Attributes
+    ----------
+    t
+    dt
+    t_end
+    t_
+    dt_
+    i
+        The time step of the simulation as an integer.
+    i_end
+        The time step the simulation will end as an integer.
+    order
+        In which order two clocks should be processed when they have the same time.
+        Lower orders will be processed first.
+
+    Notes
+    -----
     In order to make sure that certain operations happen in the correct
     sequence, you can use the ``order`` attribute, clocks with a lower order
     will be processed first if the time is the same. The condition for two
@@ -36,17 +51,10 @@ class Clock(object):
     point values. The value of ``epsilon`` is ``1e-14``.
     '''
     
-    i = 0
-    'The time step of the simulation as an integer'
-    
-    i_end = 0
-    'The end time step of the simulation as an integer'
-    
     @check_units(dt=second, t=second)
     def __init__(self, dt=None, order=0):
         self._dt_spec = dt
         self.i = 0
-        'The time step of the simulation as an integer'
         self.i_end = 0
         self.order = order
 
@@ -101,7 +109,7 @@ class Clock(object):
     dt = property(fget=lambda self: self.dt_*second,
                   fset=_set_dt,
                   doc='''The time step of the simulation in seconds
-                         Returns a :class:`Quantity`, and can only
+                         Returns a Quantity, and can only
                          be set once. Defaults to ``0.1*ms``.''',
                   )
     
@@ -120,7 +128,9 @@ class Clock(object):
     @check_units(duration=second)
     def set_duration(self, duration):
         '''
-        Set the time until the current simulation ends.
+        set_duration(self, duration)
+        
+        Set the time until the current simulation ends. Some more text for test.
         '''
         self.i_end = self.i+int(float(duration)/self.dt_)
 

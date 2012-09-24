@@ -50,7 +50,7 @@ from .allunits import (
 from .unitsafefunctions import (log, exp, sin, cos, tan, arcsin, arccos, arctan,
                                 sinh, cosh, tanh, arcsinh, arccosh, arctanh,
                                 diagonal, ravel, trace, dot)
-from .fundamentalunits import (Quantity, DimensionMismatchError,
+from .fundamentalunits import (Unit, Quantity, DimensionMismatchError,
                                check_units, have_same_dimensions)
                     
 ___all__ = ['pamp', 'namp', 'uamp', 'mamp', 'amp',

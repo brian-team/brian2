@@ -647,14 +647,15 @@ class Quantity(np.ndarray):
     -- with_dimensions(dim)
     -- with_dimensions(keywords...)
     
-    Methods:
+    Methods
+    -------
     
-    -- get_dimensions() return Dimension
-    -- set_dimensions(dim)
-    -- is_dimensionless() return boolean
-    -- has_same_dimensions(other) return boolean
-    -- in_unit(unit) return string
-    -- in_best_unit() return string
+    get_dimensions
+    set_dimensions
+    is_dimensionless
+    has_same_dimensions
+    in_unit
+    in_best_unit
     """
     __slots__ = ["dim"]
     
@@ -1382,6 +1383,15 @@ class Unit(Quantity):
     example the name for pfarad/mmetre**2 is "pF/mm^2", etc. If you
     don't like the automatically generated name, use the 
     set_display_name(name) method.
+    
+    Methods
+    -------
+    
+    create
+    create_scaled_unit
+    set_name
+    set_display_name
+    
     '''
     __slots__ = ["dim", "scale", "scalefactor", "dispname", "name",
                  "iscompound"]
