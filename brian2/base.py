@@ -71,18 +71,33 @@ class BrianObject(InstanceTracker):
     '''
     All Brian objects derive from this class, defines magic tracking and update.
     
-    Each Brian object that is called as part of :meth:`Network.run` should be
-    derived from this class. Each such object should define a method
-    :meth:`~BrianObject.update` which is called each time step. Initialised with
-    arguments ``when``, which sets the ``when`` attribute and defines at which
-    stage in the run loop the object is called, and ``clock`` the update
-    :class:`Clock` (set to ``None`` to use the default clock).
+    Parameters
+    ----------
+    when : str, optional
+        Defines when the object is updated in the main :meth:`Network.run`
+        loop.
+    order : (int, float), optional
+        Objects with the same ``when`` value will be updated in order
+        of increasing values of ``order``, or if both are equal then the order
+        is unspecified (but will always be the same on each iteration).
+    clock : Clock, optional
+        The update clock determining when the object will be updated, or
+        use the default clock if unspecified.
+
+    Notes
+    -----
+    
+    See the documentation for :meth:`Network` for an explanation of which
+    objects get updated in which order.
     
     The list of all instances of a particular class and its derived classes
-    can be returned using the :func:`get_instances` function.    
+    can be returned using the :func:`get_instances` function.
+    
+    Brian objects deriving from this class should always define an
+    ``update()`` method, that gets called by :meth:`Network.run`.    
     '''
     
-    def __init__(self, when='start', clock=None):
+    def __init__(self, when='start', order=0, clock=None):
         if not isinstance(when, str):
             raise TypeError("when attribute should be a string, was "+repr(when))
         if clock is None:
@@ -93,11 +108,15 @@ class BrianObject(InstanceTracker):
         #: The ID string determining when the object should be updated in :meth:`Network.run`.   
         self.when = when
         
-        #: The Clock determining when the object should be updated.'
+        #: The order in which objects with the same clock and ``when`` should be updated
+        self.order = order
+        
+        #: The Clock determining when the object should be updated.
         self.clock = clock
         
     def update(self):
         '''
         All BrianObjects should define an update() method which is called every time step.
         '''
-        raise NotImplementedError
+        raise NotImplementedError("Classes deriving from BrianObject must "
+                                  "define an update() method.")
