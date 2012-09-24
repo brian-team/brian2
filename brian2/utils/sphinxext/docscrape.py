@@ -6,8 +6,9 @@ import inspect
 import textwrap
 import re
 import pydoc
-from StringIO import StringIO
 from warnings import warn
+
+from sphinx.pycode import ModuleAnalyzer
 
 class Reader(object):
     """A line-based string reader.
@@ -480,26 +481,33 @@ class ClassDoc(NumpyDocString):
 
         NumpyDocString.__init__(self, doc)
 
-        if config.get('show_class_members', True):
-            if not self['Methods']:
-                self['Methods'] = [(name, '', '')
-                                   for name in sorted(self.methods)]
-            if not self['Attributes']:
-                self['Attributes'] = [(name, '', '')
-                                      for name in sorted(self.properties)]
+        if not self['Methods']:
+            self['Methods'] = [(name, '', '')
+                               for name in sorted(self.methods)]
+        if not self['Attributes']:
+            self['Attributes'] = [(name, '', '')
+                                  for name in sorted(self.properties)]
 
     @property
     def methods(self):
         if self._cls is None:
             return []
-        return [name for name,func in inspect.getmembers(self._cls)
-                if ((not name.startswith('_')
-                     or name in self.extra_public_methods)
-                    and callable(func))]
+        methods = [name for name, func in inspect.getmembers(self._cls)
+                  if ((not name.startswith('_')
+                       or name in self.extra_public_methods)
+                      and callable(func))]
+        return methods
 
     @property
     def properties(self):
         if self._cls is None:
             return []
-        return [name for name,func in inspect.getmembers(self._cls)
-                if not name.startswith('_') and func is None]
+        analyzer = ModuleAnalyzer.for_module(self._cls.__module__)
+        instance_members = [attr_name for (class_name, attr_name) in
+                            analyzer.find_attr_docs().keys()
+                            if class_name == self._cls.__name__]
+        class_members = [name for name, func in inspect.getmembers(self._cls)
+                         if not name.startswith('_') and (func is None or
+                                                          inspect.isdatadescriptor(func))]
+
+        return instance_members + class_members

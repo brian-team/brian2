@@ -1,9 +1,9 @@
 import re, inspect, textwrap, pydoc
+import traceback
 import sphinx
-from docscrape import NumpyDocString, FunctionDoc, ClassDoc
+from sphinx.pycode import ModuleAnalyzer
 
-class DummyClass(object):
-    pass
+from .docscrape import NumpyDocString, FunctionDoc, ClassDoc
 
 class SphinxDocString(NumpyDocString):
     def __init__(self, docstring, config={}):
@@ -40,12 +40,13 @@ class SphinxDocString(NumpyDocString):
         if self[name]:
             out += self._str_field_list(name)
             out += ['']
-            for param,param_type,desc in self[name]:
+            for param, param_type, desc in self[name]:
                 out += self._str_indent(['**%s** : %s' % (param.strip(),
                                                           param_type)])
                 out += ['']
-                out += self._str_indent(desc,8)
+                out += self._str_indent(desc, 8)
                 out += ['']
+
         return out
 
     @property
@@ -68,7 +69,7 @@ class SphinxDocString(NumpyDocString):
 
             if prefix:
                 prefix = '%s.' % prefix
-            elif self._obj:
+            elif self._obj and hasattr(self._obj, '__module__'):
                 prefix = '%s.%s.' % (self._obj.__module__, self._obj.__name__)
             else:
                 prefix = ''
@@ -76,13 +77,22 @@ class SphinxDocString(NumpyDocString):
             autosum = []
             for param, _, desc in self[name]:
                 param = param.strip()
-                if self._obj and not hasattr(self._obj, param):
-                    # Fake the attribute docstring
-                    setattr(self._obj, param, DummyClass())
-                    getattr(self._obj, param).__doc__ = '\n'.join(desc)
-                    # Fake a __get__ method -- this makes sphinx think this
-                    # is an attribute
-                    getattr(self._obj, param).__get__ = lambda : None
+                if self._obj:
+                    # Fake the attribute as a class property, but do not touch
+                    # methods
+                    if (hasattr(self._obj, '__module__') and not 
+                        (hasattr(self._obj, param) and callable(getattr(self._obj, param)))):
+
+                        # Do not override directly provided docstrings
+                        if not len(''.join(desc).strip()):
+                            analyzer = ModuleAnalyzer.for_module(self._obj.__module__)
+                            desc = analyzer.find_attr_docs().get((self._obj.__name__, param), '')
+                            
+                        # Only fake a property if we got a docstring
+                        if len(''.join(desc).strip()):
+                            setattr(self._obj, param, property(lambda self: None,
+                                                               doc='\n'.join(desc)))
+
                 autosum += ["   ~%s%s" % (prefix, param)]
 
             if autosum:

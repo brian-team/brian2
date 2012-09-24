@@ -24,14 +24,14 @@ if sphinx.__version__ < '1.0.1':
 
 import os, re, pydoc
 from docscrape_sphinx import get_doc_object, SphinxDocString
-from sphinx.util.compat import Directive
+
 import inspect
 
 import brian2
 
-# FIXME: Just an example -- but how can we robustly extract all names, the 
-# brian2 main package does not define __all__
-BRIAN_CLASS_NAMES = ['NeuronGroup', 'Synapses', 'Clock', 'Quantity']
+BRIAN_CLASS_NAMES = [key for key, value in brian2.__dict__.iteritems()
+                     if inspect.isclass(value) and
+                     value.__module__.startswith('brian2.')]
 
 def mangle_docstrings(app, what, name, obj, options, lines,
                       reference_offset=[0]):
@@ -72,14 +72,13 @@ def mangle_docstrings(app, what, name, obj, options, lines,
 
     for class_name in BRIAN_CLASS_NAMES:
         for i, line in enumerate(lines):
-            
             # Quick and dirty implementation that matches class names and
             # ``classname``. Note that we have to do an in-place modification
             # of the list
             lines[i] = re.sub(r'``%s``' % class_name,
                               ':class:`%s`' % class_name, lines[i])
             lines[i] = re.sub(r'(\s|[^.`])(%s)(\s|[^.`])' % class_name,
-                  lambda m: m.group(1) + ':class:`' + m.group(2) + '` ' + m.group(3),
+                  lambda m: m.group(1) + ':class:`' + m.group(2) + r'`\ ' + m.group(3),
                   lines[i])
 
 

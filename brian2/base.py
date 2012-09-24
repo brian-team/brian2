@@ -49,8 +49,8 @@ class InstanceTracker(object):
     __instancefollower__ = InstanceFollower() # static property of all objects of class derived from InstanceTracker
     _track_instances = True
 
-    def __new__(typ, *args, **kw):
-        obj = object.__new__(typ)
+    def __new__(cls, *args, **kw):
+        obj = object.__new__(cls)
         if obj._track_instances:
             obj.__instancefollower__.add(obj)
         return obj
@@ -82,12 +82,6 @@ class BrianObject(InstanceTracker):
     can be returned using the :func:`get_instances` function.    
     '''
     
-    when = 'start'
-    'The ID string determining when the object should be updated in :meth:`Network.run`.'
-    
-    clock = None
-    'The :class:`Clock` determining when the object should be updated.'
-    
     def __init__(self, when='start', clock=None):
         if not isinstance(when, str):
             raise TypeError("when attribute should be a string, was "+repr(when))
@@ -95,7 +89,11 @@ class BrianObject(InstanceTracker):
             clock = clocks.defaultclock
         if not isinstance(clock, clock.Clock):
             raise TypeError("clock should have type Clock, was "+clock.__class__.__name__)
+     
+        #: The ID string determining when the object should be updated in :meth:`Network.run`.   
         self.when = when
+        
+        #: The Clock determining when the object should be updated.'
         self.clock = clock
         
     def update(self):

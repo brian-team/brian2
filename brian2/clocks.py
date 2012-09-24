@@ -19,27 +19,12 @@ class Clock(object):
     
     Parameters
     ----------
-    dt: Quantity, optional
+    dt : Quantity, optional
         The time step of the simulation, will be set to ``0.1*ms`` if
         unspecified.
-    order: int, optional
+    order : int, optional
         If two clocks have the same time, the order of the clock is used to
         resolve which clock is processed first, lower orders first.
-
-    Attributes
-    ----------
-    t
-    dt
-    t_end
-    t_
-    dt_
-    i
-        The time step of the simulation as an integer.
-    i_end
-        The time step the simulation will end as an integer.
-    order
-        In which order two clocks should be processed when they have the same time.
-        Lower orders will be processed first.
 
     Notes
     -----
@@ -54,8 +39,11 @@ class Clock(object):
     @check_units(dt=second, t=second)
     def __init__(self, dt=None, order=0):
         self._dt_spec = dt
-        self.i = 0
-        self.i_end = 0
+        self.i = 0  #: The time step of the simulation as an integer.
+        self.i_end = 0  #: The time step the simulation will end as an integer
+
+        #: In which order two clocks should be processed when they have the
+        #: same time. Lower orders will be processed first.
         self.order = order
 
     def reinit(self):

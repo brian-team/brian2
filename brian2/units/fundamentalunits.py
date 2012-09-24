@@ -597,7 +597,7 @@ class Quantity(np.ndarray):
     
     In most cases, it is not necessary to create a :class:`Quantity` object
     by hand, instead use the constant unit names ``second``, ``kilogram``,
-    etc. 
+    etc.
 
     This is the main user class for the units module, although
     in most cases it is not necessary to initialise a new
@@ -647,6 +647,11 @@ class Quantity(np.ndarray):
     -- with_dimensions(dim)
     -- with_dimensions(keywords...)
     
+    Attributes
+    ----------
+    dim : Dimensions
+        The dimensions of this quantity.
+
     Methods
     -------
     
@@ -1384,6 +1389,15 @@ class Unit(Quantity):
     don't like the automatically generated name, use the 
     set_display_name(name) method.
     
+    Attributes
+    ----------
+    dim
+    scale
+    scalefactor
+    dispname
+    name
+    iscompound
+    
     Methods
     -------
     
@@ -1420,17 +1434,16 @@ class Unit(Quantity):
     def __init__(self, value, dim=None, scale=None):
         """Initialises a unit
         """
-        #super(Unit, self).__init__(value)
-        self.dim = dim
+        self.dim = dim  #: The Dimensions of this unit
         if scale is None:
             scale = ("", "", "", "", "", "", "")
         if not len(scale) == 7:
             raise ValueError('scale needs seven entries')
-        self.scale = scale
-        self.scalefactor = ""
-        self.name = ""
-        self.dispname = ""
-        self.iscompound = False
+        self.scale = scale  #: The scale for this unit (a 7-tuple)
+        self.scalefactor = ""  #: The scalefactor for this unit, e.g. 'm' for milli
+        self.name = ""  #: The full name of this unit.
+        self.dispname = ""  #: The display name of this unit.
+        self.iscompound = False  #: Whether this unit is a combination of other units.
 
     @staticmethod
     def create(dim, name="", dispname="", scalefactor="", **keywords):
