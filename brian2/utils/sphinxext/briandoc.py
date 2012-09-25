@@ -27,11 +27,6 @@ from docscrape_sphinx import get_doc_object, SphinxDocString
 
 import inspect
 
-import brian2
-
-BRIAN_CLASS_NAMES = [key for key, value in brian2.__dict__.iteritems()
-                     if inspect.isclass(value) and
-                     value.__module__.startswith('brian2.')]
 
 def mangle_docstrings(app, what, name, obj, options, lines,
                       reference_offset=[0]):
@@ -43,7 +38,8 @@ def mangle_docstrings(app, what, name, obj, options, lines,
                               re.I|re.S)
         lines[:] = title_re.sub(u'', u"\n".join(lines)).split(u"\n")
     else:
-        doc = get_doc_object(obj, what, u"\n".join(lines), config=cfg)
+        doc = get_doc_object(obj, what, u"\n".join(lines), name=name,
+                             config=cfg)
         lines[:] = unicode(doc).split(u"\n")
 
     # replace reference numbers so that there are no duplicates
@@ -69,25 +65,6 @@ def mangle_docstrings(app, what, name, obj, options, lines,
                                             u'.. [%s]' % new_r)
 
     reference_offset[0] += len(references)
-
-    for class_name in BRIAN_CLASS_NAMES:
-        for i, line in enumerate(lines):
-            # Quick and dirty implementation that matches class names and
-            # ``classname``. Note that we have to do an in-place modification
-            # of the list
-            
-            # skip things like '.. automethod::'
-            if line.strip().startswith('..'):
-                continue
-            lines[i] = re.sub(r'``%s``' % class_name,
-                              ':class:`%s`' % class_name, lines[i])
-            lines[i] = re.sub(r'(\s|^|[\(|{\[])(%s)(\s|$|[,\)\}\]]|\. )' % class_name,
-                  lambda m: m.group(1) + ':class:`' + m.group(2) + r'`' + m.group(3),
-                  lines[i])
-            # Replace plurals
-            lines[i] = re.sub(r'(\s|^|[\(|{\[])(%s)s(\s|$|[,\)\}\]]|\. )' % class_name,
-                  lambda m: m.group(1) + ':class:`' + m.group(2) + r'`\ s' + m.group(3),
-                  lines[i])            
 
 
 def mangle_signature(app, what, name, obj, options, sig, retann):

@@ -62,16 +62,19 @@ class SphinxDocString(NumpyDocString):
 
         """
         out = []
+
         if self[name]:
             out += ['.. rubric:: %s' % name, '']
             prefix = getattr(self, '_name', '')
 
             if prefix:
                 prefix = '%s.' % prefix
-            elif self._obj and hasattr(self._obj, '__module__'):                
-                prefix = '%s.%s.' % (self._obj.__module__, self._obj.__name__)
+            elif hasattr(self, 'name') and self.name:
+                # This is a class: Use its name to make sure Sphinx can find
+                # the methods and attributes
+                prefix = '%s.' % (self.name)
             else:
-                prefix = ''                
+                prefix = ''
 
             autosum = []
             for param, _, desc in self[name]:
@@ -199,7 +202,8 @@ class SphinxFunctionDoc(SphinxDocString, FunctionDoc):
         FunctionDoc.__init__(self, obj, doc=doc, config=config)
 
 class SphinxClassDoc(SphinxDocString, ClassDoc):
-    def __init__(self, obj, doc=None, func_doc=None, config={}):
+    def __init__(self, obj, doc=None, func_doc=None, name=None, config={}):
+        self.name = name
         ClassDoc.__init__(self, obj, doc=doc, func_doc=None, config=config)
 
 class SphinxObjDoc(SphinxDocString):
@@ -207,7 +211,7 @@ class SphinxObjDoc(SphinxDocString):
         self._f = obj
         SphinxDocString.__init__(self, doc, config=config)
 
-def get_doc_object(obj, what=None, doc=None, config={}):
+def get_doc_object(obj, what=None, doc=None, name=None, config={}):
     if what is None:
         if inspect.isclass(obj):
             what = 'class'
@@ -219,7 +223,7 @@ def get_doc_object(obj, what=None, doc=None, config={}):
             what = 'object'
     if what == 'class':
         return SphinxClassDoc(obj, func_doc=SphinxFunctionDoc, doc=doc,
-                              config=config)
+                              name=name, config=config)
     elif what in ('function', 'method'):
         return SphinxFunctionDoc(obj, doc=doc, config=config)
     else:
