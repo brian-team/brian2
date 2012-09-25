@@ -1,5 +1,4 @@
 import re, inspect, textwrap, pydoc
-import traceback
 import sphinx
 from sphinx.pycode import ModuleAnalyzer
 
@@ -69,10 +68,10 @@ class SphinxDocString(NumpyDocString):
 
             if prefix:
                 prefix = '%s.' % prefix
-            elif self._obj and hasattr(self._obj, '__module__'):
+            elif self._obj and hasattr(self._obj, '__module__'):                
                 prefix = '%s.%s.' % (self._obj.__module__, self._obj.__name__)
             else:
-                prefix = ''
+                prefix = ''                
 
             autosum = []
             for param, _, desc in self[name]:
@@ -93,7 +92,10 @@ class SphinxDocString(NumpyDocString):
                             setattr(self._obj, param, property(lambda self: None,
                                                                doc='\n'.join(desc)))
 
-                autosum += ["   ~%s%s" % (prefix, param)]
+                if len(prefix):
+                    autosum += ["   ~%s%s" % (prefix, param)]
+                else:
+                    autosum += ["   %s" % param]
 
             if autosum:
                 out += ['.. autosummary::', '']
