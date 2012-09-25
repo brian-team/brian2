@@ -77,9 +77,13 @@ def mangle_docstrings(app, what, name, obj, options, lines,
             # of the list
             lines[i] = re.sub(r'``%s``' % class_name,
                               ':class:`%s`' % class_name, lines[i])
-            lines[i] = re.sub(r'(\s|[^.`])(%s)(\s|[^.`])' % class_name,
-                  lambda m: m.group(1) + ':class:`' + m.group(2) + r'`\ ' + m.group(3),
+            lines[i] = re.sub(r'(\s|^|[\(|{\[])(%s)(\s|$|[,.\)\}\]])' % class_name,
+                  lambda m: m.group(1) + ':class:`' + m.group(2) + r'`' + m.group(3),
                   lines[i])
+            # Replace plurals
+            lines[i] = re.sub(r'(\s|^|[\(|{\[])(%s)s(\s|$|[,.\)\}\]])' % class_name,
+                  lambda m: m.group(1) + ':class:`' + m.group(2) + r'`\ s' + m.group(3),
+                  lines[i])            
 
 
 def mangle_signature(app, what, name, obj, options, sig, retann):

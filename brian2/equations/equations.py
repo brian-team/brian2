@@ -5,6 +5,10 @@ import inspect
 import keyword
 import re
 import string
+from warnings import warn
+
+from sympy import Symbol, sympify
+from sympy.core.sympify import SympifyError
 
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
@@ -85,20 +89,22 @@ EQUATIONS = ZeroOrMore(EQUATION)
 def check_identifier_basic(identifier):
     '''
     Check an identifier (usually resulting from an equation string provided by
-    the user) for conformity with the rules:
+    the user) for conformity with the rules. The rules are:
     
         1. Only ASCII characters
         2. Starts with underscore or character, then mix of alphanumerical
            characters and underscore
         3. Is not a reserved keyword of Python
     
-    Arguments:
+    Parameters
+    ----------    
+    identifier : str
+        The identifier that should be checked
     
-    ``identifier``
-        The string that should be checked
-    
-    The function raises a ``ValueError`` if the identifier does not conform to
-    the above rules.
+    Raises
+    ------
+    ValueError    
+        If the identifier does not conform to the above rules.
     '''
     
     # Check whether the identifier is parsed correctly -- this is always the
@@ -121,9 +127,21 @@ def check_identifier_basic(identifier):
                           'this is only allowed for variables used '
                           'internally') % identifier)
 
+
 def check_identifier_reserved(identifier):
     '''
-    Check that identifiers do not use the
+    Check that an identifier is not using a reserved special variable name. The
+    special variables are: 't', 'dt', and 'xi'.
+    
+    Parameters
+    ----------
+    identifier: str
+        The identifier that should be checked
+    
+    Raises
+    ------
+    ValueError
+        If the identifier is a special variable name.
     '''
     if identifier in SPECIAL_VARS:
         raise ValueError(('"%s" has a special meaning in equations and cannot '
@@ -132,9 +150,18 @@ def check_identifier_reserved(identifier):
 
 def check_identifier(identifier):
     '''
-    Performs all the registered checks (via
-    :meth:`Equations.register_identifier_check`) against ``identifier``, each
-    raising a ValueError for illegal identfiers.
+    Perform all the registered checks. Checks can be registered via
+    :func:`Equations.register_identifier_check`.
+    
+    Parameters
+    ----------
+    identifier : str
+        The identifier that should be checked
+    
+    Raises
+    ------
+    ValueError
+        If any of the registered checks fails.
     '''
     for check_func in Equations.identifier_checks:
         check_func(identifier)
@@ -142,20 +169,27 @@ def check_identifier(identifier):
 
 def parse_string_equations(eqns, namespace, exhaustive, level):
     """
-    Parses a string defining equations and returns a dictionary, mapping
-    variable names to :class:`Equations._Equation` objects.
+    Parse a string defining equations.
     
-    Arguments:
-    ``namespace``
+    Parameters
+    ----------
+    eqns : str
+        The (possibly multi-line) string defining the equations. See the
+        documentation of the Equations class for details.
+    namespace : dict
         An explictly given namespace (dictionary mapping names to objects)
-    ``exhaustive``
+    exhaustive : bool
         Whether the namespace in the namespace argument specifies the
         namespace completely (``True``) or should be used in addition to
         the locals/globals dictionaries (``False``)
-    ``level``
+    level : int
         The level in the stack (an integer >=0) where to look for locals
         and globals
     
+    Returns
+    -------
+    equations : dict
+        A dictionary mapping variable names to Equation objects
     """
     equations = {}
     
@@ -192,30 +226,6 @@ def parse_string_equations(eqns, namespace, exhaustive, level):
     
     return equations            
 
-def resolve_equations(equations, variables):
-    '''
-    Resolve all the equations in the ``equations`` dictionary (see
-    :meth:`CodeString.resolve`), treating the list of ``variables`` as internal
-    variables.
-    '''
-    for eq in equations.itervalues():
-        eq.resolve(variables)
-    
-    namespace = {}
-    # Make absolutely sure there are no conflicts and nothing weird is
-    # going on
-    for eq in equations.itervalues():
-        if eq.expr is None:
-            # Parameters do not have/need a namespace
-            continue
-        for key, value in eq.expr._namespace.iteritems():
-            if key in namespace:
-                # Should refer to exactly the same object
-                assert value is namespace[key] 
-            else:
-                namespace[key] = value
-    
-    return namespace
 
 class ResolutionConflictWarning(UserWarning):
     '''
@@ -228,35 +238,33 @@ class ResolutionConflictWarning(UserWarning):
 class CodeString(object):
     '''
     A class for representing strings and an attached namespace.
+    
+    Parameters
+    ----------
+    code : str
+        The code string, may be an expression or a statement (possibly
+        multi-line).
+    namespace : dict, optional
+        A dictionary mapping identifiers (strings) to objects. Will be used as
+        a namespace for the `code`.
+    exhaustive : bool, optional
+        If set to ``True``, no local/global namespace will be saved, meaning
+        that the given namespace has to be exhaustive (except for units).
+        Defaults to ``False``, meaning that the given `namespace` augments the
+        local and global namespace (taking precedence over them in case of
+        conflicting definitions).
+    level : int, optional
+        The level in the stack (an integer >=0) where to look for locals
+        and globals    
+    
+    Notes
+    -----
+    If `exhaustive` is not ``False`` (meaning that the namespace for the string
+    is explicitly specified), the CodeString object saves a copy of the current
+    local and global namespace for later use in resolving identifiers.
     '''
 
     def __init__(self, code, namespace=None, exhaustive=False, level=0):
-        '''
-        Creates a new :class:`CodeString`.
-
-        If ``exhaustive`` is not ``False`` (meaning that the namespace for the
-        string is explicitly specified), the :class:`CodeString` object saves
-        the current local and global namespace for later use in resolving
-        identifiers.
-
-        Arguments:
-
-        ``code``:
-            The code string, may be an expression or a statement (possibly
-            multi-line).
-
-        ``namespace``:
-            A mapping (e.g. a dictionary), mapping identifiers (strings) to
-            objects. Will be used as a namespace for the ``code``.
-
-        ``exhaustive``:
-            If set to ``True``, no local/global namespace will be saved,
-            meaning that the given namespace has to be exhaustive (except for
-            units). Defaults to ``False``, meaning that the given namespace
-            augments the local and global namespace (taking precedence over
-            them in case of conflicting definitions).
-
-        '''
         self._code = code
         
         # extract identifiers from the code
@@ -281,41 +289,48 @@ class CodeString(object):
         self._namespace = None
     
     code = property(lambda self: self._code,
-                    doc='The code string')
+                    doc='The code string.')
 
     exhaustive = property(lambda self: self._exhaustive,
-                          doc='Whether the namespace is exhaustively defined')
+                          doc='Whether the namespace is exhaustively defined.')
         
     identifiers = property(lambda self: self._identifiers,
-                           doc='Set of identifiers in the code string')
+                           doc='Set of identifiers in the code string.')
     
     is_resolved = property(lambda self: not self._namespace is None,
-                           doc='Whether the external identifiers have been resolved')
+                           doc='Whether the external identifiers have been resolved.')
         
     namespace = property(lambda self: self._namespace,
-                         doc='The namespace resolving external identifiers')    
+                         doc='The namespace resolving external identifiers.')
         
     def resolve(self, internal_variables):
         '''
-        Determines the namespace for the given codestring, containing
-        resolved references to externally defined variables and functions.
+        Determine the namespace, containing resolved references to externally
+        defined variables and functions.
 
-        The resulting namespace includes units but does not include anything
-        present in the ``internal variables`` collection. All referenced
-        internal variables are included in the CodeString's ``dependency``
-        attribute. 
+        Parameters
+        ----------
+        internal_variables : list of str
+            A list of variables that should not be resolved.
         
-        Raises an error if a variable/function cannot be resolved and is
-        not contained in ``internal_variables``. Raises a
-        :class:``ResolutionConflictWarning`` if there are conflicting
-        resolutions.
+        Notes
+        -----
+        The resulting namespace includes units but does not include anything
+        present in the `internal variables` collection.
+        
+        Raises
+        ------
+        ValueError
+            If a variable/function cannot be resolved and is not contained in
+            `internal_variables`.
+        ResolutionConflictWarning
+            If identifiers cannot be resolved unambiguously.
         '''
 
         if self.is_resolved:
             raise TypeError('Variables have already been resolved before.')
 
         unit_namespace = get_default_unit_namespace()
-        special_variables = ('t', 'dt', 'xi')
         
         namespace = {}
         for identifier in self.identifiers:
@@ -387,10 +402,16 @@ class CodeString(object):
 
     def frozen(self):
         '''
-        Returns a new :class:`CodeString` object, where all external variables
-        are replaced by their floating point values and removed from the
-        namespace.
+        Replace all external variables by their floating point values.
         
+        Returns
+        -------
+        frozen : CodeString
+            A new CodeString object, where all external variables are replaced
+            by their floating point values and removed from the namespace.
+        
+        Notes
+        -----
         The namespace has to be resolved using the :meth:`resolve` method first.
         '''
         
@@ -423,9 +444,23 @@ class CodeString(object):
 
     def check_linearity(self, variable):
         '''
-        Returns whether the expression  is linear with respect to ``variable``,
-        assuming that all other variables are constants. The expression should
-        not contain any functions.
+        Return whether the expression is linear.
+        
+        Parameters
+        ----------
+        variable : str
+            The variable name against which linearity is checked.
+        
+        Returns
+        -------
+        linear : bool
+            Whether the expression  is linear with respect to `variable`,
+            assuming that all other variables are constants.
+        
+        Raises
+        ------
+        ValueError
+            If the expression cannot be parsed with sympy
         '''
         try:
             sympy_expr = sympify(self.code)
@@ -456,8 +491,22 @@ class CodeString(object):
     
     def eval_expr(self, internal_variables):
         '''
-        Evaluates the expression ``expr`` in its namespace, augmented by the
-        values for the ``internal_variables`` (as a dictionary).
+        Evaluate the expression in its namespace. The namespace is augmented by
+        the values given in `internal_variables`.
+        
+        Parameters
+        ----------
+        internal_variables : dict
+            A dictionary mapping variable names to their values.
+        
+        Returns
+        -------
+        expr
+            The evaluated expression.
+
+        Notes
+        -----
+        The namespace has to be resolved using the :meth:`resolve` method first.        
         '''
     
         if not self.is_resolved:
@@ -470,26 +519,47 @@ class CodeString(object):
     
     def get_expr_dimensions(self, variable_units):
         '''
-        Returns the dimensions of the expression by evaluating it in its
-        namespace, replacing all internal variables with their units. The units
-        have to be given in the mapping ``variable_units``. 
+        Return the dimensions of the expression by evaluating it in its
+        namespace, replacing all internal variables with their units.
         
+        Parameters
+        ----------
+        variable_units : dict
+            A dictionary mapping variable names to their units.
+        
+        Notes
+        -----
         The namespace has to be resolved using the :meth:`resolve` method first.
         
-        May raise an DimensionMismatchError during the evaluation.
+        Raises
+        ------
+        DimensionMismatchError
+            If the expression uses inconsistent units.
         '''
         return get_dimensions(self.eval_expr(variable_units))
     
     
     def check_unit_against(self, unit, variable_units):
         '''
-        Checks whether the dimensions of the expression match the expected
-        dimension of ``unit``. The units of all internal variables have to be
-        given in the mapping ``variable_units``. 
+        Check whether the dimensions of the expression match the expected
+        dimensions.
         
+        Parameters
+        ----------
+        unit : Unit or 1
+            The expected unit (or 1 for dimensionless).
+        variable_units : dict
+            A dictionary mapping internal variable names to their units.                 
+        
+        Notes
+        -----
         The namespace has to be resolved using the :meth:`resolve` method first.
         
-        May raise an DimensionMismatchError during the evaluation.
+        Raises
+        ------
+        DimensionMismatchError
+            If the expression uses inconsistent units or the resulting unit does
+            not match the expected `unit`.
         '''
         expr_dimensions = self.get_expr_dimensions(variable_units)
         expected_dimensions = get_dimensions(unit)
@@ -500,15 +570,21 @@ class CodeString(object):
     
     def split_stochastic(self):
         '''
-        Splits the expression into a tuple of two :class:`CodeString` objects
-        f and g, assuming an expression of the form ``f + g * xi``, where
-        ``xi`` is the symbol for the random variable.
+        Split the expression into a stochastic and non-stochastic part.
         
-        If no ``xi`` symbol is present in the code string, a tuple
-        ``(self, None)`` will be returned with the unchanged
-        :class:`CodeString` object.
+        Splits the expression into a tuple of two CodeString objects f and g,
+        assuming an expression of the form ``f + g * xi``, where ``xi`` is the
+        symbol for the random variable.
+        
+        Returns
+        -------
+        (f, g) : (CodeString, CodeString)
+            A tuple of CodeString objects, the first one containing the
+            non-stochastic and the second one containing the stochastic part. If no
+            ``xi`` symbol is present in the code string, a tuple ``(self, None)``
+            will be returned with the unchanged CodeString object.
         '''
-        s_expr = sympify(self.code)
+        s_expr = sympify(self.code).expand()
         xi = Symbol('xi')
         if not xi in s_expr:
             return (self, None)
@@ -537,12 +613,37 @@ class CodeString(object):
 class Equation(object):
     '''
     Class for internal use, encapsulates a single equation or parameter.
+    
+    Parameters
+    ----------
+    eq_type : {'parameter', 'diff_equation', 'static_equation'}
+        The type of the equation.
+    varname : str
+        The variable that is defined by this equation.
+    expr : str
+        The expression defining the variable.
+    unit : Unit
+        The unit of the variable
+    flags: list of str
+        A list of flags that give additional information about this equation.
+        What flags are possible depends on the type of the equation and the
+        context.
+    namespace : dict
+        The namespace for this equation (see CodeString for more details).
+    exhaustive : bool
+        Whether the given namespace is exhaustive (see CodeString for more
+        details).
+    level : int
+        The level in the stack where to look for the local/global namespace
+        (see CodeString for more details).
+    
+    Notes
+    -----    
+    This class should never be used directly, it is only useful inside of the
+    Equations class.
     '''
     def __init__(self, eq_type, varname, expr, unit, flags,
                  namespace, exhaustive, level):
-        '''
-        Create a new :class:`_Equation` object.
-        '''
         self.eq_type = eq_type
         self.varname = varname
         if eq_type != 'parameter':
@@ -563,8 +664,7 @@ class Equation(object):
 
     def resolve(self, internal_variables):
         '''
-        Resolve all the variables (see :meth:`CodeString.resolve`),
-        treating the list ``internal_variables`` as internal variables.
+        Resolve all the variables. See :meth:`CodeString.resolve`.
         '''
         if not self.expr is None:
             self.expr.resolve(internal_variables)        
@@ -600,45 +700,36 @@ class Equation(object):
         return s
 
 class Equations(object):
-    """Container that stores equations from which models can be created.
-    
-    Initialised as::
-    
-        Equations(eqs[, namespace=None][, exhaustive=False][, level=0])
-    
-    with arguments:
-    
-    ``eqs``
-        A multiline string of equations (see below)
-    ``namespace=None``
-        An explictly given namespace (dictionary mapping names to objects)
-    ``exhaustive=False``
-        Whether the namespace in the namespace argument specifies the
-        namespace completely (``True``) or should be used in addition to
-        the locals/globals dictionaries (``False``)
-    ``level=0``
-        The level in the stack (an integer >=0) where to look for locals
-        and globals 
-           
-    **String equations**
+    """
+    Container that stores equations from which models can be created.
     
     String equations can be of any of the following forms:
     
-    (1) ``dx/dt = f : unit (flags)`` (differential equation)
-    (2) ``x = f : unit (flags)`` (equation)
-    (3) ``x : unit (flags)`` (parameter)
+    1. ``dx/dt = f : unit (flags)`` (differential equation)
+    2. ``x = f : unit (flags)`` (equation)
+    3. ``x : unit (flags)`` (parameter)
+
+    String equations can span several lines and contain Python-style comments
+    starting with ``#``    
     
-    Equations can span several line and contain Python-style comments starting
-    with ``#``
+    Parameters
+    ----------
+    eqs : str
+        A multiline string of equations (see above).
+    namespace : dict, optional
+        An explictly given namespace (dictionary mapping names to objects)
+    exhaustive : bool, optional
+        Whether the namespace in the namespace argument specifies the
+        namespace completely (``True``, the default) or should be used in
+        addition to the locals/globals dictionaries (``False``)
+    level : int, optional
+        The level in the stack (an integer >=0) where to look for locals
+        and globals 
+    
     
     """
 
-    def __init__(self, eqns, namespace=None, exhaustive=False, level=0):
-        '''
-        Constructs a new equations object from the multiline string ``eqns``,
-        see :class:`Equations` for more details.
-        '''
-                
+    def __init__(self, eqns, namespace=None, exhaustive=False, level=0):               
         self._equations = parse_string_equations(eqns, namespace, exhaustive,
                                                   level + 1)
 
@@ -663,7 +754,7 @@ class Equations(object):
         
         # Build the namespaces, resolve all external variables and rearrange
         # static equations
-        self._namespace = resolve_equations(self._equations, self.variables)
+        self._namespace = self.resolve()
         
         # Check the units for consistency
         self.check_units()
@@ -671,15 +762,26 @@ class Equations(object):
     def __iter__(self):
         return iter(self.equations.iteritems())
 
-    # Class attribute: A set of functions that are used to check identifiers
-    # Functions can be registered with the static method 
-    # `:meth:Equations.register_identifier_check` and will be automatically
-    # used when checking identifiers
+    #: A set of functions that are used to check identifiers (class attribute).
+    #: Functions can be registered with the static method
+    #: `:meth:Equations.register_identifier_check` and will be automatically
+    #: used when checking identifiers
     identifier_checks = set([check_identifier_basic,
                              check_identifier_reserved])
     
     @staticmethod
     def register_identifier_check(func):
+        '''
+        Register a function for checking identifiers.
+        
+        Parameters
+        ----------
+        func : callable
+            The function has to receive a single argument, the name of the
+            identifier to check, and raise a ValueError if the identifier
+            violates any rule.
+
+        ''' 
         if not hasattr(func, '__call__'):
             raise ValueError('Can only register callables.')
         
@@ -687,10 +789,16 @@ class Equations(object):
 
     def _get_substituted_expressions(self):
         '''
-        Returns a list of ``(varname, expr)`` tuples, containing all
-        differential equations (``expr`` is a :class:`CodeString` object)
-        with all the static equation variables substituted with the respective
-        expressions.
+        Return a list of ``(varname, expr)`` tuples, containing all
+        differential equations with all the static equation variables
+        substituted with the respective expressions.
+        
+        Returns
+        -------
+        expr_tuples : list of (str, CodeString)
+            A list of ``(varname, expr)`` tuples, where ``expr`` is a CodeString
+            object with all static equation variables substituted with the
+            respective expression.
         '''
         sub_exprs = []
         substitutions = {}        
@@ -753,7 +861,7 @@ class Equations(object):
     def _get_units(self):
         '''
         Dictionary of all internal variables (including t, dt, xi) and their
-        corresponding units
+        corresponding units.
         '''
         units = dict([(var, eq.unit) for var, eq in
                       self._equations.iteritems()])
@@ -785,16 +893,21 @@ class Equations(object):
     
     substituted_expressions = property(_get_substituted_expressions)
     
-    names = property(lambda self: [eq.varname for eq in self.equations_ordered])
+    names = property(lambda self: [eq.varname for eq in self.equations_ordered],
+                     doc='All variable names.')
     
     diff_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
-                                           if eq.eq_type == 'diff_equation'])
+                                           if eq.eq_type == 'diff_equation'],
+                             doc='All differential equation names.')
     static_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
-                                           if eq.eq_type == 'static_equation'])
+                                           if eq.eq_type == 'static_equation'],
+                               doc='All static equation names.')
     eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
-                                           if eq.eq_type in ('diff_equation', 'static_equation')])
+                                           if eq.eq_type in ('diff_equation', 'static_equation')],
+                        doc='All (static and differential) equation names.')
     parameter_names = property(lambda self: [eq.varname for eq in self.equations_ordered
-                                             if eq.eq_type == 'parameter'])    
+                                             if eq.eq_type == 'parameter'],
+                               doc='All parameter names.')    
     
     is_linear = property(_is_linear)
     
@@ -858,10 +971,43 @@ class Equations(object):
             elif eq.eq_type == 'parameter':
                 eq.update_order = len(sorted_eqs) + 1
 
+def resolve(self):
+    '''
+    Resolve all external identifiers in the equations.
+    
+    Returns
+    -------
+    namespace : dict
+        A dictionary mapping all external identifiers to the objects they
+        refer to.
+    '''
+    for eq in self._equations.itervalues():
+        eq.resolve(self.variables)
+    
+    namespace = {}
+    # Make absolutely sure there are no conflicts and nothing weird is
+    # going on
+    for eq in self._equations.itervalues():
+        if eq.expr is None:
+            # Parameters do not have/need a namespace
+            continue
+        for key, value in eq.expr._namespace.iteritems():
+            if key in namespace:
+                # Should refer to exactly the same object
+                assert value is namespace[key] 
+            else:
+                namespace[key] = value
+    
+    return namespace
+
     def check_units(self):
         '''
-        Check all the units for consistency and raise a 
-        :class:`DimensionMismatchError` in case of errors.
+        Check all the units for consistency.
+        
+        Raises
+        ------
+        DimensionMismatchError
+            In case of any inconsistencies.
         '''
         units = self.units
         for var, eq in self._equations.iteritems():
@@ -888,21 +1034,32 @@ class Equations(object):
 
     def check_identifiers(self):
         '''
-        Checks the list of identifiers used in this equation against the given
-        list of reserved identifiers (also performs some standard checks like
-        not allowing Python keywords, see :func:`check_identifier_basic`).
+        Check the list of identifiers used in this equation. Calls
+        :func:`check_identifier` for every variable name.
         '''
         for name in self.names:            
             check_identifier(name)
 
     def check_flags(self, allowed_flags):
         '''
-        Checks the list of flags against the flags contained in
-        ``allowed_flags``, which should be a dictionary mapping equation types
-        (``parameter``, ``diff_equation``, ``static_equation``) to a list
-        of strings (the allowed flags for that equation type). Not specifying
-        allowed flags for an equation type is the same as specifying an empty
-        list for it.
+        Check the list of flags.
+        
+        Parameters
+        ----------
+        allowed_flags : dict
+             A dictionary mapping equation types ('parameter',
+             'diff_equation', 'static_equation') to a list of strings (the
+             allowed flags for that equation type)
+        
+        Notes
+        -----
+        Not specifying allowed flags for an equation type is the same as
+        specifying an empty list for it.
+        
+        Raises
+        ------
+        ValueError
+            If any flags are used that are not allowed.
         '''
         for eq in self.equations.itervalues():
             for flag in eq.flags:
