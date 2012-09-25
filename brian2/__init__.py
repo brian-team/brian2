@@ -12,6 +12,7 @@ from .clocks import *
 from .codegen import *
 from .equations import *
 from .groups import *
+from .network import *
 from .preferences import *
 from .units import *
 from .units.stdunits import *

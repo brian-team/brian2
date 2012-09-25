@@ -123,17 +123,17 @@ class Clock(object):
         self.i_end = self.i+int(float(duration)/self.dt_)
 
     @property
-    def still_running(self):
+    def running(self):
         '''
-        A ``bool`` to indicate whether the current simulation is still running.
+        A ``bool`` to indicate whether the current simulation is running.
         '''
         return self.i<self.i_end
 
     epsilon = 1e-14
 
     def __lt__(self, other):
-        selft = self._t
-        othert = other._t
+        selft = self.t_
+        othert = other.t_
         if selft==othert or abs(selft-othert)<=self.epsilon*abs(selft):
             return self.order<other.order
         return selft<othert

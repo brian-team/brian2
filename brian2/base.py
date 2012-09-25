@@ -94,7 +94,7 @@ class BrianObject(InstanceTracker):
     can be returned using the :func:`get_instances` function.
     
     Brian objects deriving from this class should always define an
-    ``update()`` method, that gets called by :meth:`Network.run`.    
+    ``update()`` method, that gets called by :meth:`Network.run`.
     '''
     
     def __init__(self, when='start', order=0, clock=None):
@@ -102,7 +102,7 @@ class BrianObject(InstanceTracker):
             raise TypeError("when attribute should be a string, was "+repr(when))
         if clock is None:
             clock = clocks.defaultclock
-        if not isinstance(clock, clock.Clock):
+        if not isinstance(clock, clocks.Clock):
             raise TypeError("clock should have type Clock, was "+clock.__class__.__name__)
      
         #: The ID string determining when the object should be updated in :meth:`Network.run`.   
@@ -111,8 +111,23 @@ class BrianObject(InstanceTracker):
         #: The order in which objects with the same clock and ``when`` should be updated
         self.order = order
         
-        #: The Clock determining when the object should be updated.
-        self.clock = clock
+#        #: The Clock determining when the object should be updated.
+#        self.clock = clock
+        self._clock = clock
+        
+        self._contained_objects = []
+        
+    def prepare(self):
+        '''
+        Optional method to prepare data for the first time.
+        
+        Called by :meth:`Network.prepare`. Note that this method will not be
+        called until just before the Network is about to be run, but may be
+        called more than once even if the object has already been prepared, so
+        the class should keep track of whether it has already been prepared or
+        not.
+        '''
+        pass
         
     def update(self):
         '''
@@ -120,3 +135,29 @@ class BrianObject(InstanceTracker):
         '''
         raise NotImplementedError("Classes deriving from BrianObject must "
                                   "define an update() method.")
+        
+    def reinit(self):
+        '''
+        Reinitialise the object, called by :meth:`Network.reinit`.
+        '''
+        pass
+
+    contained_objects = property(fget=lambda self:self._contained_objects,
+                                 doc='''
+         The list of objects contained within the BrianObject.
+         
+         When a BrianObject is added to a Network, its contained objects will
+         be added as well. This allows for compound objects which contain
+         a mini-network structure.
+         
+         Note that this attribute cannot be set directly, you need to modify
+         the underlying list, e.g. ``obj.contained_objects.extend([A, B])``.
+         ''')
+    
+    clock = property(fget=lambda self: self._clock,
+                     doc='''
+                     The Clock determining when the object should be updated.
+                     
+                     Note that this cannot be changed after the object is
+                     created.
+                     ''')

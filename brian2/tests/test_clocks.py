@@ -19,11 +19,11 @@ clock.t_ = float(8*ms)
 assert_equal(clock.i, 8)
 clock.t = 0*ms
 clock.set_duration(10*ms)
-assert_equal(clock.still_running, True)
+assert_equal(clock.running, True)
 clock.t = 9.9*ms
-assert_equal(clock.still_running, True)
+assert_equal(clock.running, True)
 clock.t = 10*ms
-assert_equal(clock.still_running, False)
+assert_equal(clock.running, False)
 clock.reinit()
 assert_equal(clock.t, 0*ms)
 

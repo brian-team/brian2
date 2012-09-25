@@ -3,6 +3,7 @@ from numpy.testing import assert_raises, assert_equal
 
 class DerivedBrianObject(BrianObject):
     def __init__(self, name):
+        super(DerivedBrianObject, self).__init__()
         self.name = name
     def __str__(self):
         return self.name
@@ -38,3 +39,15 @@ b = MoreDerivedBrianObject2('b')
 assert_equal(namesof(DerivedBrianObject), 'abxz')
 assert_equal(namesof(MoreDerivedBrianObject1), 'a')
 assert_equal(namesof(MoreDerivedBrianObject2), 'b')
+
+x = DerivedBrianObject('x')
+y = DerivedBrianObject('y')
+assert_equal(x.when, 'start')
+assert_equal(x.order, 0)
+assert_equal(len(x.contained_objects), 0)
+assert_raises(AttributeError, lambda: setattr(x, 'contained_objects', []))
+x.contained_objects.append(y)
+assert_equal(len(x.contained_objects), 1)
+assert x.contained_objects[0] is y
+
+assert x.clock is defaultclock
