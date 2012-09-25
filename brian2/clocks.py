@@ -19,7 +19,7 @@ class Clock(object):
     
     Parameters
     ----------
-    dt : Quantity, optional
+    dt : `Quantity`, optional
         The time step of the simulation, will be set to ``0.1*ms`` if
         unspecified.
     order : int, optional
@@ -97,7 +97,7 @@ class Clock(object):
     dt = property(fget=lambda self: self.dt_*second,
                   fset=_set_dt,
                   doc='''The time step of the simulation in seconds
-                         Returns a Quantity, and can only
+                         Returns a `Quantity`, and can only
                          be set once. Defaults to ``0.1*ms``.''',
                   )
     

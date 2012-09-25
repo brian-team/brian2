@@ -26,13 +26,13 @@ class Network(object):
 
     def add(self, *objs):
         """
-        Add objects to the network
+        Add objects to the `Network`
         
         Parameters
         ----------
         
-        objs : (BrianObject, container)
-            The BrianObject or container of Brian objects to be added. Specify
+        objs : (`BrianObject`, container)
+            The `BrianObject` or container of Brian objects to be added. Specify
             multiple objects, or lists (or other containers) of objects.
             Containers will be added recursively.
         """
@@ -51,13 +51,13 @@ class Network(object):
 
     def remove(self, *objs):
         '''
-        Remove an object or sequence of objects from a Network.
+        Remove an object or sequence of objects from a `Network`.
         
         Parameters
         ----------
         
-        objs : (BrianObject, container)
-            The BrianObject or container of Brian objects to be removed. Specify
+        objs : (`BrianObject`, container)
+            The `BrianObject` or container of Brian objects to be removed. Specify
             multiple objects, or lists (or other containers) of objects.
             Containers will be removed recursively.
         '''
@@ -78,6 +78,8 @@ class Network(object):
     def reinit(self):
         '''
         Reinitialises all contained objects.
+        
+        Calls :meth:`BrianObject.reinit` on each object.
         '''
         for obj in self.objects:
             obj.reinit()
@@ -102,7 +104,7 @@ class Network(object):
                         doc='''
         List of ``when`` slots in the order they will be updated.
         
-        See notes on scheduling in Network.
+        See notes on scheduling in `Network`.
         ''')
     
     def _sort_objects(self):
@@ -118,9 +120,9 @@ class Network(object):
     
     def prepare(self):
         '''
-        Prepares the Network, including sorting and preparing objects.
+        Prepares the `Network`, including sorting and preparing objects.
         
-        Objects in the Network are sorted into the correct running order, and
+        Objects in the `Network` are sorted into the correct running order, and
         their :meth:`BrianObject.prepare` methods are called.
         '''
         self._sort_objects()
@@ -135,12 +137,14 @@ class Network(object):
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=60*second):
         '''
+        run(duration, report=None, report_period=60*second)
+        
         Runs the simulation for the given duration.
         
         Parameters
         ----------
         
-        duration : Quantity
+        duration : `Quantity`
             The amount of simulation time to run for.
         report : {None, 'stdout', 'stderr', 'graphical', function}, optional
             How to report the progress of the simulation. If None, do not
@@ -150,7 +154,7 @@ class Network(object):
             a callback ``function(elapsed, complete)`` which will be passed
             the amount of time elapsed (in seconds) and the fraction complete
             from 0 to 1.
-        report_period : Quantity
+        report_period : `Quantity`
             How frequently (in real time) to report progress.
             
         Notes
@@ -193,6 +197,6 @@ class Network(object):
         
     def stop(self):
         '''
-        Stops the network from running, this is reset the next time ``run()`` is called.
+        Stops the network from running, this is reset the next time `Network.run()` is called.
         '''
         self._stopped = True

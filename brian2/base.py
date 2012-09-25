@@ -21,7 +21,7 @@ class WeakSet(set):
 
 
 class InstanceFollower(object):
-    """Keep track of all instances of classes derived from InstanceTracker
+    """Keep track of all instances of classes derived from `InstanceTracker`
     
     The variable __instancesets__ is a dictionary with keys which are class
     objects, and values which are WeakSets, so __instanceset__[cls] is a
@@ -58,7 +58,7 @@ class InstanceTracker(object):
 
 def get_instances(instancetype):
     '''
-    Return all instances of a given InstanceTracker derived class.
+    Return all instances of a given `InstanceTracker` derived class.
     '''
     try:
         follower = instancetype.__instancefollower__
@@ -80,7 +80,7 @@ class BrianObject(InstanceTracker):
         Objects with the same ``when`` value will be updated in order
         of increasing values of ``order``, or if both are equal then the order
         is unspecified (but will always be the same on each iteration).
-    clock : Clock, optional
+    clock : `Clock`, optional
         The update clock determining when the object will be updated, or
         use the default clock if unspecified.
 
@@ -111,7 +111,7 @@ class BrianObject(InstanceTracker):
         #: The order in which objects with the same clock and ``when`` should be updated
         self.order = order
         
-#        #: The Clock determining when the object should be updated.
+#        #: The `Clock` determining when the object should be updated.
 #        self.clock = clock
         self._clock = clock
         
@@ -131,7 +131,7 @@ class BrianObject(InstanceTracker):
         
     def update(self):
         '''
-        All BrianObjects should define an update() method which is called every time step.
+        Every `BrianObject` should define an ``update()`` method which is called every time step.
         '''
         raise NotImplementedError("Classes deriving from BrianObject must "
                                   "define an update() method.")
@@ -144,9 +144,9 @@ class BrianObject(InstanceTracker):
 
     contained_objects = property(fget=lambda self:self._contained_objects,
                                  doc='''
-         The list of objects contained within the BrianObject.
+         The list of objects contained within the `BrianObject`.
          
-         When a BrianObject is added to a Network, its contained objects will
+         When a `BrianObject` is added to a `Network`, its contained objects will
          be added as well. This allows for compound objects which contain
          a mini-network structure.
          
@@ -156,7 +156,7 @@ class BrianObject(InstanceTracker):
     
     clock = property(fget=lambda self: self._clock,
                      doc='''
-                     The Clock determining when the object should be updated.
+                     The `Clock` determining when the object should be updated.
                      
                      Note that this cannot be changed after the object is
                      created.

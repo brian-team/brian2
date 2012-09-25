@@ -14,12 +14,12 @@ class NetworkOperation(BrianObject):
     function : function
         The function to call every time step, should take either no arguments
         in which case it is called as ``function()`` or one argument, in which
-        case it is called with the current Clock time (Quantity).
+        case it is called with the current `Clock` time (`Quantity`).
     when : str, optional
         Determines when the function should be called, see Network.
     order : int, optional
         Determines when the function should be called, see Network.
-    clock : Clock, optional
+    clock : `Clock`, optional
         Deteremines when the function should be called, see Network.
         
     See Also
@@ -52,11 +52,11 @@ def network_operation(*args, **kwds):
     Parameters
     ----------
     when : str, optional
-        Determines when the function should be called, see Network.
+        Determines when the function should be called, see `Network`.
     order : int, optional
-        Determines when the function should be called, see Network.
-    clock : Clock, optional
-        Deteremines when the function should be called, see Network.
+        Determines when the function should be called, see `Network`.
+    clock : `Clock`, optional
+        Deteremines when the function should be called, see `Network`.
 
     Examples
     --------
@@ -85,7 +85,7 @@ def network_operation(*args, **kwds):
     Notes
     -----
     
-    Converts the function into a NetworkOperation.
+    Converts the function into a `NetworkOperation`.
     
     If using the form::
     

@@ -82,7 +82,7 @@ class BrianGlobalPreferences(object):
             validator = DefaultValidator(name, value)
         self._validators[name] = validator
         
-    def get_documentation(self):
+    def _get_documentation(self):
         s = ''
         for name in sorted(self._values.keys()):
             default = str(self._default_values[name])
@@ -93,7 +93,7 @@ class BrianGlobalPreferences(object):
             s += '\n\n'
         return s
     
-    documentation = property(fget=get_documentation,
+    documentation = property(fget=_get_documentation,
                              doc='Get a restructuredtext format documentation '
                                  'string for the defined parameters')
 
