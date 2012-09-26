@@ -113,20 +113,31 @@ class Clock(object):
                      fset=_set_t_end,
                      doc='The time the simulation will end (in seconds)')
 
-    @check_units(duration=second)
-    def set_duration(self, duration):
+    @check_units(start=second, end=second)
+    def set_interval(self, start, end):
         '''
-        set_duration(self, duration)
+        set_interval(self, start, end)
         
-        Set the time until the current simulation ends.
+        Set the start and end time of the simulation.
         
-        TODO: multiple clocks with different dt values could cause problems
-        with Network.run - we can't assume that all clocks will have the same
-        value of ``t`` at the beginning of a run. So we should choose a
-        reference ``t`` value. Maybe Network should store a reference ``t``
-        value, and reset all clocks ``t`` values relative to this?
+        Sets the start and end value of the clock precisely if
+        possible (using epsilon) or rounding up if not. This assures that
+        multiple calls to `Network.run` will not re-run the same time step.      
         '''
-        self.i_end = self.i+int(float(duration)/self.dt_)
+        start = float(start)
+        end = float(end)
+        i_start = int(round(start/self.dt_))
+        t_start = i_start*self.dt_
+        if t_start==start or abs(t_start-start)<=self.epsilon*abs(t_start):
+            self.i = i_start
+        else:
+            self.i = int(ceil(start/self.dt_))
+        i_end = int(round(end/self.dt_))
+        t_end = i_end*self.dt_
+        if t_end==end or abs(t_end-end)<=self.epsilon*abs(t_end):
+            self.i_end = i_end
+        else:
+            self.i_end = int(ceil(end/self.dt_))
 
     @property
     def running(self):

@@ -16,7 +16,8 @@ class MagicNetwork(Network):
     -----
     
     All Brian objects that have not been removed by the `clear` function will
-    be included.
+    be included. The time `~Network.t` will be set to the minimal value over
+    all the clocks of objects added at initialisation.
     
     See Also
     --------
@@ -26,6 +27,8 @@ class MagicNetwork(Network):
     def __init__(self):
         super(MagicNetwork, self).__init__()
         self.add(get_instances(BrianObject))
+        minclock = min(set(obj.clock for obj in self.objects))
+        self.t = minclock.t
 
 
 @check_units(duration=second, report_period=second)
@@ -55,7 +58,18 @@ def run(duration, report=None, report_period=60*second):
     -----
     
     The simulation `Network` will include all defined Brian objects that have
-    not been removed by the `clear` function.
+    not been removed by the `clear` function. The start time of the simulation
+    will be the minimum time of all the clocks of the objects found. This means
+    that in certain unusual circumstances several calls to `run` can lead to
+    unexpected time values. For
+    example, if two clocks are present with dt=3*ms and dt=5*ms then a call to
+    ``run(4*ms)`` followed by ``run(4*ms)`` will run for the time interval
+    ``[0*ms, 4*ms)`` for the first call, and then ``[5*ms, 9*ms]``. This is
+    because at the end of the first run the first clock time will be set to
+    ``6*ms`` and the second to ``5*ms``, so the start time will be taken to be
+    ``5*ms``. To fix this problem, either run for durations which are divisible
+    by the smallest `~Clock.dt`, or use explicitly `MagicNetwork` or `Network`
+    which remember times between runs. 
 
     The simulation can be stopped by calling the global :func:`stop` function.
     

@@ -56,7 +56,7 @@ def test_network_different_clocks():
     y = Updater('y', clock=clock3)
     net = Network(x, y)
     net.run(10*ms)
-    assert_equal(''.join(updates), 'xyxxxyxxxyxxx')
+    assert_equal(''.join(updates), 'xyxxxyxxxyxxxy')
 
 @with_setup(teardown=restore_initial_state)
 def test_network_different_when():
@@ -66,7 +66,7 @@ def test_network_different_when():
     y = Updater('y', when='end')
     net = Network(x, y)
     net.run(0.3*ms)
-    assert_equal(''.join(updates), 'xyxy')
+    assert_equal(''.join(updates), 'xyxyxy')
 
 class Preparer(BrianObject):
     def __init__(self, **kwds):
@@ -156,6 +156,66 @@ def test_network_active_flag():
     assert_equal(x.count, 10)
     assert_equal(y.count, 0)
 
+@with_setup(teardown=restore_initial_state)
+def test_network_t():
+    # test that Network.t works as expected
+    c1 = Clock(dt=1*ms)
+    c2 = Clock(dt=2*ms)
+    x = Counter(clock=c1)
+    y = Counter(clock=c2)
+    net = Network(x, y)
+    net.run(4*ms)
+    assert_equal(c1.t, 4*ms)
+    assert_equal(c2.t, 4*ms)
+    assert_equal(net.t, 4*ms)
+    net.run(1*ms)
+    assert_equal(c1.t, 5*ms)
+    assert_equal(c2.t, 6*ms)
+    assert_equal(net.t, 5*ms)
+    assert_equal(x.count, 5)
+    assert_equal(y.count, 3)
+    net.run(0.5*ms) # should only update x
+    assert_equal(c1.t, 6*ms)
+    assert_equal(c2.t, 6*ms)
+    assert_equal(net.t, 5.5*ms)
+    assert_equal(x.count, 6)
+    assert_equal(y.count, 3)
+    net.run(0.5*ms) # shouldn't do anything
+    assert_equal(c1.t, 6*ms)
+    assert_equal(c2.t, 6*ms)
+    assert_equal(net.t, 6*ms)
+    assert_equal(x.count, 6)
+    assert_equal(y.count, 3)
+    net.run(0.5*ms) # should update x and y
+    assert_equal(c1.t, 7*ms)
+    assert_equal(c2.t, 8*ms)
+    assert_equal(net.t, 6.5*ms)
+    assert_equal(x.count, 7)
+    assert_equal(y.count, 4)
+    
+    del c1, c2, x, y, net
+
+    # now test with magic run    
+    c1 = Clock(dt=1*ms)
+    c2 = Clock(dt=2*ms)
+    x = Counter(clock=c1)
+    y = Counter(clock=c2)
+    run(4*ms)
+    assert_equal(c1.t, 4*ms)
+    assert_equal(c2.t, 4*ms)
+    assert_equal(x.count, 4)
+    assert_equal(y.count, 2)
+    run(4*ms)
+    assert_equal(c1.t, 8*ms)
+    assert_equal(c2.t, 8*ms)
+    assert_equal(x.count, 8)
+    assert_equal(y.count, 4)
+    run(1*ms)
+    assert_equal(c1.t, 9*ms)
+    assert_equal(c2.t, 10*ms)
+    assert_equal(x.count, 9)
+    assert_equal(y.count, 5)
+    
 
 if __name__=='__main__':
     for t in [test_empty_network,
@@ -168,6 +228,7 @@ if __name__=='__main__':
               test_network_stop,
               test_network_operations,
               test_network_active_flag,
+              test_network_t,
               ]:
         t()
         restore_initial_state()

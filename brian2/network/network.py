@@ -27,13 +27,15 @@ class Network(object):
     The main run loop performs the following steps:
     
     1. Prepare the objects if necessary, see `~Network.prepare`.
-    2. Determine the end time of the simulation.
+    2. Determine the end time of the simulation as `~Network.t` ``+ duration``.
     3. Determine which `Clock` to update. This will be the clock with the
        smallest value of `~Clock.t`. If there are several with the same value,
        then clocks with a smaller value of `~Clock.order` will be run first.
+       Set `~Network.t` to the clock time.
     4. If the `~Clock.t` value of this clock is past the end time of the
        simulation, stop running. If the `Network.stop` method or the
-       `stop` function have been called, stop running.
+       `stop` function have been called, stop running. Set `~Network.t` to the
+       end time of the simulation.
     5. For each object whose `~BrianObject.clock` is set to the clock from the
        previous steps, call the `~BrianObject.update` method. This method will
        not be called if the `~BrianObject.active` flag is set to ``False``.
@@ -64,7 +66,16 @@ class Network(object):
         self._prepared = False
 
         for obj in objs:
-            self.add(obj)            
+            self.add(obj)
+            
+        #: Current time as a float
+        self.t_ = 0.0
+        
+    t = property(fget=lambda self: self.t_*second,
+                 fset=lambda self, val: setattr(self, 't_', float(val)),
+                 doc='''
+                     Current simulation time in seconds (`Quantity`)
+                     ''')
 
     def add(self, *objs):
         """
@@ -218,18 +229,18 @@ class Network(object):
         
         if not self._prepared:
             self.prepare()
-        
-        # TODO: this has potential bugs because not each clock has the same
-        # initial value of t if multiple runs are being considered and the
-        # values of dt are not all divisible into the duration of the run
+
+        t_end = self.t+duration
         for clock in self._clocks:
-            clock.set_duration(duration)
+            clock.set_interval(self.t, t_end)
             
         # TODO: progress reporting stuff
         
         # Find the first clock to be updated (see note below)
         clock = min(self._clocks)
         while clock.running and not self._stopped and not globally_stopped:
+            # update the network time to this clocks time
+            self.t = clock.t
             # update the objects with this clock
             for obj in self.objects:
                 if obj.clock is clock and obj.active:
@@ -242,6 +253,8 @@ class Network(object):
             # same t value in which case it will be the one of those with the
             # smallest order value.
             clock = min(self._clocks)
+            
+        self.t = t_end
         
     def stop(self):
         '''
