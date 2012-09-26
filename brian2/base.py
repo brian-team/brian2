@@ -34,6 +34,12 @@ class InstanceFollower(object):
             if cls not in self.__instancesets__:
                 self.__instancesets__[cls] = WeakSet()
             self.__instancesets__[cls].add(value)
+            
+    def remove(self, value):
+        for cls in value.__class__.__mro__: # MRO is the Method Resolution Order which contains all the superclasses of a class
+            if cls not in self.__instancesets__:
+                self.__instancesets__[cls] = WeakSet()
+            self.__instancesets__[cls].remove(ref(value))
 
     def get(self, cls):
         if not cls in self.__instancesets__: return []
@@ -134,6 +140,8 @@ class BrianObject(InstanceTracker):
         self._clock = clock
         
         self._contained_objects = []
+        
+        self._active = True
         
     def prepare(self):
         '''

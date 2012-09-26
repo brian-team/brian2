@@ -24,10 +24,12 @@ def restore_initial_state():
     '''
     Restores internal Brian variables to the state they are in when Brian is imported
     
-    Resets ``defaultclock.dt = 0.1*ms``, `clear` all objects and
-    `BrianGlobalPreferences._restore` preferences.
+    Resets ``defaultclock.dt = 0.1*ms``, ``defaultclock.t = 0*ms``, `clear` all
+    objects and `BrianGlobalPreferences._restore` preferences.
     '''
-    del defaultclock._dt
+    if hasattr(defaultclock, '_dt'):
+        del defaultclock._dt
+    defaultclock.t = 0*ms
     clear(erase=True)
     brian_prefs._restore()
     

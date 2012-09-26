@@ -1,9 +1,11 @@
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
-                    run, stop, NetworkOperation, network_operation)
+                    run, stop, NetworkOperation, network_operation,
+                    restore_initial_state)
 from numpy.testing import assert_equal, assert_raises
+from nose import with_setup
 
+@with_setup(teardown=restore_initial_state)
 def test_empty_network():
-    defaultclock.t = 0*second
     # Check that an empty network functions correctly
     net = Network()
     net.run(1*second)
@@ -15,16 +17,16 @@ class Counter(BrianObject):
     def update(self):
         self.count += 1
 
+@with_setup(teardown=restore_initial_state)
 def test_network_single_object():
-    defaultclock.t = 0*second
     # Check that a network with a single object functions correctly
     x = Counter()
     net = Network(x)
     net.run(1*ms)
     assert_equal(x.count, 10)
 
+@with_setup(teardown=restore_initial_state)
 def test_network_two_objects():
-    defaultclock.t = 0*second
     # Check that a network with two objects and the same clock function correctly
     x = Counter()
     y = Counter()
@@ -45,8 +47,8 @@ class Updater(BrianObject):
     def update(self):
         updates.append(self.name)
 
+@with_setup(teardown=restore_initial_state)
 def test_network_different_clocks():
-    defaultclock.t = 0*second
     # Check that a network with two different clocks functions correctly
     clock1 = Clock(dt=1*ms, order=0)
     clock3 = Clock(dt=3*ms, order=1)
@@ -56,8 +58,8 @@ def test_network_different_clocks():
     net.run(10*ms)
     assert_equal(''.join(updates), 'xyxxxyxxxyxxx')
 
+@with_setup(teardown=restore_initial_state)
 def test_network_different_when():
-    defaultclock.t = 0*second
     # Check that a network with different when attributes functions correctly
     updates[:] = []
     x = Updater('x', when='start')
@@ -78,8 +80,8 @@ class Preparer(BrianObject):
     def update(self):
         pass
 
+@with_setup(teardown=restore_initial_state)
 def test_network_reinit_prepare():
-    defaultclock.t = 0*second
     # Check that reinit and prepare work        
     x = Preparer()
     net = Network(x)
@@ -91,8 +93,8 @@ def test_network_reinit_prepare():
     net.reinit()
     assert_equal(x.did_reinit, True)
 
+@with_setup(teardown=restore_initial_state)
 def test_magic_network():
-    defaultclock.t = 0*second
     # test that magic network functions correctly
     x = Counter()
     y = Counter()
@@ -111,8 +113,8 @@ class Stopper(BrianObject):
         if self.stoptime<=0:
             self.stopfunc()
 
+@with_setup(teardown=restore_initial_state)
 def test_network_stop():
-    defaultclock.t = 0*second
     # test that Network.stop and global stop() work correctly
     net = Network()
     x = Stopper(10, net.stop)
@@ -128,8 +130,8 @@ def test_network_stop():
     net.run(10*ms)
     assert_equal(defaultclock.t, 1*ms)
 
+@with_setup(teardown=restore_initial_state)
 def test_network_operations():
-    defaultclock.t = 0*second
     # test NetworkOperation and network_operation
     seq = []
     def f1():
@@ -144,15 +146,28 @@ def test_network_operations():
     run(1*ms)
     assert_equal(''.join(seq), 'abc'*10)
 
+@with_setup(teardown=restore_initial_state)
+def test_network_active_flag():
+    # test that the BrianObject.active flag is recognised by Network.run
+    x = Counter()
+    y = Counter()
+    y.active = False
+    run(1*ms)
+    assert_equal(x.count, 10)
+    assert_equal(y.count, 0)
+
 
 if __name__=='__main__':
-    test_empty_network()
-    test_network_single_object()
-    test_network_two_objects()
-    test_network_different_clocks()
-    test_network_different_when()
-    test_network_reinit_prepare()
-    test_magic_network()
-    test_network_stop()
-    test_network_operations()
-    
+    for t in [test_empty_network,
+              test_network_single_object,
+              test_network_two_objects,
+              test_network_different_clocks,
+              test_network_different_when,
+              test_network_reinit_prepare,
+              test_magic_network,
+              test_network_stop,
+              test_network_operations,
+              test_network_active_flag,
+              ]:
+        t()
+        restore_initial_state()
