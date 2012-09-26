@@ -184,7 +184,7 @@ class Network(object):
         while clock.running and not self._stopped and not globally_stopped:
             # update the objects with this clock
             for obj in self.objects:
-                if obj.clock is clock:
+                if obj.clock is clock and obj.active:
                     obj.update()
             # tick the clock forward one time step
             clock.tick()

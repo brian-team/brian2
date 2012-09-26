@@ -5,6 +5,7 @@ object ``brian_prefs``.
 
 from .utils.stringtools import deindent, indent
 from .units import have_same_dimensions, Quantity, DimensionMismatchError
+import copy
 
 __all__ = ['brian_prefs']
 
@@ -40,7 +41,32 @@ class BrianGlobalPreferences(object):
         self._values = {}
         self._default_values = {}
         self._validators = {}
+        self._backup_copy = {}
         self._initialised = True
+    
+    def _backup(self):
+        '''
+        Store a backup copy of the preferences to restore with `_restore`.
+        '''
+        self._backup_copy.update(
+            docs=copy.copy(self._docs),
+            values=copy.copy(self._values),
+            defaults=copy.copy(self._default_values),
+            validators=copy.copy(self._validators),
+            )
+    
+    def _restore(self):
+        '''
+        Restore a copy of the values of the preferences backed up with `_backup`.
+        '''
+        self._docs.clear()
+        self._values.clear()
+        self._default_values.clear()
+        self._validators.clear()
+        self._docs.update(self._backup_copy['docs'])
+        self._values.update(self._backup_copy['values'])
+        self._default_values.update(self._backup_copy['defaults'])
+        self._validators.update(self._backup_copy['validators'])
         
     def __getattr__(self, name):
         vals = super(BrianGlobalPreferences, self).__getattribute__('_values')

@@ -12,10 +12,16 @@ class MagicNetwork(Network):
     '''
     `Network` that automatically adds all Brian objects
     
+    Notes
+    -----
+    
+    All Brian objects that have not been removed by the `clear` function will
+    be included.
+    
     See Also
     --------
     
-    Network, run, reinit, stop
+    Network, run, reinit, stop, clear
     '''
     def __init__(self):
         super(MagicNetwork, self).__init__()
@@ -48,17 +54,19 @@ def run(duration, report=None, report_period=60*second):
     Notes
     -----
     
-    The simulation `Network` will include all defined Brian objects.
-    
+    The simulation `Network` will include all defined Brian objects that have
+    not been removed by the `clear` function.
+
     The simulation can be stopped by calling the global :func:`stop` function.
     
     See Also
     --------
     
-    Network.run, MagicNetwork, reinit, stop
+    Network.run, MagicNetwork, reinit, stop, clear
     '''
     net = MagicNetwork()
     net.run(duration, report=report, report_period=report_period)
+
 
 def reinit():
     '''
@@ -67,10 +75,11 @@ def reinit():
     See Also
     --------
     
-    Network.reinit, MagicNetwork, run, stop
+    Network.reinit, MagicNetwork, run, stop, clear
     '''
     net = MagicNetwork()
     net.reinit()
+
 
 def stop():
     '''
@@ -82,7 +91,3 @@ def stop():
     Network.stop, MagicNetwork, run, reinit
     '''
     network.globally_stopped = True
-
-# TODO: clear (still needed? maybe?)
-# TODO: forget (rename?)
-# TODO: recall (rename?)

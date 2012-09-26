@@ -4,8 +4,9 @@ All Brian objects should derive from :class:`BrianObject`.
 
 from weakref import ref
 import clocks
+import gc
 
-__all__ = ['BrianObject', 'get_instances', 'InstanceTracker']
+__all__ = ['BrianObject', 'get_instances', 'InstanceTracker', 'clear']
 
 
 class WeakSet(set):
@@ -44,7 +45,12 @@ class InstanceTracker(object):
     
     Derive your class from this one to automagically keep track of instances of
     it. If you want a subclass of a tracked class not to be tracked, define the
-    attribute ``_track_instances=False``.
+    attribute ``_track_instances=False``. To stop an individual instance from
+    being tracked, call the :meth:`_stop_tracking()` method, and to re-enable
+    it call :meth:`_start_tracking()`.
+    
+    .. automethod:: _stop_tracking
+    .. automethod:: _start_tracking
     """
     __instancefollower__ = InstanceFollower() # static property of all objects of class derived from InstanceTracker
     _track_instances = True
@@ -54,6 +60,18 @@ class InstanceTracker(object):
         if obj._track_instances:
             obj.__instancefollower__.add(obj)
         return obj
+    
+    def _stop_tracking(self):
+        '''
+        Stop this object from being tracked.        
+        '''
+        self.__instancefollower__.remove(self)
+        
+    def _start_tracking(self):
+        '''
+        Enable tracking on this object.
+        '''
+        self.__instancefollower__.add(self)
 
 
 def get_instances(instancetype):
@@ -161,3 +179,52 @@ class BrianObject(InstanceTracker):
                      Note that this cannot be changed after the object is
                      created.
                      ''')
+    
+    def _set_active(self, val):
+        val = bool(val)
+        self._active = val
+        for obj in self.contained_objects:
+            obj.active = val
+
+    active = property(fget=lambda self:self._active,
+                      fset=_set_active,
+                      doc='''
+                        Whether or not the object should be run.
+                        
+                        Inactive objects will not have their ``update()``
+                        method called in `Network.run`. Note that setting or
+                        unsetting the ``active`` attribute will set or unset
+                        it for all `contained_objects`. 
+                        ''')
+
+    
+def clear(erase=False):
+    '''
+    Stops all Brian objects from being automatically detected
+    
+    Parameters
+    ----------
+    
+    erase : bool, optional
+        If set to ``True``, all data attributes will be set to ``None``. This
+        can help solve problems with circular references stopping objects
+        from being garbage collected.
+        
+    Notes
+    -----
+    
+    Stops objects from being tracked by `MagicNetwork`, `run` and `reinit`.
+    Calls the `InstanceTracker._stop_tracking` method. Will also set the
+    `BrianObject.active` flag to ``False`` for already existing `Network`
+    objects. Calls a garbage collection on completion.
+    '''
+    objs = get_instances(BrianObject)
+    for obj in objs:
+        obj.active = False
+        obj._stop_tracking()
+    if erase:
+        for obj in objs:
+            for k, v in obj.__dict__.iteritems():
+                object.__setattr__(obj, k, None)
+    
+    gc.collect()
