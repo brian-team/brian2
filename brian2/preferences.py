@@ -107,12 +107,14 @@ class BrianGlobalPreferences(object):
         if validator is None:
             validator = DefaultValidator(name, value)
         self._validators[name] = validator
-        
+
     def _get_documentation(self):
         s = ''
         for name in sorted(self._values.keys()):
             default = str(self._default_values[name])
             doc = str(self._docs[name])
+            # Make a link target
+            s += '.. _brian-pref-{name}:\n\n'.format(name=name.replace('_', '-'))
             s += '``{name}`` = ``{default}``\n'.format(name=name,
                                                        default=repr(default))
             s += indent(deindent(doc))

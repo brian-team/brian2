@@ -18,14 +18,47 @@ It will:
 """
 
 import sphinx
-
+from sphinx.roles import XRefRole
 if sphinx.__version__ < '1.0.1':
     raise RuntimeError("Sphinx 1.0.1 or newer is required")
 
-import os, re, pydoc
+import re
+import pydoc
+import inspect
+
+from docutils import nodes, statemachine
+from docutils.parsers.rst import directives, Directive, roles
 from docscrape_sphinx import get_doc_object, SphinxDocString
 
-import inspect
+from brian2 import brian_prefs
+
+
+class BrianPrefsDirective(Directive):
+    required_arguments = 0
+    optional_arguments = 0
+    final_argument_whitespace = True
+    option_spec = {}
+    has_content = False
+
+    def run(self):
+        rawtext = brian_prefs.documentation
+        include_lines = statemachine.string2lines(rawtext,
+                                                  convert_whitespace=True)
+        self.state_machine.insert_input(include_lines, 'Brian preferences')
+        return []
+
+
+def brian_prefs_role(role, rawtext, text, lineno, inliner,
+                       options={}, content=[]):
+    if not text in brian_prefs._values:
+        msg = inliner.reporter.error(
+            'Unknown brian preference: %s' % text, line=lineno)
+        prb = inliner.problematic(rawtext, rawtext, msg)
+        return [prb], [msg]
+    text = '%s <brian-pref-%s>' % (text, text.replace('_', '-'))
+    # Use sphinx's cross-reference role
+    xref = XRefRole(warn_dangling=True)
+    return xref('std:ref', rawtext, text, lineno, inliner, options, content)
 
 
 def mangle_docstrings(app, what, name, obj, options, lines,
@@ -46,7 +79,7 @@ def mangle_docstrings(app, what, name, obj, options, lines,
     # import name (the one that is also used elsewhere in the docs)
     # E.g. for brian2.units.fundamentalunits.Quantity it checks whether it is
     # possible to import brian2.Quantity or brian2.units.Quantity and if this
-    # is possible, replaces the link. In this case with the first variant: 
+    # is possible, replaces the link. In this case with the first variant 
     # brian2.Quantity
     for i, line in enumerate(lines):
         if line.startswith('Bases: '):
@@ -122,6 +155,9 @@ def setup(app, get_doc_object_=get_doc_object):
     # Extra mangling domains
     app.add_domain(NumpyPythonDomain)
     app.add_domain(NumpyCDomain)
+
+    directives.register_directive('document_brian_prefs', BrianPrefsDirective)
+    app.add_role('bpref', brian_prefs_role)
 
 #------------------------------------------------------------------------------
 # Docstring-mangling domains
