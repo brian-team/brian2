@@ -56,15 +56,17 @@ class SphinxDocString(NumpyDocString):
             return self._f
         return None
 
-    def _str_member_list(self, name):
+    def _str_member_list(self):
         """
         Generate a member listing, autosummary:: table .
 
         """
         out = []
 
-        if self[name]:
-            out += ['.. rubric:: %s' % name, '']
+        all_members = self['Attributes'] + self['Methods']
+
+        if all_members:
+            out += ['.. rubric:: Attributes and methods', '']
             prefix = getattr(self, '_name', '')
 
             if prefix:
@@ -77,7 +79,7 @@ class SphinxDocString(NumpyDocString):
                 prefix = ''
 
             autosum = []
-            for param, _, desc in self[name]:
+            for param, _, desc in all_members:
                 param = param.strip()
                 if self._obj:
                     # Fake the attribute as a class property, but do not touch
@@ -103,12 +105,35 @@ class SphinxDocString(NumpyDocString):
             if autosum:
                 out += ['.. autosummary::', '']
                 out += autosum
+            
+            out += ['']
+        return out
 
-            for param, _, desc in self[name]:
+    def _str_member_docs(self, name):
+        """
+        Generate the full member autodocs
+
+        """
+        out = []
+
+        if self[name]:
+            prefix = getattr(self, '_name', '')
+            if prefix:
+                prefix = '%s.' % prefix
+            elif hasattr(self, 'name') and self.name:
+                # This is a class: Use its name to make sure Sphinx can find
+                # the methods and attributes
+                prefix = '%s.' % (self.name)
+            else:
+                prefix = ''
+
+            out += ['.. rubric:: %s' % name, '']
+            for param, _, _ in self[name]:
                 if name == 'Methods':
                     out += ['.. automethod:: %s%s' % (prefix, param)]
                 elif name == 'Attributes':
                     out += ['.. autoattribute:: %s%s' % (prefix, param)]
+            
             out += ['']
         return out
 
@@ -192,8 +217,9 @@ class SphinxDocString(NumpyDocString):
         out += self._str_section('Notes')
         out += self._str_references()
         out += self._str_examples()
+        out += self._str_member_list()
         for param_list in ('Attributes', 'Methods'):
-            out += self._str_member_list(param_list)
+            out += self._str_member_docs(param_list)
         out = self._str_indent(out,indent)
         return '\n'.join(out)
 
