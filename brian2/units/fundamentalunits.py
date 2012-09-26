@@ -707,7 +707,7 @@ class Quantity(np.ndarray):
     
     See also
     --------
-    brian2.units.fundamentalunits.Unit
+    Unit
 
     Attributes
     ----------
@@ -1370,7 +1370,7 @@ class Quantity(np.ndarray):
 
 class Unit(Quantity):
     '''
-    A physical unit
+    A physical unit.
     
     Normally, you do not need to worry about the implementation of
     units. They are derived from the `Quantity` object with
@@ -1393,27 +1393,9 @@ class Unit(Quantity):
     
     The unit class also keeps track of various things that were used
     to define it so as to generate a nice string representation of it.
-    See Representation below.
+    See Representation below. 
     
-    Typical usage::
-    
-        x = 3 * mvolt # returns a quantity
-        print x.in_unit(uvolt) # returns 3000 uV 
-    
-    Standard units:
-    
-    The units class has the following fundamental units:
-    
-    metre, kilogram, second, amp, kelvin, mole, candle
-    
-    And these additional basic units:
-    
-    radian, steradian, hertz, newton, pascal, joule, watt,
-    coulomb, volt, farad, ohm, siemens, weber, tesla, henry,
-    celsius, lumen, lux, becquerel, gray, sievert, katal
-    
-    And additionally, it includes all scaled versions of these
-    units using the following prefixes
+    When creating scaled units, you can use the following prefixes:
 
      ======     ======  ==============
      Factor     Name    Prefix
@@ -1440,8 +1422,6 @@ class Unit(Quantity):
      10^-21     zepto   z
      10^-24     yocto   y
      ======     ======  ==============
-     
-    So for example nohm, ytesla, etc. are all defined.
     
     Defining your own:
     
@@ -1455,31 +1435,31 @@ class Unit(Quantity):
     
         print (1*Nm).in_unit(Nm)
     
-    will return "1 Nm" because the Unit class generates a new
-    display name of "Nm" from the display names "N" and "m" for
+    will return ``"1 Nm"`` because the `Unit` class generates a new
+    display name of ``"Nm"`` from the display names ``"N"`` and ``"m"`` for
     newtons and metres automatically (see Representation below).
     
     To register this unit for use in the automatic printing
-    of the Quantity.in_best_unit() method, see the documentation
-    for the UnitRegistry class.
+    of the `Quantity.in_best_unit` method, see the documentation
+    for the `~brian2.units.fundamentalunits.UnitRegistry` class.
     
     Construction:
     
     The best way to construct a new unit is to use standard units
-    already defined and arithmetic operations, e.g. newton*metre.
-    See the documentation for __init__ and the static methods create(...)
-    and create_scaled_units(...) for more details.
+    already defined and arithmetic operations, e.g. ``newton*metre``.
+    See the documentation for the static methods `Unit.create`
+    and `Unit.create_scaled_units` for more details.
     
     If you don't like the automatically generated display name for
-    the unit, use the set_display_name(name) method.
+    the unit, use the `Unit.set_display_name` method.
     
     Representation:
     
     A new unit defined by multiplication, division or taking powers
     generates a name for the unit automatically, so that for
-    example the name for pfarad/mmetre**2 is "pF/mm^2", etc. If you
+    example the name for ``pfarad/mmetre**2`` is ``"pF/mm^2"``, etc. If you
     don't like the automatically generated name, use the 
-    set_display_name(name) method.
+    `Unit.set_display_name` method.
     
     Attributes
     ----------
@@ -1732,7 +1712,7 @@ class UnitRegistry(object):
     """
     Stores known units for printing in best units.
     
-    All a user needs to do is to use the register_new_unit(u)
+    All a user needs to do is to use the `register_new_unit`
     function.
     
     Default registries:
@@ -1740,7 +1720,7 @@ class UnitRegistry(object):
     The units module defines three registries, the standard units,
     user units, and additional units. Finding best units is done
     by first checking standard, then user, then additional. New
-    user units are added by using the register_new_unit(u) function.
+    user units are added by using the `register_new_unit` function.
     
     Standard units includes all the basic non-compound unit names
     built in to the module, including volt, amp, etc. Additional
@@ -1894,8 +1874,8 @@ def check_units(**au):
     in the return value raises an ``AssertionError`` (because it is a code
     problem rather than a value problem).
     
-    **Notes**
-    
+    Notes
+    -----    
     This decorator will destroy the signature of the original function, and
     replace it with the signature ``(*args, **kwds)``. Other decorators will
     do the same thing, and this decorator critically needs to know the signature

@@ -38,7 +38,8 @@ from .unitsafefunctions import (log, exp, sin, cos, tan, arcsin, arccos, arctan,
                                 sinh, cosh, tanh, arcsinh, arccosh, arctanh,
                                 diagonal, ravel, trace, dot)
 from .fundamentalunits import (Unit, Quantity, DimensionMismatchError,
-                               check_units, have_same_dimensions)
+                               check_units, have_same_dimensions,
+                               register_new_unit)
                     
 ___all__ = ['pamp', 'namp', 'uamp', 'mamp', 'amp',
             'kamp', 'Mamp', 'Gamp', 'Tamp',
