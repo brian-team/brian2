@@ -902,7 +902,7 @@ class Quantity(np.ndarray):
         if len(args) and isinstance(args[0], Dimension):
             x.dimensions = args[0]
         else:
-            x._dimensions = get_or_create_dimension(*args, **keywords)
+            x.dimensions = get_or_create_dimension(*args, **keywords)
         return x
 
     ### ATTRIBUTES ###
