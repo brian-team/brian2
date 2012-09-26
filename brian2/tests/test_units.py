@@ -24,7 +24,6 @@ def assert_quantity(q, values, unit):
                                            (get_dimensions(q),
                                             get_dimensions(unit)))
 
-
 # Construct quantities
 def test_construction():
     ''' Test the construction of quantity objects '''
@@ -378,12 +377,12 @@ def test_numpy_functions_dimensionless():
             for ufunc in UFUNCS_DIMENSIONLESS:
                 result_unitless = eval('np.%s(value)' % ufunc)
                 result_array = eval('np.%s(np.array(value))' % ufunc)
-                assert result_unitless.is_dimensionless()
+                assert result_unitless.is_dimensionless
                 assert_equal(np.asarray(result_unitless), result_array)
             for ufunc in UFUNCS_DIMENSIONLESS_TWOARGS:
                 result_unitless = eval('np.%s(value, value)' % ufunc)
                 result_array = eval('np.%s(np.array(value), np.array(value))' % ufunc)
-                assert result_unitless.is_dimensionless()
+                assert result_unitless.is_dimensionless
                 assert_equal(np.asarray(result_unitless), result_array)
         
         for value in unit_values:
