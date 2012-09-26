@@ -27,7 +27,7 @@ def restore_initial_state():
     Resets ``defaultclock.dt = 0.1*ms``, `clear` all objects and
     `BrianGlobalPreferences._restore` preferences.
     '''
-    defaultclock._dt = float(0.1*ms)
+    del defaultclock._dt
     clear(erase=True)
     brian_prefs._restore()
     
