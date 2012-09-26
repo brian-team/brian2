@@ -42,6 +42,36 @@ def mangle_docstrings(app, what, name, obj, options, lines,
                              config=cfg)
         lines[:] = unicode(doc).split(u"\n")
 
+    # This tries to replace links to base classes with the shortest possible
+    # import name (the one that is also used elsewhere in the docs)
+    # E.g. for brian2.units.fundamentalunits.Quantity it checks whether it is
+    # possible to import brian2.Quantity or brian2.units.Quantity and if this
+    # is possible, replaces the link. In this case with the first variant: 
+    # brian2.Quantity
+    for i, line in enumerate(lines):
+        if line.startswith('Bases: '):
+            class_links = re.findall(r':class:`[A-Za-z0-9.]+`', lines[i])
+            replacements = {}
+            for match in class_links:
+                full_name = str(match[8:-1])
+                name_parts = full_name.split('.')
+                # We only care about brian2 classes
+                if not name_parts[0] == 'brian2':
+                    continue
+                for module_parts in xrange(len(name_parts) - 2):
+                    try:
+                        # Use the first modules
+                        name = '.'.join(name_parts[:module_parts + 1])
+                        __import__(name, fromlist=name_parts[-1:])
+                        # It worked!
+                        replacements[full_name] = name + '.' + name_parts[-1]
+                        # no need to search further
+                        break
+                    except ImportError as ex:
+                        pass
+            for old, new in replacements.iteritems():
+                lines[i] = lines[i].replace('`%s`' % old, '`%s`' % new)
+
     # replace reference numbers so that there are no duplicates
     references = []
     for line in lines:
