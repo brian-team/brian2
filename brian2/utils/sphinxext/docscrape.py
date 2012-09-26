@@ -492,7 +492,7 @@ class ClassDoc(NumpyDocString):
     def methods(self):
         if self._cls is None:
             return []
-        methods = [name for name, func in inspect.getmembers(self._cls)
+        methods = [name for name, func in getattr(self._cls, '__dict__').iteritems()
                   if ((not name.startswith('_')
                        or name in self.extra_public_methods)
                       and callable(func))]
@@ -506,7 +506,7 @@ class ClassDoc(NumpyDocString):
         instance_members = [attr_name for (class_name, attr_name) in
                             analyzer.find_attr_docs().keys()
                             if class_name == self._cls.__name__]
-        class_members = [name for name, func in inspect.getmembers(self._cls)
+        class_members = [name for name, func in getattr(self._cls, '__dict__').iteritems()
                          if not name.startswith('_') and (func is None or
                                                           inspect.isdatadescriptor(func))]
 
