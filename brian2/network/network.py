@@ -8,20 +8,62 @@ globally_stopped = False
 
 class Network(object):
     '''
-    TODO
+    The main simulation controller in Brian
+
+    `Network` handles the running of a simulation. It contains a set of Brian
+    objects that are added with `~Network.add`. The `~Network.run` method
+    actually runs the simulation. The main run loop, determining which
+    objects get called in what order is described in detail in the notes below.
+    
+    Parameters
+    ----------
+    objs : (`BrianObject`, container), optional
+        A list of objects to be added to the `Network` immediately, see
+        `~Network.add`.
+        
+    Notes
+    -----
+    
+    The main run loop performs the following steps:
+    
+    1. Prepare the objects if necessary, see `~Network.prepare`.
+    2. Determine the end time of the simulation.
+    3. Determine which `Clock` to update. This will be the clock with the
+       smallest value of `~Clock.t`. If there are several with the same value,
+       then clocks with a smaller value of `~Clock.order` will be run first.
+    4. If the `~Clock.t` value of this clock is past the end time of the
+       simulation, stop running. If the `Network.stop` method or the
+       `stop` function have been called, stop running.
+    5. For each object whose `~BrianObject.clock` is set to the clock from the
+       previous steps, call the `~BrianObject.update` method. This method will
+       not be called if the `~BrianObject.active` flag is set to ``False``.
+       The order in which the objects are called is described below.
+    6. Increase `Clock.t` by `Clock.dt` and return to step 2. 
+    
+    The order in which the objects are updated in step 4 is determined by
+    the `Network.schedule` and the objects `~BrianObject.when` and
+    `~BrianObject.order` attributes. The `~Network.schedule` is a list of
+    string names. Each `~BrianObject.when` attribute should be one of these
+    strings, and the objects will be updated in the order determined by the
+    schedule. The default schedule is
+    ``['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']``. That
+    means that all objects with ``when=='start'` will be updated first, then
+    those with ``when=='groups'``, and so forth. If several objects have the
+    same `~BrianObject.when` attribute, then the order is determined by the
+    `~BrianObject.order` attribute (lower first).
     
     See Also
     --------
     
-    MagicNetwork, run
+    MagicNetwork, run, stop
     '''
-    def __init__(self, *args):
-        #: The list of objects in the Network
+    def __init__(self, *objs):
+        #: The list of objects in the Network, should not normally be modified directly
         self.objects = []
         
         self._prepared = False
 
-        for obj in args:
+        for obj in objs:
             self.add(obj)            
 
     def add(self, *objs):
@@ -102,9 +144,12 @@ class Network(object):
     schedule = property(fget=_get_schedule,
                         fset=_set_schedule,
                         doc='''
-        List of ``when`` slots in the order they will be updated.
+        List of ``when`` slots in the order they will be updated, can be modified.
         
-        See notes on scheduling in `Network`.
+        See notes on scheduling in `Network`. Note that additional ``when``
+        slots can be added, but the schedule should contain at least all of the
+        names in the default schedule:
+        ``['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']``.
         ''')
     
     def _sort_objects(self):
@@ -173,7 +218,10 @@ class Network(object):
         
         if not self._prepared:
             self.prepare()
-            
+        
+        # TODO: this has potential bugs because not each clock has the same
+        # initial value of t if multiple runs are being considered and the
+        # values of dt are not all divisible into the duration of the run
         for clock in self._clocks:
             clock.set_duration(duration)
             

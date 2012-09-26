@@ -118,7 +118,13 @@ class Clock(object):
         '''
         set_duration(self, duration)
         
-        Set the time until the current simulation ends. Some more text for test.
+        Set the time until the current simulation ends.
+        
+        TODO: multiple clocks with different dt values could cause problems
+        with Network.run - we can't assume that all clocks will have the same
+        value of ``t`` at the beginning of a run. So we should choose a
+        reference ``t`` value. Maybe Network should store a reference ``t``
+        value, and reset all clocks ``t`` values relative to this?
         '''
         self.i_end = self.i+int(float(duration)/self.dt_)
 
