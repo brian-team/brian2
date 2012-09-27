@@ -63,10 +63,13 @@ class SphinxDocString(NumpyDocString):
         """
         out = []
 
-        all_members = self['Attributes'] + self['Methods']
-
-        if all_members:
-            out += ['.. rubric:: Attributes and methods', '']
+        
+        
+        for name in ['Attributes', 'Methods']:
+            if not self[name]:
+                continue
+            
+            out += ['.. rubric:: %s' % name, '']
             prefix = getattr(self, '_name', '')
 
             if prefix:
@@ -79,7 +82,7 @@ class SphinxDocString(NumpyDocString):
                 prefix = ''
 
             autosum = []
-            for param, _, desc in all_members:
+            for param, _, desc in self[name]:
                 param = param.strip()
                 if self._obj:
                     # Fake the attribute as a class property, but do not touch
@@ -127,7 +130,6 @@ class SphinxDocString(NumpyDocString):
             else:
                 prefix = ''
 
-            out += ['.. rubric:: %s' % name, '']
             for param, _, _ in self[name]:
                 if name == 'Methods':
                     out += ['.. automethod:: %s%s' % (prefix, param)]
@@ -218,8 +220,10 @@ class SphinxDocString(NumpyDocString):
         out += self._str_references()
         out += self._str_examples()
         out += self._str_member_list()
-        for param_list in ('Attributes', 'Methods'):
-            out += self._str_member_docs(param_list)
+        if self['Attributes'] + self['Methods']:
+            out += ['.. rubric:: Details', '']
+            for param_list in ('Attributes', 'Methods'):
+                out += self._str_member_docs(param_list)
         out = self._str_indent(out,indent)
         return '\n'.join(out)
 
