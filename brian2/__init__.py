@@ -17,15 +17,17 @@ from brian2.units.stdunits import *
 from brian2.utils import *
 
 # The following packages only depend on something in the above set
-from brian2.preferences import *
-from brian2.clocks import *
+from brian2.core.preferences import *
+from brian2.core.clocks import *
 from brian2.equations import *
 
 # The base class only depends on the above sets
-from brian2.base import *
+from brian2.core.base import *
 
 # The rest...
-from brian2.network import *
+from brian2.core.network import *
+from brian2.core.magic import *
+from brian2.core.operations import *
 from brian2.stateupdaters import *
 from brian2.codegen import *
 from brian2.groups import *

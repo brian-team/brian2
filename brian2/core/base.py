@@ -5,7 +5,7 @@ All Brian objects should derive from :class:`BrianObject`.
 from weakref import ref
 import gc
 
-import brian2.clocks as clocks
+import brian2.core.clocks as clocks
 
 __all__ = ['BrianObject', 'get_instances', 'InstanceTracker', 'clear']
 

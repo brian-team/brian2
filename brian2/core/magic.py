@@ -1,5 +1,5 @@
 from brian2 import second, check_units, BrianObject, get_instances
-from brian2.network.network import Network
+from brian2.core.network import Network
 
 __all__ = ['MagicNetwork',
            'run', 'reinit', 'stop',
