@@ -7,9 +7,14 @@ __all__ = ['get_default_unit_namespace', 'get_unit_from_string']
 
 def get_default_unit_namespace():
     '''
-    Returns the namespace that is used by default for looking up units when
+    Return the namespace that is used by default for looking up units when
     defining equations. Contains all registered units and everything from
-    ``brian2.units.stdunits`` (ms, mV, nS, etc.).
+    `brian2.units.stdunits` (ms, mV, nS, etc.).
+    
+    Returns
+    -------
+    namespace : dict
+        The unit namespace
     '''    
     namespace = dict([(u.name, u) for u in all_registered_units()])
     namespace.update(stdunits)
@@ -23,20 +28,28 @@ def get_unit_from_string(unit_string, unit_namespace=None,
     "siemens / cm ** 2", allowing for the special string "1" to signify
     dimensionless units.
     
-    Raises ValueErrors if it is not possible to evaluate the string to a unit.
-    
-    Arguments:
-    
-    ``unit_string``
+    Parameters
+    ----------    
+    unit_string : str
         The string that should evaluate to a unit
     
-    ``unit_namespace``
+    unit_namespace : dict, optional
         An optional namespace containing units. If not given, defaults to all
-        the units returned by :meth:`get_default_unit_namespace`.
+        the units returned by `get_default_unit_namespace`.
     
-    ``only_base_units``
+    only_base_units : bool, optional
         Whether to allow only units evaluating to 1, e.g. "metre" but not "cm".
         Defaults to ``False``.
+    
+    Returns
+    -------
+    u : Unit
+        The resulting unit
+    
+    Raises
+    ------
+    ValueError
+        If the string cannot be evaluated to a unit.
     '''
     
     if unit_namespace is None:

@@ -13,8 +13,8 @@ from sympy.core.sympify import SympifyError
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 
-from brian2.units.fundamentalunits import DimensionMismatchError, get_dimensions
-from brian2.units.allunits import second
+from brian2 import DimensionMismatchError, second
+from brian2.units.fundamentalunits import get_dimensions
 from brian2.equations.unitcheck import (get_unit_from_string,
                                         get_default_unit_namespace)
 from brian2.utils.stringtools import word_substitute, get_identifiers
@@ -92,8 +92,8 @@ def check_identifier_basic(identifier):
     the user) for conformity with the rules. The rules are:
     
         1. Only ASCII characters
-        2. Starts with underscore or character, then mix of alphanumerical
-           characters and underscore
+        2. Starts with a character, then mix of alphanumerical characters and
+           underscore
         3. Is not a reserved keyword of Python
     
     Parameters
@@ -189,7 +189,8 @@ def parse_string_equations(eqns, namespace, exhaustive, level):
     Returns
     -------
     equations : dict
-        A dictionary mapping variable names to Equation objects
+        A dictionary mapping variable names to
+        `~brian2.quations.equations.Equation` objects
     """
     equations = {}
     
@@ -260,8 +261,8 @@ class CodeString(object):
     Notes
     -----
     If `exhaustive` is not ``False`` (meaning that the namespace for the string
-    is explicitly specified), the CodeString object saves a copy of the current
-    local and global namespace for later use in resolving identifiers.
+    is explicitly specified), the `CodeString` object saves a copy of the
+    current local and global namespace for later use in resolving identifiers.
     '''
 
     def __init__(self, code, namespace=None, exhaustive=False, level=0):
@@ -323,7 +324,7 @@ class CodeString(object):
         ValueError
             If a variable/function cannot be resolved and is not contained in
             `internal_variables`.
-        ResolutionConflictWarning
+        `ResolutionConflictWarning`
             If identifiers cannot be resolved unambiguously.
         '''
 
@@ -406,13 +407,13 @@ class CodeString(object):
         
         Returns
         -------
-        frozen : CodeString
-            A new CodeString object, where all external variables are replaced
+        frozen : `CodeString`
+            A new `CodeString` object, where all external variables are replaced
             by their floating point values and removed from the namespace.
         
         Notes
         -----
-        The namespace has to be resolved using the :meth:`resolve` method first.
+        The namespace has to be resolved using the `resolve` method first.
         '''
         
         if not self.is_resolved:
@@ -506,7 +507,7 @@ class CodeString(object):
 
         Notes
         -----
-        The namespace has to be resolved using the :meth:`resolve` method first.        
+        The namespace has to be resolved using the `resolve` method first.        
         '''
     
         if not self.is_resolved:
@@ -529,7 +530,7 @@ class CodeString(object):
         
         Notes
         -----
-        The namespace has to be resolved using the :meth:`resolve` method first.
+        The namespace has to be resolved using the `resolve` method first.
         
         Raises
         ------
@@ -546,14 +547,14 @@ class CodeString(object):
         
         Parameters
         ----------
-        unit : Unit or 1
+        unit : `Unit` or 1
             The expected unit (or 1 for dimensionless).
         variable_units : dict
             A dictionary mapping internal variable names to their units.                 
         
         Notes
         -----
-        The namespace has to be resolved using the :meth:`resolve` method first.
+        The namespace has to be resolved using the `resolve` method first.
         
         Raises
         ------
@@ -572,17 +573,18 @@ class CodeString(object):
         '''
         Split the expression into a stochastic and non-stochastic part.
         
-        Splits the expression into a tuple of two CodeString objects f and g,
+        Splits the expression into a tuple of two `CodeString` objects f and g,
         assuming an expression of the form ``f + g * xi``, where ``xi`` is the
         symbol for the random variable.
         
         Returns
         -------
-        (f, g) : (CodeString, CodeString)
-            A tuple of CodeString objects, the first one containing the
-            non-stochastic and the second one containing the stochastic part. If no
-            ``xi`` symbol is present in the code string, a tuple ``(self, None)``
-            will be returned with the unchanged CodeString object.
+        (f, g) : (`CodeString`, `CodeString`)
+            A tuple of `CodeString` objects, the first one containing the
+            non-stochastic and the second one containing the stochastic part.
+            If no ``xi`` symbol is present in the code string, a tuple
+            ``(self, None)`` will be returned with the unchanged
+            `CodeString` object.
         '''
         s_expr = sympify(self.code).expand()
         xi = Symbol('xi')
@@ -629,18 +631,18 @@ class Equation(object):
         What flags are possible depends on the type of the equation and the
         context.
     namespace : dict
-        The namespace for this equation (see CodeString for more details).
+        The namespace for this equation (see `CodeString` for more details).
     exhaustive : bool
-        Whether the given namespace is exhaustive (see CodeString for more
+        Whether the given namespace is exhaustive (see `CodeString` for more
         details).
     level : int
         The level in the stack where to look for the local/global namespace
-        (see CodeString for more details).
+        (see `CodeString` for more details).
     
     Notes
     -----    
-    This class should never be used directly, it is only useful inside of the
-    Equations class.
+    This class should never be used directly, it is only useful as part of the
+    `Equations` class.
     '''
     def __init__(self, eq_type, varname, expr, unit, flags,
                  namespace, exhaustive, level):
@@ -664,7 +666,7 @@ class Equation(object):
 
     def resolve(self, internal_variables):
         '''
-        Resolve all the variables. See :meth:`CodeString.resolve`.
+        Resolve all the variables. See `CodeString.resolve`.
         '''
         if not self.expr is None:
             self.expr.resolve(internal_variables)        
@@ -725,7 +727,6 @@ class Equations(object):
     level : int, optional
         The level in the stack (an integer >=0) where to look for locals
         and globals 
-    
     
     """
 
@@ -795,10 +796,10 @@ class Equations(object):
         
         Returns
         -------
-        expr_tuples : list of (str, CodeString)
-            A list of ``(varname, expr)`` tuples, where ``expr`` is a CodeString
-            object with all static equation variables substituted with the
-            respective expression.
+        expr_tuples : list of (str, `CodeString`)
+            A list of ``(varname, expr)`` tuples, where ``expr`` is a
+            `CodeString` object with all static equation variables substituted
+            with the respective expression.
         '''
         sub_exprs = []
         substitutions = {}        
@@ -1035,7 +1036,7 @@ def resolve(self):
     def check_identifiers(self):
         '''
         Check the list of identifiers used in this equation. Calls
-        :func:`check_identifier` for every variable name.
+        `check_identifier` for every variable name.
         '''
         for name in self.names:            
             check_identifier(name)
