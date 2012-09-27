@@ -798,7 +798,7 @@ class Equations(object):
         
         See also
         --------
-        `check_identifier` : The function that is called for each identifier.
+        brian2.equations.equations.check_identifier : The function that is called for each identifier.
         '''
 
     def _get_substituted_expressions(self):
