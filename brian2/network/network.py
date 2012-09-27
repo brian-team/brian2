@@ -2,8 +2,6 @@ from brian2 import check_units, second, BrianObject
 
 __all__ = ['Network']
 
-globally_stopped = False
-
 class Network(object):
     '''
     The main simulation controller in Brian
@@ -67,13 +65,15 @@ class Network(object):
             self.add(obj)
             
         #: Current time as a float
-        self.t_ = 0.0
-        
+        self.t_ = 0.0   
+     
     t = property(fget=lambda self: self.t_*second,
                  fset=lambda self, val: setattr(self, 't_', float(val)),
                  doc='''
                      Current simulation time in seconds (`Quantity`)
                      ''')
+
+    _globally_stopped = False
 
     def add(self, *objs):
         """
@@ -217,13 +217,12 @@ class Network(object):
         The simulation can be stopped by calling :meth:`Network.stop` or the
         global :func:`stop` function.
         '''
-        global globally_stopped
         
         if len(self.objects)==0:
             return # TODO: raise an error? warning?
         
         self._stopped = False
-        globally_stopped = False
+        Network._globally_stopped = False
         
         if not self._prepared:
             self.prepare()
@@ -236,7 +235,7 @@ class Network(object):
         
         # Find the first clock to be updated (see note below)
         clock = min(self._clocks)
-        while clock.running and not self._stopped and not globally_stopped:
+        while clock.running and not self._stopped and not Network._globally_stopped:
             # update the network time to this clocks time
             self.t = clock.t
             # update the objects with this clock

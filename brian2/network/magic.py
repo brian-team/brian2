@@ -1,7 +1,5 @@
 from brian2 import second, check_units, BrianObject, get_instances
-
-from .network import Network
-import network
+from brian2.network.network import Network
 
 __all__ = ['MagicNetwork',
            'run', 'reinit', 'stop',
@@ -104,4 +102,4 @@ def stop():
     
     Network.stop, MagicNetwork, run, reinit
     '''
-    network.globally_stopped = True
+    Network._globally_stopped = True
