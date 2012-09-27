@@ -1,5 +1,4 @@
-from base import Language
-from cpp import CPPLanguage
+from .cpp import CPPLanguage
 
 __all__ = ['CUDALanguage']
 

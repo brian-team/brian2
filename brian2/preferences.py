@@ -2,10 +2,10 @@
 Brian global preferences are stored as attributes of a :class:`BrianGlobalPreferences`
 object ``brian_prefs``.
 '''
-
-from .utils.stringtools import deindent, indent
-from .units import have_same_dimensions, Quantity, DimensionMismatchError
 import copy
+
+from brian2.utils.stringtools import deindent, indent
+from brian2 import have_same_dimensions, Quantity, DimensionMismatchError
 
 __all__ = ['brian_prefs']
 

@@ -14,14 +14,14 @@ The input information needed:
 * The dtype to use for newly created variables
 * The language to translate to
 '''
+import re
 
-from specifiers import (Function, Value, ArrayVariable, OutputVariable,
-                        Subexpression, Index)
-from statements import Statement
 from brian2.utils.stringtools import (deindent, strip_empty_lines, indent,
                                       get_identifiers)
-import re
-from collections import defaultdict
+
+from .specifiers import (Function, Value, ArrayVariable, OutputVariable,
+                         Subexpression, Index)
+from .statements import Statement
 
 __all__ = ['translate', 'make_statements']
 

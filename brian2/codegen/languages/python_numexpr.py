@@ -1,5 +1,3 @@
-from base import Language
-from python import PythonLanguage, PythonCodeObject
 import sympy
 try:
     import numexpr
@@ -11,6 +9,8 @@ try:
 except ImportError:
     numexpr = None
     numexpr_ver = None
+
+from .python import PythonLanguage, PythonCodeObject
 
 __all__ = ['NumexprPythonLanguage', 'NumexprPythonCodeObject']
 

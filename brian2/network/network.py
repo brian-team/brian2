@@ -1,8 +1,6 @@
-from ..units import check_units, second
-from ..base import BrianObject, get_instances
+from brian2 import check_units, second, BrianObject
 
-__all__ = ['Network',
-           ]
+__all__ = ['Network']
 
 globally_stopped = False
 

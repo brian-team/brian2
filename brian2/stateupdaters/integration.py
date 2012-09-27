@@ -3,7 +3,7 @@ from sympy import sympify, Symbol, Function
 from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
 
-from brian2.equations import Equations
+from brian2 import Equations
 
 __all__ = ['euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 

@@ -1,14 +1,15 @@
 '''
 TODO: restrict keyword optimisations
 '''
-import numpy
-from base import Language, CodeObject
 import sympy
 from sympy.printing.ccode import CCodePrinter
-from ..templating import apply_code_template
-from ..functions import UserFunction
+import numpy
 from scipy import weave
+
 from brian2.utils.stringtools import deindent
+
+from .base import Language, CodeObject
+from ..functions import UserFunction
 
 __all__ = ['CPPLanguage', 'CPPCodeObject',
            'c_data_type',

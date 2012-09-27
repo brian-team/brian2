@@ -1,6 +1,6 @@
+from brian2 import Quantity, Unit
 from brian2.units.stdunits import stdunits
-from brian2.units.fundamentalunits import (Quantity, Unit, all_registered_units,
-                                           DIMENSIONLESS)
+from brian2.units.fundamentalunits import (all_registered_units, DIMENSIONLESS)
 
 __all__ = ['get_default_unit_namespace', 'get_unit_from_string']
 

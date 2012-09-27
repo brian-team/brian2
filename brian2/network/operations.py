@@ -1,6 +1,4 @@
-from ..units import check_units, second
-from ..base import BrianObject
-from .network import Network
+from brian2 import BrianObject
 
 __all__ = ['NetworkOperation', 'network_operation']
 

@@ -1,4 +1,4 @@
-from specifiers import Function
+from .specifiers import Function
 
 __all__ = ['UserFunction', 'SimpleUserFunction', 'make_user_function']
 

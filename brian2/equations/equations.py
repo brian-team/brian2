@@ -13,11 +13,10 @@ from sympy.core.sympify import SympifyError
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 
-from brian2 import DimensionMismatchError, second
-from brian2.units.fundamentalunits import get_dimensions
-from brian2.equations.unitcheck import (get_unit_from_string,
-                                        get_default_unit_namespace)
+from brian2 import DimensionMismatchError, second, get_dimensions
 from brian2.utils.stringtools import word_substitute, get_identifiers
+
+from .unitcheck import get_unit_from_string, get_default_unit_namespace
 
 __all__ = ['Equations', 'CodeString']
 
@@ -788,6 +787,20 @@ class Equations(object):
         
         Equations.identifier_checks.add(func)
 
+    def check_identifiers(self):
+        '''
+        Check all identifiers for conformity with the rules.
+        
+        Raises
+        ------
+        ValueError
+            If an identifier does not conform to the rules.
+        
+        See also
+        --------
+        `check_identifier` : The function that is called for each identifier.
+        '''
+
     def _get_substituted_expressions(self):
         '''
         Return a list of ``(varname, expr)`` tuples, containing all
@@ -972,34 +985,34 @@ class Equations(object):
             elif eq.eq_type == 'parameter':
                 eq.update_order = len(sorted_eqs) + 1
 
-def resolve(self):
-    '''
-    Resolve all external identifiers in the equations.
-    
-    Returns
-    -------
-    namespace : dict
-        A dictionary mapping all external identifiers to the objects they
-        refer to.
-    '''
-    for eq in self._equations.itervalues():
-        eq.resolve(self.variables)
-    
-    namespace = {}
-    # Make absolutely sure there are no conflicts and nothing weird is
-    # going on
-    for eq in self._equations.itervalues():
-        if eq.expr is None:
-            # Parameters do not have/need a namespace
-            continue
-        for key, value in eq.expr._namespace.iteritems():
-            if key in namespace:
-                # Should refer to exactly the same object
-                assert value is namespace[key] 
-            else:
-                namespace[key] = value
-    
-    return namespace
+    def resolve(self):
+        '''
+        Resolve all external identifiers in the equations.
+        
+        Returns
+        -------
+        namespace : dict
+            A dictionary mapping all external identifiers to the objects they
+            refer to.
+        '''
+        for eq in self._equations.itervalues():
+            eq.resolve(self.variables)
+        
+        namespace = {}
+        # Make absolutely sure there are no conflicts and nothing weird is
+        # going on
+        for eq in self._equations.itervalues():
+            if eq.expr is None:
+                # Parameters do not have/need a namespace
+                continue
+            for key, value in eq.expr._namespace.iteritems():
+                if key in namespace:
+                    # Should refer to exactly the same object
+                    assert value is namespace[key] 
+                else:
+                    namespace[key] = value
+        
+        return namespace
 
     def check_units(self):
         '''
@@ -1032,14 +1045,6 @@ def resolve(self):
                                                  (var, dme.desc), *dme.dims)                
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.eq_type)
-
-    def check_identifiers(self):
-        '''
-        Check the list of identifiers used in this equation. Calls
-        `check_identifier` for every variable name.
-        '''
-        for name in self.names:            
-            check_identifier(name)
 
     def check_flags(self, allowed_flags):
         '''

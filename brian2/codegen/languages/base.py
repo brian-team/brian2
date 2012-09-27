@@ -2,12 +2,14 @@
 Base class for languages, gives the methods which should be overridden to
 implement a new language.
 '''
+import functools
+
+from brian2.utils.stringtools import get_identifiers, deindent
 
 from ..specifiers import ArrayVariable
-from ...utils.stringtools import get_identifiers, deindent
 from ..templating import apply_code_template
 from ..functions import UserFunction
-import functools
+
 
 __all__ = ['Language', 'CodeObject']
 

@@ -4,11 +4,11 @@ Clocks for the simulator.
 
 __docformat__ = "restructuredtext en"
 
-__all__ = ['Clock', 'defaultclock']
+from numpy import ceil 
 
 from brian2.units import second, msecond, check_units
-from time import time
-from numpy import ceil
+
+__all__ = ['Clock', 'defaultclock']
 
 
 class Clock(object):

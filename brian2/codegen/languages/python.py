@@ -1,5 +1,7 @@
-from base import Language, CodeObject
 import sympy
+
+from .base import Language, CodeObject
+
 
 __all__ = ['PythonLanguage', 'PythonCodeObject']
 

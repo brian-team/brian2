@@ -5,6 +5,8 @@ from brian2.stateupdaters.integration import euler
 from brian2.codegen.specifiers import (Value, ArrayVariable, Subexpression,
                                        Index)
 
+__all__ = ['NeuronGroup']
+
 class NeuronGroup(object):
     '''
     This is currently only a placeholder object, it does not even save states.
