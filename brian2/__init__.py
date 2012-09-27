@@ -7,15 +7,17 @@ __docformat__ = "restructuredtext en"
 __version__ = '2.0dev'
 __release_date__ = 'notyet'
 
+# To minimize the problems with imports, import the modules used by many other
+# modules first 
+from .units import *
+from .units.stdunits import *
+from .preferences import *
 from .base import *
 from .clocks import *
-from .codegen import *
 from .equations import *
 from .groups import *
 from .network import *
-from .preferences import *
-from .units import *
-from .units.stdunits import *
+from .codegen import *
 from .utils import *
 
 # TODO: this will probably be moved into the codegen module, just here as a sample preference
