@@ -3,8 +3,6 @@ from sympy import sympify, Symbol, Function
 from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
 
-from brian2 import Equations
-
 __all__ = ['euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 
 #===============================================================================
@@ -162,19 +160,3 @@ rk4 = ExplicitStateUpdater('''
     k4=dt*f(x+k3,t+dt)
     return x+(k1+2*k2+2*k3+k4)/6
     ''')
-
-
-if __name__ == '__main__':
-    from brian2.units.stdunits import ms
-    tau = 10 * ms
-    Vt0 = 0
-    eqs = Equations('''   
-    dV/dt = (-V + I + J)/tau : 1
-    dI/dt = -I/tau : 1
-    J = V * 2 : 1''')
-    print '**** Euler:'    
-    print euler(eqs)
-    print '\n****Runge-Kutta 2:'
-    print rk2(eqs)
-    print '\n****Runge-Kutta 4:'
-    print rk4(eqs)
