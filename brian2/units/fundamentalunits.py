@@ -284,7 +284,6 @@ class Dimension(object):
 
     #### METHODS ####
     def get_dimension(self, d):
-        #FIXME: incorrect docstring
         """
         Return a specific dimension.
         
@@ -999,9 +998,11 @@ class Quantity(np.ndarray):
     #### Setting/getting items ####
     def __getitem__(self, key):
         ''' Overwritten to assure that single elements (i.e., indexed with a
-        single integer) retain their unit.
+        single integer or a tuple of integers) retain their unit.
         '''
-        if np.isscalar(key) and np.issubdtype(type(key), np.integer):
+        if (np.issubdtype(type(key), np.integer) or
+            (isinstance(key, tuple) and
+             all([np.issubdtype(type(one_key), np.integer) for one_key in key]))):
             return Quantity.with_dimensions(super(Quantity, self).__getitem__(key),
                                             self.dim)
         else:

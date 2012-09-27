@@ -104,6 +104,6 @@ def wrap_function_to_method(func):
 
 # these functions discard subclass info -- maybe a bug in numpy?
 ravel = wrap_function_to_method(np.ravel)
-diagonal = wrap_function_to_method(np.ravel)
-trace = wrap_function_to_method(np.ravel)
-dot = wrap_function_to_method(np.ravel)
+diagonal = wrap_function_to_method(np.diagonal)
+trace = wrap_function_to_method(np.trace)
+dot = wrap_function_to_method(np.dot)

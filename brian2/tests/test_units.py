@@ -56,8 +56,91 @@ def test_construction():
     assert_raises(DimensionMismatchError, lambda: Quantity([500 * ms],
                                                            dim=volt.dim))
 
-# Slicing and indexing, setting items
+def test_str_repr():
+    '''
+    Test that str representations do not raise any errors and that repr
+    fullfills eval(repr(x)) == x.
+    '''
+    from numpy import array # necessary for evaluating repr    
+    
+    units_which_should_exist = [metre, meter, kilogram, second, amp, kelvin, mole, candle,
+                                radian, steradian, hertz, newton, pascal, joule, watt,
+                                coulomb, volt, farad, ohm, siemens, weber, tesla, henry,
+                                celsius, lumen, lux, becquerel, gray, sievert, katal,
+                                gram, gramme]
+    
+    # scaled versions of all these units should exist (we just check farad as an example)
+    some_scaled_units = [Yfarad, Zfarad, Efarad, Pfarad, Tfarad, Gfarad, Mfarad, kfarad,
+                         hfarad, dafarad, dfarad, cfarad, mfarad, ufarad, nfarad, pfarad,
+                         ffarad, afarad, zfarad, yfarad]
+    
+    # some powered units
+    powered_units = [cmetre2, Yfarad3]
+    
+    # Combined units
+    complex_units = [(kgram * metre2)/(amp * second3),
+                     5 * (kgram * metre2)/(amp * second3),
+                     metre * second**-1, 10 * metre * second**-1,
+                     array([1, 2, 3]) * kmetre / second,
+                     np.ones(3) * nS / cm**2]
+        
+    for u in itertools.chain(units_which_should_exist, some_scaled_units,
+                              powered_units, complex_units):
+        assert(len(str(u)) > 0)
+        assert_equal(eval(repr(u)), u)
 
+
+# Slicing and indexing, setting items
+def test_slicing():
+    quantity = np.reshape(np.arange(6), (2, 3)) * mV
+    assert_equal(quantity[:], quantity)
+    assert_equal(quantity[0], np.asarray(quantity)[0] * volt)
+    assert_equal(quantity[0:1], np.asarray(quantity)[0:1] * volt)
+    assert_equal(quantity[0, 1], np.asarray(quantity)[0, 1] * volt)
+    assert_equal(quantity[0:1, 1:], np.asarray(quantity)[0:1, 1:] * volt)
+    bool_matrix = np.array([[True, False, False],
+                            [False, False, True]])
+    assert_equal(quantity[bool_matrix],
+                 np.asarray(quantity)[bool_matrix] * volt)
+
+def test_setting():
+    quantity = np.reshape(np.arange(6), (2, 3)) * mV
+    quantity[0, 1] = 10 * mV
+    assert quantity[0, 1] == 10 * mV
+    quantity[:, 1] = 20 * mV
+    assert np.all(quantity[:, 1] == 20 * mV)
+    quantity[1, :] = np.ones((1, 3)) * volt
+    assert np.all(quantity[1, :] == 1 * volt)
+    # Setting to zero should work without units as well
+    quantity[1, 2] = 0
+    assert quantity[1, 2] == 0 * mV
+    
+    def set_to_value(key, value):
+        quantity[key] = value
+
+    assert_raises(DimensionMismatchError, lambda : set_to_value(0, 1))
+    assert_raises(DimensionMismatchError, lambda : set_to_value(0, 1 * second))
+    assert_raises(DimensionMismatchError, lambda : set_to_value((slice(2), slice(3)),
+                                                                np.ones((2, 3))))
+    
+    # A dimensionless array can be set to values without units
+    dimensionless = quantity / mV
+    dimensionless[0, 1] = 10
+    assert dimensionless[0, 1] == 10
+    dimensionless[0, 1] = 30 * volt/volt
+    assert dimensionless[0, 1] == 30
+    dimensionless[:, 1] = 20
+    assert np.all(dimensionless[:, 1] == 20)
+    dimensionless[1, :] = np.ones((1, 3))
+    assert np.all(dimensionless[1, :] == 1)
+
+    def set_to_value2(key, value):
+        dimensionless[key] = value
+
+    assert_raises(DimensionMismatchError, lambda : set_to_value2(0, 1 * second))    
+    assert_raises(DimensionMismatchError, lambda : set_to_value2((slice(2), slice(3)),
+                                                                np.ones((2, 3)) * volt))
+    
 
 # Binary operations
 def test_multiplication_division():
@@ -308,39 +391,50 @@ def test_unitsafe_functions():
             for val in numpy_values:
                 assert_equal(func(val), np_func(val))
 
-def test_str_repr():
+def test_special_case_numpy_functions():
     '''
-    Test that str representations do not raise any errors and that repr
-    fullfills eval(repr(x)) == x.
+    Test a couple of functions that need special treatment because they do
+    not automatically call the corresponding method.
     '''
-    from numpy import array # necessary for evaluating repr    
+    from brian2 import ravel, diagonal, trace, dot
     
-    units_which_should_exist = [metre, meter, kilogram, second, amp, kelvin, mole, candle,
-                                radian, steradian, hertz, newton, pascal, joule, watt,
-                                coulomb, volt, farad, ohm, siemens, weber, tesla, henry,
-                                celsius, lumen, lux, becquerel, gray, sievert, katal,
-                                gram, gramme]
-    
-    # scaled versions of all these units should exist (we just check farad as an example)
-    some_scaled_units = [Yfarad, Zfarad, Efarad, Pfarad, Tfarad, Gfarad, Mfarad, kfarad,
-                         hfarad, dafarad, dfarad, cfarad, mfarad, ufarad, nfarad, pfarad,
-                         ffarad, afarad, zfarad, yfarad]
-    
-    # some powered units
-    powered_units = [cmetre2, Yfarad3]
-    
-    # Combined units
-    complex_units = [(kgram * metre2)/(amp * second3),
-                     5 * (kgram * metre2)/(amp * second3),
-                     metre * second**-1, 10 * metre * second**-1,
-                     array([1, 2, 3]) * kmetre / second,
-                     np.ones(3) * nS / cm**2]
-        
-    for u in itertools.chain(units_which_should_exist, some_scaled_units,
-                              powered_units, complex_units):
-        assert(len(str(u)) > 0)
-        assert_equal(eval(repr(u)), u)
+    quadratic_matrix = np.reshape(np.arange(9), (3, 3)) * mV
+    # Check that function and method do the same thing
+    assert_equal(ravel(quadratic_matrix), quadratic_matrix.ravel())
+    # Check that function gives the same result as on unitless arrays
+    assert_equal(np.asarray(ravel(quadratic_matrix)),
+                 ravel(np.asarray(quadratic_matrix)))
+    # Check that the function gives the same results as the original numpy
+    # function
+    assert_equal(np.ravel(np.asarray(quadratic_matrix)),
+                 ravel(np.asarray(quadratic_matrix)))
 
+    # Do the same checks for diagonal, trace and dot
+    assert_equal(diagonal(quadratic_matrix), quadratic_matrix.diagonal())
+    assert_equal(np.asarray(diagonal(quadratic_matrix)),
+                 diagonal(np.asarray(quadratic_matrix)))
+    assert_equal(np.diagonal(np.asarray(quadratic_matrix)),
+                 diagonal(np.asarray(quadratic_matrix)))
+
+    assert_equal(trace(quadratic_matrix), quadratic_matrix.trace())
+    assert_equal(np.asarray(trace(quadratic_matrix)),
+                 trace(np.asarray(quadratic_matrix)))
+    assert_equal(np.trace(np.asarray(quadratic_matrix)),
+                 trace(np.asarray(quadratic_matrix)))
+
+    assert_equal(dot(quadratic_matrix, quadratic_matrix),
+                 quadratic_matrix.dot(quadratic_matrix))
+    assert_equal(np.asarray(dot(quadratic_matrix, quadratic_matrix)),
+                 dot(np.asarray(quadratic_matrix), np.asarray(quadratic_matrix)))
+    assert_equal(np.dot(np.asarray(quadratic_matrix), np.asarray(quadratic_matrix)),
+                 dot(np.asarray(quadratic_matrix), np.asarray(quadratic_matrix)))
+    
+    # Check for correct units
+    assert have_same_dimensions(quadratic_matrix, ravel(quadratic_matrix))
+    assert have_same_dimensions(quadratic_matrix, trace(quadratic_matrix))
+    assert have_same_dimensions(quadratic_matrix, diagonal(quadratic_matrix))
+    assert have_same_dimensions(quadratic_matrix[0] ** 2,
+                                dot(quadratic_matrix, quadratic_matrix))
 
 # Functions that should not change units
 def test_numpy_functions_same_dimensions():
@@ -453,12 +547,15 @@ def test_numpy_functions_logical():
 
 if __name__ == '__main__':
     test_construction()
+    test_str_repr()
+    test_slicing()
+    test_setting()
     test_multiplication_division()
     test_addition_subtraction()
     test_binary_operations()
     test_inplace_operations()
     test_unitsafe_functions()
-    test_str_repr()
+    test_special_case_numpy_functions()    
     test_numpy_functions_same_dimensions()
     test_numpy_functions_dimensionless()
     test_numpy_functions_change_dimensions()
