@@ -6,7 +6,7 @@ __docformat__ = "restructuredtext en"
 
 from numpy import ceil 
 
-from brian2.units import second, msecond, check_units
+from brian2 import second, msecond, check_units
 
 __all__ = ['Clock', 'defaultclock']
 
