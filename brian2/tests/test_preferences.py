@@ -4,7 +4,7 @@ from nose import with_setup
 
 @with_setup(teardown=restore_initial_state)
 def test_preferences():
-    assert_raises(KeyError, lambda: brian_prefs.weave_compiler)
+    assert_raises(KeyError, lambda: brian_prefs.fake_nonexisting_pref)
     brian_prefs.define('fake_weave_compiler', 'gcc',
                        'The distutils compiler specifier for weave compilation.')
     brian_prefs.fake_weave_compiler
