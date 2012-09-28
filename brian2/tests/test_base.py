@@ -10,40 +10,8 @@ class DerivedBrianObject(BrianObject):
         return self.name
     __repr__ = __str__
 
-def namesof(cls):
-    return ''.join(sorted(map(str, get_instances(cls))))
-
-def makesomething():
-    return DerivedBrianObject('z')
-
-class MoreDerivedBrianObject1(DerivedBrianObject):
-    pass
-
-class MoreDerivedBrianObject2(DerivedBrianObject):
-    pass
-
 @with_setup(teardown=restore_initial_state)
-def test_base():    
-    x = DerivedBrianObject('x')
-    assert_equal(namesof(DerivedBrianObject), 'x')
-    y = DerivedBrianObject('y')
-    assert_equal(namesof(DerivedBrianObject), 'xy')
-    del y
-    assert_equal(namesof(DerivedBrianObject), 'x')
-    
-    
-    makesomething()
-    assert_equal(namesof(DerivedBrianObject), 'x')
-    z = makesomething()
-    assert_equal(namesof(DerivedBrianObject), 'xz')
-    
-    a = MoreDerivedBrianObject1('a')
-    b = MoreDerivedBrianObject2('b')
-    
-    assert_equal(namesof(DerivedBrianObject), 'abxz')
-    assert_equal(namesof(MoreDerivedBrianObject1), 'a')
-    assert_equal(namesof(MoreDerivedBrianObject2), 'b')
-    
+def test_base():
     x = DerivedBrianObject('x')
     y = DerivedBrianObject('y')
     assert_equal(x.when, 'start')

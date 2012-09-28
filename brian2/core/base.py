@@ -2,97 +2,115 @@
 All Brian objects should derive from :class:`BrianObject`.
 '''
 
-from weakref import ref
+from weakref import ref, proxy
 import gc
+import copy
 
 import brian2.core.clocks as clocks
 
-__all__ = ['BrianObject', 'get_instances', 'InstanceTracker', 'clear']
+__all__ = ['BrianObject',
+           'MagicError',
+           'BrianObjectSet',
+           'brian_objects',
+           'clear',
+           ]
 
 
-class WeakSet(set):
-    """A set of extended references
+class MagicError(Exception):
+    '''
+    Error that is raised when something goes wrong in `MagicNetwork`
+    '''
+    pass
+
+
+class BrianObjectSet(set):
+    '''
+    A `set` of weak proxies to all existing `BrianObject` objects
     
-    Removes references from the set when they are destroyed."""
-    def add(self, value):
-        wr = ref(value, self.remove)
-        set.add(self, wr)
-
-    def get(self):
-        return [x() for x in self]
-
-
-class InstanceFollower(object):
-    """Keep track of all instances of classes derived from `InstanceTracker`
+    Notes
+    -----
     
-    The variable __instancesets__ is a dictionary with keys which are class
-    objects, and values which are WeakSets, so __instanceset__[cls] is a
-    weak set tracking all of the instances of class cls (or a subclass).
-    """
-    __instancesets__ = {}
-    def add(self, value):
-        for cls in value.__class__.__mro__: # MRO is the Method Resolution Order which contains all the superclasses of a class
-            if cls not in self.__instancesets__:
-                self.__instancesets__[cls] = WeakSet()
-            self.__instancesets__[cls].add(value)
-            
-    def remove(self, value):
-        for cls in value.__class__.__mro__: # MRO is the Method Resolution Order which contains all the superclasses of a class
-            if cls not in self.__instancesets__:
-                self.__instancesets__[cls] = WeakSet()
-            self.__instancesets__[cls].remove(ref(value))
-
-    def get(self, cls):
-        if not cls in self.__instancesets__: return []
-        return self.__instancesets__[cls].get()
-
-
-class InstanceTracker(object):
-    """Base class for all classes whose instances are to be tracked
+    Has three possible `state`s, `STATE_NEW` (new), `STATE_VALID` (valid) and
+    `STATE_INVALID` (invalid). When the set is empty, the state is set to new.
+    When a `BrianObject` with `BrianObject.invalidates_magic_network` set to
+    ``True`` is added or removed, if the current state is valid it will be
+    set to invalid (nothing happens if it is new). When iterating over the set
+    if the state is new it is set to valid, and if it is invalid a
+    `MagicError` will be raised. You can explicitly set the `state` to
+    `STATE_VALID` however.
     
-    Derive your class from this one to automagically keep track of instances of
-    it. If you want a subclass of a tracked class not to be tracked, define the
-    attribute ``_track_instances=False``. To stop an individual instance from
-    being tracked, call the :meth:`_stop_tracking()` method, and to re-enable
-    it call :meth:`_start_tracking()`.
+    Iterating through this returns `weakref.proxy` objects of the items in the
+    set.
     
-    .. automethod:: _stop_tracking
-    .. automethod:: _start_tracking
-    """
-    __instancefollower__ = InstanceFollower() # static property of all objects of class derived from InstanceTracker
-    _track_instances = True
-
-    def __new__(cls, *args, **kw):
-        obj = object.__new__(cls)
-        if obj._track_instances:
-            obj.__instancefollower__.add(obj)
-        return obj
+    See `run` and `MagicNetwork` for the rationale behind these state
+    transitions.
     
-    def _stop_tracking(self):
-        '''
-        Stop this object from being tracked.        
-        '''
-        self.__instancefollower__.remove(self)
+    Raises
+    ------
+    
+    MagicError
+    '''
+    
+    '''State entered when set is empty'''
+    STATE_NEW = 0
+    '''State entered when set is used validly'''
+    STATE_VALID = 1
+    '''State entered when an invalidating `BrianObject` is added or removed'''
+    STATE_INVALID = 2
+    
+    def __init__(self):
+        super(BrianObjectSet, self).__init__()
         
-    def _start_tracking(self):
-        '''
-        Enable tracking on this object.
-        '''
-        self.__instancefollower__.add(self)
+        '''Current validity state (one of `STATE_NEW`, `STATE_VALID` or `STATE_INVALID`)'''
+        self.state = self.STATE_NEW
+        
+    def add(self, value):
+        # For the callback to remove the object from the set,
+        # we have to remove either with the invalidating or non-invalidating
+        # form of remove, dependent on value.invalidates_magic_network. We
+        # can't have a simple function remove because by the time the
+        # weakref callback is called the object has already been deleted so
+        # we can't access its 
+        if value.invalidates_magic_network:
+            wr = ref(value, self.remove_invalidates)
+        else:
+            wr = ref(value, self.remove_valid)
+        set.add(self, wr)
+        if self.state==self.STATE_VALID:
+            if value.invalidates_magic_network:
+                self.state = self.STATE_INVALID
 
+    def remove(self, value, invalidates_magic_network):
+        set.remove(self, value)
+        if len(self)==0:
+            self.state = self.STATE_NEW
+        elif self.state==self.STATE_VALID:
+            if invalidates_magic_network:
+                self.state = self.STATE_INVALID
+                
+    def remove_invalidates(self, value):
+        self.remove(value, True)
 
-def get_instances(instancetype):
-    '''
-    Return all instances of a given `InstanceTracker` derived class.
-    '''
-    try:
-        follower = instancetype.__instancefollower__
-    except AttributeError:
-        raise TypeError('Cannot track instances of class '+str(instancetype.__name__))
-    return follower.get(instancetype)
-
+    def remove_valid(self, value):
+        self.remove(value, False)
     
-class BrianObject(InstanceTracker):
+    def __iter__(self):
+        if self.state==self.STATE_NEW:
+            self.state = self.STATE_VALID
+        elif self.state==self.STATE_INVALID:
+            raise MagicError("Cannot iterate through invalid BrianObjectSet")
+        return [proxy(obj()) for obj in set.__iter__(self)].__iter__()
+    
+    def clear(self):
+        set.clear(self)
+        self.state = self.STATE_NEW
+
+
+''''A `BrianObjectSet` containing all instances of `BrianObject` '''
+brian_objects = BrianObjectSet()
+
+
+class BrianObject(object):
     '''
     All Brian objects derive from this class, defines magic tracking and update.
     
@@ -120,8 +138,7 @@ class BrianObject(InstanceTracker):
     
     Brian objects deriving from this class should always define an
     ``update()`` method, that gets called by :meth:`Network.run`.
-    '''
-    
+    '''        
     def __init__(self, when='start', order=0, clock=None):
         if not isinstance(when, str):
             raise TypeError("when attribute should be a string, was "+repr(when))
@@ -143,7 +160,15 @@ class BrianObject(InstanceTracker):
         self._contained_objects = []
         
         self._active = True
-        
+
+    #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is created or removed
+    invalidates_magic_network = True
+
+    def __new__(cls, *args, **kw):
+        obj = object.__new__(cls)
+        brian_objects.add(obj)
+        return obj
+    
     def prepare(self):
         '''
         Optional method to prepare data for the first time.
@@ -223,17 +248,14 @@ def clear(erase=False):
     -----
     
     Stops objects from being tracked by `MagicNetwork`, `run` and `reinit`.
-    Calls the `InstanceTracker._stop_tracking` method. Will also set the
+    Removes the object from `brian_objects`. Will also set the
     `BrianObject.active` flag to ``False`` for already existing `Network`
     objects. Calls a garbage collection on completion.
     '''
-    objs = get_instances(BrianObject)
-    for obj in objs:
-        obj.active = False
-        obj._stop_tracking()
+    brian_objects.state = brian_objects.STATE_VALID
     if erase:
-        for obj in objs:
+        for obj in brian_objects:
             for k, v in obj.__dict__.iteritems():
                 object.__setattr__(obj, k, None)
-    
+    brian_objects.clear()
     gc.collect()

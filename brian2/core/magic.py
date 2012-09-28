@@ -1,7 +1,8 @@
-from brian2 import second, check_units, BrianObject, get_instances
+from brian2 import second, check_units, BrianObject
 from brian2.core.network import Network
+from brian2.core.base import MagicError, brian_objects
 
-__all__ = ['MagicNetwork',
+__all__ = ['MagicNetwork', 'magic_network',
            'run', 'reinit', 'stop',
            ]
 
@@ -14,8 +15,9 @@ class MagicNetwork(Network):
     -----
     
     All Brian objects that have not been removed by the `clear` function will
-    be included. The time `~Network.t` will be set to the minimal value over
-    all the clocks of objects added at initialisation.
+    be included.
+    
+    TODO: notes on validation/invalidation
     
     See Also
     --------
@@ -24,9 +26,46 @@ class MagicNetwork(Network):
     '''
     def __init__(self):
         super(MagicNetwork, self).__init__()
-        self.add(get_instances(BrianObject))
-        minclock = min(set(obj.clock for obj in self.objects))
-        self.t = minclock.t
+        
+    def add(self, *objs):
+        raise MagicError("Cannot directly modify MagicNetwork")
+
+    def remove(self, *objs):
+        raise MagicError("Cannot directly modify MagicNetwork")
+    
+    def _update_magic_objects(self):
+        # TODO: check validity and update objects
+        if brian_objects.state==brian_objects.STATE_NEW:
+            self.t = 0*second
+        self.objects[:] = list(brian_objects)
+        self._prepared = False
+    
+    @check_units(duration=second, report_period=second)
+    def run(self, duration, report=None, report_period=60*second):
+        '''
+        run(duration, report=None, report_period=60*second)
+        
+        Runs the simulation for the given duration.
+        
+        Notes
+        -----
+        
+        For details see `Network.run`.
+        '''
+        self._update_magic_objects()
+        super(MagicNetwork, self).run(duration, report=report,
+                                      report_period=report_period)
+
+    def reinit(self):
+        '''
+        See `Network.reinit`.
+        '''
+        self._update_magic_objects()
+        super(MagicNetwork, self).reinit()
+
+
+#: Automatically constructed `MagicNetwork` of all Brian objects
+magic_network = MagicNetwork()
 
 
 @check_units(duration=second, report_period=second)
@@ -76,8 +115,9 @@ def run(duration, report=None, report_period=60*second):
     
     Network.run, MagicNetwork, reinit, stop, clear
     '''
-    net = MagicNetwork()
-    net.run(duration, report=report, report_period=report_period)
+    #net = MagicNetwork()
+    #net.run(duration, report=report, report_period=report_period)
+    magic_network.run(duration, report=report, report_period=report_period)
 
 
 def reinit():
@@ -89,8 +129,9 @@ def reinit():
     
     Network.reinit, MagicNetwork, run, stop, clear
     '''
-    net = MagicNetwork()
-    net.reinit()
+    #net = MagicNetwork()
+    #net.reinit()
+    magic_network.reinit()
 
 
 def stop():
