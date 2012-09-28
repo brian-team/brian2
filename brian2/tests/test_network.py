@@ -1,6 +1,7 @@
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
                     restore_initial_state)
+import copy
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
 
@@ -28,12 +29,12 @@ def test_network_single_object():
 @with_setup(teardown=restore_initial_state)
 def test_network_two_objects():
     # Check that a network with two objects and the same clock function correctly
-    x = Counter()
-    y = Counter()
+    x = Counter(order=5)
+    y = Counter(order=6)
     net = Network()
     net.add([x, [y]]) # check that a funky way of adding objects work correctly
-    assert net.objects[0] is x
-    assert net.objects[1] is y
+    assert_equal(net.objects[0].order, 5)
+    assert_equal(net.objects[1].order, 6)
     assert_equal(len(net.objects), 2)
     net.run(1*ms)
     assert_equal(x.count, 10)
@@ -216,6 +217,36 @@ def test_network_t():
     assert_equal(x.count, 9)
     assert_equal(y.count, 5)
     
+@with_setup(teardown=restore_initial_state)
+def test_network_remove():
+    x = Counter()
+    y = Counter()
+    net = Network(x, y)
+    net.remove(y)
+    net.run(1*ms)
+    assert_equal(x.count, 10)
+    assert_equal(y.count, 0)
+    # the relevance of this test is when we use weakref.proxy objects in
+    # Network.objects, we should be able to add and remove these from
+    # the Network just as much as the original objects
+    for obj in copy.copy(net.objects):
+        net.remove(obj)
+    net.run(1*ms)
+    assert_equal(x.count, 10)
+    assert_equal(y.count, 0)
+
+@with_setup(teardown=restore_initial_state)
+def test_network_copy():
+    x = Counter()
+    net = Network(x)
+    net2 = Network()
+    for obj in net.objects:
+        net2.add(obj)
+    net2.run(1*ms)
+    assert_equal(x.count, 10)
+    net.run(1*ms)
+    assert_equal(x.count, 20)
+
 
 if __name__=='__main__':
     for t in [test_empty_network,
@@ -229,6 +260,8 @@ if __name__=='__main__':
               test_network_operations,
               test_network_active_flag,
               test_network_t,
+              test_network_remove,
+              test_network_copy,
               ]:
         t()
         restore_initial_state()

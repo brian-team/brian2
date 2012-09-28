@@ -1,4 +1,5 @@
 from brian2 import check_units, second, BrianObject
+import weakref
 
 __all__ = ['Network']
 
@@ -57,6 +58,8 @@ class Network(object):
     '''
     def __init__(self, *objs):
         #: The list of objects in the Network, should not normally be modified directly
+        #:
+        #: Stores `weakref.proxy` references to the objects.
         self.objects = []
         
         self._prepared = False
@@ -90,6 +93,9 @@ class Network(object):
         self._prepared = False
         for obj in objs:
             if isinstance(obj, BrianObject):
+                #self.objects.append(obj)
+                if not isinstance(obj, (weakref.ProxyType, weakref.CallableProxyType)):
+                    obj = weakref.proxy(obj)
                 self.objects.append(obj)
                 self.add(obj.contained_objects)
             else:
@@ -115,7 +121,10 @@ class Network(object):
         self._prepared = False
         for obj in objs:
             if isinstance(obj, BrianObject):
-                self.objects = [o for o in self.objects if o is not obj]
+                if not isinstance(obj, (weakref.ProxyType, weakref.CallableProxyType)):
+                    obj = weakref.proxy(obj)
+                # note that weakref.proxy(obj) is weakref.proxy(obj) is True
+                self.objects.remove(obj)
                 self.remove(obj.contained_objects)
             else:
                 try:
