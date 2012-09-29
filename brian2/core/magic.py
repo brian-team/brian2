@@ -1,10 +1,21 @@
 from brian2 import second, check_units, BrianObject
 from brian2.core.network import Network
-from brian2.core.base import MagicError, brian_objects
+from brian2.core.base import brian_objects
+import weakref
 
 __all__ = ['MagicNetwork', 'magic_network',
+           'MagicError',
            'run', 'reinit', 'stop',
            ]
+
+
+class MagicError(Exception):
+    '''
+    Error that is raised when something goes wrong in `MagicNetwork`
+    
+    See notes to `MagicNetwork` for more details.
+    '''
+    pass
 
 
 class MagicNetwork(Network):
@@ -84,7 +95,10 @@ class MagicNetwork(Network):
         if MagicNetwork._already_created:
             raise ValueError("There can be only one MagicNetwork.")
         MagicNetwork._already_created = True
+        
         super(MagicNetwork, self).__init__()
+        
+        self._previous_refs = set()
         
     def add(self, *objs):
         '''
@@ -99,10 +113,20 @@ class MagicNetwork(Network):
         raise MagicError("Cannot directly modify MagicNetwork")
     
     def _update_magic_objects(self):
-        # TODO: check validity and update objects
-        if brian_objects.state==brian_objects.STATE_NEW:
+        # check whether we should restart time, continue time, or raise an
+        # error
+        valid_refs = set(r for r in brian_objects if r().invalidates_magic_network)
+        inter = valid_refs.intersection(self._previous_refs)
+        if len(inter)==0:
+            # reset time
             self.t = 0*second
-        self.objects[:] = list(brian_objects)
+        elif len(self._previous_refs)==len(valid_refs):
+            # continue time
+            pass
+        else:
+            raise MagicError("Brian cannot guess what you intend to do here, see docs for MagicNetwork for details")
+        self._previous_refs = valid_refs
+        self.objects[:] = [weakref.proxy(obj()) for obj in brian_objects]
         self._prepared = False
     
     @check_units(duration=second, report_period=second)

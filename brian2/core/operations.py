@@ -28,13 +28,19 @@ class NetworkOperation(BrianObject):
     def __init__(self, function, when='end', order=0, clock=None):
         super(NetworkOperation, self).__init__(when=when, order=order,
                                                clock=clock)
+        
+        #: The function to be called each time step
         self.function = function
+        
         if hasattr(function, 'func_code'):
             self._has_arg = (self.function.func_code.co_argcount==1)
         else:
             self._has_arg = False
 
     def update(self):
+        '''
+        Call the `function`.
+        '''
         if self._has_arg:
             self.function(self.clock.t)
         else:
@@ -45,7 +51,10 @@ def network_operation(*args, **kwds):
     """
     network_operation(when='end', order=0, clock=None)
     
-    Decorator to make a function get called every time step of a simulation
+    Decorator to make a function get called every time step of a simulation.
+    
+    The function being decorated should either have no arguments, or a single
+    argument which will be called with the current time `Clock.t`.
     
     Parameters
     ----------

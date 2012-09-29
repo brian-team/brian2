@@ -9,105 +9,40 @@ import copy
 import brian2.core.clocks as clocks
 
 __all__ = ['BrianObject',
-           'MagicError',
            'BrianObjectSet',
            'brian_objects',
            'clear',
            ]
 
 
-class MagicError(Exception):
-    '''
-    Error that is raised when something goes wrong in `MagicNetwork`
-    
-    See notes to `MagicNetwork` for more details.
-    '''
-    pass
-
-
 class BrianObjectSet(set):
     '''
-    A `set` of weak proxies to all existing `BrianObject` objects
+    A `set` of `weakref.ref` to all existing `BrianObject` objects.
     
-    Notes
-    -----
-    
-    Has three possible `state` values, `STATE_NEW` (new), `STATE_VALID` (valid) and
-    `STATE_INVALID` (invalid). When the set is empty, the state is set to new.
-    When a `BrianObject` with `BrianObject.invalidates_magic_network` set to
-    ``True`` is added or removed, if the current state is valid it will be
-    set to invalid (nothing happens if it is new). When iterating over the set
-    if the state is new it is set to valid, and if it is invalid a
-    `MagicError` will be raised. You can explicitly set the `state` to
-    `STATE_VALID` however.
-    
-    Iterating through this returns `weakref.proxy` objects of the items in the
-    set.
-    
-    See `run` and `MagicNetwork` for the rationale behind these state
-    transitions.
-    
-    Raises
-    ------
-    
-    MagicError
-        If you attempt to iterate through the set when it is in the invalid
-        state. See `run` and `MagicNetwork` for more details.
+    Should not normally be directly used, except internally by `MagicNetwork`
+    and `clear`.
     '''
-    
-    #: State entered when set is empty
-    STATE_NEW = 0
-    #: State entered when set is used validly
-    STATE_VALID = 1
-    #: State entered when an invalidating `BrianObject` is added or removed
-    STATE_INVALID = 2
-    
-    def __init__(self):
-        super(BrianObjectSet, self).__init__()
-        
-        #: Current validity state (one of `STATE_NEW`, `STATE_VALID` or `STATE_INVALID`)
-        self.state = self.STATE_NEW
-        
     def add(self, value):
-        # For the callback to remove the object from the set,
-        # we have to remove either with the invalidating or non-invalidating
-        # form of remove, dependent on value.invalidates_magic_network. We
-        # can't have a simple function remove because by the time the
-        # weakref callback is called the object has already been deleted so
-        # we can't access its 
-        if value.invalidates_magic_network:
-            wr = ref(value, self.remove_invalidates)
-        else:
-            wr = ref(value, self.remove_valid)
+        '''
+        Adds a `weakref.ref` to the ``value``
+        '''
+        # The second argument to ref is a callback that is called with the
+        # ref as argument when the object has been deleted, here we just
+        # remove it from the set in that case
+        wr = ref(value, self.remove)
         set.add(self, wr)
-        if self.state==self.STATE_VALID:
-            if value.invalidates_magic_network:
-                self.state = self.STATE_INVALID
-
-    def remove(self, value, invalidates_magic_network):
-        set.remove(self, value)
-        if len(self)==0:
-            self.state = self.STATE_NEW
-        elif self.state==self.STATE_VALID:
-            if invalidates_magic_network:
-                self.state = self.STATE_INVALID
-                
-    def remove_invalidates(self, value):
-        self.remove(value, True)
-
-    def remove_valid(self, value):
-        self.remove(value, False)
-    
-    def __iter__(self):
-        if self.state==self.STATE_NEW:
-            self.state = self.STATE_VALID
-        elif self.state==self.STATE_INVALID:
-            raise MagicError("Cannot iterate through invalid BrianObjectSet")
-        return [proxy(obj()) for obj in set.__iter__(self)].__iter__()
-    
-    def clear(self):
-        set.clear(self)
-        self.state = self.STATE_NEW
+        
+    def remove(self, value):
+        '''
+        Removes the ``value`` (which should be a weakref) if it is in the set
+        
+        Sometimes the value will have been removed from the set by `clear`,
+        so we ignore `KeyError` in this case.
+        '''
+        try:
+            set.remove(self, value)
+        except KeyError:
+            pass
 
 
 #: 'A `BrianObjectSet` containing all instances of `BrianObject`
@@ -264,9 +199,9 @@ def clear(erase=False):
     
     run, reinit, MagicError
     '''
-    brian_objects.state = brian_objects.STATE_VALID
     if erase:
         for obj in brian_objects:
+            obj = obj()
             for k, v in obj.__dict__.iteritems():
                 object.__setattr__(obj, k, None)
     brian_objects.clear()

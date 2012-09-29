@@ -1,6 +1,7 @@
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
-                    restore_initial_state, MagicError, magic_network)
+                    restore_initial_state, MagicError, magic_network, clear,
+                    brian_objects)
 import copy
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
@@ -275,8 +276,15 @@ def test_invalid_magic_network():
     x = Counter()
     y = Counter()
     run(1*ms)
+    assert_equal(x.count, 10)
+    assert_equal(y.count, 10)
     del x
     assert_raises(MagicError, lambda: run(1*ms))
+    clear()
+    z = Counter()
+    run(1*ms)
+    assert_equal(z.count, 10)
+    assert_equal(magic_network.t, 1*ms)
 
 
 if __name__=='__main__':
