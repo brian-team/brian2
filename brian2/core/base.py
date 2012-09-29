@@ -19,6 +19,8 @@ __all__ = ['BrianObject',
 class MagicError(Exception):
     '''
     Error that is raised when something goes wrong in `MagicNetwork`
+    
+    See notes to `MagicNetwork` for more details.
     '''
     pass
 
@@ -30,7 +32,7 @@ class BrianObjectSet(set):
     Notes
     -----
     
-    Has three possible `state`s, `STATE_NEW` (new), `STATE_VALID` (valid) and
+    Has three possible `state` values, `STATE_NEW` (new), `STATE_VALID` (valid) and
     `STATE_INVALID` (invalid). When the set is empty, the state is set to new.
     When a `BrianObject` with `BrianObject.invalidates_magic_network` set to
     ``True`` is added or removed, if the current state is valid it will be
@@ -49,19 +51,21 @@ class BrianObjectSet(set):
     ------
     
     MagicError
+        If you attempt to iterate through the set when it is in the invalid
+        state. See `run` and `MagicNetwork` for more details.
     '''
     
-    '''State entered when set is empty'''
+    #: State entered when set is empty
     STATE_NEW = 0
-    '''State entered when set is used validly'''
+    #: State entered when set is used validly
     STATE_VALID = 1
-    '''State entered when an invalidating `BrianObject` is added or removed'''
+    #: State entered when an invalidating `BrianObject` is added or removed
     STATE_INVALID = 2
     
     def __init__(self):
         super(BrianObjectSet, self).__init__()
         
-        '''Current validity state (one of `STATE_NEW`, `STATE_VALID` or `STATE_INVALID`)'''
+        #: Current validity state (one of `STATE_NEW`, `STATE_VALID` or `STATE_INVALID`)
         self.state = self.STATE_NEW
         
     def add(self, value):
@@ -106,13 +110,16 @@ class BrianObjectSet(set):
         self.state = self.STATE_NEW
 
 
-''''A `BrianObjectSet` containing all instances of `BrianObject` '''
+#: 'A `BrianObjectSet` containing all instances of `BrianObject`
 brian_objects = BrianObjectSet()
 
 
 class BrianObject(object):
     '''
     All Brian objects derive from this class, defines magic tracking and update.
+
+    See the documentation for `Network` for an explanation of which
+    objects get updated in which order.
     
     Parameters
     ----------
@@ -129,12 +136,8 @@ class BrianObject(object):
 
     Notes
     -----
-    
-    See the documentation for :meth:`Network` for an explanation of which
-    objects get updated in which order.
-    
-    The list of all instances of a particular class and its derived classes
-    can be returned using the :func:`get_instances` function.
+        
+    The set of all `BrianObject`\ s is stored in `brian_objects`.
     
     Brian objects deriving from this class should always define an
     ``update()`` method, that gets called by :meth:`Network.run`.
@@ -225,9 +228,9 @@ class BrianObject(object):
                       doc='''
                         Whether or not the object should be run.
                         
-                        Inactive objects will not have their ``update()``
+                        Inactive objects will not have their `update`
                         method called in `Network.run`. Note that setting or
-                        unsetting the ``active`` attribute will set or unset
+                        unsetting the `active` attribute will set or unset
                         it for all `contained_objects`. 
                         ''')
 
@@ -235,22 +238,31 @@ class BrianObject(object):
 def clear(erase=False):
     '''
     Stops all Brian objects from being automatically detected
+
+    Stops objects from being tracked by `run` and `reinit`.
+    Use this if you are seeing `MagicError` on repeated runs.
     
     Parameters
     ----------
     
     erase : bool, optional
-        If set to ``True``, all data attributes will be set to ``None``. This
+        If set to ``True``, all data attributes of all Brian objects
+        will be set to ``None``. This
         can help solve problems with circular references stopping objects
-        from being garbage collected.
+        from being garbage collected, and is a quick way to ensure that all
+        memory associated to Brian objects is deleted.
         
     Notes
     -----
     
-    Stops objects from being tracked by `MagicNetwork`, `run` and `reinit`.
     Removes the object from `brian_objects`. Will also set the
     `BrianObject.active` flag to ``False`` for already existing `Network`
     objects. Calls a garbage collection on completion.
+    
+    See ALso
+    --------
+    
+    run, reinit, MagicError
     '''
     brian_objects.state = brian_objects.STATE_VALID
     if erase:
