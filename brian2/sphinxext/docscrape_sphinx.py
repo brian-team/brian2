@@ -157,6 +157,18 @@ class SphinxDocString(NumpyDocString):
             out += self._str_indent(see_also[2:])
         return out
 
+    def _str_raises(self, name, func_role):
+        if not self[name]:
+            return []
+        out = []
+        out += self._str_header(name)
+        for func, _, desc in self[name]:
+            out += [":exc:`%s`" % func]
+            if desc:
+                out += self._str_indent([' '.join(desc)])
+        out += ['']
+        return out        
+
     def _str_warnings(self):
         out = []
         if self['Warnings']:
@@ -211,9 +223,10 @@ class SphinxDocString(NumpyDocString):
         out += self._str_index() + ['']
         out += self._str_summary()
         out += self._str_extended_summary()
-        for param_list in ('Parameters', 'Returns', 'Other Parameters',
-                           'Raises', 'Warns'):
+        for param_list in ('Parameters', 'Returns', 'Other Parameters'):
             out += self._str_param_list(param_list)
+        for param_list in ('Raises', 'Warns'):
+            out += self._str_raises(param_list, func_role)
         out += self._str_warnings()
         out += self._str_see_also(func_role)
         out += self._str_section('Notes')

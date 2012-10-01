@@ -323,7 +323,7 @@ class CodeString(object):
         ValueError
             If a variable/function cannot be resolved and is not contained in
             `internal_variables`.
-        `ResolutionConflictWarning`
+        ResolutionConflictWarning
             If identifiers cannot be resolved unambiguously.
         '''
 
