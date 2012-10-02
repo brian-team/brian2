@@ -7,6 +7,7 @@ import gc
 import copy
 
 import brian2.core.clocks as clocks
+from brian2.core.scheduler import Scheduler
 
 __all__ = ['BrianObject',
            'BrianObjectSet',
@@ -58,32 +59,23 @@ class BrianObject(object):
     
     Parameters
     ----------
-    when : str, optional
-        Defines when the object is updated in the main :meth:`Network.run`
+    when : `Scheduler`, optional
+        Defines when the object is updated in the main `Network.run`
         loop.
-    order : (int, float), optional
-        Objects with the same ``when`` value will be updated in order
-        of increasing values of ``order``, or if both are equal then the order
-        is unspecified (but will always be the same on each iteration).
-    clock : `Clock`, optional
-        The update clock determining when the object will be updated, or
-        use the default clock if unspecified.
 
     Notes
     -----
         
-    The set of all `BrianObject`\ s is stored in `brian_objects`.
+    The set of all `BrianObject` objects is stored in `brian_objects`.
     
     Brian objects deriving from this class should always define an
-    ``update()`` method, that gets called by :meth:`Network.run`.
+    ``update()`` method, that gets called by `Network.run`.
     '''        
-    def __init__(self, when='start', order=0, clock=None):
-        if not isinstance(when, str):
-            raise TypeError("when attribute should be a string, was "+repr(when))
-        if clock is None:
-            clock = clocks.defaultclock
-        if not isinstance(clock, clocks.Clock):
-            raise TypeError("clock should have type Clock, was "+clock.__class__.__name__)
+    def __init__(self, when=None):
+        scheduler = Scheduler(when)
+        when = scheduler.when
+        order = scheduler.order
+        clock = scheduler.clock
      
         #: The ID string determining when the object should be updated in :meth:`Network.run`.   
         self.when = when
@@ -123,8 +115,7 @@ class BrianObject(object):
         '''
         Every `BrianObject` should define an ``update()`` method which is called every time step.
         '''
-        raise NotImplementedError("Classes deriving from BrianObject must "
-                                  "define an update() method.")
+        pass
         
     def reinit(self):
         '''

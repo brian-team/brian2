@@ -30,8 +30,8 @@ def test_network_single_object():
 @with_setup(teardown=restore_initial_state)
 def test_network_two_objects():
     # Check that a network with two objects and the same clock function correctly
-    x = Counter(order=5)
-    y = Counter(order=6)
+    x = Counter(when=5)
+    y = Counter(when=6)
     net = Network()
     net.add([x, [y]]) # check that a funky way of adding objects work correctly
     assert_equal(net.objects[0].order, 5)
@@ -52,10 +52,10 @@ class Updater(BrianObject):
 @with_setup(teardown=restore_initial_state)
 def test_network_different_clocks():
     # Check that a network with two different clocks functions correctly
-    clock1 = Clock(dt=1*ms, order=0)
-    clock3 = Clock(dt=3*ms, order=1)
-    x = Updater('x', clock=clock1)
-    y = Updater('y', clock=clock3)
+    clock1 = Clock(dt=1*ms)
+    clock3 = Clock(dt=3*ms)
+    x = Updater('x', when=(clock1, 0))
+    y = Updater('y', when=(clock3, 1))
     net = Network(x, y)
     net.run(10*ms)
     assert_equal(''.join(updates), 'xyxxxyxxxyxxxy')
@@ -142,7 +142,7 @@ def test_network_operations():
     @network_operation
     def f2():
         seq.append('b')
-    @network_operation(when='end', order=1)
+    @network_operation(when=('end', 1))
     def f3():
         seq.append('c')
     run(1*ms)
@@ -163,8 +163,8 @@ def test_network_t():
     # test that Network.t works as expected
     c1 = Clock(dt=1*ms)
     c2 = Clock(dt=2*ms)
-    x = Counter(clock=c1)
-    y = Counter(clock=c2)
+    x = Counter(when=c1)
+    y = Counter(when=c2)
     net = Network(x, y)
     net.run(4*ms)
     assert_equal(c1.t, 4*ms)
@@ -200,8 +200,8 @@ def test_network_t():
     # now test with magic run    
     c1 = Clock(dt=1*ms)
     c2 = Clock(dt=2*ms)
-    x = Counter(clock=c1)
-    y = Counter(clock=c2)
+    x = Counter(when=c1)
+    y = Counter(when=c2)
     run(4*ms)
     assert_equal(c1.t, 4*ms)
     assert_equal(c2.t, 4*ms)

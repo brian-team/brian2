@@ -13,21 +13,16 @@ class NetworkOperation(BrianObject):
         The function to call every time step, should take either no arguments
         in which case it is called as ``function()`` or one argument, in which
         case it is called with the current `Clock` time (`Quantity`).
-    when : str, optional
-        Determines when the function should be called, see Network.
-    order : int, optional
-        Determines when the function should be called, see Network.
-    clock : `Clock`, optional
-        Deteremines when the function should be called, see Network.
+    when : `Scheduler`, optional
+        Determines when the function should be called.
         
     See Also
     --------
     
     network_operation, Network, BrianObject
     """
-    def __init__(self, function, when='end', order=0, clock=None):
-        super(NetworkOperation, self).__init__(when=when, order=order,
-                                               clock=clock)
+    def __init__(self, function, when=None):
+        super(NetworkOperation, self).__init__(when=when)
         
         #: The function to be called each time step
         self.function = function
@@ -49,7 +44,7 @@ class NetworkOperation(BrianObject):
 
 def network_operation(*args, **kwds):
     """
-    network_operation(when='end', order=0, clock=None)
+    network_operation(when=None)
     
     Decorator to make a function get called every time step of a simulation.
     
@@ -58,12 +53,8 @@ def network_operation(*args, **kwds):
     
     Parameters
     ----------
-    when : str, optional
-        Determines when the function should be called, see `Network`.
-    order : int, optional
-        Determines when the function should be called, see `Network`.
-    clock : `Clock`, optional
-        Deteremines when the function should be called, see `Network`.
+    when : `Scheduler`, optional
+        Determines when the function should be called.
 
     Examples
     --------
@@ -84,7 +75,7 @@ def network_operation(*args, **kwds):
     
     Specify a clock, etc.:
     
-    >>> @network_operation(when='start', order=0, clock=myclock)
+    >>> @network_operation(when=(myclock, 'start', 0))
     >>> def f():
     >>>   print 'This will happen at the start of each timestep.'
     >>> net = Network(f)
@@ -96,7 +87,7 @@ def network_operation(*args, **kwds):
     
     If using the form::
     
-        @network_operations(when='start', ...)
+        @network_operations(when='start')
         def f():
             ...
             

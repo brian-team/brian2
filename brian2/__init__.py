@@ -19,6 +19,7 @@ from brian2.utils import *
 # The following packages only depend on something in the above set
 from brian2.core.preferences import *
 from brian2.core.clocks import *
+from brian2.core.scheduler import *
 from brian2.equations import *
 
 # The base class only depends on the above sets

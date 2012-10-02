@@ -24,20 +24,21 @@ class Network(object):
     The main run loop performs the following steps:
     
     1. Prepare the objects if necessary, see `~Network.prepare`.
-    2. Determine the end time of the simulation as `~Network.t` ``+ duration``.
-    3. Determine which `Clock` to update. This will be the clock with the
+    2. Determine the end time of the simulation as `~Network.t`+``duration``.
+    3. Determine which set of clocks to update. This will be the clock with the
        smallest value of `~Clock.t`. If there are several with the same value,
-       then clocks with a smaller value of `~Clock.order` will be run first.
+       then all objects with these clocks will be updated simultaneously.
        Set `~Network.t` to the clock time.
-    4. If the `~Clock.t` value of this clock is past the end time of the
+    4. If the `~Clock.t` value of these clocks is past the end time of the
        simulation, stop running. If the `Network.stop` method or the
        `stop` function have been called, stop running. Set `~Network.t` to the
        end time of the simulation.
-    5. For each object whose `~BrianObject.clock` is set to the clock from the
+    5. For each object whose `~BrianObject.clock` is set to one of the clocks from the
        previous steps, call the `~BrianObject.update` method. This method will
        not be called if the `~BrianObject.active` flag is set to ``False``.
        The order in which the objects are called is described below.
-    6. Increase `Clock.t` by `Clock.dt` and return to step 2. 
+    6. Increase `Clock.t` by `Clock.dt` for each of the clocks and return to
+       step 2. 
     
     The order in which the objects are updated in step 4 is determined by
     the `Network.schedule` and the objects `~BrianObject.when` and
@@ -196,6 +197,11 @@ class Network(object):
         self._clocks = set(obj.clock for obj in self.objects)
             
         self._prepared = True
+        
+    def _nextclocks(self):
+        minclock = min(self._clocks)
+        curclocks = set(clock for clock in self._clocks if clock==minclock)
+        return minclock, curclocks
     
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=60*second):
@@ -243,22 +249,22 @@ class Network(object):
         # TODO: progress reporting stuff
         
         # Find the first clock to be updated (see note below)
-        clock = min(self._clocks)
+        clock, curclocks = self._nextclocks()
         while clock.running and not self._stopped and not Network._globally_stopped:
             # update the network time to this clocks time
             self.t = clock.t
             # update the objects with this clock
             for obj in self.objects:
-                if obj.clock is clock and obj.active:
+                if obj.clock in curclocks and obj.active:
                     obj.update()
             # tick the clock forward one time step
-            clock.tick()
-            # find the next clock to be updated. The < operator for Clock
+            for c in curclocks:
+                c.tick()
+            # find the next clocks to be updated. The < operator for Clock
             # determines that the first clock to be updated should be the one
             # with the smallest t value, unless there are several with the 
-            # same t value in which case it will be the one of those with the
-            # smallest order value.
-            clock = min(self._clocks)
+            # same t value in which case we update all of them
+            clock, curclocks = self._nextclocks()
             
         self.t = t_end
         
