@@ -10,6 +10,7 @@ import scipy
 import sympy
 
 import brian2
+from brian2.core.preferences import brian_prefs
 
 __all__ = ['get_logger']
 
@@ -67,10 +68,19 @@ def brian_excepthook(exc_type, exc_obj, exc_tb):
     logger.error(UNHANDLED_ERROR_MESSAGE,
                  exc_info=(exc_type, exc_obj, exc_tb))
 
+# A global option to switch off the automatic deletion
+brian_prefs.define('delete_log_on_exit', True,
+    '''
+    Whether to delete the log file on exit.
+    
+    If set to ``True`` (the default), log files will be deleted after the
+    brian process has exited, unless an uncaught exception occured. If set to
+    ``False``, all log files will be kept.
+    ''')
 
 def clean_up_logging():
     logging.shutdown()
-    if not BrianLogger.exception_occured:
+    if not BrianLogger.exception_occured and brian_prefs.delete_log_on_exit:
         os.remove(TMP_LOG)
 
 sys.excepthook = brian_excepthook
@@ -78,31 +88,90 @@ atexit.register(clean_up_logging)
 
 
 class BrianLogger(object):
-
+    '''
+    Convenience object for logging. Call `get_logger` to get an instance of
+    this class.
+    
+    Parameters
+    ----------
+    name : str
+        The name used for logging, normally the name of the module.
+    
+    Methods
+    -------
+    debug
+    info
+    warn
+    error
+    log_level_debug
+    log_level_info
+    log_level_warn
+    log_level_error
+    '''
     exception_occured = False
 
     def __init__(self, name):
         self.name = name
 
     def debug(self, msg, name_suffix=None):
+        '''
+        Log a debug message.
+        
+        Parameters
+        ----------
+        msg : str
+            The message to log.
+        name_suffix : str, optional
+            A suffix to add to the name, e.g. a class or function name.
+        '''
         name = self.name
         if name_suffix:
             name += '.' + name_suffix
         logging.getLogger(name).debug(msg)
 
     def info(self, msg, name_suffix=None):
+        '''
+        Log an info message.
+        
+        Parameters
+        ----------
+        msg : str
+            The message to log.
+        name_suffix : str, optional
+            A suffix to add to the name, e.g. a class or function name.
+        '''        
         name = self.name
         if name_suffix:
             name += '.' + name_suffix
         logging.getLogger(name).info(msg)
 
     def warn(self, msg, name_suffix=None):
+        '''
+        Log a warn message.
+        
+        Parameters
+        ----------
+        msg : str
+            The message to log.
+        name_suffix : str, optional
+            A suffix to add to the name, e.g. a class or function name.
+        '''        
         name = self.name
         if name_suffix:
             name += '.' + name_suffix
         logging.getLogger(name).warn(msg)
 
     def error(self, msg, name_suffix=None):
+        '''
+        Log an error message.
+        
+        Parameters
+        ----------
+        msg : str
+            The message to log.
+        name_suffix : str, optional
+            A suffix to add to the name, e.g. a class or function name.
+        '''        
         name = self.name
         if name_suffix:
             name += '.' + name_suffix
@@ -110,20 +179,45 @@ class BrianLogger(object):
 
     @staticmethod
     def log_level_debug():
+        '''
+        Set the log level to "debug".
+        '''
         CONSOLE_HANDLER.setLevel(logging.DEBUG)
 
     @staticmethod
     def log_level_info():
+        '''
+        Set the log level to "info".
+        '''        
         CONSOLE_HANDLER.setLevel(logging.INFO)
 
     @staticmethod
     def log_level_warn():
+        '''
+        Set the log level to "warn".
+        '''        
         CONSOLE_HANDLER.setLevel(logging.INFO)
 
     @staticmethod
     def log_level_error():
+        '''
+        Set the log level to "error".
+        '''        
         CONSOLE_HANDLER.setLevel(logging.INFO)
 
 
-def get_logger(module_name):
+def get_logger(module_name='brian2'):
+    '''
+    Get an object that can be used for logging.
+    
+    Parameters
+    ----------
+    module_name : str
+        The name used for logging, should normally be the module name as
+        returned by ``__name__``.
+    
+    Returns
+    -------
+    logger : `~brian2.utils.logger.BrianLogger`
+    '''    
     return BrianLogger(module_name)
