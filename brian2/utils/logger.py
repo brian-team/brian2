@@ -108,12 +108,38 @@ class BrianLogger(object):
     log_level_warn
     log_level_error
     '''
+    
+    # : Class attribute to remember whether any exception occured
     exception_occured = False
+    
+    # : Class attribute for remembering log messages that should only be
+    # : displayed once
+    _log_messages = set()
 
     def __init__(self, name):
         self.name = name
 
-    def debug(self, msg, name_suffix=None):
+
+    def _log(self, log_level, msg, name_suffix, once):
+        name = self.name
+        if name_suffix:
+            name += '.' + name_suffix
+        
+        if once:
+            # Check whether this exact message has already been displayed 
+            log_tuple = (name, log_level, msg)
+            if log_tuple in BrianLogger._log_messages:
+                return
+            else:
+                BrianLogger._log_messages.add(log_tuple)
+        
+        logger = logging.getLogger(name)
+        {'debug': logger.debug,
+         'info': logger.info,
+         'warn': logger.warn,
+         'error': logger.error}.get(log_level)(msg)
+
+    def debug(self, msg, name_suffix=None, once=False):
         '''
         Log a debug message.
         
@@ -123,13 +149,13 @@ class BrianLogger(object):
             The message to log.
         name_suffix : str, optional
             A suffix to add to the name, e.g. a class or function name.
+        once : bool, optional
+            Whether this message should be logged only once and not repeated
+            if sent another time. 
         '''
-        name = self.name
-        if name_suffix:
-            name += '.' + name_suffix
-        logging.getLogger(name).debug(msg)
+        self._log('debug', msg, name_suffix, once)
 
-    def info(self, msg, name_suffix=None):
+    def info(self, msg, name_suffix=None, once=False):
         '''
         Log an info message.
         
@@ -139,13 +165,13 @@ class BrianLogger(object):
             The message to log.
         name_suffix : str, optional
             A suffix to add to the name, e.g. a class or function name.
-        '''        
-        name = self.name
-        if name_suffix:
-            name += '.' + name_suffix
-        logging.getLogger(name).info(msg)
+        once : bool, optional
+            Whether this message should be logged only once and not repeated
+            if sent another time. 
+        '''
+        self._log('info', msg, name_suffix, once)
 
-    def warn(self, msg, name_suffix=None):
+    def warn(self, msg, name_suffix=None, once=False):
         '''
         Log a warn message.
         
@@ -155,13 +181,13 @@ class BrianLogger(object):
             The message to log.
         name_suffix : str, optional
             A suffix to add to the name, e.g. a class or function name.
-        '''        
-        name = self.name
-        if name_suffix:
-            name += '.' + name_suffix
-        logging.getLogger(name).warn(msg)
+        once : bool, optional
+            Whether this message should be logged only once and not repeated
+            if sent another time. 
+        '''
+        self._log('warn', msg, name_suffix, once)
 
-    def error(self, msg, name_suffix=None):
+    def error(self, msg, name_suffix=None, once=False):
         '''
         Log an error message.
         
@@ -171,11 +197,11 @@ class BrianLogger(object):
             The message to log.
         name_suffix : str, optional
             A suffix to add to the name, e.g. a class or function name.
-        '''        
-        name = self.name
-        if name_suffix:
-            name += '.' + name_suffix
-        logging.getLogger(name).error(msg)
+        once : bool, optional
+            Whether this message should be logged only once and not repeated
+            if sent another time. 
+        '''
+        self._log('error', msg, name_suffix, once)
 
     @staticmethod
     def log_level_debug():
