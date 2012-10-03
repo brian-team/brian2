@@ -111,7 +111,7 @@ class BrianGlobalPreferences(object):
     def _get_documentation(self):
         s = ''
         for name in sorted(self._values.keys()):
-            default = str(self._default_values[name])
+            default = self._default_values[name]
             doc = str(self._docs[name])
             # Make a link target
             s += '.. _brian-pref-{name}:\n\n'.format(name=name.replace('_', '-'))
