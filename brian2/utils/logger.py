@@ -48,7 +48,9 @@ logger.debug('Platform: %s' % sys.platform)
 version_infos = {'brian': brian2.__version__,
                  'numpy': numpy.__version__,
                  'scipy': scipy.__version__,
-                 'sympy': sympy.__version__}
+                 'sympy': sympy.__version__,
+                 'python': sys.version,
+                 }
 for name, version in version_infos.iteritems():
     logger.debug('{name} version is: {version}'.format(name=name,
                                                        version=str(version)))
