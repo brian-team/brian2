@@ -72,7 +72,7 @@ def test_resolve():
         warnings.simplefilter("always")
         expr.resolve(['v'])        
         assert len(w) == 1
-        assert isinstance(w[0], ResolutionConflictWarning)
+        assert issubclass(w[0].category, ResolutionConflictWarning)
         
     assert expr.namespace['I'] == another_I and expr.namespace['tau'] == tau
     
