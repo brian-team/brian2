@@ -6,10 +6,12 @@ from sympy.core.sympify import SympifyError
 
 from .unitcheck import get_default_unit_namespace, SPECIAL_VARS
 
-from brian2 import get_dimensions, DimensionMismatchError
+from brian2 import get_dimensions, DimensionMismatchError, get_logger
 from brian2.utils.stringtools import get_identifiers, word_substitute
 
 __all__ = ['Expression', 'Statements']
+
+logger = get_logger(__name__)
 
 class ResolutionConflictWarning(UserWarning):
     '''
@@ -55,12 +57,9 @@ class CodeString(object):
         # extract identifiers from the code
         self._identifiers = set(get_identifiers(code))
         
-        if namespace is None:
-            namespace = {}
-        
         self._exhaustive = exhaustive
         
-        if not exhaustive:
+        if namespace is None or not exhaustive:
             frame = inspect.stack()[level + 1][0]
             self._locals = frame.f_locals.copy()
             self._globals = frame.f_globals.copy()
@@ -76,7 +75,7 @@ class CodeString(object):
     code = property(lambda self: self._code,
                     doc='The code string.')
 
-    exhaustive = property(lambda self: self._exhaustive,
+    exhaustive = property(lambda self: self._exhaustive and not self._given_namespace is None,
                           doc='Whether the namespace is exhaustively defined.')
         
     identifiers = property(lambda self: self._identifiers,
@@ -122,7 +121,8 @@ class CodeString(object):
             # We save tuples of (namespace description, referred object) to
             # give meaningful warnings in case of duplicate definitions
             matches = []
-            if identifier in self._given_namespace:
+            if (not self._given_namespace is None and
+                identifier in self._given_namespace):
                 matches.append(('user-defined',
                                 self._given_namespace[identifier]))
             if identifier in self._locals:
@@ -178,7 +178,8 @@ class CodeString(object):
                               'namespaces used for resolving. Will use '
                               'the object from the %s namespace: %r') %
                              (identifier, self.code, matches[0][0],
-                              first_obj))
+                              first_obj),
+                             ResolutionConflictWarning)
                 
                 # use the first match (according to resolution order)
                 namespace[identifier] = matches[0][1]
@@ -291,8 +292,8 @@ class Expression(CodeString):
         try:
             self._sympy_expr = sympy.sympify(self.code)
         except SympifyError:
-            raise ValueError('Expression "%s" cannot be parsed with sympy' %
-                             self.code)
+            raise SyntaxError('Expression "%s" cannot be parsed with sympy' %
+                              self.code)
          
     
     def check_linearity(self, variable):
@@ -328,7 +329,7 @@ class Expression(CodeString):
     
         # This seems to be more robust: Take the derivative with respect to the
         # variable
-        diff_f = sympy.diff(self.sympy_expr, x).simplify()
+        diff_f = sympy.diff(self._sympy_expr, x).simplify()
     
         # if the expression is linear, x should have disappeared
         return not x in diff_f
