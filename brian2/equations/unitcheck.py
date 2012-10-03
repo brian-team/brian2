@@ -1,9 +1,12 @@
-from brian2 import Quantity, Unit
+from brian2 import Quantity, Unit, second
 from brian2.units.stdunits import stdunits
 from brian2.units.fundamentalunits import (all_registered_units, DIMENSIONLESS)
 
 __all__ = ['get_default_unit_namespace', 'get_unit_from_string']
 
+# Units of the special variables that are always defined
+UNITS_SPECIAL_VARS = {'t': second, 'dt': second, 'xi': second**-0.5}
+SPECIAL_VARS = UNITS_SPECIAL_VARS.keys()
 
 def get_default_unit_namespace():
     '''

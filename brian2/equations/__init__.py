@@ -1,3 +1,4 @@
-from .equations import Equations, CodeString
+from .codestrings import Expression, Statements
+from .equations import Equations
 
-__all__ = ['CodeString', 'Equations']
+__all__ = ['Equations', 'Expression', 'Statements']
