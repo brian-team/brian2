@@ -1,10 +1,17 @@
+from brian2.utils.logger import get_logger
+from brian2.core.names import Nameable
 from brian2 import check_units, second, BrianObject
 import weakref
 
 __all__ = ['Network']
 
-class Network(object):
+logger = get_logger(__name__)
+
+
+class Network(Nameable):
     '''
+    Network(*objs, name=None)
+    
     The main simulation controller in Brian
 
     `Network` handles the running of a simulation. It contains a set of Brian
@@ -17,6 +24,8 @@ class Network(object):
     objs : (`BrianObject`, container), optional
         A list of objects to be added to the `Network` immediately, see
         `~Network.add`.
+    name : (str, None), optional
+        An explicit name, if not specified gives an automatically generated name
         
     Notes
     -----
@@ -57,11 +66,20 @@ class Network(object):
     
     MagicNetwork, run, stop
     '''
-    def __init__(self, *objs):
+    
+    basename = 'network'
+    name = Nameable.name
+    
+    def __init__(self, *objs, **kwds):
         #: The list of objects in the Network, should not normally be modified directly
         #:
         #: Stores `weakref.proxy` references to the objects.
         self.objects = []
+        
+        name = kwds.pop('name', None)
+        if kwds:
+            raise TypeError("Only keyword argument to Network is name")
+        Nameable.__init__(self, name=name)
         
         self._prepared = False
 
@@ -159,6 +177,9 @@ class Network(object):
     def _set_schedule(self, schedule):
         self._prepared = False
         self._schedule = schedule
+        logger.debug("Set network {self.name} schedule to "
+                     "{self._schedule}".format(self=self),
+                     "_set_schedule")
     
     schedule = property(fget=_get_schedule,
                         fset=_set_schedule,
@@ -188,13 +209,25 @@ class Network(object):
         
         Objects in the `Network` are sorted into the correct running order, and
         their :meth:`BrianObject.prepare` methods are called.
-        '''
+        '''        
         self._sort_objects()
+
+        logger.debug("Preparing network {self.name} with {numobj} "
+                     "objects: {objnames}".format(self=self,
+                        numobj=len(self.objects),
+                        objnames=', '.join(obj.name for obj in self.objects)),
+                     "prepare")
         
         for obj in self.objects:
             obj.prepare()
         
         self._clocks = set(obj.clock for obj in self.objects)
+
+        logger.debug("Network {self.name} has {num} "
+                     "clocks: {clocknames}".format(self=self,
+                        num=len(self._clocks),
+                        clocknames=', '.join(obj.name for obj in self._clocks)),
+                     "prepare")
             
         self._prepared = True
         

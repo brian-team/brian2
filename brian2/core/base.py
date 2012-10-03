@@ -6,6 +6,7 @@ from weakref import ref, proxy
 import gc
 import copy
 
+from brian2.utils.logger import get_logger
 import brian2.core.clocks as clocks
 from brian2.core.scheduler import Scheduler
 from brian2.core.tracking import Trackable, InstanceTrackerSet
@@ -14,6 +15,8 @@ from brian2.core.names import Nameable
 __all__ = ['BrianObject',
            'clear',
            ]
+
+logger = get_logger(__name__)
 
 
 class BrianObject(Nameable):
@@ -62,6 +65,10 @@ class BrianObject(Nameable):
         self._contained_objects = []
         
         self._active = True
+        
+        logger.debug("Created BrianObject with name {self.name}, "
+                     "clock name {self.clock.name}, "
+                     "when={self.when}, order={self.order}".format(self=self))
 
     #: The stem for the automatically generated `name` attribute
     basename = 'brianobject'

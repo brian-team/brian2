@@ -6,14 +6,18 @@ __docformat__ = "restructuredtext en"
 
 from numpy import ceil 
 
+from brian2.utils.logger import get_logger
+from brian2.core.names import Nameable
 from brian2 import second, msecond, check_units
 
 __all__ = ['Clock', 'defaultclock']
 
+logger = get_logger(__name__)
 
-class Clock(object):
+
+class Clock(Nameable):
     '''
-    Clock(dt=0.1*ms)
+    Clock(dt=0.1*ms, name=None)
     
     An object that holds the simulation time and the time step.
     
@@ -22,6 +26,8 @@ class Clock(object):
     dt : `Quantity`, optional
         The time step of the simulation, will be set to ``0.1*ms`` if
         unspecified.
+    name : (str, None), optional
+        An explicit name, if not specified gives an automatically generated name
 
     Notes
     -----
@@ -31,12 +37,18 @@ class Clock(object):
     ``abs(t1-t2)<epsilon*abs(t1)``, a standard test for equality of floating
     point values. The value of ``epsilon`` is ``1e-14``.
     '''
+
+    #: The stem for the automatically generated `name` attribute
+    basename = 'clock'
+    name = Nameable.name
     
     @check_units(dt=second, t=second)
-    def __init__(self, dt=None):
+    def __init__(self, dt=None, name=None):
+        Nameable.__init__(self, name)
         self._dt_spec = dt
         self.i = 0  #: The time step of the simulation as an integer.
         self.i_end = 0  #: The time step the simulation will end as an integer
+        logger.debug("Created clock {self.name} with dt={self._dt_spec}".format(self=self))
 
     def reinit(self):
         '''
@@ -81,6 +93,7 @@ class Clock(object):
         if hasattr(self, '_dt'):
             raise RuntimeError("Cannot change dt, it has already been set to "+str(self.dt))
         self._dt = dt_
+        logger.debug("Set dt for clock {self.name} to {self.dt}".format(self=self))
     
     @check_units(dt=second)
     def _set_dt(self, dt):
@@ -156,4 +169,4 @@ class Clock(object):
             return False
     
     
-defaultclock = Clock()
+defaultclock = Clock(name='defaultclock')

@@ -1,6 +1,9 @@
+from brian2.utils.logger import get_logger
 from brian2.core.tracking import Trackable, InstanceTrackerSet
 
 __all__ = ['Nameable']
+
+logger = get_logger(__name__)
 
 
 class Nameable(Trackable):
@@ -39,6 +42,7 @@ class Nameable(Trackable):
     
     def __init__(self, name=None):
         self._name = self._find_name(name)
+        logger.debug("Created object of class "+self.__class__.__name__+" with name "+self._name)
 
     name = property(fget=lambda self:self._name,
                     doc='''
@@ -58,4 +62,3 @@ if __name__=='__main__':
     obj = BrianObject()
     obj2 = BrianObject()
     print nam.name, obj.name, obj2.name
-

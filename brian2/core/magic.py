@@ -1,4 +1,5 @@
 from brian2 import second, check_units, BrianObject
+from brian2.utils.logger import get_logger
 from brian2.core.network import Network
 from brian2.core.base import BrianObject
 import weakref
@@ -7,6 +8,8 @@ __all__ = ['MagicNetwork', 'magic_network',
            'MagicError',
            'run', 'reinit', 'stop',
            ]
+
+logger = get_logger(__name__)
 
 
 class MagicError(Exception):
@@ -96,7 +99,7 @@ class MagicNetwork(Network):
             raise ValueError("There can be only one MagicNetwork.")
         MagicNetwork._already_created = True
         
-        super(MagicNetwork, self).__init__()
+        super(MagicNetwork, self).__init__(name='magicnetwork')
         
         self._previous_refs = set()
         
@@ -128,6 +131,10 @@ class MagicNetwork(Network):
         self._previous_refs = valid_refs
         self.objects[:] = [weakref.proxy(obj()) for obj in BrianObject.__instances__()]
         self._prepared = False
+        logger.debug("Updated MagicNetwork to include {numobjs} objects "
+                     "with names {names}".format(
+                        numobjs=len(self.objects),
+                        names=', '.join(obj.name for obj in self.objects)))
     
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=60*second):
