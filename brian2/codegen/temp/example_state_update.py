@@ -1,4 +1,8 @@
+import time
+import warnings
+
 from numpy import float64
+import pylab
 
 from brian2.groups.neurongroup import NeuronGroup
 
@@ -12,8 +16,6 @@ from brian2.utils.stringtools import deindent
 from brian2.units import *
 from brian2.units.stdunits import *
 
-import pylab
-import time
 from codeprint import codeprint
 
 test_compile = True
