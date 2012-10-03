@@ -1,7 +1,6 @@
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
-                    restore_initial_state, MagicError, magic_network, clear,
-                    brian_objects)
+                    restore_initial_state, MagicError, magic_network, clear)
 import copy
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
@@ -43,9 +42,8 @@ def test_network_two_objects():
 
 updates = []
 class Updater(BrianObject):
-    def __init__(self, name, **kwds):
+    def __init__(self, **kwds):
         super(Updater, self).__init__(**kwds)
-        self.name = name
     def update(self):
         updates.append(self.name)
 
@@ -54,8 +52,8 @@ def test_network_different_clocks():
     # Check that a network with two different clocks functions correctly
     clock1 = Clock(dt=1*ms)
     clock3 = Clock(dt=3*ms)
-    x = Updater('x', when=(clock1, 0))
-    y = Updater('y', when=(clock3, 1))
+    x = Updater(name='x', when=(clock1, 0))
+    y = Updater(name='y', when=(clock3, 1))
     net = Network(x, y)
     net.run(10*ms)
     assert_equal(''.join(updates), 'xyxxxyxxxyxxxy')
@@ -64,8 +62,8 @@ def test_network_different_clocks():
 def test_network_different_when():
     # Check that a network with different when attributes functions correctly
     updates[:] = []
-    x = Updater('x', when='start')
-    y = Updater('y', when='end')
+    x = Updater(name='x', when='start')
+    y = Updater(name='y', when='end')
     net = Network(x, y)
     net.run(0.3*ms)
     assert_equal(''.join(updates), 'xyxyxy')

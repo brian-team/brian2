@@ -1,6 +1,6 @@
 from brian2 import second, check_units, BrianObject
 from brian2.core.network import Network
-from brian2.core.base import brian_objects
+from brian2.core.base import BrianObject
 import weakref
 
 __all__ = ['MagicNetwork', 'magic_network',
@@ -115,7 +115,7 @@ class MagicNetwork(Network):
     def _update_magic_objects(self):
         # check whether we should restart time, continue time, or raise an
         # error
-        valid_refs = set(r for r in brian_objects if r().invalidates_magic_network)
+        valid_refs = set(r for r in BrianObject.__instances__() if r().invalidates_magic_network)
         inter = valid_refs.intersection(self._previous_refs)
         if len(inter)==0:
             # reset time
@@ -126,7 +126,7 @@ class MagicNetwork(Network):
         else:
             raise MagicError("Brian cannot guess what you intend to do here, see docs for MagicNetwork for details")
         self._previous_refs = valid_refs
-        self.objects[:] = [weakref.proxy(obj()) for obj in brian_objects]
+        self.objects[:] = [weakref.proxy(obj()) for obj in BrianObject.__instances__()]
         self._prepared = False
     
     @check_units(duration=second, report_period=second)

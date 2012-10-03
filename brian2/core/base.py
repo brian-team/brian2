@@ -8,49 +8,15 @@ import copy
 
 import brian2.core.clocks as clocks
 from brian2.core.scheduler import Scheduler
+from brian2.core.tracking import Trackable, InstanceTrackerSet
+from brian2.core.names import Nameable
 
 __all__ = ['BrianObject',
-           'BrianObjectSet',
-           'brian_objects',
            'clear',
            ]
 
 
-class BrianObjectSet(set):
-    '''
-    A `set` of `weakref.ref` to all existing `BrianObject` objects.
-    
-    Should not normally be directly used, except internally by `MagicNetwork`
-    and `clear`.
-    '''
-    def add(self, value):
-        '''
-        Adds a `weakref.ref` to the ``value``
-        '''
-        # The second argument to ref is a callback that is called with the
-        # ref as argument when the object has been deleted, here we just
-        # remove it from the set in that case
-        wr = ref(value, self.remove)
-        set.add(self, wr)
-        
-    def remove(self, value):
-        '''
-        Removes the ``value`` (which should be a weakref) if it is in the set
-        
-        Sometimes the value will have been removed from the set by `clear`,
-        so we ignore `KeyError` in this case.
-        '''
-        try:
-            set.remove(self, value)
-        except KeyError:
-            pass
-
-
-#: 'A `BrianObjectSet` containing all instances of `BrianObject`
-brian_objects = BrianObjectSet()
-
-
-class BrianObject(object):
+class BrianObject(Nameable):
     '''
     All Brian objects derive from this class, defines magic tracking and update.
 
@@ -62,20 +28,26 @@ class BrianObject(object):
     when : `Scheduler`, optional
         Defines when the object is updated in the main `Network.run`
         loop.
+    name : str, optional
+        A unique name for the object - one will be assigned automatically if
+        not provided (of the form ``brianobject_1``, etc.) based on the
+        stem `basename`.
 
     Notes
     -----
         
-    The set of all `BrianObject` objects is stored in `brian_objects`.
+    The set of all `BrianObject` objects is stored in ``BrianObject.__instances__()``.
     
     Brian objects deriving from this class should always define an
-    ``update()`` method, that gets called by `Network.run`.
-    '''        
-    def __init__(self, when=None):
+    ``update()`` method, that gets called by `Network.run`.    
+    '''
+    def __init__(self, when=None, name=None):
         scheduler = Scheduler(when)
         when = scheduler.when
         order = scheduler.order
         clock = scheduler.clock
+        
+        Nameable.__init__(self, name)
      
         #: The ID string determining when the object should be updated in :meth:`Network.run`.   
         self.when = when
@@ -91,13 +63,11 @@ class BrianObject(object):
         
         self._active = True
 
+    #: The stem for the automatically generated `name` attribute
+    basename = 'brianobject'
+
     #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is created or removed
     invalidates_magic_network = True
-
-    def __new__(cls, *args, **kw):
-        obj = object.__new__(cls)
-        brian_objects.add(obj)
-        return obj
     
     def prepare(self):
         '''
@@ -160,6 +130,10 @@ class BrianObject(object):
                         it for all `contained_objects`. 
                         ''')
 
+    # This is a repeat from Nameable.name, but we want to get the documentation
+    # here again
+    name = Nameable.name
+    
     
 def clear(erase=False):
     '''
@@ -181,7 +155,9 @@ def clear(erase=False):
     Notes
     -----
     
-    Removes the object from `brian_objects`. Will also set the
+    Removes the objects from ``BrianObject.__instances__()`` and
+    ``Nameable.__instances__()``.
+    Will also set the
     `BrianObject.active` flag to ``False`` for already existing `Network`
     objects. Calls a garbage collection on completion.
     
@@ -191,9 +167,10 @@ def clear(erase=False):
     run, reinit, MagicError
     '''
     if erase:
-        for obj in brian_objects:
+        for obj in BrianObject.__instances__():
             obj = obj()
             for k, v in obj.__dict__.iteritems():
                 object.__setattr__(obj, k, None)
-    brian_objects.clear()
+    BrianObject.__instances__().clear()
+    Nameable.__instances__().clear()
     gc.collect()
