@@ -136,7 +136,7 @@ def test_network_operations():
     seq = []
     def f1():
         seq.append('a')
-    op1 = NetworkOperation(f1, when='start')
+    op1 = NetworkOperation(f1, when=('start', 1))
     @network_operation
     def f2():
         seq.append('b')
@@ -144,7 +144,7 @@ def test_network_operations():
     def f3():
         seq.append('c')
     run(1*ms)
-    assert_equal(''.join(seq), 'abc'*10)
+    assert_equal(''.join(seq), 'bac'*10)
 
 @with_setup(teardown=restore_initial_state)
 def test_network_active_flag():
