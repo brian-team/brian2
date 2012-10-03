@@ -38,11 +38,14 @@ CONSOLE_HANDLER.setLevel(logging.WARN)
 CONSOLE_HANDLER.setFormatter(logging.Formatter('%(levelname)-8s %(name)s: %(message)s'))
 
 # add the handler to the logger
-logger = logging.getLogger('brian2')
+logger = logging.getLogger('')
 logger.addHandler(CONSOLE_HANDLER)
 
+# We want to log all warnings
+logging.captureWarnings(True)
 
 # Put some standard info into the log file
+logger = logging.getLogger('brian2')
 logger.debug('Python interpreter: %s' % sys.executable)
 logger.debug('Platform: %s' % sys.platform)
 version_infos = {'brian': brian2.__version__,
