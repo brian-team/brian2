@@ -44,7 +44,9 @@ CONSOLE_HANDLER.setFormatter(logging.Formatter('%(levelname)-8s %(name)s: %(mess
 logger.addHandler(CONSOLE_HANDLER)
 
 # We want to log all warnings
-logging.captureWarnings(True)
+if hasattr(logging, 'captureWarnings'):
+    # This function was added in Python 2.7
+    logging.captureWarnings(True)
 
 # Put some standard info into the log file
 logger = logging.getLogger('brian2')
