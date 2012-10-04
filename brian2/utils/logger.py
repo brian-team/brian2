@@ -51,21 +51,22 @@ except IOError as ex:
     TMP_LOG = None
 
 # Save a copy of the script
-try:
-    tmp_file = tempfile.NamedTemporaryFile(prefix='brian_script_', suffix='.py',
-                                           delete=False)
-    with tmp_file:
-        # Timestamp
-        tmp_file.write('# %s\n' % time.asctime())
-        # Command line arguments
-        tmp_file.write('# Run as: %s\n\n' % (' '.join(sys.argv)))
-        # The actual script file
-        with open(os.path.abspath(sys.argv[0])) as script_file:
-            shutil.copyfileobj(script_file, tmp_file)    
-        TMP_SCRIPT = tmp_file.name
-except IOError as ex:
-    warn('Could not copy script file to temp directory: %s' % ex)
-    TMP_SCRIPT = None
+TMP_SCRIPT = None
+if len(sys.argv[0]):
+    try:
+        tmp_file = tempfile.NamedTemporaryFile(prefix='brian_script_', suffix='.py',
+                                               delete=False)
+        with tmp_file:
+            # Timestamp
+            tmp_file.write('# %s\n' % time.asctime())
+            # Command line arguments
+            tmp_file.write('# Run as: %s\n\n' % (' '.join(sys.argv)))
+            # The actual script file
+            with open(os.path.abspath(sys.argv[0])) as script_file:
+                shutil.copyfileobj(script_file, tmp_file)    
+            TMP_SCRIPT = tmp_file.name
+    except IOError as ex:
+        warn('Could not copy script file to temp directory: %s' % ex)
 
 # create console handler with a higher log level
 CONSOLE_HANDLER = logging.StreamHandler()
@@ -115,8 +116,16 @@ def brian_excepthook(exc_type, exc_obj, exc_tb):
 def clean_up_logging():
     logging.shutdown()
     if not BrianLogger.exception_occured and brian_prefs.delete_log_on_exit:
-        os.remove(TMP_LOG)
-        os.remove(TMP_SCRIPT)
+        if not TMP_LOG is None:
+            try:
+                os.remove(TMP_LOG)
+            except IOError as exc:
+                warn('Could not delete log file: %s' % exc)
+        if not TMP_SCRIPT is None:
+            try:
+                os.remove(TMP_SCRIPT)
+            except IOError as exc:
+                warn('Could not delete copy of script file: %s' % exc)
 
 sys.excepthook = brian_excepthook
 atexit.register(clean_up_logging)
