@@ -1,8 +1,10 @@
 import atexit
 import logging
 import os
+import shutil
 import sys
 import tempfile
+import time
 from warnings import warn
 
 import numpy
@@ -15,6 +17,18 @@ from brian2.core.preferences import brian_prefs
 __all__ = ['get_logger', 'BrianLogger']
 
 #===============================================================================
+# Global options for logging
+#===============================================================================
+brian_prefs.define('log_delete_on_exit', True,
+    '''
+    Whether to delete the log and script file on exit.
+    
+    If set to ``True`` (the default), log files (and the copy of the main
+    script) will be deleted after the brian process has exited, unless an
+    uncaught exception occured. If set to ``False``, all log files will be kept.
+    ''')
+
+#===============================================================================
 # Initial setup
 #===============================================================================
 
@@ -22,6 +36,7 @@ __all__ = ['get_logger', 'BrianLogger']
 logger = logging.getLogger('')
 logger.setLevel(logging.DEBUG)
 
+# Log to a file
 try:
     # Temporary filename used for logging
     TMP_LOG = tempfile.NamedTemporaryFile(prefix='brian_debug_', suffix='.log',
@@ -34,6 +49,23 @@ try:
 except IOError as ex:
     warn('Could not create log file: %s' % ex)
     TMP_LOG = None
+
+# Save a copy of the script
+try:
+    tmp_file = tempfile.NamedTemporaryFile(prefix='brian_script_', suffix='.py',
+                                           delete=False)
+    with tmp_file:
+        # Timestamp
+        tmp_file.write('# %s\n' % time.asctime())
+        # Command line arguments
+        tmp_file.write('# Run as: %s\n\n' % (' '.join(sys.argv)))
+        # The actual script file
+        with open(os.path.abspath(sys.argv[0])) as script_file:
+            shutil.copyfileobj(script_file, tmp_file)    
+        TMP_SCRIPT = tmp_file.name
+except IOError as ex:
+    warn('Could not copy script file to temp directory: %s' % ex)
+    TMP_SCRIPT = None
 
 # create console handler with a higher log level
 CONSOLE_HANDLER = logging.StreamHandler()
@@ -50,6 +82,8 @@ if hasattr(logging, 'captureWarnings'):
 
 # Put some standard info into the log file
 logger = logging.getLogger('brian2')
+logger.debug('Logging to file: %s, copy of main script saved as: %s' %
+             (TMP_LOG, TMP_SCRIPT))
 logger.debug('Python interpreter: %s' % sys.executable)
 logger.debug('Platform: %s' % sys.platform)
 version_infos = {'brian': brian2.__version__,
@@ -63,34 +97,26 @@ for name, version in version_infos.iteritems():
                                                        version=str(version)))
 
 
-UNHANDLED_ERROR_MESSAGE = '''
-Brian encountered an unexpected error. If you think this is bug in Brian, please
-report this issue either to the mailing list at <http://groups.google.com/group/brian-support/>,
-or to the issue tracker at <http://neuralensemble.org/trac/brian/report>.
-Please include this file with debug information in your report: {filename}
-Thanks!
-'''.format(filename=TMP_LOG)
+UNHANDLED_ERROR_MESSAGE =  ('Brian encountered an unexpected error. '
+'If you think this is bug in Brian, please report this issue either to the '
+'mailing list at <http://groups.google.com/group/brian-support/>, '
+'or to the issue tracker at <http://neuralensemble.org/trac/brian/report>. '
+'Please include this file with debug information in your report: {logfile} '
+' Additionally, you can also include a copy of the script that was run, '
+'available at: {filename} Thanks!').format(logfile=TMP_LOG, filename=TMP_SCRIPT)
 
 
 def brian_excepthook(exc_type, exc_obj, exc_tb):
     BrianLogger.exception_occured = True
+    
     logger.error(UNHANDLED_ERROR_MESSAGE,
                  exc_info=(exc_type, exc_obj, exc_tb))
-
-# A global option to switch off the automatic deletion
-brian_prefs.define('delete_log_on_exit', True,
-    '''
-    Whether to delete the log file on exit.
-    
-    If set to ``True`` (the default), log files will be deleted after the
-    brian process has exited, unless an uncaught exception occured. If set to
-    ``False``, all log files will be kept.
-    ''')
 
 def clean_up_logging():
     logging.shutdown()
     if not BrianLogger.exception_occured and brian_prefs.delete_log_on_exit:
         os.remove(TMP_LOG)
+        os.remove(TMP_SCRIPT)
 
 sys.excepthook = brian_excepthook
 atexit.register(clean_up_logging)
