@@ -19,7 +19,7 @@ __all__ = ['get_logger', 'BrianLogger']
 #===============================================================================
 # Global options for logging
 #===============================================================================
-brian_prefs.define('log_delete_on_exit', True,
+brian_prefs.define('delete_log_on_exit', True,
     '''
     Whether to delete the log and script file on exit.
     
