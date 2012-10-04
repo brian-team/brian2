@@ -1,5 +1,4 @@
-# ecoding: utf8
-
+# encoding: utf8
 from numpy.testing import assert_raises
 
 from brian2 import volt, second, ms, Hz, farad, metre, cm
@@ -109,6 +108,7 @@ def test_parse_equations():
     for error_eqs in parse_error_eqs:
         assert_raises(ValueError, lambda: parse_string_equations(error_eqs,
                                                                  {}, False, 0))
+
 
 if __name__ == '__main__':
     test_utility_functions()
