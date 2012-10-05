@@ -432,7 +432,7 @@ class Expression(CodeString):
             ``(self, None)`` will be returned with the unchanged `Expression`
             object.
         '''
-        s_expr = self.sympy_expr.expand()
+        s_expr = self._sympy_expr.expand()
         xi = sympy.Symbol('xi')
         if not xi in s_expr:
             return (self, None)

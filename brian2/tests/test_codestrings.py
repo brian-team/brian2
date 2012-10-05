@@ -10,6 +10,16 @@ from brian2.equations.codestrings import ResolutionConflictWarning
 
 import brian2
 
+def sympy_equals(expr1, expr2):
+    '''
+    Test that whether two string expressions are equal using sympy, allowing
+    e.g. for ``sympy_equals("x * x", "x ** 2") == True``.
+    '''
+    s_expr1 = sympy.sympify(expr1).expand()
+    s_expr2 = sympy.sympify(expr2).expand()
+    return s_expr1 == s_expr2
+
+
 def test_expr_creation():
     '''
     Test creating expressions.
@@ -89,6 +99,26 @@ def test_resolve():
     expr.resolve(['v'])
     assert expr.namespace['ohm'] is brian2.ohm and expr.namespace['amp'] is brian2.amp
 
+    # Test that resolving is a prerequisite for a number of functions
+    expr = Expression('-v / tau')
+    assert_raises(TypeError, lambda: expr.frozen())
+    assert_raises(TypeError, lambda: expr.eval(['v']))
+
+
+def test_split_stochastic():
+    tau = 5 * ms
+    expr = Expression('(-v + I) / tau')
+    expr.resolve(['v', 'I'])
+    # No stochastic part
+    assert expr.split_stochastic() == (expr, None)
+    
+    expr = Expression('(-v + I) / tau + sigma*xi/tau**.5')
+    expr.resolve(['v', 'I', 'sigma'])
+    non_stochastic, stochastic = expr.split_stochastic()
+    assert 'xi' in stochastic.identifiers
+    assert sympy_equals(non_stochastic.code, '(-v + I) / tau')
+    assert sympy_equals(stochastic.code, 'sigma*xi/tau**.5')
+    
 
 def test_frozen():
     '''
@@ -120,8 +150,8 @@ def test_str_repr():
     
     # use sympy to check for equivalence of expressions (terms may have be
     # re-arranged by sympy)
-    assert sympy.sympify(expr_string) == sympy.sympify(str(expr))
-    assert sympy.sympify(expr_string) == sympy.sympify(eval(repr(expr)).code)
+    assert sympy_equals(expr_string, str(expr))
+    assert sympy_equals(expr_string, eval(repr(expr)).code)
     
     # Use exact string equivalence for statements
     statement_string = 'v += w'
@@ -136,4 +166,5 @@ if __name__ == '__main__':
     test_expr_units()
     test_resolve()
     test_frozen()
+    test_split_stochastic()
     test_str_repr()
