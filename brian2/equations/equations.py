@@ -192,8 +192,8 @@ def parse_string_equations(eqns, namespace, exhaustive, level):
     try:
         parsed = EQUATIONS.parseString(eqns, parseAll=True)
     except ParseException as p_exc:
-        raise ValueError('Parsing failed: \n' + str(p_exc.line) + '\n' +
-                         ' '*(p_exc.column - 1) + '^\n' + str(p_exc))
+        raise SyntaxError('Parsing failed: \n' + str(p_exc.line) + '\n' +
+                          ' '*(p_exc.column - 1) + '^\n' + str(p_exc))
     for eq in parsed:
         eq_type = eq.getName()
         eq_content = dict(eq.items())
@@ -215,8 +215,8 @@ def parse_string_equations(eqns, namespace, exhaustive, level):
                                   namespace, exhaustive, level + 1) 
         
         if identifier in equations:
-            raise ValueError('Duplicate definition of variable "%s"' %
-                             identifier)
+            raise SyntaxError('Duplicate definition of variable "%s"' %
+                              identifier)
                                        
         equations[identifier] = equation
     
@@ -275,6 +275,10 @@ class SingleEquation(object):
     is_time_dependent = property(lambda self: self.expr.is_time_dependent
                                  if not self.expr is None else False,
                                  doc='Whether this equation is time dependent')
+
+    identifiers = property(lambda self: self.expr.identifiers
+                           if not self.expr is None else set([]),
+                           doc='All identifiers in the RHS of this equation.')
 
     def resolve(self, internal_variables):
         '''
@@ -354,20 +358,21 @@ class Equations(object):
         for eq in self._equations.itervalues():
             if not eq.expr is None and 'xi' in eq.expr.identifiers:
                 if not eq.eq_type == 'diff_equation':
-                    raise ValueError(('The equation defining %s contains the '
-                                      'symbol "xi" but is not a differential '
-                                      'equation.') % eq.varname)
+                    raise SyntaxError(('The equation defining %s contains the '
+                                       'symbol "xi" but is not a differential '
+                                       'equation.') % eq.varname)
                 elif not uses_xi is None:
-                    raise ValueError(('The equation defining %s contains the '
-                                      'symbol "xi", but it is already used '
-                                      'in the equation defining %s.') %
-                                     (eq.varname, uses_xi))
+                    raise SyntaxError(('The equation defining %s contains the '
+                                       'symbol "xi", but it is already used '
+                                       'in the equation defining %s.') %
+                                      (eq.varname, uses_xi))
                 else:
                     uses_xi = eq.varname
         
         # Build the namespaces, resolve all external variables and rearrange
         # static equations
         self._namespace = self.resolve()
+        self._sort_static_equations()
         
         # Check the units for consistency
         self.check_units()
@@ -523,7 +528,7 @@ class Equations(object):
     substituted_expressions = property(_get_substituted_expressions)
     
     names = property(lambda self: [eq.varname for eq in self.equations_ordered],
-                     doc='All variable names.')
+                     doc='All variable names defined in the equations.')
     
     diff_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
                                            if eq.eq_type == 'diff_equation'],
@@ -546,7 +551,7 @@ class Equations(object):
     units = property(_get_units)
     
     variables = property(lambda self: set(self.units.keys()),
-                         doc='Set of all variables')
+                         doc='Set of all variables (including t, dt, and xi)')
     
     def _sort_static_equations(self):
         '''

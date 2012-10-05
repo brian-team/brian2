@@ -1,3 +1,9 @@
+'''
+Module defining `CodeString`, a class for a string of code together with
+information about its namespace. Only serves as a parent class, its subclasses
+`Expression` and `Statements` are the ones that are actually used.
+'''
+
 import inspect
 from warnings import warn
 

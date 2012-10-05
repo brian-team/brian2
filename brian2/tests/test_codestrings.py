@@ -101,7 +101,7 @@ def test_resolve():
 
     # Test that resolving is a prerequisite for a number of functions
     expr = Expression('-v / tau')
-    assert_raises(TypeError, lambda: expr.frozen())
+    assert_raises(TypeError, expr.frozen)
     assert_raises(TypeError, lambda: expr.eval(['v']))
 
 
@@ -118,6 +118,9 @@ def test_split_stochastic():
     assert 'xi' in stochastic.identifiers
     assert sympy_equals(non_stochastic.code, '(-v + I) / tau')
     assert sympy_equals(stochastic.code, 'sigma*xi/tau**.5')
+    
+    expr = Expression('-v / tau + 1 / xi')
+    assert_raises(ValueError, expr.split_stochastic)
     
 
 def test_frozen():
@@ -136,7 +139,15 @@ def test_frozen():
     # expression should give the same result
     assert_equal(np.asarray(expr.eval({'v': 1})),
                  np.asarray(frozen_expr.eval({'v': 1})))
-                 
+    
+    # frozen should leave calls to function alone
+    def f(x):
+        return -x
+    expr = Expression('f(v) / tau')
+    expr.resolve(['v'])
+    frozen_expr = expr.frozen()
+    assert 'f' in expr.identifiers and 'f' in frozen_expr.identifiers
+
 
 def test_str_repr():
     '''

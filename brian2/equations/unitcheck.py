@@ -1,3 +1,7 @@
+'''
+Utility functions for handling the units in `Equations`.
+'''
+
 from brian2 import Quantity, Unit, second
 from brian2.units.stdunits import stdunits
 from brian2.units.fundamentalunits import (all_registered_units, DIMENSIONLESS)
