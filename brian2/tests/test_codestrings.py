@@ -6,7 +6,8 @@ import sympy
 
 from brian2 import Expression, Statements
 from brian2 import ms, mV, volt, second, get_dimensions, DimensionMismatchError
-from brian2.equations.codestrings import ResolutionConflictWarning
+
+from brian2.utils.logger import catch_logs
 
 import brian2
 
@@ -83,15 +84,15 @@ def test_resolve():
     # Only specifying part of the namespace
     expr = Expression('-(v + I) / tau', namespace={'I' : another_I},
                       exhaustive=False)
+    
     # make sure this triggers a warning (the 'I' in the namespace shadows the
     # I variable defined above
-    with warnings.catch_warnings(record=True) as w:
-        # Cause all warnings to always be triggered.
-        warnings.simplefilter("always")
-        expr.resolve(['v'])        
-        assert len(w) == 1
-        assert issubclass(w[0].category, ResolutionConflictWarning)
-        
+    with catch_logs() as logs:
+        expr.resolve(['v'])
+        assert len(logs) == 1
+        assert logs[0][0] == 'WARNING' 
+        assert logs[0][1].endswith('resolution_conflict')
+    
     assert expr.namespace['I'] == another_I and expr.namespace['tau'] == tau
     
     # test resolution of units not present in any namespace
