@@ -54,7 +54,8 @@ except IOError as ex:
 TMP_SCRIPT = None
 if len(sys.argv[0]):
     try:
-        tmp_file = tempfile.NamedTemporaryFile(prefix='brian_script_', suffix='.py',
+        tmp_file = tempfile.NamedTemporaryFile(prefix='brian_script_',
+                                               suffix='.py',
                                                delete=False)
         with tmp_file:
             # Timestamp
@@ -98,7 +99,7 @@ for name, version in version_infos.iteritems():
                                                        version=str(version)))
 
 
-UNHANDLED_ERROR_MESSAGE =  ('Brian encountered an unexpected error. '
+UNHANDLED_ERROR_MESSAGE = ('Brian encountered an unexpected error. '
 'If you think this is bug in Brian, please report this issue either to the '
 'mailing list at <http://groups.google.com/group/brian-support/>, '
 'or to the issue tracker at <http://neuralensemble.org/trac/brian/report>. '
@@ -130,16 +131,17 @@ def clean_up_logging():
 sys.excepthook = brian_excepthook
 atexit.register(clean_up_logging)
 
-class InvertedFilter(object):
+
+class HierarchyFilter(object):
     '''
-    A class for suppressing log messages. Does exactly the opposite as the
-    `logging.Filter` class, which allows messages in a certain name hierarchy
-    to *pass*.
+    A class for suppressing all log messages in a subtree of the name hierarchy.
+    Does exactly the opposite as the `logging.Filter` class, which allows
+    messages in a certain name hierarchy to *pass*.
     
     Parameters
     ----------
     name : str
-        The name hiearchy to suppress. See `BrianLogger.suppress_messages` for
+        The name hiearchy to suppress. See `BrianLogger.suppress_hierarchy` for
         details.
     '''
 
@@ -149,6 +151,25 @@ class InvertedFilter(object):
     def filter(self, record):
         # do the opposite of what the standard filter class would do
         return not self.orig_filter.filter(record)
+
+
+class NameFilter(object):
+    '''
+    A class for suppressing log messages ending with a certain name.
+    
+    Parameters
+    ----------
+    name : str
+        The name to suppress. See `BrianLogger.suppress_name` for details.
+    '''
+    
+    def __init__(self, name):
+        self.name = name
+    
+    def filter(self, record):
+        # The last part of the name
+        record_name = record.name.split('.')[-1]
+        return self.name != record_name
 
 
 class BrianLogger(object):
@@ -171,7 +192,8 @@ class BrianLogger(object):
     log_level_info
     log_level_warn
     log_level_error
-    suppress_messages
+    suppress_hierarchy
+    suppress_name
     '''
     
     # : Class attribute to remember whether any exception occured
@@ -183,7 +205,6 @@ class BrianLogger(object):
 
     def __init__(self, name):
         self.name = name
-
 
     def _log(self, log_level, msg, name_suffix, once):
         name = self.name
@@ -269,9 +290,26 @@ class BrianLogger(object):
         self._log('error', msg, name_suffix, once)
 
     @staticmethod
-    def suppress_messages(name, filter_log_file=False):
+    def _suppress(filterobj, filter_log_file):
         '''
-        Suppress a subset of log messages.
+        Apply a filter object to log messages.
+        
+        Parameters
+        ----------
+        filterobj : `logging.Filter`
+            A filter object to apply to log messages.
+        filter_log_file : bool
+            Whether the filter also applies to log messages in the log file.
+        '''
+        CONSOLE_HANDLER.addFilter(filterobj)
+        
+        if filter_log_file:
+            FILE_HANDLER.addFilter(filterobj)
+
+    @staticmethod
+    def suppress_hierarchy(name, filter_log_file=False):
+        '''
+        Suppress all log messages in a given hiearchy.
         
         Parameters
         ----------
@@ -286,12 +324,31 @@ class BrianLogger(object):
             the console but are still saved to the log file.
         '''
         
-        suppress_filter = InvertedFilter(name)
+        suppress_filter = HierarchyFilter(name)
         
-        CONSOLE_HANDLER.addFilter(suppress_filter)
+        BrianLogger._suppress(suppress_filter, filter_log_file)
+
+    @staticmethod
+    def suppress_name(name, filter_log_file=False):
+        '''
+        Suppress all log messages with a given name.
         
-        if filter_log_file:
-            FILE_HANDLER.addFilter(suppress_filter)
+        Parameters
+        ----------
+        name : str
+            Suppress all log messages ending in the given `name`. For
+            example, specifying ``'resolution_conflict'`` would suppress
+            messages with names such as
+            ``brian2.equations.codestrings.CodeString.resolution_conflict`` or
+            ``brian2.equations.equations.Equations.resolution_conflict``.
+        filter_log_file : bool, optional
+            Whether to suppress the messages also in the log file. Defaults to
+            ``False`` meaning that suppressed messages are not displayed on
+            the console but are still saved to the log file.
+        '''
+        suppress_filter = NameFilter(name)
+        
+        BrianLogger._suppress(suppress_filter, filter_log_file)
 
     @staticmethod
     def log_level_debug():
@@ -338,3 +395,81 @@ def get_logger(module_name='brian2'):
     '''
 
     return BrianLogger(module_name)
+
+
+class catch_logs(object):
+    '''
+    A context manager for catching log messages. Use this for testing the
+    messages that are logged. Defaults to catching warning/error messages and
+    this is probably the only real use case for testing. Note that while this
+    context manager is active, *all* log messages are suppressed. Using this
+    context manager returns a list of (log level, name, message) tuples.
+    
+    Parameters
+    ----------
+    log_level : int or str, optional
+        The log level above which messages are caught.
+    
+    Examples
+    --------
+    >>> logger = get_logger('brian2.logtest')
+    >>> logger.warn('An uncaught warning')
+    WARNING  brian2.logtest: An uncaught warning
+    >>> with catch_logs() as l:
+    ...    logger.warn('a caught warning')
+    ...    print 'l contains:', l
+    ... 
+    l contains: [('WARNING', 'brian2.logtest', 'a caught warning')]
+
+    '''
+    _entered = False
+    
+    def __init__(self, log_level=logging.WARN):
+        self.log_list = []
+        self.handler = LogCapture(self.log_list, log_level)
+        self._entered = False
+    
+    def __enter__(self):
+        if self._entered:
+            raise RuntimeError('Cannot enter %r twice' % self)
+        self._entered = True
+        return self.log_list
+    
+    def __exit__(self, *exc_info):
+        if not self._entered:
+            raise RuntimeError('Cannot exit %r without entering first' % self)
+        self.handler.uninstall()
+
+
+class LogCapture(logging.Handler):
+    '''
+    A class for capturing log warnings. This class is used by
+    `~brian2.utils.logger.catch_logs` to allow testing in a similar
+    way as with `warnings.catch_warnings`.
+    '''
+    
+    def __init__(self, log_list, log_level=logging.WARN):
+        super(LogCapture, self).__init__(level=log_level)
+        self.log_list = log_list
+        # make a copy of the previous handlers
+        self.old_handlers = list(logging.getLogger().handlers)
+        self.install()
+
+    def emit(self, record):
+        # Append a tuple consisting of (level, name, msg) to the list of
+        # warnings
+        self.log_list.append((record.levelname, record.name, record.msg))
+    
+    def install(self):
+        logger = logging.getLogger()
+        for handler in self.old_handlers:
+            logger.removeHandler(handler)
+        # make sure everything gets logged by the root logger
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(self)
+    
+    def uninstall(self):
+        logger.removeHandler(self)
+        for handler in self.old_handlers:
+            logger.addHandler(handler)
+    
