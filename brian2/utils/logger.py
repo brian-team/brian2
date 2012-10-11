@@ -449,7 +449,7 @@ class LogCapture(logging.Handler):
     '''
     
     def __init__(self, log_list, log_level=logging.WARN):
-        super(LogCapture, self).__init__(level=log_level)
+        logging.Handler.__init__(self, level=log_level)
         self.log_list = log_list
         # make a copy of the previous handlers
         self.old_handlers = list(logging.getLogger().handlers)
