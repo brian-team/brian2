@@ -23,8 +23,10 @@ def c_data_type(dtype):
     # this handles the case where int is specified, it will be int32 or int64
     # depending on platform
     if dtype is int:
-        dtype = array([1]).dtype.type
-        
+        dtype = numpy.array([1]).dtype.type
+    if dtype is float:
+        dtype = numpy.array([1.]).dtype.type
+            
     if dtype==numpy.float32:
         dtype = 'float'
     elif dtype==numpy.float64:

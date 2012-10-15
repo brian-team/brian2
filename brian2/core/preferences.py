@@ -85,13 +85,16 @@ class BrianGlobalPreferences(object):
         '''
         Define a new preference.
         
-        ``name``
+        Parameters
+        ----------
+        
+        name : str
             The name of the preference
-        ``value``
+        value
             The default value
-        ``doc``
+        doc : str
             A docstring describing the preference
-        ``validator``
+        validator : function, optional
             An optional function ``validator(value)`` that checks that ``value``
             is an appropriate value for this preference, and raises an error
             if not. By default, it will check that the class of the value is

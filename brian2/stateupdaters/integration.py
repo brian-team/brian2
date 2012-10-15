@@ -82,7 +82,7 @@ class ExplicitStateUpdater(object):
             s += '\n'
             
         s += 'Output:\n'
-        s += self.output
+        s += str(self.output)
         return s
     
     def __call__(self, eqs):

@@ -28,7 +28,7 @@ eqs = '''
     J = V * 0.1 : 1
     '''
 from brian2.stateupdaters.integration import euler, rk2, rk4
-G = NeuronGroup(1, model=eqs, method=rk4)
+G = NeuronGroup(1, eqs, method=rk4)
 
 intermediate = make_statements(G.abstract_code, G.specifiers, float64)
 
