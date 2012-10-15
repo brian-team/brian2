@@ -1,4 +1,7 @@
+import weakref
+
 import numpy as np
+from numpy import array
 
 from brian2.equations import Equations
 from brian2.stateupdaters.integration import euler
@@ -12,24 +15,94 @@ from brian2.core.base import BrianObject
 from brian2.utils.logger import get_logger
 from brian2.groups.group import Group
 
-__all__ = ['NeuronGroup']
+__all__ = ['NeuronGroup',
+           'CodeRunner']
 
 logger = get_logger(__name__)
 
+class CodeRunner(BrianObject):
+    '''
+    Runs a code object on an update schedule.
+    
+    Inserts the current time into the namespace at each step.
+    '''
+    basename = 'code_runner'
+    def __init__(self, codeobj, when=None, name=None):
+        BrianObject.__init__(self, when=when, name=name)
+        self.codeobj = codeobj
+        
+    def update(self):
+        self.codeobj(t=self.clock.t_)
+        
+        
+class Thresholder(CodeRunner):
+    def __init__(self, group, codeobj, when=None, name=None):
+        CodeRunner.__init__(self, codeobj, when=when, name=name)
+        self.group = weakref.proxy(group)
+
+    def update(self):
+        CodeRunner.update(self)
+        self.group.spikes = self.codeobj.namespace['_spikes']
+        
+
+class Resetter(Thresholder):
+    def update(self):
+        spikes = self.group.spikes
+        self.codeobj.namespace['_spikes'] = spikes
+        self.codeobj.namespace['_num_spikes'] = len(spikes)
+        CodeRunner.update(self)
+        
+
 class NeuronGroup(BrianObject, Group):
     '''
-    This is currently only a placeholder object, it does not even save states.
+    Group of neurons
     
-    Its only purpose is to provide an entry point for code generation, i.e.
-    you can give it an equations string (or an Equations object) and it can
-    generate abstract code (via a state updater) and "specifiers", needed for
-    the next steps of code generation.
+    Parameters
+    ----------
+    N : int
+        Number of neurons in the group.
+    equations : (str, `Equations`)
+        The differential equations defining the group
+    method : ?, optional
+        The numerical integration method.
+    threshold : str, optional
+        The condition which produces spikes. Should be a single line boolean
+        expression.
+    reset : str, optional
+        The (possibly multi-line) string with the code to execute on reset.
+    dtype : (`dtype`, `dict`), optional
+        The `numpy.dtype` that will be used to store the values, or
+        :bpref:`default_scalar_dtype` if not specified (`numpy.float64` by
+        default).
+    clock : Clock, optional
+        The update clock to be used, or defaultclock if not specified.
+    name : str, optional
+        A unique name for the group, otherwise use ``neurongroup_0``, etc.
+        
+    Notes
+    -----
+    
+    `NeuronGroup` contains a `StateUpdater`, `Thresholder` and `Resetter`, and
+    these are run at the 'groups', 'thresholds' and 'resets' slots (i.e. the
+    values of `Scheduler.when` take these values). The `Scheduler.order`
+    attribute is set to 0 initially, but this can be modified using the
+    attributes `state_updater`, `thresholder` and `resetter`.
+    
+    TODO: Threshold doesn't work with CPPLanguage because that tries to
+          directly set the _spikes array, which is initialised as zero length
+          and therefore can't have data put in it. In order to fix this, we
+          need EITHER to include a _spikes_space array or something like that,
+          but then it will be useless/slow down Python, OR have some way to
+          create space for _spikes for C++ but not for Python, which requires
+          some flexibility.
     '''
     basename = 'neurongroup'
     def __init__(self, N, equations, method=euler,
+                 threshold=None,
+                 reset=None,
                  dtype=None, language=None,
-                 when=None, name=None):
-        BrianObject.__init__(self, when=when, name=name)
+                 clock=None, name=None):
+        BrianObject.__init__(self, when=clock, name=name)
         ##### VALIDATE ARGUMENTS AND STORE ATTRIBUTES
         self.method = method
         try:
@@ -61,11 +134,25 @@ class NeuronGroup(BrianObject, Group):
         
         # Allocate memory (TODO: this should be refactored somewhere at some point)
         self.allocate_memory()
+
+        #: The array of spikes from the most recent threshold operation
+        self.spikes = array([], dtype=int)
         
         # Code generation (TODO: this should be refactored and modularised)
-        # Temporary, set language to Python explicitly
-        self.language = PythonLanguage()
+        # Temporary, set default language to Python
+        if language is None:
+            language = PythonLanguage()
+        self.language = language
         self.create_state_updater()
+        self.create_thresholder(threshold)
+        self.create_resetter(reset)
+        
+        # Creation of contained_objects that do the work
+        self.contained_objects.append(self.state_updater)
+        if self.thresholder is not None:
+            self.contained_objects.append(self.thresholder)
+        if self.resetter is not None:
+            self.contained_objects.append(self.resetter)
         
         # Activate name attribute access
         Group.__init__(self)
@@ -99,9 +186,9 @@ class NeuronGroup(BrianObject, Group):
         innercode = translate(self.abstract_code, specs,
                               brian_prefs.default_scalar_dtype,
                               lang)
-        logger.debug("NeuronGroup state updater inner code:\n"+innercode)
+        logger.debug("NeuronGroup state updater inner code:\n"+str(innercode))
         code = lang.apply_template(innercode, lang.template_state_update())
-        logger.debug("NeuronGroup state updater code:\n"+code)
+        logger.debug("NeuronGroup state updater code:\n"+str(code))
         codeobj = lang.code_object(code, specs)
         self.namespace = {}
         for name, arr in self.arrays.iteritems():
@@ -111,7 +198,57 @@ class NeuronGroup(BrianObject, Group):
         self.namespace['t'] = self.clock.t_
         codeobj.compile(self.namespace)
         self.state_update_codeobj = codeobj
-
+        self.state_updater = CodeRunner(codeobj,
+                                        name=self.name+'_state_updater',
+                                        when=(self.clock, 'groups'))
+        
+    def create_thresholder(self, threshold):
+        if threshold is None:
+            self.thresholder = None
+            return
+        lang = self.language
+        specs = self.specifiers
+        abstract_code = '_cond = '+threshold # assume threshold is string
+        logger.debug("NeuronGroup thresholder abstract code:\n"+abstract_code)
+        innercode = translate(abstract_code, specs,
+                              brian_prefs.default_scalar_dtype,
+                              lang)
+        logger.debug("NeuronGroup thresholder inner code:\n"+str(innercode))
+        code = lang.apply_template(innercode, lang.template_threshold())
+        logger.debug("NeuronGroup thresholder code:\n"+str(code))
+        codeobj = lang.code_object(code, specs)
+        self.namespace['_spikes'] = self.spikes
+        self.namespace['_num_spikes'] = len(self.spikes)
+        codeobj.compile(self.namespace)
+        self.thresholder_codeobj = codeobj
+        self.thresholder = Thresholder(self, codeobj,
+                                       name=self.name+'_thresholder',
+                                       when=(self.clock, 'thresholds'))
+        
+    def create_resetter(self, reset):
+        if reset is None:
+            self.resetter = None
+            return
+        lang = self.language
+        specs = self.specifiers
+        specs['_neuron_idx'] = Index(all=False)
+        abstract_code = reset # assume reset is string
+        logger.debug("NeuronGroup resetter abstract code:\n"+abstract_code)
+        innercode = translate(abstract_code, specs,
+                              brian_prefs.default_scalar_dtype,
+                              lang)
+        logger.debug("NeuronGroup resetter inner code:\n"+str(innercode))
+        code = lang.apply_template(innercode, lang.template_reset())
+        logger.debug("NeuronGroup resetter code:\n"+str(code))
+        codeobj = lang.code_object(code, specs)
+        self.namespace['_spikes'] = self.spikes
+        self.namespace['_num_spikes'] = len(self.spikes)
+        codeobj.compile(self.namespace)
+        self.resetter_codeobj = codeobj
+        self.resetter = Resetter(self, codeobj,
+                                 name=self.name+'_resetter',
+                                 when=(self.clock, 'resets'))
+        
     def get_specifiers(self):
         '''
         Returns a dictionary of `Specifier` objects.
@@ -135,33 +272,47 @@ class NeuronGroup(BrianObject, Group):
     abstract_code = property(lambda self: self.method(self.equations))
     specifiers = property(get_specifiers)
     
-    def update(self):
-        self.state_update_codeobj(t=self.clock.t_)
 
 if __name__=='__main__':
     from pylab import *
     from brian2 import *
+    from brian2.codegen.languages import *
     import time
-    #log_level_debug()
+
     N = 100
     tau = 10*ms
     eqs = '''
-    dV/dt = -V/tau : 1
+    dV/dt = (2-V)/tau : 1
     '''
-    G = NeuronGroup(N, eqs)
-    G.V = 1.0
+    threshold = 'V>1'
+    reset = 'V = 0'
+    G = NeuronGroup(N, eqs,
+                    threshold=threshold,
+                    reset=reset,
+                    #language=CPPLanguage()
+                    )
+    #raise Exception
+    G.V = rand(N)
     recvals = []
     times = []
+    i = []
+    t = []
+    V = G.V_
     @network_operation
     def recup(self):
-        recvals.append(G.V[0])
-        times.append(G.clock.t_)
+        recvals.append(V[0:3].copy())
+        times.append(defaultclock.t_)
+        for j in G.spikes:
+            t.append(defaultclock.t_)
+            i.append(j)
     start = time.time()
     run(1*ms)
     print 'Initialise time:', time.time()-start
     start = time.time()
     run(99*ms)
     print 'Runtime:', time.time()-start
+    subplot(121)
     plot(times, recvals)
+    subplot(122)
+    plot(t, i, '.k')
     show()
-    

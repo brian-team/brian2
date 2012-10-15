@@ -74,7 +74,7 @@ class PythonLanguage(Language):
     def template_threshold(self):
         return '''
         %CODE%
-        return _cond.nonzero()[0]
+        _spikes, = _cond.nonzero()
         '''
 
     def template_synapses(self):
