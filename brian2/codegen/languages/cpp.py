@@ -281,3 +281,4 @@ class CPPCodeObject(CodeObject):
                      support_code=self.code['%SUPPORT_CODE%'],
                      compiler=self.compiler,
                      extra_compile_args=self.extra_compile_args)
+        
