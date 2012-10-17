@@ -11,11 +11,7 @@ from ..templating import apply_code_template
 from ..functions import UserFunction
 
 
-__all__ = ['Language', 'CodeObject',
-           'StateUpdaterCodeObject',
-           'ThresholderCodeObject',
-           'ResetterCodeObject',
-           ]
+__all__ = ['Language', 'CodeObject']
 
 class Language(object):
     '''
@@ -166,24 +162,6 @@ class Language(object):
         '''
         raise NotImplementedError
     
-    def create_codeobj(self, abstract_code, specs, default_dtype,
-                       template_method, arrays, clock,
-                       additional_namespace={}):
-        lang = self
-        innercode = translate(abstract_code, specs,
-                              default_dtype,
-                              lang)
-        code = lang.apply_template(innercode, template_method())
-        codeobj = lang.code_object(code, specs)
-        namespace = {}
-        for name, arr in arrays.iteritems():
-            namespace['_array_'+name] = arr
-        self.namespace.update(**additional_namespace)
-        self.namespace['dt'] = clock.dt_
-        self.namespace['t'] = clock.t_
-        codeobj.compile(self.namespace)
-        return codeobj, innercode, code
-
 
 class CodeObject(object):
     '''
@@ -210,12 +188,3 @@ class CodeObject(object):
     
     def __call__(self, **kwds):
         raise NotImplementedError
-
-class StateUpdaterCodeObject(CodeObject):
-    pass
-
-class ThresholderCodeObject(CodeObject):
-    pass
-
-class ResetterCodeObject(CodeObject):
-    pass

@@ -1,7 +1,7 @@
 import weakref
 
 import numpy as np
-from numpy import array
+from numpy import array, zeros
 
 from brian2.equations import Equations
 from brian2.stateupdaters.integration import euler
@@ -42,7 +42,10 @@ class Thresholder(CodeRunner):
 
     def update(self):
         CodeRunner.update(self)
-        self.group.spikes = self.codeobj.namespace['_spikes']
+        ns = self.codeobj.namespace
+        spikesarray = ns['_spikes_space']
+        numspikes = ns['_array_num_spikes'][0]
+        self.group.spikes = spikesarray[:numspikes]
         
 
 class Resetter(Thresholder):
@@ -86,15 +89,7 @@ class NeuronGroup(BrianObject, Group):
     these are run at the 'groups', 'thresholds' and 'resets' slots (i.e. the
     values of `Scheduler.when` take these values). The `Scheduler.order`
     attribute is set to 0 initially, but this can be modified using the
-    attributes `state_updater`, `thresholder` and `resetter`.
-    
-    TODO: Threshold doesn't work with CPPLanguage because that tries to
-          directly set the _spikes array, which is initialised as zero length
-          and therefore can't have data put in it. In order to fix this, we
-          need EITHER to include a _spikes_space array or something like that,
-          but then it will be useless/slow down Python, OR have some way to
-          create space for _spikes for C++ but not for Python, which requires
-          some flexibility.
+    attributes `state_updater`, `thresholder` and `resetter`.    
     '''
     basename = 'neurongroup'
     def __init__(self, N, equations, method=euler,
@@ -177,26 +172,36 @@ class NeuronGroup(BrianObject, Group):
         for name, curdtype in self.dtypes.iteritems():
             self.arrays[name] = allocate_array(self.N, dtype=curdtype)
         logger.debug("NeuronGroup memory allocated successfully.")
-            
-    def create_state_updater(self):
+
+    def create_codeobj(self, name, abstract_code, specs, template_method,
+                       additional_namespace={}):
         lang = self.language
-        specs = self.specifiers
-        abstract_code = self.abstract_code
-        logger.debug("NeuronGroup state updater abstract code:\n"+abstract_code)
-        innercode = translate(self.abstract_code, specs,
+        logger.debug("NeuronGroup "+name+" abstract code:\n"+abstract_code)
+        innercode = translate(abstract_code, specs,
                               brian_prefs.default_scalar_dtype,
                               lang)
-        logger.debug("NeuronGroup state updater inner code:\n"+str(innercode))
-        code = lang.apply_template(innercode, lang.template_state_update())
-        logger.debug("NeuronGroup state updater code:\n"+str(code))
+        logger.debug("NeuronGroup "+name+" inner code:\n"+str(innercode))
+        code = lang.apply_template(innercode, template_method())
+        logger.debug("NeuronGroup "+name+" code:\n"+str(code))
         codeobj = lang.code_object(code, specs)
-        self.namespace = {}
+        namespace = {}
         for name, arr in self.arrays.iteritems():
-            self.namespace['_array_'+name] = arr
+            namespace['_array_'+name] = arr
+        if not hasattr(self, 'namespace'):
+            self.namespace = namespace
+        self.namespace.update(**additional_namespace)
         self.namespace['_num_neurons'] = self.N
         self.namespace['dt'] = self.clock.dt_
         self.namespace['t'] = self.clock.t_
         codeobj.compile(self.namespace)
+        return codeobj
+            
+    def create_state_updater(self):
+        codeobj = self.create_codeobj("state updater",
+                                      self.abstract_code,
+                                      self.specifiers,
+                                      self.language.template_state_update,
+                                      )
         self.state_update_codeobj = codeobj
         self.state_updater = CodeRunner(codeobj,
                                         name=self.name+'_state_updater',
@@ -206,20 +211,18 @@ class NeuronGroup(BrianObject, Group):
         if threshold is None:
             self.thresholder = None
             return
-        lang = self.language
-        specs = self.specifiers
         abstract_code = '_cond = '+threshold # assume threshold is string
-        logger.debug("NeuronGroup thresholder abstract code:\n"+abstract_code)
-        innercode = translate(abstract_code, specs,
-                              brian_prefs.default_scalar_dtype,
-                              lang)
-        logger.debug("NeuronGroup thresholder inner code:\n"+str(innercode))
-        code = lang.apply_template(innercode, lang.template_threshold())
-        logger.debug("NeuronGroup thresholder code:\n"+str(code))
-        codeobj = lang.code_object(code, specs)
-        self.namespace['_spikes'] = self.spikes
-        self.namespace['_num_spikes'] = len(self.spikes)
-        codeobj.compile(self.namespace)
+        additional_ns = {
+            '_spikes': self.spikes,
+            '_spikes_space': zeros(self.N, dtype=int),
+            '_array_num_spikes': zeros(1, dtype=int),
+            }
+        codeobj = self.create_codeobj("thresholder",
+                                      abstract_code,
+                                      self.specifiers,
+                                      self.language.template_threshold,
+                                      additional_ns,
+                                      )
         self.thresholder_codeobj = codeobj
         self.thresholder = Thresholder(self, codeobj,
                                        name=self.name+'_thresholder',
@@ -229,21 +232,19 @@ class NeuronGroup(BrianObject, Group):
         if reset is None:
             self.resetter = None
             return
-        lang = self.language
         specs = self.specifiers
         specs['_neuron_idx'] = Index(all=False)
         abstract_code = reset # assume reset is string
-        logger.debug("NeuronGroup resetter abstract code:\n"+abstract_code)
-        innercode = translate(abstract_code, specs,
-                              brian_prefs.default_scalar_dtype,
-                              lang)
-        logger.debug("NeuronGroup resetter inner code:\n"+str(innercode))
-        code = lang.apply_template(innercode, lang.template_reset())
-        logger.debug("NeuronGroup resetter code:\n"+str(code))
-        codeobj = lang.code_object(code, specs)
-        self.namespace['_spikes'] = self.spikes
-        self.namespace['_num_spikes'] = len(self.spikes)
-        codeobj.compile(self.namespace)
+        additional_ns = {
+            '_spikes': self.spikes,
+            '_num_spikes': len(self.spikes),
+            }
+        codeobj = self.create_codeobj("resetter",
+                                      abstract_code,
+                                      specs,
+                                      self.language.template_reset,
+                                      additional_ns,
+                                      )
         self.resetter_codeobj = codeobj
         self.resetter = Resetter(self, codeobj,
                                  name=self.name+'_resetter',
@@ -290,6 +291,7 @@ if __name__=='__main__':
                     threshold=threshold,
                     reset=reset,
                     #language=CPPLanguage()
+                    language=NumexprPythonLanguage(),
                     )
     #raise Exception
     G.V = rand(N)

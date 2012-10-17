@@ -227,14 +227,15 @@ class CPPLanguage(Language):
             */
             %HASHDEFINES%
             %POINTERS%
-            int _numspikes = 0;
+            int _cpp_numspikes = 0;
             for(int _neuron_idx=0; _neuron_idx<_num_neurons; _neuron_idx++)
             {
                 %CODE%
                 if(_cond) {
-                    _spikes[_numspikes++] = _neuron_idx;
+                    _spikes_space[_cpp_numspikes++] = _neuron_idx;
                 }
             }
+            _array_num_spikes[0] = _cpp_numspikes;
             ''',
             '%SUPPORT_CODE%':'%SUPPORT_CODE%',
             }
@@ -281,4 +282,3 @@ class CPPCodeObject(CodeObject):
                      support_code=self.code['%SUPPORT_CODE%'],
                      compiler=self.compiler,
                      extra_compile_args=self.extra_compile_args)
-        

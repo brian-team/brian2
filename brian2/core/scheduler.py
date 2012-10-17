@@ -40,10 +40,16 @@ class Scheduler(object):
                             "both.")
         if len(args)==1 and isinstance(args[0], Scheduler):
             arg = args[0]
-            self.clock = arg.clock
-            self.order = arg.order
-            self.when = arg.when
+            clock = arg.clock
+            order = arg.order
+            when = arg.when
+            defined_clock = arg.defined_clock
+            defined_order = arg.defined_order
+            defined_when = arg.defined_when
         elif kwds:
+            defined_clock = 'clock' in kwds
+            defined_when = 'when' in kwds
+            defined_order = 'order' in kwds
             clock = kwds.pop('clock', defaultclock)
             when = kwds.pop('when', 'start')
             order = kwds.pop('order', 0)
@@ -51,6 +57,9 @@ class Scheduler(object):
                 raise TypeError("Scheduler does not take keyword arguments "
                                 ""+", ".join(kwds.keys()))
         else:
+            defined_clock = False
+            defined_when = False
+            defined_order = False
             clock = None
             when = None
             order = None
@@ -62,17 +71,19 @@ class Scheduler(object):
                         if clock is not None:
                             raise TypeError("Should only specify one clock.")
                         clock = arg
+                        defined_clock = True
                     elif isinstance(arg, str):
                         if when is not None:
                             raise TypeError("Should only specify one when.")
                         when = arg
+                        defined_when = True
                     elif isinstance(arg, (int, float)):
                         if order is not None:
                             raise TypeError("Should only specify one order.")
                         order = arg
+                        defined_order = True
                     else:
                         raise TypeError("Arguments should be CLock, string, int or float")
-                        order = arg
             if clock is None: clock = defaultclock
             if when is None: when = 'start'
             if order is None: order = 0
@@ -85,3 +96,12 @@ class Scheduler(object):
         
         #: The order in which objects with the same clock and ``when`` should be updated
         self.order = order
+
+        #: Whether or not the user explicitly specified a clock
+        self.defined_clock = defined_clock
+        
+        #: Whether or not the user explicitly specified a when
+        self.defined_when = defined_when
+        
+        #: Whether or not the user explicitly specified an order
+        self.defined_order = defined_order
