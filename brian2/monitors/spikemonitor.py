@@ -1,6 +1,6 @@
 import weakref
 
-from brian2 import BrianObject, brian_prefs
+from brian2 import BrianObject, brian_prefs, second
 from brian2.memory.dynamicarray import DynamicArray1D
 
 __all__ = ['SpikeMonitor']
@@ -64,6 +64,13 @@ class SpikeMonitor(BrianObject):
         '''
         Array of recorded spike times, with corresponding indices `i`.
         '''
+        return self._t.data.copy()*second
+
+    @property
+    def t_(self):
+        '''
+        Array of recorded spike times without units, with corresponding indices `i`.
+        '''
         return self._t.data.copy()
     
     @property
@@ -72,6 +79,13 @@ class SpikeMonitor(BrianObject):
         Returns the pair (`i`, `t`).
         '''
         return self.i, self.t
+
+    @property
+    def it_(self):
+        '''
+        Returns the pair (`i`, `t_`).
+        '''
+        return self.i, self.t_
     
     @property
     def num_spikes(self):
@@ -100,5 +114,6 @@ if __name__=='__main__':
     run(100*ms)
     print "Recorded", M.num_spikes, "spikes"
     i, t = M.it
+    print t
     plot(t, i, '.k')
     show()
