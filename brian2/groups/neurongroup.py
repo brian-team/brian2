@@ -3,7 +3,7 @@ import weakref
 import numpy as np
 from numpy import array, zeros
 
-from brian2.equations import Equations
+from brian2.equations import Equations, Statements
 from brian2.stateupdaters.integration import euler
 from brian2.codegen.languages import PythonLanguage
 from brian2.codegen.specifiers import (Value, ArrayVariable, Subexpression,
@@ -81,6 +81,11 @@ class NeuronGroup(BrianObject, Group):
         The update clock to be used, or defaultclock if not specified.
     name : str, optional
         A unique name for the group, otherwise use ``neurongroup_0``, etc.
+    level : int, optional
+        How many levels up in the call stack to go to find variable names for
+        equations, reset and threshold statements. In normal use this
+        shouldn't be changed, but classes derived from `NeuronGroup` calling
+        `NeuronGroup.__init__` should increase this level by 1.
         
     Notes
     -----
@@ -96,7 +101,8 @@ class NeuronGroup(BrianObject, Group):
                  threshold=None,
                  reset=None,
                  dtype=None, language=None,
-                 clock=None, name=None):
+                 clock=None, name=None,
+                 level=0):
         BrianObject.__init__(self, when=clock, name=name)
         ##### VALIDATE ARGUMENTS AND STORE ATTRIBUTES
         self.method = method
@@ -110,7 +116,7 @@ class NeuronGroup(BrianObject, Group):
             raise ValueError("NeuronGroup size should be at least 1, was "+str(N))
         # Validate equations
         if isinstance(equations, basestring):
-            equations = Equations(equations, level=1)
+            equations = Equations(equations, level=level+1)
         if not isinstance(equations, Equations):
             raise ValueError(('equations has to be a string or an Equations '
                               'object, is "%s" instead.') % type(equations))
@@ -147,8 +153,8 @@ class NeuronGroup(BrianObject, Group):
             language = PythonLanguage()
         self.language = language
         self.create_state_updater()
-        self.create_thresholder(threshold)
-        self.create_resetter(reset)
+        self.create_thresholder(threshold, level=level+1)
+        self.create_resetter(reset, level=level+1)
         
         # Creation of contained_objects that do the work
         self.contained_objects.append(self.state_updater)
@@ -159,6 +165,12 @@ class NeuronGroup(BrianObject, Group):
         
         # Activate name attribute access
         Group.__init__(self)
+
+    def __len__(self):
+        '''
+        Return number of neurons in the group.
+        '''
+        return self.N
         
     def prepare_dtypes(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)
@@ -215,11 +227,14 @@ class NeuronGroup(BrianObject, Group):
                                         name=self.name+'_state_updater',
                                         when=(self.clock, 'groups'))
         
-    def create_thresholder(self, threshold):
+    def create_thresholder(self, threshold, level=1):
         if threshold is None:
             self.thresholder = None
             return
-        abstract_code = '_cond = '+threshold # assume threshold is string
+        stmt = Statements('_cond = '+threshold, level=level+1)
+        stmt.resolve(self.units.keys()+['_cond'])
+        stmt = stmt.frozen()
+        abstract_code = stmt.code        
         additional_ns = {
             '_spikes': self.spikes,
             '_spikes_space': zeros(self.N, dtype=int),
@@ -236,13 +251,16 @@ class NeuronGroup(BrianObject, Group):
                                        name=self.name+'_thresholder',
                                        when=(self.clock, 'thresholds'))
         
-    def create_resetter(self, reset):
+    def create_resetter(self, reset, level=1):
         if reset is None:
             self.resetter = None
             return
         specs = self.specifiers
         specs['_neuron_idx'] = Index(all=False)
-        abstract_code = reset # assume reset is string
+        stmt = Statements(reset, level=level+1)
+        stmt.resolve(self.units.keys()+['_cond'])
+        stmt = stmt.frozen()
+        abstract_code = stmt.code        
         additional_ns = {
             '_spikes': self.spikes,
             '_num_spikes': len(self.spikes),

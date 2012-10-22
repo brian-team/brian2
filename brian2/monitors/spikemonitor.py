@@ -1,6 +1,6 @@
 import weakref
 
-from brian2 import BrianObject, brian_prefs, second
+from brian2 import BrianObject, brian_prefs, second, Scheduler
 from brian2.memory.dynamicarray import DynamicArray1D
 
 __all__ = ['SpikeMonitor']

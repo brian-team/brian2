@@ -62,7 +62,6 @@ def make_statements(code, specifiers, dtype):
         op = line.code[start:end].strip()
         var = line.code[:start].strip()
         expr = line.code[end:].strip()
-        print repr(var), repr(op), repr(expr)
         # var should be a single word
         if len(re.findall(r'^[A-Za-z_][A-Za-z0-9_]*$', var))!=1:
             raise ValueError("LHS in statement must be single variable name, line: "+line.code)
