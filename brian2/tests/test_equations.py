@@ -12,7 +12,8 @@ from brian2.units.fundamentalunits import (DIMENSIONLESS, get_dimensions,
                                            have_same_dimensions)
 from brian2.equations.unitcheck import (get_default_unit_namespace,
                                         get_unit_from_string)
-from brian2.equations.equations import (check_identifier_basic,
+from brian2.equations.equations import (check_identifier,
+                                        check_identifier_basic,
                                         check_identifier_reserved,
                                         parse_string_equations,
                                         SingleEquation)
@@ -70,6 +71,24 @@ def test_identifier_checks():
     for identifier in ['t', 'dt', 'xi']:
         assert_raises(ValueError, lambda: check_identifier_reserved(identifier))
     
+    # Check identifier registry
+    assert check_identifier_basic in Equations.identifier_checks
+    assert check_identifier_reserved in Equations.identifier_checks
+    
+    # Set up a dummy identifier check that disallows the variable name
+    # gaba_123 (that is otherwise valid)
+    def disallow_gaba_123(identifier):
+        if identifier == 'gaba_123':
+            raise ValueError('I do not like this name')
+    
+    check_identifier('gaba_123')
+    old_checks = Equations.identifier_checks
+    Equations.register_identifier_check(disallow_gaba_123)
+    assert_raises(ValueError, lambda: check_identifier('gaba_123'))
+    Equations.identifier_checks = old_checks
+    
+    # registering a non-function should now work
+    assert_raises(ValueError, lambda: Equations.register_identifier_check('no function'))
 
 def test_parse_equations():
     ''' Test the parsing of equation strings '''
@@ -170,6 +189,11 @@ def test_construction_errors():
     assert_raises(ValueError, lambda: eqs.check_flags({}))
     assert_raises(ValueError, lambda: eqs.check_flags({'static_equation': ['flag']}))
     assert_raises(ValueError, lambda: eqs.check_flags({'diff_equation': ['otherflag']}))
+    
+    # Circular static equations
+    assert_raises(ValueError, lambda: Equations('''dv/dt = -(v + w) / tau : 1
+                                                   w = 2 * x : 1
+                                                   x = 3 * w : 1'''))
     
 
 def test_properties():
