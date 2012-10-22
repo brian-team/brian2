@@ -12,6 +12,7 @@ from brian2.codegen.translation import translate
 from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
+from brian2.core.scheduler import Scheduler
 from brian2.utils.logger import get_logger
 from brian2.groups.group import Group
 
@@ -27,12 +28,21 @@ class CodeRunner(BrianObject):
     Inserts the current time into the namespace at each step.
     '''
     basename = 'code_runner'
-    def __init__(self, codeobj, when=None, name=None):
+    def __init__(self, codeobj, init=None, pre=None, post=None,
+                 when=None, name=None):
         BrianObject.__init__(self, when=when, name=name)
         self.codeobj = codeobj
+        self.pre = pre
+        self.post = post
+        if init is not None:
+            init(self)
         
     def update(self):
+        if self.pre is not None:
+            self.pre(self)
         self.codeobj(t=self.clock.t_)
+        if self.post is not None:
+            self.post(self)
         
         
 class Thresholder(CodeRunner):
@@ -106,6 +116,7 @@ class NeuronGroup(BrianObject, Group):
         BrianObject.__init__(self, when=clock, name=name)
         ##### VALIDATE ARGUMENTS AND STORE ATTRIBUTES
         self.method = method
+        self.level = level = int(level)
         try:
             self.N = N = int(N)
         except ValueError:
@@ -227,6 +238,49 @@ class NeuronGroup(BrianObject, Group):
                                         name=self.name+'_state_updater',
                                         when=(self.clock, 'groups'))
         
+    def runner(self, code, init=None, pre=None, post=None,
+               when=None, name=None,
+               level=0):
+        '''
+        Returns a `CodeRunner` that runs abstract code in the groups namespace
+        
+        Parameters
+        ----------
+        code : str
+            The abstract code to run.
+        init, pre, post : function, optional
+            See `CodeRunner`
+        when : Scheduler
+            When to run, by default in the 'start' slot with the same clock as
+            the group.
+        name : str
+            A unique name, by default the name of the group appended with
+            'runner_0', 'runner_1', etc.
+        level : int, optional
+            How many levels up the stack to go to find values of variables.
+        '''
+        if when is None: # TODO: make this better with default values
+            when = Scheduler(clock=self.clock)
+        else:
+            raise NotImplementedError
+        if name is None:
+            if not hasattr(self, 'num_runners'):
+                self.num_runners = 0
+            name = self.name+'_runner_'+str(self.num_runners)
+            self.num_runners += 1
+        stmt = Statements(code, level=level+1)
+        stmt.resolve(self.units.keys())
+        stmt = stmt.frozen()
+        abstract_code = stmt.code        
+        codeobj = self.create_codeobj("runner",
+                                      abstract_code,
+                                      self.specifiers,
+                                      self.language.template_state_update,
+                                      )
+        runner = CodeRunner(codeobj, name=name, when=when,
+                            init=init, pre=pre, post=post)
+        return runner
+        
     def create_thresholder(self, threshold, level=1):
         if threshold is None:
             self.thresholder = None
@@ -258,7 +312,7 @@ class NeuronGroup(BrianObject, Group):
         specs = self.specifiers
         specs['_neuron_idx'] = Index(all=False)
         stmt = Statements(reset, level=level+1)
-        stmt.resolve(self.units.keys()+['_cond'])
+        stmt.resolve(self.units.keys())
         stmt = stmt.frozen()
         abstract_code = stmt.code        
         additional_ns = {
@@ -309,16 +363,18 @@ if __name__=='__main__':
     N = 100
     tau = 10*ms
     eqs = '''
-    dV/dt = (2-V)/tau : 1
+    dV/dt = (2*volt-V)/tau : volt
+    Vt : volt
     '''
-    threshold = 'V>1'
-    reset = 'V = 0'
+    threshold = 'V>Vt'
+    reset = 'V = 0*volt'
     G = NeuronGroup(N, eqs,
                     threshold=threshold,
                     reset=reset,
                     #language=CPPLanguage()
-                    language=NumexprPythonLanguage(),
+                    #language=NumexprPythonLanguage(),
                     )
+    runner = G.runner('Vt = 1*volt-(t/second)*5*volt')
     #raise Exception
     G.V = rand(N)
     recvals = []
@@ -333,6 +389,8 @@ if __name__=='__main__':
         for j in G.spikes:
             t.append(defaultclock.t_)
             i.append(j)
+    
+            
     start = time.time()
     run(1*ms)
     print 'Initialise time:', time.time()-start
