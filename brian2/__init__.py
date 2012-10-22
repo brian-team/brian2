@@ -34,6 +34,7 @@ from brian2.core.operations import *
 from brian2.stateupdaters import *
 from brian2.codegen import *
 from brian2.groups import *
+from brian2.monitors import *
 
 # TODO: this will probably be moved into the codegen module, just here as a sample preference
 brian_prefs.define('weave_compiler', 'gcc',

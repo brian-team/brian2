@@ -132,6 +132,14 @@ class NeuronGroup(BrianObject, Group):
 
         #: The array of spikes from the most recent threshold operation
         self.spikes = array([], dtype=int)
+
+        # Set these for documentation purposes
+        #: Performs numerical integration step
+        self.state_updater = None
+        #: Performs thresholding step, sets the value of `spikes`
+        self.thresholder = None
+        #: Resets neurons which have spiked (`spikes`)
+        self.resetter = None
         
         # Code generation (TODO: this should be refactored and modularised)
         # Temporary, set default language to Python
@@ -245,7 +253,7 @@ class NeuronGroup(BrianObject, Group):
                                       self.language.template_reset,
                                       additional_ns,
                                       )
-        self.resetter_codeobj = codeobj
+        self.resetter_codeobj = codeobj        
         self.resetter = Resetter(self, codeobj,
                                  name=self.name+'_resetter',
                                  when=(self.clock, 'resets'))
