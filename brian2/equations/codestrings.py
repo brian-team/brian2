@@ -39,7 +39,7 @@ def _conflict_warning(message, resolutions, logger):
     elif len(resolutions) == 1:
         second_part = ('but also refers to a variable in the %s namespace:'
                        ' %r') % (resolutions[0][0], resolutions[0][1])
-    elif len(resolutions) > 1:
+    else:
         second_part = ('but also refers to a variable in the following '
                        'namespaces: %s') % (', '.join([r[0] for r in resolutions]))
     

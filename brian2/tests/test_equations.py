@@ -1,5 +1,9 @@
 # encoding: utf8
+import sys
+from StringIO import StringIO
+
 from numpy.testing import assert_raises
+from IPython.lib.pretty import pprint
 
 from brian2 import volt, mV, second, ms, Hz, farad, metre, cm
 from brian2 import Unit, Equations, Expression, sin
@@ -12,6 +16,8 @@ from brian2.equations.equations import (check_identifier_basic,
                                         check_identifier_reserved,
                                         parse_string_equations,
                                         SingleEquation)
+
+
 
 def test_utility_functions():
     unit_namespace = get_default_unit_namespace()
@@ -185,6 +191,8 @@ def test_properties():
     assert len(eqs.eq_names) == 3 and set(eqs.eq_names) == set(['v', 'I', 'f'])
     assert set(eqs.equations.keys()) == set(['v', 'I', 'f', 'freq'])
     assert all((isinstance(eq, SingleEquation) for eq in eqs.equations.itervalues()))
+    # test that the equations object is iterable itself
+    assert all((isinstance(eq, SingleEquation) for (_, eq) in eqs))
     assert (len(eqs.equations_ordered) == 4 and
             all((isinstance(eq, SingleEquation) for eq in eqs.equations_ordered)) and
             [eq.varname for eq in eqs.equations_ordered] == ['f', 'I', 'v', 'freq'])
@@ -200,7 +208,42 @@ def test_properties():
     assert units['t'] == second
     assert units['dt'] == second
     assert units['xi'] == second**-0.5
-    assert set(eqs.variables) == set(eqs.units.keys())    
+    assert set(eqs.variables) == set(eqs.units.keys())
+
+
+def test_mathematical_properties():
+    tau = 10 * ms
+    eqs = Equations('''dv/dt = -v / tau : volt ''')
+    assert eqs.is_linear
+    
+    # depending on constant parameters is ok
+    eqs = Equations('''dv/dt = -v*c / tau : volt
+                       c : 1 (constant)''')
+    assert eqs.is_linear
+
+    # depending on non-constant parameters isn't
+    eqs = Equations('''dv/dt = -v*c / tau : volt
+                       c : 1''')
+    assert not eqs.is_linear
+    
+    eqs = Equations('''dv/dt = -sin(v) / tau : 1''')
+    assert not eqs.is_linear
+    
+    # equations depending on time are never linear
+    eqs = Equations('''dv/dt = -(v * t / second) / tau : 1''')
+    assert not eqs.is_linear
+    
+    
+    eqs = Equations('''dv/dt = -(v + v2) / tau : 1
+                       v2 = sin(v) : 1''')
+    assert not eqs.is_linear
+    assert not eqs.is_conditionally_linear
+    
+    eqs = Equations('''dv/dt = -(v + v2) / tau : 1
+                       dv2/dt = sin(v) / tau : 1''')
+    assert not eqs.is_linear
+    assert eqs.is_conditionally_linear
+
 
 def test_str_repr():
     '''
@@ -213,6 +256,19 @@ def test_str_repr():
     assert len(str(eqs)) > 0
     assert len(repr(eqs)) > 0
     
+    # Test str and repr of SingleEquations explicitly (might already have been
+    # called by Equations
+    for eq in eqs.equations.itervalues():
+        assert(len(str(eq))) > 0
+        assert(len(repr(eq))) > 0
+    
+    # Test ipython's pretty printing
+    old_stdout = sys.stdout
+    string_output = StringIO()
+    sys.stdout = string_output
+    pprint(eqs)
+    assert len(string_output.getvalue()) > 0
+    sys.stdout = old_stdout
 
 if __name__ == '__main__':
     test_utility_functions()
@@ -220,4 +276,5 @@ if __name__ == '__main__':
     test_parse_equations()
     test_construction_errors()
     test_properties()
+    test_mathematical_properties()    
     test_str_repr()

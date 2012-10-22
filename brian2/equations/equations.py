@@ -271,11 +271,6 @@ class SingleEquation(object):
         # will be set later in the sort_static_equations method of Equations
         self.update_order = -1
 
-    # parameters do not depend on time
-    is_time_dependent = property(lambda self: self.expr.is_time_dependent
-                                 if not self.expr is None else False,
-                                 doc='Whether this equation is time dependent')
-
     identifiers = property(lambda self: self.expr.identifiers
                            if not self.expr is None else set([]),
                            doc='All identifiers in the RHS of this equation.')
