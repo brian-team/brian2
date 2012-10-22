@@ -469,7 +469,7 @@ class LogCapture(logging.Handler):
         logger.addHandler(self)
     
     def uninstall(self):
+        logger = logging.getLogger()
         logger.removeHandler(self)
         for handler in self.old_handlers:
             logger.addHandler(handler)
-    
