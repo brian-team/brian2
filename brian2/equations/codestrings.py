@@ -458,3 +458,8 @@ class Expression(CodeString):
                             exhaustive=True)
         
         return (f_expr, g_expr)
+    
+    def _repr_pretty_(self, p, cycle):
+        # Make use of sympy's pretty printing
+        p.pretty(self._sympy_expr)
+

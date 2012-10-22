@@ -317,6 +317,22 @@ class SingleEquation(object):
         s += ')>'
         return s
 
+    def _repr_pretty_(self, p, cycle):
+        if self.eq_type == 'diff_equation':
+            p.text('d' + self.varname + '/dt')
+        else:
+            p.text(self.varname)
+
+        if not self.expr is None:
+            p.text(' = ')
+            p.pretty(self.expr)
+        
+        p.text(' : ')
+        p.pretty(self.unit)
+        
+        if len(self.flags):
+            p.text(' (' + ', '.join(self.flags) + ')')
+
 class Equations(object):
     """
     Container that stores equations from which models can be created.
@@ -704,11 +720,15 @@ class Equations(object):
     def __str__(self):
         strings = [str(eq) for eq in self._equations.itervalues()]
         return '\n'.join(strings)
+    
+    def __repr__(self):
+        return '<Equations object consisting of %d equations>' % len(self._equations)
 
     def _repr_pretty_(self, p, cycle):
         ''' Pretty printing for ipython '''
         if cycle: 
-            # Should never happen actually
-            return 'Equations(...)'
+            # Should never happen
+            raise AssertionError('Cyclical call of Equations._repr_pretty_')
         for eq in self._equations.itervalues():
             p.pretty(eq)
+            p.breakable('\n')

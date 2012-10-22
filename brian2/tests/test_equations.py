@@ -207,7 +207,7 @@ def test_str_repr():
     Test the string representation (only that it does not throw errors).
     '''
     tau = 10 * ms
-    eqs = Equations('''dv/dt = -(v + I)/ tau : volt
+    eqs = Equations('''dv/dt = -(v + I)/ tau : volt (active)
                        I = sin(2 * 22/7. * f * t)* volt : volt
                        f : Hz''')
     assert len(str(eqs)) > 0
