@@ -19,6 +19,34 @@ __all__ = ['Expression', 'Statements']
 logger = get_logger(__name__)
 
 
+def _conflict_warning(message, resolutions, logger):
+    '''
+    A little helper functions to generate warnings for logging. Specific
+    to the `CodeString.resolve` method and should only be used by it.
+    
+    Parameters
+    ----------
+    message : str
+        The first part of the warning message.
+    resolutions : list of str
+        A list of (namespace, object) tuples.
+    logger : `BrianLogger`
+        The logger object.
+    '''
+    if len(resolutions) == 0:
+        # nothing to warn about
+        return
+    elif len(resolutions) == 1:
+        second_part = ('but also refers to a variable in the %s namespace:'
+                       ' %r') % (resolutions[0][0], resolutions[0][1])
+    elif len(resolutions) > 1:
+        second_part = ('but also refers to a variable in the following '
+                       'namespaces: %s') % (', '.join([r[0] for r in resolutions]))
+    
+    logger.warn(message + ' ' + second_part,
+                'CodeString.resolve.resolution_conflict')
+
+
 class CodeString(object):
     '''
     A class for representing strings and an attached namespace.
@@ -84,7 +112,8 @@ class CodeString(object):
         
     namespace = property(lambda self: self._namespace,
                          doc='The namespace resolving external identifiers.')
-        
+
+
     def resolve(self, internal_variables):
         '''
         Determine the namespace, containing resolved references to externally
@@ -131,51 +160,34 @@ class CodeString(object):
                 matches.append(('units',
                                unit_namespace[identifier]))
             
+            # raise warnings in case of conflicts
             if identifier in SPECIAL_VARS:
                 # The identifier is t, dt, or xi
-                if len(matches) == 1:
-                    logger.warn(('The name "%s" in the code string "%s" has a special '
-                                 'meaning but also refers to a variable in the %s '
-                                 'namespace: %r') %
-                                (identifier, self.code, matches[0][0], matches[0][1]),
-                                'CodeString.resolve.resolution_conflict')
-                elif len(matches) > 1:
-                    logger.warn(('The name "%s" in the code string "%s" has a special '
-                                 'meaning but also to refers to variables in the '
-                                 'following namespaces: %s') %
-                                (identifier, self.code, [m[0] for m in matches]),
-                                'CodeString.resolve.resolution_conflict')
+                _conflict_warning(('The name "%s" in the code string "%s" '
+                                  'has a special meaning') %
+                                  (identifier, self.code), matches, logger)
             elif identifier in internal_variables:
                 # The identifier is an internal variable
-                if len(matches) == 1:
-                    logger.warn(('The name "%s" in the code string "%s" refers to an '
-                                 'internal variable but also to a variable in the %s '
-                                 'namespace: %r') %
-                                (identifier, self.code, matches[0][0], matches[0][1]),
-                                'CodeString.resolve.resolution_conflict')
-                elif len(matches) > 1:
-                    logger.warn(('The name "%s" in the code string "%s" refers to an '
-                                 'internal variable but also to variables in the '
-                                 'following namespaces: %s') %
-                                (identifier, self.code, [m[0] for m in matches]),
-                                'CodeString.resolve.resolution_conflict')
+                _conflict_warning(('The name "%s" in the code string "%s" '
+                                   'refers to an internal variable') %
+                                  (identifier, self.code),
+                                  matches, logger)
             else:
                 # The identifier is not an internal variable
                 if len(matches) == 0:
-                    raise ValueError('The identifier "%s" in the code string '
-                                     '"%s" could not be resolved.' % 
+                    raise ValueError(('The identifier "%s" in the code string '
+                                     '"%s" could not be resolved.') % 
                                      (identifier, self.code))
                 elif len(matches) > 1:
                     # Possibly, all matches refer to the same object
                     first_obj = matches[0][1]
                     if not all([m[1] is first_obj for m in matches]):
-                        logger.warn(('The name "%s" in the code string "%s" '
+                        _conflict_warning(('The name "%s" in the code string "%s" '
                                      'refers to different objects in different '
                                      'namespaces used for resolving. Will use '
-                                     'the object from the %s namespace: %r') %
+                                     'the object from the %s namespace (%r)') %
                                     (identifier, self.code, matches[0][0],
-                                     first_obj),
-                                    'CodeString.resolve.resolution_conflict')
+                                     first_obj), matches[1:], logger)
                 
                 # use the first match (according to resolution order)
                 namespace[identifier] = matches[0][1]

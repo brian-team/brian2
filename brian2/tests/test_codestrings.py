@@ -1,11 +1,9 @@
-import warnings
-
 import numpy as np
 from numpy.testing import assert_raises, assert_equal
 import sympy
 
 from brian2 import Expression, Statements
-from brian2 import ms, mV, volt, second, get_dimensions, DimensionMismatchError
+from brian2 import Hz, ms, mV, volt, second, get_dimensions, DimensionMismatchError
 
 from brian2.utils.logger import catch_logs
 
@@ -81,6 +79,24 @@ def test_resolve():
     expr.resolve(['v'])
     assert expr.namespace['I'] == another_I and expr.namespace['tau'] == tau
     
+    # test resolution of units not present in any namespace
+    expr = Expression('v * amp * ohm')
+    expr.resolve(['v'])
+    assert expr.namespace['ohm'] is brian2.ohm and expr.namespace['amp'] is brian2.amp
+
+    # Test that resolving is a prerequisite for a number of functions
+    expr = Expression('-v / tau')
+    assert_raises(TypeError, expr.frozen)
+    assert_raises(TypeError, lambda: expr.eval(['v']))
+
+
+def test_resolution_warnings():
+    '''
+    Test that certain calls to resolve generate a warning.
+    '''
+    I = 3 * mV
+    tau = 5 * ms
+    another_I = 5 * mV
     # Only specifying part of the namespace
     expr = Expression('-(v + I) / tau', namespace={'I' : another_I},
                       exhaustive=False)
@@ -92,18 +108,47 @@ def test_resolve():
         assert len(logs) == 1
         assert logs[0][0] == 'WARNING' 
         assert logs[0][1].endswith('resolution_conflict')
+        print 'Message: ', logs[0][2]         
+        assert expr.namespace['I'] == another_I and expr.namespace['tau'] == tau
     
-    assert expr.namespace['I'] == another_I and expr.namespace['tau'] == tau
-    
-    # test resolution of units not present in any namespace
-    expr = Expression('v * amp * ohm')
-    expr.resolve(['v'])
-    assert expr.namespace['ohm'] is brian2.ohm and expr.namespace['amp'] is brian2.amp
+    freq = 300 * Hz
+    t = 5 * second
+    # This expression treats t as a special variable and is not actually using
+    # the t above!
+    expr = Expression('sin(2 * 3.141 * freq * t)', namespace={'sin': np.sin},
+                      exhaustive=False)
+    with catch_logs() as logs:
+        expr.resolve([])
+        assert len(logs) == 1
+        assert logs[0][0] == 'WARNING' 
+        assert logs[0][1].endswith('resolution_conflict')
+        print 'Message: ', logs[0][2]            
+        assert expr.namespace['freq'] == freq and not 't' in expr.namespace
 
-    # Test that resolving is a prerequisite for a number of functions
-    expr = Expression('-v / tau')
-    assert_raises(TypeError, expr.frozen)
-    assert_raises(TypeError, lambda: expr.eval(['v']))
+    I = 3 * mV
+    tau = 5 * ms    
+    expr = Expression('-(v + I)/ tau')
+    # If we claim that I is an internal variable, it shadows the variable
+    # defined in the local namespace -- this should trigger a warning
+    with catch_logs() as logs:
+        expr.resolve(['v', 'I'])
+        assert len(logs) == 1
+        assert logs[0][0] == 'WARNING' 
+        assert logs[0][1].endswith('resolution_conflict')
+        print 'Message: ', logs[0][2]    
+        assert expr.namespace['tau'] == tau and not 'I' in expr.namespace
+    
+    # A more extreme example: I is defined above, but also in the namespace and
+    # is claimed to be an internal variable
+    expr = Expression('-(v + I)/ tau', namespace={'I': 5 * mV},
+                      exhaustive=False)
+    with catch_logs() as logs:
+        expr.resolve(['v', 'I'])
+        assert len(logs) == 1
+        assert logs[0][0] == 'WARNING' 
+        assert logs[0][1].endswith('resolution_conflict')
+        print 'Message: ', logs[0][2]    
+        assert expr.namespace['tau'] == tau and not 'I' in expr.namespace
 
 
 def test_split_stochastic():
@@ -177,6 +222,7 @@ if __name__ == '__main__':
     test_expr_check_linearity()
     test_expr_units()
     test_resolve()
+    test_resolution_warnings()
     test_frozen()
     test_split_stochastic()
     test_str_repr()
