@@ -33,43 +33,45 @@
 # ----------------------------------------------------------------------------------
 # 
 """
-Functions which check the dimensions of their arguments, etc.
-
-Functions updated to provide Quantity functionality
----------------------------------------------------
-
-With any dimensions:
-
-* sqrt
-
-Dimensionless:
-
-* log, exp
-* sin, cos, tan
-* arcsin, arccos, arctan
-* sinh, cosh, tanh
-* arcsinh, arccosh, arctanh
-
-With homogeneous dimensions:
-
-* dot
+Unit-aware replacements for numpy functions.
 """
+
 import numpy as np
 
-from .fundamentalunits import Quantity, wrap_function_dimensionless
+from .fundamentalunits import (Quantity, wrap_function_dimensionless,
+                               fail_for_dimension_mismatch, is_dimensionless)
 
-
-# these functions are the ones that will work with the template immediately below, and
-# extend the numpy functions to know about Quantity objects 
 __all__ = [
          'log', 'exp',
          'sin', 'cos', 'tan',
          'arcsin', 'arccos', 'arctan',
          'sinh', 'cosh', 'tanh',
          'arcsinh', 'arccosh', 'arctanh',
-         'diagonal', 'ravel', 'trace', 'dot'
+         'diagonal', 'ravel', 'trace', 'dot',
+         'where'
          ]
 
+def where(condition, *args):
+    if len(args) == 0:
+        # nothing to do
+        return np.where(condition)
+    elif len(args) == 2:
+        # check that x and y have the same dimensions
+        fail_for_dimension_mismatch(args[0], args[1],
+                                    'x and y need to have the same dimensions')
+        
+        if is_dimensionless(args[0]):
+            return np.where(condition, *args)
+        else:
+            # as both arguments have the same unit, just use the one from argument 1
+            return Quantity.with_dimensions(np.where(condition, *args),
+                                            args[0].dimensions)
+    else:
+        # illegal number of arguments, let numpy take care of this
+        return np.where(condition, *args)
+where.__doc__ = np.where.__doc__
+
+# Functions that work on dimensionless quantities only
 sin = wrap_function_dimensionless(np.sin)
 sinh = wrap_function_dimensionless(np.sinh)
 arcsin = wrap_function_dimensionless(np.arcsin)
@@ -86,7 +88,13 @@ arctanh = wrap_function_dimensionless(np.arctanh)
 log = wrap_function_dimensionless(np.log)
 exp = wrap_function_dimensionless(np.exp)
 
+
 def wrap_function_to_method(func):
+    '''
+    Wraps a function so that it calls the corresponding method on the Quantities
+    object (if called with a Quantities object as the first argument). All
+    other arguments are left untouched.
+    '''
     def f(x, *args, **kwds):
         if isinstance(x, Quantity):
             return getattr(x, func.__name__)(*args, **kwds)
