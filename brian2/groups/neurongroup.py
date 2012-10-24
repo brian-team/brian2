@@ -4,6 +4,8 @@ import numpy as np
 from numpy import array, zeros
 
 from brian2.equations import Equations, Statements
+from brian2.equations.equations import (DIFFERENTIAL_EQUATION, STATIC_EQUATION,
+                                        PARAMETER) 
 from brian2.stateupdaters.integration import euler
 from brian2.codegen.languages import PythonLanguage
 from brian2.codegen.specifiers import (Value, ArrayVariable, Subexpression,
@@ -137,8 +139,8 @@ class NeuronGroup(BrianObject, Group):
                      "equations {self.equations}.".format(self=self))
         
         # Check flags
-        equations.check_flags({'diff_equation': ('active'),
-                               'parameter': ('constant')})
+        equations.check_flags({DIFFERENTIAL_EQUATION: ('active'),
+                               PARAMETER: ('constant')})
         
         # Set dtypes and units
         self.prepare_dtypes(dtype=dtype)
@@ -185,7 +187,8 @@ class NeuronGroup(BrianObject, Group):
         
     def prepare_dtypes(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)
-        arrayvarnames = set(eq.varname for eq in self.equations.equations.itervalues() if eq.eq_type in ('diff_equation', 'parameter'))
+        arrayvarnames = set(eq.varname for eq in self.equations.equations.itervalues() if eq.eq_type in (DIFFERENTIAL_EQUATION,
+                                                                                                         PARAMETER))
         self.dtypes = {}
         for name in arrayvarnames:
             if isinstance(dtype, dict):
@@ -340,10 +343,10 @@ class NeuronGroup(BrianObject, Group):
              't': Value(np.float64)}
         # TODO: What about xi?
         for eq in self.equations.equations.itervalues():
-            if eq.eq_type in ('diff_equation', 'parameter'):
+            if eq.eq_type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 s.update({eq.varname: ArrayVariable('_array_'+eq.varname,
                           '_neuron_idx', self.dtypes[eq.varname])})
-            elif eq.eq_type == 'static_equation':                
+            elif eq.eq_type == STATIC_EQUATION:                
                 s.update({eq.varname: Subexpression(str(eq.expr.frozen()))})
             else:
                 raise AssertionError('Unknown equation type "%s"' % eq.eq_type)
