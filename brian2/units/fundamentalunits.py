@@ -14,6 +14,8 @@ Luminosity             candle    cd
 =====================  ========  ======
 
 """
+from __future__ import division
+
 from warnings import warn
 from operator import isNumberType, isSequenceType
 from itertools import izip
@@ -575,8 +577,9 @@ def have_same_dimensions(obj1, obj2):
     # should only add a small amount of unnecessary computation for cases in
     # which this function returns False which very likely leads to a
     # DimensionMismatchError anyway.
-    return (get_dimensions(obj1) is get_dimensions(obj2) or
-            get_dimensions(obj1) == get_dimensions(obj2))
+    dim1 = get_dimensions(obj1)
+    dim2 = get_dimensions(obj2)
+    return (dim1 is dim2) or (dim1 == dim2)
 
 
 def display_in_unit(x, u):
@@ -1732,13 +1735,22 @@ class UnitRegistry(object):
     add
     __getitem__    
     """
+    
+    
     def __init__(self):
-        self.objs = []
+        self.units = []
+        self.units_for_dimensions = {}
+        
 
     def add(self, u):
         """Add a unit to the registry
         """
-        self.objs.append(u)
+        self.units.append(u)
+        dim = u.dim
+        if not dim in self.units_for_dimensions:
+            self.units_for_dimensions[dim] = [u]
+        else:
+            self.units_for_dimensions[dim].append(u)
 
     def __getitem__(self, x):
         """Returns the best unit for quantity x
@@ -1752,16 +1764,17 @@ class UnitRegistry(object):
         the first matching unit (which will typically be the unscaled
         version).
         """
-        matching = filter(lambda o: have_same_dimensions(o, x), self.objs)
+        matching = self.units_for_dimensions.get(x.dim, [])
         if len(matching) == 0:
             raise KeyError("Unit not found in registry.")
-        # count the number of entries well represented by this unit 
-        floatreps = np.asarray(map(lambda o:
-                                    np.sum(np.logical_and(0.1 <= abs(np.asarray(x / o)),
-                                                                abs(np.asarray(x / o)) < 100)),
-                                    matching))
-        if any(floatreps):
-            return matching[floatreps.argmax()]
+        
+        # count the number of entries well represented by this unit
+        matching_values = np.asarray(matching)
+        x_flat = np.asarray(x).flatten()
+        floatreps = np.tile(x_flat, (len(matching), 1)).T / matching_values
+        good_reps = np.sum((floatreps >= 0.1) & (floatreps < 1000), axis=0)
+        if any(good_reps):
+            return matching[good_reps.argmax()]
         else:
             return matching[0]
 
@@ -1793,7 +1806,7 @@ def all_registered_units(*regs):
     if not len(regs):
         regs = [ standard_unit_register, UserUnitRegister, additional_unit_register]
     for r in regs:
-        for u in r.objs:
+        for u in r.units:
             yield u
 
 def _get_best_unit(x, *regs):
