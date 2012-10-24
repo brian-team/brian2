@@ -7,10 +7,20 @@ information about its namespace. Only serves as a parent class, its subclasses
 import inspect
 
 import sympy
+from numpy import (abs, floor, ceil, round,
+                   min, max, mean, std, var,
+                   sum, prod, clip) 
 
 from .unitcheck import get_default_unit_namespace, SPECIAL_VARS
 
 from brian2 import get_dimensions, DimensionMismatchError, get_logger
+from brian2.units.unitsafefunctions import (log, exp,
+                                            sin, cos, tan,
+                                            sinh, cosh, tanh,
+                                            arcsin, arccos, arctan,
+                                            arcsinh, arccosh, arctanh,
+                                            where)
+
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.utils.parsing import parse_to_sympy
 
@@ -18,6 +28,32 @@ __all__ = ['Expression', 'Statements']
 
 logger = get_logger(__name__)
 
+def get_default_numpy_namespace():
+    '''
+    Get the namespace of numpy functions/variables that is recognized by
+    default.
+    
+    Returns
+    -------
+    namespace : dict
+        A dictionary mapping function/variable names to numpy objects or
+        their unitsafe Brian counterparts.
+    '''
+    namespace = {}
+    
+    # standard numpy functions
+    numpy_funcs = [abs, floor, ceil, round, min, max, mean, std, var, sum,
+                   prod, clip]
+    namespace.update([(func.__name__, func) for func in numpy_funcs])
+    
+    # unitsafe replacements for numpy functions
+    replacements = [log, exp, sin, cos, tan, sinh, cosh, tanh,
+                    arcsin, arccos, arctan, arcsinh, arccosh, arctanh,
+                    where]
+    namespace.update([(func.__name__, func) for func in replacements])
+    
+    return namespace
+    
 
 def _conflict_warning(message, resolutions, logger):
     '''
@@ -140,6 +176,7 @@ class CodeString(object):
             raise TypeError('Variables have already been resolved before.')
 
         unit_namespace = get_default_unit_namespace()
+        numpy_namespace = get_default_numpy_namespace()
         
         namespace = {}
         for identifier in self.identifiers:
@@ -159,6 +196,9 @@ class CodeString(object):
             if identifier in unit_namespace:
                 matches.append(('units',
                                unit_namespace[identifier]))
+            if identifier in numpy_namespace:
+                matches.append(('numpy',
+                                numpy_namespace[identifier]))
             
             # raise warnings in case of conflicts
             if identifier in SPECIAL_VARS:

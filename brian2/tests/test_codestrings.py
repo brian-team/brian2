@@ -108,21 +108,18 @@ def test_resolution_warnings():
         assert len(logs) == 1
         assert logs[0][0] == 'WARNING' 
         assert logs[0][1].endswith('resolution_conflict')
-        print 'Message: ', logs[0][2]         
         assert expr.namespace['I'] == another_I and expr.namespace['tau'] == tau
     
     freq = 300 * Hz
     t = 5 * second
     # This expression treats t as a special variable and is not actually using
     # the t above!
-    expr = Expression('sin(2 * 3.141 * freq * t)', namespace={'sin': np.sin},
-                      exhaustive=False)
+    expr = Expression('sin(2 * 3.141 * freq * t)')
     with catch_logs() as logs:
         expr.resolve([])
         assert len(logs) == 1
         assert logs[0][0] == 'WARNING' 
-        assert logs[0][1].endswith('resolution_conflict')
-        print 'Message: ', logs[0][2]            
+        assert logs[0][1].endswith('resolution_conflict')            
         assert expr.namespace['freq'] == freq and not 't' in expr.namespace
 
     I = 3 * mV
@@ -135,7 +132,6 @@ def test_resolution_warnings():
         assert len(logs) == 1
         assert logs[0][0] == 'WARNING' 
         assert logs[0][1].endswith('resolution_conflict')
-        print 'Message: ', logs[0][2]    
         assert expr.namespace['tau'] == tau and not 'I' in expr.namespace
     
     # A more extreme example: I is defined above, but also in the namespace and
@@ -147,7 +143,6 @@ def test_resolution_warnings():
         assert len(logs) == 1
         assert logs[0][0] == 'WARNING' 
         assert logs[0][1].endswith('resolution_conflict')
-        print 'Message: ', logs[0][2]    
         assert expr.namespace['tau'] == tau and not 'I' in expr.namespace
 
 
