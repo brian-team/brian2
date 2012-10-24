@@ -19,13 +19,16 @@ __all__ = ['Equations']
 
 logger = get_logger(__name__)
 
-# A dictionary mapping equation types to nice names for error messages
-EQUATION_TYPE = {'parameter': 'parameter',
-                 'diff_equation': 'differential equation',
-                 'static_equation': 'static equation'}
+# Equation types (currently simple strings but always use the constants,
+# this might get refactored into objects, for example)
+PARAMETER = 'parameter'
+DIFFERENTIAL_EQUATION = 'differential equation'
+STATIC_EQUATION = 'static equation'
 
 
 # Definitions of equation structure for parsing with pyparsing
+# TODO: Maybe move them somewhere else to not pollute the namespace here?
+#       Only IDENTIFIER and EQUATIONS are ever used later
 ###############################################################################
 # Basic Elements
 ###############################################################################
@@ -62,22 +65,22 @@ FLAGS = (Suppress('(') + FLAG + ZeroOrMore(Suppress(',') + FLAG) +
 # Three types of equations
 # Parameter:
 # x : volt (flags)
-PARAMETER = Group(IDENTIFIER + Suppress(':') + UNIT +
-                  Optional(FLAGS)).setResultsName('parameter')
+PARAMETER_EQ = Group(IDENTIFIER + Suppress(':') + UNIT +
+                     Optional(FLAGS)).setResultsName(PARAMETER)
 
 # Static equation:
 # x = 2 * y : volt (flags)
 STATIC_EQ = Group(IDENTIFIER + Suppress('=') + EXPRESSION + Suppress(':') +
-                  UNIT + Optional(FLAGS)).setResultsName('static_equation')
+                  UNIT + Optional(FLAGS)).setResultsName(STATIC_EQUATION)
 
 # Differential equation
 # dx/dt = -x / tau : volt
-DIFFOP = (Suppress('d') + IDENTIFIER + Suppress('/') + Suppress('dt'))
-DIFF_EQ = Group(DIFFOP + Suppress('=') + EXPRESSION + Suppress(':') + UNIT +
-                Optional(FLAGS)).setResultsName('diff_equation')
+DIFF_OP = (Suppress('d') + IDENTIFIER + Suppress('/') + Suppress('dt'))
+DIFF_EQ = Group(DIFF_OP + Suppress('=') + EXPRESSION + Suppress(':') + UNIT +
+                Optional(FLAGS)).setResultsName(DIFFERENTIAL_EQUATION)
 
 # ignore comments
-EQUATION = (PARAMETER | STATIC_EQ | DIFF_EQ).ignore('#' + restOfLine)
+EQUATION = (PARAMETER_EQ | STATIC_EQ | DIFF_EQ).ignore('#' + restOfLine)
 EQUATIONS = ZeroOrMore(EQUATION)
 
 
@@ -233,7 +236,7 @@ class SingleEquation(object):
     
     Parameters
     ----------
-    eq_type : {'parameter', 'diff_equation', 'static_equation'}
+    eq_type : {PARAMETER, DIFFERENTIAL_EQUATION, STATIC_EQUATION}
         The type of the equation.
     varname : str
         The variable that is defined by this equation.
@@ -260,7 +263,7 @@ class SingleEquation(object):
                  namespace, exhaustive, level):
         self.eq_type = eq_type
         self.varname = varname
-        if eq_type != 'parameter':
+        if eq_type != PARAMETER:
             self.expr = Expression(expr, namespace=namespace,
                                    exhaustive=exhaustive, level=level + 1)
         else:
@@ -283,7 +286,7 @@ class SingleEquation(object):
             self.expr.resolve(internal_variables)        
 
     def __str__(self):
-        if self.eq_type == 'diff_equation':
+        if self.eq_type == DIFFERENTIAL_EQUATION:
             s = 'd' + self.varname + '/dt'
         else:
             s = self.varname
@@ -299,7 +302,7 @@ class SingleEquation(object):
         return s
     
     def __repr__(self):
-        s = '<' + EQUATION_TYPE[self.eq_type] + ' ' + self.varname
+        s = '<' + self.eq_type + ' ' + self.varname
         
         if not self.expr is None:
             s += ': ' + self.expr.code
@@ -313,7 +316,7 @@ class SingleEquation(object):
         return s
 
     def _repr_pretty_(self, p, cycle):
-        if self.eq_type == 'diff_equation':
+        if self.eq_type == DIFFERENTIAL_EQUATION:
             p.text('d' + self.varname + '/dt')
         else:
             p.text(self.varname)
@@ -368,7 +371,7 @@ class Equations(object):
         uses_xi = None
         for eq in self._equations.itervalues():
             if not eq.expr is None and 'xi' in eq.expr.identifiers:
-                if not eq.eq_type == 'diff_equation':
+                if not eq.eq_type == DIFFERENTIAL_EQUATION:
                     raise SyntaxError(('The equation defining %s contains the '
                                        'symbol "xi" but is not a differential '
                                        'equation.') % eq.varname)
@@ -455,9 +458,9 @@ class Equations(object):
             expr = Expression(word_substitute(eq.expr.code, substitutions),
                               self._namespace, exhaustive=True)
             
-            if eq.eq_type == 'static_equation':
+            if eq.eq_type == STATIC_EQUATION:
                 substitutions.update({eq.varname: '(%s)' % expr.code})
-            elif eq.eq_type == 'diff_equation':
+            elif eq.eq_type == DIFFERENTIAL_EQUATION:
                 #  a differential equation that we have to check                                
                 expr.resolve(self.names)
                 sub_exprs.append((eq.varname, expr))
@@ -525,14 +528,14 @@ class Equations(object):
     
     diff_eq_expressions = property(lambda self: [(varname, eq.expr.frozen()) for 
                                                  varname, eq in self.equations.iteritems()
-                                                 if eq.eq_type == 'diff_equation'],
+                                                 if eq.eq_type == DIFFERENTIAL_EQUATION],
                                   doc='A list of (variable name, expression) '
                                   'tuples of all differential equations.')
     
     eq_expressions = property(lambda self: [(varname, eq.expr.frozen()) for 
                                             varname, eq in self.equations.iteritems()
-                                            if eq.eq_type in ('static_equation',
-                                                              'diff_equation')],
+                                            if eq.eq_type in (STATIC_EQUATION,
+                                                              DIFFERENTIAL_EQUATION)],
                                   doc='A list of (variable name, expression) '
                                   'tuples of all equations.') 
     
@@ -542,16 +545,16 @@ class Equations(object):
                      doc='All variable names defined in the equations.')
     
     diff_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
-                                           if eq.eq_type == 'diff_equation'],
+                                           if eq.eq_type == DIFFERENTIAL_EQUATION],
                              doc='All differential equation names.')
     static_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
-                                           if eq.eq_type == 'static_equation'],
+                                           if eq.eq_type == STATIC_EQUATION],
                                doc='All static equation names.')
     eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
-                                           if eq.eq_type in ('diff_equation', 'static_equation')],
+                                           if eq.eq_type in (DIFFERENTIAL_EQUATION, STATIC_EQUATION)],
                         doc='All (static and differential) equation names.')
     parameter_names = property(lambda self: [eq.varname for eq in self.equations_ordered
-                                             if eq.eq_type == 'parameter'],
+                                             if eq.eq_type == PARAMETER],
                                doc='All parameter names.')    
     
     is_linear = property(_is_linear)
@@ -576,10 +579,10 @@ class Equations(object):
         # i.e. ignore dependencies on parameters and differential equations
         static_deps = {}
         for eq in self._equations.itervalues():
-            if eq.eq_type == 'static_equation':
+            if eq.eq_type == STATIC_EQUATION:
                 static_deps[eq.varname] = [dep for dep in eq.identifiers if
                                            dep in self._equations and
-                                           self._equations[dep].eq_type == 'static_equation']
+                                           self._equations[dep].eq_type == STATIC_EQUATION]
         
         # Use the standard algorithm for topological sorting:
         # http://en.wikipedia.org/wiki/Topological_sorting
@@ -611,9 +614,9 @@ class Equations(object):
         
         # Sort differential equations and parameters after static equations
         for eq in self._equations.itervalues():
-            if eq.eq_type == 'diff_equation':
+            if eq.eq_type == DIFFERENTIAL_EQUATION:
                 eq.update_order = len(sorted_eqs)
-            elif eq.eq_type == 'parameter':
+            elif eq.eq_type == PARAMETER:
                 eq.update_order = len(sorted_eqs) + 1
 
     def resolve(self):
@@ -656,18 +659,18 @@ class Equations(object):
         '''
         units = self.units
         for var, eq in self._equations.iteritems():
-            if eq.eq_type == 'parameter':
+            if eq.eq_type == PARAMETER:
                 # no need to check units for parameters
                 continue
             
-            if eq.eq_type == 'diff_equation':
+            if eq.eq_type == DIFFERENTIAL_EQUATION:
                 try:
                     eq.expr.check_units(units[var] / second, units)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Differential equation defining '
                                                   '%s does not use consistent units: %s') % 
                                                  (var, dme.desc), *dme.dims)
-            elif eq.eq_type == 'static_equation':
+            elif eq.eq_type == STATIC_EQUATION:
                 try:
                     eq.expr.check_units(units[var], units)
                 except DimensionMismatchError as dme:
@@ -684,8 +687,8 @@ class Equations(object):
         Parameters
         ----------
         allowed_flags : dict
-             A dictionary mapping equation types ('parameter',
-             'diff_equation', 'static_equation') to a list of strings (the
+             A dictionary mapping equation types (PARAMETER,
+             DIFFERENTIAL_EQUATION, STATIC_EQUATION) to a list of strings (the
              allowed flags for that equation type)
         
         Notes
@@ -701,11 +704,11 @@ class Equations(object):
         for eq in self.equations.itervalues():
             for flag in eq.flags:
                 if not eq.eq_type in allowed_flags or len(allowed_flags[eq.eq_type]) == 0:
-                    raise ValueError('Equations of type "%s" cannot have any flags.' % EQUATION_TYPE[eq.eq_type])
+                    raise ValueError('Equations of type "%s" cannot have any flags.' % eq.eq_type)
                 if not flag in allowed_flags[eq.eq_type]:
                     raise ValueError(('Equations of type "%s" cannot have a '
                                       'flag "%s", only the following flags '
-                                      'are allowed: %s') % (EQUATION_TYPE[eq.eq_type],
+                                      'are allowed: %s') % (eq.eq_type,
                                                             flag, allowed_flags[eq.eq_type]))
 
     #

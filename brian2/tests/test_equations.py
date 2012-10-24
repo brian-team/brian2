@@ -16,7 +16,9 @@ from brian2.equations.equations import (check_identifier,
                                         check_identifier_basic,
                                         check_identifier_reserved,
                                         parse_string_equations,
-                                        SingleEquation)
+                                        SingleEquation,
+                                        DIFFERENTIAL_EQUATION, STATIC_EQUATION,
+                                        PARAMETER)
 
 
 
@@ -94,7 +96,7 @@ def test_parse_equations():
     ''' Test the parsing of equation strings '''
     # A simple equation
     eqs = parse_string_equations('dv/dt = -v / tau : 1', {}, False, 0)    
-    assert len(eqs.keys()) == 1 and 'v' in eqs and eqs['v'].eq_type == 'diff_equation'
+    assert len(eqs.keys()) == 1 and 'v' in eqs and eqs['v'].eq_type == DIFFERENTIAL_EQUATION
     assert get_dimensions(eqs['v'].unit) == DIMENSIONLESS
     
     # A complex one
@@ -108,10 +110,10 @@ def test_parse_equations():
                                  ''', 
                                  {}, False, 0)
     assert len(eqs.keys()) == 4
-    assert 'v' in eqs and eqs['v'].eq_type == 'diff_equation'
-    assert 'ge' in eqs and eqs['ge'].eq_type == 'diff_equation'
-    assert 'I' in eqs and eqs['I'].eq_type == 'static_equation'
-    assert 'f' in eqs and eqs['f'].eq_type == 'parameter'
+    assert 'v' in eqs and eqs['v'].eq_type == DIFFERENTIAL_EQUATION
+    assert 'ge' in eqs and eqs['ge'].eq_type == DIFFERENTIAL_EQUATION
+    assert 'I' in eqs and eqs['I'].eq_type == STATIC_EQUATION
+    assert 'f' in eqs and eqs['f'].eq_type == PARAMETER
     assert get_dimensions(eqs['v'].unit) == volt.dim
     assert get_dimensions(eqs['ge'].unit) == volt.dim
     assert get_dimensions(eqs['I'].unit) == volt.dim
@@ -184,11 +186,11 @@ def test_construction_errors():
                                        tau : second'''))
     # using not-allowed flags
     eqs = Equations('dv/dt = -v / (5 * ms) : volt (flag)')    
-    eqs.check_flags({'diff_equation': ['flag']}) # allow this flag
-    assert_raises(ValueError, lambda: eqs.check_flags({'diff_equation': []}))
+    eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag']}) # allow this flag
+    assert_raises(ValueError, lambda: eqs.check_flags({DIFFERENTIAL_EQUATION: []}))
     assert_raises(ValueError, lambda: eqs.check_flags({}))
-    assert_raises(ValueError, lambda: eqs.check_flags({'static_equation': ['flag']}))
-    assert_raises(ValueError, lambda: eqs.check_flags({'diff_equation': ['otherflag']}))
+    assert_raises(ValueError, lambda: eqs.check_flags({STATIC_EQUATION: ['flag']}))
+    assert_raises(ValueError, lambda: eqs.check_flags({DIFFERENTIAL_EQUATION: ['otherflag']}))
     
     # Circular static equations
     assert_raises(ValueError, lambda: Equations('''dv/dt = -(v + w) / tau : 1
