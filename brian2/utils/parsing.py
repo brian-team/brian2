@@ -12,7 +12,7 @@ SYMPY_DICT = {'I': sympy.I,
               'Integer': sympy.Integer,
               'Symbol': sympy.Symbol}
 
-def parse_to_sympy(expr):
+def parse_to_sympy(expr, local_dict=None):
     '''
     Parses a string into a sympy expression. The reason for not using `sympify`
     directly is that sympify does a "from sympy import *", adding all functions
@@ -25,6 +25,9 @@ def parse_to_sympy(expr):
     ----------
     expr : str
         The string expression to parse.
+    local_dict : dict
+        A dictionary mapping names to objects. These names will be left
+        untouched and not wrapped in Symbol(...).
     
     Returns
     -------
@@ -43,6 +46,8 @@ def parse_to_sympy(expr):
     using the new BSD license:
     https://github.com/sympy/sympy/blob/master/LICENSE
     '''
+    if local_dict is None:
+        local_dict = {}
     
     tokens = generate_tokens(StringIO(expr).readline)
     
@@ -70,7 +75,7 @@ def parse_to_sympy(expr):
         elif toknum == NAME:
             name = tokval
 
-            if name in ['True', 'False', 'None']:
+            if name in ['True', 'False', 'None'] or name in local_dict:
                 result.append((NAME, name))
                 continue
 
@@ -93,9 +98,9 @@ def parse_to_sympy(expr):
     code = untokenize(result)
     
     try:
-        s_expr = eval(code, SYMPY_DICT)
+        s_expr = eval(code, SYMPY_DICT, local_dict)
     except Exception as ex:
         raise SyntaxError('Expression "%s" could not be parsed: %s' %
-                          (expr, ex))            
+                          (expr, str(ex)))
 
     return s_expr

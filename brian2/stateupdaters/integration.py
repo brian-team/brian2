@@ -1,7 +1,10 @@
 import string
-from sympy import sympify, Symbol, Function
+
+from sympy import Symbol, Function
 from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
+
+from brian2.utils.parsing import parse_to_sympy
 
 __all__ = ['euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 
@@ -62,7 +65,8 @@ class ExplicitStateUpdater(object):
         for element in parsed:
             # Make sure to always re-use symbol objects for known symbols,
             # otherwise the replacements go wrong
-            expression = sympify(element.expression, locals=self.symbols)
+            expression = parse_to_sympy(element.expression,
+                                        local_dict=self.symbols)
             symbols = list(expression.atoms(Symbol))
             self.symbols.update(dict([(symbol.name, symbol)
                                       for symbol in symbols]))
@@ -91,7 +95,7 @@ class ExplicitStateUpdater(object):
         '''
                 
         def replace_func(x, t, expr, temp_vars):
-            s_expr = sympify(expr, locals=self.symbols)
+            s_expr = parse_to_sympy(expr, local_dict=self.symbols)
             
             for var in eqs.eq_names:
                 temp_vars_specific = dict([('_' + temp_var + '_' + var,

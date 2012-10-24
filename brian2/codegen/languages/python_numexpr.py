@@ -1,4 +1,6 @@
 import sympy
+from brian2.utils.parsing import parse_to_sympy
+
 try:
     import numexpr
     numexpr_ver = tuple(map(int, numexpr.__version__.split('.')))
@@ -83,7 +85,7 @@ def expression_complexity(expr):
     of leaves and nodes of the tree. TODO: better definition?
     '''
     if isinstance(expr, str):
-        expr = sympy.sympify(expr)
+        expr = parse_to_sympy(expr)
     if len(expr.args)==0:
         return 1
     else:

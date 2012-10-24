@@ -7,9 +7,11 @@ import numpy
 from scipy import weave
 
 from brian2.utils.stringtools import deindent
+from brian2.utils.parsing import parse_to_sympy
 
 from .base import Language, CodeObject
 from ..functions import UserFunction
+
 
 __all__ = ['CPPLanguage', 'CPPCodeObject',
            'c_data_type',
@@ -100,7 +102,7 @@ class CPPLanguage(Language):
         self.flush_denormals = flush_denormals
     
     def translate_expression(self, expr):
-        expr = sympy.sympify(expr)
+        expr = parse_to_sympy(expr)
         return CCodePrinter().doprint(expr)
 
     def translate_statement(self, statement):

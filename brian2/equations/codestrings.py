@@ -7,12 +7,12 @@ information about its namespace. Only serves as a parent class, its subclasses
 import inspect
 
 import sympy
-from sympy.core.sympify import SympifyError
 
 from .unitcheck import get_default_unit_namespace, SPECIAL_VARS
 
 from brian2 import get_dimensions, DimensionMismatchError, get_logger
 from brian2.utils.stringtools import get_identifiers, word_substitute
+from brian2.utils.parsing import parse_to_sympy
 
 __all__ = ['Expression', 'Statements']
 
@@ -297,11 +297,7 @@ class Expression(CodeString):
     def __init__(self, code, namespace=None, exhaustive=True, level=0):
         super(Expression, self).__init__(code, namespace, exhaustive, level + 1)
         
-        try:
-            self._sympy_expr = sympy.sympify(self.code)
-        except SympifyError:
-            raise SyntaxError('Expression "%s" cannot be parsed with sympy' %
-                              self.code)
+        self._sympy_expr = parse_to_sympy(self.code)
          
     
     def check_linearity(self, variable):
