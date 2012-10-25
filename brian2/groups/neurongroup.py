@@ -409,7 +409,7 @@ if __name__=='__main__':
                     #language=CPPLanguage()
                     #language=NumexprPythonLanguage(),
                     )
-    G. refractory = 5*ms
+    G.refractory = 5*ms
     
     runner = G.runner('Vt = 1*volt-(t/second)*5*volt')
     #raise Exception
