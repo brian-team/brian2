@@ -387,7 +387,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
     
     abstract_code = property(lambda self: self.method(self.equations))
     specifiers = property(get_specifiers)
-    
+
 
 if __name__=='__main__':
     from pylab import *
@@ -410,24 +410,15 @@ if __name__=='__main__':
                     #language=NumexprPythonLanguage(),
                     )
     G.refractory = 5*ms
+    Gmid = Subgroup(G, 40, 80)
     
     runner = G.runner('Vt = 1*volt-(t/second)*5*volt')
-    #raise Exception
+
     G.V = rand(N)
-    recvals = []
-    times = []
-    i = []
-    t = []
-    V = G.V_
-    @network_operation
-    def recup(self):
-        recvals.append(V[0:3].copy())
-        times.append(defaultclock.t_)
-        for j in G.spikes:
-            t.append(defaultclock.t_)
-            i.append(j)
     
-            
+    statemon = StateMonitor(G, 'V', record=range(3))
+    spikemon = SpikeMonitor(Gmid)
+    
     start = time.time()
     run(1*ms)
     print 'Initialise time:', time.time()-start
@@ -435,7 +426,7 @@ if __name__=='__main__':
     run(99*ms)
     print 'Runtime:', time.time()-start
     subplot(121)
-    plot(times, recvals)
+    plot(statemon.t, statemon.V)
     subplot(122)
-    plot(t, i, '.k')
+    plot(spikemon.t, spikemon.i, '.k')
     show()
