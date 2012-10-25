@@ -17,18 +17,22 @@ class SpikeMonitor(BrianObject):
         When to record the spikes, by default uses the clock of the source
         and records spikes in the slot 'end'.
     name : str, optional
-        A unique name for the object, otherwise will use ``spikemonitor_0``,
-        etc.
+        A unique name for the object, otherwise will use
+        ``source.name+'_spikemonitor_0'``, etc.
     '''
     basename = 'spikemonitor'
     def __init__(self, source, when=None, name=None):
+        self.source = weakref.proxy(source)
+
+        # run by default on source clock at the end
         scheduler = Scheduler(when)
         if not scheduler.defined_clock:
             scheduler.clock = source.clock
         if not scheduler.defined_when:
             scheduler.when = 'end'
         BrianObject.__init__(self, when=scheduler, name=name)
-        self.source = weakref.proxy(source)
+        
+        # create data structures
         self.reinit()
         
     def reinit(self):
@@ -115,5 +119,6 @@ if __name__=='__main__':
     print "Recorded", M.num_spikes, "spikes"
     i, t = M.it
     print t
+    print M.name
     plot(t, i, '.k')
     show()

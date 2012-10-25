@@ -13,7 +13,12 @@ class Nameable(Trackable):
     If you specify a name explicitly, and it has already been taken, a
     `ValueError` is raised. If a name is not specified, it will try names of
     the form ``basename_0``, ``basename_1`` until it finds one which hasn't
-    been taken.
+    been taken. If the object has a ``source`` attribute with a ``name``
+    attribute, the base name will be given by ``source.name+'_'+basename``. If
+    the object also has a ``target`` attribute the format will be
+    ``sourcename_targetname_basename``. Note that to get this behaviour, the
+    ``source`` and ``target`` attributes have to have been set at the time that
+    ``Nameable.__init__`` is called.
     
     Parameters
     ----------
@@ -29,12 +34,16 @@ class Nameable(Trackable):
     basename = 'nameable_object'
     
     def _find_name(self, name):
-        basename = self.basename
         allnames = set(obj().name for obj in Nameable.__instances__() if hasattr(obj(), 'name'))
         if name is not None:
             if name in allnames:
                 raise ValueError("An object with name "+name+" is already defined.")
             return name
+        basename = self.basename
+        if hasattr(self, 'target') and hasattr(self.target, 'name'):
+            basename = self.target.name+'_'+basename
+        if hasattr(self, 'source') and hasattr(self.source, 'name'):
+            basename = self.source.name+'_'+basename
         i = 0
         while basename+'_'+str(i) in allnames:
             i += 1
