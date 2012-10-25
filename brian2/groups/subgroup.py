@@ -70,6 +70,9 @@ if __name__=='__main__':
     
     run(100*ms)
     
+    subplot(121)
     plot(M.t, M.i, '.k')
+    subplot(122)
+    plot(M.count/defaultclock.t)
     show()
     
