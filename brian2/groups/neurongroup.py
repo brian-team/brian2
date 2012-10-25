@@ -144,7 +144,7 @@ class NeuronGroup(BrianObject, Group):
         
         # Set dtypes and units
         self.prepare_dtypes(dtype=dtype)
-        self.units = equations.units
+        self.units = dict((var, equations.units[var]) for var in equations.equations.keys())
         
         # Allocate memory (TODO: this should be refactored somewhere at some point)
         self.allocate_memory()
