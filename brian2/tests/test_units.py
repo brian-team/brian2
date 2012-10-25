@@ -1,5 +1,6 @@
 import itertools
 import warnings
+import pickle
 from exceptions import RuntimeWarning
 
 import numpy as np
@@ -55,6 +56,19 @@ def test_construction():
                                                             1 * volt]))
     assert_raises(DimensionMismatchError, lambda: Quantity([500 * ms],
                                                            dim=volt.dim))
+
+def test_pickling():
+    '''
+    Test pickling of units.
+    '''
+    for q in [500 * mV, 500 * mV/mV, np.arange(10) * mV,
+              np.arange(12).reshape(4, 3) * mV/ms]:
+        pickled = pickle.dumps(q)
+        unpickled = pickle.loads(pickled)
+        assert isinstance(unpickled, type(q))
+        assert have_same_dimensions(unpickled, q)
+        assert_equal(unpickled, q)
+
 
 def test_str_repr():
     '''
@@ -175,6 +189,12 @@ def test_multiplication_division():
         assert_quantity(q2 / q, np.asarray(q2) / np.asarray(q), second / volt)
         assert_quantity(q * q2, np.asarray(q) * np.asarray(q2), volt * second)
 
+        # using unsupported objects should fail
+        assert_raises(TypeError, lambda: q / 'string')
+        assert_raises(TypeError, lambda: 'string' / q)
+        assert_raises(TypeError, lambda: 'string' * q)
+        assert_raises(TypeError, lambda: q * 'string')
+
 
 def test_addition_subtraction():
     quantities = [3 * mV, np.array([1, 2]) * mV, np.ones((3, 3)) * mV]
@@ -228,6 +248,12 @@ def test_addition_subtraction():
         assert_quantity(np.float64(0) + q, np.asarray(q), volt)
         assert_quantity(q - np.float64(0), np.asarray(q), volt)
         assert_quantity(np.float64(0) - q, -np.asarray(q), volt)
+        
+        # using unsupported objects should fail
+        assert_raises(TypeError, lambda: q + 'string')
+        assert_raises(TypeError, lambda: 'string' + q)
+        assert_raises(TypeError, lambda: q - 'string')
+        assert_raises(TypeError, lambda: 'string' - q)
 
 def test_binary_operations():
     ''' Test whether binary operations work when they should and raise
@@ -349,8 +375,24 @@ def test_inplace_operations():
     def illegal_pow(q2):
         q = np.arange(10) * volt
         q **= q2
-    assert_raises(DimensionMismatchError, lambda: illegal_pow(1 * volt)) 
+    assert_raises(DimensionMismatchError, lambda: illegal_pow(1 * volt))
+    assert_raises(TypeError, lambda: illegal_pow(np.arange(10)))
     
+    # inplace operations with unsupported objects should fail
+    for inplace_op in [q.__iadd__, q.__isub__, q.__imul__,
+                       q.__idiv__, q.__itruediv__, q.__ifloordiv__,
+                       q.__imod__, q.__ipow__]:
+        assert inplace_op('string') == NotImplemented
+    
+    # make sure that inplace operations do not work on units/dimensions at all
+    for inplace_op in [volt.__iadd__, volt.__isub__, volt.__imul__,
+                       volt.__idiv__, volt.__itruediv__, volt.__ifloordiv__,
+                       volt.__imod__, volt.__ipow__]:
+        assert_raises(TypeError, lambda: inplace_op(volt))
+    for inplace_op in [volt.dimensions.__imul__, volt.dimensions.__idiv__,
+                       volt.dimensions.__itruediv__,
+                       volt.dimensions.__ipow__]:
+        assert_raises(TypeError, lambda: inplace_op(volt.dimensions))
 
 def test_unitsafe_functions():
     '''
@@ -393,10 +435,9 @@ def test_unitsafe_functions():
 
 def test_special_case_numpy_functions():
     '''
-    Test a couple of functions that need special treatment because they do
-    not automatically call the corresponding method.
+    Test a couple of functions that need special treatment.
     '''
-    from brian2 import ravel, diagonal, trace, dot
+    from brian2 import ravel, diagonal, trace, dot, where
     
     quadratic_matrix = np.reshape(np.arange(9), (3, 3)) * mV
     # Check that function and method do the same thing
@@ -435,6 +476,30 @@ def test_special_case_numpy_functions():
     assert have_same_dimensions(quadratic_matrix, diagonal(quadratic_matrix))
     assert have_same_dimensions(quadratic_matrix[0] ** 2,
                                 dot(quadratic_matrix, quadratic_matrix))
+    
+    # check the where function
+    # pure numpy array
+    cond = [True, False, False]
+    ar1 = np.array([1, 2, 3])
+    ar2 = np.array([4, 5, 6])
+    assert_equal(np.where(cond), where(cond))
+    assert_equal(np.where(cond, ar1, ar2), where(cond, ar1, ar2))
+    
+    # dimensionless quantity
+    assert_equal(np.where(cond, ar1, ar2),
+                 np.asarray(where(cond, ar1 * mV/mV, ar2 * mV/mV)))
+    
+    # quantity with dimensions
+    ar1 = ar1 * mV
+    ar2 = ar2 * mV
+    assert_equal(np.where(cond, np.asarray(ar1), np.asarray(ar2)),
+                 np.asarray(where(cond, ar1, ar2)))    
+    
+    # Check some error cases
+    assert_raises(ValueError, lambda: where(cond, ar1))
+    assert_raises(TypeError, lambda: where(cond, ar1, ar1, ar2))
+    assert_raises(DimensionMismatchError, lambda: where(cond, ar1, ar1 / ms))
+
 
 # Functions that should not change units
 def test_numpy_functions_same_dimensions():
@@ -547,6 +612,7 @@ def test_numpy_functions_logical():
 
 if __name__ == '__main__':
     test_construction()
+    test_pickling()
     test_str_repr()
     test_slicing()
     test_setting()
