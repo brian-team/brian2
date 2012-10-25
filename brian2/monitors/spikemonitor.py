@@ -11,7 +11,7 @@ class SpikeMonitor(BrianObject):
     
     Parameters
     ----------
-    source : (`NeuronGroup`, spike source)
+    source : (`NeuronGroup`, `SpikeSource`)
         The source of spikes to record.
     when : `Scheduler`, optional
         When to record the spikes, by default uses the clock of the source

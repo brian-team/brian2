@@ -17,6 +17,7 @@ from brian2.units.stdunits import *
 from brian2.utils import *
 from brian2.core.tracking import *
 from brian2.core.names import *
+from brian2.core.spikesource import *
 
 # The following packages only depend on something in the above set
 from brian2.core.preferences import *

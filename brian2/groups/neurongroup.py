@@ -14,6 +14,7 @@ from brian2.codegen.translation import translate
 from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
+from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.utils.logger import get_logger
 from brian2.groups.group import Group
@@ -68,9 +69,9 @@ class Resetter(Thresholder):
         CodeRunner.update(self)
         
 
-class NeuronGroup(BrianObject, Group):
+class NeuronGroup(BrianObject, Group, SpikeSource):
     '''
-    Group of neurons
+    Group of neurons 
     
     Parameters
     ----------
