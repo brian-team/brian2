@@ -6,6 +6,7 @@ from numpy import array, zeros
 from brian2.equations import Equations, Statements
 from brian2.equations.equations import (DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER) 
+from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.integration import euler
 from brian2.codegen.languages import PythonLanguage
 from brian2.codegen.specifiers import (Value, ArrayVariable, Subexpression,
@@ -46,32 +47,59 @@ class CodeRunner(BrianObject):
         self.codeobj(t=self.clock.t_)
         if self.post is not None:
             self.post(self)
-        
-        
-class Thresholder(CodeRunner):
+
+
+class NeuronGroupCodeRunner(CodeRunner):
     def __init__(self, group, codeobj, when=None, name=None):
         CodeRunner.__init__(self, codeobj, when=when, name=name)
         self.group = weakref.proxy(group)
+        self.prepared = False
+        
+    def prepare(self):
+        if not self.prepared:
+            self.is_active = self.group.is_active_
+            self.refractory_until = self.group.refractory_until_
+            self.refractory = self.group.refractory_
+            self.prepared = True
 
+
+class StateUpdater(NeuronGroupCodeRunner):
     def update(self):
-        CodeRunner.update(self)
+        self.prepare()
+        self.is_active[:] = self.clock.t_>=self.refractory_until
+        NeuronGroupCodeRunner.update(self)
+        
+        
+class Thresholder(NeuronGroupCodeRunner):
+    def update(self):
+        self.prepare()
+        NeuronGroupCodeRunner.update(self)
         ns = self.codeobj.namespace
         spikesarray = ns['_spikes_space']
         numspikes = ns['_array_num_spikes'][0]
-        self.group.spikes = spikesarray[:numspikes]
-        
+        spikes = spikesarray[:numspikes]
+        spikes = spikes[array(self.is_active[spikes], dtype=bool)]
+        self.group.spikes = spikes
+        self.refractory_until[spikes] = self.clock.t_+self.refractory[spikes]
 
-class Resetter(Thresholder):
+
+class Resetter(NeuronGroupCodeRunner):
     def update(self):
+        self.prepare()
         spikes = self.group.spikes
         self.codeobj.namespace['_spikes'] = spikes
         self.codeobj.namespace['_num_spikes'] = len(spikes)
-        CodeRunner.update(self)
+        NeuronGroupCodeRunner.update(self)
         
 
 class NeuronGroup(BrianObject, Group, SpikeSource):
     '''
-    Group of neurons 
+    Group of neurons
+    
+    In addition to the variable names you create, `NeuronGroup` will have an
+    additional state variable ``refractory`` (in units of seconds) which 
+    gives the absolute refractory period of the neuron. This value can be
+    modified in the reset code. (TODO: more modifiability)
     
     Parameters
     ----------
@@ -134,6 +162,9 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         if not isinstance(equations, Equations):
             raise ValueError(('equations has to be a string or an Equations '
                               'object, is "%s" instead.') % type(equations))
+        # add refractoriness
+        equations = add_refractoriness(equations)
+        equations = Equations(equations, level=level+1)
         self.equations = equations
         
         logger.debug("Creating NeuronGroup of size {self.N}, "
@@ -185,7 +216,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         Return number of neurons in the group.
         '''
         return self.N
-        
+    
     def prepare_dtypes(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)
         arrayvarnames = set(eq.varname for eq in self.equations.equations.itervalues() if eq.eq_type in (DIFFERENTIAL_EQUATION,
@@ -238,9 +269,9 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                       self.language.template_state_update,
                                       )
         self.state_update_codeobj = codeobj
-        self.state_updater = CodeRunner(codeobj,
-                                        name=self.name+'_state_updater',
-                                        when=(self.clock, 'groups'))
+        self.state_updater = StateUpdater(self, codeobj,
+                                          name=self.name+'_state_updater',
+                                          when=(self.clock, 'groups'))
         
     def runner(self, code, init=None, pre=None, post=None,
                when=None, name=None,
@@ -367,7 +398,7 @@ if __name__=='__main__':
     N = 100
     tau = 10*ms
     eqs = '''
-    dV/dt = (2*volt-V)/tau : volt
+    dV/dt = (2*volt-V)/tau : volt (active)
     Vt : volt
     '''
     threshold = 'V>Vt'
@@ -378,6 +409,8 @@ if __name__=='__main__':
                     #language=CPPLanguage()
                     #language=NumexprPythonLanguage(),
                     )
+    G. refractory = 5*ms
+    
     runner = G.runner('Vt = 1*volt-(t/second)*5*volt')
     #raise Exception
     G.V = rand(N)
