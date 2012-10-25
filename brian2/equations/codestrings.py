@@ -9,7 +9,8 @@ import inspect
 import sympy
 from numpy import (abs, floor, ceil, round,
                    min, max, mean, std, var,
-                   sum, prod, clip) 
+                   sum, prod, clip,
+                   pi, e, inf) 
 
 from .unitcheck import get_default_unit_namespace, SPECIAL_VARS
 
@@ -38,8 +39,9 @@ def get_default_numpy_namespace():
     namespace : dict
         A dictionary mapping function/variable names to numpy objects or
         their unitsafe Brian counterparts.
-    '''
-    namespace = {}
+    '''        
+    # numpy constants
+    namespace = {'pi': pi, 'e': e, 'inf': inf}
     
     # standard numpy functions
     numpy_funcs = [abs, floor, ceil, round, min, max, mean, std, var, sum,
