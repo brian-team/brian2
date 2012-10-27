@@ -1,6 +1,11 @@
 from numpy.random import rand
 from numpy import array
-from brian2 import BrianObject, SpikeSource, check_units, Hz, Scheduler
+
+from brian2.core.base import BrianObject
+from brian2.core.spikesource import SpikeSource
+from brian2.core.scheduler import Scheduler
+from brian2.units.fundamentalunits import check_units
+from brian2.units.stdunits import Hz
 
 __all__ = ['PoissonGroup']
 

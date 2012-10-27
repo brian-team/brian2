@@ -2,8 +2,11 @@ import weakref
 
 from numpy import zeros
 
-from brian2 import BrianObject, brian_prefs, second, Scheduler
+from brian2.core.base import BrianObject
+from brian2.core.preferences import brian_prefs
+from brian2.core.scheduler import Scheduler
 from brian2.memory.dynamicarray import DynamicArray1D
+from brian2.units.allunits import second
 
 __all__ = ['SpikeMonitor']
 

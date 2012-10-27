@@ -2,14 +2,10 @@
 All Brian objects should derive from :class:`BrianObject`.
 '''
 
-from weakref import ref, proxy
 import gc
-import copy
 
 from brian2.utils.logger import get_logger
-import brian2.core.clocks as clocks
 from brian2.core.scheduler import Scheduler
-from brian2.core.tracking import Trackable, InstanceTrackerSet
 from brian2.core.names import Nameable
 
 __all__ = ['BrianObject',

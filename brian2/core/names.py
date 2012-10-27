@@ -1,5 +1,5 @@
 from brian2.utils.logger import get_logger
-from brian2.core.tracking import Trackable, InstanceTrackerSet
+from brian2.core.tracking import Trackable
 
 __all__ = ['Nameable']
 

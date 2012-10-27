@@ -2,8 +2,10 @@ import weakref
 
 from numpy import array
 
-from brian2 import BrianObject, brian_prefs, second, Scheduler, Group
-from brian2.memory.dynamicarray import DynamicArray1D
+from brian2.core.base import BrianObject
+from brian2.core.scheduler import Scheduler
+from brian2.groups.group import Group
+from brian2.units.allunits import second
 
 __all__ = ['StateMonitor']
 

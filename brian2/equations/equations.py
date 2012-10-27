@@ -9,8 +9,10 @@ import string
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 
-from brian2 import DimensionMismatchError, second, get_logger
-from brian2.utils.stringtools import word_substitute 
+from brian2.units.fundamentalunits import DimensionMismatchError
+from brian2.units.allunits import second
+from brian2.utils.stringtools import word_substitute
+from brian2.utils.logger import get_logger
 
 from .codestrings import Expression
 from .unitcheck import get_unit_from_string, SPECIAL_VARS, UNITS_SPECIAL_VARS

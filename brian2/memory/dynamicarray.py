@@ -1,9 +1,7 @@
 '''
 TODO: rewrite this (verbatim from Brian 1.x), more efficiency
 '''
-
 from numpy import *
-import gc
 
 __all__ = ['DynamicArray', 'DynamicArray1D']
 

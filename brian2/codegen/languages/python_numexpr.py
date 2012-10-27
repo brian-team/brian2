@@ -1,4 +1,3 @@
-import sympy
 from brian2.utils.parsing import parse_to_sympy
 
 try:

@@ -14,14 +14,14 @@ from numpy import (abs, floor, ceil, round,
 
 from .unitcheck import get_default_unit_namespace, SPECIAL_VARS
 
-from brian2 import get_dimensions, DimensionMismatchError, get_logger
+from brian2.units.fundamentalunits import get_dimensions, DimensionMismatchError
 from brian2.units.unitsafefunctions import (log, exp,
                                             sin, cos, tan,
                                             sinh, cosh, tanh,
                                             arcsin, arccos, arctan,
                                             arcsinh, arccosh, arctanh,
                                             where)
-
+from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.utils.parsing import parse_to_sympy
 

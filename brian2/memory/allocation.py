@@ -1,8 +1,8 @@
 '''
 Memory management
 '''
-
 from numpy import zeros, dtype
+
 from brian2.core.preferences import brian_prefs
 
 __all__ = ['allocate_array',

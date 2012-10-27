@@ -3,7 +3,6 @@ import operator
 from sympy import Wild, Symbol, sympify
 import sympy as sp
 
-
 from brian2.equations import Equations
 
 def get_linear_system(eqs):

@@ -5,7 +5,7 @@ object ``brian_prefs``.
 import copy
 
 from brian2.utils.stringtools import deindent, indent
-from brian2 import have_same_dimensions, Quantity, DimensionMismatchError
+from brian2.units.fundamentalunits import have_same_dimensions, Quantity, DimensionMismatchError
 
 __all__ = ['brian_prefs']
 

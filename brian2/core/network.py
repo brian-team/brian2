@@ -1,7 +1,10 @@
+import weakref
+
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
-from brian2 import check_units, second, BrianObject
-import weakref
+from brian2.core.base import BrianObject
+from brian2.units.fundamentalunits import check_units
+from brian2.units.allunits import second 
 
 __all__ = ['Network']
 

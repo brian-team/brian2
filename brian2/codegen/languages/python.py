@@ -1,5 +1,3 @@
-import sympy
-
 from .base import Language, CodeObject
 
 

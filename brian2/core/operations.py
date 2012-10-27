@@ -1,4 +1,4 @@
-from brian2 import BrianObject
+from brian2.core.base import BrianObject
 
 __all__ = ['NetworkOperation', 'network_operation']
 

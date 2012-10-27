@@ -8,7 +8,8 @@ from numpy import ceil
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
-from brian2 import second, msecond, check_units
+from brian2.units.fundamentalunits import check_units
+from brian2.units.allunits import second, msecond
 
 __all__ = ['Clock', 'defaultclock']
 
