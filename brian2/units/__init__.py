@@ -34,51 +34,45 @@ from .allunits import (
                        pwatt, nwatt, uwatt, mwatt, watt,
                        kwatt, Mwatt, Gwatt, Twatt
                        )
-from .unitsafefunctions import (log, exp, sin, cos, tan, arcsin, arccos, arctan,
-                                sinh, cosh, tanh, arcsinh, arccosh, arctanh,
-                                diagonal, ravel, trace, dot, where)
-from .fundamentalunits import (Unit, Quantity, DimensionMismatchError,
-                               check_units, get_dimensions,
-                               have_same_dimensions, register_new_unit)
-                    
-___all__ = ['pamp', 'namp', 'uamp', 'mamp', 'amp',
-            'kamp', 'Mamp', 'Gamp', 'Tamp',
-            'kilogram',
-            'pmetre', 'nmetre', 'umetre', 'mmetre', 'metre',
-            'kmetre', 'Mmetre', 'Gmetre', 'Tmetre',
-            'pmeter', 'nmeter', 'umeter', 'mmeter', 'meter',
-            'kmeter', 'Mmeter', 'Gmeter', 'Tmeter',
-            'cmetre', 'cmeter',
-            'psecond', 'nsecond', 'usecond', 'msecond', 'second',
-            'ksecond', 'Msecond', 'Gsecond', 'Tsecond',
-            # derived units
-            'pcoulomb', 'ncoulomb', 'ucoulomb', 'mcoulomb', 'coulomb',
-            'kcoulomb', 'Mcoulomb', 'Gcoulomb', 'Tcoulomb',
-            'pfarad', 'nfarad', 'ufarad', 'mfarad', 'farad',
-            'kfarad', 'Mfarad', 'Gfarad', 'Tfarad',
-            'pgram', 'ngram', 'ugram', 'mgram', 'gram',
-            'kgram', 'Mgram', 'Ggram', 'Tgram',
-            'pgramme', 'ngramme', 'ugramme', 'mgramme', 'gramme',
-            'kgramme', 'Mgramme', 'Ggramme', 'Tgramme'            
-            'phertz', 'nhertz', 'uhertz', 'mhertz', 'hertz',
-            'khertz', 'Mhertz', 'Ghertz', 'Thertz',
-            'pjoule', 'njoule', 'ujoule', 'mjoule', 'joule',
-            'kjoule', 'Mjoule', 'Gjoule', 'Tjoule',
-            'ppascal', 'npascal', 'upascal', 'mpascal', 'pascal',
-            'kpascal', 'Mpascal', 'Gpascal', 'Tpascal',
-            'pohm', 'nohm', 'uohm', 'mohm', 'ohm',
-            'kohm', 'Mohm', 'Gohm', 'Tohm',
-            'psiemens', 'nsiemens', 'usiemens', 'msiemens', 'siemens',
-            'ksiemens', 'Msiemens', 'Gsiemens', 'Tsiemens',
-            'pvolt', 'nvolt', 'uvolt', 'mvolt', 'volt',
-            'kvolt', 'Mvolt', 'Gvolt', 'Tvolt',
-            'pwatt', 'nwatt', 'uwatt', 'mwatt', 'watt',
-            'kwatt', 'Mwatt', 'Gwatt', 'Twatt',
-            'log', 'exp', 'sin', 'cos', 'tan',
-            'arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh',
-            'arcsinh', 'arccosh', 'arctanh',
-            'diagonal', 'ravel', 'trace', 'dot', 'where',
-            'Unit', 'Quantity', 'DimensionMismatchError',
-            'check_units', 'get_dimensions',
-            'have_same_dimensions', 'register_new_unit'
-            ]
+from .unitsafefunctions import *
+from .unitsafefunctions import __all__ as unitsafefunctions_all
+
+from .fundamentalunits import *
+from .fundamentalunits import __all__ as fundamentalunits_all
+
+__all__ = ['pamp', 'namp', 'uamp', 'mamp', 'amp',
+           'kamp', 'Mamp', 'Gamp', 'Tamp',
+           'kilogram',
+           'pmetre', 'nmetre', 'umetre', 'mmetre', 'metre',
+           'kmetre', 'Mmetre', 'Gmetre', 'Tmetre',
+           'pmeter', 'nmeter', 'umeter', 'mmeter', 'meter',
+           'kmeter', 'Mmeter', 'Gmeter', 'Tmeter',
+           'cmetre', 'cmeter',
+           'psecond', 'nsecond', 'usecond', 'msecond', 'second',
+           'ksecond', 'Msecond', 'Gsecond', 'Tsecond',
+           # derived units
+           'pcoulomb', 'ncoulomb', 'ucoulomb', 'mcoulomb', 'coulomb',
+           'kcoulomb', 'Mcoulomb', 'Gcoulomb', 'Tcoulomb',
+           'pfarad', 'nfarad', 'ufarad', 'mfarad', 'farad',
+           'kfarad', 'Mfarad', 'Gfarad', 'Tfarad',
+           'pgram', 'ngram', 'ugram', 'mgram', 'gram',
+           'kgram', 'Mgram', 'Ggram', 'Tgram',
+           'pgramme', 'ngramme', 'ugramme', 'mgramme', 'gramme',
+           'kgramme', 'Mgramme', 'Ggramme', 'Tgramme'            
+           'phertz', 'nhertz', 'uhertz', 'mhertz', 'hertz',
+           'khertz', 'Mhertz', 'Ghertz', 'Thertz',
+           'pjoule', 'njoule', 'ujoule', 'mjoule', 'joule',
+           'kjoule', 'Mjoule', 'Gjoule', 'Tjoule',
+           'ppascal', 'npascal', 'upascal', 'mpascal', 'pascal',
+           'kpascal', 'Mpascal', 'Gpascal', 'Tpascal',
+           'pohm', 'nohm', 'uohm', 'mohm', 'ohm',
+           'kohm', 'Mohm', 'Gohm', 'Tohm',
+           'psiemens', 'nsiemens', 'usiemens', 'msiemens', 'siemens',
+           'ksiemens', 'Msiemens', 'Gsiemens', 'Tsiemens',
+           'pvolt', 'nvolt', 'uvolt', 'mvolt', 'volt',
+           'kvolt', 'Mvolt', 'Gvolt', 'Tvolt',
+           'pwatt', 'nwatt', 'uwatt', 'mwatt', 'watt',
+           'kwatt', 'Mwatt', 'Gwatt', 'Twatt'
+           ]
+__all__.extend(unitsafefunctions_all)
+__all__.extend(fundamentalunits_all)
