@@ -12,7 +12,6 @@ Temperature            kelvin    K
 Quantity of substance  mole      mol
 Luminosity             candle    cd
 =====================  ========  ======
-
 """
 from __future__ import division
 
@@ -30,12 +29,22 @@ __all__ = [
     'get_dimensions', 'is_dimensionless', 'have_same_dimensions',
     'display_in_unit', 'Quantity', 'Unit', 'register_new_unit',
     'check_units', 'is_scalar_type', 'get_unit', 'get_unit_fast',
-    'scalar_representation',
     'unit_checking'
     ]
 
 warn_if_no_unit_checking = True
 unit_checking = True
+
+def _flatten(iterable):
+    '''
+    Flatten a given list `iterable`.
+    '''
+    for e in iterable:
+        if isinstance(e, list):
+            for f in _flatten(e):
+                yield f
+        else:
+            yield e
 
 #===============================================================================
 # Numpy ufuncs
@@ -140,7 +149,7 @@ def wrap_function_dimensionless(func):
     These checks/transformations apply only to the very first argument, all
     other arguments are ignored/untouched.
     '''
-    def f(x, *args, **kwds):
+    def f(x, *args, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(x, error_message=func.__name__)
         return func(np.asarray(x), *args, **kwds)
     f.__name__ = func.__name__
@@ -161,7 +170,7 @@ def wrap_function_keep_dimensions(func):
     other arguments are ignored/untouched, allowing to work functions like
     ``sum`` to work as expected with additional ``axis`` etc. arguments.
     '''
-    def f(x, *args, **kwds):
+    def f(x, *args, **kwds): # pylint: disable=C0111
         return Quantity(func(np.asarray(x), *args, **kwds), dim=x.dim)
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
@@ -182,7 +191,7 @@ def wrap_function_change_dimensions(func, change_dim_func):
     These transformations apply only to the very first argument, all
     other arguments are ignored/untouched.
     '''
-    def f(x, *args, **kwds):
+    def f(x, *args, **kwds): # pylint: disable=C0111
         ar = np.asarray(x)
         return Quantity(func(ar, *args, **kwds),
                         dim=change_dim_func(ar, x.dim))
@@ -203,8 +212,8 @@ def wrap_function_remove_dimensions(func):
     These transformations apply only to the very first argument, all
     other arguments are ignored/untouched.
     '''    
-    def f(x, *args, **kwds):
-            return func(np.asarray(x), *args, **kwds)
+    def f(x, *args, **kwds): # pylint: disable=C0111
+        return func(np.asarray(x), *args, **kwds)
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
     if hasattr(func, '__dict__'):
@@ -218,9 +227,9 @@ def wrap_function_no_check_warning(func):
     raises a warning about not checking units. Used mostly as a placeholder
     to make users aware that the function is not prepared for units yet.
     '''    
-    def f(*args, **kwds):
-            warn('%s does not check the units of its arguments.' % func.__name__)
-            return func(*args, **kwds)
+    def f(*args, **kwds): # pylint: disable=C0111
+        warn('%s does not check the units of its arguments.' % func.__name__)
+        return func(*args, **kwds)
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
     if hasattr(func, '__dict__'):
@@ -363,7 +372,7 @@ class Dimension(object):
 
     def __pow__(self, value):
         value = np.asarray(value)
-        if value.size> 1:
+        if value.size > 1:
             raise ValueError('Too many exponents')
         return get_or_create_dimension([x * value for x in self._dims])
 
@@ -656,7 +665,7 @@ def quantity_with_dimensions(floatval, dims):
                                     get_or_create_dimension(dims._dims))
 
 
-class Quantity(np.ndarray):
+class Quantity(np.ndarray, object):
     """
     A number with an associated physical dimension. In most cases, it is not
     necessary to create a Quantity object by hand, instead use multiplication
@@ -747,10 +756,10 @@ class Quantity(np.ndarray):
                                              arr.dim, dim)
         elif not isinstance(arr, np.ndarray):
             # check whether it is an iterable containing Quantity objects
-            try:
-                is_quantity = [isinstance(x, Quantity) for x in arr]
+            try:                
+                is_quantity = [isinstance(x, Quantity) for x in _flatten(arr)]
                 if all(is_quantity):
-                    dims = [x.dim for x in arr]
+                    dims = [x.dim for x in _flatten(arr)]                    
                     one_dim = dims[0]
                     for d in dims:
                         if d != one_dim:
@@ -1167,15 +1176,35 @@ class Quantity(np.ndarray):
         return Quantity.with_dimensions(abs(np.asarray(self)), self.dim)
 
     def tolist(self):
+        '''
+        Convert the array into a list.
+        
+        Returns
+        -------
+        l : list of `Quantity`
+            A (possibly nested) list equivalent to the original array.
+        '''  
         def replace_with_quantity(seq, dim):
+            '''
+            Replace all the elements in the list with an equivalent `Quantity`
+            with the given `dim`.
+            '''
+            # No recursion needed for single values
+            if not isinstance(seq, list):
+                return Quantity.with_dimensions(seq, dim)
+                        
             def top_replace(s):
+                '''
+                Recursivley descend into the list.
+                '''
                 for i in s:
                     if not isinstance(i, list):
                         yield Quantity.with_dimensions(i, dim)
                     else:
                         yield type(i)(top_replace(i))
-
+            
             return type(seq)(top_replace(seq))
+
         return replace_with_quantity(np.asarray(self).tolist(), self.dim)
 
     #### COMPARISONS ####
@@ -1314,17 +1343,17 @@ class Quantity(np.ndarray):
     argmin = wrap_function_remove_dimensions(np.ndarray.argmax)
     argsort = wrap_function_remove_dimensions(np.ndarray.argsort)
     
-    def fill(self, values):
+    def fill(self, values): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, values, 'fill')
         super(Quantity, self).fill(values)
     fill.__doc__ = np.ndarray.fill.__doc__
 
-    def put(self, indices, values, *args, **kwds):
+    def put(self, indices, values, *args, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, values, 'fill')
         super(Quantity, self).put(indices, values, *args, **kwds)
     put.__doc__ = np.ndarray.put.__doc__
 
-    def clip(self, a_min, a_max, *args, **kwds):
+    def clip(self, a_min, a_max, *args, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, a_min, 'clip')
         fail_for_dimension_mismatch(self, a_max, 'clip')        
         return super(Quantity, self).clip(np.asarray(a_min),
@@ -1332,17 +1361,17 @@ class Quantity(np.ndarray):
                                           *args, **kwds)
     clip.__doc__ = np.ndarray.clip.__doc__
 
-    def dot(self, other, **kwds):
+    def dot(self, other, **kwds): # pylint: disable=C0111
         return Quantity.with_dimensions(np.array(self).dot(np.array(other)),
                                         self.dim * get_dimensions(other))
     dot.__doc__ = np.ndarray.dot.__doc__
 
-    def searchsorted(self, v, **kwds):
+    def searchsorted(self, v, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, v, 'searchsorted')
         return super(Quantity, self).searchsorted(np.asarray(v))
     searchsorted.__doc__ = np.ndarray.searchsorted.__doc__
 
-    def prod(self, *args, **kwds):
+    def prod(self, *args, **kwds): # pylint: disable=C0111
         prod_result = super(Quantity, self).prod(*args, **kwds)
         # Calculating the correct dimensions is not completly trivial (e.g.
         # like doing self.dim**self.size) because prod can be called on
@@ -1360,14 +1389,14 @@ class Quantity(np.ndarray):
         return Quantity.with_dimensions(prod_result, self.dim ** dim_exponent)
     prod.__doc__ = np.ndarray.prod.__doc__        
 
-    def cumprod(self, *args, **kwds):
+    def cumprod(self, *args, **kwds): # pylint: disable=C0111
         if not self.is_dimensionless:
             raise ValueError('cumprod over array elements on quantities '
                              'with dimensions is not possible.')
         return Quantity(np.asarray(self).cumprod(*args, **kwds))
     cumprod.__doc__ = np.ndarray.cumprod.__doc__
 
-    def setasflat(self, arr, **kwds):
+    def setasflat(self, arr, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, arr, 'setasflat')
         super(Quantity, self).setasflat(np.asarray(arr))
     setasflat.__doc__ = np.ndarray.setasflat.__doc__
@@ -1547,7 +1576,8 @@ class Unit(Quantity):
             scale[_di[k]] = keywords[k]
         v = 1.0
         for s, i in izip(scale, dim._dims):
-            if i: v *= _siprefixes[s] ** i
+            if i:
+                v *= _siprefixes[s] ** i
         u = Unit(v * _siprefixes[scalefactor], dim=dim, scale=tuple(scale))
         u.scalefactor = scalefactor + ""
         u.name = name + ""
@@ -1927,7 +1957,7 @@ def check_units(**au):
     return do_check_units
 
 
-def _check_nounits(**au):
+def _check_nounits(*args, **kwds):
     """Don't bother checking units decorator
     """
     def dont_check_units(f):
@@ -1949,4 +1979,3 @@ if not bup.use_units:
 
     def get_unit(x, *regs):
         return 1.
-
