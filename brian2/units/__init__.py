@@ -58,7 +58,7 @@ __all__ = ['pamp', 'namp', 'uamp', 'mamp', 'amp',
            'pgram', 'ngram', 'ugram', 'mgram', 'gram',
            'kgram', 'Mgram', 'Ggram', 'Tgram',
            'pgramme', 'ngramme', 'ugramme', 'mgramme', 'gramme',
-           'kgramme', 'Mgramme', 'Ggramme', 'Tgramme'            
+           'kgramme', 'Mgramme', 'Ggramme', 'Tgramme',     
            'phertz', 'nhertz', 'uhertz', 'mhertz', 'hertz',
            'khertz', 'Mhertz', 'Ghertz', 'Thertz',
            'pjoule', 'njoule', 'ujoule', 'mjoule', 'joule',
