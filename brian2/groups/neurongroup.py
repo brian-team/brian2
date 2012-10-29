@@ -3,9 +3,9 @@ import weakref
 import numpy as np
 from numpy import array, zeros
 
-from brian2.equations import Equations, Statements
-from brian2.equations.equations import (DIFFERENTIAL_EQUATION, STATIC_EQUATION,
-                                        PARAMETER) 
+from brian2.equations.codestrings import Statements
+from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
+                                        STATIC_EQUATION, PARAMETER) 
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.integration import euler
 from brian2.codegen.languages import PythonLanguage
