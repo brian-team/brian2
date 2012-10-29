@@ -94,9 +94,9 @@ version_infos = {'brian': brian2.__version__,
                  'sympy': sympy.__version__,
                  'python': sys.version,
                  }
-for name, version in version_infos.iteritems():
-    logger.debug('{name} version is: {version}'.format(name=name,
-                                                       version=str(version)))
+for _name, _version in version_infos.iteritems():
+    logger.debug('{name} version is: {version}'.format(name=_name,
+                                                       version=str(_version)))
 
 
 UNHANDLED_ERROR_MESSAGE = ('Brian encountered an unexpected error. '
@@ -109,12 +109,20 @@ UNHANDLED_ERROR_MESSAGE = ('Brian encountered an unexpected error. '
 
 
 def brian_excepthook(exc_type, exc_obj, exc_tb):
+    '''
+    Display a message mentioning the debug log in case of an uncaught
+    exception.
+    '''
     BrianLogger.exception_occured = True
     
     logger.error(UNHANDLED_ERROR_MESSAGE,
                  exc_info=(exc_type, exc_obj, exc_tb))
 
 def clean_up_logging():
+    '''
+    Shutdown the logging system and delete the debug log file if no error
+    occured.
+    '''
     logging.shutdown()
     if not BrianLogger.exception_occured and brian_prefs.delete_log_on_exit:
         if not TMP_LOG is None:
@@ -149,6 +157,9 @@ class HierarchyFilter(object):
         self.orig_filter = logging.Filter(name)
     
     def filter(self, record):
+        '''
+        Filter out all messages in a subtree of the name hierarchy.
+        '''
         # do the opposite of what the standard filter class would do
         return not self.orig_filter.filter(record)
 
@@ -167,6 +178,9 @@ class NameFilter(object):
         self.name = name
     
     def filter(self, record):
+        '''
+        Filter out all messages ending with a certain name.
+        '''
         # The last part of the name
         record_name = record.name.split('.')[-1]
         return self.name != record_name
@@ -207,6 +221,20 @@ class BrianLogger(object):
         self.name = name
 
     def _log(self, log_level, msg, name_suffix, once):
+        '''
+        Log an entry.
+        
+        Parameters
+        ----------
+        log_level : {'debug', 'info', 'warn', 'error'}
+            The level with which to log the message.
+        msg : str
+            The log message.
+        name_suffix : str
+            A suffix that will be added to the logger name.
+        once : bool
+            Whether to suppress identical messages if they are logged again.
+        '''
         name = self.name
         if name_suffix:
             name += '.' + name_suffix
@@ -219,11 +247,11 @@ class BrianLogger(object):
             else:
                 BrianLogger._log_messages.add(log_tuple)
         
-        logger = logging.getLogger(name)
-        {'debug': logger.debug,
-         'info': logger.info,
-         'warn': logger.warn,
-         'error': logger.error}.get(log_level)(msg)
+        the_logger = logging.getLogger(name)
+        {'debug': the_logger.debug,
+         'info': the_logger.info,
+         'warn': the_logger.warn,
+         'error': the_logger.error}.get(log_level)(msg)
 
     def debug(self, msg, name_suffix=None, once=False):
         '''
@@ -461,15 +489,23 @@ class LogCapture(logging.Handler):
         self.log_list.append((record.levelname, record.name, record.msg))
     
     def install(self):
-        logger = logging.getLogger()
+        '''
+        Install this handler to catch all warnings. Temporarily disconnect all
+        other handlers.
+        '''
+        the_logger = logging.getLogger()
         for handler in self.old_handlers:
-            logger.removeHandler(handler)
+            the_logger.removeHandler(handler)
         # make sure everything gets logged by the root logger
-        logger.setLevel(logging.DEBUG)
-        logger.addHandler(self)
+        the_logger.setLevel(logging.DEBUG)
+        the_logger.addHandler(self)
     
     def uninstall(self):
-        logger = logging.getLogger()
-        logger.removeHandler(self)
+        '''
+        Uninstall this handler and re-connect the previously installed
+        handlers.
+        '''
+        the_logger = logging.getLogger()
+        the_logger.removeHandler(self)
         for handler in self.old_handlers:
-            logger.addHandler(handler)
+            the_logger.addHandler(handler)

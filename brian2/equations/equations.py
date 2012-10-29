@@ -318,6 +318,13 @@ class SingleEquation(object):
         return s
 
     def _repr_pretty_(self, p, cycle):
+        '''
+        Pretty printing for ipython.
+        '''
+        if cycle:
+            # should never happen
+            raise AssertionError('Cyclical call of SingleEquation._repr_pretty')
+        
         if self.eq_type == DIFFERENTIAL_EQUATION:
             p.text('d' + self.varname + '/dt')
         else:

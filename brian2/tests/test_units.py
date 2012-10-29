@@ -398,10 +398,10 @@ def test_unitsafe_functions():
     '''
     Test the unitsafe functions wrapping their numpy counterparts.
     '''
-    from brian2 import (sin, sinh, arcsin, arcsinh,
-                        cos, cosh, arccos, arccosh,
-                        tan, tanh, arctan, arctanh,
-                        log, exp)
+    from brian2.units.unitsafefunctions import (sin, sinh, arcsin, arcsinh,
+                                                cos, cosh, arccos, arccosh,
+                                                tan, tanh, arctan, arctanh,
+                                                log, exp)
     
     # All functions with their numpy counterparts
     funcs = [(sin, np.sin), (sinh, np.sinh), (arcsin, np.arcsin), (arcsinh, np.arcsinh),
@@ -437,7 +437,7 @@ def test_special_case_numpy_functions():
     '''
     Test a couple of functions that need special treatment.
     '''
-    from brian2 import ravel, diagonal, trace, dot, where
+    from brian2.units.unitsafefunctions import ravel, diagonal, trace, dot, where
     
     quadratic_matrix = np.reshape(np.arange(9), (3, 3)) * mV
     # Check that function and method do the same thing
@@ -609,6 +609,17 @@ def test_numpy_functions_logical():
             assert not isinstance(result_units, Quantity)
             assert_equal(result_units, result_array)
 
+def test_list():
+    '''
+    Test converting to and from a list.
+    '''
+    values = [3 * mV, np.array([1, 2]) * mV,
+              np.arange(12).reshape(4, 3) * mV]
+    for value in values:
+        l = value.tolist()
+        from_list = Quantity(l)
+        assert have_same_dimensions(from_list, value)
+        assert_equal(from_list, value)
 
 if __name__ == '__main__':
     test_construction()
@@ -627,4 +638,4 @@ if __name__ == '__main__':
     test_numpy_functions_change_dimensions()
     test_numpy_functions_typeerror()
     test_numpy_functions_logical()
-    
+    test_list()

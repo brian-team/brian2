@@ -7,20 +7,12 @@ information about its namespace. Only serves as a parent class, its subclasses
 import inspect
 
 import sympy
-from numpy import (abs, floor, ceil, round,
-                   min, max, mean, std, var,
-                   sum, prod, clip,
-                   pi, e, inf) 
+import numpy as np
 
 from .unitcheck import get_default_unit_namespace, SPECIAL_VARS
 
 from brian2.units.fundamentalunits import get_dimensions, DimensionMismatchError
-from brian2.units.unitsafefunctions import (log, exp,
-                                            sin, cos, tan,
-                                            sinh, cosh, tanh,
-                                            arcsin, arccos, arctan,
-                                            arcsinh, arccosh, arctanh,
-                                            where)
+import brian2.units.unitsafefunctions as usf
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.utils.parsing import parse_to_sympy
@@ -32,7 +24,17 @@ logger = get_logger(__name__)
 def get_default_numpy_namespace():
     '''
     Get the namespace of numpy functions/variables that is recognized by
-    default.
+    default. The namespace includes the constants :np:attr:`pi`,
+    :np:attr:`e` and :np:attr:`inf` and the following functions:
+    :np:func:`abs`, :np:func:`arccos`, :np:func:`arccosh`,
+    :np:func:`arcsin`, :np:func:`arcsinh`, :np:func:`arctan`,
+    :np:func:`arctanh`, :np:func:`ceil`, :np:func:`clip`,
+    :np:func:`cos`, :np:func:`cosh`, :np:func:`exp`,
+    :np:func:`floor`, :np:func:`log`, :np:func:`max`,
+    :np:func:`mean`, :np:func:`min`, :np:func:`prod`,
+    :np:func:`round`, :np:func:`sin`, :np:func:`sinh`,
+    :np:func:`std`, :np:func:`sum`, :np:func:`tan`,
+    :np:func:`tanh`, :np:func:`var`, :np:func:`where`
     
     Returns
     -------
@@ -41,23 +43,23 @@ def get_default_numpy_namespace():
         their unitsafe Brian counterparts.
     '''        
     # numpy constants
-    namespace = {'pi': pi, 'e': e, 'inf': inf}
+    namespace = {'pi': np.pi, 'e': np.e, 'inf': np.inf}
     
     # standard numpy functions
-    numpy_funcs = [abs, floor, ceil, round, min, max, mean, std, var, sum,
-                   prod, clip]
+    numpy_funcs = [np.abs, np.floor, np.ceil, np.round, np.min, np.max,
+                   np.mean, np.std, np.var, np.sum, np.prod, np.clip]
     namespace.update([(func.__name__, func) for func in numpy_funcs])
     
     # unitsafe replacements for numpy functions
-    replacements = [log, exp, sin, cos, tan, sinh, cosh, tanh,
-                    arcsin, arccos, arctan, arcsinh, arccosh, arctanh,
-                    where]
+    replacements = [usf.log, usf.exp, usf.sin, usf.cos, usf.tan, usf.sinh,
+                    usf.cosh, usf.tanh, usf.arcsin, usf.arccos, usf.arctan,
+                    usf.arcsinh, usf.arccosh, usf.arctanh, usf.where]
     namespace.update([(func.__name__, func) for func in replacements])
     
     return namespace
     
 
-def _conflict_warning(message, resolutions, logger):
+def _conflict_warning(message, resolutions, the_logger):
     '''
     A little helper functions to generate warnings for logging. Specific
     to the `CodeString.resolve` method and should only be used by it.
@@ -68,7 +70,7 @@ def _conflict_warning(message, resolutions, logger):
         The first part of the warning message.
     resolutions : list of str
         A list of (namespace, object) tuples.
-    logger : `BrianLogger`
+    the_logger : `BrianLogger`
         The logger object.
     '''
     if len(resolutions) == 0:
@@ -81,8 +83,8 @@ def _conflict_warning(message, resolutions, logger):
         second_part = ('but also refers to a variable in the following '
                        'namespaces: %s') % (', '.join([r[0] for r in resolutions]))
     
-    logger.warn(message + ' ' + second_part,
-                'CodeString.resolve.resolution_conflict')
+    the_logger.warn(message + ' ' + second_part,
+                    'CodeString.resolve.resolution_conflict')
 
 
 class CodeString(object):
@@ -498,6 +500,10 @@ class Expression(CodeString):
         return (f_expr, g_expr)
     
     def _repr_pretty_(self, p, cycle):
+        '''
+        Pretty printing for ipython.
+        '''
+        if cycle:
+            raise AssertionError('Cyclical call of CodeString._repr_pretty')
         # Make use of sympy's pretty printing
         p.pretty(self._sympy_expr)
-

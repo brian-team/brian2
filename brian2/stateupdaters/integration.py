@@ -1,3 +1,7 @@
+'''
+Numerical integration functions.
+'''
+
 import string
 
 from sympy import Symbol, Function
@@ -95,6 +99,9 @@ class ExplicitStateUpdater(object):
         '''
                 
         def replace_func(x, t, expr, temp_vars):
+            '''
+            TODO
+            '''
             s_expr = parse_to_sympy(expr, local_dict=self.symbols)
             
             for var in eqs.eq_names:

@@ -51,7 +51,7 @@ __all__ = [
          'where'
          ]
 
-def where(condition, *args):
+def where(condition, *args):  # pylint: disable=C0111
     if len(args) == 0:
         # nothing to do
         return np.where(condition)
@@ -95,7 +95,7 @@ def wrap_function_to_method(func):
     object (if called with a Quantities object as the first argument). All
     other arguments are left untouched.
     '''
-    def f(x, *args, **kwds):
+    def f(x, *args, **kwds):  # pylint: disable=C0111
         if isinstance(x, Quantity):
             return getattr(x, func.__name__)(*args, **kwds)
         else:
