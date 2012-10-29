@@ -193,7 +193,7 @@ def test_construction_errors():
     assert_raises(ValueError, lambda: eqs.check_flags({DIFFERENTIAL_EQUATION: ['otherflag']}))
     
     # Circular static equations
-    assert_raises(ValueError, lambda: Equations('''dv/dt = -(v + w) / tau : 1
+    assert_raises(ValueError, lambda: Equations('''dv/dt = -(v + w) / (10 * ms) : 1
                                                    w = 2 * x : 1
                                                    x = 3 * w : 1'''))
     
