@@ -39,30 +39,49 @@ SYMBOLS = {'x' : Symbol('x'),
 class ExplicitStateUpdater(object):
     '''
     An object that can be used for defining state updaters via a simple
-    description (see :meth:`__init__` for details). Objects can be passed to
-    the ``method`` argument of the :class:`NeuronGroup` constructor. As other
-    state updater functions the :class:`ExplicitStateUpdater` objects are 
-    callable, returning abstract code when called with an :class:`Equations`
-    object.
-    ''' 
+    description (see below). Resulting instances can be passed to the
+    ``method`` argument of the `NeuronGroup` constructor. As other state
+    updater functions the `ExplicitStateUpdater` objects are callable,
+    returning abstract code when called with an `Equations` object.
     
-    def __init__(self, description):
-        '''
-        Create a new state updater from the given ``description``.
-        
-        Example for such a description string (defining Runge-Kutta 4):
+    A description of an explicit state updater consists of a (multi-line)
+    string, containing assignments to variables and a final return line,
+    returning the integration result for a single timestep. The assignments
+    can be used to define an arbitrary number of intermediate results and
+    can refer to ``f(x, t)`` (the function being integrated, as a function of
+    ``x``, the previous value of the state variable and ``t``, the time) and
+    ``dt``, the size of the timestep.
+    
+    For example, to define a Runge-Kutte 4 integrator (already provided as
+    `rk4`), use::
+    
             k1 = dt*f(x,t)
             k2 = dt*f(x+k1/2,t+dt/2)
             k3 = dt*f(x+k2/2,t+dt/2)
             k4 = dt*f(x+k3,t+dt)
             return x+(k1+2*k2+2*k3+k4)/6
-        '''
-        
+    
+    Parameters
+    ----------
+    description : str
+        A state updater description (see above).
+    
+    Raises
+    ------
+    SyntaxError
+        If the parsing of the description failed.
+    
+    See also
+    --------
+    euler, rk2, rk4
+    ''' 
+    
+    def __init__(self, description):        
         try:
             parsed = DESCRIPTION.parseString(description, parseAll=True)
         except ParseException as p_exc:
-            raise ValueError('Parsing failed: \n' + str(p_exc.line) + '\n' +
-                             ' '*(p_exc.column - 1) + '^\n' + str(p_exc))
+            raise SyntaxError('Parsing failed: \n' + str(p_exc.line) + '\n' +
+                              ' '*(p_exc.column - 1) + '^\n' + str(p_exc))
  
         self.statements = []
         self.symbols = SYMBOLS.copy()
@@ -95,7 +114,17 @@ class ExplicitStateUpdater(object):
     
     def __call__(self, eqs):
         '''
-        Return "abstract code" for the given :class:`Equations` object ``eqs``.
+        Return "abstract code" for one integration step.
+        
+        Parameters
+        ----------
+        eqs : `Equations`
+            The model equations that should be integrated.
+        
+        Returns
+        -------
+        code : str
+            The "abstract code" for the integration step.
         '''
                 
         def replace_func(x, t, expr, temp_vars):

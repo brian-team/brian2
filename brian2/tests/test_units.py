@@ -13,7 +13,9 @@ from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            Quantity,
                                            have_same_dimensions,
                                            get_dimensions,
-                                           DimensionMismatchError)
+                                           DimensionMismatchError,
+                                           check_units,
+                                           get_unit, get_unit_fast)
 from brian2.units.allunits import *
 from brian2.units.stdunits import ms, mV, kHz, nS, cm
 
@@ -621,6 +623,56 @@ def test_list():
         assert have_same_dimensions(from_list, value)
         assert_equal(from_list, value)
 
+def test_check_units():
+    '''
+    Test the check_units decorator
+    '''
+    @check_units(v=volt)
+    def a_function(v, x):
+        '''
+        v has to have units of volt, x can have any (or no) unit.
+        '''
+        pass
+    
+    #Try correct units
+    a_function(3 * mV, 5 * second)
+    a_function(5 * volt, 'something')
+    # Strings and None are also allowed to pass
+    a_function('a string', None)
+    a_function(None, None)
+    
+    # Try incorrect units
+    assert_raises(DimensionMismatchError, lambda: a_function(5 * second, None))
+    assert_raises(DimensionMismatchError, lambda: a_function(5, None))
+
+    @check_units(result=second)
+    def b_function(return_second):
+        '''
+        Return a value in seconds if return_second is True, otherwise return
+        a value in volt.
+        '''
+        if return_second:
+            return 5 * second
+        else:
+            return 3 * volt
+    
+    # Should work (returns second)
+    b_function(True)
+    # Should fail (returns volt)
+    assert_raises(AssertionError, lambda: b_function(False))
+
+
+def test_get_unit():
+    '''
+    Test get_unit and get_unit_fast
+    '''
+    values = [3 * mV, np.array([1, 2]) * mV,
+              np.arange(12).reshape(4, 3) * mV]
+    for value in values:
+        assert get_unit(value) == volt
+        assert_quantity(get_unit_fast(value), 1, volt)
+
+
 if __name__ == '__main__':
     test_construction()
     test_pickling()
@@ -639,3 +691,5 @@ if __name__ == '__main__':
     test_numpy_functions_typeerror()
     test_numpy_functions_logical()
     test_list()
+    test_check_units()
+    test_get_unit()
