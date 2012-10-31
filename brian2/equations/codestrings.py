@@ -177,7 +177,7 @@ class CodeString(object):
         '''
 
         if self.is_resolved:
-            raise TypeError('Variables have already been resolved before.')
+            return
 
         unit_namespace = get_default_unit_namespace()
         numpy_namespace = get_default_numpy_namespace()

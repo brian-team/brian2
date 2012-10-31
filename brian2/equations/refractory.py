@@ -1,49 +1,69 @@
-from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION)
-from brian2.units import DimensionMismatchError
+from brian2.units.fundamentalunits import Unit
+from brian2.units.allunits import second
+
+from .equations import (Equations, SingleEquation, DIFFERENTIAL_EQUATION,
+                        PARAMETER)
 
 __all__ = ['add_refractoriness']
 
+def check_identifier_refractory(identifier):
+    '''
+    Check that the identifier is not using a name reserved for the refractory
+    mechanism. The reserved names are `is_active`, `refractory`,
+    `refractory_until`.
+    
+    Parameters
+    ----------
+    identifier : str
+        The identifier to check.
+        
+    Raises
+    ------
+    ValueError
+        If the identifier is a variable name used for the refractory mechanism.
+    '''
+    if identifier in ('is_active', 'refractory', 'refractory_until'):
+        raise ValueError(('The name "%s" is used in the refractory mechanism '
+                         ' and should not be used as a variable name.' % identifier))
+
+Equations.register_identifier_check(check_identifier_refractory)
+
+
 def add_refractoriness(eqs):
-    neweqs = ''
+    new_equations = []
+    
+    # replace differential equations having the active flag    
     for eq in eqs.equations.values():
-        if eq.eq_type == DIFFERENTIAL_EQUATION:
-            s = 'd' + eq.varname + '/dt'
+        if eq.eq_type == DIFFERENTIAL_EQUATION and 'active' in eq.flags:
+            # the only case where we have to change anything
+            new_code = 'is_active*(' + eq.expr.code + ')'
+            new_single_eqn = SingleEquation(DIFFERENTIAL_EQUATION,
+                                            eq.varname,
+                                            new_code,
+                                            eq.unit,
+                                            eq.flags,
+                                            eqs._namespace,
+                                            True,
+                                            0)
+            new_equations.append(new_single_eqn)
         else:
-            s = eq.varname
-        
-        expr = eq.expr
-        
-        if not expr is None:
-            expr = str(expr)
-            if eq.eq_type==DIFFERENTIAL_EQUATION and 'active' in eq.flags:
-                expr = 'is_active*('+expr+')'
-            s += ' = ' + str(expr)
-        
-        u = eq.unit
-        try:
-            1+u
-            su = '1'
-        except DimensionMismatchError:
-            su = repr(u)
-        s += ' : ' + su
-        
-        if len(eq.flags):
-            s += ' (' + ', '.join(eq.flags) + ')'
-        
-        neweqs += s+'\n'
-        
-    neweqs += 'is_active : 1\n'
-    neweqs += 'refractory : second\n'
-    neweqs += 'refractory_until : second\n'
-        
-    return neweqs
-        
-if __name__=='__main__':
-    eqs = Equations('''
-    dv/dt = -x*v/second : volt (active)
-    dw/dt = -w/second : amp
-    x : 1
-    ''')
-    eqs = add_refractoriness(eqs)
-    eqs = Equations(eqs)
-    print eqs
+            new_equations.append(eq)
+    
+    # add new parameters
+    new_equations.append(SingleEquation(PARAMETER,
+                                        'is_active',
+                                        None,
+                                        Unit(1),
+                                        [], None, True, 0))
+    new_equations.append(SingleEquation(PARAMETER,
+                                        'refractory',
+                                        None,
+                                        second,
+                                        [], None, True, 0))
+    new_equations.append(SingleEquation(PARAMETER,
+                                        'refractory_until',
+                                        None,
+                                        second,
+                                        [], None, True, 0))
+
+    return Equations(new_equations)

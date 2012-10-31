@@ -1521,6 +1521,8 @@ class Unit(Quantity):
     
     #### CONSTRUCTION ####
     def __new__(cls, arr, dim=None, scale=None, dtype=None, copy=False):
+        if dim is None:
+            dim = DIMENSIONLESS
         obj = super(Unit, cls).__new__(cls, arr, dim=dim, dtype=dtype,
                                        copy=copy)
         if Unit.automatically_register_units:
@@ -1537,6 +1539,8 @@ class Unit(Quantity):
         return self  
         
     def __init__(self, value, dim=None, scale=None):
+        if dim is None:
+            dim = DIMENSIONLESS
         self.dim = dim  #: The Dimensions of this unit
         if scale is None:
             scale = ("", "", "", "", "", "", "")

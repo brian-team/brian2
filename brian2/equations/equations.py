@@ -299,7 +299,7 @@ class SingleEquation(object):
         s += ' : ' + str(self.unit)
         
         if len(self.flags):
-            s += '(' + ', '.join(self.flags) + ')'
+            s += ' (' + ', '.join(self.flags) + ')'
         
         return s
     
@@ -369,13 +369,20 @@ class Equations(object):
     
     """
 
-    def __init__(self, eqns, namespace=None, exhaustive=False, level=0):               
-        self._equations = parse_string_equations(eqns, namespace, exhaustive,
-                                                  level + 1)
+    def __init__(self, eqns, namespace=None, exhaustive=False, level=0):
+        if isinstance(eqns, basestring):
+            self._equations = parse_string_equations(eqns, namespace, exhaustive,
+                                                     level + 1)
+            # Do a basic check for the identifiers
+            self.check_identifiers()
+        else:
+            self._equations = {}
+            for eq in eqns:
+                if not isinstance(eq, SingleEquation):
+                    raise TypeError(('The list should only contain '
+                                    'SingleEquation objects, not %s') % type(eq))
+                self._equations[eq.varname] = eq
 
-        # Do a basic check for the identifiers
-        self.check_identifiers()
-        
         # Check for special symbol xi (stochastic term)
         uses_xi = None
         for eq in self._equations.itervalues():
@@ -725,7 +732,7 @@ class Equations(object):
     # 
 
     def __str__(self):
-        strings = [str(eq) for eq in self._equations.itervalues()]
+        strings = [str(eq) for eq in self.equations_ordered]
         return '\n'.join(strings)
     
     def __repr__(self):
