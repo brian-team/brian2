@@ -66,9 +66,12 @@ def test_resolve():
     assert not 'v' in expr.namespace
     assert expr.namespace['I'] == I and expr.namespace['tau'] == tau
     
-    # trying to resolve a second time should raise an error
-    assert_raises(TypeError, lambda: expr.resolve(['v']))
-    
+    # trying to resolve a second time should not change anything
+    expr.resolve(['v'])
+    assert expr.is_resolved
+    assert not 'v' in expr.namespace
+    assert expr.namespace['I'] == I and expr.namespace['tau'] == tau
+        
     another_I = 5 * mV
     expr = Expression('-(v + I) / tau', namespace={'I' : another_I})
     # tau is not defined, the namespace should be exhaustive
