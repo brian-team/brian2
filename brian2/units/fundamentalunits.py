@@ -154,8 +154,6 @@ def wrap_function_dimensionless(func):
         return func(np.asarray(x), *args, **kwds)
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
-    if hasattr(func, '__dict__'):
-        f.__dict__.update(func.__dict__)
     return f
 
 
@@ -174,8 +172,6 @@ def wrap_function_keep_dimensions(func):
         return Quantity(func(np.asarray(x), *args, **kwds), dim=x.dim)
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
-    if hasattr(func, '__dict__'):
-        f.__dict__.update(func.__dict__)
     return f
 
 
@@ -197,8 +193,6 @@ def wrap_function_change_dimensions(func, change_dim_func):
                         dim=change_dim_func(ar, x.dim))
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
-    if hasattr(func, '__dict__'):
-        f.__dict__.update(func.__dict__)
     return f
 
 
@@ -216,25 +210,8 @@ def wrap_function_remove_dimensions(func):
         return func(np.asarray(x), *args, **kwds)
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
-    if hasattr(func, '__dict__'):
-        f.__dict__.update(func.__dict__)
     return f        
 
-
-def wrap_function_no_check_warning(func):
-    '''
-    Returns a new function that wraps the given function `func` so that it
-    raises a warning about not checking units. Used mostly as a placeholder
-    to make users aware that the function is not prepared for units yet.
-    '''    
-    def f(*args, **kwds): # pylint: disable=C0111
-        warn('%s does not check the units of its arguments.' % func.__name__)
-        return func(*args, **kwds)
-    f.__name__ = func.__name__
-    f.__doc__ = func.__doc__
-    if hasattr(func, '__dict__'):
-        f.__dict__.update(func.__dict__)
-    return f
 
 # SI dimensions (see table at the top of the file) and various descriptions,
 # each description maps to an index i, and the power of each dimension
@@ -373,7 +350,7 @@ class Dimension(object):
     def __pow__(self, value):
         value = np.asarray(value)
         if value.size > 1:
-            raise ValueError('Too many exponents')
+            raise TypeError('Too many exponents')
         return get_or_create_dimension([x * value for x in self._dims])
 
     def __imul__(self, value):
@@ -758,29 +735,30 @@ class Quantity(np.ndarray, object):
             # check whether it is an iterable containing Quantity objects
             try:                
                 is_quantity = [isinstance(x, Quantity) for x in _flatten(arr)]
-                if all(is_quantity):
-                    dims = [x.dim for x in _flatten(arr)]                    
-                    one_dim = dims[0]
-                    for d in dims:
-                        if d != one_dim:
-                            raise DimensionMismatchError('Mixing quantities '
-                                                         'with different '
-                                                         'dimensions is not '
-                                                         'allowed',
-                                                         d, one_dim)
-                    subarr.dim = dims[0]
-                    if not (dim is None) and not (dim is subarr.dim):
-                        raise DimensionMismatchError('Conflicting dimension '
-                                                     'information between '
-                                                     'sequence and dim keyword',
-                                                     subarr.dim, dim)
-                elif any(is_quantity):
-                    raise ValueError('Mixing quantities and non-quantities is '
-                                     'not allowed.')
-
             except TypeError:
                 # Not iterable
-                pass
+                is_quantity = [False]
+
+            if all(is_quantity):
+                dims = [x.dim for x in _flatten(arr)]                    
+                one_dim = dims[0]
+                for d in dims:
+                    if d != one_dim:
+                        raise DimensionMismatchError('Mixing quantities '
+                                                     'with different '
+                                                     'dimensions is not '
+                                                     'allowed',
+                                                     d, one_dim)
+                subarr.dim = dims[0]
+                if not (dim is None) and not (dim is subarr.dim):
+                    raise DimensionMismatchError('Conflicting dimension '
+                                                 'information between '
+                                                 'sequence and dim keyword',
+                                                 subarr.dim, dim)
+            elif any(is_quantity):
+                raise TypeError('Mixing quantities and non-quantities is '
+                                'not allowed.')
+
 
         if dim is not None:
             subarr.dim = dim
@@ -1068,7 +1046,7 @@ class Quantity(np.ndarray, object):
             return NotImplemented
 
     def __rtruediv__(self, other):
-        return self.__rdiv__(self, other)
+        return self.__rdiv__(other)
 
     def __idiv__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
@@ -1211,14 +1189,8 @@ class Quantity(np.ndarray, object):
     def __lt__(self, other):
         is_scalar = is_scalar_type(other)
                 
-        if is_scalar:
-            # special handling of Inf and -Inf
-            if np.isposinf(other):
-                return True
-            if np.isneginf(other):
-                return False
-        
-        fail_for_dimension_mismatch(self, other, 'LessThan')
+        if not is_scalar or not np.isinf(other):        
+            fail_for_dimension_mismatch(self, other, 'LessThan')
     
         if isinstance(other, np.ndarray) or is_scalar:    
             return np.asarray(self) < np.asarray(other)
@@ -1228,14 +1200,8 @@ class Quantity(np.ndarray, object):
     def __le__(self, other):
         is_scalar = is_scalar_type(other)
                 
-        if is_scalar:
-            # special handling of Inf and -Inf
-            if np.isposinf(other):
-                return True
-            if np.isneginf(other):
-                return False
-        
-        fail_for_dimension_mismatch(self, other, 'LessThanOrEquals')
+        if not is_scalar or not np.isinf(other):        
+            fail_for_dimension_mismatch(self, other, 'LessThanOrEquals')
     
         if isinstance(other, np.ndarray) or is_scalar:    
             return np.asarray(self) <= np.asarray(other)
@@ -1245,15 +1211,9 @@ class Quantity(np.ndarray, object):
 
     def __gt__(self, other):
         is_scalar = is_scalar_type(other)
-                
-        if is_scalar:
-            # special handling of Inf and -Inf
-            if np.isposinf(other):
-                return True
-            if np.isneginf(other):
-                return False
-        
-        fail_for_dimension_mismatch(self, other, 'GreaterThan')
+
+        if not is_scalar or not np.isinf(other):        
+            fail_for_dimension_mismatch(self, other, 'GreaterThan')
     
         if isinstance(other, np.ndarray) or is_scalar:    
             return np.asarray(self) > np.asarray(other)
@@ -1263,14 +1223,8 @@ class Quantity(np.ndarray, object):
     def __ge__(self, other):
         is_scalar = is_scalar_type(other)
                 
-        if is_scalar:
-            # special handling of Inf and -Inf
-            if np.isposinf(other):
-                return True
-            if np.isneginf(other):
-                return False
-        
-        fail_for_dimension_mismatch(self, other, 'GreaterThanOrEquals')
+        if not is_scalar or not np.isinf(other):         
+            fail_for_dimension_mismatch(self, other, 'GreaterThanOrEquals')
     
         if isinstance(other, np.ndarray) or is_scalar:    
             return np.asarray(self) >= np.asarray(other)
@@ -1280,14 +1234,8 @@ class Quantity(np.ndarray, object):
     def __eq__(self, other):
         is_scalar = is_scalar_type(other)
                 
-        if is_scalar:
-            # special handling of Inf and -Inf
-            if np.isposinf(other):
-                return True
-            if np.isneginf(other):
-                return False
-        
-        fail_for_dimension_mismatch(self, other, 'Equals')
+        if not is_scalar or not np.isinf(other):        
+            fail_for_dimension_mismatch(self, other, 'Equals')
     
         if isinstance(other, np.ndarray) or is_scalar:    
             return np.asarray(self) == np.asarray(other)
@@ -1297,14 +1245,8 @@ class Quantity(np.ndarray, object):
     def __ne__(self, other):
         is_scalar = is_scalar_type(other)
                 
-        if is_scalar:
-            # special handling of Inf and -Inf
-            if np.isposinf(other):
-                return True
-            if np.isneginf(other):
-                return False
-        
-        fail_for_dimension_mismatch(self, other, 'NotEquals')
+        if not is_scalar or not np.isinf(other):        
+            fail_for_dimension_mismatch(self, other, 'NotEquals')
     
         if isinstance(other, np.ndarray) or is_scalar:    
             return np.asarray(self) != np.asarray(other)
@@ -1339,6 +1281,7 @@ class Quantity(np.ndarray, object):
     var = wrap_function_change_dimensions(np.ndarray.var, lambda ar, d: d ** 2)
     all = wrap_function_remove_dimensions(np.ndarray.all)
     any = wrap_function_remove_dimensions(np.ndarray.any)
+    nonzero = wrap_function_remove_dimensions(np.ndarray.nonzero)
     argmax = wrap_function_remove_dimensions(np.ndarray.argmax)
     argmin = wrap_function_remove_dimensions(np.ndarray.argmax)
     argsort = wrap_function_remove_dimensions(np.ndarray.argsort)
@@ -1391,8 +1334,8 @@ class Quantity(np.ndarray, object):
 
     def cumprod(self, *args, **kwds): # pylint: disable=C0111
         if not self.is_dimensionless:
-            raise ValueError('cumprod over array elements on quantities '
-                             'with dimensions is not possible.')
+            raise TypeError('cumprod over array elements on quantities '
+                            'with dimensions is not possible.')
         return Quantity(np.asarray(self).cumprod(*args, **kwds))
     cumprod.__doc__ = np.ndarray.cumprod.__doc__
 

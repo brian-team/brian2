@@ -11,11 +11,15 @@ from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            UFUNCS_INTEGERS,
                                            UFUNCS_LOGICAL,
                                            Quantity,
+                                           Unit,
                                            have_same_dimensions,
                                            get_dimensions,
                                            DimensionMismatchError,
                                            check_units,
-                                           get_unit, get_unit_fast)
+                                           display_in_unit,
+                                           get_unit, get_unit_fast,
+                                           get_or_create_dimension,
+                                           DIMENSIONLESS)
 from brian2.units.allunits import *
 from brian2.units.stdunits import ms, mV, kHz, nS, cm
 
@@ -53,11 +57,38 @@ def test_construction():
     assert_quantity(q, np.array([0.5, 1]), second)
 
     # Illegal constructor calls
-    assert_raises(ValueError, lambda: Quantity([500 * ms, 1]))
+    assert_raises(TypeError, lambda: Quantity([500 * ms, 1]))
     assert_raises(DimensionMismatchError, lambda: Quantity([500 * ms,
                                                             1 * volt]))
     assert_raises(DimensionMismatchError, lambda: Quantity([500 * ms],
                                                            dim=volt.dim))
+
+def test_get_dimensions():
+    '''
+    Test various ways of getting/comparing the dimensions of a quantity.
+    '''
+    q = 500 * ms
+    assert get_dimensions(q) is get_or_create_dimension(q.dimensions._dims)
+    assert get_dimensions(q) is q.dimensions
+    dims = q.dimensions
+    assert dims.get_dimension('time') == 1.
+    assert dims.get_dimension('length') == 0
+    
+    assert get_dimensions(5) is DIMENSIONLESS
+    assert_raises(TypeError, lambda: get_dimensions('a string'))
+    
+
+def test_display():
+    '''
+    Test displaying a quantity in different units
+    '''
+    assert display_in_unit(3 * volt, mvolt) == '3000.0 mV'
+    assert display_in_unit(10 * mV, ohm * amp) == '0.01 ohm A'
+    assert_raises(DimensionMismatchError, lambda: display_in_unit(10 * nS, ohm))
+    
+    # A bit artificial...
+    assert display_in_unit(10, Unit(10)) == '1.0'
+
 
 def test_pickling():
     '''
@@ -342,7 +373,36 @@ def test_binary_operations():
               np.array([1, 2]) * kilogram]:
         assert_operations_do_not_work(a, b)
 
-    # TODO: Comparisons to inf/-inf (?)
+    # Check that comparisons with inf/-inf always work
+    values = [2 * kilogram/kilogram,
+              2 * kilogram,
+              np.array([2]) * kilogram,
+              np.array([1, 2]) * kilogram]
+    for value in values:
+        assert np.all(value < np.inf)
+        assert np.all(np.inf > value)
+        assert np.all(value <= np.inf)
+        assert np.all(np.inf >= value)
+        assert np.all(value != np.inf)
+        assert np.all(np.inf != value)
+        assert np.all(value >= -np.inf)
+        assert np.all(-np.inf <= value)
+        assert np.all(value > -np.inf)
+        assert np.all(-np.inf < value)
+
+def test_power():
+    '''
+    Test raising quantities to a power.
+    '''
+    values = [2 * kilogram, np.array([2]) * kilogram,
+              np.array([1, 2]) * kilogram]
+    for value in values:
+        assert_quantity(value ** 3, np.asarray(value) ** 3, kilogram ** 3)
+        # Test raising to a dimensionless quantity
+        assert_quantity(value ** (3 * volt/volt), np.asarray(value) ** 3, kilogram ** 3)    
+        assert_raises(DimensionMismatchError, lambda: value ** (2 * volt))
+        assert_raises(TypeError, lambda: value ** np.array([2, 3]))
+
 
 def test_inplace_operations():
     q = np.arange(10) * volt
@@ -395,6 +455,17 @@ def test_inplace_operations():
                        volt.dimensions.__itruediv__,
                        volt.dimensions.__ipow__]:
         assert_raises(TypeError, lambda: inplace_op(volt.dimensions))
+
+def test_unit_discarding_functions():
+    '''
+    Test functions that discard units.
+    '''
+    values = [3 * mV, np.array([1, 2]) * mV, np.arange(12).reshape(3, 4) * mV]
+    for value in values:
+        assert_equal(np.sign(value), np.sign(np.asarray(value)))
+        assert_equal(np.ones_like(value), np.ones_like(np.asarray(value)))
+        assert_equal(np.nonzero(value), np.nonzero(np.asarray(value)))
+
 
 def test_unitsafe_functions():
     '''
@@ -675,6 +746,9 @@ def test_get_unit():
 
 if __name__ == '__main__':
     test_construction()
+    test_get_dimensions()
+    test_display()
+    test_power()
     test_pickling()
     test_str_repr()
     test_slicing()
@@ -683,7 +757,8 @@ if __name__ == '__main__':
     test_addition_subtraction()
     test_binary_operations()
     test_inplace_operations()
-    test_unitsafe_functions()
+    test_unit_discarding_functions()
+    test_unitsafe_functions()    
     test_special_case_numpy_functions()    
     test_numpy_functions_same_dimensions()
     test_numpy_functions_dimensionless()
