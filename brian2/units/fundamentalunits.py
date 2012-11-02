@@ -1305,13 +1305,13 @@ class Quantity(np.ndarray, object):
     clip.__doc__ = np.ndarray.clip.__doc__
 
     def dot(self, other, **kwds): # pylint: disable=C0111
-        return Quantity.with_dimensions(np.array(self).dot(np.array(other)),
+        return Quantity.with_dimensions(np.array(self).dot(np.array(other), **kwds),
                                         self.dim * get_dimensions(other))
     dot.__doc__ = np.ndarray.dot.__doc__
 
     def searchsorted(self, v, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, v, 'searchsorted')
-        return super(Quantity, self).searchsorted(np.asarray(v))
+        return super(Quantity, self).searchsorted(np.asarray(v), **kwds)
     searchsorted.__doc__ = np.ndarray.searchsorted.__doc__
 
     def prod(self, *args, **kwds): # pylint: disable=C0111
@@ -1341,7 +1341,7 @@ class Quantity(np.ndarray, object):
 
     def setasflat(self, arr, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, arr, 'setasflat')
-        super(Quantity, self).setasflat(np.asarray(arr))
+        super(Quantity, self).setasflat(np.asarray(arr), **kwds)
     setasflat.__doc__ = np.ndarray.setasflat.__doc__
 
 class Unit(Quantity):
