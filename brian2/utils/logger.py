@@ -80,7 +80,7 @@ logger.addHandler(CONSOLE_HANDLER)
 # We want to log all warnings
 if hasattr(logging, 'captureWarnings'):
     # This function was added in Python 2.7
-    logging.captureWarnings(True)
+    logging.captureWarnings(True) # pylint: disable=E1101
 
 # Put some standard info into the log file
 logger = logging.getLogger('brian2')

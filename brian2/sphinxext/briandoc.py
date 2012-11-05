@@ -16,24 +16,26 @@ It will:
 .. [1] https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 
 """
+import re
+import pydoc
+import inspect
+from docutils import statemachine
+from docutils.parsers.rst import directives, Directive
 
 import sphinx
 from sphinx.roles import XRefRole
 if sphinx.__version__ < '1.0.1':
     raise RuntimeError("Sphinx 1.0.1 or newer is required")
 
-import re
-import pydoc
-import inspect
+from brian2.core.preferences import brian_prefs
 
-from docutils import nodes, statemachine
-from docutils.parsers.rst import directives, Directive, roles
-from docscrape_sphinx import get_doc_object, SphinxDocString
-
-from brian2 import brian_prefs
+from .docscrape_sphinx import get_doc_object, SphinxDocString
 
 
 class BrianPrefsDirective(Directive):
+    '''
+    A sphinx 'Directive' for automatically generated documentation of Brian preferences.
+    '''
     required_arguments = 0
     optional_arguments = 0
     final_argument_whitespace = True
@@ -50,6 +52,10 @@ class BrianPrefsDirective(Directive):
 
 def brian_prefs_role(role, rawtext, text, lineno, inliner,
                        options={}, content=[]):
+    '''
+    A sphinx role, allowing to link to Brian preferences using a
+    ``:bpref:`preference_name``` syntax.
+    '''
     if not text in brian_prefs._values:
         msg = inliner.reporter.error(
             'Unknown brian preference: %s' % text, line=lineno)
@@ -100,7 +106,7 @@ def mangle_docstrings(app, what, name, obj, options, lines,
                         replacements[full_name] = name + '.' + name_parts[-1]
                         # no need to search further
                         break
-                    except ImportError as ex:
+                    except ImportError:
                         pass
             for old, new in replacements.iteritems():
                 lines[i] = lines[i].replace('`%s`' % old, '`%s`' % new)
@@ -137,8 +143,10 @@ def mangle_signature(app, what, name, obj, options, sig, retann):
         'initializes x; see ' in pydoc.getdoc(obj.__init__))):
         return '', ''
 
-    if not (callable(obj) or hasattr(obj, '__argspec_is_invalid_')): return
-    if not hasattr(obj, '__doc__'): return
+    if not (callable(obj) or hasattr(obj, '__argspec_is_invalid_')):
+        return
+    if not hasattr(obj, '__doc__'):
+        return
 
     doc = SphinxDocString(pydoc.getdoc(obj))
     if doc['Signature']:

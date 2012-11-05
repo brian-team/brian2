@@ -9,24 +9,20 @@ class SphinxDocString(NumpyDocString):
         NumpyDocString.__init__(self, docstring, config=config)
 
     # string conversion routines
-    def _str_header(self, name, symbol='`'):
+    @staticmethod
+    def _str_header(name, symbol='`'):
         return ['.. rubric:: ' + name, '']
 
-    def _str_field_list(self, name):
+    @staticmethod
+    def _str_field_list(name):
         return [':' + name + ':']
 
-    def _str_indent(self, doc, indent=4):
+    @staticmethod
+    def _str_indent(doc, indent=4):
         out = []
         for line in doc:
             out += [' '*indent + line]
         return out
-
-    def _str_signature(self):
-        return ['']
-        if self['Signature']:
-            return ['``%s``' % self['Signature']] + ['']
-        else:
-            return ['']
 
     def _str_summary(self):
         return self['Summary'] + ['']
@@ -219,7 +215,6 @@ class SphinxDocString(NumpyDocString):
 
     def __str__(self, indent=0, func_role="obj"):
         out = []
-        out += self._str_signature()
         out += self._str_index() + ['']
         out += self._str_summary()
         out += self._str_extended_summary()
@@ -237,7 +232,7 @@ class SphinxDocString(NumpyDocString):
             out += ['.. rubric:: Details', '']
             for param_list in ('Attributes', 'Methods'):
                 out += self._str_member_docs(param_list)
-        out = self._str_indent(out,indent)
+        out = self._str_indent(out, indent)
         return '\n'.join(out)
 
 class SphinxFunctionDoc(SphinxDocString, FunctionDoc):
