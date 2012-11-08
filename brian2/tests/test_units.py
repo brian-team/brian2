@@ -19,7 +19,8 @@ from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            display_in_unit,
                                            get_unit, get_unit_fast,
                                            get_or_create_dimension,
-                                           DIMENSIONLESS)
+                                           DIMENSIONLESS,
+                                           fail_for_dimension_mismatch)
 from brian2.units.allunits import *
 from brian2.units.stdunits import ms, mV, kHz, nS, cm
 
@@ -70,6 +71,7 @@ def test_get_dimensions():
     q = 500 * ms
     assert get_dimensions(q) is get_or_create_dimension(q.dimensions._dims)
     assert get_dimensions(q) is q.dimensions
+    assert q.has_same_dimensions(3 * second)
     dims = q.dimensions
     assert dims.get_dimension('time') == 1.
     assert dims.get_dimension('length') == 0
@@ -130,9 +132,11 @@ def test_str_repr():
                      metre * second**-1, 10 * metre * second**-1,
                      array([1, 2, 3]) * kmetre / second,
                      np.ones(3) * nS / cm**2]
-        
+    
+    unitless = [second/second, 5 * second/second]
+    
     for u in itertools.chain(units_which_should_exist, some_scaled_units,
-                              powered_units, complex_units):
+                              powered_units, complex_units, unitless):
         assert(len(str(u)) > 0)
         assert_equal(eval(repr(u)), u)
 
@@ -674,11 +678,14 @@ def test_numpy_functions_logical():
             try:
                 # one argument
                 result_units = eval('np.%s(value1)' % ufunc)        
-                result_array = eval('np.%s(np.array(value1))' % ufunc)
+                result_array = eval('np.%s(np.array(value1))' % ufunc)                
             except ValueError:
                 # two arguments
                 result_units = eval('np.%s(value1, value2)' % ufunc)        
                 result_array = eval('np.%s(np.array(value1), np.array(value2))' % ufunc)
+                # assert that comparing to a string results in "NotImplemented"
+                assert eval('np.%s(value1, "a string")' % ufunc) == NotImplemented
+                assert eval('np.%s("a string", value1)' % ufunc) == NotImplemented
             assert not isinstance(result_units, Quantity)
             assert_equal(result_units, result_array)
 
@@ -744,6 +751,35 @@ def test_get_unit():
         assert_quantity(get_unit_fast(value), 1, volt)
 
 
+def test_switching_off_unit_checks():
+    '''
+    Check switching off unit checks (used for external functions).
+    '''
+    import brian2.units.fundamentalunits as fundamentalunits
+    x = 3 * second
+    y = 5 * volt    
+    assert_raises(DimensionMismatchError, lambda: x + y)
+    fundamentalunits.unit_checking = False
+    # Now it should work
+    assert np.asarray(x + y) == np.array(8)
+    
+    fundamentalunits.unit_checking = True
+    
+def test_fail_for_dimension_mismatch():
+    '''
+    Test the fail_for_dimension_mismatch function.
+    '''
+    # examples that should not raise an error
+    fail_for_dimension_mismatch(3)
+    fail_for_dimension_mismatch(3 * volt/volt)
+    fail_for_dimension_mismatch(3 * volt/volt, 7)
+    fail_for_dimension_mismatch(3 * volt, 5 * volt)
+    
+    # examples that should raise an error
+    assert_raises(DimensionMismatchError, lambda: fail_for_dimension_mismatch(6 * volt))
+    assert_raises(DimensionMismatchError, lambda: fail_for_dimension_mismatch(6 * volt, 5 * second))    
+
+
 if __name__ == '__main__':
     test_construction()
     test_get_dimensions()
@@ -768,3 +804,5 @@ if __name__ == '__main__':
     test_list()
     test_check_units()
     test_get_unit()
+    test_switching_off_unit_checks()
+    test_fail_for_dimension_mismatch()
