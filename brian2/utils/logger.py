@@ -14,6 +14,8 @@ import sympy
 import brian2
 from brian2.core.preferences import brian_prefs
 
+from .environment import running_from_ipython
+
 __all__ = ['get_logger', 'BrianLogger']
 
 #===============================================================================
@@ -52,7 +54,7 @@ except IOError as ex:
 
 # Save a copy of the script
 TMP_SCRIPT = None
-if len(sys.argv[0]):
+if len(sys.argv[0]) and not running_from_ipython:
     try:
         tmp_file = tempfile.NamedTemporaryFile(prefix='brian_script_',
                                                suffix='.py',
