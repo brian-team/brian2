@@ -404,6 +404,7 @@ def get_or_create_dimension(*args, **kwds):
     --------    
     The following are all definitions of the dimensions of force
     
+    >>> from brian2 import *
     >>> get_or_create_dimension(length=1, mass=1, time=-2)
     metre * kilogram * second ** -2
     >>> get_or_create_dimension(m=1, kg=1, s=-2)
@@ -481,8 +482,7 @@ class DimensionMismatchError(Exception):
 
     def __str__(self):
         s = self.desc + ", dimensions were "
-        for d in self.dims:
-            s += "(" + str(d) + ") "
+        s += ' '.join(['(' + str(d) + ')' for d in self.dims])
         return s
 
 def is_scalar_type(obj):
@@ -588,6 +588,7 @@ def display_in_unit(x, u):
     
     Examples
     --------
+    >>> from brian2 import *
     >>> display_in_unit(3 * volt, mvolt)
     '3000.0 mV'
     >>> display_in_unit(10 * uA/cm**2, nA/um**2)
@@ -595,10 +596,9 @@ def display_in_unit(x, u):
     >>> display_in_unit(10 * mV, ohm * amp)
     '0.01 ohm A'
     >>> display_in_unit(10 * nS, ohm)
-    ...
-    brian2.units.fundamentalunits.DimensionMismatchError: Non-matching unit for
-    function display_in_unit, dimensions were (m^-2 kg^-1 s^3 A^2)
-    (m^2 kg s^-3 A^-2)
+    Traceback (most recent call last):
+        ...
+    DimensionMismatchError: Non-matching unit for function display_in_unit, dimensions were (m^-2 kg^-1 s^3 A^2) (m^2 kg s^-3 A^-2)
     """
     fail_for_dimension_mismatch(x, u,
                                 "Non-matching unit for function display_in_unit")
@@ -633,6 +633,7 @@ def quantity_with_dimensions(floatval, dims):
     
     Examples
     --------
+    >>> from brian2 import *
     >>> quantity_with_dimensions(0.001, volt.dim)
     array(1.0) * mvolt
     
@@ -676,6 +677,7 @@ class Quantity(np.ndarray, object):
     
     Examples
     --------
+    >>> from brian2 import *
     >>> I = 3 * amp # I is a Quantity object
     >>> R = 2 * ohm # same for R
     >>> print I * R
@@ -686,9 +688,8 @@ class Quantity(np.ndarray, object):
     6000.0
     >>> X = I + R
     Traceback (most recent call last):
-    ...
-    brian2.units.fundamentalunits.DimensionMismatchError: Addition, dimensions
-    were (A) (m^2 kg s^-3 A^-2)
+        ...
+    DimensionMismatchError: Addition, dimensions were (A) (m^2 kg s^-3 A^-2)
     >>> Is = np.array([1, 2, 3]) * amp
     >>> print Is * R
     [ 2.  4.  6.] V
@@ -882,12 +883,13 @@ class Quantity(np.ndarray, object):
         --------
         All of these define an equivalent Quantity object:
         
+        >>> from brian2 import *
         >>> Quantity.with_dimensions(2, get_or_create_dimension(length=1))
         array(2.0) * metre
         >>> Quantity.with_dimensions(2, length=1)
         array(2.0) * metre
         >>> 2 * metre
-        array(2.0) * metre        
+        array(2.0) * metre
         """
         x = Quantity(value)
         if len(args) and isinstance(args[0], Dimension):
@@ -1738,6 +1740,7 @@ def register_new_unit(u):
     
     Examples
     --------
+    >>> from brian2 import *
     >>> 2.0*farad/metre**2
     array(2.0) * metre ** -4 * kilogram ** -1 * second ** 4 * amp ** 2
     >>> register_new_unit(pfarad / mmetre**2)

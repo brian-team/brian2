@@ -85,7 +85,7 @@ def word_substitute(expr, substitutions):
     
         >>> expr = 'a*_b+c5+8+f(A)'
         >>> print word_substitute(expr, {'a':'banana', 'f':'func'})
-        banana*_b+c5+8+func(A)   
+        banana*_b+c5+8+func(A)
     '''
     for var, replace_var in substitutions.iteritems():
         expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)

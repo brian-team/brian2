@@ -112,3 +112,12 @@ ravel = wrap_function_to_method(np.ravel)
 diagonal = wrap_function_to_method(np.diagonal)
 trace = wrap_function_to_method(np.trace)
 dot = wrap_function_to_method(np.dot)
+
+def setup():
+    '''
+    Setup function for doctests (used by nosetest).
+    We do not want to test this module's docstrings as they
+    are inherited from numpy.
+    '''
+    from nose import SkipTest
+    raise SkipTest('Do not test numpy docstrings')

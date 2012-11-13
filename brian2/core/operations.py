@@ -60,24 +60,28 @@ def network_operation(*args, **kwds):
     --------
     
     Print something each time step:
-    
+    >>> from brian2 import *
     >>> @network_operation
-    >>> def f():
-    >>>   print 'something'
+    ... def f():
+    ...   print 'something'
+    ...
     >>> net = Network(f)
     
     Print the time each time step:
     
     >>> @network_operation
-    >>> def f(t):
-    >>>   print 'The time is', t
+    ... def f(t):
+    ...   print 'The time is', t
+    ...
     >>> net = Network(f)
     
     Specify a clock, etc.:
     
+    >>> myclock = Clock(dt=0.5*ms) 
     >>> @network_operation(when=(myclock, 'start', 0))
-    >>> def f():
-    >>>   print 'This will happen at the start of each timestep.'
+    ... def f():
+    ...   print 'This will happen at the start of each timestep.'
+    ...
     >>> net = Network(f)
     
     Notes

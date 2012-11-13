@@ -443,7 +443,7 @@ class catch_logs(object):
     Examples
     --------
     >>> logger = get_logger('brian2.logtest')
-    >>> logger.warn('An uncaught warning')
+    >>> logger.warn('An uncaught warning') # doctest: +SKIP
     WARNING  brian2.logtest: An uncaught warning
     >>> with catch_logs() as l:
     ...    logger.warn('a caught warning')
