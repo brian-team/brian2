@@ -1,11 +1,10 @@
 # -*- encoding:utf-8 -*-
 
-import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from nose.tools import *
 
 from brian2.sphinxext.docscrape import NumpyDocString, FunctionDoc, ClassDoc
 from brian2.sphinxext.docscrape_sphinx import SphinxDocString, SphinxClassDoc
-from nose.tools import *
+
 
 doc_txt = '''\
   numpy.multivariate_normal(mean, cov, shape=None, spam=None)
