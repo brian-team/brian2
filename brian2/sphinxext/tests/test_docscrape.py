@@ -3,8 +3,8 @@
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from docscrape import NumpyDocString, FunctionDoc, ClassDoc
-from docscrape_sphinx import SphinxDocString, SphinxClassDoc
+from brian2.sphinxext.docscrape import NumpyDocString, FunctionDoc, ClassDoc
+from brian2.sphinxext.docscrape_sphinx import SphinxDocString, SphinxClassDoc
 from nose.tools import *
 
 doc_txt = '''\
@@ -334,17 +334,17 @@ of the one-dimensional normal distribution to higher dimensions.
 
         A parrot off its mortal coil.
  
-:Raises:
+.. rubric:: Raises
 
-    **RuntimeError** : 
+:exc:`RuntimeError`
 
-        Some error
+    Some error
 
-:Warns:
+.. rubric:: Warns
 
-    **RuntimeWarning** : 
+:exc:`RuntimeWarning`
 
-        Some warning
+    Some warning
 
 .. warning::
 
@@ -558,28 +558,6 @@ def test_unicode():
     """)
     assert doc['Summary'][0] == u'öäöäöäöäöåååå'.encode('utf-8')
 
-def test_plot_examples():
-    cfg = dict(use_plots=True)
-
-    doc = SphinxDocString("""
-    Examples
-    --------
-    >>> import matplotlib.pyplot as plt
-    >>> plt.plot([1,2,3],[4,5,6])
-    >>> plt.show()
-    """, config=cfg)
-    assert 'plot::' in str(doc), str(doc)
-
-    doc = SphinxDocString("""
-    Examples
-    --------
-    .. plot::
-    
-       import matplotlib.pyplot as plt
-       plt.plot([1,2,3],[4,5,6])
-       plt.show()
-    """, config=cfg)
-    assert str(doc).count('plot::') == 1, str(doc)
 
 def test_class_members():
 
@@ -596,11 +574,6 @@ def test_class_members():
             pass
 
     for cls in (ClassDoc, SphinxClassDoc):
-        doc = cls(Dummy, config=dict(show_class_members=False))
-        assert 'Methods' not in str(doc), (cls, str(doc))
-        assert 'spam' not in str(doc), (cls, str(doc))
-        assert 'ham' not in str(doc), (cls, str(doc))
-
         doc = cls(Dummy, config=dict(show_class_members=True))
         assert 'Methods' in str(doc), (cls, str(doc))
         assert 'spam' in str(doc), (cls, str(doc))
