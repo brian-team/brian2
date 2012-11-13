@@ -12,7 +12,7 @@ __all__ = ['indent',
            ]
 
 def indent(text, numtabs=1, spacespertab=4, tab=None):
-    """
+    '''
     Indents a given multiline string.
     
     By default, indentation is done using spaces rather than tab characters.
@@ -21,7 +21,27 @@ def indent(text, numtabs=1, spacespertab=4, tab=None):
         indent(text, tab='\t')
         
     Note that in this case ``spacespertab`` is ignored.
-    """
+    
+    Examples
+    --------
+    >>> multiline = """def f(x):
+    ...     return x*x"""
+    >>> print multiline
+    def f(x):
+        return x*x
+    >>> print indent(multiline)
+        def f(x):
+            return x*x
+    >>> print indent(multiline, numtabs=2)
+            def f(x):
+                return x*x
+    >>> print indent(multiline, spacespertab=2)
+      def f(x):
+          return x*x
+    >>> print indent(multiline, tab='####')
+    ####def f(x):
+    ####    return x*x
+    '''
     if tab is None:
         tab = ' '*spacespertab
     indent = tab*numtabs
@@ -29,27 +49,47 @@ def indent(text, numtabs=1, spacespertab=4, tab=None):
     return indentedstring
 
 def deindent(text, numtabs=None, spacespertab=4, docstring=False):
-    """
+    '''
     Returns a copy of the string with the common indentation removed.
     
     Note that all tab characters are replaced with ``spacespertab`` spaces.
-    
-    For example for the following string (where # represents white space)::
-    
-        ####def f(x):
-        ########return x**2
-        
-    It would return::
-    
-        def f(x):
-        ####return x**2
         
     If the ``docstring`` flag is set, the first line is treated differently and
     is assumed to be already correctly tabulated.
     
     If the ``numtabs`` option is given, the amount of indentation to remove is
     given explicitly and not the common indentation.
-    """
+    
+    Examples
+    --------
+    Normal strings, e.g. function definitions:
+    
+    >>> multiline = """    def f(x):
+    ...          return x**2"""
+    >>> print multiline
+        def f(x):
+             return x**2
+    >>> print deindent(multiline)
+    def f(x):
+         return x**2
+    >>> print deindent(multiline, docstring=True)
+        def f(x):
+    return x**2
+    >>> print deindent(multiline, numtabs=1, spacespertab=2)
+      def f(x):
+           return x**2
+    
+    Docstrings:
+    
+    >>> docstring = """First docstring line.
+    ...     This line determines the indentation."""
+    >>> print docstring
+    First docstring line.
+        This line determines the indentation.
+    >>> print deindent(docstring, docstring=True)
+    First docstring line.
+    This line determines the indentation.
+    '''
     text = text.replace('\t', ' '*spacespertab)
     lines = text.split('\n')
     # if it's a docstring, we search for the common tabulation starting from
@@ -81,11 +121,12 @@ def word_substitute(expr, substitutions):
     word ``word`` appearing in ``expr`` is replaced by ``rep``. Here a 'word'
     means anything matching the regexp ``\\bword\\b``.
     
-    For example::
+    Examples
+    --------
     
-        >>> expr = 'a*_b+c5+8+f(A)'
-        >>> print word_substitute(expr, {'a':'banana', 'f':'func'})
-        banana*_b+c5+8+func(A)
+    >>> expr = 'a*_b+c5+8+f(A)'
+    >>> print word_substitute(expr, {'a':'banana', 'f':'func'})
+    banana*_b+c5+8+func(A)
     '''
     for var, replace_var in substitutions.iteritems():
         expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)
@@ -97,18 +138,29 @@ def get_identifiers(expr):
     that matches a programming language variable like expression, which is
     here implemented as the regexp ``\\b[A-Za-z_][A-Za-z0-9_]*\\b``.
     
-    For example::
+    Examples
+    --------
     
-        >>> expr = 'a*_b+c5+8+f(A)'
-        >>> print get_identifiers(expr)
-        ['a', '_b', 'c5', 'f', 'A']
+    >>> expr = 'a*_b+c5+8+f(A)'
+    >>> print get_identifiers(expr)
+    ['a', '_b', 'c5', 'f', 'A']
     
     '''
     return re.findall(r'\b[A-Za-z_][A-Za-z0-9_]*\b', expr)
 
 def strip_empty_lines(s):
     '''
-    Removes all empty lines from the multi-line string ``s``.
+    Removes all empty lines from the multi-line string `s`.
+    
+    Examples
+    --------
+    
+    >>> multiline = """A string with
+    ... 
+    ... an empty line."""
+    >>> print strip_empty_lines(multiline)
+    A string with
+    an empty line.
     '''
     return '\n'.join(line for line in s.split('\n') if line.strip())
 
