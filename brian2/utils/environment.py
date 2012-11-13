@@ -2,6 +2,8 @@
 Utility functions to get information about the environment Brian is running in.
 '''
 
+import __builtin__
+
 def running_from_ipython():
     '''
     Check whether we are currently running under ipython.
@@ -11,8 +13,5 @@ def running_from_ipython():
     ipython : bool
         Whether running under ipython or not.
     '''
-    try:
-        __IPYTHON__  # @UndefinedVariable 
-        return True
-    except NameError:
-        return False
+    return getattr(__builtin__, '__IPYTHON__', False)
+
