@@ -1,3 +1,7 @@
+'''
+Module implementing Brian's refractory mechanism.
+'''
+
 from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
 
@@ -30,7 +34,23 @@ Equations.register_identifier_check(check_identifier_refractory)
 
 
 def add_refractoriness(eqs):
+    '''
+    Extends a given set of equations with the refractory mechanism. New
+    parameters are added and differential equations with the "active" flag
+    are changed so that their right-hand side is 0 when the neuron is
+    refractory (by multiplication with the ``is_active`` variable.
     
+    Parameters
+    ----------
+    eqs : `Equations`
+        The equations without refractory mechanism.
+    
+    Returns
+    -------
+    new_eqs : `Equations`
+        New equations, with added parameters and changed differential 
+        equations having the "active" flag.    
+    '''
     new_equations = []
     
     # replace differential equations having the active flag    

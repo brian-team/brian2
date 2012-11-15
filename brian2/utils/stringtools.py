@@ -163,19 +163,3 @@ def strip_empty_lines(s):
     an empty line.
     '''
     return '\n'.join(line for line in s.split('\n') if line.strip())
-
-if __name__=='__main__':
-    text = '''
-    def f(x):
-        return x*x
-    '''
-    print deindent(text)
-    print indent(deindent(text).strip(), 1)
-    print indent(deindent(text).strip(), 2, tab='#')
-    print deindent(indent(text, 4), 2)
-    text = '''A docstring
-    With some text.
-    '''
-    print deindent(text, docstring=True)
-    print deindent(text)
-    

@@ -14,7 +14,7 @@ from .unitcheck import get_default_unit_namespace, SPECIAL_VARS
 from brian2.units.fundamentalunits import get_dimensions, DimensionMismatchError
 import brian2.units.unitsafefunctions as usf
 from brian2.utils.logger import get_logger
-from brian2.utils.stringtools import get_identifiers, word_substitute
+from brian2.utils.stringtools import get_identifiers
 from brian2.utils.parsing import parse_to_sympy
 
 __all__ = ['Expression', 'Statements']

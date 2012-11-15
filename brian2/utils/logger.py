@@ -1,3 +1,7 @@
+'''
+Brian's logging module.
+'''
+
 import atexit
 import logging
 import os
