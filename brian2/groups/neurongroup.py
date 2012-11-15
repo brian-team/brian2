@@ -164,7 +164,6 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                               'object, is "%s" instead.') % type(equations))
         # add refractoriness
         equations = add_refractoriness(equations)
-        equations = Equations(equations, level=level+1)
         self.equations = equations
         
         logger.debug("Creating NeuronGroup of size {self.N}, "

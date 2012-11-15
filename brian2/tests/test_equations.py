@@ -19,6 +19,7 @@ from brian2.equations.equations import (check_identifier,
                                         SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)
+from brian2.equations.refractory import check_identifier_refractory
 
 
 
@@ -70,12 +71,16 @@ def test_identifier_checks():
     for identifier in illegal_identifiers:
         assert_raises(ValueError, lambda: check_identifier_basic(identifier))
 
-    for identifier in ['t', 'dt', 'xi']:
+    for identifier in ('t', 'dt', 'xi'):
         assert_raises(ValueError, lambda: check_identifier_reserved(identifier))
+    
+    for identifier in ('is_active', 'refractory', 'refractory_until'):
+        assert_raises(ValueError, lambda: check_identifier_refractory(identifier))
     
     # Check identifier registry
     assert check_identifier_basic in Equations.identifier_checks
     assert check_identifier_reserved in Equations.identifier_checks
+    assert check_identifier_refractory in Equations.identifier_checks
     
     # Set up a dummy identifier check that disallows the variable name
     # gaba_123 (that is otherwise valid)
@@ -146,9 +151,15 @@ def test_construction_errors():
     # parse error
     assert_raises(SyntaxError, lambda: Equations('dv/dt = -v / tau volt'))
     
+    # Only a single string or a list of SingleEquation objects is allowed
+    assert_raises(TypeError, lambda: Equations(None))
+    assert_raises(TypeError, lambda: Equations(42))
+    assert_raises(TypeError, lambda: Equations(['dv/dt = -v / tau : volt']))
+    
     # duplicate variable names
     assert_raises(SyntaxError, lambda: Equations('''dv/dt = -v / tau : volt
                                                     v = 2 * t/second * volt : volt'''))
+        
     
     # illegal variable names
     assert_raises(ValueError, lambda: Equations('ddt/dt = -dt / tau : volt'))
@@ -196,7 +207,26 @@ def test_construction_errors():
     assert_raises(ValueError, lambda: Equations('''dv/dt = -(v + w) / (10 * ms) : 1
                                                    w = 2 * x : 1
                                                    x = 3 * w : 1'''))
-    
+
+def test_resolve():
+    '''
+    Test resolving identifiers in equations.
+    '''
+    def foo(x):
+        return 5 * x 
+    tau = 10 * ms
+    tau2 = 20 
+    eqs = '''dv/dt = -v / tau : volt
+             du/dt = -foo(u) / (tau_long * ms): volt
+          '''
+    eq = Equations(eqs, namespace={'tau_long': tau2}, exhaustive=False)
+    namespace = eq.resolve()
+    assert namespace['tau'] is tau
+    assert namespace['tau_long'] is tau2
+    assert namespace['foo'] is foo
+    assert namespace['ms'] is ms
+    assert set(namespace.keys()) == set(('tau', 'tau_long', 'foo', 'ms'))
+
 
 def test_properties():
     '''
@@ -301,6 +331,7 @@ if __name__ == '__main__':
     test_identifier_checks()
     test_parse_equations()
     test_construction_errors()
+    test_resolve()
     test_properties()
     test_mathematical_properties()    
     test_str_repr()

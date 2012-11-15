@@ -38,9 +38,9 @@ def add_refractoriness(eqs):
         if eq.eq_type == DIFFERENTIAL_EQUATION and 'active' in eq.flags:
             # the only case where we have to change anything
             new_code = 'is_active*(' + eq.expr.code + ')'
-            eq = eq.replace_code(new_code)
-        
-        new_equations.append(eq)
+            new_equations.append(eq.replace_code(new_code))
+        else:
+            new_equations.append(eq)
     
     # add new parameters
     new_equations.append(SingleEquation(PARAMETER,
@@ -59,4 +59,5 @@ def add_refractoriness(eqs):
                                         second,
                                         []))
 
+    print 'new_equations: ', new_equations
     return Equations(new_equations)
