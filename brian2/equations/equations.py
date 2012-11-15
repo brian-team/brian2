@@ -542,13 +542,13 @@ class Equations(object):
                                  'according to the order in which they should '
                                  'be updated')
     
-    diff_eq_expressions = property(lambda self: [(varname, eq.expr.frozen()) for 
+    diff_eq_expressions = property(lambda self: [(varname, eq.expr) for 
                                                  varname, eq in self.equations.iteritems()
                                                  if eq.eq_type == DIFFERENTIAL_EQUATION],
                                   doc='A list of (variable name, expression) '
                                   'tuples of all differential equations.')
     
-    eq_expressions = property(lambda self: [(varname, eq.expr.frozen()) for 
+    eq_expressions = property(lambda self: [(varname, eq.expr) for 
                                             varname, eq in self.equations.iteritems()
                                             if eq.eq_type in (STATIC_EQUATION,
                                                               DIFFERENTIAL_EQUATION)],
@@ -645,8 +645,6 @@ class Equations(object):
             A dictionary mapping all external identifiers to the objects they
             refer to.
         '''
-        for eq in self._equations.itervalues():
-            eq.resolve(self.variables)
         
         namespace = {}
         # Make absolutely sure there are no conflicts and nothing weird is
@@ -655,7 +653,8 @@ class Equations(object):
             if eq.expr is None:
                 # Parameters do not have/need a namespace
                 continue
-            for key, value in eq.expr._namespace.iteritems():
+            expr_namespace = eq.expr.resolve(self.variables)
+            for key, value in expr_namespace.iteritems():
                 if key in namespace:
                     # Should refer to exactly the same object
                     assert value is namespace[key] 

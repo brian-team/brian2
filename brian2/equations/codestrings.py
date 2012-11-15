@@ -89,7 +89,7 @@ def _conflict_warning(message, resolutions, the_logger):
 
 class CodeString(object):
     '''
-    A class for representing strings and an attached namespace.
+    A class for representing strings and corresponding namespaces.
     
     Parameters
     ----------
@@ -107,7 +107,7 @@ class CodeString(object):
         conflicting definitions).
     level : int, optional
         The level in the stack (an integer >=0) where to look for locals
-        and globals    
+        and globals. Ignored if `exhaustive` is ``True``.    
     
     Notes
     -----
@@ -123,36 +123,53 @@ class CodeString(object):
         # extract identifiers from the code
         self._identifiers = set(get_identifiers(code))
         
-        self._exhaustive = exhaustive
+        self._namespaces = {}
         
         if namespace is None or not exhaustive:
             frame = inspect.stack()[level + 1][0]
-            self._locals = frame.f_locals.copy()
-            self._globals = frame.f_globals.copy()
-        else:
-            self._locals = {}
-            self._globals = {}
+            self._namespaces['locals'] = dict(frame.f_locals)
+            self._namespaces['globals'] = dict(frame.f_globals)
         
-        self._given_namespace = namespace
-        
-        # The namespace containing resolved references
-        self._namespace = None
-    
+        if namespace is not None:
+            self._namespaces['user-defined'] = dict(namespace)
+
     code = property(lambda self: self._code,
                     doc='The code string.')
-
-    exhaustive = property(lambda self: self._exhaustive and not self._given_namespace is None,
-                          doc='Whether the namespace is exhaustively defined.')
         
     identifiers = property(lambda self: self._identifiers,
                            doc='Set of identifiers in the code string.')
-    
-    is_resolved = property(lambda self: not self._namespace is None,
-                           doc='Whether the external identifiers have been resolved.')
-        
-    namespace = property(lambda self: self._namespace,
-                         doc='The namespace resolving external identifiers.')
 
+    namespaces = property(lambda self: self._namespaces,
+                          doc='Namespaces that will be used for resolving the identifiers.')
+    
+    def replace_code(self, code):
+        '''
+        Return a new `CodeString` object with a new code string but the same
+        namespace information. This function is for internal use, when a new
+        `CodeString` object needs to be created from an existing one. 
+        
+        Parameters
+        ----------
+        code : str
+            The new code string (see `CodeString` for more details).
+        
+        Returns
+        -------
+        codestring : `CodeString`
+            A new `CodeString` object with the given `code` and the namespace
+            information of the current object
+        
+        Notes
+        -----
+        The returned object will have the actual type of the object it is
+        called on, e.g. calling on an `Expression` object will return an
+        `Expression` object and not a generic `CodeString`.
+        '''
+        
+        new_object = type(self)(code)
+        new_object._namespaces = self._namespaces
+        
+        return new_object 
 
     def resolve(self, internal_variables):
         '''
@@ -163,6 +180,13 @@ class CodeString(object):
         ----------
         internal_variables : list of str
             A list of variables that should not be resolved.
+        
+        Returns
+        -------
+        namespace : dict
+            A dictionary mapping names to objects, containing every identifier
+            referenced in the code string, except for identifiers mentioned
+            in `internal_variables`.
         
         Notes
         -----
@@ -176,34 +200,23 @@ class CodeString(object):
             `internal_variables`.
         '''
 
-        if self.is_resolved:
-            return
-
         unit_namespace = get_default_unit_namespace()
         numpy_namespace = get_default_numpy_namespace()
         
-        namespace = {}
+        resolved_namespace = {}
         for identifier in self.identifiers:
             # We save tuples of (namespace description, referred object) to
             # give meaningful warnings in case of duplicate definitions
             matches = []
-            if (not self._given_namespace is None and
-                identifier in self._given_namespace):
-                matches.append(('user-defined',
-                                self._given_namespace[identifier]))
-            if identifier in self._locals:
-                matches.append(('locals',
-                                self._locals[identifier]))
-            if identifier in self._globals:
-                matches.append(('globals',
-                                self._globals[identifier]))
-            if identifier in unit_namespace:
-                matches.append(('units',
-                               unit_namespace[identifier]))
-            if identifier in numpy_namespace:
-                matches.append(('numpy',
-                                numpy_namespace[identifier]))
             
+            namespaces = self.namespaces.copy()
+            namespaces.update({'units': unit_namespace,
+                               'numpy': numpy_namespace})
+            
+            for description, namespace in namespaces.iteritems():
+                if identifier in namespace:
+                    matches.append((description, namespace[identifier]))            
+
             # raise warnings in case of conflicts
             if identifier in SPECIAL_VARS:
                 # The identifier is t, dt, or xi
@@ -219,6 +232,7 @@ class CodeString(object):
             else:
                 # The identifier is not an internal variable
                 if len(matches) == 0:
+                    # No match at all
                     raise ValueError(('The identifier "%s" in the code string '
                                      '"%s" could not be resolved.') % 
                                      (identifier, self.code))
@@ -234,52 +248,9 @@ class CodeString(object):
                                      first_obj), matches[1:], logger)
                 
                 # use the first match (according to resolution order)
-                namespace[identifier] = matches[0][1]
+                resolved_namespace[identifier] = matches[0][1]
                 
-        self._namespace = namespace
-
-    def frozen(self):
-        '''
-        Replace all external variables by their floating point values.
-        
-        Returns
-        -------
-        frozen : `CodeString`
-            A new `CodeString` object, where all external variables are replaced
-            by their floating point values and removed from the namespace.
-        
-        Notes
-        -----
-        The namespace has to be resolved using the
-        `~brian2.equations.codestrings.CodeString.resolve` method first.
-        '''
-        
-        if not self.is_resolved:
-            raise TypeError('Can only freeze resolved CodeString objects.')
-        
-        #TODO: For expressions, this could be done more elegantly with sympy
-        
-        new_namespace = self.namespace.copy()
-        substitutions = {}
-        for identifier in self.identifiers:
-            if identifier in new_namespace:
-                # Try to replace the variable with its float value
-                try:
-                    float_value = float(new_namespace[identifier])
-                    substitutions[identifier] = str(float_value)
-                    # Reference in namespace no longer needed
-                    del new_namespace[identifier]
-                except (ValueError, TypeError):
-                    pass
-        
-        # Apply the substitutions to the string
-        new_code = word_substitute(self.code, substitutions)
-        
-        # Create a new CodeString object with the new code and namespace
-        new_obj = type(self)(new_code, namespace=new_namespace,
-                             exhaustive=True)
-        new_obj._namespace = new_namespace.copy()
-        return new_obj
+        return resolved_namespace
 
     def __str__(self):
         return self.code
@@ -402,11 +373,8 @@ class Expression(CodeString):
         The namespace has to be resolved using the
         `~brian2.equations.codestrings.CodeString.resolve` method first.        
         '''
-    
-        if not self.is_resolved:
-            raise TypeError('Can only evaluate resolved CodeString objects.')
         
-        namespace = self.namespace.copy()
+        namespace = self.resolve(internal_variables).copy()
         namespace.update(internal_variables)
         return eval(self.code, namespace)
         
@@ -492,10 +460,8 @@ class Expression(CodeString):
             raise ValueError(('Expression "%s" cannot be separated into stochastic '
                              'and non-stochastic term') % self.code)
     
-        f_expr = Expression(str(matches[f]), namespace=self.namespace.copy(),
-                            exhaustive=True)
-        g_expr = Expression(str(matches[g] * xi), namespace=self.namespace.copy(),
-                            exhaustive=True)
+        f_expr = self.replace_code(str(matches[f]))
+        g_expr = self.replace_code(str(matches[g] * xi))
         
         return (f_expr, g_expr)
     
