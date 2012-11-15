@@ -217,7 +217,8 @@ def test_resolve():
     tau = 10 * ms
     tau2 = 20 
     eqs = '''dv/dt = -v / tau : volt
-             du/dt = -foo(u) / (tau_long * ms): volt
+             du/dt = -foo(u) * param / (tau_long * ms): volt
+             param : 1
           '''
     eq = Equations(eqs, namespace={'tau_long': tau2}, exhaustive=False)
     namespace = eq.resolve()
