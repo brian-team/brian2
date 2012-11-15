@@ -58,7 +58,7 @@ except IOError as ex:
 
 # Save a copy of the script
 TMP_SCRIPT = None
-if len(sys.argv[0]) and not running_from_ipython:
+if len(sys.argv[0]) and not running_from_ipython():
     try:
         tmp_file = tempfile.NamedTemporaryFile(prefix='brian_script_',
                                                suffix='.py',
