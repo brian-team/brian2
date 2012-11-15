@@ -1574,10 +1574,42 @@ class Unit(Quantity):
 
     #### REPRESENTATION ####  
     def __repr__(self):
-        return self.name
+        if self.name == "":
+            if self.scalefactor:
+                parts = [repr(_siprefixes[self.scalefactor])] 
+            else:
+                parts = []
+            for i in range(7):
+                if self.dim._dims[i]:                
+                    s = self.scale[i] + _iclass_label[i]
+                    if self.dim._dims[i] != 1:
+                        s += ' ** ' + str(self.dim._dims[i])
+                    parts.append(s)
+            s = " * ".join(parts)
+            s = s.strip() 
+            if not len(s):
+                return "%s(1)" % self.__class__.__name__
+            else:
+                return s
+        else:
+            return self.name
 
-    def __str__(self):        
-        return self.dispname
+    def __str__(self):
+        if self.dispname == "":
+            s = self.scalefactor + " "
+            for i in range(7):
+                if self.dim._dims[i]:
+                    s += self.scale[i] + _ilabel[i]
+                    if self.dim._dims[i] != 1:
+                        s += "^" + str(self.dim._dims[i])
+                    s += " "
+            s = s.strip()
+            if not len(s):
+                return "1"
+            else:
+                return s
+        else:
+            return self.dispname
 
     #### ARITHMETIC ####
     def __mul__(self, other):

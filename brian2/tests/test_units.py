@@ -131,13 +131,15 @@ def test_str_repr():
                      5 * (kgram * metre2)/(amp * second3),
                      metre * second**-1, 10 * metre * second**-1,
                      array([1, 2, 3]) * kmetre / second,
-                     np.ones(3) * nS / cm**2]
+                     np.ones(3) * nS / cm**2,
+                     Unit(1, dim=get_or_create_dimension(length=5, time=2))]
     
-    unitless = [second/second, 5 * second/second]
+    unitless = [second/second, 5 * second/second, Unit(1)]
     
     for u in itertools.chain(units_which_should_exist, some_scaled_units,
                               powered_units, complex_units, unitless):
         assert(len(str(u)) > 0)
+        print str(u), repr(u)
         assert_equal(eval(repr(u)), u)
 
 
