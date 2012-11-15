@@ -213,11 +213,11 @@ def parse_string_equations(eqns, namespace, exhaustive, level):
             # Replace multiple whitespaces (arising from joining multiline
             # strings) with single space
             p = re.compile(r'\s{2,}')
-            expression = p.sub(' ', expression)
+            expression = Expression(p.sub(' ', expression),
+                                    namespace, exhaustive, level + 1)
         flags = list(eq_content.get('flags', []))
 
-        equation = SingleEquation(eq_type, identifier, expression, unit, flags,
-                                  namespace, exhaustive, level + 1) 
+        equation = SingleEquation(eq_type, identifier, expression, unit, flags) 
         
         if identifier in equations:
             raise SyntaxError('Duplicate definition of variable "%s"' %
@@ -242,50 +242,45 @@ class SingleEquation(object):
         The type of the equation.
     varname : str
         The variable that is defined by this equation.
-    expr : str
-        The expression defining the variable.
+    expr : `Expression`
+        The expression defining the variable (``None`` for parameters).
     unit : Unit
         The unit of the variable
     flags: list of str
         A list of flags that give additional information about this equation.
         What flags are possible depends on the type of the equation and the
         context.
-    namespace : dict
-        The namespace for this equation
-        (see `~brian2.equations.codestrings.CodeString` for more details).
-    exhaustive : bool
-        Whether the given namespace is exhaustive
-        (see `~brian2.equations.codestrings.CodeString` for more details).
-    level : int
-        The level in the stack where to look for the local/global namespace
-        (see `~brian2.equations.codestrings.CodeString` for more details).
     
     '''
-    def __init__(self, eq_type, varname, expr, unit, flags,
-                 namespace, exhaustive, level):
+    def __init__(self, eq_type, varname, expr, unit, flags):
         self.eq_type = eq_type
         self.varname = varname
-        if eq_type != PARAMETER:
-            self.expr = Expression(expr, namespace=namespace,
-                                   exhaustive=exhaustive, level=level + 1)
-        else:
-            self.expr = None
+        self.expr = expr
         self.unit = unit
         self.flags = flags
         
         # will be set later in the sort_static_equations method of Equations
         self.update_order = -1
 
+    def replace_code(self, code):
+        '''
+        Return a new `SingleEquation` based on an existing one. This is used
+        internally, when an equation string is replaced or changed while all
+        the other information is kept (units, flags, etc.). For example,
+        the `~brian2.equations.refractory.add_refractory` function replaces
+        all differential equations having the ``(active)`` flag with a new
+        equation. 
+        '''
+        return SingleEquation(self.eq_type,
+                              self.varname,
+                              self.expr.replace_code(code),
+                              self.unit,
+                              self.flags)
+
     identifiers = property(lambda self: self.expr.identifiers
                            if not self.expr is None else set([]),
                            doc='All identifiers in the RHS of this equation.')
-
-    def resolve(self, internal_variables):
-        '''
-        Resolve all the variables. See `~brian2.equations.codestrings.CodeString.resolve`.
-        '''
-        if not self.expr is None:
-            self.expr.resolve(internal_variables)        
+        
 
     def __str__(self):
         if self.eq_type == DIFFERENTIAL_EQUATION:
@@ -399,9 +394,7 @@ class Equations(object):
                 else:
                     uses_xi = eq.varname
         
-        # Build the namespaces, resolve all external variables and rearrange
-        # static equations
-        self._namespace = self.resolve()
+        # rearrange static equations
         self._sort_static_equations()
         
         # Check the units for consistency
@@ -464,26 +457,25 @@ class Equations(object):
             `CodeString` object with all static equation variables substituted
             with the respective expression.
         '''
-        sub_exprs = []
+        subst_exprs = []
         substitutions = {}        
         for eq in self.equations_ordered:
             # Skip parameters
             if eq.expr is None:
                 continue
             
-            expr = Expression(word_substitute(eq.expr.code, substitutions),
-                              self._namespace, exhaustive=True)
+            expr = eq.expr.replace_code(word_substitute(eq.expr.code, substitutions))
             
             if eq.eq_type == STATIC_EQUATION:
                 substitutions.update({eq.varname: '(%s)' % expr.code})
             elif eq.eq_type == DIFFERENTIAL_EQUATION:
                 #  a differential equation that we have to check                                
                 expr.resolve(self.names)
-                sub_exprs.append((eq.varname, expr))
+                subst_exprs.append((eq.varname, expr))
             else:
                 raise AssertionError('Unknown equation type %s' % eq.eq_type)
         
-        return sub_exprs        
+        return subst_exprs        
 
     def _is_linear(self, conditionally_linear=False):
         '''

@@ -30,6 +30,7 @@ Equations.register_identifier_check(check_identifier_refractory)
 
 
 def add_refractoriness(eqs):
+    
     new_equations = []
     
     # replace differential equations having the active flag    
@@ -37,33 +38,25 @@ def add_refractoriness(eqs):
         if eq.eq_type == DIFFERENTIAL_EQUATION and 'active' in eq.flags:
             # the only case where we have to change anything
             new_code = 'is_active*(' + eq.expr.code + ')'
-            new_single_eqn = SingleEquation(DIFFERENTIAL_EQUATION,
-                                            eq.varname,
-                                            new_code,
-                                            eq.unit,
-                                            eq.flags,
-                                            eqs._namespace,
-                                            True,
-                                            0)
-            new_equations.append(new_single_eqn)
-        else:
-            new_equations.append(eq)
+            eq = eq.replace_code(new_code)
+        
+        new_equations.append(eq)
     
     # add new parameters
     new_equations.append(SingleEquation(PARAMETER,
                                         'is_active',
                                         None,
                                         Unit(1),
-                                        [], None, True, 0))
+                                        []))
     new_equations.append(SingleEquation(PARAMETER,
                                         'refractory',
                                         None,
                                         second,
-                                        [], None, True, 0))
+                                        []))
     new_equations.append(SingleEquation(PARAMETER,
                                         'refractory_until',
                                         None,
                                         second,
-                                        [], None, True, 0))
+                                        []))
 
     return Equations(new_equations)
