@@ -63,21 +63,9 @@ def add_refractoriness(eqs):
             new_equations.append(eq)
     
     # add new parameters
-    new_equations.append(SingleEquation(PARAMETER,
-                                        'is_active',
-                                        None,
-                                        Unit(1),
-                                        []))
-    new_equations.append(SingleEquation(PARAMETER,
-                                        'refractory',
-                                        None,
-                                        second,
-                                        []))
-    new_equations.append(SingleEquation(PARAMETER,
-                                        'refractory_until',
-                                        None,
-                                        second,
-                                        []))
+    new_equations.append(SingleEquation(PARAMETER, 'is_active', Unit(1)))
+    new_equations.append(SingleEquation(PARAMETER, 'refractory', second))
+    new_equations.append(SingleEquation(PARAMETER, 'refractory_until', second))
 
-    print 'new_equations: ', new_equations
+
     return Equations(new_equations)

@@ -217,7 +217,7 @@ def parse_string_equations(eqns, namespace, exhaustive, level):
                                     namespace, exhaustive, level + 1)
         flags = list(eq_content.get('flags', []))
 
-        equation = SingleEquation(eq_type, identifier, expression, unit, flags) 
+        equation = SingleEquation(eq_type, identifier, unit, expression, flags) 
         
         if identifier in equations:
             raise SyntaxError('Duplicate definition of variable "%s"' %
@@ -242,22 +242,25 @@ class SingleEquation(object):
         The type of the equation.
     varname : str
         The variable that is defined by this equation.
-    expr : `Expression`
-        The expression defining the variable (``None`` for parameters).
     unit : Unit
         The unit of the variable
-    flags: list of str
+    expr : `Expression`, optional
+        The expression defining the variable (or ``None`` for parameters).        
+    flags: list of str, optional
         A list of flags that give additional information about this equation.
         What flags are possible depends on the type of the equation and the
         context.
     
     '''
-    def __init__(self, eq_type, varname, expr, unit, flags):
+    def __init__(self, eq_type, varname, unit, expr=None, flags=None):
         self.eq_type = eq_type
         self.varname = varname
+        self.unit = unit        
         self.expr = expr
-        self.unit = unit
-        self.flags = flags
+        if flags is None:
+            self.flags = []
+        else:
+            self.flags = flags
         
         # will be set later in the sort_static_equations method of Equations
         self.update_order = -1
@@ -273,8 +276,8 @@ class SingleEquation(object):
         '''
         return SingleEquation(self.eq_type,
                               self.varname,
-                              self.expr.replace_code(code),
                               self.unit,
+                              self.expr.replace_code(code),                              
                               self.flags)
 
     identifiers = property(lambda self: self.expr.identifiers
