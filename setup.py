@@ -7,6 +7,7 @@ from distutils.core import setup
 
 setup(name='Brian2',
       version='2.0dev',
+      py_modules=['brian_unit_prefs'],
       packages=['brian2',
                 'brian2.codegen',
                 'brian2.codegen.languages',
