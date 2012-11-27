@@ -20,5 +20,10 @@ setup(name='Brian2',
                 'brian2.tests',
                 'brian2.units',
                 'brian2.utils'],
+     requires=['matplotlib(>=0.90.1)',
+               'numpy(>=1.4.1)',
+               'scipy(>=0.7.0)',
+               'sympy(>=0.7.1)'
+              ],                
      )
 
