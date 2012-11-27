@@ -12,7 +12,7 @@ profile=no
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
-ignore=tests
+ignore=tests,sphinxext
 
 # Pickle collected data for later comparisons.
 persistent=yes
@@ -33,7 +33,7 @@ load-plugins=
 # can either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once).
-disable=C0301,C0302,C0103,R0902,R0903,R0904,R0911,R0913,R0914,R0915,W0142,W0212,W0401,W0403,W0614,E1103,I0011
+disable=C0302,C0103,R0901,R0902,R0903,R0904,R0905,R0906,R0907,R0908,R0909,R0910,R0911,R0913,R0914,R0915,W0142,W0212,W0401,W0403,W0614,E0602,E1103,E1101,I0011
 
 
 [REPORTS]
