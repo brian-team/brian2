@@ -1,0 +1,20 @@
+# Compiled Python files
+*.py[cod]
+
+# Backup files
+*~
+*.bak
+
+# C extensions
+*.so
+
+# generated directories
+dist
+build
+docs
+
+# Unit test / coverage reports
+.coverage
+nosetests.xml
+
+
