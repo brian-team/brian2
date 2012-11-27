@@ -1,0 +1,30 @@
+Meeting 02/10/2012
+------------------
+
+* Stochastic term: enforce numbering xi (xi1, xi2) or indexing (xi_alpha etc) if there are several of them
+  So we could have tuples of stochastic terms.
+* Have private variables in NeuronGroup for optimisation (ie calculation of coefficients in linear updates).
+* To read: Simulation on multiple devices.
+* Multiple devices:
+
+	- Maybe let users rewrite NeuronGroup etc for each device.
+	- AbstractNeuronGroup as base class
+	- Start with two cases: Python and stand-alone C
+
+Done:
+
+* BrianObject schedule: get rid of clock.order. Then maybe have a single tuple argument (clock,'start',1)
+* Assign automatic unique name to objects. Would be good for code generation and error tracking.
+  Several options:
+  
+	- Numbering: Group1,2 etc
+	- Code inspection and choose LHS
+	- Name list (animals, bridge names etc)
+* Subclass CodeString into Statements and Expression [DONE]
+* CodeString.check_unit_against: other name? (check_units?) [DONE]
+* Refractoriness implementation:
+
+	- Current Brian method is mathematically wrong with coupled variables.
+	- Let's see about the speed of the other options.
+	- The "if" idea: maybe if it's reasonably simple.
+	
