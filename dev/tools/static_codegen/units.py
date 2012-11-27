@@ -1,7 +1,7 @@
 import os, re
 
 curdir, _ = os.path.split(__file__)
-units_fname = os.path.normpath(os.path.join(curdir, '../../../../brian2/units/allunits.py'))
+units_fname = os.path.normpath(os.path.join(curdir, '../../../brian2/units/allunits.py'))
 
 _siprefixes = {"y":1e-24, "z":1e-21, "a":1e-18, "f":1e-15, "p":1e-12, "n":1e-9,
                "u":1e-6, "m":1e-3, "c":1e-2, "d":1e-1, "":1, "da":1e1, "h":1e2,
