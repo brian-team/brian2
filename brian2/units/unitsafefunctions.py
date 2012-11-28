@@ -1,37 +1,3 @@
-# ----------------------------------------------------------------------------------
-# Copyright ENS, INRIA, CNRS
-# Contributors: Romain Brette (brette@di.ens.fr) and Dan Goodman (goodman@di.ens.fr)
-# 
-# Brian is a computer program whose purpose is to simulate models
-# of biological neural networks.
-# 
-# This software is governed by the CeCILL license under French law and
-# abiding by the rules of distribution of free software.  You can  use, 
-# modify and/ or redistribute the software under the terms of the CeCILL
-# license as circulated by CEA, CNRS and INRIA at the following URL
-# "http://www.cecill.info". 
-# 
-# As a counterpart to the access to the source code and  rights to copy,
-# modify and redistribute granted by the license, users are provided only
-# with a limited warranty  and the software's author,  the holder of the
-# economic rights,  and the successive licensors  have only  limited
-# liability. 
-# 
-# In this respect, the user's attention is drawn to the risks associated
-# with loading,  using,  modifying and/or developing or reproducing the
-# software by the user in light of its specific status of free software,
-# that may mean  that it is complicated to manipulate,  and  that  also
-# therefore means  that it is reserved for developers  and  experienced
-# professionals having in-depth computer knowledge. Users are therefore
-# encouraged to load and test the software's suitability as regards their
-# requirements in conditions enabling the security of their systems and/or 
-# data to be ensured and,  more generally, to use and operate it in the 
-# same conditions as regards security. 
-# 
-# The fact that you are presently reading this means that you have had
-# knowledge of the CeCILL license and that you accept its terms.
-# ----------------------------------------------------------------------------------
-# 
 """
 Unit-aware replacements for numpy functions.
 """
@@ -59,11 +25,11 @@ def where(condition, *args):  # pylint: disable=C0111
         # check that x and y have the same dimensions
         fail_for_dimension_mismatch(args[0], args[1],
                                     'x and y need to have the same dimensions')
-        
+
         if is_dimensionless(args[0]):
             return np.where(condition, *args)
         else:
-            # as both arguments have the same unit, just use the one from argument 1
+            # as both arguments have the same unit, just use the first one's
             return Quantity.with_dimensions(np.where(condition, *args),
                                             args[0].dimensions)
     else:
@@ -91,9 +57,9 @@ exp = wrap_function_dimensionless(np.exp)
 
 def wrap_function_to_method(func):
     '''
-    Wraps a function so that it calls the corresponding method on the Quantities
-    object (if called with a Quantities object as the first argument). All
-    other arguments are left untouched.
+    Wraps a function so that it calls the corresponding method on the
+    Quantities object (if called with a Quantities object as the first
+    argument). All other arguments are left untouched.
     '''
     def f(x, *args, **kwds):  # pylint: disable=C0111
         if isinstance(x, Quantity):

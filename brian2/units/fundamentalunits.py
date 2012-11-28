@@ -58,8 +58,9 @@ UFUNCS_PRESERVE_DIMENSIONS = ['absolute', 'rint', 'negative', 'conj',
                               'conjugate', 'floor', 'ceil', 'trunc']
 
 #: ufuncs that work on all dimensions but change the dimensions, e.g. square
-UFUNCS_CHANGE_DIMENSIONS = ['multiply', 'divide', 'true_divide', 'floor_divide',
-                            'sqrt', 'square', 'reciprocal', 'dot']
+UFUNCS_CHANGE_DIMENSIONS = ['multiply', 'divide', 'true_divide',
+                            'floor_divide', 'sqrt', 'square', 'reciprocal',
+                            'dot']
 
 #: ufuncs that work with matching dimensions, e.g. add
 UFUNCS_MATCHING_DIMENSIONS = ['add', 'subtract', 'maximum', 'minimum',
@@ -68,7 +69,7 @@ UFUNCS_MATCHING_DIMENSIONS = ['add', 'subtract', 'maximum', 'minimum',
 #: ufuncs that compare values, i.e. work only with matching dimensions but do
 #: not result in a value with dimensions, e.g. equals
 UFUNCS_COMPARISONS = ['less', 'less_equal', 'greater', 'greater_equal',
-                      'equal', 'not_equal'] 
+                      'equal', 'not_equal']
 
 #: Logical operations that work on all quantities and return boolean arrays
 UFUNCS_LOGICAL = ['logical_and', 'logical_or', 'logical_xor', 'logical_not',
@@ -96,7 +97,7 @@ UFUNCS_INTEGERS = ['bitwise_and', 'bitwise_or', 'bitwise_xor', 'invert',
 def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
     '''
     Compare the dimensions of two objects.
-    
+
     Parameters
     ----------
     obj1, obj2 : {array-like, Quantity}
@@ -104,15 +105,15 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
         dimensionless
     error_message : str, optional
         An error message that is used in the DimensionMismatchError
-    
+
     Raises
     ------
     DimensionMismatchError
         If the dimensions of `obj1` and `obj2` do not match (or, if `obj2` is
         ``None``, in case `obj1` is not dimensionsless).
-    
+
     Notes
-    -----    
+    -----
     Implements special checking for ``0``, treating it as having "any
     dimensions".
     '''
@@ -120,16 +121,19 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
         return
 
     dim1 = get_dimensions(np.asanyarray(obj1))
-    dim2 = get_dimensions(np.asanyarray(obj2)) if not obj2 is None else DIMENSIONLESS   
+    if obj2 is None:
+        dim2 = DIMENSIONLESS
+    else:
+        dim2 = get_dimensions(np.asanyarray(obj2))
 
     if not dim1 is dim2:
         # Special treatment for "0":
         # if it is not a Quantity, it has "any dimension".
-        # This allows expressions like 3 * mV + 0 to pass (useful in cases where
-        # zero is treated as the neutral element, e.g. in the Python sum builtin)
-        # or comparisons like 3 * mV == 0 to return False instead of failing
-        # with a DimensionMismatchError. Note that 3 * mV == 0 * second or
-        # 3 * mV == 0 * mV/mV is not allowed, though.
+        # This allows expressions like 3*mV + 0 to pass (useful in cases where
+        # zero is treated as the neutral element, e.g. in the Python sum
+        # builtin) or comparisons like 3 * mV == 0 to return False instead of
+        # failing # with a DimensionMismatchError. Note that 3*mV == 0*second
+        # or 3*mV == 0*mV/mV is not allowed, though.
         if ((not isinstance(obj1, Quantity) and np.all(obj1 == 0)) or
             (not isinstance(obj2, Quantity) and np.all(obj2 == 0))):
             return
@@ -142,10 +146,10 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
 def wrap_function_dimensionless(func):
     '''
     Returns a new function that wraps the given function `func` so that it
-    raises a DimensionMismatchError if the function is called on a quantity with
-    dimensions (excluding dimensionless quantitities). Quantities are
+    raises a DimensionMismatchError if the function is called on a quantity
+    with dimensions (excluding dimensionless quantitities). Quantities are
     transformed to unitless numpy arrays before calling `func`.
-    
+
     These checks/transformations apply only to the very first argument, all
     other arguments are ignored/untouched.
     '''
@@ -163,12 +167,12 @@ def wrap_function_keep_dimensions(func):
     keeps the dimensions of its input. Quantities are transformed to
     unitless numpy arrays before calling `func`, the output is a quantity
     with the original dimensions re-attached.
-    
+
     These transformations apply only to the very first argument, all
     other arguments are ignored/untouched, allowing to work functions like
     ``sum`` to work as expected with additional ``axis`` etc. arguments.
     '''
-    def f(x, *args, **kwds): # pylint: disable=C0111
+    def f(x, *args, **kwds):  # pylint: disable=C0111
         return Quantity(func(np.asarray(x), *args, **kwds), dim=x.dim)
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
@@ -183,11 +187,11 @@ def wrap_function_change_dimensions(func, change_dim_func):
     with the original dimensions passed through the function
     `change_dim_func`. A typical use would be a ``sqrt`` function that uses
     ``lambda d: d ** 0.5`` as ``change_dim_func``.
-    
+
     These transformations apply only to the very first argument, all
     other arguments are ignored/untouched.
     '''
-    def f(x, *args, **kwds): # pylint: disable=C0111
+    def f(x, *args, **kwds):  # pylint: disable=C0111
         ar = np.asarray(x)
         return Quantity(func(ar, *args, **kwds),
                         dim=change_dim_func(ar, x.dim))
@@ -202,21 +206,21 @@ def wrap_function_remove_dimensions(func):
     removes any dimensions from its input. Useful for functions that are
     returning integers (indices) or booleans, irrespective of the datatype
     contained in the array.
-    
+
     These transformations apply only to the very first argument, all
     other arguments are ignored/untouched.
-    '''    
-    def f(x, *args, **kwds): # pylint: disable=C0111
+    '''
+    def f(x, *args, **kwds):  # pylint: disable=C0111
         return func(np.asarray(x), *args, **kwds)
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
-    return f        
+    return f
 
 
 # SI dimensions (see table at the top of the file) and various descriptions,
 # each description maps to an index i, and the power of each dimension
 # is stored in the variable dims[i]
-_di = { "Length": 0, "length": 0, "metre": 0, "metres": 0, "meter": 0,
+_di = {"Length": 0, "length": 0, "metre": 0, "metres": 0, "meter": 0,
        "meters": 0, "m": 0,
        "Mass": 1, "mass": 1, "kilogram": 1, "kilograms": 1, "kg": 1,
        "Time": 2, "time": 2, "second": 2, "seconds": 2, "s": 2,
@@ -226,7 +230,7 @@ _di = { "Length": 0, "length": 0, "metre": 0, "metres": 0, "meter": 0,
        "Quantity of Substance": 5, "Quantity of substance": 5,
        "quantity of substance": 5, "Substance": 5, "substance": 5, "mole": 5,
        "moles": 5, "mol": 5,
-       "Luminosity": 6, "luminosity": 6, "candle": 6, "candles": 6, "cd": 6 }
+       "Luminosity": 6, "luminosity": 6, "candle": 6, "candles": 6, "cd": 6}
 
 _ilabel = ["m", "kg", "s", "A", "K", "mol", "cd"]
 
@@ -244,18 +248,18 @@ _siprefixes = {"y": 1e-24, "z": 1e-21, "a": 1e-18, "f": 1e-15, "p": 1e-12,
 class Dimension(object):
     '''
     Stores the indices of the 7 basic SI unit dimension (length, mass, etc.).
-    
+
     Provides a subset of arithmetic operations appropriate to dimensions:
     multiplication, division and powers, and equality testing.
-    
-    
+
+
     Parameters
     ----------
     dims : sequence of float
         The dimension indices of the 7 basic SI unit dimensions.
-    
+
     Notes
-    ----- 
+    -----
     Users shouldn't use this class directly, it is used internally in Quantity
     and Unit. Even internally, never use ``Dimension(...)`` to create a new
     instance, use :func:`get_or_create_dimension` instead. This function makes
@@ -263,10 +267,10 @@ class Dimension(object):
     indices, allowing for a very fast dimensionality check with ``is``.
     '''
     __slots__ = ["_dims"]
-        
+
     __array_priority__ = 1000
     #### INITIALISATION ####
-    
+
     def __init__(self, dims):
         self._dims = dims
 
@@ -274,13 +278,13 @@ class Dimension(object):
     def get_dimension(self, d):
         """
         Return a specific dimension.
-        
+
         Parameters
         ----------
         d : str
             A string identifying the SI basic unit dimension. Can be either a
-            description like "length" or a basic unit like "m" or "metre". 
-        
+            description like "length" or a basic unit like "m" or "metre".
+
         Returns
         -------
         dim : float
@@ -288,26 +292,29 @@ class Dimension(object):
         """
         return self._dims[_di[d]]
 
-    is_dimensionless = property(lambda self: sum([x == 0 for x in self._dims]) == 7,
-                                doc='''Whether this Dimension is dimensionless.
-                                
-                                Notes
-                                -----
-                                Normally, instead one should check dimension
-                                for being identical to DIMENSIONLESS.
-                                ''')
-    
-    #### REPRESENTATION ####    
+    @property
+    def is_dimensionless(self):
+        '''
+        Whether this Dimension is dimensionless.
+
+        Notes
+        -----
+        Normally, instead one should check dimension
+        for being identical to `DIMENSIONLESS`.
+        '''
+        return all([x == 0 for x in self._dims])
+
+    #### REPRESENTATION ####
     def _str_representation(self, python_code=False):
         """String representation in basic SI units, or 1 for dimensionless.
         Use `python_code=False` for display purposes and `True` for valid
         Python code."""
-        
+
         if python_code:
             power_operator = " ** "
         else:
             power_operator = "^"
-        
+
         parts = []
         for i in range(len(self._dims)):
             if self._dims[i]:
@@ -327,22 +334,24 @@ class Dimension(object):
             if not len(s):
                 return "1"
         return s.strip()
-    
+
     def __repr__(self):
         return self._str_representation(python_code=True)
 
     def __str__(self):
         return self._str_representation(python_code=False)
-    
+
     #### ARITHMETIC ####
     # Note that none of the dimension arithmetic objects do sanity checking
     # on their inputs, although most will throw an exception if you pass the
     # wrong sort of input
     def __mul__(self, value):
-        return get_or_create_dimension([x + y for x, y in izip(self._dims, value._dims)])
+        return get_or_create_dimension([x + y for x, y in
+                                        izip(self._dims, value._dims)])
 
     def __div__(self, value):
-        return get_or_create_dimension([x - y for x, y in izip(self._dims, value._dims)])
+        return get_or_create_dimension([x - y for x, y in
+                                        izip(self._dims, value._dims)])
 
     def __truediv__(self, value):
         return self.__div__(value)
@@ -391,7 +400,7 @@ def get_or_create_dimension(*args, **kwds):
     This function takes care of only creating new objects if they were not
     created before and otherwise returning a reference to an existing object.
     This allows to compare dimensions very efficiently using ``is``.
-    
+
     Parameters
     ----------
     args : sequence of float
@@ -399,11 +408,11 @@ def get_or_create_dimension(*args, **kwds):
     kwds : keyword arguments
         a sequence of keyword=value pairs where the keywords are the names of
         the SI dimensions, or the standard unit.
-    
+
     Examples
-    --------    
+    --------
     The following are all definitions of the dimensions of force
-    
+
     >>> from brian2 import *
     >>> get_or_create_dimension(length=1, mass=1, time=-2)
     metre * kilogram * second ** -2
@@ -411,14 +420,14 @@ def get_or_create_dimension(*args, **kwds):
     metre * kilogram * second ** -2
     >>> get_or_create_dimension([1, 1, -2, 0, 0, 0, 0])
     metre * kilogram * second ** -2
-    
+
     Notes
     -----
     The 7 units are (in order):
-    
+
     Length, Mass, Time, Electric Current, Temperature,
     Quantity of Substance, Luminosity
-    
+
     and can be referred to either by these names or their SI unit names,
     e.g. length, metre, and m all refer to the same thing here.
     """
@@ -436,7 +445,7 @@ def get_or_create_dimension(*args, **kwds):
             dims[_di[k]] = kwds[k]
 
     dims = tuple(dims)
-    
+
     # check whether this Dimension object has already been created
     if dims in _dimensions:
         return _dimensions[dims]
@@ -449,12 +458,12 @@ def get_or_create_dimension(*args, **kwds):
 class DimensionMismatchError(Exception):
     """
     Exception class for attempted operations with inconsistent dimensions.
-    
+
     For example, ``3*mvolt + 2*amp`` raises this exception. The purpose of this
     class is to help catch errors based on incorrect units. The exception will
     print a representation of the dimensions of the two inconsistent objects
     that were operated on.
-    
+
     Parameters
     ----------
     description : str
@@ -466,8 +475,8 @@ class DimensionMismatchError(Exception):
     """
     def __init__(self, description, *dims):
         """Raise as DimensionMismatchError(desc,dim1,dim2,...)
-        
-        
+
+
         """
         # Call the base class constructor to make Exception pickable, see:
         # http://bugs.python.org/issue1692335
@@ -488,17 +497,17 @@ class DimensionMismatchError(Exception):
 def is_scalar_type(obj):
     """
     Tells you if the object is a 1d number type.
-    
+
     Parameters
     ----------
     obj : object
         The object to check.
-    
+
     Returns
     -------
     scalar : bool
-        ``True`` if `obj` is a scalar that can be interpreted as a dimensionless
-        Quantity.    
+        ``True`` if `obj` is a scalar that can be interpreted as a
+        dimensionless Quantity.
     """
     return isNumberType(obj) and not isSequenceType(obj)
 
@@ -510,12 +519,12 @@ def get_dimensions(obj):
     Slightly more general than :attr:`Quantity.dimensions` because it will
     return DIMENSIONLESS if the object is of number type but not a Quantity
     (e.g. a float or int).
-    
+
     Parameters
     ----------
     obj : object
         The object to check.
-        
+
     Returns
     -------
     dim: Dimension
@@ -526,18 +535,19 @@ def get_dimensions(obj):
     try:
         return obj.dimensions
     except AttributeError:
-        raise TypeError('Object of type %s does not have dimensions' % type(obj))
+        raise TypeError('Object of type %s does not have dimensions' %
+                        type(obj))
 
 
 def is_dimensionless(obj):
     """
     Test if a value is dimensionless or not.
-    
+
     Parameters
     ----------
     obj : object
         The object to check.
-    
+
     Returns
     -------
     dimensionless : bool
@@ -548,12 +558,12 @@ def is_dimensionless(obj):
 
 def have_same_dimensions(obj1, obj2):
     """Test if two values have the same dimensions.
-    
+
     Parameters
     ----------
     obj1, obj2 : {Quantity, array-like, number}
         The values of which to compare the dimensions.
-    
+
     Returns
     -------
     same : bool
@@ -573,19 +583,19 @@ def have_same_dimensions(obj1, obj2):
 def display_in_unit(x, u):
     """
     Display a value in a certain unit.
-    
+
     Parameters
     ----------
     x : {Quantity, array-like, number}
         The value to display
     u : {Quantity, Unit}
         The unit to display the value `x` in.
-    
+
     Returns
     -------
     s : str
         A string representation of `x` in units of `u`.
-    
+
     Examples
     --------
     >>> from brian2 import *
@@ -595,13 +605,15 @@ def display_in_unit(x, u):
     '0.0001 nA/um^2'
     >>> display_in_unit(10 * mV, ohm * amp)
     '0.01 ohm A'
-    >>> display_in_unit(10 * nS, ohm)
+    >>> display_in_unit(10 * nS, ohm) # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
         ...
-    DimensionMismatchError: Non-matching unit for function display_in_unit, dimensions were (m^-2 kg^-1 s^3 A^2) (m^2 kg s^-3 A^-2)
+    DimensionMismatchError: Non-matching unit for function display_in_unit,
+    dimensions were (m^-2 kg^-1 s^3 A^2) (m^2 kg s^-3 A^-2)
     """
     fail_for_dimension_mismatch(x, u,
-                                "Non-matching unit for function display_in_unit")
+                                'Non-matching unit for function '
+                                'display_in_unit')
 
     s = str(np.asarray(x / u)) + " "
     if not is_dimensionless(u):
@@ -618,25 +630,25 @@ def quantity_with_dimensions(floatval, dims):
     argument to make sure that unpickling (which calls this function) does not
     accidentally create new Dimension objects which should instead refer to
     existing ones.
-    
+
     Parameters
     ----------
     floatval : float
         The floating point value of the quantity.
-    dims : Dimension 
+    dims : Dimension
         The dimensions of the quantity.
-    
+
     Returns
     -------
     q : Quantity
         A quantity with the given dimensions.
-    
+
     Examples
     --------
     >>> from brian2 import *
     >>> quantity_with_dimensions(0.001, volt.dim)
     array(1.0) * mvolt
-    
+
     See Also
     --------
     get_or_create_dimensions
@@ -651,30 +663,30 @@ class Quantity(np.ndarray, object):
     necessary to create a Quantity object by hand, instead use multiplication
     and division of numbers with the constant unit names ``second``,
     ``kilogram``, etc.
-    
+
     Notes
     -----
     The `Quantity` class defines arithmetic operations which check for
     consistency of dimensions and raise the DimensionMismatchError exception
     if they are inconsistent. It also defines default and other representations
     for a number for printing purposes.
-    
+
     See the documentation on the Unit class for more details
     about the available unit names like mvolt, etc.
-    
-    *Casting rules*    
-    
+
+    *Casting rules*
+
     The rules that define the casting operations for
     Quantity object are:
-    
+
     1. Quantity op Quantity = Quantity
        Performs dimension checking if appropriate
-    2. (Scalar or Array) op Quantity = Quantity 
+    2. (Scalar or Array) op Quantity = Quantity
        Assumes that the scalar or array is dimensionless
-    
+
     There is one exception to the above rule, the number ``0`` is interpreted
     as having "any dimension".
-    
+
     Examples
     --------
     >>> from brian2 import *
@@ -695,7 +707,7 @@ class Quantity(np.ndarray, object):
     [ 2.  4.  6.] V
     >>> print np.asarray(Is * R) # gets rid of units
     [ 2.  4.  6.]
-    
+
     See also
     --------
     Unit
@@ -715,12 +727,12 @@ class Quantity(np.ndarray, object):
     in_best_unit
     """
     __slots__ = ["dim"]
-    
+
     __array_priority__ = 1000
-    
-    #===========================================================================
+
+    #==========================================================================
     # Construction and handling of numpy ufuncs
-    #===========================================================================
+    #==========================================================================
     def __new__(cls, arr, dim=None, dtype=None, copy=False):
         # All np.ndarray subclasses need something like this, see
         # http://www.scipy.org/Subclasses
@@ -736,14 +748,14 @@ class Quantity(np.ndarray, object):
                                              arr.dim, dim)
         elif not isinstance(arr, np.ndarray):
             # check whether it is an iterable containing Quantity objects
-            try:                
+            try:
                 is_quantity = [isinstance(x, Quantity) for x in _flatten(arr)]
             except TypeError:
                 # Not iterable
                 is_quantity = [False]
 
             if all(is_quantity):
-                dims = [x.dim for x in _flatten(arr)]                    
+                dims = [x.dim for x in _flatten(arr)]
                 one_dim = dims[0]
                 for d in dims:
                     if d != one_dim:
@@ -787,7 +799,7 @@ class Quantity(np.ndarray, object):
         uf, args, _ = context
 
         if uf.__name__ in (UFUNCS_PRESERVE_DIMENSIONS +
-                           UFUNCS_CHANGE_DIMENSIONS + 
+                           UFUNCS_CHANGE_DIMENSIONS +
                            UFUNCS_LOGICAL):
             # always allowed
             pass
@@ -795,8 +807,8 @@ class Quantity(np.ndarray, object):
             # Numpy should already raise a TypeError by itself
             raise TypeError('%s cannot be used on quantities.' % uf.__name__)
         elif uf.__name__ in UFUNCS_MATCHING_DIMENSIONS + UFUNCS_COMPARISONS:
-            # Ok if dimension of arguments match 
-            fail_for_dimension_mismatch(args[0], args[1], uf.__name__)        
+            # Ok if dimension of arguments match
+            fail_for_dimension_mismatch(args[0], args[1], uf.__name__)
         elif uf.__name__ in UFUNCS_DIMENSIONLESS:
             # Ok if argument is dimensionless
             fail_for_dimension_mismatch(args[0], error_message=uf.__name__)
@@ -804,7 +816,7 @@ class Quantity(np.ndarray, object):
             # Ok if both arguments are dimensionless
             fail_for_dimension_mismatch(args[0], error_message=uf.__name__)
             fail_for_dimension_mismatch(args[1], error_message=uf.__name__)
-        elif uf.__name__ == 'power':            
+        elif uf.__name__ == 'power':
             fail_for_dimension_mismatch(args[1], error_message=uf.__name__)
             if np.asarray(args[1]).size != 1:
                 raise TypeError('Only length-1 arrays can be used as an '
@@ -812,7 +824,7 @@ class Quantity(np.ndarray, object):
         elif uf.__name__ in ('sign', 'ones_like'):
             return np.asarray(array)
         else:
-            warn("Unknown ufunc '%s' in __array_prepare__" % uf.__name__)            
+            warn("Unknown ufunc '%s' in __array_prepare__" % uf.__name__)
 
         return array
 
@@ -821,14 +833,16 @@ class Quantity(np.ndarray, object):
 
         if not context is None:
             uf, args, _ = context
-            if uf.__name__ in UFUNCS_PRESERVE_DIMENSIONS + UFUNCS_MATCHING_DIMENSIONS:
+            if uf.__name__ in (UFUNCS_PRESERVE_DIMENSIONS +
+                               UFUNCS_MATCHING_DIMENSIONS):
                 dim = self.dim
-            elif uf.__name__ in UFUNCS_DIMENSIONLESS + UFUNCS_DIMENSIONLESS_TWOARGS:
+            elif uf.__name__ in (UFUNCS_DIMENSIONLESS +
+                                 UFUNCS_DIMENSIONLESS_TWOARGS):
                 # We should have been arrived here only for dimensionless
                 # quantities
                 dim = DIMENSIONLESS
             elif uf.__name__ in (UFUNCS_COMPARISONS +
-                                 UFUNCS_LOGICAL + 
+                                 UFUNCS_LOGICAL +
                                  ['sign', 'ones_like']):
                 # Do not touch the return value (boolean or integer array)
                 return array
@@ -852,19 +866,19 @@ class Quantity(np.ndarray, object):
         # This may convert units to Quantities, e.g. np.square(volt) leads to
         # a 1 * volt ** 2 quantitiy instead of volt ** 2. But this should
         # rarely be an issue. The alternative leads to more confusing
-        # behaviour: np.float64(3) * mV would result in a dimensionless float64         
+        # behaviour: np.float64(3) * mV would result in a dimensionless float64
         result = array.view(Quantity)
         result.dim = dim
         return result
 
-#===============================================================================
+#==============================================================================
 # Quantity-specific functions (not existing in ndarray)
-#===============================================================================
+#==============================================================================
     @staticmethod
     def with_dimensions(value, *args, **keywords):
         """
         Create a Quantity object with dimensions.
-        
+
         Parameters
         ----------
         value : {array_like, number}
@@ -873,16 +887,16 @@ class Quantity(np.ndarray, object):
             Either a single argument (a Dimension) or a sequence of 7 values.
         kwds
             Keywords defining the dimensions, see Dimension for details.
-        
+
         Returns
         -------
         q : Quantity
             A Quantity object with the given dimensions
-        
+
         Examples
         --------
         All of these define an equivalent Quantity object:
-        
+
         >>> from brian2 import *
         >>> Quantity.with_dimensions(2, get_or_create_dimension(length=1))
         array(2.0) * metre
@@ -918,16 +932,16 @@ class Quantity(np.ndarray, object):
     def has_same_dimensions(self, other):
         """
         Return whether this object has the same dimensions as another.
-        
+
         Parameters
         ----------
         other : {Quantity, array-like, number}
             The object to compare the dimensions against.
-        
+
         Returns
         -------
         same : bool
-            ``True`` if `other` has the same dimensions.        
+            ``True`` if `other` has the same dimensions.
         """
         return self.dim == get_dimensions(other)
 
@@ -936,25 +950,25 @@ class Quantity(np.ndarray, object):
         Represent the quantity in a given unit. If `python_code` is ``True``,
         this will return valid python code, i.e. a string like ``5.0 * um ** 2``
         instead of ``5.0 um^2``
-        
+
         Parameters
         ----------
         u : {Quantity, Unit}
             The unit in which to show the quantity.
         python_code : bool, optional
             Whether to return valid python code (``True``) or a human readable
-            string (``False``, the default).        
-        
+            string (``False``, the default).
+
         Returns
         -------
         s : str
             String representation of the object in unit `u`.
-        
+
         See Also
         --------
-        display_in_unit  
+        display_in_unit
         """
-        
+
         fail_for_dimension_mismatch(self, u,
                                     "Non-matching unit for method in_unit")
         if python_code:
@@ -963,7 +977,7 @@ class Quantity(np.ndarray, object):
             s = str(np.asarray(self / u)) + " "
         if not u.is_dimensionless:
             if isinstance(u, Unit):
-                if python_code:                    
+                if python_code:
                     s += '* ' + repr(u)
                 else:
                     s += str(u)
@@ -972,22 +986,22 @@ class Quantity(np.ndarray, object):
                     s += "* " + repr(u.dim)
                 else:
                     s += str(u.dim)
-        elif python_code == True:  # A quantity without unit is not recognisable otherwise
+        elif python_code == True:  # Make a quantity without unit recognisable
             return '%s(%s)' % (self.__class__.__name__, s.strip())
         return s.strip()
 
     def in_best_unit(self, python_code=False, *regs):
         """
-        Represent the quantity in the "best" unit. 
-        
-        TODO 
+        Represent the quantity in the "best" unit.
+
+        TODO
         """
         u = _get_best_unit(self, *regs)
         return self.in_unit(u, python_code)
 
-#===============================================================================
+#==============================================================================
 # Overwritten ndarray methods
-#===============================================================================
+#==============================================================================
 
     #### Setting/getting items ####
     def __getitem__(self, key):
@@ -996,8 +1010,9 @@ class Quantity(np.ndarray, object):
         '''
         if (np.issubdtype(type(key), np.integer) or
             (isinstance(key, tuple) and
-             all([np.issubdtype(type(one_key), np.integer) for one_key in key]))):
-            return Quantity.with_dimensions(super(Quantity, self).__getitem__(key),
+             all([np.issubdtype(type(one_key), np.integer) for
+                  one_key in key]))):
+            return Quantity.with_dimensions(np.ndarray.__getitem__(self, key),
                                             self.dim)
         else:
             return super(Quantity, self).__getitem__(key)
@@ -1016,8 +1031,8 @@ class Quantity(np.ndarray, object):
     #### ARITHMETIC ####
     def __mul__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
-            return Quantity.with_dimensions(np.asarray(self) * np.asarray(other),
-                                            self.dim * get_dimensions(other))
+            return Quantity.with_dimensions(np.asarray(self)*np.asarray(other),
+                                            self.dim*get_dimensions(other))
         else:
             return NotImplemented
 
@@ -1034,8 +1049,8 @@ class Quantity(np.ndarray, object):
 
     def __div__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
-            return Quantity.with_dimensions(np.asarray(self) / np.asarray(other),
-                                            self.dim / get_dimensions(other))
+            return Quantity.with_dimensions(np.asarray(self)/np.asarray(other),
+                                            self.dim/get_dimensions(other))
         else:
             return NotImplemented
 
@@ -1044,8 +1059,8 @@ class Quantity(np.ndarray, object):
 
     def __rdiv__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
-            return Quantity.with_dimensions(np.asarray(other) / np.asarray(self),
-                                            get_dimensions(other) / self.dim)
+            return Quantity.with_dimensions(np.asarray(other)/np.asarray(self),
+                                            get_dimensions(other)/self.dim)
         else:
             return NotImplemented
 
@@ -1071,7 +1086,7 @@ class Quantity(np.ndarray, object):
     def __mod__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
             fail_for_dimension_mismatch(self, other, 'Modulo')
-            return Quantity.with_dimensions(np.asarray(self) % np.asarray(other),
+            return Quantity.with_dimensions(np.asarray(self)%np.asarray(other),
                                             self.dim)
         else:
             return NotImplemented
@@ -1079,7 +1094,7 @@ class Quantity(np.ndarray, object):
     def __add__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
             fail_for_dimension_mismatch(self, other, 'Addition')
-            return Quantity.with_dimensions(np.asarray(self) + np.asarray(other),
+            return Quantity.with_dimensions(np.asarray(self)+np.asarray(other),
                                             self.dim)
         else:
             return NotImplemented
@@ -1098,7 +1113,7 @@ class Quantity(np.ndarray, object):
     def __sub__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
             fail_for_dimension_mismatch(self, other, 'Subtraction')
-            return Quantity.with_dimensions(np.asarray(self) - np.asarray(other),
+            return Quantity.with_dimensions(np.asarray(self)-np.asarray(other),
                                             self.dim)
         else:
             return NotImplemented
@@ -1106,7 +1121,7 @@ class Quantity(np.ndarray, object):
     def __rsub__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
             fail_for_dimension_mismatch(self, other, 'Subtraction (R)')
-            return Quantity.with_dimensions(np.asarray(other) - np.asarray(self),
+            return Quantity.with_dimensions(np.asarray(other)-np.asarray(self),
                                                 self.dim)
         else:
             return NotImplemented
@@ -1123,15 +1138,15 @@ class Quantity(np.ndarray, object):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
             fail_for_dimension_mismatch(other, error_message='Power')
             # FIXME do not allow multiple values for exponent
-            return Quantity.with_dimensions(np.asarray(self) ** np.asarray(other),
-                                            self.dim ** np.asarray(other))
+            return Quantity.with_dimensions(np.asarray(self)**np.asarray(other),
+                                            self.dim**np.asarray(other))
         else:
             return NotImplemented
 
     def __rpow__(self, other):
         if self.is_dimensionless:
             if isinstance(other, np.ndarray) or isinstance(other, np.ndarray):
-                return Quantity.with_dimensions(np.asarray(other) ** np.asarray(self),
+                return Quantity.with_dimensions(np.asarray(other)**np.asarray(self),
                                                 DIMENSIONLESS)
             else:
                 return NotImplemented
@@ -1160,12 +1175,12 @@ class Quantity(np.ndarray, object):
     def tolist(self):
         '''
         Convert the array into a list.
-        
+
         Returns
         -------
         l : list of `Quantity`
             A (possibly nested) list equivalent to the original array.
-        '''  
+        '''
         def replace_with_quantity(seq, dim):
             '''
             Replace all the elements in the list with an equivalent `Quantity`
@@ -1174,7 +1189,7 @@ class Quantity(np.ndarray, object):
             # No recursion needed for single values
             if not isinstance(seq, list):
                 return Quantity.with_dimensions(seq, dim)
-                        
+
             def top_replace(s):
                 '''
                 Recursivley descend into the list.
@@ -1184,7 +1199,7 @@ class Quantity(np.ndarray, object):
                         yield Quantity.with_dimensions(i, dim)
                     else:
                         yield type(i)(top_replace(i))
-            
+
             return type(seq)(top_replace(seq))
 
         return replace_with_quantity(np.asarray(self).tolist(), self.dim)
@@ -1192,22 +1207,22 @@ class Quantity(np.ndarray, object):
     #### COMPARISONS ####
     def __lt__(self, other):
         is_scalar = is_scalar_type(other)
-                
-        if not is_scalar or not np.isinf(other):        
+
+        if not is_scalar or not np.isinf(other):
             fail_for_dimension_mismatch(self, other, 'LessThan')
-    
-        if isinstance(other, np.ndarray) or is_scalar:    
+
+        if isinstance(other, np.ndarray) or is_scalar:
             return np.asarray(self) < np.asarray(other)
         else:
             return NotImplemented
 
     def __le__(self, other):
         is_scalar = is_scalar_type(other)
-                
-        if not is_scalar or not np.isinf(other):        
+
+        if not is_scalar or not np.isinf(other):
             fail_for_dimension_mismatch(self, other, 'LessThanOrEquals')
-    
-        if isinstance(other, np.ndarray) or is_scalar:    
+
+        if isinstance(other, np.ndarray) or is_scalar:
             return np.asarray(self) <= np.asarray(other)
         else:
             return NotImplemented
@@ -1216,43 +1231,43 @@ class Quantity(np.ndarray, object):
     def __gt__(self, other):
         is_scalar = is_scalar_type(other)
 
-        if not is_scalar or not np.isinf(other):        
+        if not is_scalar or not np.isinf(other):
             fail_for_dimension_mismatch(self, other, 'GreaterThan')
-    
-        if isinstance(other, np.ndarray) or is_scalar:    
+
+        if isinstance(other, np.ndarray) or is_scalar:
             return np.asarray(self) > np.asarray(other)
         else:
             return NotImplemented
 
     def __ge__(self, other):
         is_scalar = is_scalar_type(other)
-                
-        if not is_scalar or not np.isinf(other):         
+
+        if not is_scalar or not np.isinf(other):
             fail_for_dimension_mismatch(self, other, 'GreaterThanOrEquals')
-    
-        if isinstance(other, np.ndarray) or is_scalar:    
+
+        if isinstance(other, np.ndarray) or is_scalar:
             return np.asarray(self) >= np.asarray(other)
         else:
             return NotImplemented
 
     def __eq__(self, other):
         is_scalar = is_scalar_type(other)
-                
-        if not is_scalar or not np.isinf(other):        
+
+        if not is_scalar or not np.isinf(other):
             fail_for_dimension_mismatch(self, other, 'Equals')
-    
-        if isinstance(other, np.ndarray) or is_scalar:    
+
+        if isinstance(other, np.ndarray) or is_scalar:
             return np.asarray(self) == np.asarray(other)
         else:
             return NotImplemented
 
     def __ne__(self, other):
         is_scalar = is_scalar_type(other)
-                
-        if not is_scalar or not np.isinf(other):        
+
+        if not is_scalar or not np.isinf(other):
             fail_for_dimension_mismatch(self, other, 'NotEquals')
-    
-        if isinstance(other, np.ndarray) or is_scalar:    
+
+        if isinstance(other, np.ndarray) or is_scalar:
             return np.asarray(self) != np.asarray(other)
         else:
             return NotImplemented
@@ -1289,7 +1304,7 @@ class Quantity(np.ndarray, object):
     argmax = wrap_function_remove_dimensions(np.ndarray.argmax)
     argmin = wrap_function_remove_dimensions(np.ndarray.argmax)
     argsort = wrap_function_remove_dimensions(np.ndarray.argsort)
-    
+
     def fill(self, values): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, values, 'fill')
         super(Quantity, self).fill(values)
@@ -1302,15 +1317,16 @@ class Quantity(np.ndarray, object):
 
     def clip(self, a_min, a_max, *args, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, a_min, 'clip')
-        fail_for_dimension_mismatch(self, a_max, 'clip')        
+        fail_for_dimension_mismatch(self, a_max, 'clip')
         return super(Quantity, self).clip(np.asarray(a_min),
                                           np.asarray(a_max),
                                           *args, **kwds)
     clip.__doc__ = np.ndarray.clip.__doc__
 
     def dot(self, other, **kwds): # pylint: disable=C0111
-        return Quantity.with_dimensions(np.array(self).dot(np.array(other), **kwds),
-                                        self.dim * get_dimensions(other))
+        return Quantity.with_dimensions(np.array(self).dot(np.array(other),
+                                                           **kwds),
+                                        self.dim*get_dimensions(other))
     dot.__doc__ = np.ndarray.dot.__doc__
 
     def searchsorted(self, v, **kwds): # pylint: disable=C0111
@@ -1322,21 +1338,21 @@ class Quantity(np.ndarray, object):
         prod_result = super(Quantity, self).prod(*args, **kwds)
         # Calculating the correct dimensions is not completly trivial (e.g.
         # like doing self.dim**self.size) because prod can be called on
-        # multidimensional arrays along a certain axis. 
+        # multidimensional arrays along a certain axis.
         # Our solution: Use a "dummy matrix" containing a 1 (without units) at
         # each entry and sum it, using the same keyword arguments as provided.
         # The result gives the exponent for the dimensions.
         # This relies on sum and prod having the same arguments, which is true
-        # now and probably remains like this in the future 
+        # now and probably remains like this in the future
         dim_exponent = np.ones_like(self).sum(*args, **kwds)
         # The result is possibly multidimensional but all entries should be
         # identical
         if dim_exponent.size > 1:
             dim_exponent = dim_exponent[0]
         return Quantity.with_dimensions(prod_result, self.dim ** dim_exponent)
-    prod.__doc__ = np.ndarray.prod.__doc__        
+    prod.__doc__ = np.ndarray.prod.__doc__
 
-    def cumprod(self, *args, **kwds): # pylint: disable=C0111
+    def cumprod(self, *args, **kwds):  # pylint: disable=C0111
         if not self.is_dimensionless:
             raise TypeError('cumprod over array elements on quantities '
                             'with dimensions is not possible.')
@@ -1349,32 +1365,32 @@ class Quantity(np.ndarray, object):
     setasflat.__doc__ = np.ndarray.setasflat.__doc__
 
 class Unit(Quantity):
-    '''
+    r'''
     A physical unit.
-    
+
     Normally, you do not need to worry about the implementation of
     units. They are derived from the `Quantity` object with
     some additional information (name and string representation).
     You can define new units which will be used when generating
     string representations of quantities simply by doing an
     arithmetical operation with only units, for example::
-    
+
         Nm = newton * metre
-    
+
     Note that operations with units are slower than operations with
     `Quantity` objects, so for efficiency if you do not need the
     extra information that a `Unit` object carries around, write
     ``1*second`` in preference to ``second``.
-    
+
     Basically, a unit is just a quantity with given dimensions, e.g.
     mvolt = 0.001 with the dimensions of voltage. The units module
     defines a large number of standard units, and you can also define
     your own (see below).
-    
+
     The unit class also keeps track of various things that were used
     to define it so as to generate a nice string representation of it.
-    See Representation below. 
-    
+    See Representation below.
+
     When creating scaled units, you can use the following prefixes:
 
      ======     ======  ==============
@@ -1390,7 +1406,7 @@ class Unit(Quantity):
      10^3       kilo    k
      10^2       hecto   h
      10^1       deka    da
-     1           
+     1
      10^-1      deci    d
      10^-2      centi   c
      10^-3      milli   m
@@ -1402,45 +1418,45 @@ class Unit(Quantity):
      10^-21     zepto   z
      10^-24     yocto   y
      ======     ======  ==============
-    
+
     Defining your own:
-    
+
     It can be useful to define your own units for printing
     purposes. So for example, to define the newton metre, you
     write::
-    
+
         Nm = newton * metre
-    
+
     Writing::
-    
+
         print (1*Nm).in_unit(Nm)
-    
+
     will return ``"1 Nm"`` because the `Unit` class generates a new
     display name of ``"Nm"`` from the display names ``"N"`` and ``"m"`` for
     newtons and metres automatically (see Representation below).
-    
+
     To register this unit for use in the automatic printing
     of the `Quantity.in_best_unit` method, see the documentation
     for the `~brian2.units.fundamentalunits.UnitRegistry` class.
-    
+
     Construction:
-    
+
     The best way to construct a new unit is to use standard units
     already defined and arithmetic operations, e.g. ``newton*metre``.
     See the documentation for the static methods `Unit.create`
     and `Unit.create_scaled_units` for more details.
-    
+
     If you don't like the automatically generated display name for
     the unit, use the `Unit.set_display_name` method.
-    
+
     Representation:
-    
+
     A new unit defined by multiplication, division or taking powers
     generates a name for the unit automatically, so that for
     example the name for ``pfarad/mmetre**2`` is ``"pF/mm^2"``, etc. If you
-    don't like the automatically generated name, use the 
+    don't like the automatically generated name, use the
     `Unit.set_display_name` method.
-    
+
     Attributes
     ----------
     dim
@@ -1449,23 +1465,23 @@ class Unit(Quantity):
     dispname
     name
     iscompound
-    
+
     Methods
     -------
-    
+
     create
     create_scaled_unit
     set_name
     set_display_name
-    
+
     '''
     __slots__ = ["dim", "scale", "scalefactor", "dispname", "name",
                  "iscompound"]
-    
+
     __array_priority__ = 100
-    
+
     automatically_register_units = True
-    
+
     #### CONSTRUCTION ####
     def __new__(cls, arr, dim=None, scale=None, dtype=None, copy=False):
         if dim is None:
@@ -1475,7 +1491,7 @@ class Unit(Quantity):
         if Unit.automatically_register_units:
             register_new_unit(obj)
         return obj
-    
+
     def __array_finalize__(self, orig):
         self.dim = getattr(orig, 'dim', DIMENSIONLESS)
         self.scale = getattr(orig, 'scale', ("", "", "", "", "", "", ""))
@@ -1483,8 +1499,8 @@ class Unit(Quantity):
         self.name = getattr(orig, 'name', '')
         self.dispname = getattr(orig, 'dispname', '')
         self.iscompound = getattr(orig, 'iscompound', False)
-        return self  
-        
+        return self
+
     def __init__(self, value, dim=None, scale=None):
         if dim is None:
             dim = DIMENSIONLESS
@@ -1493,17 +1509,23 @@ class Unit(Quantity):
             scale = ("", "", "", "", "", "", "")
         if not len(scale) == 7:
             raise ValueError('scale needs seven entries')
-        self.scale = scale  #: The scale for this unit (a 7-tuple)
-        self.scalefactor = ""  #: The scalefactor for this unit, e.g. 'm' for milli
-        self.name = ""  #: The full name of this unit.
-        self.dispname = ""  #: The display name of this unit.
-        self.iscompound = False  #: Whether this unit is a combination of other units.
+
+        #: The scale for this unit (a 7-tuple)
+        self.scale = scale
+        #: The scalefactor for this unit, e.g. 'm' for milli
+        self.scalefactor = ""
+        #: The full name of this unit.
+        self.name = ""
+        #: The display name of this unit.
+        self.dispname = ""
+        #: Whether this unit is a combination of other units.
+        self.iscompound = False
 
     @staticmethod
     def create(dim, name="", dispname="", scalefactor="", **keywords):
         """
         Create a new named unit.
-        
+
         Parameters
         ----------
         dim : Dimension
@@ -1517,7 +1539,7 @@ class Unit(Quantity):
         keywords
             The scaling for each SI dimension, e.g. ``length="m"``,
             ``mass="-1"``, etc.
-        
+
         Returns
         -------
         u : Unit
@@ -1540,7 +1562,7 @@ class Unit(Quantity):
     def create_scaled_unit(baseunit, scalefactor):
         """
         Create a scaled unit from a base unit.
-        
+
         Parameters
         ----------
         baseunit : Unit
@@ -1548,10 +1570,10 @@ class Unit(Quantity):
             ``amp``.
         scalefactor : str
             The scaling factor, e.g. ``"m"`` for mvolt, mamp
-        
+
         Returns
         -------
-        u : Unit            
+        u : Unit
         """
         u = Unit(np.asarray(baseunit) * _siprefixes[scalefactor],
                  dim=baseunit.dim, scale=baseunit.scale)
@@ -1572,21 +1594,21 @@ class Unit(Quantity):
         """
         self.dispname = name
 
-    #### REPRESENTATION ####  
+    #### REPRESENTATION ####
     def __repr__(self):
         if self.name == "":
             if self.scalefactor:
-                parts = [repr(_siprefixes[self.scalefactor])] 
+                parts = [repr(_siprefixes[self.scalefactor])]
             else:
                 parts = []
             for i in range(7):
-                if self.dim._dims[i]:                
+                if self.dim._dims[i]:
                     s = self.scale[i] + _iclass_label[i]
                     if self.dim._dims[i] != 1:
                         s += ' ** ' + str(self.dim._dims[i])
                     parts.append(s)
             s = " * ".join(parts)
-            s = s.strip() 
+            s = s.strip()
             if not len(s):
                 return "%s(1)" % self.__class__.__name__
             else:
@@ -1628,7 +1650,7 @@ class Unit(Quantity):
 
     def __div__(self, other):
         if isinstance(other, Unit):
-            u = Unit(np.asarray(self) / np.asarray(other))            
+            u = Unit(np.asarray(self) / np.asarray(other))
             if other.iscompound:
                 u.dispname = '(' + self.dispname + ')'
                 u.name = '(' + self.name + ')'
@@ -1657,7 +1679,7 @@ class Unit(Quantity):
 
     def __pow__(self, other):
         if is_scalar_type(other):
-            u = Unit(np.asarray(self) ** other)            
+            u = Unit(np.asarray(self) ** other)
             if self.iscompound:
                 u.dispname = '(' + self.dispname + ')'
                 u.name = '(' + self.name + ')'
@@ -1673,25 +1695,25 @@ class Unit(Quantity):
 
     def __iadd__(self, other):
         raise TypeError('Units cannot be modified in-place')
-    
+
     def __isub__(self, other):
         raise TypeError('Units cannot be modified in-place')
-    
+
     def __imul__(self, other):
         raise TypeError('Units cannot be modified in-place')
-    
+
     def __idiv__(self, other):
         raise TypeError('Units cannot be modified in-place')
 
     def __itruediv__(self, other):
         raise TypeError('Units cannot be modified in-place')
-    
+
     def __ifloordiv__(self, other):
         raise TypeError('Units cannot be modified in-place')
-        
+
     def __imod__(self, other):
         raise TypeError('Units cannot be modified in-place')
-    
+
     def __ipow__(self, other, modulo=None):
         raise TypeError('Units cannot be modified in-place')
 
@@ -1699,32 +1721,32 @@ class Unit(Quantity):
 class UnitRegistry(object):
     """
     Stores known units for printing in best units.
-    
+
     All a user needs to do is to use the `register_new_unit`
     function.
-    
+
     Default registries:
-    
+
     The units module defines three registries, the standard units,
     user units, and additional units. Finding best units is done
     by first checking standard, then user, then additional. New
     user units are added by using the `register_new_unit` function.
-    
+
     Standard units includes all the basic non-compound unit names
     built in to the module, including volt, amp, etc. Additional
     units defines some compound units like newton metre (Nm) etc.
-    
+
     Methods
-    -------    
+    -------
     add
-    __getitem__    
+    __getitem__
     """
-    
-    
+
+
     def __init__(self):
         self.units = []
         self.units_for_dimensions = {}
-        
+
 
     def add(self, u):
         """Add a unit to the registry
@@ -1738,11 +1760,11 @@ class UnitRegistry(object):
 
     def __getitem__(self, x):
         """Returns the best unit for quantity x
-        
+
         The algorithm is to consider the value:
-        
+
         m=abs(x/u)
-        
+
         for all matching units u. If there is a unit u with a value of
         m in [1,1000) then we select that unit. Otherwise, we select
         the first matching unit (which will typically be the unscaled
@@ -1751,7 +1773,7 @@ class UnitRegistry(object):
         matching = self.units_for_dimensions.get(x.dim, [])
         if len(matching) == 0:
             raise KeyError("Unit not found in registry.")
-        
+
         # count the number of entries well represented by this unit
         matching_values = np.asarray(matching)
         x_flat = np.asarray(x).flatten()
@@ -1764,12 +1786,12 @@ class UnitRegistry(object):
 
 def register_new_unit(u):
     """Register a new unit for automatic displaying of quantities
-    
+
     Parameters
     ----------
     u : Unit
         The unit that should be registered.
-    
+
     Examples
     --------
     >>> from brian2 import *
@@ -1789,7 +1811,9 @@ def all_registered_units(*regs):
     """Return all registered units in the correct order.
     """
     if not len(regs):
-        regs = [ standard_unit_register, UserUnitRegister, additional_unit_register]
+        regs = [standard_unit_register,
+                UserUnitRegister,
+                additional_unit_register]
     for r in regs:
         for u in r.units:
             yield u
@@ -1797,7 +1821,7 @@ def all_registered_units(*regs):
 def _get_best_unit(x, *regs):
     """
     Return the best unit for quantity `x`.
-    
+
     Checks the registries regs, unless none are provided in which
     case it will check the standard, user and additional unit
     registers in turn.
@@ -1818,12 +1842,12 @@ def _get_best_unit(x, *regs):
 def get_unit(x, *regs):
     '''
     Find the most appropriate consistent unit from the unit registries.
-    
+
     Parameters
     ----------
     x : {Quantity, array-like, number}
         The value to find a unit for.
-    
+
     Returns
     -------
     q : Quantity
@@ -1846,9 +1870,9 @@ def get_unit_fast(x):
 
 def check_units(**au):
     """Decorator to check units of arguments passed to a function
-    
+
     **Sample usage:** ::
-    
+
         @check_units(I=amp,R=ohm,wibble=metre,result=volt)
         def getvoltage(I,R,**k):
             return I*R
@@ -1857,24 +1881,24 @@ def check_units(**au):
     you can define what the units should be for variables that aren't
     explicitly named in the definition of the function. For example, the code
     above checks that the variable wibble should be a length, so writing::
-    
+
         getvoltage(1*amp,1*ohm,wibble=1)
-    
+
     would fail, but::
-    
+
         getvoltage(1*amp,1*ohm,wibble=1*metre)
-    
+
     would pass.
     String arguments are not checked (e.g. ``getvoltage(wibble='hello')`` would pass).
-    
+
     The special name ``result`` is for the return value of the function.
-    
+
     An error in the input value raises a :exc:`DimensionMismatchError`, and an error
     in the return value raises an ``AssertionError`` (because it is a code
     problem rather than a value problem).
-    
+
     Notes
-    -----    
+    -----
     This decorator will destroy the signature of the original function, and
     replace it with the signature ``(*args, **kwds)``. Other decorators will
     do the same thing, and this decorator critically needs to know the signature
@@ -1891,10 +1915,10 @@ def check_units(**au):
                 newkeyset[n] = v
             for k in newkeyset.iterkeys():
                 # string variables are allowed to pass, the presumption is they
-                # name another variable. None is also allowed, useful for 
+                # name another variable. None is also allowed, useful for
                 # default parameters
                 if (k in au.keys() and not isinstance(newkeyset[k], str) and
-                                       not newkeyset[k] is None): 
+                                       not newkeyset[k] is None):
                     if not have_same_dimensions(newkeyset[k], au[k]):
                         raise DimensionMismatchError("Function " + f.__name__ +
                                                      " variable " + k +
