@@ -17,6 +17,7 @@ from __future__ import division
 
 from warnings import warn
 from operator import isNumberType, isSequenceType
+import operator
 from itertools import izip
 from functools import wraps
 
@@ -45,6 +46,7 @@ def _flatten(iterable):
                 yield f
         else:
             yield e
+
 
 #===============================================================================
 # Numpy ufuncs
@@ -1029,110 +1031,96 @@ class Quantity(np.ndarray, object):
         return self.__setitem__(slice(start, end), value)
 
     #### ARITHMETIC ####
-    def __mul__(self, other):
+
+    def _binary_operation(self, other, operation, dim_operation=lambda a,b: a, fail_for_mismatch=False,
+                          message=None, inplace=False):
+        '''
+        General implementation for binary operations.
+
+        Parameters
+        ----------
+        other : {`Quantity`, `ndarray`, scalar}
+            The object with which the operation should be performed.
+        operation : function of two variables
+            The function with which the two objects are combined. For example, `operator.mul` for a multiplication.
+        dim_operation : function of two variables, optional
+            The function with which the dimension of the resulting object is calculated (as a function of the
+            dimensions of the two involved objects). For example, `operator.mul` for a multiplication. If not specified,
+            the dimensions of `self` are used for the resulting object.
+        fail_for_mismatch : bool, optional
+            Whether to fail for a dimension mismatch between `self` and `other` (defaults to ``False``)
+        message : str, optional
+            An optional error message for the `DimensionMismatchError`.
+        inplace: bool, optional
+            Whether to do the operation in-place (defaults to ``False``).
+        '''
         if isinstance(other, np.ndarray) or is_scalar_type(other):
-            return Quantity.with_dimensions(np.asarray(self)*np.asarray(other),
-                                            self.dim*get_dimensions(other))
+            if fail_for_mismatch:
+                fail_for_dimension_mismatch(self, other, message)
+
+            if inplace:
+                operation(self, other)
+                self.dim = dim_operation(self.dim, get_dimensions(other))
+                return self
+            else:
+                return Quantity.with_dimensions(operation(np.asarray(self), np.asarray(other)),
+                                                dim_operation(self.dim, get_dimensions(other)))
         else:
             return NotImplemented
+
+    def __mul__(self, other):
+        return self._binary_operation(other, operator.mul, operator.mul)
 
     def __rmul__(self, other):
         return self.__mul__(other)
 
     def __imul__(self, other):
-        if isinstance(other, np.ndarray) or is_scalar_type(other):
-            super(Quantity, self).__imul__(other)
-            self.dim = self.dim * get_dimensions(other)
-            return self
-        else:
-            return NotImplemented
+        return self._binary_operation(other, np.ndarray.__imul__, operator.mul, inplace=True)
 
     def __div__(self, other):
-        if isinstance(other, np.ndarray) or is_scalar_type(other):
-            return Quantity.with_dimensions(np.asarray(self)/np.asarray(other),
-                                            self.dim/get_dimensions(other))
-        else:
-            return NotImplemented
+        return self._binary_operation(other, operator.div, operator.div)
 
     def __truediv__(self, other):
         return self.__div__(other)
 
     def __rdiv__(self, other):
-        if isinstance(other, np.ndarray) or is_scalar_type(other):
-            return Quantity.with_dimensions(np.asarray(other)/np.asarray(self),
-                                            get_dimensions(other)/self.dim)
-        else:
-            return NotImplemented
+        # division with swapped arguments
+        rdiv = lambda a, b: operator.div(b, a)
+        return self._binary_operation(other, rdiv, rdiv)
 
     def __rtruediv__(self, other):
         return self.__rdiv__(other)
 
     def __idiv__(self, other):
-        if isinstance(other, np.ndarray) or is_scalar_type(other):
-            super(Quantity, self).__idiv__(other)
-            self.dim = self.dim / get_dimensions(other)
-            return self
-        else:
-            return NotImplemented
+        return self._binary_operation(other, np.ndarray.__idiv__, operator.div, inplace=True)
 
     def __itruediv__(self, other):
-        if isinstance(other, np.ndarray) or is_scalar_type(other):
-            super(Quantity, self).__itruediv__(other)
-            self.dim = self.dim / get_dimensions(other)
-            return self
-        else:
-            return NotImplemented
+        return self._binary_operation(other, np.ndarray.__itruediv__, operator.div, inplace=True)
 
     def __mod__(self, other):
-        if isinstance(other, np.ndarray) or is_scalar_type(other):
-            fail_for_dimension_mismatch(self, other, 'Modulo')
-            return Quantity.with_dimensions(np.asarray(self)%np.asarray(other),
-                                            self.dim)
-        else:
-            return NotImplemented
+        return self._binary_operation(other, operator.mod, fail_for_mismatch=True, message='Modulo')
 
     def __add__(self, other):
-        if isinstance(other, np.ndarray) or is_scalar_type(other):
-            fail_for_dimension_mismatch(self, other, 'Addition')
-            return Quantity.with_dimensions(np.asarray(self)+np.asarray(other),
-                                            self.dim)
-        else:
-            return NotImplemented
+        return self._binary_operation(other, operator.add, fail_for_mismatch=True, message='Addition')
 
     def __radd__(self, other):
         return self.__add__(other)
 
     def __iadd__(self, other):
-        if isinstance(other, np.ndarray) or is_scalar_type(other):
-            fail_for_dimension_mismatch(self, other, 'Addition')
-            super(Quantity, self).__iadd__(other)
-            return self
-        else:
-            return NotImplemented
+        return self._binary_operation(other, np.ndarray.__iadd__, fail_for_mismatch=True, message='Addition',
+                                      inplace=True)
 
     def __sub__(self, other):
-        if isinstance(other, np.ndarray) or is_scalar_type(other):
-            fail_for_dimension_mismatch(self, other, 'Subtraction')
-            return Quantity.with_dimensions(np.asarray(self)-np.asarray(other),
-                                            self.dim)
-        else:
-            return NotImplemented
+        return self._binary_operation(other, operator.sub, fail_for_mismatch=True, message='Subtraction')
 
     def __rsub__(self, other):
-        if isinstance(other, np.ndarray) or is_scalar_type(other):
-            fail_for_dimension_mismatch(self, other, 'Subtraction (R)')
-            return Quantity.with_dimensions(np.asarray(other)-np.asarray(self),
-                                                self.dim)
-        else:
-            return NotImplemented
+        # subtraction with swapped arguments
+        rsub = lambda a, b: operator.sub(b, a)
+        return self._binary_operation(other, rsub, fail_for_mismatch=True, message='Subtraction (R)')
 
     def __isub__(self, other):
-        if isinstance(other, np.ndarray) or is_scalar_type(other):
-            fail_for_dimension_mismatch(self, other, 'Subtraction')
-            super(Quantity, self).__isub__(other)
-            return self
-        else:
-            return NotImplemented
+        return self._binary_operation(other, np.ndarray.__isub__, fail_for_mismatch=True, message='Subtraction',
+                                     inplace=True)
 
     def __pow__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
@@ -1205,77 +1193,36 @@ class Quantity(np.ndarray, object):
         return replace_with_quantity(np.asarray(self).tolist(), self.dim)
 
     #### COMPARISONS ####
-    def __lt__(self, other):
+    def _comparison(self, other, message, operation):
         is_scalar = is_scalar_type(other)
-
         if not is_scalar or not np.isinf(other):
-            fail_for_dimension_mismatch(self, other, 'LessThan')
-
+            fail_for_dimension_mismatch(self, other, message)
         if isinstance(other, np.ndarray) or is_scalar:
-            return np.asarray(self) < np.asarray(other)
+            return operation(np.asarray(self), np.asarray(other))
         else:
             return NotImplemented
+
+    def __lt__(self, other):
+        return self._comparison(other, 'LessThan', operator.lt)
 
     def __le__(self, other):
-        is_scalar = is_scalar_type(other)
-
-        if not is_scalar or not np.isinf(other):
-            fail_for_dimension_mismatch(self, other, 'LessThanOrEquals')
-
-        if isinstance(other, np.ndarray) or is_scalar:
-            return np.asarray(self) <= np.asarray(other)
-        else:
-            return NotImplemented
-
+        return self._comparison(other, 'LessEquals', operator.le)
 
     def __gt__(self, other):
-        is_scalar = is_scalar_type(other)
-
-        if not is_scalar or not np.isinf(other):
-            fail_for_dimension_mismatch(self, other, 'GreaterThan')
-
-        if isinstance(other, np.ndarray) or is_scalar:
-            return np.asarray(self) > np.asarray(other)
-        else:
-            return NotImplemented
+        return self._comparison(other, 'GreaterThan', operator.gt)
 
     def __ge__(self, other):
-        is_scalar = is_scalar_type(other)
-
-        if not is_scalar or not np.isinf(other):
-            fail_for_dimension_mismatch(self, other, 'GreaterThanOrEquals')
-
-        if isinstance(other, np.ndarray) or is_scalar:
-            return np.asarray(self) >= np.asarray(other)
-        else:
-            return NotImplemented
+        return self._comparison(other, 'GreaterEquals', operator.ge)
 
     def __eq__(self, other):
-        is_scalar = is_scalar_type(other)
-
-        if not is_scalar or not np.isinf(other):
-            fail_for_dimension_mismatch(self, other, 'Equals')
-
-        if isinstance(other, np.ndarray) or is_scalar:
-            return np.asarray(self) == np.asarray(other)
-        else:
-            return NotImplemented
+        return self._comparison(other, 'Equals', operator.eq)
 
     def __ne__(self, other):
-        is_scalar = is_scalar_type(other)
-
-        if not is_scalar or not np.isinf(other):
-            fail_for_dimension_mismatch(self, other, 'NotEquals')
-
-        if isinstance(other, np.ndarray) or is_scalar:
-            return np.asarray(self) != np.asarray(other)
-        else:
-            return NotImplemented
+        return self._comparison(other, 'NotEquals', operator.ne)
 
     #### MAKE QUANTITY PICKABLE ####
     def __reduce__(self):
-        return (quantity_with_dimensions, (np.asarray(self), self.dim))
-
+        return quantity_with_dimensions, (np.asarray(self), self.dim)
 
     #### REPRESENTATION ####
     def __repr__(self):
