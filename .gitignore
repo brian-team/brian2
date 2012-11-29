@@ -21,3 +21,5 @@ nosetests.xml
 .project
 .pydevproject
 
+# pycharm project files
+.idea
