@@ -73,8 +73,8 @@ def test_get_dimensions():
     assert get_dimensions(q) is q.dimensions
     assert q.has_same_dimensions(3 * second)
     dims = q.dimensions
-    assert dims.get_dimension('time') == 1.
-    assert dims.get_dimension('length') == 0
+    assert_equal(dims.get_dimension('time'), 1.)
+    assert_equal(dims.get_dimension('length'), 0)
     
     assert get_dimensions(5) is DIMENSIONLESS
     assert_raises(TypeError, lambda: get_dimensions('a string'))
@@ -84,12 +84,12 @@ def test_display():
     '''
     Test displaying a quantity in different units
     '''
-    assert display_in_unit(3 * volt, mvolt) == '3000.0 mV'
-    assert display_in_unit(10 * mV, ohm * amp) == '0.01 ohm A'
+    assert_equal(display_in_unit(3 * volt, mvolt), '3000.0 mV')
+    assert_equal(display_in_unit(10 * mV, ohm * amp), '0.01 ohm A')
     assert_raises(DimensionMismatchError, lambda: display_in_unit(10 * nS, ohm))
     
     # A bit artificial...
-    assert display_in_unit(10, Unit(10)) == '1.0'
+    assert_equal(display_in_unit(10.0, Unit(10)), '1.0')
 
 
 def test_pickling():
@@ -179,9 +179,9 @@ def test_setting():
     # A dimensionless array can be set to values without units
     dimensionless = quantity / mV
     dimensionless[0, 1] = 10
-    assert dimensionless[0, 1] == 10
+    assert_equal(dimensionless[0, 1], 10)
     dimensionless[0, 1] = 30 * volt/volt
-    assert dimensionless[0, 1] == 30
+    assert_equal(dimensionless[0, 1], 30)
     dimensionless[:, 1] = 20
     assert np.all(dimensionless[:, 1] == 20)
     dimensionless[1, :] = np.ones((1, 3))
