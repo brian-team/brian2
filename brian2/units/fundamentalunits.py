@@ -1032,7 +1032,8 @@ class Quantity(np.ndarray, object):
 
     #### ARITHMETIC ####
 
-    def _binary_operation(self, other, operation, dim_operation=lambda a,b: a, fail_for_mismatch=False,
+    def _binary_operation(self, other, operation,
+                          dim_operation=lambda a, b: a, fail_for_mismatch=False,
                           message=None, inplace=False):
         '''
         General implementation for binary operations.
@@ -1042,13 +1043,17 @@ class Quantity(np.ndarray, object):
         other : {`Quantity`, `ndarray`, scalar}
             The object with which the operation should be performed.
         operation : function of two variables
-            The function with which the two objects are combined. For example, `operator.mul` for a multiplication.
+            The function with which the two objects are combined. For example,
+            `operator.mul` for a multiplication.
         dim_operation : function of two variables, optional
-            The function with which the dimension of the resulting object is calculated (as a function of the
-            dimensions of the two involved objects). For example, `operator.mul` for a multiplication. If not specified,
-            the dimensions of `self` are used for the resulting object.
+            The function with which the dimension of the resulting object is
+            calculated (as a function of the dimensions of the two involved
+            objects). For example, `operator.mul` for a multiplication. If not
+            specified, the dimensions of `self` are used for the resulting
+            object.
         fail_for_mismatch : bool, optional
-            Whether to fail for a dimension mismatch between `self` and `other` (defaults to ``False``)
+            Whether to fail for a dimension mismatch between `self` and `other`
+            (defaults to ``False``)
         message : str, optional
             An optional error message for the `DimensionMismatchError`.
         inplace: bool, optional
@@ -1063,8 +1068,10 @@ class Quantity(np.ndarray, object):
                 self.dim = dim_operation(self.dim, get_dimensions(other))
                 return self
             else:
-                return Quantity.with_dimensions(operation(np.asarray(self), np.asarray(other)),
-                                                dim_operation(self.dim, get_dimensions(other)))
+                return Quantity.with_dimensions(operation(np.asarray(self),
+                                                          np.asarray(other)),
+                                                dim_operation(self.dim,
+                                                              get_dimensions(other)))
         else:
             return NotImplemented
 
@@ -1075,7 +1082,8 @@ class Quantity(np.ndarray, object):
         return self.__mul__(other)
 
     def __imul__(self, other):
-        return self._binary_operation(other, np.ndarray.__imul__, operator.mul, inplace=True)
+        return self._binary_operation(other, np.ndarray.__imul__, operator.mul,
+                                      inplace=True)
 
     def __div__(self, other):
         return self._binary_operation(other, operator.div, operator.div)
@@ -1092,35 +1100,47 @@ class Quantity(np.ndarray, object):
         return self.__rdiv__(other)
 
     def __idiv__(self, other):
-        return self._binary_operation(other, np.ndarray.__idiv__, operator.div, inplace=True)
+        return self._binary_operation(other, np.ndarray.__idiv__, operator.div,
+                                      inplace=True)
 
     def __itruediv__(self, other):
-        return self._binary_operation(other, np.ndarray.__itruediv__, operator.div, inplace=True)
+        return self._binary_operation(other, np.ndarray.__itruediv__,
+                                      operator.div, inplace=True)
 
     def __mod__(self, other):
-        return self._binary_operation(other, operator.mod, fail_for_mismatch=True, message='Modulo')
+        return self._binary_operation(other, operator.mod,
+                                      fail_for_mismatch=True, message='Modulo')
 
     def __add__(self, other):
-        return self._binary_operation(other, operator.add, fail_for_mismatch=True, message='Addition')
+        return self._binary_operation(other, operator.add,
+                                      fail_for_mismatch=True,
+                                      message='Addition')
 
     def __radd__(self, other):
         return self.__add__(other)
 
     def __iadd__(self, other):
-        return self._binary_operation(other, np.ndarray.__iadd__, fail_for_mismatch=True, message='Addition',
+        return self._binary_operation(other, np.ndarray.__iadd__,
+                                      fail_for_mismatch=True,
+                                      message='Addition',
                                       inplace=True)
 
     def __sub__(self, other):
-        return self._binary_operation(other, operator.sub, fail_for_mismatch=True, message='Subtraction')
+        return self._binary_operation(other, operator.sub,
+                                      fail_for_mismatch=True,
+                                      message='Subtraction')
 
     def __rsub__(self, other):
         # subtraction with swapped arguments
         rsub = lambda a, b: operator.sub(b, a)
-        return self._binary_operation(other, rsub, fail_for_mismatch=True, message='Subtraction (R)')
+        return self._binary_operation(other, rsub, fail_for_mismatch=True,
+                                      message='Subtraction (R)')
 
     def __isub__(self, other):
-        return self._binary_operation(other, np.ndarray.__isub__, fail_for_mismatch=True, message='Subtraction',
-                                     inplace=True)
+        return self._binary_operation(other, np.ndarray.__isub__,
+                                      fail_for_mismatch=True,
+                                      message='Subtraction',
+                                      inplace=True)
 
     def __pow__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
@@ -1836,12 +1856,13 @@ def check_units(**au):
         getvoltage(1*amp,1*ohm,wibble=1*metre)
 
     would pass.
-    String arguments are not checked (e.g. ``getvoltage(wibble='hello')`` would pass).
+    String arguments are not checked (e.g. ``getvoltage(wibble='hello')``
+    would pass).
 
     The special name ``result`` is for the return value of the function.
 
-    An error in the input value raises a :exc:`DimensionMismatchError`, and an error
-    in the return value raises an ``AssertionError`` (because it is a code
+    An error in the input value raises a :exc:`DimensionMismatchError`, and an
+    error in the return value raises an ``AssertionError`` (because it is a code
     problem rather than a value problem).
 
     Notes
@@ -1850,8 +1871,8 @@ def check_units(**au):
     replace it with the signature ``(*args, **kwds)``. Other decorators will
     do the same thing, and this decorator critically needs to know the signature
     of the function it is acting on, so it is important that it is the first
-    decorator to act on a function. It cannot be used in combination with another
-    decorator that also needs to know the signature of the function.
+    decorator to act on a function. It cannot be used in combination with
+    another decorator that also needs to know the signature of the function.
     """
     def do_check_units(f):
         @wraps(f)
