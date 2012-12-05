@@ -7,6 +7,33 @@ __docformat__ = "restructuredtext en"
 __version__ = '2.0dev'
 __release_date__ = 'notyet'
 
+# Check basic dependencies
+import sys
+missing = []
+try:
+    import numpy
+except ImportError as ex:
+    print >>sys.stderr, 'Importing numpy failed:', ex
+    missing.append('numpy')
+try:
+    import scipy
+except ImportError as ex:
+    print >>sys.stderr, 'Importing scipy failed:', ex
+    missing.append('scipy')
+try:
+    import sympy
+except ImportError as ex:
+    print >>sys.stderr, 'Importing sympy failed:', ex
+    missing.append('sympy')
+try:
+    import pyparsing
+except ImportError as ex:
+    print >>sys.stderr, 'Importing pyparsing failed:', ex
+    missing.append('pyparsing')
+
+if len(missing):
+    raise ImportError('Some required dependencies are missing:\n' + ', '.join(missing))
+
 # To minimize the problems with imports, import the packages in a sensible
 # order
 
