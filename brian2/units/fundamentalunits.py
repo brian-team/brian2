@@ -22,6 +22,7 @@ import operator
 import itertools
 
 import numpy as np
+from sympy import latex
 
 __all__ = [
     'DimensionMismatchError', 'get_or_create_dimension',
@@ -336,6 +337,22 @@ class Dimension(object):
             if not len(s):
                 return "1"
         return s.strip()
+
+    def _latex(self, *args):
+        parts = []
+        for i in xrange(len(self._dims)):
+            if self._dims[i]:
+                s = _ilabel[i]
+                if self._dims[i] != 1:
+                    s += '^{%s}' % str(self._dims[i])
+                parts.append(s)
+        s = "\,".join(parts)
+        if not len(s):
+            return "1"
+        return s.strip()
+
+    def _repr_latex(self):
+        return '$%s$' % latex(self)
 
     def __repr__(self):
         return self._str_representation(python_code=True)
@@ -1391,12 +1408,22 @@ class Quantity(np.ndarray, object):
         return self.in_best_unit(python_code=True)
 
     # TODO: Use sympy's _latex method, then latex(unit) should work
+    def _latex(self, expr):
+        from sympy import Matrix
+        best_unit = _get_best_unit(self)
+        if isinstance(best_unit, Unit):
+            best_unit_latex = latex(best_unit)
+        else: # A quantity
+            best_unit_latex = latex(best_unit.dimensions)
+        unitless = np.asarray(self / best_unit)
+        if unitless.ndim == 0:
+            sympy_quantity = np.float(unitless)
+        else:
+            sympy_quantity = Matrix(unitless)
+        return latex(sympy_quantity) + '\,' + best_unit_latex
 
     def _repr_latex_(self):
-        from sympy import Matrix, latex
-        best_unit = _get_best_unit(self)
-        sympy_matrix = Matrix(np.asarray(self / best_unit))
-        return  '$' + latex(sympy_matrix) + '\,' + best_unit._repr_latex_()[1:]
+        return  '$' + latex(self) + '$'
 
     def __str__(self):
         return self.in_best_unit()
@@ -1763,7 +1790,7 @@ class Unit(Quantity):
         else:
             return self.dispname
 
-    def _repr_latex_(self):
+    def _latex(self, expr):
         if self.latexname == "":
             s = r'\mathrm{' + self.scalefactor + "} "
             for i in range(7):
@@ -1774,11 +1801,14 @@ class Unit(Quantity):
                     s += " "
             s = s.strip()
             if not len(s):
-                return "$1$"
+                return "1"
             else:
-                return '$' + s + '$'
+                return s
         else:
-            return '$' + self.latexname + '$'
+            return self.latexname
+
+    def _repr_latex_(self):
+        return '$' + latex(self) + '$'
 
     #### ARITHMETIC ####
     def __mul__(self, other):
@@ -1816,7 +1846,7 @@ class Unit(Quantity):
             u.dim = self.dim / other.dim
             u.iscompound = True
 
-            u.latexname = r'\frac{%s}{%s}' % (u.latexname, other.latexname)
+            u.latexname = r'\frac{%s}{%s}' % (self.latexname, other.latexname)
 
             return u
         else:
@@ -1834,13 +1864,14 @@ class Unit(Quantity):
             if self.iscompound:
                 u.dispname = '(' + self.dispname + ')'
                 u.name = '(' + self.name + ')'
-                u.latexname = r'\left(%s)' % u.latexname
+                u.latexname = r'\left(%s\right)' % self.latexname
             else:
                 u.dispname = self.dispname
                 u.name = self.name
+                u.latexname = self.latexname
             u.dispname += '^' + str(other)
             u.name += ' ** ' + repr(other)
-            u.latexname += '^{%s}' % other._repr_latex_()
+            u.latexname += '^{%s}' % latex(other)
             u.dim = self.dim ** other
             return u
         else:
