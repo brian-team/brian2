@@ -251,15 +251,12 @@ class SingleEquation(object):
                            if not self.expr is None else set([]),
                            doc='All identifiers in the RHS of this equation.')
 
-<<<<<<< HEAD
-=======
     def _latex(self, *args):
-        from sympy import Eq, diff, Symbol, latex, Function
+        from sympy import diff, Symbol, Eq, latex, Function
         varname = Function(self.varname)
         t = Symbol('t')
         sympy_expr = Eq(diff(varname(t), t), parse_to_sympy(self.expr))
         return latex(sympy_expr)
->>>>>>> preliminary implementation of latex output for equations (using sympy's latex facilities)
 
     def __str__(self):
         if self.eq_type == DIFFERENTIAL_EQUATION:
@@ -778,10 +775,21 @@ class Equations(collections.Mapping):
         return '<Equations object consisting of %d equations>' % len(self._equations)
 
     def _latex(self, *args):
+        from sympy import diff, Symbol, latex, Function
         equations = []
+        t = Symbol('t')
         for eq in self._equations.itervalues():
-            equations.append(latex(eq))
-        return r'\begin{equation}' + r'\\'.join(equations) + r'\end{equation}'
+            # do not use SingleEquations._latex here as we want nice alignment
+            varname = Function(eq.varname)
+            lhs = diff(varname(t), t)
+            rhs = parse_to_sympy(eq.expr)
+            if len(eq.flags):
+                flag_str = ', flags: ' + ', '.join(eq.flags)
+            else:
+                flag_str = ''
+            eq_latex = r'%s &= %s && \text{(unit: $%s$%s)}' % (latex(lhs), latex(rhs), latex(eq.unit), flag_str)
+            equations.append(eq_latex)
+        return r'\begin{align}' + r'\\'.join(equations) + r'\end{align}'
 
     def _repr_latex_(self):
         return latex(self)

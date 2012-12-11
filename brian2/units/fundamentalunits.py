@@ -1790,9 +1790,12 @@ class Unit(Quantity):
         else:
             return self.dispname
 
-    def _latex(self, expr):
+    def _latex(self, *args):
         if self.latexname == "":
-            s = r'\mathrm{' + self.scalefactor + "} "
+            if len(self.scalefactor):
+                s = r'\mathrm{' + self.scalefactor + "} "
+            else:
+                s = ''
             for i in range(7):
                 if self.dim._dims[i]:
                     s += self.scale[i] + _ilabel[i]
