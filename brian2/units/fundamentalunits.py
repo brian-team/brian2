@@ -23,8 +23,6 @@ from functools import wraps
 
 import numpy as np
 
-from brian_unit_prefs import bup
-
 __all__ = [
     'DimensionMismatchError', 'get_or_create_dimension',
     'get_dimensions', 'is_dimensionless', 'have_same_dimensions',
@@ -1902,27 +1900,3 @@ def check_units(**au):
             return result
         return new_f
     return do_check_units
-
-
-def _check_nounits(*args, **kwds):
-    """Don't bother checking units decorator
-    """
-    def dont_check_units(f):
-        return f
-    return dont_check_units
-
-
-# Remove all units
-if not bup.use_units:
-    check_units = _check_nounits
-    def get_dimensions(obj):
-        return DIMENSIONLESS
-
-    def is_dimensionless(obj):
-        return True
-
-    def have_same_dimensions(obj1, obj2):
-        return True
-
-    def get_unit(x, *regs):
-        return 1.
