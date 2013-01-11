@@ -19,7 +19,6 @@ from warnings import warn
 from operator import isNumberType, isSequenceType
 import operator
 from itertools import izip
-from functools import wraps
 
 import numpy as np
 
@@ -30,6 +29,7 @@ __all__ = [
     'check_units', 'is_scalar_type', 'get_unit', 'get_unit_fast',
     'unit_checking'
     ]
+
 
 warn_if_no_unit_checking = True
 unit_checking = True
@@ -1873,7 +1873,6 @@ def check_units(**au):
     another decorator that also needs to know the signature of the function.
     """
     def do_check_units(f):
-        @wraps(f)
         def new_f(*args, **kwds):
             newkeyset = kwds.copy()
             arg_names = f.func_code.co_varnames[0:f.func_code.co_argcount]
@@ -1898,5 +1897,7 @@ def check_units(**au):
                      str(au["result"]) + " but has returned " +
                      str(get_dimensions(result)))
             return result
+        new_f.__doc__ = f.__doc__
+        new_f.__name__ = f.__name__
         return new_f
     return do_check_units
