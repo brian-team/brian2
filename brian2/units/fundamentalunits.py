@@ -99,10 +99,10 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
 
     Parameters
     ----------
-    obj1, obj2 : {array-like, Quantity}
+    obj1, obj2 : {array-like, `Quantity`}
         The object to compare. If `obj2` is ``None``, assume it to be
         dimensionless
-    error_message : str, optional
+    error_message : `str`, optional
         An error message that is used in the DimensionMismatchError
 
     Raises
@@ -254,14 +254,14 @@ class Dimension(object):
 
     Parameters
     ----------
-    dims : sequence of float
+    dims : sequence of `float`
         The dimension indices of the 7 basic SI unit dimensions.
 
     Notes
     -----
     Users shouldn't use this class directly, it is used internally in Quantity
     and Unit. Even internally, never use ``Dimension(...)`` to create a new
-    instance, use :func:`get_or_create_dimension` instead. This function makes
+    instance, use `get_or_create_dimension` instead. This function makes
     sure that only one Dimension instance exists for every combination of
     indices, allowing for a very fast dimensionality check with ``is``.
     '''
@@ -280,13 +280,13 @@ class Dimension(object):
 
         Parameters
         ----------
-        d : str
+        d : `str`
             A string identifying the SI basic unit dimension. Can be either a
             description like "length" or a basic unit like "m" or "metre".
 
         Returns
         -------
-        dim : float
+        dim : `float`
             The dimensionality of the dimension `d`.
         """
         return self._dims[_di[d]]
@@ -298,16 +298,18 @@ class Dimension(object):
 
         Notes
         -----
-        Normally, instead one should check dimension
-        for being identical to `DIMENSIONLESS`.
+        Normally, instead one should check dimension for being identical to
+        `DIMENSIONLESS`.
         '''
         return all([x == 0 for x in self._dims])
 
     #### REPRESENTATION ####
     def _str_representation(self, python_code=False):
-        """String representation in basic SI units, or 1 for dimensionless.
-        Use `python_code=False` for display purposes and `True` for valid
-        Python code."""
+        """
+        String representation in basic SI units, or ``"1"`` for dimensionless.
+        Use ``python_code=False`` for display purposes and ``True`` for valid
+        Python code.
+        """
 
         if python_code:
             power_operator = " ** "
@@ -402,10 +404,10 @@ def get_or_create_dimension(*args, **kwds):
 
     Parameters
     ----------
-    args : sequence of float
+    args : sequence of `float`
         A sequence with the indices of the 7 elements of an SI dimension.
     kwds : keyword arguments
-        a sequence of keyword=value pairs where the keywords are the names of
+        a sequence of ``keyword=value`` pairs where the keywords are the names of
         the SI dimensions, or the standard unit.
 
     Examples
@@ -465,18 +467,14 @@ class DimensionMismatchError(Exception):
 
     Parameters
     ----------
-    description : str
+    description : ``str``
         A description of the type of operation being performed, e.g. Addition,
         Multiplication, etc.
-    dims : Dimension
+    dims : ``Dimension``
         The dimensions of the objects involved in the operation, any number of
         them is possible
     """
     def __init__(self, description, *dims):
-        """Raise as DimensionMismatchError(desc,dim1,dim2,...)
-
-
-        """
         # Call the base class constructor to make Exception pickable, see:
         # http://bugs.python.org/issue1692335
         Exception.__init__(self, description, *dims)
@@ -499,14 +497,14 @@ def is_scalar_type(obj):
 
     Parameters
     ----------
-    obj : object
+    obj : `object`
         The object to check.
 
     Returns
     -------
-    scalar : bool
+    scalar : `bool`
         ``True`` if `obj` is a scalar that can be interpreted as a
-        dimensionless Quantity.
+        dimensionless `Quantity`.
     """
     return isNumberType(obj) and not isSequenceType(obj)
 
@@ -515,18 +513,18 @@ def get_dimensions(obj):
     """
     Return the dimensions of any object that has them.
 
-    Slightly more general than :attr:`Quantity.dimensions` because it will
-    return DIMENSIONLESS if the object is of number type but not a Quantity
-    (e.g. a float or int).
+    Slightly more general than `Quantity.dimensions` because it will
+    return `DIMENSIONLESS` if the object is of number type but not a `Quantity`
+    (e.g. a `float` or `int`).
 
     Parameters
     ----------
-    obj : object
+    obj : `object`
         The object to check.
 
     Returns
     -------
-    dim: Dimension
+    dim: `Dimension`
         The dimensions of the `obj`.
     """
     if isNumberType(obj) and not isinstance(obj, Quantity):
@@ -544,12 +542,12 @@ def is_dimensionless(obj):
 
     Parameters
     ----------
-    obj : object
+    obj : `object`
         The object to check.
 
     Returns
     -------
-    dimensionless : bool
+    dimensionless : `bool`
         ``True`` if `obj` is dimensionless.
     """
     return get_dimensions(obj) is DIMENSIONLESS
@@ -560,12 +558,12 @@ def have_same_dimensions(obj1, obj2):
 
     Parameters
     ----------
-    obj1, obj2 : {Quantity, array-like, number}
+    obj1, obj2 : {`Quantity`, array-like, number}
         The values of which to compare the dimensions.
 
     Returns
     -------
-    same : bool
+    same : `bool`
         ``True`` if `obj1` and `obj2` have the same dimensions.
     """
     
@@ -589,14 +587,14 @@ def display_in_unit(x, u):
 
     Parameters
     ----------
-    x : {Quantity, array-like, number}
+    x : {`Quantity`, array-like, number}
         The value to display
-    u : {Quantity, Unit}
+    u : {`Quantity`, `Unit`}
         The unit to display the value `x` in.
 
     Returns
     -------
-    s : str
+    s : `str`
         A string representation of `x` in units of `u`.
 
     Examples
@@ -626,24 +624,25 @@ def display_in_unit(x, u):
             s += str(u.dim)
     return s.strip()
 
+
 def quantity_with_dimensions(floatval, dims):
     '''
-    Create a new Quantity with the given dimensions. Calls
-    :func:`get_or_create_dimensions` with the dimension tuple of the `dims`
+    Create a new `Quantity` with the given dimensions. Calls
+    `get_or_create_dimensions` with the dimension tuple of the `dims`
     argument to make sure that unpickling (which calls this function) does not
     accidentally create new Dimension objects which should instead refer to
     existing ones.
 
     Parameters
     ----------
-    floatval : float
+    floatval : `float`
         The floating point value of the quantity.
-    dims : Dimension
+    dims : `Dimension`
         The dimensions of the quantity.
 
     Returns
     -------
-    q : Quantity
+    q : `Quantity`
         A quantity with the given dimensions.
 
     Examples
@@ -880,25 +879,25 @@ class Quantity(np.ndarray, object):
     @staticmethod
     def with_dimensions(value, *args, **keywords):
         """
-        Create a Quantity object with dimensions.
+        Create a `Quantity` object with dimensions.
 
         Parameters
         ----------
         value : {array_like, number}
             The value of the dimension
-        args : {Dimension, sequence of float}
-            Either a single argument (a Dimension) or a sequence of 7 values.
+        args : {`Dimension`, sequence of float}
+            Either a single argument (a `Dimension`) or a sequence of 7 values.
         kwds
-            Keywords defining the dimensions, see Dimension for details.
+            Keywords defining the dimensions, see `Dimension` for details.
 
         Returns
         -------
-        q : Quantity
-            A Quantity object with the given dimensions
+        q : `Quantity`
+            A `Quantity` object with the given dimensions
 
         Examples
         --------
-        All of these define an equivalent Quantity object:
+        All of these define an equivalent `Quantity` object:
 
         >>> from brian2 import *
         >>> Quantity.with_dimensions(2, get_or_create_dimension(length=1))
@@ -938,12 +937,12 @@ class Quantity(np.ndarray, object):
 
         Parameters
         ----------
-        other : {Quantity, array-like, number}
+        other : {`Quantity`, array-like, number}
             The object to compare the dimensions against.
 
         Returns
         -------
-        same : bool
+        same : `bool`
             ``True`` if `other` has the same dimensions.
         """
         if not unit_checking:
@@ -960,15 +959,15 @@ class Quantity(np.ndarray, object):
 
         Parameters
         ----------
-        u : {Quantity, Unit}
+        u : {`Quantity`, `Unit`}
             The unit in which to show the quantity.
-        python_code : bool, optional
+        python_code : `bool`, optional
             Whether to return valid python code (``True``) or a human readable
             string (``False``, the default).
 
         Returns
         -------
-        s : str
+        s : `str`
             String representation of the object in unit `u`.
 
         See Also
@@ -1001,7 +1000,21 @@ class Quantity(np.ndarray, object):
         """
         Represent the quantity in the "best" unit.
 
-        TODO
+        Parameters
+        ----------
+        python_code : `bool`, optional
+            If set to ``False`` (the default), will return a string like
+            ``5.0 um^2`` which is not a valid Python expression. If set to
+            ``True``, it will return ``5.0 * um ** 2`` instead.
+        regs : `UnitRegistry` objects
+            The registries where to search for units. If none are given, the
+            standard, user-defined and additional registries are searched in
+            that order.
+        
+        Returns
+        -------
+        representation : `str`
+            A string representation of this `Quantity`.
         """
         u = _get_best_unit(self, *regs)
         return self.in_unit(u, python_code)
@@ -1073,10 +1086,11 @@ class Quantity(np.ndarray, object):
                 self.dim = dim_operation(self.dim, get_dimensions(other))
                 return self
             else:
+                other_dim = get_dimensions(other)
                 return Quantity.with_dimensions(operation(np.asarray(self),
                                                           np.asarray(other)),
                                                 dim_operation(self.dim,
-                                                              get_dimensions(other)))
+                                                              other_dim))
         else:
             return NotImplemented
 
@@ -1159,8 +1173,8 @@ class Quantity(np.ndarray, object):
     def __rpow__(self, other):
         if self.is_dimensionless:
             if isinstance(other, np.ndarray) or isinstance(other, np.ndarray):
-                return Quantity.with_dimensions(np.asarray(other)**np.asarray(self),
-                                                DIMENSIONLESS)
+                new_array = np.asarray(other)**np.asarray(self)
+                return Quantity.with_dimensions(new_array, DIMENSIONLESS)
             else:
                 return NotImplemented
         else:
@@ -1343,25 +1357,15 @@ class Unit(Quantity):
     Normally, you do not need to worry about the implementation of
     units. They are derived from the `Quantity` object with
     some additional information (name and string representation).
-    You can define new units which will be used when generating
-    string representations of quantities simply by doing an
-    arithmetical operation with only units, for example::
-
-        Nm = newton * metre
-
-    Note that operations with units are slower than operations with
-    `Quantity` objects, so for efficiency if you do not need the
-    extra information that a `Unit` object carries around, write
-    ``1*second`` in preference to ``second``.
-
-    Basically, a unit is just a quantity with given dimensions, e.g.
+    
+    Basically, a unit is just a number with given dimensions, e.g.
     mvolt = 0.001 with the dimensions of voltage. The units module
     defines a large number of standard units, and you can also define
     your own (see below).
 
     The unit class also keeps track of various things that were used
     to define it so as to generate a nice string representation of it.
-    See Representation below.
+    See below.
 
     When creating scaled units, you can use the following prefixes:
 
@@ -1391,27 +1395,28 @@ class Unit(Quantity):
      10^-24     yocto   y
      ======     ======  ==============
 
-    Defining your own:
+   **Defining your own**
 
     It can be useful to define your own units for printing
     purposes. So for example, to define the newton metre, you
-    write::
+    write
+    >>> from brian2.units.allunits import metre, newton
+    >>> Nm = newton * metre
 
-        Nm = newton * metre
+    You can then do
 
-    Writing::
-
-        print (1*Nm).in_unit(Nm)
-
-    will return ``"1 Nm"`` because the `Unit` class generates a new
-    display name of ``"Nm"`` from the display names ``"N"`` and ``"m"`` for
-    newtons and metres automatically (see Representation below).
+    >>> print (1*Nm).in_unit(Nm)
+    1.0 N m
+    
+    which returns ``"1 N m"`` because the `Unit` class generates a new
+    display name of ``"N m"`` from the display names ``"N"`` and ``"m"`` for
+    newtons and metres automatically.
 
     To register this unit for use in the automatic printing
     of the `Quantity.in_best_unit` method, see the documentation
     for the `~brian2.units.fundamentalunits.UnitRegistry` class.
 
-    Construction:
+    **Construction**
 
     The best way to construct a new unit is to use standard units
     already defined and arithmetic operations, e.g. ``newton*metre``.
@@ -1421,7 +1426,7 @@ class Unit(Quantity):
     If you don't like the automatically generated display name for
     the unit, use the `Unit.set_display_name` method.
 
-    Representation:
+    **Representation**
 
     A new unit defined by multiplication, division or taking powers
     generates a name for the unit automatically, so that for
@@ -1440,7 +1445,6 @@ class Unit(Quantity):
 
     Methods
     -------
-
     create
     create_scaled_unit
     set_name
@@ -1500,13 +1504,13 @@ class Unit(Quantity):
 
         Parameters
         ----------
-        dim : Dimension
+        dim : `Dimension`
             The dimensions of the unit.
-        name : str, optional
+        name : `str`, optional
             The full name of the unit, e.g. ``'volt'``
-        dispname : str, optional
+        dispname : `str`, optional
             The display name, e.g. ``'V'``
-        scalefactor : str, optional
+        scalefactor : `str`, optional
             The scaling factor, e.g. ``'m'`` for mvolt
         keywords
             The scaling for each SI dimension, e.g. ``length="m"``,
@@ -1514,7 +1518,8 @@ class Unit(Quantity):
 
         Returns
         -------
-        u : Unit
+        u : `Unit`
+            The new unit.
         """
         scale = [ "", "", "", "", "", "", "" ]
         for k in keywords:
@@ -1537,15 +1542,16 @@ class Unit(Quantity):
 
         Parameters
         ----------
-        baseunit : Unit
+        baseunit : `Unit`
             The unit of which to create a scaled version, e.g. ``volt``,
             ``amp``.
-        scalefactor : str
+        scalefactor : `str`
             The scaling factor, e.g. ``"m"`` for mvolt, mamp
 
         Returns
         -------
-        u : Unit
+        u : `Unit`
+            The new unit.
         """
         u = Unit(np.asarray(baseunit) * _siprefixes[scalefactor],
                  dim=baseunit.dim, scale=baseunit.scale)
@@ -1737,10 +1743,10 @@ class UnitRegistry(object):
 
         m=abs(x/u)
 
-        for all matching units u. If there is a unit u with a value of
-        m in [1,1000) then we select that unit. Otherwise, we select
-        the first matching unit (which will typically be the unscaled
-        version).
+        for all matching units u. If there are units u where m lies between 0.1
+        and 1000, we select the unit u where this property is fulfilled for the
+        most array members. Otherwise, we select the first matching unit
+        (which will typically be the unscaled version).
         """
         matching = self.units_for_dimensions.get(x.dim, [])
         if len(matching) == 0:
@@ -1761,7 +1767,7 @@ def register_new_unit(u):
 
     Parameters
     ----------
-    u : Unit
+    u : `Unit`
         The unit that should be registered.
 
     Examples
@@ -1780,7 +1786,21 @@ additional_unit_register = UnitRegistry()
 UserUnitRegister = UnitRegistry()
 
 def all_registered_units(*regs):
-    """Return all registered units in the correct order.
+    """
+    Generator returning all registered units.
+    
+    Parameters
+    ----------
+    regs : any number of `UnitRegistry` objects.
+        If given, units from the given registries are returned. If none are
+        given, units are returned from the standard units, the user-registered
+        units and the "additional units" (e.g. ``newton * metre``) in that
+        order. 
+    
+    Returns
+    -------
+        u : `Unit`
+            A single unit from the registry.
     """
     if not len(regs):
         regs = [standard_unit_register,
@@ -1790,13 +1810,24 @@ def all_registered_units(*regs):
         for u in r.units:
             yield u
 
+
 def _get_best_unit(x, *regs):
     """
-    Return the best unit for quantity `x`.
+    Return the best unit for a `Quantity`.
+    
+    Parameters
+    ----------
+    x : `Quantity`
+        The quantity for which the unit should be found.
+        
+    regs : any number of `UnitRegistry` objects
+        The registries that are searched for units. If none are provided, it
+        will check the standard, user and additional unit registers in turn.
 
-    Checks the registries regs, unless none are provided in which
-    case it will check the standard, user and additional unit
-    registers in turn.
+    Returns
+    -------
+        u : `Quantity` or `Unit`
+            The best-fitting unit for the quantity `x`.
     """
     if get_dimensions(x) is DIMENSIONLESS:
         return Quantity(1)
@@ -1817,12 +1848,12 @@ def get_unit(x, *regs):
 
     Parameters
     ----------
-    x : {Quantity, array-like, number}
+    x : {`Quantity`, array-like, number}
         The value to find a unit for.
 
     Returns
     -------
-    q : Quantity
+    q : `Quantity`
         The equivalent Unit for the quantity `x` or a Quantity with the same
         dimensions and value 1.
     '''
@@ -1831,44 +1862,55 @@ def get_unit(x, *regs):
             return u
     return Quantity.with_dimensions(1, get_dimensions(x))
 
+
 def get_unit_fast(x):
     '''
-    Return a quantity with value 1 and the same dimensions.
+    Return a `Quantity` with value 1 and the same dimensions.
     '''
     return Quantity.with_dimensions(1, get_dimensions(x))
 
-#### DECORATORS
 
+#### DECORATORS
 
 def check_units(**au):
     """Decorator to check units of arguments passed to a function
 
-    **Sample usage:** ::
-
-        @check_units(I=amp,R=ohm,wibble=metre,result=volt)
-        def getvoltage(I,R,**k):
-            return I*R
+    Examples
+    --------
+    >>> from brian2.units import *
+    >>> @check_units(I=amp, R=ohm, wibble=metre, result=volt)
+    ... def getvoltage(I, R, **k):
+    ...     return I*R
 
     You don't have to check the units of every variable in the function, and
     you can define what the units should be for variables that aren't
     explicitly named in the definition of the function. For example, the code
-    above checks that the variable wibble should be a length, so writing::
+    above checks that the variable wibble should be a length, so writing
 
-        getvoltage(1*amp,1*ohm,wibble=1)
+    >>> getvoltage(1*amp, 1*ohm, wibble=1)
+    Traceback (most recent call last):
+    ...
+    DimensionMismatchError: Function "getvoltage" variable "wibble" has wrong dimensions, dimensions were (1) (m)
 
-    would fail, but::
+    fails, but
 
-        getvoltage(1*amp,1*ohm,wibble=1*metre)
+    >>> getvoltage(1*amp, 1*ohm, wibble=1*metre)
+    array(1.0) * volt
 
-    would pass.
-    String arguments are not checked (e.g. ``getvoltage(wibble='hello')``
-    would pass).
+    passes. String arguments or ``None`` are not checked
+    
+    >>> getvoltage(1*amp, 1*ohm, wibble='hello')
+    array(1.0) * volt
+    
+    By using the special name ``result``, you can check the return value of the
+    function.
 
-    The special name ``result`` is for the return value of the function.
+    Raises
+    ------
 
-    An error in the input value raises a :exc:`DimensionMismatchError`, and an
-    error in the return value raises an ``AssertionError`` (because it is a code
-    problem rather than a value problem).
+    DimensionMismatchError
+        In case the input arguments or the return value do not have the
+        expected dimensions.
 
     Notes
     -----
@@ -1892,17 +1934,20 @@ def check_units(**au):
                 if (k in au.keys() and not isinstance(newkeyset[k], str) and
                                        not newkeyset[k] is None):
                     if not have_same_dimensions(newkeyset[k], au[k]):
-                        raise DimensionMismatchError("Function " + f.__name__ +
-                                                     " variable " + k +
-                                                     " should have dimensions of " +
-                                                     str(au[k]),
-                                                     get_dimensions(newkeyset[k]))
+                        error_message = ('Function "' + f.__name__ +
+                                         '" variable "' + k +
+                                         '" has wrong dimensions')
+                        raise DimensionMismatchError(error_message,
+                                                     get_dimensions(newkeyset[k]),
+                                                     au[k])
             result = f(*args, **kwds)
-            if "result" in au:
-                assert have_same_dimensions(result, au["result"]), \
-                    ("Function " + f.__name__ + " should return a value with unit " +
-                     str(au["result"]) + " but has returned " +
-                     str(get_dimensions(result)))
+            if 'result' in au:
+                if not have_same_dimensions(result, au['result']):
+                    error_message = ('The return value of function "' +
+                                     f.__name__ + '" has wrong dimensions')
+                    raise DimensionMismatchError(error_message,
+                                                 get_dimensions(result),
+                                                 get_dimensions(au['result']))
             return result
         new_f.__doc__ = f.__doc__
         new_f.__name__ = f.__name__

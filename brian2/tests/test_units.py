@@ -738,7 +738,7 @@ def test_check_units():
     # Should work (returns second)
     b_function(True)
     # Should fail (returns volt)
-    assert_raises(AssertionError, lambda: b_function(False))
+    assert_raises(DimensionMismatchError, lambda: b_function(False))
 
 
 def test_get_unit():
