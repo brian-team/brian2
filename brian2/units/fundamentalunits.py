@@ -31,7 +31,6 @@ __all__ = [
     ]
 
 
-warn_if_no_unit_checking = True
 unit_checking = True
 
 def _flatten(iterable):
