@@ -568,6 +568,10 @@ def have_same_dimensions(obj1, obj2):
     same : bool
         ``True`` if `obj1` and `obj2` have the same dimensions.
     """
+    
+    if not unit_checking:
+        return True  # ignore units when unit checking is disabled
+    
     # If dimensions are consistently created using get_or_create_dimensions,
     # the fast "is" comparison should always return the correct result.
     # To be safe, we also do an equals comparison in case it fails. This
@@ -942,7 +946,11 @@ class Quantity(np.ndarray, object):
         same : bool
             ``True`` if `other` has the same dimensions.
         """
-        return self.dim == get_dimensions(other)
+        if not unit_checking:
+            return True  # ignore units if unit checking is disabled
+        
+        other_dim = get_dimensions(other)
+        return (self.dim is other_dim) or (self.dim == other_dim) 
 
     def in_unit(self, u, python_code=False):
         """
