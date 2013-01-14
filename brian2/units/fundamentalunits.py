@@ -1164,7 +1164,6 @@ class Quantity(np.ndarray, object):
     def __pow__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
             fail_for_dimension_mismatch(other, error_message='Power')
-            # FIXME do not allow multiple values for exponent
             return Quantity.with_dimensions(np.asarray(self)**np.asarray(other),
                                             self.dim**np.asarray(other))
         else:
@@ -1183,7 +1182,6 @@ class Quantity(np.ndarray, object):
     def __ipow__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
             fail_for_dimension_mismatch(other, error_message='Power')
-            # FIXME do not allow multiple values for exponent
             super(Quantity, self).__ipow__(np.asarray(other))
             self.dim = self.dim ** np.asarray(other)
             return self
