@@ -79,6 +79,10 @@ def test_get_dimensions():
     assert get_dimensions(5) is DIMENSIONLESS
     assert_raises(TypeError, lambda: get_dimensions('a string'))
     
+    # wrong number of indices
+    assert_raises(ValueError, lambda: get_or_create_dimension([1, 2, 3, 4, 5, 6]))
+    # not a sequence
+    assert_raises(ValueError, lambda: get_or_create_dimension(42))
 
 def test_display():
     '''
@@ -141,6 +145,17 @@ def test_str_repr():
         assert(len(str(u)) > 0)
         assert_equal(eval(repr(u)), u)
 
+    # test the `DIMENSIONLESS` object
+    assert str(DIMENSIONLESS) == '1'
+    assert repr(DIMENSIONLESS) == 'Dimension()'
+    
+    # test DimensionMismatchError (only that it works without raising an error
+    for error in [DimensionMismatchError('A description'),
+                  DimensionMismatchError('A description', DIMENSIONLESS),
+                  DimensionMismatchError('A description', DIMENSIONLESS,
+                                         second.dim)]:
+        assert len(str(error))
+        assert len(repr(error))
 
 # Slicing and indexing, setting items
 def test_slicing():
@@ -513,7 +528,7 @@ def test_unitsafe_functions():
 
 def test_special_case_numpy_functions():
     '''
-    Test a couple of functions that need special treatment.
+    Test a couple of functions/methods that need special treatment.
     '''
     from brian2.units.unitsafefunctions import ravel, diagonal, trace, dot, where
     
@@ -548,12 +563,19 @@ def test_special_case_numpy_functions():
     assert_equal(np.dot(np.asarray(quadratic_matrix), np.asarray(quadratic_matrix)),
                  dot(np.asarray(quadratic_matrix), np.asarray(quadratic_matrix)))
     
+    assert_equal(np.asarray(quadratic_matrix.prod()),
+                 np.asarray(quadratic_matrix).prod())
+    assert_equal(np.asarray(quadratic_matrix.prod(axis=0)),
+                 np.asarray(quadratic_matrix).prod(axis=0))
+        
     # Check for correct units
     assert have_same_dimensions(quadratic_matrix, ravel(quadratic_matrix))
     assert have_same_dimensions(quadratic_matrix, trace(quadratic_matrix))
     assert have_same_dimensions(quadratic_matrix, diagonal(quadratic_matrix))
     assert have_same_dimensions(quadratic_matrix[0] ** 2,
                                 dot(quadratic_matrix, quadratic_matrix))
+    assert have_same_dimensions(quadratic_matrix.prod(axis=0),
+                                quadratic_matrix[0] ** quadratic_matrix.shape[0])
     
     # check the where function
     # pure numpy array
@@ -762,8 +784,9 @@ def test_switching_off_unit_checks():
     assert_raises(DimensionMismatchError, lambda: x + y)
     fundamentalunits.unit_checking = False
     # Now it should work
-    assert np.asarray(x + y) == np.array(8)
-    
+    assert np.asarray(x + y) == np.array(8)    
+    assert have_same_dimensions(x, y)
+    assert x.has_same_dimensions(y)
     fundamentalunits.unit_checking = True
     
 def test_fail_for_dimension_mismatch():
