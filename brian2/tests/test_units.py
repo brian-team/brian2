@@ -16,7 +16,7 @@ from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            get_dimensions,
                                            DimensionMismatchError,
                                            check_units,
-                                           display_in_unit,
+                                           in_unit,
                                            get_unit, get_unit_fast,
                                            get_or_create_dimension,
                                            DIMENSIONLESS,
@@ -88,12 +88,12 @@ def test_display():
     '''
     Test displaying a quantity in different units
     '''
-    assert_equal(display_in_unit(3 * volt, mvolt), '3000.0 mV')
-    assert_equal(display_in_unit(10 * mV, ohm * amp), '0.01 ohm A')
-    assert_raises(DimensionMismatchError, lambda: display_in_unit(10 * nS, ohm))
+    assert_equal(in_unit(3 * volt, mvolt), '3000.0 mV')
+    assert_equal(in_unit(10 * mV, ohm * amp), '0.01 ohm A')
+    assert_raises(DimensionMismatchError, lambda: in_unit(10 * nS, ohm))
     
     # A bit artificial...
-    assert_equal(display_in_unit(10.0, Unit(10)), '1.0')
+    assert_equal(in_unit(10.0, Unit(10)), '1.0')
 
 
 def test_pickling():

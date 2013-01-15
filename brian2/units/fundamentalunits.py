@@ -25,7 +25,7 @@ import numpy as np
 __all__ = [
     'DimensionMismatchError', 'get_or_create_dimension',
     'get_dimensions', 'is_dimensionless', 'have_same_dimensions',
-    'display_in_unit', 'Quantity', 'Unit', 'register_new_unit',
+    'in_unit', 'Quantity', 'Unit', 'register_new_unit',
     'check_units', 'is_scalar_type', 'get_unit', 'get_unit_fast',
     'unit_checking'
     ]
@@ -581,7 +581,7 @@ def have_same_dimensions(obj1, obj2):
     return (dim1 is dim2) or (dim1 == dim2)
 
 
-def display_in_unit(x, u):
+def in_unit(x, u):
     """
     Display a value in a certain unit.
 
@@ -600,21 +600,21 @@ def display_in_unit(x, u):
     Examples
     --------
     >>> from brian2 import *
-    >>> display_in_unit(3 * volt, mvolt)
+    >>> in_unit(3 * volt, mvolt)
     '3000.0 mV'
-    >>> display_in_unit(10 * uA/cm**2, nA/um**2)
+    >>> in_unit(10 * uA/cm**2, nA/um**2)
     '0.0001 nA/um^2'
-    >>> display_in_unit(10 * mV, ohm * amp)
+    >>> in_unit(10 * mV, ohm * amp)
     '0.01 ohm A'
-    >>> display_in_unit(10 * nS, ohm) # doctest: +NORMALIZE_WHITESPACE
+    >>> in_unit(10 * nS, ohm) # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
         ...
-    DimensionMismatchError: Non-matching unit for function display_in_unit,
+    DimensionMismatchError: Non-matching unit for function in_unit,
     dimensions were (m^-2 kg^-1 s^3 A^2) (m^2 kg s^-3 A^-2)
     """
     fail_for_dimension_mismatch(x, u,
                                 'Non-matching unit for function '
-                                'display_in_unit')
+                                'in_unit')
 
     s = str(np.asarray(x / u)) + " "
     if not is_dimensionless(u):
@@ -972,7 +972,7 @@ class Quantity(np.ndarray, object):
 
         See Also
         --------
-        display_in_unit
+        in_unit
         """
 
         fail_for_dimension_mismatch(self, u,
@@ -996,6 +996,34 @@ class Quantity(np.ndarray, object):
             return '%s(%s)' % (self.__class__.__name__, s.strip())
         return s.strip()
 
+    def _get_best_unit(self, *regs):
+        """
+        Return the best unit for this `Quantity`.
+        
+        Parameters
+        ----------            
+        regs : any number of `UnitRegistry` objects
+            The registries that are searched for units. If none are provided, it
+            will check the standard, user and additional unit registers in turn.
+    
+        Returns
+        -------
+            u : `Quantity` or `Unit`
+                The best-fitting unit for the quantity `x`.
+        """
+        if self.is_dimensionless:
+            return Unit(1)
+        if len(regs):
+            for r in regs:
+                try:
+                    return r[self]
+                except KeyError:
+                    pass
+            return Quantity.with_dimensions(1, self.dim)
+        else:
+            return self._get_best_unit(standard_unit_register, UserUnitRegister,
+                                       additional_unit_register)
+
     def in_best_unit(self, python_code=False, *regs):
         """
         Represent the quantity in the "best" unit.
@@ -1016,7 +1044,7 @@ class Quantity(np.ndarray, object):
         representation : `str`
             A string representation of this `Quantity`.
         """
-        u = _get_best_unit(self, *regs)
+        u = self._get_best_unit(*regs)
         return self.in_unit(u, python_code)
 
 #==============================================================================
@@ -1807,38 +1835,6 @@ def all_registered_units(*regs):
     for r in regs:
         for u in r.units:
             yield u
-
-
-def _get_best_unit(x, *regs):
-    """
-    Return the best unit for a `Quantity`.
-    
-    Parameters
-    ----------
-    x : `Quantity`
-        The quantity for which the unit should be found.
-        
-    regs : any number of `UnitRegistry` objects
-        The registries that are searched for units. If none are provided, it
-        will check the standard, user and additional unit registers in turn.
-
-    Returns
-    -------
-        u : `Quantity` or `Unit`
-            The best-fitting unit for the quantity `x`.
-    """
-    if get_dimensions(x) is DIMENSIONLESS:
-        return Quantity(1)
-    if len(regs):
-        for r in regs:
-            try:
-                return r[x]
-            except KeyError:
-                pass
-        return Quantity.with_dimensions(1, x.dim)
-    else:
-        return _get_best_unit(x, standard_unit_register, UserUnitRegister,
-                              additional_unit_register)
 
 def get_unit(x, *regs):
     '''
