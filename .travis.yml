@@ -5,11 +5,11 @@ python:
 # install build dependencies
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get build-dep -qq python-scipy python-matplotlib python-sympy python-pyparsing
+  - sudo apt-get build-dep -qq python-scipy python-sympy python-pyparsing
 # command to install dependencies
 install:
   - "pip install . --use-mirrors"
-  - "pip install scipy matplotlib sympy==0.7.1 pyparsing sphinx ipython --use-mirrors"
+  - "pip install scipy sympy==0.7.1 pyparsing sphinx ipython --use-mirrors"
 # command to run tests
 script: nosetests --with-doctest brian2
 notifications:
