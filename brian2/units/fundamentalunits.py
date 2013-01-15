@@ -609,21 +609,16 @@ def in_unit(x, u):
     >>> in_unit(10 * nS, ohm) # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
         ...
-    DimensionMismatchError: Non-matching unit for function in_unit,
+    DimensionMismatchError: Non-matching unit for method "in_unit",
     dimensions were (m^-2 kg^-1 s^3 A^2) (m^2 kg s^-3 A^-2)
     """
-    fail_for_dimension_mismatch(x, u,
-                                'Non-matching unit for function '
-                                'in_unit')
-
-    s = str(np.asarray(x / u)) + " "
-    if not is_dimensionless(u):
-        if isinstance(u, Unit):
-            s += str(u)
-        else:
-            s += str(u.dim)
-    return s.strip()
-
+    if is_dimensionless(x):
+        fail_for_dimension_mismatch(x, u,   
+                                    'Non-matching unit for function '
+                                    '"in_unit"')        
+        return str(np.asarray(x / u))
+    else:
+        return x.in_unit(u)
 
 def quantity_with_dimensions(floatval, dims):
     '''
@@ -649,7 +644,7 @@ def quantity_with_dimensions(floatval, dims):
     --------
     >>> from brian2 import *
     >>> quantity_with_dimensions(0.001, volt.dim)
-    array(1.0) * mvolt
+    1.0 * mvolt
 
     See Also
     --------
@@ -901,11 +896,11 @@ class Quantity(np.ndarray, object):
 
         >>> from brian2 import *
         >>> Quantity.with_dimensions(2, get_or_create_dimension(length=1))
-        array(2.0) * metre
+        2.0 * metre
         >>> Quantity.with_dimensions(2, length=1)
-        array(2.0) * metre
+        2.0 * metre
         >>> 2 * metre
-        array(2.0) * metre
+        2.0 * metre
         """
         x = Quantity(value)
         if len(args) and isinstance(args[0], Dimension):
@@ -951,7 +946,7 @@ class Quantity(np.ndarray, object):
         other_dim = get_dimensions(other)
         return (self.dim is other_dim) or (self.dim == other_dim) 
 
-    def in_unit(self, u, python_code=False):
+    def in_unit(self, u, precision=None, python_code=False):
         """
         Represent the quantity in a given unit. If `python_code` is ``True``,
         this will return valid python code, i.e. a string like ``5.0 * um ** 2``
@@ -961,6 +956,9 @@ class Quantity(np.ndarray, object):
         ----------
         u : {`Quantity`, `Unit`}
             The unit in which to show the quantity.
+        precision : `int', optional
+            The number of digits of precision (in the given unit, see Examples).
+            If no value is given, numpy's :np:`get_printoptions` value is used.
         python_code : `bool`, optional
             Whether to return valid python code (``True``) or a human readable
             string (``False``, the default).
@@ -970,17 +968,44 @@ class Quantity(np.ndarray, object):
         s : `str`
             String representation of the object in unit `u`.
 
+        Examples
+        --------
+        >>> from brian2.units import *
+        >>> from brian2.units.stdunits import *
+        >>> x = 25.123456 * mV
+        >>> x.in_unit(volt)
+        '0.02512346 V'
+        >>> x.in_unit(volt, 3)
+        '0.025 V'
+        >>> x.in_unit(mV, 3)
+        '25.123 mV'
+        
         See Also
         --------
         in_unit
         """
 
         fail_for_dimension_mismatch(self, u,
-                                    "Non-matching unit for method in_unit")
-        if python_code:
-            s = repr(np.asarray(self / u)) + " "
+                                    'Non-matching unit for method "in_unit"')
+        if precision is None:
+            precision = np.get_printoptions()['precision']
+        
+        value = np.asarray(self / u)
+        # numpy uses the printoptions setting only in arrays, not in array scalars
+        if value.size == 1:
+            if python_code:
+                s = repr(np.round(value, precision)) + ' '
+            else:
+                s = str(np.round(value, precision)) + ' '
         else:
-            s = str(np.asarray(self / u)) + " "
+            # use numpy's mechanism but don't overwrite the setting
+            old_precision = np.get_printoptions()['precision']
+            np.set_printoptions(precision)
+            if python_code:
+                s = repr(value) + ' '
+            else:
+                s = str(value) + ' '
+            np.set_printoptions(old_precision)
         if not u.is_dimensionless:
             if isinstance(u, Unit):
                 if python_code:
@@ -989,7 +1014,7 @@ class Quantity(np.ndarray, object):
                     s += str(u)
             else:
                 if python_code:
-                    s += "* " + repr(u.dim)
+                    s += '* ' + repr(u.dim)
                 else:
                     s += str(u.dim)
         elif python_code == True:  # Make a quantity without unit recognisable
@@ -1024,7 +1049,7 @@ class Quantity(np.ndarray, object):
             return self._get_best_unit(standard_unit_register, UserUnitRegister,
                                        additional_unit_register)
 
-    def in_best_unit(self, python_code=False, *regs):
+    def in_best_unit(self, precision=None, python_code=False, *regs):
         """
         Represent the quantity in the "best" unit.
 
@@ -1034,6 +1059,10 @@ class Quantity(np.ndarray, object):
             If set to ``False`` (the default), will return a string like
             ``5.0 um^2`` which is not a valid Python expression. If set to
             ``True``, it will return ``5.0 * um ** 2`` instead.
+        precision : `int', optional
+            The number of digits of precision (in the best unit, see
+            Examples). If no value is given, numpy's
+            :np:`get_printoptions` value is used.            
         regs : `UnitRegistry` objects
             The registries where to search for units. If none are given, the
             standard, user-defined and additional registries are searched in
@@ -1043,9 +1072,25 @@ class Quantity(np.ndarray, object):
         -------
         representation : `str`
             A string representation of this `Quantity`.
+        
+        Examples
+        --------
+        >>> from brian2.units import *
+        
+        >>> x = 0.00123456 * volt
+        
+        >>> x.in_best_unit()
+        '1.23456 mV'
+        
+        >>> x.in_best_unit(3)
+        '1.235 mV'
+        
+        See Also
+        --------
+        in_best_unit
         """
         u = self._get_best_unit(*regs)
-        return self.in_unit(u, python_code)
+        return self.in_unit(u, precision=precision, python_code=python_code)
 
 #==============================================================================
 # Overwritten ndarray methods
@@ -1800,10 +1845,10 @@ def register_new_unit(u):
     --------
     >>> from brian2 import *
     >>> 2.0*farad/metre**2
-    array(2.0) * metre ** -4 * kilogram ** -1 * second ** 4 * amp ** 2
+    2.0 * metre ** -4 * kilogram ** -1 * second ** 4 * amp ** 2
     >>> register_new_unit(pfarad / mmetre**2)
     >>> 2.0*farad/metre**2
-    array(2000000.0) * pfarad / mmetre ** 2
+    2000000.0 * pfarad / mmetre ** 2
     """
     UserUnitRegister.add(u)
 
@@ -1889,12 +1934,12 @@ def check_units(**au):
     fails, but
 
     >>> getvoltage(1*amp, 1*ohm, wibble=1*metre)
-    array(1.0) * volt
+    1.0 * volt
 
     passes. String arguments or ``None`` are not checked
     
     >>> getvoltage(1*amp, 1*ohm, wibble='hello')
-    array(1.0) * volt
+    1.0 * volt
     
     By using the special name ``result``, you can check the return value of the
     function.
