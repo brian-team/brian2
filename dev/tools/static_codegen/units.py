@@ -84,11 +84,6 @@ for bu in all_units + []:
         all_units.append(u)
         if bu not in excluded_scaled_units:
             powered_units.append(u)
-            
-# Handle the removal of all units
-definitions += '\nif not bup.use_units:\n'
-for u in all_units:
-    definitions += '    {u} = float({u})\n'.format(u=u)
 
 # Add unit names to __all__
 all = '''

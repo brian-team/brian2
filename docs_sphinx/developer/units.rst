@@ -48,7 +48,7 @@ quantities return a quantity.::
 	DimensionMismatchError: Addition, dimensions were (s) (1)
 	
 	>> 1 * second  + 1 * second
-	array(2.0) * second
+	2.0 * second
 	
 	>> np.array([1]) * second  + 1 * second
 	array([ 2.]) * second
@@ -231,10 +231,10 @@ Some expressions and their return values in Brian 1 and Brian 2
 ================================    ================================    =================================
 Expression                          Brian 1                             Brian 2
 ================================    ================================    =================================
-1 * mV                              1.0 * mvolt                         array(1.0) * mvolt
-array(1) * mV                       0.001                               array(1.0) * mvolt
-array([1]) * mV                     array([ 0.001])                     array([1.]) * mvolt
-mean(np.arange(5) * mV)             0.002                               array(2.0) * mvolt
+1 * mV                              1.0 * mvolt                         1.0 * mvolt
+np.array(1) * mV                    0.001                               1.0 * mvolt
+np.array([1]) * mV                  array([ 0.001])                     array([1.]) * mvolt
+np.mean(np.arange(5) * mV)          0.002                               2.0 * mvolt
 np.arange(2) * mV                   array([ 0.   ,  0.001])             array([ 0.,  1.]) * mvolt
 (np.arange(2) * mV) >= 1 * mV       array([False, True], dtype=bool)    array([False, True], dtype=bool)
 (np.arange(2) * mV)[0] >= 1 * mV    False                               False

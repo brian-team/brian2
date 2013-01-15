@@ -1,6 +1,7 @@
 """
 Unit-aware replacements for numpy functions.
 """
+from functools import wraps
 
 import numpy as np
 
@@ -17,25 +18,25 @@ __all__ = [
          'where'
          ]
 
-def where(condition, *args):  # pylint: disable=C0111
+@wraps(np.where)
+def where(condition, *args, **kwds):  # pylint: disable=C0111
     if len(args) == 0:
         # nothing to do
-        return np.where(condition)
+        return np.where(condition, *args, **kwds)
     elif len(args) == 2:
         # check that x and y have the same dimensions
         fail_for_dimension_mismatch(args[0], args[1],
                                     'x and y need to have the same dimensions')
 
         if is_dimensionless(args[0]):
-            return np.where(condition, *args)
+            return np.where(condition, *args, **kwds)
         else:
             # as both arguments have the same unit, just use the first one's
             return Quantity.with_dimensions(np.where(condition, *args),
                                             args[0].dimensions)
     else:
         # illegal number of arguments, let numpy take care of this
-        return np.where(condition, *args)
-where.__doc__ = np.where.__doc__
+        return np.where(condition, *args, **kwds)
 
 # Functions that work on dimensionless quantities only
 sin = wrap_function_dimensionless(np.sin)
@@ -61,16 +62,13 @@ def wrap_function_to_method(func):
     Quantities object (if called with a Quantities object as the first
     argument). All other arguments are left untouched.
     '''
+    @wraps(func)
     def f(x, *args, **kwds):  # pylint: disable=C0111
         if isinstance(x, Quantity):
             return getattr(x, func.__name__)(*args, **kwds)
         else:
             # no need to wrap anything
             return func(x, *args, **kwds)
-    f.__name__ = func.__name__
-    f.__doc__ = func.__doc__
-    if hasattr(func, '__dict__'):
-        f.__dict__.update(func.__dict__)
     return f
 
 # these functions discard subclass info -- maybe a bug in numpy?
@@ -78,6 +76,7 @@ ravel = wrap_function_to_method(np.ravel)
 diagonal = wrap_function_to_method(np.diagonal)
 trace = wrap_function_to_method(np.trace)
 dot = wrap_function_to_method(np.dot)
+
 
 def setup():
     '''
