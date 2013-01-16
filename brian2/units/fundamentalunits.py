@@ -826,20 +826,11 @@ class Quantity(np.ndarray, object):
 
         if dim is not None:
             subarr.dim = dim
-        elif not hasattr(subarr, 'dim'):
-            subarr.dim = DIMENSIONLESS
 
         return subarr
 
     def __array_finalize__(self, orig):
-        # If we already have a dimension, check that it is consistent
-        if hasattr(self, 'dim'):
-            if hasattr(orig, 'dim') and not (self.dim is orig.dim):
-                # TODO: Better error message
-                raise DimensionMismatchError('Mismatching dimensions', self.dim,
-                                             orig.dim)
-        else:
-            self.dim = getattr(orig, 'dim', DIMENSIONLESS)
+        self.dim = getattr(orig, 'dim', DIMENSIONLESS)
 
     def __array_prepare__(self, array, context=None):
         if context is None:
