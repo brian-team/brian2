@@ -6,7 +6,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   reference/index
+   reference/modules
    developer/index
 
 Indices and tables

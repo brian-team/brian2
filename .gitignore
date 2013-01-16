@@ -12,6 +12,7 @@
 dist
 build
 docs
+docs_sphinx/reference
 
 # Unit test / coverage reports
 .coverage
