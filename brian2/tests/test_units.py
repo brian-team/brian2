@@ -57,12 +57,34 @@ def test_construction():
     q = Quantity.with_dimensions(np.array([0.5, 1]), second=1)
     assert_quantity(q, np.array([0.5, 1]), second)
 
+    # dimensionless quantities
+    q = Quantity([1, 2, 3])
+    assert_quantity(q, np.array([1, 2, 3]), Unit(1))
+    q = Quantity(np.array([1, 2, 3]))
+    assert_quantity(q, np.array([1, 2, 3]), Unit(1))
+    
+    # copying/referencing a quantity
+    q1 = Quantity.with_dimensions(np.array([0.5, 1]), second=1)
+    q2 = Quantity(q1) # no copy
+    assert_quantity(q2, np.asarray(q1), q1)
+    q2[0] = 3 * second
+    assert_equal(q1[0], 3*second)
+
+    q1 = Quantity.with_dimensions(np.array([0.5, 1]), second=1)
+    q2 = Quantity(q1, copy=True) # copy
+    assert_quantity(q2, np.asarray(q1), q1)
+    q2[0] = 3 * second
+    assert_equal(q1[0], 0.5*second)
+
     # Illegal constructor calls
     assert_raises(TypeError, lambda: Quantity([500 * ms, 1]))
     assert_raises(DimensionMismatchError, lambda: Quantity([500 * ms,
                                                             1 * volt]))
     assert_raises(DimensionMismatchError, lambda: Quantity([500 * ms],
                                                            dim=volt.dim))
+    q = Quantity.with_dimensions(np.array([0.5, 1]), second=1)
+    assert_raises(DimensionMismatchError, lambda: Quantity(q, dim=volt.dim))
+
 
 def test_get_dimensions():
     '''
@@ -606,6 +628,7 @@ def test_numpy_functions_same_dimensions():
     values = [3, np.array([1, 2]), np.ones((3, 3))]
     units = [volt, second, siemens, mV, kHz]
 
+    # numpy functions
     keep_dim_funcs = [np.abs, np.cumsum, np.max, np.mean, np.min, np.negative,
                       np.ptp, np.round, np.squeeze, np.std, np.sum,
                       np.transpose]
@@ -619,6 +642,20 @@ def test_numpy_functions_same_dimensions():
                                       '%s') % (func.__name__, repr(q_ar),
                                                q_ar.dim,
                                                get_dimensions(test_ar)))
+    
+    # Python builtins should work on one-dimensional arrays
+    value = np.arange(5)
+    builtins = [abs, max, min, sum]
+    for unit in units:
+        q_ar = value * unit
+        for func in builtins:
+            test_ar = func(q_ar)
+            if not get_dimensions(test_ar) is q_ar.dim:
+                raise AssertionError(('%s failed on %s -- dim was %s, is now '
+                                      '%s') % (func.__name__, repr(q_ar),
+                                               q_ar.dim,
+                                               get_dimensions(test_ar)))
+
 
 def test_numpy_functions_dimensionless():
     '''
