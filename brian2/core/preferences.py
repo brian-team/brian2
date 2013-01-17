@@ -1,6 +1,11 @@
 '''
 Brian global preferences are stored as attributes of a :class:`BrianGlobalPreferences`
 object ``brian_prefs``.
+
+Built-in preferences
+--------------------
+
+.. document_brian_prefs::
 '''
 import copy
 
