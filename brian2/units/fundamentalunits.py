@@ -593,7 +593,7 @@ def in_unit(x, u, precision=None):
         The unit to display the value `x` in.
     precision : `int`, optional    
         The number of digits of precision (in the given unit, see Examples).
-        If no value is given, numpy's :np:`get_printoptions` value is used.
+        If no value is given, numpy's `get_printoptions` value is used.
 
     Returns
     -------
@@ -638,9 +638,9 @@ def in_best_unit(x, precision=None):
     ----------
     x : {`Quantity`, array-like, number}
         The value to display
-    precision : `int', optional
+    precision : `int`, optional
         The number of digits of precision (in the best unit, see Examples).
-        If no value is given, numpy's :np:`get_printoptions` value is used.            
+        If no value is given, numpy's `get_printoptions` value is used.            
     
     Returns
     -------
@@ -999,9 +999,9 @@ class Quantity(np.ndarray, object):
         ----------
         u : {`Quantity`, `Unit`}
             The unit in which to show the quantity.
-        precision : `int', optional
+        precision : `int`, optional
             The number of digits of precision (in the given unit, see Examples).
-            If no value is given, numpy's :np:`get_printoptions` value is used.
+            If no value is given, numpy's `get_printoptions` value is used.
         python_code : `bool`, optional
             Whether to return valid python code (``True``) or a human readable
             string (``False``, the default).
@@ -1102,10 +1102,10 @@ class Quantity(np.ndarray, object):
             If set to ``False`` (the default), will return a string like
             ``5.0 um^2`` which is not a valid Python expression. If set to
             ``True``, it will return ``5.0 * um ** 2`` instead.
-        precision : `int', optional
+        precision : `int`, optional
             The number of digits of precision (in the best unit, see
             Examples). If no value is given, numpy's
-            :np:`get_printoptions` value is used.            
+            `get_printoptions` value is used.            
         regs : `UnitRegistry` objects
             The registries where to search for units. If none are given, the
             standard, user-defined and additional registries are searched in
