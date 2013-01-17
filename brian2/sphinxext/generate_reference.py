@@ -47,6 +47,7 @@ def format_directive(module, destdir, package=None, basename='brian2'):
     directive = '.. automodule:: %s\n' % makename(package, module)
     for option in OPTIONS:
         directive += '    :%s:\n' % option
+    directive += '\n'
     # document all the classes in the modules
     full_name = basename + '.' + module
     mod = import_module(full_name)
@@ -57,8 +58,8 @@ def format_directive(module, destdir, package=None, basename='brian2'):
         member_module = getattr(member_obj, '__module__', None)
         # only document functions and classes that where defined in this module
         if member_module == full_name:
-            directive += '.. autosummary:: ~%s\n' % (full_name + '.' + member)
-            directive += '    :toctree:\n'
+            directive += '.. autosummary:: %s\n' % (member)
+            directive += '    :toctree:\n\n'
             create_member_file(full_name, member, member_obj, destdir)
     return directive
 
@@ -68,10 +69,10 @@ def create_member_file(module_name, member, member_obj, destdir, suffix='rst'):
     if inspect.isclass(member_obj):
         text = format_heading(1, '%s class' % member)
         text += '.. autoclass:: %s\n' % (module_name + '.' + member)
-        text += '    :members:\n'
+        text += '    :members:\n\n'
     elif inspect.isfunction(member_obj):
         text = format_heading(1, '%s function' % member)
-        text += '.. autofunction:: %s\n' % (module_name + '.' + member)
+        text += '.. autofunction:: %s\n\n' % (module_name + '.' + member)
     else:
         text = format_heading(1, '%s object' % member)
         text += '.. autodata:: %s\n' % (module_name + '.' + member)
