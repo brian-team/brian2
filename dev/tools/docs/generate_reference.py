@@ -72,7 +72,8 @@ def create_member_file(module_name, member, member_obj, destdir, suffix='rst'):
         text = format_heading(1, '%s function' % member)
         text += '.. autofunction:: %s\n' % (module_name + '.' + member)
     else:
-        return
+        text = format_heading(1, '%s object' % member)
+        text += '.. autodata:: %s\n' % (module_name + '.' + member)
 
     write_file(makename(module_name, member), text, destdir, suffix)
 
