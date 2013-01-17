@@ -80,7 +80,7 @@ def create_member_file(module_name, member, member_obj, destdir, suffix='rst'):
 
 
 def create_package_file(root, master_package, subroot, py_files, subs,
-                        destdir, suffix='rst'):
+                        destdir, excludes, suffix='rst'):
     """Build the text of the file and write the file."""
     package = path.split(root)[-1]
     text = format_heading(1, '%s package' % package)
@@ -107,13 +107,14 @@ def create_package_file(root, master_package, subroot, py_files, subs,
         text += format_heading(2, 'Subpackages')
         text += '.. toctree::\n\n'
         for sub in subs:
-            text += '    %s.%s\n' % (makename(master_package, subroot), sub)
+            if not is_excluded(os.path.join(root, sub), excludes):
+                text += '    %s.%s\n' % (makename(master_package, subroot), sub)
         text += '\n'
 
     write_file(makename(master_package, subroot), text, destdir, suffix)
 
 
-def create_modules_toc_file(modules, destdir, suffix='rst', header='brian2',
+def create_modules_toc_file(modules, destdir, excludes, suffix='rst', header='brian2',
                             maxdepth=2, name='modules'):
     """Create the module's index."""
     text = format_heading(1, '%s' % header)
@@ -124,7 +125,7 @@ def create_modules_toc_file(modules, destdir, suffix='rst', header='brian2',
     prev_module = ''
     for module in modules:
         # look if the module is a subpackage and, if yes, ignore it
-        if module.startswith(prev_module + '.'):
+        if module.startswith(prev_module + '.') or is_excluded(module, excludes):
             continue
         prev_module = module
         text += '   %s\n' % module
@@ -178,7 +179,7 @@ def recurse_tree(rootpath, excludes, destdir):
                 subpackage = root[len(rootpath):].lstrip(path.sep).\
                     replace(path.sep, '.')
                 create_package_file(root, root_package, subpackage,
-                                    py_files, subs, destdir)
+                                    py_files, subs, destdir, excludes)
                 toplevels.append(makename(root_package, subpackage))
         else:
             raise AssertionError('Expected it to be a package')
@@ -223,4 +224,4 @@ def main(rootpath, excludes, destdir):
 
     excludes = normalize_excludes(rootpath, excludes)
     modules = recurse_tree(rootpath, excludes, destdir)
-    create_modules_toc_file(modules, destdir)
+    create_modules_toc_file(modules, destdir, excludes)
