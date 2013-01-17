@@ -37,7 +37,7 @@ knowledge of the CeCILL license and that you accept its terms.
 Licenses for incorporated software
 ----------------------------------
 
-The code in dev/tools/doc/generate_references.py is based on sphinx.apidoc
+The code in brian2.sphinxext.generate_reference.py is based on sphinx.apidoc
 (http://sphinx-doc.org, https://bitbucket.org/birkenfeld/sphinx/) availabe
 under the BSD license:
 

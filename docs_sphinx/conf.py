@@ -11,12 +11,22 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import sys, os, shutil
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
+
+# -- Automatically generate the reference documentation ------------------------
+import brian2.sphinxext.generate_reference as generate_reference
+# first generate the reference documentation
+target_dir = './reference'
+if os.path.exists(target_dir):
+    shutil.rmtree(target_dir)
+os.makedirs(target_dir)
+abs_root = os.path.abspath('../brian2')
+generate_reference.main(abs_root, ['tests'], target_dir)
 
 # -- General configuration -----------------------------------------------------
 

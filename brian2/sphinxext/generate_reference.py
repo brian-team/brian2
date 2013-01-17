@@ -58,6 +58,7 @@ def format_directive(module, destdir, package=None, basename='brian2'):
         # only document functions and classes that where defined in this module
         if member_module == full_name:
             directive += '.. autosummary:: ~%s\n' % (full_name + '.' + member)
+            directive += '    :toctree:\n'
             create_member_file(full_name, member, member_obj, destdir)
     return directive
 
