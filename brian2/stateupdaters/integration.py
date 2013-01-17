@@ -184,15 +184,16 @@ class ExplicitStateUpdater(object):
 # Excplicit state updaters
 #===============================================================================
 
-# these objects can be used like functions because they are callable     
+# these objects can be used like functions because they are callable
+#: Forward Euler state updater     
 euler = ExplicitStateUpdater('return x + dt * f(x,t)')
 
-
+#: Second order Runge-Kutta method (midpoint method)
 rk2 = ExplicitStateUpdater('''
     k = dt * f(x,t)
     return x + dt*f(x +  k/2, t + dt/2)''')
 
-
+#: Classical Runge-Kutta method (RK4)
 rk4 = ExplicitStateUpdater('''
     k1=dt*f(x,t)
     k2=dt*f(x+k1/2,t+dt/2)
