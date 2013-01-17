@@ -5,8 +5,9 @@ Contents:
 
 .. toctree::
    :maxdepth: 2
+   :titlesonly:
 
-   reference/modules
+   Reference documentation <reference/brian2>
    developer/index
 
 Indices and tables

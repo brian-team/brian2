@@ -114,25 +114,6 @@ def create_package_file(root, master_package, subroot, py_files, subs,
     write_file(makename(master_package, subroot), text, destdir, suffix)
 
 
-def create_modules_toc_file(modules, destdir, excludes, suffix='rst', header='brian2',
-                            maxdepth=2, name='modules'):
-    """Create the module's index."""
-    text = format_heading(1, '%s' % header)
-    text += '.. toctree::\n'
-    text += '   :maxdepth: %s\n\n' % maxdepth
-
-    modules.sort()
-    prev_module = ''
-    for module in modules:
-        # look if the module is a subpackage and, if yes, ignore it
-        if module.startswith(prev_module + '.') or is_excluded(module, excludes):
-            continue
-        prev_module = module
-        text += '   %s\n' % module
-
-    write_file(name, text, destdir, suffix)
-
-
 def shall_skip(module):
     """Check if we want to skip this module."""
     # skip it if there is nothing (or just \n or \r\n) in the file
@@ -224,4 +205,4 @@ def main(rootpath, excludes, destdir):
 
     excludes = normalize_excludes(rootpath, excludes)
     modules = recurse_tree(rootpath, excludes, destdir)
-    create_modules_toc_file(modules, destdir, excludes)
+
