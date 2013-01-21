@@ -15,7 +15,7 @@ SYMPY_DICT = {'I': sympy.I,
 def parse_to_sympy(expr, local_dict=None):
     '''
     Parses a string into a sympy expression. The reason for not using `sympify`
-    directly is that sympify does a "from sympy import *", adding all functions
+    directly is that sympify does a ``from sympy import *``, adding all functions
     to its namespace. This leads to issues when trying to use sympy function
     names as variable names. For example, both ``beta`` and ``factor`` -- quite
     reasonable names for variables -- are sympy functions, using them as

@@ -1,6 +1,11 @@
 '''
 Brian global preferences are stored as attributes of a :class:`BrianGlobalPreferences`
 object ``brian_prefs``.
+
+Built-in preferences
+--------------------
+
+.. document_brian_prefs::
 '''
 import copy
 
@@ -102,7 +107,16 @@ class BrianGlobalPreferences(object):
             :class:`Quantity` it will check that the units match the default
             value.
         '''
-        if name in self._values:
+        if name in self._values:            
+            if (self._default_values[name] == value and self._docs[name] == doc
+                and (self._validators[name] == validator or
+                     (validator is None and
+                      type(self._validators[name]) == DefaultValidator))):
+                # This is a redefinition but exactly the same as before, just
+                # ignore it.
+                # This may happen during documentation generation where
+                # __import__ is used, bypassing the standard import mechanism
+                return
             raise KeyError("Preference %s already defined.")
         self._values[name] = value
         self._default_values[name] = value

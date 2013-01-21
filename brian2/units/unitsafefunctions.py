@@ -18,7 +18,6 @@ __all__ = [
          'where'
          ]
 
-@wraps(np.where)
 def where(condition, *args, **kwds):  # pylint: disable=C0111
     if len(args) == 0:
         # nothing to do
@@ -37,6 +36,7 @@ def where(condition, *args, **kwds):  # pylint: disable=C0111
     else:
         # illegal number of arguments, let numpy take care of this
         return np.where(condition, *args, **kwds)
+where.__doc__ = np.where.__doc__
 
 # Functions that work on dimensionless quantities only
 sin = wrap_function_dimensionless(np.sin)
@@ -69,6 +69,8 @@ def wrap_function_to_method(func):
         else:
             # no need to wrap anything
             return func(x, *args, **kwds)
+    f.__doc__ = func.__doc__
+    f.__name__ = func.__name__
     return f
 
 # these functions discard subclass info -- maybe a bug in numpy?
@@ -76,6 +78,29 @@ ravel = wrap_function_to_method(np.ravel)
 diagonal = wrap_function_to_method(np.diagonal)
 trace = wrap_function_to_method(np.trace)
 dot = wrap_function_to_method(np.dot)
+
+# This is a very minor detail: setting the __module__ attribute allows the
+# automatic reference doc generation mechanism to attribute the functions to
+# this module. Maybe also helpful for IDEs and other code introspection tools.
+sin.__module__ = __name__
+sinh.__module__ = __name__
+arcsin.__module__ = __name__
+arcsinh.__module__ = __name__
+cos.__module__ = __name__
+cosh.__module__ = __name__
+arccos.__module__ = __name__
+arccosh.__module__ = __name__
+tan.__module__ = __name__
+tanh.__module__ = __name__
+arctan.__module__ = __name__
+arctanh.__module__ = __name__
+
+log.__module__ = __name__
+exp.__module__ = __name__
+ravel.__module__ = __name__
+diagonal.__module__ = __name__
+trace.__module__ = __name__
+dot.__module__ = __name__
 
 
 def setup():
