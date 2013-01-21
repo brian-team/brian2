@@ -51,16 +51,42 @@ def format_directive(module, destdir, package=None, basename='brian2'):
     # document all the classes in the modules
     full_name = basename + '.' + module
     mod = import_module(full_name)
-    members = getattr(mod, '__all__', [])
-    for member in members:
-        _temp = __import__(full_name, {}, {}, [member], 0)
-        member_obj = getattr(_temp, member)
+    dir_members = dir(mod)
+    classes = []
+    functions = []
+    variables = []
+    for member in dir_members:
+        _temp = __import__(full_name, {}, {}, [member], 0)        
+        member_obj = getattr(_temp, member)        
         member_module = getattr(member_obj, '__module__', None)
-        # only document functions and classes that where defined in this module
-        if member_module == full_name:
+        # only document members that where defined in this module
+        if member_module == full_name and not member.startswith('_'):
+            if inspect.isclass(member_obj):
+                classes.append((member, member_obj))
+            elif inspect.isfunction(member_obj):
+                functions.append((member, member_obj))
+            else:
+                variables.append((member, member_obj))
+    
+    if classes:
+        directive += '**Classes**\n\n'
+        for member, member_obj in classes:
             directive += '.. autosummary:: %s\n' % (member)
             directive += '    :toctree:\n\n'
             create_member_file(full_name, member, member_obj, destdir)
+    if functions:
+        directive += '**Functions**\n\n'
+        for member, member_obj in functions:
+            directive += '.. autosummary:: %s\n' % (member)
+            directive += '    :toctree:\n\n'
+            create_member_file(full_name, member, member_obj, destdir)
+    if variables:
+        directive += '**Objects**\n\n'
+        for member, member_obj in variables:
+            directive += '.. autosummary:: %s\n' % (member)
+            directive += '    :toctree:\n\n'
+            create_member_file(full_name, member, member_obj, destdir)
+                
     return directive
 
 
