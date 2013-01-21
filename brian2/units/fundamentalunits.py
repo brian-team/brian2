@@ -1895,8 +1895,11 @@ def register_new_unit(u):
     """
     user_unit_register.add(u)
 
+#: `UnitRegistry` containing all the standard units (metre, kilogram, um2...)
 standard_unit_register = UnitRegistry()
+#: `UnitRegistry` containing additional units (newton*metre, farad / metre, ...) 
 additional_unit_register = UnitRegistry()
+#: `UnitRegistry` containing all units defined by the user
 user_unit_register = UnitRegistry()
 
 def all_registered_units(*regs):
