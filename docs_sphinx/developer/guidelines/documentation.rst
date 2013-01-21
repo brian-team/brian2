@@ -16,6 +16,20 @@ section of the documentation. The idea is to keep the definitive reference
 documentation near the code that it documents, serving as both a comment for
 the code itself, and to keep the documentation up to date with the code.
 
+The reference documentation includes all classes, functions and other objects
+that are defined in the modules and only documents them in the module where
+they were defined. This makes it possible to document a class like
+`~brian2.units.fundamentalunits.Quantity` only in `brian2.units.fundamentalunits`
+and not additionally in `brian2.units` and `brian2`. This mechanism relies on
+the ``__module__`` attribute, in some cases, in particular when wrapping a
+function with a decorator (e.g. `~brian2.units.fundamentalunits.check_units`),
+this attribute has to be set manually::
+
+	foo.__module__ = __name__
+ 
+Without this manual setting, the function might not be documented at all or in
+the wrong module.
+
 Docstrings
 ----------
 
