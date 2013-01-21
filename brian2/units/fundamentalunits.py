@@ -1089,7 +1089,7 @@ class Quantity(np.ndarray, object):
                     pass
             return Quantity.with_dimensions(1, self.dim)
         else:
-            return self._get_best_unit(standard_unit_register, UserUnitRegister,
+            return self._get_best_unit(standard_unit_register, user_unit_register,
                                        additional_unit_register)
 
     def in_best_unit(self, precision=None, python_code=False, *regs):
@@ -1893,11 +1893,11 @@ def register_new_unit(u):
     >>> 2.0*farad/metre**2
     2000000.0 * pfarad / mmetre ** 2
     """
-    UserUnitRegister.add(u)
+    user_unit_register.add(u)
 
 standard_unit_register = UnitRegistry()
 additional_unit_register = UnitRegistry()
-UserUnitRegister = UnitRegistry()
+user_unit_register = UnitRegistry()
 
 def all_registered_units(*regs):
     """
@@ -1918,7 +1918,7 @@ def all_registered_units(*regs):
     """
     if not len(regs):
         regs = [standard_unit_register,
-                UserUnitRegister,
+                user_unit_register,
                 additional_unit_register]
     for r in regs:
         for u in r.units:
