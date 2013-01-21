@@ -43,38 +43,31 @@ class DynamicArray(object):
     The array is initialised with zeros. The data is stored in the attribute
     ``data`` which is a Numpy array.
     
-    **Methods**
-    
-    .. automethod:: resize
-    .. automethod:: shrink
     
     Some numpy methods are implemented and can work directly on the array object,
     including ``len(arr)``, ``arr[...]`` and ``arr[...]=...``. In other cases,
     use the ``data`` attribute.
     
-    **Usage example**
+    Examples
+    --------
     
-    ::
-
-        x = DynamicArray((2, 3), dtype=int)
-        x[:] = 1
-        x.resize((3, 3))
-        x[:] += 1
-        x.resize((3, 4))
-        x[:] += 1
-        x.resize((4, 4))
-        x[:] += 1
-        x.data[:] = x.data**2
-        print x.data
-        
-    This should give the output::
-
-        [[16 16 16  4]
-         [16 16 16  4]
-         [ 9  9  9  4]
-         [ 1  1  1  1]]    
+    >>> x = DynamicArray((2, 3), dtype=int)
+    >>> x[:] = 1
+    >>> x.resize((3, 3))
+    >>> x[:] += 1
+    >>> x.resize((3, 4))
+    >>> x[:] += 1
+    >>> x.resize((4, 4))
+    >>> x[:] += 1
+    >>> x.data[:] = x.data**2
+    >>> print x.data
+    [[16 16 16  4]
+     [16 16 16  4]
+     [ 9  9  9  4]
+     [ 1  1  1  1]]
     
-    **Notes**
+    Notes
+    -----
     
     The dynamic array returns a ``data`` attribute which is a view on the larger
     ``_data`` attribute. When a resize operation is performed, and a specific

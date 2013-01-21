@@ -593,7 +593,7 @@ def in_unit(x, u, precision=None):
         The unit to display the value `x` in.
     precision : `int`, optional    
         The number of digits of precision (in the given unit, see Examples).
-        If no value is given, numpy's :np:`get_printoptions` value is used.
+        If no value is given, numpy's `get_printoptions` value is used.
 
     Returns
     -------
@@ -638,9 +638,9 @@ def in_best_unit(x, precision=None):
     ----------
     x : {`Quantity`, array-like, number}
         The value to display
-    precision : `int', optional
+    precision : `int`, optional
         The number of digits of precision (in the best unit, see Examples).
-        If no value is given, numpy's :np:`get_printoptions` value is used.            
+        If no value is given, numpy's `get_printoptions` value is used.            
     
     Returns
     -------
@@ -999,9 +999,9 @@ class Quantity(np.ndarray, object):
         ----------
         u : {`Quantity`, `Unit`}
             The unit in which to show the quantity.
-        precision : `int', optional
+        precision : `int`, optional
             The number of digits of precision (in the given unit, see Examples).
-            If no value is given, numpy's :np:`get_printoptions` value is used.
+            If no value is given, numpy's `get_printoptions` value is used.
         python_code : `bool`, optional
             Whether to return valid python code (``True``) or a human readable
             string (``False``, the default).
@@ -1089,7 +1089,7 @@ class Quantity(np.ndarray, object):
                     pass
             return Quantity.with_dimensions(1, self.dim)
         else:
-            return self._get_best_unit(standard_unit_register, UserUnitRegister,
+            return self._get_best_unit(standard_unit_register, user_unit_register,
                                        additional_unit_register)
 
     def in_best_unit(self, precision=None, python_code=False, *regs):
@@ -1102,10 +1102,10 @@ class Quantity(np.ndarray, object):
             If set to ``False`` (the default), will return a string like
             ``5.0 um^2`` which is not a valid Python expression. If set to
             ``True``, it will return ``5.0 * um ** 2`` instead.
-        precision : `int', optional
+        precision : `int`, optional
             The number of digits of precision (in the best unit, see
             Examples). If no value is given, numpy's
-            :np:`get_printoptions` value is used.            
+            `get_printoptions` value is used.            
         regs : `UnitRegistry` objects
             The registries where to search for units. If none are given, the
             standard, user-defined and additional registries are searched in
@@ -1893,11 +1893,14 @@ def register_new_unit(u):
     >>> 2.0*farad/metre**2
     2000000.0 * pfarad / mmetre ** 2
     """
-    UserUnitRegister.add(u)
+    user_unit_register.add(u)
 
+#: `UnitRegistry` containing all the standard units (metre, kilogram, um2...)
 standard_unit_register = UnitRegistry()
+#: `UnitRegistry` containing additional units (newton*metre, farad / metre, ...) 
 additional_unit_register = UnitRegistry()
-UserUnitRegister = UnitRegistry()
+#: `UnitRegistry` containing all units defined by the user
+user_unit_register = UnitRegistry()
 
 def all_registered_units(*regs):
     """
@@ -1918,7 +1921,7 @@ def all_registered_units(*regs):
     """
     if not len(regs):
         regs = [standard_unit_register,
-                UserUnitRegister,
+                user_unit_register,
                 additional_unit_register]
     for r in regs:
         for u in r.units:

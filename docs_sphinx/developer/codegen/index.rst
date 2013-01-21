@@ -7,6 +7,5 @@ Code generation
    examples
    synapses_code
    proposal
-   reference
    targets
    compiler
