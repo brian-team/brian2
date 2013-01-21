@@ -26,7 +26,7 @@ if os.path.exists(target_dir):
     shutil.rmtree(target_dir)
 os.makedirs(target_dir)
 abs_root = os.path.abspath('../brian2')
-generate_reference.main(abs_root, ['tests'], target_dir)
+generate_reference.main(abs_root, ['tests', 'sphinxext'], target_dir)
 
 # -- General configuration -----------------------------------------------------
 
