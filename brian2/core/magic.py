@@ -216,7 +216,7 @@ def run(duration, report=None, report_period=60*second):
         intended use. See `MagicNetwork` for more details.
     '''
     magic_network.run(duration, report=report, report_period=report_period)
-
+run.__module__ = __name__
 
 def reinit():
     '''
