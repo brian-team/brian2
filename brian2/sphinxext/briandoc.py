@@ -76,6 +76,16 @@ def mangle_docstrings(app, what, name, obj, options, lines,
         title_re = re.compile(ur'^\s*[#*=]{4,}\n[a-z0-9 -]+\n[#*=]{4,}\s*',
                               re.I|re.S)
         lines[:] = title_re.sub(u'', u"\n".join(lines)).split(u"\n")
+        exported_members = getattr(obj, '__all__', None)
+        if exported_members:
+            lines.append('*Exported members:* ')
+            # do not print more than 25 members            
+            lines.append(', '.join(['`%s`' % member for
+                                    member in exported_members[:25]]))
+            if len(exported_members) > 25:
+                lines.append('... (%d more members)' % (len(exported_members) - 25))
+            
+            lines.append('')
     else:
         doc = get_doc_object(obj, what, u"\n".join(lines), name=name,
                              config=cfg)
