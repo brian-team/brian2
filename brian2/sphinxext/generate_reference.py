@@ -5,7 +5,7 @@
     Based on sphinx-apidoc, published under a BSD license: http://sphinx-doc.org/
 """
 import inspect
-from importlib import import_module
+import sys
 import os
 from os import path
 
@@ -50,14 +50,15 @@ def format_directive(module, destdir, package=None, basename='brian2'):
     directive += '\n'
     # document all the classes in the modules
     full_name = basename + '.' + module
-    mod = import_module(full_name)
+    __import__(full_name)
+    mod = sys.modules[full_name]
     dir_members = dir(mod)
     classes = []
     functions = []
     variables = []
     for member in dir_members:
-        _temp = __import__(full_name, {}, {}, [member], 0)        
-        member_obj = getattr(_temp, member)        
+        _temp = __import__(full_name, {}, {}, [member], 0)
+        member_obj = getattr(_temp, member)
         member_module = getattr(member_obj, '__module__', None)
         # only document members that where defined in this module
         if member_module == full_name and not member.startswith('_'):
