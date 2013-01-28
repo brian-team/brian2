@@ -21,8 +21,6 @@ interest to others wishing to better understand how Brian works internally.
    features_to_be_removed
    clocks
    units
-   code-strings
-   equations
    state_update
    codegen/index
    groups
