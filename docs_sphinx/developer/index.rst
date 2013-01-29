@@ -21,9 +21,10 @@ interest to others wishing to better understand how Brian works internally.
    features_to_be_removed
    clocks
    units
+   equations_namespaces
    state_update
-   codegen/index
-   groups
+   codegen/index   
+   groups   
    refractoriness_and_linearity
    new_magic_and_clocks
    device

@@ -123,6 +123,9 @@ Giving no namespace argument to `NeuronGroup`/`Synapse` corresponds to creating 
 ``Namespace({}, level=0, exhaustive=False)`` object and passing it to the constructor. Giving a dictionary
 ``d`` as the namespace argument corresponds to ``Namespace(d, exhaustive=True)``. 
 
+Changes in external variable values are not taken into account during a run (if you want to have a variable
+that is updated by a user-defined function during a run, define it as a parameter instead).
+
 Resolution order
 ~~~~~~~~~~~~~~~~
 For each identifier (variable or function name) in the model equations, a corresponding object will be
@@ -131,10 +134,11 @@ If more than one resolution is possible, the first in the resolution order will 
 raised.
 
 1. "special variables": `t`, `dt`, `xi` (and `xi_...`)
-2. state variables of the `NeuronGroup`/`Synapses` itself. In `Synapses`, for names ending in ``_pre`` or
-   ``_post``: State variables of pre- resp. postsynaptic `NeuronGroup` objects
+2. state variables of the `NeuronGroup`/`Synapses` itself.
 3. explicitly given entries in the namespace dictionary/`Namespace` object
-4. (only for `Synapses` objects): State variables of the postsynaptic `NeuronGroup`
+4. variables from "referred namespaces", i.e. in the `Synapses` class, variables
+   from the pre-synpatic group (using a ``_pre`` suffix) or from the post-synaptic
+   group (using a ``_post`` suffix or no suffix).
 5. A standard set of numpy functions (with unit-aware replacements)
 6. units (the names returned by ~brian2.equations.unitcheck.get_default_unit_namespace, containing all
    registered unit plus the standard units (ms, mV, nS, etc.)
