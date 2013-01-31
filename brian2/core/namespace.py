@@ -2,15 +2,15 @@
 Implementation of the namespace system, used to resolve the identifiers in
 model equations of `NeuronGroup` and `Synapses`
 '''
-import inspect
 import collections
 import numpy as np
 
 from brian2.utils.logger import get_logger
 import brian2.units.unitsafefunctions as usf
-from brian2.units.fundamentalunits import all_registered_units
+from brian2.units.fundamentalunits import Quantity, all_registered_units
 from brian2.units.stdunits import stdunits
-__all__ = ['Namespace', 'NamespaceView']
+
+__all__ = ['Namespace', 'DEFAULT_NUMPY_NAMESPACE', 'DEFAULT_UNIT_NAMESPACE']
 
 logger = get_logger(__name__)
 
@@ -41,52 +41,26 @@ def _conflict_warning(message, resolutions):
 
 
 class Namespace(collections.MutableMapping):
-    '''
-    refers : list of 3-tuples
-        A list containing a tuples of the form (`name`, `suffix list`, `namespace`)
-    '''
+
+    def __init__(self, model_namespace):        
+        
+        self._namespaces = collections.OrderedDict()        
+        self._namespaces['model'] = model_namespace
+        
+        self._has_writeable = False
     
-    def __init__(self, model_variables, namespace=None, exhaustive=False,
-                 level=1, refers=None):        
+    def add_namespace(self, name, namespace, writeable=False, suffixes=None):
+        if writeable:
+            # Every namespace should only have one writeable namespace
+            # (normally, the "user-defined" namespace), so that the statement
+            # "namespace[key] = value" has a unique meaning 
+            if self._has_writeable:
+                raise ValueError('Can only add one writeable namespace')
+            else:
+                self._has_writeable = True
         
-        self._namespaces = collections.OrderedDict()
-        
-        self._namespaces['model'] = dict(model_variables)
-        
-        if namespace is None:
-            # The user-defined namespace always exists, it can be extended later
-            namespace = {}
-        self._namespaces['user-defined'] = dict(namespace)
-        
-        if refers is not None:
-            try:
-                refers = tuple(refers)
-            except TypeError:
-                raise TypeError(('refers argument has to be a sequence but is '
-                                'type %{type}').format(type=type(refers)))
-                
-            # only save views to the referred namespaces
-            for refer_entry in refers:
-                try:
-                    name, suffixes, referred = refer_entry
-                    self._namespaces[name] = NamespaceView(referred, suffixes)
-                except ValueError:
-                    raise TypeError('refers argument has to contain tuples '
-                                    'with 3 entries.')
-                
-        
-        if exhaustive:
-            # do not use the implict namespace
-            self.locals = {}
-            self.globals = {}
-        else:
-            frame = inspect.stack()[level + 1][0]
-            self._namespaces['locals'] = dict(frame.f_locals)
-            self._namespaces['globals'] = dict(frame.f_globals)
-        
-        # add the standard namespaces for units and functions
-        self._namespaces['units'] = DEFAULT_UNIT_NAMESPACE
-        self._namespaces['numpy'] = DEFAULT_NUMPY_NAMESPACE
+        self._namespaces[name] = NamespaceView(name, namespace, writeable,
+                                               suffixes)
     
     def resolve(self, identifier):
         # We save tuples of (namespace description, referred object) to
@@ -123,11 +97,25 @@ class Namespace(collections.MutableMapping):
             resolutions[identifier] = self.resolve(identifier)
         return resolutions
 
+    def prepared(self, identifiers, strip_units=True):
+        '''
+        Returns the resolutions for all identifiers, optionally getting
+        rid of units.
+        '''
+        resolutions = {}
+        for identifier in identifiers:
+            value = self[identifier]
+            if isinstance(value, Quantity):
+                value = np.asarray(value)
+            resolutions[identifier] = value
+        
+        return resolutions
+
     def __getitem__(self, key):
         return self.resolve(key)
 
     def __setitem__(self, key, value):
-        # setting a value only affects the user-defined namespace
+        # setting a value should only affects the user-defined namespace        
         self._namespaces['user-defined'][key] = value
     
     def __delitem__(self, key):
@@ -160,17 +148,18 @@ class Namespace(collections.MutableMapping):
 
 class NamespaceView(collections.Mapping):
     
-    def __init__(self, namespace, suffixes=None):
-        # TODO: We can't use weak references here, unfortunately
+    def __init__(self, name, namespace, writeable, suffixes=None):
+        self.name = name
         self.namespace = namespace
+        self.writeable = writeable
         
-        if suffixes is None:
-            # make namespace lookup work without any suffixes
-            suffixes = ['']
 
         self.suffixes = suffixes
     
     def __getitem__(self, key):
+        if self.suffixes is None:
+            return self.namespace[key]
+        
         for suffix in self.suffixes:
             if key.endswith(suffix):
                 key_without_suffix = key[:key.rfind(suffix)]
@@ -179,10 +168,25 @@ class NamespaceView(collections.Mapping):
         
         raise KeyError('Illegal key %s' % key)
     
+    def __setitem__(self, key, value):
+        if not self.writeable:
+            raise TypeError('The namespace "%s" is read only.' % self.name)
+        
+        self.namespace[key] = value
+    
+    def __delitem__(self, key):
+        if not self.writeable:
+            raise TypeError('The namespace "%s" is read only.' % self.name)
+        
+        del self.namespace[key] 
+    
     def __len__(self):
         return len(self.namespace)
     
     def __contains__(self, key):
+        if self.suffixes is None:
+            return (key in self.namespace)
+        
         for suffix in self.suffixes:
             if key.endswith(suffix):
                 key_without_suffix = key[:key.rfind(suffix)]
@@ -191,9 +195,13 @@ class NamespaceView(collections.Mapping):
         return False
     
     def __iter__(self):
-        for suffix in self.suffixes:
-            for key in self.namespace.iterkeys():
-                yield key + suffix
+        if self.suffixes is None:
+            for key in self.namespace:
+                yield key
+        else:
+            for suffix in self.suffixes:
+                for key in self.namespace:
+                    yield key + suffix
 
 def _get_default_numpy_namespace():
     '''
@@ -232,7 +240,7 @@ def _get_default_numpy_namespace():
     
     return namespace
 
-DEFAULT_NUMPY_NAMESPACE = NamespaceView(_get_default_numpy_namespace())
+DEFAULT_NUMPY_NAMESPACE = _get_default_numpy_namespace()
 
 
 def _get_default_unit_namespace():
@@ -250,4 +258,4 @@ def _get_default_unit_namespace():
     namespace.update(stdunits)
     return namespace
 
-DEFAULT_UNIT_NAMESPACE = NamespaceView(_get_default_unit_namespace())
+DEFAULT_UNIT_NAMESPACE = _get_default_unit_namespace()
