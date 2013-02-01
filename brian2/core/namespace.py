@@ -139,7 +139,10 @@ class ModelNamespace(collections.MutableMapping):
         for identifier in identifiers:            
             resolved = self.resolve(identifier)
             if strip_units and isinstance(resolved, Quantity):
-                resolved = np.asarray(resolved)
+                if resolved.ndim == 0:
+                    resolved = float(resolved)
+                else:
+                    resolved = np.asarray(resolved)
             resolutions[identifier] = resolved                
         
         return resolutions
