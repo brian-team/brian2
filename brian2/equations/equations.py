@@ -354,13 +354,20 @@ class Equations(collections.Mapping):
         example when adding new equations to implement the refractory
         mechanism. Note that in this case the variable names are not checked
         to allow for "internal names", starting with an underscore.
+    kwds: keyword arguments
+        Keyword arguments can be used to replace variables in the equation
+        string. Arguments have to be of the form ``varname=replacement``, where
+        `varname` has to correspond to a variable name in the given equation.
+        The replacement can be either a string (replacing a name with a new
+        name, e.g. ``tau='tau_e'``) or a value (replacing the variable name
+        with the value, e.g. ``tau=tau_e`` or ``tau=10*ms``).
     """
 
-    def __init__(self, eqns):
+    def __init__(self, eqns, **kwds):
         if isinstance(eqns, basestring):
             self._equations = parse_string_equations(eqns)
             # Do a basic check for the identifiers
-            self.check_identifiers()            
+            self.check_identifiers()
         else:
             self._equations = {}
             for eq in eqns:
@@ -370,7 +377,49 @@ class Equations(collections.Mapping):
                 if eq.varname in self._equations:
                     raise EquationError('Duplicate definition of variable "%s"' %
                                         eq.varname)
-                self._equations[eq.varname] = eq
+                self._equations[eq.varname] = eq 
+        
+        # save these to change the keys of the dictionary later
+        model_var_replacements = []
+        for varname, replacement in kwds.iteritems():
+            
+            for eq in self.itervalues():
+                # Replacing the name of a model variable (works only for strings)
+                if eq.varname == varname:
+                    if not isinstance(replacement, basestring):
+                        raise ValueError(('Cannot replace model variable "%s" '
+                                          'with a value') % varname)
+                    if replacement in self:
+                        raise EquationError(('Cannot replace model variable "%s" '
+                                             'with "%s", duplicate definition '
+                                             'of "%s".' % (varname, replacement,
+                                                           replacement)))
+                    # make sure that the replacement is a valid identifier
+                    check_identifier(replacement)
+                    eq.varname = replacement
+                    model_var_replacements.append((varname, replacement))
+                
+                if varname in eq.identifiers:
+                    if isinstance(replacement, basestring):
+                        # replace the name with another name
+                        new_code = re.sub('\\b' + varname + '\\b',
+                                          replacement, eq.expr.code)
+                    else:
+                        # replace the name with a value
+                        new_code = re.sub('\\b' + varname + '\\b',
+                                          '(' + repr(replacement) + ')',
+                                          eq.expr.code)
+                    try:
+                        eq.expr = Expression(new_code)
+                    except ValueError as ex:
+                        raise ValueError(('Replacing "%s" with "%r" failed: %s') %
+                                         (varname, replacement, ex))        
+        
+        # For change in model variable names, we have already changed the
+        # varname attribute of the SingleEquation object, but not the key of
+        # our dicitionary
+        for varname, replacement in model_var_replacements:
+            self._equations[replacement] = self._equations.pop(varname)
         
         # Check for special symbol xi (stochastic term)
         uses_xi = None

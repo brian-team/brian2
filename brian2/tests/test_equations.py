@@ -3,6 +3,7 @@ import sys
 from StringIO import StringIO
 
 from numpy.testing import assert_raises
+import numpy as np
 from IPython.lib.pretty import pprint
 
 from brian2 import volt, mV, second, ms, Hz, farad, metre, cm
@@ -142,6 +143,43 @@ def test_parse_equations():
     for error_eqs in parse_error_eqs:
         assert_raises((ValueError, EquationError),
                       lambda: parse_string_equations(error_eqs))
+
+
+def test_correct_replacements():
+    ''' Test replacing variables via keyword arguments '''
+    
+    # replace a variable name with a new name
+    eqs = Equations('dv/dt = -v / tau : 1', v='V')
+    # Correct left hand side
+    assert ('V' in eqs) and not ('v' in eqs)
+    # Correct right hand side
+    assert ('V' in eqs['V'].identifiers) and not ('v' in eqs['V'].identifiers)
+    
+    # replace a variable name with a value
+    eqs = Equations('dv/dt = -v / tau : 1', tau=10*ms)    
+    assert not 'tau' in eqs['v'].identifiers
+
+def test_wrong_replacements():
+    '''Tests for replacements that should not work'''
+    
+    # Replacing a variable name with an illegal new name
+    assert_raises(ValueError, lambda : Equations('dv/dt = -v / tau : 1',
+                                                 v='illegal name'))
+    assert_raises(ValueError, lambda : Equations('dv/dt = -v / tau : 1',
+                                                 v='_reserved'))
+    assert_raises(ValueError, lambda : Equations('dv/dt = -v / tau : 1',
+                                                 v='t'))
+    
+    # Replacing a variable name with a value that already exists
+    assert_raises(EquationError, lambda : Equations('''
+                                                    dv/dt = -v / tau : 1
+                                                    dx/dt = -x / tau : 1
+                                                    ''',
+                                                    v='x'))
+    
+    # Replacing with an illegal value
+    assert_raises(ValueError, lambda : Equations('dv/dt = -v/tau : 1',
+                                                 tau=np.arange(5)))
 
 def test_construction_errors():
     '''
@@ -296,6 +334,8 @@ if __name__ == '__main__':
     test_utility_functions()
     test_identifier_checks()
     test_parse_equations()
+    test_correct_replacements()
+    test_wrong_replacements()
     test_construction_errors()
     test_properties()    
     test_str_repr()
