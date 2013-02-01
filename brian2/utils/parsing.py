@@ -100,7 +100,7 @@ def parse_to_sympy(expr, local_dict=None):
     try:
         s_expr = eval(code, SYMPY_DICT, local_dict)
     except Exception as ex:
-        raise SyntaxError('Expression "%s" could not be parsed: %s' %
-                          (expr, str(ex)))
+        raise ValueError('Expression "%s" could not be parsed: %s' %
+                         (expr, str(ex)))
 
     return s_expr
