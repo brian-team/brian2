@@ -16,8 +16,7 @@ from brian2.codegen.translation import translate
 from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
-from brian2.core.namespace import (Namespace, DEFAULT_NUMPY_NAMESPACE,
-                                   DEFAULT_UNIT_NAMESPACE)
+from brian2.core.namespace import ObjectWithNamespace
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.utils.logger import get_logger
@@ -33,7 +32,7 @@ class CodeRunner(BrianObject):
     '''
     Runs a code object on an update schedule.
     
-    Inserts the current time into the namespace at each step.
+    Inserts the current time and dt into the namespace at each step.
     '''
     basename = 'code_runner'
     def __init__(self, codeobj, init=None, pre=None, post=None,
@@ -94,16 +93,9 @@ class Resetter(NeuronGroupCodeRunner):
         self.codeobj.namespace['_spikes'] = spikes
         self.codeobj.namespace['_num_spikes'] = len(spikes)
         NeuronGroupCodeRunner.update(self)
-        
-class FrameSaver(object):
-    def __new__(cls, *args, **kwds):
-        instance = super(FrameSaver, cls).__new__(cls, *args, **kwds)
-        frame = inspect.stack()[1][0]
-        instance._locals = dict(frame.f_locals)
-        instance._globals = dict(frame.f_globals)
-        return instance
 
-class NeuronGroup(FrameSaver, BrianObject, Group, SpikeSource):
+
+class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
     '''
     Group of neurons
     
@@ -133,11 +125,6 @@ class NeuronGroup(FrameSaver, BrianObject, Group, SpikeSource):
         The update clock to be used, or defaultclock if not specified.
     name : str, optional
         A unique name for the group, otherwise use ``neurongroup_0``, etc.
-    level : int, optional
-        How many levels up in the call stack to go to find variable names for
-        equations, reset and threshold statements. In normal use this
-        shouldn't be changed, but classes derived from `NeuronGroup` calling
-        `NeuronGroup.__init__` should increase this level by 1.
         
     Notes
     -----
@@ -154,12 +141,10 @@ class NeuronGroup(FrameSaver, BrianObject, Group, SpikeSource):
                  reset=None,
                  namespace=None,
                  dtype=None, language=None,
-                 clock=None, name=None,
-                 level=0):
+                 clock=None, name=None):
         BrianObject.__init__(self, when=clock, name=name)
         ##### VALIDATE ARGUMENTS AND STORE ATTRIBUTES
         self.method = method
-        self.level = level = int(level)
         try:
             self.N = N = int(N)
         except ValueError:
@@ -168,9 +153,10 @@ class NeuronGroup(FrameSaver, BrianObject, Group, SpikeSource):
             raise
         if N<1:
             raise ValueError("NeuronGroup size should be at least 1, was "+str(N))
-        # Validate equations
+                
+        ##### Prepare and validate equations
         if isinstance(equations, basestring):
-            equations = Equations(equations, level=level+1)
+            equations = Equations(equations)
         if not isinstance(equations, Equations):
             raise ValueError(('equations has to be a string or an Equations '
                               'object, is "%s" instead.') % type(equations))
@@ -185,40 +171,33 @@ class NeuronGroup(FrameSaver, BrianObject, Group, SpikeSource):
         equations.check_flags({DIFFERENTIAL_EQUATION: ('active'),
                                PARAMETER: ('constant')})
 
-        # Set dtypes and units
-        self.prepare_dtypes(dtype=dtype)
-        
+        ##### Setup the memory
+        self.arrays = self.allocate_memory(dtype=dtype)
+                
         # Setup specifiers
-        self._specifiers = self.create_specifiers()        
+        self.specifiers = self.create_specifiers()        
         
         # Setup the namespace
         self.namespace = self.create_namespace(namespace)
         
-        # Allocate memory (TODO: this should be refactored somewhere at some point)
-        print 'self.N', self.N
-        self.allocate_memory()
-
+        # Setup units
         self.units = self.equations.units
         
         #: The array of spikes from the most recent threshold operation
         self.spikes = array([], dtype=int)
 
-        # Set these for documentation purposes
-        #: Performs numerical integration step
-        self.state_updater = None
-        #: Performs thresholding step, sets the value of `spikes`
-        self.thresholder = None
-        #: Resets neurons which have spiked (`spikes`)
-        self.resetter = None
-        
         # Code generation (TODO: this should be refactored and modularised)
         # Temporary, set default language to Python
         if language is None:
             language = PythonLanguage()
         self.language = language
-        self.create_state_updater()
-        self.create_thresholder(threshold, level=level+1)
-        self.create_resetter(reset, level=level+1)
+
+        #: Performs numerical integration step
+        self.state_updater = self.create_state_updater() 
+        #: Performs thresholding step, sets the value of `spikes`
+        self.thresholder = self.create_thresholder(threshold)
+        #: Resets neurons which have spiked (`spikes`)
+        self.resetter = self.create_resetter(reset)
         
         # Creation of contained_objects that do the work
         self.contained_objects.append(self.state_updater)
@@ -237,11 +216,13 @@ class NeuronGroup(FrameSaver, BrianObject, Group, SpikeSource):
         '''
         return self.N
     
-    def prepare_dtypes(self, dtype=None):
+
+    def allocate_memory(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)
-        arrayvarnames = set(eq.varname for eq in self.equations.equations.itervalues() if eq.eq_type in (DIFFERENTIAL_EQUATION,
-                                                                                                         PARAMETER))
-        self.dtypes = {}
+        arrayvarnames = set(eq.varname for eq in self.equations.itervalues() if
+                            eq.eq_type in (DIFFERENTIAL_EQUATION,
+                                           PARAMETER))
+        arrays = {}
         for name in arrayvarnames:
             if isinstance(dtype, dict):
                 curdtype = dtype[name]
@@ -249,45 +230,9 @@ class NeuronGroup(FrameSaver, BrianObject, Group, SpikeSource):
                 curdtype = dtype
             if curdtype is None:
                 curdtype = brian_prefs.default_scalar_dtype
-            self.dtypes[name] = curdtype
-        logger.debug("NeuronGroup dtypes: "+", ".join(name+'='+str(dtype) for name, dtype in self.dtypes.iteritems()))
-
-    def allocate_memory(self, dtype=None):
-        # Allocate memory (TODO: this should be refactored somewhere at some point)
-        self.arrays = {}
-        for name, curdtype in self.dtypes.iteritems():
-            self.arrays[name] = allocate_array(self.N, dtype=curdtype)
-            self.namespace._namespaces['internal'].namespace.update({'_array_' + name:
-                                                                     self.arrays[name]})
+            arrays[name] = allocate_array(self.N, dtype=curdtype)         
         logger.debug("NeuronGroup memory allocated successfully.")
-
-    def create_namespace(self, explicit_namespace):
-        
-        # only use the local/global namespace if no explicit one is given
-        use_implicit = explicit_namespace is None
-        
-        # This has to directly refer to the specifiers dictionary
-        # and not to a copy so it takes any later changes (i.e. additions
-        # for reset and threhsold) into account 
-        model_namespace = self._specifiers
-        namespace = Namespace(model_namespace)
-        
-        internal_namespace = {'_num_neurons': self.N}    
-        namespace.add_namespace('internal', internal_namespace)        
-        
-        # we always want a user-defined namespace
-        if explicit_namespace is None:
-            explicit_namespace = {}
-        namespace.add_namespace('user-defined', explicit_namespace,
-                                writeable=True)
-        namespace.add_namespace('numpy', DEFAULT_NUMPY_NAMESPACE)
-        namespace.add_namespace('units', DEFAULT_UNIT_NAMESPACE)
-        
-        if use_implicit:
-            namespace.add_namespace('local', self._locals)
-            namespace.add_namespace('global', self._globals)
-            
-        return namespace
+        return arrays
 
     def create_codeobj(self, name, abstract_code, specs, template_method,
                        additional_namespace={}):
@@ -302,14 +247,11 @@ class NeuronGroup(FrameSaver, BrianObject, Group, SpikeSource):
         codeobj = lang.code_object(code, specs)
         # all variable names in the equations that are not part of this model        
         identifiers = set()
-        for _, equation in self.equations:
-            print equation
+        for equation in self.equations.itervalues():            
             for identifier in equation.identifiers:
                 if not identifier in self.specifiers:
                     identifiers.add(identifier)
-        internal_names = [key for key in self.namespace._namespaces['internal']]
-        resolved_namespace = self.namespace.prepared(list(identifiers) +
-                                                     internal_names)
+        resolved_namespace = self.namespace.resolve_all(list(identifiers))
         codeobj.compile(resolved_namespace)
         return codeobj
             
@@ -319,10 +261,10 @@ class NeuronGroup(FrameSaver, BrianObject, Group, SpikeSource):
                                       self.specifiers,
                                       self.language.template_state_update,
                                       )
-        self.state_update_codeobj = codeobj
-        self.state_updater = StateUpdater(self, codeobj,
-                                          name=self.name+'_state_updater',
-                                          when=(self.clock, 'groups'))
+        state_updater = StateUpdater(self, codeobj,
+                                     name=self.name+'_state_updater',
+                                     when=(self.clock, 'groups'))
+        return state_updater
         
     def runner(self, code, init=None, pre=None, post=None,
                when=None, name=None,
@@ -379,17 +321,16 @@ class NeuronGroup(FrameSaver, BrianObject, Group, SpikeSource):
             '_spikes_space': zeros(self.N, dtype=int),
             '_array_num_spikes': zeros(1, dtype=int),
             }
-        self.namespace._namespaces['internal'].namespace.update(additional_ns)
         codeobj = self.create_codeobj("thresholder",
                                       abstract_code,
                                       self.specifiers,
                                       self.language.template_threshold,
                                       additional_ns,
                                       )
-        self.thresholder_codeobj = codeobj
-        self.thresholder = Thresholder(self, codeobj,
-                                       name=self.name+'_thresholder',
-                                       when=(self.clock, 'thresholds'))
+        thresholder = Thresholder(self, codeobj,
+                                  name=self.name+'_thresholder',
+                                  when=(self.clock, 'thresholds'))
+        return thresholder
         
     def create_resetter(self, reset, level=1):
         pass
@@ -423,10 +364,10 @@ class NeuronGroup(FrameSaver, BrianObject, Group, SpikeSource):
              'dt': Value(np.float64),
              't': Value(np.float64)}
         # TODO: What about xi?
-        for eq in self.equations.equations.itervalues():
+        for eq in self.equations.itervalues():
             if eq.eq_type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 s.update({eq.varname: ArrayVariable('_array_' + eq.varname,
-                          '_neuron_idx', self.dtypes[eq.varname])})
+                          '_neuron_idx', self.arrays[eq.varname].dtype)})
             elif eq.eq_type == STATIC_EQUATION:                
                 s.update({eq.varname: Subexpression(str(eq.expr))})
             else:
@@ -435,7 +376,6 @@ class NeuronGroup(FrameSaver, BrianObject, Group, SpikeSource):
         return s        
     
     abstract_code = property(lambda self: self.method(self.equations))
-    specifiers = property(lambda self: self._specifiers)
 
 
 if __name__=='__main__':

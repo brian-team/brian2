@@ -3,22 +3,11 @@ import numpy as np
 from brian2.units import second, volt
 from brian2.units.stdunits import ms, Hz, mV
 from brian2.units.unitsafefunctions import sin, log, exp
-from brian2.core.namespace import Namespace
+from brian2.core.namespace import ModelNamespace, Namespace
+from brian2.utils.logger import catch_logs
 
 def test_default_content():
-    # any namespace should contain units and some standard functions
-    ns = Namespace({}, exhaustive=True)
-    assert ns.resolve('ms') is ms
-    assert ns.resolve('Hz') is Hz
-    assert ns.resolve('mV') is mV
-    assert ns.resolve('second') is second
-    assert ns.resolve('volt') is volt
-    assert ns.resolve('sin') is sin
-    assert ns.resolve('log') is log
-    assert ns.resolve('exp') is exp
-    assert ns.resolve('sqrt') is np.sqrt
-    assert ns.resolve('mean') is np.mean
-
+    pass
 
 def test_warnings():
     pass
@@ -30,14 +19,23 @@ def test_resolution_order():
     pass
 
 def test_referred_namespaces():
-    pre_ns = {'v': 'v_pre', 'w': 'w_pre'}
-    post_ns = {'v': 'v_post', 'w': 'w_post'}
-    syn_ns = Namespace({'v': 'v_syn'}, exhaustive=True,
-                       refers=[('presynaptic', ['_pre'], pre_ns),
-                               ('postsynaptic', ['_post', ''], post_ns)])
+    pre_ns = ModelNamespace({'v': 'v_pre', 'w': 'w_pre'})
+    post_ns = ModelNamespace({'v': 'v_post', 'w': 'w_post'})
+    syn_ns = ModelNamespace({'v': 'v_syn'})
+    syn_ns.add_namespace(Namespace('presynaptic',
+                                   pre_ns.namespaces['model'],
+                                   suffixes=['_pre']))
+    syn_ns.add_namespace(Namespace('postsynaptic',
+                                   post_ns.namespaces['model'],
+                                   suffixes=['_post', '']))
     
-    # the name in the "Synapse" itself takes precedence
-    assert syn_ns['v'] == 'v_syn'
+    # the name in the "Synapse" itself takes precedence (but should raise a
+    # warning)
+    with catch_logs() as l:
+        assert syn_ns['v'] == 'v_syn'
+        assert len(l) == 1  # one warning
+        assert l[0][0] == 'WARNING'
+        
     # Suffixed names should return values from the respective namespaces
     assert syn_ns['v_pre'] == 'v_pre'
     assert syn_ns['v_post'] == 'v_post'

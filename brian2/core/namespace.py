@@ -2,6 +2,7 @@
 Implementation of the namespace system, used to resolve the identifiers in
 model equations of `NeuronGroup` and `Synapses`
 '''
+import inspect
 import collections
 import numpy as np
 
@@ -10,9 +11,49 @@ import brian2.units.unitsafefunctions as usf
 from brian2.units.fundamentalunits import Quantity, all_registered_units
 from brian2.units.stdunits import stdunits
 
-__all__ = ['Namespace', 'DEFAULT_NUMPY_NAMESPACE', 'DEFAULT_UNIT_NAMESPACE']
+__all__ = ['ObjectWithNamespace', 'DEFAULT_NUMPY_NAMESPACE', 'DEFAULT_UNIT_NAMESPACE']
 
 logger = get_logger(__name__)
+
+class ObjectWithNamespace(object):
+    def __new__(cls, *args, **kwds):
+        instance = super(ObjectWithNamespace, cls).__new__(cls, *args, **kwds)
+        frame = inspect.stack()[1][0]
+        instance._locals = dict(frame.f_locals)
+        instance._globals = dict(frame.f_globals)
+        return instance
+    
+    def create_namespace(self, explicit_namespace=None,
+                         additional_namespaces=None):
+        
+        # only use the local/global namespace if no explicit one is given
+        use_implicit = explicit_namespace is None
+        
+        # This has to directly refer to the specifiers dictionary
+        # and not to a copy so it takes any later changes (i.e. additions
+        # for reset and threhsold) into account 
+        namespace = ModelNamespace(self.specifiers)        
+        
+        # we always want a user-defined namespace
+        if explicit_namespace is None:
+            explicit_namespace = {}
+        explicit_namespace = Namespace('user-defined', explicit_namespace,
+                                       writeable=True)
+        namespace.add_namespace(explicit_namespace)
+        
+        if not additional_namespaces is None:
+            for additional in additional_namespaces:
+                namespace.add_namespace(additional)
+        
+        
+        namespace.add_namespace(DEFAULT_NUMPY_NAMESPACE)
+        namespace.add_namespace(DEFAULT_UNIT_NAMESPACE)
+        
+        if use_implicit:
+            namespace.add_namespace(Namespace('local', self._locals))
+            namespace.add_namespace(Namespace('global', self._globals))
+            
+        return namespace
 
 def _conflict_warning(message, resolutions):
     '''
@@ -40,17 +81,20 @@ def _conflict_warning(message, resolutions):
                 'Namespace.resolve.resolution_conflict', once=True)
 
 
-class Namespace(collections.MutableMapping):
+class ModelNamespace(collections.MutableMapping):
 
     def __init__(self, model_namespace):        
         
-        self._namespaces = collections.OrderedDict()        
-        self._namespaces['model'] = model_namespace
+        self.namespaces = collections.OrderedDict()        
+        self.namespaces['model'] = model_namespace
         
         self._has_writeable = False
     
-    def add_namespace(self, name, namespace, writeable=False, suffixes=None):
-        if writeable:
+    def add_namespace(self, namespace):
+        if not isinstance(namespace, Namespace):
+            raise TypeError(('The namespace argument has to be of type "Namespace" '
+                             'is type %s instead.') % str(type(namespace)))
+        if namespace.writeable:
             # Every namespace should only have one writeable namespace
             # (normally, the "user-defined" namespace), so that the statement
             # "namespace[key] = value" has a unique meaning 
@@ -59,15 +103,14 @@ class Namespace(collections.MutableMapping):
             else:
                 self._has_writeable = True
         
-        self._namespaces[name] = NamespaceView(name, namespace, writeable,
-                                               suffixes)
+        self.namespaces[namespace.name] = namespace
     
     def resolve(self, identifier):
         # We save tuples of (namespace description, referred object) to
         # give meaningful warnings in case of duplicate definitions
         matches = []
         
-        namespaces = self._namespaces
+        namespaces = self.namespaces
         
         for description, namespace in namespaces.iteritems():
             if identifier in namespace:
@@ -91,23 +134,13 @@ class Namespace(collections.MutableMapping):
         # use the first match (according to resolution order)
         return matches[0][1]
 
-    def resolve_all(self, identifiers):
+    def resolve_all(self, identifiers, strip_units=True):
         resolutions = {}
-        for identifier in identifiers:
-            resolutions[identifier] = self.resolve(identifier)
-        return resolutions
-
-    def prepared(self, identifiers, strip_units=True):
-        '''
-        Returns the resolutions for all identifiers, optionally getting
-        rid of units.
-        '''
-        resolutions = {}
-        for identifier in identifiers:
-            value = self[identifier]
-            if isinstance(value, Quantity):
-                value = np.asarray(value)
-            resolutions[identifier] = value
+        for identifier in identifiers:            
+            resolved = self.resolve(identifier)
+            if strip_units and isinstance(resolved, Quantity):
+                resolved = np.asarray(resolved)
+            resolutions[identifier] = resolved                
         
         return resolutions
 
@@ -146,14 +179,13 @@ class Namespace(collections.MutableMapping):
         
         return False
 
-class NamespaceView(collections.Mapping):
+
+class Namespace(collections.MutableMapping):
     
-    def __init__(self, name, namespace, writeable, suffixes=None):
+    def __init__(self, name, namespace, writeable=False, suffixes=None):
         self.name = name
         self.namespace = namespace
         self.writeable = writeable
-        
-
         self.suffixes = suffixes
     
     def __getitem__(self, key):
@@ -203,6 +235,7 @@ class NamespaceView(collections.Mapping):
                 for key in self.namespace:
                     yield key + suffix
 
+
 def _get_default_numpy_namespace():
     '''
     Get the namespace of numpy functions/variables that is recognized by
@@ -240,7 +273,7 @@ def _get_default_numpy_namespace():
     
     return namespace
 
-DEFAULT_NUMPY_NAMESPACE = _get_default_numpy_namespace()
+DEFAULT_NUMPY_NAMESPACE = Namespace('numpy', _get_default_numpy_namespace())
 
 
 def _get_default_unit_namespace():
@@ -258,4 +291,4 @@ def _get_default_unit_namespace():
     namespace.update(stdunits)
     return namespace
 
-DEFAULT_UNIT_NAMESPACE = _get_default_unit_namespace()
+DEFAULT_UNIT_NAMESPACE = Namespace('units',_get_default_unit_namespace())
