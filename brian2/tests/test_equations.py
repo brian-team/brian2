@@ -18,7 +18,8 @@ from brian2.equations.equations import (check_identifier,
                                         parse_string_equations,
                                         SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
-                                        PARAMETER)
+                                        PARAMETER,
+                                        EquationError)
 from brian2.equations.refractory import check_identifier_refractory
 
 
@@ -100,7 +101,7 @@ def test_identifier_checks():
 def test_parse_equations():
     ''' Test the parsing of equation strings '''
     # A simple equation
-    eqs = parse_string_equations('dv/dt = -v / tau : 1', {}, False, 0)    
+    eqs = parse_string_equations('dv/dt = -v / tau : 1')    
     assert len(eqs.keys()) == 1 and 'v' in eqs and eqs['v'].eq_type == DIFFERENTIAL_EQUATION
     assert get_dimensions(eqs['v'].unit) == DIMENSIONLESS
     
@@ -112,8 +113,7 @@ def test_parse_equations():
                                     dge/dt = -ge / tau_ge : volt
                                     I = sin(2 * pi * f * t) : volt
                                     f : Hz (constant)
-                                 ''', 
-                                 {}, False, 0)
+                                 ''')
     assert len(eqs.keys()) == 4
     assert 'v' in eqs and eqs['v'].eq_type == DIFFERENTIAL_EQUATION
     assert 'ge' in eqs and eqs['ge'].eq_type == DIFFERENTIAL_EQUATION
@@ -132,8 +132,7 @@ def test_parse_equations():
     dv/dt = -v / tau : 1
     v = 2 * t : 1
     '''
-    assert_raises(SyntaxError, lambda: parse_string_equations(duplicate_eqs,
-                                                              {}, False, 0))
+    assert_raises(EquationError, lambda: parse_string_equations(duplicate_eqs))
     parse_error_eqs = [
     '''dv/d = -v / tau : 1
         x = 2 * t : 1''',
@@ -141,15 +140,15 @@ def test_parse_equations():
     x = 2 * t : 1''',
     ''' dv/dt = -v / tau : 2 * volt''']
     for error_eqs in parse_error_eqs:
-        assert_raises((ValueError, SyntaxError), lambda: parse_string_equations(error_eqs,
-                                                                                {}, False, 0))
+        assert_raises((ValueError, EquationError),
+                      lambda: parse_string_equations(error_eqs))
 
 def test_construction_errors():
     '''
     Test that the Equations constructor raises errors correctly
     '''
     # parse error
-    assert_raises(SyntaxError, lambda: Equations('dv/dt = -v / tau volt'))
+    assert_raises(EquationError, lambda: Equations('dv/dt = -v / tau volt'))
     
     # Only a single string or a list of SingleEquation objects is allowed
     assert_raises(TypeError, lambda: Equations(None))
@@ -157,7 +156,7 @@ def test_construction_errors():
     assert_raises(TypeError, lambda: Equations(['dv/dt = -v / tau : volt']))
     
     # duplicate variable names
-    assert_raises(SyntaxError, lambda: Equations('''dv/dt = -v / tau : volt
+    assert_raises(EquationError, lambda: Equations('''dv/dt = -v / tau : volt
                                                     v = 2 * t/second * volt : volt'''))
         
     
@@ -166,32 +165,32 @@ def test_construction_errors():
     assert_raises(ValueError, lambda: Equations('dt/dt = -t / tau : volt'))
     assert_raises(ValueError, lambda: Equations('dxi/dt = -xi / tau : volt'))
     assert_raises(ValueError, lambda: Equations('for : volt'))
-    assert_raises((SyntaxError, ValueError),
+    assert_raises((EquationError, ValueError),
                   lambda: Equations('d1a/dt = -1a / tau : volt'))
     assert_raises(ValueError, lambda: Equations('d_x/dt = -_x / tau : volt'))
     
-    # inconsistent unit for a differential equation
-    assert_raises(DimensionMismatchError,
-                  lambda: Equations('dv/dt = -v : volt'))
-    assert_raises(DimensionMismatchError,
-                  lambda: Equations('dv/dt = -v / tau: volt',
-                                    namespace={'tau': 5 * mV}))
-    assert_raises(DimensionMismatchError,
-                  lambda: Equations('dv/dt = -(v + I) / (5 * ms): volt',
-                                    namespace={'I': 3 * second}))    
-    
-    # inconsistent unit for a static equation
-    assert_raises(DimensionMismatchError,
-                  lambda: Equations('''dv/dt = -v / (5 * ms) : volt
-                                       I = 2 * v : amp'''))
-    
+#    # inconsistent unit for a differential equation
+#    assert_raises(DimensionMismatchError,
+#                  lambda: Equations('dv/dt = -v : volt'))
+#    assert_raises(DimensionMismatchError,
+#                  lambda: Equations('dv/dt = -v / tau: volt',
+#                                    namespace={'tau': 5 * mV}))
+#    assert_raises(DimensionMismatchError,
+#                  lambda: Equations('dv/dt = -(v + I) / (5 * ms): volt',
+#                                    namespace={'I': 3 * second}))    
+#    
+#    # inconsistent unit for a static equation
+#    assert_raises(DimensionMismatchError,
+#                  lambda: Equations('''dv/dt = -v / (5 * ms) : volt
+#                                       I = 2 * v : amp'''))
+#    
     # xi in a static equation
-    assert_raises(SyntaxError,
+    assert_raises(EquationError,
                   lambda: Equations('''dv/dt = -(v + I) / (5 * ms) : volt
                                        I = second**-1*xi**-2*volt : volt''' ))
     
     # more than one xi    
-    assert_raises(SyntaxError,                  
+    assert_raises(EquationError,                  
                   lambda: Equations('''dv/dt = -v / tau + xi/tau**.5 : volt
                                        dx/dt = -x / tau + 2*xi/tau : volt
                                        tau : second'''))
@@ -208,25 +207,25 @@ def test_construction_errors():
                                                    w = 2 * x : 1
                                                    x = 3 * w : 1'''))
 
-def test_resolve():
-    '''
-    Test resolving identifiers in equations.
-    '''
-    def foo(x):
-        return 5 * x 
-    tau = 10 * ms
-    tau2 = 20 
-    eqs = '''dv/dt = -v / tau : volt
-             du/dt = -foo(u) * param / (tau_long * ms): volt
-             param : 1
-          '''
-    eq = Equations(eqs, namespace={'tau_long': tau2}, exhaustive=False)
-    namespace = eq.resolve()
-    assert namespace['tau'] is tau
-    assert namespace['tau_long'] is tau2
-    assert namespace['foo'] is foo
-    assert namespace['ms'] is ms
-    assert set(namespace.keys()) == set(('tau', 'tau_long', 'foo', 'ms'))
+#def test_resolve():
+#    '''
+#    Test resolving identifiers in equations.
+#    '''
+#    def foo(x):
+#        return 5 * x 
+#    tau = 10 * ms
+#    tau2 = 20 
+#    eqs = '''dv/dt = -v / tau : volt
+#             du/dt = -foo(u) * param / (tau_long * ms): volt
+#             param : 1
+#          '''
+#    eq = Equations(eqs, namespace={'tau_long': tau2}, exhaustive=False)
+#    namespace = eq.resolve()
+#    assert namespace['tau'] is tau
+#    assert namespace['tau_long'] is tau2
+#    assert namespace['foo'] is foo
+#    assert namespace['ms'] is ms
+#    assert set(namespace.keys()) == set(('tau', 'tau_long', 'foo', 'ms'))
 
 
 def test_properties():
@@ -246,13 +245,13 @@ def test_properties():
             set([name for name, _ in eqs.eq_expressions]) == set(['v', 'I', 'f']) and
             all((isinstance(expr, Expression) for _, expr in eqs.eq_expressions)))
     assert len(eqs.eq_names) == 3 and set(eqs.eq_names) == set(['v', 'I', 'f'])
-    assert set(eqs.equations.keys()) == set(['v', 'I', 'f', 'freq'])
-    assert all((isinstance(eq, SingleEquation) for eq in eqs.equations.itervalues()))
+    assert set(eqs.keys()) == set(['v', 'I', 'f', 'freq'])
     # test that the equations object is iterable itself
-    assert all((isinstance(eq, SingleEquation) for (_, eq) in eqs))
-    assert (len(eqs.equations_ordered) == 4 and
-            all((isinstance(eq, SingleEquation) for eq in eqs.equations_ordered)) and
-            [eq.varname for eq in eqs.equations_ordered] == ['f', 'I', 'v', 'freq'])
+    assert all((isinstance(eq, SingleEquation) for eq in eqs.itervalues()))
+    assert all((isinstance(eq, basestring) for eq in eqs))
+    assert (len(eqs.ordered) == 4 and
+            all((isinstance(eq, SingleEquation) for eq in eqs.ordered)) and
+            [eq.varname for eq in eqs.ordered] == ['f', 'I', 'v', 'freq'])
     assert set(eqs.names) == set(['v', 'I', 'f', 'freq'])
     assert set(eqs.parameter_names) == set(['freq'])
     assert set(eqs.static_eq_names) == set(['I', 'f'])
@@ -268,40 +267,6 @@ def test_properties():
     assert set(eqs.variables) == set(eqs.units.keys())
 
 
-def test_mathematical_properties():
-    tau = 10 * ms
-    eqs = Equations('''dv/dt = -v / tau : volt ''')
-    assert eqs.is_linear
-    
-    # depending on constant parameters is ok
-    eqs = Equations('''dv/dt = -v*c / tau : volt
-                       c : 1 (constant)''')
-    assert eqs.is_linear
-
-    # depending on non-constant parameters isn't
-    eqs = Equations('''dv/dt = -v*c / tau : volt
-                       c : 1''')
-    assert not eqs.is_linear
-    
-    eqs = Equations('''dv/dt = -sin(v) / tau : 1''')
-    assert not eqs.is_linear
-    
-    # equations depending on time are never linear
-    eqs = Equations('''dv/dt = -(v * t / second) / tau : 1''')
-    assert not eqs.is_linear
-    
-    
-    eqs = Equations('''dv/dt = -(v + v2) / tau : 1
-                       v2 = sin(v) : 1''')
-    assert not eqs.is_linear
-    assert not eqs.is_conditionally_linear
-    
-    eqs = Equations('''dv/dt = -(v + v2) / tau : 1
-                       dv2/dt = sin(v) / tau : 1''')
-    assert not eqs.is_linear
-    assert eqs.is_conditionally_linear
-
-
 def test_str_repr():
     '''
     Test the string representation (only that it does not throw errors).
@@ -315,7 +280,7 @@ def test_str_repr():
     
     # Test str and repr of SingleEquations explicitly (might already have been
     # called by Equations
-    for eq in eqs.equations.itervalues():
+    for eq in eqs.itervalues():
         assert(len(str(eq))) > 0
         assert(len(repr(eq))) > 0
     
@@ -332,7 +297,5 @@ if __name__ == '__main__':
     test_identifier_checks()
     test_parse_equations()
     test_construction_errors()
-    test_resolve()
-    test_properties()
-    test_mathematical_properties()    
+    test_properties()    
     test_str_repr()

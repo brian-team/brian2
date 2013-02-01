@@ -6,7 +6,7 @@ from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
 
 from .equations import (Equations, SingleEquation, DIFFERENTIAL_EQUATION,
-                        PARAMETER)
+                        PARAMETER, Expression)
 
 __all__ = ['add_refractoriness']
 
@@ -54,11 +54,13 @@ def add_refractoriness(eqs):
     new_equations = []
     
     # replace differential equations having the active flag    
-    for eq in eqs.equations.values():
+    for eq in eqs.itervalues():
         if eq.eq_type == DIFFERENTIAL_EQUATION and 'active' in eq.flags:
             # the only case where we have to change anything
             new_code = 'is_active*(' + eq.expr.code + ')'
-            new_equations.append(eq.replace_code(new_code))
+            new_equations.append(SingleEquation(DIFFERENTIAL_EQUATION,
+                                                eq.varname, eq.unit,
+                                                Expression(new_code)))
         else:
             new_equations.append(eq)
     

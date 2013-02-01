@@ -1,7 +1,7 @@
 '''
 Differential equations for Brian models.
 '''
-
+import collections
 import keyword
 import re
 import string
@@ -85,6 +85,11 @@ DIFF_EQ = Group(DIFF_OP + Suppress('=') + EXPRESSION + Suppress(':') + UNIT +
 EQUATION = (PARAMETER_EQ | STATIC_EQ | DIFF_EQ).ignore('#' + restOfLine)
 EQUATIONS = ZeroOrMore(EQUATION)
 
+class EquationError(Exception):
+    def __init__(self, message):
+        self.message = message
+    def __str__(self):
+        return self.message
 
 def check_identifier_basic(identifier):
     '''
@@ -167,7 +172,7 @@ def check_identifier(identifier):
         check_func(identifier)
 
 
-def parse_string_equations(eqns, namespace, exhaustive, level):
+def parse_string_equations(eqns):
     """
     Parse a string defining equations.
     
@@ -175,30 +180,21 @@ def parse_string_equations(eqns, namespace, exhaustive, level):
     ----------
     eqns : str
         The (possibly multi-line) string defining the equations. See the
-        documentation of the Equations class for details.
-    namespace : dict
-        An explictly given namespace (dictionary mapping names to objects)
-    exhaustive : bool
-        Whether the namespace in the namespace argument specifies the
-        namespace completely (``True``) or should be used in addition to
-        the locals/globals dictionaries (``False``)
-    level : int
-        The level in the stack (an integer >=0) where to look for locals
-        and globals
+        documentation of the `Equations` class for details.
     
     Returns
     -------
     equations : dict
         A dictionary mapping variable names to
-        `~brian2.quations.equations.Equation` objects
+        `~brian2.equations.equations.Equations` objects
     """
     equations = {}
     
     try:
         parsed = EQUATIONS.parseString(eqns, parseAll=True)
     except ParseException as p_exc:
-        raise SyntaxError('Parsing failed: \n' + str(p_exc.line) + '\n' +
-                          ' '*(p_exc.column - 1) + '^\n' + str(p_exc))
+        raise EquationError('Parsing failed: \n' + str(p_exc.line) + '\n' +
+                            ' '*(p_exc.column - 1) + '^\n' + str(p_exc))
     for eq in parsed:
         eq_type = eq.getName()
         eq_content = dict(eq.items())
@@ -213,15 +209,14 @@ def parse_string_equations(eqns, namespace, exhaustive, level):
             # Replace multiple whitespaces (arising from joining multiline
             # strings) with single space
             p = re.compile(r'\s{2,}')
-            expression = Expression(p.sub(' ', expression),
-                                    namespace, exhaustive, level + 1)
+            expression = Expression(p.sub(' ', expression))
         flags = list(eq_content.get('flags', []))
 
         equation = SingleEquation(eq_type, identifier, unit, expression, flags) 
         
         if identifier in equations:
-            raise SyntaxError('Duplicate definition of variable "%s"' %
-                              identifier)
+            raise EquationError('Duplicate definition of variable "%s"' %
+                                identifier)
                                        
         equations[identifier] = equation
     
@@ -338,7 +333,7 @@ class SingleEquation(object):
         if len(self.flags):
             p.text(' (' + ', '.join(self.flags) + ')')
 
-class Equations(object):
+class Equations(collections.Mapping):
     """
     Container that stores equations from which models can be created.
     
@@ -353,58 +348,65 @@ class Equations(object):
     
     Parameters
     ----------
-    eqs : str
-        A multiline string of equations (see above).
-    namespace : dict, optional
-        An explictly given namespace (dictionary mapping names to objects)
-    exhaustive : bool, optional
-        Whether the namespace in the namespace argument specifies the
-        namespace completely (``True``, the default) or should be used in
-        addition to the locals/globals dictionaries (``False``)
-    level : int, optional
-        The level in the stack (an integer >=0) where to look for locals
-        and globals 
-    
+    eqs : `str` or list of `SingleEquation` objects
+        A multiline string of equations (see above) -- for internal purposes
+        also a list of `SingleEquation` objects can be given. This is done for
+        example when adding new equations to implement the refractory
+        mechanism. Note that in this case the variable names are not checked
+        to allow for "internal names", starting with an underscore.
     """
 
-    def __init__(self, eqns, namespace=None, exhaustive=False, level=0):
+    def __init__(self, eqns):
         if isinstance(eqns, basestring):
-            self._equations = parse_string_equations(eqns, namespace, exhaustive,
-                                                     level + 1)
+            self._equations = parse_string_equations(eqns)
             # Do a basic check for the identifiers
-            self.check_identifiers()
+            self.check_identifiers()            
         else:
             self._equations = {}
             for eq in eqns:
                 if not isinstance(eq, SingleEquation):
                     raise TypeError(('The list should only contain '
                                     'SingleEquation objects, not %s') % type(eq))
+                if eq.varname in self._equations:
+                    raise EquationError('Duplicate definition of variable "%s"' %
+                                        eq.varname)
                 self._equations[eq.varname] = eq
-
+        
         # Check for special symbol xi (stochastic term)
         uses_xi = None
         for eq in self._equations.itervalues():
             if not eq.expr is None and 'xi' in eq.expr.identifiers:
                 if not eq.eq_type == DIFFERENTIAL_EQUATION:
-                    raise SyntaxError(('The equation defining %s contains the '
-                                       'symbol "xi" but is not a differential '
-                                       'equation.') % eq.varname)
+                    raise EquationError(('The equation defining %s contains the '
+                                         'symbol "xi" but is not a differential '
+                                         'equation.') % eq.varname)
                 elif not uses_xi is None:
-                    raise SyntaxError(('The equation defining %s contains the '
-                                       'symbol "xi", but it is already used '
-                                       'in the equation defining %s.') %
-                                      (eq.varname, uses_xi))
+                    raise EquationError(('The equation defining %s contains the '
+                                         'symbol "xi", but it is already used '
+                                         'in the equation defining %s.') %
+                                        (eq.varname, uses_xi))
                 else:
                     uses_xi = eq.varname
         
         # rearrange static equations
         self._sort_static_equations()
-        
-        # Check the units for consistency
-        self.check_units()
 
     def __iter__(self):
-        return iter(self.equations.iteritems())
+        return iter(self._equations)
+
+    def __len__(self):
+        return len(self._equations)
+
+    def __getitem__(self, key):
+        return self._equations[key]
+    
+    def __add__(self, other_eqns):
+        if isinstance(other_eqns, basestring):
+            other_eqns = parse_string_equations(other_eqns)
+        elif not isinstance(other_eqns, Equations):
+            return NotImplemented
+            
+        return Equations(self.values() + other_eqns.values())
 
     #: A set of functions that are used to check identifiers (class attribute).
     #: Functions can be registered with the static method
@@ -462,7 +464,7 @@ class Equations(object):
         '''
         subst_exprs = []
         substitutions = {}        
-        for eq in self.equations_ordered:
+        for eq in self.ordered:
             # Skip parameters
             if eq.expr is None:
                 continue
@@ -480,43 +482,6 @@ class Equations(object):
         
         return subst_exprs        
 
-    def _is_linear(self, conditionally_linear=False):
-        '''
-        Whether all equations are linear and only refer to constant parameters.
-        if ``conditionally_linear`` is ``True``, only checks for conditional
-        linearity (i.e. all differential equations are linear with respect to
-        themselves but not necessarily with respect to other differential
-        equations).
-        '''
-        expressions = self.substituted_expressions
-                
-        for varname, expr in expressions:                
-            identifiers = expr.identifiers
-            
-            # Check that it does not depend on time
-            if 't' in identifiers:
-                return False
-            
-            # Check that it does not depend on non-constant parameters
-            for parameter in self.parameter_names:
-                if (parameter in identifiers and
-                    not 'constant' in self.equations[parameter].flags):
-                    return False
-
-            if conditionally_linear:
-                # Check for linearity against itself
-                if not expr.check_linearity(varname):
-                    return False
-            else:
-                # Check against all state variables (not against static
-                # equation variables, these are already replaced)
-                for diff_eq_var in self.diff_eq_names:                    
-                    if not expr.check_linearity(diff_eq_var):
-                        return False
-
-        # No non-linearity found
-        return True
-
     def _get_units(self):
         '''
         Dictionary of all internal variables (including t, dt, xi) and their
@@ -529,22 +494,20 @@ class Equations(object):
 
     # Properties
     
-    equations = property(lambda self: self._equations,
-                        doc='A dictionary mapping variable names to equations')
-    equations_ordered = property(lambda self: sorted(self._equations.itervalues(),
-                                                     key=lambda key: key.update_order),
-                                 doc='A list of all equations, sorted '
-                                 'according to the order in which they should '
-                                 'be updated')
+    ordered = property(lambda self: sorted(self._equations.itervalues(),
+                                           key=lambda key: key.update_order),
+                                           doc='A list of all equations, sorted '
+                                           'according to the order in which they should '
+                                           'be updated')
     
     diff_eq_expressions = property(lambda self: [(varname, eq.expr) for 
-                                                 varname, eq in self.equations.iteritems()
+                                                 varname, eq in self.iteritems()
                                                  if eq.eq_type == DIFFERENTIAL_EQUATION],
                                   doc='A list of (variable name, expression) '
                                   'tuples of all differential equations.')
     
     eq_expressions = property(lambda self: [(varname, eq.expr) for 
-                                            varname, eq in self.equations.iteritems()
+                                            varname, eq in self.iteritems()
                                             if eq.eq_type in (STATIC_EQUATION,
                                                               DIFFERENTIAL_EQUATION)],
                                   doc='A list of (variable name, expression) '
@@ -552,27 +515,22 @@ class Equations(object):
     
     substituted_expressions = property(_get_substituted_expressions)
     
-    names = property(lambda self: [eq.varname for eq in self.equations_ordered],
+    names = property(lambda self: [eq.varname for eq in self.ordered],
                      doc='All variable names defined in the equations.')
     
-    diff_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
+    diff_eq_names = property(lambda self: [eq.varname for eq in self.ordered
                                            if eq.eq_type == DIFFERENTIAL_EQUATION],
                              doc='All differential equation names.')
-    static_eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
+    static_eq_names = property(lambda self: [eq.varname for eq in self.ordered
                                            if eq.eq_type == STATIC_EQUATION],
                                doc='All static equation names.')
-    eq_names = property(lambda self: [eq.varname for eq in self.equations_ordered
+    eq_names = property(lambda self: [eq.varname for eq in self.ordered
                                            if eq.eq_type in (DIFFERENTIAL_EQUATION, STATIC_EQUATION)],
                         doc='All (static and differential) equation names.')
-    parameter_names = property(lambda self: [eq.varname for eq in self.equations_ordered
+    parameter_names = property(lambda self: [eq.varname for eq in self.ordered
                                              if eq.eq_type == PARAMETER],
                                doc='All parameter names.')    
-    
-    is_linear = property(_is_linear)
-    
-    is_conditionally_linear = property(lambda self: self._is_linear(conditionally_linear=True),
-                                       doc='Whether all equations are conditionally linear')
-    
+        
     units = property(_get_units)
     
     variables = property(lambda self: set(self.units.keys()),
@@ -582,7 +540,7 @@ class Equations(object):
         '''
         Sorts the static equations in a way that resolves their dependencies
         upon each other. After this method has been run, the static equations
-        returned by the ``equations_ordered`` property are in the order in which
+        returned by the ``ordered`` property are in the order in which
         they should be updated
         '''
         
@@ -630,37 +588,15 @@ class Equations(object):
             elif eq.eq_type == PARAMETER:
                 eq.update_order = len(sorted_eqs) + 1
 
-    def resolve(self):
-        '''
-        Resolve all external identifiers in the equations.
-        
-        Returns
-        -------
-        namespace : dict
-            A dictionary mapping all external identifiers to the objects they
-            refer to.
-        '''
-        
-        namespace = {}
-        # Make absolutely sure there are no conflicts and nothing weird is
-        # going on
-        for eq in self._equations.itervalues():
-            if eq.expr is None:
-                # Parameters do not have/need a namespace
-                continue
-            expr_namespace = eq.expr.resolve(self.variables)
-            for key, value in expr_namespace.iteritems():
-                if key in namespace:
-                    # Should refer to exactly the same object
-                    assert value is namespace[key] 
-                else:
-                    namespace[key] = value
-        
-        return namespace
-
-    def check_units(self):
+    def check_units(self, namespace):
         '''
         Check all the units for consistency.
+        
+        Parameters
+        ----------
+        namespace : `CompoundNamespace`
+            The namespace for resolving external identifiers, should be
+            provided by the `NeuronGroup` or `Synapses`.
         
         Raises
         ------
@@ -675,20 +611,21 @@ class Equations(object):
             
             if eq.eq_type == DIFFERENTIAL_EQUATION:
                 try:
-                    eq.expr.check_units(units[var] / second, units)
+                    eq.expr.check_units(units[var] / second, units, namespace)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Differential equation defining '
                                                   '%s does not use consistent units: %s') % 
                                                  (var, dme.desc), *dme.dims)
             elif eq.eq_type == STATIC_EQUATION:
                 try:
-                    eq.expr.check_units(units[var], units)
+                    eq.expr.check_units(units[var], units, namespace)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Static equation defining '
                                                   '%s does not use consistent units: %s') % 
                                                  (var, dme.desc), *dme.dims)                
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.eq_type)
+
 
     def check_flags(self, allowed_flags):
         '''
@@ -711,7 +648,7 @@ class Equations(object):
         ValueError
             If any flags are used that are not allowed.
         '''
-        for eq in self.equations.itervalues():
+        for eq in self.itervalues():
             for flag in eq.flags:
                 if not eq.eq_type in allowed_flags or len(allowed_flags[eq.eq_type]) == 0:
                     raise ValueError('Equations of type "%s" cannot have any flags.' % eq.eq_type)
@@ -726,7 +663,7 @@ class Equations(object):
     # 
 
     def __str__(self):
-        strings = [str(eq) for eq in self.equations_ordered]
+        strings = [str(eq) for eq in self.ordered]
         return '\n'.join(strings)
     
     def __repr__(self):
