@@ -4,6 +4,12 @@ model equations of `NeuronGroup` and `Synapses`
 '''
 import inspect
 import collections
+try:
+    from collections import OrderedDict
+except ImportError:
+    # OrderedDict was added in Python 2.7, use backport for Python 2.6
+    from brian2.utils.ordereddict import OrderedDict
+
 import numpy as np
 
 from brian2.utils.logger import get_logger
@@ -85,7 +91,7 @@ class ModelNamespace(collections.MutableMapping):
 
     def __init__(self, model_namespace):        
         
-        self.namespaces = collections.OrderedDict()        
+        self.namespaces = OrderedDict()        
         self.namespaces['model'] = model_namespace
         
         self._has_writeable = False
