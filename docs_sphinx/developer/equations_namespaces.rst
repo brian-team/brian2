@@ -20,13 +20,13 @@ using the `create_namespace` method provided by `ObjectWithNamespace`. In a
 `NeuronGroup` this means having the following line in `__init__`::
 
 	# 'namespace' is the keyword argument, i.e. a dictionary or None
-	self._namespace = self.create_namespace(namespace) 
+	self._namespace = self.create_namespace(self.specifiers, namespace) 
 
 In `Synapses`, the namespace also refers the model namespace of the source and
 the target group::
 
 	# 'source', 'target' and 'namespace' are the respective arguments
-	self._namespace = self.create_namespace(namespace,
+	self._namespace = self.create_namespace(self.specifiers, namespace,
 	                                        Namespace('presynaptic',
 	                                                  source.namespace,
 	                                                  suffixes=['_pre']),

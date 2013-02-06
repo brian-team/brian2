@@ -31,7 +31,7 @@ class ObjectWithNamespace(object):
         instance._globals = dict(frame.f_globals)
         return instance
     
-    def create_namespace(self, explicit_namespace=None,
+    def create_namespace(self, specifiers, explicit_namespace=None,
                          additional_namespaces=None):
         
         # only use the local/global namespace if no explicit one is given
@@ -39,8 +39,8 @@ class ObjectWithNamespace(object):
         
         # This has to directly refer to the specifiers dictionary
         # and not to a copy so it takes any later changes (i.e. additions
-        # for reset and threhsold) into account 
-        namespace = ModelNamespace(self.specifiers)        
+        # for reset and threshold) into account 
+        namespace = ModelNamespace(specifiers)        
         
         # we always want a user-defined namespace
         if explicit_namespace is None:
@@ -128,8 +128,8 @@ class ModelNamespace(collections.MutableMapping):
 
         if len(matches) == 0:
             # No match at all
-            raise ValueError(('The identifier "%s" could not be resolved.') % 
-                             (identifier))
+            raise KeyError(('The identifier "%s" could not be resolved.') % 
+                           (identifier))
         elif len(matches) > 1:
             # Possibly, all matches refer to the same object
             first_obj = matches[0][1]
@@ -198,7 +198,7 @@ class Namespace(collections.MutableMapping):
     def __init__(self, name, namespace, writeable=False, suffixes=None):
         self.name = name
         if isinstance(namespace, ModelNamespace):
-            self.namespace = namespace._namespaces['model']
+            self.namespace = namespace.namespaces['model']
         else:
             self.namespace = namespace
         self.writeable = writeable

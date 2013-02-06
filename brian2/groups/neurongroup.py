@@ -182,7 +182,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         self.specifiers = self.create_specifiers()        
         
         # Setup the namespace
-        self._namespace = self.create_namespace(namespace)
+        self._namespace = self.create_namespace(self.specifiers, namespace)
         
         # Setup units
         self.units = self.equations.units
