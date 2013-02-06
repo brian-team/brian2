@@ -104,28 +104,22 @@ incorrect flags -- all this will be done during the instantiation of a `NeuronGr
 External variables and functions
 --------------------------------
 During the initialisation of a `NeuronGroup` or `Synapses` object, the namespace used for external variables
-and functions is resolved. To allow fine control over this process, the constructors take a `namespace` argument.
+is determined. To allow fine control over this process, the constructors take a `namespace` argument.
 If no value is given, the namespace will be implicit, consisting of the local and global variables at the point
-where the `NeuronGroup`/`Synapses` object is constructed. The `namespace` argument can be either a dictionary
-or a `Namespace` class (see the developer documentation for more details of the internals). When constructing a
-`Namespace` object, the following keyword arguments can be used:
-
-*namespace* [maybe not the best name?]
-    A mapping (i.e. a dict-like object), mapping names to objects
-
-*level*
-    How far to go up in the stack frame (useful when constructing a `NeuronGroup` in a function, for example)
-
-*exhaustive*
-    Whether the given namespace is exhaustive (``True``) or should be combined with the implicit namespace.
- 
-Giving no namespace argument to `NeuronGroup`/`Synapse` corresponds to creating a
-``Namespace({}, level=0, exhaustive=False)`` object and passing it to the constructor. Giving a dictionary
-``d`` as the namespace argument corresponds to ``Namespace(d, exhaustive=True)``. 
+where the `NeuronGroup`/`Synapses` object is constructed. The `namespace` argument should be a dictionary, if it
+is given, it is expected to specify the namespace completely.
 
 Changes in external variable values are not taken into account during a run (if you want to have a variable
 that is updated by a user-defined function during a run, define it as a parameter instead).
 
+[TODO: Decide whether we want this]
+You can change the value of an external variable between runs by setting the reference in the namespace attribute::
+
+	G = NeuronGroup(...)
+	run(...)
+	G.namespace['varname'] = newvalue
+	run(...)
+	
 Resolution order
 ~~~~~~~~~~~~~~~~
 For each identifier (variable or function name) in the model equations, a corresponding object will be

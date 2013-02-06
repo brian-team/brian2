@@ -1,4 +1,3 @@
-import inspect
 import weakref
 
 import numpy as np
@@ -117,6 +116,11 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         expression.
     reset : str, optional
         The (possibly multi-line) string with the code to execute on reset.
+    namespace: dict, optional
+        A dictionary mapping variable/function names to the respective objects.
+        If no `namespace` is given, the "implicit" namespace, consisting of
+        the local and global namespace surrounding the creation of the class,
+        is used.
     dtype : (`dtype`, `dict`), optional
         The `numpy.dtype` that will be used to store the values, or
         :bpref:`default_scalar_dtype` if not specified (`numpy.float64` by
@@ -178,7 +182,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         self.specifiers = self.create_specifiers()        
         
         # Setup the namespace
-        self.namespace = self.create_namespace(namespace)
+        self._namespace = self.create_namespace(namespace)
         
         # Setup units
         self.units = self.equations.units

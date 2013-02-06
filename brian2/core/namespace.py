@@ -17,7 +17,9 @@ import brian2.units.unitsafefunctions as usf
 from brian2.units.fundamentalunits import Quantity, all_registered_units
 from brian2.units.stdunits import stdunits
 
-__all__ = ['ObjectWithNamespace', 'DEFAULT_NUMPY_NAMESPACE', 'DEFAULT_UNIT_NAMESPACE']
+__all__ = ['ObjectWithNamespace',
+           'DEFAULT_NUMPY_NAMESPACE',
+           'DEFAULT_UNIT_NAMESPACE']
 
 logger = get_logger(__name__)
 
@@ -60,6 +62,8 @@ class ObjectWithNamespace(object):
             namespace.add_namespace(Namespace('global', self._globals))
             
         return namespace
+    
+    namespace = property(lambda self: self._namespace)
 
 def _conflict_warning(message, resolutions):
     '''
@@ -158,11 +162,11 @@ class ModelNamespace(collections.MutableMapping):
 
     def __setitem__(self, key, value):
         # setting a value should only affects the user-defined namespace        
-        self._namespaces['user-defined'][key] = value
+        self.namespaces['user-defined'][key] = value
     
     def __delitem__(self, key):
         if key in self._namespaces['user-defined']:
-            del self._namespaces['user-defined'][key]
+            del self.namespaces['user-defined'][key]
         else:
             raise KeyError('Unknown key "%s"' % key)
     
@@ -193,7 +197,10 @@ class Namespace(collections.MutableMapping):
     
     def __init__(self, name, namespace, writeable=False, suffixes=None):
         self.name = name
-        self.namespace = namespace
+        if isinstance(namespace, ModelNamespace):
+            self.namespace = namespace._namespaces['model']
+        else:
+            self.namespace = namespace
         self.writeable = writeable
         self.suffixes = suffixes
     

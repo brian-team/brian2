@@ -7,32 +7,37 @@ Equation parsing
 Namespaces
 ----------
 Namespaces (i.e. the link from names used in model equations to the variables/
-functions they refer to) are handled via `Namespace` objects internally (users
-do not have to use them explicitly, but they can if they want to have
-fine-grained control over namespace resolution). All objects that have a
-namespace (currently, `NeuronGroup` and `Synapses), save it in a ``_namespace``
-attribute and provide a ``namespace`` property to access it (it is not
-allowed to be overwritten). The namespace class provides a static convenience
-function that returns a `Namespace` instance from a `namespace` argument in a
-`NeuronGroup`/`Synapses` constructor (which might be ``None``, a dictionary or
-a `Namespace` object) plus (in the case of `Synapses`) a dictionary of suffixes
-and referred namespaces.
+functions they refer to) are handled via `ModelNamespace` objects internally.
+The `ModelNamespace` object represents a "compound namespace", containing
+several subnamespaces (e.g. the model variables, the user-specified namespace,
+the local variables, the global variables, etc.)
+All objects that have a namespace (currently, `NeuronGroup` and `Synapses`),
+inherit from `ObjectWithNamespace` [maybe we could find a better name? Should
+we merge the class with `BrianObject` maybe?] and save the local and global
+namespace on creation. They are then supposed to initialize the `_namespace`
+attribute with a new `ModelNamespace` object. Typically, this should be done
+using the `create_namespace` method provided by `ObjectWithNamespace`. In a
+`NeuronGroup` this means having the following line in `__init__`::
 
-The `Namespace` object can be used like a dictionary, allowing for getting and
-setting (do we need deleting as well?) values. When doing either of those, the
-resolution transparently follows the rules described in :doc:`user/equations`,
-in particular it takes the referred namespaces into account in the case of the
-synapses class.
+	# 'namespace' is the keyword argument, i.e. a dictionary or None
+	self._namespace = self.create_namespace(namespace) 
 
-This is what the relevant part of the `Synapses` constructor looks like::
-	...
-	# `namespace`, `source` and `target` are the respective constructor arguments
-	# 'model` is the `Equations` object defining the model equations
-	self._namespace = Namespace.create(namespace,
-	                                   model,
-	                                   refers={'pre': source.namespace,
-	                                           'post': target.namespace,
-	                                           '': target.namespace})
+In `Synapses`, the namespace also refers the model namespace of the source and
+the target group::
+
+	# 'source', 'target' and 'namespace' are the respective arguments
+	self._namespace = self.create_namespace(namespace,
+	                                        Namespace('presynaptic',
+	                                                  source.namespace,
+	                                                  suffixes=['_pre']),
+	                                        Namespace('postsynaptic',
+	                                                  target.namespace,
+	                                                  suffixes=['_post', '']))
+
+The `namespace` attribute of a `NeuronGroup`/`Synapses` can be used like a
+dictionary, allowing for getting and setting values. Setting values will set
+values only in the 'user-defined' subnamespace, all other namespaces will never
+be changed.
 
 Now, for ``S`` being a `Synapses` object, you can refer to ``S.namespace['w']``,
 ``S.namespace['v_post']``, etc. and get references to the respective variables
