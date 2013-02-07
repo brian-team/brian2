@@ -29,5 +29,6 @@ interest to others wishing to better understand how Brian works internally.
    refractoriness_and_linearity
    new_magic_and_clocks
    device
+   preferences
    meeting-02-10-2012
  
