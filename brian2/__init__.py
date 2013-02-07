@@ -88,4 +88,8 @@ def restore_initial_state():
     defaultclock.__init__()
     clear(erase=True)
     brian_prefs._restore()
+
+# make the test suite available via brian2.test()
+from brian2.tests import run as test
+    
     
