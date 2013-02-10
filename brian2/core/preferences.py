@@ -47,11 +47,10 @@ class BrianGlobalPreferences(dict):
         
     def _get_documentation(self):
         s = ''
-        i = 0
         for basename, (prefdefs, basedoc) in pref_register.items():
             s += basename+'\n'
             s += '"'*len(basename)+'\n\n'
-            s += deindent(basedoc)+'\n\n'
+            s += deindent(basedoc, docstring=True).strip()+'\n\n'
             for name in sorted(prefdefs.keys()):
                 pref = prefdefs[name]
                 name = basename+'.'+name
@@ -60,14 +59,30 @@ class BrianGlobalPreferences(dict):
                 s += '.. _brian-pref-{name}:\n\n'.format(name=linkname)
                 s += '``{name}`` = ``{default}``\n'.format(name=name,
                                                            default=pref.default)
-                s += indent(deindent(pref.docs))
+                s += indent(deindent(pref.docs, docstring=True))
                 s += '\n\n'
         return s
     
     documentation = property(fget=_get_documentation,
                              doc='Get a restructuredtext format documentation '
                                  'string for the defined parameters')
+    
+    def _get_as_file(self):
+        s = ''
+        for basename, (prefdefs, basedoc) in pref_register.items():
+            s += '#'+'-'*79+'\n'
+            s += '\n'.join(['# '+line for line in deindent(basedoc, docstring=True).strip().split('\n')])+'\n'
+            s += '#'+'-'*79+'\n\n'
+            s += '['+basename+']\n\n'
+            for name in sorted(prefdefs.keys()):
+                pref = prefdefs[name]
+                s += '\n'.join(['# '+line for line in deindent(pref.docs, docstring=True).strip().split('\n')])+'\n\n'
+                s += name + ' = '+pref.default+'\n\n'
+        return s
 
+    as_file = property(fget=_get_as_file,
+                       doc='Get a Brian preference doc file format '
+                           'string for the defined parameters')
             
 def read_preference_file(filename):
     '''
@@ -222,7 +237,7 @@ def register_preferences(prefbasename, prefbasedoc, **prefs):
         raise PreferenceError("Base name "+prefbasename+" already registered.")
     pref_register[prefbasename] = (prefs, prefbasedoc)
     for k, v in prefs.items():
-        prefname_register[prefbasename+'.'+k] = v
+        brian_prefs_unvalidated[prefbasename+'.'+k] = v.default
     do_validation()
 
 
@@ -257,7 +272,6 @@ def do_validation():
 
 
 pref_register = {}
-prefname_register = {}
 brian_prefs = BrianGlobalPreferences()
 brian_prefs_unvalidated = {}
 
@@ -279,8 +293,10 @@ if __name__=='__main__':
             print e
         os.remove('test_prefs')
     if 1:
-        register_preferences('useless', 'useless docs',
-            a_string=BrianPreference('default', 'docs', validator=str),
+        register_preferences('useless', '''useless docs
+                                           on multiple lines
+                                           ''',
+            a_string=BrianPreference('default', 'docs\noh docs', validator=str),
             )
         open('brian_preferences', 'w').write('''
             useless.a_string = blah
@@ -297,7 +313,7 @@ if __name__=='__main__':
         do_validation()
         print
         register_preferences('meh', 'meh docs',
-            feh=BrianPreference('default', 'doc', validator=int),
+            feh=BrianPreference('2', 'doc', validator=int),
             )
         print
         print 'VALIDATED PREFERENCES:'
@@ -309,4 +325,4 @@ if __name__=='__main__':
             print k, '=', repr(v)
         print
         print brian_prefs.documentation
-
+        print brian_prefs.as_file
