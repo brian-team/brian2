@@ -8,6 +8,8 @@ Built-in preferences
 .. document_brian_prefs::
 '''
 import copy
+import re
+import os
 
 from brian2.utils.stringtools import deindent, indent
 from brian2.units.fundamentalunits import have_same_dimensions, Quantity, DimensionMismatchError
@@ -144,3 +146,150 @@ class BrianGlobalPreferences(object):
 
             
 brian_prefs = BrianGlobalPreferences()
+brian_prefs_unvalidated = {}
+
+def read_preference_file(filename):
+    '''
+    Reads a Brian preferences file and returns a dictionary of key/value pairs
+    
+    Parameters
+    ----------
+    
+    filename : str
+        The name of the preference file.
+        
+    Returns
+    -------
+    
+    prefs : dict
+        The extracted preferences, a dictionary of key/value pairs, where
+        all of the values are unparsed strings.
+        
+    Notes
+    -----
+    
+    The file format for Brian preferences is a plain text file of the form::
+
+        a.b.c = 1
+        # Comment line
+        [a]
+        b.d = 2
+        [a.b]
+        e = 3
+        
+    Blank and comment lines are ignored, all others should be of one of the
+    following two forms::
+    
+        key = value
+        [section]
+        
+    Within a section, the section name is prepended to the key. So in the above
+    example, it would return the following dictionary::
+    
+        {'a.b.c': '1',
+         'a.b.d': '2',
+         'a.b.e': '3',
+         }
+    '''
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    # remove empty lines
+    lines = [line.strip() for line in lines]
+    lines = [line for line in lines if line]
+    # Remove comments
+    lines = [line for line in lines if not line.startswith('#')]
+    prefs = {}
+    bases = [] # start with no base
+    for line in lines:
+        # Match section names, which are used as a prefix for subsequent entries
+        m = re.match('\[([^\]]*)\]', line)
+        if m:
+            bases = m.group(1).strip().split('.')
+            continue
+        # Match entries
+        m = re.match('(.*?)=(.*)', line)
+        if m:
+            extname = m.group(1).strip()
+            value = m.group(2).strip()
+            keyname = '.'.join(bases+extname.split('.'))
+            prefs[keyname] = value
+            continue
+        # Otherwise raise a parsing error
+        raise ValueError("Parsing error in preference file "+file)
+    return prefs
+
+
+def read_all_preference_files():
+    '''
+    Read all the preference files, and a return a dict.
+    
+    Returns
+    -------
+    
+    prefs : dict
+        The extracted preferences, a dictionary of key/value pairs, where
+        all of the values are unparsed strings.
+        
+    Notes
+    -----
+    
+    Preference files are read in the following order:
+    
+    1. ``brian2/default_preferences`` from the Brian installation directory.
+    2. ``~/.brian/user_preferences`` from the user's home directory
+    3. ``./brian_preferences`` from the current directory
+    
+    Files that are missing are ignored. Preferences read at each step
+    override preferences from previous steps.
+    
+    See Also
+    --------
+    
+    read_preference_file
+    '''
+    curdir, _ = os.path.split(__file__)
+    basedir = os.path.normpath(os.path.join(curdir, '..'))
+    default_prefs = os.path.join(basedir, 'default_preferences')
+    user_prefs = os.path.join(os.path.expanduser('~'), '.brian/user_preferences')
+    cur_prefs = 'brian_preferences'
+    files = [default_prefs, user_prefs, cur_prefs]
+    prefs = {}
+    for file in files:
+        try:
+            newprefs = read_preference_file(file)
+        except IOError:
+            pass
+        prefs.update(**newprefs)
+    return prefs
+
+
+if __name__=='__main__':
+    if 0:
+        open('test_prefs', 'w').write('''
+            a.b.c = 1
+            # Comment line
+            [a]
+            b.d = 2
+            [a.b]
+            e = 3
+            ''')
+        try:
+            prefs = read_preference_file('test_prefs')
+            print prefs
+        except Exception as e:
+            print e
+        os.remove('test_prefs')
+    if 1:
+        open('brian_preferences', 'w').write('''
+            useless.pref = blah
+            [meh]
+            feh = very
+            ''')
+        try:
+            prefs = read_all_preference_files()
+            print prefs
+        except Exception as e:
+            print e
+        os.remove('brian_preferences')
+
+        
