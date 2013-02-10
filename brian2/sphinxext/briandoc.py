@@ -56,12 +56,13 @@ def brian_prefs_role(role, rawtext, text, lineno, inliner,
     A sphinx role, allowing to link to Brian preferences using a
     ``:bpref:`preference_name``` syntax.
     '''
-    if not text in brian_prefs._values:
+    if not text in brian_prefs:
         msg = inliner.reporter.error(
             'Unknown brian preference: %s' % text, line=lineno)
         prb = inliner.problematic(rawtext, rawtext, msg)
         return [prb], [msg]
-    text = '%s <brian-pref-%s>' % (text, text.replace('_', '-'))
+    linktext = text.replace('_', '-').replace('.', '-')
+    text = '%s <brian-pref-%s>' % (text, linktext)
     # Use sphinx's cross-reference role
     xref = XRefRole(warn_dangling=True)
     return xref('std:ref', rawtext, text, lineno, inliner, options, content)

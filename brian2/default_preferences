@@ -1,3 +1,15 @@
-[weave]
+#-------------------------------------------------------------------------------
+# Core Brian preferences
+#-------------------------------------------------------------------------------
 
-compiler = gcc
+[core]
+
+# Default dtype for all arrays of scalars (state variables, weights, etc.).
+default_scalar_dtype = float64
+
+# Whether to delete the log file when Brian finishes without having raised an
+# exception
+delete_log_on_exit = True
+
+# scipy.weave default compiler
+weave_compiler = gcc
