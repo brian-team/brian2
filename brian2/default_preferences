@@ -1,1 +1,3 @@
-weave_compiler = gcc
+[weave]
+
+compiler = gcc

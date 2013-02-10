@@ -14,7 +14,15 @@ import os
 from brian2.utils.stringtools import deindent, indent
 from brian2.units.fundamentalunits import have_same_dimensions, Quantity, DimensionMismatchError
 
-__all__ = ['brian_prefs']
+__all__ = ['PreferenceError', 'BrianPreference', 'register_preferences', 'brian_prefs']
+
+
+class PreferenceError(Exception):
+    '''
+    Exception relating to the Brian preferences system.
+    '''
+    pass
+
 
 class DefaultValidator(object):
     def __init__(self, name, value):
@@ -38,7 +46,7 @@ class DefaultValidator(object):
                                                 self=self, value=value))
 
 
-class BrianGlobalPreferences(object):
+class BrianGlobalPreferences(dict):
     '''
     Class of the ``brian_prefs`` object, allows you to get, set and define
     global Brian preferences, and generate documentation.
@@ -145,29 +153,10 @@ class BrianGlobalPreferences(object):
                                  'string for the defined parameters')
 
             
-brian_prefs = BrianGlobalPreferences()
-brian_prefs_unvalidated = {}
-
 def read_preference_file(filename):
     '''
     Reads a Brian preferences file and returns a dictionary of key/value pairs
-    
-    Parameters
-    ----------
-    
-    filename : str
-        The name of the preference file.
-        
-    Returns
-    -------
-    
-    prefs : dict
-        The extracted preferences, a dictionary of key/value pairs, where
-        all of the values are unparsed strings.
-        
-    Notes
-    -----
-    
+
     The file format for Brian preferences is a plain text file of the form::
 
         a.b.c = 1
@@ -190,6 +179,19 @@ def read_preference_file(filename):
          'a.b.d': '2',
          'a.b.e': '3',
          }
+    
+    Parameters
+    ----------
+    
+    filename : str
+        The name of the preference file.
+        
+    Returns
+    -------
+    
+    prefs : dict
+        The extracted preferences, a dictionary of key/value pairs, where
+        all of the values are unparsed strings.        
     '''
     with open(filename, 'r') as f:
         lines = f.readlines()
@@ -219,20 +221,10 @@ def read_preference_file(filename):
     return prefs
 
 
-def read_all_preference_files():
+def load_preferences():
     '''
-    Read all the preference files, and a return a dict.
-    
-    Returns
-    -------
-    
-    prefs : dict
-        The extracted preferences, a dictionary of key/value pairs, where
-        all of the values are unparsed strings.
-        
-    Notes
-    -----
-    
+    Load all the preference files, but do not validate them.
+
     Preference files are read in the following order:
     
     1. ``brian2/default_preferences`` from the Brian installation directory.
@@ -253,14 +245,100 @@ def read_all_preference_files():
     user_prefs = os.path.join(os.path.expanduser('~'), '.brian/user_preferences')
     cur_prefs = 'brian_preferences'
     files = [default_prefs, user_prefs, cur_prefs]
-    prefs = {}
     for file in files:
         try:
             newprefs = read_preference_file(file)
         except IOError:
             pass
-        prefs.update(**newprefs)
-    return prefs
+        brian_prefs_unvalidated.update(**newprefs)
+
+
+class BrianPreference(object):
+    '''
+    Used for defining a Brian preference.
+    
+    Parameters
+    ----------
+    
+    default : str
+        The default value as an unparsed string.
+    docs : str
+        Documentation for the preference value.
+    validator : func
+        A function that takes a string value as input, and returns the actual
+        value (e.g. take ``'1'`` and return ``1``), or raises a
+        `PreferenceError` if the string is invalid. TODO: default validators?
+    '''
+    def __init__(self, default, docs, validator=None):
+        self.validator = validator
+        self.default = default
+        self.docs = docs
+
+
+def register_preferences(prefbasename, **prefs):
+    '''
+    Registers a set of preference names, docs and validation functions.
+    
+    Parameters
+    ----------
+    
+    prefbasename : str
+        The base name of the preference.
+    **prefs : dict of (name, `BrianPreference`) pairs
+        The preference names to be defined. The full preference name will be
+        ``prefbasename.name``, and the `BrianPreference` value is used to define
+        the default value, docs, and validation function.
+        
+    Raises
+    ------
+    
+    PreferenceError
+        If the base name is already registered.
+        
+    See Also
+    --------
+    
+    BrianPreference
+    '''
+    if prefbasename in pref_register:
+        raise PreferenceError("Base name "+prefbasename+" already registered.")
+    pref_register[prefbasename] = prefs
+    do_validation()
+
+
+def do_validation():
+    '''
+    Validates preferences that have not yet been validated.
+    '''
+    for name, valuestr in brian_prefs_unvalidated.items():
+        # parse the name
+        parts = name.split('.')
+        basename = '.'.join(parts[:-1])
+        endname = parts[-1]
+        # if basename is not in pref_register, we ignore the preference for the
+        # moment, do_validation() will get called by register_preferences
+        if basename in pref_register:
+            prefdefs = pref_register[basename]
+            if endname in prefdefs:
+                # do validation
+                pref = prefdefs[endname]
+                try:
+                    value = pref.validator(valuestr)
+                except Exception as e:
+                    raise PreferenceError(
+                          "Value '%s' for preference %s is invalid, "
+                          "exception: %s"%(valuestr, name, str(e)))
+                brian_prefs[name] = value
+                del brian_prefs_unvalidated[name]
+            else:
+                raise PreferenceError("Preference "+name+" has "
+                                      "an unregistered base name. Spelling "
+                                      "error or forgotten library import?")
+
+
+pref_register = {}
+brian_prefs = BrianGlobalPreferences()
+brian_prefs_unvalidated = {}
 
 
 if __name__=='__main__':
@@ -280,16 +358,31 @@ if __name__=='__main__':
             print e
         os.remove('test_prefs')
     if 1:
+        register_preferences('useless',
+            a_string=BrianPreference('default', 'docs', validator=str),
+            )
         open('brian_preferences', 'w').write('''
-            useless.pref = blah
+            useless.a_string = blah
             [meh]
-            feh = very
+            feh = 5
             ''')
         try:
-            prefs = read_all_preference_files()
-            print prefs
+            prefs = load_preferences()
+            print brian_prefs_unvalidated
         except Exception as e:
             print e
         os.remove('brian_preferences')
-
-        
+        print
+        do_validation()
+        print
+        register_preferences('meh',
+            feh=BrianPreference('default', 'doc', validator=int),
+            )
+        print
+        print 'VALIDATED PREFERENCES:'
+        for k, v in brian_prefs.items():
+            print k, '=', repr(v)
+        print
+        print 'UNVALIDATED PREFERENCES:'
+        for k, v in brian_prefs_unvalidated.items():
+            print k, '=', repr(v)
