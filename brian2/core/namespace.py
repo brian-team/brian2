@@ -34,33 +34,26 @@ class ObjectWithNamespace(object):
     def create_namespace(self, specifiers, explicit_namespace=None,
                          additional_namespaces=None):
         
-        # only use the local/global namespace if no explicit one is given
-        use_implicit = explicit_namespace is None
-        
         # This has to directly refer to the specifiers dictionary
         # and not to a copy so it takes any later changes (i.e. additions
         # for reset and threshold) into account 
         namespace = ModelNamespace(specifiers)        
         
-        # we always want a user-defined namespace
+        # only use the local/global namespace if no explicit one is given
         if explicit_namespace is None:
-            explicit_namespace = {}
-        explicit_namespace = Namespace('user-defined', explicit_namespace,
-                                       writeable=True)
-        namespace.add_namespace(explicit_namespace)
+            namespace.add_namespace(Namespace('local', self._locals))
+            namespace.add_namespace(Namespace('global', self._globals))
+        else:            
+            explicit_namespace = Namespace('user-defined', explicit_namespace)
+            namespace.add_namespace(explicit_namespace)
         
         if not additional_namespaces is None:
             for additional in additional_namespaces:
                 namespace.add_namespace(additional)
         
-        
         namespace.add_namespace(DEFAULT_NUMPY_NAMESPACE)
         namespace.add_namespace(DEFAULT_UNIT_NAMESPACE)
         
-        if use_implicit:
-            namespace.add_namespace(Namespace('local', self._locals))
-            namespace.add_namespace(Namespace('global', self._globals))
-            
         return namespace
     
     namespace = property(lambda self: self._namespace)
@@ -91,7 +84,7 @@ def _conflict_warning(message, resolutions):
                 'Namespace.resolve.resolution_conflict', once=True)
 
 
-class ModelNamespace(collections.MutableMapping):
+class ModelNamespace(collections.Mapping):
 
     def __init__(self, model_namespace):        
         
@@ -103,16 +96,7 @@ class ModelNamespace(collections.MutableMapping):
     def add_namespace(self, namespace):
         if not isinstance(namespace, Namespace):
             raise TypeError(('The namespace argument has to be of type "Namespace" '
-                             'is type %s instead.') % str(type(namespace)))
-        if namespace.writeable:
-            # Every namespace should only have one writeable namespace
-            # (normally, the "user-defined" namespace), so that the statement
-            # "namespace[key] = value" has a unique meaning 
-            if self._has_writeable:
-                raise ValueError('Can only add one writeable namespace')
-            else:
-                self._has_writeable = True
-        
+                             'is type %s instead.') % str(type(namespace)))        
         self.namespaces[namespace.name] = namespace
     
     def resolve(self, identifier):
@@ -159,16 +143,6 @@ class ModelNamespace(collections.MutableMapping):
 
     def __getitem__(self, key):
         return self.resolve(key)
-
-    def __setitem__(self, key, value):
-        # setting a value should only affects the user-defined namespace        
-        self.namespaces['user-defined'][key] = value
-    
-    def __delitem__(self, key):
-        if key in self._namespaces['user-defined']:
-            del self.namespaces['user-defined'][key]
-        else:
-            raise KeyError('Unknown key "%s"' % key)
     
     def __len__(self):
         total_length = 0
@@ -193,15 +167,14 @@ class ModelNamespace(collections.MutableMapping):
         return False
 
 
-class Namespace(collections.MutableMapping):
+class Namespace(collections.Mapping):
     
-    def __init__(self, name, namespace, writeable=False, suffixes=None):
+    def __init__(self, name, namespace, suffixes=None):
         self.name = name
         if isinstance(namespace, ModelNamespace):
             self.namespace = namespace.namespaces['model']
         else:
             self.namespace = namespace
-        self.writeable = writeable
         self.suffixes = suffixes
     
     def __getitem__(self, key):
@@ -215,18 +188,6 @@ class Namespace(collections.MutableMapping):
                     return self.namespace[key_without_suffix]
         
         raise KeyError('Illegal key %s' % key)
-    
-    def __setitem__(self, key, value):
-        if not self.writeable:
-            raise TypeError('The namespace "%s" is read only.' % self.name)
-        
-        self.namespace[key] = value
-    
-    def __delitem__(self, key):
-        if not self.writeable:
-            raise TypeError('The namespace "%s" is read only.' % self.name)
-        
-        del self.namespace[key] 
     
     def __len__(self):
         return len(self.namespace)
