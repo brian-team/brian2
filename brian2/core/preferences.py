@@ -84,7 +84,7 @@ class BrianGlobalPreferences(dict):
                        doc='Get a Brian preference doc file format '
                            'string for the defined parameters')
             
-def read_preference_file(filename):
+def read_preference_file(file):
     '''
     Reads a Brian preferences file and returns a dictionary of key/value pairs
 
@@ -114,8 +114,8 @@ def read_preference_file(filename):
     Parameters
     ----------
     
-    filename : str
-        The name of the preference file.
+    file : file, str
+        The file object or filename of the preference file.
         
     Returns
     -------
@@ -124,8 +124,10 @@ def read_preference_file(filename):
         The extracted preferences, a dictionary of key/value pairs, where
         all of the values are unparsed strings.        
     '''
-    with open(filename, 'r') as f:
-        lines = f.readlines()
+    if isinstance(file, str):
+        file = open(file, 'r')
+    lines = file.readlines()
+    file.close()
     # remove empty lines
     lines = [line.strip() for line in lines]
     lines = [line for line in lines if line]
