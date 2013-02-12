@@ -23,18 +23,6 @@ from .environment import running_from_ipython
 __all__ = ['get_logger', 'BrianLogger']
 
 #===============================================================================
-# Global options for logging
-#===============================================================================
-brian_prefs.define('delete_log_on_exit', True,
-    '''
-    Whether to delete the log and script file on exit.
-    
-    If set to ``True`` (the default), log files (and the copy of the main
-    script) will be deleted after the brian process has exited, unless an
-    uncaught exception occured. If set to ``False``, all log files will be kept.
-    ''')
-
-#===============================================================================
 # Initial setup
 #===============================================================================
 
@@ -130,7 +118,7 @@ def clean_up_logging():
     occured.
     '''
     logging.shutdown()
-    if not BrianLogger.exception_occured and brian_prefs.delete_log_on_exit:
+    if not BrianLogger.exception_occured and brian_prefs['core.delete_log_on_exit']:
         if not TMP_LOG is None:
             try:
                 os.remove(TMP_LOG)

@@ -116,7 +116,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         The (possibly multi-line) string with the code to execute on reset.
     dtype : (`dtype`, `dict`), optional
         The `numpy.dtype` that will be used to store the values, or
-        :bpref:`default_scalar_dtype` if not specified (`numpy.float64` by
+        :bpref:`core.default_scalar_dtype` if not specified (`numpy.float64` by
         default).
     clock : Clock, optional
         The update clock to be used, or defaultclock if not specified.
@@ -227,7 +227,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
             else:
                 curdtype = dtype
             if curdtype is None:
-                curdtype = brian_prefs.default_scalar_dtype
+                curdtype = brian_prefs['core.default_scalar_dtype']
             self.dtypes[name] = curdtype
         logger.debug("NeuronGroup dtypes: "+", ".join(name+'='+str(dtype) for name, dtype in self.dtypes.iteritems()))
 
@@ -243,7 +243,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         lang = self.language
         logger.debug("NeuronGroup "+name+" abstract code:\n"+abstract_code)
         innercode = translate(abstract_code, specs,
-                              brian_prefs.default_scalar_dtype,
+                              brian_prefs['core.default_scalar_dtype'],
                               lang)
         logger.debug("NeuronGroup "+name+" inner code:\n"+str(innercode))
         code = lang.apply_template(innercode, template_method())

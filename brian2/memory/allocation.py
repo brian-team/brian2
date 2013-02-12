@@ -8,11 +8,6 @@ from brian2.core.preferences import brian_prefs
 __all__ = ['allocate_array',
            ]
 
-brian_prefs.define('default_scalar_dtype', float,
-    '''
-    Default dtype for all arrays of scalars (state variables, weights, etc.).
-    ''', validator=dtype)
-
 def allocate_array(shape, dtype=None):
     '''
     Allocates a 1D array initialised to 0
@@ -23,7 +18,7 @@ def allocate_array(shape, dtype=None):
         The shape of the array.
     dtype : dtype, optional
         The numpy datatype of the array. If not specified, use the
-        :bpref:`default_scalar_dtype` preference. 
+        :bpref:`core.default_scalar_dtype` preference. 
         
     Returns
     -------
@@ -31,7 +26,7 @@ def allocate_array(shape, dtype=None):
         The allocated array (initialised to zero).
     '''
     if dtype is None:
-        dtype = brian_prefs.default_scalar_dtype
+        dtype = brian_prefs['core.default_scalar_dtype']
     arr = zeros(shape, dtype=dtype)
     return arr
 
