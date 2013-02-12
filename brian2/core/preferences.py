@@ -1,20 +1,17 @@
 '''
-Brian global preferences are stored as attributes of a :class:`BrianGlobalPreferences`
+Brian global preferences are stored as attributes of a `BrianGlobalPreferences`
 object ``brian_prefs``.
 
 Built-in preferences
 --------------------
-
 .. document_brian_prefs::
 '''
-import copy
 import re
 import os
 from collections import MutableMapping
 
 from brian2.utils.stringtools import deindent, indent
-from brian2.units.fundamentalunits import (have_same_dimensions, Quantity,
-                                           DimensionMismatchError)
+from brian2.units.fundamentalunits import have_same_dimensions, Quantity
 
 __all__ = ['PreferenceError', 'BrianPreference', 'brian_prefs']
 
@@ -36,6 +33,7 @@ class DefaultValidator(object):
     '''
     def __init__(self, value):
         self.value = value
+    
     def __call__(self, value):
         if not isinstance(value, self.value.__class__):
             return False
@@ -50,8 +48,7 @@ class BrianPreference(object):
     Used for defining a Brian preference.
     
     Parameters
-    ----------
-    
+    ----------    
     default : object
         The default value.
     docs : str
@@ -73,6 +70,35 @@ class BrianPreference(object):
         self.validator = validator
         self.default = default
         self.docs = docs
+
+def parse_preference_name(name):
+    '''
+    Split a preference name into a base and end name.
+    
+    Parameters
+    ----------
+    name : str
+        The full name of the preference.
+    
+    Returns
+    -------        
+    basename : str
+        The first part of the name up to the final ``.``.
+    endname : str
+        The last part of the name from the final ``.`` onwards.
+    
+    Examples
+    --------
+    >>> parse_preference_name('core.weave_compiler')
+    ('core', 'weave_compiler')
+    >>> parse_preference_name('codegen.cpp.compiler')
+    ('codegen.cpp', 'compiler')
+    '''
+    # parse the name
+    parts = name.split('.')
+    basename = '.'.join(parts[:-1])
+    endname = parts[-1]
+    return basename, endname
 
 
 class BrianGlobalPreferences(MutableMapping):
@@ -115,7 +141,7 @@ class BrianGlobalPreferences(MutableMapping):
         return item in self.prefs
     
     def __setitem__(self, name, value):
-        basename, endname = self.parse_name(name)
+        basename, endname = parse_preference_name(name)
         if basename not in self.pref_register:
             self.prefs_unvalidated[name] = value
             return
@@ -135,24 +161,6 @@ class BrianGlobalPreferences(MutableMapping):
         
     def __delitem__(self, item):
         raise PreferenceError("Preferences cannot be deleted.")
-    
-    def parse_name(self, name):
-        '''
-        Split a preference name into a base and end name
-        
-        Returns
-        -------
-        
-        basename : str
-            The first part of the name up to the final ``.``.
-        endname : str
-            The last part of the name from the final ``.`` onwards.
-        '''
-        # parse the name
-        parts = name.split('.')
-        basename = '.'.join(parts[:-1])
-        endname = parts[-1]
-        return basename, endname
     
     def eval_pref(self, value):
         '''
@@ -255,8 +263,7 @@ class BrianGlobalPreferences(MutableMapping):
              }
         
         Parameters
-        ----------
-        
+        ----------        
         file : file, str
             The file object or filename of the preference file.
         '''
@@ -290,7 +297,6 @@ class BrianGlobalPreferences(MutableMapping):
             # Otherwise raise a parsing error
             raise PreferenceError("Parsing error in preference file "+filename)
         
-
     def load_preferences(self):
         '''
         Load all the preference files, but do not validate them.
@@ -305,14 +311,14 @@ class BrianGlobalPreferences(MutableMapping):
         override preferences from previous steps.
         
         See Also
-        --------
-        
+        --------        
         read_preference_file
         '''
         curdir, _ = os.path.split(__file__)
         basedir = os.path.normpath(os.path.join(curdir, '..'))
         default_prefs = os.path.join(basedir, 'default_preferences')
-        user_prefs = os.path.join(os.path.expanduser('~'), '.brian/user_preferences')
+        user_prefs = os.path.join(os.path.expanduser('~'),
+                                  '.brian/user_preferences')
         cur_prefs = 'brian_preferences'
         files = [default_prefs, user_prefs, cur_prefs]
         for file in files:
@@ -326,8 +332,7 @@ class BrianGlobalPreferences(MutableMapping):
         Registers a set of preference names, docs and validation functions.
         
         Parameters
-        ----------
-        
+        ----------        
         prefbasename : str
             The base name of the preference.
         prefbasedoc : str
@@ -338,14 +343,12 @@ class BrianGlobalPreferences(MutableMapping):
             the default value, docs, and validation function.
             
         Raises
-        ------
-        
+        ------        
         PreferenceError
             If the base name is already registered.
             
         See Also
-        --------
-        
+        --------        
         BrianPreference
         '''
         if prefbasename in self.pref_register:
@@ -378,59 +381,5 @@ class BrianGlobalPreferences(MutableMapping):
                         "import." % ', '.join(self.prefs_unvalidated.keys()),
                         once=True)
 
-
+#: Object storing Brian's preferences
 brian_prefs = BrianGlobalPreferences()
-
-
-if __name__=='__main__':
-    if 0:
-        open('test_prefs', 'w').write('''
-            a.b.c = 1
-            # Comment line
-            [a]
-            b.d = 2
-            [a.b]
-            e = 3
-            ''')
-        try:
-            brian_prefs.read_preference_file('test_prefs')
-            print brian_prefs.prefs_unvalidated.items()
-        except Exception as e:
-            print 'EXCEPTION!', e
-        os.remove('test_prefs')
-    if 1:
-        dummy_validator = lambda x: True
-        brian_prefs.register_preferences('useless', '''useless docs
-                                           on multiple lines
-                                           ''',
-            a_string=BrianPreference('"default"', 'docs\noh docs',
-                                     validator=dummy_validator),
-            )
-        open('brian_preferences', 'w').write('''
-            useless.a_string = "blah"
-            [meh]
-            feh = 5
-            ''')
-        try:
-            brian_prefs.load_preferences()
-            print brian_prefs.prefs_unvalidated
-        except Exception as e:
-            print "EXCEPTION!", e
-        os.remove('brian_preferences')
-        print
-        brian_prefs.do_validation()
-        print
-        brian_prefs.register_preferences('meh', 'meh docs',
-            feh=BrianPreference('2', 'doc', validator=dummy_validator),
-            )
-        print
-        print 'VALIDATED PREFERENCES:'
-        for k, v in brian_prefs.items():
-            print k, '=', repr(v)
-        print
-        print 'UNVALIDATED PREFERENCES:'
-        for k, v in brian_prefs.prefs_unvalidated.items():
-            print k, '=', repr(v)
-        print
-        print brian_prefs.documentation
-        print brian_prefs.as_file
