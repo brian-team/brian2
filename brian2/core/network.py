@@ -5,7 +5,7 @@ from brian2.core.names import Nameable
 from brian2.core.base import BrianObject
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second 
-from brian2.core.prefs import brian_prefs
+from brian2.core.preferences import brian_prefs
 
 __all__ = ['Network']
 

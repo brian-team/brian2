@@ -134,7 +134,7 @@ class BrianGlobalPreferences(MutableMapping):
                                   "Spelling error?")
         
     def __delitem__(self, item):
-        raise RuntimeError("Preferences cannot be deleted.")
+        raise PreferenceError("Preferences cannot be deleted.")
     
     def parse_name(self, name):
         '''
@@ -226,7 +226,7 @@ class BrianGlobalPreferences(MutableMapping):
             
     def read_preference_file(self, file):
         '''
-        Reads a Brian preferences file into the unvalidated prefs
+        Reads a Brian preferences file
     
         The file format for Brian preferences is a plain text file of the form::
     
@@ -261,7 +261,10 @@ class BrianGlobalPreferences(MutableMapping):
             The file object or filename of the preference file.
         '''
         if isinstance(file, str):
+            filename = file
             file = open(file, 'r')
+        else:
+            filename = repr(file)
         lines = file.readlines()
         file.close()
         # remove empty lines
@@ -269,7 +272,6 @@ class BrianGlobalPreferences(MutableMapping):
         lines = [line for line in lines if line]
         # Remove comments
         lines = [line for line in lines if not line.startswith('#')]
-        prefs = {}
         bases = [] # start with no base
         for line in lines:
             # Match section names, which are used as a prefix for subsequent entries
@@ -283,11 +285,11 @@ class BrianGlobalPreferences(MutableMapping):
                 extname = m.group(1).strip()
                 value = m.group(2).strip()
                 keyname = '.'.join(bases+extname.split('.'))
-                prefs[keyname] = self.eval_pref(value)
+                self[keyname] = self.eval_pref(value)
                 continue
             # Otherwise raise a parsing error
-            raise ValueError("Parsing error in preference file "+file)
-        self.prefs_unvalidated.update(**prefs)
+            raise PreferenceError("Parsing error in preference file "+filename)
+        
 
     def load_preferences(self):
         '''
