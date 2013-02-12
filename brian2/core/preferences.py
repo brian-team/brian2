@@ -13,10 +13,10 @@ import os
 from collections import MutableMapping
 
 from brian2.utils.stringtools import deindent, indent
-from brian2.units.fundamentalunits import have_same_dimensions, Quantity, DimensionMismatchError
+from brian2.units.fundamentalunits import (have_same_dimensions, Quantity,
+                                           DimensionMismatchError)
 
 __all__ = ['PreferenceError', 'BrianPreference', 'brian_prefs']
-
 
 class PreferenceError(Exception):
     '''
@@ -359,6 +359,22 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         for name, value in self.prefs_unvalidated.items():
             self[name] = value
+            
+    def check_all_validated(self):
+        '''
+        Checks that all preferences that have been set have been validated.
+        
+        Logs a warning if not. Should be called by `Network.run` or other
+        key Brian functions.
+        '''
+        if len(self.prefs_unvalidated):
+            from brian2.utils.logger import get_logger
+            logger = get_logger(__name__)
+            logger.warn("The following preferences values have been set but "
+                        "are not registered preferences:\n%s\nThis is usually "
+                        "because of a spelling mistake or missing library "
+                        "import." % ', '.join(self.prefs_unvalidated.keys()),
+                        once=True)
 
 
 brian_prefs = BrianGlobalPreferences()
