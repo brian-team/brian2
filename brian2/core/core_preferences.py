@@ -2,20 +2,23 @@
 Definitions, documentation, default values and validation functions for core
 Brian preferences.
 '''
-from numpy import dtype
+from numpy import float64
 
-from brian2.core.preferences import BrianPreference, register_preferences
+from brian2.core.preferences import BrianPreference, brian_prefs
 
-register_preferences('core', 'Core Brian preferences',
+def dtype_repr(dtype):
+    return dtype.__name__
+
+brian_prefs.register_preferences('core', 'Core Brian preferences',
     default_scalar_dtype=BrianPreference(
-        default='float64',
+        default=float64,
         docs='''
         Default dtype for all arrays of scalars (state variables, weights, etc.).'
         ''',
-        validator=dtype,
+        representor=dtype_repr,
         ),
     delete_log_on_exit=BrianPreference(
-        default='True',
+        default=True,
         docs=    '''
         Whether to delete the log and script file on exit.
         
@@ -23,7 +26,6 @@ register_preferences('core', 'Core Brian preferences',
         script) will be deleted after the brian process has exited, unless an
         uncaught exception occured. If set to ``False``, all log files will be kept.
         ''',
-        validator=bool,
         ),
     weave_compiler=BrianPreference(
         default='gcc',
@@ -34,6 +36,5 @@ register_preferences('core', 'Core Brian preferences',
         available as part of the mingw and cygwin packages, and also included in
         some Python distributions such as EPD and Python(x,y).
         ''',
-        validator=str,
         ),
     )

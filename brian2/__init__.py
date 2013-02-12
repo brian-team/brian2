@@ -66,9 +66,8 @@ from brian2.monitors import *
 
 # preferences
 from brian2.core.core_preferences import *
-from brian2.core import preferences as _preferences
-_preferences.load_preferences()
-_preferences.do_validation()
+brian_prefs.load_preferences()
+brian_prefs.do_validation()
 
 brian_prefs._backup()
 

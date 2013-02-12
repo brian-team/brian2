@@ -22,5 +22,5 @@ delete_log_on_exit = True
 # available as part of the mingw and cygwin packages, and also included in
 # some Python distributions such as EPD and Python(x,y).
 
-weave_compiler = gcc
+weave_compiler = 'gcc'
 
