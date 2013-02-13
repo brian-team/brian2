@@ -176,7 +176,7 @@ class Language(object):
         Templates should have
         slots indicated by strings like ``%CODE%`` (the default slot).
         '''
-        return self.template_iterate_index_array('_neuron_idx', '_spikes', '_num_spikes')
+        return self.template_iterate_index_array('_neuron_idx', '_spikes', '_array_num_spikes[0]')
 
     def template_threshold(self):
         '''

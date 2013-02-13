@@ -116,20 +116,20 @@ class CPPLanguage(Language):
             decl = ''
         return decl+var+' '+op+' '+self.translate_expression(expr)+';'
 
-    def translate_statement_sequence(self, statements, specifiers):
+    def translate_statement_sequence(self, statements, specifiers, indices):
         read, write = self.array_read_write(statements, specifiers)
         lines = []
         # read arrays
         for var in read:
             index_var = specifiers[var].index
-            index_spec = specifiers[index_var]
+            index_spec = indices[index_var]
             spec = specifiers[var]
             if var not in write:
                 line = 'const '
             else:
                 line = ''
             line = line+c_data_type(spec.dtype)+' '+var+' = '
-            line = line+'_ptr'+spec.array+'['+index_var+'];'
+            line = line + '_ptr' + spec.arrayname + '[' + index_var + '];'
             lines.append(line)
         # simply declare variables that will be written but not read
         for var in write:
@@ -142,9 +142,9 @@ class CPPLanguage(Language):
         # write arrays
         for var in write:
             index_var = specifiers[var].index
-            index_spec = specifiers[index_var]
+            index_spec = indices[index_var]
             spec = specifiers[var]
-            line = '_ptr'+spec.array+'['+index_var+'] = '+var+';'
+            line = '_ptr' + spec.arrayname + '[' + index_var + '] = ' + var + ';'
             lines.append(line)
         code = '\n'.join(lines)
         # set up the restricted pointers, these are used so that the compiler
@@ -152,7 +152,7 @@ class CPPLanguage(Language):
         lines = []
         for var in read.union(write):
             spec = specifiers[var]
-            line = c_data_type(spec.dtype)+' * '+self.restrict+'_ptr'+spec.array+' = '+spec.array+';'
+            line = c_data_type(spec.dtype) + ' * ' + self.restrict + '_ptr' + spec.arrayname + ' = ' + spec.arrayname + ';'
             lines.append(line)
         pointers = '\n'.join(lines)
         # set up the user-defined functions
@@ -171,8 +171,10 @@ class CPPLanguage(Language):
                        }
         return translation
     
-    def code_object(self, code, specifiers):
+    def code_object(self, code, specifiers, namespace):
         return CPPCodeObject(code,
+                             namespace,
+                             specifiers,
                              compile_methods=self.compile_methods(specifiers),
                              compiler=self.compiler,
                              extra_compile_args=self.extra_compile_args)
@@ -234,7 +236,7 @@ class CPPLanguage(Language):
             {
                 %CODE%
                 if(_cond) {
-                    _spikes_space[_cpp_numspikes++] = _neuron_idx;
+                    _array_spikes_space[_cpp_numspikes++] = _neuron_idx;
                 }
             }
             _array_num_spikes[0] = _cpp_numspikes;
@@ -271,14 +273,16 @@ class CPPCodeObject(CodeObject):
     code, and ``'%SUPPORT_CODE%'`` for any support code (e.g. function
     definitions).
     '''
-    def __init__(self, code, compile_methods=[], compiler='gcc', extra_compile_args=['-O3']):
+    def __init__(self, code, namespace, specifier,
+                 compile_methods=[], compiler='gcc', extra_compile_args=['-O3']):
         super(CPPCodeObject, self).__init__(code,
+                                            namespace,
+                                            specifier,
                                             compile_methods=compile_methods)
         self.compiler = compiler
         self.extra_compile_args = extra_compile_args
         
-    def __call__(self, **kwds):
-        self.namespace.update(kwds)
+    def run(self):
         weave.inline(self.code['%MAIN%'], self.namespace.keys(),
                      local_dict=self.namespace,
                      support_code=self.code['%SUPPORT_CODE%'],
