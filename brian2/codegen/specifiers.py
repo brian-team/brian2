@@ -22,9 +22,35 @@ class Function(Specifier):
     pass
 
 class Value(Specifier):
-    def __init__(self, dtype):
+    def __init__(self, dtype, value):
         self.dtype = dtype
-        
+        self.value = value
+
+    def get_value(self):
+        return self.value
+
+    def set_value(self):
+        raise TypeError()
+
+
+class AttributeValue(Value):
+    '''
+    A value saved as an attribute of an object. Instead of saving a reference
+    to the value itself, we save the name of the attribute. This way, we get
+    the correct value if the attribute is overwritten with a new value (e.g.
+    in the case of clock.t_)
+    '''
+    def __init__(self, dtype, obj, attribute):
+        self.dtype = dtype
+        self.obj = obj
+        self.attribute = attribute
+
+    def get_value(self):
+        return getattr(self.obj, self.attribute)
+
+    def set_value(self, value):
+        setattr(self.obj, self.attribute, value)
+
 class ArrayVariable(Specifier):
     '''
     Used to specify that the variable comes from an array (named ``array``) with
@@ -39,10 +65,18 @@ class ArrayVariable(Specifier):
     
         double &v = _array_v[_index];
     '''
-    def __init__(self, array, index, dtype):
+    def __init__(self, name, dtype, array, index):
+        self.name = name
         self.array = array
+        self.arrayname = '_array_' + self.name
         self.index = index
         self.dtype = dtype
+
+    def get_value(self):
+        return self.array
+
+    def set_value(self, value):
+        self.array[:] = value
 
 class OutputVariable(Specifier):
     '''
@@ -64,7 +98,7 @@ class Subexpression(Specifier):
         self.identifiers = set(get_identifiers(expr))
     def __contains__(self, var):
         return var in self.identifiers
-    
+
 class Index(Specifier):
     '''
     The variable is an index, you can specify ``all=True`` or ``False`` to say
@@ -75,7 +109,7 @@ class Index(Specifier):
     '''
     def __init__(self, all=True):
         self.all = all
-    
-if __name__=='__main__':
+
+if __name__ == '__main__':
     spec = Subexpression('x*y+z')
     print 'y' in spec, 'w' in spec
