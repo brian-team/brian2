@@ -50,7 +50,7 @@ class SpikeMonitor(BrianObject):
         '''
         self._i = DynamicArray1D(0, use_numpy_resize=True, dtype=int)
         self._t = DynamicArray1D(0, use_numpy_resize=True,
-                                 dtype=brian_prefs.default_scalar_dtype)
+                                 dtype=brian_prefs['core.default_scalar_dtype'])
         
         #: Array of the number of times each source neuron has spiked
         self.count = zeros(len(self.source), dtype=int)

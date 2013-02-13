@@ -62,7 +62,7 @@ class Language(object):
             indices = {}
         logger.debug(name + " abstract code:\n" + abstract_code)
         innercode = translate(abstract_code, specs,
-                              brian_prefs.default_scalar_dtype,
+                              brian_prefs['core.default_scalar_dtype'],
                               self, indices)
         logger.debug(name + " inner code:\n" + str(innercode))
         code = self.apply_template(innercode, template_method())

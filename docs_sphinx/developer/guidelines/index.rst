@@ -14,6 +14,7 @@ The basic principles of developing Brian are:
 .. toctree::
    :maxdepth: 2
 
+   workflow
    style
    defensive_programming
    documentation

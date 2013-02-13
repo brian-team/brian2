@@ -64,15 +64,10 @@ from brian2.codegen import *
 from brian2.groups import *
 from brian2.monitors import *
 
-# TODO: this will probably be moved into the codegen module, just here as a sample preference
-brian_prefs.define('weave_compiler', 'gcc',
-    '''
-    The compiler name to use for ``scipy.weave``.
-    
-    On Linux platforms, gcc is usually available. On Windows, it can be made
-    available as part of the mingw and cygwin packages, and also included in
-    some Python distributions such as EPD and Python(x,y).
-    ''')
+# preferences
+from brian2.core.core_preferences import *
+brian_prefs.load_preferences()
+brian_prefs.do_validation()
 
 brian_prefs._backup()
 
@@ -88,4 +83,8 @@ def restore_initial_state():
     defaultclock.__init__()
     clear(erase=True)
     brian_prefs._restore()
+
+# make the test suite available via brian2.test()
+from brian2.tests import run as test
+    
     

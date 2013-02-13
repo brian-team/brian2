@@ -116,7 +116,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         is used.
     dtype : (`dtype`, `dict`), optional
         The `numpy.dtype` that will be used to store the values, or
-        :bpref:`default_scalar_dtype` if not specified (`numpy.float64` by
+        :bpref:`core.default_scalar_dtype` if not specified (`numpy.float64` by
         default).
     clock : Clock, optional
         The update clock to be used, or defaultclock if not specified.
@@ -226,7 +226,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             else:
                 curdtype = dtype
             if curdtype is None:
-                curdtype = brian_prefs.default_scalar_dtype
+                curdtype = brian_prefs['core.default_scalar_dtype']
             arrays[name] = allocate_array(self.N, dtype=curdtype)
         logger.debug("NeuronGroup memory allocated successfully.")
         return arrays

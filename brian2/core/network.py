@@ -5,6 +5,7 @@ from brian2.core.names import Nameable
 from brian2.core.base import BrianObject
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second 
+from brian2.core.preferences import brian_prefs
 
 __all__ = ['Network']
 
@@ -268,6 +269,8 @@ class Network(Nameable):
         The simulation can be stopped by calling :meth:`Network.stop` or the
         global :func:`stop` function.
         '''
+        
+        brian_prefs.check_all_validated()
         
         if len(self.objects)==0:
             return # TODO: raise an error? warning?
