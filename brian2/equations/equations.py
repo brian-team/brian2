@@ -564,7 +564,7 @@ class Equations(collections.Mapping):
     
     substituted_expressions = property(_get_substituted_expressions)
     
-    names = property(lambda self: [eq.varname for eq in self.ordered],
+    names = property(lambda self: set([eq.varname for eq in self.ordered]),
                      doc='All variable names defined in the equations.')
     
     diff_eq_names = property(lambda self: [eq.varname for eq in self.ordered
@@ -584,6 +584,12 @@ class Equations(collections.Mapping):
     
     variables = property(lambda self: set(self.units.keys()),
                          doc='Set of all variables (including t, dt, and xi)')
+    
+    identifiers = property(lambda self: set().union(*[eq.identifiers for
+                                                      eq in self._equations.itervalues()]) -
+                           self.names,
+                           doc=('Set of all identifiers used in the equations, '
+                                'excluding the variables defined in the equations'))
     
     def _sort_static_equations(self):
         '''
