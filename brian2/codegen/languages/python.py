@@ -55,9 +55,9 @@ class PythonLanguage(Language):
                 lines.append(line)
         return '\n'.join(lines)
 
-    def code_object(self, code, specifier, namespace):
-        return PythonCodeObject(code, namespace, specifier,
-                                self.compile_methods(specifier))
+    def code_object(self, code, namespace, specifiers):
+        return PythonCodeObject(code, namespace, specifiers,
+                                self.compile_methods(namespace))
 
     def template_iterate_all(self, index, size):
         return '''

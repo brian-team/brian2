@@ -19,6 +19,7 @@ from brian2.core.scheduler import Scheduler
 from brian2.utils.logger import get_logger
 from brian2.groups.group import Group
 from brian2.units.allunits import second
+from brian2.utils.stringtools import get_identifiers
 
 __all__ = ['NeuronGroup',
            'CodeRunner']
@@ -41,10 +42,10 @@ class CodeRunner(BrianObject):
         if init is not None:
             init(self)
 
-    def update(self):
+    def update(self, **kwds):
         if self.pre is not None:
             self.pre(self)
-        self.codeobj()
+        self.codeobj(**kwds)
         if self.post is not None:
             self.post(self)
 
@@ -77,6 +78,7 @@ class Thresholder(NeuronGroupCodeRunner):
         numspikes = self.group._num_spikes[0]
         spikes = self.group._spikes_space[:numspikes]
         spikes = spikes[array(self.is_active[spikes], dtype=bool)]
+        self.group._num_spikes[0] = len(spikes)
         self.group.spikes = spikes
         self.refractory_until[spikes] = self.clock.t_ + self.refractory[spikes]
 
@@ -85,7 +87,6 @@ class Resetter(NeuronGroupCodeRunner):
     def update(self):
         self.prepare()
         NeuronGroupCodeRunner.update(self)
-
 
 class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
     '''
@@ -232,23 +233,35 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         return arrays
 
 
-    def create_codeobj(self, name, code, template=None, iterate_all=True):
+    def create_codeobj(self, name, code, identifiers,
+                       template=None, iterate_all=True):
         ''' A little helper function to reduce the amount of repetition when
         calling the language's create_codeobj (always pass self.specifiers and
         self.namespace).
         '''
+
+        # Resolve the namespace, resulting in a dictionary containing only the
+        # external variables and specifiers that are needed by the code
+        resolved_namespace = self.namespace.resolve_all(identifiers)
+
         return self.language.create_codeobj(name,
                                             code,
+                                            resolved_namespace,
                                             self.specifiers,
-                                            self.namespace,
                                             template,
                                             indices={'_neuron_idx':
                                                      Index(iterate_all)})
 
     def create_state_updater(self):
 
+        # The state updater needs: Everything that is used in the equations
+        # (external variables and functions), the state variables defined in
+        # the equations, and the value of dt and _num_neurons
+        identifiers = self.equations.identifiers
+
         codeobj = self.create_codeobj("state updater",
                                       self.abstract_code,
+                                      identifiers,
                                       self.language.template_state_update
                                       )
 
@@ -288,8 +301,11 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             name = self.name + '_runner_' + str(self.num_runners)
             self.num_runners += 1
 
+        identifiers = get_identifiers(code)
+
         codeobj = self.create_codeobj("runner",
                                       code,
+                                      identifiers,
                                       self.language.template_state_update,
                                       )
         runner = CodeRunner(codeobj, name=name, when=when,
@@ -315,9 +331,11 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                                             None)})
 
         abstract_code = '_cond = ' + threshold
+        identifiers = get_identifiers(threshold)
 
         codeobj = self.create_codeobj("thresholder",
                                       abstract_code,
+                                      identifiers,
                                       self.language.template_threshold
                                       )
         thresholder = Thresholder(self, codeobj,
@@ -330,9 +348,13 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             return None
 
         abstract_code = reset
+        identifiers = get_identifiers(reset) | set(['_spikes',
+                                                    'num_spikes',
+                                                    '_num_neurons'])
 
         codeobj = self.create_codeobj("resetter",
                                       abstract_code,
+                                      identifiers,
                                       self.language.template_reset,
                                       iterate_all=False
                                       )
@@ -372,7 +394,7 @@ if __name__ == '__main__':
     from brian2.codegen.languages import *
     import time
 
-    N = 100
+    N = 10000
     tau = 10 * ms
     eqs = '''
     dV/dt = (2*volt-V)/tau : volt (active)
@@ -391,7 +413,7 @@ if __name__ == '__main__':
 
     G.Vt = 1 * volt
     runner = G.runner('Vt = 1*volt-(t/second)*5*volt')
-
+    print runner.codeobj.namespace['t']
     G.V = rand(N)
 
     statemon = StateMonitor(G, 'V', record=range(3))
@@ -401,10 +423,10 @@ if __name__ == '__main__':
     run(1 * ms)
     print 'Initialise time:', time.time() - start
     start = time.time()
-    run(99 * ms)
+    run(1000 * ms)
     print 'Runtime:', time.time() - start
-    subplot(121)
-    plot(statemon.t, statemon.V)
-    subplot(122)
-    plot(spikemon.t, spikemon.i, '.k')
-    show()
+#    subplot(121)
+#    plot(statemon.t, statemon.V)
+#    subplot(122)
+#    plot(spikemon.t, spikemon.i, '.k')
+#    show()

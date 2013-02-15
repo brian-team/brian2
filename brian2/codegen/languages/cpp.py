@@ -28,23 +28,23 @@ def c_data_type(dtype):
         dtype = numpy.array([1]).dtype.type
     if dtype is float:
         dtype = numpy.array([1.]).dtype.type
-            
-    if dtype==numpy.float32:
+
+    if dtype == numpy.float32:
         dtype = 'float'
-    elif dtype==numpy.float64:
+    elif dtype == numpy.float64:
         dtype = 'double'
-    elif dtype==numpy.int32:
+    elif dtype == numpy.int32:
         dtype = 'int32_t'
-    elif dtype==numpy.int64:
+    elif dtype == numpy.int64:
         dtype = 'int64_t'
-    elif dtype==numpy.uint16:
+    elif dtype == numpy.uint16:
         dtype = 'uint16_t'
-    elif dtype==numpy.uint32:
+    elif dtype == numpy.uint32:
         dtype = 'uint32_t'
-    elif dtype==numpy.bool_ or dtype is bool:
+    elif dtype == numpy.bool_ or dtype is bool:
         dtype = 'bool'
     else:
-        raise ValueError("dtype "+str(dtype)+" not known.")
+        raise ValueError("dtype " + str(dtype) + " not known.")
     return dtype
 
 class CPPLanguage(Language):
@@ -91,30 +91,30 @@ class CPPLanguage(Language):
         
     See :class:`TimedArray` for an example of these keys.
     '''
-    
+
     language_id = 'cpp'
-    
+
     def __init__(self, compiler='gcc', extra_compile_args=['-O3', '-ffast-math'],
                  restrict='__restrict__', flush_denormals=False):
         self.compiler = compiler
         self.extra_compile_args = extra_compile_args
-        self.restrict = restrict+' '
+        self.restrict = restrict + ' '
         self.flush_denormals = flush_denormals
-    
+
     def translate_expression(self, expr):
         expr = parse_to_sympy(expr)
         return CCodePrinter().doprint(expr)
 
     def translate_statement(self, statement):
         var, op, expr = statement.var, statement.op, statement.expr
-        if op==':=':
-            decl = c_data_type(statement.dtype)+' '
+        if op == ':=':
+            decl = c_data_type(statement.dtype) + ' '
             op = '='
             if statement.constant:
-                decl = 'const '+decl
+                decl = 'const ' + decl
         else:
             decl = ''
-        return decl+var+' '+op+' '+self.translate_expression(expr)+';'
+        return decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
 
     def translate_statement_sequence(self, statements, specifiers, indices):
         read, write = self.array_read_write(statements, specifiers)
@@ -128,14 +128,14 @@ class CPPLanguage(Language):
                 line = 'const '
             else:
                 line = ''
-            line = line+c_data_type(spec.dtype)+' '+var+' = '
+            line = line + c_data_type(spec.dtype) + ' ' + var + ' = '
             line = line + '_ptr' + spec.arrayname + '[' + index_var + '];'
             lines.append(line)
         # simply declare variables that will be written but not read
         for var in write:
             if var not in read:
                 spec = specifiers[var]
-                line = c_data_type(spec.dtype)+' '+var+';'
+                line = c_data_type(spec.dtype) + ' ' + var + ';'
                 lines.append(line)
         # the actual code
         lines.extend([self.translate_statement(stmt) for stmt in statements])
@@ -161,7 +161,7 @@ class CPPLanguage(Language):
         for var, spec in specifiers.items():
             if isinstance(spec, UserFunction):
                 speccode = spec.code(self, var)
-                support_code += '\n'+deindent(speccode['support_code'])
+                support_code += '\n' + deindent(speccode['support_code'])
                 hash_defines += deindent(speccode['hashdefine_code'])
         # return
         translation = {'%CODE%': code,
@@ -170,15 +170,15 @@ class CPPLanguage(Language):
                        '%HASHDEFINES%': hash_defines,
                        }
         return translation
-    
-    def code_object(self, code, specifiers, namespace):
+
+    def code_object(self, code, namespace, specifiers):
         return CPPCodeObject(code,
                              namespace,
                              specifiers,
-                             compile_methods=self.compile_methods(specifiers),
+                             compile_methods=self.compile_methods(namespace),
                              compiler=self.compiler,
                              extra_compile_args=self.extra_compile_args)
-        
+
     def denormals_to_zero_code(self):
         if self.flush_denormals:
             return '''
@@ -192,7 +192,7 @@ class CPPLanguage(Language):
 
     def template_iterate_all(self, index, size):
         return {
-            '%MAIN%':self.denormals_to_zero_code()+'''
+            '%MAIN%':self.denormals_to_zero_code() + '''
             /*
             %SUPPORT_CODE%
             */
@@ -205,10 +205,10 @@ class CPPLanguage(Language):
             '''.format(index=index, size=size),
             '%SUPPORT_CODE%':'%SUPPORT_CODE%',
             }
-    
+
     def template_iterate_index_array(self, index, array, size):
         return {
-            '%MAIN%':self.denormals_to_zero_code()+'''
+            '%MAIN%':self.denormals_to_zero_code() + '''
             /*
             %SUPPORT_CODE%
             */
@@ -225,7 +225,7 @@ class CPPLanguage(Language):
 
     def template_threshold(self):
         return {
-            '%MAIN%':self.denormals_to_zero_code()+'''
+            '%MAIN%':self.denormals_to_zero_code() + '''
             /*
             %SUPPORT_CODE%
             */
@@ -246,7 +246,7 @@ class CPPLanguage(Language):
 
     def template_synapses(self):
         return {
-            '%MAIN%':self.denormals_to_zero_code()+'''
+            '%MAIN%':self.denormals_to_zero_code() + '''
             /*
             %SUPPORT_CODE%
             */
@@ -273,15 +273,15 @@ class CPPCodeObject(CodeObject):
     code, and ``'%SUPPORT_CODE%'`` for any support code (e.g. function
     definitions).
     '''
-    def __init__(self, code, namespace, specifier,
-                 compile_methods=[], compiler='gcc', extra_compile_args=['-O3']):
+    def __init__(self, code, namespace, specifiers, compile_methods=[],
+                 compiler='gcc', extra_compile_args=['-O3']):
         super(CPPCodeObject, self).__init__(code,
                                             namespace,
-                                            specifier,
+                                            specifiers,
                                             compile_methods=compile_methods)
         self.compiler = compiler
         self.extra_compile_args = extra_compile_args
-        
+
     def run(self):
         weave.inline(self.code['%MAIN%'], self.namespace.keys(),
                      local_dict=self.namespace,

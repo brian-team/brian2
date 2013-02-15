@@ -56,35 +56,38 @@ class Language(object):
         '''
         raise NotImplementedError
 
-    def create_codeobj(self, name, abstract_code, specs, namespace,
+    def create_codeobj(self, name, abstract_code, namespace, specifiers,
                        template_method, indices=None):
         if indices is None:  # TODO: Do we ever create code without any index?
             indices = {}
+
+        namespace = self.prepare_namespace(namespace, specifiers)
+
         logger.debug(name + " abstract code:\n" + abstract_code)
-        innercode = translate(abstract_code, specs,
+        innercode = translate(abstract_code, specifiers,
                               brian_prefs['core.default_scalar_dtype'],
                               self, indices)
         logger.debug(name + " inner code:\n" + str(innercode))
         code = self.apply_template(innercode, template_method())
         logger.debug(name + " code:\n" + str(code))
 
-        # Resolve the namespace (only for external variables
-        identifiers = get_identifiers(abstract_code)
-        external = [identifier for identifier in identifiers
-                    if not (identifier in specs or identifier.startswith('_'))]
-        resolved_namespace = namespace.resolve_all(external)
-
-        # Add variables referring to the arrays
-        # TODO: Maybe this is language dependent and should not be here?
-        for spec in specs.itervalues():
-            if isinstance(spec, ArrayVariable):
-                resolved_namespace.update({spec.arrayname: spec.array})
-
-        codeobj = self.code_object(code, specs, resolved_namespace)
+        codeobj = self.code_object(code, namespace, specifiers)
         codeobj.compile()
         return codeobj
 
-    def code_object(self, code, specifier, namespace):
+    def prepare_namespace(self, namespace, specifiers):
+
+        namespace = dict(namespace)
+        # Add variables referring to the arrays
+        arrays = []
+        for value in specifiers.itervalues():
+            if isinstance(value, ArrayVariable):
+                arrays.append((value.arrayname, value.array))
+        namespace.update(arrays)
+
+        return namespace
+
+    def code_object(self, code, namespace, specifiers):
         '''
         Return an executable code object from the given code string.
         '''
@@ -209,11 +212,11 @@ class CodeObject(object):
     Calling ``code(key1=val1, key2=val2)`` executes the code with the given
     variables inserted into the namespace.
     '''
-    def __init__(self, code, namespace, specifier, compile_methods=[]):
+    def __init__(self, code, namespace, specifiers, compile_methods=[]):
         self.code = code
         self.compile_methods = compile_methods
         self.namespace = namespace
-        self.specifier = specifier
+        self.specifiers = specifiers
 
     def compile(self):
         for meth in self.compile_methods:
@@ -221,7 +224,7 @@ class CodeObject(object):
 
     def __call__(self, **kwds):
         # update the values in the namespace
-        for name, spec in self.specifier.iteritems():
+        for name, spec in self.specifiers.iteritems():
             if isinstance(spec, Value):
                 self.namespace.update({name: spec.get_value()})
 
