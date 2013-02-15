@@ -142,11 +142,13 @@ def get_identifiers(expr):
     --------
     
     >>> expr = 'a*_b+c5+8+f(A)'
-    >>> print get_identifiers(expr)
-    ['a', '_b', 'c5', 'f', 'A']
-    
+    >>> ids = get_identifiers(expr)
+    >>> print type(ids)
+    <type 'set'>
+    >>> print sorted(list(ids))
+    ['A', '_b', 'a', 'c5', 'f']
     '''
-    return re.findall(r'\b[A-Za-z_][A-Za-z0-9_]*\b', expr)
+    return set(re.findall(r'\b[A-Za-z_][A-Za-z0-9_]*\b', expr))
 
 def strip_empty_lines(s):
     '''
