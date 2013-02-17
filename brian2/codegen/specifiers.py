@@ -65,12 +65,13 @@ class ArrayVariable(Specifier):
     
         double &v = _array_v[_index];
     '''
-    def __init__(self, name, dtype, array, index):
+    def __init__(self, name, dtype, array, index, unit=None):
         self.name = name
         self.array = array
         self.arrayname = '_array_' + self.name
         self.index = index
         self.dtype = dtype
+        self.unit = unit
 
     def get_value(self):
         return self.array
@@ -93,9 +94,11 @@ class Subexpression(Specifier):
     The list of identifiers is given in the ``identifiers`` attribute, and
     the full expression in the ``expr`` attribute.
     '''
-    def __init__(self, expr):
+    def __init__(self, expr, unit):
         self.expr = expr.strip()
-        self.identifiers = set(get_identifiers(expr))
+        self.identifiers = get_identifiers(expr)
+        self.unit = unit
+    
     def __contains__(self, var):
         return var in self.identifiers
 

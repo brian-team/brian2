@@ -66,7 +66,7 @@ class NeuronGroupCodeRunner(CodeRunner):
 
 class StateUpdater(NeuronGroupCodeRunner):
     def update(self):
-        self.prepare()
+        self.prepare()        
         self.is_active[:] = self.clock.t_ >= self.refractory_until
         NeuronGroupCodeRunner.update(self)
 
@@ -177,9 +177,6 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
         # Setup the namespace
         self.namespace = self.create_namespace(namespace)
-
-        # Setup units
-        self.units = self.equations.units
 
         # : The array of spikes from the most recent threshold operation
         self.spikes = array([], dtype=int)
@@ -378,9 +375,11 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                 s.update({eq.varname: ArrayVariable(eq.varname,
                                                     array.dtype,
                                                     array,
-                                                    '_neuron_idx')})
+                                                    '_neuron_idx',
+                                                    eq.unit)})
             elif eq.eq_type == STATIC_EQUATION:
-                s.update({eq.varname: Subexpression(str(eq.expr))})
+                s.update({eq.varname: Subexpression(str(eq.expr),
+                                                    eq.unit)})
             else:
                 raise AssertionError('Unknown equation type "%s"' % eq.eq_type)
 
@@ -416,7 +415,7 @@ if __name__ == '__main__':
     G.Vt = 1 * volt
     runner = G.runner('Vt = 1*volt-(t/second)*5*volt')
 
-    G.V = rand(N)
+    G.V = rand(N) * volt
 
     statemon = StateMonitor(G, 'V', record=range(3))
     spikemon = SpikeMonitor(Gmid)
