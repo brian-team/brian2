@@ -40,10 +40,11 @@ class AttributeValue(Value):
     the correct value if the attribute is overwritten with a new value (e.g.
     in the case of clock.t_)
     '''
-    def __init__(self, dtype, obj, attribute):
+    def __init__(self, dtype, obj, attribute, unit):
         self.dtype = dtype
         self.obj = obj
         self.attribute = attribute
+        self.unit = unit
 
     def get_value(self):
         return getattr(self.obj, self.attribute)

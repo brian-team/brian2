@@ -15,7 +15,7 @@ from brian2.utils.stringtools import word_substitute
 from brian2.utils.logger import get_logger
 
 from .codestrings import Expression
-from .unitcheck import get_unit_from_string, SPECIAL_VARS, UNITS_SPECIAL_VARS
+from .unitcheck import get_unit_from_string
 
 __all__ = ['Equations']
 
@@ -148,7 +148,7 @@ def check_identifier_reserved(identifier):
     ValueError
         If the identifier is a special variable name.
     '''
-    if identifier in SPECIAL_VARS:
+    if identifier in ('t', 'dt', 'xi') or identifier.startswith('xi_'):
         raise ValueError(('"%s" has a special meaning in equations and cannot '
                          ' be used as a variable name.') % identifier)
 
@@ -533,13 +533,10 @@ class Equations(collections.Mapping):
 
     def _get_units(self):
         '''
-        Dictionary of all internal variables (including t, dt, xi) and their
-        corresponding units.
+        Dictionary of all internal variables and their corresponding units.
         '''
-        units = dict([(var, eq.unit) for var, eq in
+        return dict([(var, eq.unit) for var, eq in
                       self._equations.iteritems()])
-        units.update(UNITS_SPECIAL_VARS)
-        return units
 
     # Properties
     
@@ -643,7 +640,7 @@ class Equations(collections.Mapping):
             elif eq.eq_type == PARAMETER:
                 eq.update_order = len(sorted_eqs) + 1
 
-    def check_units(self, namespace):
+    def check_units(self, namespace, specifiers):
         '''
         Check all the units for consistency.
         
@@ -652,13 +649,26 @@ class Equations(collections.Mapping):
         namespace : `CompoundNamespace`
             The namespace for resolving external identifiers, should be
             provided by the `NeuronGroup` or `Synapses`.
+        specifiers: dict of `Specifier` objects
+            The specifiers of the state variables and internal variables
+            (e.g. t and dt)
         
         Raises
         ------
         DimensionMismatchError
             In case of any inconsistencies.
         '''
-        units = self.units
+        
+        # Create a mapping with all identifier names to either their actual
+        # value (for external identifiers) or their unit (for specifiers)
+        unit_namespace = {}
+        for name in self.identifiers | self.variables:
+            if name in specifiers:
+                unit_namespace.update({name: specifiers[name].unit})
+            else:
+                # This raises an error if the identifier cannot be resolved
+                unit_namespace.update({name: namespace[name]})            
+                
         for var, eq in self._equations.iteritems():
             if eq.eq_type == PARAMETER:
                 # no need to check units for parameters
@@ -666,14 +676,14 @@ class Equations(collections.Mapping):
             
             if eq.eq_type == DIFFERENTIAL_EQUATION:
                 try:
-                    eq.expr.check_units(units[var] / second, units, namespace)
+                    eq.expr.check_units(self.units[var] / second, unit_namespace)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Differential equation defining '
                                                   '%s does not use consistent units: %s') % 
                                                  (var, dme.desc), *dme.dims)
             elif eq.eq_type == STATIC_EQUATION:
                 try:
-                    eq.expr.check_units(units[var], units, namespace)
+                    eq.expr.check_units(self.units[var], unit_namespace)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Static equation defining '
                                                   '%s does not use consistent units: %s') % 

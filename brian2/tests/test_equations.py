@@ -11,8 +11,8 @@ from brian2 import Unit, Equations, Expression, sin
 from brian2.units.fundamentalunits import (DIMENSIONLESS, get_dimensions,
                                            DimensionMismatchError,
                                            have_same_dimensions)
-from brian2.equations.unitcheck import (get_default_unit_namespace,
-                                        get_unit_from_string)
+from brian2.equations.unitcheck import get_unit_from_string
+from brian2.core.namespace import DEFAULT_UNIT_NAMESPACE
 from brian2.equations.equations import (check_identifier,
                                         check_identifier_basic,
                                         check_identifier_reserved,
@@ -26,7 +26,7 @@ from brian2.equations.refractory import check_identifier_refractory
 
 
 def test_utility_functions():
-    unit_namespace = get_default_unit_namespace()
+    unit_namespace = DEFAULT_UNIT_NAMESPACE
     
     # Some simple tests whether the namespace returned by
     # get_default_namespace() makes sense
@@ -294,14 +294,11 @@ def test_properties():
     assert set(eqs.parameter_names) == set(['freq'])
     assert set(eqs.static_eq_names) == set(['I', 'f'])
     units = eqs.units
-    assert set(units.keys()) == set(['v', 'I', 'f', 'freq', 't', 'dt', 'xi'])
+    assert set(units.keys()) == set(['v', 'I', 'f', 'freq'])
     assert units['v'] == volt
     assert units['I'] == volt
     assert units['f'] == Hz
     assert have_same_dimensions(units['freq'], 1)
-    assert units['t'] == second
-    assert units['dt'] == second
-    assert units['xi'] == second**-0.5
     assert set(eqs.variables) == set(eqs.units.keys())
 
 

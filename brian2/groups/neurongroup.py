@@ -19,6 +19,7 @@ from brian2.core.scheduler import Scheduler
 from brian2.utils.logger import get_logger
 from brian2.groups.group import Group
 from brian2.units.allunits import second
+from brian2.units.fundamentalunits import Unit
 from brian2.utils.stringtools import get_identifiers
 
 __all__ = ['NeuronGroup',
@@ -177,6 +178,9 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
         # Setup the namespace
         self.namespace = self.create_namespace(namespace)
+
+        # Check units
+        self.equations.check_units(self.namespace, self.specifiers)
 
         # : The array of spikes from the most recent threshold operation
         self.spikes = array([], dtype=int)
@@ -364,9 +368,9 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
     def create_specifiers(self):
         # Standard specifiers always present
         s = {'_num_neurons': Value(np.float64, self.N),
-             '_spikes' : AttributeValue(np.int, self, 'spikes'),
-             't': AttributeValue(np.float64, self.clock, 't_'),
-             'dt': AttributeValue(np.float64, self.clock, 'dt_')}
+             '_spikes' : AttributeValue(np.int, self, 'spikes', Unit(1)),
+             't': AttributeValue(np.float64, self.clock, 't_', second),
+             'dt': AttributeValue(np.float64, self.clock, 'dt_', second)}
 
         # TODO: What about xi?
         for eq in self.equations.itervalues():

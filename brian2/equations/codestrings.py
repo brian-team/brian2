@@ -5,7 +5,8 @@ information about its namespace. Only serves as a parent class, its subclasses
 '''
 import sympy
 
-from brian2.units.fundamentalunits import get_dimensions, DimensionMismatchError
+from brian2.units.fundamentalunits import get_dimensions, DimensionMismatchError,\
+    fail_for_dimension_mismatch
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 from brian2.utils.parsing import parse_to_sympy
@@ -81,12 +82,12 @@ class Expression(CodeString):
         self.sympy_expr = parse_to_sympy(self.code)
 
         
-    def get_dimensions(self, variable_units):
-        pass
+    def get_dimensions(self, namespace):
+        return eval(self.code, namespace)
     
     
-    def check_units(self, unit, variable_units):
-        pass
+    def check_units(self, unit, namespace):
+        fail_for_dimension_mismatch(unit, eval(self.code, namespace))
             
     def split_stochastic(self):
         '''
