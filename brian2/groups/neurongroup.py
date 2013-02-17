@@ -176,7 +176,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         self.specifiers = self.create_specifiers()
 
         # Setup the namespace
-        self._namespace = self.create_namespace(self.specifiers, namespace)
+        self.namespace = self.create_namespace(namespace)
 
         # Setup units
         self.units = self.equations.units
@@ -241,7 +241,10 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         '''
 
         # Resolve the namespace, resulting in a dictionary containing only the
-        # external variables and specifiers that are needed by the code
+        # external variables that are needed by the code
+        # Remove the variables in the specifiers dictionary first, as they are
+        # not contained in the namespace
+        identifiers = set(identifiers) - set(self.specifiers.keys())
         resolved_namespace = self.namespace.resolve_all(identifiers)
 
         return self.language.create_codeobj(name,
@@ -348,9 +351,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             return None
 
         abstract_code = reset
-        identifiers = get_identifiers(reset) | set(['_spikes',
-                                                    'num_spikes',
-                                                    '_num_neurons'])
+        identifiers = get_identifiers(reset)
 
         codeobj = self.create_codeobj("resetter",
                                       abstract_code,
@@ -397,7 +398,8 @@ if __name__ == '__main__':
     N = 10000
     tau = 10 * ms
     eqs = '''
-    dV/dt = (2*volt-V)/tau : volt (active)
+    dV/dt = (2*volt-V)/tau_real : volt (active)
+    tau_real = 1 * tau : second # just to test that static equations work
     Vt : volt
     '''
     threshold = 'V>Vt'
@@ -405,7 +407,7 @@ if __name__ == '__main__':
     G = NeuronGroup(N, eqs,
                     threshold=threshold,
                     reset=reset,
-                    language=PythonLanguage()
+                    language=CPPLanguage()
                     # language=NumexprPythonLanguage(),
                     )
     G.refractory = 5 * ms
@@ -413,7 +415,7 @@ if __name__ == '__main__':
 
     G.Vt = 1 * volt
     runner = G.runner('Vt = 1*volt-(t/second)*5*volt')
-    print runner.codeobj.namespace['t']
+
     G.V = rand(N)
 
     statemon = StateMonitor(G, 'V', record=range(3))
@@ -423,10 +425,10 @@ if __name__ == '__main__':
     run(1 * ms)
     print 'Initialise time:', time.time() - start
     start = time.time()
-    run(1000 * ms)
+    run(99 * ms)
     print 'Runtime:', time.time() - start
-#    subplot(121)
-#    plot(statemon.t, statemon.V)
-#    subplot(122)
-#    plot(spikemon.t, spikemon.i, '.k')
-#    show()
+    subplot(121)
+    plot(statemon.t, statemon.V)
+    subplot(122)
+    plot(spikemon.t, spikemon.i, '.k')
+    show()

@@ -31,32 +31,20 @@ class ObjectWithNamespace(object):
         instance._globals = dict(frame.f_globals)
         return instance
     
-    def create_namespace(self, specifiers, explicit_namespace=None,
-                         additional_namespaces=None):
-        
-        # This has to directly refer to the specifiers dictionary
-        # and not to a copy so it takes any later changes (i.e. additions
-        # for reset and threshold) into account 
-        namespace = ModelNamespace(specifiers)        
-        
+    def create_namespace(self, explicit_namespace=None):        
+        namespace = CompoundNamespace()
         # only use the local/global namespace if no explicit one is given
         if explicit_namespace is None:
-            namespace.add_namespace(Namespace('local', self._locals))
-            namespace.add_namespace(Namespace('global', self._globals))
+            namespace.add_namespace('local', self._locals)
+            namespace.add_namespace('global', self._globals)
         else:            
-            explicit_namespace = Namespace('user-defined', explicit_namespace)
-            namespace.add_namespace(explicit_namespace)
+            namespace.add_namespace('user-defined', explicit_namespace)
         
-        if not additional_namespaces is None:
-            for additional in additional_namespaces:
-                namespace.add_namespace(additional)
-        
-        namespace.add_namespace(DEFAULT_NUMPY_NAMESPACE)
-        namespace.add_namespace(DEFAULT_UNIT_NAMESPACE)
+        namespace.add_namespace('numpy', DEFAULT_NUMPY_NAMESPACE)
+        namespace.add_namespace('units', DEFAULT_UNIT_NAMESPACE)
         
         return namespace
-    
-    namespace = property(lambda self: self._namespace)
+
 
 def _conflict_warning(message, resolutions):
     '''
@@ -84,20 +72,18 @@ def _conflict_warning(message, resolutions):
                 'Namespace.resolve.resolution_conflict', once=True)
 
 
-class ModelNamespace(collections.Mapping):
+class CompoundNamespace(collections.Mapping):
 
-    def __init__(self, model_namespace):        
-        
+    def __init__(self):        
         self.namespaces = OrderedDict()        
-        self.namespaces['model'] = model_namespace
-        
-        self._has_writeable = False
     
-    def add_namespace(self, namespace):
-        if not isinstance(namespace, Namespace):
-            raise TypeError(('The namespace argument has to be of type "Namespace" '
-                             'is type %s instead.') % str(type(namespace)))        
-        self.namespaces[namespace.name] = namespace
+    def add_namespace(self, name, namespace):
+        try:
+            namespace = dict(namespace)
+        except TypeError:
+            raise TypeError('namespace has to be mapping, is type %s' %
+                            type(namespace))
+        self.namespaces[name] = namespace
     
     def resolve(self, identifier):
         # We save tuples of (namespace description, referred object) to
@@ -166,53 +152,6 @@ class ModelNamespace(collections.Mapping):
         
         return False
 
-
-class Namespace(collections.Mapping):
-    
-    def __init__(self, name, namespace, suffixes=None):
-        self.name = name
-        if isinstance(namespace, ModelNamespace):
-            self.namespace = namespace.namespaces['model']
-        else:
-            self.namespace = namespace
-        self.suffixes = suffixes
-    
-    def __getitem__(self, key):
-        if self.suffixes is None:
-            return self.namespace[key]
-        
-        for suffix in self.suffixes:
-            if key.endswith(suffix):
-                key_without_suffix = key[:key.rfind(suffix)]
-                if (key_without_suffix) in self.namespace:
-                    return self.namespace[key_without_suffix]
-        
-        raise KeyError('Illegal key %s' % key)
-    
-    def __len__(self):
-        return len(self.namespace)
-    
-    def __contains__(self, key):
-        if self.suffixes is None:
-            return (key in self.namespace)
-        
-        for suffix in self.suffixes:
-            if key.endswith(suffix):
-                key_without_suffix = key[:key.rfind(suffix)]
-                if (key_without_suffix) in self.namespace:
-                    return True
-        return False
-    
-    def __iter__(self):
-        if self.suffixes is None:
-            for key in self.namespace:
-                yield key
-        else:
-            for suffix in self.suffixes:
-                for key in self.namespace:
-                    yield key + suffix
-
-
 def _get_default_numpy_namespace():
     '''
     Get the namespace of numpy functions/variables that is recognized by
@@ -250,7 +189,7 @@ def _get_default_numpy_namespace():
     
     return namespace
 
-DEFAULT_NUMPY_NAMESPACE = Namespace('numpy', _get_default_numpy_namespace())
+DEFAULT_NUMPY_NAMESPACE = _get_default_numpy_namespace()
 
 
 def _get_default_unit_namespace():
@@ -268,4 +207,4 @@ def _get_default_unit_namespace():
     namespace.update(stdunits)
     return namespace
 
-DEFAULT_UNIT_NAMESPACE = Namespace('units',_get_default_unit_namespace())
+DEFAULT_UNIT_NAMESPACE = _get_default_unit_namespace()
