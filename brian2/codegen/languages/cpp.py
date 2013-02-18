@@ -172,7 +172,7 @@ class CPPLanguage(Language):
                        }
         return translation
 
-    def code_object(self, code, namespace, specifiers, output_variables):
+    def code_object(self, code, namespace, specifiers):
         return CPPCodeObject(code,
                              namespace,
                              specifiers,

@@ -57,7 +57,7 @@ class Language(object):
         raise NotImplementedError
 
     def create_codeobj(self, name, abstract_code, namespace, specifiers,
-                       template_method, output_variables, indices=None):
+                       template_method, indices=None):
         if indices is None:  # TODO: Do we ever create code without any index?
             indices = {}
 
@@ -71,8 +71,7 @@ class Language(object):
         code = self.apply_template(innercode, template_method())
         logger.debug(name + " code:\n" + str(code))
 
-        codeobj = self.code_object(code, namespace, specifiers,
-                                   output_variables)
+        codeobj = self.code_object(code, namespace, specifiers)
         codeobj.compile()
         return codeobj
 

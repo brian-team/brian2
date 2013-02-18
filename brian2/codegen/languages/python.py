@@ -3,15 +3,15 @@ from .base import Language, CodeObject
 __all__ = ['PythonLanguage', 'PythonCodeObject']
 
 
-def output_code(output_variables, dict_name='_return_values'):
+def output_code(output_variables, dict_name='_return_values', indent=4):
     '''
     Generate code that builds a dictionary containing the given
     `output_variables`.
     '''
-
-    code = ['{dict_name} = dict()'.format(dict_name=dict_name)]
+    indent = ' ' * indent
+    code = [indent + '{dict_name} = dict()'.format(dict_name=dict_name)]
     for output_variable in output_variables:
-        code.append("{dict_name}['{var_name}'] = {var_name}".
+        code.append(indent + "{dict_name}['{var_name}'] = {var_name}".
                      format(dict_name=dict_name, var_name=output_variable))
     return '\n'.join(code)
 
@@ -68,8 +68,7 @@ class PythonLanguage(Language):
                 lines.append(line)
         return '\n'.join(lines)
 
-    def code_object(self, code, namespace, specifiers, output_variables):
-        code += output_code(output_variables)
+    def code_object(self, code, namespace, specifiers):
         return PythonCodeObject(code, namespace, specifiers,
                                 self.compile_methods(namespace))
 
@@ -85,10 +84,12 @@ class PythonLanguage(Language):
         '''.format(index=index, array=array)
 
     def template_threshold(self):
-        return '''
+        code = '''
         %CODE%
         _spikes, = _cond.nonzero()
         '''
+        code += '\n' + output_code(['_spikes'], indent=8)
+        return code
 
     def template_synapses(self):
         return '''
@@ -123,7 +124,8 @@ class PythonCodeObject(CodeObject):
     def run(self):
         exec self.compiled_code in self.namespace
         # output variables should land in the variable name _return_values
-        return self.namespace['_return_values']
+        if '_return_values' in self.namespace:
+            return self.namespace['_return_values']
 
 # THIS DOESN'T WORK
 # def convert_expr_to_inplace(expr):

@@ -235,7 +235,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
 
     def create_codeobj(self, name, code, identifiers,
-                       template=None, iterate_all=True, output=None):
+                       template=None, iterate_all=True):
         ''' A little helper function to reduce the amount of repetition when
         calling the language's create_codeobj (always pass self.specifiers and
         self.namespace).
@@ -248,17 +248,13 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         identifiers = set(identifiers) - set(self.specifiers.keys())
         resolved_namespace = self.namespace.resolve_all(identifiers)
 
-        if output is None:
-            output = []
-
         return self.language.create_codeobj(name,
                                             code,
                                             resolved_namespace,
                                             self.specifiers,
                                             template,
                                             indices={'_neuron_idx':
-                                                     Index(iterate_all)},
-                                            output_variables=output)
+                                                     Index(iterate_all)})
 
     def create_state_updater(self):
 
@@ -330,8 +326,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         codeobj = self.create_codeobj("thresholder",
                                       abstract_code,
                                       identifiers,
-                                      self.language.template_threshold,
-                                      output=['_spikes']
+                                      self.language.template_threshold
                                       )
         thresholder = Thresholder(self, codeobj,
                                   name=self.name + '_thresholder',
