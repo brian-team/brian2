@@ -109,16 +109,8 @@ If no value is given, the namespace will be implicit, consisting of the local an
 where the `NeuronGroup`/`Synapses` object is constructed. The `namespace` argument should be a dictionary, if it
 is given, it is expected to specify the namespace completely.
 
-Changes in external variable values are not taken into account during a run (if you want to have a variable
-that is updated by a user-defined function during a run, define it as a parameter instead).
-
-[TODO: Decide whether we want this]
-You can change the value of an external variable between runs by setting the reference in the namespace attribute::
-
-	G = NeuronGroup(...)
-	run(...)
-	G.namespace['varname'] = newvalue
-	run(...)
+Changes in external variable values are not taken into account. If you want to have a variable
+that changes between runs (or during a run using a user-defined function), define it as a parameter.
 	
 Resolution order
 ~~~~~~~~~~~~~~~~
@@ -129,12 +121,21 @@ raised.
 
 1. "special variables": `t`, `dt`, `xi` (and `xi_...`)
 2. state variables of the `NeuronGroup`/`Synapses` itself.
-3. explicitly given entries in the namespace dictionary/`Namespace` object
-4. variables from "referred namespaces", i.e. in the `Synapses` class, variables
-   from the pre-synpatic group (using a ``_pre`` suffix) or from the post-synaptic
+3. variables from "referred namespaces", i.e. in the `Synapses` class, variables
+   from the pre-synaptic group (using a ``_pre`` suffix) or from the post-synaptic
    group (using a ``_post`` suffix or no suffix).
-5. A standard set of numpy functions (with unit-aware replacements)
-6. units (the names returned by ~brian2.equations.unitcheck.get_default_unit_namespace, containing all
-   registered unit plus the standard units (ms, mV, nS, etc.)
+4. explicitly given entries in the namespace dictionary
+5. A standard set of numpy functions (with unit-aware replacements, the names
+   in `~brian2.core.namespace.DEFAULT_NUMPY_NAMESPACE`).
+6. units (the names in `~brian2.core.namespace.DEFAULT_UNIT_NAMESPACE`),
+   containing all registered units plus the standard units (ms, mV, nS, etc.)
 7. external variables/functions in the local implicit namespace (if one is used)
 8. external variables/functions in the global namespace (if one is used) 
+
+Examples for complex scenarios
+------------------------------
+
+TODO
+    
+	
+
