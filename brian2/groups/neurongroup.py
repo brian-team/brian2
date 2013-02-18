@@ -9,7 +9,7 @@ from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.integration import euler
 from brian2.codegen.languages import PythonLanguage
 from brian2.codegen.specifiers import (Value, AttributeValue, ArrayVariable,
-                                       FunctionValue, Subexpression, Index)
+                                       Subexpression, Index)
 from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
@@ -68,7 +68,7 @@ class NeuronGroupCodeRunner(CodeRunner):
 
 class StateUpdater(NeuronGroupCodeRunner):
     def update(self):
-        self.prepare()        
+        self.prepare()
         self.is_active[:] = self.clock.t_ >= self.refractory_until
         return NeuronGroupCodeRunner.update(self)
 
@@ -355,8 +355,6 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         # Standard specifiers always present
         s = {'_num_neurons': Value(np.float64, self.N),
              '_spikes' : AttributeValue(np.int, self, 'spikes', Unit(1)),
-             '_num_spikes' : FunctionValue(np.int, self,
-                                           lambda self: len(self.spikes), Unit(1)),
              't': AttributeValue(np.float64, self.clock, 't_', second),
              'dt': AttributeValue(np.float64, self.clock, 'dt_', second)}
 
@@ -398,7 +396,7 @@ if __name__ == '__main__':
     G = NeuronGroup(N, eqs,
                     threshold=threshold,
                     reset=reset,
-                    language=CPPLanguage()
+                    language=PythonLanguage()
                     # language=NumexprPythonLanguage(),
                     )
     G.refractory = 5 * ms

@@ -226,7 +226,15 @@ class CodeObject(object):
         # update the values in the namespace
         for name, spec in self.specifiers.iteritems():
             if isinstance(spec, Value):
-                self.namespace.update({name: spec.get_value()})
+                value = spec.get_value()
+                self.namespace.update({name: value})
+                # if it is a type that has a length, add a variable called
+                # '_num'+name with its length
+                try:
+                    length = len(value)
+                    self.namespace.update({'_num' + name: length})
+                except TypeError:
+                    pass
 
         self.namespace.update(**kwds)
 
