@@ -54,7 +54,7 @@ class CodeRunner(BrianObject):
         self.post_update(return_value)
 
     def post_update(self, return_value):
-        return return_value
+        pass
 
 
 class NeuronGroupCodeRunner(CodeRunner):
