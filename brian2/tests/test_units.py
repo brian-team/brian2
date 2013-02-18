@@ -622,6 +622,15 @@ def test_special_case_numpy_functions():
     assert_raises(TypeError, lambda: where(cond, ar1, ar1, ar2))
     assert_raises(DimensionMismatchError, lambda: where(cond, ar1, ar1 / ms))
 
+    # Check setasflat (for numpy < 1.7)
+    if hasattr(Quantity, 'setasflat'):
+        a = np.arange(10) * mV
+        b = np.ones(10).reshape(5, 2) * volt
+        c = np.ones(10).reshape(5, 2) * second
+        assert_raises(DimensionMismatchError, lambda: a.setasflat(c))
+        a.setasflat(b)
+        assert_equal(a.flatten(), b.flatten())
+
 
 # Functions that should not change units
 def test_numpy_functions_same_dimensions():
