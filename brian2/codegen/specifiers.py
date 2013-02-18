@@ -52,6 +52,21 @@ class AttributeValue(Value):
     def set_value(self, value):
         setattr(self.obj, self.attribute, value)
 
+
+class FunctionValue(Value):
+    '''
+    A calculated value. Calculates the function `func`, given the object `obj`.
+    '''
+    def __init__(self, dtype, obj, func, unit):
+        self.dtype = dtype
+        self.obj = obj
+        self.func = func
+        self.unit = unit
+
+    def get_value(self):
+        return self.func(self.obj)
+
+
 class ArrayVariable(Specifier):
     '''
     Used to specify that the variable comes from an array (named ``array``) with

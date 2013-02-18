@@ -17,6 +17,7 @@ __all__ = ['CPPLanguage', 'CPPCodeObject',
            'c_data_type',
            ]
 
+
 def c_data_type(dtype):
     '''
     Gives the C language specifier for numpy data types. For example,
@@ -171,7 +172,7 @@ class CPPLanguage(Language):
                        }
         return translation
 
-    def code_object(self, code, namespace, specifiers):
+    def code_object(self, code, namespace, specifiers, output_variables):
         return CPPCodeObject(code,
                              namespace,
                              specifiers,
@@ -232,14 +233,20 @@ class CPPLanguage(Language):
             %HASHDEFINES%
             %POINTERS%
             int _cpp_numspikes = 0;
+            
+            npy_intp *_spikes_space = (npy_intp *)malloc(sizeof(npy_int) * _num_neurons);             
             for(int _neuron_idx=0; _neuron_idx<_num_neurons; _neuron_idx++)
             {
                 %CODE%
                 if(_cond) {
-                    _array_spikes_space[_cpp_numspikes++] = _neuron_idx;
+                    _spikes_space[_cpp_numspikes++] = _neuron_idx;
                 }
             }
-            _array_num_spikes[0] = _cpp_numspikes;
+            npy_intp _dims[] = {_cpp_numspikes};
+            PyObject *_numpy_spikes_array = PyArray_SimpleNewFromData(1, _dims, NPY_INT, _spikes_space);
+            PyObject *dict = PyDict_New(); 
+            PyDict_SetItem(dict, PyString_FromString("_spikes"), _numpy_spikes_array);
+            return_val = dict; 
             ''',
             '%SUPPORT_CODE%':'%SUPPORT_CODE%',
             }
@@ -283,8 +290,8 @@ class CPPCodeObject(CodeObject):
         self.extra_compile_args = extra_compile_args
 
     def run(self):
-        weave.inline(self.code['%MAIN%'], self.namespace.keys(),
-                     local_dict=self.namespace,
-                     support_code=self.code['%SUPPORT_CODE%'],
-                     compiler=self.compiler,
-                     extra_compile_args=self.extra_compile_args)
+        return weave.inline(self.code['%MAIN%'], self.namespace.keys(),
+                            local_dict=self.namespace,
+                            support_code=self.code['%SUPPORT_CODE%'],
+                            compiler=self.compiler,
+                            extra_compile_args=self.extra_compile_args)

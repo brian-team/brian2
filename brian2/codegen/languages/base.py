@@ -57,7 +57,7 @@ class Language(object):
         raise NotImplementedError
 
     def create_codeobj(self, name, abstract_code, namespace, specifiers,
-                       template_method, indices=None):
+                       template_method, output_variables, indices=None):
         if indices is None:  # TODO: Do we ever create code without any index?
             indices = {}
 
@@ -71,7 +71,8 @@ class Language(object):
         code = self.apply_template(innercode, template_method())
         logger.debug(name + " code:\n" + str(code))
 
-        codeobj = self.code_object(code, namespace, specifiers)
+        codeobj = self.code_object(code, namespace, specifiers,
+                                   output_variables)
         codeobj.compile()
         return codeobj
 
@@ -179,7 +180,7 @@ class Language(object):
         Templates should have
         slots indicated by strings like ``%CODE%`` (the default slot).
         '''
-        return self.template_iterate_index_array('_neuron_idx', '_spikes', '_array_num_spikes[0]')
+        return self.template_iterate_index_array('_neuron_idx', '_spikes', '_num_spikes')
 
     def template_threshold(self):
         '''
@@ -230,6 +231,16 @@ class CodeObject(object):
 
         self.namespace.update(**kwds)
 
-        self.run()
+        return self.run()
 
-
+    def run(self):
+        '''
+        Runs the code in the namespace.
+        
+        Returns
+        -------
+        return_value : dict
+            A dictionary with the keys corresponding to the `output_variables`
+            defined during the call of `Language.code_object`.
+        '''
+        raise NotImplementedError()

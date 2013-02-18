@@ -9,7 +9,7 @@ from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.integration import euler
 from brian2.codegen.languages import PythonLanguage
 from brian2.codegen.specifiers import (Value, AttributeValue, ArrayVariable,
-                                       Subexpression, Index)
+                                       FunctionValue, Subexpression, Index)
 from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
@@ -46,9 +46,10 @@ class CodeRunner(BrianObject):
     def update(self, **kwds):
         if self.pre is not None:
             self.pre(self)
-        self.codeobj(**kwds)
+        return_value = self.codeobj(**kwds)
         if self.post is not None:
             self.post(self)
+        return return_value
 
 
 class NeuronGroupCodeRunner(CodeRunner):
@@ -69,25 +70,24 @@ class StateUpdater(NeuronGroupCodeRunner):
     def update(self):
         self.prepare()        
         self.is_active[:] = self.clock.t_ >= self.refractory_until
-        NeuronGroupCodeRunner.update(self)
+        return NeuronGroupCodeRunner.update(self)
 
 
 class Thresholder(NeuronGroupCodeRunner):
     def update(self):
         self.prepare()
-        NeuronGroupCodeRunner.update(self)
-        numspikes = self.group._num_spikes[0]
-        spikes = self.group._spikes_space[:numspikes]
-        spikes = spikes[array(self.is_active[spikes], dtype=bool)]
-        self.group._num_spikes[0] = len(spikes)
+        return_values = NeuronGroupCodeRunner.update(self)
+        spikes = return_values['_spikes']
+        # Save the spikes in the NeuronGroup so others can use it
         self.group.spikes = spikes
         self.refractory_until[spikes] = self.clock.t_ + self.refractory[spikes]
+        return spikes
 
 
 class Resetter(NeuronGroupCodeRunner):
     def update(self):
         self.prepare()
-        NeuronGroupCodeRunner.update(self)
+        return NeuronGroupCodeRunner.update(self)
 
 class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
     '''
@@ -235,7 +235,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
 
     def create_codeobj(self, name, code, identifiers,
-                       template=None, iterate_all=True):
+                       template=None, iterate_all=True, output=None):
         ''' A little helper function to reduce the amount of repetition when
         calling the language's create_codeobj (always pass self.specifiers and
         self.namespace).
@@ -248,13 +248,17 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         identifiers = set(identifiers) - set(self.specifiers.keys())
         resolved_namespace = self.namespace.resolve_all(identifiers)
 
+        if output is None:
+            output = []
+
         return self.language.create_codeobj(name,
                                             code,
                                             resolved_namespace,
                                             self.specifiers,
                                             template,
                                             indices={'_neuron_idx':
-                                                     Index(iterate_all)})
+                                                     Index(iterate_all)},
+                                            output_variables=output)
 
     def create_state_updater(self):
 
@@ -320,27 +324,14 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         if threshold is None:
             return None
 
-        # These are used in the threshold to set self._spikes in the end,
-        # see the update method of the `Tresholder` object
-        self._spikes_space = np.zeros(self.N, dtype=np.int)
-        self._num_spikes = np.zeros(1, dtype=np.int)
-        self.specifiers.update({
-                                'spikes_space': ArrayVariable('spikes_space',
-                                                              np.int,
-                                                              self._spikes_space,
-                                                              '_neuron_idx'),
-                                'num_spikes': ArrayVariable('num_spikes',
-                                                            np.int,
-                                                            self._num_spikes,
-                                                            None)})
-
         abstract_code = '_cond = ' + threshold
         identifiers = get_identifiers(threshold)
 
         codeobj = self.create_codeobj("thresholder",
                                       abstract_code,
                                       identifiers,
-                                      self.language.template_threshold
+                                      self.language.template_threshold,
+                                      output=['_spikes']
                                       )
         thresholder = Thresholder(self, codeobj,
                                   name=self.name + '_thresholder',
@@ -369,6 +360,8 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         # Standard specifiers always present
         s = {'_num_neurons': Value(np.float64, self.N),
              '_spikes' : AttributeValue(np.int, self, 'spikes', Unit(1)),
+             '_num_spikes' : FunctionValue(np.int, self,
+                                           lambda self: len(self.spikes), Unit(1)),
              't': AttributeValue(np.float64, self.clock, 't_', second),
              'dt': AttributeValue(np.float64, self.clock, 'dt_', second)}
 
