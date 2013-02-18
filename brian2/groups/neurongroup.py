@@ -31,63 +31,58 @@ class CodeRunner(BrianObject):
     '''
     Runs a code object on an update schedule.
     
-    Inserts the current time and dt into the namespace at each step.
+    Parameters
+    ----------
+    codeobj : `CodeObject`
+        The code to run every timestep.
+    when : `Scheduler`
+        When to execute the update, see `Scheduler` for details.
+    name : str
+        The name of this code runner.
     '''
     basename = 'code_runner'
-    def __init__(self, codeobj, init=None, pre=None, post=None,
-                 when=None, name=None):
+    def __init__(self, codeobj, when=None, name=None):
         BrianObject.__init__(self, when=when, name=name)
         self.codeobj = codeobj
-        self.pre = pre
-        self.post = post
-        if init is not None:
-            init(self)
+
+    def pre_update(self):
+        pass
 
     def update(self, **kwds):
-        if self.pre is not None:
-            self.pre(self)
+        self.pre_update()
         return_value = self.codeobj(**kwds)
-        if self.post is not None:
-            self.post(self)
+        self.post_update(return_value)
+
+    def post_update(self, return_value):
         return return_value
 
 
 class NeuronGroupCodeRunner(CodeRunner):
+    '''
+    A `CodeRunner` for use in `NeuronGroup`. Keeps a reference to the
+    `NeuronGroup`.
+    '''
     def __init__(self, group, codeobj, when=None, name=None):
         CodeRunner.__init__(self, codeobj, when=when, name=name)
         self.group = weakref.proxy(group)
-        self.prepared = False
-
-    def prepare(self):
-        if not self.prepared:
-            self.is_active = self.group.is_active_
-            self.refractory_until = self.group.refractory_until_
-            self.refractory = self.group.refractory_
-            self.prepared = True
 
 
 class StateUpdater(NeuronGroupCodeRunner):
-    def update(self):
-        self.prepare()
-        self.is_active[:] = self.clock.t_ >= self.refractory_until
-        return NeuronGroupCodeRunner.update(self)
+    def pre_update(self):
+        self.group.is_active_[:] = self.group.clock.t_ >= self.group.refractory_until_
 
 
 class Thresholder(NeuronGroupCodeRunner):
-    def update(self):
-        self.prepare()
-        return_values = NeuronGroupCodeRunner.update(self)
-        spikes = return_values['_spikes']
+    def post_update(self, return_value):
+        spikes = return_value['_spikes']
         # Save the spikes in the NeuronGroup so others can use it
         self.group.spikes = spikes
-        self.refractory_until[spikes] = self.clock.t_ + self.refractory[spikes]
-        return spikes
+        self.group.refractory_until_[spikes] = self.group.clock.t_ + self.group.refractory_[spikes]
 
 
 class Resetter(NeuronGroupCodeRunner):
-    def update(self):
-        self.prepare()
-        return NeuronGroupCodeRunner.update(self)
+    pass
+
 
 class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
     '''
@@ -127,7 +122,6 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         
     Notes
     -----
-    
     `NeuronGroup` contains a `StateUpdater`, `Thresholder` and `Resetter`, and
     these are run at the 'groups', 'thresholds' and 'resets' slots (i.e. the
     values of `Scheduler.when` take these values). The `Scheduler.order`
@@ -257,10 +251,6 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                                      Index(iterate_all)})
 
     def create_state_updater(self):
-
-        # The state updater needs: Everything that is used in the equations
-        # (external variables and functions), the state variables defined in
-        # the equations, and the value of dt and _num_neurons
         identifiers = self.equations.identifiers
 
         codeobj = self.create_codeobj("state updater",
@@ -284,16 +274,12 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         ----------
         code : str
             The abstract code to run.
-        init, pre, post : function, optional
-            See `CodeRunner`
         when : Scheduler
             When to run, by default in the 'start' slot with the same clock as
             the group.
         name : str
             A unique name, by default the name of the group appended with
             'runner_0', 'runner_1', etc.
-        level : int, optional
-            How many levels up the stack to go to find values of variables.
         '''
         if when is None:  # TODO: make this better with default values
             when = Scheduler(clock=self.clock)
@@ -312,8 +298,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                       identifiers,
                                       self.language.template_state_update,
                                       )
-        runner = CodeRunner(codeobj, name=name, when=when,
-                            init=init, pre=pre, post=post)
+        runner = CodeRunner(codeobj, name=name, when=when)
         return runner
 
     def create_thresholder(self, threshold):
