@@ -8,16 +8,16 @@ def test_explicit_stateupdater_parsing():
     Test the parsing of explicit state updater descriptions.
     '''
     # These are valid descriptions and should not raise errors
-    ExplicitStateUpdater('return x + dt * f(x, t)')
+    ExplicitStateUpdater('return x + dt * f(x, t)', priority=10)
     ExplicitStateUpdater('''x2 = x + dt * f(x, t)
-                            return x2''')
+                            return x2''', priority=10)
     
     # Examples of failed parsing
     # No return statement
-    assert_raises(SyntaxError, lambda: ExplicitStateUpdater('x + dt * f(x, t)'))
+    assert_raises(SyntaxError, lambda: ExplicitStateUpdater('x + dt * f(x, t)', 10))
     # Not an assigment
     assert_raises(SyntaxError, lambda: ExplicitStateUpdater('''2 * x
-                                                               return x + dt * f(x, t)'''))
+                                                               return x + dt * f(x, t)''', 10))
 
 def test_str_repr():
     '''
@@ -42,12 +42,20 @@ def test_integrator_code():
         assert code_lines[-1] == 'v = _v'
 
 
+def test_priority():
+    updater = ExplicitStateUpdater('return x + dt * f(x, t)', priority=10)
+    # Equations that work for the state updater
+    eqs = Equations('dv/dt = -v / (10*ms) : 1')
+    # namespace and specifiers should not be necessary here
+    namespace = {}
+    specifiers = {} 
+    assert updater.get_priority(eqs, namespace, specifiers) == 10
+    
+    eqs = Equations('dv/dt = -v / (10*ms) + xi/(10*ms)**.5 : 1')
+    assert updater.get_priority(eqs, namespace, specifiers) == 0
+
 if __name__ == '__main__':
     test_explicit_stateupdater_parsing()
     test_str_repr()
     test_integrator_code()
-
-
-    
-    
-    
+    test_priority()

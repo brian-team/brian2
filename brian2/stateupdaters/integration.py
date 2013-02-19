@@ -10,6 +10,8 @@ from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
 
 from brian2.utils.parsing import parse_to_sympy
 
+from .base import StateUpdater
+
 __all__ = ['euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 
 #===============================================================================
@@ -36,7 +38,7 @@ SYMBOLS = {'x' : Symbol('x'),
            'dt': Symbol('dt'),
            'f' : Function('f')}
 
-class ExplicitStateUpdater(object):
+class ExplicitStateUpdater(StateUpdater):
     '''
     An object that can be used for defining state updaters via a simple
     description (see below). Resulting instances can be passed to the
@@ -76,7 +78,9 @@ class ExplicitStateUpdater(object):
     euler, rk2, rk4
     ''' 
     
-    def __init__(self, description):        
+    def __init__(self, description, priority):
+        self.priority = priority
+                
         try:
             parsed = DESCRIPTION.parseString(description, parseAll=True)
         except ParseException as p_exc:
@@ -99,6 +103,16 @@ class ExplicitStateUpdater(object):
                 self.output = expression
             else:
                 raise AssertionError('Unknown element name: %s' % element.getName())
+    
+    def get_priority(self, equations, namespace, specifiers):
+        # These numerical integrators should work for all equations, except for
+        # stochastic equations
+        for identifier in equations.identifiers:
+            if identifier == 'xi' or identifier.startswith('xi_'):
+                return 0
+        
+        # we can use this state updater
+        return self.priority
     
     def __str__(self):
         s = ''
@@ -182,16 +196,17 @@ class ExplicitStateUpdater(object):
 
 #===============================================================================
 # Excplicit state updaters
+# Using the arbitrary priority: euler > rk2 > rk4
 #===============================================================================
 
 # these objects can be used like functions because they are callable
 #: Forward Euler state updater     
-euler = ExplicitStateUpdater('return x + dt * f(x,t)')
+euler = ExplicitStateUpdater('return x + dt * f(x,t)', priority=30)
 
 #: Second order Runge-Kutta method (midpoint method)
 rk2 = ExplicitStateUpdater('''
     k = dt * f(x,t)
-    return x + dt*f(x +  k/2, t + dt/2)''')
+    return x + dt*f(x +  k/2, t + dt/2)''', priority=20)
 
 #: Classical Runge-Kutta method (RK4)
 rk4 = ExplicitStateUpdater('''
@@ -200,4 +215,10 @@ rk4 = ExplicitStateUpdater('''
     k3=dt*f(x+k2/2,t+dt/2)
     k4=dt*f(x+k3,t+dt)
     return x+(k1+2*k2+2*k3+k4)/6
-    ''')
+    ''', priority=10)
+
+
+# Register the state updaters
+StateUpdater.register('euler', euler)
+StateUpdater.register('rk2', rk2)
+StateUpdater.register('rk4', rk4)

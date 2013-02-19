@@ -560,21 +560,23 @@ class Equations(collections.Mapping):
                                   'tuples of all equations.') 
     
     substituted_expressions = property(_get_substituted_expressions)
-    
+
     names = property(lambda self: set([eq.varname for eq in self.ordered]),
                      doc='All variable names defined in the equations.')
     
-    diff_eq_names = property(lambda self: [eq.varname for eq in self.ordered
-                                           if eq.eq_type == DIFFERENTIAL_EQUATION],
+    diff_eq_names = property(lambda self: set([eq.varname for eq in self.ordered
+                                           if eq.eq_type == DIFFERENTIAL_EQUATION]),
                              doc='All differential equation names.')
-    static_eq_names = property(lambda self: [eq.varname for eq in self.ordered
-                                           if eq.eq_type == STATIC_EQUATION],
+
+    static_eq_names = property(lambda self: set([eq.varname for eq in self.ordered
+                                           if eq.eq_type == STATIC_EQUATION]),
                                doc='All static equation names.')
-    eq_names = property(lambda self: [eq.varname for eq in self.ordered
-                                           if eq.eq_type in (DIFFERENTIAL_EQUATION, STATIC_EQUATION)],
+    eq_names = property(lambda self: set([eq.varname for eq in self.ordered
+                                           if eq.eq_type in (DIFFERENTIAL_EQUATION, STATIC_EQUATION)]),
                         doc='All (static and differential) equation names.')
-    parameter_names = property(lambda self: [eq.varname for eq in self.ordered
-                                             if eq.eq_type == PARAMETER],
+
+    parameter_names = property(lambda self: set([eq.varname for eq in self.ordered
+                                             if eq.eq_type == PARAMETER]),
                                doc='All parameter names.')    
         
     units = property(_get_units)
