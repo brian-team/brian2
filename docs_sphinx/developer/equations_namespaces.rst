@@ -3,10 +3,10 @@ Equations and namespaces
 
 Equation parsing
 ----------------
-Parsing is done via pyparsing_, for now find the grammar at the top of the
+Parsing is done via `pyparsing`_, for now find the grammar at the top of the
 `brian2.equations.equations` file.
 
-.. _pyparsing:: http://pyparsing.wikispaces.com/
+.. _pyparsing: http://pyparsing.wikispaces.com/
 
 Specifiers
 ----------
