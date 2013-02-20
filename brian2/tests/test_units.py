@@ -502,10 +502,14 @@ def test_unit_discarding_functions():
     '''
     Test functions that discard units.
     '''
+    
+    from brian2.units.unitsafefunctions import zeros_like, ones_like
+    
     values = [3 * mV, np.array([1, 2]) * mV, np.arange(12).reshape(3, 4) * mV]
     for value in values:
         assert_equal(np.sign(value), np.sign(np.asarray(value)))
-        assert_equal(np.ones_like(value), np.ones_like(np.asarray(value)))
+        assert_equal(zeros_like(value), np.zeros_like(np.asarray(value)))
+        assert_equal(ones_like(value), np.ones_like(np.asarray(value)))
         assert_equal(np.nonzero(value), np.nonzero(np.asarray(value)))
 
 
@@ -622,10 +626,19 @@ def test_special_case_numpy_functions():
     assert_raises(TypeError, lambda: where(cond, ar1, ar1, ar2))
     assert_raises(DimensionMismatchError, lambda: where(cond, ar1, ar1 / ms))
 
+    # Check setasflat (for numpy < 1.7)
+    if hasattr(Quantity, 'setasflat'):
+        a = np.arange(10) * mV
+        b = np.ones(10).reshape(5, 2) * volt
+        c = np.ones(10).reshape(5, 2) * second
+        assert_raises(DimensionMismatchError, lambda: a.setasflat(c))
+        a.setasflat(b)
+        assert_equal(a.flatten(), b.flatten())
+
 
 # Functions that should not change units
 def test_numpy_functions_same_dimensions():
-    values = [3, np.array([1, 2]), np.ones((3, 3))]
+    values = [np.array([1, 2]), np.ones((3, 3))]
     units = [volt, second, siemens, mV, kHz]
 
     # numpy functions
@@ -695,8 +708,8 @@ def test_numpy_functions_change_dimensions():
     '''
     Test some numpy functions that change the dimensions of the quantity.
     '''
-    unit_values = [3 * mV, np.array([1, 2]) * mV,
-                       np.ones((3, 3)) * 2 * mV]
+    unit_values = [np.array([1, 2]) * mV,
+                   np.ones((3, 3)) * 2 * mV]
     for value in unit_values:
         assert_quantity(np.var(value), np.var(np.array(value)), volt ** 2)
         assert_quantity(np.square(value), np.square(np.array(value)),

@@ -6,6 +6,7 @@ from functools import wraps
 import numpy as np
 
 from .fundamentalunits import (Quantity, wrap_function_dimensionless,
+                               wrap_function_remove_dimensions,
                                fail_for_dimension_mismatch, is_dimensionless)
 
 __all__ = [
@@ -15,7 +16,8 @@ __all__ = [
          'sinh', 'cosh', 'tanh',
          'arcsinh', 'arccosh', 'arctanh',
          'diagonal', 'ravel', 'trace', 'dot',
-         'where'
+         'where',
+         'ones_like', 'zeros_like'
          ]
 
 def where(condition, *args, **kwds):  # pylint: disable=C0111
@@ -55,6 +57,8 @@ arctanh = wrap_function_dimensionless(np.arctanh)
 log = wrap_function_dimensionless(np.log)
 exp = wrap_function_dimensionless(np.exp)
 
+ones_like = wrap_function_remove_dimensions(np.ones_like)
+zeros_like = wrap_function_remove_dimensions(np.zeros_like)
 
 def wrap_function_to_method(func):
     '''
