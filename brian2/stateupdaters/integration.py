@@ -10,7 +10,7 @@ from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
 
 from brian2.utils.parsing import parse_to_sympy
 
-from .base import StateUpdater
+from .base import StateUpdateMethod
 
 __all__ = ['euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 
@@ -38,7 +38,7 @@ SYMBOLS = {'x' : Symbol('x'),
            'dt': Symbol('dt'),
            'f' : Function('f')}
 
-class ExplicitStateUpdater(StateUpdater):
+class ExplicitStateUpdater(StateUpdateMethod):
     '''
     An object that can be used for defining state updaters via a simple
     description (see below). Resulting instances can be passed to the
@@ -219,6 +219,6 @@ rk4 = ExplicitStateUpdater('''
 
 
 # Register the state updaters
-StateUpdater.register('euler', euler)
-StateUpdater.register('rk2', rk2)
-StateUpdater.register('rk4', rk4)
+StateUpdateMethod.register('euler', euler)
+StateUpdateMethod.register('rk2', rk2)
+StateUpdateMethod.register('rk4', rk4)

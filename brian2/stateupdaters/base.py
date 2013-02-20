@@ -9,16 +9,16 @@ from abc import abstractmethod, ABCMeta
 from brian2.utils.logger import get_logger
 
 
-__all__ = ['StateUpdater']
+__all__ = ['StateUpdateMethod']
 
 logger = get_logger(__name__)
 
-class StateUpdater(object):    
+class StateUpdateMethod(object):
     __metaclass__ = ABCMeta
-    
-    #: A dictionary of registered stateupdaters (using a short name as the key)
+
+    # : A dictionary of registered stateupdaters (using a short name as the key)
     stateupdaters = {}
-    
+
     @abstractmethod
     def get_priority(self, equations, namespace, specifiers):
         '''
@@ -45,7 +45,7 @@ class StateUpdater(object):
             otherwise.
         '''
         pass
-    
+
     @abstractmethod
     def __call__(self, equations):
         '''
@@ -62,30 +62,30 @@ class StateUpdater(object):
             The abstract code performing a state update step.
         '''
         pass
-    
+
     @staticmethod
     def register(name, stateupdater):
-        if name in StateUpdater.stateupdaters:
+        if name in StateUpdateMethod.stateupdaters:
             raise ValueError(('A stateupdater with the name "%s" '
                               'has already been registered') % name)
-        
-        if not isinstance(stateupdater, StateUpdater):
+
+        if not isinstance(stateupdater, StateUpdateMethod):
             raise ValueError(('Given stateupdater of type %s does not seem to '
                               'be a valid stateupdater.' % str(type(stateupdater))))
-        
-        StateUpdater.stateupdaters[name] = stateupdater
-    
+
+        StateUpdateMethod.stateupdaters[name] = stateupdater
+
     @staticmethod
-    def determine_stateupdater(self, equations, namespace,
+    def determine_stateupdater(equations, namespace,
                                specifiers, name=None):
         '''
         Determine a suitable state updater. If a `name` is given, the
         state updater with the given name is used (if it is suitable).
         Otherwise, the suitable state updater with the highest priority is used.
-        ''' 
+        '''
         if name is not None:
             try:
-                stateupdater = self.stateupdaters[name]
+                stateupdater = StateUpdateMethod.stateupdaters[name]
             except KeyError:
                 raise ValueError('No state updater with the name "%s" '
                                  'is known' % name)
@@ -93,23 +93,21 @@ class StateUpdater(object):
                 raise ValueError(('The state updater "%s" cannot be used for '
                                   'the given equations' % name))
             return stateupdater
-        
+
         # determine the best suitable state updater
         priorities = [(name, updater.get_priority(equations,
                                               namespace,
                                               specifiers))
-                         for name, updater in self.stateupdaters.iteritems()]
+                         for name, updater in StateUpdateMethod.stateupdaters.iteritems()]
         priorities.sort(key=lambda elem: elem[1], reverse=True)
-        
+
         # If the list is empty or the first (=best) priority is 0, we did not
         # find anything suitable
         if len(priorities) == 0 or priorities[0][1] == 0:
             raise ValueError(('No stateupdater that is suitable for the given '
                               'equations has been found'))
-        
+
         # The first entry in the list is the stateupdater of our choice
         logger.info('Using stateupdater "%s"' % priorities[0][0])
-        
-        return self.stateupdaters[priorities[0][0]]
-        
-    
+
+        return StateUpdateMethod.stateupdaters[priorities[0][0]]
