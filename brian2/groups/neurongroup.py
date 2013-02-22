@@ -74,7 +74,7 @@ class StateUpdater(NeuronGroupCodeRunner):
 
 class Thresholder(NeuronGroupCodeRunner):
     def post_update(self, return_value):
-        spikes = return_value['_spikes']
+        spikes = return_value
         # Save the spikes in the NeuronGroup so others can use it
         self.group.spikes = spikes
         self.group.refractory_until_[spikes] = self.group.clock.t_ + self.group.refractory_[spikes]
@@ -386,7 +386,7 @@ if __name__ == '__main__':
     G = NeuronGroup(N, eqs,
                     threshold=threshold,
                     reset=reset,
-                    language=PythonLanguage()
+                    language=CPPLanguage()
                     # language=NumexprPythonLanguage(),
                     )
     G.refractory = 5 * ms
