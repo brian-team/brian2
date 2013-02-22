@@ -166,6 +166,7 @@ Equation objects
 	dg_i/dt = -g_i / tau_i  : S
 
 **Inserting values**
+
 .. doctest::
 
 	>>> eqs = Equations('dv/dt = mu/tau + sigma/tau**.5*xi : volt',
@@ -176,7 +177,8 @@ Equation objects
 Namespaces
 ~~~~~~~~~~
 **Using implicit namespaces**
-This is the typical example script scenario.
+
+This is the typical example script scenario:
 
 .. doctest::
 
@@ -188,7 +190,9 @@ This is the typical example script scenario.
 	...                 reset='V=V_R')
 	>>> print G.namespace['V_R']
 	-0.07 V
-	
+
+Creating a NeuronGroup in a function:
+
 .. doctest::
 
 	>>> def create_neurongroup(N, tau_m):
@@ -200,6 +204,7 @@ This is the typical example script scenario.
 	10.0 ms
 
 **Using explicit namespaces**
+
 .. doctest::
 
 	>>> tau = 10*ms  #we will not use this value
