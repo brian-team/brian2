@@ -8,12 +8,12 @@ from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.integration import euler
 from brian2.codegen.languages import PythonLanguage
-from brian2.codegen.specifiers import (Value, AttributeValue, ArrayVariable,
-                                       Subexpression, Index)
 from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
 from brian2.core.namespace import ObjectWithNamespace
+from brian2.core.specifiers import (Value, AttributeValue, ArrayVariable,
+                                    Subexpression, Index)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.utils.logger import get_logger

@@ -5,10 +5,10 @@ implement a new language.
 import functools
 
 from brian2.core.preferences import brian_prefs
+from brian2.core.specifiers import ArrayVariable, Value
 from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.utils.logger import get_logger
 
-from ..specifiers import ArrayVariable, Value
 from ..templating import apply_code_template
 from ..functions import UserFunction
 from ..translation import translate

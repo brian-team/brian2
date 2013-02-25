@@ -2,7 +2,7 @@ import weakref
 
 from numpy import array, arange
 
-from brian2.codegen.specifiers import Specifier
+from brian2.core.specifiers import Specifier
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.groups.group import Group
