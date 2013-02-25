@@ -16,11 +16,11 @@ The input information needed:
 '''
 import re
 
+from brian2.core.specifiers import (Value, ArrayVariable, OutputVariable,
+                                    Subexpression, Index)
 from brian2.utils.stringtools import (deindent, strip_empty_lines, indent,
                                       get_identifiers)
 
-from .specifiers import (Function, Value, ArrayVariable, OutputVariable,
-                         Subexpression, Index)
 from .statements import Statement
 
 __all__ = ['translate', 'make_statements']
@@ -170,7 +170,7 @@ def make_statements(code, specifiers, dtype):
     return statements
 
 
-def translate(code, specifiers, dtype, language):
+def translate(code, specifiers, dtype, language, indices):
     '''
     Translates an abstract code block into the target language.
     
@@ -195,7 +195,7 @@ def translate(code, specifiers, dtype, language):
     Returns a multi-line string.
     '''
     statements = make_statements(code, specifiers, dtype)
-    return language.translate_statement_sequence(statements, specifiers)
+    return language.translate_statement_sequence(statements, specifiers, indices)
     
 
 if __name__=='__main__':

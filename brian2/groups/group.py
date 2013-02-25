@@ -1,37 +1,25 @@
+from brian2.units.fundamentalunits import fail_for_dimension_mismatch
+
 __all__ = ['Group']
 
 class Group(object):
     '''
-    Mix-in class for accessing arrays by attribute
+    Mix-in class for accessing arrays by attribute.
     
-    Defining object should create attributes `arrays`, `units` for fast look-up,
-    and a more generic mechanism is to provide methods `get_array_`, `get_array`,
-    `set_array_` and `set_array`. Call the `__init__` method once these have
-    been successfully created (typically at the end of your `__init__` method).
-    
-    TODO: could this all be done more efficiently by creating properties at runtime?
+    # TODO: Overwrite the __dir__ method to return the state variables
+    # (should make autocompletion work)
     '''
     def __init__(self):
-        if not hasattr(self, 'arrays') or not hasattr(self, 'units'):
-            raise ValueError('Classes derived from Group need attributes arrays and units')
+        if not hasattr(self, 'specifiers'):
+            raise ValueError('Classes derived from Group need specifiers attribute')
         self._group_attribute_access_active = True
-        
-    def get_array(self, name):
-        raise KeyError
-    get_array_ = get_array
-    
-    def set_array(self, name, val):
-        raise KeyError
-    set_array_ = set_array
     
     def state_(self, name):
         '''
         Gets the unitless array.
         '''
-        if name in self.arrays:
-            return self.arrays[name]
         try:
-            return self.get_array_(name)
+            return self.specifiers[name].get_value()
         except KeyError:
             raise KeyError("Array named "+name+" not found.")
         
@@ -39,10 +27,10 @@ class Group(object):
         '''
         Gets the array with units.
         '''
-        if name in self.arrays:
-            return self.arrays[name]*self.units[name]
         try:
-            return self.get_array(name)
+            spec = self.specifiers[name]
+            # TODO: More efficitent to use Quantity.with_dimensions ?
+            return spec.get_value() * spec.unit
         except KeyError:
             raise KeyError("Array named "+name+" not found.")
 
@@ -75,23 +63,16 @@ class Group(object):
         # Group.__init__
         if not hasattr(self, '_group_attribute_access_active'):
             object.__setattr__(self, name, val)
-        elif name in self.arrays:
-            # TODO: unit checking
-            self.arrays[name][:] = val
-        elif len(name) and name[-1]=='_' and name[:-1] in self.arrays:
+        elif name in self.specifiers:
+            spec = self.specifiers[name]
+            fail_for_dimension_mismatch(val, spec.unit,
+                                        'Incorrect units for setting %s' % name)
+            spec.set_value(val)
+        elif len(name) and name[-1]=='_' and name[:-1] in self.specifiers:
             # no unit checking
-            self.arrays[name[:-1]][:] = val
+            self.specifiers[name[:-1]].set_value(val)
         else:
-            try:
-                self.set_array(name, val)
-            except KeyError:
-                if name[-1]=='_':
-                    try:
-                        self.set_array_(name, val)
-                    except KeyError:
-                        object.__setattr__(self, name, val)
-                else:
-                    object.__setattr__(self, name, val)
+            object.__setattr__(self, name, val)             
 
     
 if __name__=='__main__':

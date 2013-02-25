@@ -1,24 +1,26 @@
 import weakref
 
 import numpy as np
-from numpy import array, zeros
+from numpy import array
 
-from brian2.equations.codestrings import Statements
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
-                                        STATIC_EQUATION, PARAMETER) 
+                                        STATIC_EQUATION, PARAMETER)
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.integration import euler
 from brian2.codegen.languages import PythonLanguage
-from brian2.codegen.specifiers import (Value, ArrayVariable, Subexpression,
-                                       Index)
-from brian2.codegen.translation import translate
 from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
+from brian2.core.namespace import ObjectWithNamespace
+from brian2.core.specifiers import (Value, AttributeValue, ArrayVariable,
+                                    Subexpression, Index)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.utils.logger import get_logger
 from brian2.groups.group import Group
+from brian2.units.allunits import second
+from brian2.units.fundamentalunits import Unit
+from brian2.utils.stringtools import get_identifiers
 
 __all__ = ['NeuronGroup',
            'CodeRunner']
@@ -29,70 +31,60 @@ class CodeRunner(BrianObject):
     '''
     Runs a code object on an update schedule.
     
-    Inserts the current time into the namespace at each step.
+    Parameters
+    ----------
+    codeobj : `CodeObject`
+        The code to run every timestep.
+    when : `Scheduler`
+        When to execute the update, see `Scheduler` for details.
+    name : str
+        The name of this code runner.
     '''
     basename = 'code_runner'
-    def __init__(self, codeobj, init=None, pre=None, post=None,
-                 when=None, name=None):
+    def __init__(self, codeobj, when=None, name=None):
         BrianObject.__init__(self, when=when, name=name)
         self.codeobj = codeobj
-        self.pre = pre
-        self.post = post
-        if init is not None:
-            init(self)
-        
-    def update(self):
-        if self.pre is not None:
-            self.pre(self)
-        self.codeobj(t=self.clock.t_)
-        if self.post is not None:
-            self.post(self)
+
+    def pre_update(self):
+        pass
+
+    def update(self, **kwds):
+        self.pre_update()
+        return_value = self.codeobj(**kwds)
+        self.post_update(return_value)
+
+    def post_update(self, return_value):
+        pass
 
 
 class NeuronGroupCodeRunner(CodeRunner):
+    '''
+    A `CodeRunner` for use in `NeuronGroup`. Keeps a reference to the
+    `NeuronGroup`.
+    '''
     def __init__(self, group, codeobj, when=None, name=None):
         CodeRunner.__init__(self, codeobj, when=when, name=name)
         self.group = weakref.proxy(group)
-        self.prepared = False
-        
-    def prepare(self):
-        if not self.prepared:
-            self.is_active = self.group.is_active_
-            self.refractory_until = self.group.refractory_until_
-            self.refractory = self.group.refractory_
-            self.prepared = True
 
 
 class StateUpdater(NeuronGroupCodeRunner):
-    def update(self):
-        self.prepare()
-        self.is_active[:] = self.clock.t_>=self.refractory_until
-        NeuronGroupCodeRunner.update(self)
-        
-        
+    def pre_update(self):
+        self.group.is_active_[:] = self.group.clock.t_ >= self.group.refractory_until_
+
+
 class Thresholder(NeuronGroupCodeRunner):
-    def update(self):
-        self.prepare()
-        NeuronGroupCodeRunner.update(self)
-        ns = self.codeobj.namespace
-        spikesarray = ns['_spikes_space']
-        numspikes = ns['_array_num_spikes'][0]
-        spikes = spikesarray[:numspikes]
-        spikes = spikes[array(self.is_active[spikes], dtype=bool)]
+    def post_update(self, return_value):
+        spikes = return_value
+        # Save the spikes in the NeuronGroup so others can use it
         self.group.spikes = spikes
-        self.refractory_until[spikes] = self.clock.t_+self.refractory[spikes]
+        self.group.refractory_until_[spikes] = self.group.clock.t_ + self.group.refractory_[spikes]
 
 
 class Resetter(NeuronGroupCodeRunner):
-    def update(self):
-        self.prepare()
-        spikes = self.group.spikes
-        self.codeobj.namespace['_spikes'] = spikes
-        self.codeobj.namespace['_num_spikes'] = len(spikes)
-        NeuronGroupCodeRunner.update(self)
-        
+    pass
 
-class NeuronGroup(BrianObject, Group, SpikeSource):
+
+class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
     '''
     Group of neurons
     
@@ -114,6 +106,11 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         expression.
     reset : str, optional
         The (possibly multi-line) string with the code to execute on reset.
+    namespace: dict, optional
+        A dictionary mapping variable/function names to the respective objects.
+        If no `namespace` is given, the "implicit" namespace, consisting of
+        the local and global namespace surrounding the creation of the class,
+        is used.
     dtype : (`dtype`, `dict`), optional
         The `numpy.dtype` that will be used to store the values, or
         :bpref:`core.default_scalar_dtype` if not specified (`numpy.float64` by
@@ -122,15 +119,9 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         The update clock to be used, or defaultclock if not specified.
     name : str, optional
         A unique name for the group, otherwise use ``neurongroup_0``, etc.
-    level : int, optional
-        How many levels up in the call stack to go to find variable names for
-        equations, reset and threshold statements. In normal use this
-        shouldn't be changed, but classes derived from `NeuronGroup` calling
-        `NeuronGroup.__init__` should increase this level by 1.
         
     Notes
     -----
-    
     `NeuronGroup` contains a `StateUpdater`, `Thresholder` and `Resetter`, and
     these are run at the 'groups', 'thresholds' and 'resets' slots (i.e. the
     values of `Scheduler.when` take these values). The `Scheduler.order`
@@ -141,86 +132,90 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
     def __init__(self, N, equations, method=euler,
                  threshold=None,
                  reset=None,
+                 namespace=None,
                  dtype=None, language=None,
-                 clock=None, name=None,
-                 level=0):
+                 clock=None, name=None):
         BrianObject.__init__(self, when=clock, name=name)
         ##### VALIDATE ARGUMENTS AND STORE ATTRIBUTES
         self.method = method
-        self.level = level = int(level)
         try:
             self.N = N = int(N)
         except ValueError:
             if isinstance(N, str):
                 raise TypeError("First NeuronGroup argument should be size, not equations.")
             raise
-        if N<1:
-            raise ValueError("NeuronGroup size should be at least 1, was "+str(N))
-        # Validate equations
+        if N < 1:
+            raise ValueError("NeuronGroup size should be at least 1, was " + str(N))
+
+        ##### Prepare and validate equations
         if isinstance(equations, basestring):
-            equations = Equations(equations, level=level+1)
+            equations = Equations(equations)
         if not isinstance(equations, Equations):
             raise ValueError(('equations has to be a string or an Equations '
                               'object, is "%s" instead.') % type(equations))
         # add refractoriness
         equations = add_refractoriness(equations)
         self.equations = equations
-        
+
         logger.debug("Creating NeuronGroup of size {self.N}, "
                      "equations {self.equations}.".format(self=self))
-        
+
         # Check flags
         equations.check_flags({DIFFERENTIAL_EQUATION: ('active'),
                                PARAMETER: ('constant')})
-        
-        # Set dtypes and units
-        self.prepare_dtypes(dtype=dtype)
-        self.units = dict((var, equations.units[var]) for var in equations.equations.keys())
-        
-        # Allocate memory (TODO: this should be refactored somewhere at some point)
-        self.allocate_memory()
 
-        #: The array of spikes from the most recent threshold operation
+        ##### Setup the memory
+        self.arrays = self.allocate_memory(dtype=dtype)
+
+        # Setup specifiers
+        self.specifiers = self.create_specifiers()
+
+        # Setup the namespace
+        self.namespace = self.create_namespace(namespace)
+
+        # Check units
+        self.equations.check_units(self.namespace, self.specifiers)
+
+        # : The array of spikes from the most recent threshold operation
         self.spikes = array([], dtype=int)
 
-        # Set these for documentation purposes
-        #: Performs numerical integration step
-        self.state_updater = None
-        #: Performs thresholding step, sets the value of `spikes`
-        self.thresholder = None
-        #: Resets neurons which have spiked (`spikes`)
-        self.resetter = None
-        
         # Code generation (TODO: this should be refactored and modularised)
         # Temporary, set default language to Python
         if language is None:
             language = PythonLanguage()
         self.language = language
-        self.create_state_updater()
-        self.create_thresholder(threshold, level=level+1)
-        self.create_resetter(reset, level=level+1)
-        
+
+        # : Performs numerical integration step
+        self.state_updater = self.create_state_updater()
+        # : Performs thresholding step, sets the value of `spikes`
+        self.thresholder = self.create_thresholder(threshold)
+        # : Resets neurons which have spiked (`spikes`)
+        self.resetter = self.create_resetter(reset)
+
         # Creation of contained_objects that do the work
         self.contained_objects.append(self.state_updater)
         if self.thresholder is not None:
             self.contained_objects.append(self.thresholder)
         if self.resetter is not None:
             self.contained_objects.append(self.resetter)
-        
+
         # Activate name attribute access
         Group.__init__(self)
+
 
     def __len__(self):
         '''
         Return number of neurons in the group.
         '''
         return self.N
-    
-    def prepare_dtypes(self, dtype=None):
+
+
+    def allocate_memory(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)
-        arrayvarnames = set(eq.varname for eq in self.equations.equations.itervalues() if eq.eq_type in (DIFFERENTIAL_EQUATION,
-                                                                                                         PARAMETER))
-        self.dtypes = {}
+        arrayvarnames = set(eq.varname for eq in self.equations.itervalues() if
+                            eq.eq_type in (DIFFERENTIAL_EQUATION,
+                                           PARAMETER))
+        arrays = {}
         for name in arrayvarnames:
             if isinstance(dtype, dict):
                 curdtype = dtype[name]
@@ -228,53 +223,49 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                 curdtype = dtype
             if curdtype is None:
                 curdtype = brian_prefs['core.default_scalar_dtype']
-            self.dtypes[name] = curdtype
-        logger.debug("NeuronGroup dtypes: "+", ".join(name+'='+str(dtype) for name, dtype in self.dtypes.iteritems()))
-
-    def allocate_memory(self, dtype=None):
-        # Allocate memory (TODO: this should be refactored somewhere at some point)
-        self.arrays = {}
-        for name, curdtype in self.dtypes.iteritems():
-            self.arrays[name] = allocate_array(self.N, dtype=curdtype)
+            arrays[name] = allocate_array(self.N, dtype=curdtype)
         logger.debug("NeuronGroup memory allocated successfully.")
+        return arrays
 
-    def create_codeobj(self, name, abstract_code, specs, template_method,
-                       additional_namespace={}):
-        lang = self.language
-        logger.debug("NeuronGroup "+name+" abstract code:\n"+abstract_code)
-        innercode = translate(abstract_code, specs,
-                              brian_prefs['core.default_scalar_dtype'],
-                              lang)
-        logger.debug("NeuronGroup "+name+" inner code:\n"+str(innercode))
-        code = lang.apply_template(innercode, template_method())
-        logger.debug("NeuronGroup "+name+" code:\n"+str(code))
-        codeobj = lang.code_object(code, specs)
-        namespace = {}
-        for name, arr in self.arrays.iteritems():
-            namespace['_array_'+name] = arr
-        if not hasattr(self, 'namespace'):
-            self.namespace = namespace
-        self.namespace.update(**additional_namespace)
-        self.namespace['_num_neurons'] = self.N
-        self.namespace['dt'] = self.clock.dt_
-        self.namespace['t'] = self.clock.t_
-        codeobj.compile(self.namespace)
-        return codeobj
-            
+
+    def create_codeobj(self, name, code, identifiers,
+                       template=None, iterate_all=True):
+        ''' A little helper function to reduce the amount of repetition when
+        calling the language's create_codeobj (always pass self.specifiers and
+        self.namespace).
+        '''
+
+        # Resolve the namespace, resulting in a dictionary containing only the
+        # external variables that are needed by the code
+        # Remove the variables in the specifiers dictionary first, as they are
+        # not contained in the namespace
+        identifiers = set(identifiers) - set(self.specifiers.keys())
+        resolved_namespace = self.namespace.resolve_all(identifiers)
+
+        return self.language.create_codeobj(name,
+                                            code,
+                                            resolved_namespace,
+                                            self.specifiers,
+                                            template,
+                                            indices={'_neuron_idx':
+                                                     Index(iterate_all)})
+
     def create_state_updater(self):
+        '''Create the `StateUpdater`.'''
+        identifiers = self.equations.identifiers
+
         codeobj = self.create_codeobj("state updater",
                                       self.abstract_code,
-                                      self.specifiers,
-                                      self.language.template_state_update,
+                                      identifiers,
+                                      self.language.template_state_update
                                       )
-        self.state_update_codeobj = codeobj
-        self.state_updater = StateUpdater(self, codeobj,
-                                          name=self.name+'_state_updater',
-                                          when=(self.clock, 'groups'))
-        
-    def runner(self, code, init=None, pre=None, post=None,
-               when=None, name=None,
-               level=0):
+
+        state_updater = StateUpdater(self, codeobj,
+                                     name=self.name + '_state_updater',
+                                     when=(self.clock, 'groups'))
+        return state_updater
+
+    def runner(self, code, when=None, name=None):
         '''
         Returns a `CodeRunner` that runs abstract code in the groups namespace
         
@@ -282,122 +273,112 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         ----------
         code : str
             The abstract code to run.
-        init, pre, post : function, optional
-            See `CodeRunner`
-        when : Scheduler
+        when : `Scheduler`, optional
             When to run, by default in the 'start' slot with the same clock as
             the group.
-        name : str
+        name : str, optional
             A unique name, by default the name of the group appended with
             'runner_0', 'runner_1', etc.
-        level : int, optional
-            How many levels up the stack to go to find values of variables.
         '''
-        if when is None: # TODO: make this better with default values
+        if when is None:  # TODO: make this better with default values
             when = Scheduler(clock=self.clock)
         else:
             raise NotImplementedError
         if name is None:
             if not hasattr(self, 'num_runners'):
                 self.num_runners = 0
-            name = self.name+'_runner_'+str(self.num_runners)
+            name = self.name + '_runner_' + str(self.num_runners)
             self.num_runners += 1
-        stmt = Statements(code, level=level+1)
-        stmt.resolve(self.units.keys())
-        stmt = stmt.frozen()
-        abstract_code = stmt.code        
+
+        identifiers = get_identifiers(code)
+
         codeobj = self.create_codeobj("runner",
-                                      abstract_code,
-                                      self.specifiers,
+                                      code,
+                                      identifiers,
                                       self.language.template_state_update,
                                       )
-        runner = CodeRunner(codeobj, name=name, when=when,
-                            init=init, pre=pre, post=post)
+        runner = CodeRunner(codeobj, name=name, when=when)
         return runner
-        
-    def create_thresholder(self, threshold, level=1):
+
+    def create_thresholder(self, threshold):
+        '''Create the `Thresholder`'''
         if threshold is None:
-            self.thresholder = None
-            return
-        stmt = Statements('_cond = '+threshold, level=level+1)
-        stmt.resolve(self.units.keys()+['_cond'])
-        stmt = stmt.frozen()
-        abstract_code = stmt.code        
-        additional_ns = {
-            '_spikes': self.spikes,
-            '_spikes_space': zeros(self.N, dtype=int),
-            '_array_num_spikes': zeros(1, dtype=int),
-            }
+            return None
+
+        abstract_code = '_cond = ' + threshold
+        identifiers = get_identifiers(threshold)
+
         codeobj = self.create_codeobj("thresholder",
                                       abstract_code,
-                                      self.specifiers,
-                                      self.language.template_threshold,
-                                      additional_ns,
+                                      identifiers,
+                                      self.language.template_threshold
                                       )
-        self.thresholder_codeobj = codeobj
-        self.thresholder = Thresholder(self, codeobj,
-                                       name=self.name+'_thresholder',
-                                       when=(self.clock, 'thresholds'))
-        
-    def create_resetter(self, reset, level=1):
+        thresholder = Thresholder(self, codeobj,
+                                  name=self.name + '_thresholder',
+                                  when=(self.clock, 'thresholds'))
+        return thresholder
+
+    def create_resetter(self, reset):
+        '''Create the `Resetter`.'''
         if reset is None:
-            self.resetter = None
-            return
-        specs = self.specifiers
-        specs['_neuron_idx'] = Index(all=False)
-        stmt = Statements(reset, level=level+1)
-        stmt.resolve(self.units.keys())
-        stmt = stmt.frozen()
-        abstract_code = stmt.code        
-        additional_ns = {
-            '_spikes': self.spikes,
-            '_num_spikes': len(self.spikes),
-            }
+            return None
+
+        abstract_code = reset
+        identifiers = get_identifiers(reset)
+
         codeobj = self.create_codeobj("resetter",
                                       abstract_code,
-                                      specs,
+                                      identifiers,
                                       self.language.template_reset,
-                                      additional_ns,
+                                      iterate_all=False
                                       )
-        self.resetter_codeobj = codeobj        
-        self.resetter = Resetter(self, codeobj,
-                                 name=self.name+'_resetter',
-                                 when=(self.clock, 'resets'))
-        
-    def get_specifiers(self):
+        resetter = Resetter(self, codeobj,
+                            name=self.name + '_resetter',
+                            when=(self.clock, 'resets'))
+        return resetter
+
+    def create_specifiers(self):
         '''
-        Returns a dictionary of `Specifier` objects.
+        Create the specifiers dictionary for this `NeuronGroup`, containing
+        entries for the equation variables and some standard entries.
         '''
         # Standard specifiers always present
-        s = {'_neuron_idx': Index(all=True),
-             'dt': Value(np.float64),
-             't': Value(np.float64)}
+        s = {'_num_neurons': Value(np.float64, self.N),
+             '_spikes' : AttributeValue(np.int, self, 'spikes', Unit(1)),
+             't': AttributeValue(np.float64, self.clock, 't_', second),
+             'dt': AttributeValue(np.float64, self.clock, 'dt_', second)}
+
         # TODO: What about xi?
-        for eq in self.equations.equations.itervalues():
+        for eq in self.equations.itervalues():
             if eq.eq_type in (DIFFERENTIAL_EQUATION, PARAMETER):
-                s.update({eq.varname: ArrayVariable('_array_'+eq.varname,
-                          '_neuron_idx', self.dtypes[eq.varname])})
-            elif eq.eq_type == STATIC_EQUATION:                
-                s.update({eq.varname: Subexpression(str(eq.expr.frozen()))})
+                array = self.arrays[eq.varname]
+                s.update({eq.varname: ArrayVariable(eq.varname,
+                                                    array.dtype,
+                                                    array,
+                                                    '_neuron_idx',
+                                                    eq.unit)})
+            elif eq.eq_type == STATIC_EQUATION:
+                s.update({eq.varname: Subexpression(str(eq.expr),
+                                                    eq.unit)})
             else:
                 raise AssertionError('Unknown equation type "%s"' % eq.eq_type)
-        
-        return s        
-    
+
+        return s
+
     abstract_code = property(lambda self: self.method(self.equations))
-    specifiers = property(get_specifiers)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     from pylab import *
     from brian2 import *
     from brian2.codegen.languages import *
     import time
 
-    N = 100
-    tau = 10*ms
+    N = 10000
+    tau = 10 * ms
     eqs = '''
-    dV/dt = (2*volt-V)/tau : volt (active)
+    dV/dt = (2*volt-V)/tau_real : volt (active)
+    tau_real = 1 * tau : second # just to test that static equations work
     Vt : volt
     '''
     threshold = 'V>Vt'
@@ -405,25 +386,26 @@ if __name__=='__main__':
     G = NeuronGroup(N, eqs,
                     threshold=threshold,
                     reset=reset,
-                    #language=CPPLanguage()
-                    #language=NumexprPythonLanguage(),
+                    language=CPPLanguage()
+                    # language=NumexprPythonLanguage(),
                     )
-    G.refractory = 5*ms
+    G.refractory = 5 * ms
     Gmid = Subgroup(G, 40, 80)
-    
+
+    G.Vt = 1 * volt
     runner = G.runner('Vt = 1*volt-(t/second)*5*volt')
 
-    G.V = rand(N)
-    
+    G.V = rand(N) * volt
+
     statemon = StateMonitor(G, 'V', record=range(3))
     spikemon = SpikeMonitor(Gmid)
-    
+
     start = time.time()
-    run(1*ms)
-    print 'Initialise time:', time.time()-start
+    run(1 * ms)
+    print 'Initialise time:', time.time() - start
     start = time.time()
-    run(99*ms)
-    print 'Runtime:', time.time()-start
+    run(99 * ms)
+    print 'Runtime:', time.time() - start
     subplot(121)
     plot(statemon.t, statemon.V)
     subplot(122)

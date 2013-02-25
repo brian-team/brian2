@@ -6,7 +6,7 @@ from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
 
 from .equations import (Equations, SingleEquation, DIFFERENTIAL_EQUATION,
-                        PARAMETER)
+                        PARAMETER, Expression)
 
 __all__ = ['add_refractoriness']
 
@@ -38,7 +38,7 @@ def add_refractoriness(eqs):
     Extends a given set of equations with the refractory mechanism. New
     parameters are added and differential equations with the "active" flag
     are changed so that their right-hand side is 0 when the neuron is
-    refractory (by multiplication with the ``is_active`` variable.
+    refractory (by multiplication with the ``is_active`` variable).
     
     Parameters
     ----------
@@ -54,11 +54,13 @@ def add_refractoriness(eqs):
     new_equations = []
     
     # replace differential equations having the active flag    
-    for eq in eqs.equations.values():
+    for eq in eqs.itervalues():
         if eq.eq_type == DIFFERENTIAL_EQUATION and 'active' in eq.flags:
             # the only case where we have to change anything
             new_code = 'is_active*(' + eq.expr.code + ')'
-            new_equations.append(eq.replace_code(new_code))
+            new_equations.append(SingleEquation(DIFFERENTIAL_EQUATION,
+                                                eq.varname, eq.unit,
+                                                Expression(new_code)))
         else:
             new_equations.append(eq)
     
@@ -66,6 +68,5 @@ def add_refractoriness(eqs):
     new_equations.append(SingleEquation(PARAMETER, 'is_active', Unit(1)))
     new_equations.append(SingleEquation(PARAMETER, 'refractory', second))
     new_equations.append(SingleEquation(PARAMETER, 'refractory_until', second))
-
 
     return Equations(new_equations)

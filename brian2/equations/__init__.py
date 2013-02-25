@@ -1,6 +1,6 @@
 '''
-Module handling equations and "code strings" -- expressions and statements that
-may refer external variables/functions and state variables.
+Module handling equations and "code strings", expressions or statements, used
+for example for the reset and threshold definition of a neuron.
 '''
 from .codestrings import Expression, Statements
 from .equations import Equations
