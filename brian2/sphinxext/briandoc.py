@@ -36,17 +36,37 @@ from .docscrape_sphinx import get_doc_object, SphinxDocString
 class BrianPrefsDirective(Directive):
     '''
     A sphinx 'Directive' for automatically generated documentation of Brian preferences.
+    
+    The directive takes an optional argument, the basename of the preferences
+    to document. In addition, you can specify a `nolinks` option which means
+    that no target links for the references are added. Do this if you document
+    preferences in more then one place.
+    
+    Examples
+    --------
+    
+    Document one category of preferences and generate links::
+    
+        .. document_brian_prefs:: core
+    
+    Document all preferences without generating links::
+        .. document_brian_prefs::
+           :nolinks:
     '''
-    required_arguments = 1
-    optional_arguments = 0
+    required_arguments = 0
+    optional_arguments = 1
     final_argument_whitespace = True
-    option_spec = {}
+    option_spec = {'nolinks': directives.flag}
     has_content = False
 
     def run(self):
         # The section that should be documented
-        section = self.arguments[0]
-        rawtext = brian_prefs.get_documentation(section)
+        if len(self.arguments):
+            section = self.arguments[0]
+        else:
+            section = None
+        link_targets = not ('nolinks' in self.options)
+        rawtext = brian_prefs.get_documentation(section, link_targets)
         include_lines = statemachine.string2lines(rawtext,
                                                   convert_whitespace=True)
         self.state_machine.insert_input(include_lines, 'Brian preferences')

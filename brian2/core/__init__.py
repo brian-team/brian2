@@ -5,4 +5,5 @@ objects.
 Built-in preferences
 --------------------
 .. document_brian_prefs:: core
+
 '''

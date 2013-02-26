@@ -176,7 +176,11 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         self.prefs.update(**self.backup_prefs)
 
-    def get_documentation(self, basename):
+    def _get_one_documentation(self, basename, link_targets):
+        '''
+        Document a single category of preferences.
+        '''
+
         s = ''
         if not basename in self.pref_register:
             raise ValueError('No preferences under the name "%s" are registered' % basename)
@@ -186,12 +190,28 @@ class BrianGlobalPreferences(MutableMapping):
             pref = prefdefs[name]
             name = basename + '.' + name
             linkname = name.replace('_', '-').replace('.', '-')
-            # Make a link target
-            s += '.. _brian-pref-{name}:\n\n'.format(name=linkname)
+            if link_targets:
+                # Make a link target
+                s += '.. _brian-pref-{name}:\n\n'.format(name=linkname)
             s += '``{name}`` = ``{default}``\n'.format(name=name,
                                                        default=pref.representor(pref.default))
             s += indent(deindent(pref.docs, docstring=True))
             s += '\n\n'
+        return s
+
+    def get_documentation(self, basename=None, link_targets=True):
+        '''
+        Generates a string documenting all preferences with the given
+        `basename`. If no `basename` is given, all preferences are documented.
+        '''
+        s = ''
+        if basename is None:
+            for basename in self.pref_register:
+                s += '**' + basename + '**\n\n'
+                s += self._get_one_documentation(basename, link_targets)
+        else:
+            s += self._get_one_documentation(basename, link_targets)
+
         return s
 
     def _as_pref_file(self, valuefunc):
