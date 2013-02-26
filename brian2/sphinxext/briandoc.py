@@ -74,15 +74,31 @@ def brianobj_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
                     imported = getattr(module, str(text), None)
                     if hasattr(imported, '__module__'):
                         text = '~' + imported.__module__ + '.' + text
-                # Possibly a method/classmethod name
+                        if inspect.isfunction(imported):
+                            text += '()'
+                # Possibly a method/classmethod/attribute name
                 elif len(text.split('.')) == 2:
-                    classname, methodname = text.split('.')
+                    classname, attrname = text.split('.')
+                    # Remove trailing parentheses (will be readded for display)
+                    if attrname.endswith('()'):
+                        attrname = attrname[:-2]
                     module = __import__('brian2', fromlist=[str(classname)])
                     imported = getattr(module, str(classname), None)
                     if hasattr(imported, '__module__'):
-                        text = '{classname}.{methodname} <{modname}.{classname}.{methodname}>'.format(classname=classname,
-                                                                                                      methodname=methodname,
-                                                                                                      modname=imported.__module__)
+                        # Add trailing parentheses only for methods not for
+                        # attributes
+                        if inspect.ismethod(getattr(imported,
+                                                    str(attrname),
+                                                    None)):
+                            parentheses = '()'
+                        else:
+                            parentheses = ''
+
+                        text = ('{classname}.{attrname}{parentheses} '
+                                '<{modname}.{classname}.{attrname}>').format(classname=classname,
+                                                                             attrname=attrname,
+                                                                             modname=imported.__module__,
+                                                                             parentheses=parentheses)
                 else:
                     imported = None
 
