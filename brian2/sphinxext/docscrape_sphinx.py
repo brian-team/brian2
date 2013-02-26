@@ -213,7 +213,7 @@ class SphinxDocString(NumpyDocString):
     def _str_examples(self):
         return self._str_section('Examples')
 
-    def __str__(self, indent=0, func_role="obj"):
+    def __str__(self, indent=0, func_role="brianobj"):
         out = []
         out += self._str_index() + ['']
         out += self._str_summary()
