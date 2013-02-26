@@ -18,7 +18,7 @@ def allocate_array(shape, dtype=None):
         The shape of the array.
     dtype : dtype, optional
         The numpy datatype of the array. If not specified, use the
-        :bpref:`core.default_scalar_dtype` preference. 
+        `core.default_scalar_dtype` preference. 
         
     Returns
     -------

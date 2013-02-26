@@ -113,7 +113,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         is used.
     dtype : (`dtype`, `dict`), optional
         The `numpy.dtype` that will be used to store the values, or
-        :bpref:`core.default_scalar_dtype` if not specified (`numpy.float64` by
+        `core.default_scalar_dtype` if not specified (`numpy.float64` by
         default).
     clock : Clock, optional
         The update clock to be used, or defaultclock if not specified.
