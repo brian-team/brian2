@@ -5,6 +5,7 @@ import collections
 import keyword
 import re
 import string
+import sys
 
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
@@ -48,7 +49,6 @@ EXPRESSION = Combine(OneOrMore((CharsNotIn(':#\n') +
                                 Suppress(Optional(LineEnd()))).ignore('#' + restOfLine)),
                      joinString=' ').setResultsName('expression')
 
-
 # a unit
 # very broad definition here, again. Whether this corresponds to a valid unit
 # string will be checked later
@@ -85,11 +85,13 @@ DIFF_EQ = Group(DIFF_OP + Suppress('=') + EXPRESSION + Suppress(':') + UNIT +
 EQUATION = (PARAMETER_EQ | STATIC_EQ | DIFF_EQ).ignore('#' + restOfLine)
 EQUATIONS = ZeroOrMore(EQUATION)
 
+
 class EquationError(Exception):
-    def __init__(self, message):
-        self.message = message
-    def __str__(self):
-        return self.message
+    '''
+    Exception type related to errors in an equation definition.
+    '''
+    pass
+
 
 def check_identifier_basic(identifier):
     '''
@@ -111,22 +113,22 @@ def check_identifier_basic(identifier):
     ValueError    
         If the identifier does not conform to the above rules.
     '''
-    
+
     # Check whether the identifier is parsed correctly -- this is always the
     # case, if the identifier results from the parsing of an equation but there
     # might be situations where the identifier is specified directly
     parse_result = list(IDENTIFIER.scanString(identifier))
-    
+
     # parse_result[0][0][0] refers to the matched string -- this should be the
     # full identifier, if not it is an illegal identifier like "3foo" which only
-    # matched on "foo" 
+    # matched on "foo"
     if len(parse_result) != 1 or parse_result[0][0][0] != identifier:
         raise ValueError('"%s" is not a valid variable name.' % identifier)
 
     if keyword.iskeyword(identifier):
         raise ValueError(('"%s" is a Python keyword and cannot be used as a '
                           'variable.') % identifier)
-    
+
     if identifier.startswith('_'):
         raise ValueError(('Variable "%s" starts with an underscore, '
                           'this is only allowed for variables used '
@@ -136,7 +138,8 @@ def check_identifier_basic(identifier):
 def check_identifier_reserved(identifier):
     '''
     Check that an identifier is not using a reserved special variable name. The
-    special variables are: 't', 'dt', and 'xi'.
+    special variables are: 't', 'dt', and 'xi', as well as everything starting
+    with `xi_`.
     
     Parameters
     ----------
@@ -151,25 +154,6 @@ def check_identifier_reserved(identifier):
     if identifier in ('t', 'dt', 'xi') or identifier.startswith('xi_'):
         raise ValueError(('"%s" has a special meaning in equations and cannot '
                          ' be used as a variable name.') % identifier)
-
-
-def check_identifier(identifier):
-    '''
-    Perform all the registered checks. Checks can be registered via
-    :func:`Equations.register_identifier_check`.
-    
-    Parameters
-    ----------
-    identifier : str
-        The identifier that should be checked
-    
-    Raises
-    ------
-    ValueError
-        If any of the registered checks fails.
-    '''
-    for check_func in Equations.identifier_checks:
-        check_func(identifier)
 
 
 def parse_string_equations(eqns):
@@ -189,21 +173,21 @@ def parse_string_equations(eqns):
         `~brian2.equations.equations.Equations` objects
     """
     equations = {}
-    
+
     try:
         parsed = EQUATIONS.parseString(eqns, parseAll=True)
     except ParseException as p_exc:
         raise EquationError('Parsing failed: \n' + str(p_exc.line) + '\n' +
-                            ' '*(p_exc.column - 1) + '^\n' + str(p_exc))
+                            ' ' * (p_exc.column - 1) + '^\n' + str(p_exc))
     for eq in parsed:
         eq_type = eq.getName()
         eq_content = dict(eq.items())
         # Check for reserved keywords
         identifier = eq_content['identifier']
-        
+
         # Convert unit string to Unit object
         unit = get_unit_from_string(eq_content['unit'])
-        
+
         expression = eq_content.get('expression', None)
         if not expression is None:
             # Replace multiple whitespaces (arising from joining multiline
@@ -212,15 +196,15 @@ def parse_string_equations(eqns):
             expression = Expression(p.sub(' ', expression))
         flags = list(eq_content.get('flags', []))
 
-        equation = SingleEquation(eq_type, identifier, unit, expression, flags) 
-        
+        equation = SingleEquation(eq_type, identifier, unit, expression, flags)
+
         if identifier in equations:
             raise EquationError('Duplicate definition of variable "%s"' %
                                 identifier)
-                                       
+
         equations[identifier] = equation
-    
-    return equations            
+
+    return equations
 
 
 class SingleEquation(object):
@@ -250,13 +234,13 @@ class SingleEquation(object):
     def __init__(self, eq_type, varname, unit, expr=None, flags=None):
         self.eq_type = eq_type
         self.varname = varname
-        self.unit = unit        
+        self.unit = unit
         self.expr = expr
         if flags is None:
             self.flags = []
         else:
             self.flags = flags
-        
+
         # will be set later in the sort_static_equations method of Equations
         self.update_order = -1
 
@@ -272,41 +256,41 @@ class SingleEquation(object):
         return SingleEquation(self.eq_type,
                               self.varname,
                               self.unit,
-                              self.expr.replace_code(code),                              
+                              self.expr.replace_code(code),
                               self.flags)
 
     identifiers = property(lambda self: self.expr.identifiers
                            if not self.expr is None else set([]),
                            doc='All identifiers in the RHS of this equation.')
-        
+
 
     def __str__(self):
         if self.eq_type == DIFFERENTIAL_EQUATION:
             s = 'd' + self.varname + '/dt'
         else:
             s = self.varname
-        
+
         if not self.expr is None:
             s += ' = ' + str(self.expr)
-        
+
         s += ' : ' + str(self.unit)
-        
+
         if len(self.flags):
             s += ' (' + ', '.join(self.flags) + ')'
-        
+
         return s
-    
+
     def __repr__(self):
         s = '<' + self.eq_type + ' ' + self.varname
-        
+
         if not self.expr is None:
             s += ': ' + self.expr.code
 
         s += ' (Unit: ' + str(self.unit)
-        
+
         if len(self.flags):
             s += ', flags: ' + ', '.join(self.flags)
-        
+
         s += ')>'
         return s
 
@@ -317,7 +301,7 @@ class SingleEquation(object):
         if cycle:
             # should never happen
             raise AssertionError('Cyclical call of SingleEquation._repr_pretty')
-        
+
         if self.eq_type == DIFFERENTIAL_EQUATION:
             p.text('d' + self.varname + '/dt')
         else:
@@ -326,10 +310,10 @@ class SingleEquation(object):
         if not self.expr is None:
             p.text(' = ')
             p.pretty(self.expr)
-        
+
         p.text(' : ')
         p.pretty(self.unit)
-        
+
         if len(self.flags):
             p.text(' (' + ', '.join(self.flags) + ')')
 
@@ -377,12 +361,12 @@ class Equations(collections.Mapping):
                 if eq.varname in self._equations:
                     raise EquationError('Duplicate definition of variable "%s"' %
                                         eq.varname)
-                self._equations[eq.varname] = eq 
-        
+                self._equations[eq.varname] = eq
+
         # save these to change the keys of the dictionary later
         model_var_replacements = []
         for varname, replacement in kwds.iteritems():
-            
+
             for eq in self.itervalues():
                 # Replacing the name of a model variable (works only for strings)
                 if eq.varname == varname:
@@ -395,10 +379,10 @@ class Equations(collections.Mapping):
                                              'of "%s".' % (varname, replacement,
                                                            replacement)))
                     # make sure that the replacement is a valid identifier
-                    check_identifier(replacement)
+                    Equations.check_identifier(replacement)
                     eq.varname = replacement
                     model_var_replacements.append((varname, replacement))
-                
+
                 if varname in eq.identifiers:
                     if isinstance(replacement, basestring):
                         # replace the name with another name
@@ -413,14 +397,14 @@ class Equations(collections.Mapping):
                         eq.expr = Expression(new_code)
                     except ValueError as ex:
                         raise ValueError(('Replacing "%s" with "%r" failed: %s') %
-                                         (varname, replacement, ex))        
-        
+                                         (varname, replacement, ex))
+
         # For change in model variable names, we have already changed the
         # varname attribute of the SingleEquation object, but not the key of
         # our dicitionary
         for varname, replacement in model_var_replacements:
             self._equations[replacement] = self._equations.pop(varname)
-        
+
         # Check for special symbol xi (stochastic term)
         uses_xi = None
         for eq in self._equations.itervalues():
@@ -436,7 +420,7 @@ class Equations(collections.Mapping):
                                         (eq.varname, uses_xi))
                 else:
                     uses_xi = eq.varname
-        
+
         # rearrange static equations
         self._sort_static_equations()
 
@@ -448,22 +432,22 @@ class Equations(collections.Mapping):
 
     def __getitem__(self, key):
         return self._equations[key]
-    
+
     def __add__(self, other_eqns):
         if isinstance(other_eqns, basestring):
             other_eqns = parse_string_equations(other_eqns)
         elif not isinstance(other_eqns, Equations):
             return NotImplemented
-            
+
         return Equations(self.values() + other_eqns.values())
 
-    #: A set of functions that are used to check identifiers (class attribute).
-    #: Functions can be registered with the static method
-    #: `:meth:Equations.register_identifier_check` and will be automatically
-    #: used when checking identifiers
+    # : A set of functions that are used to check identifiers (class attribute).
+    # : Functions can be registered with the static method
+    # : `:meth:Equations.register_identifier_check` and will be automatically
+    # : used when checking identifiers
     identifier_checks = set([check_identifier_basic,
                              check_identifier_reserved])
-    
+
     @staticmethod
     def register_identifier_check(func):
         '''
@@ -476,11 +460,30 @@ class Equations(collections.Mapping):
             identifier to check, and raise a ValueError if the identifier
             violates any rule.
 
-        ''' 
+        '''
         if not hasattr(func, '__call__'):
             raise ValueError('Can only register callables.')
-        
+
         Equations.identifier_checks.add(func)
+
+    @staticmethod
+    def check_identifier(identifier):
+        '''
+        Perform all the registered checks. Checks can be registered via
+        :func:`Equations.register_identifier_check`.
+        
+        Parameters
+        ----------
+        identifier : str
+            The identifier that should be checked
+        
+        Raises
+        ------
+        ValueError
+            If any of the registered checks fails.
+        '''
+        for check_func in Equations.identifier_checks:
+            check_func(identifier)
 
     def check_identifiers(self):
         '''
@@ -493,10 +496,10 @@ class Equations(collections.Mapping):
         
         See also
         --------
-        brian2.equations.equations.check_identifier : The function that is called for each identifier.
+        Equations.check_identifier : The function that is called for each identifier.
         '''
         for name in self.names:
-            check_identifier(name)
+            Equations.check_identifier(name)
 
     def _get_substituted_expressions(self):
         '''
@@ -512,58 +515,56 @@ class Equations(collections.Mapping):
             with the respective expression.
         '''
         subst_exprs = []
-        substitutions = {}        
+        substitutions = {}
         for eq in self.ordered:
             # Skip parameters
             if eq.expr is None:
                 continue
-            
+
             expr = eq.expr.replace_code(word_substitute(eq.expr.code, substitutions))
-            
+
             if eq.eq_type == STATIC_EQUATION:
                 substitutions.update({eq.varname: '(%s)' % expr.code})
             elif eq.eq_type == DIFFERENTIAL_EQUATION:
-                #  a differential equation that we have to check                                
+                #  a differential equation that we have to check
                 expr.resolve(self.names)
                 subst_exprs.append((eq.varname, expr))
             else:
                 raise AssertionError('Unknown equation type %s' % eq.eq_type)
-        
-        return subst_exprs        
 
-    def _get_units(self):
-        '''
-        Dictionary of all internal variables and their corresponding units.
-        '''
-        return dict([(var, eq.unit) for var, eq in
-                      self._equations.iteritems()])
+        return subst_exprs
 
+    ############################################################################
     # Properties
-    
+    ############################################################################
+
+    # Lists of equations or (variable, expression tuples)
     ordered = property(lambda self: sorted(self._equations.itervalues(),
                                            key=lambda key: key.update_order),
                                            doc='A list of all equations, sorted '
                                            'according to the order in which they should '
                                            'be updated')
-    
-    diff_eq_expressions = property(lambda self: [(varname, eq.expr) for 
+
+    diff_eq_expressions = property(lambda self: [(varname, eq.expr) for
                                                  varname, eq in self.iteritems()
                                                  if eq.eq_type == DIFFERENTIAL_EQUATION],
                                   doc='A list of (variable name, expression) '
                                   'tuples of all differential equations.')
-    
-    eq_expressions = property(lambda self: [(varname, eq.expr) for 
+
+    eq_expressions = property(lambda self: [(varname, eq.expr) for
                                             varname, eq in self.iteritems()
                                             if eq.eq_type in (STATIC_EQUATION,
                                                               DIFFERENTIAL_EQUATION)],
                                   doc='A list of (variable name, expression) '
-                                  'tuples of all equations.') 
-    
+                                  'tuples of all equations.')
+
     substituted_expressions = property(_get_substituted_expressions)
+
+    # Sets of names
 
     names = property(lambda self: set([eq.varname for eq in self.ordered]),
                      doc='All variable names defined in the equations.')
-    
+
     diff_eq_names = property(lambda self: set([eq.varname for eq in self.ordered
                                            if eq.eq_type == DIFFERENTIAL_EQUATION]),
                              doc='All differential equation names.')
@@ -571,25 +572,28 @@ class Equations(collections.Mapping):
     static_eq_names = property(lambda self: set([eq.varname for eq in self.ordered
                                            if eq.eq_type == STATIC_EQUATION]),
                                doc='All static equation names.')
+
     eq_names = property(lambda self: set([eq.varname for eq in self.ordered
                                            if eq.eq_type in (DIFFERENTIAL_EQUATION, STATIC_EQUATION)]),
                         doc='All (static and differential) equation names.')
 
     parameter_names = property(lambda self: set([eq.varname for eq in self.ordered
                                              if eq.eq_type == PARAMETER]),
-                               doc='All parameter names.')    
-        
-    units = property(_get_units)
-    
+                               doc='All parameter names.')
+
+    units = property(lambda self:dict([(var, eq.unit) for var, eq in
+                                       self._equations.iteritems()]),
+                     doc='Dictionary of all internal variables and their corresponding units.')
+
     variables = property(lambda self: set(self.units.keys()),
                          doc='Set of all variables (including t, dt, and xi)')
-    
+
     identifiers = property(lambda self: set().union(*[eq.identifiers for
                                                       eq in self._equations.itervalues()]) -
                            self.names,
                            doc=('Set of all identifiers used in the equations, '
                                 'excluding the variables defined in the equations'))
-    
+
     def _sort_static_equations(self):
         '''
         Sorts the static equations in a way that resolves their dependencies
@@ -597,7 +601,7 @@ class Equations(collections.Mapping):
         returned by the ``ordered`` property are in the order in which
         they should be updated
         '''
-        
+
         # Get a dictionary of all the dependencies on other static equations,
         # i.e. ignore dependencies on parameters and differential equations
         static_deps = {}
@@ -606,16 +610,16 @@ class Equations(collections.Mapping):
                 static_deps[eq.varname] = [dep for dep in eq.identifiers if
                                            dep in self._equations and
                                            self._equations[dep].eq_type == STATIC_EQUATION]
-        
+
         # Use the standard algorithm for topological sorting:
         # http://en.wikipedia.org/wiki/Topological_sorting
-                
+
         # List that will contain the sorted elements
-        sorted_eqs = [] 
+        sorted_eqs = []
         # set of all nodes with no incoming edges:
         no_incoming = set([var for var, deps in static_deps.iteritems()
-                           if len(deps) == 0]) 
-        
+                           if len(deps) == 0])
+
         while len(no_incoming):
             n = no_incoming.pop()
             sorted_eqs.append(n)
@@ -630,11 +634,11 @@ class Equations(collections.Mapping):
         if any([len(deps) > 0 for deps in static_deps.itervalues()]):
             raise ValueError('Cannot resolve dependencies between static '
                              'equations, dependencies contain a cycle.')
-        
+
         # put the equations objects in the correct order
         for order, static_variable in enumerate(sorted_eqs):
             self._equations[static_variable].update_order = order
-        
+
         # Sort differential equations and parameters after static equations
         for eq in self._equations.itervalues():
             if eq.eq_type == DIFFERENTIAL_EQUATION:
@@ -660,7 +664,7 @@ class Equations(collections.Mapping):
         DimensionMismatchError
             In case of any inconsistencies.
         '''
-        
+
         # Create a mapping with all identifier names to either their actual
         # value (for external identifiers) or their unit (for specifiers)
         unit_namespace = {}
@@ -669,27 +673,27 @@ class Equations(collections.Mapping):
                 unit_namespace.update({name: specifiers[name].unit})
             else:
                 # This raises an error if the identifier cannot be resolved
-                unit_namespace.update({name: namespace[name]})            
-                
+                unit_namespace.update({name: namespace[name]})
+
         for var, eq in self._equations.iteritems():
             if eq.eq_type == PARAMETER:
                 # no need to check units for parameters
                 continue
-            
+
             if eq.eq_type == DIFFERENTIAL_EQUATION:
                 try:
                     eq.expr.check_units(self.units[var] / second, unit_namespace)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Differential equation defining '
-                                                  '%s does not use consistent units: %s') % 
+                                                  '%s does not use consistent units: %s') %
                                                  (var, dme.desc), *dme.dims)
             elif eq.eq_type == STATIC_EQUATION:
                 try:
                     eq.expr.check_units(self.units[var], unit_namespace)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Static equation defining '
-                                                  '%s does not use consistent units: %s') % 
-                                                 (var, dme.desc), *dme.dims)                
+                                                  '%s does not use consistent units: %s') %
+                                                 (var, dme.desc), *dme.dims)
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.eq_type)
 
@@ -725,20 +729,20 @@ class Equations(collections.Mapping):
                                       'are allowed: %s') % (eq.eq_type,
                                                             flag, allowed_flags[eq.eq_type]))
 
-    #
+    ############################################################################
     # Representation
-    # 
+    ############################################################################
 
     def __str__(self):
         strings = [str(eq) for eq in self.ordered]
         return '\n'.join(strings)
-    
+
     def __repr__(self):
         return '<Equations object consisting of %d equations>' % len(self._equations)
 
     def _repr_pretty_(self, p, cycle):
         ''' Pretty printing for ipython '''
-        if cycle: 
+        if cycle:
             # Should never happen
             raise AssertionError('Cyclical call of Equations._repr_pretty_')
         for eq in self._equations.itervalues():

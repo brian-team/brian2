@@ -244,9 +244,7 @@ class CPPLanguage(Language):
             }
             npy_intp _dims[] = {_cpp_numspikes};
             PyObject *_numpy_spikes_array = PyArray_SimpleNewFromData(1, _dims, NPY_INT, _spikes_space);
-            PyObject *dict = PyDict_New(); 
-            PyDict_SetItem(dict, PyString_FromString("_spikes"), _numpy_spikes_array);
-            return_val = dict; 
+            return_val = _numpy_spikes_array; 
             ''',
             '%SUPPORT_CODE%':'%SUPPORT_CODE%',
             }

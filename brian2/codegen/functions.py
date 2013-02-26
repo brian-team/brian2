@@ -1,4 +1,4 @@
-from .specifiers import Function
+from brian2.core.specifiers import Function
 
 __all__ = ['UserFunction', 'SimpleUserFunction', 'make_user_function']
 

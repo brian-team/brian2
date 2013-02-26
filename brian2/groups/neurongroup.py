@@ -8,12 +8,12 @@ from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.languages import PythonLanguage
-from brian2.codegen.specifiers import (Value, AttributeValue, ArrayVariable,
-                                       Subexpression, Index)
 from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
 from brian2.core.namespace import ObjectWithNamespace
+from brian2.core.specifiers import (Value, AttributeValue, ArrayVariable,
+                                    Subexpression, Index)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.utils.logger import get_logger
@@ -74,7 +74,7 @@ class StateUpdater(NeuronGroupCodeRunner):
 
 class Thresholder(NeuronGroupCodeRunner):
     def post_update(self, return_value):
-        spikes = return_value['_spikes']
+        spikes = return_value
         # Save the spikes in the NeuronGroup so others can use it
         self.group.spikes = spikes
         self.group.refractory_until_[spikes] = self.group.clock.t_ + self.group.refractory_[spikes]
@@ -262,6 +262,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                                      Index(iterate_all)})
 
     def create_state_updater(self):
+        '''Create the `StateUpdater`.'''
         identifiers = self.equations.identifiers
 
         codeobj = self.create_codeobj("state updater",
@@ -275,9 +276,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                      when=(self.clock, 'groups'))
         return state_updater
 
-    def runner(self, code, init=None, pre=None, post=None,
-               when=None, name=None,
-               level=0):
+    def runner(self, code, when=None, name=None):
         '''
         Returns a `CodeRunner` that runs abstract code in the groups namespace
         
@@ -285,10 +284,10 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         ----------
         code : str
             The abstract code to run.
-        when : Scheduler
+        when : `Scheduler`, optional
             When to run, by default in the 'start' slot with the same clock as
             the group.
-        name : str
+        name : str, optional
             A unique name, by default the name of the group appended with
             'runner_0', 'runner_1', etc.
         '''
@@ -313,6 +312,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         return runner
 
     def create_thresholder(self, threshold):
+        '''Create the `Thresholder`'''
         if threshold is None:
             return None
 
@@ -330,6 +330,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         return thresholder
 
     def create_resetter(self, reset):
+        '''Create the `Resetter`.'''
         if reset is None:
             return None
 
@@ -348,6 +349,10 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         return resetter
 
     def create_specifiers(self):
+        '''
+        Create the specifiers dictionary for this `NeuronGroup`, containing
+        entries for the equation variables and some standard entries.
+        '''
         # Standard specifiers always present
         s = {'_num_neurons': Value(np.float64, self.N),
              '_spikes' : AttributeValue(np.int, self, 'spikes', Unit(1)),

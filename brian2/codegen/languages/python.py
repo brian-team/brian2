@@ -3,19 +3,6 @@ from .base import Language, CodeObject
 __all__ = ['PythonLanguage', 'PythonCodeObject']
 
 
-def output_code(output_variables, dict_name='_return_values', indent=4):
-    '''
-    Generate code that builds a dictionary containing the given
-    `output_variables`.
-    '''
-    indent = ' ' * indent
-    code = [indent + '{dict_name} = dict()'.format(dict_name=dict_name)]
-    for output_variable in output_variables:
-        code.append(indent + "{dict_name}['{var_name}'] = {var_name}".
-                     format(dict_name=dict_name, var_name=output_variable))
-    return '\n'.join(code)
-
-
 class PythonLanguage(Language):
 
     language_id = 'python'
@@ -84,11 +71,11 @@ class PythonLanguage(Language):
         '''.format(index=index, array=array)
 
     def template_threshold(self):
+        # The thresholder returns the array of spiking neurons
         code = '''
         %CODE%
-        _spikes, = _cond.nonzero()
+        _return_values, = _cond.nonzero()        
         '''
-        code += '\n' + output_code(['_spikes'], indent=8)
         return code
 
     def template_synapses(self):

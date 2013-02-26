@@ -5,8 +5,7 @@ information about its namespace. Only serves as a parent class, its subclasses
 '''
 import sympy
 
-from brian2.units.fundamentalunits import get_dimensions, DimensionMismatchError,\
-    fail_for_dimension_mismatch
+from brian2.units.fundamentalunits import fail_for_dimension_mismatch
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 from brian2.utils.parsing import parse_to_sympy
@@ -30,23 +29,23 @@ class CodeString(object):
     '''
 
     def __init__(self, code):
-        
-        #: The code string
+
+        # : The code string
         self.code = code
-        
-        #: Set of identifiers in the code string
+
+        # : Set of identifiers in the code string
         self.identifiers = set(get_identifiers(code))
 
     def __str__(self):
         return self.code
-    
+
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self.code)
 
 
 class Statements(CodeString):
     '''
-    Class for representing statements and their associated namespace.
+    Class for representing statements.
 
     Parameters
     ----------
@@ -66,7 +65,7 @@ class Statements(CodeString):
 
 class Expression(CodeString):
     '''
-    Class for representing an expression and its associated namespace.
+    Class for representing an expression.
 
     Parameters
     ----------
@@ -74,21 +73,36 @@ class Expression(CodeString):
         The expression. Note that the expression has to be written in a form
         that is parseable by sympy.
     '''
-    
+
     def __init__(self, code):
         CodeString.__init__(self, code)
-        
-        #: The expression as a sympy object
+
+        # : The expression as a sympy object
         self.sympy_expr = parse_to_sympy(self.code)
 
-        
-    def get_dimensions(self, namespace):
-        return eval(self.code, namespace)
-    
-    
     def check_units(self, unit, namespace):
+        '''
+        Determines whether the result of the expression has the expected unit.
+        Evaluates the code in the given namespace, which should contain
+        `Unit` objects with the appropriate units for all internal variables
+        (state variables and special variables like ``t``).
+        
+        Parameters
+        ----------
+        unit : `Unit`
+            The expected unit.
+        namespace: dict
+            The namespace, mapping all identifiers in the expression to values
+            (possibly `Unit` objects).
+        
+        Raises
+        ------
+        DimensionMismatchError
+            In case the dimensions of the evaluated expression do not match the
+            expected dimensions.
+        '''
         fail_for_dimension_mismatch(unit, eval(self.code, namespace))
-            
+
     def split_stochastic(self):
         '''
         Split the expression into a stochastic and non-stochastic part.
@@ -110,19 +124,19 @@ class Expression(CodeString):
         xi = sympy.Symbol('xi')
         if not xi in s_expr:
             return (self, None)
-        
-        f = sympy.Wild('f', exclude=[xi]) # non-stochastic part
-        g = sympy.Wild('g', exclude=[xi]) # stochastic part
+
+        f = sympy.Wild('f', exclude=[xi])  # non-stochastic part
+        g = sympy.Wild('g', exclude=[xi])  # stochastic part
         matches = s_expr.match(f + g * xi)
         if matches is None:
             raise ValueError(('Expression "%s" cannot be separated into stochastic '
                              'and non-stochastic term') % self.code)
-    
+
         f_expr = Expression(str(matches[f]))
         g_expr = Expression(str(matches[g] * xi))
-        
+
         return (f_expr, g_expr)
-    
+
     def _repr_pretty_(self, p, cycle):
         '''
         Pretty printing for ipython.

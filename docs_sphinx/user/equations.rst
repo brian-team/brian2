@@ -132,10 +132,93 @@ raised.
 7. external variables/functions in the local implicit namespace (if one is used)
 8. external variables/functions in the global namespace (if one is used) 
 
-Examples for complex scenarios
-------------------------------
+Examples
+--------
 
-TODO
-    
-	
+Equation objects
+~~~~~~~~~~~~~~~~
+**Concatenating equations**
 
+.. doctest::
+
+	>>> membrane_eqs = Equations('dv/dt = -(v + I)/ tau : volt')
+	>>> eqs1 = membrane_eqs + Equations('''I = sin(2*pi*freq*t) : volt
+	...                                    freq : Hz''')
+	>>> eqs2 = membrane_eqs + Equations('''I : volt''')
+	>>> print eqs1
+	I = sin(2*pi*freq*t)  : V
+	dv/dt = -(v + I)/ tau  : V
+	freq : Hz
+	>>> print eqs2
+	dv/dt = -(v + I)/ tau  : V
+	I : V
+
+**Substituting variable names**
+
+.. doctest::
+
+	>>> general_equation = 'dg/dt = -g / tau : siemens'
+	>>> eqs_exc = Equations(general_equation, g='g_e', tau='tau_e')
+	>>> eqs_inh = Equations(general_equation, g='g_i', tau='tau_i')
+	>>> print eqs_exc
+	dg_e/dt = -g_e / tau_e  : S
+	>>> print eqs_inh
+	dg_i/dt = -g_i / tau_i  : S
+
+**Inserting values**
+
+.. doctest::
+
+	>>> eqs = Equations('dv/dt = mu/tau + sigma/tau**.5*xi : volt',
+	                    mu = -65*mV, sigma=3*mV, tau=10*ms)
+	>>> print eqs
+	dv/dt = (-0.065 * volt)/(10.0 * msecond) + (3.0 * mvolt)/(10.0 * msecond)**.5*xi  : V
+
+Namespaces
+~~~~~~~~~~
+**Using implicit namespaces**
+
+This is the typical example script scenario:
+
+.. doctest::
+
+	>>> tau = 10*ms
+	>>> V_T = 20*mV
+	>>> V_R = -70*mV
+	>>> E_L = -70*mV
+	>>> G = NeuronGroup(1, 'dV/dt = (E_L - V) / tau : volt', threshold='V>V_T',
+	...                 reset='V=V_R')
+	>>> print G.namespace['V_R']
+	-0.07 V
+
+Creating a NeuronGroup in a function:
+
+.. doctest::
+
+	>>> def create_neurongroup(N, tau_m):
+	...     G = NeuronGroup(N, 'dv/dt = -v / tau_m : 1', threshold='v>1', reset='v=0')
+	...     return G
+	...
+	>>> G = create_neurongroup(5, 10*ms)
+	>>> print G.namespace['tau_m'] 
+	10.0 ms
+
+**Using explicit namespaces**
+
+.. doctest::
+
+	>>> tau = 10*ms  #we will not use this value
+	>>> G = NeuronGroup(1, 'dv/dt = -v / tau : 1', namespace={'tau': 20*ms})
+	>>> print G.namespace['tau']
+	20.0 ms
+
+.. doctest::
+
+	>>> def create_neurongroup(N, **kwds):
+	...     G = NeuronGroup(N, 'dv/dt = -v / tau : 1', threshold='v>v_r',
+	...                     reset='v=v_t', namespace=kwds)
+	...     return G
+	...
+	>>> G = create_neurongroup(5, tau=10*ms, v_r=1, v_t=0)
+	>>> print G.namespace['v_t']
+	0

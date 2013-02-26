@@ -38,7 +38,7 @@ def add_refractoriness(eqs):
     Extends a given set of equations with the refractory mechanism. New
     parameters are added and differential equations with the "active" flag
     are changed so that their right-hand side is 0 when the neuron is
-    refractory (by multiplication with the ``is_active`` variable.
+    refractory (by multiplication with the ``is_active`` variable).
     
     Parameters
     ----------
@@ -68,6 +68,5 @@ def add_refractoriness(eqs):
     new_equations.append(SingleEquation(PARAMETER, 'is_active', Unit(1)))
     new_equations.append(SingleEquation(PARAMETER, 'refractory', second))
     new_equations.append(SingleEquation(PARAMETER, 'refractory_until', second))
-
 
     return Equations(new_equations)

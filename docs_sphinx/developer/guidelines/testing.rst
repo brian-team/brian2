@@ -92,12 +92,22 @@ working around some problems that arise because of this expected exactness (e.g.
 the stacktrace of a raised exception will never be identical because it contains
 file names), see the `doctest documentation`_ for details.
 
+Doctests can (and should) not only be used in docstrings, but also in the
+hand-written documentation, making sure that the examples actually work. To
+turn a code example into a doc test, use the ``.. doctest::`` directive, see
+:doc:`/user/equations` for examples written as doctests. For all doctests,
+everything that is available after ``from brian2 import *`` can be used
+directly. For everything else, add import statements to the doctest code or --
+if you do not want the import statements to appear in the document -- add them
+in a ``.. testsetup::`` block. See the documentation for
+`Sphinx's doctest extension`_ for more details.
+
 Doctests are a great way of testing things as they not only make sure that the
 code does what it is supposed to do but also that the documentation is up to
 date!
 
 .. _`doctest documentation`: http://docs.python.org/2/library/doctest.html
-
+.. _`Sphinx's doctest extension`: http://sphinx-doc.org/ext/doctest.html
 Correctness tests
 ~~~~~~~~~~~~~~~~~
 [These do not exist yet for brian2]. Unit tests test a specific function or
