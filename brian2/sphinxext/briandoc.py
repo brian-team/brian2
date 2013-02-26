@@ -37,14 +37,16 @@ class BrianPrefsDirective(Directive):
     '''
     A sphinx 'Directive' for automatically generated documentation of Brian preferences.
     '''
-    required_arguments = 0
+    required_arguments = 1
     optional_arguments = 0
     final_argument_whitespace = True
     option_spec = {}
     has_content = False
 
     def run(self):
-        rawtext = brian_prefs.documentation
+        # The section that should be documented
+        section = self.arguments[0]
+        rawtext = brian_prefs.get_documentation(section)
         include_lines = statemachine.string2lines(rawtext,
                                                   convert_whitespace=True)
         self.state_machine.insert_input(include_lines, 'Brian preferences')
