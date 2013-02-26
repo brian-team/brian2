@@ -4,12 +4,16 @@ implement a new language.
 '''
 import functools
 
+from brian2.core.preferences import brian_prefs
+from brian2.core.specifiers import ArrayVariable, Value
 from brian2.utils.stringtools import get_identifiers, deindent
+from brian2.utils.logger import get_logger
 
-from ..specifiers import ArrayVariable
 from ..templating import apply_code_template
 from ..functions import UserFunction
+from ..translation import translate
 
+logger = get_logger(__name__)
 
 __all__ = ['Language', 'CodeObject']
 
@@ -21,25 +25,25 @@ class Language(object):
     
     TODO: more details here
     '''
-    
+
     # Subclasses should override this
     language_id = ''
-    
+
     def translate_expression(self, expr):
         '''
         Translate the given expression string into a string in the target
         language, returns a string.
         '''
         raise NotImplementedError
-    
-    def translate_statement(self,statement):
+
+    def translate_statement(self, statement):
         '''
         Translate a single line Statement into the target language, returns
         a string.
         '''
         raise NotImplementedError
 
-    def translate_statement_sequence(self, statements, specifiers):
+    def translate_statement_sequence(self, statements, specifiers, indices):
         '''
         Translate a sequence of Statements into the target language, taking
         care to declare variables, etc. if necessary.
@@ -51,13 +55,44 @@ class Language(object):
         by the language.
         '''
         raise NotImplementedError
-    
-    def code_object(self, code):
+
+    def create_codeobj(self, name, abstract_code, namespace, specifiers,
+                       template_method, indices=None):
+        if indices is None:  # TODO: Do we ever create code without any index?
+            indices = {}
+
+        namespace = self.prepare_namespace(namespace, specifiers)
+
+        logger.debug(name + " abstract code:\n" + abstract_code)
+        innercode = translate(abstract_code, specifiers,
+                              brian_prefs['core.default_scalar_dtype'],
+                              self, indices)
+        logger.debug(name + " inner code:\n" + str(innercode))
+        code = self.apply_template(innercode, template_method())
+        logger.debug(name + " code:\n" + str(code))
+
+        codeobj = self.code_object(code, namespace, specifiers)
+        codeobj.compile()
+        return codeobj
+
+    def prepare_namespace(self, namespace, specifiers):
+
+        namespace = dict(namespace)
+        # Add variables referring to the arrays
+        arrays = []
+        for value in specifiers.itervalues():
+            if isinstance(value, ArrayVariable):
+                arrays.append((value.arrayname, value.array))
+        namespace.update(arrays)
+
+        return namespace
+
+    def code_object(self, code, namespace, specifiers):
         '''
         Return an executable code object from the given code string.
         '''
         raise NotImplementedError
-    
+
     def compile_methods(self, specifiers):
         meths = []
         for var, spec in specifiers.items():
@@ -65,7 +100,7 @@ class Language(object):
                 meths.append(functools.partial(spec.on_compile, language=self,
                                                var=var))
         return meths
-    
+
     def apply_template(self, code, template):
         '''
         Applies the inner code to the template. The code should either be a
@@ -120,7 +155,7 @@ class Language(object):
         slots indicated by strings like ``%CODE%`` (the default slot).
         '''
         raise NotImplementedError
-    
+
     def template_iterate_index_array(self, index, array, size):
         '''
         Return a template where the variable ``index`` ranges through the
@@ -137,7 +172,7 @@ class Language(object):
         slots indicated by strings like ``%CODE%`` (the default slot).
         '''
         return self.template_iterate_all('_neuron_idx', '_num_neurons')
-    
+
     def template_reset(self):
         '''
         Template for state updater code, by default just iterate over ``_spikes``.
@@ -145,7 +180,7 @@ class Language(object):
         slots indicated by strings like ``%CODE%`` (the default slot).
         '''
         return self.template_iterate_index_array('_neuron_idx', '_spikes', '_num_spikes')
-    
+
     def template_threshold(self):
         '''
         Template for threshold code.
@@ -161,7 +196,7 @@ class Language(object):
         slots indicated by strings like ``%CODE%`` (the default slot).
         '''
         raise NotImplementedError
-    
+
 
 class CodeObject(object):
     '''
@@ -177,14 +212,42 @@ class CodeObject(object):
     Calling ``code(key1=val1, key2=val2)`` executes the code with the given
     variables inserted into the namespace.
     '''
-    def __init__(self, code, compile_methods=[]):
+    def __init__(self, code, namespace, specifiers, compile_methods=[]):
         self.code = code
         self.compile_methods = compile_methods
-    
-    def compile(self, namespace):
         self.namespace = namespace
+        self.specifiers = specifiers
+
+    def compile(self):
         for meth in self.compile_methods:
-            meth(namespace)
-    
+            meth(self.namespace)
+
     def __call__(self, **kwds):
-        raise NotImplementedError
+        # update the values in the namespace
+        for name, spec in self.specifiers.iteritems():
+            if isinstance(spec, Value):
+                value = spec.get_value()
+                self.namespace.update({name: value})
+                # if it is a type that has a length, add a variable called
+                # '_num'+name with its length
+                try:
+                    length = len(value)
+                    self.namespace.update({'_num' + name: length})
+                except TypeError:
+                    pass
+
+        self.namespace.update(**kwds)
+
+        return self.run()
+
+    def run(self):
+        '''
+        Runs the code in the namespace.
+        
+        Returns
+        -------
+        return_value : dict
+            A dictionary with the keys corresponding to the `output_variables`
+            defined during the call of `Language.code_object`.
+        '''
+        raise NotImplementedError()

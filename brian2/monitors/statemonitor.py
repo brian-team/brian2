@@ -1,13 +1,25 @@
 import weakref
 
-from numpy import array
+from numpy import array, arange
 
+from brian2.core.specifiers import Specifier
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.groups.group import Group
 from brian2.units.allunits import second
 
 __all__ = ['StateMonitor']
+
+class MonitorVariable(Specifier):
+    def __init__(self, name, dtype, monitor, unit):
+        self.name = name
+        self.monitor = monitor
+        self.dtype = dtype
+        self.unit = unit
+    
+    def get_value(self):
+        return array(self.monitor._values[self.name])
+
 
 class StateMonitor(BrianObject, Group):
     '''
@@ -58,7 +70,6 @@ class StateMonitor(BrianObject, Group):
 
     TODO: multiple features, below:
     
-    * Using Group.arrays and Group.state(name) for maximal efficiency
     * Cacheing extracted values (t, V, etc.)
     * Improve efficiency by using dynamic arrays instead of lists?
     '''
@@ -76,7 +87,7 @@ class StateMonitor(BrianObject, Group):
         
         # variables should always be a list of strings
         if variables is True:
-            variables = source.units.keys()
+            variables = source.equations.names
         elif isinstance(variables, str):
             variables = [variables]
         self.variables = variables
@@ -96,8 +107,13 @@ class StateMonitor(BrianObject, Group):
         self.reinit()
         
         # initialise Group access
-        self.units = dict((var, source.units[var]) for var in variables)
-        self.arrays = {}
+        self.specifiers = {}
+        for variable in variables:
+            spec = source.specifiers[variable]
+            self.specifiers.update({variable: MonitorVariable(variable,
+                                                              spec.dtype,
+                                                              self,
+                                                              spec.unit)})        
         Group.__init__(self)
         
     def reinit(self):
@@ -106,7 +122,7 @@ class StateMonitor(BrianObject, Group):
     
     def update(self):
         for var in self.variables:
-            self._values[var].append(getattr(self.source, var+'_')[self.indices])
+            self._values[var].append(self.source.state_(var)[self.indices])
         self._t.append(self.clock.t_)
         
     @property
@@ -122,15 +138,6 @@ class StateMonitor(BrianObject, Group):
         Array of record times (without units).
         '''
         return array(self._t)
-    
-    def get_array(self, name):
-        return self.get_array_(name)*self.units[name]
-        
-    def get_array_(self, name):
-        if name in self._values:
-            return array(self._values[name])
-        else:
-            raise KeyError        
 
 
 if __name__=='__main__':

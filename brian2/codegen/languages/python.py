@@ -1,40 +1,40 @@
 from .base import Language, CodeObject
 
-
 __all__ = ['PythonLanguage', 'PythonCodeObject']
 
+
 class PythonLanguage(Language):
-    
+
     language_id = 'python'
-    
+
     def translate_expression(self, expr):
         return expr.strip()
-    
+
     def translate_statement(self, statement):
         # TODO: optimisation, translate arithmetic to a sequence of inplace
         # operations like a=b+c -> add(b, c, a)
         var, op, expr = statement.var, statement.op, statement.expr
-        if op==':=':
+        if op == ':=':
             op = '='
-        return var+' '+op+' '+self.translate_expression(expr)
+        return var + ' ' + op + ' ' + self.translate_expression(expr)
 
-    def translate_statement_sequence(self, statements, specifiers):
+    def translate_statement_sequence(self, statements, specifiers, indices):
         read, write = self.array_read_write(statements, specifiers)
         lines = []
         # read arrays
         for var in read:
             spec = specifiers[var]
-            index_spec = specifiers[spec.index]
-            line = var+' = '+spec.array
+            index_spec = indices[spec.index]
+            line = var + ' = ' + spec.arrayname
             if not index_spec.all:
-                line = line+'['+spec.index+']'
+                line = line + '[' + spec.index + ']'
             lines.append(line)
         # the actual code
         lines.extend([self.translate_statement(stmt) for stmt in statements])
         # write arrays
         for var in write:
             index_var = specifiers[var].index
-            index_spec = specifiers[index_var]
+            index_spec = indices[index_var]
             # check if all operations were inplace and we're operating on the
             # whole vector, if so we don't need to write the array back
             if not index_spec.all:
@@ -42,27 +42,28 @@ class PythonLanguage(Language):
             else:
                 all_inplace = True
                 for stmt in statements:
-                    if stmt.var==var and not stmt.inplace:
+                    if stmt.var == var and not stmt.inplace:
                         all_inplace = False
                         break
             if not all_inplace:
-                line = specifiers[var].array
+                line = specifiers[var].arrayname
                 if index_spec.all:
-                    line = line+'[:]'
+                    line = line + '[:]'
                 else:
-                    line = line+'['+index_var+']'
-                line = line+' = '+var
+                    line = line + '[' + index_var + ']'
+                line = line + ' = ' + var
                 lines.append(line)
         return '\n'.join(lines)
-    
-    def code_object(self, code, specifiers):
-        return PythonCodeObject(code, self.compile_methods(specifiers))
+
+    def code_object(self, code, namespace, specifiers):
+        return PythonCodeObject(code, namespace, specifiers,
+                                self.compile_methods(namespace))
 
     def template_iterate_all(self, index, size):
         return '''
         %CODE%
         '''
-    
+
     def template_iterate_index_array(self, index, array, size):
         return '''
         {index} = {array}
@@ -70,11 +71,12 @@ class PythonLanguage(Language):
         '''.format(index=index, array=array)
 
     def template_threshold(self):
-        return '''
+        # The thresholder returns the array of spiking neurons
+        code = '''
         %CODE%
-        _spikes_space, = _cond.nonzero()
-        _array_num_spikes[0] = len(_spikes_space)
+        _return_values, = _cond.nonzero()        
         '''
+        return code
 
     def template_synapses(self):
         return '''
@@ -102,16 +104,18 @@ class PythonLanguage(Language):
 
 
 class PythonCodeObject(CodeObject):
-    def compile(self, namespace):
-        super(PythonCodeObject, self).compile(namespace)
+    def compile(self):
+        super(PythonCodeObject, self).compile()
         self.compiled_code = compile(self.code, '(string)', 'exec')
-    
-    def __call__(self, **kwds):
-        self.namespace.update(kwds)
+
+    def run(self):
         exec self.compiled_code in self.namespace
+        # output variables should land in the variable name _return_values
+        if '_return_values' in self.namespace:
+            return self.namespace['_return_values']
 
 # THIS DOESN'T WORK
-#def convert_expr_to_inplace(expr):
+# def convert_expr_to_inplace(expr):
 #    lines = []
 #    expr = symbolic_eval(expr)
 #    curstep = 0
@@ -126,6 +130,6 @@ class PythonCodeObject(CodeObject):
 #        return name
 #    return '\n'.join(lines)
 #
-#if __name__=='__main__':
+# if __name__=='__main__':
 #    print convert_expr_to_inplace('x+y*z')
-    
+
