@@ -441,10 +441,10 @@ class Equations(collections.Mapping):
 
         return Equations(self.values() + other_eqns.values())
 
-    # : A set of functions that are used to check identifiers (class attribute).
-    # : Functions can be registered with the static method
-    # : `:meth:Equations.register_identifier_check` and will be automatically
-    # : used when checking identifiers
+    #: A set of functions that are used to check identifiers (class attribute).
+    #: Functions can be registered with the static method
+    #: `Equations.register_identifier_check` and will be automatically
+    #: used when checking identifiers
     identifier_checks = set([check_identifier_basic,
                              check_identifier_reserved])
 

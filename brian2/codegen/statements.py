@@ -15,7 +15,7 @@ class Statement(object):
         a new symbol (whereas ``=`` means you are setting the value of an
         existing symbol).
     ``expr``
-        A string or an :class:`Expression` object, giving the right hand side
+        A string or an `Expression` object, giving the right hand side
         of the statement.
     ``dtype``
         The numpy dtype of the value or array ``var``.
