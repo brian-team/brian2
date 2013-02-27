@@ -95,8 +95,7 @@ def create_member_file(module_name, member, member_obj, destdir, suffix='rst'):
     """Build the text of the file and write the file."""
     if inspect.isclass(member_obj):
         text = format_heading(1, '%s class' % member)
-        text += '.. autoclass:: %s\n' % (module_name + '.' + member)
-        text += '    :members:\n\n'
+        text += '.. autoclass:: %s\n\n' % (module_name + '.' + member)
     elif inspect.isfunction(member_obj):
         text = format_heading(1, '%s function' % member)
         text += '.. autofunction:: %s\n\n' % (module_name + '.' + member)
