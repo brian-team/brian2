@@ -50,6 +50,7 @@ class BrianPrefsDirective(Directive):
         .. document_brian_prefs:: core
     
     Document all preferences without generating links::
+    
         .. document_brian_prefs::
            :nolinks:
     '''
@@ -121,8 +122,6 @@ def brianobj_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
                                                                              attrname=attrname,
                                                                              modname=imported.__module__,
                                                                              parentheses=parentheses)
-                else:
-                    imported = None
 
             except ImportError:
                 pass
@@ -134,7 +133,6 @@ def brianobj_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
 def mangle_docstrings(app, what, name, obj, options, lines,
                       reference_offset=[0]):
     cfg = dict()
-
     if what == 'module':
         # Strip top title
         title_re = re.compile(ur'^\s*[#*=]{4,}\n[a-z0-9 -]+\n[#*=]{4,}\s*',
