@@ -9,7 +9,7 @@ before_install:
 # command to install dependencies
 install:
   - "pip install . --use-mirrors"
-  - "pip install scipy sympy==0.7.1 pyparsing sphinx ipython --use-mirrors"
+  - "pip install scipy sympy==0.7.1 pyparsing==1.5.7 sphinx ipython --use-mirrors"
 # command to run tests
 script: nosetests --with-doctest brian2
 notifications:
