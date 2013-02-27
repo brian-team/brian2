@@ -189,19 +189,6 @@ class BrianLogger(object):
     ----------
     name : str
         The name used for logging, normally the name of the module.
-    
-    Methods
-    -------
-    debug
-    info
-    warn
-    error
-    log_level_debug
-    log_level_info
-    log_level_warn
-    log_level_error
-    suppress_hierarchy
-    suppress_name
     '''
     
     # : Class attribute to remember whether any exception occured

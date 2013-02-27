@@ -494,11 +494,12 @@ class ClassDoc(NumpyDocString):
     @property
     def methods(self):
         if self._cls is None:
-            return []
+            return [] 
         methods = [name for name, func in getattr(self._cls, '__dict__').iteritems()
                   if ((not name.startswith('_')
                        or name in self.extra_public_methods)
-                      and callable(func))]
+                      and (callable(func) or
+                           inspect.ismethoddescriptor(func)))]
         return methods
 
     @property
