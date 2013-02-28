@@ -107,35 +107,56 @@ class Expression(CodeString):
         '''
         Split the expression into a stochastic and non-stochastic part.
         
-        Splits the expression into a tuple of two `Expression` objects f and g,
-        assuming an expression of the form ``f + g * xi``, where ``xi`` is the
-        symbol for the random variable.
+        Splits the expression into a tuple of one `Expression` objects f (the
+        non-stochastic part) and a dictionary mapping stochastic variables
+        to `Expression` objects. For example, an expression of the form 
+        ``f + g * xi_1 + h * xi_2`` would be returned as:
+        ``(f, {'xi_1': g, 'xi_2': h})``
+        Note that the `Expression` objects for the stochastic parts do not
+        include the stochastic variable itself. 
         
         Returns
         -------
-        (f, g) : (`Expression`, `Expression`)
-            A tuple of `Expression` objects, the first one containing the
-            non-stochastic and the second one containing the stochastic part.
-            If no ``xi`` symbol is present in the code string, a tuple
-            ``(self, None)`` will be returned with the unchanged `Expression`
-            object.
+        (f, d) : (`Expression`, dict)
+            A tuple of an `Expression` object and a dictionary, the first
+            expression being the non-stochastic part of the equation and 
+            the dictionary mapping stochastic variables (``xi`` or starting
+            with ``xi_``) to `Expression` objects. If no stochastic variable
+            is present in the code string, a tuple ``(self, None)`` will be
+            returned with the unchanged `Expression` object.
         '''
-        s_expr = self.sympy_expr.expand()
-        xi = sympy.Symbol('xi')
-        if not xi in s_expr:
+        stochastic_variables = []
+        for identifier in self.identifiers:
+            if identifier == 'xi' or identifier.startswith('xi_'):
+                stochastic_variables.append(identifier)
+        
+        # No stochastic variable
+        if not len(stochastic_variables):
             return (self, None)
+        
+        s_expr = self.sympy_expr.expand()
+        
+        stochastic_symbols = [sympy.Symbol(variable)
+                              for variable in stochastic_variables]
 
-        f = sympy.Wild('f', exclude=[xi])  # non-stochastic part
-        g = sympy.Wild('g', exclude=[xi])  # stochastic part
-        matches = s_expr.match(f + g * xi)
+        f = sympy.Wild('f', exclude=stochastic_symbols)  # non-stochastic part
+        match_objects = [sympy.Wild('w_'+variable, exclude=stochastic_symbols)
+                         for variable in stochastic_variables]
+        match_expression = f
+        for symbol, match_object in zip(stochastic_symbols, match_objects):
+            match_expression += match_object * symbol
+        matches = s_expr.match(match_expression)
+        
         if matches is None:
             raise ValueError(('Expression "%s" cannot be separated into stochastic '
-                             'and non-stochastic term') % self.code)
+                              'and non-stochastic term') % self.code)
 
         f_expr = Expression(str(matches[f]))
-        g_expr = Expression(str(matches[g] * xi))
+        stochastic_expressions = dict((variable, Expression(str(matches[match_object])))
+                                        for (variable, match_object) in
+                                        zip(stochastic_variables, match_objects))
 
-        return (f_expr, g_expr)
+        return (f_expr, stochastic_expressions)
 
     def _repr_pretty_(self, p, cycle):
         '''

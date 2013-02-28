@@ -108,9 +108,17 @@ def test_split_stochastic():
     
     expr = Expression('(-v + I) / tau + sigma*xi/tau**.5')
     non_stochastic, stochastic = expr.split_stochastic()
-    assert 'xi' in stochastic.identifiers
+    assert 'xi' in stochastic
+    assert len(stochastic) == 1
     assert sympy_equals(non_stochastic.code, '(-v + I) / tau')
-    assert sympy_equals(stochastic.code, 'sigma*xi/tau**.5')
+    assert sympy_equals(stochastic['xi'].code, 'sigma/tau**.5')
+
+    expr = Expression('(-v + I) / tau + sigma*xi_1/tau**.5 + xi_2*sigma2/sqrt(tau_2)')
+    non_stochastic, stochastic = expr.split_stochastic()
+    assert set(stochastic.keys()) == set(['xi_1', 'xi_2'])
+    assert sympy_equals(non_stochastic.code, '(-v + I) / tau')
+    assert sympy_equals(stochastic['xi_1'].code, 'sigma/tau**.5')
+    assert sympy_equals(stochastic['xi_2'].code, 'sigma2/tau_2**.5')
     
     expr = Expression('-v / tau + 1 / xi')
     assert_raises(ValueError, expr.split_stochastic)
@@ -140,8 +148,6 @@ def test_str_repr():
 
 if __name__ == '__main__':
     test_expr_creation()
-    test_expr_check_linearity()
     test_expr_units()
-    #test_resolution_warnings()
     test_split_stochastic()
     test_str_repr()
