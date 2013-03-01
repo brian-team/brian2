@@ -38,6 +38,7 @@ SYMBOLS = {'x' : Symbol('x'),
            'dt': Symbol('dt'),
            'f' : Function('f')}
 
+
 class ExplicitStateUpdater(StateUpdateMethod):
     '''
     An object that can be used for defining state updaters via a simple
@@ -63,6 +64,18 @@ class ExplicitStateUpdater(StateUpdateMethod):
             k4 = dt*f(x+k3,t+dt)
             return x+(k1+2*k2+2*k3+k4)/6
     
+    Note that for stochastic equations, the function `f` only corresponds to
+    the non-stochastic part of the equation. The additional function `g`
+    corresponds to the stochastic part (and should normally be multiplied
+    with a random number given by ``randn()``). Equations with more than one
+    stochastic variable do not have to be treated differently, the part
+    referring to ``g`` is repeated for all stochastic variables automatically.
+     
+    The stochastic Euler-Maruyama integrator (already provided as
+    `stochastic_euler`) can be described as::
+        
+        return x + dt*f(x,t) + dt**.5 * g(x,t) * randn(t) 
+    
     Parameters
     ----------
     description : str
@@ -75,7 +88,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
     
     See also
     --------
-    euler, rk2, rk4
+    stochastic_euler, euler, rk2, rk4
     ''' 
     
     def __init__(self, description, priority):
@@ -168,6 +181,11 @@ class ExplicitStateUpdater(StateUpdateMethod):
         temp_vars = [var for var, expr in self.statements]
         variables = dict([(var, Symbol(var)) for var in eqs.names])
         self.symbols.update(variables)
+        
+        # TODO: Insert support for stochastic variables
+        # TODO: Handle multiple stochastic variables
+        # TODO: Rebase on stateupdater_choice
+        
         # Intermediate statements
         for temp_var, temp_expr in self.statements:
             for var, expr in eqs.eq_expressions:                                
@@ -222,3 +240,7 @@ rk4 = ExplicitStateUpdater('''
 StateUpdateMethod.register('euler', euler)
 StateUpdateMethod.register('rk2', rk2)
 StateUpdateMethod.register('rk4', rk4)
+
+stochastic_euler = ExplicitStateUpdater('return x + dt*f(x,t) + dt**.5*g(x,t)*randn(t)',
+                                        priority=30)
+
