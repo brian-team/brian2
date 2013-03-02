@@ -3,9 +3,10 @@ Base class for languages, gives the methods which should be overridden to
 implement a new language.
 '''
 import functools
+import numpy
 
 from brian2.core.preferences import brian_prefs
-from brian2.core.specifiers import ArrayVariable, Value
+from brian2.core.specifiers import ArrayVariable, Value, StochasticVariable
 from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.utils.logger import get_logger
 
@@ -84,6 +85,10 @@ class Language(object):
             if isinstance(value, ArrayVariable):
                 arrays.append((value.arrayname, value.array))
         namespace.update(arrays)
+
+        # FIXME: This is has to move somewhere else as the concrete function
+        # is different between languages (but that is true for all functions) 
+        namespace.update({'randn': numpy.random.randn})
 
         return namespace
 

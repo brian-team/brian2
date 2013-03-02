@@ -4,6 +4,8 @@ Classes used to specify the type of a function, variable or common sub-expressio
 TODO: have a single global dtype rather than specify for each variable?
 '''
 
+from brian2.units.allunits import second
+
 from brian2.utils.stringtools import get_identifiers
 
 __all__ = ['Specifier',
@@ -32,6 +34,12 @@ class Value(Specifier):
     def set_value(self):
         raise TypeError()
 
+class StochasticVariable(Specifier):
+    def __init__(self, name, dtype):
+        self.name = name
+        # The units of stochastic variables is fixed
+        self.unit = second**(-.5)
+        self.dtype = dtype
 
 class AttributeValue(Value):
     '''

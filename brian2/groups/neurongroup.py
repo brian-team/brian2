@@ -13,7 +13,7 @@ from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
 from brian2.core.namespace import ObjectWithNamespace
 from brian2.core.specifiers import (Value, AttributeValue, ArrayVariable,
-                                    Subexpression, Index)
+                                    StochasticVariable, Subexpression, Index)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.utils.logger import get_logger
@@ -359,7 +359,6 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
              't': AttributeValue(np.float64, self.clock, 't_', second),
              'dt': AttributeValue(np.float64, self.clock, 'dt_', second)}
 
-        # TODO: What about xi?
         for eq in self.equations.itervalues():
             if eq.eq_type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 array = self.arrays[eq.varname]
@@ -373,6 +372,9 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                                     eq.unit)})
             else:
                 raise AssertionError('Unknown equation type "%s"' % eq.eq_type)
+
+        for xi in self.equations.stochastic_variables:
+            s.update({xi: StochasticVariable(xi, np.float64)})
 
         return s
 
@@ -388,7 +390,7 @@ if __name__ == '__main__':
     N = 10000
     tau = 10 * ms
     eqs = '''
-    dV/dt = (2*volt-V)/tau_real : volt (active)
+    dV/dt = (2*volt-V)/tau_real + 0.25*volt*xi_1/tau**.5 + + 0.25*volt*xi_2/tau**.5: volt (active)
     tau_real = 1 * tau : second # just to test that static equations work
     Vt : volt
     '''

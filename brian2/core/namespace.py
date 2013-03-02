@@ -178,7 +178,8 @@ def _get_default_numpy_namespace():
     
     # standard numpy functions
     numpy_funcs = [np.abs, np.floor, np.ceil, np.round, np.min, np.max,
-                   np.mean, np.std, np.var, np.sum, np.prod, np.clip, np.sqrt]
+                   np.mean, np.std, np.var, np.sum, np.prod, np.clip, np.sqrt,
+                   np.random.rand, np.random.randn]
     namespace.update([(func.__name__, func) for func in numpy_funcs])
     
     # unitsafe replacements for numpy functions

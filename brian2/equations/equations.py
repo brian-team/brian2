@@ -583,16 +583,20 @@ class Equations(collections.Mapping):
 
     units = property(lambda self:dict([(var, eq.unit) for var, eq in
                                        self._equations.iteritems()]),
-                     doc='Dictionary of all internal variables and their corresponding units.')
-
-    variables = property(lambda self: set(self.units.keys()),
-                         doc='Set of all variables (including t, dt, and xi)')
+                     doc='Dictionary of all internal variables and their corresponding units.')
 
     identifiers = property(lambda self: set().union(*[eq.identifiers for
                                                       eq in self._equations.itervalues()]) -
                            self.names,
                            doc=('Set of all identifiers used in the equations, '
                                 'excluding the variables defined in the equations'))
+
+    stochastic_variables = property(lambda self: set([variable for variable in self.identifiers
+                                                      if variable =='xi' or variable.startswith('xi_')]))
+
+    # general properties
+    is_stochastic = property(lambda self: len(self.stochastic_variables) > 0,
+                             doc='Whether the equations are stochastic.')
 
     def _sort_static_equations(self):
         '''
@@ -668,7 +672,7 @@ class Equations(collections.Mapping):
         # Create a mapping with all identifier names to either their actual
         # value (for external identifiers) or their unit (for specifiers)
         unit_namespace = {}
-        for name in self.identifiers | self.variables:
+        for name in self.identifiers | self.names:
             if name in specifiers:
                 unit_namespace.update({name: specifiers[name].unit})
             else:

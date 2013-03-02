@@ -4,7 +4,7 @@ Numerical integration functions.
 
 import string
 
-from sympy import Symbol, Function
+import sympy
 from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
 
@@ -33,10 +33,65 @@ DESCRIPTION = ZeroOrMore(STATEMENT) + OUTPUT
 #===============================================================================
 
 # reserved standard symbols
-SYMBOLS = {'x' : Symbol('x'),
-           't' : Symbol('t'),
-           'dt': Symbol('dt'),
-           'f' : Function('f')}
+SYMBOLS = {'x' : sympy.Symbol('x'),
+           't' : sympy.Symbol('t'),
+           'dt': sympy.Symbol('dt'),
+           'f' : sympy.Function('f'),
+           'g' : sympy.Function('g'),
+           'xi': sympy.Symbol('xi')}
+
+def split_expression(expr):
+    '''
+    Split an expression into a part containing the function ``f`` and another
+    one containing the function ``g``. Returns a tuple of the two expressions
+    (as strings).
+    
+    Parameters
+    ----------
+    expr : str
+        An expression containing references to functions ``f`` and ``g``.    
+    
+    Returns
+    -------
+    (non_stochastic, stochastic) : tuple of sympy expressions
+        A pair of sympy expressions representing the non-stochastic (containing
+        function-independent terms and terms involving ``f``) and the
+        stochastic part of the expression (terms involving ``g``).
+    
+    Examples
+    --------
+    TODO
+    '''
+    
+    
+    sympy_expr = sympy.sympify(expr, locals=SYMBOLS).expand()
+    
+    f = SYMBOLS['f']
+    g = SYMBOLS['g']
+    xi = SYMBOLS['xi']
+    
+    independent = sympy.Wild('independent', exclude=[f,g])
+    f_factor = sympy.Wild('f_factor', exclude=[f, g])
+    g_factor = sympy.Wild('g_factor', exclude=[f, g])    
+    x_f = sympy.Wild('x_f', exclude=[f, g])
+    t_f = sympy.Wild('t_f', exclude=[f, g])
+    x_g = sympy.Wild('x_g', exclude=[f, g])
+    t_g = sympy.Wild('t_g', exclude=[f, g])
+
+    match_expr = independent + f_factor * f(x_f, t_f) + g_factor * g(x_g, t_g) * xi    
+    matches = sympy_expr.match(match_expr)
+    
+    if x_f in matches:
+        non_stochastic = matches[independent] + matches[f_factor]*f(matches[x_f], matches[t_f])
+    else:
+        non_stochastic = matches[independent]
+        
+    if matches[g_factor] == 0:
+        stochastic = None
+    else:
+        stochastic = matches[g_factor]*g(matches[x_g], matches[t_g])
+    
+    return (non_stochastic, stochastic)
 
 
 class ExplicitStateUpdater(StateUpdateMethod):
@@ -55,7 +110,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
     ``x``, the previous value of the state variable and ``t``, the time) and
     ``dt``, the size of the timestep.
     
-    For example, to define a Runge-Kutte 4 integrator (already provided as
+    For example, to define a Runge-Kutta 4 integrator (already provided as
     `rk4`), use::
     
             k1 = dt*f(x,t)
@@ -66,16 +121,24 @@ class ExplicitStateUpdater(StateUpdateMethod):
     
     Note that for stochastic equations, the function `f` only corresponds to
     the non-stochastic part of the equation. The additional function `g`
-    corresponds to the stochastic part (and should normally be multiplied
-    with a random number given by ``randn()``). Equations with more than one
+    corresponds to the stochastic part that has to be multiplied with the 
+    stochastic variable xi (a standard normal random variable -- if the
+    algorithm needs a random variable with a different variance/mean you have
+    to multiply/add it accordingly). Equations with more than one
     stochastic variable do not have to be treated differently, the part
     referring to ``g`` is repeated for all stochastic variables automatically.
      
-    The stochastic Euler-Maruyama integrator (already provided as
-    `stochastic_euler`) can be described as::
+    The stochastic Euler-Maruyama integrator (already provided as part of
+    `euler`) can be described as::
         
-        return x + dt*f(x,t) + dt**.5 * g(x,t) * randn(t) 
+        return x + dt*f(x,t) + dt**.5 * g(x,t) * xi 
     
+    There a some restrictions on the complexity of the expressions: Every
+    statement can only contain the functions ``f`` and ``g`` once (but you
+    can work around this restriction by using intermediate results, as in the
+    above Runge-Kutta example); The expressions have to be linear in the
+    functions, e.g. you can use ``dt*f(x, t)`` but not ``f(x, t)**2``.
+     
     Parameters
     ----------
     description : str
@@ -88,11 +151,12 @@ class ExplicitStateUpdater(StateUpdateMethod):
     
     See also
     --------
-    stochastic_euler, euler, rk2, rk4
+    euler, rk2, rk4
     ''' 
     
-    def __init__(self, description, priority):
+    def __init__(self, description, priority, stochastic=False):
         self.priority = priority
+        self.stochastic = stochastic
                 
         try:
             parsed = DESCRIPTION.parseString(description, parseAll=True)
@@ -107,7 +171,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             # otherwise the replacements go wrong
             expression = parse_to_sympy(element.expression,
                                         local_dict=self.symbols)
-            symbols = list(expression.atoms(Symbol))
+            symbols = list(expression.atoms(sympy.Symbol))
             self.symbols.update(dict([(symbol.name, symbol)
                                       for symbol in symbols]))
             if element.getName() == 'statement':
@@ -118,14 +182,12 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 raise AssertionError('Unknown element name: %s' % element.getName())
     
     def get_priority(self, equations, namespace, specifiers):
-        # These numerical integrators should work for all equations, except for
-        # stochastic equations
-        for identifier in equations.identifiers:
-            if identifier == 'xi' or identifier.startswith('xi_'):
-                return 0
-        
-        # we can use this state updater
-        return self.priority
+        # Non-stochastic numerical integrators should work for all equations,
+        # except for stochastic equations
+        if equations.is_stochastic and not self.stochastic:
+            return 0
+        else:            
+            return self.priority
     
     def __str__(self):
         s = ''
@@ -138,7 +200,61 @@ class ExplicitStateUpdater(StateUpdateMethod):
         s += 'Output:\n'
         s += str(self.output)
         return s
-    
+
+    def _generate_RHS(self, eqs, var, variables, temp_vars, expr, non_stochastic_expr, stochastic_expr):
+        '''
+        Helper function used in `__call__`.
+        '''
+        
+        def replace_func(x, t, expr, temp_vars):
+            '''
+            TODO
+            '''
+            s_expr = parse_to_sympy(expr, local_dict=self.symbols)
+            for var in eqs.eq_names:
+                temp_vars_specific = dict([('_' + temp_var + '_' + var,
+                                            sympy.Symbol('_' + temp_var + '_' + var))
+                                           for temp_var in temp_vars])
+                self.symbols.update(temp_vars_specific)
+                temp_var_replacements = dict([(temp_var, temp_vars_specific['_' + temp_var + '_' + var])
+                                              for temp_var in temp_vars])
+                one_replacement = x.subs(SYMBOLS['x'], variables[var])
+                                
+                one_replacement = one_replacement.subs(temp_var_replacements)
+                
+                s_expr = s_expr.subs(variables[var], one_replacement)
+            
+            # replace time (important for time-dependent equations)
+            s_expr.subs(SYMBOLS['t'], t)
+            return s_expr
+        
+        non_stochastic, stochastic = expr.split_stochastic()
+        if not (non_stochastic is None or non_stochastic_expr is None):
+            non_stochastic_result = non_stochastic_expr.replace(SYMBOLS['f'],
+                                                                lambda x, t:replace_func(x, t, non_stochastic, temp_vars))
+            non_stochastic_result = non_stochastic_result.subs(SYMBOLS['x'], variables[var])
+        else:
+            non_stochastic_result = None
+        if not (stochastic is None or stochastic_expr is None):
+            stochastic_results = []
+            for xi in stochastic:
+                stochastic_result = stochastic_expr.replace(SYMBOLS['g'],
+                                                            lambda x, t:replace_func(x, t, stochastic[xi], temp_vars)) * sympy.Symbol(xi)
+                stochastic_result = stochastic_result.subs(SYMBOLS['x'], variables[var])                                            
+                stochastic_results.append(stochastic_result)
+                
+        
+        else:
+            stochastic_results = []
+        RHS = []
+        if non_stochastic_result is not None:
+            RHS.append(str(non_stochastic_result))
+        for stochastic_result in stochastic_results:
+            RHS.append(str(stochastic_result))
+        
+        RHS = ' + '.join(RHS)
+        return RHS
+
     def __call__(self, eqs):
         '''
         Return "abstract code" for one integration step.
@@ -153,58 +269,30 @@ class ExplicitStateUpdater(StateUpdateMethod):
         code : str
             The "abstract code" for the integration step.
         '''
-                
-        def replace_func(x, t, expr, temp_vars):
-            '''
-            TODO
-            '''
-            s_expr = parse_to_sympy(expr, local_dict=self.symbols)
-            
-            for var in eqs.eq_names:
-                temp_vars_specific = dict([('_' + temp_var + '_' + var,
-                                            Symbol('_' + temp_var + '_' + var))
-                                           for temp_var in temp_vars])
-                self.symbols.update(temp_vars_specific)
-                temp_var_replacements = dict([(temp_var, temp_vars_specific['_' + temp_var + '_' + var])
-                                              for temp_var in temp_vars])
-                one_replacement = x.subs(SYMBOLS['x'], variables[var])
-                                
-                one_replacement = one_replacement.subs(temp_var_replacements)
-                
-                s_expr = s_expr.subs(variables[var], one_replacement)
-            
-            # replace time (important for time-dependent equations)
-            s_expr.subs(SYMBOLS['t'], t)
-            return s_expr
 
         statements = []
         temp_vars = [var for var, expr in self.statements]
-        variables = dict([(var, Symbol(var)) for var in eqs.names])
+        variables = dict([(var, sympy.Symbol(var)) for var in eqs.names])
         self.symbols.update(variables)
         
-        # TODO: Insert support for stochastic variables
-        # TODO: Handle multiple stochastic variables
-        # TODO: Rebase on stateupdater_choice
+        # Generate the random numbers for the stochastic variables
+        stochastic_variables = eqs.stochastic_variables
+        for stochastic_variable in stochastic_variables:
+            statements.append(stochastic_variable + ' = ' + 'randn()')
         
         # Intermediate statements
         for temp_var, temp_expr in self.statements:
-            for var, expr in eqs.eq_expressions:                                
-
-                temp_result = temp_expr.replace(SYMBOLS['f'],
-                                                lambda x, t: replace_func(x, t, expr, temp_vars))                
-                statements.append('_' + temp_var + '_' + var + ' = ' + str(temp_result))
+            non_stochastic_expr, stochastic_expr = split_expression(temp_expr)
+            for var, expr in eqs.eq_expressions:
+                RHS = self._generate_RHS(eqs, var, variables, temp_vars, expr, non_stochastic_expr, stochastic_expr)
                 
-        # The "return" line        
+                statements.append('_' + temp_var + '_' + var + ' = ' + RHS)
+                
+        # The "return" line
+        non_stochastic_expr, stochastic_expr = split_expression(self.output)       
         for var, expr in eqs.diff_eq_expressions:
-            # Handle f(x, t) calls                                
-            temp_result = self.output.replace(SYMBOLS['f'],
-                                              lambda x, t: replace_func(x, t, expr, temp_vars))
-            # Handle references to variables and intermediate variables
-            temp_result = temp_result.subs(SYMBOLS['x'], variables[var])
-            for temp_var in temp_vars:
-                temp_result = temp_result.subs(self.symbols[temp_var],
-                                               self.symbols['_' + temp_var + '_' + var])
-            statements.append('_' + var + ' = ' + str(temp_result))
+            RHS = self._generate_RHS(eqs, var, variables, temp_vars, expr, non_stochastic_expr, stochastic_expr)
+            statements.append('_' + var + ' = ' + RHS)
         
         # Assign everything to the final variables
         for var, expr in eqs.diff_eq_expressions:
@@ -218,8 +306,11 @@ class ExplicitStateUpdater(StateUpdateMethod):
 #===============================================================================
 
 # these objects can be used like functions because they are callable
-#: Forward Euler state updater     
-euler = ExplicitStateUpdater('return x + dt * f(x,t)', priority=30)
+
+#: Forward Euler state updater, including the Euler-Maruyama method for
+#: stochastic equations.
+euler = ExplicitStateUpdater('return x + dt * f(x,t) + dt**.5*g(x,t)*xi',
+                             priority=30, stochastic=True)
 
 #: Second order Runge-Kutta method (midpoint method)
 rk2 = ExplicitStateUpdater('''
@@ -240,7 +331,3 @@ rk4 = ExplicitStateUpdater('''
 StateUpdateMethod.register('euler', euler)
 StateUpdateMethod.register('rk2', rk2)
 StateUpdateMethod.register('rk4', rk4)
-
-stochastic_euler = ExplicitStateUpdater('return x + dt*f(x,t) + dt**.5*g(x,t)*randn(t)',
-                                        priority=30)
-
