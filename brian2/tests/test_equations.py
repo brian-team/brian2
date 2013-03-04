@@ -306,7 +306,7 @@ def test_properties():
     assert units['I'] == volt
     assert units['f'] == Hz
     assert have_same_dimensions(units['freq'], 1)
-    assert eqs.variables == set(eqs.units.keys())
+    assert eqs.names == set(eqs.units.keys())
     assert eqs.identifiers == set(['tau', 'volt', 'Hz', 'sin', 't'])
 
 
