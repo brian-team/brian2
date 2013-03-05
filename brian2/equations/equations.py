@@ -52,7 +52,7 @@ EXPRESSION = Combine(OneOrMore((CharsNotIn(':#\n') +
 # a unit
 # very broad definition here, again. Whether this corresponds to a valid unit
 # string will be checked later
-UNIT = Word(string.ascii_letters + string.digits + '*/. ').setResultsName('unit')
+UNIT = Word(string.ascii_letters + string.digits + '*/.- ').setResultsName('unit')
 
 # a single Flag (e.g. "const" or "event-driven")
 FLAG = Word(string.ascii_letters + '_-')
