@@ -98,8 +98,10 @@ def split_expression(expr):
     if independent_xi in matches and matches[independent_xi] != 0:
         stochastic = (matches[g_factor]*g(matches[x_g], matches[t_g]) +
                       matches[independent_xi] * xi ** matches[xi_exponent])
-    else:
+    elif x_g in matches:
         stochastic = matches[g_factor]*g(matches[x_g], matches[t_g])
+    else:
+        stochastic = None
 
     
 
@@ -375,8 +377,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             # (including static equations). 
             for var, expr in eqs.eq_expressions:
                 RHS = self._generate_RHS(eqs, var, symbols, intermediate_vars,
-                                         expr, non_stochastic_expr, stochastic_expr)
-                
+                                         expr, non_stochastic_expr, stochastic_expr)                
                 statements.append('_' + intermediate_var + '_' + var + ' = ' + RHS)
                 
         # Process the "return" line of the stateupdater description
