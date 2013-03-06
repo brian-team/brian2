@@ -428,7 +428,7 @@ milstein = ExplicitStateUpdater('''
     g_support = g(x_support, t)
     k = 1/(2*dt**.5)*(g_support - g(x, t))*(dt*xi**2 - dt)
     return x + dt*f(x,t) + g(x, t) * (dt**.5*xi) + k 
-    ''', priority=40, stochastic=True)
+    ''', priority=20, stochastic=True)
 
 
 # Register the state updaters
