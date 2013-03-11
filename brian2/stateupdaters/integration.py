@@ -39,7 +39,7 @@ SYMBOLS = {'x' : sympy.Symbol('x'),
            'dt': sympy.Symbol('dt'),
            'f' : sympy.Function('f'),
            'g' : sympy.Function('g'),
-           'xi': sympy.Symbol('xi')}
+           'dW': sympy.Symbol('dW')}
 
 def split_expression(expr):
     '''
@@ -66,7 +66,7 @@ def split_expression(expr):
     
     f = SYMBOLS['f']
     g = SYMBOLS['g']
-    xi = SYMBOLS['xi']
+    dW = SYMBOLS['dW']
     x_f = sympy.Wild('x_f', exclude=[f, g])
     t_f = sympy.Wild('t_f', exclude=[f, g])
     x_g = sympy.Wild('x_g', exclude=[f, g])
@@ -76,14 +76,14 @@ def split_expression(expr):
     sympy_expr = sympy.collect(sympy_expr, f(x_f, t_f))
     sympy_expr = sympy.collect(sympy_expr, g(x_g, t_g))
     
-    independent = sympy.Wild('independent', exclude=[f,g,xi])
-    xi_exponent = sympy.Wild('xi_exponent', exclude=[f,g,xi,0])
-    independent_xi = sympy.Wild('independent_xi', exclude=[f,g,xi])
+    independent = sympy.Wild('independent', exclude=[f,g,dW])
+    dW_exponent = sympy.Wild('dW_exponent', exclude=[f,g,dW,0])
+    independent_dW = sympy.Wild('independent_dW', exclude=[f,g,dW])
     f_factor = sympy.Wild('f_factor', exclude=[f, g])
     g_factor = sympy.Wild('g_factor', exclude=[f, g])    
 
     match_expr = (independent + f_factor * f(x_f, t_f) +
-                  independent_xi  * xi ** xi_exponent + g_factor * g(x_g, t_g))    
+                  independent_dW  * dW ** dW_exponent + g_factor * g(x_g, t_g))    
     matches = sympy_expr.match(match_expr)
     
     if matches is None:
@@ -95,15 +95,13 @@ def split_expression(expr):
     else:
         non_stochastic = matches[independent]
         
-    if independent_xi in matches and matches[independent_xi] != 0:
+    if independent_dW in matches and matches[independent_dW] != 0:
         stochastic = (matches[g_factor]*g(matches[x_g], matches[t_g]) +
-                      matches[independent_xi] * xi ** matches[xi_exponent])
+                      matches[independent_dW] * dW ** matches[dW_exponent])
     elif x_g in matches:
         stochastic = matches[g_factor]*g(matches[x_g], matches[t_g])
     else:
         stochastic = None
-
-    
 
     return (non_stochastic, stochastic)
 
@@ -142,16 +140,18 @@ class ExplicitStateUpdater(StateUpdateMethod):
     stochastic variable do not have to be treated differently, the part
     referring to ``g`` is repeated for all stochastic variables automatically.
      
-    The stochastic Euler-Maruyama integrator (already provided as part of
-    `euler`) can be described as::
+    Stochastic integrators can also make reference to ``dW`` (a normal
+    distributed random number with variance ``dt``) and ``g(x, t)``, the
+    stochastic part of an equation. A stochastic state updater good therefore
+    use a description like:     
         
-        return x + dt*f(x,t) + dt**.5 * g(x,t) * xi 
+        return x + dt*f(x,t) + g(x, t) * dW
     
-    There a some restrictions on the complexity of the expressions: Every
-    statement can only contain the functions ``f`` and ``g`` once (but you
-    can work around this restriction by using intermediate results, as in the
-    above Runge-Kutta example); The expressions have to be linear in the
-    functions, e.g. you can use ``dt*f(x, t)`` but not ``f(x, t)**2``.
+    There a some restrictions on the complexity of the expressions (but most
+    can be worked around by using intermediate results as in the above Runge-
+    Kutta example): Every statement can only contain the functions ``f`` and
+    ``g`` once; The expressions have to be linear in the functions, e.g. you
+    can use ``dt*f(x, t)`` but not ``f(x, t)**2``.
      
     Parameters
     ----------
@@ -309,7 +309,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 
                 # Replace x and xi by the respective variables
                 stochastic_result = stochastic_result.subs(SYMBOLS['x'], symbols[var])
-                stochastic_result = stochastic_result.subs(SYMBOLS['xi'], xi)   
+                stochastic_result = stochastic_result.subs(SYMBOLS['dW'], xi)   
 
                 # Replace intermediate variables
                 temp_vars_specific = dict([('_' + temp_var + '_' + var,
@@ -366,7 +366,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         # Generate the random numbers for the stochastic variables
         stochastic_variables = eqs.stochastic_variables
         for stochastic_variable in stochastic_variables:
-            statements.append(stochastic_variable + ' = ' + 'randn()')
+            statements.append(stochastic_variable + ' = ' + 'dt**.5 * randn()')
         
         # Process the intermediate statements in the stateupdater description
         for intermediate_var, intermediate_expr in self.statements:            
@@ -403,10 +403,9 @@ class ExplicitStateUpdater(StateUpdateMethod):
 
 # these objects can be used like functions because they are callable
 
-#: Forward Euler state updater, including the Euler-Maruyama method for
-#: stochastic equations.
-euler = ExplicitStateUpdater('return x + dt * f(x,t) + dt**.5*g(x,t)*xi',
-                             priority=30, stochastic=True)
+#: Forward Euler state updater
+euler = ExplicitStateUpdater('return x + dt * f(x,t)',
+                             priority=30)
 
 #: Second order Runge-Kutta method (midpoint method)
 rk2 = ExplicitStateUpdater('''
@@ -426,10 +425,9 @@ rk4 = ExplicitStateUpdater('''
 milstein = ExplicitStateUpdater('''
     x_support = x + dt*f(x, t) + dt**.5 * g(x, t)
     g_support = g(x_support, t)
-    k = 1/(2*dt**.5)*(g_support - g(x, t))*(dt*xi**2 - dt)
-    return x + dt*f(x,t) + g(x, t) * (dt**.5*xi) + k 
+    k = 1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)
+    return x + dt*f(x,t) + g(x, t) * dW + k
     ''', priority=20, stochastic=True)
-
 
 # Register the state updaters
 StateUpdateMethod.register('euler', euler)
