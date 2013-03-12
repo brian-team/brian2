@@ -69,11 +69,6 @@ def test_static_equations():
         G1 = NeuronGroup(1, eqs1, clock=Clock(), method=method)
         G1.v = 1
         G2 = NeuronGroup(1, eqs2, clock=Clock(), method=method)
-        print 'Method:', method
-        print 'Code 1'
-        print G1.abstract_code
-        print 'Code 2'
-        print G2.abstract_code
         G2.v = 1
         mon1 = StateMonitor(G1, 'v', record=True)
         mon2 = StateMonitor(G2, 'v', record=True)

@@ -521,13 +521,12 @@ class Equations(collections.Mapping):
             if eq.expr is None:
                 continue
 
-            expr = eq.expr.replace_code(word_substitute(eq.expr.code, substitutions))
+            expr = Expression(word_substitute(eq.expr.code, substitutions))
 
             if eq.eq_type == STATIC_EQUATION:
                 substitutions.update({eq.varname: '(%s)' % expr.code})
             elif eq.eq_type == DIFFERENTIAL_EQUATION:
                 #  a differential equation that we have to check
-                expr.resolve(self.names)
                 subst_exprs.append((eq.varname, expr))
             else:
                 raise AssertionError('Unknown equation type %s' % eq.eq_type)

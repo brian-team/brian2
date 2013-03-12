@@ -242,7 +242,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 raise ValueError('Error parsing the expression "%s": %s' %
                                  (expr, str(ex)))
             
-            for var in eqs.eq_names:
+            for var in eqs.diff_eq_names:
                 temp_vars_specific = dict([('_' + temp_var + '_' + var,
                                             sympy.Symbol('_' + temp_var + '_' + var))
                                            for temp_var in temp_vars])                
@@ -375,7 +375,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             # Execute the statement by appropriately replacing the functions f
             # and g and the variable x for every equation in the model
             # (including static equations). 
-            for var, expr in eqs.eq_expressions:
+            for var, expr in eqs.substituted_expressions:
                 RHS = self._generate_RHS(eqs, var, symbols, intermediate_vars,
                                          expr, non_stochastic_expr, stochastic_expr)                
                 statements.append('_' + intermediate_var + '_' + var + ' = ' + RHS)
@@ -385,13 +385,13 @@ class ExplicitStateUpdater(StateUpdateMethod):
         
         # Assign a value to all the model variables described by differential
         # equations       
-        for var, expr in eqs.diff_eq_expressions:
+        for var, expr in eqs.substituted_expressions:
             RHS = self._generate_RHS(eqs, var, symbols, intermediate_vars,
                                      expr, non_stochastic_expr, stochastic_expr)
             statements.append('_' + var + ' = ' + RHS)
         
         # Assign everything to the final variables
-        for var, expr in eqs.diff_eq_expressions:
+        for var, expr in eqs.substituted_expressions:
             statements.append(var + ' = ' + '_' + var)
 
         return '\n'.join(statements)
