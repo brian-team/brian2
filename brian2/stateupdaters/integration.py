@@ -147,6 +147,10 @@ class ExplicitStateUpdater(StateUpdateMethod):
         
         return x + dt*f(x,t) + g(x, t) * dW
     
+    For simplicity, the same syntax is used for state updaters that only support
+    additive noise, even though ``g(x, t)`` does not depend on ``x`` or ``t``
+    in that case.    
+    
     There a some restrictions on the complexity of the expressions (but most
     can be worked around by using intermediate results as in the above Runge-
     Kutta example): Every statement can only contain the functions ``f`` and
@@ -157,6 +161,14 @@ class ExplicitStateUpdater(StateUpdateMethod):
     ----------
     description : str
         A state updater description (see above).
+    priority : int
+        The priority of this state updater (in case it is applicable in
+        general). Higher values mean that it is more likely to be chosen.
+    stochastic : {None, 'additive', 'multiplicative'}
+        What kind of stochastic equations this state updater supports: ``None``
+        means no support of stochastic equations, ``'additive'`` means only
+        equations with additive noise and ``"multiplicative'`` means
+        supporting arbitrary stochastic equations.
     
     Raises
     ------
@@ -168,7 +180,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
     euler, rk2, rk4
     ''' 
     
-    def __init__(self, description, priority, stochastic=False):
+    def __init__(self, description, priority, stochastic=None):
         self.priority = priority
         self.stochastic = stochastic
                 
@@ -198,9 +210,12 @@ class ExplicitStateUpdater(StateUpdateMethod):
     def get_priority(self, equations, namespace, specifiers):
         # Non-stochastic numerical integrators should work for all equations,
         # except for stochastic equations
-        if equations.is_stochastic and not self.stochastic:
+        if equations.is_stochastic and self.stochastic is None:
             return 0
-        else:            
+        if (equations.stochastic_type == 'multiplicative' and
+            self.stochastic != 'multiplicative'):
+            return 0
+        else:
             return self.priority
     
     def __str__(self):
@@ -404,8 +419,8 @@ class ExplicitStateUpdater(StateUpdateMethod):
 # these objects can be used like functions because they are callable
 
 #: Forward Euler state updater
-euler = ExplicitStateUpdater('return x + dt * f(x,t)',
-                             priority=30)
+euler = ExplicitStateUpdater('return x + dt * f(x,t) + g(x,t) * dW',
+                             priority=30, stochastic='additive')
 
 #: Second order Runge-Kutta method (midpoint method)
 rk2 = ExplicitStateUpdater('''
@@ -427,7 +442,7 @@ milstein = ExplicitStateUpdater('''
     g_support = g(x_support, t)
     k = 1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)
     return x + dt*f(x,t) + g(x, t) * dW + k
-    ''', priority=20, stochastic=True)
+    ''', priority=20, stochastic='multiplicative')
 
 # Register the state updaters
 StateUpdateMethod.register('euler', euler)

@@ -533,6 +533,41 @@ class Equations(collections.Mapping):
 
         return subst_exprs
 
+    def _get_stochastic_type(self):
+        '''
+        Returns the type of stochastic differential equations (additivive or
+        multiplicative). The system is only classified as ``additive`` if *all*
+        equations have only additive noise (or no noise).
+        
+        Returns
+        -------
+        type : str
+            Either ``None`` (no noise variables), ``'additive'`` (factors for
+            all noise variables are independent of other state variables or
+            time), ``'multiplicative'`` (at least one of the noise factors
+            depends on other state variables and/or time).
+        '''
+        
+        # TODO: Add debug output
+        
+        if not self.is_stochastic:
+            return None
+        
+        for _, expr in self.substituted_expressions:
+            _, stochastic = expr.split_stochastic()
+            for factor in stochastic.itervalues():
+                if 't' in factor.identifiers:
+                    # noise factor depends on time
+                    return 'multiplicative'
+                
+                for identifier in factor.identifiers:
+                    if identifier in self.diff_eq_names:
+                        # factor depends on another state variable
+                        return 'multiplicative'
+        
+        return 'additive'
+
+
     ############################################################################
     # Properties
     ############################################################################
@@ -596,6 +631,8 @@ class Equations(collections.Mapping):
     # general properties
     is_stochastic = property(lambda self: len(self.stochastic_variables) > 0,
                              doc='Whether the equations are stochastic.')
+
+    stochastic_type = property(fget=_get_stochastic_type)
 
     def _sort_static_equations(self):
         '''
