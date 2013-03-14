@@ -5,6 +5,7 @@ import sympy
 from sympy.printing.ccode import CCodePrinter
 import numpy
 from scipy import weave
+import re
 
 from brian2.utils.stringtools import deindent
 from brian2.utils.parsing import parse_to_sympy
@@ -47,6 +48,50 @@ def c_data_type(dtype):
     else:
         raise ValueError("dtype " + str(dtype) + " not known.")
     return dtype
+
+
+# Some hacky stuff here, later we will want to implement a random number source
+# function that works equivalently in both Python and C++.
+random_numbers_support_code = '''
+#include<stdlib.h>
+#include<time.h>
+
+double randu()
+{
+    return rand()/(double)RAND_MAX;
+}
+
+double randn()
+{
+    static bool seeded = false;
+    static int count = 0;
+    static double nextGaussianVal;
+    double firstGaussianVal, v1, v2, s;
+    
+    if(!seeded)
+    {
+        srand((unsigned int)time(NULL));
+        seeded = true;
+    }
+
+    if (count == 0) {
+       do { 
+           v1 = 2 * randu() - 1;   // between -1.0 and 1.0
+           v2 = 2 * randu() - 1;   // between -1.0 and 1.0
+           s = v1 * v1 + v2 * v2;
+        } while (s >= 1 || s == 0);
+        double multiplier = sqrt(-2 * log(s)/s);
+        nextGaussianVal = v2 * multiplier;
+        firstGaussianVal = v1 * multiplier;
+        count = 1;
+        return firstGaussianVal;
+    }
+
+    count = 0;
+    return nextGaussianVal;
+}
+'''
+
 
 class CPPLanguage(Language):
     '''
@@ -103,8 +148,12 @@ class CPPLanguage(Language):
         self.flush_denormals = flush_denormals
 
     def translate_expression(self, expr):
+        # temporary hack to make randn() pass through sympy
+        expr = re.sub(r'\brandn\b\s*\(\s*\)', '_temporary_randn_symbol', expr)
         expr = parse_to_sympy(expr)
-        return CCodePrinter().doprint(expr)
+        expr = CCodePrinter().doprint(expr)
+        expr = re.sub(r'\b_temporary_randn_symbol\b', 'randn()', expr)
+        return expr
 
     def translate_statement(self, statement):
         var, op, expr = statement.var, statement.op, statement.expr
@@ -157,7 +206,7 @@ class CPPLanguage(Language):
             lines.append(line)
         pointers = '\n'.join(lines)
         # set up the user-defined functions
-        support_code = ''
+        support_code = deindent(random_numbers_support_code)
         hash_defines = ''
         for var, spec in specifiers.items():
             if isinstance(spec, UserFunction):
