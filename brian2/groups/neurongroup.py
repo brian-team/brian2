@@ -192,13 +192,10 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         # : Resets neurons which have spiked (`spikes`)
         self.resetter = self.create_resetter(reset)
 
-        if hasattr(method, '__call__'):
-            self.method = method
-        else:
-            self.method = StateUpdateMethod.determine_stateupdater(self.equations,
-                                                                   self.namespace,
-                                                                   self.specifiers,
-                                                                   method)
+        self.method = StateUpdateMethod.determine_stateupdater(self.equations,
+                                                               self.namespace,
+                                                               self.specifiers,
+                                                               method)
 
         # : Performs numerical integration step
         self.state_updater = self.create_state_updater()

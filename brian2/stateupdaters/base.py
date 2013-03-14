@@ -77,28 +77,64 @@ class StateUpdateMethod(object):
 
     @staticmethod
     def determine_stateupdater(equations, namespace,
-                               specifiers, name=None):
+                               specifiers, method=None):
         '''
-        Determine a suitable state updater. If a `name` is given, the
-        state updater with the given name is used (if it is suitable).
-        Otherwise, the suitable state updater with the highest priority is used.
+        Determine a suitable state updater. If a `method` is given, the
+        state updater with the given name is used. In case it is a callable, it
+        will be used even if it is a state updater that claims it is not
+        applicable. If it is a string, the state updater registered with that
+        name will be used, but in this case an error will be raised if it
+        claims not to be applicable. If no `method` is given explicitly, the
+        suitable state updater with the highest priority is used.
+        
+        Parameters
+        ----------
+        equations : `Equations`
+            The model equations.        
+        namespace : `dict`
+            The namespace of external variables/functions.
+        specifiers : `dict`
+            The dictionary of `Specifier` objects, describing the internal
+            model variables.
+        method : {callable, str, ``None``}, optional
+            A callable usable as a state updater, the name of a registered
+            state updater or ``None`` (the default) 
         '''
-        if name is not None:
+        if hasattr(method, '__call__'):
+            # if this is a standard state updater, i.e. if it has a
+            # get_priority method, check this method and raise a warning if it
+            # claims not to be applicable.
             try:
-                stateupdater = StateUpdateMethod.stateupdaters[name]
+                priority = method.get_priority(equations, namespace, specifiers)
+                print priority
+                if priority == 0:
+                    logger.warn(('The manually specified state updater '
+                                 'claims that it does not support the given '
+                                 'equations.'))
+            except AttributeError:
+                # No get_priority method
+                pass
+            
+            logger.info('Using manually specified state updater: %r' % method)
+            return method
+        
+        if method is not None:
+            try:
+                stateupdater = StateUpdateMethod.stateupdaters[method]
             except KeyError:
                 raise ValueError('No state updater with the name "%s" '
-                                 'is known' % name)
+                                 'is known' % method)
             if stateupdater.get_priority(equations, namespace, specifiers) == 0:
                 raise ValueError(('The state updater "%s" cannot be used for '
-                                  'the given equations' % name))
+                                  'the given equations' % method))
             return stateupdater
 
         # determine the best suitable state updater
         priorities = [(name, updater.get_priority(equations,
                                               namespace,
                                               specifiers))
-                         for name, updater in StateUpdateMethod.stateupdaters.iteritems()]
+                         for name, updater in 
+                         StateUpdateMethod.stateupdaters.iteritems()]
         priorities.sort(key=lambda elem: elem[1], reverse=True)
 
         # If the list is empty or the first (=best) priority is 0, we did not
