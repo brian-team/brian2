@@ -38,7 +38,7 @@ class AttributeValue(Value):
     A value saved as an attribute of an object. Instead of saving a reference
     to the value itself, we save the name of the attribute. This way, we get
     the correct value if the attribute is overwritten with a new value (e.g.
-    in the case of clock.t_)
+    in the case of ``clock.t_``)
     '''
     def __init__(self, dtype, obj, attribute, unit):
         self.dtype = dtype

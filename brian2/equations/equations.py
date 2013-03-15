@@ -441,10 +441,10 @@ class Equations(collections.Mapping):
 
         return Equations(self.values() + other_eqns.values())
 
-    # : A set of functions that are used to check identifiers (class attribute).
-    # : Functions can be registered with the static method
-    # : `:meth:Equations.register_identifier_check` and will be automatically
-    # : used when checking identifiers
+    #: A set of functions that are used to check identifiers (class attribute).
+    #: Functions can be registered with the static method
+    #: `Equations.register_identifier_check` and will be automatically
+    #: used when checking identifiers
     identifier_checks = set([check_identifier_basic,
                              check_identifier_reserved])
 
@@ -470,7 +470,7 @@ class Equations(collections.Mapping):
     def check_identifier(identifier):
         '''
         Perform all the registered checks. Checks can be registered via
-        :func:`Equations.register_identifier_check`.
+        `Equations.register_identifier_check`.
         
         Parameters
         ----------
@@ -652,7 +652,7 @@ class Equations(collections.Mapping):
         namespace : `CompoundNamespace`
             The namespace for resolving external identifiers, should be
             provided by the `NeuronGroup` or `Synapses`.
-        specifiers: dict of `Specifier` objects
+        specifiers : dict of `Specifier` objects
             The specifiers of the state variables and internal variables
             (e.g. t and dt)
         

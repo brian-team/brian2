@@ -89,3 +89,9 @@ The preference files are of the following form::
 	
 This would set preferences ``a.b.c=1``, ``a.b.d=2`` and ``a.b.e=3``.
  
+Built-in preferences
+--------------------
+Brian itself defines the following preferences:
+
+.. document_brian_prefs::
+   :nolinks:

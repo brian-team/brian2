@@ -178,19 +178,19 @@ def translate(code, specifiers, dtype, language, indices):
         The abstract code block, a series of one-line statements.
     ``specifiers``
         A dict of ``(var, spec)`` where ``var`` is a variable name whose type
-        is specified by ``spec``, a :class:`Specifier` object. These include
-        :class:`Value` for a single (non-vector) value that will be inserted
-        into the namespace at runtime, :class:`Function` for a function,
-        :class:`ArrayVariable` for a value coming from an array of values,
-        :class:`Index` for the name of the index into these arrays, and
-        :class:`Subexpression` for a common subexpression used in the code.
-        There should only be a single :class:`Index` specifier, and the name
-        should correspond to that given in the :class:`ArrayVariable`
+        is specified by ``spec``, a `Specifier` object. These include
+        `Value` for a single (non-vector) value that will be inserted
+        into the namespace at runtime, `Function` for a function,
+        `ArrayVariable` for a value coming from an array of values,
+        `Index` for the name of the index into these arrays, and
+        `Subexpression` for a common subexpression used in the code.
+        There should only be a single `Index` specifier, and the name
+        should correspond to that given in the `ArrayVariable`
         specifiers.
     ``dtype``
         The default dtype for newly created variables (usually float64).
     ``language``
-        The :class:`Language` to translate to.
+        The `Language` to translate to.
     
     Returns a multi-line string.
     '''

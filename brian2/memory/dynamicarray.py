@@ -127,8 +127,8 @@ class DynamicArray(object):
     def shrink(self, newshape):
         '''
         Reduces the data to the given shape, which should be smaller than the
-        current shape. :meth:`resize` can also be used with smaller values, but
-        it will not shrink the allocated memory, whereas :meth:`shrink` will
+        current shape. `resize` can also be used with smaller values, but
+        it will not shrink the allocated memory, whereas `shrink` will
         reallocate the memory. This method should only be used infrequently, as
         if it is used frequently it will negate the computational efficiency
         benefits of the DynamicArray.
@@ -168,7 +168,7 @@ class DynamicArray(object):
 
 class DynamicArray1D(DynamicArray):
     '''
-    Version of :class:`DynamicArray` with specialised ``resize`` method designed
+    Version of `DynamicArray` with specialised ``resize`` method designed
     to be more efficient.
     '''
     def resize(self, newshape):
