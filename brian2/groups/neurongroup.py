@@ -6,7 +6,7 @@ from numpy import array
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         STATIC_EQUATION, PARAMETER)
 from brian2.equations.refractory import add_refractoriness
-from brian2.stateupdaters.integration import euler
+from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.languages import PythonLanguage
 from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
@@ -99,8 +99,11 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         Number of neurons in the group.
     equations : (str, `Equations`)
         The differential equations defining the group
-    method : ?, optional
-        The numerical integration method.
+    method : (str, function), optional
+        The numerical integration method. Either a string with the name of a
+        registered method (e.g. "euler") or a function that receives an
+        `Equations` object and returns the corresponding abstract code. If no
+        method is specified, a suitable method will be chosen automatically.
     threshold : str, optional
         The condition which produces spikes. Should be a single line boolean
         expression.
@@ -129,15 +132,14 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
     attributes `state_updater`, `thresholder` and `resetter`.    
     '''
     basename = 'neurongroup'
-    def __init__(self, N, equations, method=euler,
+    def __init__(self, N, equations, method=None,
                  threshold=None,
                  reset=None,
                  namespace=None,
                  dtype=None, language=None,
                  clock=None, name=None):
         BrianObject.__init__(self, when=clock, name=name)
-        ##### VALIDATE ARGUMENTS AND STORE ATTRIBUTES
-        self.method = method
+
         try:
             self.N = N = int(N)
         except ValueError:
@@ -185,12 +187,21 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             language = PythonLanguage()
         self.language = language
 
-        # : Performs numerical integration step
-        self.state_updater = self.create_state_updater()
         # : Performs thresholding step, sets the value of `spikes`
         self.thresholder = self.create_thresholder(threshold)
         # : Resets neurons which have spiked (`spikes`)
         self.resetter = self.create_resetter(reset)
+
+        if hasattr(method, '__call__'):
+            self.method = method
+        else:
+            self.method = StateUpdateMethod.determine_stateupdater(self.equations,
+                                                                   self.namespace,
+                                                                   self.specifiers,
+                                                                   method)
+
+        # : Performs numerical integration step
+        self.state_updater = self.create_state_updater()
 
         # Creation of contained_objects that do the work
         self.contained_objects.append(self.state_updater)
@@ -386,7 +397,7 @@ if __name__ == '__main__':
     G = NeuronGroup(N, eqs,
                     threshold=threshold,
                     reset=reset,
-                    language=CPPLanguage()
+                    language=PythonLanguage(),
                     # language=NumexprPythonLanguage(),
                     )
     G.refractory = 5 * ms

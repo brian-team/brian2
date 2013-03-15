@@ -568,12 +568,15 @@ class Equations(collections.Mapping):
     diff_eq_names = property(lambda self: set([eq.varname for eq in self.ordered
                                            if eq.eq_type == DIFFERENTIAL_EQUATION]),
                              doc='All differential equation names.')
+
     static_eq_names = property(lambda self: set([eq.varname for eq in self.ordered
                                            if eq.eq_type == STATIC_EQUATION]),
                                doc='All static equation names.')
+
     eq_names = property(lambda self: set([eq.varname for eq in self.ordered
                                            if eq.eq_type in (DIFFERENTIAL_EQUATION, STATIC_EQUATION)]),
                         doc='All (static and differential) equation names.')
+
     parameter_names = property(lambda self: set([eq.varname for eq in self.ordered
                                              if eq.eq_type == PARAMETER]),
                                doc='All parameter names.')
