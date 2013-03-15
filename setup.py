@@ -5,6 +5,16 @@ Preliminary Brian2 setup script
 
 from distutils.core import setup
 
+from brian2.core.preferences import brian_prefs
+
+try:
+    with open('./brian2/default_preferences', 'wt') as f:
+        defaults = brian_prefs.defaults_as_file
+        f.write(defaults)
+except IOError as ex:
+    raise IOError(('Could not write the default preferences to a file: %s' %
+                   str(ex)))
+
 setup(name='Brian2',
       version='2.0dev',
       packages=['brian2',
@@ -20,9 +30,10 @@ setup(name='Brian2',
                 'brian2.tests',
                 'brian2.units',
                 'brian2.utils'],
-     requires=['numpy(>=1.4.1)',
-               'scipy(>=0.7.0)',
-               'sympy(>=0.7.1)'
-              ],                
+      package_data={'brian2': ['default_preferences']}, 
+      requires=['numpy(>=1.4.1)',
+                'scipy(>=0.7.0)',
+                'sympy(>=0.7.1)'
+                ],                
      )
 
