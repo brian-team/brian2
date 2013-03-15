@@ -58,7 +58,7 @@ class UserFunction(Function):
 
 class SimpleUserFunction(UserFunction):
     '''
-    A simplified, less generic version of :class:`UserFunction`.
+    A simplified, less generic version of `UserFunction`.
     
     You provide a dict ``codes`` of ``(language_id, code)`` pairs and a
     namespace of values to be added to the generated code. The ``code`` should

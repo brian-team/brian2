@@ -7,7 +7,7 @@ Logging in Brian is based on the :mod:`logging` module in Python's standard
 library. In Brian2, all logging output is logged to a file (the file name is
 available in `brian2.utils.logger.TMP_LOG`). This log file will normally be
 deleted on exit, except if an uncaught exception occured or if
-:bpref:`core.delete_log_on_exit` is set to ``False``. The default log level for the
+`core.delete_log_on_exit` is set to ``False``. The default log level for the
 logging on the console is "warn".
 
 Every brian module that needs logging should start with the following line,

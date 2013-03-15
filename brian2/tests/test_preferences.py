@@ -74,7 +74,7 @@ def test_brianglobalpreferences():
     assert gp['a.d']==2.0
     # test that documentation and as_file generation runs without error, but
     # don't test for values because we might change the organisation of it
-    gp.documentation
+    assert len(gp.get_documentation())
     gp.as_file
     gp.defaults_as_file
     # test that reading a preference file works as expected

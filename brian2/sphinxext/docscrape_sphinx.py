@@ -70,12 +70,6 @@ class SphinxDocString(NumpyDocString):
 
             if prefix:
                 prefix = '%s.' % prefix
-            elif hasattr(self, 'name') and self.name:
-                # This is a class: Use its name to make sure Sphinx can find
-                # the methods and attributes
-                prefix = '%s.' % (self.name)
-            else:
-                prefix = ''
 
             autosum = []
             for param, _, desc in self[name]:
@@ -117,14 +111,9 @@ class SphinxDocString(NumpyDocString):
 
         if self[name]:
             prefix = getattr(self, '_name', '')
+
             if prefix:
-                prefix = '%s.' % prefix
-            elif hasattr(self, 'name') and self.name:
-                # This is a class: Use its name to make sure Sphinx can find
-                # the methods and attributes
-                prefix = '%s.' % (self.name)
-            else:
-                prefix = ''
+                prefix += '.'
 
             for param, _, _ in self[name]:
                 if name == 'Methods':
@@ -213,7 +202,7 @@ class SphinxDocString(NumpyDocString):
     def _str_examples(self):
         return self._str_section('Examples')
 
-    def __str__(self, indent=0, func_role="obj"):
+    def __str__(self, indent=0, func_role="brianobj"):
         out = []
         out += self._str_index() + ['']
         out += self._str_summary()
