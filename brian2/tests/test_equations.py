@@ -309,6 +309,23 @@ def test_properties():
     assert eqs.names == set(eqs.units.keys())
     assert eqs.identifiers == set(['tau', 'volt', 'Hz', 'sin', 't'])
 
+    # stochastic equations
+    assert len(eqs.stochastic_variables) == 0
+    assert eqs.stochastic_type is None
+    
+    eqs = Equations('''dv/dt = -v / tau + 0.1*second**-.5*xi : 1''')
+    assert eqs.stochastic_variables == set(['xi'])
+    assert eqs.stochastic_type == 'additive'
+    
+    eqs = Equations('''dv/dt = -v / tau + 0.1*second**-.5*xi_1 +  0.1*second**-.5*xi_2: 1''')
+    assert eqs.stochastic_variables == set(['xi_1', 'xi_2'])
+    assert eqs.stochastic_type == 'additive'
+    
+    eqs = Equations('''dv/dt = -v / tau + 0.1*second**-1.5*xi*t : 1''')
+    assert eqs.stochastic_type == 'multiplicative'
+
+    eqs = Equations('''dv/dt = -v / tau + 0.1*second**-1.5*xi*v : 1''')
+    assert eqs.stochastic_type == 'multiplicative'
 
 def test_concatenation():
     eqs1 = Equations('''dv/dt = -(v + I) / tau : volt

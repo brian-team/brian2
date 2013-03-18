@@ -244,20 +244,6 @@ class SingleEquation(object):
         # will be set later in the sort_static_equations method of Equations
         self.update_order = -1
 
-    def replace_code(self, code):
-        '''
-        Return a new `SingleEquation` based on an existing one. This is used
-        internally, when an equation string is replaced or changed while all
-        the other information is kept (units, flags, etc.). For example,
-        the `~brian2.equations.refractory.add_refractory` function replaces
-        all differential equations having the ``(active)`` flag with a new
-        equation. 
-        '''
-        return SingleEquation(self.eq_type,
-                              self.varname,
-                              self.unit,
-                              self.expr.replace_code(code),
-                              self.flags)
 
     identifiers = property(lambda self: self.expr.identifiers
                            if not self.expr is None else set([]),

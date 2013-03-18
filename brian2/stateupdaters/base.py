@@ -106,7 +106,6 @@ class StateUpdateMethod(object):
             # claims not to be applicable.
             try:
                 priority = method.get_priority(equations, namespace, specifiers)
-                print priority
                 if priority == 0:
                     logger.warn(('The manually specified state updater '
                                  'claims that it does not support the given '

@@ -172,7 +172,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
     
     Raises
     ------
-    SyntaxError
+    ValueError
         If the parsing of the description failed.
     
     See also
@@ -187,7 +187,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         try:
             parsed = DESCRIPTION.parseString(description, parseAll=True)
         except ParseException as p_exc:
-            raise SyntaxError('Parsing failed: \n' + str(p_exc.line) + '\n' +
+            raise ValueError('Parsing failed: \n' + str(p_exc.line) + '\n' +
                               ' '*(p_exc.column - 1) + '^\n' + str(p_exc))
  
         self.statements = []
