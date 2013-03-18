@@ -1,5 +1,5 @@
 '''
-All Brian objects should derive from :class:`BrianObject`.
+All Brian objects should derive from `BrianObject`.
 '''
 
 import gc
@@ -48,7 +48,7 @@ class BrianObject(Nameable):
         
         Nameable.__init__(self, name)
      
-        #: The ID string determining when the object should be updated in :meth:`Network.run`.   
+        # : The ID string determining when the object should be updated in `Network.run`.
         self.when = when
         
         #: The order in which objects with the same clock and ``when`` should be updated
@@ -76,7 +76,7 @@ class BrianObject(Nameable):
         '''
         Optional method to prepare data for the first time.
         
-        Called by :meth:`Network.prepare`. Note that this method will not be
+        Called by `Network.prepare`. Note that this method will not be
         called until just before the Network is about to be run, but may be
         called more than once even if the object has already been prepared, so
         the class should keep track of whether it has already been prepared or
@@ -92,7 +92,7 @@ class BrianObject(Nameable):
         
     def reinit(self):
         '''
-        Reinitialise the object, called by :meth:`Network.reinit`.
+        Reinitialise the object, called by `Network.reinit`.
         '''
         pass
 

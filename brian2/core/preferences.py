@@ -1,10 +1,6 @@
 '''
 Brian global preferences are stored as attributes of a `BrianGlobalPreferences`
 object ``brian_prefs``.
-
-Built-in preferences
---------------------
-.. document_brian_prefs::
 '''
 import re
 import os
@@ -33,7 +29,7 @@ class DefaultValidator(object):
     '''
     def __init__(self, value):
         self.value = value
-    
+
     def __call__(self, value):
         if not isinstance(value, self.value.__class__):
             return False
@@ -130,16 +126,16 @@ class BrianGlobalPreferences(MutableMapping):
 
     def __getitem__(self, item):
         return self.prefs[item]
-    
+
     def __len__(self):
         return len(self.prefs)
-    
+
     def __iter__(self):
         return iter(self.prefs)
-    
+
     def __contains__(self, item):
         return item in self.prefs
-    
+
     def __setitem__(self, name, value):
         basename, endname = parse_preference_name(name)
         if basename not in self.pref_register:
@@ -156,68 +152,84 @@ class BrianGlobalPreferences(MutableMapping):
             if name in self.prefs_unvalidated:
                 del self.prefs_unvalidated[name]
         else:
-            raise PreferenceError("Preference "+name+" is unregistered. "
+            raise PreferenceError("Preference " + name + " is unregistered. "
                                   "Spelling error?")
-        
+
     def __delitem__(self, item):
         raise PreferenceError("Preferences cannot be deleted.")
-    
+
     def eval_pref(self, value):
         '''
         Evaluate a string preference in the units namespace
         '''
         return eval(value, self.eval_namespace)
-    
+
     def _backup(self):
         '''
         Store a backup copy of the preferences to restore with `_restore`.
         '''
         self.backup_prefs.update(**self.prefs)
-    
+
     def _restore(self):
         '''
         Restore a copy of the values of the preferences backed up with `_backup`.
         '''
         self.prefs.update(**self.backup_prefs)
-        
-    def _get_documentation(self):
+
+    def _get_one_documentation(self, basename, link_targets):
+        '''
+        Document a single category of preferences.
+        '''
+
         s = ''
-        for basename, (prefdefs, basedoc) in self.pref_register.items():
-            s += basename+'\n'
-            s += '"'*len(basename)+'\n\n'
-            s += deindent(basedoc, docstring=True).strip()+'\n\n'
-            for name in sorted(prefdefs.keys()):
-                pref = prefdefs[name]
-                name = basename+'.'+name
-                linkname = name.replace('_', '-').replace('.','-')
+        if not basename in self.pref_register:
+            raise ValueError('No preferences under the name "%s" are registered' % basename)
+        prefdefs, basedoc = self.pref_register[basename]
+        s += deindent(basedoc, docstring=True).strip() + '\n\n'
+        for name in sorted(prefdefs.keys()):
+            pref = prefdefs[name]
+            name = basename + '.' + name
+            linkname = name.replace('_', '-').replace('.', '-')
+            if link_targets:
                 # Make a link target
                 s += '.. _brian-pref-{name}:\n\n'.format(name=linkname)
-                s += '``{name}`` = ``{default}``\n'.format(name=name,
-                                                           default=pref.representor(pref.default))
-                s += indent(deindent(pref.docs, docstring=True))
-                s += '\n\n'
+            s += '``{name}`` = ``{default}``\n'.format(name=name,
+                                                       default=pref.representor(pref.default))
+            s += indent(deindent(pref.docs, docstring=True))
+            s += '\n\n'
         return s
-    
-    documentation = property(fget=_get_documentation,
-                             doc='Get a restructuredtext format documentation '
-                                 'string for the defined parameters')
-    
+
+    def get_documentation(self, basename=None, link_targets=True):
+        '''
+        Generates a string documenting all preferences with the given
+        `basename`. If no `basename` is given, all preferences are documented.
+        '''
+        s = ''
+        if basename is None:
+            for basename in self.pref_register:
+                s += '**' + basename + '**\n\n'
+                s += self._get_one_documentation(basename, link_targets)
+        else:
+            s += self._get_one_documentation(basename, link_targets)
+
+        return s
+
     def _as_pref_file(self, valuefunc):
         '''
         Helper function used to generate the preference file for the default or current preference values.
         '''
         s = ''
         for basename, (prefdefs, basedoc) in self.pref_register.items():
-            s += '#'+'-'*79+'\n'
-            s += '\n'.join(['# '+line for line in deindent(basedoc, docstring=True).strip().split('\n')])+'\n'
-            s += '#'+'-'*79+'\n\n'
-            s += '['+basename+']\n\n'
+            s += '#' + '-' * 79 + '\n'
+            s += '\n'.join(['# ' + line for line in deindent(basedoc, docstring=True).strip().split('\n')]) + '\n'
+            s += '#' + '-' * 79 + '\n\n'
+            s += '[' + basename + ']\n\n'
             for name in sorted(prefdefs.keys()):
                 pref = prefdefs[name]
-                s += '\n'.join(['# '+line for line in deindent(pref.docs, docstring=True).strip().split('\n')])+'\n\n'
-                s += name + ' = '+pref.representor(valuefunc(pref, basename+'.'+name))+'\n\n'
+                s += '\n'.join(['# ' + line for line in deindent(pref.docs, docstring=True).strip().split('\n')]) + '\n\n'
+                s += name + ' = ' + pref.representor(valuefunc(pref, basename + '.' + name)) + '\n\n'
         return s
-    
+
     def _get_defaults_as_file(self):
         return self._as_pref_file(lambda pref, fullname: pref.default)
 
@@ -231,7 +243,7 @@ class BrianGlobalPreferences(MutableMapping):
     as_file = property(fget=_get_as_file,
                        doc='Get a Brian preference doc file format '
                            'string for the current preferences')
-            
+
     def read_preference_file(self, file):
         '''
         Reads a Brian preferences file
@@ -279,7 +291,7 @@ class BrianGlobalPreferences(MutableMapping):
         lines = [line for line in lines if line]
         # Remove comments
         lines = [line for line in lines if not line.startswith('#')]
-        bases = [] # start with no base
+        bases = []  # start with no base
         for line in lines:
             # Match section names, which are used as a prefix for subsequent entries
             m = re.match('\[([^\]]*)\]', line)
@@ -291,12 +303,12 @@ class BrianGlobalPreferences(MutableMapping):
             if m:
                 extname = m.group(1).strip()
                 value = m.group(2).strip()
-                keyname = '.'.join(bases+extname.split('.'))
+                keyname = '.'.join(bases + extname.split('.'))
                 self[keyname] = self.eval_pref(value)
                 continue
             # Otherwise raise a parsing error
-            raise PreferenceError("Parsing error in preference file "+filename)
-        
+            raise PreferenceError("Parsing error in preference file " + filename)
+
     def load_preferences(self):
         '''
         Load all the preference files, but do not validate them.
@@ -352,10 +364,10 @@ class BrianGlobalPreferences(MutableMapping):
         BrianPreference
         '''
         if prefbasename in self.pref_register:
-            raise PreferenceError("Base name "+prefbasename+" already registered.")
+            raise PreferenceError("Base name " + prefbasename + " already registered.")
         self.pref_register[prefbasename] = (prefs, prefbasedoc)
         for k, v in prefs.items():
-            self.prefs_unvalidated[prefbasename+'.'+k] = v.default
+            self.prefs_unvalidated[prefbasename + '.' + k] = v.default
         self.do_validation()
 
     def do_validation(self):
@@ -364,7 +376,7 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         for name, value in self.prefs_unvalidated.items():
             self[name] = value
-            
+
     def check_all_validated(self):
         '''
         Checks that all preferences that have been set have been validated.
@@ -381,5 +393,5 @@ class BrianGlobalPreferences(MutableMapping):
                         "import." % ', '.join(self.prefs_unvalidated.keys()),
                         once=True)
 
-#: Object storing Brian's preferences
+# : Object storing Brian's preferences
 brian_prefs = BrianGlobalPreferences()

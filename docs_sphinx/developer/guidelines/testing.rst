@@ -108,6 +108,7 @@ date!
 
 .. _`doctest documentation`: http://docs.python.org/2/library/doctest.html
 .. _`Sphinx's doctest extension`: http://sphinx-doc.org/ext/doctest.html
+
 Correctness tests
 ~~~~~~~~~~~~~~~~~
 [These do not exist yet for brian2]. Unit tests test a specific function or

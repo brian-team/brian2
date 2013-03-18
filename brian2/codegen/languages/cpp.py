@@ -135,7 +135,7 @@ class CPPLanguage(Language):
     ``hashdefine_code``
         The ``#define`` code added to the main loop.
         
-    See :class:`TimedArray` for an example of these keys.
+    See `TimedArray` for an example of these keys.
     '''
 
     language_id = 'cpp'

@@ -162,7 +162,7 @@ class Network(Nameable):
         '''
         Reinitialises all contained objects.
         
-        Calls :meth:`BrianObject.reinit` on each object.
+        Calls `BrianObject.reinit` on each object.
         '''
         for obj in self.objects:
             obj.reinit()
@@ -212,7 +212,7 @@ class Network(Nameable):
         Prepares the `Network`, including sorting and preparing objects.
         
         Objects in the `Network` are sorted into the correct running order, and
-        their :meth:`BrianObject.prepare` methods are called.
+        their `BrianObject.prepare` methods are called.
         '''        
         self._sort_objects()
 
@@ -266,8 +266,8 @@ class Network(Nameable):
         Notes
         -----
         
-        The simulation can be stopped by calling :meth:`Network.stop` or the
-        global :func:`stop` function.
+        The simulation can be stopped by calling `Network.stop` or the
+        global `stop` function.
         '''
         
         brian_prefs.check_all_validated()
@@ -309,6 +309,6 @@ class Network(Nameable):
         
     def stop(self):
         '''
-        Stops the network from running, this is reset the next time `Network.run()` is called.
+        Stops the network from running, this is reset the next time `Network.run` is called.
         '''
         self._stopped = True
