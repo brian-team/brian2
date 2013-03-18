@@ -5,29 +5,20 @@ This section is intended as a guide to how Brian functions internally for
 people developing Brian itself, or extensions to Brian. It may also be of some
 interest to others wishing to better understand how Brian works internally.
 
-.. warning::
-	At the moment, these documents should be considered as "design documents".
-	As the design is finished, much of the information here will move to the
-	reference section, and some will be deleted or rewritten to make it into
-	a guide rather than a set of proposals and ideas.
+The documents here are the parts of brian2 that are finished or at least
+substantially advanced. See the :doc:`notes/index` section for documents
+describing planned features, discussions and general thoughts. 
 
 .. toctree::
    :maxdepth: 2
 
-   brian20
-   project_management
-   overview
    guidelines/index
-   features_to_be_removed
    clocks
    units
    equations_namespaces
    state_update
-   codegen/index   
-   groups   
-   refractoriness_and_linearity
+   codegen/index
+   groups
    new_magic_and_clocks
-   device
    preferences
-   meeting-02-10-2012
- 
+   notes/index

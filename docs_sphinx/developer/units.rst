@@ -1,9 +1,6 @@
 Units
 =====  
 
-[The unit system is still open for discussion so the below rules should not be
-considered definitive yet.] 
-
 Importing units
 ---------------
 Brian generates standard names for units, combining the unit name (e.g.
