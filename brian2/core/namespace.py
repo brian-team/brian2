@@ -13,12 +13,12 @@ except ImportError:
 import numpy as np
 
 from brian2.utils.logger import get_logger
-import brian2.units.unitsafefunctions as usf
 from brian2.units.fundamentalunits import Quantity, all_registered_units
 from brian2.units.stdunits import stdunits
+from brian2.codegen.functions.numpyfunctions import RandnFunction
 
 __all__ = ['ObjectWithNamespace',
-           'DEFAULT_NUMPY_NAMESPACE',
+           'get_default_numpy_namespace',
            'DEFAULT_UNIT_NAMESPACE']
 
 logger = get_logger(__name__)
@@ -31,17 +31,20 @@ class ObjectWithNamespace(object):
         instance._globals = dict(frame.f_globals)
         return instance
     
-    def create_namespace(self, explicit_namespace=None):        
+    def create_namespace(self, N, explicit_namespace=None):                
         namespace = CompoundNamespace()
+        
+        # Explicitly given namespace overwrites all other namespaces
+        if explicit_namespace is not None:
+            namespace.add_namespace('user-defined', explicit_namespace)
+        
+        namespace.add_namespace('numpy', get_default_numpy_namespace(N))
+        namespace.add_namespace('units', DEFAULT_UNIT_NAMESPACE)
+        
         # only use the local/global namespace if no explicit one is given
         if explicit_namespace is None:
             namespace.add_namespace('local', self._locals)
-            namespace.add_namespace('global', self._globals)
-        else:            
-            namespace.add_namespace('user-defined', explicit_namespace)
-        
-        namespace.add_namespace('numpy', DEFAULT_NUMPY_NAMESPACE)
-        namespace.add_namespace('units', DEFAULT_UNIT_NAMESPACE)
+            namespace.add_namespace('global', self._globals)         
         
         return namespace
 
@@ -132,31 +135,32 @@ class CompoundNamespace(collections.Mapping):
     
     def __len__(self):
         total_length = 0
-        for namespace in self._namespaces:
-            total_length += len(self._namespaces[namespace])
+        for namespace in self.namespaces:
+            total_length += len(self.namespaces[namespace])
         return total_length
     
     def __iter__(self):
         # do not repeat entries
         previous_entries = []
-        for entries in self._namespaces.itervalues():
+        for entries in self.namespaces.itervalues():
             for entry in entries:                
                 if not entry in previous_entries:
                     previous_entries.append(entry)
                     yield entry
     
     def __contains__(self, key):
-        for entries in self._namespace.itervalues():
+        for entries in self.namespace.itervalues():
             if key in entries:
                 return True
         
         return False
 
-def _get_default_numpy_namespace():
+def get_default_numpy_namespace(N):
     '''
     Get the namespace of numpy functions/variables that is recognized by
     default. The namespace includes the constants :np:attr:`pi`,
-    :np:attr:`e` and :np:attr:`inf` and the following functions:
+    :np:attr:`e` and :np:attr:`inf` and should eventually contain the following
+    functions:                  
     :np:func:`abs`, :np:func:`arccos`, :np:func:`arccosh`,
     :np:func:`arcsin`, :np:func:`arcsinh`, :np:func:`arctan`,
     :np:func:`arctanh`, :np:func:`ceil`, :np:func:`clip`,
@@ -166,6 +170,10 @@ def _get_default_numpy_namespace():
     :np:func:`round`, :np:func:`sin`, :np:func:`sinh`,
     :np:func:`std`, :np:func:`sqrt`, :np:func:`sum`,
     :np:func:`tan`, :np:func:`tanh`, :np:func:`var`, :np:func:`where`
+    
+    .. warning::
+    
+        At the moment, only :np:func:`randn` is actually supported... 
     
     Returns
     -------
@@ -177,20 +185,9 @@ def _get_default_numpy_namespace():
     namespace = {'pi': np.pi, 'e': np.e, 'inf': np.inf}
     
     # standard numpy functions
-    numpy_funcs = [np.abs, np.floor, np.ceil, np.round, np.min, np.max,
-                   np.mean, np.std, np.var, np.sum, np.prod, np.clip, np.sqrt,
-                   np.random.rand, np.random.randn]
-    namespace.update([(func.__name__, func) for func in numpy_funcs])
-    
-    # unitsafe replacements for numpy functions
-    replacements = [usf.log, usf.exp, usf.sin, usf.cos, usf.tan, usf.sinh,
-                    usf.cosh, usf.tanh, usf.arcsin, usf.arccos, usf.arctan,
-                    usf.arcsinh, usf.arccosh, usf.arctanh, usf.where]
-    namespace.update([(func.__name__, func) for func in replacements])
-    
+    namespace.update({'randn': RandnFunction(N),
+                      '_randn': np.random.randn})
     return namespace
-
-DEFAULT_NUMPY_NAMESPACE = _get_default_numpy_namespace()
 
 
 def _get_default_unit_namespace():

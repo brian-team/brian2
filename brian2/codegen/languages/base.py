@@ -44,7 +44,7 @@ class Language(object):
         '''
         raise NotImplementedError
 
-    def translate_statement_sequence(self, statements, specifiers, indices):
+    def translate_statement_sequence(self, statements, specifiers, namespace, indices):
         '''
         Translate a sequence of Statements into the target language, taking
         care to declare variables, etc. if necessary.
@@ -65,7 +65,7 @@ class Language(object):
         namespace = self.prepare_namespace(namespace, specifiers)
 
         logger.debug(name + " abstract code:\n" + abstract_code)
-        innercode = translate(abstract_code, specifiers,
+        innercode = translate(abstract_code, specifiers, namespace,
                               brian_prefs['core.default_scalar_dtype'],
                               self, indices)
         logger.debug(name + " inner code:\n" + str(innercode))
@@ -85,10 +85,6 @@ class Language(object):
             if isinstance(value, ArrayVariable):
                 arrays.append((value.arrayname, value.array))
         namespace.update(arrays)
-
-        # FIXME: This is has to move somewhere else as the concrete function
-        # is different between languages (but that is true for all functions) 
-        namespace.update({'randn': numpy.random.randn})
 
         return namespace
 

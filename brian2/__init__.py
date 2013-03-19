@@ -61,6 +61,7 @@ from brian2.core.magic import *
 from brian2.core.operations import *
 from brian2.stateupdaters import *
 from brian2.codegen import *
+from brian2.core.namespace import *
 from brian2.groups import *
 from brian2.monitors import *
 
@@ -86,5 +87,3 @@ def restore_initial_state():
 
 # make the test suite available via brian2.test()
 from brian2.tests import run as test
-    
-    

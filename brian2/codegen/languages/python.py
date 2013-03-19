@@ -18,7 +18,7 @@ class PythonLanguage(Language):
             op = '='
         return var + ' ' + op + ' ' + self.translate_expression(expr)
 
-    def translate_statement_sequence(self, statements, specifiers, indices):
+    def translate_statement_sequence(self, statements, specifiers, namespace, indices):
         read, write = self.array_read_write(statements, specifiers)
         lines = []
         # read arrays

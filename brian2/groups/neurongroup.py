@@ -173,7 +173,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         self.specifiers = self.create_specifiers()
 
         # Setup the namespace
-        self.namespace = self.create_namespace(namespace)
+        self.namespace = self.create_namespace(self.N, namespace)
 
         # Check units
         self.equations.check_units(self.namespace, self.specifiers)
@@ -261,6 +261,10 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
     def create_state_updater(self):
         '''Create the `StateUpdater`.'''
         identifiers = self.equations.identifiers
+
+        # For stochastic equations, we also need access to randn and _randn
+        if not self.equations.stochastic_type is None:
+            identifiers |= set(['randn', '_randn'])
 
         codeobj = self.create_codeobj("state updater",
                                       self.abstract_code,
