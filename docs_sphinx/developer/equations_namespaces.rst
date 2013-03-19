@@ -38,15 +38,14 @@ The `namespace` attribute of a group contains information about the external
 `CompoundNamespace` object, containing sub-namespaces (e.g. the user-specified
 namespace, the local variables, the global variables, the units, etc.)
 All objects that have a namespace (currently, `NeuronGroup` and `Synapses`),
-inherit from `ObjectWithNamespace` [maybe we could find a better name? Should
-we merge the class with `Group` maybe?] and save the local and global
-namespace on creation. They are then supposed to initialize the `namespace`
-attribute with a new `CompoundNamespace` object. Typically, this should be done
-using the `create_namespace` method provided by `ObjectWithNamespace`.
-This means having the following line in `__init__`::
+inherit from `ObjectWithNamespace` [maybe we could find a better name?] and
+save the local and global namespace on creation. They are then supposed to
+initialize the `namespace` attribute with a new `CompoundNamespace` object.
+Typically, this should be done using the `create_namespace` method provided by
+`ObjectWithNamespace`. This means having the following line in `__init__`::
 
 	# 'namespace' is the keyword argument, i.e. a dictionary or None
-	self.namespace = self.create_namespace(namespace) 
+	self.namespace = self.create_namespace(self.N, namespace) 
 
 The `namespace` attribute of a `NeuronGroup`/`Synapses` can be used like a
 read-only dictionary. The `~ObjectWithNamespace.resolve_all` method can be used
