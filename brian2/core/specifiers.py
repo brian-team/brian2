@@ -14,6 +14,8 @@ __all__ = ['Specifier',
            'ArrayVariable',
            'OutputVariable',
            'Subexpression',
+           'StochasticVariable',
+           'UnstoredVariable',
            'Index',
            ]
 
@@ -21,6 +23,15 @@ class Specifier(object):
     pass
 
 class Function(Specifier):
+    pass
+
+class UnstoredVariable(Specifier):
+    '''
+        Superclass for specifiers that do not have any storage associated with
+        them. One example are stochastic variables, that need specifiers (to
+        allow for unit checking, for example) but are only temporarily
+        created within the state update loop.
+    '''
     pass
 
 class Value(Specifier):
@@ -34,7 +45,7 @@ class Value(Specifier):
     def set_value(self):
         raise TypeError()
 
-class StochasticVariable(Specifier):
+class StochasticVariable(UnstoredVariable):
     def __init__(self, name, dtype):
         self.name = name
         # The units of stochastic variables is fixed
@@ -89,7 +100,7 @@ class ArrayVariable(Specifier):
     def set_value(self, value):
         self.array[:] = value
 
-class OutputVariable(Specifier):
+class OutputVariable(UnstoredVariable):
     '''
     Used to specify that this variable is used as an output of the code, with
     given ``dtype``.
