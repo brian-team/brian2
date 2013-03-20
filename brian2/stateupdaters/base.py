@@ -1,13 +1,12 @@
 '''
-This module defines the `Stateupdater` object that acts as a base class for all
-stateupdaters and allows to register stateupdaters so that it is able to
+This module defines the `StateUpdateMethod` class that acts as a base class for
+all stateupdaters and allows to register stateupdaters so that it is able to
 return a suitable stateupdater object for a given set of equations. This is used
 for example in `NeuronGroup` when no state updater is given explicitly.
 '''
 from abc import abstractmethod, ABCMeta
 
 from brian2.utils.logger import get_logger
-
 
 __all__ = ['StateUpdateMethod']
 
@@ -16,7 +15,7 @@ logger = get_logger(__name__)
 class StateUpdateMethod(object):
     __metaclass__ = ABCMeta
 
-    # : A dictionary of registered stateupdaters (using a short name as the key)
+    #: A dictionary of registered stateupdaters (using a short name as the key)
     stateupdaters = {}
 
     @abstractmethod
@@ -65,6 +64,18 @@ class StateUpdateMethod(object):
 
     @staticmethod
     def register(name, stateupdater):
+        '''
+        Register a state updater. Registered state updaters will be considered
+        when no state updater is explicitly given (e.g. in `NeuronGroup`) and
+        can be referred to via their name.
+        
+        Parameters
+        ----------
+        name : str
+            A short name for the state updater (e.g. `'euler'`)
+        stateupdater : `StateUpdaterMethod`
+            The state updater object, e.g. an `ExplicitStateUpdater`.
+        '''
         if name in StateUpdateMethod.stateupdaters:
             raise ValueError(('A stateupdater with the name "%s" '
                               'has already been registered') % name)

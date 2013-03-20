@@ -45,7 +45,7 @@ def split_expression(expr):
     '''
     Split an expression into a part containing the function ``f`` and another
     one containing the function ``g``. Returns a tuple of the two expressions
-    (as strings).
+    (as sympy expressions).
     
     Parameters
     ----------
@@ -55,13 +55,18 @@ def split_expression(expr):
     Returns
     -------
     (non_stochastic, stochastic) : tuple of sympy expressions
-        A pair of sympy expressions representing the non-stochastic (containing
+        A pair of expressions representing the non-stochastic (containing
         function-independent terms and terms involving ``f``) and the
-        stochastic part of the expression (terms involving ``g`` and/or ``xi``).
+        stochastic part of the expression (terms involving ``g`` and/or ``dW``).
     
     Examples
     --------
-    TODO
+    >>> print split_expression('dt * f(x, t)')
+    (dt*f(x, t), None)
+    >>> print split_expression('dt * f(x, t) + dW * g(x, t)')
+    (dt*f(x, t), dW*g(x, t))
+    >>> print split_expression('1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)')
+    (0, dW**2*dt**(-0.5)*g_support/2 - dW**2*dt**(-0.5)*g(x, t)/2)
     '''
     
     f = SYMBOLS['f']
@@ -72,6 +77,7 @@ def split_expression(expr):
     x_g = sympy.Wild('x_g', exclude=[f, g])
     t_g = sympy.Wild('t_g', exclude=[f, g])
     
+    # Reorder the expression so that f(x,t) and g(x,t) are factored out
     sympy_expr = sympy.sympify(expr, locals=SYMBOLS).expand()
     sympy_expr = sympy.collect(sympy_expr, f(x_f, t_f))
     sympy_expr = sympy.collect(sympy_expr, g(x_g, t_g))
@@ -91,7 +97,8 @@ def split_expression(expr):
                           'could not be parsed.' % sympy_expr))
     
     if x_f in matches:
-        non_stochastic = matches[independent] + matches[f_factor]*f(matches[x_f], matches[t_f])
+        non_stochastic = matches[independent] + (matches[f_factor]*
+                                                 f(matches[x_f], matches[t_f]))
     else:
         non_stochastic = matches[independent]
         
@@ -142,8 +149,8 @@ class ExplicitStateUpdater(StateUpdateMethod):
      
     Stochastic integrators can also make reference to ``dW`` (a normal
     distributed random number with variance ``dt``) and ``g(x, t)``, the
-    stochastic part of an equation. A stochastic state updater good therefore
-    use a description like:     
+    stochastic part of an equation. A stochastic state updater could therefore
+    use a description like::
         
         return x + dt*f(x,t) + g(x, t) * dW
     
@@ -167,7 +174,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
     stochastic : {None, 'additive', 'multiplicative'}
         What kind of stochastic equations this state updater supports: ``None``
         means no support of stochastic equations, ``'additive'`` means only
-        equations with additive noise and ``"multiplicative'`` means
+        equations with additive noise and ``'multiplicative'`` means
         supporting arbitrary stochastic equations.
     
     Raises
@@ -177,7 +184,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
     
     See also
     --------
-    euler, rk2, rk4
+    euler, rk2, rk4, milstein
     ''' 
     
     def __init__(self, description, priority, stochastic=None):

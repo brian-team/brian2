@@ -1,3 +1,6 @@
+'''
+This model defines the `NeuronGroup`, the core of most simulations.
+'''
 import weakref
 
 import numpy as np
@@ -178,7 +181,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         # Check units
         self.equations.check_units(self.namespace, self.specifiers)
 
-        # : The array of spikes from the most recent threshold operation
+        #: The array of spikes from the most recent threshold operation
         self.spikes = array([], dtype=int)
 
         # Code generation (TODO: this should be refactored and modularised)
@@ -187,9 +190,9 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             language = PythonLanguage()
         self.language = language
 
-        # : Performs thresholding step, sets the value of `spikes`
+        #: Performs thresholding step, sets the value of `spikes`
         self.thresholder = self.create_thresholder(threshold)
-        # : Resets neurons which have spiked (`spikes`)
+        #: Resets neurons which have spiked (`spikes`)
         self.resetter = self.create_resetter(reset)
 
         self.method = StateUpdateMethod.determine_stateupdater(self.equations,
@@ -197,7 +200,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                                                self.specifiers,
                                                                method)
 
-        # : Performs numerical integration step
+        #: Performs numerical integration step
         self.state_updater = self.create_state_updater()
 
         # Creation of contained_objects that do the work
