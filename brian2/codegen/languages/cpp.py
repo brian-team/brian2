@@ -234,7 +234,7 @@ class CPPLanguage(Language):
             %POINTERS%
             int _cpp_numspikes = 0;
             
-            npy_intp *_spikes_space = (npy_intp *)malloc(sizeof(npy_int) * _num_neurons);             
+            npy_int *_spikes_space = (npy_int *)malloc(sizeof(npy_int) * _num_neurons);             
             for(int _neuron_idx=0; _neuron_idx<_num_neurons; _neuron_idx++)
             {
                 %CODE%
