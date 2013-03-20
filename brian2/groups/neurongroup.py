@@ -1,3 +1,6 @@
+'''
+This model defines the `NeuronGroup`, the core of most simulations.
+'''
 import weakref
 
 import numpy as np
@@ -6,14 +9,14 @@ from numpy import array
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         STATIC_EQUATION, PARAMETER)
 from brian2.equations.refractory import add_refractoriness
-from brian2.stateupdaters.integration import euler
+from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.languages import PythonLanguage
 from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
 from brian2.core.namespace import ObjectWithNamespace
 from brian2.core.specifiers import (Value, AttributeValue, ArrayVariable,
-                                    Subexpression, Index)
+                                    StochasticVariable, Subexpression, Index)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.utils.logger import get_logger
@@ -99,8 +102,11 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         Number of neurons in the group.
     equations : (str, `Equations`)
         The differential equations defining the group
-    method : ?, optional
-        The numerical integration method.
+    method : (str, function), optional
+        The numerical integration method. Either a string with the name of a
+        registered method (e.g. "euler") or a function that receives an
+        `Equations` object and returns the corresponding abstract code. If no
+        method is specified, a suitable method will be chosen automatically.
     threshold : str, optional
         The condition which produces spikes. Should be a single line boolean
         expression.
@@ -129,15 +135,14 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
     attributes `state_updater`, `thresholder` and `resetter`.    
     '''
     basename = 'neurongroup'
-    def __init__(self, N, equations, method=euler,
+    def __init__(self, N, equations, method=None,
                  threshold=None,
                  reset=None,
                  namespace=None,
                  dtype=None, language=None,
                  clock=None, name=None):
         BrianObject.__init__(self, when=clock, name=name)
-        ##### VALIDATE ARGUMENTS AND STORE ATTRIBUTES
-        self.method = method
+
         try:
             self.N = N = int(N)
         except ValueError:
@@ -171,12 +176,12 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         self.specifiers = self.create_specifiers()
 
         # Setup the namespace
-        self.namespace = self.create_namespace(namespace)
+        self.namespace = self.create_namespace(self.N, namespace)
 
         # Check units
         self.equations.check_units(self.namespace, self.specifiers)
 
-        # : The array of spikes from the most recent threshold operation
+        #: The array of spikes from the most recent threshold operation
         self.spikes = array([], dtype=int)
 
         # Code generation (TODO: this should be refactored and modularised)
@@ -185,12 +190,18 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             language = PythonLanguage()
         self.language = language
 
-        # : Performs numerical integration step
-        self.state_updater = self.create_state_updater()
-        # : Performs thresholding step, sets the value of `spikes`
+        #: Performs thresholding step, sets the value of `spikes`
         self.thresholder = self.create_thresholder(threshold)
-        # : Resets neurons which have spiked (`spikes`)
+        #: Resets neurons which have spiked (`spikes`)
         self.resetter = self.create_resetter(reset)
+
+        self.method = StateUpdateMethod.determine_stateupdater(self.equations,
+                                                               self.namespace,
+                                                               self.specifiers,
+                                                               method)
+
+        #: Performs numerical integration step
+        self.state_updater = self.create_state_updater()
 
         # Creation of contained_objects that do the work
         self.contained_objects.append(self.state_updater)
@@ -253,6 +264,10 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
     def create_state_updater(self):
         '''Create the `StateUpdater`.'''
         identifiers = self.equations.identifiers
+
+        # For stochastic equations, we also need access to randn and _randn
+        if not self.equations.stochastic_type is None:
+            identifiers |= set(['randn', '_randn'])
 
         codeobj = self.create_codeobj("state updater",
                                       self.abstract_code,
@@ -348,7 +363,6 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
              't': AttributeValue(np.float64, self.clock, 't_', second),
              'dt': AttributeValue(np.float64, self.clock, 'dt_', second)}
 
-        # TODO: What about xi?
         for eq in self.equations.itervalues():
             if eq.eq_type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 array = self.arrays[eq.varname]
@@ -362,6 +376,9 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                                     eq.unit)})
             else:
                 raise AssertionError('Unknown equation type "%s"' % eq.eq_type)
+
+        for xi in self.equations.stochastic_variables:
+            s.update({xi: StochasticVariable(xi, np.float64)})
 
         return s
 
@@ -377,7 +394,7 @@ if __name__ == '__main__':
     N = 10000
     tau = 10 * ms
     eqs = '''
-    dV/dt = (2*volt-V)/tau_real : volt (active)
+    dV/dt = (2*volt-V)/tau_real + 0.25*volt*xi_1/tau**.5 + + 0.25*volt*xi_2/tau**.5: volt (active)
     tau_real = 1 * tau : second # just to test that static equations work
     Vt : volt
     '''
@@ -386,7 +403,7 @@ if __name__ == '__main__':
     G = NeuronGroup(N, eqs,
                     threshold=threshold,
                     reset=reset,
-                    language=CPPLanguage()
+                    language=PythonLanguage(),
                     # language=NumexprPythonLanguage(),
                     )
     G.refractory = 5 * ms

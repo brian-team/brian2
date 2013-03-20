@@ -1,74 +1,127 @@
 State update
 ============
 
-In Brian 2.0, a state updater transforms a set of equations into an abstract
-state update code. The development of specific state update schemes is made
-easier.
-One difference with former versions is the direct handling of stochasticity.
-State updaters are target-independent.
+In Brian 2, a state updater transforms a set of equations into an abstract
+state update code (and therefore is automatically target-independent). In
+general, any function (or callable object) that takes an `Equations` object
+and returns abstract code (as a string) can be used as a state updater and
+passed to the `NeuronGroup` constructor as a ``method`` argument.
 
-In the following, we consider a set of stochastic differential equations written in
-vector form::
+The more common use case is to specify no state updater at all or chose one by
+name, see `Choice of state updaters`_ below.
 
-	dx/dt=f(x,t)+g(x,t)*xi
-
-Proposed mechanism: we allow both writing explicit schemes and generator-based state updaters
-as in experimental.codegen2.
 
 Explicit state update
 ---------------------
-In general, explicit state update schemes can be specified as a series of
-mathematical statements. Here are a few examples
+Explicit state update schemes can be specified in mathematical notation, using
+the `ExplicitStateUpdater` class. A state updater scheme contains of a series
+of statements, defining temporary variables and a final line (starting with
+``return``), giving the updated value for the state variable. The description
+can make reference to ``t`` (the current time), ``dt`` (the size of the time
+step), ``x`` (value of the state variable), and ``f(x, t)`` (the definition of
+the state variable ``x``, assuming ``dx/dt = f(x, t)``. In addition, state
+updaters supporting stochastic equations additionally make use of ``dW`` (a
+normal distributed random variable with variance ``dt``) and ``g(x, t)``, the
+factor multiplied with the noise variable, assuming
+``dx/dt = f(x, t) + g(x, t) * xi``.
 
-Euler
-^^^^^
+Using this notation, simple forward Euler integration is specified as::
 
-::
+	return x + dt * f(x, t)
 
-	x(t+dt)=x(t)+dt*f(x(t),t)
+A Runge-Kutta 2 (midpoint) method is specified as::
+	
+    k = dt * f(x,t)
+    return x + dt * f(x +  k/2, t + dt/2)
 
-Runge-Kutta 2 (midpoint)
-^^^^^^^^^^^^^^^^^^^^^^^^
+When creating a new state updater using `ExplicitStateUpdater`, you can
+specify the ``stochastic`` keyword argument, determining whether this state
+updater does not support any stochastic equations (``None``, the default),
+stochastic equations with additive noise only (``'additive'``), or
+arbitrary stochastic equations (``'multiplicative'``). The provided state
+updaters use the Stratonovich interpretation for stochastic equations (which
+is the correct interpretation if the white noise source is seen as the limit
+of a coloured noise source with a short time constant). As a result of this,
+the simple Euler-Maruyama scheme (``return x + dt*f(x, t) + dW*g(x, t)``) will
+only be used for additive noise. You can enforce the Itō interpretation,
+however, by simply directly passing such a state updater. For example, if you 
+specify `euler` for a system with multiplicative noise it will generate a
+warning (because the state updater does not give correct results under the
+Stratonovich interpretation) but will work (and give the correct result under
+the Itō interpretation).
 
-::
+An example for a general state updater that handles arbitrary multiplicative
+noise (under Stratonovich interpretation) is the derivative-free Milstein
+method::
 
-	x(t+dt)=x(t)+dt*f(x(t)+dt/2*f(x(t),t),t+dt/2)
+    x_support = x + dt*f(x, t) + dt**.5 * g(x, t)
+    g_support = g(x_support, t)
+    k = 1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)
+    return x + dt*f(x,t) + g(x, t) * dW + k 
 
-Runge-Kutta 4
-^^^^^^^^^^^^^
+Note that a single line in these descriptions is only allowed to mention
+``g(x, t)``, respectively ``f(x, t)`` only once (and you are not allowed to
+write, for example, ``g(f(x, t), t)``). You can work around these restrictions
+by using intermediate steps, defining temporary variables, as in the above
+examples for `milstein` and `rk2`.
 
-::
 
-	k1=dt*f(x(t),t)
-	k2=dt*f(x(t)+k1/2,t+dt/2)
-	k3=df*f(x(t)+k2/2,t+dt/2)
-	k4=df*f(x(t)+k3,t+dt)
-	x(t+dt)=x(t)+(k1+2*k2+2*k3+k4)/6
+Choice of state updaters
+------------------------
+As mentioned in the beginning, you can pass arbitrary callables to the
+method argument of a `NeuronGroup`, as long as this callable converts an
+`Equations` object into abstract code. The best way to add a new state updater,
+however, is to register it with brian and provide a method to determine whether
+it is appropriate for a given set of equations. This way, it can be
+automatically chosen when no method is specified and it can be referred to with
+a name (i.e. you can pass a string like ``'euler'`` to the method argument
+instead of importing `euler` and passing a reference to the object itself).
 
-Stochastic Euler
-^^^^^^^^^^^^^^^^
+If you create a new state updater using the `ExplicitStateUpdater` class, you
+have to specify a *priority* for this state updater, a number determining which
+state updater is chosen when more than one is appropriate for a given equation.
+For example, for equations without stochastic variables, `euler` will be chosen
+automatically, because it has a higher priority than the `rk2`, `rk4` and
+`milstein`. The same is the case for equations with additive noise, but then
+`rk2` and `rk4` are not even considered at all. For equations with
+multiplicative noise, however, `milstein` is the only available integrator.
 
-::
+.. note::
+	
+	This mechanism is not ideal, maybe the "best" integrator for additive noise
+	is not the same as for noise-free equations, for example? 
 
-	x(t+dt)=x(t)+dt*f(x(t),t)+dt**.5*g(x(t),t)*randn()
+After creating the state updater, it has to be registered with
+`StateUpdateMethod`::
 
-General schemes
-^^^^^^^^^^^^^^^^
-So explicit non-linear state update schemes are relatively simple to
-describe. I suggest that they can be described in a string as above, where
-x is taken as the vector of dynamic variables. Static variables are automatically
-calculated when f(x,t) is called (that is, we insert a string of update statements
-before any such expression). We may use x instead of x(t), and remove the final
-assignment. In this case, RK4 will become::
+    new_state_updater = ExplicitStateUpdater('...', priority=40,
+                                             stochastic='additive')
+    StateUpdateMethod.register('mymethod', new_state_updater)
 
-	k1=dt*f(x,t)
-	k2=dt*f(x+k1/2,t+dt/2)
-	k3=df*f(x+k2/2,t+dt/2)
-	k4=df*f(x+k3,t+dt)
-	return x+(k1+2*k2+2*k3+k4)/6
+
+The preferred way to do write new general state updaters (i.e. state updaters
+that cannot be described using the explicit syntax described above) is to
+extend the `StateUpdaterMethod` class (but this is not strictly necessary, all
+that is needed is an object that implements a ``get_priority`` and a
+``__call__`` method). The new class's ``get_priority`` method gets an
+`Equations` object, a `namespace` dictionary for the external
+variables/functions and a `specifier` dictionary for the internal state
+variables. It has to return an integer value, the priority of the state updater
+for the given situation (``0`` if it is not applicable, a positive value if it
+is applicable). The method would typically make use of
+`Equations.is_stochastic` or `Equations.stochastic_type`, check whether any
+external functions are used, etc.. Finally, the state updater has to be registered
+with `StateUpdateMethod` as shown above.
 
 Implicit state updates
 ----------------------
+
+.. note::
+
+	All of the following is just here for future reference, it's not
+	implemented yet.
+
+
 Implicit schemes often use Newton-Raphson or fixed point iterations.
 These can also be defined by mathematical statements, but the number of iterations
 is dynamic and therefore not easily vectorised. However, this might not be

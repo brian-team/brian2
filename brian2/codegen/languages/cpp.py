@@ -1,16 +1,19 @@
 '''
 TODO: restrict keyword optimisations
 '''
-import sympy
+import itertools
+
 from sympy.printing.ccode import CCodePrinter
 import numpy
 from scipy import weave
+import re
 
 from brian2.utils.stringtools import deindent
 from brian2.utils.parsing import parse_to_sympy
 
+from brian2.codegen.functions.base import Function
 from .base import Language, CodeObject
-from ..functions import UserFunction
+
 
 
 __all__ = ['CPPLanguage', 'CPPCodeObject',
@@ -47,6 +50,7 @@ def c_data_type(dtype):
     else:
         raise ValueError("dtype " + str(dtype) + " not known.")
     return dtype
+
 
 class CPPLanguage(Language):
     '''
@@ -103,8 +107,12 @@ class CPPLanguage(Language):
         self.flush_denormals = flush_denormals
 
     def translate_expression(self, expr):
+        # temporary hack to make randn() pass through sympy
+        expr = re.sub(r'\brandn\b\s*\(\s*\)', '_temporary_randn_symbol', expr)
         expr = parse_to_sympy(expr)
-        return CCodePrinter().doprint(expr)
+        expr = CCodePrinter().doprint(expr)
+        expr = re.sub(r'\b_temporary_randn_symbol\b', 'randn()', expr)
+        return expr
 
     def translate_statement(self, statement):
         var, op, expr = statement.var, statement.op, statement.expr
@@ -117,7 +125,7 @@ class CPPLanguage(Language):
             decl = ''
         return decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
 
-    def translate_statement_sequence(self, statements, specifiers, indices):
+    def translate_statement_sequence(self, statements, specifiers, namespace, indices):
         read, write = self.array_read_write(statements, specifiers)
         lines = []
         # read arrays
@@ -156,14 +164,22 @@ class CPPLanguage(Language):
             line = c_data_type(spec.dtype) + ' * ' + self.restrict + '_ptr' + spec.arrayname + ' = ' + spec.arrayname + ';'
             lines.append(line)
         pointers = '\n'.join(lines)
-        # set up the user-defined functions
+        
+        # set up the functions
+        user_functions = []
         support_code = ''
         hash_defines = ''
-        for var, spec in specifiers.items():
-            if isinstance(spec, UserFunction):
+        for var, spec in namespace.items(): 
+            if isinstance(spec, Function):
+                user_functions.append(var)
                 speccode = spec.code(self, var)
                 support_code += '\n' + deindent(speccode['support_code'])
                 hash_defines += deindent(speccode['hashdefine_code'])
+        
+        # delete the user-defined functions from the namespace
+        for func in user_functions:
+            del namespace[func]
+        
         # return
         translation = {'%CODE%': code,
                        '%POINTERS%': pointers,

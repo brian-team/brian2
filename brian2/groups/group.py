@@ -1,3 +1,7 @@
+'''
+This module defines the `Group` object, a mix-in class for everything that
+saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
+'''
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch
 
 __all__ = ['Group']

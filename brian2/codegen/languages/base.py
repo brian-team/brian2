@@ -3,14 +3,15 @@ Base class for languages, gives the methods which should be overridden to
 implement a new language.
 '''
 import functools
+import numpy
 
 from brian2.core.preferences import brian_prefs
-from brian2.core.specifiers import ArrayVariable, Value
+from brian2.core.specifiers import ArrayVariable, Value, StochasticVariable
 from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.utils.logger import get_logger
 
 from ..templating import apply_code_template
-from ..functions import UserFunction
+from ..functions import Function
 from ..translation import translate
 
 logger = get_logger(__name__)
@@ -43,7 +44,7 @@ class Language(object):
         '''
         raise NotImplementedError
 
-    def translate_statement_sequence(self, statements, specifiers, indices):
+    def translate_statement_sequence(self, statements, specifiers, namespace, indices):
         '''
         Translate a sequence of Statements into the target language, taking
         care to declare variables, etc. if necessary.
@@ -64,7 +65,7 @@ class Language(object):
         namespace = self.prepare_namespace(namespace, specifiers)
 
         logger.debug(name + " abstract code:\n" + abstract_code)
-        innercode = translate(abstract_code, specifiers,
+        innercode = translate(abstract_code, specifiers, namespace,
                               brian_prefs['core.default_scalar_dtype'],
                               self, indices)
         logger.debug(name + " inner code:\n" + str(innercode))
@@ -96,7 +97,7 @@ class Language(object):
     def compile_methods(self, specifiers):
         meths = []
         for var, spec in specifiers.items():
-            if isinstance(spec, UserFunction):
+            if isinstance(spec, Function):
                 meths.append(functools.partial(spec.on_compile, language=self,
                                                var=var))
         return meths
