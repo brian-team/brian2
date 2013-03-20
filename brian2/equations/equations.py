@@ -52,7 +52,7 @@ EXPRESSION = Combine(OneOrMore((CharsNotIn(':#\n') +
 # a unit
 # very broad definition here, again. Whether this corresponds to a valid unit
 # string will be checked later
-UNIT = Word(string.ascii_letters + string.digits + '*/. ').setResultsName('unit')
+UNIT = Word(string.ascii_letters + string.digits + '*/.- ').setResultsName('unit')
 
 # a single Flag (e.g. "const" or "event-driven")
 FLAG = Word(string.ascii_letters + '_-')
@@ -244,20 +244,6 @@ class SingleEquation(object):
         # will be set later in the sort_static_equations method of Equations
         self.update_order = -1
 
-    def replace_code(self, code):
-        '''
-        Return a new `SingleEquation` based on an existing one. This is used
-        internally, when an equation string is replaced or changed while all
-        the other information is kept (units, flags, etc.). For example,
-        the `~brian2.equations.refractory.add_refractory` function replaces
-        all differential equations having the ``(active)`` flag with a new
-        equation. 
-        '''
-        return SingleEquation(self.eq_type,
-                              self.varname,
-                              self.unit,
-                              self.expr.replace_code(code),
-                              self.flags)
 
     identifiers = property(lambda self: self.expr.identifiers
                            if not self.expr is None else set([]),
@@ -521,18 +507,52 @@ class Equations(collections.Mapping):
             if eq.expr is None:
                 continue
 
-            expr = eq.expr.replace_code(word_substitute(eq.expr.code, substitutions))
+            expr = Expression(word_substitute(eq.expr.code, substitutions))
 
             if eq.eq_type == STATIC_EQUATION:
                 substitutions.update({eq.varname: '(%s)' % expr.code})
             elif eq.eq_type == DIFFERENTIAL_EQUATION:
                 #  a differential equation that we have to check
-                expr.resolve(self.names)
                 subst_exprs.append((eq.varname, expr))
             else:
                 raise AssertionError('Unknown equation type %s' % eq.eq_type)
 
         return subst_exprs
+
+    def _get_stochastic_type(self):
+        '''
+        Returns the type of stochastic differential equations (additivive or
+        multiplicative). The system is only classified as ``additive`` if *all*
+        equations have only additive noise (or no noise).
+        
+        Returns
+        -------
+        type : str
+            Either ``None`` (no noise variables), ``'additive'`` (factors for
+            all noise variables are independent of other state variables or
+            time), ``'multiplicative'`` (at least one of the noise factors
+            depends on other state variables and/or time).
+        '''
+        
+        # TODO: Add debug output
+        
+        if not self.is_stochastic:
+            return None
+        
+        for _, expr in self.substituted_expressions:
+            _, stochastic = expr.split_stochastic()
+            for factor in stochastic.itervalues():
+                if 't' in factor.identifiers:
+                    # noise factor depends on time
+                    return 'multiplicative'
+                
+                for identifier in factor.identifiers:
+                    if identifier in self.diff_eq_names:
+                        # factor depends on another state variable
+                        return 'multiplicative'
+        
+        return 'additive'
+
 
     ############################################################################
     # Properties
@@ -568,28 +588,37 @@ class Equations(collections.Mapping):
     diff_eq_names = property(lambda self: set([eq.varname for eq in self.ordered
                                            if eq.eq_type == DIFFERENTIAL_EQUATION]),
                              doc='All differential equation names.')
+
     static_eq_names = property(lambda self: set([eq.varname for eq in self.ordered
                                            if eq.eq_type == STATIC_EQUATION]),
                                doc='All static equation names.')
+
     eq_names = property(lambda self: set([eq.varname for eq in self.ordered
                                            if eq.eq_type in (DIFFERENTIAL_EQUATION, STATIC_EQUATION)]),
                         doc='All (static and differential) equation names.')
+
     parameter_names = property(lambda self: set([eq.varname for eq in self.ordered
                                              if eq.eq_type == PARAMETER]),
                                doc='All parameter names.')
 
     units = property(lambda self:dict([(var, eq.unit) for var, eq in
                                        self._equations.iteritems()]),
-                     doc='Dictionary of all internal variables and their corresponding units.')
-
-    variables = property(lambda self: set(self.units.keys()),
-                         doc='Set of all variables (including t, dt, and xi)')
+                     doc='Dictionary of all internal variables and their corresponding units.')
 
     identifiers = property(lambda self: set().union(*[eq.identifiers for
                                                       eq in self._equations.itervalues()]) -
                            self.names,
                            doc=('Set of all identifiers used in the equations, '
                                 'excluding the variables defined in the equations'))
+
+    stochastic_variables = property(lambda self: set([variable for variable in self.identifiers
+                                                      if variable =='xi' or variable.startswith('xi_')]))
+
+    # general properties
+    is_stochastic = property(lambda self: len(self.stochastic_variables) > 0,
+                             doc='Whether the equations are stochastic.')
+
+    stochastic_type = property(fget=_get_stochastic_type)
 
     def _sort_static_equations(self):
         '''
@@ -665,7 +694,7 @@ class Equations(collections.Mapping):
         # Create a mapping with all identifier names to either their actual
         # value (for external identifiers) or their unit (for specifiers)
         unit_namespace = {}
-        for name in self.identifiers | self.variables:
+        for name in self.identifiers | self.names:
             if name in specifiers:
                 unit_namespace.update({name: specifiers[name].unit})
             else:

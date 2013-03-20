@@ -4,21 +4,30 @@ Classes used to specify the type of a function, variable or common sub-expressio
 TODO: have a single global dtype rather than specify for each variable?
 '''
 
+from brian2.units.allunits import second
+
 from brian2.utils.stringtools import get_identifiers
 
 __all__ = ['Specifier',
-           'Function',
            'Value',
            'ArrayVariable',
            'OutputVariable',
            'Subexpression',
+           'StochasticVariable',
+           'UnstoredVariable',
            'Index',
            ]
 
 class Specifier(object):
     pass
 
-class Function(Specifier):
+class UnstoredVariable(Specifier):
+    '''
+        Superclass for specifiers that do not have any storage associated with
+        them. One example are stochastic variables, that need specifiers (to
+        allow for unit checking, for example) but are only temporarily
+        created within the state update loop.
+    '''
     pass
 
 class Value(Specifier):
@@ -32,6 +41,12 @@ class Value(Specifier):
     def set_value(self):
         raise TypeError()
 
+class StochasticVariable(UnstoredVariable):
+    def __init__(self, name, dtype):
+        self.name = name
+        # The units of stochastic variables is fixed
+        self.unit = second**(-.5)
+        self.dtype = dtype
 
 class AttributeValue(Value):
     '''
@@ -81,7 +96,7 @@ class ArrayVariable(Specifier):
     def set_value(self, value):
         self.array[:] = value
 
-class OutputVariable(Specifier):
+class OutputVariable(UnstoredVariable):
     '''
     Used to specify that this variable is used as an output of the code, with
     given ``dtype``.

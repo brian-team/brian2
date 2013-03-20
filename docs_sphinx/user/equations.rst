@@ -125,8 +125,9 @@ raised.
    from the pre-synaptic group (using a ``_pre`` suffix) or from the post-synaptic
    group (using a ``_post`` suffix or no suffix).
 4. explicitly given entries in the namespace dictionary
-5. A standard set of numpy functions (with unit-aware replacements, the names
-   in `~brian2.core.namespace.DEFAULT_NUMPY_NAMESPACE`).
+5. A standard set of numpy functions (with unit-aware/code-generation
+   replacements, the names in
+   `~brian2.core.namespace.get_default_numpy_namespace`).
 6. units (the names in `~brian2.core.namespace.DEFAULT_UNIT_NAMESPACE`),
    containing all registered units plus the standard units (ms, mV, nS, etc.)
 7. external variables/functions in the local implicit namespace (if one is used)
