@@ -12,6 +12,7 @@ describing planned features, discussions and general thoughts.
 .. toctree::
    :maxdepth: 2
 
+   overview
    guidelines/index
    clocks
    units
