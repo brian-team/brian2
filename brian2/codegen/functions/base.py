@@ -1,8 +1,6 @@
-from brian2.core.specifiers import Function
+__all__ = ['Function', 'SimpleFunction', 'make_function']
 
-__all__ = ['UserFunction', 'SimpleUserFunction', 'make_user_function']
-
-class UserFunction(Function):
+class Function(object):
     '''
     User-defined function to work with code generation
     
@@ -56,7 +54,7 @@ class UserFunction(Function):
         namespace[var] = self
 
 
-class SimpleUserFunction(UserFunction):
+class SimpleFunction(Function):
     '''
     A simplified, less generic version of `UserFunction`.
     
@@ -83,7 +81,7 @@ class SimpleUserFunction(UserFunction):
             namespace[var] = self.pyfunc
         
 
-def make_user_function(codes, namespace):
+def make_function(codes, namespace):
     '''
     A simple decorator to extend user-written Python functions to work with code
     generation in other languages.
@@ -94,7 +92,7 @@ def make_user_function(codes, namespace):
     
     Sample usage::
     
-        @make_user_function(codes={
+        @make_function(codes={
             'cpp':{
                 'support_code':"""
                     #include<math.h>
@@ -110,5 +108,5 @@ def make_user_function(codes, namespace):
             return sin(x)
     '''
     def do_make_user_function(func):
-        return SimpleUserFunction(codes, namespace, pyfunc=func)
+        return SimpleFunction(codes, namespace, pyfunc=func)
     return do_make_user_function

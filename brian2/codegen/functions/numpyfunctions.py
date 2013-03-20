@@ -1,10 +1,10 @@
 from numpy.random import randn
 
-from .base import UserFunction
+from .base import Function
 
 __all__ = ['RandnFunction']
 
-class RandnFunction(UserFunction):
+class RandnFunction(Function):
     
     def __init__(self, N):
         self.N = N

@@ -11,7 +11,7 @@ from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.utils.logger import get_logger
 
 from ..templating import apply_code_template
-from ..functions import UserFunction
+from ..functions import Function
 from ..translation import translate
 
 logger = get_logger(__name__)
@@ -97,7 +97,7 @@ class Language(object):
     def compile_methods(self, specifiers):
         meths = []
         for var, spec in specifiers.items():
-            if isinstance(spec, UserFunction):
+            if isinstance(spec, Function):
                 meths.append(functools.partial(spec.on_compile, language=self,
                                                var=var))
         return meths

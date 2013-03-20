@@ -11,7 +11,7 @@ import re
 from brian2.utils.stringtools import deindent
 from brian2.utils.parsing import parse_to_sympy
 
-from brian2.codegen.functions.base import UserFunction
+from brian2.codegen.functions.base import Function
 from .base import Language, CodeObject
 
 
@@ -165,12 +165,12 @@ class CPPLanguage(Language):
             lines.append(line)
         pointers = '\n'.join(lines)
         
-        # set up the user-defined functions
+        # set up the functions
         user_functions = []
         support_code = ''
         hash_defines = ''
-        for var, spec in itertools.chain(specifiers.items(), namespace.items()): 
-            if isinstance(spec, UserFunction):
+        for var, spec in namespace.items(): 
+            if isinstance(spec, Function):
                 user_functions.append(var)
                 speccode = spec.code(self, var)
                 support_code += '\n' + deindent(speccode['support_code'])

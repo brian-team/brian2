@@ -9,7 +9,6 @@ from brian2.units.allunits import second
 from brian2.utils.stringtools import get_identifiers
 
 __all__ = ['Specifier',
-           'Function',
            'Value',
            'ArrayVariable',
            'OutputVariable',
@@ -20,9 +19,6 @@ __all__ = ['Specifier',
            ]
 
 class Specifier(object):
-    pass
-
-class Function(Specifier):
     pass
 
 class UnstoredVariable(Specifier):
