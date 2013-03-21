@@ -9,45 +9,126 @@ from brian2.units.allunits import second
 from brian2.utils.stringtools import get_identifiers
 
 __all__ = ['Specifier',
+           'VariableSpecifier',
            'Value',
-           'ArrayVariable',
-           'Subexpression',
+           'ReadOnlyValue',
            'StochasticVariable',
-           'UnstoredVariable',
+           'AttributeValue'
+           'ArrayVariable',
+           'Subexpression',           
            'Index',
            ]
+
 ###############################################################################
 # Parent classes
 ###############################################################################
 class Specifier(object):
+    '''
+    An object providing information about parts of a model (e.g. variables).
+    `Specifier` objects are used both to store the information within the model
+    (and allow for things like unit checking) and are passed on to code
+    generation to specify properties like the dtype.
+    
+    This class is only used as a parent class for more concrete specifiers.
+    
+    Parameters
+    ----------
+    name : str
+        The name of the specifier (e.g. the name of the model variable)
+    '''
+      
     def __init__(self, name):
+        #: The name of the thing being specified (e.g. the model variable)
         self.name = name
 
 
 class VariableSpecifier(Specifier):
+    '''
+    An object providing information about model variables (including implicit
+    variables such as ``t`` or ``xi``).
+    
+    Parameters
+    ----------
+    name : str
+        The name of the variable.
+    unit : `Unit`
+        The unit of the variable
+    
+    See Also
+    --------
+    Value
+    '''
     def __init__(self, name, unit):
         Specifier.__init__(self, name)
+        
+        #: The variable's unit.
         self.unit = unit
 
 
 class Value(VariableSpecifier):
+    '''
+    An object providing information about model variables that have an
+    associated value in the model.
+    
+    Some variables, for example stochastic variables, are not stored anywhere
+    in the model itself. They would therefore be represented by a specifier
+    that is *not* derived from `Value` but from `VariableSpecifier`. 
+    
+    Parameters
+    ----------
+    name : str
+        The name of the variable.
+    unit : `Unit`
+        The unit of the variable
+    dtype: `numpy.dtype`
+        The dtype used for storing the variable.
+    '''
     def __init__(self, name, unit, dtype):
         VariableSpecifier.__init__(self, name, unit)
+        #: The dtype used for storing the variable.
         self.dtype = dtype
     
     def get_value(self):
+        '''
+        Return the value associated with the variable.
+        '''
         raise NotImplementedError()
     
     def set_value(self):
+        '''
+        Set the value associated with the variable.
+        '''
         raise NotImplementedError()
 
 ###############################################################################
-# Concrete classes that are actually used as specifiers
+# Concrete classes that are used as specifiers in practice.
 ###############################################################################
 
 class ReadOnlyValue(Value):
+    '''
+    An object providing information about a model variable that can only be
+    read (e.g. the length of a `NeuronGroup`). It is assumed that the value
+    does never change, for changing values use `AttributeValue` instead.
+    
+    Parameters
+    ----------
+    name : str
+        The name of the variable.
+    unit : `Unit`
+        The unit of the variable
+    dtype: `numpy.dtype`
+        The dtype used for storing the variable.
+    value : reference to a value of type `dtype`
+        Reference to the variable's value
+    
+    Raises
+    ------
+    TypeError
+        When trying to use the `set_value` method.
+    '''
     def __init__(self, name, unit, dtype, value):
         Value.__init__(self, name, unit, dtype)
+        #: Reference to the variable's value
         self.value = value
 
     def get_value(self):
@@ -58,6 +139,15 @@ class ReadOnlyValue(Value):
 
 
 class StochasticVariable(VariableSpecifier):
+    '''
+    An object providing information about a stochastic variable. Automatically
+    sets the unit to ``second**-.5``.
+    
+    Parameters
+    ----------
+    name : str
+        The name of the stochastic variable.    
+    '''
     def __init__(self, name):
         # The units of stochastic variables is fixed
         VariableSpecifier.__init__(self, name, second**(-.5))
@@ -65,15 +155,44 @@ class StochasticVariable(VariableSpecifier):
 
 class AttributeValue(ReadOnlyValue):
     '''
-    A value saved as an attribute of an object. Instead of saving a reference
-    to the value itself, we save the name of the attribute. This way, we get
-    the correct value if the attribute is overwritten with a new value (e.g.
-    in the case of ``clock.t_``)
+    An object providing information about a value saved as an attribute of an
+    object. Instead of saving a reference to the value itself, we save the
+    name of the attribute. This way, we get the correct value if the attribute
+    is overwritten with a new value (e.g. in the case of ``clock.t_``)
+    
+    The object value has to be accessible by doing ``getattr(obj, attribute)``.
+    
+    Parameters
+    ----------
+    name : str
+        The name of the variable.
+    unit : `Unit`
+        The unit of the variable
+    dtype: `numpy.dtype`
+        The dtype used for storing the variable.
+    obj : object
+        The object storing the variable's value (e.g. a `NeuronGroup`).
+    attribute : str
+        The name of the attribute storing the variable's value. `attribute` has
+        to be an attribute of `obj`.
+    
+    Raises
+    ------
+    AttributeError
+        If `obj` does not have an attribute `attribute`.
+        
     '''
     def __init__(self, name, unit, dtype, obj, attribute):
         Value.__init__(self, name, unit, dtype)
+        if not hasattr(obj, attribute):
+            raise AttributeError(('Object %r does not have an attribute %r, '
+                                  'providing the value for %r') %
+                                 (obj, attribute, name))
+        #: A reference to the object storing the variable's value         
         self.obj = obj
+        #: The name of the attribute storing the variable's value
         self.attribute = attribute
+
 
     def get_value(self):
         return getattr(self.obj, self.attribute)
@@ -81,22 +200,41 @@ class AttributeValue(ReadOnlyValue):
 
 class ArrayVariable(Value):
     '''
-    Used to specify that the variable comes from an array (named ``array``) with
-    given ``dtype`` using index variable ``index``. The creation of these
-    index variables should be done in the template.
+    An object providing information about a model variable stored in an array
+    (for example, all state variables). The `index` will be used in the
+    generated code (at least in languages such as C++, where the code always
+    loops over arrays). Stores a reference to the array name used in the
+    generated code, constructed as ``'_array_'`` + ``name``.
     
     For example, for::
     
-        ``v = ArrayVariable('_array_v', float64)``
+        ``v = ArrayVariable('_array_v', volt, float64, group.arrays['v'], '_index')``
     
     we would eventually produce C++ code that looked like::
     
         double &v = _array_v[_index];
+    
+    Parameters
+    ----------
+    name : str
+        The name of the variable.
+    unit : `Unit`
+        The unit of the variable
+    dtype : `numpy.dtype`
+        The dtype used for storing the variable.
+    array : `numpy.array`
+        A reference to the array storing the data for the variable.
+    index : str
+        The index that will be used in the generated code when looping over the
+        variable.
     '''
     def __init__(self, name, unit, dtype, array, index):
         Value.__init__(self, name, unit, dtype)
+        #: The reference to the array storing the data for the variable.
         self.array = array
+        #: The name for the array used in generated code
         self.arrayname = '_array_' + self.name
+        #: The name of the index that will be used in the generated code.
         self.index = index
 
     def get_value(self):
@@ -105,16 +243,27 @@ class ArrayVariable(Value):
     def set_value(self, value):
         self.array[:] = value
 
+
 class Subexpression(VariableSpecifier):
     '''
-    Sub-expression, comes from user-defined equation, used as a hint
-    in optimising. Can test if a variable is used via ``var in spec``.
-    The list of identifiers is given in the ``identifiers`` attribute, and
-    the full expression in the ``expr`` attribute.
+    An object providing information about a static equation in a model
+    definition, used as a hint in optimising. Can test if a variable is used
+    via ``var in spec``.
+    
+    Parameters
+    ----------
+    name : str
+        The name of the static equation.
+    unit : `Unit`
+        The unit of the static equation
+    expr : str
+        The expression defining the static equation.
     '''
     def __init__(self, name, unit, expr):
         VariableSpecifier.__init__(self, name, unit)
+        #: The expression defining the static equation.
         self.expr = expr.strip()
+        #: The identifiers used in the expression
         self.identifiers = get_identifiers(expr)
 
     def __contains__(self, var):
@@ -123,13 +272,25 @@ class Subexpression(VariableSpecifier):
 
 class Index(Specifier):
     '''
-    The variable is an index, you can specify ``all=True`` or ``False`` to say
-    whether it is varying over the whole of an input vector or a subset.
-    Vectorised langauges (i.e. Python) can use this to optimise the reading
-    and writing phase (i.e. you can do ``var = arr`` if ``all==True`` but you
-    need to ``var = arr[idx]`` if ``all=False``).
+    An object describing an index variable. You can specify ``iterate_all=True``
+    or ``False`` to say whether it is varying over the whole of an input vector
+    or a subset. Vectorised langauges (i.e. Python) can use this to optimise the
+    reading and writing phase (i.e. you can do ``var = arr`` if
+    ``iterate_all==True`` but you need to ``var = whole[idx]`` if
+    ``iterate_all==False``).
+    
+    Parameters
+    ----------
+    name : str
+        The name of the index.
+    iterate_all : bool, optional
+        Whether the index varies over the whole of an input vector (defaults to
+        ``True``).
     '''
-    def __init__(self, name, all=True):
+    def __init__(self, name, iterate_all=True):
         Specifier.__init__(self, name)
-        self.all = all
-
+        if bool(iterate_all) != iterate_all:
+            raise ValueError(('The "all" argument has to be a bool, '
+                              'is type %s instead' % type(all)))
+        #: Whether the index varies over the whole of an input vector
+        self.iterate_all = iterate_all

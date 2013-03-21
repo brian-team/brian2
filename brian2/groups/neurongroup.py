@@ -172,6 +172,9 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         ##### Setup the memory
         self.arrays = self.allocate_memory(dtype=dtype)
 
+        #: The array of spikes from the most recent threshold operation
+        self.spikes = array([], dtype=int)
+
         # Setup specifiers
         self.specifiers = self.create_specifiers()
 
@@ -180,9 +183,6 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
         # Check units
         self.equations.check_units(self.namespace, self.specifiers)
-
-        #: The array of spikes from the most recent threshold operation
-        self.spikes = array([], dtype=int)
 
         # Code generation (TODO: this should be refactored and modularised)
         # Temporary, set default language to Python
