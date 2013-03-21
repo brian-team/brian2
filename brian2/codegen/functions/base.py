@@ -1,7 +1,7 @@
 __all__ = ['Function', 'SimpleFunction', 'make_function']
 
 class Function(object):    
-    def __init__(self, pyfunc=None):
+    def __init__(self, pyfunc):
         self.pyfunc = pyfunc
     
     '''
@@ -56,6 +56,13 @@ class Function(object):
     def on_compile_python(self, namespace, language, var):
         namespace[var] = self
 
+    def __call__(self, *args):
+        '''
+        A `Function` specifier is callable, it applies the `Function.pyfunc`
+        function to the arguments. This way, unit checking works.
+        '''
+        return self.pyfunc(*args)
+
 
 class SimpleFunction(Function):
     '''
@@ -67,7 +74,7 @@ class SimpleFunction(Function):
     addition, you can specify a Python function ``pyfunc`` to call directly if
     the language is Python.
     '''
-    def __init__(self, codes, namespace, pyfunc=None):
+    def __init__(self, codes, namespace, pyfunc):
         Function.__init__(self, pyfunc)
         self.codes = codes
         self.namespace = namespace
@@ -80,7 +87,7 @@ class SimpleFunction(Function):
         
     def on_compile(self, namespace, language, var):
         namespace.update(self.namespace)
-        if self.pyfunc is not None and language.language_id=='python':
+        if language.language_id=='python':
             namespace[var] = self.pyfunc
         
 
