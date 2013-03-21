@@ -15,7 +15,7 @@ from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
 from brian2.core.namespace import ObjectWithNamespace
-from brian2.core.specifiers import (Value, AttributeValue, ArrayVariable,
+from brian2.core.specifiers import (ReadOnlyValue, AttributeValue, ArrayVariable,
                                     StochasticVariable, Subexpression, Index)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
@@ -259,7 +259,8 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                             self.specifiers,
                                             template,
                                             indices={'_neuron_idx':
-                                                     Index(iterate_all)})
+                                                     Index('_neuron_idx',
+                                                           iterate_all)})
 
     def create_state_updater(self):
         '''Create the `StateUpdater`.'''
@@ -358,27 +359,27 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         entries for the equation variables and some standard entries.
         '''
         # Standard specifiers always present
-        s = {'_num_neurons': Value(np.float64, self.N),
-             '_spikes' : AttributeValue(np.int, self, 'spikes', Unit(1)),
-             't': AttributeValue(np.float64, self.clock, 't_', second),
-             'dt': AttributeValue(np.float64, self.clock, 'dt_', second)}
+        s = {'_num_neurons': ReadOnlyValue('_num_neurons', Unit(1), np.int, self.N),
+             '_spikes' : AttributeValue('_spikes', Unit(1), np.int, self, 'spikes'),
+             't': AttributeValue('t',  second, np.float64, self.clock, 't_'),
+             'dt': AttributeValue('dt', second, np.float64, self.clock, 'dt_')}
 
         for eq in self.equations.itervalues():
             if eq.eq_type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 array = self.arrays[eq.varname]
                 s.update({eq.varname: ArrayVariable(eq.varname,
+                                                    eq.unit,
                                                     array.dtype,
                                                     array,
-                                                    '_neuron_idx',
-                                                    eq.unit)})
+                                                    '_neuron_idx')})
             elif eq.eq_type == STATIC_EQUATION:
-                s.update({eq.varname: Subexpression(str(eq.expr),
-                                                    eq.unit)})
+                s.update({eq.varname: Subexpression(eq.varname, eq.unit,
+                                                    str(eq.expr))})
             else:
                 raise AssertionError('Unknown equation type "%s"' % eq.eq_type)
 
         for xi in self.equations.stochastic_variables:
-            s.update({xi: StochasticVariable(xi, np.float64)})
+            s.update({xi: StochasticVariable(xi)})
 
         return s
 

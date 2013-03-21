@@ -11,64 +11,75 @@ from brian2.utils.stringtools import get_identifiers
 __all__ = ['Specifier',
            'Value',
            'ArrayVariable',
-           'OutputVariable',
            'Subexpression',
            'StochasticVariable',
            'UnstoredVariable',
            'Index',
            ]
-
+###############################################################################
+# Parent classes
+###############################################################################
 class Specifier(object):
-    pass
+    def __init__(self, name):
+        self.name = name
 
-class UnstoredVariable(Specifier):
-    '''
-        Superclass for specifiers that do not have any storage associated with
-        them. One example are stochastic variables, that need specifiers (to
-        allow for unit checking, for example) but are only temporarily
-        created within the state update loop.
-    '''
-    pass
 
-class Value(Specifier):
-    def __init__(self, dtype, value):
+class VariableSpecifier(Specifier):
+    def __init__(self, name, unit):
+        Specifier.__init__(self, name)
+        self.unit = unit
+
+
+class Value(VariableSpecifier):
+    def __init__(self, name, unit, dtype):
+        VariableSpecifier.__init__(self, name, unit)
         self.dtype = dtype
+    
+    def get_value(self):
+        raise NotImplementedError()
+    
+    def set_value(self):
+        raise NotImplementedError()
+
+###############################################################################
+# Concrete classes that are actually used as specifiers
+###############################################################################
+
+class ReadOnlyValue(Value):
+    def __init__(self, name, unit, dtype, value):
+        Value.__init__(self, name, unit, dtype)
         self.value = value
 
     def get_value(self):
         return self.value
 
     def set_value(self):
-        raise TypeError()
+        raise TypeError('The value "%s" is read-only' % self.name)
 
-class StochasticVariable(UnstoredVariable):
-    def __init__(self, name, dtype):
-        self.name = name
+
+class StochasticVariable(VariableSpecifier):
+    def __init__(self, name):
         # The units of stochastic variables is fixed
-        self.unit = second**(-.5)
-        self.dtype = dtype
+        VariableSpecifier.__init__(self, name, second**(-.5))
 
-class AttributeValue(Value):
+
+class AttributeValue(ReadOnlyValue):
     '''
     A value saved as an attribute of an object. Instead of saving a reference
     to the value itself, we save the name of the attribute. This way, we get
     the correct value if the attribute is overwritten with a new value (e.g.
     in the case of ``clock.t_``)
     '''
-    def __init__(self, dtype, obj, attribute, unit):
-        self.dtype = dtype
+    def __init__(self, name, unit, dtype, obj, attribute):
+        Value.__init__(self, name, unit, dtype)
         self.obj = obj
         self.attribute = attribute
-        self.unit = unit
 
     def get_value(self):
         return getattr(self.obj, self.attribute)
 
-    def set_value(self, value):
-        setattr(self.obj, self.attribute, value)
 
-
-class ArrayVariable(Specifier):
+class ArrayVariable(Value):
     '''
     Used to specify that the variable comes from an array (named ``array``) with
     given ``dtype`` using index variable ``index``. The creation of these
@@ -82,13 +93,11 @@ class ArrayVariable(Specifier):
     
         double &v = _array_v[_index];
     '''
-    def __init__(self, name, dtype, array, index, unit=None):
-        self.name = name
+    def __init__(self, name, unit, dtype, array, index):
+        Value.__init__(self, name, unit, dtype)
         self.array = array
         self.arrayname = '_array_' + self.name
         self.index = index
-        self.dtype = dtype
-        self.unit = unit
 
     def get_value(self):
         return self.array
@@ -96,28 +105,21 @@ class ArrayVariable(Specifier):
     def set_value(self, value):
         self.array[:] = value
 
-class OutputVariable(UnstoredVariable):
-    '''
-    Used to specify that this variable is used as an output of the code, with
-    given ``dtype``.
-    '''
-    def __init__(self, dtype):
-        self.dtype = dtype
-
-class Subexpression(Specifier):
+class Subexpression(VariableSpecifier):
     '''
     Sub-expression, comes from user-defined equation, used as a hint
     in optimising. Can test if a variable is used via ``var in spec``.
     The list of identifiers is given in the ``identifiers`` attribute, and
     the full expression in the ``expr`` attribute.
     '''
-    def __init__(self, expr, unit):
+    def __init__(self, name, unit, expr):
+        VariableSpecifier.__init__(self, name, unit)
         self.expr = expr.strip()
         self.identifiers = get_identifiers(expr)
-        self.unit = unit
 
     def __contains__(self, var):
         return var in self.identifiers
+
 
 class Index(Specifier):
     '''
@@ -127,9 +129,7 @@ class Index(Specifier):
     and writing phase (i.e. you can do ``var = arr`` if ``all==True`` but you
     need to ``var = arr[idx]`` if ``all=False``).
     '''
-    def __init__(self, all=True):
+    def __init__(self, name, all=True):
+        Specifier.__init__(self, name)
         self.all = all
 
-if __name__ == '__main__':
-    spec = Subexpression('x*y+z')
-    print 'y' in spec, 'w' in spec
