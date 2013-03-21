@@ -75,6 +75,23 @@ def _conflict_warning(message, resolutions):
                 'Namespace.resolve.resolution_conflict', once=True)
 
 
+def _same_function(func1, func2):
+    '''
+    Helper function, used during namespace resolution for comparing wether to
+    functions are the same. This takes care of treating a function and a
+    `Function` specifiers whose `Function.pyfunc` attribute matches as the
+    same. This prevents the user from getting spurious warnings when having
+    for example a numpy function such as :np:func:`~random.randn` in the local
+    namespace, while the ``randn`` symbol in the numpy namespace used for the
+    code objects refers to a `RandnFunction` specifier.
+    '''
+    # use the function itself if it doesn't have a pyfunc attribute
+    func1 = getattr(func1, 'pyfunc', func1)
+    func2 = getattr(func2, 'pyfunc', func2)
+    
+    return func1 is func2  
+
+
 class CompoundNamespace(collections.Mapping):
 
     def __init__(self):        
@@ -106,7 +123,8 @@ class CompoundNamespace(collections.Mapping):
         elif len(matches) > 1:
             # Possibly, all matches refer to the same object
             first_obj = matches[0][1]
-            if not all([m[1] is first_obj for m in matches]):
+            if not all([(m[1] is first_obj) or _same_function(m[1], first_obj)
+                        for m in matches]):
                 _conflict_warning(('The name "%s" refers to different objects '
                                    'in different namespaces used for resolving. '
                                    'Will use the object from the %s namespace '

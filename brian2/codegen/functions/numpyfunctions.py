@@ -7,6 +7,7 @@ __all__ = ['RandnFunction']
 class RandnFunction(Function):
     
     def __init__(self, N):
+        Function.__init__(self, pyfunc=randn)
         self.N = int(N)
     
     def __call__(self):

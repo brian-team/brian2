@@ -1,6 +1,9 @@
 __all__ = ['Function', 'SimpleFunction', 'make_function']
 
-class Function(object):
+class Function(object):    
+    def __init__(self, pyfunc=None):
+        self.pyfunc = pyfunc
+    
     '''
     User-defined function to work with code generation
     
@@ -65,7 +68,7 @@ class SimpleFunction(Function):
     the language is Python.
     '''
     def __init__(self, codes, namespace, pyfunc=None):
-        self.pyfunc = pyfunc
+        Function.__init__(self, pyfunc)
         self.codes = codes
         self.namespace = namespace
         
