@@ -364,6 +364,8 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
              't': AttributeValue('t',  second, np.float64, self.clock, 't_'),
              'dt': AttributeValue('dt', second, np.float64, self.clock, 'dt_')}
 
+        # First add all the differential equations and parameters, because they
+        # may be referred to by static equations
         for eq in self.equations.itervalues():
             if eq.eq_type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 array = self.arrays[eq.varname]
@@ -372,18 +374,33 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                                     array.dtype,
                                                     array,
                                                     '_neuron_idx')})
-            elif eq.eq_type == STATIC_EQUATION:
+        
+        # Now go through the static equations in the correct order, i.e. each
+        # static equation only depends on state variables (differential
+        # equations or parameters) or *previous* static equations 
+        for eq in self.equations.ordered:        
+            if eq.eq_type == STATIC_EQUATION:
                 # all external identifiers
-                identifiers = eq.identifiers - self.equations.names
+                identifiers = eq.identifiers - self.equations.names - set(s.keys())
                 resolved_namespace = self.namespace.resolve_all(identifiers)
+                
+                # because we are going through the equations that are already
+                # ordered, subexpressions only need information about specifiers
+                # that are already in the specifiers dictionary at this point.
+                # To avoid circular references, we create a copy of the
+                # specifiers dictionary that only contains weak references, so
+                # it does not prevent them from being garbage collected
+                specifiers_copy = {}
+                for k, v in s.iteritems():
+                    specifiers_copy[k] = weakref.proxy(v)
                 s.update({eq.varname: Subexpression(eq.varname, eq.unit,
                                                     brian_prefs['core.default_scalar_dtype'],
                                                     str(eq.expr),
-                                                    s,
+                                                    specifiers_copy,
                                                     resolved_namespace)})
-            else:
-                raise AssertionError('Unknown equation type "%s"' % eq.eq_type)
 
+
+        # Stochastic variables
         for xi in self.equations.stochastic_variables:
             s.update({xi: StochasticVariable(xi)})
 

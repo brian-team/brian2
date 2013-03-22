@@ -13,7 +13,7 @@ __all__ = ['StateMonitor']
 class MonitorVariable(Value):
     def __init__(self, name, unit, dtype, monitor):
         Value.__init__(self, name, unit, dtype)
-        self.monitor = monitor
+        self.monitor = weakref.proxy(monitor)
     
     def get_value(self):
         return array(self.monitor._values[self.name])
@@ -108,10 +108,10 @@ class StateMonitor(BrianObject, Group):
         self.specifiers = {}
         for variable in variables:
             spec = source.specifiers[variable]
-            self.specifiers.update({variable: MonitorVariable(variable,
-                                                              spec.unit,
-                                                              spec.dtype,
-                                                              self)})        
+            self.specifiers[variable] = MonitorVariable(variable,
+                                                        spec.unit,
+                                                        spec.dtype,
+                                                        self)        
         Group.__init__(self)
         
     def reinit(self):
