@@ -12,10 +12,12 @@ except ImportError:
 
 import numpy as np
 
+import brian2.units.unitsafefunctions as unitsafe
 from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Quantity, all_registered_units
 from brian2.units.stdunits import stdunits
-from brian2.codegen.functions.numpyfunctions import RandnFunction
+from brian2.codegen.functions.numpyfunctions import (FunctionWrapper,
+                                                     RandnFunction)
 
 __all__ = ['ObjectWithNamespace',
            'get_default_numpy_namespace',
@@ -75,6 +77,23 @@ def _conflict_warning(message, resolutions):
                 'Namespace.resolve.resolution_conflict', once=True)
 
 
+def _same_function(func1, func2):
+    '''
+    Helper function, used during namespace resolution for comparing wether to
+    functions are the same. This takes care of treating a function and a
+    `Function` specifiers whose `Function.pyfunc` attribute matches as the
+    same. This prevents the user from getting spurious warnings when having
+    for example a numpy function such as :np:func:`~random.randn` in the local
+    namespace, while the ``randn`` symbol in the numpy namespace used for the
+    code objects refers to a `RandnFunction` specifier.
+    '''
+    # use the function itself if it doesn't have a pyfunc attribute
+    func1 = getattr(func1, 'pyfunc', func1)
+    func2 = getattr(func2, 'pyfunc', func2)
+    
+    return func1 is func2  
+
+
 class CompoundNamespace(collections.Mapping):
 
     def __init__(self):        
@@ -106,7 +125,8 @@ class CompoundNamespace(collections.Mapping):
         elif len(matches) > 1:
             # Possibly, all matches refer to the same object
             first_obj = matches[0][1]
-            if not all([m[1] is first_obj for m in matches]):
+            if not all([(m[1] is first_obj) or _same_function(m[1], first_obj)
+                        for m in matches]):
                 _conflict_warning(('The name "%s" refers to different objects '
                                    'in different namespaces used for resolving. '
                                    'Will use the object from the %s namespace '
@@ -159,21 +179,12 @@ def get_default_numpy_namespace(N):
     '''
     Get the namespace of numpy functions/variables that is recognized by
     default. The namespace includes the constants :np:attr:`pi`,
-    :np:attr:`e` and :np:attr:`inf` and should eventually contain the following
-    functions:                  
-    :np:func:`abs`, :np:func:`arccos`, :np:func:`arccosh`,
-    :np:func:`arcsin`, :np:func:`arcsinh`, :np:func:`arctan`,
-    :np:func:`arctanh`, :np:func:`ceil`, :np:func:`clip`,
-    :np:func:`cos`, :np:func:`cosh`, :np:func:`exp`,
-    :np:func:`floor`, :np:func:`log`, :np:func:`max`,
-    :np:func:`mean`, :np:func:`min`, :np:func:`prod`,
-    :np:func:`round`, :np:func:`sin`, :np:func:`sinh`,
-    :np:func:`std`, :np:func:`sqrt`, :np:func:`sum`,
-    :np:func:`tan`, :np:func:`tanh`, :np:func:`var`, :np:func:`where`
-    
-    .. warning::
-    
-        At the moment, only :np:func:`randn` is actually supported... 
+    :np:attr:`e` and :np:attr:`inf` and the following
+    functions:
+    :np:func:`abs`, :np:func:`arccos`, :np:func:`arcsin`, :np:func:`arctan`,
+    :np:func:`arctanh`, :np:func:`ceil`, :np:func:`cos`, :np:func:`cosh`,
+    :np:func:`exp`, :np:func:`floor`, :np:func:`log`, :np:func:`sin`,
+    :np:func:`sinh`, :np:func:`sqrt`, :np:func:`tan`, :np:func:`tanh`  
     
     Returns
     -------
@@ -184,7 +195,30 @@ def get_default_numpy_namespace(N):
     # numpy constants
     namespace = {'pi': np.pi, 'e': np.e, 'inf': np.inf}
     
-    # standard numpy functions
+    # numpy functions that have the same name in numpy and math.h
+    namespace.update({'cos': FunctionWrapper(unitsafe.cos),
+                      'sin': FunctionWrapper(unitsafe.sin),
+                      'tan': FunctionWrapper(unitsafe.tan),
+                      'cosh': FunctionWrapper(unitsafe.cosh),
+                      'sinh': FunctionWrapper(unitsafe.sinh),
+                      'tanh': FunctionWrapper(unitsafe.tanh),
+                      'exp': FunctionWrapper(unitsafe.exp),
+                      'log': FunctionWrapper(unitsafe.log),
+                      'log10': FunctionWrapper(unitsafe.log10),
+                      'sqrt': FunctionWrapper(np.sqrt),
+                      'ceil': FunctionWrapper(np.ceil),
+                      'floor': FunctionWrapper(np.floor)
+                      })
+    
+    # numpy functions that have a different name in numpy and math.h
+    namespace.update({'arccos': FunctionWrapper(unitsafe.arccos, cpp_name='acos'),
+                      'arcsin': FunctionWrapper(unitsafe.arcsin, cpp_name='asin'),
+                      'arctan': FunctionWrapper(unitsafe.arctan, cpp_name='atan'),
+                      'power': FunctionWrapper(np.power, cpp_name='pow'),
+                      'abs': FunctionWrapper(np.abs, py_name='abs', cpp_name='fabs'),
+                      'mod': FunctionWrapper(np.mod, py_name='mod', cpp_name='fmod')})
+    
+    # numpy functions that need special treatment 
     namespace.update({'randn': RandnFunction(N),
                       '_randn': np.random.randn})
     return namespace

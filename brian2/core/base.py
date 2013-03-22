@@ -170,8 +170,11 @@ def clear(erase=False):
     run, reinit, MagicError
     '''
     if erase:
-        for obj in BrianObject.__instances__():
+        instances = set(BrianObject.__instances__())
+        for obj in instances:
             obj = obj()
+            if obj is None:
+                continue
             for k, v in obj.__dict__.iteritems():
                 object.__setattr__(obj, k, None)
     BrianObject.__instances__().clear()

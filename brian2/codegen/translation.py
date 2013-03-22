@@ -16,8 +16,7 @@ The input information needed:
 '''
 import re
 
-from brian2.core.specifiers import (Value, ArrayVariable, OutputVariable,
-                                    UnstoredVariable, Subexpression, Index)
+from brian2.core.specifiers import Value, ArrayVariable, Subexpression, Index
 from brian2.utils.stringtools import (deindent, strip_empty_lines, indent,
                                       get_identifiers)
 
@@ -45,7 +44,7 @@ def make_statements(code, specifiers, dtype):
     '''
     code = strip_empty_lines(deindent(code))
     lines = code.split('\n')
-    lines = [LineInfo(code=line) for line in lines]
+    lines = [LineInfo(code=line) for line in lines if len(line)]
     if DEBUG:
         print 'INPUT CODE:'
         print code
@@ -53,7 +52,7 @@ def make_statements(code, specifiers, dtype):
     # we will do inference to work out which lines are := and which are =
     #defined = set(specifiers.keys()) # variables which are already defined
     defined = set(var for var, spec in specifiers.items()
-                  if not isinstance(spec, UnstoredVariable))
+                  if hasattr(spec, 'get_value'))
     for line in lines:
         # parse statement into "var op expr"
         m = re.search(r'(\+|\-|\*|/|//|%|\*\*|>>|<<|&|\^|\|)?=', line.code)

@@ -2,11 +2,22 @@ from numpy.random import randn
 
 from .base import Function
 
-__all__ = ['RandnFunction']
+__all__ = ['RandnFunction', 'FunctionWrapper']
 
 class RandnFunction(Function):
+    '''
+    A specifier for the randn function, allowing its use both in Python and
+    C++ code (e.g. for stochastic variables). In Python, a `randn()` call will
+    return `N` random numbers (e.g. the size of the `NeuronGroup`), in C++ it
+    will return a single number.
     
+    Parameters
+    ----------
+    N : int
+        The number of random numbers generated at a time.
+    '''
     def __init__(self, N):
+        Function.__init__(self, pyfunc=randn)
         self.N = int(N)
     
     def __call__(self):
@@ -55,4 +66,36 @@ class RandnFunction(Function):
     
     def on_compile_cpp(self, namespace, language, var):
         pass
+
+class FunctionWrapper(Function):
+    '''
+    Simple wrapper for functions that have exist both in numpy and C++
+    (possibly with a different name, for example ``acos`` vs. ``arccos``).
     
+    Parameters
+    ----------
+    pyfunc : function
+        The numpy function (or its unitsafe wrapper)
+    py_name : str, optional
+        The name of the python function, in case it is not unambiguously
+        defined by `pyfunc`. For example, the ``abs`` function in numpy is
+        actually named ``absolute`` but we want to use the name ``abs``. 
+    cpp_name : str, optional
+        The name of the corresponding function in C++, in case it is different.
+    '''
+    # TODO: How to make this easily extendable for other languages?
+    def __init__(self, pyfunc, py_name=None, cpp_name=None):
+        Function.__init__(self, pyfunc)
+        if py_name is None:
+            py_name = pyfunc.__name__
+        self.py_name = py_name
+        self.cpp_name = cpp_name
+        
+    def code_cpp(self, language, var):
+        if self.cpp_name is None:
+            hashdefine_code = ''
+        else:
+            hashdefine_code = '#define {python_name} {cpp_name}'.format(python_name=self.py_name,
+                                                                        cpp_name=self.cpp_name)
+        return {'support_code': '',
+                'hashdefine_code': hashdefine_code}

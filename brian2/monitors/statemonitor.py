@@ -2,7 +2,7 @@ import weakref
 
 from numpy import array, arange
 
-from brian2.core.specifiers import Specifier
+from brian2.core.specifiers import Value
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.groups.group import Group
@@ -10,12 +10,10 @@ from brian2.units.allunits import second
 
 __all__ = ['StateMonitor']
 
-class MonitorVariable(Specifier):
-    def __init__(self, name, dtype, monitor, unit):
-        self.name = name
-        self.monitor = monitor
-        self.dtype = dtype
-        self.unit = unit
+class MonitorVariable(Value):
+    def __init__(self, name, unit, dtype, monitor):
+        Value.__init__(self, name, unit, dtype)
+        self.monitor = weakref.proxy(monitor)
     
     def get_value(self):
         return array(self.monitor._values[self.name])
@@ -110,10 +108,10 @@ class StateMonitor(BrianObject, Group):
         self.specifiers = {}
         for variable in variables:
             spec = source.specifiers[variable]
-            self.specifiers.update({variable: MonitorVariable(variable,
-                                                              spec.dtype,
-                                                              self,
-                                                              spec.unit)})        
+            self.specifiers[variable] = MonitorVariable(variable,
+                                                        spec.unit,
+                                                        spec.dtype,
+                                                        self)        
         Group.__init__(self)
         
     def reinit(self):
