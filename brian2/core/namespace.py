@@ -216,7 +216,7 @@ def get_default_numpy_namespace(N):
                       'arctan': FunctionWrapper(unitsafe.arctan, cpp_name='atan'),
                       'power': FunctionWrapper(np.power, cpp_name='pow'),
                       'abs': FunctionWrapper(np.abs, py_name='abs', cpp_name='fabs'),
-                      'mod': FunctionWrapper(np.mod, cpp_name='fmod')})
+                      'mod': FunctionWrapper(np.mod, py_name='mod', cpp_name='fmod')})
     
     # numpy functions that need special treatment 
     namespace.update({'randn': RandnFunction(N),
