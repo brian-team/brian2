@@ -44,7 +44,7 @@ def make_statements(code, specifiers, dtype):
     '''
     code = strip_empty_lines(deindent(code))
     lines = code.split('\n')
-    lines = [LineInfo(code=line) for line in lines]
+    lines = [LineInfo(code=line) for line in lines if len(line)]
     if DEBUG:
         print 'INPUT CODE:'
         print code

@@ -175,11 +175,11 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         #: The array of spikes from the most recent threshold operation
         self.spikes = array([], dtype=int)
 
-        # Setup specifiers
-        self.specifiers = self.create_specifiers()
-
         # Setup the namespace
         self.namespace = self.create_namespace(self.N, namespace)
+
+        # Setup specifiers
+        self.specifiers = self.create_specifiers()
 
         # Check units
         self.equations.check_units(self.namespace, self.specifiers)
@@ -373,8 +373,14 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                                     array,
                                                     '_neuron_idx')})
             elif eq.eq_type == STATIC_EQUATION:
+                # all external identifiers
+                identifiers = eq.identifiers - self.equations.names
+                resolved_namespace = self.namespace.resolve_all(identifiers)
                 s.update({eq.varname: Subexpression(eq.varname, eq.unit,
-                                                    str(eq.expr))})
+                                                    brian_prefs['core.default_scalar_dtype'],
+                                                    str(eq.expr),
+                                                    s,
+                                                    resolved_namespace)})
             else:
                 raise AssertionError('Unknown equation type "%s"' % eq.eq_type)
 

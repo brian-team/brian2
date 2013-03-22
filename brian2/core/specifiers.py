@@ -244,11 +244,12 @@ class ArrayVariable(Value):
         self.array[:] = value
 
 
-class Subexpression(VariableSpecifier):
+class Subexpression(Value):
     '''
     An object providing information about a static equation in a model
     definition, used as a hint in optimising. Can test if a variable is used
-    via ``var in spec``.
+    via ``var in spec``. The specifier is also able to return the result of
+    the expression (used in a `StateMonitor`, for example).
     
     Parameters
     ----------
@@ -256,15 +257,44 @@ class Subexpression(VariableSpecifier):
         The name of the static equation.
     unit : `Unit`
         The unit of the static equation
+    dtype : `numpy.dtype`
+        The dtype used for the expression.
     expr : str
         The expression defining the static equation.
+    specifiers : dict
+        The specifiers dictionary, containing specifiers for the
+        model variables used in the expression
+    namespace : dict
+        The namespace dictionary, containing identifiers for all the external
+        variables/functions used in the expression
     '''
-    def __init__(self, name, unit, expr):
-        VariableSpecifier.__init__(self, name, unit)
+    def __init__(self, name, unit, dtype, expr, specifiers, namespace):
+        Value.__init__(self, name, unit, dtype)
         #: The expression defining the static equation.
         self.expr = expr.strip()
         #: The identifiers used in the expression
-        self.identifiers = get_identifiers(expr)
+        self.identifiers = get_identifiers(expr)        
+        #: Specifiers for the identifiers used in the expression
+        self.specifiers = specifiers
+        #: Namespace for the identifiers used in the expression
+        self.namespace = namespace
+        for identifier in self.identifiers:
+            if not (identifier in self.specifiers or 
+                    identifier in self.namespace):
+                raise ValueError(('The provided dictionaries do not '
+                                  'contain a specifier for the identifier %s, '
+                                  'used in the expression "%s"') %
+                                 (identifier, self.expr))
+
+    def get_value(self):
+        variable_values = {}
+        for identifier in self.identifiers:
+            if identifier in self.specifiers:
+                variable_values[identifier] = self.specifiers[identifier].get_value()
+            else:
+                variable_values[identifier] = self.namespace[identifier]
+        
+        return eval(self.expr, variable_values)
 
     def __contains__(self, var):
         return var in self.identifiers
