@@ -212,8 +212,8 @@ def get_default_numpy_namespace(N):
     
     # numpy functions that have a different name in numpy and math.h
     namespace.update({'arccos': FunctionWrapper(unitsafe.arccos, cpp_name='acos'),
-                      'arcsin': FunctionWrapper(unitsafe.arccos, cpp_name='asin'),
-                      'arctan': FunctionWrapper(unitsafe.arccos, cpp_name='atan'),
+                      'arcsin': FunctionWrapper(unitsafe.arcsin, cpp_name='asin'),
+                      'arctan': FunctionWrapper(unitsafe.arctan, cpp_name='atan'),
                       'power': FunctionWrapper(np.power, cpp_name='pow'),
                       'abs': FunctionWrapper(np.abs, py_name='abs', cpp_name='fabs'),
                       'mod': FunctionWrapper(np.mod, cpp_name='fmod')})
