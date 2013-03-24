@@ -8,6 +8,7 @@ before_install:
   - sudo apt-get build-dep -qq python-scipy python-sympy python-pyparsing
 # command to install dependencies
 install:
+  - "pip install numpy==1.6.2"
   - "pip install scipy sympy pyparsing==1.5.7 sphinx ipython --use-mirrors"
   - "pip install . --use-mirrors"
 # command to run tests

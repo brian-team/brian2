@@ -26,7 +26,7 @@ class PythonLanguage(Language):
             spec = specifiers[var]
             index_spec = indices[spec.index]
             line = var + ' = ' + spec.arrayname
-            if not index_spec.all:
+            if not index_spec.iterate_all:
                 line = line + '[' + spec.index + ']'
             lines.append(line)
         # the actual code
@@ -37,7 +37,7 @@ class PythonLanguage(Language):
             index_spec = indices[index_var]
             # check if all operations were inplace and we're operating on the
             # whole vector, if so we don't need to write the array back
-            if not index_spec.all:
+            if not index_spec.iterate_all:
                 all_inplace = False
             else:
                 all_inplace = True
@@ -47,7 +47,7 @@ class PythonLanguage(Language):
                         break
             if not all_inplace:
                 line = specifiers[var].arrayname
-                if index_spec.all:
+                if index_spec.iterate_all:
                     line = line + '[:]'
                 else:
                     line = line + '[' + index_var + ']'

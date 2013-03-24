@@ -15,7 +15,7 @@ from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
 from brian2.core.namespace import ObjectWithNamespace
-from brian2.core.specifiers import (Value, AttributeValue, ArrayVariable,
+from brian2.core.specifiers import (ReadOnlyValue, AttributeValue, ArrayVariable,
                                     StochasticVariable, Subexpression, Index)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
@@ -172,17 +172,17 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         ##### Setup the memory
         self.arrays = self.allocate_memory(dtype=dtype)
 
-        # Setup specifiers
-        self.specifiers = self.create_specifiers()
+        #: The array of spikes from the most recent threshold operation
+        self.spikes = array([], dtype=int)
 
         # Setup the namespace
         self.namespace = self.create_namespace(self.N, namespace)
 
+        # Setup specifiers
+        self.specifiers = self.create_specifiers()
+
         # Check units
         self.equations.check_units(self.namespace, self.specifiers)
-
-        #: The array of spikes from the most recent threshold operation
-        self.spikes = array([], dtype=int)
 
         # Code generation (TODO: this should be refactored and modularised)
         # Temporary, set default language to Python
@@ -259,7 +259,8 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                             self.specifiers,
                                             template,
                                             indices={'_neuron_idx':
-                                                     Index(iterate_all)})
+                                                     Index('_neuron_idx',
+                                                           iterate_all)})
 
     def create_state_updater(self):
         '''Create the `StateUpdater`.'''
@@ -358,27 +359,50 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         entries for the equation variables and some standard entries.
         '''
         # Standard specifiers always present
-        s = {'_num_neurons': Value(np.float64, self.N),
-             '_spikes' : AttributeValue(np.int, self, 'spikes', Unit(1)),
-             't': AttributeValue(np.float64, self.clock, 't_', second),
-             'dt': AttributeValue(np.float64, self.clock, 'dt_', second)}
+        s = {'_num_neurons': ReadOnlyValue('_num_neurons', Unit(1), np.int, self.N),
+             '_spikes' : AttributeValue('_spikes', Unit(1), np.int, self, 'spikes'),
+             't': AttributeValue('t',  second, np.float64, self.clock, 't_'),
+             'dt': AttributeValue('dt', second, np.float64, self.clock, 'dt_')}
 
+        # First add all the differential equations and parameters, because they
+        # may be referred to by static equations
         for eq in self.equations.itervalues():
             if eq.eq_type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 array = self.arrays[eq.varname]
                 s.update({eq.varname: ArrayVariable(eq.varname,
+                                                    eq.unit,
                                                     array.dtype,
                                                     array,
-                                                    '_neuron_idx',
-                                                    eq.unit)})
-            elif eq.eq_type == STATIC_EQUATION:
-                s.update({eq.varname: Subexpression(str(eq.expr),
-                                                    eq.unit)})
-            else:
-                raise AssertionError('Unknown equation type "%s"' % eq.eq_type)
+                                                    '_neuron_idx')})
+        
+        # Now go through the static equations in the correct order, i.e. each
+        # static equation only depends on state variables (differential
+        # equations or parameters) or *previous* static equations 
+        for eq in self.equations.ordered:        
+            if eq.eq_type == STATIC_EQUATION:
+                # all external identifiers
+                identifiers = eq.identifiers - self.equations.names - set(s.keys())
+                resolved_namespace = self.namespace.resolve_all(identifiers)
+                
+                # because we are going through the equations that are already
+                # ordered, subexpressions only need information about specifiers
+                # that are already in the specifiers dictionary at this point.
+                # To avoid circular references, we create a copy of the
+                # specifiers dictionary that only contains weak references, so
+                # it does not prevent them from being garbage collected
+                specifiers_copy = {}
+                for k, v in s.iteritems():
+                    specifiers_copy[k] = weakref.proxy(v)
+                s.update({eq.varname: Subexpression(eq.varname, eq.unit,
+                                                    brian_prefs['core.default_scalar_dtype'],
+                                                    str(eq.expr),
+                                                    specifiers_copy,
+                                                    resolved_namespace)})
 
+
+        # Stochastic variables
         for xi in self.equations.stochastic_variables:
-            s.update({xi: StochasticVariable(xi, np.float64)})
+            s.update({xi: StochasticVariable(xi)})
 
         return s
 

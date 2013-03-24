@@ -17,17 +17,17 @@ def test_default_content():
     Test that the default namespace contains standard units and functions.
     '''
     obj = ObjectWithNamespace()
-    namespace = obj.create_namespace(1)
+    namespace = obj.create_namespace(1, {})
     # Units
     assert namespace['second'] == second
     assert namespace['volt'] == volt
     assert namespace['ms'] == ms
     assert namespace['Hz'] == Hz
     assert namespace['mV'] == mV
-    # Functions
-    assert namespace['sin'] == sin
-    assert namespace['log'] == log
-    assert namespace['exp'] == exp
+    # Functions (the namespace contains specifiers)
+    assert namespace['sin'].pyfunc == sin 
+    assert namespace['log'].pyfunc == log
+    assert namespace['exp'].pyfunc == exp
 
 
 def test_explicit_namespace():
@@ -71,7 +71,7 @@ def test_implicit_namespace():
         assert len(l) == 0
     
     with catch_logs() as l:
-        assert namespace['sin'] == sin
+        assert namespace['sin'].pyfunc == sin
         # There is a conflict here: sin is in the local namespace but also in
         # the default numpy namespace. We do *not* want to raise a warning here
         # however as both refer to the same thing
