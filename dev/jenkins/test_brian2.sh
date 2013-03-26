@@ -3,16 +3,27 @@ source /home/jenkins/.jenkins/virtual_envs/$PythonVersion/$packages/bin/activate
 pip install --upgrade -I nose coverage || :
 
 # Make sure pyparsing and ipython (used for pretty printing) are installed
-pip install pyparsing
+if [ ${PythonVersion:0:1} == '2' ]; then
+	pip install pyparsing==1.5.7
+	else
+	pip install pyparsing --upgrade
+fi
 pip install ipython
 
 # Make sure we have sphinx (for testing the sphinxext)
 pip install sphinx
 
 echo "Using newest available package versions"
-pip install --upgrade numpy 
+
+# Use numpy 1.6.2 for Python 2 for now
+if [ ${PythonVersion:0:1} == '2' ]; then
+	pip install numpy==1.6.2
+	else
+	pip install numpy --upgrade
+fi
+ 
 pip install --upgrade scipy
-pip install sympy==0.7.1
+pip install --upgrade sympy
 pip install --upgrade matplotlib
 
 # Print the version numbers for the dependencies
