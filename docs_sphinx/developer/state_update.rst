@@ -78,37 +78,34 @@ a name (i.e. you can pass a string like ``'euler'`` to the method argument
 instead of importing `euler` and passing a reference to the object itself).
 
 If you create a new state updater using the `ExplicitStateUpdater` class, you
-have to specify a *priority* for this state updater, a number determining which
-state updater is chosen when more than one is appropriate for a given equation.
-For example, for equations without stochastic variables, `euler` will be chosen
-automatically, because it has a higher priority than the `rk2`, `rk4` and
-`milstein`. The same is the case for equations with additive noise, but then
-`rk2` and `rk4` are not even considered at all. For equations with
-multiplicative noise, however, `milstein` is the only available integrator.
-
-.. note::
-	
-	This mechanism is not ideal, maybe the "best" integrator for additive noise
-	is not the same as for noise-free equations, for example? 
+have to specify what kind of stochastic equations it supports. The keyword
+argument ``stochastic`` takes the values ``None`` (no stochastic equation
+support, the default), ``'additive'`` (support for stochastic equations with
+additive noise), ``'multiplicative'`` (support for arbitrary stochastic
+equations).
 
 After creating the state updater, it has to be registered with
 `StateUpdateMethod`::
 
-    new_state_updater = ExplicitStateUpdater('...', priority=40,
-                                             stochastic='additive')
+    new_state_updater = ExplicitStateUpdater('...', stochastic='additive')
     StateUpdateMethod.register('mymethod', new_state_updater)
 
+The `StateUpdateMethod.register` method also takes an optional ``index``
+argument, allowing you to insert the new state updater at an arbitrary
+location in the list of state updaters (by default it gets added at the end).
+The position in the list determines which state updater is chosen if more than
+one is able to integrate the equations: If more than one choice is possible,
+the state updater that comes first in the list is chosen. 
 
 The preferred way to do write new general state updaters (i.e. state updaters
 that cannot be described using the explicit syntax described above) is to
-extend the `StateUpdaterMethod` class (but this is not strictly necessary, all
-that is needed is an object that implements a ``get_priority`` and a
-``__call__`` method). The new class's ``get_priority`` method gets an
-`Equations` object, a `namespace` dictionary for the external
-variables/functions and a `specifier` dictionary for the internal state
-variables. It has to return an integer value, the priority of the state updater
-for the given situation (``0`` if it is not applicable, a positive value if it
-is applicable). The method would typically make use of
+extend the `StateUpdateMethod` class (but this is not strictly necessary, all
+that is needed is an object that implements a ``can_integrate`` and a
+``__call__`` method). The new class's ``can_integrate`` method gets an
+`Equations` object, a ``namespace`` dictionary for the external
+variables/functions and a ``specifier`` dictionary for the internal state
+variables. It has to return ``True`` or ``False``, depending on whether it can
+integrate the given equations. The method would typically make use of
 `Equations.is_stochastic` or `Equations.stochastic_type`, check whether any
 external functions are used, etc.. Finally, the state updater has to be registered
 with `StateUpdateMethod` as shown above.
