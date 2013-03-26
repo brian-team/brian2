@@ -15,17 +15,15 @@ logger = get_logger(__name__)
 class StateUpdateMethod(object):
     __metaclass__ = ABCMeta
 
-    #: A dictionary of registered stateupdaters (using a short name as the key)
-    stateupdaters = {}
+    #: A list of registered (name, stateupdater) pairs (in the order of priority)
+    stateupdaters = []
 
     @abstractmethod
-    def get_priority(self, equations, namespace, specifiers):
+    def can_integrate(self, equations, namespace, specifiers):
         '''
         Determine whether the state updater is a suitable choice. Should return
-        0 if it is not appropriate (e.g. non-linear equations for a linear
-        state updater) and a value > 0 if it is appropriate. The number acts as
-        a priority, i.e. if more than one state updater is possible, the one
-        with the highest value is chosen.
+        ``False`` if it is not appropriate (e.g. non-linear equations for a
+        linear state updater) and a ``True`` if it is appropriate.
         
         Parameters
         ----------
@@ -39,9 +37,9 @@ class StateUpdateMethod(object):
         
         Returns
         -------
-        priority : int
-            0, if this state updater is not a possible choice. A value > 0
-            otherwise.
+        ability : bool
+            ``True`` if this state updater is able to integrate the given
+            equations, ``False`` otherwise.
         '''
         pass
 
@@ -63,7 +61,7 @@ class StateUpdateMethod(object):
         pass
 
     @staticmethod
-    def register(name, stateupdater):
+    def register(name, stateupdater, index=None):
         '''
         Register a state updater. Registered state updaters will be considered
         when no state updater is explicitly given (e.g. in `NeuronGroup`) and
@@ -75,16 +73,30 @@ class StateUpdateMethod(object):
             A short name for the state updater (e.g. `'euler'`)
         stateupdater : `StateUpdaterMethod`
             The state updater object, e.g. an `ExplicitStateUpdater`.
+        index : int, optional
+            Where in the list of state updaters the given state updater should
+            be inserted. State updaters have a higher priority of being chosen
+            automatically if they appear earlier in the list. If no `index` is
+            given, the state updater will be inserted at the end of the list.
         '''
-        if name in StateUpdateMethod.stateupdaters:
-            raise ValueError(('A stateupdater with the name "%s" '
-                              'has already been registered') % name)
+        for registered_name, _ in StateUpdateMethod.stateupdaters:
+            if registered_name == name:
+                raise ValueError(('A stateupdater with the name "%s" '
+                                  'has already been registered') % name)
 
         if not isinstance(stateupdater, StateUpdateMethod):
             raise ValueError(('Given stateupdater of type %s does not seem to '
                               'be a valid stateupdater.' % str(type(stateupdater))))
 
-        StateUpdateMethod.stateupdaters[name] = stateupdater
+        if not index is None:
+            try:
+                index = int(index)
+            except TypeError:
+                raise TypeError(('Index argument should be an integer, is '
+                                 'of type %s instead.') % type(index))
+            StateUpdateMethod.stateupdaters.insert(index, (name, stateupdater))
+        else:
+            StateUpdateMethod.stateupdaters.append((name, stateupdater))
 
     @staticmethod
     def determine_stateupdater(equations, namespace,
@@ -113,47 +125,47 @@ class StateUpdateMethod(object):
         '''
         if hasattr(method, '__call__'):
             # if this is a standard state updater, i.e. if it has a
-            # get_priority method, check this method and raise a warning if it
+            # can_integrate method, check this method and raise a warning if it
             # claims not to be applicable.
             try:
-                priority = method.get_priority(equations, namespace, specifiers)
+                priority = method.can_integrate(equations, namespace, specifiers)
                 if priority == 0:
                     logger.warn(('The manually specified state updater '
                                  'claims that it does not support the given '
                                  'equations.'))
             except AttributeError:
-                # No get_priority method
+                # No can_integrate method
                 pass
             
             logger.info('Using manually specified state updater: %r' % method)
             return method
         
         if method is not None:
-            try:
-                stateupdater = StateUpdateMethod.stateupdaters[method]
-            except KeyError:
+            stateupdater = None
+            for name, registered_stateupdater in StateUpdateMethod.stateupdaters:
+                if name == method:
+                    stateupdater = registered_stateupdater
+                    break
+            if stateupdater is None:
                 raise ValueError('No state updater with the name "%s" '
                                  'is known' % method)
-            if stateupdater.get_priority(equations, namespace, specifiers) == 0:
+            if not stateupdater.can_integrate(equations, namespace, specifiers):
                 raise ValueError(('The state updater "%s" cannot be used for '
                                   'the given equations' % method))
             return stateupdater
 
         # determine the best suitable state updater
-        priorities = [(name, updater.get_priority(equations,
-                                              namespace,
-                                              specifiers))
-                         for name, updater in 
-                         StateUpdateMethod.stateupdaters.iteritems()]
-        priorities.sort(key=lambda elem: elem[1], reverse=True)
+        best_stateupdater = None
+        for name, stateupdater in StateUpdateMethod.stateupdaters:
+            if stateupdater.can_integrate(equations, namespace, specifiers):
+                best_stateupdater = (name, stateupdater)
+                break
 
-        # If the list is empty or the first (=best) priority is 0, we did not
-        # find anything suitable
-        if len(priorities) == 0 or priorities[0][1] == 0:
+        # No suitable stat updater has been found
+        if best_stateupdater is None:
             raise ValueError(('No stateupdater that is suitable for the given '
                               'equations has been found'))
 
-        # The first entry in the list is the stateupdater of our choice
-        logger.info('Using stateupdater "%s"' % priorities[0][0])
-
-        return StateUpdateMethod.stateupdaters[priorities[0][0]]
+        name, stateupdater = best_stateupdater
+        logger.info('Using stateupdater "%s"' % name)
+        return stateupdater

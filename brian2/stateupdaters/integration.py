@@ -168,9 +168,6 @@ class ExplicitStateUpdater(StateUpdateMethod):
     ----------
     description : str
         A state updater description (see above).
-    priority : int
-        The priority of this state updater (in case it is applicable in
-        general). Higher values mean that it is more likely to be chosen.
     stochastic : {None, 'additive', 'multiplicative'}
         What kind of stochastic equations this state updater supports: ``None``
         means no support of stochastic equations, ``'additive'`` means only
@@ -187,8 +184,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
     euler, rk2, rk4, milstein
     ''' 
     
-    def __init__(self, description, priority, stochastic=None):
-        self.priority = priority
+    def __init__(self, description, stochastic=None):
         self.stochastic = stochastic
                 
         try:
@@ -214,16 +210,16 @@ class ExplicitStateUpdater(StateUpdateMethod):
             else:
                 raise AssertionError('Unknown element name: %s' % element.getName())
     
-    def get_priority(self, equations, namespace, specifiers):
+    def can_integrate(self, equations, namespace, specifiers):
         # Non-stochastic numerical integrators should work for all equations,
         # except for stochastic equations
         if equations.is_stochastic and self.stochastic is None:
-            return 0
-        if (equations.stochastic_type == 'multiplicative' and
+            return False
+        elif (equations.stochastic_type == 'multiplicative' and
             self.stochastic != 'multiplicative'):
-            return 0
+            return False
         else:
-            return self.priority
+            return True
     
     def __str__(self):
         s = ''
@@ -427,12 +423,12 @@ class ExplicitStateUpdater(StateUpdateMethod):
 
 #: Forward Euler state updater
 euler = ExplicitStateUpdater('return x + dt * f(x,t) + g(x,t) * dW',
-                             priority=30, stochastic='additive')
+                             stochastic='additive')
 
 #: Second order Runge-Kutta method (midpoint method)
 rk2 = ExplicitStateUpdater('''
     k = dt * f(x,t)
-    return x + dt*f(x +  k/2, t + dt/2)''', priority=20)
+    return x + dt*f(x +  k/2, t + dt/2)''')
 
 #: Classical Runge-Kutta method (RK4)
 rk4 = ExplicitStateUpdater('''
@@ -441,7 +437,7 @@ rk4 = ExplicitStateUpdater('''
     k3=dt*f(x+k2/2,t+dt/2)
     k4=dt*f(x+k3,t+dt)
     return x+(k1+2*k2+2*k3+k4)/6
-    ''', priority=10)
+    ''')
 
 #: Derivative-free Milstein method
 milstein = ExplicitStateUpdater('''
@@ -449,7 +445,7 @@ milstein = ExplicitStateUpdater('''
     g_support = g(x_support, t)
     k = 1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)
     return x + dt*f(x,t) + g(x, t) * dW + k
-    ''', priority=20, stochastic='multiplicative')
+    ''', stochastic='multiplicative')
 
 # Register the state updaters
 StateUpdateMethod.register('euler', euler)
