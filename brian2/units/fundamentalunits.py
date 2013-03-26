@@ -507,7 +507,7 @@ def is_scalar_type(obj):
         ``True`` if `obj` is a scalar that can be interpreted as a
         dimensionless `Quantity`.
     """
-    if isinstance(obj, np.ndarray):
+    if isinstance(obj, np.number) or isinstance(obj, np.ndarray):
         return np.isscalar(obj) or np.ndim(obj) == 0
     else:
         return isinstance(obj, numbers.Number)
@@ -531,9 +531,9 @@ def get_dimensions(obj):
     dim: `Dimension`
         The dimensions of the `obj`.
     """
-    if (isinstance(obj, numbers.Number) or isinstance(obj, np.ndarray)
-        and not isinstance(obj, Quantity)):
-        return DIMENSIONLESS
+    if (isinstance(obj, numbers.Number) or isinstance(obj, np.number) or
+        isinstance(obj, np.ndarray) and not isinstance(obj, Quantity)):
+        return DIMENSIONLESS 
     try:
         return obj.dimensions
     except AttributeError:

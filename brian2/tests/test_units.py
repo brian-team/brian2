@@ -14,6 +14,7 @@ from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            Unit,
                                            have_same_dimensions,
                                            get_dimensions,
+                                           is_scalar_type,
                                            DimensionMismatchError,
                                            check_units,
                                            in_unit,
@@ -99,6 +100,17 @@ def test_get_dimensions():
     assert_equal(dims.get_dimension('length'), 0)
     
     assert get_dimensions(5) is DIMENSIONLESS
+    assert get_dimensions(5.0) is DIMENSIONLESS
+    assert get_dimensions(np.array(5, dtype=np.int)) is DIMENSIONLESS
+    assert get_dimensions(np.array(5.0)) is DIMENSIONLESS
+    assert get_dimensions(np.float32(5.0)) is DIMENSIONLESS
+    assert get_dimensions(np.float64(5.0)) is DIMENSIONLESS
+    assert is_scalar_type(5)
+    assert is_scalar_type(5.0)
+    assert is_scalar_type(np.array(5, dtype=np.int))
+    assert is_scalar_type(np.array(5.0))
+    assert is_scalar_type(np.float32(5.0))
+    assert is_scalar_type(np.float64(5.0))
     assert_raises(TypeError, lambda: get_dimensions('a string'))
     
     # wrong number of indices
