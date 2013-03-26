@@ -15,8 +15,9 @@ Luminosity             candle    cd
 """
 from __future__ import division
 
+import numbers
+import collections
 from warnings import warn
-from operator import isNumberType, isSequenceType
 import operator
 from itertools import izip
 
@@ -433,7 +434,7 @@ def get_or_create_dimension(*args, **kwds):
     e.g. length, metre, and m all refer to the same thing here.
     """
     if len(args):
-        if isSequenceType(args[0]) and len(args[0]) == 7:
+        if isinstance(args[0], collections.Sequence) and len(args[0]) == 7:
             # initialisation by list
             dims = args[0]
         else:
@@ -506,7 +507,10 @@ def is_scalar_type(obj):
         ``True`` if `obj` is a scalar that can be interpreted as a
         dimensionless `Quantity`.
     """
-    return isNumberType(obj) and not isSequenceType(obj)
+    if isinstance(obj, np.ndarray):
+        return np.isscalar(obj) or np.ndim(obj) == 0
+    else:
+        return isinstance(obj, numbers.Number)
 
 
 def get_dimensions(obj):
@@ -527,7 +531,8 @@ def get_dimensions(obj):
     dim: `Dimension`
         The dimensions of the `obj`.
     """
-    if isNumberType(obj) and not isinstance(obj, Quantity):
+    if (isinstance(obj, numbers.Number) or isinstance(obj, np.ndarray)
+        and not isinstance(obj, Quantity)):
         return DIMENSIONLESS
     try:
         return obj.dimensions
