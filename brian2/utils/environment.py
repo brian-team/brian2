@@ -2,7 +2,7 @@
 Utility functions to get information about the environment Brian is running in.
 '''
 
-import __builtin__
+import __builtin__ as builtins
 
 def running_from_ipython():
     '''
@@ -13,5 +13,5 @@ def running_from_ipython():
     ipython : bool
         Whether running under ipython or not.
     '''
-    return getattr(__builtin__, '__IPYTHON__', False)
+    return getattr(builtins, '__IPYTHON__', False)
 
