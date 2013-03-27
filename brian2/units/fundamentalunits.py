@@ -383,6 +383,9 @@ class Dimension(object):
     def __ne__(self, value):
         return not self.__eq__(value)
 
+    def __hash__(self):
+        return hash(self._dims)
+
     #### MAKE DIMENSION PICKABLE ####
     def __getstate__(self):
         return self._dims
