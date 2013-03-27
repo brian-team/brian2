@@ -19,7 +19,7 @@ import numbers
 import collections
 from warnings import warn
 import operator
-from itertools import izip
+import itertools
 
 import numpy as np
 
@@ -349,11 +349,11 @@ class Dimension(object):
     # wrong sort of input
     def __mul__(self, value):
         return get_or_create_dimension([x + y for x, y in
-                                        izip(self._dims, value._dims)])
+                                        itertools.izip(self._dims, value._dims)])
 
     def __div__(self, value):
         return get_or_create_dimension([x - y for x, y in
-                                        izip(self._dims, value._dims)])
+                                        itertools.izip(self._dims, value._dims)])
 
     def __truediv__(self, value):
         return self.__div__(value)
@@ -1652,7 +1652,7 @@ class Unit(Quantity):
         for k in keywords:
             scale[_di[k]] = keywords[k]
         v = 1.0
-        for s, i in izip(scale, dim._dims):
+        for s, i in itertools.izip(scale, dim._dims):
             if i:
                 v *= _siprefixes[s] ** i
         u = Unit(v * _siprefixes[scalefactor], dim=dim, scale=tuple(scale))

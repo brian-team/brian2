@@ -1,8 +1,6 @@
 '''
 TODO: restrict keyword optimisations
 '''
-import itertools
-
 from sympy.printing.ccode import CCodePrinter
 import numpy
 from scipy import weave
