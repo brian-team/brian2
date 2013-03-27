@@ -27,10 +27,10 @@ pip install --upgrade sympy
 pip install --upgrade matplotlib
 
 # Print the version numbers for the dependencies
-python -c "import numpy; print 'numpy version: ', numpy.__version__"
-python -c "import scipy; print 'scipy version: ', scipy.__version__"
-python -c "import sympy; print 'sympy version: ', sympy.__version__"
-python -c "import matplotlib; print 'matplotlib version: ', matplotlib.__version__"
+python -c "import numpy; print('numpy version: ' + numpy.__version__)"
+python -c "import scipy; print('scipy version: ' + scipy.__version__)"
+python -c "import sympy; print('sympy version: ' + sympy.__version__)"
+python -c "import matplotlib; print('matplotlib version: ' + matplotlib.__version__)"
 
 # Build Brian2
 python setup.py build --build-lib=build/lib
