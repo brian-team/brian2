@@ -34,7 +34,10 @@ python -c "import matplotlib; print 'matplotlib version: ', matplotlib.__version
 
 # Build Brian2
 python setup.py build --build-lib=build/lib
-export PYTHONPATH=$(pwd)/build/lib:$PYTHONPATH
+
+# Move to the build directory to make sure it is used for testing
+# (important for Python 3)
+cd build/lib
 
 # delete remaining compiled code from previous runs
 echo deleting '~/.python*_compiled' if it exists
