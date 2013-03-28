@@ -45,10 +45,10 @@ class Clock(Nameable):
     
     @check_units(dt=second, t=second)
     def __init__(self, dt=None, name=None):
-        Nameable.__init__(self, name)
         self._dt_spec = dt
         self.i = 0  #: The time step of the simulation as an integer.
         self.i_end = 0  #: The time step the simulation will end as an integer
+        Nameable.__init__(self, name)
         logger.debug("Created clock {self.name} with dt={self._dt_spec}".format(self=self))
 
     def reinit(self):
@@ -153,21 +153,5 @@ class Clock(Nameable):
         return self.i<self.i_end
 
     epsilon = 1e-14
-
-    def __lt__(self, other):
-        selft = self.t_
-        othert = other.t_
-        if selft==othert or abs(selft-othert)<=self.epsilon*abs(selft):
-            return False
-        return selft<othert
-    
-    def __eq__(self, other):
-        selft = self.t_
-        othert = other.t_
-        if selft==othert or abs(selft-othert)<=self.epsilon*abs(selft):
-            return True
-        else:
-            return False
-    
     
 defaultclock = Clock(name='defaultclock')
