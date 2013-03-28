@@ -1229,26 +1229,26 @@ class Quantity(np.ndarray, object):
                                       inplace=True)
 
     def __div__(self, other):
-        return self._binary_operation(other, operator.div, operator.div)
+        return self._binary_operation(other, operator.truediv, operator.truediv)
 
     def __truediv__(self, other):
         return self.__div__(other)
 
     def __rdiv__(self, other):
         # division with swapped arguments
-        rdiv = lambda a, b: operator.div(b, a)
+        rdiv = lambda a, b: operator.truediv(b, a)
         return self._binary_operation(other, rdiv, rdiv)
 
     def __rtruediv__(self, other):
         return self.__rdiv__(other)
 
     def __idiv__(self, other):
-        return self._binary_operation(other, np.ndarray.__idiv__, operator.div,
-                                      inplace=True)
+        return self._binary_operation(other, np.ndarray.__itruediv__,
+                                      operator.truediv, inplace=True)
 
     def __itruediv__(self, other):
         return self._binary_operation(other, np.ndarray.__itruediv__,
-                                      operator.div, inplace=True)
+                                      operator.truediv, inplace=True)
 
     def __mod__(self, other):
         return self._binary_operation(other, operator.mod,

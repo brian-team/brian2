@@ -1,7 +1,6 @@
 import itertools
 import warnings
 import pickle
-from exceptions import RuntimeWarning
 
 import numpy as np
 from numpy.testing import assert_raises, assert_equal
