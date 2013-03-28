@@ -433,7 +433,7 @@ class catch_logs(object):
     WARNING  brian2.logtest: An uncaught warning
     >>> with catch_logs() as l:
     ...    logger.warn('a caught warning')
-    ...    print('l contains:', l)
+    ...    print('l contains: %s' % l)
     ... 
     l contains: [('WARNING', 'brian2.logtest', 'a caught warning')]
 

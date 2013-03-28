@@ -749,21 +749,21 @@ class Quantity(np.ndarray, object):
     >>> from brian2 import *
     >>> I = 3 * amp # I is a Quantity object
     >>> R = 2 * ohm # same for R
-    >>> print I * R
-    6.0 V
-    >>> print (I * R).in_unit(mvolt)
-    6000.0 mV
-    >>> print (I * R) / mvolt
-    6000.0
+    >>> I * R
+    6.0 * volt
+    >>> (I * R).in_unit(mvolt)
+    '6000.0 mV'
+    >>> (I * R) / mvolt
+    Quantity(6000.0)
     >>> X = I + R
     Traceback (most recent call last):
         ...
     DimensionMismatchError: Addition, dimensions were (A) (m^2 kg s^-3 A^-2)
     >>> Is = np.array([1, 2, 3]) * amp
-    >>> print Is * R
-    [ 2.  4.  6.] V
-    >>> print np.asarray(Is * R) # gets rid of units
-    [ 2.  4.  6.]
+    >>> Is * R
+    array([ 2.,  4.,  6.]) * volt
+    >>> np.asarray(Is * R) # gets rid of units
+    array([ 2.,  4.,  6.])
 
     See also
     --------
@@ -1535,8 +1535,8 @@ class Unit(Quantity):
 
     You can then do
 
-    >>> print (1*Nm).in_unit(Nm)
-    1.0 N m
+    >>> (1*Nm).in_unit(Nm)
+    '1.0 N m'
     
     which returns ``"1 N m"`` because the `Unit` class generates a new
     display name of ``"N m"`` from the display names ``"N"`` and ``"m"`` for

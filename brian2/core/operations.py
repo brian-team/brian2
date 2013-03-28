@@ -63,7 +63,7 @@ def network_operation(*args, **kwds):
     >>> from brian2 import *
     >>> @network_operation
     ... def f():
-    ...   print 'something'
+    ...   print('something')
     ...
     >>> net = Network(f)
     
@@ -71,7 +71,7 @@ def network_operation(*args, **kwds):
     
     >>> @network_operation
     ... def f(t):
-    ...   print 'The time is', t
+    ...   print('The time is', t)
     ...
     >>> net = Network(f)
     
@@ -80,7 +80,7 @@ def network_operation(*args, **kwds):
     >>> myclock = Clock(dt=0.5*ms) 
     >>> @network_operation(when=(myclock, 'start', 0))
     ... def f():
-    ...   print 'This will happen at the start of each timestep.'
+    ...   print('This will happen at the start of each timestep.')
     ...
     >>> net = Network(f)
     

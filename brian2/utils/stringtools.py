@@ -26,19 +26,19 @@ def indent(text, numtabs=1, spacespertab=4, tab=None):
     --------
     >>> multiline = """def f(x):
     ...     return x*x"""
-    >>> print multiline
+    >>> print(multiline)
     def f(x):
         return x*x
-    >>> print indent(multiline)
+    >>> print(indent(multiline))
         def f(x):
             return x*x
-    >>> print indent(multiline, numtabs=2)
+    >>> print(indent(multiline, numtabs=2))
             def f(x):
                 return x*x
-    >>> print indent(multiline, spacespertab=2)
+    >>> print(indent(multiline, spacespertab=2))
       def f(x):
           return x*x
-    >>> print indent(multiline, tab='####')
+    >>> print(indent(multiline, tab='####'))
     ####def f(x):
     ####    return x*x
     '''
@@ -66,16 +66,16 @@ def deindent(text, numtabs=None, spacespertab=4, docstring=False):
     
     >>> multiline = """    def f(x):
     ...          return x**2"""
-    >>> print multiline
+    >>> print(multiline)
         def f(x):
              return x**2
-    >>> print deindent(multiline)
+    >>> print(deindent(multiline))
     def f(x):
          return x**2
-    >>> print deindent(multiline, docstring=True)
+    >>> print(deindent(multiline, docstring=True))
         def f(x):
     return x**2
-    >>> print deindent(multiline, numtabs=1, spacespertab=2)
+    >>> print(deindent(multiline, numtabs=1, spacespertab=2))
       def f(x):
            return x**2
     
@@ -83,10 +83,10 @@ def deindent(text, numtabs=None, spacespertab=4, docstring=False):
     
     >>> docstring = """First docstring line.
     ...     This line determines the indentation."""
-    >>> print docstring
+    >>> print(docstring)
     First docstring line.
         This line determines the indentation.
-    >>> print deindent(docstring, docstring=True)
+    >>> print(deindent(docstring, docstring=True))
     First docstring line.
     This line determines the indentation.
     '''
@@ -125,7 +125,7 @@ def word_substitute(expr, substitutions):
     --------
     
     >>> expr = 'a*_b+c5+8+f(A)'
-    >>> print word_substitute(expr, {'a':'banana', 'f':'func'})
+    >>> print(word_substitute(expr, {'a':'banana', 'f':'func'}))
     banana*_b+c5+8+func(A)
     '''
     for var, replace_var in substitutions.iteritems():
@@ -143,9 +143,9 @@ def get_identifiers(expr):
     
     >>> expr = 'a*_b+c5+8+f(A)'
     >>> ids = get_identifiers(expr)
-    >>> print type(ids)
+    >>> print(type(ids))
     <type 'set'>
-    >>> print sorted(list(ids))
+    >>> print(sorted(list(ids)))
     ['A', '_b', 'a', 'c5', 'f']
     '''
     return set(re.findall(r'\b[A-Za-z_][A-Za-z0-9_]*\b', expr))
@@ -160,7 +160,7 @@ def strip_empty_lines(s):
     >>> multiline = """A string with
     ... 
     ... an empty line."""
-    >>> print strip_empty_lines(multiline)
+    >>> print(strip_empty_lines(multiline))
     A string with
     an empty line.
     '''

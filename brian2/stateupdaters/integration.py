@@ -61,11 +61,11 @@ def split_expression(expr):
     
     Examples
     --------
-    >>> print split_expression('dt * f(x, t)')
+    >>> split_expression('dt * f(x, t)')
     (dt*f(x, t), None)
-    >>> print split_expression('dt * f(x, t) + dW * g(x, t)')
+    >>> split_expression('dt * f(x, t) + dW * g(x, t)')
     (dt*f(x, t), dW*g(x, t))
-    >>> print split_expression('1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)')
+    >>> split_expression('1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)')
     (0, dW**2*dt**(-0.5)*g_support/2 - dW**2*dt**(-0.5)*g(x, t)/2)
     '''
     
