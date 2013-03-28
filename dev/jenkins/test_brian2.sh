@@ -46,4 +46,4 @@ rm -r ~/.python*_compiled || :
 # Run unit tests and record coverage but do not fail the build if anything goes wrong here
 coverage erase --rcfile=.coveragerc || :
 coverage run --rcfile=.coveragerc ~/.jenkins/virtual_envs/$PythonVersion/$packages/bin/nosetests --with-xunit --logging-clear-handlers --verbose --with-doctest brian2 || :
-coverage xml --rcfile=.coveragerc || :
+coverage xml -i --rcfile=.coveragerc || :
