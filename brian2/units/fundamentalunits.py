@@ -620,6 +620,7 @@ def in_unit(x, u, precision=None):
     >>> in_unit(10 * mV, ohm * amp)
     '0.01 ohm A'
     >>> in_unit(10 * nS, ohm) # doctest: +NORMALIZE_WHITESPACE
+    ...                       # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
         ...
     DimensionMismatchError: Non-matching unit for method "in_unit",
@@ -755,7 +756,7 @@ class Quantity(np.ndarray, object):
     '6000.0 mV'
     >>> (I * R) / mvolt
     Quantity(6000.0)
-    >>> X = I + R
+    >>> X = I + R  # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
         ...
     DimensionMismatchError: Addition, dimensions were (A) (m^2 kg s^-3 A^-2)
@@ -1988,7 +1989,7 @@ def check_units(**au):
     explicitly named in the definition of the function. For example, the code
     above checks that the variable wibble should be a length, so writing
 
-    >>> getvoltage(1*amp, 1*ohm, wibble=1)
+    >>> getvoltage(1*amp, 1*ohm, wibble=1)  # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
     DimensionMismatchError: Function "getvoltage" variable "wibble" has wrong dimensions, dimensions were (1) (m)
