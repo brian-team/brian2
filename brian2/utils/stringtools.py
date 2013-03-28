@@ -143,8 +143,6 @@ def get_identifiers(expr):
     
     >>> expr = 'a*_b+c5+8+f(A)'
     >>> ids = get_identifiers(expr)
-    >>> print(type(ids))
-    <type 'set'>
     >>> print(sorted(list(ids)))
     ['A', '_b', 'a', 'c5', 'f']
     '''
