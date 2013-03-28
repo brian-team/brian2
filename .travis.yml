@@ -15,7 +15,7 @@ install:
   # install different pyparsing versions for python 2 and 3
   - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install pyparsing==1.5.7; else pip install pyparsing; fi"
   - "pip install . --use-mirrors"
-# command to run tests
-script: nosetests --with-doctest brian2
+# command to run tests (make sure to not run it from the source directory)
+script: "cd ..; nosetests --with-doctest brian2"
 notifications:
   email: false
