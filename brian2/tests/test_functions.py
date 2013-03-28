@@ -11,8 +11,15 @@ def test_math_functions():
     '''
     test_array = np.array([-1, -0.5, 0, 0.5, 1])
     
-    with catch_logs() as _:  # Let's suppress warnings about illegal values
+    # We can only test C++ if weave is availabe
+    try:
+        import scipy.weave
         languages = [PythonLanguage(), CPPLanguage()]
+    except ImportError:
+        # Can't test C++
+        languages = [PythonLanguage()]
+    
+    with catch_logs() as _:  # Let's suppress warnings about illegal values        
         for lang in languages:
             
             # Functions with a single argument

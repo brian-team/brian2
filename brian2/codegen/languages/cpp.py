@@ -1,18 +1,24 @@
 '''
 TODO: restrict keyword optimisations
 '''
+import re
+
 from sympy.printing.ccode import CCodePrinter
 import numpy
-from scipy import weave
-import re
 
 from brian2.utils.stringtools import deindent
 from brian2.utils.parsing import parse_to_sympy
-
 from brian2.codegen.functions.base import Function
+from brian2.utils.logger import get_logger
+
 from .base import Language, CodeObject
 
-
+logger = get_logger(__name__)
+try:
+    from scipy import weave
+except ImportError as ex:
+    logger.warn('Importing scipy.weave failed: %s' % ex)
+    weave = None
 
 __all__ = ['CPPLanguage', 'CPPCodeObject',
            'c_data_type',
