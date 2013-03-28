@@ -1,8 +1,6 @@
 '''
 Brian's logging module.
 '''
-
-import codecs
 import atexit
 import logging
 import os
