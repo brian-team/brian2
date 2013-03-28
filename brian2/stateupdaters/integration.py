@@ -255,7 +255,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             replacements (see `_generate_RHS`).
             '''
             try:
-                s_expr = parse_to_sympy(expr, local_dict=symbols)
+                s_expr = parse_to_sympy(unicode(expr), local_dict=symbols)
             except SympifyError as ex:
                 raise ValueError('Error parsing the expression "%s": %s' %
                                  (expr, str(ex)))
