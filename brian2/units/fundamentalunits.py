@@ -15,10 +15,11 @@ Luminosity             candle    cd
 """
 from __future__ import division
 
+import numbers
+import collections
 from warnings import warn
-from operator import isNumberType, isSequenceType
 import operator
-from itertools import izip
+import itertools
 
 import numpy as np
 
@@ -348,11 +349,11 @@ class Dimension(object):
     # wrong sort of input
     def __mul__(self, value):
         return get_or_create_dimension([x + y for x, y in
-                                        izip(self._dims, value._dims)])
+                                        itertools.izip(self._dims, value._dims)])
 
     def __div__(self, value):
         return get_or_create_dimension([x - y for x, y in
-                                        izip(self._dims, value._dims)])
+                                        itertools.izip(self._dims, value._dims)])
 
     def __truediv__(self, value):
         return self.__div__(value)
@@ -381,6 +382,9 @@ class Dimension(object):
 
     def __ne__(self, value):
         return not self.__eq__(value)
+
+    def __hash__(self):
+        return hash(self._dims)
 
     #### MAKE DIMENSION PICKABLE ####
     def __getstate__(self):
@@ -433,7 +437,7 @@ def get_or_create_dimension(*args, **kwds):
     e.g. length, metre, and m all refer to the same thing here.
     """
     if len(args):
-        if isSequenceType(args[0]) and len(args[0]) == 7:
+        if isinstance(args[0], collections.Sequence) and len(args[0]) == 7:
             # initialisation by list
             dims = args[0]
         else:
@@ -506,7 +510,10 @@ def is_scalar_type(obj):
         ``True`` if `obj` is a scalar that can be interpreted as a
         dimensionless `Quantity`.
     """
-    return isNumberType(obj) and not isSequenceType(obj)
+    if isinstance(obj, np.number) or isinstance(obj, np.ndarray):
+        return np.isscalar(obj) or np.ndim(obj) == 0
+    else:
+        return isinstance(obj, numbers.Number)
 
 
 def get_dimensions(obj):
@@ -527,8 +534,9 @@ def get_dimensions(obj):
     dim: `Dimension`
         The dimensions of the `obj`.
     """
-    if isNumberType(obj) and not isinstance(obj, Quantity):
-        return DIMENSIONLESS
+    if (isinstance(obj, numbers.Number) or isinstance(obj, np.number) or
+        isinstance(obj, np.ndarray) and not isinstance(obj, Quantity)):
+        return DIMENSIONLESS 
     try:
         return obj.dimensions
     except AttributeError:
@@ -612,6 +620,7 @@ def in_unit(x, u, precision=None):
     >>> in_unit(10 * mV, ohm * amp)
     '0.01 ohm A'
     >>> in_unit(10 * nS, ohm) # doctest: +NORMALIZE_WHITESPACE
+    ...                       # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
         ...
     DimensionMismatchError: Non-matching unit for method "in_unit",
@@ -741,21 +750,21 @@ class Quantity(np.ndarray, object):
     >>> from brian2 import *
     >>> I = 3 * amp # I is a Quantity object
     >>> R = 2 * ohm # same for R
-    >>> print I * R
-    6.0 V
-    >>> print (I * R).in_unit(mvolt)
-    6000.0 mV
-    >>> print (I * R) / mvolt
-    6000.0
-    >>> X = I + R
+    >>> I * R
+    6.0 * volt
+    >>> (I * R).in_unit(mvolt)
+    '6000.0 mV'
+    >>> (I * R) / mvolt
+    Quantity(6000.0)
+    >>> X = I + R  # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
         ...
     DimensionMismatchError: Addition, dimensions were (A) (m^2 kg s^-3 A^-2)
     >>> Is = np.array([1, 2, 3]) * amp
-    >>> print Is * R
-    [ 2.  4.  6.] V
-    >>> print np.asarray(Is * R) # gets rid of units
-    [ 2.  4.  6.]
+    >>> Is * R
+    array([ 2.,  4.,  6.]) * volt
+    >>> np.asarray(Is * R) # gets rid of units
+    array([ 2.,  4.,  6.])
 
     See also
     --------
@@ -1221,26 +1230,26 @@ class Quantity(np.ndarray, object):
                                       inplace=True)
 
     def __div__(self, other):
-        return self._binary_operation(other, operator.div, operator.div)
+        return self._binary_operation(other, operator.truediv, operator.truediv)
 
     def __truediv__(self, other):
         return self.__div__(other)
 
     def __rdiv__(self, other):
         # division with swapped arguments
-        rdiv = lambda a, b: operator.div(b, a)
+        rdiv = lambda a, b: operator.truediv(b, a)
         return self._binary_operation(other, rdiv, rdiv)
 
     def __rtruediv__(self, other):
         return self.__rdiv__(other)
 
     def __idiv__(self, other):
-        return self._binary_operation(other, np.ndarray.__idiv__, operator.div,
-                                      inplace=True)
+        return self._binary_operation(other, np.ndarray.__itruediv__,
+                                      operator.truediv, inplace=True)
 
     def __itruediv__(self, other):
         return self._binary_operation(other, np.ndarray.__itruediv__,
-                                      operator.div, inplace=True)
+                                      operator.truediv, inplace=True)
 
     def __mod__(self, other):
         return self._binary_operation(other, operator.mod,
@@ -1527,8 +1536,8 @@ class Unit(Quantity):
 
     You can then do
 
-    >>> print (1*Nm).in_unit(Nm)
-    1.0 N m
+    >>> (1*Nm).in_unit(Nm)
+    '1.0 N m'
     
     which returns ``"1 N m"`` because the `Unit` class generates a new
     display name of ``"N m"`` from the display names ``"N"`` and ``"m"`` for
@@ -1647,7 +1656,7 @@ class Unit(Quantity):
         for k in keywords:
             scale[_di[k]] = keywords[k]
         v = 1.0
-        for s, i in izip(scale, dim._dims):
+        for s, i in itertools.izip(scale, dim._dims):
             if i:
                 v *= _siprefixes[s] ** i
         u = Unit(v * _siprefixes[scalefactor], dim=dim, scale=tuple(scale))
@@ -1980,7 +1989,7 @@ def check_units(**au):
     explicitly named in the definition of the function. For example, the code
     above checks that the variable wibble should be a length, so writing
 
-    >>> getvoltage(1*amp, 1*ohm, wibble=1)
+    >>> getvoltage(1*amp, 1*ohm, wibble=1)  # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
     DimensionMismatchError: Function "getvoltage" variable "wibble" has wrong dimensions, dimensions were (1) (m)
