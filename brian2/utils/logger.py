@@ -1,7 +1,6 @@
 '''
 Brian's logging module.
 '''
-
 import atexit
 import logging
 import os
@@ -26,6 +25,10 @@ __all__ = ['get_logger', 'BrianLogger']
 # Initial setup
 #===============================================================================
 
+def _encode(text):
+    ''' Small helper function to encode unicode strings as UTF-8. ''' 
+    return text.encode('UTF-8')
+
 # get the root logger
 logger = logging.getLogger('')
 logger.setLevel(logging.DEBUG)
@@ -33,10 +36,10 @@ logger.setLevel(logging.DEBUG)
 # Log to a file
 try:
     # Temporary filename used for logging
-    TMP_LOG = tempfile.NamedTemporaryFile(prefix='brian_debug_', suffix='.log',
-                                          delete=False)
+    TMP_LOG = tempfile.NamedTemporaryFile(prefix='brian_debug_',
+                                          suffix='.log', delete=False)
     TMP_LOG = TMP_LOG.name
-    FILE_HANDLER = logging.FileHandler(TMP_LOG, mode='w+b')
+    FILE_HANDLER = logging.FileHandler(TMP_LOG, mode='wt')
     FILE_HANDLER.setLevel(logging.DEBUG)
     FILE_HANDLER.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(name)s: %(message)s'))
     logger.addHandler(FILE_HANDLER)
@@ -53,11 +56,13 @@ if len(sys.argv[0]) and not running_from_ipython():
                                                delete=False)
         with tmp_file:
             # Timestamp
-            tmp_file.write('# %s\n' % time.asctime())
+            tmp_file.write(_encode(u'# %s\n' % time.asctime()))
             # Command line arguments
-            tmp_file.write('# Run as: %s\n\n' % (' '.join(sys.argv)))
+            tmp_file.write(_encode(u'# Run as: %s\n\n' % (' '.join(sys.argv))))
             # The actual script file
-            with open(os.path.abspath(sys.argv[0])) as script_file:
+            # TODO: We are copying the script file as it is, this might clash
+            # with the encoding we used for the comments added above
+            with open(os.path.abspath(sys.argv[0]), 'rb') as script_file:
                 shutil.copyfileobj(script_file, tmp_file)    
             TMP_SCRIPT = tmp_file.name
     except IOError as ex:
@@ -426,7 +431,7 @@ class catch_logs(object):
     WARNING  brian2.logtest: An uncaught warning
     >>> with catch_logs() as l:
     ...    logger.warn('a caught warning')
-    ...    print 'l contains:', l
+    ...    print('l contains: %s' % l)
     ... 
     l contains: [('WARNING', 'brian2.logtest', 'a caught warning')]
 

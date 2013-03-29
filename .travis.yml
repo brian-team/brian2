@@ -2,16 +2,23 @@ language: python
 python:
   - "2.6"
   - "2.7"
+  - "3.2"
+  - "3.3"
 # install build dependencies
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get build-dep -qq python-scipy python-sympy python-pyparsing
 # command to install dependencies
 install:
-  - "pip install numpy==1.6.2"
-  - "pip install scipy sympy pyparsing==1.5.7 sphinx ipython --use-mirrors"
+  # install different versions of numpy for python 2 and 3
+  - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install numpy==1.6.2 --use-mirrors; else pip install numpy --use-mirrors; fi"
+  - "pip install scipy sphinx ipython --use-mirrors"
+  # Make sure to use the python 3 version for sympy
+  - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install sympy --use-mirrors; else pip install http://sympy.googlecode.com/files/sympy-0.7.2-py3.2.tar.gz; fi"
+  # install different pyparsing versions for python 2 and 3
+  - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install pyparsing==1.5.7 --use-mirrors; else pip install pyparsing --use-mirrors; fi"
   - "pip install . --use-mirrors"
-# command to run tests
-script: nosetests --with-doctest brian2
+# command to run tests (make sure to not run it from the source directory)
+script: "cd ~;nosetests --with-doctest brian2"
 notifications:
   email: false

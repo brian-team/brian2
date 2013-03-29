@@ -3,6 +3,7 @@ import weakref
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.core.base import BrianObject
+from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second 
 from brian2.core.preferences import brian_prefs
@@ -236,8 +237,10 @@ class Network(Nameable):
         self._prepared = True
         
     def _nextclocks(self):
-        minclock = min(self._clocks)
-        curclocks = set(clock for clock in self._clocks if clock==minclock)
+        minclock = min(self._clocks, key=lambda c: c.t_)
+        curclocks = set(clock for clock in self._clocks if
+                        (clock.t_ == minclock.t_ or
+                         abs(clock.t_ - minclock.t_)<Clock.epsilon))
         return minclock, curclocks
     
     @check_units(duration=second, report_period=second)
