@@ -12,7 +12,9 @@ before_install:
 install:
   # install different versions of numpy for python 2 and 3
   - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install numpy==1.6.2 --use-mirrors; else pip install numpy --use-mirrors; fi"
-  - "pip install scipy sympy sphinx ipython --use-mirrors"
+  - "pip install scipy sphinx ipython --use-mirrors"
+  # Make sure to use the python 3 version for sympy
+  - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install sympy --use-mirrors; else pip install http://sympy.googlecode.com/files/sympy-0.7.2-py3.2.tar.gz; fi"
   # install different pyparsing versions for python 2 and 3
   - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install pyparsing==1.5.7 --use-mirrors; else pip install pyparsing --use-mirrors; fi"
   - "pip install . --use-mirrors"
