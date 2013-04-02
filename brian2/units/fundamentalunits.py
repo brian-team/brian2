@@ -246,6 +246,7 @@ _siprefixes = {"y": 1e-24, "z": 1e-21, "a": 1e-18, "f": 1e-15, "p": 1e-12,
                "P": 1e15, "E": 1e18, "Z": 1e21, "Y": 1e24}
 
 
+
 class Dimension(object):
     '''
     Stores the indices of the 7 basic SI unit dimension (length, mass, etc.).
@@ -1410,7 +1411,7 @@ class Quantity(np.ndarray, object):
     # TODO: Use sympy's _latex method, then latex(unit) should work
     def _latex(self, expr):
         from sympy import Matrix
-        best_unit = _get_best_unit(self)
+        best_unit = self._get_best_unit()
         if isinstance(best_unit, Unit):
             best_unit_latex = latex(best_unit)
         else: # A quantity
@@ -1734,8 +1735,13 @@ class Unit(Quantity):
         u.scalefactor = scalefactor
         u.name = scalefactor + baseunit.name
         u.dispname = scalefactor + baseunit.dispname
-        # FIXME: little hack to get a
-
+        # As u --> \mu is the only transformation we have, I think it
+        # makes sense to just special-case it here instead of coming
+        # up with a general system for scale factors
+        # TODO: Unfortunately, \mu gives the typographically incorrect symbol,
+        #it should be an upright letter :-/
+        if scalefactor == 'u':
+            scalefactor = r'\mu'
         u.latexname = r'\mathrm{' + scalefactor + '}' + r'\,' + baseunit.latexname
         u.iscompound = False
         return u
@@ -1793,7 +1799,11 @@ class Unit(Quantity):
     def _latex(self, *args):
         if self.latexname == "":
             if len(self.scalefactor):
-                s = r'\mathrm{' + self.scalefactor + "} "
+                if self.scalefactor == 'u':
+                    scalefactor = r'\mu'
+                else:
+                    scalefactor = self.scalefactor
+                s = r'\mathrm{' + scalefactor + "} "
             else:
                 s = ''
             for i in range(7):
