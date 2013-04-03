@@ -230,7 +230,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
     def allocate_memory(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)
         arrayvarnames = set(eq.varname for eq in self.equations.itervalues() if
-                            eq.eq_type in (DIFFERENTIAL_EQUATION,
+                            eq.type in (DIFFERENTIAL_EQUATION,
                                            PARAMETER))
         arrays = {}
         for name in arrayvarnames:
@@ -373,7 +373,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         # First add all the differential equations and parameters, because they
         # may be referred to by static equations
         for eq in self.equations.itervalues():
-            if eq.eq_type in (DIFFERENTIAL_EQUATION, PARAMETER):
+            if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 array = self.arrays[eq.varname]
                 s.update({eq.varname: ArrayVariable(eq.varname,
                                                     eq.unit,
@@ -385,7 +385,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         # static equation only depends on state variables (differential
         # equations or parameters) or *previous* static equations 
         for eq in self.equations.ordered:        
-            if eq.eq_type == STATIC_EQUATION:
+            if eq.type == STATIC_EQUATION:
                 # all external identifiers
                 identifiers = eq.identifiers - self.equations.names - set(s.keys())
                 resolved_namespace = self.namespace.resolve_all(identifiers)

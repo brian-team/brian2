@@ -218,7 +218,7 @@ class SingleEquation(object):
     
     Parameters
     ----------
-    eq_type : {PARAMETER, DIFFERENTIAL_EQUATION, STATIC_EQUATION}
+    type : {PARAMETER, DIFFERENTIAL_EQUATION, STATIC_EQUATION}
         The type of the equation.
     varname : str
         The variable that is defined by this equation.
@@ -232,8 +232,8 @@ class SingleEquation(object):
         context.
     
     '''
-    def __init__(self, eq_type, varname, unit, expr=None, flags=None):
-        self.eq_type = eq_type
+    def __init__(self, type, varname, unit, expr=None, flags=None):
+        self.type = type
         self.varname = varname
         self.unit = unit
         self.expr = expr
@@ -257,7 +257,7 @@ class SingleEquation(object):
         return sympy.latex(sympy_expr)
 
     def __str__(self):
-        if self.eq_type == DIFFERENTIAL_EQUATION:
+        if self.type == DIFFERENTIAL_EQUATION:
             s = 'd' + self.varname + '/dt'
         else:
             s = self.varname
@@ -273,7 +273,7 @@ class SingleEquation(object):
         return s
 
     def __repr__(self):
-        s = '<' + self.eq_type + ' ' + self.varname
+        s = '<' + self.type + ' ' + self.varname
 
         if not self.expr is None:
             s += ': ' + self.expr.code
@@ -294,7 +294,7 @@ class SingleEquation(object):
             # should never happen
             raise AssertionError('Cyclical call of SingleEquation._repr_pretty')
 
-        if self.eq_type == DIFFERENTIAL_EQUATION:
+        if self.type == DIFFERENTIAL_EQUATION:
             p.text('d' + self.varname + '/dt')
         else:
             p.text(self.varname)
@@ -401,7 +401,7 @@ class Equations(collections.Mapping):
         uses_xi = None
         for eq in self._equations.itervalues():
             if not eq.expr is None and 'xi' in eq.expr.identifiers:
-                if not eq.eq_type == DIFFERENTIAL_EQUATION:
+                if not eq.type == DIFFERENTIAL_EQUATION:
                     raise EquationError(('The equation defining %s contains the '
                                          'symbol "xi" but is not a differential '
                                          'equation.') % eq.varname)
@@ -515,13 +515,13 @@ class Equations(collections.Mapping):
 
             expr = Expression(word_substitute(eq.expr.code, substitutions))
 
-            if eq.eq_type == STATIC_EQUATION:
+            if eq.type == STATIC_EQUATION:
                 substitutions.update({eq.varname: '(%s)' % expr.code})
-            elif eq.eq_type == DIFFERENTIAL_EQUATION:
+            elif eq.type == DIFFERENTIAL_EQUATION:
                 #  a differential equation that we have to check
                 subst_exprs.append((eq.varname, expr))
             else:
-                raise AssertionError('Unknown equation type %s' % eq.eq_type)
+                raise AssertionError('Unknown equation type %s' % eq.type)
 
         return subst_exprs
 
@@ -573,13 +573,13 @@ class Equations(collections.Mapping):
 
     diff_eq_expressions = property(lambda self: [(varname, eq.expr) for
                                                  varname, eq in self.iteritems()
-                                                 if eq.eq_type == DIFFERENTIAL_EQUATION],
+                                                 if eq.type == DIFFERENTIAL_EQUATION],
                                   doc='A list of (variable name, expression) '
                                   'tuples of all differential equations.')
 
     eq_expressions = property(lambda self: [(varname, eq.expr) for
                                             varname, eq in self.iteritems()
-                                            if eq.eq_type in (STATIC_EQUATION,
+                                            if eq.type in (STATIC_EQUATION,
                                                               DIFFERENTIAL_EQUATION)],
                                   doc='A list of (variable name, expression) '
                                   'tuples of all equations.')
@@ -592,19 +592,19 @@ class Equations(collections.Mapping):
                      doc='All variable names defined in the equations.')
 
     diff_eq_names = property(lambda self: set([eq.varname for eq in self.ordered
-                                           if eq.eq_type == DIFFERENTIAL_EQUATION]),
+                                           if eq.type == DIFFERENTIAL_EQUATION]),
                              doc='All differential equation names.')
 
     static_eq_names = property(lambda self: set([eq.varname for eq in self.ordered
-                                           if eq.eq_type == STATIC_EQUATION]),
+                                           if eq.type == STATIC_EQUATION]),
                                doc='All static equation names.')
 
     eq_names = property(lambda self: set([eq.varname for eq in self.ordered
-                                           if eq.eq_type in (DIFFERENTIAL_EQUATION, STATIC_EQUATION)]),
+                                           if eq.type in (DIFFERENTIAL_EQUATION, STATIC_EQUATION)]),
                         doc='All (static and differential) equation names.')
 
     parameter_names = property(lambda self: set([eq.varname for eq in self.ordered
-                                             if eq.eq_type == PARAMETER]),
+                                             if eq.type == PARAMETER]),
                                doc='All parameter names.')
 
     units = property(lambda self:dict([(var, eq.unit) for var, eq in
@@ -638,10 +638,10 @@ class Equations(collections.Mapping):
         # i.e. ignore dependencies on parameters and differential equations
         static_deps = {}
         for eq in self._equations.itervalues():
-            if eq.eq_type == STATIC_EQUATION:
+            if eq.type == STATIC_EQUATION:
                 static_deps[eq.varname] = [dep for dep in eq.identifiers if
                                            dep in self._equations and
-                                           self._equations[dep].eq_type == STATIC_EQUATION]
+                                           self._equations[dep].type == STATIC_EQUATION]
 
         # Use the standard algorithm for topological sorting:
         # http://en.wikipedia.org/wiki/Topological_sorting
@@ -673,9 +673,9 @@ class Equations(collections.Mapping):
 
         # Sort differential equations and parameters after static equations
         for eq in self._equations.itervalues():
-            if eq.eq_type == DIFFERENTIAL_EQUATION:
+            if eq.type == DIFFERENTIAL_EQUATION:
                 eq.update_order = len(sorted_eqs)
-            elif eq.eq_type == PARAMETER:
+            elif eq.type == PARAMETER:
                 eq.update_order = len(sorted_eqs) + 1
 
     def check_units(self, namespace, specifiers):
@@ -708,18 +708,18 @@ class Equations(collections.Mapping):
                 unit_namespace.update({name: namespace[name]})
 
         for var, eq in self._equations.iteritems():
-            if eq.eq_type == PARAMETER:
+            if eq.type == PARAMETER:
                 # no need to check units for parameters
                 continue
 
-            if eq.eq_type == DIFFERENTIAL_EQUATION:
+            if eq.type == DIFFERENTIAL_EQUATION:
                 try:
                     eq.expr.check_units(self.units[var] / second, unit_namespace)
                 except DimensionMismatchError as dme:
                     raise DimensionMismatchError(('Differential equation defining '
                                                   '%s does not use consistent units: %s') %
                                                  (var, dme.desc), *dme.dims)
-            elif eq.eq_type == STATIC_EQUATION:
+            elif eq.type == STATIC_EQUATION:
                 try:
                     eq.expr.check_units(self.units[var], unit_namespace)
                 except DimensionMismatchError as dme:
@@ -727,7 +727,7 @@ class Equations(collections.Mapping):
                                                   '%s does not use consistent units: %s') %
                                                  (var, dme.desc), *dme.dims)
             else:
-                raise AssertionError('Unknown equation type: "%s"' % eq.eq_type)
+                raise AssertionError('Unknown equation type: "%s"' % eq.type)
 
 
     def check_flags(self, allowed_flags):
@@ -753,13 +753,13 @@ class Equations(collections.Mapping):
         '''
         for eq in self.itervalues():
             for flag in eq.flags:
-                if not eq.eq_type in allowed_flags or len(allowed_flags[eq.eq_type]) == 0:
-                    raise ValueError('Equations of type "%s" cannot have any flags.' % eq.eq_type)
-                if not flag in allowed_flags[eq.eq_type]:
+                if not eq.type in allowed_flags or len(allowed_flags[eq.type]) == 0:
+                    raise ValueError('Equations of type "%s" cannot have any flags.' % eq.type)
+                if not flag in allowed_flags[eq.type]:
                     raise ValueError(('Equations of type "%s" cannot have a '
                                       'flag "%s", only the following flags '
-                                      'are allowed: %s') % (eq.eq_type,
-                                                            flag, allowed_flags[eq.eq_type]))
+                                      'are allowed: %s') % (eq.type,
+                                                            flag, allowed_flags[eq.type]))
 
     ############################################################################
     # Representation
@@ -776,9 +776,16 @@ class Equations(collections.Mapping):
         equations = []
         t = sympy.Symbol('t')
         for eq in self._equations.itervalues():
+            if eq.type == PARAMETER:
+                # ingore parameters for now
+                continue
             # do not use SingleEquations._latex here as we want nice alignment
             varname = sympy.Function(eq.varname)
-            lhs = sympy.diff(varname(t), t)
+            if eq.type == DIFFERENTIAL_EQUATION:
+                lhs = sympy.diff(varname(t), t)
+            else:
+                # Normal equation
+                lhs = varname(t)
             rhs = parse_to_sympy(eq.expr)
             if len(eq.flags):
                 flag_str = ', flags: ' + ', '.join(eq.flags)

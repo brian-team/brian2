@@ -102,7 +102,7 @@ def test_parse_equations():
     ''' Test the parsing of equation strings '''
     # A simple equation
     eqs = parse_string_equations('dv/dt = -v / tau : 1')
-    assert len(eqs.keys()) == 1 and 'v' in eqs and eqs['v'].eq_type == DIFFERENTIAL_EQUATION
+    assert len(eqs.keys()) == 1 and 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION
     assert get_dimensions(eqs['v'].unit) == DIMENSIONLESS
 
     # A complex one
@@ -115,10 +115,10 @@ def test_parse_equations():
                                     f : Hz (constant)
                                  ''')
     assert len(eqs.keys()) == 4
-    assert 'v' in eqs and eqs['v'].eq_type == DIFFERENTIAL_EQUATION
-    assert 'ge' in eqs and eqs['ge'].eq_type == DIFFERENTIAL_EQUATION
-    assert 'I' in eqs and eqs['I'].eq_type == STATIC_EQUATION
-    assert 'f' in eqs and eqs['f'].eq_type == PARAMETER
+    assert 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION
+    assert 'ge' in eqs and eqs['ge'].type == DIFFERENTIAL_EQUATION
+    assert 'I' in eqs and eqs['I'].type == STATIC_EQUATION
+    assert 'f' in eqs and eqs['f'].type == PARAMETER
     assert get_dimensions(eqs['v'].unit) == volt.dim
     assert get_dimensions(eqs['ge'].unit) == volt.dim
     assert get_dimensions(eqs['I'].unit) == volt.dim
