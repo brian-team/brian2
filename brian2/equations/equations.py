@@ -5,11 +5,10 @@ import collections
 import keyword
 import re
 import string
-import sys
 
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
-from sympy import latex
+import sympy
 
 from brian2.units.fundamentalunits import DimensionMismatchError
 from brian2.units.allunits import second
@@ -252,11 +251,10 @@ class SingleEquation(object):
                            doc='All identifiers in the RHS of this equation.')
 
     def _latex(self, *args):
-        from sympy import diff, Symbol, Eq, latex, Function
-        varname = Function(self.varname)
-        t = Symbol('t')
-        sympy_expr = Eq(diff(varname(t), t), parse_to_sympy(self.expr))
-        return latex(sympy_expr)
+        varname = sympy.Function(self.varname)
+        t = sympy.Symbol('t')
+        sympy_expr = sympy.Eq(sympy.diff(varname(t), t), parse_to_sympy(self.expr))
+        return sympy.latex(sympy_expr)
 
     def __str__(self):
         if self.eq_type == DIFFERENTIAL_EQUATION:
@@ -774,25 +772,27 @@ class Equations(collections.Mapping):
     def __repr__(self):
         return '<Equations object consisting of %d equations>' % len(self._equations)
 
-    def _latex(self, *args):
-        from sympy import diff, Symbol, latex, Function
+    def _latex(self, *args):        
         equations = []
-        t = Symbol('t')
+        t = sympy.Symbol('t')
         for eq in self._equations.itervalues():
             # do not use SingleEquations._latex here as we want nice alignment
-            varname = Function(eq.varname)
-            lhs = diff(varname(t), t)
+            varname = sympy.Function(eq.varname)
+            lhs = sympy.diff(varname(t), t)
             rhs = parse_to_sympy(eq.expr)
             if len(eq.flags):
                 flag_str = ', flags: ' + ', '.join(eq.flags)
             else:
                 flag_str = ''
-            eq_latex = r'%s &= %s && \text{(unit: $%s$%s)}' % (latex(lhs), latex(rhs), latex(eq.unit), flag_str)
+            eq_latex = r'%s &= %s && \text{(unit: $%s$%s)}' % (sympy.latex(lhs),
+                                                               sympy.latex(rhs),
+                                                               sympy.latex(eq.unit),
+                                                               flag_str)
             equations.append(eq_latex)
         return r'\begin{align}' + r'\\'.join(equations) + r'\end{align}'
 
     def _repr_latex_(self):
-        return latex(self)
+        return sympy.latex(self)
 
     def _repr_pretty_(self, p, cycle):
         ''' Pretty printing for ipython '''
