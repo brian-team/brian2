@@ -5,6 +5,7 @@ import weakref
 
 import numpy as np
 from numpy import array
+import sympy
 
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         STATIC_EQUATION, PARAMETER)
@@ -190,8 +191,13 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             language = PythonLanguage()
         self.language = language
 
+        #: The threshold condition given by the user
+        self.threshold = threshold
         #: Performs thresholding step, sets the value of `spikes`
         self.thresholder = self.create_thresholder(threshold)
+        
+        #: The reset statement(s) given by the user
+        self.reset = reset
         #: Resets neurons which have spiked (`spikes`)
         self.resetter = self.create_resetter(reset)
 
@@ -408,6 +414,25 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
     abstract_code = property(lambda self: self.method(self.equations))
 
+    
+    def _repr_html_(self):
+        text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self.N)]
+        text.append(r'<b>Model:</b><nr>')
+        text.append(sympy.latex(self.equations))
+        text.append(r'<b>Integration method:</b><br>')
+        text.append(sympy.latex(self.method))
+        if self.threshold is not None:
+            text.append(r'<b>Threshold condition:</b><br>')
+            text.append('<code>%s</code><br>' % str(self.threshold))
+            text.append('')
+        if self.reset is not None:
+            text.append(r'<b>Reset statement:</b><br>')            
+            text.append(r'<code>%s</code><br>' % str(self.reset))
+            text.append('')
+                    
+        return '\n'.join(text)
+        
+    
 
 if __name__ == '__main__':
     from pylab import *
