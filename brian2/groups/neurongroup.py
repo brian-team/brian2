@@ -406,7 +406,9 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
         return s
 
-    abstract_code = property(lambda self: self.method(self.equations))
+    abstract_code = property(lambda self: self.method(self.equations,
+                                                      self.namespace,
+                                                      self.specifiers))
 
 
 if __name__ == '__main__':
