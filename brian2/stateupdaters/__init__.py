@@ -4,4 +4,4 @@ further translated into executable code by the `codegen` module.
 '''  
 from .base import *
 from .exact import *
-from .integration import *
+from .explicit import *
