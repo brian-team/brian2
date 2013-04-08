@@ -1,3 +1,7 @@
+'''
+Exact integration for linear equations.
+'''
+
 import operator
 
 from sympy import Wild, Symbol, sympify
@@ -13,6 +17,26 @@ __all__ = ['linear']
 logger = get_logger(__name__)
 
 def get_linear_system(eqs):
+    '''
+    Convert equations into a linear system using sympy.
+    
+    Parameters
+    ----------
+    eqs : `Equations`
+        The model equations.
+    
+    Returns
+    -------
+    (diff_eq_names, coefficients, constants) : (list of str, `sympy.Matrix`, `sympy.Matrix`)
+        A tuple containing the variable names (`diff_eq_names`) corresponding
+        to the rows of the matrix `coefficients` and the vector `constants`,
+        representing the system of equations in the for M * X + B
+    
+    Raises
+    ------
+    ValueError
+        If the equations cannot be converted into an M * X + B form.
+    '''
     diff_eqs = eqs.substituted_expressions
     diff_eq_names = eqs.diff_eq_names
     
@@ -47,7 +71,11 @@ def get_linear_system(eqs):
 
 
 class LinearStateUpdater(StateUpdateMethod):    
-    
+    '''
+    A state updater for linear equations. Derives a state updater step from the
+    analytical solution given by sympy. Uses the matrix exponential (which is
+    only implemented for diagonalizable matrices in sympy).
+    ''' 
     def can_integrate(self, equations, namespace, specifiers):
         if equations.is_stochastic:
             return False
