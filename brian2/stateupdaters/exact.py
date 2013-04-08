@@ -47,7 +47,13 @@ class LinearStateUpdater(StateUpdateMethod):
     def can_integrate(self, equations, namespace, specifiers):
         return False
     
-    def __call__(self, equations):
+    def __call__(self, equations, namespace=None, specifiers=None):
+        
+        if namespace is None:
+            namespace = {}
+        if specifiers is None:
+            specifiers = {}
+        
         # Get a representation of the ODE system in the form of
         # dX/dt = M*X + B
         variables, matrix, constants = get_linear_system(eqs)
