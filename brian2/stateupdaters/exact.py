@@ -3,6 +3,8 @@ import operator
 from sympy import Wild, Symbol, sympify
 import sympy as sp
 
+from brian2.core.specifiers import Value
+from brian2.utils.stringtools import get_identifiers
 from brian2.equations import Equations
 from brian2.stateupdaters.base import StateUpdateMethod
 
@@ -56,7 +58,7 @@ class LinearStateUpdater(StateUpdateMethod):
         
         # Get a representation of the ODE system in the form of
         # dX/dt = M*X + B
-        variables, matrix, constants = get_linear_system(eqs)
+        variables, matrix, constants = get_linear_system(equations)
         
         
         symbols = [Symbol(variable) for variable in variables]
@@ -66,7 +68,7 @@ class LinearStateUpdater(StateUpdateMethod):
         # Solve the system
         dt = Symbol('dt')    
         A = (matrix * dt).exp()                
-        C = -sp.Matrix([A.dot(b)]) + b
+        C = sp.Matrix([A.dot(b)]) - b
         S = sp.MatrixSymbol('_S', len(variables), 1)
         updates = A * S + C.transpose()
         
@@ -74,8 +76,22 @@ class LinearStateUpdater(StateUpdateMethod):
         # replace them with the state variable names 
         abstract_code = []
         for idx, (variable, update) in enumerate(zip(variables, updates)):
-            abstract_code.append(variable + ' = ' +
-                                 str(update.subs('_S_%d0' % idx, variable)))
+            rhs = update.subs('_S_%d0' % idx, variable)
+            identifiers = get_identifiers(str(rhs))
+            for identifier in identifiers:
+                if identifier in specifiers:
+                    spec = specifiers[identifier]
+                    if isinstance(spec, Value) and spec.constant:
+                        float_val = spec.get_value()
+                        rhs = rhs.subs(identifier, float_val)
+                elif identifier in namespace:
+                    try:
+                        float_val = float(namespace[identifier])
+                        rhs = rhs.subs(identifier, float_val)
+                    except TypeError:
+                        # Not a number
+                        pass
+            abstract_code.append(variable + ' = ' + str(rhs))
         
         return '\n'.join(abstract_code)
 
@@ -85,6 +101,7 @@ linear = LinearStateUpdater()
 StateUpdateMethod.register('linear', linear, 0)
 
 if __name__ == '__main__':
+    from brian2 import ms
     eqs = Equations('''
     dv/dt = -v / tau + const_v: 1
     du/dt = -u / tau + const_u: 1
@@ -96,4 +113,4 @@ if __name__ == '__main__':
     print 'Equations:'
     print eqs
     print 'Abstract code'
-    print linear(eqs)
+    print linear(eqs, {'tau': 5*ms, 'dt': 0.1*ms})

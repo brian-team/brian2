@@ -24,6 +24,7 @@ from brian2.groups.group import Group
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit
 from brian2.utils.stringtools import get_identifiers
+from brian2.stateupdaters.exact import linear
 
 __all__ = ['NeuronGroup',
            'CodeRunner']
@@ -195,10 +196,15 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         #: Resets neurons which have spiked (`spikes`)
         self.resetter = self.create_resetter(reset)
 
+        #: The state update method
         self.method = StateUpdateMethod.determine_stateupdater(self.equations,
                                                                self.namespace,
                                                                self.specifiers,
                                                                method)
+
+        #: Abstract code for one integration step. Will be set in
+        #: `create_state_updater`
+        self.abstract_code = None
 
         #: Performs numerical integration step
         self.state_updater = self.create_state_updater()
@@ -269,6 +275,15 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         # For stochastic equations, we also need access to randn and _randn
         if not self.equations.stochastic_type is None:
             identifiers |= set(['randn', '_randn'])
+
+        resolved_namespace = self.namespace.resolve_all(identifiers -
+                                                        set(self.specifiers.keys()))
+
+        self.abstract_code = self.method(self.equations,
+                                         resolved_namespace,
+                                         self.specifiers) 
+        # The state updater might use exp
+        identifiers |= set(['exp'])
 
         codeobj = self.create_codeobj("state updater",
                                       self.abstract_code,
@@ -362,7 +377,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         s = {'_num_neurons': ReadOnlyValue('_num_neurons', Unit(1), np.int, self.N),
              '_spikes' : AttributeValue('_spikes', Unit(1), np.int, self, 'spikes'),
              't': AttributeValue('t',  second, np.float64, self.clock, 't_'),
-             'dt': AttributeValue('dt', second, np.float64, self.clock, 'dt_')}
+             'dt': AttributeValue('dt', second, np.float64, self.clock, 'dt_', constant=True)}
 
         # First add all the differential equations and parameters, because they
         # may be referred to by static equations
@@ -406,10 +421,6 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
         return s
 
-    abstract_code = property(lambda self: self.method(self.equations,
-                                                      self.namespace,
-                                                      self.specifiers))
-
 
 if __name__ == '__main__':
     from pylab import *
@@ -420,27 +431,29 @@ if __name__ == '__main__':
     N = 10000
     tau = 10 * ms
     eqs = '''
-    dV/dt = (2*volt-V)/tau_real + 0.25*volt*xi_1/tau**.5 + + 0.25*volt*xi_2/tau**.5: volt (active)
+    dV/dt = (2*volt-V)/tau_real : volt
     tau_real = 1 * tau : second # just to test that static equations work
     Vt : volt
     '''
     threshold = 'V>Vt'
-    reset = 'V = 0*volt'
+    reset = 'V = 0*volt'    
     G = NeuronGroup(N, eqs,
                     threshold=threshold,
                     reset=reset,
-                    language=PythonLanguage(),
+                    language=CPPLanguage(),
+                    method=euler,
                     # language=NumexprPythonLanguage(),
                     )
+    print G.abstract_code
     G.refractory = 5 * ms
     Gmid = Subgroup(G, 40, 80)
 
     G.Vt = 1 * volt
     runner = G.runner('Vt = 1*volt-(t/second)*5*volt')
 
-    G.V = rand(N) * volt
+    G.V = linspace(0, 1, N) * volt
 
-    statemon = StateMonitor(G, 'V', record=range(3))
+    statemon = StateMonitor(G, 'V', record=range(0, 10000, 2500))
     spikemon = SpikeMonitor(Gmid)
 
     start = time.time()

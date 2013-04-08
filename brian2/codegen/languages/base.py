@@ -225,6 +225,7 @@ class CodeObject(object):
 
     def __call__(self, **kwds):
         # update the values in the namespace
+        # TODO: Make use of the constant property here
         for name, spec in self.specifiers.iteritems():
             if isinstance(spec, Value):
                 value = spec.get_value()

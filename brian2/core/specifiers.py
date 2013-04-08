@@ -82,11 +82,17 @@ class Value(VariableSpecifier):
         The unit of the variable
     dtype: `numpy.dtype`
         The dtype used for storing the variable.
+    constant: bool, optional
+        Whether the value of this variable can change during a run. Defaults
+        to ``False``.
     '''
-    def __init__(self, name, unit, dtype):
+    def __init__(self, name, unit, dtype, constant=False):
         VariableSpecifier.__init__(self, name, unit)
         #: The dtype used for storing the variable.
         self.dtype = dtype
+        
+        #: Whether the value is constant during a run
+        self.constant = constant
     
     def get_value(self):
         '''
@@ -127,7 +133,7 @@ class ReadOnlyValue(Value):
         When trying to use the `set_value` method.
     '''
     def __init__(self, name, unit, dtype, value):
-        Value.__init__(self, name, unit, dtype)
+        Value.__init__(self, name, unit, dtype, constant=True)
         #: Reference to the variable's value
         self.value = value
 
@@ -175,15 +181,17 @@ class AttributeValue(ReadOnlyValue):
     attribute : str
         The name of the attribute storing the variable's value. `attribute` has
         to be an attribute of `obj`.
-    
+    constant : bool, optional
+        Whether the attribute's value is constant during a run.
+        
     Raises
     ------
     AttributeError
         If `obj` does not have an attribute `attribute`.
         
     '''
-    def __init__(self, name, unit, dtype, obj, attribute):
-        Value.__init__(self, name, unit, dtype)
+    def __init__(self, name, unit, dtype, obj, attribute, constant=False):
+        Value.__init__(self, name, unit, dtype, constant)
         if not hasattr(obj, attribute):
             raise AttributeError(('Object %r does not have an attribute %r, '
                                   'providing the value for %r') %
@@ -226,7 +234,7 @@ class ArrayVariable(Value):
         A reference to the array storing the data for the variable.
     index : str
         The index that will be used in the generated code when looping over the
-        variable.
+        variable.        
     '''
     def __init__(self, name, unit, dtype, array, index):
         Value.__init__(self, name, unit, dtype)
