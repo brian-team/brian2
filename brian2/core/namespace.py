@@ -169,7 +169,7 @@ class CompoundNamespace(collections.Mapping):
                     yield entry
     
     def __contains__(self, key):
-        for entries in self.namespace.itervalues():
+        for entries in self.namespaces.itervalues():
             if key in entries:
                 return True
         

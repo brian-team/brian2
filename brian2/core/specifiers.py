@@ -7,6 +7,7 @@ TODO: have a single global dtype rather than specify for each variable?
 from brian2.units.allunits import second
 
 from brian2.utils.stringtools import get_identifiers
+from brian.fundamentalunits import is_scalar_type
 
 __all__ = ['Specifier',
            'VariableSpecifier',
@@ -53,17 +54,27 @@ class VariableSpecifier(Specifier):
         The name of the variable.
     unit : `Unit`
         The unit of the variable
-    
+    scalar : bool, optional
+        Whether the variable is a scalar value (``True``) or vector-valued, i.e.
+        defined for every neuron (``False``). Defaults to ``True``.
+    constant: bool, optional
+        Whether the value of this variable can change during a run. Defaults
+        to ``False``.
     See Also
     --------
     Value
     '''
-    def __init__(self, name, unit):
+    def __init__(self, name, unit, scalar=True, constant=False):
         Specifier.__init__(self, name)
         
         #: The variable's unit.
         self.unit = unit
 
+        #: Whether the value is a scalar
+        self.scalar = scalar
+
+        #: Whether the value is constant during a run
+        self.constant = constant
 
 class Value(VariableSpecifier):
     '''
@@ -82,17 +93,17 @@ class Value(VariableSpecifier):
         The unit of the variable
     dtype: `numpy.dtype`
         The dtype used for storing the variable.
+    scalar : bool, optional
+        Whether the variable is a scalar value (``True``) or vector-valued, i.e.
+        defined for every neuron (``False``). Defaults to ``True``.
     constant: bool, optional
         Whether the value of this variable can change during a run. Defaults
-        to ``False``.
+        to ``False``.        
     '''
-    def __init__(self, name, unit, dtype, constant=False):
-        VariableSpecifier.__init__(self, name, unit)
+    def __init__(self, name, unit, dtype, scalar=True, constant=False):
+        VariableSpecifier.__init__(self, name, unit, scalar, constant)
         #: The dtype used for storing the variable.
         self.dtype = dtype
-        
-        #: Whether the value is constant during a run
-        self.constant = constant
     
     def get_value(self):
         '''
@@ -126,16 +137,19 @@ class ReadOnlyValue(Value):
         The dtype used for storing the variable.
     value : reference to a value of type `dtype`
         Reference to the variable's value
-    
+
     Raises
     ------
     TypeError
         When trying to use the `set_value` method.
     '''
     def __init__(self, name, unit, dtype, value):
-        Value.__init__(self, name, unit, dtype, constant=True)
         #: Reference to the variable's value
         self.value = value
+        
+        scalar = is_scalar_type(value)
+        
+        Value.__init__(self, name, unit, dtype, scalar, constant=True)
 
     def get_value(self):
         return self.value
@@ -156,7 +170,7 @@ class StochasticVariable(VariableSpecifier):
     '''
     def __init__(self, name):
         # The units of stochastic variables is fixed
-        VariableSpecifier.__init__(self, name, second**(-.5))
+        VariableSpecifier.__init__(self, name, second**(-.5), scalar=False)
 
 
 class AttributeValue(ReadOnlyValue):
@@ -191,11 +205,14 @@ class AttributeValue(ReadOnlyValue):
         
     '''
     def __init__(self, name, unit, dtype, obj, attribute, constant=False):
-        Value.__init__(self, name, unit, dtype, constant)
         if not hasattr(obj, attribute):
             raise AttributeError(('Object %r does not have an attribute %r, '
                                   'providing the value for %r') %
                                  (obj, attribute, name))
+        
+        scalar = is_scalar_type(getattr(obj, attribute))
+        
+        Value.__init__(self, name, unit, dtype, scalar, constant)
         #: A reference to the object storing the variable's value         
         self.obj = obj
         #: The name of the attribute storing the variable's value
@@ -234,10 +251,12 @@ class ArrayVariable(Value):
         A reference to the array storing the data for the variable.
     index : str
         The index that will be used in the generated code when looping over the
-        variable.        
+        variable.
+    constant : bool, optional
+        Whether the variable's value is constant during a run.
     '''
-    def __init__(self, name, unit, dtype, array, index):
-        Value.__init__(self, name, unit, dtype)
+    def __init__(self, name, unit, dtype, array, index, constant=False):
+        Value.__init__(self, name, unit, dtype, scalar=False, constant=constant)
         #: The reference to the array storing the data for the variable.
         self.array = array
         #: The name for the array used in generated code
@@ -277,7 +296,7 @@ class Subexpression(Value):
         variables/functions used in the expression
     '''
     def __init__(self, name, unit, dtype, expr, specifiers, namespace):
-        Value.__init__(self, name, unit, dtype)
+        Value.__init__(self, name, unit, dtype, scalar=False)
         #: The expression defining the static equation.
         self.expr = expr.strip()
         #: The identifiers used in the expression

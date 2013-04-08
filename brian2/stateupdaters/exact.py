@@ -5,10 +5,12 @@ import sympy as sp
 
 from brian2.core.specifiers import Value
 from brian2.utils.stringtools import get_identifiers
-from brian2.equations import Equations
+from brian2.utils.logger import get_logger
 from brian2.stateupdaters.base import StateUpdateMethod
 
-___all__ = ['linear']
+__all__ = ['linear']
+
+logger = get_logger(__name__)
 
 def get_linear_system(eqs):
     diff_eqs = eqs.substituted_expressions
@@ -47,7 +49,19 @@ def get_linear_system(eqs):
 class LinearStateUpdater(StateUpdateMethod):    
     
     def can_integrate(self, equations, namespace, specifiers):
-        return False
+        if equations.is_stochastic:
+            return False
+               
+        # Not very efficient but guaranteed to give the correct answer:
+        # Just try to apply the integration method
+        try:
+            self.__call__(equations, namespace, specifiers)
+        except (ValueError, NotImplementedError, TypeError) as ex:
+            logger.debug('Cannot use linear integration: %s' % ex)
+            return False
+        
+        # It worked
+        return True
     
     def __call__(self, equations, namespace=None, specifiers=None):
         
@@ -58,8 +72,19 @@ class LinearStateUpdater(StateUpdateMethod):
         
         # Get a representation of the ODE system in the form of
         # dX/dt = M*X + B
-        variables, matrix, constants = get_linear_system(equations)
+        variables, matrix, constants = get_linear_system(equations)        
         
+        # Make sure that the matrix M is constant, i.e. it only contains
+        # external variables or constant specifiers
+        # As every symbol in the matrix should be either in the namespace or
+        # the specifiers dictionary, it should be sufficient to just check for
+        # the presence of any non-constant specifiers.
+        for spec in specifiers.itervalues():
+            if (any(Symbol(spec.name) in element for element in matrix) and
+                not getattr(spec, 'constant', False)):
+                raise ValueError(('The coefficient matrix for the equations '
+                                 'contains "%s", which is not constant.') %
+                                 spec.name)
         
         symbols = [Symbol(variable) for variable in variables]
         solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
@@ -81,7 +106,7 @@ class LinearStateUpdater(StateUpdateMethod):
             for identifier in identifiers:
                 if identifier in specifiers:
                     spec = specifiers[identifier]
-                    if isinstance(spec, Value) and spec.constant:
+                    if isinstance(spec, Value) and spec.scalar and spec.constant:
                         float_val = spec.get_value()
                         rhs = rhs.subs(identifier, float_val)
                 elif identifier in namespace:
@@ -99,18 +124,3 @@ linear = LinearStateUpdater()
 
 # The linear state updater has the highest priority
 StateUpdateMethod.register('linear', linear, 0)
-
-if __name__ == '__main__':
-    from brian2 import ms
-    eqs = Equations('''
-    dv/dt = -v / tau + const_v: 1
-    du/dt = -u / tau + const_u: 1
-    tau : second
-    const_v : 1
-    const_u : 1
-    ''' )
-    
-    print 'Equations:'
-    print eqs
-    print 'Abstract code'
-    print linear(eqs, {'tau': 5*ms, 'dt': 0.1*ms})
