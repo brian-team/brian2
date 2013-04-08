@@ -384,11 +384,13 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         for eq in self.equations.itervalues():
             if eq.eq_type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 array = self.arrays[eq.varname]
+                constant = ('constant' in eq.flags)
                 s.update({eq.varname: ArrayVariable(eq.varname,
                                                     eq.unit,
                                                     array.dtype,
                                                     array,
-                                                    '_neuron_idx')})
+                                                    '_neuron_idx',
+                                                    constant)})
         
         # Now go through the static equations in the correct order, i.e. each
         # static equation only depends on state variables (differential
