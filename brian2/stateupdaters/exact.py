@@ -144,8 +144,13 @@ class LinearStateUpdater(StateUpdateMethod):
                     except TypeError:
                         # Not a number
                         pass
-            abstract_code.append(variable + ' = ' + str(rhs))
+            # Do not overwrite the real state variables yet, the update step
+            # of other state variables might still need the original values
+            abstract_code.append('_' + variable + ' = ' + str(rhs))
         
+        # Update the state variables
+        for variable in variables:
+            abstract_code.append('{variable} = _{variable}'.format(variable=variable))
         return '\n'.join(abstract_code)
 
 linear = LinearStateUpdater()

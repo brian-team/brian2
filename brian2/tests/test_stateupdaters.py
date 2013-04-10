@@ -54,7 +54,7 @@ def test_integrator_code():
     eqs = Equations('dv/dt = -v / (1 * second) : 1')
     
     # Only test very basic stuff (expected number of lines and last line)
-    for integrator, lines in zip([euler, rk2, rk4], [2, 3, 6]):
+    for integrator, lines in zip([linear, euler, rk2, rk4], [2, 2, 3, 6]):
         code_lines = integrator(eqs).split('\n')
         assert len(code_lines) == lines
         assert code_lines[-1] == 'v = _v'
