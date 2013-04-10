@@ -7,7 +7,7 @@ TODO: have a single global dtype rather than specify for each variable?
 from brian2.units.allunits import second
 
 from brian2.utils.stringtools import get_identifiers
-from brian.fundamentalunits import is_scalar_type
+from brian2.units.fundamentalunits import is_scalar_type
 
 __all__ = ['Specifier',
            'VariableSpecifier',
