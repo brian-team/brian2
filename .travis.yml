@@ -10,8 +10,9 @@ before_install:
   - sudo apt-get build-dep -qq python-scipy python-sympy python-pyparsing
 # command to install dependencies
 install:
-  - "pip install numpy --use-mirrors"
-  - "pip install scipy sphinx ipython --use-mirrors"
+  # Use the newest versions available
+  - "pip install numpy --upgrade --use-mirrors"
+  - "pip install scipy sphinx ipython --upgrade --use-mirrors"
   # Make sure to use the python 3 version for sympy
   - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install sympy --use-mirrors; else pip install http://sympy.googlecode.com/files/sympy-0.7.2-py3.2.tar.gz; fi"
   # install different pyparsing versions for python 2 and 3
