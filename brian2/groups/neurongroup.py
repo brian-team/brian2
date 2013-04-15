@@ -25,6 +25,7 @@ from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit
 from brian2.utils.stringtools import get_identifiers
 from brian2.stateupdaters.exact import linear
+from brian2.codegen.translation import analyse_identifiers
 
 __all__ = ['NeuronGroup',
            'CodeRunner']
@@ -245,8 +246,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         return arrays
 
 
-    def create_codeobj(self, name, code, identifiers,
-                       template=None, iterate_all=True):
+    def create_codeobj(self, name, code, template=None, iterate_all=True):
         ''' A little helper function to reduce the amount of repetition when
         calling the language's create_codeobj (always pass self.specifiers and
         self.namespace).
@@ -254,10 +254,9 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
         # Resolve the namespace, resulting in a dictionary containing only the
         # external variables that are needed by the code
-        # Remove the variables in the specifiers dictionary first, as they are
-        # not contained in the namespace
-        identifiers = set(identifiers) - set(self.specifiers.keys())
-        resolved_namespace = self.namespace.resolve_all(identifiers)
+
+        _, _, unknown = analyse_identifiers(code, self.specifiers.keys())
+        resolved_namespace = self.namespace.resolve_all(unknown)
 
         return self.language.create_codeobj(name,
                                             code,
@@ -270,24 +269,13 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
     def create_state_updater(self):
         '''Create the `StateUpdater`.'''
-        identifiers = self.equations.identifiers
-
-        # For stochastic equations, we also need access to randn and _randn
-        if not self.equations.stochastic_type is None:
-            identifiers |= set(['randn', '_randn'])
-
-        resolved_namespace = self.namespace.resolve_all(identifiers -
-                                                        set(self.specifiers.keys()))
 
         self.abstract_code = self.method(self.equations,
-                                         resolved_namespace,
+                                         self.namespace,
                                          self.specifiers) 
-        # The state updater might use exp
-        identifiers |= set(['exp'])
 
         codeobj = self.create_codeobj("state updater",
                                       self.abstract_code,
-                                      identifiers,
                                       self.language.template_state_update
                                       )
 
@@ -321,11 +309,8 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             name = self.name + '_runner_' + str(self.num_runners)
             self.num_runners += 1
 
-        identifiers = get_identifiers(code)
-
         codeobj = self.create_codeobj("runner",
                                       code,
-                                      identifiers,
                                       self.language.template_state_update,
                                       )
         runner = CodeRunner(codeobj, name=name, when=when)
@@ -337,11 +322,9 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             return None
 
         abstract_code = '_cond = ' + threshold
-        identifiers = get_identifiers(threshold)
 
         codeobj = self.create_codeobj("thresholder",
                                       abstract_code,
-                                      identifiers,
                                       self.language.template_threshold
                                       )
         thresholder = Thresholder(self, codeobj,
@@ -355,11 +338,9 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             return None
 
         abstract_code = reset
-        identifiers = get_identifiers(reset)
 
         codeobj = self.create_codeobj("resetter",
                                       abstract_code,
-                                      identifiers,
                                       self.language.template_reset,
                                       iterate_all=False
                                       )
