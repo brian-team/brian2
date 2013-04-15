@@ -23,7 +23,6 @@ from brian2.utils.logger import get_logger
 from brian2.groups.group import Group
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit
-from brian2.utils.stringtools import get_identifiers
 from brian2.stateupdaters.exact import linear
 from brian2.codegen.translation import analyse_identifiers
 
@@ -172,7 +171,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                PARAMETER: ('constant')})
 
         ##### Setup the memory
-        self.arrays = self.allocate_memory(dtype=dtype)
+        self.arrays = self._allocate_memory(dtype=dtype)
 
         #: The array of spikes from the most recent threshold operation
         self.spikes = array([], dtype=int)
@@ -181,7 +180,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         self.namespace = self.create_namespace(self.N, namespace)
 
         # Setup specifiers
-        self.specifiers = self.create_specifiers()
+        self.specifiers = self._create_specifiers()
 
         # Check units
         self.equations.check_units(self.namespace, self.specifiers)
@@ -193,9 +192,9 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         self.language = language
 
         #: Performs thresholding step, sets the value of `spikes`
-        self.thresholder = self.create_thresholder(threshold)
+        self.thresholder = self._create_thresholder(threshold)
         #: Resets neurons which have spiked (`spikes`)
-        self.resetter = self.create_resetter(reset)
+        self.resetter = self._create_resetter(reset)
 
         #: The state update method
         self.method = StateUpdateMethod.determine_stateupdater(self.equations,
@@ -204,11 +203,11 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                                                method)
 
         #: Abstract code for one integration step. Will be set in
-        #: `create_state_updater`
+        #: `_create_state_updater`
         self.abstract_code = None
 
         #: Performs numerical integration step
-        self.state_updater = self.create_state_updater()
+        self.state_updater = self._create_state_updater()
 
         # Creation of contained_objects that do the work
         self.contained_objects.append(self.state_updater)
@@ -228,7 +227,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         return self.N
 
 
-    def allocate_memory(self, dtype=None):
+    def _allocate_memory(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)
         arrayvarnames = set(eq.varname for eq in self.equations.itervalues() if
                             eq.eq_type in (DIFFERENTIAL_EQUATION,
@@ -246,9 +245,9 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         return arrays
 
 
-    def create_codeobj(self, name, code, template=None, iterate_all=True):
+    def _create_codeobj(self, name, code, template=None, iterate_all=True):
         ''' A little helper function to reduce the amount of repetition when
-        calling the language's create_codeobj (always pass self.specifiers and
+        calling the language's _create_codeobj (always pass self.specifiers and
         self.namespace).
         '''
 
@@ -267,14 +266,14 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                                      Index('_neuron_idx',
                                                            iterate_all)})
 
-    def create_state_updater(self):
+    def _create_state_updater(self):
         '''Create the `StateUpdater`.'''
 
         self.abstract_code = self.method(self.equations,
                                          self.namespace,
                                          self.specifiers) 
 
-        codeobj = self.create_codeobj("state updater",
+        codeobj = self._create_codeobj("state updater",
                                       self.abstract_code,
                                       self.language.template_state_update
                                       )
@@ -309,21 +308,21 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             name = self.name + '_runner_' + str(self.num_runners)
             self.num_runners += 1
 
-        codeobj = self.create_codeobj("runner",
+        codeobj = self._create_codeobj("runner",
                                       code,
                                       self.language.template_state_update,
                                       )
         runner = CodeRunner(codeobj, name=name, when=when)
         return runner
 
-    def create_thresholder(self, threshold):
+    def _create_thresholder(self, threshold):
         '''Create the `Thresholder`'''
         if threshold is None:
             return None
 
         abstract_code = '_cond = ' + threshold
 
-        codeobj = self.create_codeobj("thresholder",
+        codeobj = self._create_codeobj("thresholder",
                                       abstract_code,
                                       self.language.template_threshold
                                       )
@@ -332,14 +331,14 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                   when=(self.clock, 'thresholds'))
         return thresholder
 
-    def create_resetter(self, reset):
+    def _create_resetter(self, reset):
         '''Create the `Resetter`.'''
         if reset is None:
             return None
 
         abstract_code = reset
 
-        codeobj = self.create_codeobj("resetter",
+        codeobj = self._create_codeobj("resetter",
                                       abstract_code,
                                       self.language.template_reset,
                                       iterate_all=False
@@ -349,7 +348,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                             when=(self.clock, 'resets'))
         return resetter
 
-    def create_specifiers(self):
+    def _create_specifiers(self):
         '''
         Create the specifiers dictionary for this `NeuronGroup`, containing
         entries for the equation variables and some standard entries.
@@ -423,8 +422,8 @@ if __name__ == '__main__':
     G = NeuronGroup(N, eqs,
                     threshold=threshold,
                     reset=reset,
-                    language=CPPLanguage(),
-                    method=euler,
+                    language=PythonLanguage(),
+                    method=linear,
                     # language=NumexprPythonLanguage(),
                     )
     print G.abstract_code
