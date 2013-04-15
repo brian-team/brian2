@@ -15,13 +15,7 @@ pip install sphinx
 
 echo "Using newest available package versions"
 
-# Use numpy 1.6.2 for Python 2 for now
-if [ ${PythonVersion:0:1} == '2' ]; then
-	pip install numpy==1.6.2
-	else
-	pip install numpy --upgrade
-fi
- 
+pip install --upgrade numpy 
 pip install --upgrade scipy
 pip install --upgrade sympy
 pip install --upgrade matplotlib
