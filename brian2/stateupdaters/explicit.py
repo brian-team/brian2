@@ -350,20 +350,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         RHS = ' + '.join(RHS)
         return RHS
 
-    def __call__(self, eqs):
-        '''
-        Return "abstract code" for one integration step.
-        
-        Parameters
-        ----------
-        eqs : `Equations`
-            The model equations that should be integrated.
-        
-        Returns
-        -------
-        code : str
-            The "abstract code" for the integration step.
-        '''
+    def __call__(self, eqs, namespace=None, specifiers=None):        
 
         # The final list of statements
         statements = []

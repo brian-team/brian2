@@ -1,11 +1,42 @@
+'''
+Exact integration for linear equations.
+'''
+
 import operator
 
 from sympy import Wild, Symbol, sympify
 import sympy as sp
 
-from brian2.equations import Equations
+from brian2.core.specifiers import Value
+from brian2.utils.stringtools import get_identifiers
+from brian2.utils.logger import get_logger
+from brian2.stateupdaters.base import StateUpdateMethod
+
+__all__ = ['linear']
+
+logger = get_logger(__name__)
 
 def get_linear_system(eqs):
+    '''
+    Convert equations into a linear system using sympy.
+    
+    Parameters
+    ----------
+    eqs : `Equations`
+        The model equations.
+    
+    Returns
+    -------
+    (diff_eq_names, coefficients, constants) : (list of str, `sympy.Matrix`, `sympy.Matrix`)
+        A tuple containing the variable names (`diff_eq_names`) corresponding
+        to the rows of the matrix `coefficients` and the vector `constants`,
+        representing the system of equations in the for M * X + B
+    
+    Raises
+    ------
+    ValueError
+        If the equations cannot be converted into an M * X + B form.
+    '''
     diff_eqs = eqs.substituted_expressions
     diff_eq_names = eqs.diff_eq_names
     
@@ -39,34 +70,90 @@ def get_linear_system(eqs):
     return (diff_eq_names, coefficients, constants)
 
 
-
-if __name__ == '__main__':
-    from brian2 import sin  
-    eqs = Equations('''
-    dv/dt = sin(2*3.141*t*freq+phase) / tau : 1
-    tau : second
-    freq : Hz 
-    phase : 1
-    ''' )
-    
-    variables, matrix, b = get_linear_system(eqs)
-    print 'variables: ', variables
-    print '\nCoefficient matrix:'
-    print matrix
-    print '\nVector b:'
-    print b
-    print '\n diagonalized:'
-    t = Symbol('t')    
-    A = (matrix * t).exp()
-    print 'A = :'
-    print A
-    C = sp.Matrix([A.dot(b)]) + b
-    print 'C = :'
-    print C
-#    x(t) = dot(A(t), S(0)) + C(t)
-#    x(t + dt) = dot(A(t + dt), S(0)) + C(t + dt)
-#    = dot(A(t), S(0)) + dot(A(dt), S(0)) + C(t) + C(dt)
-#    = S(t) + dot(A(dt), S(0)) + C(dt)
-#    
-#    C(0) = 0
+class LinearStateUpdater(StateUpdateMethod):    
+    '''
+    A state updater for linear equations. Derives a state updater step from the
+    analytical solution given by sympy. Uses the matrix exponential (which is
+    only implemented for diagonalizable matrices in sympy).
+    ''' 
+    def can_integrate(self, equations, namespace, specifiers):
+        if equations.is_stochastic:
+            return False
+               
+        # Not very efficient but guaranteed to give the correct answer:
+        # Just try to apply the integration method
+        try:
+            self.__call__(equations, namespace, specifiers)
+        except (ValueError, NotImplementedError, TypeError) as ex:
+            logger.debug('Cannot use linear integration: %s' % ex)
+            return False
         
+        # It worked
+        return True
+    
+    def __call__(self, equations, namespace=None, specifiers=None):
+        
+        if namespace is None:
+            namespace = {}
+        if specifiers is None:
+            specifiers = {}
+        
+        # Get a representation of the ODE system in the form of
+        # dX/dt = M*X + B
+        variables, matrix, constants = get_linear_system(equations)        
+        
+        # Make sure that the matrix M is constant, i.e. it only contains
+        # external variables or constant specifiers
+        # As every symbol in the matrix should be either in the namespace or
+        # the specifiers dictionary, it should be sufficient to just check for
+        # the presence of any non-constant specifiers.
+        for spec in specifiers.itervalues():
+            if (any(Symbol(spec.name) in element for element in matrix) and
+                not getattr(spec, 'constant', False)):
+                raise ValueError(('The coefficient matrix for the equations '
+                                 'contains "%s", which is not constant.') %
+                                 spec.name)
+        
+        symbols = [Symbol(variable) for variable in variables]
+        solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
+        b = sp.Matrix([solution[symbol] for symbol in symbols]).transpose()
+        
+        # Solve the system
+        dt = Symbol('dt')    
+        A = (matrix * dt).exp()                
+        C = sp.Matrix([A.dot(b)]) - b
+        S = sp.MatrixSymbol('_S', len(variables), 1)
+        updates = A * S + C.transpose()
+        
+        # The solution contains _S_00, _S_10 etc. for the state variables,
+        # replace them with the state variable names 
+        abstract_code = []
+        for idx, (variable, update) in enumerate(zip(variables, updates)):
+            rhs = update.subs('_S_%d0' % idx, variable)
+            identifiers = get_identifiers(str(rhs))
+            for identifier in identifiers:
+                if identifier in specifiers:
+                    spec = specifiers[identifier]
+                    if isinstance(spec, Value) and spec.scalar and spec.constant:
+                        float_val = spec.get_value()
+                        rhs = rhs.subs(identifier, float_val)
+                elif identifier in namespace:
+                    try:
+                        float_val = float(namespace[identifier])
+                        rhs = rhs.subs(identifier, float_val)
+                    except TypeError:
+                        # Not a number
+                        pass
+            # Do not overwrite the real state variables yet, the update step
+            # of other state variables might still need the original values
+            abstract_code.append('_' + variable + ' = ' + str(rhs))
+        
+        # Update the state variables
+        for variable in variables:
+            abstract_code.append('{variable} = _{variable}'.format(variable=variable))
+        return '\n'.join(abstract_code)
+
+linear = LinearStateUpdater()
+
+# The linear state updater has the highest priority
+StateUpdateMethod.register('linear', linear, 0)
