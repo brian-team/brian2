@@ -1,8 +1,13 @@
+from collections import namedtuple
+
 from nose.tools import assert_raises
+import numpy as np
 from numpy.testing.utils import assert_equal
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
+from brian2.core.specifiers import ArrayVariable, AttributeValue
+
 
 def test_explicit_stateupdater_parsing():
     '''
@@ -63,10 +68,55 @@ def test_priority():
     updater = ExplicitStateUpdater('return x + dt * f(x, t)')
     # Equations that work for the state updater
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
-    # namespace and specifiers should not be necessary here
+    # Put up some fake specifiers
     namespace = {}
-    specifiers = {} 
+    # Fake clock class
+    MyClock = namedtuple('MyClock', ['t_', 'dt_'])
+    clock = MyClock(t_=0, dt_=0.0001)
+    specifiers = {'v': ArrayVariable('v', Unit(1), np.float, None, '',
+                                     constant=False),
+                  't': AttributeValue('t',  second, np.float64, clock, 't_'),
+                  'dt': AttributeValue('dt', second, np.float64, clock, 'dt_', constant=True)} 
     assert updater.can_integrate(eqs, namespace, specifiers)
+
+    # Non-constant parameter in the coefficient, linear integration does not
+    # work
+    eqs = Equations('''dv/dt = -param * v / (10*ms) : 1
+                       param : 1''')
+    specifiers['param'] = ArrayVariable('param', Unit(1), np.float, None, '',
+                                        constant=False)
+    assert updater.can_integrate(eqs, namespace, specifiers)
+    can_integrate = {linear: False, euler: True, rk2: True, rk4: True, 
+                     milstein: True}
+
+    for integrator, able in can_integrate.iteritems():
+        assert integrator.can_integrate(eqs, namespace, specifiers) == able
+
+    # Constant parameter in the coefficient, linear integration should
+    # work
+    eqs = Equations('''dv/dt = -param * v / (10*ms) : 1
+                       param : 1 (constant)''')
+    specifiers['param'] = ArrayVariable('param', Unit(1), np.float, None, '',
+                                        constant=True)
+    assert updater.can_integrate(eqs, namespace, specifiers)
+    can_integrate = {linear: True, euler: True, rk2: True, rk4: True, 
+                     milstein: True}
+    del specifiers['param']
+
+    for integrator, able in can_integrate.iteritems():
+        assert integrator.can_integrate(eqs, namespace, specifiers) == able
+
+    # External parameter in the coefficient, linear integration *should* work
+    # (external parameters don't change during a run)
+    param = 1
+    namespace['param'] = param
+    eqs = Equations('dv/dt = -param * v / (10*ms) : 1')
+    assert updater.can_integrate(eqs, namespace, specifiers)
+    can_integrate = {linear: True, euler: True, rk2: True, rk4: True, 
+                     milstein: True}
+    for integrator, able in can_integrate.iteritems():
+        assert integrator.can_integrate(eqs, namespace, specifiers) == able
+    del namespace['param']
     
     # Equation with additive noise
     eqs = Equations('dv/dt = -v / (10*ms) + xi/(10*ms)**.5 : 1')
@@ -75,10 +125,7 @@ def test_priority():
     can_integrate = {linear: False, euler: True, rk2: False, rk4: False, 
                      milstein: True}
     for integrator, able in can_integrate.iteritems():
-        if able:
-            assert integrator.can_integrate(eqs, namespace, specifiers)
-        else:
-            assert not integrator.can_integrate(eqs, namespace, specifiers)
+        assert integrator.can_integrate(eqs, namespace, specifiers) == able
     
     # Equation with multiplicative noise
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi/(10*ms)**.5 : 1')
@@ -87,10 +134,7 @@ def test_priority():
     can_integrate = {linear: False, euler: False, rk2: False, rk4: False, 
                      milstein: True}
     for integrator, able in can_integrate.iteritems():
-        if able:
-            assert integrator.can_integrate(eqs, namespace, specifiers)
-        else:
-            assert not integrator.can_integrate(eqs, namespace, specifiers)
+        assert integrator.can_integrate(eqs, namespace, specifiers) == able
     
 
 def test_registration():
@@ -110,6 +154,11 @@ def test_registration():
     # Trying to register something that is not a state updater
     assert_raises(ValueError,
                   lambda: StateUpdateMethod.register('foo', 'just a string'))
+    
+    # Trying to register with an invalid index
+    assert_raises(TypeError,
+                  lambda: StateUpdateMethod.register('foo', lazy_updater,
+                                                     index='not an index'))
     
     # reset to state before the test
     StateUpdateMethod.stateupdaters = before 
@@ -179,7 +228,7 @@ def test_determination():
                                               method=name)
         assert returned is integrator
         # No warning here
-        assert len(logs) == 0        
+        assert len(logs) == 0    
 
     # Now all except milstein should refuse to work
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
