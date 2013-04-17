@@ -101,7 +101,7 @@ class StateUpdateMethod(object):
         if not index is None:
             try:
                 index = int(index)
-            except TypeError:
+            except (TypeError, ValueError):
                 raise TypeError(('Index argument should be an integer, is '
                                  'of type %s instead.') % type(index))
             StateUpdateMethod.stateupdaters.insert(index, (name, stateupdater))
