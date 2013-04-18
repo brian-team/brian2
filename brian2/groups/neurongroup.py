@@ -26,57 +26,94 @@ from brian2.units.fundamentalunits import Unit
 from brian2.stateupdaters.exact import linear
 from brian2.codegen.translation import analyse_identifiers
 
-__all__ = ['NeuronGroup',
-           'CodeRunner']
+__all__ = ['NeuronGroup']
 
 logger = get_logger(__name__)
 
-class CodeRunner(BrianObject):
+def _create_codeobj(group, name, code, template=None, iterate_all=True):
+    ''' A little helper function to reduce the amount of repetition when
+    calling the language's _create_codeobj (always pass self.specifiers and
+    self.namespace).
     '''
-    Runs a code object on an update schedule.
-    
-    Parameters
-    ----------
-    codeobj : `CodeObject`
-        The code to run every timestep.
-    when : `Scheduler`
-        When to execute the update, see `Scheduler` for details.
-    name : str
-        The name of this code runner.
-    '''
-    basename = 'code_runner'
-    def __init__(self, codeobj, when=None, name=None):
-        BrianObject.__init__(self, when=when, name=name)
-        self.codeobj = codeobj
 
+    # Resolve the namespace, resulting in a dictionary containing only the
+    # external variables that are needed by the code
+
+    _, _, unknown = analyse_identifiers(code, group.specifiers.keys())
+    resolved_namespace = group.namespace.resolve_all(unknown)
+
+    return group.language.create_codeobj(name,
+                                         code,
+                                         resolved_namespace,
+                                         group.specifiers,
+                                         template,
+                                         indices={'_neuron_idx':
+                                                  Index('_neuron_idx',
+                                                        iterate_all)})
+
+
+class NeuronGroupCodeRunner(BrianObject):
+    '''
+    A `CodeRunner` for use in `NeuronGroup`. Keeps a reference to the
+    `NeuronGroup`.
+    '''
+    def __init__(self, group, template, code=None, iterate_all=True,
+                 when=None, name=None):
+        BrianObject.__init__(self, when=when, name=name)
+        self.group = weakref.proxy(group)
+        self.template = template
+        self.abstract_code = code
+        self.iterate_all = iterate_all
+    
+    def update_abstract_code(self):
+        pass
+    
+    def pre_run(self, namespace):
+        self.update_abstract_code()
+        self.codeobj = _create_codeobj(self.group, self.name,
+                                       self.abstract_code,
+                                       self.template,
+                                       iterate_all=self.iterate_all
+                                       )
+    
     def pre_update(self):
         pass
-
+    
     def update(self, **kwds):
         self.pre_update()
         return_value = self.codeobj(**kwds)
-        self.post_update(return_value)
+        self.post_update(return_value)    
 
     def post_update(self, return_value):
         pass
 
 
-class NeuronGroupCodeRunner(CodeRunner):
-    '''
-    A `CodeRunner` for use in `NeuronGroup`. Keeps a reference to the
-    `NeuronGroup`.
-    '''
-    def __init__(self, group, codeobj, when=None, name=None):
-        CodeRunner.__init__(self, codeobj, when=when, name=name)
-        self.group = weakref.proxy(group)
-
-
 class StateUpdater(NeuronGroupCodeRunner):
+    def __init__(self, group):
+        NeuronGroupCodeRunner.__init__(self, group,
+                                       group.language.template_state_update,
+                                       when=(group.clock, 'groups'),
+                                       name=group.name + '_stateupdater')
+    
+    def update_abstract_code(self):
+        self.abstract_code = self.group.method(self.group.equations,
+                                               self.group.namespace,
+                                               self.group.specifiers) 
+    
     def pre_update(self):
         self.group.is_active_[:] = self.group.clock.t_ >= self.group.refractory_until_
 
 
 class Thresholder(NeuronGroupCodeRunner):
+    def __init__(self, group):
+        NeuronGroupCodeRunner.__init__(self, group,
+                                       group.language.template_threshold,
+                                       when=(group.clock, 'thresholds'),
+                                       name=group.name + '_thresholder')
+    
+    def update_abstract_code(self):
+        self.abstract_code = '_cond = ' + self.group.threshold
+        
     def post_update(self, return_value):
         spikes = return_value
         # Save the spikes in the NeuronGroup so others can use it
@@ -85,7 +122,15 @@ class Thresholder(NeuronGroupCodeRunner):
 
 
 class Resetter(NeuronGroupCodeRunner):
-    pass
+    def __init__(self, group):
+        NeuronGroupCodeRunner.__init__(self, group,
+                                       group.language.template_reset,
+                                       when=(group.clock, 'resets'),
+                                       name=group.name + '_resetter',
+                                       iterate_all=False)
+    
+    def update_abstract_code(self):
+        self.abstract_code = self.group.reset
 
 
 class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
@@ -191,23 +236,32 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             language = PythonLanguage()
         self.language = language
 
+        # All of the following will be created in pre_run
+        
+        #: The threshold condition
+        self.threshold = threshold
+        
+        #: The reset statement(s)
+        self.reset = reset
+        
+        #: The state update method selected by the user
+        self.method_choice = method
+        
         #: Performs thresholding step, sets the value of `spikes`
-        self.thresholder = self._create_thresholder(threshold)
+        self.thresholder = None
+        if self.threshold is not None:
+            self.thresholder = Thresholder(self)
+            
         #: Resets neurons which have spiked (`spikes`)
-        self.resetter = self._create_resetter(reset)
+        self.resetter = None
+        if self.reset is not None:
+            self.resetter = Resetter(self)
 
         #: The state update method
-        self.method = StateUpdateMethod.determine_stateupdater(self.equations,
-                                                               self.namespace,
-                                                               self.specifiers,
-                                                               method)
-
-        #: Abstract code for one integration step. Will be set in
-        #: `_create_state_updater`
-        self.abstract_code = None
+        self.method = None
 
         #: Performs numerical integration step
-        self.state_updater = self._create_state_updater()
+        self.state_updater = StateUpdater(self)
 
         # Creation of contained_objects that do the work
         self.contained_objects.append(self.state_updater)
@@ -218,7 +272,6 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
         # Activate name attribute access
         Group.__init__(self)
-
 
     def __len__(self):
         '''
@@ -245,44 +298,6 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         return arrays
 
 
-    def _create_codeobj(self, name, code, template=None, iterate_all=True):
-        ''' A little helper function to reduce the amount of repetition when
-        calling the language's _create_codeobj (always pass self.specifiers and
-        self.namespace).
-        '''
-
-        # Resolve the namespace, resulting in a dictionary containing only the
-        # external variables that are needed by the code
-
-        _, _, unknown = analyse_identifiers(code, self.specifiers.keys())
-        resolved_namespace = self.namespace.resolve_all(unknown)
-
-        return self.language.create_codeobj(name,
-                                            code,
-                                            resolved_namespace,
-                                            self.specifiers,
-                                            template,
-                                            indices={'_neuron_idx':
-                                                     Index('_neuron_idx',
-                                                           iterate_all)})
-
-    def _create_state_updater(self):
-        '''Create the `StateUpdater`.'''
-
-        self.abstract_code = self.method(self.equations,
-                                         self.namespace,
-                                         self.specifiers) 
-
-        codeobj = self._create_codeobj("state updater",
-                                      self.abstract_code,
-                                      self.language.template_state_update
-                                      )
-
-        state_updater = StateUpdater(self, codeobj,
-                                     name=self.name + '_state_updater',
-                                     when=(self.clock, 'groups'))
-        return state_updater
-
     def runner(self, code, when=None, name=None):
         '''
         Returns a `CodeRunner` that runs abstract code in the groups namespace
@@ -308,45 +323,10 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             name = self.name + '_runner_' + str(self.num_runners)
             self.num_runners += 1
 
-        codeobj = self._create_codeobj("runner",
-                                      code,
-                                      self.language.template_state_update,
-                                      )
-        runner = CodeRunner(codeobj, name=name, when=when)
+        runner = NeuronGroupCodeRunner(self,
+                                       self.language.template_state_update,
+                                       code=code, name=name, when=when)
         return runner
-
-    def _create_thresholder(self, threshold):
-        '''Create the `Thresholder`'''
-        if threshold is None:
-            return None
-
-        abstract_code = '_cond = ' + threshold
-
-        codeobj = self._create_codeobj("thresholder",
-                                      abstract_code,
-                                      self.language.template_threshold
-                                      )
-        thresholder = Thresholder(self, codeobj,
-                                  name=self.name + '_thresholder',
-                                  when=(self.clock, 'thresholds'))
-        return thresholder
-
-    def _create_resetter(self, reset):
-        '''Create the `Resetter`.'''
-        if reset is None:
-            return None
-
-        abstract_code = reset
-
-        codeobj = self._create_codeobj("resetter",
-                                      abstract_code,
-                                      self.language.template_reset,
-                                      iterate_all=False
-                                      )
-        resetter = Resetter(self, codeobj,
-                            name=self.name + '_resetter',
-                            when=(self.clock, 'resets'))
-        return resetter
 
     def _create_specifiers(self):
         '''
@@ -403,12 +383,23 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
         return s
 
+    def pre_run(self, namespace):
+
+        #: The state update method
+        self.method = StateUpdateMethod.determine_stateupdater(self.equations,
+                                                               self.namespace,
+                                                               self.specifiers,
+                                                               self.method_choice)
+
 
 if __name__ == '__main__':
     from pylab import *
     from brian2 import *
     from brian2.codegen.languages import *
     import time
+    
+    #BrianLogger.log_level_debug()
+
 
     N = 10000
     tau = 10 * ms
@@ -426,7 +417,6 @@ if __name__ == '__main__':
                     method=linear,
                     # language=NumexprPythonLanguage(),
                     )
-    print G.abstract_code
     G.refractory = 5 * ms
     Gmid = Subgroup(G, 40, 80)
 
@@ -434,11 +424,10 @@ if __name__ == '__main__':
     runner = G.runner('Vt = 1*volt-(t/second)*5*volt')
 
     G.V = linspace(0, 1, N) * volt
-
     statemon = StateMonitor(G, 'V', record=range(0, 10000, 2500))
     spikemon = SpikeMonitor(Gmid)
 
-    start = time.time()
+    start = time.time()    
     run(1 * ms)
     print 'Initialise time:', time.time() - start
     start = time.time()

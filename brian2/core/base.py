@@ -72,18 +72,34 @@ class BrianObject(Nameable):
     #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is created or removed
     invalidates_magic_network = True
     
-    def prepare(self):
+    def pre_run(self, namespace):
         '''
-        Optional method to prepare data for the first time.
+        Optional method to prepare the object before a run. Receives the 
+        `namespace` in which the object should be run (either the locals/globals
+        or an explicitly defined namespace). If the object has its own
+        explicit namespace (e.g. a `NeuronGroup` with the namespace provided
+        at creation time), it should ignore this argument. 
         
-        Called by `Network.prepare`. Note that this method will not be
-        called until just before the Network is about to be run, but may be
-        called more than once even if the object has already been prepared, so
-        the class should keep track of whether it has already been prepared or
-        not.
+        Called by `Network.pre_run` before the main simulation loop is started.
+        Objects such as `NeuronGroup` will generate internal objects such as
+        state updaters in this method, taking into account changes in the
+        namespace or in constant parameter values.
+        
+        Parameters
+        ----------
+        namespace : dict-like
+            The namespace in which the `BrianObject` should be executed.
         '''
         pass
+    
+    def post_run(self):
+        '''
+        Optional method to do work after a run is finished.
         
+        Called by `Network.post_run` after the main simulation loop terminated.
+        '''
+        pass
+    
     def update(self):
         '''
         Every `BrianObject` should define an ``update()`` method which is called every time step.

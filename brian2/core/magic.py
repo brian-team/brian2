@@ -122,6 +122,7 @@ class MagicNetwork(Network):
         # error
         valid_refs = set(r for r in BrianObject.__instances__() if r().invalidates_magic_network)
         inter = valid_refs.intersection(self._previous_refs)
+
         if len(inter)==0:
             # reset time
             self.t = 0*second
@@ -132,24 +133,14 @@ class MagicNetwork(Network):
             raise MagicError("Brian cannot guess what you intend to do here, see docs for MagicNetwork for details")
         self._previous_refs = valid_refs
         self.objects[:] = [weakref.proxy(obj()) for obj in BrianObject.__instances__()]
-        self._prepared = False
         logger.debug("Updated MagicNetwork to include {numobjs} objects "
                      "with names {names}".format(
                         numobjs=len(self.objects),
                         names=', '.join(obj.name for obj in self.objects)))
-    
-    @check_units(duration=second, report_period=second)
-    def run(self, duration, report=None, report_period=60*second):
-        '''
-        run(duration, report=None, report_period=60*second)
-        
-        Runs the simulation for the given duration.
-        
-        For details see `Network.run`.
-        '''
+
+    def pre_run(self, namespace):
         self._update_magic_objects()
-        super(MagicNetwork, self).run(duration, report=report,
-                                      report_period=report_period)
+        Network.pre_run(self, namespace)
 
     def reinit(self):
         '''

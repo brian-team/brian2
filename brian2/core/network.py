@@ -85,8 +85,6 @@ class Network(Nameable):
         if kwds:
             raise TypeError("Only keyword argument to Network is name")
         Nameable.__init__(self, name=name)
-        
-        self._prepared = False
 
         for obj in objs:
             self.add(obj)
@@ -114,7 +112,6 @@ class Network(Nameable):
             multiple objects, or lists (or other containers) of objects.
             Containers will be added recursively.
         """
-        self._prepared = False
         for obj in objs:
             if isinstance(obj, BrianObject):
                 #self.objects.append(obj)
@@ -142,7 +139,6 @@ class Network(Nameable):
             multiple objects, or lists (or other containers) of objects.
             Containers will be removed recursively.
         '''
-        self._prepared = False
         for obj in objs:
             if isinstance(obj, BrianObject):
                 if not isinstance(obj, (weakref.ProxyType, weakref.CallableProxyType)):
@@ -180,7 +176,6 @@ class Network(Nameable):
         return self._schedule            
     
     def _set_schedule(self, schedule):
-        self._prepared = False
         self._schedule = schedule
         logger.debug("Set network {self.name} schedule to "
                      "{self._schedule}".format(self=self),
@@ -208,23 +203,31 @@ class Network(Nameable):
         when_to_int = dict((when, i) for i, when in enumerate(self.schedule))
         self.objects.sort(key=lambda obj: (when_to_int[obj.when], obj.order))
     
-    def prepare(self):
+    def pre_run(self, namespace):
         '''
-        Prepares the `Network`, including sorting and preparing objects.
+        Prepares the `Network` for a run.
         
         Objects in the `Network` are sorted into the correct running order, and
-        their `BrianObject.prepare` methods are called.
-        '''        
+        their `BrianObject.pre_run` methods are called.
+        '''                
+        brian_prefs.check_all_validated()
+        
+        if len(self.objects)==0:
+            return # TODO: raise an error? warning?
+        
+        self._stopped = False
+        Network._globally_stopped = False
+        
         self._sort_objects()
 
         logger.debug("Preparing network {self.name} with {numobj} "
                      "objects: {objnames}".format(self=self,
                         numobj=len(self.objects),
                         objnames=', '.join(obj.name for obj in self.objects)),
-                     "prepare")
+                     "pre_run")
         
         for obj in self.objects:
-            obj.prepare()
+            obj.pre_run(namespace)
         
         self._clocks = set(obj.clock for obj in self.objects)
 
@@ -232,9 +235,11 @@ class Network(Nameable):
                      "clocks: {clocknames}".format(self=self,
                         num=len(self._clocks),
                         clocknames=', '.join(obj.name for obj in self._clocks)),
-                     "prepare")
-            
-        self._prepared = True
+                     "pre_run")
+    
+    def post_run(self):
+        for obj in self.objects:
+            obj.post_run()        
         
     def _nextclocks(self):
         minclock = min(self._clocks, key=lambda c: c.t_)
@@ -273,16 +278,8 @@ class Network(Nameable):
         global `stop` function.
         '''
         
-        brian_prefs.check_all_validated()
-        
-        if len(self.objects)==0:
-            return # TODO: raise an error? warning?
-        
-        self._stopped = False
-        Network._globally_stopped = False
-        
-        if not self._prepared:
-            self.prepare()
+        # FIXME: local/global Namespace 
+        self.pre_run({})
 
         t_end = self.t+duration
         for clock in self._clocks:
@@ -309,6 +306,8 @@ class Network(Nameable):
             clock, curclocks = self._nextclocks()
             
         self.t = t_end
+        
+        self.post_run()
         
     def stop(self):
         '''
