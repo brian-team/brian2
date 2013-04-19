@@ -18,7 +18,7 @@ from brian2.units.stdunits import stdunits
 from brian2.codegen.functions.numpyfunctions import (FunctionWrapper,
                                                      RandnFunction)
 
-__all__ = ['create_namespace',
+__all__ = ['create_namespace', 'CompoundNamespace',
            'get_default_numpy_namespace',
            'DEFAULT_UNIT_NAMESPACE']
 

@@ -76,9 +76,9 @@ class BrianObject(Nameable):
         '''
         Optional method to prepare the object before a run. Receives the 
         `namespace` in which the object should be run (either the locals/globals
-        or an explicitly defined namespace). If the object has its own
-        explicit namespace (e.g. a `NeuronGroup` with the namespace provided
-        at creation time), it should ignore this argument. 
+        or an explicitly defined namespace). This namespace has to be passed
+        as an ``additional_namespace`` argument to calls of
+        `CompoundNamespace.resolve` or `CompoundNamespace.resolve_all`. 
         
         Called by `Network.pre_run` before the main simulation loop is started.
         Objects such as `NeuronGroup` will generate internal objects such as
@@ -87,8 +87,9 @@ class BrianObject(Nameable):
         
         Parameters
         ----------
-        namespace : dict-like
-            The namespace in which the `BrianObject` should be executed.
+        namespace : (str, dict-like)
+            A (name, namespace) tuple with a description and the namespace in
+            which the `BrianObject` should be executed.
         '''
         pass
     
