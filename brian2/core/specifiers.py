@@ -303,23 +303,24 @@ class Subexpression(Value):
         self.identifiers = get_identifiers(expr)        
         #: Specifiers for the identifiers used in the expression
         self.specifiers = specifiers
-        #: Namespace for the identifiers used in the expression
+        
+        #: The NeuronGroup's namespace for the identifiers used in the
+        #: expression
         self.namespace = namespace
-        for identifier in self.identifiers:
-            if not (identifier in self.specifiers or 
-                    identifier in self.namespace):
-                raise ValueError(('The provided dictionaries do not '
-                                  'contain a specifier for the identifier %s, '
-                                  'used in the expression "%s"') %
-                                 (identifier, self.expr))
-
+        
+        #: An additional namespace provided by the run function (and updated
+        #: in `NeuronGroup.pre_run`) that is used if the NeuronGroup does not
+        #: have an explicitly defined namespace.
+        self.additional_namespace = None
+        
     def get_value(self):
         variable_values = {}
         for identifier in self.identifiers:
             if identifier in self.specifiers:
                 variable_values[identifier] = self.specifiers[identifier].get_value()
             else:
-                variable_values[identifier] = self.namespace[identifier]
+                variable_values[identifier] = self.namespace.resolve(identifier,
+                                                                     self.additional_namespace)
         
         return eval(self.expr, variable_values)
 

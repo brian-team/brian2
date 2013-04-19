@@ -672,7 +672,7 @@ class Equations(collections.Mapping):
             elif eq.eq_type == PARAMETER:
                 eq.update_order = len(sorted_eqs) + 1
 
-    def check_units(self, namespace, specifiers):
+    def check_units(self, namespace, specifiers, additional_namespace=None):
         '''
         Check all the units for consistency.
         
@@ -684,6 +684,11 @@ class Equations(collections.Mapping):
         specifiers : dict of `Specifier` objects
             The specifiers of the state variables and internal variables
             (e.g. t and dt)
+        additional_namespace = (str, dict-like)
+            A namespace tuple (name and dictionary), describing the additional
+            namespace provided by the run function in case the `namespace`
+            was not explicitly defined at the creation of the `NeuronGroup`
+            or `Synapses` object.
         
         Raises
         ------
@@ -696,10 +701,11 @@ class Equations(collections.Mapping):
         unit_namespace = {}
         for name in self.identifiers | self.names:
             if name in specifiers:
-                unit_namespace.update({name: specifiers[name].unit})
+                unit_namespace[name] = specifiers[name].unit
             else:
                 # This raises an error if the identifier cannot be resolved
-                unit_namespace.update({name: namespace[name]})
+                unit_namespace[name] = namespace.resolve(name,
+                                                         additional_namespace)
 
         for var, eq in self._equations.iteritems():
             if eq.eq_type == PARAMETER:

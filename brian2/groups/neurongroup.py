@@ -14,7 +14,7 @@ from brian2.codegen.languages import PythonLanguage
 from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
-from brian2.core.namespace import ObjectWithNamespace
+from brian2.core.namespace import create_namespace
 from brian2.core.specifiers import (ReadOnlyValue, AttributeValue, ArrayVariable,
                                     StochasticVariable, Subexpression, Index)
 from brian2.core.spikesource import SpikeSource
@@ -30,17 +30,19 @@ __all__ = ['NeuronGroup']
 
 logger = get_logger(__name__)
 
-def _create_codeobj(group, name, code, template=None, iterate_all=True):
+def _create_codeobj(group, name, code, additional_namespace=None,
+                    template=None, iterate_all=True):
     ''' A little helper function to reduce the amount of repetition when
     calling the language's _create_codeobj (always pass self.specifiers and
-    self.namespace).
+    self.namespace + additional namespace).
     '''
 
     # Resolve the namespace, resulting in a dictionary containing only the
     # external variables that are needed by the code
 
     _, _, unknown = analyse_identifiers(code, group.specifiers.keys())
-    resolved_namespace = group.namespace.resolve_all(unknown)
+    resolved_namespace = group.namespace.resolve_all(unknown,
+                                                     additional_namespace)
 
     return group.language.create_codeobj(name,
                                          code,
@@ -72,8 +74,9 @@ class NeuronGroupCodeRunner(BrianObject):
         self.update_abstract_code()
         self.codeobj = _create_codeobj(self.group, self.name,
                                        self.abstract_code,
-                                       self.template,
-                                       iterate_all=self.iterate_all
+                                       additional_namespace=namespace,
+                                       template=self.template,
+                                       iterate_all=self.iterate_all,
                                        )
     
     def pre_update(self):
@@ -133,7 +136,7 @@ class Resetter(NeuronGroupCodeRunner):
         self.abstract_code = self.group.reset
 
 
-class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
+class NeuronGroup(BrianObject, Group, SpikeSource):
     '''
     Group of neurons
     
@@ -222,13 +225,10 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         self.spikes = array([], dtype=int)
 
         # Setup the namespace
-        self.namespace = self.create_namespace(self.N, namespace)
+        self.namespace = create_namespace(self.N, namespace)
 
         # Setup specifiers
         self.specifiers = self._create_specifiers()
-
-        # Check units
-        self.equations.check_units(self.namespace, self.specifiers)
 
         # Code generation (TODO: this should be refactored and modularised)
         # Temporary, set default language to Python
@@ -350,31 +350,15 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                                     array.dtype,
                                                     array,
                                                     '_neuron_idx',
-                                                    constant)})
-        
-        # Now go through the static equations in the correct order, i.e. each
-        # static equation only depends on state variables (differential
-        # equations or parameters) or *previous* static equations 
-        for eq in self.equations.ordered:        
-            if eq.eq_type == STATIC_EQUATION:
-                # all external identifiers
-                identifiers = eq.identifiers - self.equations.names - set(s.keys())
-                resolved_namespace = self.namespace.resolve_all(identifiers)
-                
-                # because we are going through the equations that are already
-                # ordered, subexpressions only need information about specifiers
-                # that are already in the specifiers dictionary at this point.
-                # To avoid circular references, we create a copy of the
-                # specifiers dictionary that only contains weak references, so
-                # it does not prevent them from being garbage collected
-                specifiers_copy = {}
-                for k, v in s.iteritems():
-                    specifiers_copy[k] = weakref.proxy(v)
+                                                    constant)})        
+            elif eq.eq_type == STATIC_EQUATION:
                 s.update({eq.varname: Subexpression(eq.varname, eq.unit,
                                                     brian_prefs['core.default_scalar_dtype'],
                                                     str(eq.expr),
-                                                    specifiers_copy,
-                                                    resolved_namespace)})
+                                                    s,
+                                                    self.namespace)})
+            else:
+                raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
 
         # Stochastic variables
@@ -385,7 +369,21 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
     def pre_run(self, namespace):
 
-        #: The state update method
+        # Update the namespace information in the specifiers in case the
+        # namespace was not specified explicitly defined at creation time
+        # Note that values in the explicit namespace might still change
+        # between runs, but the Subexpression stores a reference to 
+        # self.namespace so these changes are taken into account automatically
+        if not self.namespace.is_explicit:
+            for spec in self.specifiers.itervalues():
+                if isinstance(spec, Subexpression):
+                    spec.additional_namespace = namespace
+
+        # Check units
+        self.equations.check_units(self.namespace, self.specifiers,
+                                   namespace)
+
+        # Determine the state update method
         self.method = StateUpdateMethod.determine_stateupdater(self.equations,
                                                                self.namespace,
                                                                self.specifiers,
@@ -400,9 +398,8 @@ if __name__ == '__main__':
     
     #BrianLogger.log_level_debug()
 
-
     N = 10000
-    tau = 10 * ms
+    tau = 10*ms
     eqs = '''
     dV/dt = (2*volt-V)/tau_real : volt
     tau_real = 1 * tau : second # just to test that static equations work
@@ -426,12 +423,13 @@ if __name__ == '__main__':
     G.V = linspace(0, 1, N) * volt
     statemon = StateMonitor(G, 'V', record=range(0, 10000, 2500))
     spikemon = SpikeMonitor(Gmid)
-
-    start = time.time()    
-    run(1 * ms)
+    start = time.time()
+    run(50 * ms)
+    
     print 'Initialise time:', time.time() - start
     start = time.time()
-    run(99 * ms)
+    tau = 20*ms # Change the value, should be taken into account    
+    run(50 * ms)
     print 'Runtime:', time.time() - start
     subplot(121)
     plot(statemon.t, statemon.V)

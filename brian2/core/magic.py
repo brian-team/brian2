@@ -159,7 +159,7 @@ magic_network = MagicNetwork()
 
 
 @check_units(duration=second, report_period=second)
-def run(duration, report=None, report_period=60*second):
+def run(duration, report=None, report_period=60*second, namespace=None):
     '''
     run(duration, report=None, report_period=60*second)
     
@@ -191,6 +191,10 @@ def run(duration, report=None, report_period=60*second):
         a callback ``function(elapsed, complete)`` which will be passed
         the amount of time elapsed (in seconds) and the fraction complete
         from 0 to 1.
+    namespace : dict-like, optional
+        A namespace in which objects which do not define their own
+        namespace will be run. If not namespace is given, the locals and
+        globals around the run function will be used. 
     report_period : `Quantity`
         How frequently (in real time) to report progress.
         
@@ -206,7 +210,8 @@ def run(duration, report=None, report_period=60*second):
         Error raised when it was not possible for Brian to safely guess the
         intended use. See `MagicNetwork` for more details.
     '''
-    magic_network.run(duration, report=report, report_period=report_period)
+    magic_network.run(duration, report=report, report_period=report_period,
+                      namespace=namespace, level=2)
 run.__module__ = __name__
 
 def reinit():

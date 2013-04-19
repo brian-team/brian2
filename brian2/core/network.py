@@ -1,3 +1,4 @@
+import inspect
 import weakref
 
 from brian2.utils.logger import get_logger
@@ -249,7 +250,8 @@ class Network(Nameable):
         return minclock, curclocks
     
     @check_units(duration=second, report_period=second)
-    def run(self, duration, report=None, report_period=60*second):
+    def run(self, duration, report=None, report_period=60*second,
+            namespace=None, level=0):
         '''
         run(duration, report=None, report_period=60*second)
         
@@ -270,7 +272,15 @@ class Network(Nameable):
             from 0 to 1.
         report_period : `Quantity`
             How frequently (in real time) to report progress.
-            
+        namespace : dict-like, optional
+            A namespace in which objects which do not define their own
+            namespace will be run. If not namespace is given, the locals and
+            globals around the run function will be used. 
+        level : int, optional
+            How deep to go down the stack frame to look for the locals/global
+            (see `namespace` argument). Only used by run functions that call
+            this run function, e.g. `MagicNetwork.run` to adjust for the
+            additional nesting.
         Notes
         -----
         
@@ -278,8 +288,14 @@ class Network(Nameable):
         global `stop` function.
         '''
         
-        # FIXME: local/global Namespace 
-        self.pre_run({})
+        if namespace is not None:
+            self.pre_run(('explicit-run-namespace', namespace))
+        else:
+            # Get the locals and globals from the stack frame
+            frame = inspect.stack()[2 + level][0]
+            namespace = dict(frame.f_globals)
+            namespace.update(frame.f_locals)
+            self.pre_run(('implicit-run-namespace', namespace))
 
         t_end = self.t+duration
         for clock in self._clocks:
