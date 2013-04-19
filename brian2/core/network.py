@@ -8,6 +8,7 @@ from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second 
 from brian2.core.preferences import brian_prefs
+from brian2.core.tracking import Trackable
 
 __all__ = ['Network']
 
@@ -213,8 +214,7 @@ class Network(Nameable):
         '''                
         brian_prefs.check_all_validated()
         
-        if len(self.objects)==0:
-            return # TODO: raise an error? warning?
+        self._clocks = set(obj.clock for obj in self.objects)
         
         self._stopped = False
         Network._globally_stopped = False
@@ -229,8 +229,6 @@ class Network(Nameable):
         
         for obj in self.objects:
             obj.pre_run(namespace)
-        
-        self._clocks = set(obj.clock for obj in self.objects)
 
         logger.debug("Network {self.name} has {num} "
                      "clocks: {clocknames}".format(self=self,
@@ -296,6 +294,9 @@ class Network(Nameable):
             namespace = dict(frame.f_globals)
             namespace.update(frame.f_locals)
             self.pre_run(('implicit-run-namespace', namespace))
+
+        if len(self.objects)==0:
+            return # TODO: raise an error? warning?
 
         t_end = self.t+duration
         for clock in self._clocks:

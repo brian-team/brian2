@@ -99,7 +99,7 @@ class CompoundNamespace(collections.Mapping):
                             type(namespace))
         self.namespaces[name] = namespace
     
-    def resolve(self, identifier, additional_namespace=None):
+    def resolve(self, identifier, additional_namespace=None, strip_units=False):
         '''
         The additional_namespace (e.g. the local/global namespace) will only
         be used if the namespace does not contain any user-defined namespace.
@@ -138,20 +138,22 @@ class CompoundNamespace(collections.Mapping):
                                    'with the value %r') %
                                   (identifier, matches[0][0],
                                    first_obj), matches[1:])
-            
+                    
         # use the first match (according to resolution order)
-        return matches[0][1]
+        resolved = matches[0][1]
+        if strip_units and isinstance(resolved, Quantity):
+            if resolved.ndim == 0:
+                resolved = float(resolved)
+            else:
+                resolved = np.asarray(resolved)
+        return resolved
 
     def resolve_all(self, identifiers, additional_namespace=None,
                     strip_units=True):
         resolutions = {}
         for identifier in identifiers:            
-            resolved = self.resolve(identifier, additional_namespace)
-            if strip_units and isinstance(resolved, Quantity):
-                if resolved.ndim == 0:
-                    resolved = float(resolved)
-                else:
-                    resolved = np.asarray(resolved)
+            resolved = self.resolve(identifier, additional_namespace,
+                                    strip_units=strip_units)            
             resolutions[identifier] = resolved                
         
         return resolutions

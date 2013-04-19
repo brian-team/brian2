@@ -159,9 +159,10 @@ magic_network = MagicNetwork()
 
 
 @check_units(duration=second, report_period=second)
-def run(duration, report=None, report_period=60*second, namespace=None):
+def run(duration, report=None, report_period=60*second, namespace=None,
+        level=0):
     '''
-    run(duration, report=None, report_period=60*second)
+    run(duration, report=None, report_period=60*second, namespace=None)
     
     Runs a simulation with all Brian objects for the given duration.
     Objects can be reinitialised using `reinit` and
@@ -191,13 +192,19 @@ def run(duration, report=None, report_period=60*second, namespace=None):
         a callback ``function(elapsed, complete)`` which will be passed
         the amount of time elapsed (in seconds) and the fraction complete
         from 0 to 1.
+    report_period : `Quantity`
+        How frequently (in real time) to report progress.        
     namespace : dict-like, optional
         A namespace in which objects which do not define their own
         namespace will be run. If not namespace is given, the locals and
-        globals around the run function will be used. 
-    report_period : `Quantity`
-        How frequently (in real time) to report progress.
-        
+        globals around the run function will be used.
+    level : int, optional
+        How deep to go down the stack frame to look for the locals/global
+        (see `namespace` argument). Only necessary under particular
+        circumstances, e.g. when calling the run function as part of a
+        function call or lambda expression. This is used in tests, e.g.:
+        ``assert_raises(MagicError, lambda: run(1*ms, level=3))``.
+
     See Also
     --------
     
@@ -211,7 +218,7 @@ def run(duration, report=None, report_period=60*second, namespace=None):
         intended use. See `MagicNetwork` for more details.
     '''
     magic_network.run(duration, report=report, report_period=report_period,
-                      namespace=namespace, level=2)
+                      namespace=namespace, level=2+level)
 run.__module__ = __name__
 
 def reinit():

@@ -12,7 +12,8 @@ from brian2.units.fundamentalunits import (DIMENSIONLESS, get_dimensions,
                                            have_same_dimensions,
                                            DimensionMismatchError)
 from brian2.equations.unitcheck import get_unit_from_string
-from brian2.core.namespace import DEFAULT_UNIT_NAMESPACE
+from brian2.core.namespace import DEFAULT_UNIT_NAMESPACE, CompoundNamespace,\
+    create_namespace
 from brian2.equations.equations import (check_identifier_basic,
                                         check_identifier_reserved,
                                         parse_string_equations,
@@ -245,32 +246,35 @@ def test_unit_checking():
         def __init__(self, unit):
             self.unit = unit
     
+    # Let's create a namespace with a user-defined namespace that we can
+    # updater later on 
+    namespace = create_namespace(1, {})
     # inconsistent unit for a differential equation
     eqs = Equations('dv/dt = -v : volt')
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units({}, {'v': S(volt)}))
+                  lambda: eqs.check_units(namespace, {'v': S(volt)}))
 
     eqs = Equations('dv/dt = -v / tau: volt')
+    namespace['tau'] = 5*mV
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units({'tau': 5 * mV},
-                                          {'v': S(volt)}))
+                  lambda: eqs.check_units(namespace, {'v': S(volt)}))
+    namespace['I'] = 3*second
     eqs = Equations('dv/dt = -(v + I) / (5 * ms): volt')
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units({'I': 3 * second, 'ms': ms},
-                                          {'v': S(volt)}))
+                  lambda: eqs.check_units(namespace, {'v': S(volt)}))
 
     eqs = Equations('''dv/dt = -(v + I) / (5 * ms): volt
                        I : second''')
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units({'ms': ms},
-                                          {'v': S(volt), 'I': S(second)}))
+                  lambda: eqs.check_units(namespace, {'v': S(volt),
+                                                      'I': S(second)}))
     
     # inconsistent unit for a static equation
     eqs = Equations('''dv/dt = -v / (5 * ms) : volt
                        I = 2 * v : amp''')
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units({'ms': ms}, {'v': S(volt),
-                                                       'I': S(amp)}))
+                  lambda: eqs.check_units(namespace, {'v': S(volt),
+                                                      'I': S(amp)}))
     
 
 def test_properties():

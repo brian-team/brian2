@@ -320,8 +320,8 @@ class Subexpression(Value):
                 variable_values[identifier] = self.specifiers[identifier].get_value()
             else:
                 variable_values[identifier] = self.namespace.resolve(identifier,
-                                                                     self.additional_namespace)
-        
+                                                                     self.additional_namespace,
+                                                                     strip_units=True)
         return eval(self.expr, variable_values)
 
     def __contains__(self, var):
