@@ -24,7 +24,8 @@ from brian2.utils.logger import get_logger
 from brian2.groups.group import Group
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit
-from brian2.utils.stringtools import get_identifiers
+from brian2.stateupdaters.exact import linear
+from brian2.codegen.translation import analyse_identifiers
 
 __all__ = ['NeuronGroup',
            'CodeRunner']
@@ -171,7 +172,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                PARAMETER: ('constant')})
 
         ##### Setup the memory
-        self.arrays = self.allocate_memory(dtype=dtype)
+        self.arrays = self._allocate_memory(dtype=dtype)
 
         #: The array of spikes from the most recent threshold operation
         self.spikes = array([], dtype=int)
@@ -180,7 +181,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         self.namespace = self.create_namespace(self.N, namespace)
 
         # Setup specifiers
-        self.specifiers = self.create_specifiers()
+        self.specifiers = self._create_specifiers()
 
         # Check units
         self.equations.check_units(self.namespace, self.specifiers)
@@ -193,21 +194,25 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
         #: The threshold condition given by the user
         self.threshold = threshold
-        #: Performs thresholding step, sets the value of `spikes`
-        self.thresholder = self.create_thresholder(threshold)
-        
-        #: The reset statement(s) given by the user
-        self.reset = reset
-        #: Resets neurons which have spiked (`spikes`)
-        self.resetter = self.create_resetter(reset)
 
+        #: Performs thresholding step, sets the value of `spikes`
+        self.thresholder = self._create_thresholder(threshold)
+
+        #: Resets neurons which have spiked (`spikes`)
+        self.resetter = self._create_resetter(reset)
+
+        #: The state update method
         self.method = StateUpdateMethod.determine_stateupdater(self.equations,
                                                                self.namespace,
                                                                self.specifiers,
                                                                method)
 
+        #: Abstract code for one integration step. Will be set in
+        #: `_create_state_updater`
+        self.abstract_code = None
+
         #: Performs numerical integration step
-        self.state_updater = self.create_state_updater()
+        self.state_updater = self._create_state_updater()
 
         # Creation of contained_objects that do the work
         self.contained_objects.append(self.state_updater)
@@ -227,7 +232,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         return self.N
 
 
-    def allocate_memory(self, dtype=None):
+    def _allocate_memory(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)
         arrayvarnames = set(eq.varname for eq in self.equations.itervalues() if
                             eq.type in (DIFFERENTIAL_EQUATION,
@@ -245,19 +250,17 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         return arrays
 
 
-    def create_codeobj(self, name, code, identifiers,
-                       template=None, iterate_all=True):
+    def _create_codeobj(self, name, code, template=None, iterate_all=True):
         ''' A little helper function to reduce the amount of repetition when
-        calling the language's create_codeobj (always pass self.specifiers and
+        calling the language's _create_codeobj (always pass self.specifiers and
         self.namespace).
         '''
 
         # Resolve the namespace, resulting in a dictionary containing only the
         # external variables that are needed by the code
-        # Remove the variables in the specifiers dictionary first, as they are
-        # not contained in the namespace
-        identifiers = set(identifiers) - set(self.specifiers.keys())
-        resolved_namespace = self.namespace.resolve_all(identifiers)
+
+        _, _, unknown = analyse_identifiers(code, self.specifiers.keys())
+        resolved_namespace = self.namespace.resolve_all(unknown)
 
         return self.language.create_codeobj(name,
                                             code,
@@ -268,17 +271,15 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                                      Index('_neuron_idx',
                                                            iterate_all)})
 
-    def create_state_updater(self):
+    def _create_state_updater(self):
         '''Create the `StateUpdater`.'''
-        identifiers = self.equations.identifiers
 
-        # For stochastic equations, we also need access to randn and _randn
-        if not self.equations.stochastic_type is None:
-            identifiers |= set(['randn', '_randn'])
+        self.abstract_code = self.method(self.equations,
+                                         self.namespace,
+                                         self.specifiers) 
 
-        codeobj = self.create_codeobj("state updater",
+        codeobj = self._create_codeobj("state updater",
                                       self.abstract_code,
-                                      identifiers,
                                       self.language.template_state_update
                                       )
 
@@ -312,27 +313,22 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
             name = self.name + '_runner_' + str(self.num_runners)
             self.num_runners += 1
 
-        identifiers = get_identifiers(code)
-
-        codeobj = self.create_codeobj("runner",
+        codeobj = self._create_codeobj("runner",
                                       code,
-                                      identifiers,
                                       self.language.template_state_update,
                                       )
         runner = CodeRunner(codeobj, name=name, when=when)
         return runner
 
-    def create_thresholder(self, threshold):
+    def _create_thresholder(self, threshold):
         '''Create the `Thresholder`'''
         if threshold is None:
             return None
 
         abstract_code = '_cond = ' + threshold
-        identifiers = get_identifiers(threshold)
 
-        codeobj = self.create_codeobj("thresholder",
+        codeobj = self._create_codeobj("thresholder",
                                       abstract_code,
-                                      identifiers,
                                       self.language.template_threshold
                                       )
         thresholder = Thresholder(self, codeobj,
@@ -340,17 +336,15 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                                   when=(self.clock, 'thresholds'))
         return thresholder
 
-    def create_resetter(self, reset):
+    def _create_resetter(self, reset):
         '''Create the `Resetter`.'''
         if reset is None:
             return None
 
         abstract_code = reset
-        identifiers = get_identifiers(reset)
 
-        codeobj = self.create_codeobj("resetter",
+        codeobj = self._create_codeobj("resetter",
                                       abstract_code,
-                                      identifiers,
                                       self.language.template_reset,
                                       iterate_all=False
                                       )
@@ -359,7 +353,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
                             when=(self.clock, 'resets'))
         return resetter
 
-    def create_specifiers(self):
+    def _create_specifiers(self):
         '''
         Create the specifiers dictionary for this `NeuronGroup`, containing
         entries for the equation variables and some standard entries.
@@ -368,18 +362,20 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         s = {'_num_neurons': ReadOnlyValue('_num_neurons', Unit(1), np.int, self.N),
              '_spikes' : AttributeValue('_spikes', Unit(1), np.int, self, 'spikes'),
              't': AttributeValue('t',  second, np.float64, self.clock, 't_'),
-             'dt': AttributeValue('dt', second, np.float64, self.clock, 'dt_')}
+             'dt': AttributeValue('dt', second, np.float64, self.clock, 'dt_', constant=True)}
 
         # First add all the differential equations and parameters, because they
         # may be referred to by static equations
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 array = self.arrays[eq.varname]
+                constant = ('constant' in eq.flags)
                 s.update({eq.varname: ArrayVariable(eq.varname,
                                                     eq.unit,
                                                     array.dtype,
                                                     array,
-                                                    '_neuron_idx')})
+                                                    '_neuron_idx',
+                                                    constant)})
         
         # Now go through the static equations in the correct order, i.e. each
         # static equation only depends on state variables (differential
@@ -412,6 +408,7 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
 
         return s
 
+
     abstract_code = property(lambda self: self.method(self.equations))
 
     
@@ -433,7 +430,6 @@ class NeuronGroup(ObjectWithNamespace, BrianObject, Group, SpikeSource):
         return '\n'.join(text)
         
     
-
 if __name__ == '__main__':
     from pylab import *
     from brian2 import *
@@ -443,27 +439,29 @@ if __name__ == '__main__':
     N = 10000
     tau = 10 * ms
     eqs = '''
-    dV/dt = (2*volt-V)/tau_real + 0.25*volt*xi_1/tau**.5 + + 0.25*volt*xi_2/tau**.5: volt (active)
+    dV/dt = (2*volt-V)/tau_real : volt
     tau_real = 1 * tau : second # just to test that static equations work
     Vt : volt
     '''
     threshold = 'V>Vt'
-    reset = 'V = 0*volt'
+    reset = 'V = 0*volt'    
     G = NeuronGroup(N, eqs,
                     threshold=threshold,
                     reset=reset,
                     language=PythonLanguage(),
+                    method=linear,
                     # language=NumexprPythonLanguage(),
                     )
+    print G.abstract_code
     G.refractory = 5 * ms
     Gmid = Subgroup(G, 40, 80)
 
     G.Vt = 1 * volt
     runner = G.runner('Vt = 1*volt-(t/second)*5*volt')
 
-    G.V = rand(N) * volt
+    G.V = linspace(0, 1, N) * volt
 
-    statemon = StateMonitor(G, 'V', record=range(3))
+    statemon = StateMonitor(G, 'V', record=range(0, 10000, 2500))
     spikemon = SpikeMonitor(Gmid)
 
     start = time.time()

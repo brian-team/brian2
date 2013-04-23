@@ -44,14 +44,24 @@ class StateUpdateMethod(object):
         pass
 
     @abstractmethod
-    def __call__(self, equations):
+    def __call__(self, equations, namespace=None, specifiers=None):
         '''
-        Generate abstract code from equations.
+        Generate abstract code from equations. The method also gets the
+        namespace and the specifiers, this allows state updaters to simplify
+        the generated code by substituting constant values. For convenience,
+        these arguments are optional -- this allows to directly see what code
+        a state updater generates for a set of equations by simply writing
+        ``euler(eqs)``, for example.
         
         Parameters
         ----------
         equations : `Equations`
             The model equations.
+        namespace : dict, optional
+            The namespace resolving the external identifiers used in the
+            equations.
+        specifiers : dict, optional
+            The `Specifier` objects for the model variables.            
         
         Returns
         -------
@@ -91,7 +101,7 @@ class StateUpdateMethod(object):
         if not index is None:
             try:
                 index = int(index)
-            except TypeError:
+            except (TypeError, ValueError):
                 raise TypeError(('Index argument should be an integer, is '
                                  'of type %s instead.') % type(index))
             StateUpdateMethod.stateupdaters.insert(index, (name, stateupdater))
