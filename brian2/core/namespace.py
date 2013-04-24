@@ -17,6 +17,7 @@ from brian2.units.fundamentalunits import Quantity, all_registered_units
 from brian2.units.stdunits import stdunits
 from brian2.codegen.functions.numpyfunctions import (FunctionWrapper,
                                                      RandnFunction)
+import brian2.equations.equations as equations
 
 __all__ = ['create_namespace', 'CompoundNamespace',
            'get_default_numpy_namespace',
@@ -250,6 +251,16 @@ def get_default_numpy_namespace(N):
                       '_randn': np.random.randn})
     return namespace
 
+_function_names = get_default_numpy_namespace(1).keys()
+def check_identifier_functions(identifier):
+    '''
+    Make sure that identifier names do not clash with function names.
+    '''
+    if identifier in _function_names:
+        raise ValueError('"%s" is the name of a function, cannot be used as a '
+                         'variable name.')
+        
+equations.Equations.register_identifier_check(check_identifier_functions)
 
 def _get_default_unit_namespace():
     '''
@@ -267,3 +278,13 @@ def _get_default_unit_namespace():
     return namespace
 
 DEFAULT_UNIT_NAMESPACE = _get_default_unit_namespace()
+
+def check_identifier_units(identifier):
+    '''
+    Make sure that identifier names do not clash with unit names.
+    '''
+    if identifier in DEFAULT_UNIT_NAMESPACE:
+        raise ValueError('"%s" is the name of a unit, cannot be used as a '
+                         'variable name.')
+        
+equations.Equations.register_identifier_check(check_identifier_units)

@@ -2,32 +2,28 @@
 Utility functions for handling the units in `Equations`.
 '''
 
-from brian2.core.namespace import DEFAULT_UNIT_NAMESPACE
 from brian2.units.fundamentalunits import Quantity, Unit
 from brian2.units.fundamentalunits import DIMENSIONLESS
+from brian2.units.allunits import (metre, meter, second, amp, kelvin, mole,
+                                   candle, kilogram, radian, steradian, hertz,
+                                   newton, pascal, joule, watt, coulomb, volt,
+                                   farad, ohm, siemens, weber, tesla, henry,
+                                   celsius, lumen, lux, becquerel, gray,
+                                   sievert, katal, kgram, kgramme)
 
 __all__ = ['get_unit_from_string']
 
 
-def get_unit_from_string(unit_string, unit_namespace=None,
-                         only_base_units=False):
+def get_unit_from_string(unit_string):
     '''
     Returns the unit that results from evaluating a string like
-    "siemens / cm ** 2", allowing for the special string "1" to signify
+    "siemens / metre ** 2", allowing for the special string "1" to signify
     dimensionless units.
     
     Parameters
     ----------    
     unit_string : str
         The string that should evaluate to a unit
-    
-    unit_namespace : dict, optional
-        An optional namespace containing units. If not given, defaults to all
-        the units returned by `get_default_unit_namespace`.
-    
-    only_base_units : bool, optional
-        Whether to allow only units evaluating to 1, e.g. "metre" but not "cm".
-        Defaults to ``False``.
     
     Returns
     -------
@@ -40,22 +36,28 @@ def get_unit_from_string(unit_string, unit_namespace=None,
         If the string cannot be evaluated to a unit.
     '''
     
-    if unit_namespace is None:
-        namespace = DEFAULT_UNIT_NAMESPACE
-    else:
-        namespace = unit_namespace
+    # We avoid using DEFAULT_NUMPY_NAMESPACE here as importing core.namespace
+    # would introduce a circular dependency between it and the equations
+    # package
+    base_units = [metre, meter, second, amp, kelvin, mole, candle, kilogram,
+                  radian, steradian, hertz, newton, pascal, joule, watt,
+                  coulomb, volt, farad, ohm, siemens, weber, tesla, henry,
+                  celsius, lumen, lux, becquerel, gray, sievert, katal, kgram,
+                  kgramme]
+    namespace = dict((repr(unit), unit) for unit in base_units)
+    namespace['Hz'] = hertz  # Also allow Hz instead of hertz
     unit_string = unit_string.strip()
     
     # Special case: dimensionless unit
     if unit_string == '1':
         return Unit(1, dim=DIMENSIONLESS)
     
-    # Check first whether the expression evaluates at all, using only
-    # registered units
+    # Check first whether the expression evaluates at all, using only base units
     try:
         evaluated_unit = eval(unit_string, namespace)
     except Exception as ex:
-        raise ValueError('"%s" does not evaluate to a unit: %s' %
+        raise ValueError(('"%s" does not evaluate to a unit when only using '
+                          'base units (e.g. volt but not mV): %s') %
                          (unit_string, ex))
     
     # Check whether the result is a unit
@@ -63,18 +65,12 @@ def get_unit_from_string(unit_string, unit_namespace=None,
         if isinstance(evaluated_unit, Quantity):
             raise ValueError(('"%s" does not evaluate to a unit but to a '
                               'quantity -- make sure to only use units, e.g. '
-                              '"siemens/m**2" and not "1 * siemens/m**2"') %
+                              '"siemens/metre**2" and not "1 * siemens/metre**2"') %
                              unit_string)
         else:
             raise ValueError(('"%s" does not evaluate to a unit, the result '
                              'has type %s instead.' % (unit_string,
                                                        type(evaluated_unit))))
-    # We only want base units, otherwise e.g. setting a unit to mV might lead to 
-    # unexpected results (as it is internally saved in volts)
-    # TODO: Maybe this restriction is unnecessary with unit arrays?
-    if only_base_units and float(evaluated_unit) != 1.0:
-        raise ValueError(('"%s" is not a base unit, but only base units are '
-                         'allowed in the units part of equations.') % unit_string)
 
     # No error has been raised, all good
     return evaluated_unit
