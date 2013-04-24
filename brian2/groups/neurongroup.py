@@ -65,6 +65,17 @@ class NeuronGroupCodeRunner(BrianObject):
         self.template = template
         self.abstract_code = code
         self.iterate_all = iterate_all
+        # Try to generate the abstract code and the codeobject without any
+        # additional namespace. This might work in situations where the
+        # namespace is completely defined in the NeuronGroup. In this case,
+        # we might spot parsing or unit errors already now and don't have to
+        # wait until the run call. We want to ignore KeyErrors, though, because
+        # they possibly result from an incomplete namespace, which is still ok
+        # at this time.
+        try:
+            self.pre_run(None)
+        except KeyError:
+            pass 
     
     def update_abstract_code(self):
         pass
@@ -91,16 +102,29 @@ class NeuronGroupCodeRunner(BrianObject):
 
 
 class StateUpdater(NeuronGroupCodeRunner):
-    def __init__(self, group):
+    def __init__(self, group, method):
+        self.method_choice = method
+        
         NeuronGroupCodeRunner.__init__(self, group,
                                        group.language.template_state_update,
                                        when=(group.clock, 'groups'),
-                                       name=group.name + '_stateupdater')
+                                       name=group.name + '_stateupdater')        
+
+        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
+                                                               self.group.namespace,
+                                                               self.group.specifiers,
+                                                               method)
     
-    def update_abstract_code(self):
-        self.abstract_code = self.group.method(self.group.equations,
-                                               self.group.namespace,
-                                               self.group.specifiers) 
+    def update_abstract_code(self):        
+        
+        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
+                                                               self.group.namespace,
+                                                               self.group.specifiers,
+                                                               self.method_choice)
+        
+        self.abstract_code = self.method(self.group.equations,
+                                         self.group.namespace,
+                                         self.group.specifiers) 
     
     def pre_update(self):
         self.group.is_active_[:] = self.group.clock.t_ >= self.group.refractory_until_
@@ -256,11 +280,16 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         if self.reset is not None:
             self.resetter = Resetter(self)
 
-        #: The state update method
-        self.method = None
+        # We try to run a pre_run already now. This might fail because of an
+        # incomplete namespace but if the namespace is already complete we
+        # can spot unit or syntax errors already here, at creation time.
+        try:
+            self.pre_run(None)
+        except KeyError:
+            pass
 
         #: Performs numerical integration step
-        self.state_updater = StateUpdater(self)
+        self.state_updater = StateUpdater(self, method)
 
         # Creation of contained_objects that do the work
         self.contained_objects.append(self.state_updater)
@@ -381,12 +410,6 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         # Check units
         self.equations.check_units(self.namespace, self.specifiers,
                                    namespace)
-
-        # Determine the state update method
-        self.method = StateUpdateMethod.determine_stateupdater(self.equations,
-                                                               self.namespace,
-                                                               self.specifiers,
-                                                               self.method_choice)
 
 
 if __name__ == '__main__':
