@@ -6,6 +6,7 @@ from brian2.units import second, volt
 from brian2.units.stdunits import ms, Hz, mV
 from brian2.units.unitsafefunctions import sin, log, exp
 from brian2.utils.logger import catch_logs
+from brian2.codegen.functions.numpyfunctions import RandnFunction
 
 def _assert_one_warning(l):
     assert len(l) == 1, "expected one warning got %d" % len(l)
@@ -43,9 +44,8 @@ def test_explicit_namespace():
         assert len(l) == 0
     
     with catch_logs() as l:
-        # The explicitly provided namespace should take precedence over
-        # the standard function namespace
-        assert namespace['randn'] == 'explicit_randn'
+        # The explicitly provided namespace should not overwrite functions
+        assert isinstance(namespace['randn'], RandnFunction)        
         _assert_one_warning(l)
 
 

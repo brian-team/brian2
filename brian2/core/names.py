@@ -34,7 +34,8 @@ class Nameable(Trackable):
     basename = 'nameable_object'
     
     def _find_name(self, name):
-        allnames = set(obj().name for obj in Nameable.__instances__() if hasattr(obj(), 'name'))
+        instances = Nameable.__instances__()
+        allnames = set(obj().name for obj in instances if hasattr(obj(), 'name'))
         if name is not None:
             if name in allnames:
                 raise ValueError("An object with name "+name+" is already defined.")

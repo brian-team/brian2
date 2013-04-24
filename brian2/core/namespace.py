@@ -28,12 +28,16 @@ logger = get_logger(__name__)
 def create_namespace(N, explicit_namespace=None):
     namespace = CompoundNamespace()
     
-    # Explicitly given namespace overwrites all other namespaces
-    if explicit_namespace is not None:
-        namespace.add_namespace('user-defined', explicit_namespace)
-    
+    # Functions and units take precedence, overwriting them would lead to
+    # very confusing equations. In particular, the Equations objects does not
+    # take the namespace into account when determining the units of equations
+    # (the ": unit" part) -- so an overwritten unit would be ignored there but
+    # taken into account in the equation itself.
     namespace.add_namespace('numpy', get_default_numpy_namespace(N))
-    namespace.add_namespace('units', DEFAULT_UNIT_NAMESPACE)        
+    namespace.add_namespace('units', DEFAULT_UNIT_NAMESPACE)
+    
+    if explicit_namespace is not None:
+        namespace.add_namespace('user-defined', explicit_namespace)            
     
     return namespace
 
@@ -110,14 +114,11 @@ class CompoundNamespace(collections.Mapping):
         
         if self.is_explicit or additional_namespace is None: 
             namespaces = self.namespaces
-        else:
-            # The additional namespace takes precedence over the numpy and
-            # unit namespace
-            namespaces = OrderedDict()
+        else:            
+            namespaces = OrderedDict(self.namespaces)
+            # Add the additional namespace in the end
             description, namespace = additional_namespace
             namespaces[description] = namespace
-            for description, namespace in self.namespaces.iteritems():
-                namespaces[description] = namespace
         
         for description, namespace in namespaces.iteritems():
             if identifier in namespace:

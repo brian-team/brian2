@@ -164,14 +164,14 @@ raised.
 3. variables from "referred namespaces", i.e. in the `Synapses` class, variables
    from the pre-synaptic group (using a ``_pre`` suffix) or from the post-synaptic
    group (using a ``_post`` suffix or no suffix).
-4. Explicitly given entries in the namespace dictionary of the object,
-   explicitly given entries to the `run` function or variables from the local
-   context (see explanations in the previous section)
 5. A standard set of numpy functions (with unit-aware/code-generation
    replacements, the names in
    `~brian2.core.namespace.get_default_numpy_namespace`).
 6. units (the names in `~brian2.core.namespace.DEFAULT_UNIT_NAMESPACE`),
-   containing all registered units plus the standard units (ms, mV, nS, etc.) 
+   containing all registered units plus the standard units (ms, mV, nS, etc.)
+4. Explicitly given entries in the namespace dictionary of the object,
+   explicitly given entries to the `run` function or variables from the local
+   context (see explanations in the previous section)
 
 Examples
 --------
