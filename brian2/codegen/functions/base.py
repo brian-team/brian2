@@ -1,8 +1,9 @@
 __all__ = ['Function', 'SimpleFunction', 'make_function']
 
 class Function(object):    
-    def __init__(self, pyfunc):
+    def __init__(self, pyfunc, sympy_func=None):
         self.pyfunc = pyfunc
+        self.sympy_func = sympy_func
     
     '''
     User-defined function to work with code generation

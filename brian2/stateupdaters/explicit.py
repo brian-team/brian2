@@ -5,13 +5,14 @@ Numerical integration functions.
 import string
 
 import sympy
+from sympy.core.sympify import SympifyError
 from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
 
-from brian2.utils.parsing import parse_to_sympy
+from brian2.codegen.parsing import parse_to_sympy
 
 from .base import StateUpdateMethod
-from sympy.core.sympify import SympifyError
+
 
 __all__ = ['milstein', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 

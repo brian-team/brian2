@@ -4,7 +4,7 @@ Exact integration for linear equations.
 
 import operator
 
-from sympy import Wild, Symbol, sympify
+from sympy import Wild, Symbol, Float, sympify
 import sympy as sp
 
 from brian2.core.specifiers import Value
@@ -136,11 +136,11 @@ class LinearStateUpdater(StateUpdateMethod):
                     spec = specifiers[identifier]
                     if isinstance(spec, Value) and spec.scalar and spec.constant:
                         float_val = spec.get_value()
-                        rhs = rhs.subs(identifier, float_val)
+                        rhs = rhs.xreplace({Symbol(identifier): Float(float_val)})
                 elif identifier in namespace:
                     try:
                         float_val = float(namespace[identifier])
-                        rhs = rhs.subs(identifier, float_val)
+                        rhs = rhs.xreplace({Symbol(identifier): Float(float_val)})
                     except TypeError:
                         # Not a number
                         pass

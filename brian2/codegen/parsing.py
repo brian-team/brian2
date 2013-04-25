@@ -6,6 +6,7 @@ from StringIO import StringIO
 import sympy
 from sympy.parsing.sympy_tokenize import (generate_tokens, untokenize, NUMBER,
                                           NAME, OP)
+from .functions.numpyfunctions import DEFAULT_FUNCTIONS
 
 SYMPY_DICT = {'I': sympy.I,
               'Float': sympy.Float,
@@ -47,7 +48,10 @@ def parse_to_sympy(expr, local_dict=None):
     https://github.com/sympy/sympy/blob/master/LICENSE
     '''
     if local_dict is None:
-        local_dict = {}
+        # use the standard functions
+        local_dict = dict((name, f.sympy_func) for
+                         name, f in DEFAULT_FUNCTIONS.iteritems()
+                         if f.sympy_func is not None)
     
     tokens = generate_tokens(StringIO(expr).readline)
     

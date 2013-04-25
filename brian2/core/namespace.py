@@ -11,12 +11,11 @@ except ImportError:
 
 import numpy as np
 
-import brian2.units.unitsafefunctions as unitsafe
 from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Quantity, all_registered_units
 from brian2.units.stdunits import stdunits
-from brian2.codegen.functions.numpyfunctions import (FunctionWrapper,
-                                                     RandnFunction)
+from brian2.codegen.functions.numpyfunctions import (RandnFunction,
+                                                     DEFAULT_FUNCTIONS)
 import brian2.equations.equations as equations
 
 __all__ = ['create_namespace', 'CompoundNamespace',
@@ -215,36 +214,12 @@ def get_default_numpy_namespace(N):
         their unitsafe Brian counterparts.
     '''        
     # numpy constants
+    # TODO: Make them accesible to sympy as well, maybe introduce a similar
+    #       system as for functions, e.g. C++ would use M_PI for pi?
     namespace = {'pi': np.pi, 'e': np.e, 'inf': np.inf}
     
-    # numpy functions that have the same name in numpy and math.h
-    namespace.update({'cos': FunctionWrapper(unitsafe.cos),
-                      'sin': FunctionWrapper(unitsafe.sin),
-                      'tan': FunctionWrapper(unitsafe.tan),
-                      'cosh': FunctionWrapper(unitsafe.cosh),
-                      'sinh': FunctionWrapper(unitsafe.sinh),
-                      'tanh': FunctionWrapper(unitsafe.tanh),
-                      'exp': FunctionWrapper(unitsafe.exp),
-                      'log': FunctionWrapper(unitsafe.log),
-                      'log10': FunctionWrapper(unitsafe.log10),
-                      'sqrt': FunctionWrapper(np.sqrt),
-                      'ceil': FunctionWrapper(np.ceil),
-                      'floor': FunctionWrapper(np.floor)
-                      })
-    
-    # numpy functions that have a different name in numpy and math.h
-    namespace.update({'arccos': FunctionWrapper(unitsafe.arccos,
-                                                cpp_name='acos'),
-                      'arcsin': FunctionWrapper(unitsafe.arcsin,
-                                                cpp_name='asin'),
-                      'arctan': FunctionWrapper(unitsafe.arctan,
-                                                cpp_name='atan'),
-                      'power': FunctionWrapper(np.power,
-                                               cpp_name='pow'),
-                      'abs': FunctionWrapper(np.abs, py_name='abs',
-                                             cpp_name='fabs'),
-                      'mod': FunctionWrapper(np.mod, py_name='mod',
-                                             cpp_name='fmod')})
+    # The default numpy functions
+    namespace.update(DEFAULT_FUNCTIONS)
     
     # numpy functions that need special treatment 
     namespace.update({'randn': RandnFunction(N),

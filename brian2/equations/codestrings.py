@@ -8,7 +8,7 @@ import sympy
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
-from brian2.utils.parsing import parse_to_sympy
+from brian2.codegen.parsing import parse_to_sympy
 
 __all__ = ['Expression', 'Statements']
 
