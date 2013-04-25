@@ -7,12 +7,13 @@ import re
 import string
 import sys
 
+import sympy
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 
+from brian2.codegen.parsing import sympy_to_str
 from brian2.units.fundamentalunits import DimensionMismatchError
 from brian2.units.allunits import second
-from brian2.utils.stringtools import word_substitute
 from brian2.utils.logger import get_logger
 
 from .codestrings import Expression
@@ -507,10 +508,12 @@ class Equations(collections.Mapping):
             if eq.expr is None:
                 continue
 
-            expr = Expression(word_substitute(eq.expr.code, substitutions))
+            new_sympy_expr = eq.expr.sympy_expr.subs(substitutions)
+            new_str_expr = sympy_to_str(new_sympy_expr)
+            expr = Expression(new_str_expr)
 
             if eq.eq_type == STATIC_EQUATION:
-                substitutions.update({eq.varname: '(%s)' % expr.code})
+                substitutions.update({sympy.Symbol(eq.varname, real=True): expr.sympy_expr})
             elif eq.eq_type == DIFFERENTIAL_EQUATION:
                 #  a differential equation that we have to check
                 subst_exprs.append((eq.varname, expr))

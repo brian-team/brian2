@@ -84,9 +84,14 @@ def parse_to_sympy(expr, local_dict=None):
                 continue
 
             result.extend([
+                # TODO: We always assume that variables are real, right?           
                 (NAME, 'Symbol'),
                 (OP, '('),
                 (NAME, repr(str(name))),
+                (OP, ','),
+                (NAME, 'real'),
+                (OP, '='),
+                (NAME, 'True'),
                 (OP, ')'),
             ])
         elif toknum == OP:
@@ -108,3 +113,35 @@ def parse_to_sympy(expr, local_dict=None):
                          (expr, str(ex)))
 
     return s_expr
+
+
+def sympy_to_str(sympy_expr):
+    '''
+    Converts a sympy expression into a string. This could be as easy as 
+    ``str(sympy_exp)`` but it is possible that the sympy expression contains
+    functions like ``Abs`` (for example, if an expression such as
+    ``sqrt(x**2)`` appeared somewhere). We do want to re-translate ``Abs`` into
+    ``abs`` in this case.
+    
+    Parameters
+    ----------
+    sympy_expr : sympy.core.expr.Expr
+        The expression that should be converted to a string.
+        
+    Returns
+    str_expr : str
+        A string representing the sympy expression.
+    '''
+    
+    # replace the standard functions by our names if necessary
+    replacements = dict((f.sympy_func, sympy.Function(name)) for
+                        name, f in DEFAULT_FUNCTIONS.iteritems()
+                        if f.sympy_func is not None and isinstance(f.sympy_func,
+                                                                   sympy.FunctionClass)
+                        and str(f.sympy_func) != name)
+
+    sympy_expr = sympy_expr.subs(replacements)
+    
+    return str(sympy_expr)
+
+    

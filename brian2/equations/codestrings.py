@@ -136,7 +136,7 @@ class Expression(CodeString):
         
         s_expr = self.sympy_expr.expand()
         
-        stochastic_symbols = [sympy.Symbol(variable)
+        stochastic_symbols = [sympy.Symbol(variable, real=True)
                               for variable in stochastic_variables]
 
         f = sympy.Wild('f', exclude=stochastic_symbols)  # non-stochastic part

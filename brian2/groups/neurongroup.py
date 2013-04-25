@@ -41,6 +41,7 @@ def _create_codeobj(group, name, code, additional_namespace=None,
     # external variables that are needed by the code
 
     _, _, unknown = analyse_identifiers(code, group.specifiers.keys())
+    #print 'code', code
     resolved_namespace = group.namespace.resolve_all(unknown,
                                                      additional_namespace)
     return group.language.create_codeobj(name,
