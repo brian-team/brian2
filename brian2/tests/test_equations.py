@@ -11,7 +11,7 @@ from brian2 import Unit, Equations, Expression, sin
 from brian2.units.fundamentalunits import (DIMENSIONLESS, get_dimensions,
                                            have_same_dimensions,
                                            DimensionMismatchError)
-from brian2.equations.unitcheck import get_unit_from_string
+from brian2.equations.unitcheck import unit_from_string
 from brian2.core.namespace import (DEFAULT_UNIT_NAMESPACE, create_namespace,
                                    check_identifier_functions,
                                    check_identifier_units)
@@ -38,17 +38,17 @@ def test_utility_functions():
     for unit in unit_namespace.itervalues():
         assert isinstance(unit, Unit)
 
-    assert get_unit_from_string('second') == second
-    assert get_unit_from_string('1') == Unit(1, DIMENSIONLESS)
-    assert get_unit_from_string('volt') == volt
-    assert get_unit_from_string('second ** -1') == Hz
-    assert get_unit_from_string('farad / metre**2') == farad / metre ** 2
-    assert_raises(ValueError, lambda: get_unit_from_string('metr / second'))
-    assert_raises(ValueError, lambda: get_unit_from_string('metre **'))
-    assert_raises(ValueError, lambda: get_unit_from_string('5'))
-    assert_raises(ValueError, lambda: get_unit_from_string('2 / second'))
+    assert unit_from_string('second') == second
+    assert unit_from_string('1') == Unit(1, DIMENSIONLESS)
+    assert unit_from_string('volt') == volt
+    assert unit_from_string('second ** -1') == Hz
+    assert unit_from_string('farad / metre**2') == farad / metre ** 2
+    assert_raises(ValueError, lambda: unit_from_string('metr / second'))
+    assert_raises(ValueError, lambda: unit_from_string('metre **'))
+    assert_raises(ValueError, lambda: unit_from_string('5'))
+    assert_raises(ValueError, lambda: unit_from_string('2 / second'))
     # Only the use of base units is allowed
-    assert_raises(ValueError, lambda: get_unit_from_string('farad / cm**2'))
+    assert_raises(ValueError, lambda: unit_from_string('farad / cm**2'))
 
 
 def test_identifier_checks():

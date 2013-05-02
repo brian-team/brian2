@@ -74,8 +74,6 @@ def test_unit_errors_threshold_reset():
     '''
     Test that unit errors in thresholds and resets are detected.
     '''
-    from nose import SkipTest
-    raise SkipTest('Checking units for threshold/reset not implementd yet.')
     for language in languages:    
         # Unit error in threshold
         assert_raises(DimensionMismatchError,
@@ -87,6 +85,19 @@ def test_unit_errors_threshold_reset():
         assert_raises(DimensionMismatchError,
                       lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
                                           reset='v = -65*mV',
+                                          language=language))
+        
+        # More complicated unit reset with an intermediate variable
+        # This should pass
+        NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                    reset='''temp_var = -65
+                             v = temp_var''', language=language)
+        
+        # This should fail
+        assert_raises(DimensionMismatchError,
+                      lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                                          reset='''temp_var = -65*mV
+                                                   v = temp_var''',
                                           language=language))
 
 def test_syntax_errors():
@@ -116,7 +127,7 @@ def test_syntax_errors():
 if __name__ == '__main__':
     test_creation()
     test_unit_errors()
-    #test_unit_errors_threshold_reset()
+    test_unit_errors_threshold_reset()
     test_incomplete_namespace()
     test_namespace_errors()
     test_syntax_errors()

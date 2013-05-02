@@ -22,26 +22,35 @@ from brian2.core.scheduler import Scheduler
 from brian2.utils.logger import get_logger
 from brian2.groups.group import Group
 from brian2.units.allunits import second
-from brian2.units.fundamentalunits import Unit
+from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.stateupdaters.exact import linear
 from brian2.codegen.translation import analyse_identifiers
+from brian2.equations.unitcheck import check_units_statements
 
 __all__ = ['NeuronGroup']
 
 logger = get_logger(__name__)
 
 def _create_codeobj(group, name, code, additional_namespace=None,
-                    template=None, iterate_all=True):
+                    template=None, iterate_all=True, check_units=True):
     ''' A little helper function to reduce the amount of repetition when
     calling the language's _create_codeobj (always pass self.specifiers and
     self.namespace + additional namespace).
     '''
 
-    # Resolve the namespace, resulting in a dictionary containing only the
-    # external variables that are needed by the code
+    if check_units:
+        # Resolve the namespace, resulting in a dictionary containing only the
+        # external variables that are needed by the code -- kepp the units for
+        # the unit checks 
+        _, _, unknown = analyse_identifiers(code, group.specifiers.keys())
+        resolved_namespace = group.namespace.resolve_all(unknown,
+                                                         additional_namespace,
+                                                         strip_units=False)
+    
+        check_units_statements(code, resolved_namespace, group.specifiers)
 
+    # Get the namespace without units
     _, _, unknown = analyse_identifiers(code, group.specifiers.keys())
-    #print 'code', code
     resolved_namespace = group.namespace.resolve_all(unknown,
                                                      additional_namespace)
     return group.language.create_codeobj(name,
@@ -60,12 +69,13 @@ class NeuronGroupCodeRunner(BrianObject):
     `NeuronGroup`.
     '''
     def __init__(self, group, template, code=None, iterate_all=True,
-                 when=None, name=None):
+                 when=None, name=None, check_units=True):
         BrianObject.__init__(self, when=when, name=name)
         self.group = weakref.proxy(group)
         self.template = template
         self.abstract_code = code
         self.iterate_all = iterate_all
+        self.check_units = check_units
         # Try to generate the abstract code and the codeobject without any
         # additional namespace. This might work in situations where the
         # namespace is completely defined in the NeuronGroup. In this case,
@@ -88,6 +98,7 @@ class NeuronGroupCodeRunner(BrianObject):
                                        additional_namespace=namespace,
                                        template=self.template,
                                        iterate_all=self.iterate_all,
+                                       check_units=self.check_units
                                        )
     
     def pre_update(self):
@@ -109,7 +120,8 @@ class StateUpdater(NeuronGroupCodeRunner):
         NeuronGroupCodeRunner.__init__(self, group,
                                        group.language.template_state_update,
                                        when=(group.clock, 'groups'),
-                                       name=group.name + '_stateupdater')        
+                                       name=group.name + '_stateupdater',
+                                       check_units=False)        
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.namespace,

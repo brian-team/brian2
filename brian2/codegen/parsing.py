@@ -1,6 +1,7 @@
 '''
 Utility functions for parsing expressions to sympy.
 '''
+import re
 from StringIO import StringIO
 
 import sympy
@@ -12,6 +13,23 @@ SYMPY_DICT = {'I': sympy.I,
               'Float': sympy.Float,
               'Integer': sympy.Integer,
               'Symbol': sympy.Symbol}
+
+def parse_statement(code):
+    '''
+    Parses a single line of code into "var op expr".
+    '''
+    m = re.search(r'(\+|\-|\*|/|//|%|\*\*|>>|<<|&|\^|\|)?=', code)
+    if not m:
+        raise ValueError("Could not extract statement from: " + code)
+    start, end = m.start(), m.end()
+    op = code[start:end].strip()
+    var = code[:start].strip()
+    expr = code[end:].strip()
+    # var should be a single word
+    if len(re.findall(r'^[A-Za-z_][A-Za-z0-9_]*$', var))!=1:
+        raise ValueError("LHS in statement must be single variable name, line: " + code)
+    
+    return var, op, expr
 
 def parse_to_sympy(expr, local_dict=None):
     '''

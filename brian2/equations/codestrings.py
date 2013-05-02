@@ -80,28 +80,6 @@ class Expression(CodeString):
         # : The expression as a sympy object
         self.sympy_expr = parse_to_sympy(self.code)
 
-    def check_units(self, unit, namespace):
-        '''
-        Determines whether the result of the expression has the expected unit.
-        Evaluates the code in the given namespace, which should contain
-        `Unit` objects with the appropriate units for all internal variables
-        (state variables and special variables like ``t``).
-        
-        Parameters
-        ----------
-        unit : `Unit`
-            The expected unit.
-        namespace: dict
-            The namespace, mapping all identifiers in the expression to values
-            (possibly `Unit` objects).
-        
-        Raises
-        ------
-        DimensionMismatchError
-            In case the dimensions of the evaluated expression do not match the
-            expected dimensions.
-        '''
-        fail_for_dimension_mismatch(unit, eval(self.code, namespace))
 
     def split_stochastic(self):
         '''
