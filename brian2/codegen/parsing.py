@@ -1,5 +1,5 @@
 '''
-Utility functions for parsing expressions to sympy.
+Utility functions for parsing expressions and statements.
 '''
 import re
 from StringIO import StringIO
@@ -17,6 +17,24 @@ SYMPY_DICT = {'I': sympy.I,
 def parse_statement(code):
     '''
     Parses a single line of code into "var op expr".
+    
+    Parameters
+    ----------
+    code : str
+        A string containing a single statement of the form ``var op expr``.
+    
+    Returns
+    -------
+    var, op, expr : str, str, str
+        The three parts of the statement.
+        
+    Examples
+    --------
+    >>> parse_statement('v = -65*mV')
+    ('v', '=', '-65*mV')
+    >>> parse_statement('v += dt*(-v/tau)')
+    ('v', '+=', 'dt*(-v/tau)')
+    
     '''
     m = re.search(r'(\+|\-|\*|/|//|%|\*\*|>>|<<|&|\^|\|)?=', code)
     if not m:

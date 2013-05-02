@@ -174,9 +174,25 @@ def check_unit(expression, unit, namespace, specifiers):
 def check_units_statements(code, namespace, specifiers):
     '''
     Check the units for a series of statements. Setting a model variable has to
-    use the correct unit. For newly introduced temporar variables, the unit
+    use the correct unit. For newly introduced temporary variables, the unit
     is determined and used to check the following statements to ensure
     consistency.
+    
+    Parameters
+    ----------
+    expression : str
+        The expression to evaluate.
+    namespace : dict-like
+        The namespace of external variables.
+    specifiers : dict of `Specifier` objects
+        The information about the internal variables
+    
+    Raises
+    ------
+    KeyError
+        In case on of the identifiers cannot be resolved.
+    DimensionMismatchError
+        If an unit mismatch occurs during the evaluation.
     '''
     known = set(specifiers.keys()) | set(namespace.keys())
     newly_defined, _, unknown = analyse_identifiers(code, known)

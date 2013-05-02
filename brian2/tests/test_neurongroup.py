@@ -7,7 +7,13 @@ from brian2.units.stdunits import ms
 from brian2.codegen.languages.cpp import CPPLanguage
 from brian2.codegen.languages.python import PythonLanguage
 
-languages = [PythonLanguage(), CPPLanguage()]
+# We can only test C++ if weave is availabe
+try:
+    import scipy.weave
+    languages = [PythonLanguage(), CPPLanguage()]
+except ImportError:
+    # Can't test C++
+    languages = [PythonLanguage()]
 
 def test_creation():
     '''
@@ -99,6 +105,17 @@ def test_unit_errors_threshold_reset():
                                           reset='''temp_var = -65*mV
                                                    v = temp_var''',
                                           language=language))
+        
+        # Resets with an in-place modification
+        # This should work
+        NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                    reset='''v /= 2''', language=language)
+        
+        # This should fail
+        assert_raises(DimensionMismatchError,
+                      lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                                          reset='''v -= 60*mV''',
+                                          language=language))        
 
 def test_syntax_errors():
     '''
