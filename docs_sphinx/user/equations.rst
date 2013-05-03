@@ -94,7 +94,7 @@ but this is exactly equivalent to::
 In contrast to Brian 1, specifying the value of a variable using a keyword argument does not mean you
 have to specify the values for all external variables by keywords.
 [Question: Useful to have the same kind of classes for Thresholds and Resets (Expression and Statements) just
-for convenience? Or put this functionality into StringThreshold and StringReset?]
+for convenience?]
 
 The `Equations` object does some basic syntax checking and will raise an error if two equations defining
 the same variable are combined. It does not however do unit checking, checking for unknown identifiers or
@@ -103,15 +103,55 @@ incorrect flags -- all this will be done during the instantiation of a `NeuronGr
 
 External variables and functions
 --------------------------------
-During the initialisation of a `NeuronGroup` or `Synapses` object, the namespace used for external variables
-is determined. To allow fine control over this process, the constructors take a `namespace` argument.
-If no value is given, the namespace will be implicit, consisting of the local and global variables at the point
-where the `NeuronGroup`/`Synapses` object is constructed. The `namespace` argument should be a dictionary, if it
-is given, it is expected to specify the namespace completely.
+Equations defining neuronal or synaptic equations can contain references to
+external parameters or functions. During the initialisation of a `NeuronGroup`
+or a `Synapses` object, this *namespace* can be provided as an argument. In
+this case, it is assumed that this namespace is exhaustive and contains all
+external identifiers (note that units and a set of standard numpy functions
+are always provided and should not be included in this namespace). This
+namespace does not necessarily need to be exhaustive at the time of the creation
+of the `NeuronGroup`/`Synapses`, entries can be added (or modified) at a later
+stage via the `namespace` attribute (e.g. ``G.namespace['tau'] = 10*ms``) -- it
+only has to be complete at the time of the run.
 
-Changes in external variable values are not taken into account. If you want to have a variable
-that changes between runs (or during a run using a user-defined function), define it as a parameter.
+If no such namespace is provided, the namespace will be filled at the point of
+the call to the `run` function. Either via an explicit namespace argument to
+the `run` function or -- if this is  not provided -- from the variables
+defined at that point in the code (more specifically, the variables from the
+*locals* and *globals* symbol table). This namespace is shared among all
+objects in the network that do not have their own explicit namespace.
+
+To summarize: The namespace of external identifiers for an object such as a
+`NeuronGroup` or `Synapses` is:
+
+* The object's explicit namespace if it is provided at creation time.
+* If no explicit namespace is given, the namespace argument of the run
+  function is used.
+* If neither the object, nor the run function received a namespace argument,
+  the variables from the context of the run function are used.
+
+The following three examples show the different ways of providing external
+variable values, all having the same effect in this case::
+
+	# Explicit argument to the NeuronGroup
+	G = NeuronGroup(1, 'dv/dt = -v / tau : 1', namespace={'tau': 10*ms})
+	net = Network(G)
+	net.run(10*ms)
 	
+	# Explicit argument to the run function
+	G = NeuronGroup(1, 'dv/dt = -v / tau : 1')
+	net = Network(G)
+	net.run(10*ms, namespace={'tau': 10*ms})
+	 
+	# Implicit namespace from the context
+	G = NeuronGroup(1, 'dv/dt = -v / tau : 1')
+	net = Network(G)
+	tau = 10*ms
+	net.run(10*ms)
+
+External variables are free to change between runs (but not during one run),
+the value at the time of the `run` call is used in the simulation. 
+
 Resolution order
 ~~~~~~~~~~~~~~~~
 For each identifier (variable or function name) in the model equations, a corresponding object will be
@@ -124,14 +164,14 @@ raised.
 3. variables from "referred namespaces", i.e. in the `Synapses` class, variables
    from the pre-synaptic group (using a ``_pre`` suffix) or from the post-synaptic
    group (using a ``_post`` suffix or no suffix).
-4. explicitly given entries in the namespace dictionary
-5. A standard set of numpy functions (with unit-aware/code-generation
+4. A standard set of numpy functions (with unit-aware/code-generation
    replacements, the names in
    `~brian2.core.namespace.get_default_numpy_namespace`).
-6. units (the names in `~brian2.core.namespace.DEFAULT_UNIT_NAMESPACE`),
+5. units (the names in `~brian2.core.namespace.DEFAULT_UNIT_NAMESPACE`),
    containing all registered units plus the standard units (ms, mV, nS, etc.)
-7. external variables/functions in the local implicit namespace (if one is used)
-8. external variables/functions in the global namespace (if one is used) 
+6. Explicitly given entries in the namespace dictionary of the object,
+   explicitly given entries to the `run` function or variables from the local
+   context (see explanations in the previous section)
 
 Examples
 --------
@@ -175,51 +215,3 @@ Equation objects
 	>>> print eqs
 	dv/dt = (-0.065 * volt)/(10.0 * msecond) + (3.0 * mvolt)/(10.0 * msecond)**.5*xi  : V
 
-Namespaces
-~~~~~~~~~~
-**Using implicit namespaces**
-
-This is the typical example script scenario:
-
-.. doctest::
-
-	>>> tau = 10*ms
-	>>> V_T = 20*mV
-	>>> V_R = -70*mV
-	>>> E_L = -70*mV
-	>>> G = NeuronGroup(1, 'dV/dt = (E_L - V) / tau : volt', threshold='V>V_T',
-	...                 reset='V=V_R')
-	>>> print G.namespace['V_R']
-	-0.07 V
-
-Creating a NeuronGroup in a function:
-
-.. doctest::
-
-	>>> def create_neurongroup(N, tau_m):
-	...     G = NeuronGroup(N, 'dv/dt = -v / tau_m : 1', threshold='v>1', reset='v=0')
-	...     return G
-	...
-	>>> G = create_neurongroup(5, 10*ms)
-	>>> print G.namespace['tau_m'] 
-	10.0 ms
-
-**Using explicit namespaces**
-
-.. doctest::
-
-	>>> tau = 10*ms  #we will not use this value
-	>>> G = NeuronGroup(1, 'dv/dt = -v / tau : 1', namespace={'tau': 20*ms})
-	>>> print G.namespace['tau']
-	20.0 ms
-
-.. doctest::
-
-	>>> def create_neurongroup(N, **kwds):
-	...     G = NeuronGroup(N, 'dv/dt = -v / tau : 1', threshold='v>v_r',
-	...                     reset='v=v_t', namespace=kwds)
-	...     return G
-	...
-	>>> G = create_neurongroup(5, tau=10*ms, v_r=1, v_t=0)
-	>>> print G.namespace['v_t']
-	0

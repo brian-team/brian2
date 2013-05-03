@@ -4,6 +4,7 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
 import copy
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
+import weakref
 
 @with_setup(teardown=restore_initial_state)
 def test_empty_network():
@@ -14,7 +15,7 @@ def test_empty_network():
 class Counter(BrianObject):
     def __init__(self, **kwds):
         super(Counter, self).__init__(**kwds)
-        self.count = 0        
+        self.count = 0
     def update(self):
         self.count += 1
 
@@ -72,24 +73,29 @@ class Preparer(BrianObject):
     def __init__(self, **kwds):
         super(Preparer, self).__init__(**kwds)
         self.did_reinit = False
-        self.did_prepare = False
+        self.did_pre_run = False
+        self.did_post_run = False
     def reinit(self):
         self.did_reinit = True
-    def prepare(self):
-        self.did_prepare = True
+    def pre_run(self, namespace):
+        self.did_pre_run = True
+    def post_run(self):
+        self.did_post_run = True        
     def update(self):
         pass
 
 @with_setup(teardown=restore_initial_state)
-def test_network_reinit_prepare():
-    # Check that reinit and prepare work        
+def test_network_reinit_pre_post_run():
+    # Check that reinit and pre_run and post_run work        
     x = Preparer()
     net = Network(x)
     assert_equal(x.did_reinit, False)
-    assert_equal(x.did_prepare, False)
+    assert_equal(x.did_pre_run, False)
+    assert_equal(x.did_post_run, False)
     net.run(1*ms)
     assert_equal(x.did_reinit, False)
-    assert_equal(x.did_prepare, True)
+    assert_equal(x.did_pre_run, True)
+    assert_equal(x.did_post_run, True)
     net.reinit()
     assert_equal(x.did_reinit, True)
 
@@ -255,7 +261,7 @@ def test_invalid_magic_network():
     run(1*ms)
     assert_equal(x.count, 10)
     y = Counter()
-    assert_raises(MagicError, lambda: run(1*ms))
+    assert_raises(MagicError, lambda: run(1*ms, level=3))
     del x, y
     x = Counter()
     run(1*ms)
@@ -275,9 +281,9 @@ def test_invalid_magic_network():
     y = Counter()
     run(1*ms)
     assert_equal(x.count, 10)
-    assert_equal(y.count, 10)
+    assert_equal(y.count, 10) 
     del x
-    assert_raises(MagicError, lambda: run(1*ms))
+    assert_raises(MagicError, lambda: run(1*ms, level=3))
     clear()
     z = Counter()
     run(1*ms)
@@ -291,7 +297,7 @@ if __name__=='__main__':
               test_network_two_objects,
               test_network_different_clocks,
               test_network_different_when,
-              test_network_reinit_prepare,
+              test_network_reinit_pre_post_run,
               test_magic_network,
               test_network_stop,
               test_network_operations,

@@ -11,8 +11,10 @@ from brian2 import Unit, Equations, Expression, sin
 from brian2.units.fundamentalunits import (DIMENSIONLESS, get_dimensions,
                                            have_same_dimensions,
                                            DimensionMismatchError)
-from brian2.equations.unitcheck import get_unit_from_string
-from brian2.core.namespace import DEFAULT_UNIT_NAMESPACE
+from brian2.equations.unitcheck import unit_from_string
+from brian2.core.namespace import (DEFAULT_UNIT_NAMESPACE, create_namespace,
+                                   check_identifier_functions,
+                                   check_identifier_units)
 from brian2.equations.equations import (check_identifier_basic,
                                         check_identifier_reserved,
                                         parse_string_equations,
@@ -36,25 +38,17 @@ def test_utility_functions():
     for unit in unit_namespace.itervalues():
         assert isinstance(unit, Unit)
 
-    assert get_unit_from_string('second') == second
-    assert get_unit_from_string('1') == Unit(1, DIMENSIONLESS)
-    assert get_unit_from_string('volt') == volt
-    assert get_unit_from_string('second ** -1') == Hz
-    assert get_unit_from_string('farad / metre**2') == farad / metre ** 2
-    assert get_unit_from_string('m / s',
-                                unit_namespace={'m': metre,
-                                                's': second}) == metre / second
-    assert_raises(ValueError, lambda: get_unit_from_string('metr / second'))
-    assert_raises(ValueError, lambda: get_unit_from_string('metre **'))
-    assert_raises(ValueError, lambda: get_unit_from_string('5'))
-    assert_raises(ValueError, lambda: get_unit_from_string('2 / second'))
-    # Make sure that namespace overrides the default namespace
-    assert_raises(ValueError, lambda: get_unit_from_string('metre / s',
-                                                           unit_namespace={'m': metre,
-                                                                           's': second}))
-    assert get_unit_from_string('farad / cm**2') == farad / cm ** 2
-    assert_raises(ValueError, lambda: get_unit_from_string('farad / cm**2',
-                                                           only_base_units=True))
+    assert unit_from_string('second') == second
+    assert unit_from_string('1') == Unit(1, DIMENSIONLESS)
+    assert unit_from_string('volt') == volt
+    assert unit_from_string('second ** -1') == Hz
+    assert unit_from_string('farad / metre**2') == farad / metre ** 2
+    assert_raises(ValueError, lambda: unit_from_string('metr / second'))
+    assert_raises(ValueError, lambda: unit_from_string('metre **'))
+    assert_raises(ValueError, lambda: unit_from_string('5'))
+    assert_raises(ValueError, lambda: unit_from_string('2 / second'))
+    # Only the use of base units is allowed
+    assert_raises(ValueError, lambda: unit_from_string('farad / cm**2'))
 
 
 def test_identifier_checks():
@@ -78,10 +72,18 @@ def test_identifier_checks():
     for identifier in ('is_active', 'refractory', 'refractory_until'):
         assert_raises(ValueError, lambda: check_identifier_refractory(identifier))
 
+    for identifier in ('exp', 'sin', 'sqrt'):
+        assert_raises(ValueError, lambda: check_identifier_functions(identifier))
+
+    for identifier in ('volt', 'second', 'mV', 'nA'):
+        assert_raises(ValueError, lambda: check_identifier_units(identifier))
+
     # Check identifier registry
     assert check_identifier_basic in Equations.identifier_checks
     assert check_identifier_reserved in Equations.identifier_checks
     assert check_identifier_refractory in Equations.identifier_checks
+    assert check_identifier_functions in Equations.identifier_checks
+    assert check_identifier_units in Equations.identifier_checks
 
     # Set up a dummy identifier check that disallows the variable name
     # gaba_123 (that is otherwise valid)
@@ -245,32 +247,35 @@ def test_unit_checking():
         def __init__(self, unit):
             self.unit = unit
     
+    # Let's create a namespace with a user-defined namespace that we can
+    # updater later on 
+    namespace = create_namespace(1, {})
     # inconsistent unit for a differential equation
     eqs = Equations('dv/dt = -v : volt')
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units({}, {'v': S(volt)}))
+                  lambda: eqs.check_units(namespace, {'v': S(volt)}))
 
     eqs = Equations('dv/dt = -v / tau: volt')
+    namespace['tau'] = 5*mV
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units({'tau': 5 * mV},
-                                          {'v': S(volt)}))
+                  lambda: eqs.check_units(namespace, {'v': S(volt)}))
+    namespace['I'] = 3*second
     eqs = Equations('dv/dt = -(v + I) / (5 * ms): volt')
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units({'I': 3 * second, 'ms': ms},
-                                          {'v': S(volt)}))
+                  lambda: eqs.check_units(namespace, {'v': S(volt)}))
 
     eqs = Equations('''dv/dt = -(v + I) / (5 * ms): volt
                        I : second''')
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units({'ms': ms},
-                                          {'v': S(volt), 'I': S(second)}))
+                  lambda: eqs.check_units(namespace, {'v': S(volt),
+                                                      'I': S(second)}))
     
     # inconsistent unit for a static equation
     eqs = Equations('''dv/dt = -v / (5 * ms) : volt
                        I = 2 * v : amp''')
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units({'ms': ms}, {'v': S(volt),
-                                                       'I': S(amp)}))
+                  lambda: eqs.check_units(namespace, {'v': S(volt),
+                                                      'I': S(amp)}))
     
 
 def test_properties():

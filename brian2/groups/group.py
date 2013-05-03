@@ -2,9 +2,16 @@
 This module defines the `Group` object, a mix-in class for everything that
 saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
-from brian2.units.fundamentalunits import fail_for_dimension_mismatch
 
-__all__ = ['Group']
+import weakref
+
+from brian2.core.base import BrianObject
+from brian2.core.specifiers import Index
+from brian2.units.fundamentalunits import fail_for_dimension_mismatch
+from brian2.codegen.translation import analyse_identifiers
+from brian2.equations.unitcheck import check_units_statements
+
+__all__ = ['Group', 'GroupCodeRunner']
 
 class Group(object):
     '''
@@ -78,19 +85,152 @@ class Group(object):
         else:
             object.__setattr__(self, name, val)             
 
+def _create_codeobj(group, name, code, additional_namespace=None,
+                    template=None, iterate_all=True, check_units=True):
+    ''' A little helper function to reduce the amount of repetition when
+    calling the language's _create_codeobj (always pass self.specifiers and
+    self.namespace + additional namespace).
+    '''
+
+    if check_units:
+        # Resolve the namespace, resulting in a dictionary containing only the
+        # external variables that are needed by the code -- kepp the units for
+        # the unit checks 
+        _, _, unknown = analyse_identifiers(code, group.specifiers.keys())
+        resolved_namespace = group.namespace.resolve_all(unknown,
+                                                         additional_namespace,
+                                                         strip_units=False)
     
-if __name__=='__main__':
-    from numpy import *
-    from brian2 import *
-    class TestGroup(Group):
-        def __init__(self):
-            self.arrays = {'x':ones(10),
-                           }
-            self.units = {'x':volt,
-                          }
-            Group.__init__(self)
-    tg = TestGroup()
-    tg.x_ = 5
-    tg.y = 10
-    print tg.x
-    print tg.y
+        check_units_statements(code, resolved_namespace, group.specifiers)
+
+    # Get the namespace without units
+    _, _, unknown = analyse_identifiers(code, group.specifiers.keys())
+    resolved_namespace = group.namespace.resolve_all(unknown,
+                                                     additional_namespace)
+    return group.language.create_codeobj(name,
+                                         code,
+                                         resolved_namespace,
+                                         group.specifiers,
+                                         template,
+                                         indices={'_neuron_idx':
+                                                  Index('_neuron_idx',
+                                                        iterate_all)})
+
+
+class GroupCodeRunner(BrianObject):
+    '''
+    A "runner" that runs a `CodeObject` every timestep and keeps a reference to
+    the `Group`. Used in `NeuronGroup` for `Thresholder`, `Resetter` and
+    `StateUpdater`.
+    
+    On creation, we try to run the pre_run method with an empty additional
+    namespace (see `Network.pre_run`). If the namespace is already complete
+    this might catch unit mismatches.
+    
+    Parameters
+    ----------
+    group : `Group`
+        The group to which this object belongs.
+    template : `Template`
+        The template that should be used for code generation
+    code : str, optional
+        The abstract code that should be executed every time step. The
+        `update_abstract_code` method might generate this code dynamically
+        before every run instead.
+    iterate_all : bool, optional
+        Whether the index iterates over all possible values (``True``, the
+        default) or only over a subset (``False``, used for example for the
+        reset which only affects neurons that have spiked).
+    when : `Scheduler`, optional
+        At which point in the schedule this object should be executed.
+    name : str, optional 
+        The name for this object.
+    check_units : bool, optional
+        Whether the units should be checked for consistency before a run. Is
+        activated (``True``) by default but should be switched off for state
+        updaters (units are already checked for the equations and the generated
+        abstract code might have already replaced variables with their unit-less
+        values)
+    
+    Notes
+    -----
+    Objects such as `Thresholder`, `Resetter` or `StateUpdater` inherit from
+    this class. They can customize the behaviour by overwriting the
+    `update_abstract_code`, `pre_update` and `post_update` method.
+    `update_abstract_code` is called before a run to allow taking into account
+    changes in the namespace or in the reset/threshold definition itself.
+    `pre_update` and `post_update` are used to connect the `CodeObject` to the
+    state of the `Group`. For example, the `Tresholder` sets the
+    `NeuronGroup.spikes` property in `post_update`.
+    '''
+    def __init__(self, group, template, code=None, iterate_all=True,
+                 when=None, name=None, check_units=True):
+        BrianObject.__init__(self, when=when, name=name)
+        self.group = weakref.proxy(group)
+        self.template = template
+        self.abstract_code = code
+        self.iterate_all = iterate_all
+        self.check_units = check_units
+        # Try to generate the abstract code and the codeobject without any
+        # additional namespace. This might work in situations where the
+        # namespace is completely defined in the NeuronGroup. In this case,
+        # we might spot parsing or unit errors already now and don't have to
+        # wait until the run call. We want to ignore KeyErrors, though, because
+        # they possibly result from an incomplete namespace, which is still ok
+        # at this time.
+        try:
+            self.pre_run(None)
+        except KeyError:
+            pass 
+    
+    def update_abstract_code(self):
+        '''
+        Update the abstract code for the code object. Will be called in
+        `pre_run` and should update the `GroupCodeRunner.abstract_code`
+        attribute.
+        
+        Does nothing by default.
+        '''
+        pass
+    
+    def pre_run(self, namespace):
+        self.update_abstract_code()
+        self.codeobj = _create_codeobj(self.group, self.name,
+                                       self.abstract_code,
+                                       additional_namespace=namespace,
+                                       template=self.template,
+                                       iterate_all=self.iterate_all,
+                                       check_units=self.check_units
+                                       )
+    
+    def pre_update(self):
+        '''
+        Will be called in every timestep before the `update` method is called.
+        
+        Overwritten in `StateUpdater` to update the ``is_active`` parameter of 
+        a `NeuronGroup`.
+        
+        Does nothing by default.
+        '''
+        pass
+    
+    def update(self, **kwds):
+        self.pre_update()
+        return_value = self.codeobj(**kwds)
+        self.post_update(return_value)    
+
+    def post_update(self, return_value):
+        '''
+        Will be called in every timestep after the `update` method is called.
+        
+        Overwritten in `Thresholder` to update the ``spikes`` list saved in 
+        a `NeuronGroup`.
+        
+        Does nothing by default.
+        
+        Parameters
+        ----------
+        return_value : object
+            The result returned from calling the `CodeObject`.
+        '''
+        pass
