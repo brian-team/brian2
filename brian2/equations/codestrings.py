@@ -8,7 +8,7 @@ import sympy
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
-from brian2.utils.parsing import parse_to_sympy
+from brian2.codegen.parsing import parse_to_sympy
 
 __all__ = ['Expression', 'Statements']
 
@@ -80,28 +80,6 @@ class Expression(CodeString):
         # : The expression as a sympy object
         self.sympy_expr = parse_to_sympy(self.code)
 
-    def check_units(self, unit, namespace):
-        '''
-        Determines whether the result of the expression has the expected unit.
-        Evaluates the code in the given namespace, which should contain
-        `Unit` objects with the appropriate units for all internal variables
-        (state variables and special variables like ``t``).
-        
-        Parameters
-        ----------
-        unit : `Unit`
-            The expected unit.
-        namespace: dict
-            The namespace, mapping all identifiers in the expression to values
-            (possibly `Unit` objects).
-        
-        Raises
-        ------
-        DimensionMismatchError
-            In case the dimensions of the evaluated expression do not match the
-            expected dimensions.
-        '''
-        fail_for_dimension_mismatch(unit, eval(self.code, namespace))
 
     def split_stochastic(self):
         '''
@@ -136,7 +114,7 @@ class Expression(CodeString):
         
         s_expr = self.sympy_expr.expand()
         
-        stochastic_symbols = [sympy.Symbol(variable)
+        stochastic_symbols = [sympy.Symbol(variable, real=True)
                               for variable in stochastic_variables]
 
         f = sympy.Wild('f', exclude=stochastic_symbols)  # non-stochastic part

@@ -2,7 +2,6 @@
 Implementation of the namespace system, used to resolve the identifiers in
 model equations of `NeuronGroup` and `Synapses`
 '''
-import inspect
 import collections
 try:
     from collections import OrderedDict
@@ -12,43 +11,35 @@ except ImportError:
 
 import numpy as np
 
-import brian2.units.unitsafefunctions as unitsafe
 from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Quantity, all_registered_units
 from brian2.units.stdunits import stdunits
-from brian2.codegen.functions.numpyfunctions import (FunctionWrapper,
-                                                     RandnFunction)
+from brian2.codegen.functions.numpyfunctions import (RandnFunction,
+                                                     DEFAULT_FUNCTIONS)
+import brian2.equations.equations as equations
 
-__all__ = ['ObjectWithNamespace',
+__all__ = ['create_namespace', 'CompoundNamespace',
            'get_default_numpy_namespace',
            'DEFAULT_UNIT_NAMESPACE']
 
 logger = get_logger(__name__)
 
-class ObjectWithNamespace(object):
-    def __new__(cls, *args, **kwds):
-        instance = super(ObjectWithNamespace, cls).__new__(cls, *args, **kwds)
-        frame = inspect.stack()[1][0]
-        instance._locals = dict(frame.f_locals)
-        instance._globals = dict(frame.f_globals)
-        return instance
+
+def create_namespace(N, explicit_namespace=None):
+    namespace = CompoundNamespace()
     
-    def create_namespace(self, N, explicit_namespace=None):                
-        namespace = CompoundNamespace()
-        
-        # Explicitly given namespace overwrites all other namespaces
-        if explicit_namespace is not None:
-            namespace.add_namespace('user-defined', explicit_namespace)
-        
-        namespace.add_namespace('numpy', get_default_numpy_namespace(N))
-        namespace.add_namespace('units', DEFAULT_UNIT_NAMESPACE)
-        
-        # only use the local/global namespace if no explicit one is given
-        if explicit_namespace is None:
-            namespace.add_namespace('local', self._locals)
-            namespace.add_namespace('global', self._globals)         
-        
-        return namespace
+    # Functions and units take precedence, overwriting them would lead to
+    # very confusing equations. In particular, the Equations objects does not
+    # take the namespace into account when determining the units of equations
+    # (the ": unit" part) -- so an overwritten unit would be ignored there but
+    # taken into account in the equation itself.
+    namespace.add_namespace('numpy', get_default_numpy_namespace(N))
+    namespace.add_namespace('units', DEFAULT_UNIT_NAMESPACE)
+    
+    if explicit_namespace is not None:
+        namespace.add_namespace('user-defined', explicit_namespace)            
+    
+    return namespace
 
 
 def _conflict_warning(message, resolutions):
@@ -99,6 +90,11 @@ class CompoundNamespace(collections.Mapping):
     def __init__(self):        
         self.namespaces = OrderedDict()        
     
+    is_explicit = property(lambda self: 'user-defined' in self.namespaces,
+                        doc=('Whether this namespace is explicit (i.e. '
+                             'provided by the user at creation time and not '
+                             'affected by the context in which it is run'))
+    
     def add_namespace(self, name, namespace):
         try:
             namespace = dict(namespace)
@@ -107,12 +103,22 @@ class CompoundNamespace(collections.Mapping):
                             type(namespace))
         self.namespaces[name] = namespace
     
-    def resolve(self, identifier):
+    def resolve(self, identifier, additional_namespace=None, strip_units=False):
+        '''
+        The additional_namespace (e.g. the local/global namespace) will only
+        be used if the namespace does not contain any user-defined namespace.
+        '''        
         # We save tuples of (namespace description, referred object) to
         # give meaningful warnings in case of duplicate definitions
         matches = []
         
-        namespaces = self.namespaces
+        if self.is_explicit or additional_namespace is None: 
+            namespaces = self.namespaces
+        else:            
+            namespaces = OrderedDict(self.namespaces)
+            # Add the additional namespace in the end
+            description, namespace = additional_namespace
+            namespaces[description] = namespace
         
         for description, namespace in namespaces.iteritems():
             if identifier in namespace:
@@ -133,25 +139,40 @@ class CompoundNamespace(collections.Mapping):
                                    'with the value %r') %
                                   (identifier, matches[0][0],
                                    first_obj), matches[1:])
-            
+                    
         # use the first match (according to resolution order)
-        return matches[0][1]
+        resolved = matches[0][1]
+        if strip_units and isinstance(resolved, Quantity):
+            if resolved.ndim == 0:
+                resolved = float(resolved)
+            else:
+                resolved = np.asarray(resolved)
+        return resolved
 
-    def resolve_all(self, identifiers, strip_units=True):
+    def resolve_all(self, identifiers, additional_namespace=None,
+                    strip_units=True):
         resolutions = {}
         for identifier in identifiers:            
-            resolved = self.resolve(identifier)
-            if strip_units and isinstance(resolved, Quantity):
-                if resolved.ndim == 0:
-                    resolved = float(resolved)
-                else:
-                    resolved = np.asarray(resolved)
+            resolved = self.resolve(identifier, additional_namespace,
+                                    strip_units=strip_units)            
             resolutions[identifier] = resolved                
         
         return resolutions
 
     def __getitem__(self, key):
         return self.resolve(key)
+    
+    def __setitem__(self, key, value):
+        if not self.is_explicit:
+            raise TypeError('This object does not have a user-defined '
+                            'namespace, cannot add items directly.')
+        self.namespaces['user-defined'][key] = value
+    
+    def __delitem__(self, key):
+        if not self.is_explicit:
+            raise TypeError('this object does not have a user-defined '
+                            'namespace, cannot delete keys from it.')
+        del self.namespaces['user-defined'][key]
     
     def __len__(self):
         total_length = 0
@@ -193,36 +214,28 @@ def get_default_numpy_namespace(N):
         their unitsafe Brian counterparts.
     '''        
     # numpy constants
+    # TODO: Make them accesible to sympy as well, maybe introduce a similar
+    #       system as for functions, e.g. C++ would use M_PI for pi?
     namespace = {'pi': np.pi, 'e': np.e, 'inf': np.inf}
     
-    # numpy functions that have the same name in numpy and math.h
-    namespace.update({'cos': FunctionWrapper(unitsafe.cos),
-                      'sin': FunctionWrapper(unitsafe.sin),
-                      'tan': FunctionWrapper(unitsafe.tan),
-                      'cosh': FunctionWrapper(unitsafe.cosh),
-                      'sinh': FunctionWrapper(unitsafe.sinh),
-                      'tanh': FunctionWrapper(unitsafe.tanh),
-                      'exp': FunctionWrapper(unitsafe.exp),
-                      'log': FunctionWrapper(unitsafe.log),
-                      'log10': FunctionWrapper(unitsafe.log10),
-                      'sqrt': FunctionWrapper(np.sqrt),
-                      'ceil': FunctionWrapper(np.ceil),
-                      'floor': FunctionWrapper(np.floor)
-                      })
-    
-    # numpy functions that have a different name in numpy and math.h
-    namespace.update({'arccos': FunctionWrapper(unitsafe.arccos, cpp_name='acos'),
-                      'arcsin': FunctionWrapper(unitsafe.arcsin, cpp_name='asin'),
-                      'arctan': FunctionWrapper(unitsafe.arctan, cpp_name='atan'),
-                      'power': FunctionWrapper(np.power, cpp_name='pow'),
-                      'abs': FunctionWrapper(np.abs, py_name='abs', cpp_name='fabs'),
-                      'mod': FunctionWrapper(np.mod, py_name='mod', cpp_name='fmod')})
+    # The default numpy functions
+    namespace.update(DEFAULT_FUNCTIONS)
     
     # numpy functions that need special treatment 
     namespace.update({'randn': RandnFunction(N),
                       '_randn': np.random.randn})
     return namespace
 
+_function_names = get_default_numpy_namespace(1).keys()
+def check_identifier_functions(identifier):
+    '''
+    Make sure that identifier names do not clash with function names.
+    '''
+    if identifier in _function_names:
+        raise ValueError('"%s" is the name of a function, cannot be used as a '
+                         'variable name.')
+        
+equations.Equations.register_identifier_check(check_identifier_functions)
 
 def _get_default_unit_namespace():
     '''
@@ -240,3 +253,13 @@ def _get_default_unit_namespace():
     return namespace
 
 DEFAULT_UNIT_NAMESPACE = _get_default_unit_namespace()
+
+def check_identifier_units(identifier):
+    '''
+    Make sure that identifier names do not clash with unit names.
+    '''
+    if identifier in DEFAULT_UNIT_NAMESPACE:
+        raise ValueError('"%s" is the name of a unit, cannot be used as a '
+                         'variable name.')
+        
+equations.Equations.register_identifier_check(check_identifier_units)

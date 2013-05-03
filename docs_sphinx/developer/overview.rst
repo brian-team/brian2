@@ -54,14 +54,15 @@ differ between `NeuronGroup` and `Synapses`, for example).
 
 Specifiers and namespaces
 -------------------------
-The `ObjectWithNamespace` (suggestions for a better name are welcome...) class
-is a parent class for objects referring to variables and functions, in particular
-`NeuronGroup` (and eventually `Synapses`). Such an object has two dictionary-like
-attributes: ``namespace`` and ``specifiers``. A *namespace* is everything
-external to the model itself, e.g. variables or functions defined outside of the
-model equations. The namespace by default consists of a set of standard units
-and functions + either an explicitly given namespace (for full control) or the
-locals and globals if no namespace is given. *Specifiers* on the other hand,
+Objects referring to variables and functions, in particular `NeuronGroup`
+(and eventually `Synapses`) have two dictionary-like attributes: ``namespace``
+and ``specifiers``. The *namespace* is related to everything external to the
+model itself, i.e. variables and functions defined outside of the model
+equations. It by default consists of a set of standard units and functions 
+and optionally of an explicitly given namespace. If no namespace is given
+explicitly, the namespace used for running code will be filled at the time of 
+a run with either the namespace provided to the run function or the
+locals/globals surrounding the run call. *Specifiers* on the other hand,
 define everything *internal* to the model, the objects in this dictionary
 inherit from `Specifier` and -- in addition to specifying things like the units
 -- act as proxy objects, connecting for example state variable names to the

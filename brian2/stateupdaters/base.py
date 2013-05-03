@@ -167,11 +167,17 @@ class StateUpdateMethod(object):
         # determine the best suitable state updater
         best_stateupdater = None
         for name, stateupdater in StateUpdateMethod.stateupdaters:
-            if stateupdater.can_integrate(equations, namespace, specifiers):
-                best_stateupdater = (name, stateupdater)
-                break
+            try:
+                if stateupdater.can_integrate(equations, namespace, specifiers):
+                    best_stateupdater = (name, stateupdater)
+                    break
+            except KeyError:
+                logger.debug(('It could not be determined whether state '
+                             'updater "%s" is able to integrate the equations, '
+                              'it appears the namespace is not yet complete.'
+                              % name))
 
-        # No suitable stat updater has been found
+        # No suitable state updater has been found
         if best_stateupdater is None:
             raise ValueError(('No stateupdater that is suitable for the given '
                               'equations has been found'))

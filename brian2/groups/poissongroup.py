@@ -1,5 +1,5 @@
+import numpy as np
 from numpy.random import rand
-from numpy import array
 
 from brian2.core.base import BrianObject
 from brian2.core.spikesource import SpikeSource
@@ -39,16 +39,22 @@ class PoissonGroup(BrianObject, SpikeSource):
         BrianObject.__init__(self, when=scheduler, name=name)
 
         #: The array of spikes from the most recent time step
-        self.spikes = array([], dtype=int)
+        self.spikes = np.array([], dtype=int)
         
         self.rates = rates
         self.N = N = int(N)
         
-        self.pthresh = array(rates*self.clock.dt)
+        self.pthresh = self._calc_threshold()
         
     def __len__(self):
         return self.N
-        
+    
+    def _calc_threshold(self):
+        return np.array(self.rates*self.clock.dt)
+    
+    def pre_run(self, namespace):
+        self.pthresh = self._calc_threshold()
+    
     def update(self):
         self.spikes, = (rand(self.N)<self.pthresh).nonzero()
 

@@ -229,7 +229,7 @@ class CodeObject(object):
         for name, spec in self.specifiers.iteritems():
             if isinstance(spec, Value):
                 value = spec.get_value()
-                self.namespace.update({name: value})
+                self.namespace[name] = value
                 # if it is a type that has a length, add a variable called
                 # '_num'+name with its length
                 try:
