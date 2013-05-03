@@ -1,7 +1,9 @@
-from numpy.testing.utils import assert_raises
+import numpy as np
+from numpy.testing.utils import assert_raises, assert_equal
 
 from brian2.groups.neurongroup import NeuronGroup
 from brian2.core.network import Network
+from brian2.core.clocks import defaultclock
 from brian2.units.fundamentalunits import DimensionMismatchError
 from brian2.units.stdunits import ms
 from brian2.codegen.languages.cpp import CPPLanguage
@@ -23,7 +25,46 @@ def test_creation():
         G = NeuronGroup(42, equations='dv/dt = -v/(10*ms) : 1', reset='v=0',
                         threshold='v>1', language=language)
         assert len(G) == 42
+        
+    # Test some error conditions
+    # --------------------------
     
+    # Model equations as first argument (no number of neurons)
+    assert_raises(TypeError, lambda: NeuronGroup('dv/dt = 5*Hz : 1', 1))
+    
+    # Not a number as first argument
+    assert_raises(TypeError, lambda: NeuronGroup(object(), 'dv/dt = 5*Hz : 1'))
+    
+    # Illegal number
+    assert_raises(ValueError, lambda: NeuronGroup(0, 'dv/dt = 5*Hz : 1'))
+    
+    # neither string nor Equations object as model description
+    assert_raises(TypeError, lambda: NeuronGroup(1, object()))
+
+
+def test_specifiers():
+    '''
+    Test the correct creation of the specifiers dictionary.
+    '''
+    G = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1')
+    assert 'v' in G.specifiers and 't' in G.specifiers and 'dt' in G.specifiers
+    
+    G = NeuronGroup(1, 'dv/dt = -v/tau + xi*tau**-0.5: 1')
+    assert not 'tau' in G.specifiers and 'xi' in G.specifiers
+
+
+def test_stochastic_variable():
+    '''
+    Test that a NeuronGroup with a stochastic variable can be simulated. Only
+    makes sure no error occurs.
+    '''
+    tau = 10 * ms
+    for language in languages:
+        G = NeuronGroup(1, 'dv/dt = -v/tau + xi*tau**-0.5: 1',
+                        language=language)
+        net = Network(G)
+        net.run(defaultclock.dt)
+
 def test_unit_errors():
     '''
     Test that units are checked for a complete namespace.
@@ -76,6 +117,19 @@ def test_namespace_errors():
         net = Network(G)
         assert_raises(KeyError, lambda: net.run(1*ms))
 
+def test_threshold_reset():
+    '''
+    Test that threshold and reset work in the expected way.
+    '''
+    for language in languages:
+        # Membrane potential does not change by itself
+        G = NeuronGroup(3, 'dv/dt = 0 / second : 1',
+                        threshold='v > 1', reset='v=0.5', language=language)
+        G.v = np.array([0, 1, 2])
+        net = Network(G)
+        net.run(defaultclock.dt)
+        assert_equal(G.v, np.array([0, 1, 0.5]))
+
 def test_unit_errors_threshold_reset():
     '''
     Test that unit errors in thresholds and resets are detected.
@@ -97,6 +151,11 @@ def test_unit_errors_threshold_reset():
         # This should pass
         NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
                     reset='''temp_var = -65
+                             v = temp_var''', language=language)
+        # throw in an empty line (should still pass)
+        NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                    reset='''temp_var = -65
+                    
                              v = temp_var''', language=language)
         
         # This should fail
@@ -143,7 +202,10 @@ def test_syntax_errors():
 
 if __name__ == '__main__':
     test_creation()
+    test_specifiers()
+    test_stochastic_variable()
     test_unit_errors()
+    test_threshold_reset()
     test_unit_errors_threshold_reset()
     test_incomplete_namespace()
     test_namespace_errors()

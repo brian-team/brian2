@@ -234,4 +234,7 @@ def check_units_statements(code, namespace, specifiers):
         elif var in newly_defined:
             # note the unit for later
             specs[var] = VariableSpecifier(var, expr_unit)
-    
+        else:
+            raise AssertionError(('Variable "%s" is neither in the specifiers '
+                                  'dictionary nor in the list of undefined '
+                                  'variables.' % var))

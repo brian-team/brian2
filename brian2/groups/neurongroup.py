@@ -169,8 +169,8 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         if isinstance(equations, basestring):
             equations = Equations(equations)
         if not isinstance(equations, Equations):
-            raise ValueError(('equations has to be a string or an Equations '
-                              'object, is "%s" instead.') % type(equations))
+            raise TypeError(('equations has to be a string or an Equations '
+                             'object, is "%s" instead.') % type(equations))
         # add refractoriness
         equations = add_refractoriness(equations)
         self.equations = equations
