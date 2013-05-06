@@ -6,18 +6,19 @@ import keyword
 import re
 import string
 
+import sympy
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 import sympy
 
+from brian2.codegen.parsing import sympy_to_str
 from brian2.units.fundamentalunits import DimensionMismatchError
 from brian2.units.allunits import second
-from brian2.utils.stringtools import word_substitute
 from brian2.utils.logger import get_logger
-from brian2.utils.parsing import parse_to_sympy
 
 from .codestrings import Expression
-from .unitcheck import get_unit_from_string
+from .unitcheck import unit_from_string
+from brian2.equations.unitcheck import check_unit
 
 __all__ = ['Equations']
 
@@ -187,7 +188,7 @@ def parse_string_equations(eqns):
         identifier = eq_content['identifier']
 
         # Convert unit string to Unit object
-        unit = get_unit_from_string(eq_content['unit'])
+        unit = unit_from_string(eq_content['unit'])
 
         expression = eq_content.get('expression', None)
         if not expression is None:
@@ -513,10 +514,12 @@ class Equations(collections.Mapping):
             if eq.expr is None:
                 continue
 
-            expr = Expression(word_substitute(eq.expr.code, substitutions))
+            new_sympy_expr = eq.expr.sympy_expr.subs(substitutions)
+            new_str_expr = sympy_to_str(new_sympy_expr)
+            expr = Expression(new_str_expr)
 
             if eq.type == STATIC_EQUATION:
-                substitutions.update({eq.varname: '(%s)' % expr.code})
+                substitutions.update({sympy.Symbol(eq.varname, real=True): expr.sympy_expr})
             elif eq.type == DIFFERENTIAL_EQUATION:
                 #  a differential equation that we have to check
                 subst_exprs.append((eq.varname, expr))
@@ -678,7 +681,7 @@ class Equations(collections.Mapping):
             elif eq.type == PARAMETER:
                 eq.update_order = len(sorted_eqs) + 1
 
-    def check_units(self, namespace, specifiers):
+    def check_units(self, namespace, specifiers, additional_namespace=None):
         '''
         Check all the units for consistency.
         
@@ -690,22 +693,24 @@ class Equations(collections.Mapping):
         specifiers : dict of `Specifier` objects
             The specifiers of the state variables and internal variables
             (e.g. t and dt)
+        additional_namespace = (str, dict-like)
+            A namespace tuple (name and dictionary), describing the additional
+            namespace provided by the run function in case the `namespace`
+            was not explicitly defined at the creation of the `NeuronGroup`
+            or `Synapses` object.
         
         Raises
         ------
         DimensionMismatchError
             In case of any inconsistencies.
         '''
+        external = frozenset().union(*[expr.identifiers
+                                     for _, expr in self.eq_expressions])
+        external -= set(specifiers.keys()) 
 
-        # Create a mapping with all identifier names to either their actual
-        # value (for external identifiers) or their unit (for specifiers)
-        unit_namespace = {}
-        for name in self.identifiers | self.names:
-            if name in specifiers:
-                unit_namespace.update({name: specifiers[name].unit})
-            else:
-                # This raises an error if the identifier cannot be resolved
-                unit_namespace.update({name: namespace[name]})
+        resolved_namespace = namespace.resolve_all(external,
+                                                   additional_namespace,
+                                                   strip_units=False) 
 
         for var, eq in self._equations.iteritems():
             if eq.type == PARAMETER:
@@ -713,19 +718,11 @@ class Equations(collections.Mapping):
                 continue
 
             if eq.type == DIFFERENTIAL_EQUATION:
-                try:
-                    eq.expr.check_units(self.units[var] / second, unit_namespace)
-                except DimensionMismatchError as dme:
-                    raise DimensionMismatchError(('Differential equation defining '
-                                                  '%s does not use consistent units: %s') %
-                                                 (var, dme.desc), *dme.dims)
+                check_unit(eq.expr, self.units[var] / second,
+                           resolved_namespace, specifiers)
             elif eq.type == STATIC_EQUATION:
-                try:
-                    eq.expr.check_units(self.units[var], unit_namespace)
-                except DimensionMismatchError as dme:
-                    raise DimensionMismatchError(('Static equation defining '
-                                                  '%s does not use consistent units: %s') %
-                                                 (var, dme.desc), *dme.dims)
+                check_unit(eq.expr, self.units[var],
+                           resolved_namespace, specifiers)
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.type)
 

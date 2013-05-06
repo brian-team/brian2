@@ -14,7 +14,6 @@ The input information needed:
 * The dtype to use for newly created variables
 * The language to translate to
 '''
-import re
 from numpy import float64
 
 from brian2.core.specifiers import Value, ArrayVariable, Subexpression, Index
@@ -22,6 +21,7 @@ from brian2.utils.stringtools import (deindent, strip_empty_lines, indent,
                                       get_identifiers)
 
 from .statements import Statement
+from .parsing import parse_statement
 
 __all__ = ['translate', 'make_statements']
 
@@ -99,16 +99,7 @@ def make_statements(code, specifiers, dtype):
                   if hasattr(spec, 'get_value'))
     for line in lines:
         # parse statement into "var op expr"
-        m = re.search(r'(\+|\-|\*|/|//|%|\*\*|>>|<<|&|\^|\|)?=', line.code)
-        if not m:
-            raise ValueError("Could not extract statement from: "+line.code)
-        start, end = m.start(), m.end()
-        op = line.code[start:end].strip()
-        var = line.code[:start].strip()
-        expr = line.code[end:].strip()
-        # var should be a single word
-        if len(re.findall(r'^[A-Za-z_][A-Za-z0-9_]*$', var))!=1:
-            raise ValueError("LHS in statement must be single variable name, line: "+line.code)
+        var, op, expr = parse_statement(line.code)
         if op=='=' and var not in defined:
             op = ':='
             defined.add(var)

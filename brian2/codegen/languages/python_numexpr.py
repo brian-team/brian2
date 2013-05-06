@@ -1,4 +1,4 @@
-from brian2.utils.parsing import parse_to_sympy
+from brian2.codegen.parsing import parse_to_sympy
 
 try:
     import numexpr

@@ -1,3 +1,4 @@
+import inspect
 import weakref
 
 from brian2.utils.logger import get_logger
@@ -7,6 +8,7 @@ from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second 
 from brian2.core.preferences import brian_prefs
+from brian2.core.tracking import Trackable
 
 __all__ = ['Network']
 
@@ -85,8 +87,6 @@ class Network(Nameable):
         if kwds:
             raise TypeError("Only keyword argument to Network is name")
         Nameable.__init__(self, name=name)
-        
-        self._prepared = False
 
         for obj in objs:
             self.add(obj)
@@ -114,7 +114,6 @@ class Network(Nameable):
             multiple objects, or lists (or other containers) of objects.
             Containers will be added recursively.
         """
-        self._prepared = False
         for obj in objs:
             if isinstance(obj, BrianObject):
                 #self.objects.append(obj)
@@ -142,7 +141,6 @@ class Network(Nameable):
             multiple objects, or lists (or other containers) of objects.
             Containers will be removed recursively.
         '''
-        self._prepared = False
         for obj in objs:
             if isinstance(obj, BrianObject):
                 if not isinstance(obj, (weakref.ProxyType, weakref.CallableProxyType)):
@@ -180,7 +178,6 @@ class Network(Nameable):
         return self._schedule            
     
     def _set_schedule(self, schedule):
-        self._prepared = False
         self._schedule = schedule
         logger.debug("Set network {self.name} schedule to "
                      "{self._schedule}".format(self=self),
@@ -208,33 +205,40 @@ class Network(Nameable):
         when_to_int = dict((when, i) for i, when in enumerate(self.schedule))
         self.objects.sort(key=lambda obj: (when_to_int[obj.when], obj.order))
     
-    def prepare(self):
+    def pre_run(self, namespace):
         '''
-        Prepares the `Network`, including sorting and preparing objects.
+        Prepares the `Network` for a run.
         
         Objects in the `Network` are sorted into the correct running order, and
-        their `BrianObject.prepare` methods are called.
-        '''        
+        their `BrianObject.pre_run` methods are called.
+        '''                
+        brian_prefs.check_all_validated()
+        
+        self._clocks = set(obj.clock for obj in self.objects)
+        
+        self._stopped = False
+        Network._globally_stopped = False
+        
         self._sort_objects()
 
         logger.debug("Preparing network {self.name} with {numobj} "
                      "objects: {objnames}".format(self=self,
                         numobj=len(self.objects),
                         objnames=', '.join(obj.name for obj in self.objects)),
-                     "prepare")
+                     "pre_run")
         
         for obj in self.objects:
-            obj.prepare()
-        
-        self._clocks = set(obj.clock for obj in self.objects)
+            obj.pre_run(namespace)
 
         logger.debug("Network {self.name} has {num} "
                      "clocks: {clocknames}".format(self=self,
                         num=len(self._clocks),
                         clocknames=', '.join(obj.name for obj in self._clocks)),
-                     "prepare")
-            
-        self._prepared = True
+                     "pre_run")
+    
+    def post_run(self):
+        for obj in self.objects:
+            obj.post_run()        
         
     def _nextclocks(self):
         minclock = min(self._clocks, key=lambda c: c.t_)
@@ -244,7 +248,8 @@ class Network(Nameable):
         return minclock, curclocks
     
     @check_units(duration=second, report_period=second)
-    def run(self, duration, report=None, report_period=60*second):
+    def run(self, duration, report=None, report_period=60*second,
+            namespace=None, level=0):
         '''
         run(duration, report=None, report_period=60*second)
         
@@ -265,7 +270,15 @@ class Network(Nameable):
             from 0 to 1.
         report_period : `Quantity`
             How frequently (in real time) to report progress.
-            
+        namespace : dict-like, optional
+            A namespace in which objects which do not define their own
+            namespace will be run. If not namespace is given, the locals and
+            globals around the run function will be used. 
+        level : int, optional
+            How deep to go down the stack frame to look for the locals/global
+            (see `namespace` argument). Only used by run functions that call
+            this run function, e.g. `MagicNetwork.run` to adjust for the
+            additional nesting.
         Notes
         -----
         
@@ -273,16 +286,17 @@ class Network(Nameable):
         global `stop` function.
         '''
         
-        brian_prefs.check_all_validated()
-        
+        if namespace is not None:
+            self.pre_run(('explicit-run-namespace', namespace))
+        else:
+            # Get the locals and globals from the stack frame
+            frame = inspect.stack()[2 + level][0]
+            namespace = dict(frame.f_globals)
+            namespace.update(frame.f_locals)
+            self.pre_run(('implicit-run-namespace', namespace))
+
         if len(self.objects)==0:
             return # TODO: raise an error? warning?
-        
-        self._stopped = False
-        Network._globally_stopped = False
-        
-        if not self._prepared:
-            self.prepare()
 
         t_end = self.t+duration
         for clock in self._clocks:
@@ -309,6 +323,8 @@ class Network(Nameable):
             clock, curclocks = self._nextclocks()
             
         self.t = t_end
+        
+        self.post_run()
         
     def stop(self):
         '''

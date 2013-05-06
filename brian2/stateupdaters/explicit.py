@@ -5,13 +5,14 @@ Numerical integration functions.
 import string
 
 import sympy
+from sympy.core.sympify import SympifyError
 from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
 
-from brian2.utils.parsing import parse_to_sympy
+from brian2.codegen.parsing import parse_to_sympy
 
 from .base import StateUpdateMethod
-from sympy.core.sympify import SympifyError
+
 
 __all__ = ['milstein', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 
@@ -34,12 +35,12 @@ DESCRIPTION = ZeroOrMore(STATEMENT) + OUTPUT
 #===============================================================================
 
 # reserved standard symbols
-SYMBOLS = {'x' : sympy.Symbol('x'),
-           't' : sympy.Symbol('t'),
-           'dt': sympy.Symbol('dt'),
+SYMBOLS = {'x' : sympy.Symbol('x', real=True),
+           't' : sympy.Symbol('t', real=True),
+           'dt': sympy.Symbol('dt', real=True),
            'f' : sympy.Function('f'),
            'g' : sympy.Function('g'),
-           'dW': sympy.Symbol('dW')}
+           'dW': sympy.Symbol('dW', real=True)}
 
 def split_expression(expr):
     '''
@@ -72,21 +73,21 @@ def split_expression(expr):
     f = SYMBOLS['f']
     g = SYMBOLS['g']
     dW = SYMBOLS['dW']
-    x_f = sympy.Wild('x_f', exclude=[f, g])
-    t_f = sympy.Wild('t_f', exclude=[f, g])
-    x_g = sympy.Wild('x_g', exclude=[f, g])
-    t_g = sympy.Wild('t_g', exclude=[f, g])
+    x_f = sympy.Wild('x_f', exclude=[f, g], real=True)
+    t_f = sympy.Wild('t_f', exclude=[f, g], real=True)
+    x_g = sympy.Wild('x_g', exclude=[f, g], real=True)
+    t_g = sympy.Wild('t_g', exclude=[f, g], real=True)
     
     # Reorder the expression so that f(x,t) and g(x,t) are factored out
     sympy_expr = sympy.sympify(expr, locals=SYMBOLS).expand()
     sympy_expr = sympy.collect(sympy_expr, f(x_f, t_f))
     sympy_expr = sympy.collect(sympy_expr, g(x_g, t_g))
     
-    independent = sympy.Wild('independent', exclude=[f,g,dW])
-    dW_exponent = sympy.Wild('dW_exponent', exclude=[f,g,dW,0])
-    independent_dW = sympy.Wild('independent_dW', exclude=[f,g,dW])
-    f_factor = sympy.Wild('f_factor', exclude=[f, g])
-    g_factor = sympy.Wild('g_factor', exclude=[f, g])    
+    independent = sympy.Wild('independent', exclude=[f,g,dW], real=True)
+    dW_exponent = sympy.Wild('dW_exponent', exclude=[f,g,dW,0], real=True)
+    independent_dW = sympy.Wild('independent_dW', exclude=[f,g,dW], real=True)
+    f_factor = sympy.Wild('f_factor', exclude=[f, g], real=True)
+    g_factor = sympy.Wild('g_factor', exclude=[f, g], real=True)
 
     match_expr = (independent + f_factor * f(x_f, t_f) +
                   independent_dW  * dW ** dW_exponent + g_factor * g(x_g, t_g))    
@@ -276,10 +277,11 @@ class ExplicitStateUpdater(StateUpdateMethod):
             
             for var in eqs.diff_eq_names:
                 temp_vars_specific = dict([('_' + temp_var + '_' + var,
-                                            sympy.Symbol('_' + temp_var + '_' + var))
+                                            sympy.Symbol('_' + temp_var + '_' + var, real=True))
                                            for temp_var in temp_vars])                
                 symbols.update(temp_vars_specific)
-                temp_var_replacements = dict([(temp_var, temp_vars_specific['_' + temp_var + '_' + var])
+                temp_var_replacements = dict([(sympy.Symbol(temp_var, real=True),
+                                               temp_vars_specific['_' + temp_var + '_' + var])
                                               for temp_var in temp_vars])
                 one_replacement = x.subs(symbols['x'], symbols[var])
                                 
@@ -320,9 +322,9 @@ class ExplicitStateUpdater(StateUpdateMethod):
                                                                symbols[var])
             # Replace intermediate variables
             temp_vars_specific = dict([('_' + temp_var + '_' + var,
-                            sympy.Symbol('_' + temp_var + '_' + var))
+                            sympy.Symbol('_' + temp_var + '_' + var, real=True))
                            for temp_var in temp_vars])        
-            temp_var_replacements = dict([(temp_var,
+            temp_var_replacements = dict([(sympy.Symbol(temp_var, real=True),
                                            temp_vars_specific['_' + temp_var + '_' + var])
                               for temp_var in temp_vars])
             non_stochastic_result = non_stochastic_result.subs(temp_var_replacements)
@@ -345,9 +347,9 @@ class ExplicitStateUpdater(StateUpdateMethod):
 
                 # Replace intermediate variables
                 temp_vars_specific = dict([('_' + temp_var + '_' + var,
-                                sympy.Symbol('_' + temp_var + '_' + var))
+                                sympy.Symbol('_' + temp_var + '_' + var, real=True))
                                for temp_var in temp_vars])        
-                temp_var_replacements = dict([(temp_var,
+                temp_var_replacements = dict([(sympy.Symbol(temp_var, real=True),
                                                temp_vars_specific['_' + temp_var + '_' + var])
                                   for temp_var in temp_vars])
                 stochastic_result = stochastic_result.subs(temp_var_replacements)
@@ -375,7 +377,8 @@ class ExplicitStateUpdater(StateUpdateMethod):
         
         # A dictionary mapping all the variables in the equations to their
         # sympy representations 
-        eq_variables = dict([(var, sympy.Symbol(var)) for var in eqs.names])
+        eq_variables = dict([(var, sympy.Symbol(var, real=True))
+                             for var in eqs.names])
         
         # The dictionary containing all the symbols used in the state updater
         # description and in the equations

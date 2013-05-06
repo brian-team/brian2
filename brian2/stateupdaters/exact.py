@@ -4,7 +4,7 @@ Exact integration for linear equations.
 
 import operator
 
-from sympy import Wild, Symbol, sympify
+from sympy import Wild, Symbol, Float, sympify
 import sympy as sp
 
 from brian2.core.specifiers import Value
@@ -40,7 +40,7 @@ def get_linear_system(eqs):
     diff_eqs = eqs.substituted_expressions
     diff_eq_names = eqs.diff_eq_names
     
-    symbols = [Symbol(name) for name in diff_eq_names]
+    symbols = [Symbol(name, real=True) for name in diff_eq_names]
     # Coefficients
     wildcards = [Wild('c_' + name, exclude=symbols) for name in diff_eq_names]
     
@@ -100,26 +100,31 @@ class LinearStateUpdater(StateUpdateMethod):
         
         # Get a representation of the ODE system in the form of
         # dX/dt = M*X + B
-        variables, matrix, constants = get_linear_system(equations)        
+        variables, matrix, constants = get_linear_system(equations)                
         
         # Make sure that the matrix M is constant, i.e. it only contains
         # external variables or constant specifiers
         # As every symbol in the matrix should be either in the namespace or
         # the specifiers dictionary, it should be sufficient to just check for
         # the presence of any non-constant specifiers.
-        for spec in specifiers.itervalues():
-            if (any(Symbol(spec.name) in element for element in matrix) and
-                not getattr(spec, 'constant', False)):
+        symbols = reduce(operator.add, (el.atoms() for el in matrix))
+        # Only check true symbols, not numbers
+        symbols = set([str(symbol) for symbol in symbols
+                       if isinstance(symbol, Symbol)])
+
+        for symbol in symbols:
+            if symbol in specifiers and not getattr(specifiers[symbol],
+                                                    'constant', False):
                 raise ValueError(('The coefficient matrix for the equations '
                                  'contains "%s", which is not constant.') %
-                                 spec.name)
+                                 symbol)
         
-        symbols = [Symbol(variable) for variable in variables]
+        symbols = [Symbol(variable, real=True) for variable in variables]
         solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
         b = sp.Matrix([solution[symbol] for symbol in symbols]).transpose()
         
         # Solve the system
-        dt = Symbol('dt')    
+        dt = Symbol('dt', real=True)    
         A = (matrix * dt).exp()                
         C = sp.Matrix([A.dot(b)]) - b
         S = sp.MatrixSymbol('_S', len(variables), 1)
@@ -136,11 +141,11 @@ class LinearStateUpdater(StateUpdateMethod):
                     spec = specifiers[identifier]
                     if isinstance(spec, Value) and spec.scalar and spec.constant:
                         float_val = spec.get_value()
-                        rhs = rhs.subs(identifier, float_val)
+                        rhs = rhs.xreplace({Symbol(identifier, real=True): Float(float_val)})
                 elif identifier in namespace:
                     try:
                         float_val = float(namespace[identifier])
-                        rhs = rhs.subs(identifier, float_val)
+                        rhs = rhs.xreplace({Symbol(identifier, real=True): Float(float_val)})
                     except TypeError:
                         # Not a number
                         pass
