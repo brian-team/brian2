@@ -94,7 +94,8 @@ class Resetter(GroupCodeRunner):
                                  group.language.template_reset,
                                  when=(group.clock, 'resets'),
                                  name=group.name + '_resetter',
-                                 iterate_all=False)
+                                 iterate_all=False,
+                                 additional_specifiers=['_spikes'])
     
     def update_abstract_code(self):
         self.abstract_code = self.group.reset

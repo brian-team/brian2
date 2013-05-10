@@ -111,6 +111,12 @@ class Value(VariableSpecifier):
         '''
         raise NotImplementedError()
     
+    def get_len(self):
+        if self.scalar:
+            return 0
+        else:
+            return len(self.get_value())
+    
     def set_value(self):
         '''
         Set the value associated with the variable.

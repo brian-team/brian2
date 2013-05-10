@@ -6,7 +6,7 @@ import functools
 import numpy
 
 from brian2.core.preferences import brian_prefs
-from brian2.core.specifiers import ArrayVariable, Value, StochasticVariable
+from brian2.core.specifiers import ArrayVariable, Value, AttributeValue
 from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.utils.logger import get_logger
 
@@ -72,6 +72,7 @@ class Language(object):
         code = self.apply_template(innercode, template_method())
         logger.debug(name + " code:\n" + str(code))
 
+        specifiers.update(indices)
         codeobj = self.code_object(code, namespace, specifiers)
         codeobj.compile()
         return codeobj
@@ -218,25 +219,39 @@ class CodeObject(object):
         self.compile_methods = compile_methods
         self.namespace = namespace
         self.specifiers = specifiers
+        
+        # Specifiers can refer to values that are either constant (e.g. dt)
+        # or change every timestep (e.g. t). We add the values of the
+        # constant specifiers here and add the names of non-constant specifiers
+        # to a list
+        
+        # A list containing tuples of name and a function giving the value
+        self.nonconstant_values = []
+        
+        for name, spec in self.specifiers.iteritems():   
+            if isinstance(spec, Value):
+                if isinstance(spec, AttributeValue):
+                    self.nonconstant_values.append((name, spec.get_value))
+                    if not spec.scalar:
+                        self.nonconstant_values.append(('_num' + name,
+                                                        spec.get_len))
+                else:
+                    value = spec.get_value()
+                    self.namespace[name] = value
+                    # if it is a type that has a length, add a variable called
+                    # '_num'+name with its length
+                    if not spec.scalar:
+                        self.namespace['_num' + name] = spec.get_len()
+
 
     def compile(self):
         for meth in self.compile_methods:
             meth(self.namespace)
 
     def __call__(self, **kwds):
-        # update the values in the namespace
-        # TODO: Make use of the constant property here
-        for name, spec in self.specifiers.iteritems():
-            if isinstance(spec, Value):
-                value = spec.get_value()
-                self.namespace[name] = value
-                # if it is a type that has a length, add a variable called
-                # '_num'+name with its length
-                try:
-                    length = len(value)
-                    self.namespace.update({'_num' + name: length})
-                except TypeError:
-                    pass
+        # update the values of the non-constant values in the namespace
+        for name, func in self.nonconstant_values:
+            self.namespace[name] = func()
 
         self.namespace.update(**kwds)
 
