@@ -20,13 +20,17 @@ __all__ = ['milstein', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 # Class for simple definition of explicit state updaters
 #===============================================================================
 
+def _symbol(name):
+    ''' Shorthand for ``sympy.Symbol(name, real=True)``. '''
+    return sympy.Symbol(name, real=True)
+
 #: reserved standard symbols
-SYMBOLS = {'x' : sympy.Symbol('x', real=True),
-           't' : sympy.Symbol('t', real=True),
-           'dt': sympy.Symbol('dt', real=True),
+SYMBOLS = {'x' : _symbol('x'),
+           't' : _symbol('t'),
+           'dt': _symbol('dt'),
            'f' : sympy.Function('f'),
            'g' : sympy.Function('g'),
-           'dW': sympy.Symbol('dW', real=True)}
+           'dW': _symbol('dW')}
 
 def split_expression(expr):
     '''
@@ -228,8 +232,8 @@ class ExplicitStateUpdater(StateUpdateMethod):
             expression = parse_to_sympy(element.expression,
                                         local_dict=self.symbols)
             symbols = list(expression.atoms(sympy.Symbol))
-            self.symbols.update(dict([(symbol.name, symbol)
-                                      for symbol in symbols]))
+            self.symbols.update(dict(((symbol.name, symbol)
+                                      for symbol in symbols)))
             if element.getName() == 'statement':
                 self.statements.append((element.identifier, expression))
             elif element.getName() == 'output':
@@ -268,7 +272,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         s += str(self.output)
         return s
 
-    def _generate_RHS(self, eqs, var, symbols, temp_vars, expr,
+    def _generate_RHS(self, eqs, var, eq_symbols, temp_vars, expr,
                       non_stochastic_expr, stochastic_expr):
         '''
         Helper function used in `__call__`. Generates the right hand side of
@@ -301,7 +305,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             '''
             
             try:
-                s_expr = parse_to_sympy(str(expr), local_dict=symbols)
+                s_expr = parse_to_sympy(str(expr), local_dict=eq_symbols)
             except SympifyError as ex:
                 raise ValueError('Error parsing the expression "%s": %s' %
                                  (expr, str(ex)))
@@ -309,24 +313,23 @@ class ExplicitStateUpdater(StateUpdateMethod):
             # Generate specific temporary variables for the state variable we
             # are currently dealing with, e.g. '_k_v' for the state variable 'v'
             # and the temporary variable 'k'.
-            temp_var_replacements = dict(((sympy.Symbol(temp_var, real=True),
-                                           sympy.Symbol('_'+temp_var+'_'+var,
-                                                        real=True))
+            temp_var_replacements = dict(((self.symbols[temp_var],
+                                           _symbol('_'+temp_var+'_'+var))
                                           for temp_var in temp_vars))
             
             # In the expression given as 'x', replace 'x' by the variable 'var'
             # and all the temporary variables by their variable-specific
             # counterparts.
-            x_replacement = x.subs(symbols['x'], symbols[var])
+            x_replacement = x.subs(self.symbols['x'], eq_symbols[var])
             x_replacement = x_replacement.subs(temp_var_replacements)
             
             # Replace the variable `var` in the expression by the new `x`
             # expression
-            s_expr = s_expr.subs(symbols[var], x_replacement)
+            s_expr = s_expr.subs(eq_symbols[var], x_replacement)
             
             # Directly substitute the 't' expression for the symbol t, there
             # are no temporary variables to consider here.             
-            s_expr = s_expr.subs(symbols['t'], t)
+            s_expr = s_expr.subs(self.symbols['t'], t)
             
             return s_expr
         
@@ -352,15 +355,14 @@ class ExplicitStateUpdater(StateUpdateMethod):
             # Replace the f(x, t) part
             replace_f = lambda x, t:replace_func(x, t, non_stochastic,
                                                  temp_vars)
-            non_stochastic_result = non_stochastic_expr.replace(symbols['f'],
+            non_stochastic_result = non_stochastic_expr.replace(self.symbols['f'],
                                                                 replace_f)
             # Replace x by the respective variable
-            non_stochastic_result = non_stochastic_result.subs(symbols['x'],
-                                                               symbols[var])
+            non_stochastic_result = non_stochastic_result.subs(self.symbols['x'],
+                                                               eq_symbols[var])
             # Replace intermediate variables
-            temp_var_replacements = dict((sympy.Symbol(temp_var, real=True),
-                                           sympy.Symbol('_'+temp_var+'_'+var,
-                                                        real=True))
+            temp_var_replacements = dict((self.symbols[temp_var],
+                                           _symbol('_'+temp_var+'_'+var))
                                          for temp_var in temp_vars)
             non_stochastic_result = non_stochastic_result.subs(temp_var_replacements)
         else:
@@ -376,18 +378,17 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 # Replace the g(x, t)*xi part
                 replace_g = lambda x, t:replace_func(x, t, stochastic[xi],
                                                      temp_vars)
-                stochastic_result = stochastic_expr.replace(SYMBOLS['g'],
+                stochastic_result = stochastic_expr.replace(self.symbols['g'],
                                                             replace_g)
                 
                 # Replace x and xi by the respective variables
-                stochastic_result = stochastic_result.subs(SYMBOLS['x'],
-                                                           symbols[var])
-                stochastic_result = stochastic_result.subs(SYMBOLS['dW'], xi)   
+                stochastic_result = stochastic_result.subs(self.symbols['x'],
+                                                           eq_symbols[var])
+                stochastic_result = stochastic_result.subs(self.symbols['dW'], xi)   
 
                 # Replace intermediate variables
-                temp_var_replacements = dict((sympy.Symbol(temp_var, real=True),
-                                               sympy.Symbol('_'+temp_var+'_'+var,
-                                                            real=True))
+                temp_var_replacements = dict((self.symbols[temp_var],
+                                               _symbol('_'+temp_var+'_'+var))
                                              for temp_var in temp_vars)
                 
                 stochastic_result = stochastic_result.subs(temp_var_replacements)
@@ -450,16 +451,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         
         # A dictionary mapping all the variables in the equations to their
         # sympy representations 
-        eq_variables = dict([(var, sympy.Symbol(var, real=True))
-                             for var in eqs.names])
-        
-        # The dictionary containing all the symbols used in the state updater
-        # description and in the equations
-        # FIXME: There's a potential clash here between variable names used
-        # in the explicit state updater description (x, k, etc.) and names
-        # used in the model equations
-        symbols = self.symbols.copy()
-        symbols.update(eq_variables)
+        eq_variables = dict(((var, _symbol(var)) for var in eqs.names))
         
         # Generate the random numbers for the stochastic variables
         stochastic_variables = eqs.stochastic_variables
@@ -477,7 +469,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             # We use the model equations where the static equations have
             # already been substituted into the model equations.
             for var, expr in eqs.substituted_expressions:
-                RHS = self._generate_RHS(eqs, var, symbols, intermediate_vars,
+                RHS = self._generate_RHS(eqs, var, eq_variables, intermediate_vars,
                                          expr, non_stochastic_expr,
                                          stochastic_expr)                
                 statements.append('_'+intermediate_var+'_'+var+' = '+RHS)
@@ -488,7 +480,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         # Assign a value to all the model variables described by differential
         # equations       
         for var, expr in eqs.substituted_expressions:
-            RHS = self._generate_RHS(eqs, var, symbols, intermediate_vars,
+            RHS = self._generate_RHS(eqs, var, eq_variables, intermediate_vars,
                                      expr, non_stochastic_expr, stochastic_expr)
             statements.append('_' + var + ' = ' + RHS)
         

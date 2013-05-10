@@ -1,3 +1,4 @@
+import re
 from collections import namedtuple
 
 from nose.tools import assert_raises
@@ -63,6 +64,24 @@ def test_integrator_code():
         code_lines = integrator(eqs).split('\n')
         assert len(code_lines) == lines
         assert code_lines[-1] == 'v = _v'
+    
+    # Make sure that it isn't a problem to use 'x', 'f' and 'g'  as variable
+    # names, even though they are also used in state updater descriptions.
+    # The resulting code should be identical when replacing x by v (and ..._x by
+    # ..._v)
+    for varname in ['x', 'f', 'g']:
+        eqs_v = Equations('dv/dt = -v / (1 * second) : 1')
+        eqs_var = Equations('d{varname}/dt = -{varname} / (1 * second) : 1'.format(varname=varname))  
+        for integrator in [linear, euler, rk2, rk4]:
+            code_v = integrator(eqs_v)
+            code_var = integrator(eqs_var)
+            # Re-substitute the variable names in the output
+            code_var = re.sub(r'\b{varname}\b'.format(varname=varname),
+                              'v', code_var)
+            code_var = re.sub(r'\b(\w*)_{varname}\b'.format(varname=varname),
+                              r'\1_v', code_var)
+            assert code_var == code_v
+
 
 def test_priority():
     updater = ExplicitStateUpdater('return x + dt * f(x, t)')
