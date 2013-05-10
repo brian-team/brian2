@@ -33,9 +33,9 @@ def test_explicit_stateupdater_parsing():
     
     # Examples of failed parsing
     # No return statement
-    assert_raises(ValueError, lambda: ExplicitStateUpdater('x + dt * f(x, t)'))
+    assert_raises(SyntaxError, lambda: ExplicitStateUpdater('x + dt * f(x, t)'))
     # Not an assigment
-    assert_raises(ValueError, lambda: ExplicitStateUpdater('''2 * x
+    assert_raises(SyntaxError, lambda: ExplicitStateUpdater('''2 * x
                                                                return x + dt * f(x, t)'''))
     
     # doesn't separate into stochastic and non-stochastic part
