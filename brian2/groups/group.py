@@ -56,17 +56,19 @@ class Group(object):
             raise AttributeError
         if not hasattr(self, '_group_attribute_access_active'):
             raise AttributeError
-        # First try the version with units, and if it fails try the version
-        # without units
+        
+        # We want to make sure that accessing variables without units is fast
+        # because this is what is used during simulations
+        # We do not specifically check for len(name) here, we simply assume
+        # that __getattr__ is not called with an empty string (which wouldn't
+        # be possibly using the normal dot syntax, anyway)
         try:
-            return self.state(name)
+            if name[-1] == '_':
+                origname = name[:-1]
+                return self.state_(origname)
+            else:
+                return self.state(name)
         except KeyError:
-            if len(name) and name[-1]=='_':
-                try:
-                    origname = name[:-1]
-                    return self.state_(origname)
-                except KeyError:
-                    raise AttributeError
             raise AttributeError
 
     def __setattr__(self, name, val):
