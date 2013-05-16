@@ -11,7 +11,7 @@ from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 import sympy
 
-from brian2.codegen.parsing import sympy_to_str
+from brian2.codegen.parsing import sympy_to_str, parse_to_sympy
 from brian2.units.fundamentalunits import DimensionMismatchError
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
@@ -252,9 +252,10 @@ class SingleEquation(object):
                            doc='All identifiers in the RHS of this equation.')
 
     def _latex(self, *args):
-        varname = sympy.Function(self.varname)
+        varname = sympy.Symbol(self.varname)
         t = sympy.Symbol('t')
-        sympy_expr = sympy.Eq(sympy.diff(varname(t), t), parse_to_sympy(self.expr))
+        sympy_expr = sympy.Eq(sympy.Derivative(varname, t),
+                              parse_to_sympy(self.expr))
         return sympy.latex(sympy_expr)
 
     def __str__(self):
@@ -309,6 +310,9 @@ class SingleEquation(object):
 
         if len(self.flags):
             p.text(' (' + ', '.join(self.flags) + ')')
+
+    def _repr_latex_(self):
+        return '$' + sympy.latex(self) + '$'
 
 class Equations(collections.Mapping):
     """
@@ -777,12 +781,12 @@ class Equations(collections.Mapping):
                 # ingore parameters for now
                 continue
             # do not use SingleEquations._latex here as we want nice alignment
-            varname = sympy.Function(eq.varname)
+            varname = sympy.Symbol(eq.varname)
             if eq.type == DIFFERENTIAL_EQUATION:
-                lhs = sympy.diff(varname(t), t)
+                lhs = sympy.Derivative(varname, t)
             else:
                 # Normal equation
-                lhs = varname(t)
+                lhs = varname
             rhs = parse_to_sympy(eq.expr)
             if len(eq.flags):
                 flag_str = ', flags: ' + ', '.join(eq.flags)
