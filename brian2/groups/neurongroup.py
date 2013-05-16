@@ -359,7 +359,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         text.append(r'<b>Model:</b><nr>')
         text.append(sympy.latex(self.equations))
         text.append(r'<b>Integration method:</b><br>')
-        text.append(sympy.latex(self.method))
+        text.append(sympy.latex(self.state_updater.method))
         if self.threshold is not None:
             text.append(r'<b>Threshold condition:</b><br>')
             text.append('<code>%s</code><br>' % str(self.threshold))
