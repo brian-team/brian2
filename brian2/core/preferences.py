@@ -147,9 +147,7 @@ class BrianGlobalPreferences(MutableMapping):
         self.pref_register = {}
         self.eval_namespace = {}
         exec deindent('''
-            from numpy import *
-            from scipy import *
-            from brian2.units import *
+            from brian2.units import *            
             from brian2.units.stdunits import *
             ''') in self.eval_namespace
 
