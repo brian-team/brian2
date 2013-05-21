@@ -488,7 +488,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         for var, expr in eqs.substituted_expressions:
             statements.append(var + ' = ' + '_' + var)
 
-        return '\n'.join(statements) + '\n'
+        return '\n'.join(statements)
 
 #===============================================================================
 # Excplicit state updaters
