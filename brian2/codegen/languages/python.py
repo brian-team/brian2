@@ -74,7 +74,8 @@ class PythonLanguage(Language):
         # The thresholder returns the array of spiking neurons
         code = '''
         %CODE%
-        _return_values, = _cond.nonzero()        
+        _return_values, = _cond.nonzero()
+        refractory_until[_return_values] = t + refractory[_return_values] 
         '''
         return code
 

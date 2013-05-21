@@ -72,16 +72,19 @@ class Thresholder(GroupCodeRunner):
         GroupCodeRunner.__init__(self, group,
                                  group.language.template_threshold,
                                  when=(group.clock, 'thresholds'),
-                                 name=group.name + '_thresholder')
+                                 name=group.name + '_thresholder',
+                                 # TODO: This information should be included in
+                                 # the template instead
+                                 additional_specifiers=['t',
+                                                        'refractory_until',
+                                                        'refractory'])
     
     def update_abstract_code(self):
         self.abstract_code = '_cond = ' + self.group.threshold
         
     def post_update(self, return_value):
-        spikes = return_value
         # Save the spikes in the NeuronGroup so others can use it
-        self.group.spikes = spikes
-        self.group.refractory_until_[spikes] = self.group.clock.t_ + self.group.refractory_[spikes]
+        self.group.spikes = return_value        
 
 
 class Resetter(GroupCodeRunner):
