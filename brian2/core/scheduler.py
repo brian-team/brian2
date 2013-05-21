@@ -105,3 +105,10 @@ class Scheduler(object):
         
         #: Whether or not the user explicitly specified an order
         self.defined_order = defined_order
+
+    def __repr__(self):
+        description = '{classname}(clock={clock}, when={when}, order={order})'
+        return description.format(classname=self.__class__.__name__,
+                                  clock=repr(self.clock),
+                                  when=repr(self.when),
+                                  order=repr(self.order))

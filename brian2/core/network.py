@@ -331,3 +331,8 @@ class Network(Nameable):
         Stops the network from running, this is reset the next time `Network.run` is called.
         '''
         self._stopped = True
+
+    def __repr__(self):
+        return '<%s at time t=%s, containing objects: %s>' % (self.__class__.__name__,
+                                                              str(self.t),
+                                                              ', '.join((obj.__repr__() for obj in self.objects)))
