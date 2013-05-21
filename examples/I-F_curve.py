@@ -11,7 +11,7 @@ from brian2 import *
 N = 1000
 tau = 10 * ms
 eqs = '''
-dv/dt=(v0-v)/tau : volt
+dv/dt=(v0-v)/tau : volt (active)
 v0 : volt
 '''
 group = NeuronGroup(N, equations=eqs, threshold='v>10 * mV',

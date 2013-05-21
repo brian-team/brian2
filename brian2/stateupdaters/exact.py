@@ -156,7 +156,7 @@ class LinearStateUpdater(StateUpdateMethod):
         # Update the state variables
         for variable in variables:
             abstract_code.append('{variable} = _{variable}'.format(variable=variable))
-        return '\n'.join(abstract_code)
+        return '\n'.join(abstract_code) + '\n'
 
 linear = LinearStateUpdater()
 

@@ -56,10 +56,10 @@ class StateUpdater(GroupCodeRunner):
         
         self.abstract_code = self.method(self.group.equations,
                                          self.group.namespace,
-                                         self.group.specifiers) 
-    
-    def pre_update(self):
-        self.group.is_active_[:] = self.group.clock.t_ >= self.group.refractory_until_
+                                         self.group.specifiers)
+        
+        # Update the is_active variable for the refractory period mechanism
+        self.abstract_code += 'is_active = t >= refractory_until'
 
 
 class Thresholder(GroupCodeRunner):
