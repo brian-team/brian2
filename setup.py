@@ -16,7 +16,7 @@ class install_preferences(install_data):
     def run(self):        
         # Make sure we load the brian2 packages from the installation
         # directory, not from the source directory (important for Python 3)
-        sys.path.insert(0, self.install_purelib)
+        sys.path.insert(0, self.install_dir)
         from brian2.core.preferences import brian_prefs
         
         try:
@@ -47,7 +47,9 @@ setup(name='Brian2',
                 'brian2.tests',
                 'brian2.units',
                 'brian2.utils'],
-      package_data={'brian2': ['default_preferences']}, 
+      package_data={'brian2': ['default_preferences']},
+      # We fake data_files here, because otherwise install_data is not run 
+      data_files = [('', [])], 
       requires=['numpy(>=1.4.1)',
                 'scipy(>=0.7.0)',
                 'sympy(>=0.7.1)'
