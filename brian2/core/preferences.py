@@ -125,6 +125,9 @@ class BrianGlobalPreferences(MutableMapping):
             ''') in self.eval_namespace
 
     def __getitem__(self, item):
+        if item in self.pref_register:
+            # This asks for a category, not a single preference
+            return BrianGlobalPreferencesView(item, self)
         return self.prefs[item]
 
     def __len__(self):
@@ -158,6 +161,44 @@ class BrianGlobalPreferences(MutableMapping):
     def __delitem__(self, item):
         raise PreferenceError("Preferences cannot be deleted.")
 
+    def __getattr__(self, name):
+        # This function might get called from BrianGlobalPreferencesView with
+        # a prefixed name -- therefore the name can contain dots!
+        if name in self.pref_register:
+            # This asks for a category, not a single preference
+            return BrianGlobalPreferencesView(name, self)
+        
+        basename, _ = parse_preference_name(name)
+        if basename not in self.pref_register:
+            raise AssertionError(('__getattr__ received basename %s which is '
+                                 'unregistered. This should never happen!') %
+                                 basename)
+        
+        return self[name]
+
+    toplevel_categories = property(fget=lambda self: [category for category in
+                                                      self.pref_register
+                                                      if not '.' in category],
+                                   doc='The toplevel preference categories')    
+
+    def _get_docstring(self):
+        '''
+        Document the toplevel categories, used as a docstring for the object.
+        '''
+        s =  'Preference categories:\n\n'
+        for category in self.toplevel_categories:
+            s += '** %s **\n' % category
+            _, category_doc = self.pref_register[category]
+            s += '    ' + category_doc + '\n\n'
+        
+        return s
+
+    def __dir__(self):
+        res = dir(type(self)) + self.__dict__.keys()
+        categories = self.toplevel_categories
+        res.extend(categories)
+        return res        
+
     def eval_pref(self, value):
         '''
         Evaluate a string preference in the units namespace
@@ -170,8 +211,9 @@ class BrianGlobalPreferences(MutableMapping):
         method is used internally when reading preferences from the file
         because the preferences are potentially defined in packages that are
         not imported yet. Unvalidated preferences are safed and will be
-        validated as soon as the simulation is run.
-        '''        
+        validated as soon as the category is registered. `Network.run` will
+        also check for unvalidated preferences.
+        '''
         basename, _ = parse_preference_name(name)
         if basename not in self.pref_register:
             self.prefs_unvalidated[name] = value
@@ -381,10 +423,15 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         if prefbasename in self.pref_register:
             raise PreferenceError("Base name " + prefbasename + " already registered.")
+        # TODO: Validate preference names (e.g. they shouldn't start with an
+        # underscore)
         self.pref_register[prefbasename] = (prefs, prefbasedoc)
         for k, v in prefs.items():
             self.prefs_unvalidated[prefbasename + '.' + k] = v.default
         self.do_validation()
+        
+        # Update the docstring (a new toplevel category might have been added)
+        self.__doc__ = self._get_docstring()
 
     def do_validation(self):
         '''
@@ -408,6 +455,67 @@ class BrianGlobalPreferences(MutableMapping):
                         "because of a spelling mistake or missing library "
                         "import." % ', '.join(self.prefs_unvalidated.keys()),
                         once=True)
+
+class BrianGlobalPreferencesView(MutableMapping):
+    '''
+    A class allowing for accessing preferences in a subcategory. It forwards
+    requests to `BrianGlobalPreferences` and provides documentation and
+    autocompletion support for all preferences in the given category. This
+    object is used to allow accessing preferences via attributes of the
+    `brian_prefs` object.
+    
+    Parameters
+    ----------
+    basename : str
+        The name of the preference category. Has to correspond to a key in
+        `BrianGlobalPreferences.pref_register`.
+    all_prefs : `BrianGlobalPreferences`
+        A reference to the main object storing the preferences.
+    '''
+    
+    def __init__(self, basename, all_prefs):
+        self._basename = basename
+        self._all_prefs = all_prefs
+        self._subcategories = [key for key in all_prefs.pref_register.iterkeys()
+                              if key.startswith(basename + '.')]
+        self._preferences = all_prefs.pref_register[basename][0].keys()
+        self.__doc__ = all_prefs.get_documentation(basename=basename,
+                                                   link_targets=False)
+
+    def __getitem__(self, item):
+        return self._all_prefs[self._basename + '.' + item]
+
+    def __setitem__(self, item, value):
+        self._all_prefs[self._basename + '.' + item] = value
+
+    def __delitem__(self, item):
+        raise PreferenceError("Preferences cannot be deleted.")
+    
+    def __len__(self):
+        return len(self._subcategories) + len(self._preferences)
+    
+    def __iter__(self):
+        return itertools.chain(self._subcategories, self._preferences)
+
+    def __contains__(self, item):
+        return item in self._subcategories or item in self._preferences
+
+    def __getattr__(self, name):
+        return getattr(self._all_prefs, self._basename + '.' + name)
+
+    def __setattr__(self, name, value):
+        # Names starting with an underscore are not preferences but normal
+        # instance attributes
+        if name.startswith('_'):
+            MutableMapping.__setattr__(self, name, value)
+        else:
+            self._all_prefs[self._basename + '.' + name] = value
+
+    def __dir__(self):
+        res = dir(type(self)) + self.__dict__.keys()
+        res.extend(self._preferences)
+        return res
+        
 
 # : Object storing Brian's preferences
 brian_prefs = BrianGlobalPreferences()
