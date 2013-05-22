@@ -39,8 +39,13 @@ def test_brianglobalpreferences():
     # test that pre-setting a nonexistent preference in a subsequently
     # existing base name raises an error at the correct point
     gp = BrianGlobalPreferences()
-    gp['a.b'] = 5
-    gp['a.c'] = 5
+    
+    # This shouldn't work, in user code only registered preferences can be set
+    assert_raises(PreferenceError, lambda: gp.__setitem__('a.b', 5))
+    
+    # This uses the method that is used when reading preferences from a file
+    gp._set_preference('a.b', 5)
+    gp._set_preference('a.c', 5)
     assert_raises(PreferenceError, gp.register_preferences, 'a', 'docs for a',
                   b=BrianPreference(5, 'docs for b'))
     # test that post-setting a nonexistent preference in an existing base
@@ -51,7 +56,7 @@ def test_brianglobalpreferences():
     assert_raises(PreferenceError, gp.__setitem__, 'a.c', 5)
     # Test pre and post-setting some correct names but valid and invalid values
     gp = BrianGlobalPreferences()
-    gp['a.b'] = 5
+    gp._set_preference('a.b', 5)
     gp.register_preferences('a', 'docs for a',
         b=BrianPreference(5, 'docs for b'),
         c=BrianPreference(1*volt, 'docs for c'),

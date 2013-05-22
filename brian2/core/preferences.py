@@ -139,8 +139,8 @@ class BrianGlobalPreferences(MutableMapping):
     def __setitem__(self, name, value):
         basename, endname = parse_preference_name(name)
         if basename not in self.pref_register:
-            self.prefs_unvalidated[name] = value
-            return
+            raise PreferenceError("Preference category " + basename +
+                                  " is unregistered. Spelling error?")
         prefdefs, _ = self.pref_register[basename]
         if endname in prefdefs:
             # do validation
@@ -163,6 +163,22 @@ class BrianGlobalPreferences(MutableMapping):
         Evaluate a string preference in the units namespace
         '''
         return eval(value, self.eval_namespace)
+
+    def _set_preference(self, name, value):
+        '''
+        Try to set the preference and allow for unregistered base names. This
+        method is used internally when reading preferences from the file
+        because the preferences are potentially defined in packages that are
+        not imported yet. Unvalidated preferences are safed and will be
+        validated as soon as the simulation is run.
+        '''        
+        basename, _ = parse_preference_name(name)
+        if basename not in self.pref_register:
+            self.prefs_unvalidated[name] = value
+        else:
+            # go via the standard __setitem__ method
+            self[name] = value        
+        
 
     def _backup(self):
         '''
@@ -304,7 +320,7 @@ class BrianGlobalPreferences(MutableMapping):
                 extname = m.group(1).strip()
                 value = m.group(2).strip()
                 keyname = '.'.join(bases + extname.split('.'))
-                self[keyname] = self.eval_pref(value)
+                self._set_preference(keyname, self.eval_pref(value))
                 continue
             # Otherwise raise a parsing error
             raise PreferenceError("Parsing error in preference file " + filename)
