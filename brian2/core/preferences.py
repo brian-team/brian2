@@ -456,6 +456,14 @@ class BrianGlobalPreferences(MutableMapping):
                         "import." % ', '.join(self.prefs_unvalidated.keys()),
                         once=True)
 
+    def __repr__(self):
+        description = '<{classname} with top-level categories: {categories}>'
+        categories = ', '.join(['"%s"' % category for category
+                                in self.toplevel_categories])
+        return description.format(classname=self.__class__.__name__,
+                                  categories=categories)
+
+
 class BrianGlobalPreferencesView(MutableMapping):
     '''
     A class allowing for accessing preferences in a subcategory. It forwards
@@ -515,7 +523,11 @@ class BrianGlobalPreferencesView(MutableMapping):
         res = dir(type(self)) + self.__dict__.keys()
         res.extend(self._preferences)
         return res
-        
+    
+    def __repr__(self):
+        description = '<{classname} for preference category "{category}">'
+        return description.format(classname=self.__class__.__name__,
+                                  category=self._basename)
 
 # : Object storing Brian's preferences
 brian_prefs = BrianGlobalPreferences()
