@@ -2,6 +2,7 @@
 Brian global preferences are stored as attributes of a `BrianGlobalPreferences`
 object ``brian_prefs``.
 '''
+import itertools
 import re
 import os
 from collections import MutableMapping
