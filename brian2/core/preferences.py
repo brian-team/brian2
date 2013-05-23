@@ -12,6 +12,61 @@ from brian2.units.fundamentalunits import have_same_dimensions, Quantity
 
 __all__ = ['PreferenceError', 'BrianPreference', 'brian_prefs']
 
+def parse_preference_name(name):
+    '''
+    Split a preference name into a base and end name.
+    
+    Parameters
+    ----------
+    name : str
+        The full name of the preference.
+    
+    Returns
+    -------        
+    basename : str
+        The first part of the name up to the final ``.``.
+    endname : str
+        The last part of the name from the final ``.`` onwards.
+    
+    Examples
+    --------
+    >>> parse_preference_name('core.weave_compiler')
+    ('core', 'weave_compiler')
+    >>> parse_preference_name('codegen.cpp.compiler')
+    ('codegen.cpp', 'compiler')
+    '''
+    # parse the name
+    parts = name.split('.')
+    basename = '.'.join(parts[:-1])
+    endname = parts[-1]
+    return basename, endname
+
+
+def check_preference_name(name):
+    '''
+    Make sure that a preference name is valid. This currently checks that the
+    name does not contain illegal characters and does not clash with method
+    names such as "keys" or "items".
+    
+    Parameters
+    ----------
+    name : str
+        The name to check.
+    
+    Raises
+    ------
+    PreferenceError
+        In case the name is invalid.
+    '''
+    if not re.match("[A-Za-z][_a-zA-Z0-9]*$", name):
+        raise PreferenceError(('Illegal preference name "%s": A preference '
+                               'name can only start with a letter and only '
+                               'contain letters, digits or underscore.' % name))
+    if name in dir(MutableMapping) or name in brian_prefs.__dict__:
+        raise PreferenceError(('Illegal preference name "%s": This is also the '
+                              'name of a method.') % name)
+
+
 class PreferenceError(Exception):
     '''
     Exception relating to the Brian preferences system.
@@ -68,35 +123,6 @@ class BrianPreference(object):
         self.default = default
         self.docs = docs
 
-def parse_preference_name(name):
-    '''
-    Split a preference name into a base and end name.
-    
-    Parameters
-    ----------
-    name : str
-        The full name of the preference.
-    
-    Returns
-    -------        
-    basename : str
-        The first part of the name up to the final ``.``.
-    endname : str
-        The last part of the name from the final ``.`` onwards.
-    
-    Examples
-    --------
-    >>> parse_preference_name('core.weave_compiler')
-    ('core', 'weave_compiler')
-    >>> parse_preference_name('codegen.cpp.compiler')
-    ('codegen.cpp', 'compiler')
-    '''
-    # parse the name
-    parts = name.split('.')
-    basename = '.'.join(parts[:-1])
-    endname = parts[-1]
-    return basename, endname
-
 
 class BrianGlobalPreferences(MutableMapping):
     '''
@@ -104,9 +130,11 @@ class BrianGlobalPreferences(MutableMapping):
     
     Used for getting/setting/validating/registering preference values.
     All preferences must be registered via `register_preferences`. To get or
-    set a preference, use the dictionary-like interface, e.g.::
+    set a preference, you can either use a dictionary-based or an
+    attribute-based interface::
     
         brian_prefs['core.default_scalar_dtype'] = float32
+        brian_prefs.core.default_scalar_dtype = float32
         
     Preferences can be read from files, see `load_preferences` and
     `read_preference_file`. Note that `load_preferences` is called
@@ -163,6 +191,9 @@ class BrianGlobalPreferences(MutableMapping):
         raise PreferenceError("Preferences cannot be deleted.")
 
     def __getattr__(self, name):
+        if name in self.__dict__:
+            return MutableMapping.__getattr__(self, name)
+        
         # This function might get called from BrianGlobalPreferencesView with
         # a prefixed name -- therefore the name can contain dots!
         if name in self.pref_register:
@@ -176,6 +207,13 @@ class BrianGlobalPreferences(MutableMapping):
                                  basename)
         
         return self[name]
+
+    def __setattr__(self, name, value):  
+        # Do not allow to set a category name to something else
+        if 'pref_register' in self.__dict__ and name in self.pref_register:
+            raise PreferenceError('Cannot set a preference category.')
+        else:
+            MutableMapping.__setattr__(self, name, value)      
 
     toplevel_categories = property(fget=lambda self: [category for category in
                                                       self.pref_register
@@ -220,7 +258,7 @@ class BrianGlobalPreferences(MutableMapping):
             self.prefs_unvalidated[name] = value
         else:
             # go via the standard __setitem__ method
-            self[name] = value        
+            self[name] = value
         
 
     def _backup(self):
@@ -424,11 +462,30 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         if prefbasename in self.pref_register:
             raise PreferenceError("Base name " + prefbasename + " already registered.")
-        # TODO: Validate preference names (e.g. they shouldn't start with an
-        # underscore)
+        # Check that the new category does not clash with a preference name of
+        # the parent category. For example, if a category "a" with the
+        # preference "b" is already registered, do not allow to register a
+        # preference category "a.b"
+        basename, category_name = parse_preference_name(prefbasename)
+        if len(basename) and basename in self.pref_register:
+            parent_preferences, _ = self.pref_register[basename]
+            if category_name in parent_preferences:
+                raise PreferenceError(('Cannot register category "%s", '
+                                       'parent category "%s" already has a '
+                                       'preference named "%s".') %
+                                      (prefbasename, basename, category_name))
+
         self.pref_register[prefbasename] = (prefs, prefbasedoc)
         for k, v in prefs.items():
-            self.prefs_unvalidated[prefbasename + '.' + k] = v.default
+            fullname = prefbasename + '.' + k
+            # The converse of the above check: Check that a preference name
+            # does not clash with a category 
+            if fullname in self.pref_register:
+                raise PreferenceError(('Cannot register "%s" as a preference, '
+                                       'it is already registered as a '
+                                       'preference category.') % fullname)
+            check_preference_name(k)
+            self.prefs_unvalidated[fullname] = v.default
         self.do_validation()
         
         # Update the docstring (a new toplevel category might have been added)

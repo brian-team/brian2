@@ -1,5 +1,9 @@
 '''
 Brian's logging module.
+
+Preferences
+--------------------
+.. document_brian_prefs:: logging
 '''
 import atexit
 import logging
@@ -75,7 +79,7 @@ brian_prefs.register_preferences('logging', 'Logging system preferences',
         
         If set to ``True`` (the default), a copy of the currently run script
         is saved to a temporary location. It is deleted after a successful
-        run (unless `logging.delete_log_on_exit` is ``False) but is kept after
+        run (unless `logging.delete_log_on_exit` is ``False``) but is kept after
         an uncaught exception occured. This can be helpful for debugging,
         in particular when several simulations are running in parallel.
         ''')
