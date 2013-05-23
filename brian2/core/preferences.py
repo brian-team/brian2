@@ -201,7 +201,7 @@ class BrianGlobalPreferences(MutableMapping):
             return BrianGlobalPreferencesView(name, self)
         
         basename, _ = parse_preference_name(name)
-        if basename not in self.pref_register:
+        if len(basename) and basename not in self.pref_register:
             raise AssertionError(('__getattr__ received basename %s which is '
                                  'unregistered. This should never happen!') %
                                  basename)
@@ -214,6 +214,12 @@ class BrianGlobalPreferences(MutableMapping):
             raise PreferenceError('Cannot set a preference category.')
         else:
             MutableMapping.__setattr__(self, name, value)      
+
+    def __delattr__(self, name):
+        if 'pref_register' in self.__dict__ and name in self.pref_register:
+            raise PreferenceError('Cannot delete a preference category.')
+        else:
+            MutableMapping.__setattr__(self, name, value)
 
     toplevel_categories = property(fget=lambda self: [category for category in
                                                       self.pref_register
@@ -548,6 +554,10 @@ class BrianGlobalPreferencesView(MutableMapping):
         self.__doc__ = all_prefs.get_documentation(basename=basename,
                                                    link_targets=False)
 
+    _sub_preferences = property(lambda self: [pref[len(self._basename+'.'):] for pref in self._all_prefs
+                                              if pref.startswith(self._basename+'.')],
+                                doc='All preferences in this category and its subcategories')
+
     def __getitem__(self, item):
         return self._all_prefs[self._basename + '.' + item]
 
@@ -558,13 +568,13 @@ class BrianGlobalPreferencesView(MutableMapping):
         raise PreferenceError("Preferences cannot be deleted.")
     
     def __len__(self):
-        return len(self._subcategories) + len(self._preferences)
+        return len(self._sub_preferences)
     
     def __iter__(self):
-        return itertools.chain(self._subcategories, self._preferences)
+        return iter(self._sub_preferences)
 
     def __contains__(self, item):
-        return item in self._subcategories or item in self._preferences
+        return item in self._sub_preferences
 
     def __getattr__(self, name):
         return getattr(self._all_prefs, self._basename + '.' + name)
@@ -577,9 +587,19 @@ class BrianGlobalPreferencesView(MutableMapping):
         else:
             self._all_prefs[self._basename + '.' + name] = value
 
+    def __delattr__(self, name):
+        # Names starting with an underscore are not preferences but normal
+        # instance attributes
+        if name.startswith('_'):
+            MutableMapping.__delattr__(self, name)
+        else:
+            del self._all_prefs[self._basename + '.' + name]
+
     def __dir__(self):
         res = dir(type(self)) + self.__dict__.keys()
         res.extend(self._preferences)
+        res.extend([category[len(self._basename+'.'):]
+                    for category in self._subcategories])
         return res
     
     def __repr__(self):
