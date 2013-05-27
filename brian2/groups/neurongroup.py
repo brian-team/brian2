@@ -55,7 +55,7 @@ class StateUpdater(GroupCodeRunner):
                                                                self.method_choice)
 
         # Update the is_active variable for the refractory period mechanism
-        self.abstract_code = 'is_active = t >= refractory_until\n'
+        self.abstract_code = 'is_active = 1* (t >= refractory_until)\n'
         
         self.abstract_code += self.method(self.group.equations,
                                           self.group.namespace,
