@@ -777,25 +777,28 @@ class Equations(collections.Mapping):
         equations = []
         t = sympy.Symbol('t')
         for eq in self._equations.itervalues():
-            if eq.type == PARAMETER:
-                # ingore parameters for now
-                continue
             # do not use SingleEquations._latex here as we want nice alignment
             varname = sympy.Symbol(eq.varname)
             if eq.type == DIFFERENTIAL_EQUATION:
                 lhs = sympy.Derivative(varname, t)
             else:
-                # Normal equation
+                # Normal equation or parameter
                 lhs = varname
-            rhs = parse_to_sympy(eq.expr)
+            if not eq.type == PARAMETER:
+                rhs = parse_to_sympy(eq.expr)
             if len(eq.flags):
                 flag_str = ', flags: ' + ', '.join(eq.flags)
             else:
                 flag_str = ''
-            eq_latex = r'%s &= %s && \text{(unit: $%s$%s)}' % (sympy.latex(lhs),
-                                                               sympy.latex(rhs),
-                                                               sympy.latex(eq.unit),
-                                                               flag_str)
+            if eq.type == PARAMETER:
+                eq_latex = r'%s &&& \text{(unit: $%s$%s)}' % (sympy.latex(lhs),                                 
+                                                              sympy.latex(eq.unit),
+                                                              flag_str)
+            else:
+                eq_latex = r'%s &= %s && \text{(unit: $%s$%s)}' % (sympy.latex(lhs),
+                                                                   sympy.latex(rhs),
+                                                                   sympy.latex(eq.unit),
+                                                                   flag_str)
             equations.append(eq_latex)
         return r'\begin{align}' + r'\\'.join(equations) + r'\end{align}'
 
