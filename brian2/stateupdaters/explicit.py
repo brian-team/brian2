@@ -183,6 +183,15 @@ class ExplicitStateUpdater(StateUpdateMethod):
     ValueError
         If the parsing of the description failed.
     
+    Notes
+    -----
+    Since clocks are updated *after* the state update, the time ``t`` used
+    in the state update step is still at its previous value. Enumerating the
+    states and discrete times, ``return x + dt*f(x, t)`` is therefore
+    understood as :math:`x_{i+1} = x_i + dt f(x_i, t_i)`, yielding the correct
+    forward Euler integration. If the integrator has to refer to the time at
+    the end of the timestep, simply use ``t + dt`` instead of ``t``. 
+    
     See also
     --------
     euler, rk2, rk4, milstein
@@ -310,23 +319,23 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 raise ValueError('Error parsing the expression "%s": %s' %
                                  (expr, str(ex)))
             
-            # Generate specific temporary variables for the state variable we
-            # are currently dealing with, e.g. '_k_v' for the state variable 'v'
-            # and the temporary variable 'k'.
-            temp_var_replacements = dict(((self.symbols[temp_var],
-                                           _symbol('_'+temp_var+'_'+var))
-                                          for temp_var in temp_vars))
-            
-            # In the expression given as 'x', replace 'x' by the variable 'var'
-            # and all the temporary variables by their variable-specific
-            # counterparts.
-            x_replacement = x.subs(self.symbols['x'], eq_symbols[var])
-            x_replacement = x_replacement.subs(temp_var_replacements)
-            
-            # Replace the variable `var` in the expression by the new `x`
-            # expression
-            s_expr = s_expr.subs(eq_symbols[var], x_replacement)
-            
+            for var in eq_symbols:
+                # Generate specific temporary variables for the state variable,
+                # e.g. '_k_v' for the state variable 'v' and the temporary
+                # variable 'k'.
+                temp_var_replacements = dict(((self.symbols[temp_var],
+                                               _symbol('_'+temp_var+'_'+var))
+                                              for temp_var in temp_vars))
+                # In the expression given as 'x', replace 'x' by the variable
+                # 'var' and all the temporary variables by their
+                # variable-specific counterparts.
+                x_replacement = x.subs(self.symbols['x'], eq_symbols[var])
+                x_replacement = x_replacement.subs(temp_var_replacements)
+                
+                # Replace the variable `var` in the expression by the new `x`
+                # expression
+                s_expr = s_expr.subs(eq_symbols[var], x_replacement)
+                
             # Directly substitute the 't' expression for the symbol t, there
             # are no temporary variables to consider here.             
             s_expr = s_expr.subs(self.symbols['t'], t)
