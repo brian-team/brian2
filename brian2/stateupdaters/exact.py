@@ -158,6 +158,9 @@ class LinearStateUpdater(StateUpdateMethod):
             abstract_code.append('{variable} = _{variable}'.format(variable=variable))
         return '\n'.join(abstract_code)
 
+    def __repr__(self):
+        return '%s()' % self.__class__.__name__
+
 linear = LinearStateUpdater()
 
 # The linear state updater has the highest priority

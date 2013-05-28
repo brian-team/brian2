@@ -55,7 +55,7 @@ def add_refractoriness(eqs):
     
     # replace differential equations having the active flag    
     for eq in eqs.itervalues():
-        if eq.eq_type == DIFFERENTIAL_EQUATION and 'active' in eq.flags:
+        if eq.type == DIFFERENTIAL_EQUATION and 'active' in eq.flags:
             # the only case where we have to change anything
             new_code = 'is_active*(' + eq.expr.code + ')'
             new_equations.append(SingleEquation(DIFFERENTIAL_EQUATION,

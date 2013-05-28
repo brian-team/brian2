@@ -137,6 +137,12 @@ class StateMonitor(BrianObject, Group):
         '''
         return array(self._t)
 
+    def __repr__(self):
+        description = '<{classname}, recording {variables} from {source}>'
+        return description.format(classname=self.__class__.__name__,
+                                  variables=repr(self.variables),
+                                  source=self.source.name)
+
 
 if __name__=='__main__':
     from pylab import *

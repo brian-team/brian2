@@ -3,6 +3,7 @@ This model defines the `NeuronGroup`, the core of most simulations.
 '''
 import numpy as np
 from numpy import array
+import sympy
 
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         STATIC_EQUATION, PARAMETER)
@@ -220,6 +221,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         if self.threshold is not None:
             self.thresholder = Thresholder(self)
             
+
         #: Resets neurons which have spiked (`spikes`)
         self.resetter = None
         if self.reset is not None:
@@ -256,7 +258,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
     def _allocate_memory(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)
         arrayvarnames = set(eq.varname for eq in self.equations.itervalues() if
-                            eq.eq_type in (DIFFERENTIAL_EQUATION,
+                            eq.type in (DIFFERENTIAL_EQUATION,
                                            PARAMETER))
         arrays = {}
         for name in arrayvarnames:
@@ -314,7 +316,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         # First add all the differential equations and parameters, because they
         # may be referred to by static equations
         for eq in self.equations.itervalues():
-            if eq.eq_type in (DIFFERENTIAL_EQUATION, PARAMETER):
+            if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 array = self.arrays[eq.varname]
                 constant = ('constant' in eq.flags)
                 s.update({eq.varname: ArrayVariable(eq.varname,
@@ -322,8 +324,9 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                                     array.dtype,
                                                     array,
                                                     '_neuron_idx',
-                                                    constant)})        
-            elif eq.eq_type == STATIC_EQUATION:
+                                                    constant)})
+        
+            elif eq.type == STATIC_EQUATION:
                 s.update({eq.varname: Subexpression(eq.varname, eq.unit,
                                                     brian_prefs['core.default_scalar_dtype'],
                                                     str(eq.expr),
@@ -340,7 +343,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         return s
 
     def pre_run(self, namespace):
-
+    
         # Update the namespace information in the specifiers in case the
         # namespace was not specified explicitly defined at creation time
         # Note that values in the explicit namespace might still change
@@ -354,3 +357,20 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         # Check units
         self.equations.check_units(self.namespace, self.specifiers,
                                    namespace)
+    
+    def _repr_html_(self):
+        text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self.N)]
+        text.append(r'<b>Model:</b><nr>')
+        text.append(sympy.latex(self.equations))
+        text.append(r'<b>Integration method:</b><br>')
+        text.append(sympy.latex(self.state_updater.method)+'<br>')
+        if self.threshold is not None:
+            text.append(r'<b>Threshold condition:</b><br>')
+            text.append('<code>%s</code><br>' % str(self.threshold))
+            text.append('')
+        if self.reset is not None:
+            text.append(r'<b>Reset statement:</b><br>')            
+            text.append(r'<code>%s</code><br>' % str(self.reset))
+            text.append('')
+                    
+        return '\n'.join(text)

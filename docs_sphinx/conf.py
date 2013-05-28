@@ -260,7 +260,8 @@ texinfo_documents = [
 intersphinx_mapping = {
                        'http://docs.python.org/': None,
                         'http://docs.scipy.org/doc/numpy': None,
-                        'http://docs.scipy.org/doc/scipy/reference': None
+                        'http://docs.scipy.org/doc/scipy/reference': None,
+                        'http://docs.sympy.org/dev/': None
                        }
 
 autodoc_default_flags = ['show-inheritance']

@@ -114,6 +114,11 @@ class SpikeMonitor(BrianObject):
         '''
         return sum(self.count)  
 
+    def __repr__(self):
+        description = '<{classname}, recording {source}>'
+        return description.format(classname=self.__class__.__name__,
+                                  source=self.source.name)
+
     
 if __name__=='__main__':
     from pylab import *

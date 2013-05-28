@@ -150,6 +150,14 @@ class BrianObject(Nameable):
                         it for all `contained_objects`. 
                         ''')
 
+    def __repr__(self):
+        description = ('{classname}(when={scheduler}, name={name})')
+        return description.format(classname=self.__class__.__name__,
+                                  scheduler=repr(Scheduler(when=self.when,
+                                                           clock=self.clock,
+                                                           order=self.order)),
+                                  name=repr(self.name))
+
     # This is a repeat from Nameable.name, but we want to get the documentation
     # here again
     name = Nameable.name

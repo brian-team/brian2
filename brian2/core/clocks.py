@@ -43,7 +43,7 @@ class Clock(Nameable):
     basename = 'clock'
     name = Nameable.name
     
-    @check_units(dt=second, t=second)
+    @check_units(dt=second)
     def __init__(self, dt=None, name=None):
         self._dt_spec = dt
         self.i = 0  #: The time step of the simulation as an integer.
@@ -58,10 +58,10 @@ class Clock(Nameable):
         self.i = 0
 
     def __str__(self):
-        return 'Clock: t = ' + str(self.t) + ', dt = ' + str(self.dt)
+        return 'Clock ' + self.name + ': t = ' + str(self.t) + ', dt = ' + str(self.dt)
     
     def __repr__(self):
-        return 'Clock(dt=%s)' % (repr(self.dt),)
+        return 'Clock(dt=%r, name=%r)' % (self.dt, self.name)
 
     def tick(self):
         '''

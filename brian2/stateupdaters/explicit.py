@@ -263,13 +263,20 @@ class ExplicitStateUpdater(StateUpdateMethod):
             return True
     
     def __repr__(self):
-        representation = '{classname}({description}, stochastic={stochastic})'
-        return representation.format(classname=self.__class__.__name__,
-                                     description=repr(self._description),
-                                     stochastic=repr(self.stochastic))
+        # recreate a description string
+        description = '\n'.join(['%s = %s' % (var, expr)
+                                 for var, expr in self.statements])
+        if len(description):
+            description += '\n'
+        description += 'return ' + str(self.output)
+        r = "{classname}('''{description}''', stochastic={stochastic})"
+        return r.format(classname=self.__class__.__name__,
+                        description=description,
+                        stochastic=repr(self.stochastic))
+
     
     def __str__(self):
-        s = ''
+        s = '%s\n' % self.__class__.__name__
         
         if len(self.statements) > 0:
             s += 'Intermediate statements:\n'
@@ -280,6 +287,20 @@ class ExplicitStateUpdater(StateUpdateMethod):
         s += 'Output:\n'
         s += str(self.output)
         return s
+
+    def _latex(self, *args):
+        from sympy import latex, Symbol
+        s = [r'\begin{equation}']
+        for var, expr in self.statements:      
+            expr = expr.subs(Symbol('x'), Symbol('x_t'))      
+            s.append(latex(Symbol(var)) + ' = ' + latex(expr) + r'\\')
+        expr = self.output.subs(Symbol('x'), 'x_t')
+        s.append(r'x_{t+1} = ' + latex(expr))
+        s.append(r'\end{equation}')
+        return '\n'.join(s)
+
+    def _repr_latex_(self):
+        return self._latex()
 
     def _generate_RHS(self, eqs, var, eq_symbols, temp_vars, expr,
                       non_stochastic_expr, stochastic_expr):
@@ -443,11 +464,11 @@ class ExplicitStateUpdater(StateUpdateMethod):
         _v = -dt*v/tau + v
         v = _v
         >>> print(rk4(eqs))
-        _k1_v = -dt*v/tau
-        _k2_v = -dt*(_k1_v/2 + v)/tau
-        _k3_v = -dt*(_k2_v/2 + v)/tau
-        _k4_v = -dt*(_k3_v + v)/tau
-        _v = _k1_v/6 + _k2_v/3 + _k3_v/3 + _k4_v/6 + v
+        _k_1_v = -dt*v/tau
+        _k_2_v = -dt*(_k_1_v/2 + v)/tau
+        _k_3_v = -dt*(_k_2_v/2 + v)/tau
+        _k_4_v = -dt*(_k_3_v + v)/tau
+        _v = _k_1_v/6 + _k_2_v/3 + _k_3_v/3 + _k_4_v/6 + v
         v = _v
         '''
         
@@ -517,11 +538,11 @@ rk2 = ExplicitStateUpdater('''
 
 #: Classical Runge-Kutta method (RK4)
 rk4 = ExplicitStateUpdater('''
-    k1=dt*f(x,t)
-    k2=dt*f(x+k1/2,t+dt/2)
-    k3=dt*f(x+k2/2,t+dt/2)
-    k4=dt*f(x+k3,t+dt)
-    return x+(k1+2*k2+2*k3+k4)/6
+    k_1=dt*f(x,t)
+    k_2=dt*f(x+k_1/2,t+dt/2)
+    k_3=dt*f(x+k_2/2,t+dt/2)
+    k_4=dt*f(x+k_3,t+dt)
+    return x+(k_1+2*k_2+2*k_3+k_4)/6
     ''')
 
 #: Derivative-free Milstein method

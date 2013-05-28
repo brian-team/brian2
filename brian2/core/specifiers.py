@@ -42,6 +42,9 @@ class Specifier(object):
         #: The name of the thing being specified (e.g. the model variable)
         self.name = name
 
+    def __repr__(self):
+        return '%s(name=%r)' % (self.__class__.__name__, self.name)
+
 
 class VariableSpecifier(Specifier):
     '''
@@ -75,6 +78,16 @@ class VariableSpecifier(Specifier):
 
         #: Whether the value is constant during a run
         self.constant = constant
+
+
+    def __repr__(self):
+        description = ('{classname}(name={name}, unit={unit}, scalar={scalar}, '
+                       'constant={constant})')
+        return description.format(classname=self.__class__.__name__,
+                                  name=repr(self.name),
+                                  unit=repr(self.unit),
+                                  scalar=repr(self.scalar),
+                                  constant=repr(self.constant))
 
 class Value(VariableSpecifier):
     '''
@@ -123,6 +136,16 @@ class Value(VariableSpecifier):
         '''
         raise NotImplementedError()
 
+    def __repr__(self):
+        description = ('{classname}(name={name}, unit={unit}, dtype={dtype}, '
+                       'scalar={scalar}, constant={constant})')
+        return description.format(classname=self.__class__.__name__,
+                                  name=repr(self.name),
+                                  unit=repr(self.unit),
+                                  dtype=repr(self.dtype),
+                                  scalar=repr(self.scalar),
+                                  constant=repr(self.constant))
+
 ###############################################################################
 # Concrete classes that are used as specifiers in practice.
 ###############################################################################
@@ -162,6 +185,15 @@ class ReadOnlyValue(Value):
 
     def set_value(self):
         raise TypeError('The value "%s" is read-only' % self.name)
+
+    def __repr__(self):
+        description = ('{classname}(name={name}, unit={unit}, dtype={dtype}, '
+                       'value={value}')
+        return description.format(classname=self.__class__.__name__,
+                                  name=repr(self.name),
+                                  unit=repr(self.unit),
+                                  dtype=repr(self.dtype),
+                                  value=repr(self.value))
 
 
 class StochasticVariable(VariableSpecifier):
@@ -228,6 +260,17 @@ class AttributeValue(ReadOnlyValue):
     def get_value(self):
         return getattr(self.obj, self.attribute)
 
+    def __repr__(self):
+        description = ('{classname}(name={name}, unit={unit}, dtype={dtype}, '
+                       'obj={obj}, attribute={attribute}, constant={constant})')
+        return description.format(classname=self.__class__.__name__,
+                                  name=repr(self.name),
+                                  unit=repr(self.unit),
+                                  dtype=repr(self.dtype),
+                                  obj=repr(self.obj),
+                                  attribute=repr(self.attribute),
+                                  constant=repr(self.constant))
+
 
 class ArrayVariable(Value):
     '''
@@ -275,6 +318,16 @@ class ArrayVariable(Value):
 
     def set_value(self, value):
         self.array[:] = value
+
+    def __repr__(self):
+        description = ('<{classname}(name={name}, unit={unit}, dtype={dtype}, '
+                       'array=<...>, index={index}, constant={constant})>')
+        return description.format(classname=self.__class__.__name__,
+                                  name=repr(self.name),
+                                  unit=repr(self.unit),
+                                  dtype=repr(self.dtype),
+                                  index=repr(self.index),
+                                  constant=self.constant)
 
 
 class Subexpression(Value):
@@ -333,6 +386,15 @@ class Subexpression(Value):
     def __contains__(self, var):
         return var in self.identifiers
 
+    def __repr__(self):
+        description = ('<{classname}(name={name}, unit={unit}, dtype={dtype}, '
+                       'expr={expr}, specifiers=<...>, namespace=<....>)>')
+        return description.format(classname=self.__class__.__name__,
+                                  name=repr(self.name),
+                                  unit=repr(self.unit),
+                                  dtype=repr(self.dtype),
+                                  expr=repr(self.expr))        
+
 
 class Index(Specifier):
     '''
@@ -358,3 +420,8 @@ class Index(Specifier):
                               'is type %s instead' % type(all)))
         #: Whether the index varies over the whole of an input vector
         self.iterate_all = iterate_all
+
+    def __repr__(self):
+        return '%s(name=%r, iterate_all=%r)' % (self.__class__.__name__,
+                                                self.name,
+                                                self.iterate_all)

@@ -10,7 +10,6 @@ from .fundamentalunits import (Unit, get_or_create_dimension,
                                standard_unit_register,
                                additional_unit_register)
 
-
 __all__ = [
     "metre",
     "meter",
@@ -2060,7 +2059,7 @@ watt = Unit.create(get_or_create_dimension(m=2, kg=1, s=-3), "watt", "W")
 coulomb = Unit.create(get_or_create_dimension(s=1, A=1), "coulomb", "C")
 volt = Unit.create(get_or_create_dimension(m=2, kg=1, s=-3, A=-1), "volt", "V")
 farad = Unit.create(get_or_create_dimension(m= -2, kg=-1, s=4, A=2), "farad", "F")
-ohm = Unit.create(get_or_create_dimension(m=2, kg=1, s= -3, A=-2), "ohm", "ohm")
+ohm = Unit.create(get_or_create_dimension(m=2, kg=1, s= -3, A=-2), "ohm", "ohm", r"\Omega")
 siemens = Unit.create(get_or_create_dimension(m= -2, kg=-1, s=3, A=2), "siemens", "S")
 weber = Unit.create(get_or_create_dimension(m=2, kg=1, s=-2, A=-1), "weber", "Wb")
 tesla = Unit.create(get_or_create_dimension(kg=1, s=-2, A=-1), "tesla", "T")
@@ -5404,8 +5403,6 @@ Ykatal2 = Ykatal**2
 Ykatal2.name = "Ykatal2"
 Ykatal3 = Ykatal**3
 Ykatal3.name = "Ykatal3"
-
-
 
 base_units = [
     metre,

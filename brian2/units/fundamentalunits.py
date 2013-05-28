@@ -22,6 +22,7 @@ import operator
 import itertools
 
 import numpy as np
+from sympy import latex
 
 __all__ = [
     'DimensionMismatchError', 'get_or_create_dimension',
@@ -245,6 +246,7 @@ _siprefixes = {"y": 1e-24, "z": 1e-21, "a": 1e-18, "f": 1e-15, "p": 1e-12,
                "P": 1e15, "E": 1e18, "Z": 1e21, "Y": 1e24}
 
 
+
 class Dimension(object):
     '''
     Stores the indices of the 7 basic SI unit dimension (length, mass, etc.).
@@ -336,6 +338,22 @@ class Dimension(object):
             if not len(s):
                 return "1"
         return s.strip()
+
+    def _latex(self, *args):
+        parts = []
+        for i in xrange(len(self._dims)):
+            if self._dims[i]:
+                s = _ilabel[i]
+                if self._dims[i] != 1:
+                    s += '^{%s}' % str(self._dims[i])
+                parts.append(s)
+        s = "\,".join(parts)
+        if not len(s):
+            return "1"
+        return s.strip()
+
+    def _repr_latex(self):
+        return '$%s$' % latex(self)
 
     def __repr__(self):
         return self._str_representation(python_code=True)
@@ -1390,6 +1408,24 @@ class Quantity(np.ndarray, object):
     def __repr__(self):
         return self.in_best_unit(python_code=True)
 
+    # TODO: Use sympy's _latex method, then latex(unit) should work
+    def _latex(self, expr):
+        from sympy import Matrix
+        best_unit = self._get_best_unit()
+        if isinstance(best_unit, Unit):
+            best_unit_latex = latex(best_unit)
+        else: # A quantity
+            best_unit_latex = latex(best_unit.dimensions)
+        unitless = np.asarray(self / best_unit)
+        if unitless.ndim == 0:
+            sympy_quantity = np.float(unitless)
+        else:
+            sympy_quantity = Matrix(unitless)
+        return latex(sympy_quantity) + '\,' + best_unit_latex
+
+    def _repr_latex_(self):
+        return  '$' + latex(self) + '$'
+
     def __str__(self):
         return self.in_best_unit()
 
@@ -1582,7 +1618,7 @@ class Unit(Quantity):
     set_display_name
 
     '''
-    __slots__ = ["dim", "scale", "scalefactor", "dispname", "name",
+    __slots__ = ["dim", "scale", "scalefactor", "dispname", "name", "latexname",
                  "iscompound"]
 
     __array_priority__ = 100
@@ -1625,11 +1661,14 @@ class Unit(Quantity):
         self.name = ""
         #: The display name of this unit.
         self.dispname = ""
+        #: A LaTeX expression for the name of this unit.
+        self.latexname = ""
         #: Whether this unit is a combination of other units.
         self.iscompound = False
 
     @staticmethod
-    def create(dim, name="", dispname="", scalefactor="", **keywords):
+    def create(dim, name="", dispname="", latexname=None, scalefactor="",
+               **keywords):
         """
         Create a new named unit.
 
@@ -1641,7 +1680,11 @@ class Unit(Quantity):
             The full name of the unit, e.g. ``'volt'``
         dispname : `str`, optional
             The display name, e.g. ``'V'``
-        scalefactor : `str`, optional
+        latexname : str, optional
+            The name as a LaTeX expression (math mode is assumed, do not add
+            $ signs or similar), e.g. ``'\omega'``. If no `latexname` is
+            specified, `dispname` will be used.
+        scalefactor : str, optional
             The scaling factor, e.g. ``'m'`` for mvolt
         keywords
             The scaling for each SI dimension, e.g. ``length="m"``,
@@ -1661,8 +1704,11 @@ class Unit(Quantity):
                 v *= _siprefixes[s] ** i
         u = Unit(v * _siprefixes[scalefactor], dim=dim, scale=tuple(scale))
         u.scalefactor = scalefactor + ""
-        u.name = name + ""
-        u.dispname = dispname + ""
+        u.name = str(name)
+        u.dispname = str(dispname)
+        if latexname is None:
+            latexname = u.dispname
+        u.latexname = r'\mathrm{' + latexname + '}'
         u.iscompound = False
         return u
 
@@ -1689,6 +1735,14 @@ class Unit(Quantity):
         u.scalefactor = scalefactor
         u.name = scalefactor + baseunit.name
         u.dispname = scalefactor + baseunit.dispname
+        # As u --> \mu is the only transformation we have, I think it
+        # makes sense to just special-case it here instead of coming
+        # up with a general system for scale factors
+        # TODO: Unfortunately, \mu gives the typographically incorrect symbol,
+        #it should be an upright letter :-/
+        if scalefactor == 'u':
+            scalefactor = r'\mu'
+        u.latexname = r'\mathrm{' + scalefactor + '}' + r'\,' + baseunit.latexname
         u.iscompound = False
         return u
 
@@ -1742,12 +1796,40 @@ class Unit(Quantity):
         else:
             return self.dispname
 
+    def _latex(self, *args):
+        if self.latexname == "":
+            if len(self.scalefactor):
+                if self.scalefactor == 'u':
+                    scalefactor = r'\mu'
+                else:
+                    scalefactor = self.scalefactor
+                s = r'\mathrm{' + scalefactor + "} "
+            else:
+                s = ''
+            for i in range(7):
+                if self.dim._dims[i]:
+                    s += self.scale[i] + _ilabel[i]
+                    if self.dim._dims[i] != 1:
+                        s += "^{" + str(self.dim._dims[i]) + '}'
+                    s += " "
+            s = s.strip()
+            if not len(s):
+                return "1"
+            else:
+                return s
+        else:
+            return self.latexname
+
+    def _repr_latex_(self):
+        return '$' + latex(self) + '$'
+
     #### ARITHMETIC ####
     def __mul__(self, other):
         if isinstance(other, Unit):
             u = Unit(np.asarray(self) * np.asarray(other))
             u.name = self.name + " * " + other.name
             u.dispname = self.dispname + ' ' + other.dispname
+            u.latexname = self.latexname + r'\,' + other.latexname
             u.dim = self.dim * other.dim
             u.iscompound = True
             return u
@@ -1776,6 +1858,9 @@ class Unit(Quantity):
                 u.name += other.name
             u.dim = self.dim / other.dim
             u.iscompound = True
+
+            u.latexname = r'\frac{%s}{%s}' % (self.latexname, other.latexname)
+
             return u
         else:
             return super(Unit, self).__div__(other)
@@ -1792,11 +1877,14 @@ class Unit(Quantity):
             if self.iscompound:
                 u.dispname = '(' + self.dispname + ')'
                 u.name = '(' + self.name + ')'
+                u.latexname = r'\left(%s\right)' % self.latexname
             else:
                 u.dispname = self.dispname
                 u.name = self.name
+                u.latexname = self.latexname
             u.dispname += '^' + str(other)
             u.name += ' ** ' + repr(other)
+            u.latexname += '^{%s}' % latex(other)
             u.dim = self.dim ** other
             return u
         else:
