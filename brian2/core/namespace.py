@@ -195,6 +195,10 @@ class CompoundNamespace(collections.Mapping):
                 return True
         
         return False
+    
+    def __repr__(self):
+        return '<%s containing namespaces: %s>' % (self.__class__.__name__,
+                                                   ', '.join(self.namespaces.iterkeys()))
 
 def get_default_numpy_namespace(N):
     '''

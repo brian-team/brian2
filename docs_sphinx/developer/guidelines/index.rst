@@ -16,6 +16,7 @@ The basic principles of developing Brian are:
 
    workflow
    style
+   representation
    defensive_programming
    documentation
    logging

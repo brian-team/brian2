@@ -58,6 +58,12 @@ class PoissonGroup(BrianObject, SpikeSource):
     def update(self):
         self.spikes, = (rand(self.N)<self.pthresh).nonzero()
 
+    def __repr__(self):
+        description = '{classname}({N}, rates={rates})'
+        return description.format(classname=self.__class__.__name__,
+                                        N=self.N,
+                                        rates=repr(self.rates))
+
 
 if __name__=='__main__':
     from pylab import *
