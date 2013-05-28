@@ -222,8 +222,20 @@ class ExplicitStateUpdater(StateUpdateMethod):
         else:
             return True
     
+    def __repr__(self):
+        # recreate a description string
+        description = '\n'.join(['%s = %s' % (var, expr)
+                                 for var, expr in self.statements])
+        if len(description):
+            description += '\n'
+        description += 'return ' + str(self.output)
+        r = "{classname}('''{description}''', stochastic={stochastic})"
+        return r.format(classname=self.__class__.__name__,
+                        description=description,
+                        stochastic=repr(self.stochastic))
+    
     def __str__(self):
-        s = ''
+        s = '%s\n' % self.__class__.__name__
         
         if len(self.statements) > 0:
             s += 'Intermediate statements:\n'
