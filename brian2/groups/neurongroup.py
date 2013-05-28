@@ -54,13 +54,13 @@ class StateUpdater(GroupCodeRunner):
                                                                self.group.namespace,
                                                                self.group.specifiers,
                                                                self.method_choice)
+
+        # Update the is_active variable for the refractory period mechanism
+        self.abstract_code = 'is_active = 1* (t >= refractory_until)\n'
         
-        self.abstract_code = self.method(self.group.equations,
-                                         self.group.namespace,
-                                         self.group.specifiers) 
-    
-    def pre_update(self):
-        self.group.is_active_[:] = self.group.clock.t_ >= self.group.refractory_until_
+        self.abstract_code += self.method(self.group.equations,
+                                          self.group.namespace,
+                                          self.group.specifiers)
 
 
 class Thresholder(GroupCodeRunner):
@@ -73,16 +73,19 @@ class Thresholder(GroupCodeRunner):
         GroupCodeRunner.__init__(self, group,
                                  group.language.template_threshold,
                                  when=(group.clock, 'thresholds'),
-                                 name=group.name + '_thresholder')
+                                 name=group.name + '_thresholder',
+                                 # TODO: This information should be included in
+                                 # the template instead
+                                 additional_specifiers=['t',
+                                                        'refractory_until',
+                                                        'refractory'])
     
     def update_abstract_code(self):
         self.abstract_code = '_cond = ' + self.group.threshold
         
     def post_update(self, return_value):
-        spikes = return_value
         # Save the spikes in the NeuronGroup so others can use it
-        self.group.spikes = spikes
-        self.group.refractory_until_[spikes] = self.group.clock.t_ + self.group.refractory_[spikes]
+        self.group.spikes = return_value        
 
 
 class Resetter(GroupCodeRunner):
@@ -95,7 +98,8 @@ class Resetter(GroupCodeRunner):
                                  group.language.template_reset,
                                  when=(group.clock, 'resets'),
                                  name=group.name + '_resetter',
-                                 iterate_all=False)
+                                 iterate_all=False,
+                                 additional_specifiers=['_spikes'])
     
     def update_abstract_code(self):
         self.abstract_code = self.group.reset
