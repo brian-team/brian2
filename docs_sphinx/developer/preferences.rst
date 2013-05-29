@@ -1,6 +1,8 @@
 Preferences system
 ==================
 
+.. currentmodule:: brian2.core.preferences
+
 Each preference looks like ``codegen.c.compiler``, i.e. dotted names. Each
 preference has to be registered and validated. The idea is that registering
 all preferences ensures that misspellings of a preference value by a user
@@ -13,7 +15,27 @@ An additional requirement is that the preferences system allows for extension
 modules to define their own preferences, including extending the existing
 core brian preferences. For example, an extension might want to define
 ``extension.*`` but it might also want to define a new language for
-codegen, e.g. ``codegen.lisp.*``.
+codegen, e.g. ``codegen.lisp.*``. However, extensions cannot add preferences
+to an existing category.
+
+Accessing and setting preferences
+---------------------------------
+Preferences can be accessed and set either keyword-based or attribute-based.
+To set/get the value for the preference example mentioned before, the following
+are equivalent::
+
+    brian_prefs['codegen.c.compiler'] = 'gcc'
+    brian_prefs.codegen.c.compiler = 'gcc'
+    
+    if brian_prefs['codegen.c.compiler'] == 'gcc':
+        ...
+    if brian_prefs.codegen.c.compiler == 'gcc':
+        ...
+
+Using the attribute-based form can be particulary useful for interactive
+work, e.g. in ipython, as it offers autocompletion and documentation.
+In ipython, ``brian_prefs.codegen.c?`` would display a docstring with all
+the preferences available in the ``codegen.c`` category.
 
 Preference files
 ----------------
@@ -30,50 +52,46 @@ if one is missing):
 Registration
 ------------
 
-Registration of preferences is performed by a call to `register_preferences`,
-e.g.::
+Registration of preferences is performed by a call to
+`BrianGlobalPreferences.register_preferences`, e.g.::
 
     register_preferences(
         'codegen.c',
-        {'compiler': BrianPreference(
+        'Code generation preferences for the C language',
+        'compiler'= BrianPreference(
             validator=is_compiler,
             docs='...',
             default='gcc'),
          ...
-        })
+        )
         
 The first argument ``'codegen.c'`` is the base name, and every preference of
-the form ``codegen.c.*`` has to be registered by this function (although you
-can also register, e.g. ``codegen.c.somethingelse.*`` separately). In other
-words, by calling `register_preferences`, a module takes ownership of all
-the preferences with one particular base name.
-
-The second argument is a dictionary of name/definition pairs in a fairly
-obvious way. Alternatively, we could make it look like::
-
-    register_preferences(
-        'codegen.c',
-        compiler=BrianPreference(
-            validator=is_compiler,
-            docs='...',
-            default='gcc'),
-        ...
-        )
+the form ``codegen.c.*`` has to be registered by this function (preferences in subcategories
+such as ``codegen.c.somethingelse.*`` have to be specified separately). In other
+words, by calling `~BrianGlobalPreferences.register_preferences`,
+a module takes ownership of all the preferences with one particular base name. The second argument
+is a descriptive text explaining what this category is about. The preferences themselves are
+provided as keyword arguments, each set to a `BrianPreference` object.
 
 Validation functions
 --------------------
 
-A validation function takes a string as an argument, and returns a value (e.g.
-int or string). If the string is invalid, it raises a
-`PreferenceValidationError` exception.
+A validation function takes a value for the preference and returns ``True`` (if the value is a valid
+value) or ``False``. If no validation function is specified, a default validator is used that
+compares the value against the default value: Both should belong to the same class (e.g. int or
+str) and, in the case of a `Quantity` have the same unit.
 
 Validation
 ----------
 
 Setting the value of a preference with a registered base name instantly triggers
-validation. For base names that are not yet registered, validation occurs when
+validation. Trying to set an unregistered preference using keyword or attribute access raises an
+error. The only exception from this rule is when the preferences are read from configuration files
+(see below). Since this happens before the user has the chance to import extensions that potentially
+define new preferences, this uses a special function (`_set_preference`). In this case,for base
+names that are not yet registered, validation occurs when
 the base name is registered. If, at the time that `Network.run` is called, there
-are unregistered preferences set, a `PreferenceValidationError` is raised.
+are unregistered preferences set, a `PreferenceError` is raised.
 
 File format
 -----------
