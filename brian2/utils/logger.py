@@ -1,5 +1,9 @@
 '''
 Brian's logging module.
+
+Preferences
+--------------------
+.. document_brian_prefs:: logging
 '''
 import atexit
 import logging
@@ -15,11 +19,71 @@ import scipy
 import sympy
 
 import brian2
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import brian_prefs, BrianPreference
 
 from .environment import running_from_ipython
 
 __all__ = ['get_logger', 'BrianLogger']
+
+#===============================================================================
+# Logging preferences
+#===============================================================================
+
+def log_level_validator(log_level):
+    log_levels = ('CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG')
+    return log_level.upper() in log_levels
+
+
+brian_prefs.register_preferences('logging', 'Logging system preferences',
+    delete_log_on_exit=BrianPreference(
+        default=True,
+        docs=    '''
+        Whether to delete the log and script file on exit.
+        
+        If set to ``True`` (the default), log files (and the copy of the main
+        script) will be deleted after the brian process has exited, unless an
+        uncaught exception occured. If set to ``False``, all log files will be kept.
+        ''',
+        ),
+    file_log_level=BrianPreference(
+        default='DEBUG',
+        docs='''
+        What log level to use for the log written to the log file.
+        
+        In case file logging is activated (see `logging.file_log`), which log
+        level should be used for logging. Has to be one of CRITICAL, ERROR,
+        WARNING, INFO or DEBUG.
+        ''',
+        validator=log_level_validator),
+    console_log_level=BrianPreference(
+        default='WARNING',
+        docs='''
+        What log level to use for the log written to the console.
+        
+        Has to be one of CRITICAL, ERROR, WARNING, INFO or DEBUG.
+        ''',
+        validator=log_level_validator),
+    file_log=BrianPreference(
+        default=True,
+        docs= '''
+        Whether to log to a file or not.
+        
+        If set to ``True`` (the default), logging information will be written
+        to a file. The log level can be set via the `logging.file_log_level`
+        preference.
+        '''),
+    save_script=BrianPreference(
+        default=True,
+        docs= '''
+        Whether to save a copy of the script that is run.
+        
+        If set to ``True`` (the default), a copy of the currently run script
+        is saved to a temporary location. It is deleted after a successful
+        run (unless `logging.delete_log_on_exit` is ``False``) but is kept after
+        an uncaught exception occured. This can be helpful for debugging,
+        in particular when several simulations are running in parallel.
+        ''')
+    )
 
 #===============================================================================
 # Initial setup
@@ -34,43 +98,45 @@ logger = logging.getLogger('')
 logger.setLevel(logging.DEBUG)
 
 # Log to a file
-try:
-    # Temporary filename used for logging
-    TMP_LOG = tempfile.NamedTemporaryFile(prefix='brian_debug_',
-                                          suffix='.log', delete=False)
-    TMP_LOG = TMP_LOG.name
-    FILE_HANDLER = logging.FileHandler(TMP_LOG, mode='wt')
-    FILE_HANDLER.setLevel(logging.DEBUG)
-    FILE_HANDLER.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(name)s: %(message)s'))
-    logger.addHandler(FILE_HANDLER)
-except IOError as ex:
-    warn('Could not create log file: %s' % ex)
-    TMP_LOG = None
+TMP_LOG = None
+if brian_prefs['logging.file_log']:    
+    try:
+        # Temporary filename used for logging
+        TMP_LOG = tempfile.NamedTemporaryFile(prefix='brian_debug_',
+                                              suffix='.log', delete=False)
+        TMP_LOG = TMP_LOG.name
+        FILE_HANDLER = logging.FileHandler(TMP_LOG, mode='wt')
+        FILE_HANDLER.setLevel(brian_prefs['logging.file_log_level'].upper())
+        FILE_HANDLER.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(name)s: %(message)s'))
+        logger.addHandler(FILE_HANDLER)
+    except IOError as ex:
+        warn('Could not create log file: %s' % ex)
 
 # Save a copy of the script
 TMP_SCRIPT = None
-if len(sys.argv[0]) and not running_from_ipython():
-    try:
-        tmp_file = tempfile.NamedTemporaryFile(prefix='brian_script_',
-                                               suffix='.py',
-                                               delete=False)
-        with tmp_file:
-            # Timestamp
-            tmp_file.write(_encode(u'# %s\n' % time.asctime()))
-            # Command line arguments
-            tmp_file.write(_encode(u'# Run as: %s\n\n' % (' '.join(sys.argv))))
-            # The actual script file
-            # TODO: We are copying the script file as it is, this might clash
-            # with the encoding we used for the comments added above
-            with open(os.path.abspath(sys.argv[0]), 'rb') as script_file:
-                shutil.copyfileobj(script_file, tmp_file)    
-            TMP_SCRIPT = tmp_file.name
-    except IOError as ex:
-        warn('Could not copy script file to temp directory: %s' % ex)
+if brian_prefs['logging.save_script']:
+    if len(sys.argv[0]) and not running_from_ipython():
+        try:
+            tmp_file = tempfile.NamedTemporaryFile(prefix='brian_script_',
+                                                   suffix='.py',
+                                                   delete=False)
+            with tmp_file:
+                # Timestamp
+                tmp_file.write(_encode(u'# %s\n' % time.asctime()))
+                # Command line arguments
+                tmp_file.write(_encode(u'# Run as: %s\n\n' % (' '.join(sys.argv))))
+                # The actual script file
+                # TODO: We are copying the script file as it is, this might clash
+                # with the encoding we used for the comments added above
+                with open(os.path.abspath(sys.argv[0]), 'rb') as script_file:
+                    shutil.copyfileobj(script_file, tmp_file)    
+                TMP_SCRIPT = tmp_file.name
+        except IOError as ex:
+            warn('Could not copy script file to temp directory: %s' % ex)
 
 # create console handler with a higher log level
 CONSOLE_HANDLER = logging.StreamHandler()
-CONSOLE_HANDLER.setLevel(logging.WARN)
+CONSOLE_HANDLER.setLevel(brian_prefs['logging.console_log_level'])
 CONSOLE_HANDLER.setFormatter(logging.Formatter('%(levelname)-8s %(name)s: %(message)s'))
 
 # add the handler to the logger
@@ -123,7 +189,7 @@ def clean_up_logging():
     occured.
     '''
     logging.shutdown()
-    if not BrianLogger.exception_occured and brian_prefs['core.delete_log_on_exit']:
+    if not BrianLogger.exception_occured and brian_prefs['logging.delete_log_on_exit']:
         if not TMP_LOG is None:
             try:
                 os.remove(TMP_LOG)

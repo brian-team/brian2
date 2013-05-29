@@ -3,6 +3,7 @@
 Preliminary Brian2 setup script
 '''
 import sys
+import os
 
 from distutils.core import setup
 try:
@@ -10,26 +11,24 @@ try:
 except ImportError:
     from distutils.command.build_py import build_py
 
-from distutils.command.install_data import install_data
-
-class install_preferences(install_data):
-    def run(self):        
-        # Make sure we load the brian2 packages from the installation
-        # directory, not from the source directory (important for Python 3)
-        sys.path.insert(0, self.install_purelib)
+class generate_preferences(build_py):
+    def run(self):
+        # Make sure we first run the build (including running 2to3 for Python3)
+        # and then import from the build directory
+        build_py.run(self)
+        sys.path.insert(0, self.build_lib)
         from brian2.core.preferences import brian_prefs
         
+        # We generate the file directly in the build directory
         try:
-            with open('./brian2/default_preferences', 'wt') as f:
+            with open(os.path.join(self.build_lib,
+                                   'brian2', 'default_preferences'), 'wt') as f:
                 defaults = brian_prefs.defaults_as_file
                 f.write(defaults)
         except IOError as ex:
             raise IOError(('Could not write the default preferences to a '
                            'file: %s' % str(ex)))
-        
-        # Now, run the original install_data command which copies the
-        # generated file to the appropriate place
-        install_data.run(self)
+
 
 setup(name='Brian2',
       version='2.0dev',
@@ -47,11 +46,9 @@ setup(name='Brian2',
                 'brian2.tests',
                 'brian2.units',
                 'brian2.utils'],
-      package_data={'brian2': ['default_preferences']}, 
       requires=['numpy(>=1.4.1)',
                 'scipy(>=0.7.0)',
                 'sympy(>=0.7.1)'
                 ],
-      cmdclass = {'build_py': build_py,
-                  'install_data': install_preferences}                
+      cmdclass = {'build_py': generate_preferences}                
      )
