@@ -54,13 +54,12 @@ def get_linear_system(eqs):
     constants = sp.zeros((len(diff_eq_names), 1))
     
     for row_idx, (name, expr) in enumerate(diff_eqs):
-        s_expr = sympify(expr, locals=dict([(s.name, s) for s in symbols])).expand()
-        #print s_expr.expand()
+        s_expr = expr.sympy_expr.expand()
         pattern_matches = s_expr.match(pattern)
         if pattern_matches is None:
             raise ValueError(('The expression "%s", defining the variable %s, '
                              'could not be separated into linear components') %
-                             (str(s_expr), name))
+                             (expr, name))
         
         for col_idx in xrange(len(diff_eq_names)):
             coefficients[row_idx, col_idx] = pattern_matches[wildcards[col_idx]]
