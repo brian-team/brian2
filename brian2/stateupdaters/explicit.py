@@ -552,10 +552,3 @@ milstein = ExplicitStateUpdater('''
     k = 1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)
     return x + dt*f(x,t) + g(x, t) * dW + k
     ''', stochastic='multiplicative')
-
-# Register the state updaters in the order in which they should be chosen by
-# default
-StateUpdateMethod.register('euler', euler)
-StateUpdateMethod.register('rk2', rk2)
-StateUpdateMethod.register('rk4', rk4)
-StateUpdateMethod.register('milstein', milstein)

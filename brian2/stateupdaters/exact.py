@@ -161,6 +161,3 @@ class LinearStateUpdater(StateUpdateMethod):
         return '%s()' % self.__class__.__name__
 
 linear = LinearStateUpdater()
-
-# The linear state updater has the highest priority
-StateUpdateMethod.register('linear', linear, 0)
