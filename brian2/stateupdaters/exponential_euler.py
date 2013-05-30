@@ -43,7 +43,8 @@ def get_conditionally_linear_system(eqs):
             raise ValueError(('The expression "%s", defining the variable %s, '
                              'could not be separated into linear components') %
                              (s_expr, name))
-        coefficients[name] = (matches[wildcard], matches[constant_wildcard])
+        coefficients[name] = (matches[wildcard].simplify(),
+                              matches[constant_wildcard].simplify())
     
     return coefficients
 
@@ -65,14 +66,21 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
         
         code = []
         for var, (A, B) in system.iteritems():
-            A_name = '_A_' + var
-            BA_name = '_BA_' + var
-            # Calculate A and B/A
-            code += [A_name + ' = ' + str(A)]
-            code += [BA_name + ' = ' + str(B/A)]
+            s_var = sp.Symbol(var)
+            s_dt = sp.Symbol('dt')
+            if B != 0:
+                BA = B / A
+                # Avoid calculating B/A twice
+                BA_name = '_BA_' + var
+                s_BA = sp.Symbol(BA_name)
+                code += [BA_name + ' = ' + str(BA)]
+                update_expression = (s_var + s_BA)*sp.exp(A*s_dt) - s_BA
+            else:
+                update_expression = s_var*sp.exp(A*s_dt)
+                
             # The actual update step
-            update = '_{var} = ({var} + {BA})*exp(-{A} * dt) - BA'
-            code += [update.format(var=var, A=A_name, BA=BA_name)]
+            update = '_{var} = {expr}'
+            code += [update.format(var=var, expr=update_expression)]
         
         # Replace all the variables with their updated value
         for var in system:
