@@ -201,7 +201,7 @@ def test_determination():
     
     # all methods should work for these equations.
     # First, specify them explicitly (using the object)
-    for integrator in (linear, euler, rk2, rk4, milstein):
+    for integrator in (linear, euler, exponential_euler, rk2, rk4, milstein):
         with catch_logs() as logs:
             returned = determine_stateupdater(eqs, namespace, specifiers,
                                               method=integrator)
@@ -211,7 +211,7 @@ def test_determination():
     # Equation with multiplicative noise, only milstein should work without
     # a warning
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
-    for integrator in (linear, euler, rk2, rk4):
+    for integrator in (linear, euler, exponential_euler, rk2, rk4):
         with catch_logs() as logs:
             returned = determine_stateupdater(eqs, namespace, specifiers,
                                               method=integrator)
@@ -240,8 +240,10 @@ def test_determination():
     
     # Specification with names
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
-    for name, integrator in [('linear', linear), ('euler', euler), ('rk2', rk2),
-                             ('rk4', rk4), ('milstein', milstein)]:
+    for name, integrator in [('linear', linear), ('euler', euler), 
+                             ('exponential_euler', exponential_euler),
+                             ('rk2', rk2), ('rk4', rk4),
+                             ('milstein', milstein)]:
         with catch_logs() as logs:
             returned = determine_stateupdater(eqs, namespace, specifiers,
                                               method=name)
@@ -251,7 +253,7 @@ def test_determination():
 
     # Now all except milstein should refuse to work
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
-    for name in ['linear', 'euler', 'rk2', 'rk4']:
+    for name in ['linear', 'euler', 'exponential_euler', 'rk2', 'rk4']:
         assert_raises(ValueError, lambda: determine_stateupdater(eqs,
                                                                  namespace,
                                                                  specifiers,
@@ -272,6 +274,12 @@ def test_determination():
     # additive noise, milstein for equations with multiplicative noise
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     assert determine_stateupdater(eqs, namespace, specifiers) is linear
+    
+    # This is conditionally linear
+    eqs = Equations('''dv/dt = -(v + w**2)/ (10*ms) : 1
+                       dw/dt = -w/ (10*ms) : 1''')
+    assert determine_stateupdater(eqs, namespace, specifiers) is exponential_euler
+    
 
     eqs = Equations('dv/dt = -(v**2) / (10*ms) : 1')
     assert determine_stateupdater(eqs, namespace, specifiers) is euler
@@ -301,7 +309,7 @@ def test_static_equations():
     eqs2 = '''dv/dt = I / (10*ms) : 1
               I = -v + sin(2*pi*100*Hz*t): 1'''
     
-    methods = ['euler', 'rk2', 'rk4']
+    methods = ['euler', 'exponential_euler', 'rk2', 'rk4']
     for method in methods:
         G1 = NeuronGroup(1, eqs1, clock=Clock(), method=method)
         G1.v = 1
