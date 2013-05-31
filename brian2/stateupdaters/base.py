@@ -89,6 +89,10 @@ class StateUpdateMethod(object):
             automatically if they appear earlier in the list. If no `index` is
             given, the state updater will be inserted at the end of the list.
         '''
+        
+        # only deal with lower case names -- we don't want to have 'Euler' and
+        # 'euler', for example
+        name = name.lower() 
         for registered_name, _ in StateUpdateMethod.stateupdaters:
             if registered_name == name:
                 raise ValueError(('A stateupdater with the name "%s" '
@@ -151,6 +155,7 @@ class StateUpdateMethod(object):
             return method
         
         if method is not None:
+            method = method.lower()  # normalize name to lower case
             stateupdater = None
             for name, registered_stateupdater in StateUpdateMethod.stateupdaters:
                 if name == method:
