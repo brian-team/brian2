@@ -481,7 +481,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         
         # A dictionary mapping all the variables in the equations to their
         # sympy representations 
-        eq_variables = dict(((var, _symbol(var)) for var in eqs.names))
+        eq_variables = dict(((var, _symbol(var)) for var in eqs.eq_names))
         
         # Generate the random numbers for the stochastic variables
         stochastic_variables = eqs.stochastic_variables
