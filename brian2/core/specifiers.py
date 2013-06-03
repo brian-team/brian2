@@ -314,7 +314,8 @@ class ArrayVariable(Value):
         self.index = index
 
     def get_value(self):
-        return self.array
+        # Return a copy here, this way it also works for DynamicArray objects        
+        return self.array[:]
 
     def set_value(self, value):
         self.array[:] = value
