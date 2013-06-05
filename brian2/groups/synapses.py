@@ -53,7 +53,7 @@ class StateUpdater(GroupCodeRunner):
                                          self.group.specifiers)
 
 
-class Synapses(BrianObject, Group, SpikeSource):
+class Synapses(BrianObject, Group):
 
     basename = 'synapses'    
     def __init__(self, source, target=None, equations=None, pre=None, post=None,
