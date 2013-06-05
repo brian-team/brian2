@@ -81,8 +81,9 @@ class PythonLanguage(Language):
 
     def template_synapses(self):
         return '''
-        # TODO: check and improve this
-        _post_neurons = _postsynaptic.data.take(_spiking_synapses)
+        from numpy import empty, not_equal, logical_not, extract
+        # TODO: check and improve this        
+        _post_neurons = _postsynaptic[:].take(_spiking_synapses)
         _perm = _post_neurons.argsort()
         _aux = _post_neurons.take(_perm)
         _flag = empty(len(_aux)+1, dtype=bool)
@@ -94,7 +95,10 @@ class PythonLanguage(Language):
             _u = _aux.take(_F)
             _i = _perm.take(_F)
             _postsynaptic_idx = _u
-            _synapse_idx = _spiking_synapse[_i]
+            # TODO: I'm using _neuron_idx here for now -- we should use a
+            #       general index such as 'group_idx' so that we can use the 
+            #       same state update template for NeuronGroup and Synapses
+            _neuron_idx = _spiking_synapses[_i]
             # TODO: how do we get presynaptic indices? do we need to?
         
             %CODE%

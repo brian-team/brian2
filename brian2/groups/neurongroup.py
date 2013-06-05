@@ -15,7 +15,7 @@ from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
 from brian2.core.specifiers import (ReadOnlyValue, AttributeValue, ArrayVariable,
-                                    StochasticVariable, Subexpression)
+                                    StochasticVariable, Subexpression, Index)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.utils.logger import get_logger
@@ -36,12 +36,15 @@ class StateUpdater(GroupCodeRunner):
     '''
     def __init__(self, group, method):
         self.method_choice = method
+        indices = {'_neuron_idx': Index('_neuron_idx', True)}
         
         GroupCodeRunner.__init__(self, group,
                                        group.language.template_state_update,
+                                       indices=indices,
                                        when=(group.clock, 'groups'),
                                        name=group.name + '_stateupdater',
-                                       check_units=False)        
+                                       check_units=False,
+                                       additional_specifiers=['_num_neurons'])
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.namespace,
@@ -70,22 +73,25 @@ class Thresholder(GroupCodeRunner):
     and ``refractory_until`` attributes.
     '''
     def __init__(self, group):
+        indices = {'_neuron_idx': Index('_neuron_idx', True)}
         GroupCodeRunner.__init__(self, group,
                                  group.language.template_threshold,
+                                 indices=indices,
                                  when=(group.clock, 'thresholds'),
                                  name=group.name + '_thresholder',
                                  # TODO: This information should be included in
                                  # the template instead
                                  additional_specifiers=['t',
                                                         'refractory_until',
-                                                        'refractory'])
+                                                        'refractory',
+                                                        '_num_neurons'])
     
     def update_abstract_code(self):
         self.abstract_code = '_cond = ' + self.group.threshold
         
     def post_update(self, return_value):
         # Save the spikes in the NeuronGroup so others can use it
-        self.group.spikes = return_value        
+        self.group.spikes = return_value
 
 
 class Resetter(GroupCodeRunner):
@@ -94,12 +100,14 @@ class Resetter(GroupCodeRunner):
     variables of neurons that have spiked in this timestep.
     '''
     def __init__(self, group):
+        indices = {'_neuron_idx': Index('_neuron_idx', False)}
         GroupCodeRunner.__init__(self, group,
                                  group.language.template_reset,
+                                 indices=indices,
                                  when=(group.clock, 'resets'),
                                  name=group.name + '_resetter',
-                                 iterate_all=False,
-                                 additional_specifiers=['_spikes'])
+                                 additional_specifiers=['_num_neurons',
+                                                        '_spikes'])
     
     def update_abstract_code(self):
         self.abstract_code = self.group.reset

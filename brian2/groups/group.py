@@ -87,7 +87,7 @@ class Group(object):
         else:
             object.__setattr__(self, name, val)             
 
-def _create_codeobj(group, name, code, additional_namespace=None,
+def _create_codeobj(group, name, code, indices, additional_namespace=None,
                     template=None, iterate_all=True, check_units=True,
                     additional_specifiers=None):
     ''' A little helper function to reduce the amount of repetition when
@@ -116,9 +116,6 @@ def _create_codeobj(group, name, code, additional_namespace=None,
     for name in used_known:
         specifiers[name] = group.specifiers[name]
     
-    # Always add _num_neurons
-    specifiers['_num_neurons'] = group.specifiers['_num_neurons']
-    
     if additional_specifiers:
         for spec in additional_specifiers:
             specifiers[spec] = group.specifiers[spec]
@@ -128,9 +125,7 @@ def _create_codeobj(group, name, code, additional_namespace=None,
                                          resolved_namespace,
                                          specifiers,
                                          template,
-                                         indices={'_neuron_idx':
-                                                  Index('_neuron_idx',
-                                                        iterate_all)})
+                                         indices=indices)
 
 
 class GroupCodeRunner(BrianObject):
@@ -179,14 +174,14 @@ class GroupCodeRunner(BrianObject):
     state of the `Group`. For example, the `Tresholder` sets the
     `NeuronGroup.spikes` property in `post_update`.
     '''
-    def __init__(self, group, template, code=None, iterate_all=True,
+    def __init__(self, group, template, indices, code=None, 
                  when=None, name=None, check_units=True,
                  additional_specifiers=None):
         BrianObject.__init__(self, when=when, name=name)
         self.group = weakref.proxy(group)
         self.template = template
+        self.indices = indices
         self.abstract_code = code
-        self.iterate_all = iterate_all
         self.check_units = check_units
         self.additional_specifiers = additional_specifiers
         # Try to generate the abstract code and the codeobject without any
@@ -215,9 +210,9 @@ class GroupCodeRunner(BrianObject):
         self.update_abstract_code()
         self.codeobj = _create_codeobj(self.group, self.name,
                                        self.abstract_code,
+                                       self.indices,
                                        additional_namespace=namespace,
                                        template=self.template,
-                                       iterate_all=self.iterate_all,
                                        check_units=self.check_units,
                                        additional_specifiers=self.additional_specifiers
                                        )
@@ -225,9 +220,6 @@ class GroupCodeRunner(BrianObject):
     def pre_update(self):
         '''
         Will be called in every timestep before the `update` method is called.
-        
-        Overwritten in `StateUpdater` to update the ``is_active`` parameter of 
-        a `NeuronGroup`.
         
         Does nothing by default.
         '''
