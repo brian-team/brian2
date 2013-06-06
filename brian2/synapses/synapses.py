@@ -4,7 +4,7 @@ import weakref
 from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
-from brian2.core.specifiers import (ArrayVariable, Index, ReadOnlyValue, 
+from brian2.core.specifiers import (ArrayVariable, Index, DynamicArrayVariable, 
                                     AttributeValue, Subexpression,
                                     StochasticVariable)
 from brian2.codegen.languages import PythonLanguage
@@ -158,9 +158,8 @@ class Synapses(BrianObject, Group):
         self._synapses['post'] = [DynamicArray1D(0, dtype=smallest_inttype(max_synapses))
                                   for _ in xrange(len(self.target))]
         
-        self._indices = {}
-        self._indices['pre'] = DynamicArray1D(0, dtype=smallest_inttype(max_synapses))
-        self._indices['post'] = DynamicArray1D(0, dtype=smallest_inttype(max_synapses))
+        self._presynaptic = DynamicArray1D(0, dtype=smallest_inttype(max_synapses))
+        self._postsynaptic = DynamicArray1D(0, dtype=smallest_inttype(max_synapses))
         
         if pre:
             self._delays['pre'] = DynamicArray1D(0, dtype=np.int16)
@@ -217,18 +216,22 @@ class Synapses(BrianObject, Group):
                                        self.clock, 'dt_', constant=True),
                   '_num_neurons': AttributeValue('_num_neurons', Unit(1), np.int,
                                                 self, 'N', constant=True),
-                  '_presynaptic': ArrayVariable('_presynaptic', Unit(1),
-                                                np.int32, self._indices['pre'],
-                                                '_presynaptic_idx'),
-                  '_postsynaptic': ArrayVariable('_postsynaptic', Unit(1),
-                                                np.int32, self._indices['post'],
-                                                '_postsynaptic_idx')})
+                  '_presynaptic': DynamicArrayVariable('_presynaptic', Unit(1),
+                                                       np.int32, self._presynaptic,
+                                                       '_presynaptic_idx'),
+                  '_postsynaptic': DynamicArrayVariable('_postsynaptic', Unit(1),
+                                                        np.int32, self._postsynaptic,
+                                                        '_postsynaptic_idx')})
 
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 array = self.arrays[eq.varname]
                 constant = ('constant' in eq.flags)
-                s.update({eq.varname: ArrayVariable(eq.varname,
+                # We are dealing with dynamic arrays here, code generation
+                # shouldn't directly access the specifier.array attribute but
+                # use specifier.get_value() to get a reference to the underlying
+                # array
+                s.update({eq.varname: DynamicArrayVariable(eq.varname,
                                                     eq.unit,
                                                     array.dtype,
                                                     array,
@@ -265,20 +268,7 @@ class Synapses(BrianObject, Group):
                 curdtype = brian_prefs['core.default_scalar_dtype']
             arrays[name] = DynamicArray1D(0)
         logger.debug("NeuronGroup memory allocated successfully.")
-        return arrays
-
-    def pre_run(self, namespace):
-        # Replace dynamic arrays with arrays (necessary for C++ code)
-        # The following is only a temporary hack, this doesn't allow to add
-        # synapses between runs etc.
-        for name in self.arrays:
-            self.arrays[name] = self.arrays[name][:]
-            self.specifiers[name].array = self.arrays[name]
-        
-        for prepost in self._indices:
-            self._indices[prepost] = self._indices[prepost][:]
-            self.specifiers['_presynaptic'].array = self._indices[prepost]
-             
+        return arrays             
 
     def connect_one_to_one(self):
         ''' Manually create a one to one connectivity pattern '''
@@ -295,10 +285,11 @@ class Synapses(BrianObject, Group):
             for i in xrange(new_synapses):                    
                 synapses[i].resize(1)
                 synapses[i][0] = i
-        
-        for indices in self._indices.itervalues():
-            indices.resize(new_synapses)
-            indices[:] = np.arange(new_synapses)
+                
+        self._presynaptic.resize(new_synapses)
+        self._presynaptic[:] = np.arange(new_synapses)
+        self._postsynaptic.resize(new_synapses)
+        self._postsynaptic[:] = np.arange(new_synapses)
                 
         for delays in self._delays.itervalues():
             delays.resize(new_synapses)

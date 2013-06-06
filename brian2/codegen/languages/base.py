@@ -78,13 +78,12 @@ class Language(object):
         return codeobj
 
     def prepare_namespace(self, namespace, specifiers):
-
         namespace = dict(namespace)
         # Add variables referring to the arrays
         arrays = []
         for value in specifiers.itervalues():
             if isinstance(value, ArrayVariable):
-                arrays.append((value.arrayname, value.array))
+                arrays.append((value.arrayname, value.get_value()))
         namespace.update(arrays)
 
         return namespace

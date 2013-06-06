@@ -313,9 +313,8 @@ class ArrayVariable(Value):
         #: The name of the index that will be used in the generated code.
         self.index = index
 
-    def get_value(self):
-        # Return a copy here, this way it also works for DynamicArray objects        
-        return self.array[:]
+    def get_value(self):        
+        return self.array
 
     def set_value(self, value):
         self.array[:] = value
@@ -329,6 +328,17 @@ class ArrayVariable(Value):
                                   dtype=repr(self.dtype),
                                   index=repr(self.index),
                                   constant=self.constant)
+
+
+class DynamicArrayVariable(ArrayVariable):
+    '''
+    An object providing information about a model variable stored in a dynamic
+    array (used in synapses).
+    '''
+    
+    def get_value(self):
+        # The actual numpy array is accesible via DynamicArray1D.data
+        return self.array.data
 
 
 class Subexpression(Value):
