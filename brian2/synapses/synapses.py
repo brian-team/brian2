@@ -10,15 +10,14 @@ from brian2.core.specifiers import (ArrayVariable, Index, ReadOnlyValue,
 from brian2.codegen.languages import PythonLanguage
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         STATIC_EQUATION, PARAMETER)
+from brian2.groups.group import Group, GroupCodeRunner
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 
-from .group import Group, GroupCodeRunner
 from .spikequeue import SpikeQueue
-
 
 __all__ = ['Synapses']
 

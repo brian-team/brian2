@@ -63,6 +63,7 @@ from brian2.stateupdaters import *
 from brian2.codegen import *
 from brian2.core.namespace import *
 from brian2.groups import *
+from brian2.synapses import *
 from brian2.monitors import *
 
 # preferences
