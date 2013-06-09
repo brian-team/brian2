@@ -4,7 +4,7 @@ produced by a given presynaptic neuron group (or postsynaptic for backward
 propagation in STDP).
 """
 import numpy as np
-from brian2.core.base import BrianObject
+
 from brian2.units.stdunits import ms
 from brian2.utils.logger import get_logger
 
@@ -14,17 +14,17 @@ logger = get_logger(__name__)
 
 INITIAL_MAXSPIKESPER_DT = 1
 
-class SpikeQueue(BrianObject):
+class SpikeQueue(object):
     '''Spike queue
     
     Initialised with arguments:
 
-    ``source``
-        The neuron group that sends spikes.
     ``synapses``
         A list of synapses (synapses[i]=array of synapse indices for neuron i).
     ``delays``
-        An array of delays (delays[k]=delay of synapse k).  
+        An array of delays (delays[k]=delay of synapse k).
+    ``dt``
+        The timestep of the source group
     ``max_delay=0*ms``
         The maximum delay (in second) of synaptic events. At run time, the
         structure is resized to the maximum delay in ``delays``, and thus
@@ -66,10 +66,9 @@ class SpikeQueue(BrianObject):
     '''
     
     basename = 'spikequeue'
-    def __init__(self, source, synapses, delays,
+    def __init__(self, synapses, delays, dt, 
                  max_delay = 0*ms, maxevents = INITIAL_MAXSPIKESPER_DT,
                  precompute_offsets = True):
-        self.source = source #NeuronGroup
         self.delays = delays
         self.synapses = synapses
         self._precompute_offsets=precompute_offsets
@@ -79,35 +78,34 @@ class SpikeQueue(BrianObject):
             self._precompute_offsets=False
         
         # number of time steps, maximum number of spikes per time step
-        nsteps = int(np.floor((max_delay)/(self.source.clock.dt)))+1
+        nsteps = int(np.floor((max_delay)/(dt)))+1
         self.X = np.zeros((nsteps, maxevents), dtype = self.synapses[0].dtype) # target synapses
         self.X_flat = self.X.reshape(nsteps*maxevents,)
         self.currenttime = 0
         self.n = np.zeros(nsteps, dtype = int) # number of events in each time step
         
         self._offsets = None # precalculated offsets
+
         
-        # TODO: Do we need a scheduling step between thresholds and synapses?
-        BrianObject.__init__(self, when='synapses')
-        
-    # TODO: This should no overwrite the existing structure but re-executed on
-    # every pre_run
-    def pre_run(self, namespace):
+    def compress(self):
         '''
-        This is called the first time the network is run. The size of the
+        This is called every time the network is run. The size of the
         of the data structure (number of rows) is adjusted to fit the maximum
         delay in ``delays'', if necessary. Offsets are calculated, unless
         the option ``precompute_offsets'' is set to False. A flag is set if
         delays are homogeneous, in which case insertion will use a faster method.
         '''
-        nsteps=max(self.delays)+1
+        if self.delays:
+            max_delays = max(self.delays)
+            min_delays = min(self.delays)
+        else:
+            max_delays = min_delays = 0
+        
+        nsteps = max_delays + 1
         # Check whether some delays are too long
         if (self._max_delay>0) and (nsteps>self.X.shape[0]):
             raise ValueError,"Synaptic delays exceed maximum delay"
         
-        if hasattr(self, '_iscompressed') and self._iscompressed:
-            return
-        self._iscompressed = True
         # Adjust the maximum delay and number of events per timestep if necessary
         maxevents=self.X.shape[1]
         if maxevents==INITIAL_MAXSPIKESPER_DT: # automatic resize
@@ -116,7 +114,7 @@ class SpikeQueue(BrianObject):
         if self._max_delay>0:
             self._homogeneous=False
         else:
-            self._homogeneous=(nsteps==min(self.delays)+1)
+            self._homogeneous=(nsteps==min_delays + 1)
         # Resize
         if (nsteps>self.X.shape[0]) or (maxevents>self.X.shape[1]): # Resize
             nsteps=max(nsteps,self.X.shape[0]) # Choose max_delay if is is larger than the maximum delay
@@ -126,7 +124,7 @@ class SpikeQueue(BrianObject):
             self.n = np.zeros(nsteps, dtype = int) # number of events in each time step
 
         # Precompute offsets
-        if (self._offsets is None) and self._precompute_offsets:
+        if self._precompute_offsets:
             self.precompute_offsets()
 
     ################################ SPIKE QUEUE DATASTRUCTURE ######################
@@ -249,14 +247,11 @@ class SpikeQueue(BrianObject):
         self.X = newX
         self.X_flat = self.X.reshape(self.X.shape[0]*new_maxevents,)
         
-    def update(self):
+    def push(self, spikes):
         '''
-        Called by the network object at every timestep.
         Spikes produce synaptic events that are inserted in the queue. 
         '''
-        spikes = self.source.spikes
         if len(spikes):
-#            print '(Python) In propagate: spikes = ', spikes
             if self._homogeneous: # homogeneous delays
                 synaptic_events=np.hstack([self.synapses[i][:] for i in spikes]) # could be not efficient
                 self.insert_homogeneous(self.delays[0],synaptic_events)

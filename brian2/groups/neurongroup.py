@@ -44,7 +44,7 @@ class StateUpdater(GroupCodeRunner):
                                        when=(group.clock, 'groups'),
                                        name=group.name + '_stateupdater',
                                        check_units=False,
-                                       additional_specifiers=['_num_neurons'])
+                                       template_specifiers=['_num_neurons'])
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.namespace,
@@ -81,10 +81,10 @@ class Thresholder(GroupCodeRunner):
                                  name=group.name + '_thresholder',
                                  # TODO: This information should be included in
                                  # the template instead
-                                 additional_specifiers=['t',
-                                                        'refractory_until',
-                                                        'refractory',
-                                                        '_num_neurons'])
+                                 template_specifiers=['t',
+                                                      'refractory_until',
+                                                      'refractory',
+                                                      '_num_neurons'])
     
     def update_abstract_code(self):
         self.abstract_code = '_cond = ' + self.group.threshold
@@ -106,8 +106,8 @@ class Resetter(GroupCodeRunner):
                                  indices=indices,
                                  when=(group.clock, 'resets'),
                                  name=group.name + '_resetter',
-                                 additional_specifiers=['_num_neurons',
-                                                        '_spikes'])
+                                 template_specifiers=['_num_neurons',
+                                                      '_spikes'])
     
     def update_abstract_code(self):
         self.abstract_code = self.group.reset

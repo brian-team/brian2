@@ -85,47 +85,7 @@ class Group(object):
             # no unit checking
             self.specifiers[name[:-1]].set_value(val)
         else:
-            object.__setattr__(self, name, val)             
-
-def _create_codeobj(group, name, code, indices, additional_namespace=None,
-                    template=None, iterate_all=True, check_units=True,
-                    additional_specifiers=None):
-    ''' A little helper function to reduce the amount of repetition when
-    calling the language's _create_codeobj (always pass self.specifiers and
-    self.namespace + additional namespace).
-    '''
-
-    if check_units:
-        # Resolve the namespace, resulting in a dictionary containing only the
-        # external variables that are needed by the code -- keep the units for
-        # the unit checks 
-        _, _, unknown = analyse_identifiers(code, group.specifiers.keys())
-        resolved_namespace = group.namespace.resolve_all(unknown,
-                                                         additional_namespace,
-                                                         strip_units=False)
-    
-        check_units_statements(code, resolved_namespace, group.specifiers)
-
-    # Get the namespace without units
-    _, used_known, unknown = analyse_identifiers(code, group.specifiers.keys())
-    resolved_namespace = group.namespace.resolve_all(unknown,
-                                                     additional_namespace)
-    
-    # Only pass the specifiers that are actually used
-    specifiers = {}
-    for name in used_known:
-        specifiers[name] = group.specifiers[name]
-    
-    if additional_specifiers:
-        for spec in additional_specifiers:
-            specifiers[spec] = group.specifiers[spec]
-    
-    return group.language.create_codeobj(name,
-                                         code,
-                                         resolved_namespace,
-                                         specifiers,
-                                         template,
-                                         indices=indices)
+            object.__setattr__(self, name, val)
 
 
 class GroupCodeRunner(BrianObject):
@@ -162,6 +122,10 @@ class GroupCodeRunner(BrianObject):
         updaters (units are already checked for the equations and the generated
         abstract code might have already replaced variables with their unit-less
         values)
+    template_specifiers : list of str, optional
+        A list of specifiers that are needed in the template even though they
+        are not present in the abstract code. TODO: This information should
+        be represented in the template itself.
     
     Notes
     -----
@@ -176,14 +140,14 @@ class GroupCodeRunner(BrianObject):
     '''
     def __init__(self, group, template, indices, code=None, 
                  when=None, name=None, check_units=True,
-                 additional_specifiers=None):
+                 template_specifiers=None):
         BrianObject.__init__(self, when=when, name=name)
         self.group = weakref.proxy(group)
         self.template = template
         self.indices = indices
         self.abstract_code = code
         self.check_units = check_units
-        self.additional_specifiers = additional_specifiers
+        self.template_specifiers = template_specifiers
         # Try to generate the abstract code and the codeobject without any
         # additional namespace. This might work in situations where the
         # namespace is completely defined in the NeuronGroup. In this case,
@@ -205,17 +169,56 @@ class GroupCodeRunner(BrianObject):
         Does nothing by default.
         '''
         pass
+
+    def _create_codeobj(self, additional_namespace=None):
+        ''' A little helper function to reduce the amount of repetition when
+        calling the language's _create_codeobj (always pass self.specifiers and
+        self.namespace + additional namespace).
+        '''
+
+        all_specifiers = dict(self.group.specifiers)
+        # If the GroupCodeRunner has specifiers, add them
+        if hasattr(self, 'specifiers'):
+            all_specifiers.update(self.specifiers)
+                        
+        if self.check_units:
+            # Resolve the namespace, resulting in a dictionary containing only the
+            # external variables that are needed by the code -- keep the units for
+            # the unit checks 
+            _, _, unknown = analyse_identifiers(self.abstract_code,
+                                                all_specifiers.keys())
+            resolved_namespace = self.group.namespace.resolve_all(unknown,
+                                                                  additional_namespace,
+                                                                  strip_units=False)
+        
+            check_units_statements(self.abstract_code, resolved_namespace,
+                                   all_specifiers)
+    
+        # Get the namespace without units
+        _, used_known, unknown = analyse_identifiers(self.abstract_code,
+                                                     all_specifiers.keys())
+        resolved_namespace = self.group.namespace.resolve_all(unknown,
+                                                              additional_namespace)
+        
+        # Only pass the specifiers that are actually used
+        specifiers = {}
+        for name in used_known:
+            specifiers[name] = all_specifiers[name]
+        
+        if self.template_specifiers:
+            for spec in self.template_specifiers:
+                specifiers[spec] = all_specifiers[spec]
+        
+        return self.group.language.create_codeobj(name,
+                                             self.abstract_code,
+                                             resolved_namespace,
+                                             specifiers,
+                                             self.template,
+                                             indices=self.indices)
     
     def pre_run(self, namespace):
         self.update_abstract_code()
-        self.codeobj = _create_codeobj(self.group, self.name,
-                                       self.abstract_code,
-                                       self.indices,
-                                       additional_namespace=namespace,
-                                       template=self.template,
-                                       check_units=self.check_units,
-                                       additional_specifiers=self.additional_specifiers
-                                       )
+        self.codeobj = self._create_codeobj(additional_namespace=namespace)
     
     def pre_update(self):
         '''
@@ -228,7 +231,7 @@ class GroupCodeRunner(BrianObject):
     def update(self, **kwds):
         self.pre_update()
         return_value = self.codeobj(**kwds)
-        self.post_update(return_value)    
+        self.post_update(return_value)
 
     def post_update(self, return_value):
         '''

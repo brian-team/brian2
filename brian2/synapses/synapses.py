@@ -37,7 +37,7 @@ class StateUpdater(GroupCodeRunner):
                                        when=(group.clock, 'groups'),
                                        name=group.name + '_stateupdater',
                                        check_units=False,
-                                       additional_specifiers=['_num_neurons'])
+                                       template_specifiers=['_num_neurons'])
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.namespace,
@@ -62,35 +62,41 @@ class TargetUpdater(GroupCodeRunner):
     variables of synapses where the pre-/postsynaptic group spiked in this
     time step.
     '''
-    def __init__(self, synapses, prepost='pre'):
-        self.prepost = prepost
+    def __init__(self, source, synapses, prepost='pre'):
+        self.source = source        
         self.synapses = synapses
+        self.prepost = prepost
         indices = {'_neuron_idx': Index('_neuron_idx', False),
                    '_postsynaptic_idx': Index('_postsynaptic_idx', False),
                    '_presynaptic_idx': Index('_presynaptic_idx', False)}
+        self.delays = DynamicArray1D(0, dtype=np.int16)
+        self.queue = SpikeQueue(synapses._synapses[prepost],
+                                self.delays, self.source.clock.dt)
+        self.spiking_synapses = []
+        self.specifiers = {'_spiking_synapses': AttributeValue('_spiking_synapses',
+                                                               Unit(1), np.int,
+                                                               self, 'spiking_synapses')}
         GroupCodeRunner.__init__(self, synapses,
                                  synapses.language.template_synapses,
                                  indices=indices,
                                  when=(synapses.clock, 'synapses'),
                                  name=synapses.name + '_' + prepost,
-                                 additional_specifiers=['_num_neurons',
-                                                        '_presynaptic',
-                                                        '_postsynaptic'])        
+                                 template_specifiers=['_num_neurons',
+                                                      '_presynaptic',
+                                                      '_postsynaptic',
+                                                      '_spiking_synapses'])
     
-    def update(self, **kwds):
-        # TODO: This should really be in pre_update but then we would have
-        # to propagate the information somehow to the update method -- we
-        # cannot easily use the specifier mechanism as the specifiers are all
-        # defined in the Synapses and we want to have the same symbol in the
-        # code (_spiking_synapses) that refers to either pre- or postsynaptic
-        # spikes.
-        queue = self.synapses._queues[self.prepost]
-        spikes = queue.peek()
-        self.spikes = spikes
-        queue.next()
-        spikes = self.spikes
-        GroupCodeRunner.update(self, _spiking_synapses=spikes,
-                               _num_spiking_synapses=len(spikes))
+    def pre_run(self, namespace):
+        GroupCodeRunner.pre_run(self, namespace)
+        self.queue.compress()
+    
+    def pre_update(self):
+        # Push new spikes into the queue
+        self.queue.push(self.source.spikes)
+        # Get the spikes
+        self.spiking_synapses = self.queue.peek()
+        # Advance the spike queue
+        self.queue.next()
     
     def update_abstract_code(self):
         self.abstract_code = self.synapses.code[self.prepost]
@@ -160,29 +166,25 @@ class Synapses(BrianObject, Group):
         
         self._presynaptic = DynamicArray1D(0, dtype=smallest_inttype(max_synapses))
         self._postsynaptic = DynamicArray1D(0, dtype=smallest_inttype(max_synapses))
-        
-        if pre:
-            self._delays['pre'] = DynamicArray1D(0, dtype=np.int16)
-            self.code['pre'] = pre
-            self._queues['pre'] = SpikeQueue(source, self._synapses['pre'], self._delays['pre'])
-        if post:
-            self._delays['post'] = DynamicArray1D(0, dtype=np.int16)            
-            self.code['post'] = post
-            self._queues['pre'] = SpikeQueue(source, self._synapses['post'], self._synapses['post'])            
-        
+
         # Setup specifiers
         self.specifiers = self._create_specifiers()
-        
-        self.targetupdater = {}
-        for prepost in self.code:
-            self.targetupdater[prepost] = TargetUpdater(self, prepost)
-        
+
+        # Pre/post update code objects
+        self.pre = None
+        self.post = None
+        if pre:            
+            self.code['pre'] = pre
+            self.pre = TargetUpdater(self.source, self, 'pre')
+            self.contained_objects.append(self.pre)
+        if post:            
+            self.code['post'] = post
+            self.post = TargetUpdater(self.target, self, 'post')
+            self.contained_objects.append(self.post)
+
         #: Performs numerical integration step
-        self.state_updater = StateUpdater(self, method)
-        
+        self.state_updater = StateUpdater(self, method)        
         self.contained_objects.append(self.state_updater)
-        for updater in self.targetupdater.itervalues():
-            self.contained_objects.append(updater)        
         
         # Activate name attribute access
         Group.__init__(self)
@@ -290,9 +292,11 @@ class Synapses(BrianObject, Group):
         self._presynaptic[:] = np.arange(new_synapses)
         self._postsynaptic.resize(new_synapses)
         self._postsynaptic[:] = np.arange(new_synapses)
-                
-        for delays in self._delays.itervalues():
-            delays.resize(new_synapses)
+            
+        if self.pre:
+            self.pre.delays.resize(new_synapses)
+        if self.post:
+            self.post.delays.resize(new_synapses)
 
         self.N = new_synapses
 
