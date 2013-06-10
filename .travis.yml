@@ -16,8 +16,11 @@ install:
   - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install sympy --use-mirrors; else pip install http://sympy.googlecode.com/files/sympy-0.7.2-py3.2.tar.gz; fi"
   # install different pyparsing versions for python 2 and 3
   - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install pyparsing==1.5.7 --use-mirrors; else pip install pyparsing --use-mirrors; fi"
+  # Install coverall support
+  - "pip install -q coveralls"
   - "pip install . --use-mirrors"
 # command to run tests (make sure to not run it from the source directory)
-script: "cd ~;nosetests --with-doctest brian2"
+script: "SRCDIR=$(pwd); cd ~;coverage run $(which nosetests) --rcfile=$SRCDIR/.coveragerc --logging-clear-handlers --verbose --with-doctest brian2"
+after_success: "coveralls"
 notifications:
   email: false
