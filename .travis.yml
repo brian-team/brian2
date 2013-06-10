@@ -20,7 +20,7 @@ install:
   - "pip install -q coveralls"
   - "pip install . --use-mirrors"
 # command to run tests (make sure to not run it from the source directory)
-script: "SRCDIR=$(pwd); cd ~;coverage run --rcfile=$SRCDIR/.coveragerc $(which nosetests) --logging-clear-handlers --verbose --with-doctest brian2"
-after_success: "coveralls"
+script: "export SRCDIR=$(pwd); cd ~;coverage run --rcfile=$SRCDIR/.coveragerc $(which nosetests) --logging-clear-handlers --verbose --with-doctest brian2"
+after_success: "cd $SRCDIR;coveralls"
 notifications:
   email: false
