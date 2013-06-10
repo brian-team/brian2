@@ -10,15 +10,17 @@ before_install:
 # command to install dependencies
 install:
   # Use the newest versions available
-  - "travis_retry pip install -q numpy --upgrade --use-mirrors"
-  - "travis_retry pip install -q scipy sphinx ipython --upgrade --use-mirrors"
+  - "pip install -q numpy --upgrade --use-mirrors"
+  - "pip install -q scipy --upgrade --use-mirrors"
+  - "pip install -q sphinx --upgrade --use-mirrors"
+  - "pip install -q ipython --upgrade --use-mirrors"
   # Make sure to use the python 3 version for sympy
-  - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then travis_retry pip install -q sympy --use-mirrors; else travis_retry pip install -q http://sympy.googlecode.com/files/sympy-0.7.2-py3.2.tar.gz; fi"
+  - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install -q sympy --use-mirrors; else pip install -q http://sympy.googlecode.com/files/sympy-0.7.2-py3.2.tar.gz; fi"
   # install different pyparsing versions for python 2 and 3
-  - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then travis_retry pip install -q pyparsing==1.5.7 --use-mirrors; else travis_retry pip install -q pyparsing --use-mirrors; fi"
+  - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install -q pyparsing==1.5.7 --use-mirrors; else pip install -q pyparsing --use-mirrors; fi"
   # Install coverall support
-  - "travis_retry pip install -q coveralls"
-  - "travis_retry pip install . --use-mirrors"
+  - "pip install -q coveralls"
+  - "pip install . --use-mirrors"
 # command to run tests (make sure to not run it from the source directory)
 script: "export SRCDIR=$(pwd); cd ~;coverage run --rcfile=$SRCDIR/.coveragerc $(which nosetests) --logging-clear-handlers --verbose --with-doctest brian2"
 # We only report coverage for one Python version
