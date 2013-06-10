@@ -21,6 +21,7 @@ install:
   - "pip install . --use-mirrors"
 # command to run tests (make sure to not run it from the source directory)
 script: "export SRCDIR=$(pwd); cd ~;coverage run --rcfile=$SRCDIR/.coveragerc $(which nosetests) --logging-clear-handlers --verbose --with-doctest brian2"
-after_success: "cp .coverage $SRCDIR;cd $SRCDIR;coveralls"
+# We only report coverage for one Python version
+after_success: " if [[ $TRAVIS_PYTHON_VERSION == '3.3' ]]; then cp .coverage $SRCDIR; cd $SRCDIR; coveralls; fi"
 notifications:
   email: false
