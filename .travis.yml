@@ -11,9 +11,10 @@ before_install:
 install:
   # Use the newest versions available
   - "pip install -q numpy --upgrade --use-mirrors"
-  - "pip install -q scipy --upgrade --use-mirrors"
   - "pip install -q sphinx --upgrade --use-mirrors"
   - "pip install -q ipython --upgrade --use-mirrors"
+  # Use whatever version is available and be verbose to prevent timeout
+  - "pip install scipy --use-mirrors"
   # Make sure to use the python 3 version for sympy
   - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install -q sympy --use-mirrors; else pip install -q http://sympy.googlecode.com/files/sympy-0.7.2-py3.2.tar.gz; fi"
   # install different pyparsing versions for python 2 and 3
