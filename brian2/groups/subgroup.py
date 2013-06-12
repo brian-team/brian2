@@ -34,7 +34,6 @@ class Subgroup(BrianObject, SpikeSource):
     
     TODO: Group state variable access
     '''
-    basename = 'subgroup'
     def __init__(self, source, start, end, name=None):
         self.source = weakref.proxy(source)
         # We want to update the spikes attribute after it has been updated

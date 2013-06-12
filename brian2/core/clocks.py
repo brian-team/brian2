@@ -27,7 +27,7 @@ class Clock(Nameable):
     dt : `Quantity`, optional
         The time step of the simulation, will be set to ``0.1*ms`` if
         unspecified.
-    name : (str, None), optional
+    name : str, optional
         An explicit name, if not specified gives an automatically generated name
 
     Notes
@@ -38,17 +38,13 @@ class Clock(Nameable):
     ``abs(t1-t2)<epsilon*abs(t1)``, a standard test for equality of floating
     point values. The value of ``epsilon`` is ``1e-14``.
     '''
-
-    #: The stem for the automatically generated `name` attribute
-    basename = 'clock'
-    name = Nameable.name
     
     @check_units(dt=second)
-    def __init__(self, dt=None, name=None):
+    def __init__(self, dt=None, name='clock*'):
         self._dt_spec = dt
         self.i = 0  #: The time step of the simulation as an integer.
         self.i_end = 0  #: The time step the simulation will end as an integer
-        Nameable.__init__(self, name)
+        Nameable.__init__(self, name=name)
         logger.debug("Created clock {self.name} with dt={self._dt_spec}".format(self=self))
 
     def reinit(self):

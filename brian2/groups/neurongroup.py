@@ -40,7 +40,7 @@ class StateUpdater(GroupCodeRunner):
         GroupCodeRunner.__init__(self, group,
                                        group.language.template_state_update,
                                        when=(group.clock, 'groups'),
-                                       name=group.name + '_stateupdater',
+                                       name=group.name+'_stateupdater*',
                                        check_units=False)        
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
@@ -73,7 +73,7 @@ class Thresholder(GroupCodeRunner):
         GroupCodeRunner.__init__(self, group,
                                  group.language.template_threshold,
                                  when=(group.clock, 'thresholds'),
-                                 name=group.name + '_thresholder',
+                                 name=group.name+'_thresholder*',
                                  # TODO: This information should be included in
                                  # the template instead
                                  additional_specifiers=['t',
@@ -97,7 +97,7 @@ class Resetter(GroupCodeRunner):
         GroupCodeRunner.__init__(self, group,
                                  group.language.template_reset,
                                  when=(group.clock, 'resets'),
-                                 name=group.name + '_resetter',
+                                 name=group.name+'_resetter*',
                                  iterate_all=False,
                                  additional_specifiers=['_spikes'])
     
@@ -152,13 +152,12 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
     attribute is set to 0 initially, but this can be modified using the
     attributes `state_updater`, `thresholder` and `resetter`.    
     '''
-    basename = 'neurongroup'
     def __init__(self, N, equations, method=None,
                  threshold=None,
                  reset=None,
                  namespace=None,
                  dtype=None, language=None,
-                 clock=None, name=None):
+                 clock=None, name='neurongroup*'):
         BrianObject.__init__(self, when=clock, name=name)
 
         try:
@@ -285,18 +284,18 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
             When to run, by default in the 'start' slot with the same clock as
             the group.
         name : str, optional
-            A unique name, by default the name of the group appended with
-            'runner_0', 'runner_1', etc.
+            A unique name, if non is given the name of the group appended with
+            'runner', 'runner_1', etc. will be used. If a name is given
+            explicitly, it will be used as given (i.e. the group name will not
+            be prepended automatically).
         '''
         if when is None:  # TODO: make this better with default values
             when = Scheduler(clock=self.clock)
         else:
             raise NotImplementedError
+
         if name is None:
-            if not hasattr(self, 'num_runners'):
-                self.num_runners = 0
-            name = self.name + '_runner_' + str(self.num_runners)
-            self.num_runners += 1
+            name = self.name + '_runner*'
 
         runner = GroupCodeRunner(self, self.language.template_state_update,
                                  code=code, name=name, when=when)

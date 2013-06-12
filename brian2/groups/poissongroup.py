@@ -23,16 +23,15 @@ class PoissonGroup(BrianObject, SpikeSource):
         When the `spikes` should be updated, will always be in the
         'thresholds' slot.
     name : str, optional
-        Unique name, or use poisson_group_0, etc.
+        Unique name, or use poissongroup, poissongroup_1, etc.
     
     Notes
     -----
     
     TODO: make rates not have to be a value/array, use code generation for str
     '''
-    basename = 'poisson_group'
     @check_units(rates=Hz)
-    def __init__(self, N, rates, when=None, name=None):
+    def __init__(self, N, rates, when=None, name='poissongroup*'):
         # TODO: sort out the default values in Scheduler
         scheduler = Scheduler(when)
         scheduler.when = 'thresholds'
