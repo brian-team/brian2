@@ -28,8 +28,7 @@ class SpikeMonitor(BrianObject):
         A unique name for the object, otherwise will use
         ``source.name+'_spikemonitor_0'``, etc.
     '''
-    basename = 'spikemonitor'
-    def __init__(self, source, record=True, when=None, name=None):
+    def __init__(self, source, record=True, when=None, name='spikemonitor*'):
         self.source = weakref.proxy(source)
         self.record = bool(record)
 
