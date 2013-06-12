@@ -40,7 +40,7 @@ class StateUpdater(GroupCodeRunner):
         GroupCodeRunner.__init__(self, group,
                                        group.language.template_state_update,
                                        when=(group.clock, 'groups'),
-                                       name='_stateupdater*',
+                                       name='stateupdater*',
                                        check_units=False)        
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
@@ -73,7 +73,7 @@ class Thresholder(GroupCodeRunner):
         GroupCodeRunner.__init__(self, group,
                                  group.language.template_threshold,
                                  when=(group.clock, 'thresholds'),
-                                 name='_thresholder*',
+                                 name='thresholder*',
                                  # TODO: This information should be included in
                                  # the template instead
                                  additional_specifiers=['t',
@@ -97,7 +97,7 @@ class Resetter(GroupCodeRunner):
         GroupCodeRunner.__init__(self, group,
                                  group.language.template_reset,
                                  when=(group.clock, 'resets'),
-                                 name='_resetter*',
+                                 name='resetter*',
                                  iterate_all=False,
                                  additional_specifiers=['_spikes'])
     
@@ -272,7 +272,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         return arrays
 
 
-    def runner(self, code, when=None, name=None):
+    def runner(self, code, when=None, name='runner*'):
         '''
         Returns a `CodeRunner` that runs abstract code in the groups namespace
         
@@ -291,8 +291,6 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
             when = Scheduler(clock=self.clock)
         else:
             raise NotImplementedError
-        if name is None:
-            name = self.name + '_' + 'runner*'
 
         runner = GroupCodeRunner(self, self.language.template_state_update,
                                  code=code, name=name, when=when)
