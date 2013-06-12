@@ -182,7 +182,7 @@ class GroupCodeRunner(BrianObject):
     def __init__(self, group, template, code=None, iterate_all=True,
                  when=None, name='coderunner*', check_units=True,
                  additional_specifiers=None):
-        BrianObject.__init__(self, when=when, name=group.name+'_'+name)
+        BrianObject.__init__(self, when=when, name=name)
         self.group = weakref.proxy(group)
         self.template = template
         self.abstract_code = code

@@ -40,7 +40,7 @@ class StateUpdater(GroupCodeRunner):
         GroupCodeRunner.__init__(self, group,
                                        group.language.template_state_update,
                                        when=(group.clock, 'groups'),
-                                       name='stateupdater*',
+                                       name=group.name+'_stateupdater*',
                                        check_units=False)        
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
@@ -73,7 +73,7 @@ class Thresholder(GroupCodeRunner):
         GroupCodeRunner.__init__(self, group,
                                  group.language.template_threshold,
                                  when=(group.clock, 'thresholds'),
-                                 name='thresholder*',
+                                 name=group.name+'_thresholder*',
                                  # TODO: This information should be included in
                                  # the template instead
                                  additional_specifiers=['t',
@@ -97,7 +97,7 @@ class Resetter(GroupCodeRunner):
         GroupCodeRunner.__init__(self, group,
                                  group.language.template_reset,
                                  when=(group.clock, 'resets'),
-                                 name='resetter*',
+                                 name=group.name+'_resetter*',
                                  iterate_all=False,
                                  additional_specifiers=['_spikes'])
     
@@ -272,7 +272,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         return arrays
 
 
-    def runner(self, code, when=None, name='runner*'):
+    def runner(self, code, when=None, name=None):
         '''
         Returns a `CodeRunner` that runs abstract code in the groups namespace
         
@@ -284,13 +284,18 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
             When to run, by default in the 'start' slot with the same clock as
             the group.
         name : str, optional
-            A unique name, by default the name of the group appended with
-            'runner', 'runner_1', etc.
+            A unique name, if non is given the name of the group appended with
+            'runner', 'runner_1', etc. will be used. If a name is given
+            explicitly, it will be used as given (i.e. the group name will not
+            be prepended automatically).
         '''
         if when is None:  # TODO: make this better with default values
             when = Scheduler(clock=self.clock)
         else:
             raise NotImplementedError
+
+        if name is None:
+            name = self.name + '_runner*'
 
         runner = GroupCodeRunner(self, self.language.template_state_update,
                                  code=code, name=name, when=when)
