@@ -71,8 +71,8 @@ class StateMonitor(BrianObject, Group):
     * Cacheing extracted values (t, V, etc.)
     * Improve efficiency by using dynamic arrays instead of lists?
     '''
-    basename = 'statemonitor'
-    def __init__(self, source, variables, record=None, when=None, name=None):
+    def __init__(self, source, variables, record=None, when=None,
+                 name='statemonitor*'):
         self.source = weakref.proxy(source)
 
         # run by default on source clock at the end

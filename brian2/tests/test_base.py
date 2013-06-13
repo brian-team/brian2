@@ -3,8 +3,7 @@ from numpy.testing import assert_raises, assert_equal
 from nose import with_setup
 
 class DerivedBrianObject(BrianObject):
-    basename = 'derivedbrianobject'
-    def __init__(self, name=None):
+    def __init__(self, name='derivedbrianobject*'):
         super(DerivedBrianObject, self).__init__(name=name)
     def __str__(self):
         return self.name
@@ -61,10 +60,10 @@ def test_names():
     obj = BrianObject()
     obj2 = BrianObject()
     obj3 = DerivedBrianObject()
-    assert_equal(obj.name, 'brianobject_0')
+    assert_equal(obj.name, 'brianobject')
     assert_equal(obj2.name, 'brianobject_1')
-    assert_equal(obj3.name, 'derivedbrianobject_0')
-    assert_raises(ValueError, lambda: BrianObject(name='brianobject_0'))
+    assert_equal(obj3.name, 'derivedbrianobject')
+    assert_raises(ValueError, lambda: BrianObject(name='brianobject'))
 
 if __name__=='__main__':
     test_base()

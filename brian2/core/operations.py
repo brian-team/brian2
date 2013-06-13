@@ -22,7 +22,7 @@ class NetworkOperation(BrianObject):
     network_operation, Network, BrianObject
     """
     def __init__(self, function, when=None):
-        super(NetworkOperation, self).__init__(when=when)
+        BrianObject.__init__(self, when=when, name='networkoperation*')
         
         #: The function to be called each time step
         self.function = function
