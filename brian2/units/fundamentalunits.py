@@ -814,9 +814,13 @@ class Quantity(np.ndarray, object):
         # http://www.scipy.org/Subclasses
         subarr = np.array(arr, dtype=dtype, copy=copy).view(cls)
 
-        # We only want numerical datatypes, casting to float128 should work for
-        # all of those
-        if not np.can_cast(subarr.dtype, np.float128):
+        # Convert boolean arrays to integers (should only happen during unit
+        # checking, e.g. when checking the threshold condition)
+        if subarr.dtype == np.bool:
+            subarr = subarr.astype(np.int8)
+
+        # We only want numerical datatypes
+        if not np.issubdtype(subarr.dtype, np.number):
             raise TypeError('Quantities can only be created from numerical data.')
 
         # Use the given dimension or the dimension of the given array (if any)
