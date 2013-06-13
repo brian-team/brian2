@@ -22,7 +22,7 @@ group.v0 = linspace(0 * mV, 20 * mV, N)
 
 monitor = SpikeMonitor(group)
 
-duration = 5 * second
+duration = 1 * second
 run(duration)
 plot(group.v0 / mV, monitor.count / duration)
 show()
