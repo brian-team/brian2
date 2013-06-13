@@ -1,8 +1,9 @@
 import sympy as sp
 
-from brian2.stateupdaters.base import StateUpdateMethod
+from .base import StateUpdateMethod
 
 __all__ = ['exponential_euler']
+
 
 def get_conditionally_linear_system(eqs):
     '''
@@ -15,12 +16,28 @@ def get_conditionally_linear_system(eqs):
     
     Returns
     -------
-    
+    coefficients : dict of (sympy expression, sympy expression) tuples
+        For every variable x, a tuple (M, B) containing the coefficients M and
+        B (as sympy expressions) for M * x + B
     
     Raises
     ------
     ValueError
-        If the equations cannot be converted into an M * X + B form.
+        If one of the equations cannot be converted into a M * x + B form.
+
+    Examples
+    --------
+    >>> from brian2 import Equations
+    >>> eqs = Equations("""
+    ... dv/dt = (-v + w**2) / tau : 1
+    ... dw/dt = -w / tau : 1
+    ... """)
+    >>> system = get_conditionally_linear_system(eqs)
+    >>> print(system['v'])
+    (-1/tau, w**2/tau)
+    >>> print(system['w'])
+    (-1/tau, 0)
+
     '''
     diff_eqs = eqs.substituted_expressions
     
@@ -48,8 +65,22 @@ def get_conditionally_linear_system(eqs):
     
     return coefficients
 
+
 class ExponentialEulerStateUpdater(StateUpdateMethod):
+    '''
+    A state updater for conditionally linear equations, i.e. equations where
+    each variable only depends linearly on itself (but possibly non-linearly
+    on other variables). Typical Hodgkin-Huxley equations fall into this
+    category, it is therefore the default integration method used in the
+    GENESIS simulator, for example.
+    '''
     def can_integrate(self, equations, namespace, specifiers):
+        '''
+        Return whether the given equations can be integrated using this
+        state updater. This method tests for conditional linearity by
+        executing `get_conditionally_linear_system` and returns ``True`` in
+        case this call succeeds.
+        '''
         if equations.is_stochastic:
             return False
         
@@ -87,5 +118,7 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
             code += ['{var} = _{var}'.format(var=var)]
             
         return '\n'.join(code)
+    # Copy doc from parent class
+    __call__.__doc__ = StateUpdateMethod.__call__.__doc__
 
 exponential_euler = ExponentialEulerStateUpdater() 
