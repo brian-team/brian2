@@ -25,6 +25,8 @@ class Network(Nameable):
     objects that are added with `~Network.add`. The `~Network.run` method
     actually runs the simulation. The main run loop, determining which
     objects get called in what order is described in detail in the notes below.
+    The objects in the `Network` are accesible via their names, e.g.
+    `net['neurongroup']` would return the `NeuronGroup` with this name.
     
     Parameters
     ----------
@@ -110,6 +112,28 @@ class Network(Nameable):
                      ''')
 
     _globally_stopped = False
+
+    def __getitem__(self, item):
+        if not isinstance(item, basestring):
+            raise TypeError(('Need a name to access objects in a Network, '
+                             'got {type} instead').format(type=type(item)))
+        for obj in self.objects:
+            if obj.name == item:
+                return obj
+
+        raise KeyError('No object with name "%s" found' % item)
+
+    def __delitem__(self, key):
+        if not isinstance(key, basestring):
+            raise TypeError(('Need a name to access objects in a Network, '
+                             'got {type} instead').format(type=type(key)))
+
+        for obj in self.objects:
+            if obj.name == key:
+                self.remove(obj)
+                return
+
+        raise KeyError('No object with name "%s" found' % key)
 
     def add(self, *objs):
         """
