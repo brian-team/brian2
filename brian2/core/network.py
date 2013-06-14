@@ -33,7 +33,12 @@ class Network(Nameable):
         `~Network.add`.
     name : str, optional
         An explicit name, if not specified gives an automatically generated name
-        
+    weak_references : bool, optional
+        Whether to only store weak references to the objects (defaults to
+        ``False``), i.e. other references to the objects need to exist to keep
+        them alive. This is used by the magic system, otherwise it would keep
+        all objects alive all the time.
+
     Notes
     -----
     
@@ -75,14 +80,21 @@ class Network(Nameable):
     '''
 
     def __init__(self, *objs, **kwds):
-        #: The list of objects in the Network, should not normally be modified directly
+        #: The list of objects in the Network, should not normally be modified
+        #: directly
         #:
-        #: Stores `weakref.proxy` references to the objects.
+        #: Stores references or `weakref.proxy` references to the objects
+        #: (depending on `weak_references`)
         self.objects = []
         
         name = kwds.pop('name', 'network*')
+
+        #: Whether the network only stores weak references to the objects
+        self.weak_references = kwds.pop('weak_references', False)
         if kwds:
-            raise TypeError("Only keyword argument to Network is name")
+            raise TypeError("Only keyword arguments to Network are name "
+                            "and weak_references")
+
         Nameable.__init__(self, name=name)
 
         for obj in objs:
@@ -113,8 +125,9 @@ class Network(Nameable):
         """
         for obj in objs:
             if isinstance(obj, BrianObject):
-                #self.objects.append(obj)
-                if not isinstance(obj, (weakref.ProxyType, weakref.CallableProxyType)):
+                if self.weak_references and not isinstance(obj,
+                                                           (weakref.ProxyType,
+                                                            weakref.CallableProxyType)):
                     obj = weakref.proxy(obj)
                 self.objects.append(obj)
                 self.add(obj.contained_objects)
@@ -140,7 +153,9 @@ class Network(Nameable):
         '''
         for obj in objs:
             if isinstance(obj, BrianObject):
-                if not isinstance(obj, (weakref.ProxyType, weakref.CallableProxyType)):
+                if self.weak_references and not isinstance(obj,
+                                                           (weakref.ProxyType,
+                                                            weakref.CallableProxyType)):
                     obj = weakref.proxy(obj)
                 # note that weakref.proxy(obj) is weakref.proxy(obj) is True
                 self.objects.remove(obj)

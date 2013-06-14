@@ -234,6 +234,8 @@ def test_network_remove():
     # the relevance of this test is when we use weakref.proxy objects in
     # Network.objects, we should be able to add and remove these from
     # the Network just as much as the original objects
+    # TODO: Does this test make sense now that Network does not store weak
+    #       references by default?
     for obj in copy.copy(net.objects):
         net.remove(obj)
     net.run(1*ms)
