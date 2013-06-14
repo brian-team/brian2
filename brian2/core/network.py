@@ -135,6 +135,12 @@ class Network(Nameable):
 
         raise KeyError('No object with name "%s" found' % key)
 
+    def __len__(self):
+        return len(self.objects)
+
+    def __iter__(self):
+        return iter(self.objects)
+
     def add(self, *objs):
         """
         Add objects to the `Network`
