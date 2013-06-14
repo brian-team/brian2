@@ -234,6 +234,8 @@ def test_network_remove():
     # the relevance of this test is when we use weakref.proxy objects in
     # Network.objects, we should be able to add and remove these from
     # the Network just as much as the original objects
+    # TODO: Does this test make sense now that Network does not store weak
+    #       references by default?
     for obj in copy.copy(net.objects):
         net.remove(obj)
     net.run(1*ms)
@@ -291,6 +293,28 @@ def test_invalid_magic_network():
     assert_equal(magic_network.t, 1*ms)
 
 
+@with_setup(teardown=restore_initial_state)
+def test_network_access():
+    x = Counter(name='counter')
+    net = Network(x)
+    assert len(net) == 1
+
+    # accessing objects
+    assert net['counter'] is x
+    assert_raises(TypeError, lambda: net[123])
+    assert_raises(TypeError, lambda: net[1:3])
+    assert_raises(KeyError, lambda: net['non-existing'])
+
+    objects = [obj for obj in net]
+    assert set(objects) == set(net.objects)
+
+    # deleting objects
+    del net['counter']
+    assert_raises(TypeError, lambda: net.__delitem__(123))
+    assert_raises(TypeError, lambda: net.__delitem__(slice(1, 3)))
+    assert_raises(KeyError, lambda: net.__delitem__('counter'))
+
+
 if __name__=='__main__':
     for t in [test_empty_network,
               test_network_single_object,
@@ -306,6 +330,7 @@ if __name__=='__main__':
               test_network_remove,
               test_network_copy,
               test_invalid_magic_network,
+              test_network_access
               ]:
         t()
         restore_initial_state()
