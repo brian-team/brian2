@@ -33,6 +33,12 @@ def log_level_validator(log_level):
     log_levels = ('CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG')
     return log_level.upper() in log_levels
 
+#: Translation from string representation to number
+LOG_LEVELS = {'CRITICAL': logging.CRITICAL,
+              'ERROR': logging.ERROR,
+              'WARNING': logging.WARNING,
+              'INFO': logging.INFO,
+              'DEBUG': logging.DEBUG}
 
 brian_prefs.register_preferences('logging', 'Logging system preferences',
     delete_log_on_exit=BrianPreference(
@@ -106,7 +112,7 @@ if brian_prefs['logging.file_log']:
                                               suffix='.log', delete=False)
         TMP_LOG = TMP_LOG.name
         FILE_HANDLER = logging.FileHandler(TMP_LOG, mode='wt')
-        FILE_HANDLER.setLevel(brian_prefs['logging.file_log_level'].upper())
+        FILE_HANDLER.setLevel(LOG_LEVELS[brian_prefs['logging.file_log_level'].upper()])
         FILE_HANDLER.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(name)s: %(message)s'))
         logger.addHandler(FILE_HANDLER)
     except IOError as ex:
@@ -136,7 +142,7 @@ if brian_prefs['logging.save_script']:
 
 # create console handler with a higher log level
 CONSOLE_HANDLER = logging.StreamHandler()
-CONSOLE_HANDLER.setLevel(brian_prefs['logging.console_log_level'])
+CONSOLE_HANDLER.setLevel(LOG_LEVELS[brian_prefs['logging.console_log_level'].upper()])
 CONSOLE_HANDLER.setFormatter(logging.Formatter('%(levelname)-8s %(name)s: %(message)s'))
 
 # add the handler to the logger
