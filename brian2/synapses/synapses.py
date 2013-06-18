@@ -23,6 +23,7 @@ __all__ = ['Synapses']
 
 logger = get_logger(__name__)
 
+
 class StateUpdater(GroupCodeRunner):
     '''
     The `GroupCodeRunner` that updates the state variables of a `Synapses`
@@ -61,30 +62,60 @@ class TargetUpdater(GroupCodeRunner):
     The `GroupCodeRunner` that applies the pre/post statement(s) to the state
     variables of synapses where the pre-/postsynaptic group spiked in this
     time step.
+
+    Parameters
+    ----------
+
+    synapses : `Synapses`
+        Reference to the main `Synapses` object
+    prepost : {'pre', 'post'}
+        Whether this object should react to pre- or postsynaptic spikes
+    objname : str, optional
+        The name to use for the object, will be appendend to the name of
+        `synapses` to create a name in the sense of `Nameable`. The `synapses`
+        object should allow access to this object via
+        ``synapses.getattr(objname)``. It has to use the actual `objname`
+        attribute instead of relying on the provided argument, since the name
+        may have changed to become unique. If ``None`` is provided (the
+        default), ``prepost+'*'`` will be used (see `Nameable` for an
+        explanation of the wildcard operator).
     '''
-    def __init__(self, source, synapses, prepost='pre'):
-        self.source = source        
+    def __init__(self, synapses, code, prepost, objname=None):
+        if prepost == 'pre':
+            self.source = synapses.source
+        elif prepost == 'post':
+            self.source = synapses.target
+        else:
+            raise ValueError('prepost argument has to be either "pre" or '
+                             '"post"')
         self.synapses = synapses
-        self.prepost = prepost
         indices = {'_neuron_idx': Index('_neuron_idx', False),
                    '_postsynaptic_idx': Index('_postsynaptic_idx', False),
                    '_presynaptic_idx': Index('_presynaptic_idx', False)}
-        self.delays = DynamicArray1D(0, dtype=np.int16)
+        self.delays = DynamicArray1D(len(synapses._presynaptic), dtype=np.int16)
         self.queue = SpikeQueue(synapses._synapses[prepost],
                                 self.delays, self.source.clock.dt)
         self.spiking_synapses = []
         self.specifiers = {'_spiking_synapses': AttributeValue('_spiking_synapses',
                                                                Unit(1), np.int,
                                                                self, 'spiking_synapses')}
+        if objname is None:
+            objname = prepost + '*'
+
         GroupCodeRunner.__init__(self, synapses,
                                  synapses.language.template_synapses,
+                                 code=code,
                                  indices=indices,
                                  when=(synapses.clock, 'synapses'),
-                                 name=synapses.name + '_' + prepost,
+                                 name=synapses.name + '_' + objname,
                                  template_specifiers=['_num_neurons',
                                                       '_presynaptic',
                                                       '_postsynaptic',
                                                       '_spiking_synapses'])
+
+        # Re-extract the last part of the name from the full name
+        self.objname = self.name[len(synapses.name) + 1:]
+
     
     def pre_run(self, namespace):
         GroupCodeRunner.pre_run(self, namespace)
@@ -97,9 +128,6 @@ class TargetUpdater(GroupCodeRunner):
         self.spiking_synapses = self.queue.peek()
         # Advance the spike queue
         self.queue.next()
-    
-    def update_abstract_code(self):
-        self.abstract_code = self.synapses.code[self.prepost]
 
 
 class Synapses(BrianObject, Group):
@@ -142,19 +170,13 @@ class Synapses(BrianObject, Group):
         if language is None:
             language = PythonLanguage()
         self.language = language
-        
-        
+
         # Pre and postsynaptic synapses (i->synapse indexes)
         max_synapses=2147483647 # it could be explicitly reduced by a keyword
-        
-
-        self.pre_updater = None
-        self.post_updater = None
         
         self.N = 0
         
         self._queues = {}
-        self.code = {}
         self._delays = {}
         self._synapses = {}
         
@@ -169,17 +191,12 @@ class Synapses(BrianObject, Group):
         # Setup specifiers
         self.specifiers = self._create_specifiers()
 
-        # Pre/post update code objects
-        self.pre = None
-        self.post = None
-        if pre:            
-            self.code['pre'] = pre
-            self.pre = TargetUpdater(self.source, self, 'pre')
-            self.contained_objects.append(self.pre)
+        #: List of names of all updaters, e.g. ['pre', 'post']
+        self._updaters = []
+        if pre:
+            self.add_pre(pre)
         if post:            
-            self.code['post'] = post
-            self.post = TargetUpdater(self.target, self, 'post')
-            self.contained_objects.append(self.post)
+            self.add_post(post)
 
         #: Performs numerical integration step
         self.state_updater = StateUpdater(self, method)        
@@ -187,6 +204,28 @@ class Synapses(BrianObject, Group):
         
         # Activate name attribute access
         Group.__init__(self)
+
+    def add_pre(self, code, objname=None):
+        self._add_updater(code, 'pre', objname)
+
+    def add_post(self, code, objname=None):
+        self._add_updater(code, 'post', objname)
+
+    def _add_updater(self, code, prepost, objname=None):
+        '''
+        Add a new target updater. Users should call `add_pre` or `add_post`
+        instead.
+        '''
+        updater = TargetUpdater(self, code, prepost, objname)
+        objname = updater.objname
+        if hasattr(self, objname):
+            raise ValueError(('Cannot add updater with name "{name}", synapses '
+                              'object already has an attribute with this '
+                              'name.').format(name=objname))
+
+        setattr(self, objname, updater)
+        self._updaters.append(objname)
+        self.contained_objects.append(updater)
 
     def _create_specifiers(self):
         '''
@@ -291,11 +330,9 @@ class Synapses(BrianObject, Group):
         self._presynaptic[:] = np.arange(new_synapses)
         self._postsynaptic.resize(new_synapses)
         self._postsynaptic[:] = np.arange(new_synapses)
-            
-        if self.pre:
-            self.pre.delays.resize(new_synapses)
-        if self.post:
-            self.post.delays.resize(new_synapses)
+
+        for updater in self._updaters:
+            getattr(self, updater).delays.resize(new_synapses)
 
         self.N = new_synapses
 
