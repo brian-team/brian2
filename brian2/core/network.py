@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 class Network(Nameable):
     '''
-    Network(*objs, name=None)
+    Network(*objs, name='network*')
     
     The main simulation controller in Brian
 
@@ -31,7 +31,7 @@ class Network(Nameable):
     objs : (`BrianObject`, container), optional
         A list of objects to be added to the `Network` immediately, see
         `~Network.add`.
-    name : (str, None), optional
+    name : str, optional
         An explicit name, if not specified gives an automatically generated name
         
     Notes
@@ -73,17 +73,14 @@ class Network(Nameable):
     
     MagicNetwork, run, stop
     '''
-    
-    basename = 'network'
-    name = Nameable.name
-    
+
     def __init__(self, *objs, **kwds):
         #: The list of objects in the Network, should not normally be modified directly
         #:
         #: Stores `weakref.proxy` references to the objects.
         self.objects = []
         
-        name = kwds.pop('name', None)
+        name = kwds.pop('name', 'network*')
         if kwds:
             raise TypeError("Only keyword argument to Network is name")
         Nameable.__init__(self, name=name)

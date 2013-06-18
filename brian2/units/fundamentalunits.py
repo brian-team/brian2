@@ -814,6 +814,15 @@ class Quantity(np.ndarray, object):
         # http://www.scipy.org/Subclasses
         subarr = np.array(arr, dtype=dtype, copy=copy).view(cls)
 
+        # Convert boolean arrays to integers (should only happen during unit
+        # checking, e.g. when checking the threshold condition)
+        if subarr.dtype == np.bool:
+            subarr = subarr.astype(np.int8)
+
+        # We only want numerical datatypes
+        if not np.issubdtype(subarr.dtype, np.number):
+            raise TypeError('Quantities can only be created from numerical data.')
+
         # Use the given dimension or the dimension of the given array (if any)
         if hasattr(arr, 'dim'):
             subarr.dim = arr.dim
@@ -849,7 +858,6 @@ class Quantity(np.ndarray, object):
             elif any(is_quantity):
                 raise TypeError('Mixing quantities and non-quantities is '
                                 'not allowed.')
-
 
         if dim is not None:
             subarr.dim = dim
@@ -1220,22 +1228,25 @@ class Quantity(np.ndarray, object):
         inplace: bool, optional
             Whether to do the operation in-place (defaults to ``False``).
         '''
-        if isinstance(other, np.ndarray) or is_scalar_type(other):
-            if fail_for_mismatch:
-                fail_for_dimension_mismatch(self, other, message)
+        if not (isinstance(other, np.ndarray) or is_scalar_type(other)):
+            try:
+                other = Quantity(other)
+            except TypeError:
+                return NotImplemented
+        
+        if fail_for_mismatch:
+            fail_for_dimension_mismatch(self, other, message)
 
-            if inplace:
-                operation(self, other)
-                self.dim = dim_operation(self.dim, get_dimensions(other))
-                return self
-            else:
-                other_dim = get_dimensions(other)
-                return Quantity.with_dimensions(operation(np.asarray(self),
-                                                          np.asarray(other)),
-                                                dim_operation(self.dim,
-                                                              other_dim))
+        if inplace:
+            operation(self, other)
+            self.dim = dim_operation(self.dim, get_dimensions(other))
+            return self
         else:
-            return NotImplemented
+            other_dim = get_dimensions(other)
+            return Quantity.with_dimensions(operation(np.asarray(self),
+                                                      np.asarray(other)),
+                                            dim_operation(self.dim,
+                                                          other_dim))
 
     def __mul__(self, other):
         return self._binary_operation(other, operator.mul, operator.mul)

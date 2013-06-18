@@ -104,10 +104,9 @@ class TargetUpdater(GroupCodeRunner):
 
 class Synapses(BrianObject, Group):
 
-    basename = 'synapses'    
     def __init__(self, source, target=None, equations=None, pre=None, post=None,
                  namespace=None, dtype=None, language=None,
-                 max_delay=0*second, clock=None, method=None, name=None):
+                 max_delay=0*second, clock=None, method=None, name='synapses*'):
         
         BrianObject.__init__(self, when=clock, name=name)
 

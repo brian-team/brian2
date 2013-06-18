@@ -135,11 +135,11 @@ class GroupCodeRunner(BrianObject):
     `update_abstract_code` is called before a run to allow taking into account
     changes in the namespace or in the reset/threshold definition itself.
     `pre_update` and `post_update` are used to connect the `CodeObject` to the
-    state of the `Group`. For example, the `Tresholder` sets the
+    state of the `Group`. For example, the `Thresholder` sets the
     `NeuronGroup.spikes` property in `post_update`.
     '''
     def __init__(self, group, template, indices, code=None, 
-                 when=None, name=None, check_units=True,
+                 when=None, name='coderunner*', check_units=True,
                  template_specifiers=None):
         BrianObject.__init__(self, when=when, name=name)
         self.group = weakref.proxy(group)

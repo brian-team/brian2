@@ -56,6 +56,8 @@ def test_construction():
     assert_quantity(q, np.array([0.5, 1]), second)
     q = Quantity.with_dimensions(np.array([0.5, 1]), second=1)
     assert_quantity(q, np.array([0.5, 1]), second)
+    q = [0.5, 1] * second
+    assert_quantity(q, np.array([0.5, 1]), second)
 
     # dimensionless quantities
     q = Quantity([1, 2, 3])
@@ -78,12 +80,14 @@ def test_construction():
 
     # Illegal constructor calls
     assert_raises(TypeError, lambda: Quantity([500 * ms, 1]))
+    assert_raises(TypeError, lambda: Quantity(['some', 'nonsense']))
     assert_raises(DimensionMismatchError, lambda: Quantity([500 * ms,
                                                             1 * volt]))
     assert_raises(DimensionMismatchError, lambda: Quantity([500 * ms],
                                                            dim=volt.dim))
     q = Quantity.with_dimensions(np.array([0.5, 1]), second=1)
     assert_raises(DimensionMismatchError, lambda: Quantity(q, dim=volt.dim))
+    
 
 
 def test_get_dimensions():

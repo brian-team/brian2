@@ -101,7 +101,7 @@ class MagicNetwork(Network):
             raise ValueError("There can be only one MagicNetwork.")
         MagicNetwork._already_created = True
         
-        super(MagicNetwork, self).__init__(name='magicnetwork')
+        super(MagicNetwork, self).__init__(name='magicnetwork*')
         
         self._previous_refs = set()
         

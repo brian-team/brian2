@@ -2,11 +2,13 @@ Development workflow
 ====================
 
 Brian2 development is done in a `git`_ repository on `github`_. Continuous
-integration testing is provided by `travis CI`_.  
+integration testing is provided by `travis CI`_, code coverage is measured with
+`coveralls.io`_.
 
 .. _git: http://git-scm.com/
 .. _github: https://github.com/
 .. _`travis CI`: https://travis-ci.org/
+.. _`coveralls.io`: https://coveralls.io/
 
 The repository structure
 ------------------------
@@ -55,5 +57,6 @@ Useful links
 ------------
 * The Brian repository: https://github.com/brian-team/brian2
 * Travis testing for Brian: https://travis-ci.org/brian-team/brian2
+* Code Coverage for Brian: https://coveralls.io/r/brian-team/brian2
 * The Pro Git book: http://git-scm.com/book
 * github's documentation on pull requests: https://help.github.com/articles/using-pull-requests
