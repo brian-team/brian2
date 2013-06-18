@@ -206,15 +206,67 @@ class Synapses(BrianObject, Group):
         Group.__init__(self)
 
     def add_pre(self, code, objname=None):
-        self._add_updater(code, 'pre', objname)
+        '''
+        Add code for presynaptic spikes.
+
+        Parameters
+        ----------
+        code : str
+            The abstract code that should be executed on the arrival of
+            presynaptic spikes.
+        objname : str, optional
+            A name for the object, see `TargetUpdater` for more details.
+
+        Returns
+        -------
+        objname : str
+            The final name for the object. Equals `objname` if it was explicitly
+            given (and did not end in a wildcard character).
+
+        '''
+        return self._add_updater(code, 'pre', objname)
 
     def add_post(self, code, objname=None):
-        self._add_updater(code, 'post', objname)
+        '''
+        Add code for postsynaptic spikes.
+
+        Parameters
+        ----------
+        code : str
+            The abstract code that should be executed on the arrival of
+            postsynaptic spikes.
+        objname : str, optional
+            A name for the object, see `TargetUpdater` for more details.
+
+        Returns
+        -------
+        objname : str
+            The final name for the object. Equals `objname` if it was explicitly
+            given (and did not end in a wildcard character).
+        '''
+        return self._add_updater(code, 'post', objname)
 
     def _add_updater(self, code, prepost, objname=None):
         '''
         Add a new target updater. Users should call `add_pre` or `add_post`
         instead.
+
+        Parameters
+        ----------
+        code : str
+            The abstract code that should be executed on pre-/postsynaptic
+            spikes.
+        prepost : {'pre', 'post'}
+            Whether the code is triggered by presynaptic or postsynaptic spikes
+        objname : str, optional
+            A name for the object, see `TargetUpdater` for more details.
+
+        Returns
+        -------
+        objname : str
+            The final name for the object. Equals `objname` if it was explicitly
+            given (and did not end in a wildcard character).
+
         '''
         updater = TargetUpdater(self, code, prepost, objname)
         objname = updater.objname
@@ -226,6 +278,7 @@ class Synapses(BrianObject, Group):
         setattr(self, objname, updater)
         self._updaters.append(objname)
         self.contained_objects.append(updater)
+        return objname
 
     def _create_specifiers(self):
         '''
