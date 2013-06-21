@@ -61,34 +61,21 @@ class SpikeQueue(object):
     possible to also vectorise over presynaptic spikes.
     '''
     
-    def __init__(self, synapses, delays, dt, max_delay = 0*ms,
-                 precompute_offsets = True):
-        #: Reference to the synaptic delays
-        self.delays = delays
-        #: Reference to the synaptic indices
-        self.synapses = synapses
+    def __init__(self, dtype=np.int32, precompute_offsets=True):
         #: Whether the offsets should be precomputed
-        self._precompute_offsets=precompute_offsets
-        
-        self._max_delay=max_delay
-        if max_delay>0: # do not precompute offsets if delays can change
-            self._precompute_offsets=False
-        
-        # number of time steps, maximum number of spikes per time step
-        nsteps = int(np.floor((max_delay)/(dt)))+1
-        #: The main data structure
-        self.X = np.zeros((nsteps, INITIAL_MAXSPIKESPER_DT),
-                          dtype=self.synapses[0].dtype) # target synapses
-        self.X_flat = self.X.reshape(nsteps*INITIAL_MAXSPIKESPER_DT, )
+        self._precompute_offsets = precompute_offsets
+
+        self.dtype=dtype
+        self.X = np.zeros((1,1), dtype=dtype) # target synapses
+        self.X_flat = self.X.reshape(1, )
         #: The current time (in time steps)
         self.currenttime = 0
         #: number of events in each time step
-        self.n = np.zeros(nsteps, dtype = int) # 
+        self.n = np.zeros(1, dtype=int)
         #: precalculated offsets
         self._offsets = None
-
         
-    def compress(self):
+    def compress(self, delays, synapse_targets):
         '''
         Prepare the data structure and pre-compute offsets.
         This is called every time the network is run. The size of the
@@ -98,37 +85,37 @@ class SpikeQueue(object):
         delays are homogeneous, in which case insertion will use a faster method
         implemented in `insert_homogeneous`.        
         '''
-        if self.delays:
-            max_delays = max(self.delays)
-            min_delays = min(self.delays)
+        if len(delays):
+            max_delays = max(delays)
+            min_delays = min(delays)
         else:
             max_delays = min_delays = 0
-        
-        nsteps = max_delays + 1
-        # Check whether some delays are too long
-        if (self._max_delay>0) and (nsteps>self.X.shape[0]):
-            raise ValueError,"Synaptic delays exceed maximum delay"
+
+        n_targets = [len(targets) for targets in synapse_targets]
+        if len(n_targets):
+            max_events = max(n_targets)
+        else:
+            max_events = 0
+
+        n_steps = max_delays + 1
         
         # Adjust the maximum delay and number of events per timestep if necessary
-        maxevents=self.X.shape[1]
-        if maxevents==INITIAL_MAXSPIKESPER_DT: # automatic resize
-            maxevents=max(INITIAL_MAXSPIKESPER_DT,max([len(targets) for targets in self.synapses]))
         # Check if delays are homogeneous
-        if self._max_delay>0:
-            self._homogeneous=False
-        else:
-            self._homogeneous=(nsteps==min_delays + 1)
+        if max_delays != min_delays:
+            self._homogeneous = False
+
         # Resize
-        if (nsteps>self.X.shape[0]) or (maxevents>self.X.shape[1]): # Resize
-            nsteps=max(nsteps,self.X.shape[0]) # Choose max_delay if is is larger than the maximum delay
-            maxevents=max(maxevents,self.X.shape[1])
-            self.X = np.zeros((nsteps, maxevents), dtype = self.synapses[0].dtype) # target synapses
-            self.X_flat = self.X.reshape(nsteps*maxevents,)
-            self.n = np.zeros(nsteps, dtype = int) # number of events in each time step
+        if (n_steps > self.X.shape[0]) or (max_events > self.X.shape[1]): # Resize
+            # Choose max_delay if is is larger than the maximum delay
+            n_steps = max(n_steps, self.X.shape[0])
+            max_events = max(max_events, self.X.shape[1])
+            self.X = np.zeros((n_steps, max_events), dtype=self.dtype) # target synapses
+            self.X_flat = self.X.reshape(n_steps*max_events,)
+            self.n = np.zeros(n_steps, dtype=int) # number of events in each time step
 
         # Precompute offsets
         if self._precompute_offsets:
-            self.precompute_offsets()
+            self.precompute_offsets(delays, synapse_targets)
 
     ################################ SPIKE QUEUE DATASTRUCTURE ################
     def next(self):
@@ -145,15 +132,17 @@ class SpikeQueue(object):
         '''      
         return self.X[self.currenttime,:self.n[self.currenttime]]    
     
-    def precompute_offsets(self):
+    def precompute_offsets(self, delays, synapse_targets):
         '''
         Precompute all offsets corresponding to delays. This assumes that
         delays will not change during the simulation.
         '''
-        self._offsets = []
-        for i in xrange(len(self.synapses)):
-            delays = self.delays[self.synapses[i][:]]
-            self._offsets.append(self.offsets(delays))
+        self._offsets = np.zeros_like(delays)
+        index = 0
+        for targets in synapse_targets:
+            target_delays = delays[targets[:]]
+            self._offsets[index:index+len(target_delays)] = self.offsets(target_delays)
+            index += len(target_delays)
     
     def offsets(self, delay):
         '''
@@ -256,7 +245,7 @@ class SpikeQueue(object):
         self.X = newX
         self.X_flat = self.X.reshape(self.X.shape[0]*new_maxevents,)
         
-    def push(self, spikes):
+    def push(self, indices, delays):
         '''
         Push spikes to the queue.
         
@@ -265,20 +254,11 @@ class SpikeQueue(object):
         spikes : iterable of int
             A list/array of indices, denoting the spiking neurons.
         '''
-        if len(spikes):
+        if len(indices):
             if self._homogeneous: # homogeneous delays
-                synaptic_events = np.hstack([self.synapses[i][:] for i in spikes]) # could be not efficient
-                self.insert_homogeneous(self.delays[0], synaptic_events)
+                self.insert_homogeneous(delays[0], indices)
             elif self._offsets is None: # vectorise over synaptic events
                 # there are no precomputed offsets, this is the case (in particular) when there are dynamic delays
-                synaptic_events = np.hstack([self.synapses[i][:] for i in spikes])
-                if len(synaptic_events):
-                    delay = self.delays[synaptic_events]
-                    self.insert(delay, synaptic_events)
+                self.insert(delays, indices)
             else: # offsets are precomputed
-                for i in spikes:
-                    synaptic_events=self.synapses[i][:]    
-                    if len(synaptic_events):
-                        delay = self.delays[synaptic_events]
-                        offsets = self._offsets[i]
-                        self.insert(delay, synaptic_events, offsets)
+                self.insert(delays, indices, self._offsets)

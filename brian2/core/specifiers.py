@@ -123,7 +123,16 @@ class Value(VariableSpecifier):
         Return the value associated with the variable.
         '''
         raise NotImplementedError()
-    
+
+    def get_value_with_unit(self):
+        return self.get_value() * self.unit
+
+    def get_addressable_value(self):
+        return self.get_value()
+
+    def get_addressable_value_with_unit(self):
+        return self.get_value_with_unit()
+
     def get_len(self):
         if self.scalar:
             return 0
@@ -339,6 +348,39 @@ class DynamicArrayVariable(ArrayVariable):
     def get_value(self):
         # The actual numpy array is accesible via DynamicArray1D.data
         return self.array.data
+
+
+class SynapticArrayView(object):
+
+    def __init__(self, array, synapses, unit=None):
+        self.array = array
+        self.synapses = synapses
+        self.unit = unit
+
+    data = property(lambda self: self.array.data)
+
+    def __getitem__(self, i):
+        if self.unit is None:
+            return self.array.data[self.synapses.synapse_index(i)]
+        else:
+            return self.array.data[self.synapses.synapse_index(i)] * self.unit
+
+    def __setitem__(self, i, value):
+        synapses = self.synapses.indices[i]
+        self.array.data[synapses] = value
+
+
+class SynapticArrayVariable(DynamicArrayVariable):
+
+    def __init__(self, name, unit, dtype, array, index, synapses, constant=False):
+        ArrayVariable.__init__(self, name, unit, dtype, array, index)
+        self.synapses = synapses
+
+    def get_addressable_value(self):
+        return SynapticArrayView(self.array, self.synapses, None)
+
+    def get_addressable_value_with_unit(self):
+        return SynapticArrayView(self.array, self.synapses, self.unit)
 
 
 class Subexpression(Value):

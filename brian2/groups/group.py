@@ -30,7 +30,7 @@ class Group(object):
         Gets the unitless array.
         '''
         try:
-            return self.specifiers[name].get_value()
+            return self.specifiers[name].get_addressable_value()
         except KeyError:
             raise KeyError("Array named "+name+" not found.")
         
@@ -40,8 +40,7 @@ class Group(object):
         '''
         try:
             spec = self.specifiers[name]
-            # TODO: More efficitent to use Quantity.with_dimensions ?
-            return spec.get_value() * spec.unit
+            return spec.get_addressable_value_with_unit()
         except KeyError:
             raise KeyError("Array named "+name+" not found.")
 

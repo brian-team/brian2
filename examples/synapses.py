@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from brian2 import *
 
-language = CPPLanguage()
+language = PythonLanguage()
 
 G1 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
                 threshold='v > 1',
@@ -22,7 +22,7 @@ syn.connect_one_to_one()
 # Set the delays
 syn.pre.delays[:] = np.arange(len(G1)) * 10  # in timesteps
 # Set the initial values of the synaptic variable
-syn.arrays['w'][:] = 1
+syn.w[:] = 1
 
 mon = StateMonitor(G2, 'v', record=True)
 run(10*ms)

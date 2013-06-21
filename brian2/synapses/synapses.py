@@ -1,12 +1,14 @@
-import numpy as np
+import collections
 import weakref
+
+import numpy as np
 
 from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
 from brian2.core.specifiers import (ArrayVariable, Index, DynamicArrayVariable, 
                                     AttributeValue, Subexpression,
-                                    StochasticVariable)
+                                    StochasticVariable, SynapticArrayVariable)
 from brian2.codegen.languages import PythonLanguage
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         STATIC_EQUATION, PARAMETER)
@@ -18,6 +20,8 @@ from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 
 from .spikequeue import SpikeQueue
+
+MAX_SYNAPSES = 2147483647
 
 __all__ = ['Synapses']
 
@@ -83,8 +87,10 @@ class TargetUpdater(GroupCodeRunner):
     def __init__(self, synapses, code, prepost, objname=None):
         if prepost == 'pre':
             self.source = synapses.source
+            self.synapse_indices = synapses.indices.pre_synaptic
         elif prepost == 'post':
             self.source = synapses.target
+            self.synapse_indices = synapses.indices.post_synaptic
         else:
             raise ValueError('prepost argument has to be either "pre" or '
                              '"post"')
@@ -92,9 +98,8 @@ class TargetUpdater(GroupCodeRunner):
         indices = {'_neuron_idx': Index('_neuron_idx', False),
                    '_postsynaptic_idx': Index('_postsynaptic_idx', False),
                    '_presynaptic_idx': Index('_presynaptic_idx', False)}
-        self.delays = DynamicArray1D(len(synapses._presynaptic), dtype=np.int16)
-        self.queue = SpikeQueue(synapses._synapses[prepost],
-                                self.delays, self.source.clock.dt)
+        self.delays = DynamicArray1D(len(synapses.indices), dtype=np.int16)
+        self.queue = SpikeQueue()
         self.spiking_synapses = []
         self.specifiers = {'_spiking_synapses': AttributeValue('_spiking_synapses',
                                                                Unit(1), np.int,
@@ -116,18 +121,119 @@ class TargetUpdater(GroupCodeRunner):
         # Re-extract the last part of the name from the full name
         self.objname = self.name[len(synapses.name) + 1:]
 
-    
     def pre_run(self, namespace):
         GroupCodeRunner.pre_run(self, namespace)
-        self.queue.compress()
+        self.queue.compress(self.delays, self.synapse_indices)
     
     def pre_update(self):
         # Push new spikes into the queue
-        self.queue.push(self.source.spikes)
+        spikes = self.source.spikes
+        if len(spikes):
+            indices = np.hstack((self.synapse_indices[spike]
+                                 for spike in spikes))
+            if len(indices):
+                delays = self.delays[indices]
+                self.queue.push(indices, delays)
         # Get the spikes
         self.spiking_synapses = self.queue.peek()
         # Advance the spike queue
         self.queue.next()
+
+
+class IndexView(object):
+
+    def __init__(self, indices, mapping):
+        self.indices = indices
+        self.mapping = mapping
+
+    def __getitem__(self, item):
+        synaptic_indices = self.indices[item]
+        return self.mapping[synaptic_indices]
+
+
+class SynapticIndices(object):
+    '''
+    Convenience object to store the synaptic indices.
+
+    Parameters
+    ----------
+    source_len : int
+        The number of neurons in the presynaptic group.
+    target_len : int
+        The number of neurons in the postsyanptic group.
+    '''
+    def __init__(self, source_len, target_len):
+        self.source_len = source_len
+        self.target_len = target_len
+        dtype = smallest_inttype(MAX_SYNAPSES)
+        self.synaptic_pre = DynamicArray1D(0, dtype=dtype)
+        self.synaptic_post = DynamicArray1D(0, dtype=dtype)
+        self.pre_synaptic = [DynamicArray1D(0, dtype=dtype)
+                             for _ in xrange(source_len)]
+        self.post_synaptic = [DynamicArray1D(0, dtype=dtype)
+                              for _ in xrange(target_len)]
+        self.i = IndexView(self, self.synaptic_pre)
+        self.j = IndexView(self, self.synaptic_post)
+
+    N = property(fget=lambda self: len(self.synaptic_pre),
+                 doc='Total number of synapses')
+
+    def _resize(self, number):
+        if not isinstance(number, int):
+            raise TypeError(('Expected an integer number got {} '
+                             'instead').format(type(number)))
+        if number < self.N:
+            raise ValueError(('Cannot reduce number of synapses, '
+                              '{} < {}').format(number, self.N))
+
+        self.synaptic_pre.resize(number)
+        self.synaptic_post.resize(number)
+
+    def _add_synapses(self, sources, targets):
+        new_synapses = len(sources)
+        assert new_synapses == len(targets)
+
+        old_N = self.N
+        new_N = old_N + new_synapses
+        self._resize(new_N)
+
+        self.synaptic_pre[old_N:new_N] = sources
+        self.synaptic_post[old_N:new_N] = targets
+
+        synapse_idx = old_N
+        for source, target in zip(sources, targets):
+            synapses = self.pre_synaptic[source]
+            synapses.resize(len(synapses) + 1)
+            synapses[-1] = synapse_idx
+            synapses = self.post_synaptic[target]
+            synapses.resize(len(synapses) + 1)
+            synapses[-1] = synapse_idx
+            synapse_idx += 1
+
+    def __len__(self):
+        return self.N
+
+    def __getitem__(self, index):
+        '''
+        Returns synaptic indices for `index`, which can be a tuple of indices
+        (including arrays and slices), a single index or a string.
+
+        '''
+        if isinstance(index, tuple):
+            if len(index) == 2:  # two indices (pre- and postsynaptic cell)
+                index = (index[0], index[1], slice(None))
+            elif len(index) > 3:
+                raise IndexError('Need 1, 2 or 3 indices, got %d.' % len(index))
+
+            # Interpret indices
+            raise NotImplementedError()
+        elif isinstance(index, basestring):
+            # interpret the string expression
+            raise NotImplementedError()
+        elif isinstance(index, (int, np.ndarray, slice, collections.Sequence)):
+            return index
+        else:
+            raise IndexError('Unsupported index type {}'.format(type(index)))
 
 
 class Synapses(BrianObject, Group):
@@ -170,23 +276,11 @@ class Synapses(BrianObject, Group):
         if language is None:
             language = PythonLanguage()
         self.language = language
-
-        # Pre and postsynaptic synapses (i->synapse indexes)
-        max_synapses=2147483647 # it could be explicitly reduced by a keyword
-        
-        self.N = 0
         
         self._queues = {}
         self._delays = {}
-        self._synapses = {}
-        
-        self._synapses['pre'] = [DynamicArray1D(0, dtype=smallest_inttype(max_synapses))
-                                 for _ in xrange(len(self.source))]
-        self._synapses['post'] = [DynamicArray1D(0, dtype=smallest_inttype(max_synapses))
-                                  for _ in xrange(len(self.target))]
-        
-        self._presynaptic = DynamicArray1D(0, dtype=smallest_inttype(max_synapses))
-        self._postsynaptic = DynamicArray1D(0, dtype=smallest_inttype(max_synapses))
+
+        self.indices = SynapticIndices(len(source), len(target))
 
         # Setup specifiers
         self.specifiers = self._create_specifiers()
@@ -204,6 +298,12 @@ class Synapses(BrianObject, Group):
         
         # Activate name attribute access
         Group.__init__(self)
+
+    N = property(fget=lambda self: self.indices.N,
+                 doc='Total number of synapses')
+
+    def __len__(self):
+        return self.N
 
     def add_pre(self, code, objname=None):
         '''
@@ -296,24 +396,28 @@ class Synapses(BrianObject, Group):
             if isinstance(spec, ArrayVariable):
                 new_spec = ArrayVariable(spec.name, spec.unit, spec.dtype,
                              spec.array, '_postsynaptic_idx')
-                s[name + '_post'] = new_spec            
-                # Also add all the post specifiers without a suffix -- if this clashes
-                # with the name of a state variable definined in this Synapses group,
-                # the latter will overwrite the entry later and take precedence
+                s[name + '_post'] = new_spec
+                # Also add all the post specifiers without a suffix -- if this
+                # clashes with the name of a state variable defined in this
+                # Synapses group, the latter will overwrite the entry later and
+                # take precedence
                 s[name] = new_spec
-        
+
         # Standard specifiers always present
         s.update({'t': AttributeValue('t',  second, np.float64,
                                       self.clock, 't_'),
                   'dt': AttributeValue('dt', second, np.float64,
                                        self.clock, 'dt_', constant=True),
-                  '_num_neurons': AttributeValue('_num_neurons', Unit(1), np.int,
-                                                self, 'N', constant=True),
+                  '_num_neurons': AttributeValue('_num_neurons', Unit(1),
+                                                 np.int, self, 'N',
+                                                 constant=True),
                   '_presynaptic': DynamicArrayVariable('_presynaptic', Unit(1),
-                                                       np.int32, self._presynaptic,
+                                                       np.int32,
+                                                       self.indices.synaptic_pre,
                                                        '_presynaptic_idx'),
                   '_postsynaptic': DynamicArrayVariable('_postsynaptic', Unit(1),
-                                                        np.int32, self._postsynaptic,
+                                                        np.int32,
+                                                        self.indices.synaptic_post,
                                                         '_postsynaptic_idx')})
 
         for eq in self.equations.itervalues():
@@ -324,12 +428,13 @@ class Synapses(BrianObject, Group):
                 # shouldn't directly access the specifier.array attribute but
                 # use specifier.get_value() to get a reference to the underlying
                 # array
-                s.update({eq.varname: DynamicArrayVariable(eq.varname,
+                s.update({eq.varname: SynapticArrayVariable(eq.varname,
                                                     eq.unit,
                                                     array.dtype,
                                                     array,
                                                     '_neuron_idx',
-                                                    constant)})
+                                                    self,
+                                                    constant=constant)})
         
             elif eq.type == STATIC_EQUATION:
                 s.update({eq.varname: Subexpression(eq.varname, eq.unit,
@@ -368,26 +473,17 @@ class Synapses(BrianObject, Group):
 
         if len(self.source) != len(self.target):
             raise TypeError('Can only create synapses between groups of same size')
-        
+
+        self.indices._add_synapses(np.arange(len(self.source)),
+                                   np.arange(len(self.target)))
+
         new_synapses = len(self.source)
-        
+
         for array in self.arrays.itervalues():
             array.resize(new_synapses)
-            
-        for synapses in self._synapses.itervalues():            
-            for i in xrange(new_synapses):                    
-                synapses[i].resize(1)
-                synapses[i][0] = i
-                
-        self._presynaptic.resize(new_synapses)
-        self._presynaptic[:] = np.arange(new_synapses)
-        self._postsynaptic.resize(new_synapses)
-        self._postsynaptic[:] = np.arange(new_synapses)
 
         for updater in self._updaters:
             getattr(self, updater).delays.resize(new_synapses)
-
-        self.N = new_synapses
 
 
 def smallest_inttype(N):
