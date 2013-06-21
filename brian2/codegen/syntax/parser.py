@@ -5,7 +5,7 @@ TODO: how to handle logical operators and/or/not?
 TODO: how to handle e.g. '1/2' (always convert to float? provide an option?)
 '''
 
-from brian2.utils.stringtools import get_identifiers
+from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.codegen.parsing import parse_statement as parse_string_statement
 
 __all__ = ['parse_statement', 'parse_expr',
@@ -82,7 +82,7 @@ class Var(object):
         return FuncVar(self, *args)
     # Invalid
     def __nonzero__(self):
-        raise SyntaxError("Cannot use 'and' and 'or' in expressions")
+        raise SyntaxError("Cannot use 'and' and 'or' in expressions: "+str(self))
     def __getitem__(self, key):
         raise SyntaxError("Cannot use array syntax in expressions")
     def __setitem__(self, key, val):
@@ -207,6 +207,13 @@ class Statement(object):
         return '%s %s %s'%(str(self.var), self.op, str(self.expr))
 
 def parse_expr(expr):
+    expr = word_substitute(expr, {
+        'and': '&',
+        'or': '|',
+        'not': '~',
+        })
+    expr = expr.replace('^', '**')
+    print expr
     varnames = get_identifiers(expr)
     ns = dict((varname, Var(varname)) for varname in varnames)
     expr = eval(expr, ns)

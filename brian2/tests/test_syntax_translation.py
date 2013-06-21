@@ -37,6 +37,7 @@ def test_parse_expressions(numvalues=10):
     a%2
     a%2.0
     1+3
+    a>1 and b>1
     '''
     exprs = exprs+[('abc', [], l.strip()) for l in additional_exprs.split('\n') if l.strip()]
     for varids, funcids, expr in exprs:
