@@ -201,8 +201,8 @@ def clean_up_logging():
             except IOError as exc:
                 warn('Could not delete copy of script file: %s' % exc)
 
-#sys.excepthook = brian_excepthook
-#atexit.register(clean_up_logging)
+sys.excepthook = brian_excepthook
+atexit.register(clean_up_logging)
 
 
 class HierarchyFilter(object):
