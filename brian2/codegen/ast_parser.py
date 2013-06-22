@@ -1,5 +1,10 @@
 import ast
 
+__all__ = ['NodeRenderer',
+           'NumpyNodeRenderer',
+           'CPPNodeRenderer',
+           ]
+
 class NodeRenderer(object):
     expression_ops = {
       # BinOp
@@ -8,6 +13,7 @@ class NodeRenderer(object):
       'Mult': '*',
       'Div': '/',
       'Pow': '**',
+      'Mod': '%',
       # Compare
       'Lt': '<',
       'LtE': '<=',
