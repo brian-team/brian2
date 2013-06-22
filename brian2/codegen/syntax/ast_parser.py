@@ -41,7 +41,7 @@ class NodeRenderer(object):
         if not hasattr(self, methname):
             raise SyntaxError("Unknown syntax: "+nodename)
         return getattr(self, methname)(node)
-
+    
     def render_Name(self, node):
         return node.id
     
@@ -58,24 +58,46 @@ class NodeRenderer(object):
         return '%s(%s)' % (self.render_node(node.func),
                            ', '.join(self.render_node(arg) for arg in node.args))
 
+    def render_BinOp_parentheses(self, left, right, op):
+        # This function checks whether or not you can ommit parentheses assuming Python
+        # precedence relations, hopefully this is the same in C++ and Java, but we'll need
+        # to check it
+        exprs = ['%s %s %s', '(%s) %s %s', '%s %s (%s)', '(%s) %s (%s)']
+        nr = NodeRenderer()
+        L = nr.render_node(left)
+        R = nr.render_node(right)
+        O = NodeRenderer.expression_ops[op.__class__.__name__]
+        refexpr = '(%s) %s (%s)' % (L, O, R)
+        refexprdump = ast.dump(ast.parse(refexpr))
+        for expr in exprs:
+            e = expr % (L, O, R)
+            if ast.dump(ast.parse(e))==refexprdump:
+                return expr % (self.render_node(left),
+                               self.expression_ops[op.__class__.__name__],
+                               self.render_node(right),
+                               )
+
     def render_BinOp(self, node):
-        return '(%s) %s (%s)'%(self.render_node(node.left),
-                               self.expression_ops[node.op.__class__.__name__],
-                               self.render_node(node.right))
+        return self.render_BinOp_parentheses(node.left, node.right, node.op)
 
     def render_BoolOp(self, node):
+        # TODO: for the moment we always parenthesise boolean ops because precedence
+        # might be different in different languages and it's safer - also because it's
+        # a bit more complicated to write the parenthesis rule
+        op = node.op
+        left = node.values[0]
+        remaining = node.values[1:]
+        while len(remaining):
+            right = remaining[0]
+            remaining = remaining[1:]
+            s = self.render_BinOp_parentheses(left, right, op)
         op = self.expression_ops[node.op.__class__.__name__]
         return (' '+op+' ').join('(%s)' % self.render_node(v) for v in node.values)
 
     def render_Compare(self, node):
         if len(node.comparators)>1:
             raise SyntaxError("Can only handle single comparisons like a<b not a<b<c")
-        left = node.left
-        op = node.ops[0]
-        right = node.comparators[0]
-        return '(%s) %s (%s)' % (self.render_node(left),
-                                 self.expression_ops[op.__class__.__name__],
-                                 self.render_node(right))    
+        return self.render_BinOp_parentheses(node.left, node.comparators[0], node.ops[0])
         
     def render_UnaryOp(self, node):
         return '%s(%s)' % (self.expression_ops[node.op.__class__.__name__],
@@ -123,6 +145,9 @@ class CPPNodeRenderer(NodeRenderer):
     
 
 if __name__=='__main__':
+#    print precedence(ast.parse('c(d)**2 and 3', mode='eval').body)
+#    print NodeRenderer().render_expr('a-(b-c)+d')
+#    print NodeRenderer().render_expr('a and b or c')
     for renderer in [NodeRenderer(), NumpyNodeRenderer(), CPPNodeRenderer()]:
         name = renderer.__class__.__name__
         print name+'\n'+'='*len(name)
