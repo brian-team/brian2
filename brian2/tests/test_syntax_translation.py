@@ -47,6 +47,7 @@ def parse_expressions(renderer, evaluator, numvalues=10):
     a%2.0
     1+3
     a>1 and b>1
+    (a>1) & (b>1)
     '''
     exprs = exprs+[('abc', [], l.strip()) for l in additional_exprs.split('\n') if l.strip()]
     for varids, funcids, expr in exprs:
@@ -101,5 +102,5 @@ def test_parse_expressions_cpp():
 if __name__=='__main__':
     test_parse_expressions_python()
     test_parse_expressions_numpy()
-    test_parse_expressions_cpp()
+    #test_parse_expressions_cpp()
     
