@@ -1,7 +1,8 @@
 '''
 Handles loading templates from a directory.
 '''
-from brian2.utils.stringtools import indent, deindent, strip_empty_lines
+from brian2.utils.stringtools import (indent, deindent, strip_empty_lines,
+                                      get_identifiers)
 from jinja2 import Template, Environment, FileSystemLoader
 import os
 
@@ -25,6 +26,15 @@ class LanguageTemplater(object):
 class LanguageTemplate(object):
     def __init__(self, template):
         self.template = template
+        res = self([''])
+        #: The set of words in this template
+        self.words = set([])
+        if isinstance(res, str):
+            self.words.update(get_identifiers(res))
+        else:
+            for k, v in res._templates.items():
+                self.words.update(get_identifiers(v))
+                
     def __call__(self, code_lines, **kwds):
         kwds['code_lines'] = code_lines
         module = self.template.make_module(kwds)
