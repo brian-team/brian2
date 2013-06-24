@@ -99,6 +99,10 @@ class TargetUpdater(GroupCodeRunner):
                    '_postsynaptic_idx': Index('_postsynaptic_idx', False),
                    '_presynaptic_idx': Index('_presynaptic_idx', False)}
         self.delays = DynamicArray1D(len(synapses.indices), dtype=np.int16)
+        # Make sure that the delays get resized when synapses are added
+        # TODO: delays should be a specifier to allow dynamic changes (it would
+        # then also get registered automatically)
+        synapses.indices.register_variable(self.delays)
         self.queue = SpikeQueue()
         self.spiking_synapses = []
         self.specifiers = {'_spiking_synapses': AttributeValue('_spiking_synapses',
@@ -160,7 +164,7 @@ class SynapticIndices(object):
     source_len : int
         The number of neurons in the presynaptic group.
     target_len : int
-        The number of neurons in the postsyanptic group.
+        The number of neurons in the postsynaptic group.
     '''
     def __init__(self, source_len, target_len):
         self.source_len = source_len
@@ -174,6 +178,7 @@ class SynapticIndices(object):
                               for _ in xrange(target_len)]
         self.i = IndexView(self, self.synaptic_pre)
         self.j = IndexView(self, self.synaptic_post)
+        self._registered_variables = []
 
     N = property(fget=lambda self: len(self.synaptic_pre),
                  doc='Total number of synapses')
@@ -188,6 +193,16 @@ class SynapticIndices(object):
 
         self.synaptic_pre.resize(number)
         self.synaptic_post.resize(number)
+
+        for variable in self._registered_variables:
+            variable.resize(number)
+
+    def register_variable(self, variable):
+        if not hasattr(variable, 'resize'):
+            raise TypeError(('Variable of type {} does not have a resize '
+                             'method, cannot register it with the synaptic '
+                             'indices.').format(type(variable)))
+        self._registered_variables.append(weakref.proxy(variable))
 
     def _add_synapses(self, sources, targets):
         new_synapses = len(sources)
@@ -287,10 +302,19 @@ class Synapses(BrianObject, Group):
 
         #: List of names of all updaters, e.g. ['pre', 'post']
         self._updaters = []
-        if pre:
-            self.add_pre(pre)
-        if post:            
-            self.add_post(post)
+        for prepost, argument in zip(('pre', 'post'), (pre, post)):
+            if not argument:
+                continue
+            if isinstance(argument, basestring):
+                self._add_updater(argument, prepost)
+            elif isinstance(argument, collections.Mapping):
+                for key, value in argument.iteritems():
+                    if not isinstance(key, basestring):
+                        err_msg = ('Keys for the "{}" argument'
+                                   'have to be strings, got '
+                                   '{} instead.').format(prepost, type(key))
+                        raise TypeError(err_msg)
+                    self._add_updater(value, prepost, objname=key)
 
         #: Performs numerical integration step
         self.state_updater = StateUpdater(self, method)        
@@ -304,47 +328,6 @@ class Synapses(BrianObject, Group):
 
     def __len__(self):
         return self.N
-
-    def add_pre(self, code, objname=None):
-        '''
-        Add code for presynaptic spikes.
-
-        Parameters
-        ----------
-        code : str
-            The abstract code that should be executed on the arrival of
-            presynaptic spikes.
-        objname : str, optional
-            A name for the object, see `TargetUpdater` for more details.
-
-        Returns
-        -------
-        objname : str
-            The final name for the object. Equals `objname` if it was explicitly
-            given (and did not end in a wildcard character).
-
-        '''
-        return self._add_updater(code, 'pre', objname)
-
-    def add_post(self, code, objname=None):
-        '''
-        Add code for postsynaptic spikes.
-
-        Parameters
-        ----------
-        code : str
-            The abstract code that should be executed on the arrival of
-            postsynaptic spikes.
-        objname : str, optional
-            A name for the object, see `TargetUpdater` for more details.
-
-        Returns
-        -------
-        objname : str
-            The final name for the object. Equals `objname` if it was explicitly
-            given (and did not end in a wildcard character).
-        '''
-        return self._add_updater(code, 'post', objname)
 
     def _add_updater(self, code, prepost, objname=None):
         '''
@@ -477,13 +460,6 @@ class Synapses(BrianObject, Group):
         self.indices._add_synapses(np.arange(len(self.source)),
                                    np.arange(len(self.target)))
 
-        new_synapses = len(self.source)
-
-        for array in self.arrays.itervalues():
-            array.resize(new_synapses)
-
-        for updater in self._updaters:
-            getattr(self, updater).delays.resize(new_synapses)
 
 
 def smallest_inttype(N):

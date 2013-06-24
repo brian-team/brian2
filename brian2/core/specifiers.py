@@ -375,6 +375,9 @@ class SynapticArrayVariable(DynamicArrayVariable):
     def __init__(self, name, unit, dtype, array, index, synapses, constant=False):
         ArrayVariable.__init__(self, name, unit, dtype, array, index)
         self.synapses = synapses
+        # Register the object with the `SynapticIndex` object so it gets
+        # automatically resized
+        self.synapses.indices.register_variable(self.array)
 
     def get_addressable_value(self):
         return SynapticArrayView(self.array, self.synapses, None)

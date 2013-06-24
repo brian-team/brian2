@@ -101,8 +101,7 @@ class SpikeQueue(object):
         
         # Adjust the maximum delay and number of events per timestep if necessary
         # Check if delays are homogeneous
-        if max_delays != min_delays:
-            self._homogeneous = False
+        self._homogeneous = (max_delays == min_delays)
 
         # Resize
         if (n_steps > self.X.shape[0]) or (max_events > self.X.shape[1]): # Resize
@@ -215,14 +214,16 @@ class SpikeQueue(object):
         target : ndarray
             Target synaptic indices.
         '''
+        print delay, target
         timestep = (self.currenttime + delay) % len(self.n)
         nevents = len(target)
         m = self.n[timestep]+nevents+1 # If overflow, then at least one self.n is bigger than the size
         if (m >= self.X.shape[1]):
-            self.resize(m+1) # was m previously (not enough)
-        k=timestep*self.X.shape[1]+self.n[timestep]
+            self.resize(m + 1)  # was m previously (not enough)
+        k = timestep*self.X.shape[1] + self.n[timestep]
         self.X_flat[k:k+nevents] = target
         self.n[timestep] += nevents
+        print self.X_flat
         
     def resize(self, maxevents):
         '''
@@ -251,14 +252,18 @@ class SpikeQueue(object):
         
         Parameters
         ----------
-        spikes : iterable of int
-            A list/array of indices, denoting the spiking neurons.
+        indices : ndarray of int
+            The synaptic indices of the synapses receiving a spike
+        delays : ndarray of int
+            The synaptic delays for the synapses in `indices`, given as integer
+            values (multiples of dt).
         '''
         if len(indices):
-            if self._homogeneous: # homogeneous delays
+            if self._homogeneous:  # homogeneous delays
                 self.insert_homogeneous(delays[0], indices)
-            elif self._offsets is None: # vectorise over synaptic events
-                # there are no precomputed offsets, this is the case (in particular) when there are dynamic delays
+            elif self._offsets is None:  # vectorise over synaptic events
+                # there are no precomputed offsets, this is the case
+                # (in particular) when there are dynamic delays
                 self.insert(delays, indices)
             else: # offsets are precomputed
                 self.insert(delays, indices, self._offsets)
