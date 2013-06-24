@@ -8,7 +8,10 @@ from brian2.codegen.ast_parser import (NodeRenderer, NumpyNodeRenderer,
 from numpy.testing import assert_raises, assert_equal
 from numpy.random import rand, randint
 import numpy as np
-from scipy import weave
+try:
+    from scipy import weave
+except ImportError:
+    weave = None
 import nose
 
 def generate_expressions(N=100, numvars=5, numfloats=1, numints=1, complexity=5, depth=3):
@@ -44,6 +47,7 @@ def parse_expressions(renderer, evaluator, numvalues=10):
     a%2.0
     1+3
     a>1 and b>1
+    (a>1) & (b>1)
     '''
     exprs = exprs+[('abc', [], l.strip()) for l in additional_exprs.split('\n') if l.strip()]
     for varids, funcids, expr in exprs:
@@ -74,8 +78,11 @@ def numpy_evaluator(expr, ns):
     
     
 def cpp_evaluator(expr, ns):
-    return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
-                        compiler='gcc')
+    if weave is not None:
+        return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
+                            compiler='gcc')
+    else:
+        raise nose.SkipTest('No weave support.')
 
 
 def test_parse_expressions_python():
@@ -95,5 +102,5 @@ def test_parse_expressions_cpp():
 if __name__=='__main__':
     test_parse_expressions_python()
     test_parse_expressions_numpy()
-    test_parse_expressions_cpp()
+    #test_parse_expressions_cpp()
     

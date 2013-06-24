@@ -14,6 +14,8 @@ class NodeRenderer(object):
       'Div': '/',
       'Pow': '**',
       'Mod': '%',
+      'BitAnd': 'and',
+      'BitOr': 'or',
       # Compare
       'Lt': '<',
       'LtE': '<=',
@@ -119,6 +121,9 @@ class NodeRenderer(object):
 class NumpyNodeRenderer(NodeRenderer):           
     expression_ops = NodeRenderer.expression_ops.copy()
     expression_ops.update({
+          # BinOps
+          'BitAnd': '*',
+          'BitOr': '+',
           # Unary ops
           'Not': 'logical_not',
           'Invert': 'logical_not',
@@ -131,6 +136,9 @@ class NumpyNodeRenderer(NodeRenderer):
 class CPPNodeRenderer(NodeRenderer):
     expression_ops = NodeRenderer.expression_ops.copy()
     expression_ops.update({
+          # BinOps
+          'BitAnd': '&&',
+          'BitOr': '||',
           # Unary ops
           'Not': '!',
           'Invert': '!',
