@@ -18,8 +18,10 @@ from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import get_identifiers
 
 from .spikequeue import SpikeQueue
+
 
 MAX_SYNAPSES = 2147483647
 
@@ -359,7 +361,17 @@ class SynapticIndices(object):
 
         elif isinstance(index, basestring):
             # interpret the string expression
-            raise NotImplementedError()
+            identifiers = get_identifiers(index)
+            namespace = {'i': self.synaptic_pre[:],
+                         'j': self.synaptic_post[:]}
+            if 'k' in identifiers:
+                synapse_numbers = _synapse_numbers(self.synaptic_pre[:],
+                                                   self.synaptic_post[:])
+                namespace['k'] = synapse_numbers
+
+            result = eval(index, namespace)
+            return np.flatnonzero(result)
+
         elif isinstance(index, (int, np.ndarray, slice, collections.Sequence)):
             return index
         else:
@@ -582,9 +594,35 @@ class Synapses(BrianObject, Group):
         if len(self.source) != len(self.target):
             raise TypeError('Can only create synapses between groups of same size')
 
-        self.indices._add_synapses(np.arange(len(self.source)),
-                                   np.arange(len(self.target)))
+        self.connect(np.arange(len(self.source)),
+                     np.arange(len(self.target)))
 
+    def connect_full(self):
+        '''
+        Connect all neurons in the source group to all neurons in the target
+        group.
+        '''
+        sources, targets = np.meshgrid(np.arange(len(self.source)),
+                                       np.arange(len(self.target)))
+        self.connect(sources.flat(), targets.flat())
+
+    def connect(self, pre_neurons, post_neurons):
+        '''
+        Add synapses for the given pre/post pairs.
+
+        Parameters
+        ----------
+        pre_neurons : ndarray of int
+            Indices of neurons from the source group.
+        post_neurons : ndarray of int
+            Indices of neurons from the target group.
+        '''
+        if len(pre_neurons) != len(post_neurons):
+            raise ValueError(('The two arrays need to have the same '
+                              'length, {} != {}').format(len(pre_neurons),
+                                                         len(post_neurons)))
+
+        self.indices._add_synapses(pre_neurons, post_neurons)
 
 
 def smallest_inttype(N):
