@@ -328,6 +328,8 @@ class SynapticIndices(object):
         (including arrays and slices), a single index or a string.
 
         '''
+        if isinstance(index, (int, np.ndarray, slice, collections.Sequence)):
+            index = (index, slice(None), slice(None))
         if isinstance(index, tuple):
             if len(index) == 2:  # two indices (pre- and postsynaptic cell)
                 index = (index[0], index[1], slice(None))
@@ -371,9 +373,6 @@ class SynapticIndices(object):
 
             result = eval(index, namespace)
             return np.flatnonzero(result)
-
-        elif isinstance(index, (int, np.ndarray, slice, collections.Sequence)):
-            return index
         else:
             raise IndexError('Unsupported index type {}'.format(type(index)))
 
