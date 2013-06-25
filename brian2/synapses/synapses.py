@@ -161,10 +161,90 @@ class IndexView(object):
         self.mapping = mapping
 
     def __getitem__(self, item):
-        print 'item:', item
         synaptic_indices = self.indices[item]
         return self.mapping[synaptic_indices]
 
+
+class SynapseIndexView(object):
+
+    def __init__(self, indices):
+        self.indices = indices
+
+    def __getitem__(self, item):
+        pre = self.indices.i[item]
+        post = self.indices.j[item]
+
+        return _synapse_numbers(pre, post)
+
+
+def slice_to_test(x):
+    '''
+    Returns a testing function corresponding to whether an index is in slice x.
+    x can also be an int.
+    '''
+    if isinstance(x,int):
+        return lambda y: (y == x)
+    elif isinstance(x, slice):
+        if x == slice(None):
+            # No need for testing
+            return lambda y: np.repeat(True, len(y))
+        start, stop, step = x.start, x.stop, x.step
+
+        if start is None:
+            # No need to test for >= start
+            if step is None:
+                # Only have a stop value
+                return lambda y: (y < stop)
+            else:
+                # Stop and step
+                return lambda y: (y < stop) & ((y % step) == 0)
+        else:
+            # We need to test for >= start
+            if step is None:
+                if stop is None:
+                    # Only a start value
+                    return lambda y: (y >= start)
+                else:
+                    # Start and stop
+                    return lambda y: (y >= start) & (y < stop)
+            else:
+                if stop is None:
+                    # Start and step value
+                    return lambda y: (y >= start) & ((y-start)%step == 0)
+                else:
+                    # Start, step and stop
+                    return lambda y: (y >= start) & ((y-start)%step == 0) & (y < stop)
+    else:
+        raise TypeError('Expected int or slice, got {} instead'.format(type(x)))
+
+
+def find_synapses(index, neuron_synaptic, synaptic_neuron):
+    if isinstance(index, (int, slice)):
+        test = slice_to_test(index)
+        neurons = test(synaptic_neuron[:])
+        synapses = np.flatnonzero(neurons)
+    else:
+        neurons = []
+        synapses = []
+        for neuron in index:
+            targets = neuron_synaptic[neuron]
+            neurons.extend([neuron] * len(targets))
+            synapses.extend(targets)
+
+    return neurons, synapses
+
+
+def _synapse_numbers(pre_neurons, post_neurons):
+    # Build an array of synapse numbers by counting the number of times
+    # a source/target combination exists
+    synapse_numbers = np.zeros_like(pre_neurons)
+    numbers = {}
+    for i, (source, target) in enumerate(zip(pre_neurons,
+                                             post_neurons)):
+        number = numbers.get((source, target), 0)
+        synapse_numbers[i] = number
+        numbers[(source, target)] = number + 1
+    return synapse_numbers
 
 class SynapticIndices(object):
     '''
@@ -189,6 +269,7 @@ class SynapticIndices(object):
                               for _ in xrange(target_len)]
         self.i = IndexView(self, self.synaptic_pre)
         self.j = IndexView(self, self.synaptic_post)
+        self.k = SynapseIndexView(self)
         self._registered_variables = []
 
     N = property(fget=lambda self: len(self.synaptic_pre),
@@ -251,8 +332,31 @@ class SynapticIndices(object):
             elif len(index) > 3:
                 raise IndexError('Need 1, 2 or 3 indices, got %d.' % len(index))
 
-            # Interpret indices
-            raise NotImplementedError()
+            I, J, K = index
+
+            pre_neurons, pre_synapses = find_synapses(I, self.pre_synaptic,
+                                                      self.synaptic_pre)
+            post_neurons, post_synapses = find_synapses(J, self.post_synaptic,
+                                                        self.synaptic_post)
+
+            matching_synapses = np.intersect1d(pre_synapses, post_synapses,
+                                               assume_unique=True)
+
+            if K == slice(None):
+                return matching_synapses
+            elif isinstance(K, (int, slice)):
+                test_k = slice_to_test(K)
+            else:
+                raise NotImplementedError(('Indexing synapses with arrays not'
+                                           'implemented yet'))
+
+            synapse_numbers = _synapse_numbers(pre_neurons,
+                                               post_neurons)
+
+            return np.intersect1d(matching_synapses,
+                                  np.flatnonzero(test_k(synapse_numbers)),
+                                  assume_unique=True)
+
         elif isinstance(index, basestring):
             # interpret the string expression
             raise NotImplementedError()
