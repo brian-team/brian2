@@ -12,11 +12,11 @@ def create_all_to_all(N):
     Every synapse has a delay depending on the presynaptic neuron.
     '''
     data = np.repeat(np.arange(N), N)
-    delays = DynamicArray1D(data.shape, dtype=int)
+    delays = DynamicArray1D(data.shape, dtype=np.int32)
     delays[:] = data
-    data = np.repeat(np.arange(N), N)
-    synapses = DynamicArray1D(data.shape, dtype=int)
-    synapses[:] = data
+    synapses = [DynamicArray1D(N, dtype=np.int32) for _ in xrange(N)]
+    for i in xrange(N):
+        synapses[i][:] = np.arange(N) + i*N
     return synapses, delays
 
 
@@ -27,20 +27,21 @@ def create_one_to_one(N):
     Every synapse has a delay depending on the presynaptic neuron.
     '''
     data = np.arange(N)
-    delays = DynamicArray1D(data.shape, dtype=int)
+    delays = DynamicArray1D(data.shape, dtype=np.int32)
     delays[:] = data
     data = np.arange(N)
-    synapses = DynamicArray1D(data.shape, dtype=int)
-    synapses[:] = data
+    synapses = [DynamicArray1D(1, dtype=np.int32) for _ in xrange(N)]
+    for i in xrange(N):
+        synapses[i][:] = i
     return synapses, delays
 
 
 def test_spikequeue():
     N = 100
     synapses, delays = create_one_to_one(N)
-    queue = SpikeQueue(synapses, delays, 0.1*ms)
-    queue.compress()
-    queue.push(np.arange(N))
+    queue = SpikeQueue()
+    queue.compress(delays, synapses)
+    queue.push(np.arange(N, dtype=np.int32), delays)
     for i in xrange(N):
         assert_equal(queue.peek(), np.array([i]))
         queue.next()
@@ -49,9 +50,10 @@ def test_spikequeue():
         queue.next()
 
     synapses, delays = create_all_to_all(N)
-    queue = SpikeQueue(synapses, delays, 0.1*ms)
-    queue.compress()
-    queue.push(np.arange(N))
+
+    queue = SpikeQueue()
+    queue.compress(delays, synapses)
+    queue.push(np.arange(N*N, dtype=np.int32), delays)
     for i in xrange(N):
         assert_equal(queue.peek(), i*N + np.arange(N))
         queue.next()
