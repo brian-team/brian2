@@ -37,12 +37,12 @@ class StateUpdater(GroupCodeRunner):
         self.method_choice = method
         indices = {'_neuron_idx': Index('_neuron_idx', True)}
         GroupCodeRunner.__init__(self, group,
-                                       group.language.template_state_update,
-                                       indices=indices,
-                                       when=(group.clock, 'groups'),
-                                       name=group.name + '_stateupdater',
-                                       check_units=False,
-                                       template_specifiers=['_num_neurons'])
+                                 group.language.template_state_update,
+                                 indices=indices,
+                                 when=(group.clock, 'groups'),
+                                 name=group.name + '_stateupdater',
+                                 check_units=False,
+                                 template_specifiers=['_num_neurons'])
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.namespace,
@@ -61,7 +61,7 @@ class StateUpdater(GroupCodeRunner):
                                          self.group.specifiers)
 
 
-class TargetUpdater(GroupCodeRunner):
+class TargetUpdater(GroupCodeRunner, Group):
     '''
     The `GroupCodeRunner` that applies the pre/post statement(s) to the state
     variables of synapses where the pre-/postsynaptic group spiked in this
@@ -98,16 +98,17 @@ class TargetUpdater(GroupCodeRunner):
         indices = {'_neuron_idx': Index('_neuron_idx', False),
                    '_postsynaptic_idx': Index('_postsynaptic_idx', False),
                    '_presynaptic_idx': Index('_presynaptic_idx', False)}
-        self.delays = DynamicArray1D(len(synapses.indices), dtype=np.int16)
-        # Make sure that the delays get resized when synapses are added
-        # TODO: delays should be a specifier to allow dynamic changes (it would
-        # then also get registered automatically)
-        synapses.indices.register_variable(self.delays)
+        self._delays = DynamicArray1D(len(synapses.indices), dtype=np.float64)
         self.queue = SpikeQueue()
         self.spiking_synapses = []
         self.specifiers = {'_spiking_synapses': AttributeValue('_spiking_synapses',
                                                                Unit(1), np.int,
-                                                               self, 'spiking_synapses')}
+                                                               self, 'spiking_synapses'),
+                           'delay': SynapticArrayVariable('delay', second,
+                                                          np.float64,
+                                                          self._delays,
+                                                          '_neuron_idx',
+                                                          self.synapses)}
         if objname is None:
             objname = prepost + '*'
 
@@ -125,9 +126,18 @@ class TargetUpdater(GroupCodeRunner):
         # Re-extract the last part of the name from the full name
         self.objname = self.name[len(synapses.name) + 1:]
 
+        #: The simulation dt (necessary for the delays)
+        self.dt = self.synapses.clock.dt_
+
+        # Enable access to the delay attribute via the specifier
+        Group.__init__(self)
+
     def pre_run(self, namespace):
         GroupCodeRunner.pre_run(self, namespace)
-        self.queue.compress(self.delays, self.synapse_indices)
+        # Update the dt (might have changed between runs)
+        self.dt = self.synapses.clock.dt_
+        self.queue.compress(np.round(self._delays[:] / self.dt).astype(np.int),
+                            self.synapse_indices)
     
     def pre_update(self):
         # Push new spikes into the queue
@@ -136,7 +146,7 @@ class TargetUpdater(GroupCodeRunner):
             indices = np.hstack((self.synapse_indices[spike]
                                  for spike in spikes))
             if len(indices):
-                delays = self.delays[indices]
+                delays = np.round(self._delays[indices] / self.dt).astype(int)
                 self.queue.push(indices, delays)
         # Get the spikes
         self.spiking_synapses = self.queue.peek()
@@ -151,6 +161,7 @@ class IndexView(object):
         self.mapping = mapping
 
     def __getitem__(self, item):
+        print 'item:', item
         synaptic_indices = self.indices[item]
         return self.mapping[synaptic_indices]
 

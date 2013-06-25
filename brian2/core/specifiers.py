@@ -7,7 +7,8 @@ TODO: have a single global dtype rather than specify for each variable?
 from brian2.units.allunits import second
 
 from brian2.utils.stringtools import get_identifiers
-from brian2.units.fundamentalunits import is_scalar_type
+from brian2.units.fundamentalunits import (is_scalar_type,
+                                           fail_for_dimension_mismatch)
 
 __all__ = ['Specifier',
            'VariableSpecifier',
@@ -361,11 +362,13 @@ class SynapticArrayView(object):
 
     def __getitem__(self, i):
         if self.unit is None:
-            return self.array.data[self.synapses.synapse_index(i)]
+            return self.array.data[self.synapses.indices[i]]
         else:
-            return self.array.data[self.synapses.synapse_index(i)] * self.unit
+            return self.array.data[self.synapses.indices[i]] * self.unit
 
     def __setitem__(self, i, value):
+        if not self.unit is None:
+            fail_for_dimension_mismatch(value, self.unit)
         synapses = self.synapses.indices[i]
         self.array.data[synapses] = value
 

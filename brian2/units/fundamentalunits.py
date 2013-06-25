@@ -839,7 +839,10 @@ class Quantity(np.ndarray, object):
                 # Not iterable
                 is_quantity = [False]
 
-            if all(is_quantity):
+            if len(is_quantity) == 0:
+                # Empty list
+                dim = DIMENSIONLESS
+            elif all(is_quantity):
                 dims = [x.dim for x in _flatten(arr)]
                 one_dim = dims[0]
                 for d in dims:
