@@ -209,7 +209,7 @@ class GroupCodeRunner(BrianObject):
             for spec in self.template_specifiers:
                 specifiers[spec] = all_specifiers[spec]
         
-        return self.group.language.create_codeobj(name,
+        return self.group.language.create_codeobj(self.name,
                                              self.abstract_code,
                                              resolved_namespace,
                                              specifiers,
