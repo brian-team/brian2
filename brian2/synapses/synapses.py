@@ -327,6 +327,16 @@ class Synapses(BrianObject, Group):
                         raise TypeError(err_msg)
                     self._add_updater(value, prepost, objname=key)
 
+        # If we have a pathway called "pre" (the most common use case), provide
+        # direct access to its delay via a delay attribute (instead of having
+        # to use pre.delay)
+        if 'pre' in self._updaters:
+            self.specifiers['delay'] = SynapticArrayVariable('delay', second,
+                                                             np.float64,
+                                                             self.pre._delays,
+                                                             '_neuron_idx',
+                                                             self)
+
         #: Performs numerical integration step
         self.state_updater = StateUpdater(self, method)        
         self.contained_objects.append(self.state_updater)

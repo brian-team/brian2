@@ -20,7 +20,7 @@ syn = Synapses(G1, G2, 'dw/dt = -w / (50*ms): 1', pre='v+=w',
 syn.connect_one_to_one()
  
 # Set the delays
-syn.pre.delays[:] = np.arange(len(G1)) * 10  # in timesteps
+syn.delay[:] = np.arange(len(G1)) * ms
 # Set the initial values of the synaptic variable
 syn.w[:] = 1
 
