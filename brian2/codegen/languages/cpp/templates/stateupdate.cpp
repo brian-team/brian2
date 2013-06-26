@@ -3,10 +3,6 @@
 
 {% macro main() %}
 	// USE_SPECIFIERS { _num_neurons }
-	////// SUPPORT CODE ///////
-	{% for line in support_code_lines %}
-	// {{line}}
-	{% endfor %}
 
 	////// HANDLE DENORMALS ///
 	{% for line in denormals_code_lines %}
@@ -37,6 +33,6 @@
 
 {% macro support_code() %}
 	{% for line in support_code_lines %}
-	// {{line}}
+	{{line}}
 	{% endfor %}
 {% endmacro %}
