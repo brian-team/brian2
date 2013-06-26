@@ -109,15 +109,17 @@ class FunctionWrapper(Function):
         return {'support_code': '',
                 'hashdefine_code': hashdefine_code}
 
-def _get_default_functions():
 
-    # sympy does not have a log10 function, so let's define one
-    class log10(sympy_Function):        
-        nargs = 1
-        
-        @classmethod
-        def eval(cls, args):
-            return sympy.functions.elementary.exponential.log(args, 10)
+# sympy does not have a log10 function, so let's define one
+class log10(sympy_Function):
+    nargs = 1
+
+    @classmethod
+    def eval(cls, args):
+        return sympy.functions.elementary.exponential.log(args, 10)
+
+
+def _get_default_functions():
             
     functions = { 
                 # numpy functions that have the same name in numpy and math.h

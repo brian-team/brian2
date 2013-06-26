@@ -87,9 +87,9 @@ class Group(object):
         else:
             object.__setattr__(self, name, val)             
 
+
 def _create_codeobj(group, name, code, additional_namespace=None,
-                    template=None, iterate_all=True, check_units=True,
-                    additional_specifiers=None):
+                    template=None, iterate_all=True, check_units=True):
     ''' A little helper function to reduce the amount of repetition when
     calling the language's _create_codeobj (always pass self.specifiers and
     self.namespace + additional namespace).
@@ -115,14 +115,12 @@ def _create_codeobj(group, name, code, additional_namespace=None,
     specifiers = {}
     for name in used_known:
         specifiers[name] = group.specifiers[name]
-    
-    # Always add _num_neurons
-    specifiers['_num_neurons'] = group.specifiers['_num_neurons']
-    
-    if additional_specifiers:
-        for spec in additional_specifiers:
+
+    # Also add the specifiers that the template needs
+    if template:
+        for spec in template.specifiers:
             specifiers[spec] = group.specifiers[spec]
-    
+
     return group.language.create_codeobj(name,
                                          code,
                                          resolved_namespace,
@@ -180,15 +178,13 @@ class GroupCodeRunner(BrianObject):
     `NeuronGroup.spikes` property in `post_update`.
     '''
     def __init__(self, group, template, code=None, iterate_all=True,
-                 when=None, name='coderunner*', check_units=True,
-                 additional_specifiers=None):
+                 when=None, name='coderunner*', check_units=True):
         BrianObject.__init__(self, when=when, name=name)
         self.group = weakref.proxy(group)
         self.template = template
         self.abstract_code = code
         self.iterate_all = iterate_all
         self.check_units = check_units
-        self.additional_specifiers = additional_specifiers
         # Try to generate the abstract code and the codeobject without any
         # additional namespace. This might work in situations where the
         # namespace is completely defined in the NeuronGroup. In this case,
@@ -218,9 +214,7 @@ class GroupCodeRunner(BrianObject):
                                        additional_namespace=namespace,
                                        template=self.template,
                                        iterate_all=self.iterate_all,
-                                       check_units=self.check_units,
-                                       additional_specifiers=self.additional_specifiers
-                                       )
+                                       check_units=self.check_units)
     
     def pre_update(self):
         '''

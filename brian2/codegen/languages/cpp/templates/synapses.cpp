@@ -2,10 +2,7 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
-	////// SUPPORT CODE ///////
-	{% for line in support_code_lines %}
-	// {{line}}
-	{% endfor %}
+	// USE_SPECIFIERS { _spiking_synapses, _postsynaptic,_presynaptic }
 
 	////// HANDLE DENORMALS ///
 	{% for line in denormals_code_lines %}
@@ -41,6 +38,6 @@
 
 {% macro support_code() %}
 	{% for line in support_code_lines %}
-	// {{line}}
+	{{line}}
 	{% endfor %}
 {% endmacro %}

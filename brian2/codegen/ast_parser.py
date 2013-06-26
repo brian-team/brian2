@@ -1,9 +1,15 @@
 import ast
 
+import sympy
+
+from .functions.numpyfunctions import DEFAULT_FUNCTIONS
+
 __all__ = ['NodeRenderer',
            'NumpyNodeRenderer',
            'CPPNodeRenderer',
+           'SympyNodeRenderer'
            ]
+
 
 class NodeRenderer(object):
     expression_ops = {
@@ -33,11 +39,17 @@ class NodeRenderer(object):
       'Or': 'or',
       }
     
-    def render_expr(self, expr):
+    def render_expr(self, expr, strip=True):
+        if strip:
+            expr = expr.strip()
+        expr = expr.replace('&', ' and ')
+        expr = expr.replace('|', ' or ')
         node = ast.parse(expr, mode='eval')
         return self.render_node(node.body)
 
     def render_code(self, code):
+        code = code.replace('&', ' and ')
+        code = code.replace('|', ' or ')
         lines = []
         for node in ast.parse(code).body:
             lines.append(self.render_node(node))
@@ -49,7 +61,10 @@ class NodeRenderer(object):
         if not hasattr(self, methname):
             raise SyntaxError("Unknown syntax: "+nodename)
         return getattr(self, methname)(node)
-    
+
+    def render_func(self, node):
+        return self.render_Name(node)
+
     def render_Name(self, node):
         return node.id
     
@@ -60,10 +75,10 @@ class NodeRenderer(object):
         if len(node.keywords):
             raise ValueError("Keyword arguments not supported.")
         elif node.starargs is not None:
-            raise ValueError("*args not supported")
+            raise ValueError("Variable number of arguments not supported")
         elif node.kwargs is not None:
-            raise ValueError("**kwds not supported")
-        return '%s(%s)' % (self.render_node(node.func),
+            raise ValueError("Keyword arguments not supported")
+        return '%s(%s)' % (self.render_func(node.func),
                            ', '.join(self.render_node(arg) for arg in node.args))
 
     def render_BinOp_parentheses(self, left, right, op):
@@ -133,6 +148,49 @@ class NumpyNodeRenderer(NodeRenderer):
           })
     
 
+class SympyNodeRenderer(NodeRenderer):
+    expression_ops = NodeRenderer.expression_ops.copy()
+    expression_ops.update({
+          # BinOps
+          'BitAnd': '&',
+          'BitOr': '|',
+          # Compare
+          'Eq': 'Eq',
+          'NotEq': 'Ne',
+          # Unary ops
+          'Not': '~',
+          'Invert': '~',
+          # Bool ops
+          'And': '&',
+          'Or': '|',
+          })
+
+    def render_func(self, node):
+        for name, f in DEFAULT_FUNCTIONS.iteritems():
+            if name == node.id:
+                if f.sympy_func is not None and isinstance(f.sympy_func,
+                                                           sympy.FunctionClass):
+                    return '%s' % str(f.sympy_func)
+        return 'Function("%s")' % node.id
+
+    def render_Compare(self, node):
+        if len(node.comparators)>1:
+            raise SyntaxError("Can only handle single comparisons like a<b not a<b<c")
+        op = node.ops[0]
+        if op.__class__.__name__ in ('Eq', 'NotEq'):
+            return '%s(%s, %s)' % (self.expression_ops[op.__class__.__name__],
+                                   self.render_node(node.left),
+                                   self.render_node(node.comparators[0]))
+        else:
+            return NodeRenderer.render_Compare(self, node)
+
+    def render_Name(self, node):
+        return 'Symbol("%s", real=True)' % node.id
+
+    def render_Num(self, node):
+        return 'Float(%f)' % node.n
+
+
 class CPPNodeRenderer(NodeRenderer):
     expression_ops = NodeRenderer.expression_ops.copy()
     expression_ops.update({
@@ -156,15 +214,4 @@ class CPPNodeRenderer(NodeRenderer):
         
     def render_Assign(self, node):
         return NodeRenderer.render_Assign(self, node)+';'
-    
 
-if __name__=='__main__':
-#    print precedence(ast.parse('c(d)**2 and 3', mode='eval').body)
-#    print NodeRenderer().render_expr('a-(b-c)+d')
-#    print NodeRenderer().render_expr('a and b or c')
-    for renderer in [NodeRenderer(), NumpyNodeRenderer(), CPPNodeRenderer()]:
-        name = renderer.__class__.__name__
-        print name+'\n'+'='*len(name)
-        print renderer.render_expr('a+b*c(d, e)+e**f')
-        print renderer.render_expr('a and -b and c and 1.2')
-        print renderer.render_code('a=b\nc=d+e')
