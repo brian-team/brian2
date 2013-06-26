@@ -27,7 +27,7 @@ def test_expr_creation():
     assert expr.code == 'v > 5 * mV'
     assert ('v' in expr.identifiers and 'mV' in expr.identifiers and
             not 'V' in expr.identifiers)
-    assert_raises(ValueError, lambda: Expression('v 5 * mV'))
+    assert_raises(SyntaxError, lambda: Expression('v 5 * mV'))
     
 
 def test_expr_units():
