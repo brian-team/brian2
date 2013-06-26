@@ -8,6 +8,7 @@ from sympy import Wild, Symbol, Float, sympify
 import sympy as sp
 
 from brian2.core.specifiers import Value
+from brian2.codegen.parsing import sympy_to_str
 from brian2.utils.stringtools import get_identifiers
 from brian2.utils.logger import get_logger
 from brian2.stateupdaters.base import StateUpdateMethod
@@ -15,6 +16,7 @@ from brian2.stateupdaters.base import StateUpdateMethod
 __all__ = ['linear']
 
 logger = get_logger(__name__)
+
 
 def get_linear_system(eqs):
     '''
@@ -134,7 +136,7 @@ class LinearStateUpdater(StateUpdateMethod):
         abstract_code = []
         for idx, (variable, update) in enumerate(zip(variables, updates)):
             rhs = update.subs('_S_%d0' % idx, variable)
-            identifiers = get_identifiers(str(rhs))
+            identifiers = get_identifiers(sympy_to_str(rhs))
             for identifier in identifiers:
                 if identifier in specifiers:
                     spec = specifiers[identifier]
@@ -150,7 +152,7 @@ class LinearStateUpdater(StateUpdateMethod):
                         pass
             # Do not overwrite the real state variables yet, the update step
             # of other state variables might still need the original values
-            abstract_code.append('_' + variable + ' = ' + str(rhs))
+            abstract_code.append('_' + variable + ' = ' + sympy_to_str(rhs))
         
         # Update the state variables
         for variable in variables:
