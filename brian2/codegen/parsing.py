@@ -45,7 +45,7 @@ def parse_statement(code):
     return var, op, expr
 
 
-def parse_to_sympy(expr):
+def str_to_sympy(expr):
     '''
     Parses a string into a sympy expression. There are two reasons for not
     using `sympify` directly: 1) sympify does a ``from sympy import *``,

@@ -7,7 +7,7 @@ import sympy
 
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
-from brian2.codegen.parsing import parse_to_sympy, sympy_to_str
+from brian2.codegen.parsing import str_to_sympy, sympy_to_str
 
 __all__ = ['Expression', 'Statements']
 
@@ -77,7 +77,7 @@ class Expression(CodeString):
         CodeString.__init__(self, code)
 
         # : The expression as a sympy object
-        self.sympy_expr = parse_to_sympy(self.code)
+        self.sympy_expr = str_to_sympy(self.code)
 
 
     def split_stochastic(self):

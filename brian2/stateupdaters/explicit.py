@@ -9,7 +9,7 @@ from sympy.core.sympify import SympifyError
 from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
 
-from brian2.codegen.parsing import parse_to_sympy, sympy_to_str
+from brian2.codegen.parsing import str_to_sympy, sympy_to_str
 
 from .base import StateUpdateMethod
 
@@ -236,7 +236,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         self.statements = []
         self.symbols = SYMBOLS.copy()
         for element in parsed:
-            expression = parse_to_sympy(element.expression)
+            expression = str_to_sympy(element.expression)
             symbols = list(expression.atoms(sympy.Symbol))
             self.symbols.update(dict(((symbol.name, symbol)
                                       for symbol in symbols)))
@@ -332,7 +332,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             '''
 
             try:
-                s_expr = parse_to_sympy(str(expr))
+                s_expr = str_to_sympy(str(expr))
             except SympifyError as ex:
                 raise ValueError('Error parsing the expression "%s": %s' %
                                  (expr, str(ex)))
