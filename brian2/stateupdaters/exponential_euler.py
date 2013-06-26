@@ -34,7 +34,7 @@ def get_conditionally_linear_system(eqs):
     ... """)
     >>> system = get_conditionally_linear_system(eqs)
     >>> print(system['v'])
-    (-1/tau, w**2/tau)
+    (-1/tau, w**2.0/tau)
     >>> print(system['w'])
     (-1/tau, 0)
 
