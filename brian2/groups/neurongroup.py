@@ -73,12 +73,7 @@ class Thresholder(GroupCodeRunner):
         GroupCodeRunner.__init__(self, group,
                                  group.language.template_threshold,
                                  when=(group.clock, 'thresholds'),
-                                 name=group.name+'_thresholder*',
-                                 # TODO: This information should be included in
-                                 # the template instead
-                                 additional_specifiers=['t',
-                                                        'refractory_until',
-                                                        'refractory'])
+                                 name=group.name+'_thresholder*')
     
     def update_abstract_code(self):
         self.abstract_code = '_cond = ' + self.group.threshold
@@ -98,8 +93,7 @@ class Resetter(GroupCodeRunner):
                                  group.language.template_reset,
                                  when=(group.clock, 'resets'),
                                  name=group.name+'_resetter*',
-                                 iterate_all=False,
-                                 additional_specifiers=['_spikes'])
+                                 iterate_all=False)
     
     def update_abstract_code(self):
         self.abstract_code = self.group.reset
@@ -252,7 +246,6 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         Return number of neurons in the group.
         '''
         return self.N
-
 
     def _allocate_memory(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)

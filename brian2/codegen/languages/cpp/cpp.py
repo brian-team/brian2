@@ -2,15 +2,17 @@
 TODO: restrict keyword optimisations
 '''
 import re
+import os
 
 import numpy
 
-from brian2.utils.stringtools import deindent
+from brian2.utils.stringtools import deindent, stripped_deindented_lines
 from brian2.codegen.functions.base import Function
 from brian2.utils.logger import get_logger
 
-from .base import Language, CodeObject
-from ..ast_parser import CPPNodeRenderer
+from ..base import Language, CodeObject
+from ..templates import LanguageTemplater
+from ...ast_parser import CPPNodeRenderer
 
 logger = get_logger(__name__)
 try:
@@ -82,11 +84,11 @@ class CPPLanguage(Language):
             
         Found at `<http://stackoverflow.com/questions/2487653/avoiding-denormal-values-in-c>`_.
         
-    When C++ code is generated to be compiled, there are two keys to provide:
+    C++ code templates should provide Jinja2 macros with the following names:
     
-    ``%MAIN%``
+    ``main``
         The main loop.
-    ``%SUPPORT_CODE%``
+    ``support_code``
         The support code (function definitions, etc.), compiled in a separate
         file.
         
@@ -101,6 +103,9 @@ class CPPLanguage(Language):
     '''
 
     language_id = 'cpp'
+
+    templater = LanguageTemplater(os.path.join(os.path.split(__file__)[0],
+                                               'templates'))
 
     def __init__(self, compiler='gcc', extra_compile_args=['-O3', '-ffast-math'],
                  restrict='__restrict__', flush_denormals=False):
@@ -189,12 +194,12 @@ class CPPLanguage(Language):
             del namespace[func]
         
         # return
-        translation = {'%CODE%': code,
-                       '%POINTERS%': pointers,
-                       '%SUPPORT_CODE%': support_code,
-                       '%HASHDEFINES%': hash_defines,
-                       }
-        return translation
+        return (stripped_deindented_lines(code),
+                {'pointers_lines': stripped_deindented_lines(pointers),
+                 'support_code_lines': stripped_deindented_lines(support_code),
+                 'hashdefine_lines': stripped_deindented_lines(hash_defines),
+                 'denormals_code_lines': stripped_deindented_lines(self.denormals_to_zero_code()),
+                 })
 
     def code_object(self, code, namespace, specifiers):
         return CPPCodeObject(code,
@@ -215,93 +220,14 @@ class CPPLanguage(Language):
         else:
             return ''
 
-    def template_iterate_all(self, index, size):
-        return {
-            '%MAIN%':self.denormals_to_zero_code() + '''
-            /*
-            %SUPPORT_CODE%
-            */
-            %HASHDEFINES%
-            %POINTERS%
-            for(int {index}=0; {index}<{size}; {index}++)
-            {{
-                %CODE%
-            }}
-            '''.format(index=index, size=size),
-            '%SUPPORT_CODE%':'%SUPPORT_CODE%',
-            }
-
-    def template_iterate_index_array(self, index, array, size):
-        return {
-            '%MAIN%':self.denormals_to_zero_code() + '''
-            /*
-            %SUPPORT_CODE%
-            */
-            %HASHDEFINES%
-            %POINTERS%
-            for(int _index_{array}=0; _index_{array}<{size}; _index_{array}++)
-            {{
-                const int {index} = {array}[_index_{array}];
-                %CODE%
-            }}
-            '''.format(index=index, array=array, size=size),
-            '%SUPPORT_CODE%':'%SUPPORT_CODE%',
-            }
-
-    def template_threshold(self):
-        return {
-            '%MAIN%':self.denormals_to_zero_code() + '''
-            /*
-            %SUPPORT_CODE%
-            */
-            %HASHDEFINES%
-            %POINTERS%
-            int _cpp_numspikes = 0;
-            
-            npy_int *_spikes_space = (npy_int *)malloc(sizeof(npy_int) * _num_neurons);             
-            for(int _neuron_idx=0; _neuron_idx<_num_neurons; _neuron_idx++)
-            {
-                %CODE%
-                if(_cond) {
-                    _spikes_space[_cpp_numspikes++] = _neuron_idx;
-                    _array_refractory_until[_neuron_idx] = t + _array_refractory[_neuron_idx];
-                }
-            }
-            npy_intp _dims[] = {_cpp_numspikes};
-            PyObject *_numpy_spikes_array = PyArray_SimpleNewFromData(1, _dims, NPY_INT, _spikes_space);
-            return_val = _numpy_spikes_array; 
-            ''',
-            '%SUPPORT_CODE%':'%SUPPORT_CODE%',
-            }
-
-    def template_synapses(self):
-        return {
-            '%MAIN%':self.denormals_to_zero_code() + '''
-            /*
-            %SUPPORT_CODE%
-            */
-            %HASHDEFINES%
-            %POINTERS%
-            for(int _spiking_synapse_idx=0;
-                _spiking_synapse_idx<_num_spiking_synapses;
-                _spiking_synapse_idx++)
-            {
-                    const int _synapse_idx = _spiking_synapses[_spiking_synapse_idx];
-                    const int _postsynaptic_idx = _postsynaptic[_synapse_idx];
-                    const int _presynaptic_idx = _presynaptic[_synapse_idx];
-                    %CODE%
-            }
-            ''',
-            '%SUPPORT_CODE%':'%SUPPORT_CODE%',
-            }
 
 class CPPCodeObject(CodeObject):
     '''
     C++ code object
     
-    The ``code`` should be a dict with two keys, ``'%MAIN%'`` for the main loop
-    code, and ``'%SUPPORT_CODE%'`` for any support code (e.g. function
-    definitions).
+    The ``code`` should be a `~brian2.codegen.languages.templates.MultiTemplate`
+    object with two macros defined, ``main`` (for the main loop code) and
+    ``support_code`` for any support code (e.g. function definitions).
     '''
     def __init__(self, code, namespace, specifiers, compile_methods=[],
                  compiler='gcc', extra_compile_args=['-O3']):
@@ -313,8 +239,8 @@ class CPPCodeObject(CodeObject):
         self.extra_compile_args = extra_compile_args
 
     def run(self):
-        return weave.inline(self.code['%MAIN%'], self.namespace.keys(),
+        return weave.inline(self.code.main, self.namespace.keys(),
                             local_dict=self.namespace,
-                            support_code=self.code['%SUPPORT_CODE%'],
+                            support_code=self.code.support_code,
                             compiler=self.compiler,
                             extra_compile_args=self.extra_compile_args)

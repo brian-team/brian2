@@ -9,6 +9,7 @@ __all__ = ['indent',
            'word_substitute',
            'get_identifiers',
            'strip_empty_lines',
+           'stripped_deindented_lines',
            ]
 
 def indent(text, numtabs=1, spacespertab=4, tab=None):
@@ -163,3 +164,12 @@ def strip_empty_lines(s):
     an empty line.
     '''
     return '\n'.join(line for line in s.split('\n') if line.strip())
+
+def stripped_deindented_lines(code):
+    '''
+    Returns a list of the lines in a multi-line string, deindented.
+    '''
+    code = deindent(code)
+    code = strip_empty_lines(code)
+    lines = code.split('\n')
+    return lines
