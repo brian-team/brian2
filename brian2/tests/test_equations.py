@@ -160,31 +160,33 @@ def test_correct_replacements():
     eqs = Equations('dv/dt = -v / tau : 1', tau=10 * ms)
     assert not 'tau' in eqs['v'].identifiers
 
+
 def test_wrong_replacements():
     '''Tests for replacements that should not work'''
 
     # Replacing a variable name with an illegal new name
-    assert_raises(ValueError, lambda : Equations('dv/dt = -v / tau : 1',
-                                                 v='illegal name'))
-    assert_raises(ValueError, lambda : Equations('dv/dt = -v / tau : 1',
-                                                 v='_reserved'))
-    assert_raises(ValueError, lambda : Equations('dv/dt = -v / tau : 1',
-                                                 v='t'))
+    assert_raises(ValueError, lambda: Equations('dv/dt = -v / tau : 1',
+                                                v='illegal name'))
+    assert_raises(ValueError, lambda: Equations('dv/dt = -v / tau : 1',
+                                                v='_reserved'))
+    assert_raises(ValueError, lambda: Equations('dv/dt = -v / tau : 1',
+                                                v='t'))
 
     # Replacing a variable name with a value that already exists
-    assert_raises(EquationError, lambda : Equations('''
+    assert_raises(EquationError, lambda: Equations('''
                                                     dv/dt = -v / tau : 1
                                                     dx/dt = -x / tau : 1
                                                     ''',
-                                                    v='x'))
+                                                   v='x'))
 
     # Replacing a model variable name with a value
-    assert_raises(ValueError, lambda : Equations('dv/dt = -v / tau : 1',
-                                                 v=3 * mV))
+    assert_raises(ValueError, lambda: Equations('dv/dt = -v / tau : 1',
+                                                v=3 * mV))
 
     # Replacing with an illegal value
-    assert_raises(ValueError, lambda : Equations('dv/dt = -v/tau : 1',
+    assert_raises(SyntaxError, lambda: Equations('dv/dt = -v/tau : 1',
                                                  tau=np.arange(5)))
+
 
 def test_construction_errors():
     '''

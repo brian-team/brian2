@@ -5,10 +5,9 @@ information about its namespace. Only serves as a parent class, its subclasses
 '''
 import sympy
 
-from brian2.units.fundamentalunits import fail_for_dimension_mismatch
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
-from brian2.codegen.parsing import parse_to_sympy
+from brian2.codegen.parsing import str_to_sympy, sympy_to_str
 
 __all__ = ['Expression', 'Statements']
 
@@ -78,7 +77,7 @@ class Expression(CodeString):
         CodeString.__init__(self, code)
 
         # : The expression as a sympy object
-        self.sympy_expr = parse_to_sympy(self.code)
+        self.sympy_expr = str_to_sympy(self.code)
 
 
     def split_stochastic(self):
@@ -129,8 +128,8 @@ class Expression(CodeString):
             raise ValueError(('Expression "%s" cannot be separated into stochastic '
                               'and non-stochastic term') % self.code)
 
-        f_expr = Expression(str(matches[f]))
-        stochastic_expressions = dict((variable, Expression(str(matches[match_object])))
+        f_expr = Expression(sympy_to_str(matches[f]))
+        stochastic_expressions = dict((variable, Expression(sympy_to_str(matches[match_object])))
                                         for (variable, match_object) in
                                         zip(stochastic_variables, match_objects))
 

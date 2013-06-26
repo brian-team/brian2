@@ -1,4 +1,5 @@
 from .base import Language, CodeObject
+from ..ast_parser import NumpyNodeRenderer
 
 __all__ = ['PythonLanguage', 'PythonCodeObject']
 
@@ -8,7 +9,7 @@ class PythonLanguage(Language):
     language_id = 'python'
 
     def translate_expression(self, expr):
-        return expr.strip()
+        return NumpyNodeRenderer().render_expr(expr).strip()
 
     def translate_statement(self, statement):
         # TODO: optimisation, translate arithmetic to a sequence of inplace

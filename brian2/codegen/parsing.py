@@ -2,17 +2,13 @@
 Utility functions for parsing expressions and statements.
 '''
 import re
-from StringIO import StringIO
 
 import sympy
-from sympy.parsing.sympy_tokenize import (generate_tokens, untokenize, NUMBER,
-                                          NAME, OP)
-from .functions.numpyfunctions import DEFAULT_FUNCTIONS
+from sympy.printing.str import StrPrinter
 
-SYMPY_DICT = {'I': sympy.I,
-              'Float': sympy.Float,
-              'Integer': sympy.Integer,
-              'Symbol': sympy.Symbol}
+from .functions.numpyfunctions import DEFAULT_FUNCTIONS, log10
+from .ast_parser import SympyNodeRenderer
+
 
 def parse_statement(code):
     '''
@@ -49,22 +45,23 @@ def parse_statement(code):
     
     return var, op, expr
 
-def parse_to_sympy(expr, local_dict=None):
+
+def str_to_sympy(expr):
     '''
-    Parses a string into a sympy expression. The reason for not using `sympify`
-    directly is that sympify does a ``from sympy import *``, adding all functions
-    to its namespace. This leads to issues when trying to use sympy function
-    names as variable names. For example, both ``beta`` and ``factor`` -- quite
-    reasonable names for variables -- are sympy functions, using them as
-    variables would lead to a parsing error.
+    Parses a string into a sympy expression. There are two reasons for not
+    using `sympify` directly: 1) sympify does a ``from sympy import *``,
+    adding all functions to its namespace. This leads to issues when trying to
+    use sympy function names as variable names. For example, both ``beta`` and
+    ``factor`` -- quite reasonable names for variables -- are sympy functions,
+    using them as variables would lead to a parsing error. 2) We want to use
+    a common syntax across expressions and statements, e.g. we want to allow
+    to use `and` (instead of `&`) and function names like `ceil` (instead of
+    `ceiling`).
     
     Parameters
     ----------
     expr : str
-        The string expression to parse.
-    local_dict : dict
-        A dictionary mapping names to objects. These names will be left
-        untouched and not wrapped in Symbol(...).
+        The string expression to parse..
     
     Returns
     -------
@@ -78,77 +75,45 @@ def parse_to_sympy(expr, local_dict=None):
     
     Notes
     -----
-    This function is basically a stripped down version of sympy's
-    `~sympy.parsing.sympy_parser._transform` function.  Sympy is licensed
-    using the new BSD license:
-    https://github.com/sympy/sympy/blob/master/LICENSE
+    Parsing is done in two steps: First, the expression is parsed and rendered
+    as a new string by `SympyNodeRenderer`, translating function names (e.g.
+    `ceil` to `ceiling`) and operator names (e.g. `and` to `&`), all unknown
+    names are wrapped in `Symbol(...)` or `Function(...)`. The resulting string
+    is then evaluated in the `from sympy import *` namespace.
     '''
-    if local_dict is None:
-        # use the standard functions
-        local_dict = dict((name, f.sympy_func) for
-                         name, f in DEFAULT_FUNCTIONS.iteritems()
-                         if f.sympy_func is not None)
-    
-    tokens = generate_tokens(StringIO(expr).readline)
-    
-    result = []
-    for toknum, tokval, _, _, _ in tokens:
-        
-        if toknum == NUMBER:
-            postfix = []
-            number = tokval
-            
-            # complex numbers
-            if number.endswith('j') or number.endswith('J'):
-                number = number[:-1]
-                postfix = [(OP, '*'), (NAME, 'I')]
+    namespace = {}
+    exec 'from sympy import *' in namespace
+    # also add the log10 function to the namespace
+    namespace['log10'] = log10
+    rendered = SympyNodeRenderer().render_expr(expr)
 
-            # floating point numbers
-            if '.' in number or (('e' in number or 'E' in number) and
-                    not (number.startswith('0x') or number.startswith('0X'))):
-                seq = [(NAME, 'Float'), (OP, '('), (NUMBER, repr(str(number))), (OP, ')')]
-            # integers
-            else:                
-                seq = [(NAME, 'Integer'), (OP, '('), (NUMBER, number), (OP, ')')]
-
-            result.extend(seq + postfix)
-        elif toknum == NAME:
-            name = tokval
-
-            if name in ['True', 'False', 'None'] or name in local_dict:
-                result.append((NAME, name))
-                continue
-
-            result.extend([
-                # TODO: We always assume that variables are real, right?           
-                (NAME, 'Symbol'),
-                (OP, '('),
-                (NAME, repr(str(name))),
-                (OP, ','),
-                (NAME, 'real'),
-                (OP, '='),
-                (NAME, 'True'),
-                (OP, ')'),
-            ])
-        elif toknum == OP:
-            op = tokval
-
-            if op == '^':
-                result.append((OP, '**'))            
-            else:
-                result.append((OP, op))
-        else:
-            result.append((toknum, tokval))
-
-    code = untokenize(result)
-    
     try:
-        s_expr = eval(code, SYMPY_DICT, local_dict)
-    except Exception as ex:
-        raise ValueError('Expression "%s" could not be parsed: %s' %
-                         (expr, str(ex)))
+        s_expr = eval(rendered, namespace)
+    except (TypeError, ValueError, NameError) as ex:
+        raise SyntaxError('Error during evaluation of sympy expression: '
+                          + str(ex))
 
     return s_expr
+
+
+class CustomSympyPrinter(StrPrinter):
+    '''
+    Printer that overrides the printing of some basic sympy objects. E.g.
+    print "a & b" instead of "And(a, b)".
+    '''
+
+    def _print_And(self, expr):
+        return ' and '.join(['(%s)' % self.doprint(arg) for arg in expr.args])
+
+    def _print_Or(self, expr):
+        return ' or '.join(['(%s)' % self.doprint(arg) for arg in expr.args])
+
+    def _print_Not(self, expr):
+        if len(expr.args) != 1:
+            raise AssertionError('"Not" with %d arguments?' % len(expr.args))
+        return 'not (%s)' % self.doprint(expr.args[0])
+
+PRINTER = CustomSympyPrinter()
 
 
 def sympy_to_str(sympy_expr):
@@ -178,6 +143,6 @@ def sympy_to_str(sympy_expr):
 
     sympy_expr = sympy_expr.subs(replacements)
     
-    return str(sympy_expr)
+    return PRINTER.doprint(sympy_expr)
 
     

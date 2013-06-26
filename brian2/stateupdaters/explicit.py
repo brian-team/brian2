@@ -9,12 +9,12 @@ from sympy.core.sympify import SympifyError
 from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
 
-from brian2.codegen.parsing import parse_to_sympy
+from brian2.codegen.parsing import str_to_sympy, sympy_to_str
 
 from .base import StateUpdateMethod
 
-
 __all__ = ['milstein', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
+
 
 #===============================================================================
 # Class for simple definition of explicit state updaters
@@ -236,10 +236,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         self.statements = []
         self.symbols = SYMBOLS.copy()
         for element in parsed:
-            # Make sure to always re-use symbol objects for known symbols,
-            # otherwise the replacements go wrong
-            expression = parse_to_sympy(element.expression,
-                                        local_dict=self.symbols)
+            expression = str_to_sympy(element.expression)
             symbols = list(expression.atoms(sympy.Symbol))
             self.symbols.update(dict(((symbol.name, symbol)
                                       for symbol in symbols)))
@@ -257,7 +254,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         if equations.is_stochastic and self.stochastic is None:
             return False
         elif (equations.stochastic_type == 'multiplicative' and
-            self.stochastic != 'multiplicative'):
+              self.stochastic != 'multiplicative'):
             return False
         else:
             return True
@@ -280,12 +277,12 @@ class ExplicitStateUpdater(StateUpdateMethod):
         
         if len(self.statements) > 0:
             s += 'Intermediate statements:\n'
-            s += '\n'.join([(var + ' = ' + str(expr))
+            s += '\n'.join([(var + ' = ' + sympy_to_str(expr))
                             for var, expr in self.statements])
             s += '\n'
             
         s += 'Output:\n'
-        s += str(self.output)
+        s += sympy_to_str(self.output)
         return s
 
     def _latex(self, *args):
@@ -333,13 +330,13 @@ class ExplicitStateUpdater(StateUpdateMethod):
             Note that this deals with only one state variable `var`, given as
             an argument to the surrounding `_generate_RHS` function.
             '''
-            
+
             try:
-                s_expr = parse_to_sympy(str(expr), local_dict=eq_symbols)
+                s_expr = str_to_sympy(str(expr))
             except SympifyError as ex:
                 raise ValueError('Error parsing the expression "%s": %s' %
                                  (expr, str(ex)))
-            
+
             for var in eq_symbols:
                 # Generate specific temporary variables for the state variable,
                 # e.g. '_k_v' for the state variable 'v' and the temporary
@@ -431,9 +428,9 @@ class ExplicitStateUpdater(StateUpdateMethod):
         # All the parts (one non-stochastic and potentially more than one
         # stochastic part) are combined with addition
         if non_stochastic_result is not None:
-            RHS.append(str(non_stochastic_result))
+            RHS.append(sympy_to_str(non_stochastic_result))
         for stochastic_result in stochastic_results:
-            RHS.append(str(stochastic_result))
+            RHS.append(sympy_to_str(stochastic_result))
         
         RHS = ' + '.join(RHS)
         return RHS
@@ -465,17 +462,17 @@ class ExplicitStateUpdater(StateUpdateMethod):
         v = _v
         >>> print(rk4(eqs))
         _k_1_v = -dt*v/tau
-        _k_2_v = -dt*(_k_1_v/2 + v)/tau
-        _k_3_v = -dt*(_k_2_v/2 + v)/tau
+        _k_2_v = -dt*(0.5*_k_1_v + v)/tau
+        _k_3_v = -dt*(0.5*_k_2_v + v)/tau
         _k_4_v = -dt*(_k_3_v + v)/tau
-        _v = _k_1_v/6 + _k_2_v/3 + _k_3_v/3 + _k_4_v/6 + v
+        _v = 0.166666666666667*_k_1_v + 0.333333333333333*_k_2_v + 0.333333333333333*_k_3_v + 0.166666666666667*_k_4_v + v
         v = _v
         '''
         
         # The final list of statements
         statements = []
         
-        # The variables for the intermedia results in the state updater
+        # The variables for the intermediate results in the state updater
         # description, e.g. the variable k in rk2
         intermediate_vars = [var for var, expr in self.statements]
         

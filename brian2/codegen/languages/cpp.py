@@ -3,15 +3,14 @@ TODO: restrict keyword optimisations
 '''
 import re
 
-from sympy.printing.ccode import CCodePrinter
 import numpy
 
 from brian2.utils.stringtools import deindent
-from brian2.codegen.parsing import parse_to_sympy
 from brian2.codegen.functions.base import Function
 from brian2.utils.logger import get_logger
 
 from .base import Language, CodeObject
+from ..ast_parser import CPPNodeRenderer
 
 logger = get_logger(__name__)
 try:
@@ -111,12 +110,7 @@ class CPPLanguage(Language):
         self.flush_denormals = flush_denormals
 
     def translate_expression(self, expr):
-        # temporary hack to make randn() pass through sympy
-        expr = re.sub(r'\brandn\b\s*\(\s*\)', '_temporary_randn_symbol', expr)
-        expr = parse_to_sympy(expr)
-        expr = CCodePrinter().doprint(expr)
-        expr = re.sub(r'\b_temporary_randn_symbol\b', 'randn()', expr)
-        return expr
+        return CPPNodeRenderer().render_expr(expr).strip()
 
     def translate_statement(self, statement):
         var, op, expr = statement.var, statement.op, statement.expr
