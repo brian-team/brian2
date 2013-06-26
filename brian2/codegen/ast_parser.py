@@ -34,10 +34,14 @@ class NodeRenderer(object):
       }
     
     def render_expr(self, expr):
+        expr = expr.replace('&', ' and ')
+        expr = expr.replace('|', ' or ')
         node = ast.parse(expr, mode='eval')
         return self.render_node(node.body)
 
     def render_code(self, code):
+        code = code.replace('&', ' and ')
+        code = code.replace('|', ' or ')
         lines = []
         for node in ast.parse(code).body:
             lines.append(self.render_node(node))
@@ -60,9 +64,9 @@ class NodeRenderer(object):
         if len(node.keywords):
             raise ValueError("Keyword arguments not supported.")
         elif node.starargs is not None:
-            raise ValueError("*args not supported")
+            raise ValueError("Variable number of arguments not supported")
         elif node.kwargs is not None:
-            raise ValueError("**kwds not supported")
+            raise ValueError("Keyword arguments not supported")
         return '%s(%s)' % (self.render_node(node.func),
                            ', '.join(self.render_node(arg) for arg in node.args))
 
