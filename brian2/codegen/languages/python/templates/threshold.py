@@ -1,4 +1,4 @@
-# USE_SPECIFIERS{ refractory, refractory_until, t }
+# USE_SPECIFIERS { refractory, refractory_until, t }
 
 {% for line in code_lines %}
 {{line}}

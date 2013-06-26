@@ -1,4 +1,4 @@
-# USES_SPECIFIERS { _postsynaptic, _presynaptic, _spiking_synapses, _post_neurons }
+# USE_SPECIFIERS { _postsynaptic, _presynaptic, _spiking_synapses, _post_neurons }
 # TODO: check and improve this
 _post_neurons = _postsynaptic.data.take(_spiking_synapses)
 _perm = _post_neurons.argsort()
