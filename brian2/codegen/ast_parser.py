@@ -154,6 +154,9 @@ class SympyNodeRenderer(NodeRenderer):
           # BinOps
           'BitAnd': '&',
           'BitOr': '|',
+          # Compare
+          'Eq': 'Eq',
+          'NotEq': 'Ne',
           # Unary ops
           'Not': '~',
           'Invert': '~',
@@ -169,6 +172,17 @@ class SympyNodeRenderer(NodeRenderer):
                                                            sympy.FunctionClass):
                     return '%s' % str(f.sympy_func)
         return 'Function("%s")' % node.id
+
+    def render_Compare(self, node):
+        if len(node.comparators)>1:
+            raise SyntaxError("Can only handle single comparisons like a<b not a<b<c")
+        op = node.ops[0]
+        if op.__class__.__name__ in ('Eq', 'NotEq'):
+            return '%s(%s, %s)' % (self.expression_ops[op.__class__.__name__],
+                                   self.render_node(node.left),
+                                   self.render_node(node.comparators[0]))
+        else:
+            return NodeRenderer.render_Compare(self, node)
 
     def render_Name(self, node):
         return 'Symbol("%s", real=True)' % node.id

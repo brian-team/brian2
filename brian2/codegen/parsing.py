@@ -4,6 +4,7 @@ Utility functions for parsing expressions and statements.
 import re
 
 import sympy
+from sympy.printing.str import StrPrinter
 
 from .functions.numpyfunctions import DEFAULT_FUNCTIONS, log10
 from .ast_parser import SympyNodeRenderer
@@ -95,6 +96,26 @@ def str_to_sympy(expr):
     return s_expr
 
 
+class CustomSympyPrinter(StrPrinter):
+    '''
+    Printer that overrides the printing of some basic sympy objects. E.g.
+    print "a & b" instead of "And(a, b)".
+    '''
+
+    def _print_And(self, expr):
+        return ' and '.join(['(%s)' % self.doprint(arg) for arg in expr.args])
+
+    def _print_Or(self, expr):
+        return ' or '.join(['(%s)' % self.doprint(arg) for arg in expr.args])
+
+    def _print_Not(self, expr):
+        if len(expr.args) != 1:
+            raise AssertionError('"Not" with %d arguments?' % len(expr.args))
+        return 'not (%s)' % self.doprint(expr.args[0])
+
+PRINTER = CustomSympyPrinter()
+
+
 def sympy_to_str(sympy_expr):
     '''
     Converts a sympy expression into a string. This could be as easy as 
@@ -122,6 +143,6 @@ def sympy_to_str(sympy_expr):
 
     sympy_expr = sympy_expr.subs(replacements)
     
-    return str(sympy_expr)
+    return PRINTER.doprint(sympy_expr)
 
     

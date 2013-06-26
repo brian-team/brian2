@@ -5,20 +5,20 @@ from brian2.utils.stringtools import get_identifiers
 from brian2.codegen.ast_parser import (NodeRenderer, NumpyNodeRenderer,
                                        CPPNodeRenderer,
                                        )
-from brian2.utils.stringtools import get_identifiers
-from numpy.testing import assert_raises, assert_equal
-from numpy.random import rand, randint
+
+from numpy.testing import assert_allclose
+
 import numpy as np
+from brian2.codegen.parsing import str_to_sympy, sympy_to_str
+
 try:
     from scipy import weave
 except ImportError:
     weave = None
 import nose
-            
 
-def parse_expressions(renderer, evaluator, numvalues=10):
-    # TODO: add some tests with e.g. 1.0%2.0 etc. once this is implemented in C++
-    exprs = '''
+# TODO: add some tests with e.g. 1.0%2.0 etc. once this is implemented in C++
+TEST_EXPRESSIONS = '''
     a+b+c*d+e-f+g-(b+d)-(a-c)
     a**b**2
     a**(b**2)
@@ -41,7 +41,11 @@ def parse_expressions(renderer, evaluator, numvalues=10):
     a>0.5 and b>0.5 or not c>0.5
     2%4
     '''
-    exprs = [([m for m in get_identifiers(l) if len(m)==1], [], l.strip()) for l in exprs.split('\n') if l.strip()]
+
+
+def parse_expressions(renderer, evaluator, numvalues=10):
+    exprs = [([m for m in get_identifiers(l) if len(m)==1], [], l.strip())
+             for l in TEST_EXPRESSIONS.split('\n') if l.strip()]
     i, imod = 1, 33
     for varids, funcids, expr in exprs:
         pexpr = renderer.render_expr(expr)
@@ -56,9 +60,13 @@ def parse_expressions(renderer, evaluator, numvalues=10):
             n += 1
             r2 = evaluator(pexpr, ns)
             try:
-                assert_equal(r1, r2)
+                # Use all close because we can introduce small numerical
+                # difference through sympy's rearrangements
+                assert_allclose(r1, r2)
             except AssertionError as e:
-                raise AssertionError("In expression "+expr+" translated to "+pexpr+" "+str(e))
+                raise AssertionError("In expression " + str(expr) +
+                                     " translated to " + str(pexpr) +
+                                     " " + str(e))
 
 
 def numpy_evaluator(expr, userns):
@@ -99,8 +107,27 @@ def test_parse_expressions_cpp():
     parse_expressions(CPPNodeRenderer(), cpp_evaluator)
 
 
+def test_parse_expressions_sympy():
+    # sympy is about symbolic calculation, the string returned by the renderer
+    # contains "Symbol('a')" etc. so we cannot simply evaluate it in a
+    # namespace.
+    # We therefore use a different approach: Convert the expression to a
+    # sympy expression via str_to_sympy (uses the SympyNodeRenderer internally),
+    # then convert it back to a string via sympy_to_str and evaluate it
+
+    class SympyRenderer(object):
+        def render_expr(self, expr):
+            return str_to_sympy(expr)
+
+    def evaluator(expr, ns):
+        expr = sympy_to_str(expr)
+        return eval(expr, ns)
+
+    parse_expressions(SympyRenderer(), evaluator)
+
+
 if __name__=='__main__':
     test_parse_expressions_python()
     test_parse_expressions_numpy()
     test_parse_expressions_cpp()
-    
+    test_parse_expressions_sympy()
