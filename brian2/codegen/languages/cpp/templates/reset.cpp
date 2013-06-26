@@ -2,6 +2,8 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
+	// USE_SPECIFIERS { _num_spikes, _spikes }
+
 	////// SUPPORT CODE ///////
 	{% for line in support_code_lines %}
 	// {{line}}

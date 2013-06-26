@@ -2,6 +2,8 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
+	// USE_SPECIFIERS { _num_spiking_synapses, _spiking_synapses, _postsynaptic,
+	//                  _presynaptic }
 	////// SUPPORT CODE ///////
 	{% for line in support_code_lines %}
 	// {{line}}

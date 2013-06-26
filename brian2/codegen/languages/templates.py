@@ -5,6 +5,7 @@ from brian2.utils.stringtools import (indent, deindent, strip_empty_lines,
                                       get_identifiers)
 from jinja2 import Template, Environment, FileSystemLoader
 import os
+import re
 
 __all__ = ['LanguageTemplater']
 
@@ -27,13 +28,22 @@ class LanguageTemplate(object):
     def __init__(self, template):
         self.template = template
         res = self([''])
+        if isinstance(res, str):
+            temps = [res]
+        else:
+            temps = res._templates.values()
         #: The set of words in this template
         self.words = set([])
-        if isinstance(res, str):
-            self.words.update(get_identifiers(res))
-        else:
-            for k, v in res._templates.items():
-                self.words.update(get_identifiers(v))
+        for v in temps:
+            self.words.update(get_identifiers(v))
+        #: The set of specifiers in this template
+        self.specifiers = set([])
+        for v in temps:
+            # This is the bit inside {} for USE_SPECIFIERS { list of words }
+            specifier_blocks = re.findall(r'\bUSE_SPECIFIERS\b\s*\{(.*?)\}',
+                                          v, re.M|re.S)
+            for block in specifier_blocks:
+                self.specifiers.update(get_identifiers(block))
                 
     def __call__(self, code_lines, **kwds):
         kwds['code_lines'] = code_lines

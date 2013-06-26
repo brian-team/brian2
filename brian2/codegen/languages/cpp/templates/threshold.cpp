@@ -2,6 +2,7 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
+	// USE_SPECIFIERS { _num_neurons, refractory, refractory_until, t }
 	////// SUPPORT CODE ///////
 	{% for line in support_code_lines %}
 	// {{line}}
