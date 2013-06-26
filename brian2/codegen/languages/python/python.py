@@ -1,5 +1,7 @@
-from .base import Language, CodeObject
-from ..ast_parser import NumpyNodeRenderer
+from ..base import Language, CodeObject
+from ..templates import LanguageTemplater
+from ...ast_parser import NumpyNodeRenderer
+import os
 
 __all__ = ['PythonLanguage', 'PythonCodeObject']
 
@@ -7,6 +9,9 @@ __all__ = ['PythonLanguage', 'PythonCodeObject']
 class PythonLanguage(Language):
 
     language_id = 'python'
+
+    templater = LanguageTemplater(os.path.join(os.path.split(__file__)[0],
+                                               'templates'))
 
     def translate_expression(self, expr):
         return NumpyNodeRenderer().render_expr(expr).strip()
@@ -54,55 +59,11 @@ class PythonLanguage(Language):
                     line = line + '[' + index_var + ']'
                 line = line + ' = ' + var
                 lines.append(line)
-        return '\n'.join(lines)
+        return lines, {}
 
     def code_object(self, code, namespace, specifiers):
         return PythonCodeObject(code, namespace, specifiers,
                                 self.compile_methods(namespace))
-
-    def template_iterate_all(self, index, size):
-        return '''
-        %CODE%
-        '''
-
-    def template_iterate_index_array(self, index, array, size):
-        return '''
-        {index} = {array}
-        %CODE%
-        '''.format(index=index, array=array)
-
-    def template_threshold(self):
-        # The thresholder returns the array of spiking neurons
-        code = '''
-        %CODE%
-        _return_values, = _cond.nonzero()
-        refractory_until[_return_values] = t + refractory[_return_values] 
-        '''
-        return code
-
-    def template_synapses(self):
-        return '''
-        # TODO: check and improve this
-        _post_neurons = _postsynaptic.data.take(_spiking_synapses)
-        _perm = _post_neurons.argsort()
-        _aux = _post_neurons.take(_perm)
-        _flag = empty(len(_aux)+1, dtype=bool)
-        _flag[0] = _flag[-1] = 1
-        not_equal(_aux[1:], _aux[:-1], _flag[1:-1])
-        _F = _flag.nonzero()[0][:-1]
-        logical_not(_flag, _flag)
-        while len(_F):
-            _u = _aux.take(_F)
-            _i = _perm.take(_F)
-            _postsynaptic_idx = _u
-            _synapse_idx = _spiking_synapse[_i]
-            # TODO: how do we get presynaptic indices? do we need to?
-        
-            %CODE%
-        
-            _F += 1
-            _F = extract(_flag.take(_F), _F)
-        '''
 
 
 class PythonCodeObject(CodeObject):
@@ -115,23 +76,3 @@ class PythonCodeObject(CodeObject):
         # output variables should land in the variable name _return_values
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']
-
-# THIS DOESN'T WORK
-# def convert_expr_to_inplace(expr):
-#    lines = []
-#    expr = symbolic_eval(expr)
-#    curstep = 0
-#    def step(subexpr):
-#        myargs = map(step, subexpr.args)
-#        name = '_temp_'+str(curstep)
-#        curstep += 1
-#        if isinstance(subexpr, sympy.Add):
-#            args = subexpr.args
-#            while len(args)>=2:
-#                lines.append('add({')
-#        return name
-#    return '\n'.join(lines)
-#
-# if __name__=='__main__':
-#    print convert_expr_to_inplace('x+y*z')
-
