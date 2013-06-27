@@ -1,5 +1,6 @@
 import collections
 import weakref
+import inspect
 
 import numpy as np
 
@@ -12,7 +13,7 @@ from brian2.core.specifiers import (ArrayVariable, Index, DynamicArrayVariable,
 from brian2.codegen.languages import PythonLanguage
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         STATIC_EQUATION, PARAMETER)
-from brian2.groups.group import Group, GroupCodeRunner
+from brian2.groups.group import Group, GroupCodeRunner, create_codeobj
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.units.fundamentalunits import Unit
@@ -248,6 +249,7 @@ def _synapse_numbers(pre_neurons, post_neurons):
         numbers[(source, target)] = number + 1
     return synapse_numbers
 
+
 class SynapticIndices(object):
     '''
     Convenience object to store the synaptic indices.
@@ -328,7 +330,9 @@ class SynapticIndices(object):
         (including arrays and slices), a single index or a string.
 
         '''
-        if isinstance(index, (int, np.ndarray, slice, collections.Sequence)):
+        if (not isinstance(index, (tuple, basestring)) and
+                isinstance(index, (int, np.ndarray, slice,
+                                   collections.Sequence))):
             index = (index, slice(None), slice(None))
         if isinstance(index, tuple):
             if len(index) == 2:  # two indices (pre- and postsynaptic cell)
@@ -623,6 +627,61 @@ class Synapses(BrianObject, Group):
 
         self.indices._add_synapses(pre_neurons, post_neurons)
 
+    def _set_with_code(self, specifier, synaptic_indices, code,
+                       check_units=True):
+        '''
+        Sets a variable using a string expression. Is called by
+        `SynapticArrayView.__setitem__` for statements such as
+        `S.var[:, :] = 'exp(-abs(i-j)/space_constant)*nS'`
+
+        Parameters
+        ----------
+        specifier : `SynapticArrayVariable`
+            The `Specifier` for the variable to be set
+        synaptic_indices : ndarray of int
+            The synaptic indices of the elements that are to be set.
+        code : str
+            The code that should be executed to set the variable values.
+            Can contain `i` and `j` referring to the presynaptic and
+            postsynaptic indices.
+        check_units : bool, optional
+            Whether to check the units of the expression.
+        '''
+
+        abstract_code = specifier.name + ' = ' + code
+        indices = {'_neuron_idx': Index('_neuron_idx', iterate_all=False)}
+        # Get the locals and globals from the stack frame
+        frame = inspect.stack()[2][0]
+        namespace = dict(frame.f_globals)
+        namespace.update(frame.f_locals)
+        additional_namespace = ('implicit-namespace', namespace)
+        additional_specifiers = {'i': DynamicArrayVariable('_presynaptic',
+                                                           Unit(1),
+                                                           np.int32,
+                                                           self.indices.synaptic_pre,
+                                                           '_neuron_idx'),
+                                 'j': DynamicArrayVariable('_postsynaptic',
+                                                           Unit(1),
+                                                           np.int32,
+                                                           self.indices.synaptic_post,
+                                                           '_neuron_idx'),
+                                 # TODO: Find a name that makes sense for reset
+                                 # and variable setting with code
+                                 '_spikes': ArrayVariable('_spikes',
+                                                          Unit(1),
+                                                          np.int32,
+                                                          synaptic_indices,
+                                                          ''  # no index
+                                 )}
+        codeobj = create_codeobj(self,
+                                 abstract_code,
+                                 self.language.template_reset,
+                                 indices,
+                                 additional_specifiers=additional_specifiers,
+                                 additional_namespace=additional_namespace,
+                                 check_units=check_units)
+        codeobj.compile()
+        codeobj.run()
 
 def smallest_inttype(N):
     '''

@@ -353,7 +353,8 @@ class DynamicArrayVariable(ArrayVariable):
 
 class SynapticArrayView(object):
 
-    def __init__(self, array, synapses, unit=None):
+    def __init__(self, specifier, array, synapses, unit=None):
+        self.specifier = specifier
         self.array = array
         self.synapses = synapses
         self.unit = unit
@@ -367,10 +368,15 @@ class SynapticArrayView(object):
             return self.array.data[self.synapses.indices[i]] * self.unit
 
     def __setitem__(self, i, value):
-        if not self.unit is None:
-            fail_for_dimension_mismatch(value, self.unit)
         synapses = self.synapses.indices[i]
-        self.array.data[synapses] = value
+        if isinstance(value, basestring):
+            check_units = self.unit is not None
+            self.synapses._set_with_code(self.specifier, synapses, value,
+                                         check_units)
+        else:
+            if not self.unit is None:
+                fail_for_dimension_mismatch(value, self.unit)
+            self.array.data[synapses] = value
 
 
 class SynapticArrayVariable(DynamicArrayVariable):
@@ -383,10 +389,10 @@ class SynapticArrayVariable(DynamicArrayVariable):
         self.synapses.indices.register_variable(self.array)
 
     def get_addressable_value(self):
-        return SynapticArrayView(self.array, self.synapses, None)
+        return SynapticArrayView(self, self.array, self.synapses, None)
 
     def get_addressable_value_with_unit(self):
-        return SynapticArrayView(self.array, self.synapses, self.unit)
+        return SynapticArrayView(self, self.array, self.synapses, self.unit)
 
 
 class Subexpression(Value):
