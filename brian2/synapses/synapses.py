@@ -307,9 +307,10 @@ class SynapticIndices(object):
                              'indices.').format(type(variable)))
         self._registered_variables.append(weakref.proxy(variable))
 
-    def _add_synapses(self, sources, targets):
+    def _add_synapses(self, sources, targets, n):
+        sources = sources.repeat(n)
+        targets = targets.repeat(n)
         new_synapses = len(sources)
-        assert new_synapses == len(targets)
 
         old_N = self.N
         new_N = old_N + new_synapses
@@ -619,23 +620,57 @@ class Synapses(BrianObject, Group):
                                        np.arange(len(self.target)))
         self.connect(sources.flat(), targets.flat())
 
-    def connect(self, pre_neurons, post_neurons):
+    def connect(self, pre_or_cond, post=None, p=None, n=1):
         '''
-        Add synapses for the given pre/post pairs.
+        Add synapses. The first argument can be either a presynaptic index
+        (int or array) or a condition for synapse creation in the form of a
+        string that evaluates to a boolean value (or directly a boolean value).
+        If it is given as an index, also `post` has to be present. A string
+        condition will be evaluated for all pre-/postsynaptic indices, which
+        can be referred to as `i` and `j`.
 
         Parameters
         ----------
-        pre_neurons : ndarray of int
-            Indices of neurons from the source group.
-        post_neurons : ndarray of int
-            Indices of neurons from the target group.
+        pre_or_cond : {int, ndarray of int, bool, str}
+            The presynaptic neurons (in the form of an index or an array of
+            indices) or a boolean value or a string that evaluates to a
+            boolean value. If it is an index, then also `post` has to be
+            given.
+        post_neurons : {int, ndarray of int), optional
+            Indices of neurons from the target group. Non-optional if one or
+            more presynaptic indices have been given.
+        p : float, optional
+            The probability to create `n` synapses wherever the condition
+            given as `pre_or_cond` evaluates to true or for the given
+            pre/post indices.
+        n : int, optional
+            The number of synapses to create per pre/post connection pair.
+            Defaults to 1.
         '''
-        if len(pre_neurons) != len(post_neurons):
-            raise ValueError(('The two arrays need to have the same '
-                              'length, {} != {}').format(len(pre_neurons),
-                                                         len(post_neurons)))
 
-        self.indices._add_synapses(pre_neurons, post_neurons)
+        if p is not None:
+            raise NotImplementedError('Random assignment not implemented yet')
+
+        if isinstance(pre_or_cond, (int, np.ndarray)):
+            if not isinstance(post, (int, np.ndarray)):
+                raise TypeError(('Presynaptic indices can only be combined'
+                                 'with postsynaptic indices))'))
+            if isinstance(n, basestring):
+                raise NotImplementedError(('String expressions for "n" not'
+                                           'implemented yet.'))
+            i, j, n = np.broadcast_arrays(pre_or_cond, post, n)
+            if i.ndim > 1:
+                raise ValueError('Can only use 1-dimensional indices')
+
+            self.indices._add_synapses(i, j, n)
+        elif isinstance(pre_or_cond, basestring):
+            if isinstance(n, basestring):
+                raise NotImplementedError(('String expressions for "n" not'
+                                           'implemented yet.'))
+            raise NotImplementedError()
+        else:
+            raise TypeError(('First argument has to be an index or a '
+                             'string, is %s instead.') % type(pre_or_cond))
 
 
 def smallest_inttype(N):
