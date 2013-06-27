@@ -128,7 +128,7 @@ def test_threshold_reset():
         G.v = np.array([0, 1, 2])
         net = Network(G)
         net.run(defaultclock.dt)
-        assert_equal(G.v, np.array([0, 1, 0.5]))
+        assert_equal(G.v[:], np.array([0, 1, 0.5]))
 
 def test_unit_errors_threshold_reset():
     '''
