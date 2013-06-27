@@ -2,16 +2,52 @@
 This module defines the `Group` object, a mix-in class for everything that
 saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
-
 import weakref
+import inspect
+
+import numpy as np
 
 from brian2.core.base import BrianObject
-from brian2.core.specifiers import Index
-from brian2.units.fundamentalunits import fail_for_dimension_mismatch
+from brian2.core.specifiers import ArrayVariable, Index
+from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
 from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
 
-__all__ = ['Group', 'GroupCodeRunner']
+__all__ = ['Group', 'GroupCodeRunner', 'Indices']
+
+
+class Indices(object):
+
+    def __init__(self, N):
+        self.N = N
+        self._indices = np.arange(self.N)
+        self.specifiers = {'i': ArrayVariable('i',
+                                              Unit(1),
+                                              self._indices.dtype,
+                                              self._indices,
+                                              '_neuron_idx')}
+
+    def __len__(self):
+        return self.N
+
+    def __getitem__(self, index):
+        '''
+        Returns indices for `index` an array, integer or slice, or a string
+        (that might refer to ``i`` as the group element index).
+
+        '''
+        if isinstance(index, tuple):
+            raise IndexError(('Can only interpret 1-d indices, '
+                              'got %d dimensions.') % len(index))
+        if isinstance(index, basestring):
+            # interpret the string expression
+            namespace = {'i': self._indices}
+
+            result = eval(index, namespace)
+            return np.flatnonzero(result)
+        else:
+            return self._indices[index]
+
 
 class Group(object):
     '''
@@ -22,7 +58,15 @@ class Group(object):
     '''
     def __init__(self):
         if not hasattr(self, 'specifiers'):
-            raise ValueError('Classes derived from Group need specifiers attribute')
+            raise ValueError('Classes derived from Group need specifiers attribute.')
+        if not hasattr(self, 'indices'):
+            try:
+                N = len(self)
+            except TypeError:
+                raise ValueError(('Classes derived from Group need an indices '
+                                  'attribute, or a length to automatically '
+                                  'provide 1-d indexing'))
+            self.indices = Indices(N)
         self._group_attribute_access_active = True
     
     def state_(self, name):
@@ -68,7 +112,7 @@ class Group(object):
             else:
                 return self.state(name)
         except KeyError:
-            raise AttributeError
+            raise AttributeError('No attribute with name ' + name)
 
     def __setattr__(self, name, val):
         # attribute access is switched off until this attribute is created by
@@ -77,15 +121,68 @@ class Group(object):
             object.__setattr__(self, name, val)
         elif name in self.specifiers:
             spec = self.specifiers[name]
-            fail_for_dimension_mismatch(val, spec.unit,
-                                        'Incorrect units for setting %s' % name)
-            spec.set_value(val)
+            if not isinstance(val, basestring):
+                fail_for_dimension_mismatch(val, spec.unit,
+                                            'Incorrect units for setting %s' % name)
+            # Make the call X.var = ... equivalent to X.var[:] = ...
+            spec.get_addressable_value_with_unit(level=1)[:] = val
         elif len(name) and name[-1]=='_' and name[:-1] in self.specifiers:
             # no unit checking
-            self.specifiers[name[:-1]].set_value(val)
+            spec = self.specifiers[name[:-1]]
+            # Make the call X.var = ... equivalent to X.var[:] = ...
+            spec.get_addressable_value(level=1)[:] = val
         else:
             object.__setattr__(self, name, val)
 
+    def _set_with_code(self, specifier, group_indices, code,
+                       check_units=True, level=0):
+        '''
+        Sets a variable using a string expression. Is called by
+        `VariableView.__setitem__` for statements such as
+        `S.var[:, :] = 'exp(-abs(i-j)/space_constant)*nS'`
+
+        Parameters
+        ----------
+        specifier : `ArrayVariable`
+            The `Specifier` for the variable to be set
+        group_indices : ndarray of int
+            The indices of the elements that are to be set.
+        code : str
+            The code that should be executed to set the variable values.
+            Can contain references to indices, such as `i` or `j`
+        check_units : bool, optional
+            Whether to check the units of the expression.
+        level : int, optional
+            How much farther to go down in the stack to find the namespace.
+            Necessary so that both `X.var = ` and `X.var[:] = ` have access
+            to the surrounding namespace.
+        '''
+
+        abstract_code = specifier.name + ' = ' + code
+        indices = {'_neuron_idx': Index('_neuron_idx', iterate_all=False)}
+        # Get the locals and globals from the stack frame
+        frame = inspect.stack()[2+level][0]
+        namespace = dict(frame.f_globals)
+        namespace.update(frame.f_locals)
+        additional_namespace = ('implicit-namespace', namespace)
+        additional_specifiers = dict(self.indices.specifiers)
+        # TODO: Find a name that makes sense for reset and variable setting
+        # with code
+        additional_specifiers['_spikes'] = ArrayVariable('_spikes',
+                                                         Unit(1),
+                                                         np.int32,
+                                                         group_indices,
+                                                         '',  # no index,
+                                                         self)
+        codeobj = create_codeobj(self,
+                                 abstract_code,
+                                 self.language.template_reset,
+                                 indices,
+                                 additional_specifiers=additional_specifiers,
+                                 additional_namespace=additional_namespace,
+                                 check_units=check_units)
+        codeobj.compile()
+        codeobj.run()
 
 def create_codeobj(group, code, template, indices,
                    name=None, check_units=True, additional_specifiers=None,

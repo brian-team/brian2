@@ -128,10 +128,10 @@ class Value(VariableSpecifier):
     def get_value_with_unit(self):
         return self.get_value() * self.unit
 
-    def get_addressable_value(self):
+    def get_addressable_value(self, level=0):
         return self.get_value()
 
-    def get_addressable_value_with_unit(self):
+    def get_addressable_value_with_unit(self, level=0):
         return self.get_value_with_unit()
 
     def get_len(self):
@@ -282,6 +282,34 @@ class AttributeValue(ReadOnlyValue):
                                   constant=repr(self.constant))
 
 
+class VariableView(object):
+
+    def __init__(self, specifier, group, unit=None, level=0):
+        self.specifier = specifier
+        self.group = group
+        self.unit = unit
+        self.level = level
+
+#    data = property(lambda self: self.specifier.get_value())
+
+    def __getitem__(self, i):
+        if self.unit is None:
+            return self.specifier.get_value()[self.group.indices[i]]
+        else:
+            return self.specifier.get_value()[self.group.indices[i]] * self.unit
+
+    def __setitem__(self, i, value):
+        indices = self.group.indices[i]
+        if isinstance(value, basestring):
+            check_units = self.unit is not None
+            self.group._set_with_code(self.specifier, indices, value,
+                                      check_units, level=self.level)
+        else:
+            if not self.unit is None:
+                fail_for_dimension_mismatch(value, self.unit)
+            self.specifier.array[indices] = value
+
+
 class ArrayVariable(Value):
     '''
     An object providing information about a model variable stored in an array
@@ -314,7 +342,7 @@ class ArrayVariable(Value):
     constant : bool, optional
         Whether the variable's value is constant during a run.
     '''
-    def __init__(self, name, unit, dtype, array, index, constant=False):
+    def __init__(self, name, unit, dtype, array, index, group=None, constant=False):
         Value.__init__(self, name, unit, dtype, scalar=False, constant=constant)
         #: The reference to the array storing the data for the variable.
         self.array = array
@@ -322,12 +350,20 @@ class ArrayVariable(Value):
         self.arrayname = '_array_' + self.name
         #: The name of the index that will be used in the generated code.
         self.index = index
+        #: A reference to the `Group`
+        self.group = group
 
     def get_value(self):        
         return self.array
 
     def set_value(self, value):
         self.array[:] = value
+
+    def get_addressable_value(self, level=0):
+        return VariableView(self, self.group, None, level)
+
+    def get_addressable_value_with_unit(self, level=0):
+        return VariableView(self, self.group, self.unit, level)
 
     def __repr__(self):
         description = ('<{classname}(name={name}, unit={unit}, dtype={dtype}, '
@@ -351,48 +387,19 @@ class DynamicArrayVariable(ArrayVariable):
         return self.array.data
 
 
-class SynapticArrayView(object):
-
-    def __init__(self, specifier, array, synapses, unit=None):
-        self.specifier = specifier
-        self.array = array
-        self.synapses = synapses
-        self.unit = unit
-
-    data = property(lambda self: self.array.data)
-
-    def __getitem__(self, i):
-        if self.unit is None:
-            return self.array.data[self.synapses.indices[i]]
-        else:
-            return self.array.data[self.synapses.indices[i]] * self.unit
-
-    def __setitem__(self, i, value):
-        synapses = self.synapses.indices[i]
-        if isinstance(value, basestring):
-            check_units = self.unit is not None
-            self.synapses._set_with_code(self.specifier, synapses, value,
-                                         check_units)
-        else:
-            if not self.unit is None:
-                fail_for_dimension_mismatch(value, self.unit)
-            self.array.data[synapses] = value
-
-
 class SynapticArrayVariable(DynamicArrayVariable):
 
     def __init__(self, name, unit, dtype, array, index, synapses, constant=False):
-        ArrayVariable.__init__(self, name, unit, dtype, array, index)
-        self.synapses = synapses
+        ArrayVariable.__init__(self, name, unit, dtype, array, index, synapses)
         # Register the object with the `SynapticIndex` object so it gets
         # automatically resized
-        self.synapses.indices.register_variable(self.array)
+        synapses.indices.register_variable(self.array)
 
-    def get_addressable_value(self):
-        return SynapticArrayView(self, self.array, self.synapses, None)
+    def get_addressable_value(self, level=0):
+        return VariableView(self, self.group, None, level)
 
-    def get_addressable_value_with_unit(self):
-        return SynapticArrayView(self, self.array, self.synapses, self.unit)
+    def get_addressable_value_with_unit(self, level=0):
+        return VariableView(self, self.group, self.unit, level)
 
 
 class Subexpression(Value):

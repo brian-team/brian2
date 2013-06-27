@@ -269,6 +269,18 @@ class SynapticIndices(object):
         self.i = IndexView(self, self.synaptic_pre)
         self.j = IndexView(self, self.synaptic_post)
         self.k = SynapseIndexView(self)
+
+        self.specifiers = self.specifiers = {'i': DynamicArrayVariable('i',
+                                                                       Unit(1),
+                                                                       self.synaptic_pre.dtype,
+                                                                       self.synaptic_pre,
+                                                                       '_neuron_idx'),
+                                             'j': DynamicArrayVariable('j',
+                                                                       Unit(1),
+                                                                       self.synaptic_post.dtype,
+                                                                       self.synaptic_post,
+                                                                       '_neuron_idx')}
+
         self._registered_variables = []
 
     N = property(fget=lambda self: len(self.synaptic_pre),
@@ -508,12 +520,13 @@ class Synapses(BrianObject, Group):
         for name, spec in self.source.specifiers.iteritems():
             if isinstance(spec, ArrayVariable):
                 new_spec = ArrayVariable(spec.name, spec.unit, spec.dtype,
-                                         spec.array, '_presynaptic_idx')
+                                         spec.array, '_presynaptic_idx',
+                                         self)
                 s[name + '_pre'] = new_spec
         for name, spec in self.target.specifiers.iteritems():
             if isinstance(spec, ArrayVariable):
                 new_spec = ArrayVariable(spec.name, spec.unit, spec.dtype,
-                             spec.array, '_postsynaptic_idx')
+                             spec.array, '_postsynaptic_idx', self)
                 s[name + '_post'] = new_spec
                 # Also add all the post specifiers without a suffix -- if this
                 # clashes with the name of a state variable defined in this
@@ -532,11 +545,13 @@ class Synapses(BrianObject, Group):
                   '_presynaptic': DynamicArrayVariable('_presynaptic', Unit(1),
                                                        np.int32,
                                                        self.indices.synaptic_pre,
-                                                       '_presynaptic_idx'),
+                                                       '_presynaptic_idx',
+                                                       self),
                   '_postsynaptic': DynamicArrayVariable('_postsynaptic', Unit(1),
                                                         np.int32,
                                                         self.indices.synaptic_post,
-                                                        '_postsynaptic_idx')})
+                                                        '_postsynaptic_idx',
+                                                        self)})
 
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
@@ -622,65 +637,6 @@ class Synapses(BrianObject, Group):
 
         self.indices._add_synapses(pre_neurons, post_neurons)
 
-    def _set_with_code(self, specifier, synaptic_indices, code,
-                       check_units=True, level=0):
-        '''
-        Sets a variable using a string expression. Is called by
-        `SynapticArrayView.__setitem__` for statements such as
-        `S.var[:, :] = 'exp(-abs(i-j)/space_constant)*nS'`
-
-        Parameters
-        ----------
-        specifier : `SynapticArrayVariable`
-            The `Specifier` for the variable to be set
-        synaptic_indices : ndarray of int
-            The synaptic indices of the elements that are to be set.
-        code : str
-            The code that should be executed to set the variable values.
-            Can contain `i` and `j` referring to the presynaptic and
-            postsynaptic indices.
-        check_units : bool, optional
-            Whether to check the units of the expression.
-        level : int, optional
-            How much farther to go down in the stack to find the namespace.
-            Necessary so that both `X.var = ` and `X.var[:] = ` have access
-            to the surrounding namespace.
-        '''
-
-        abstract_code = specifier.name + ' = ' + code
-        indices = {'_neuron_idx': Index('_neuron_idx', iterate_all=False)}
-        # Get the locals and globals from the stack frame
-        frame = inspect.stack()[2+level][0]
-        namespace = dict(frame.f_globals)
-        namespace.update(frame.f_locals)
-        additional_namespace = ('implicit-namespace', namespace)
-        additional_specifiers = {'i': DynamicArrayVariable('_presynaptic',
-                                                           Unit(1),
-                                                           np.int32,
-                                                           self.indices.synaptic_pre,
-                                                           '_neuron_idx'),
-                                 'j': DynamicArrayVariable('_postsynaptic',
-                                                           Unit(1),
-                                                           np.int32,
-                                                           self.indices.synaptic_post,
-                                                           '_neuron_idx'),
-                                 # TODO: Find a name that makes sense for reset
-                                 # and variable setting with code
-                                 '_spikes': ArrayVariable('_spikes',
-                                                          Unit(1),
-                                                          np.int32,
-                                                          synaptic_indices,
-                                                          ''  # no index
-                                 )}
-        codeobj = create_codeobj(self,
-                                 abstract_code,
-                                 self.language.template_reset,
-                                 indices,
-                                 additional_specifiers=additional_specifiers,
-                                 additional_namespace=additional_namespace,
-                                 check_units=check_units)
-        codeobj.compile()
-        codeobj.run()
 
 def smallest_inttype(N):
     '''

@@ -321,6 +321,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                                     array.dtype,
                                                     array,
                                                     '_neuron_idx',
+                                                    self,
                                                     constant)})
         
             elif eq.type == STATIC_EQUATION:
