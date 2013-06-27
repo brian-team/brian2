@@ -43,8 +43,7 @@ class StateUpdater(GroupCodeRunner):
                                        indices=indices,
                                        when=(group.clock, 'groups'),
                                        name=group.name + '_stateupdater*',
-                                       check_units=False,
-                                       template_specifiers=['_num_neurons'])
+                                       check_units=False)
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.namespace,
@@ -78,13 +77,7 @@ class Thresholder(GroupCodeRunner):
                                  group.language.template_threshold,
                                  indices=indices,
                                  when=(group.clock, 'thresholds'),
-                                 name=group.name+'_thresholder*',
-                                 # TODO: This information should be included in
-                                 # the template instead
-                                 template_specifiers=['t',
-                                                      'refractory_until',
-                                                      'refractory',
-                                                      '_num_neurons'])
+                                 name=group.name+'_thresholder*')
     
     def update_abstract_code(self):
         self.abstract_code = '_cond = ' + self.group.threshold
@@ -105,8 +98,7 @@ class Resetter(GroupCodeRunner):
                                  group.language.template_reset,
                                  indices=indices,
                                  when=(group.clock, 'resets'),
-                                 name=group.name + '_resetter*',
-                                 template_specifiers=['_spikes'])
+                                 name=group.name + '_resetter*')
     
     def update_abstract_code(self):
         self.abstract_code = self.group.reset
@@ -259,7 +251,6 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         Return number of neurons in the group.
         '''
         return self.N
-
 
     def _allocate_memory(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)

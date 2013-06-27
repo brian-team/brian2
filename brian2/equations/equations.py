@@ -11,7 +11,7 @@ from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 import sympy
 
-from brian2.codegen.parsing import sympy_to_str, parse_to_sympy
+from brian2.codegen.parsing import sympy_to_str, str_to_sympy
 from brian2.units.fundamentalunits import DimensionMismatchError
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
@@ -255,7 +255,7 @@ class SingleEquation(object):
         varname = sympy.Symbol(self.varname)
         t = sympy.Symbol('t')
         sympy_expr = sympy.Eq(sympy.Derivative(varname, t),
-                              parse_to_sympy(self.expr))
+                              str_to_sympy(self.expr))
         return sympy.latex(sympy_expr)
 
     def __str__(self):
@@ -616,7 +616,8 @@ class Equations(collections.Mapping):
 
     units = property(lambda self:dict([(var, eq.unit) for var, eq in
                                        self._equations.iteritems()]),
-                     doc='Dictionary of all internal variables and their corresponding units.')
+                     doc='Dictionary of all internal variables and their corresponding units.')
+
 
     identifiers = property(lambda self: set().union(*[eq.identifiers for
                                                       eq in self._equations.itervalues()]) -
@@ -785,7 +786,7 @@ class Equations(collections.Mapping):
                 # Normal equation or parameter
                 lhs = varname
             if not eq.type == PARAMETER:
-                rhs = parse_to_sympy(eq.expr)
+                rhs = str_to_sympy(eq.expr)
             if len(eq.flags):
                 flag_str = ', flags: ' + ', '.join(eq.flags)
             else:

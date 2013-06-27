@@ -10,7 +10,6 @@ from brian2.core.specifiers import ArrayVariable, Value, AttributeValue
 from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.utils.logger import get_logger
 
-from ..templating import apply_code_template
 from ..functions import Function
 from ..translation import translate
 
@@ -29,6 +28,8 @@ class Language(object):
 
     # Subclasses should override this
     language_id = ''
+    
+    # Subclasses should define a templater attribute
 
     def translate_expression(self, expr):
         '''
@@ -48,28 +49,26 @@ class Language(object):
         '''
         Translate a sequence of Statements into the target language, taking
         care to declare variables, etc. if necessary.
-        
-        Returns either a string, in which case when it in inserted into a
-        template it should go in the ``%CODE%`` slot, or a dictionary
-        of pairs ``(slot, code)`` where the given ``code`` should be inserted
-        in the given ``slot``. These should appear in the templates returned
-        by the language.
+   
+        Returns a pair ``(code_lines, kwds)`` where ``code`` is a list of the
+        lines of code in the inner loop, and ``kwds`` is a dictionary of values
+        that is made available to the template.
         '''
         raise NotImplementedError
 
     def create_codeobj(self, name, abstract_code, namespace, specifiers,
-                       template_method, indices=None):
+                       template, indices=None):
         if indices is None:  # TODO: Do we ever create code without any index?
             indices = {}
 
         namespace = self.prepare_namespace(namespace, specifiers)
 
         logger.debug(name + " abstract code:\n" + abstract_code)
-        innercode = translate(abstract_code, specifiers, namespace,
-                              brian_prefs['core.default_scalar_dtype'],
-                              self, indices)
+        innercode, kwds = translate(abstract_code, specifiers, namespace,
+                                    brian_prefs['core.default_scalar_dtype'],
+                                    self, indices)
         logger.debug(name + " inner code:\n" + str(innercode))
-        code = self.apply_template(innercode, template_method())
+        code = template(innercode, **kwds)
         logger.debug(name + " code:\n" + str(code))
 
         specifiers.update(indices)
@@ -102,34 +101,6 @@ class Language(object):
                                                var=var))
         return meths
 
-    def apply_template(self, code, template):
-        '''
-        Applies the inner code to the template. The code should either be a
-        string (in which case it goes in the ``%CODE%`` slot) or it should be
-        a dict of pairs ``(slot, section)`` where the string ``section``
-        goes in slot ``slot``. The template should be a string (in which case
-        it is assigned to the slot ``%MAIN%`` or a dict of ``(slot, code)``
-        pairs. Returns either a string (if the template was a string) or a
-        dict with the same keys as the template.
-        '''
-        if isinstance(code, str):
-            code = {'%CODE%': code}
-        if isinstance(template, str):
-            return_str = True
-            template = {'%MAIN%': template}
-        else:
-            return_str = False
-        output = template.copy()
-        for name, tmp in output.items():
-            tmp = deindent(tmp)
-            for slot, section in code.items():
-                tmp = apply_code_template(section, tmp, placeholder=slot)
-            output[name] = tmp
-        if return_str:
-            return output['%MAIN%']
-        else:
-            return output
-
     def array_read_write(self, statements, specifiers):
         '''
         Helper function, gives the set of ArrayVariables that are read from and
@@ -149,54 +120,22 @@ class Language(object):
         write = set(var for var, spec in specifiers.items() if isinstance(spec, ArrayVariable) and var in write)
         return read, write
 
-    def template_iterate_all(self, index, size):
-        '''
-        Return a template where the variable ``index`` ranges from ``0:size``.
-        Both ``index`` and ``size`` should be strings. Templates should have
-        slots indicated by strings like ``%CODE%`` (the default slot).
-        '''
-        raise NotImplementedError
-
-    def template_iterate_index_array(self, index, array, size):
-        '''
-        Return a template where the variable ``index`` ranges through the
-        values in ``array`` which is of length ``size``, each of these should
-        be a string. Templates should have
-        slots indicated by strings like ``%CODE%`` (the default slot).
-        '''
-        raise NotImplementedError
-
+    @property
     def template_state_update(self):
-        '''
-        Template for state updater code, by default just iterate over all neurons.
-        Templates should have
-        slots indicated by strings like ``%CODE%`` (the default slot).
-        '''
-        return self.template_iterate_all('_neuron_idx', '_num_neurons')
-
+        return self.templater.stateupdate
+    
+    @property
     def template_reset(self):
-        '''
-        Template for state updater code, by default just iterate over ``_spikes``.
-        Templates should have
-        slots indicated by strings like ``%CODE%`` (the default slot).
-        '''
-        return self.template_iterate_index_array('_neuron_idx', '_spikes', '_num_spikes')
+        return self.templater.reset
 
+    @property
     def template_threshold(self):
-        '''
-        Template for threshold code.
-        Templates should have
-        slots indicated by strings like ``%CODE%`` (the default slot).
-        '''
-        raise NotImplementedError
+        return self.templater.threshold
 
+    @property
     def template_synapses(self):
-        '''
-        Template for synapses code.
-        Templates should have
-        slots indicated by strings like ``%CODE%`` (the default slot).
-        '''
-        raise NotImplementedError
+        return self.templater.synapses
+    
 
 
 class CodeObject(object):
@@ -204,8 +143,8 @@ class CodeObject(object):
     Executable code object, returned by Language
     
     Code object is initialised by Language object, typically just by doing
-    ``CodeObject(code)``. The ``code`` can either be a string, or a dict
-    of ``(name, code)`` pairs if there are multiple elements of the code.
+    ``CodeObject(code)``. The ``code`` can either be a string or a
+    `brian2.codegen.languages.templates.MultiTemplate`.
     
     After initialisation, the code is compiled with the given namespace
     using ``code.compile(namespace)``.

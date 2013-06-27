@@ -137,16 +137,14 @@ class GroupCodeRunner(BrianObject):
     state of the `Group`. For example, the `Thresholder` sets the
     `NeuronGroup.spikes` property in `post_update`.
     '''
-    def __init__(self, group, template, indices, code=None, 
-                 when=None, name='coderunner*', check_units=True,
-                 template_specifiers=None):
+    def __init__(self, group, template, indices, code=None,
+                 when=None, name='coderunner*', check_units=True):
         BrianObject.__init__(self, when=when, name=name)
         self.group = weakref.proxy(group)
         self.template = template
         self.indices = indices
         self.abstract_code = code
         self.check_units = check_units
-        self.template_specifiers = template_specifiers
         # Try to generate the abstract code and the codeobject without any
         # additional namespace. This might work in situations where the
         # namespace is completely defined in the NeuronGroup. In this case,
@@ -204,8 +202,8 @@ class GroupCodeRunner(BrianObject):
         for name in used_known:
             specifiers[name] = all_specifiers[name]
         
-        if self.template_specifiers:
-            for spec in self.template_specifiers:
+        if self.template:
+            for spec in self.template.specifiers:
                 specifiers[spec] = all_specifiers[spec]
         
         return self.group.language.create_codeobj(self.name,
