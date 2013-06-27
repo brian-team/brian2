@@ -44,8 +44,7 @@ class StateUpdater(GroupCodeRunner):
                                  indices=indices,
                                  when=(group.clock, 'groups'),
                                  name=group.name + '_stateupdater',
-                                 check_units=False,
-                                 template_specifiers=['_num_neurons'])
+                                 check_units=False)
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.namespace,
@@ -120,11 +119,7 @@ class TargetUpdater(GroupCodeRunner, Group):
                                  code=code,
                                  indices=indices,
                                  when=(synapses.clock, 'synapses'),
-                                 name=synapses.name + '_' + objname,
-                                 template_specifiers=['_num_neurons',
-                                                      '_presynaptic',
-                                                      '_postsynaptic',
-                                                      '_spiking_synapses'])
+                                 name=synapses.name + '_' + objname)
 
         # Re-extract the last part of the name from the full name
         self.objname = self.name[len(synapses.name) + 1:]
@@ -628,7 +623,7 @@ class Synapses(BrianObject, Group):
         self.indices._add_synapses(pre_neurons, post_neurons)
 
     def _set_with_code(self, specifier, synaptic_indices, code,
-                       check_units=True):
+                       check_units=True, level=0):
         '''
         Sets a variable using a string expression. Is called by
         `SynapticArrayView.__setitem__` for statements such as
@@ -646,12 +641,16 @@ class Synapses(BrianObject, Group):
             postsynaptic indices.
         check_units : bool, optional
             Whether to check the units of the expression.
+        level : int, optional
+            How much farther to go down in the stack to find the namespace.
+            Necessary so that both `X.var = ` and `X.var[:] = ` have access
+            to the surrounding namespace.
         '''
 
         abstract_code = specifier.name + ' = ' + code
         indices = {'_neuron_idx': Index('_neuron_idx', iterate_all=False)}
         # Get the locals and globals from the stack frame
-        frame = inspect.stack()[2][0]
+        frame = inspect.stack()[2+level][0]
         namespace = dict(frame.f_globals)
         namespace.update(frame.f_locals)
         additional_namespace = ('implicit-namespace', namespace)
