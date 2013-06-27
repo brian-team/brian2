@@ -2,7 +2,7 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
-	// USE_SPECIFIERS { _spiking_synapses, _postsynaptic,_presynaptic }
+	// USE_SPECIFIERS { _spiking_synapses, _synaptic_pre,_synaptic_post }
 
     //// SUPPORT CODE //////////////////////////////////////////////////////////
 	{% for line in support_code_lines %}
@@ -30,8 +30,8 @@
 		_spiking_synapse_idx++)
 	{
 		const int _neuron_idx = _spiking_synapses[_spiking_synapse_idx];
-		const int _postsynaptic_idx = _postsynaptic[_neuron_idx];
-		const int _presynaptic_idx = _presynaptic[_neuron_idx];
+		const int _postsynaptic_idx = _synaptic_post[_neuron_idx];
+		const int _presynaptic_idx = _synaptic_pre[_neuron_idx];
 		{% for line in code_lines %}
 		{{line}}
 		{% endfor %}
