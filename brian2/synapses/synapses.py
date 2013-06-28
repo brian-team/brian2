@@ -492,6 +492,10 @@ class Synapses(BrianObject, Group):
         self._delays = {}
 
         self.indices = SynapticIndices(len(source), len(target), self)
+        # Allow S.i instead of S.indices.i, etc.
+        self.i = self.indices.i
+        self.j = self.indices.j
+        self.k = self.indices.k
 
         # Setup specifiers
         self.specifiers = self._create_specifiers()

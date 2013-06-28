@@ -17,7 +17,7 @@ S.w['i > j'] = 'exp(-(i - j)**2/space_constant) * mV'
 
 # Generate a matrix for display
 w_matrix = np.zeros((len(G), len(G)))
-w_matrix[S.indices.i[:], S.indices.j[:]] = S.w[:]
+w_matrix[S.i[:], S.j[:]] = S.w[:]
 
 import matplotlib.pyplot as plt
 plt.subplot(1, 2, 1)
