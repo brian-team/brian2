@@ -1,12 +1,16 @@
 {% macro main() %}
+    // USE_SPECIFIERS { _synaptic_pre, _synaptic_post, _post_synaptic, _pre_synaptic, _num_source_neurons, _num_target_neurons }
 	srand((unsigned int)time(NULL));
 	int _buffer_size = 1024;
 	int *_prebuf = new int[_buffer_size];
 	int *_postbuf = new int[_buffer_size];
+	int *_synprebuf = new int[1];
+	int *_synpostbuf = new int[1];
 	int _curbuf = 0;
-	for(int _source_neuron_idx=0; _source_neuron_idx<_num_source_neurons; _source_neuron_idx++)
+	int _synapse_idx = _synaptic_pre.attr("shape")[0];
+	for(int i=0; i<_num_source_neurons; i++)
 	{
-		for(int _target_neuron_idx=0; _target_neuron_idx<_num_target_neurons; _target_neuron_idx++)
+		for(int j=0; j<_num_target_neurons; j++)
 		{
 			// Define the condition
 			{% for line in code_lines %}
@@ -15,25 +19,36 @@
 			// Add to buffer
 			if(_cond)
 			{
-				_prebuf[_curbuf] = _source_neuron_idx;
-				_postbuf[_curbuf] = _target_neuron_idx;
+				_prebuf[_curbuf] = i;
+				_postbuf[_curbuf] = j;
 				_curbuf++;
-			}
-			// Flush buffer
-			if(_curbuf==_buffer_size)
-			{
-				_flush_buffer(_prebuf, _presynaptic, _curbuf);
-				_flush_buffer(_postbuf, _postsynaptic, _curbuf);
-				_curbuf = 0;
+                // Flush buffer
+                if(_curbuf==_buffer_size)
+                {
+                    _flush_buffer(_prebuf, _synaptic_pre, _curbuf);
+                    _flush_buffer(_postbuf, _synaptic_post, _curbuf);
+                    _curbuf = 0;
+                }
+                // Directly add the synapse numbers to the neuron->synapses
+                // mapping
+                _synprebuf[0] = _synapse_idx;
+                _synpostbuf[0] = _synapse_idx;
+                py::object _pre_synapses = (py::object)PyList_GetItem(_pre_synaptic, i);
+                py::object _post_synapses = (py::object)PyList_GetItem(_post_synaptic, j);
+                _flush_buffer(_synprebuf, _pre_synapses, 1);
+                _flush_buffer(_synpostbuf, _post_synapses, 1);
+                _synapse_idx++;
 			}
 		}
 
 	}
 	// Final buffer flush
-	_flush_buffer(_prebuf, _presynaptic, _curbuf);
-	_flush_buffer(_postbuf, _postsynaptic, _curbuf);
+	_flush_buffer(_prebuf, _synaptic_pre, _curbuf);
+	_flush_buffer(_postbuf, _synaptic_post, _curbuf);
 	delete [] _prebuf;
 	delete [] _postbuf;
+	delete [] _synprebuf;
+	delete [] _synpostbuf;
 {% endmacro %}
 
 {% macro support_code() %}

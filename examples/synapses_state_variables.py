@@ -4,11 +4,13 @@ Set state variable values with a string (using code generation)
 
 from brian2 import *
 import numpy as np
-G = NeuronGroup(100, 'v:volt')
+
+language = CPPLanguage()
+
+G = NeuronGroup(100, 'v:volt', language=language)
 G.v = '(sin(2*pi*i/_num_neurons) - 70 + 0.25*randn()) * mV'
-S = Synapses(G, G, 'w:volt', pre='v+=w')
-ii, jj = np.meshgrid(np.arange(len(G)), np.arange(len(G)))
-S.connect(ii.flatten(), jj.flatten())
+S = Synapses(G, G, 'w:volt', pre='v+=w', language=language)
+S.connect('True')
 
 space_constant = 200.0
 S.w['i > j'] = 'exp(-(i - j)**2/space_constant) * mV'

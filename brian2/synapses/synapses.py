@@ -691,9 +691,10 @@ class Synapses(BrianObject, Group):
         if p is not None:
             raise NotImplementedError('Random assignment not implemented yet')
 
-        if isinstance(pre_or_cond, (int, np.ndarray)):
+        if (not isinstance(pre_or_cond, bool) and
+                isinstance(pre_or_cond, (int, np.ndarray))):
             if not isinstance(post, (int, np.ndarray)):
-                raise TypeError(('Presynaptic indices can only be combined'
+                raise TypeError(('Presynaptic indices can only be combined '
                                  'with postsynaptic indices))'))
             if isinstance(n, basestring):
                 raise NotImplementedError(('String expressions for "n" not'
@@ -703,7 +704,12 @@ class Synapses(BrianObject, Group):
                 raise ValueError('Can only use 1-dimensional indices')
 
             self.indices._add_synapses(i, j, n)
-        elif isinstance(pre_or_cond, basestring):
+        elif isinstance(pre_or_cond, (basestring, bool)):
+            if pre_or_cond is False:
+                return  # nothing to do...
+            elif pre_or_cond is True:
+                # TODO: This should not be handled with the general mechanism
+                pre_or_cond = 'True'
             if post is not None:
                 raise ValueError('Cannot give a postsynaptic index when '
                                  'using a string expression')

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from brian2 import *
 
-language = PythonLanguage()
+language = CPPLanguage()
 
 G1 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
                 threshold='v > 1',

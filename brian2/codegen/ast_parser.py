@@ -211,7 +211,11 @@ class CPPNodeRenderer(NodeRenderer):
                                     self.render_node(node.right))
         else:
             return NodeRenderer.render_BinOp(self, node)
-        
+
+    def render_Name(self, node):
+        # Replace Python's True and False with their C++ bool equivalents
+        return {'True': 'true', 'False': 'false'}.get(node.id, node.id)
+
     def render_Assign(self, node):
         return NodeRenderer.render_Assign(self, node)+';'
 
