@@ -180,7 +180,8 @@ class Group(object):
                                  indices,
                                  additional_specifiers=additional_specifiers,
                                  additional_namespace=additional_namespace,
-                                 check_units=check_units)
+                                 check_units=check_units,
+                                 language=self.language)
         codeobj()
 
 def create_codeobj(group, code, template, indices,
