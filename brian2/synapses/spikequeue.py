@@ -197,7 +197,7 @@ class SpikeQueue(object):
         m = max(self.n) + len(target)
         if (m >= self.X.shape[1]): # overflow
             self.resize(m+1)
-        
+
         self.X_flat[timesteps*self.X.shape[1]+offset+self.n[timesteps]] = target
         self.n[timesteps] += offset+1 # that's a trick (to update stack size)
         # Note: the trick can only work if offsets are ordered in the right way
@@ -266,4 +266,4 @@ class SpikeQueue(object):
                 # (in particular) when there are dynamic delays
                 self.insert(delays, indices)
             else: # offsets are precomputed
-                self.insert(delays, indices, self._offsets)
+                self.insert(delays, indices, self._offsets[indices])
