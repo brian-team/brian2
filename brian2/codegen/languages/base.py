@@ -135,7 +135,10 @@ class Language(object):
     @property
     def template_synapses(self):
         return self.templater.synapses
-    
+
+    @property
+    def template_synapses_create(self):
+        return self.templater.synapses_create
 
 
 class CodeObject(object):

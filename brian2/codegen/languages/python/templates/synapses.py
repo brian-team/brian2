@@ -2,7 +2,7 @@
 
 import numpy as np
 
-_post_neurons = _synaptic_post.take(_spiking_synapses)
+_post_neurons = _synaptic_post.data.take(_spiking_synapses)
 _perm = _post_neurons.argsort()
 _aux = _post_neurons.take(_perm)
 _flag = np.empty(len(_aux)+1, dtype=bool)

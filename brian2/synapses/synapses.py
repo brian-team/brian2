@@ -8,7 +8,7 @@ from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
 from brian2.core.specifiers import (ArrayVariable, Index, DynamicArrayVariable, 
-                                    AttributeValue, Subexpression,
+                                    AttributeValue, Subexpression, ReadOnlyValue,
                                     StochasticVariable, SynapticArrayVariable)
 from brian2.codegen.languages import PythonLanguage
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
@@ -256,9 +256,10 @@ class SynapticIndices(object):
     target_len : int
         The number of neurons in the postsynaptic group.
     '''
-    def __init__(self, source_len, target_len):
+    def __init__(self, source_len, target_len, language):
         self.source_len = source_len
         self.target_len = target_len
+        self.language = language
         dtype = smallest_inttype(MAX_SYNAPSES)
         self.synaptic_pre = DynamicArray1D(0, dtype=dtype)
         self.synaptic_post = DynamicArray1D(0, dtype=dtype)
@@ -307,27 +308,63 @@ class SynapticIndices(object):
                              'indices.').format(type(variable)))
         self._registered_variables.append(weakref.proxy(variable))
 
-    def _add_synapses(self, sources, targets, n):
-        sources = sources.repeat(n)
-        targets = targets.repeat(n)
-        new_synapses = len(sources)
+    def _add_synapses(self, sources, targets, n, condition=None):
+        if condition is None:
+            sources = sources.repeat(n)
+            targets = targets.repeat(n)
+            new_synapses = len(sources)
 
-        old_N = self.N
-        new_N = old_N + new_synapses
-        self._resize(new_N)
+            old_N = self.N
+            new_N = old_N + new_synapses
+            self._resize(new_N)
 
-        self.synaptic_pre[old_N:new_N] = sources
-        self.synaptic_post[old_N:new_N] = targets
-
-        synapse_idx = old_N
-        for source, target in zip(sources, targets):
-            synapses = self.pre_synaptic[source]
-            synapses.resize(len(synapses) + 1)
-            synapses[-1] = synapse_idx
-            synapses = self.post_synaptic[target]
-            synapses.resize(len(synapses) + 1)
-            synapses[-1] = synapse_idx
-            synapse_idx += 1
+            self.synaptic_pre[old_N:new_N] = sources
+            self.synaptic_post[old_N:new_N] = targets
+            synapse_idx = old_N
+            for source, target in zip(sources, targets):
+                synapses = self.pre_synaptic[source]
+                synapses.resize(len(synapses) + 1)
+                synapses[-1] = synapse_idx
+                synapses = self.post_synaptic[target]
+                synapses.resize(len(synapses) + 1)
+                synapses[-1] = synapse_idx
+                synapse_idx += 1
+        else:
+            abstract_code = '_cond = ' + condition
+            # Get the locals and globals from the stack frame
+            frame = inspect.stack()[2][0]
+            namespace = dict(frame.f_globals)
+            namespace.update(frame.f_locals)
+            additional_namespace = ('implicit-namespace', namespace)
+            specifiers = {
+                '_num_source_neurons': ReadOnlyValue('_num_source_neurons', Unit(1),
+                                                     np.int32, self.source_len),
+                '_num_target_neurons': ReadOnlyValue('_num_target_neurons', Unit(1),
+                                                     np.int32, self.target_len),
+                '_synaptic_pre': ReadOnlyValue('_synaptic_pre', Unit(1),
+                                               np.int32,
+                                               self.synaptic_pre),
+                '_synaptic_post': ReadOnlyValue('_synaptic_post', Unit(1),
+                                                np.int32,
+                                                self.synaptic_post),
+                '_pre_synaptic': ReadOnlyValue('_pre_synaptic', Unit(1),
+                                               np.int32,
+                                               self.pre_synaptic),
+                '_post_synaptic': ReadOnlyValue('_post_synaptic', Unit(1),
+                                                np.int32,
+                                                self.post_synaptic)}
+            codeobj = create_codeobj(None,
+                                     abstract_code,
+                                     self.language.template_synapses_create,
+                                     {},
+                                     additional_specifiers=specifiers,
+                                     additional_namespace=additional_namespace,
+                                     check_units=False,
+                                     language=self.language)
+            codeobj()
+            number = len(self.synaptic_pre)
+            for variable in self._registered_variables:
+                variable.resize(number)
 
     def __len__(self):
         return self.N
@@ -433,7 +470,7 @@ class Synapses(BrianObject, Group):
         self._queues = {}
         self._delays = {}
 
-        self.indices = SynapticIndices(len(source), len(target))
+        self.indices = SynapticIndices(len(source), len(target), self.language)
 
         # Setup specifiers
         self.specifiers = self._create_specifiers()
@@ -543,16 +580,19 @@ class Synapses(BrianObject, Group):
                   '_num_neurons': AttributeValue('_num_neurons', Unit(1),
                                                  np.int, self, 'N',
                                                  constant=True),
-                  '_synaptic_pre': DynamicArrayVariable('_synaptic_pre', Unit(1),
-                                                       np.int32,
-                                                       self.indices.synaptic_pre,
-                                                       '_presynaptic_idx',
-                                                       self),
-                  '_synaptic_post': DynamicArrayVariable('_synaptic_post', Unit(1),
-                                                        np.int32,
-                                                        self.indices.synaptic_post,
-                                                        '_postsynaptic_idx',
-                                                        self)})
+                  # We don't need "proper" specifier for these -- they are not accessed in user code
+                  '_synaptic_pre': ReadOnlyValue('_synaptic_pre', Unit(1),
+                                                 np.int32,
+                                                 self.indices.synaptic_pre),
+                  '_synaptic_post': ReadOnlyValue('_synaptic_post', Unit(1),
+                                                  np.int32,
+                                                  self.indices.synaptic_post),
+                  '_pre_synaptic': ReadOnlyValue('_pre_synaptic', Unit(1),
+                                                 np.int32,
+                                                 self.indices.pre_synaptic),
+                  '_post_synaptic': ReadOnlyValue('_post_synaptic', Unit(1),
+                                                  np.int32,
+                                                  self.indices.post_synaptic)})
 
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
@@ -664,10 +704,13 @@ class Synapses(BrianObject, Group):
 
             self.indices._add_synapses(i, j, n)
         elif isinstance(pre_or_cond, basestring):
+            if post is not None:
+                raise ValueError('Cannot give a postsynaptic index when '
+                                 'using a string expression')
             if isinstance(n, basestring):
                 raise NotImplementedError(('String expressions for "n" not'
                                            'implemented yet.'))
-            raise NotImplementedError()
+            self.indices._add_synapses(None, None, n, condition=pre_or_cond)
         else:
             raise TypeError(('First argument has to be an index or a '
                              'string, is %s instead.') % type(pre_or_cond))

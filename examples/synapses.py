@@ -17,7 +17,7 @@ syn = Synapses(G1, G2, 'dw/dt = -w / (50*ms): 1', pre='v+=w',
                language=language)
  
 # Hardcoded one-to-one connectivity
-syn.connect_one_to_one()
+syn.connect('i == j')
  
 # Set the delays
 syn.delay[:] = np.arange(len(G1)) * ms

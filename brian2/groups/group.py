@@ -181,12 +181,11 @@ class Group(object):
                                  additional_specifiers=additional_specifiers,
                                  additional_namespace=additional_namespace,
                                  check_units=check_units)
-        codeobj.compile()
-        codeobj.run()
+        codeobj()
 
 def create_codeobj(group, code, template, indices,
                    name=None, check_units=True, additional_specifiers=None,
-                   additional_namespace=None):
+                   additional_namespace=None, language=None):
     ''' Create a `CodeObject` for the execution of code in the context of a
     `Group`.
 
@@ -213,8 +212,10 @@ def create_codeobj(group, code, template, indices,
         A mapping from names to objects, used in addition to the namespace
         saved in `group`.
     '''
-
-    all_specifiers = dict(group.specifiers)
+    if group is not None:
+        all_specifiers = dict(group.specifiers)
+    else:
+        all_specifiers = {}
     # If the GroupCodeRunner has specifiers, add them
     if additional_specifiers is not None:
         all_specifiers.update(additional_specifiers)
@@ -225,16 +226,22 @@ def create_codeobj(group, code, template, indices,
         # the unit checks
         _, _, unknown = analyse_identifiers(code,
                                             all_specifiers.keys())
-        resolved_namespace = group.namespace.resolve_all(unknown,
-                                                         additional_namespace,
-                                                         strip_units=False)
+        if group is not None:
+            resolved_namespace = group.namespace.resolve_all(unknown,
+                                                             additional_namespace,
+                                                             strip_units=False)
+        else:
+            resolved_namespace = {}
 
         check_units_statements(code, resolved_namespace, all_specifiers)
 
     # Get the namespace without units
     _, used_known, unknown = analyse_identifiers(code, all_specifiers.keys())
-    resolved_namespace = group.namespace.resolve_all(unknown,
-                                                     additional_namespace)
+    if group is not None:
+        resolved_namespace = group.namespace.resolve_all(unknown,
+                                                         additional_namespace)
+    else:
+        resolved_namespace = {}
 
     # Only pass the specifiers that are actually used
     specifiers = {}
@@ -246,14 +253,17 @@ def create_codeobj(group, code, template, indices,
         specifiers[spec] = all_specifiers[spec]
 
     if name is None:
-        name = group.name + '_codeobject*'
+        if group is not None:
+            name = group.name + '_codeobject*'
+        else:
+            name = '_codeobject*'
 
-    return group.language.create_codeobj(name,
-                                         code,
-                                         resolved_namespace,
-                                         specifiers,
-                                         template,
-                                         indices=indices)
+    return language.create_codeobj(name,
+                                   code,
+                                   resolved_namespace,
+                                   specifiers,
+                                   template,
+                                   indices=indices)
 
 
 class GroupCodeRunner(BrianObject):
@@ -351,7 +361,8 @@ class GroupCodeRunner(BrianObject):
         return create_codeobj(self.group, self.abstract_code, self.template,
                               self.indices, self.name, self.check_units,
                               additional_specifiers=additional_specifiers,
-                              additional_namespace=additional_namespace)
+                              additional_namespace=additional_namespace,
+                              language=self.group.language)
     
     def pre_run(self, namespace):
         self.update_abstract_code()
