@@ -178,11 +178,11 @@ class CPPLanguage(Language):
                 speccode = spec.code(self, var)
                 support_code += '\n' + deindent(speccode['support_code'])
                 hash_defines += deindent(speccode['hashdefine_code'])
-                # add the Python function with a leading underscore, if it
+                # add the Python function with a leading '_python', if it
                 # exists. This allows the function to make use of the Python
                 # function via weave if necessary (e.g. in the case of randn)
                 if not spec.pyfunc is None:
-                    pyfunc_name = '_' + var
+                    pyfunc_name = '_python_' + var
                     if pyfunc_name in  namespace:
                         logger.warn(('Namespace already contains function %s, '
                                      'not replacing it') % pyfunc_name)

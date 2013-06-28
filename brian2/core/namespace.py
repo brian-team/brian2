@@ -15,6 +15,7 @@ from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Quantity, all_registered_units
 from brian2.units.stdunits import stdunits
 from brian2.codegen.functions.numpyfunctions import (RandnFunction,
+                                                     RandFunction,
                                                      DEFAULT_FUNCTIONS)
 import brian2.equations.equations as equations
 
@@ -227,7 +228,7 @@ def get_default_numpy_namespace(N):
     
     # numpy functions that need special treatment 
     namespace.update({'randn': RandnFunction(N),
-                      '_randn': np.random.randn})
+                      'rand': RandFunction(N)})
     return namespace
 
 _function_names = get_default_numpy_namespace(1).keys()

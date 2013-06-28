@@ -9,7 +9,8 @@ from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
 from brian2.core.specifiers import (ArrayVariable, Index, DynamicArrayVariable, 
                                     AttributeValue, Subexpression, ReadOnlyValue,
-                                    StochasticVariable, SynapticArrayVariable)
+                                    StochasticVariable, SynapticArrayVariable,
+                                    Specifier)
 from brian2.codegen.languages import PythonLanguage
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         STATIC_EQUATION, PARAMETER)
@@ -142,7 +143,7 @@ class TargetUpdater(GroupCodeRunner, Group):
         spikes = self.source.spikes
         if len(spikes):
             indices = np.hstack((self.synapse_indices[spike]
-                                 for spike in spikes))
+                                 for spike in spikes)).astype(np.int32)
             if len(indices):
                 delays = np.round(self._delays[indices] / self.dt).astype(int)
                 self.queue.push(indices, delays)
@@ -352,8 +353,12 @@ class SynapticIndices(object):
                                                self.pre_synaptic),
                 '_post_synaptic': ReadOnlyValue('_post_synaptic', Unit(1),
                                                 np.int32,
-                                                self.post_synaptic)}
-            codeobj = create_codeobj(None,
+                                                self.post_synaptic),
+                # Will be set in the template
+                'i': Specifier('i'),
+                'j': Specifier('j')
+            }
+            codeobj = create_codeobj(self.synapses,
                                      abstract_code,
                                      self.synapses.language.template_synapses_create,
                                      {},

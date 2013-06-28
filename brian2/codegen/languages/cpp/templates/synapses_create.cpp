@@ -1,5 +1,26 @@
 {% macro main() %}
     // USE_SPECIFIERS { _synaptic_pre, _synaptic_post, _post_synaptic, _pre_synaptic, _num_source_neurons, _num_target_neurons }
+
+    //// SUPPORT CODE //////////////////////////////////////////////////////////
+	{% for line in support_code_lines %}
+	// {{line}}
+	{% endfor %}
+
+	////// HANDLE DENORMALS ///
+	{% for line in denormals_code_lines %}
+	{{line}}
+	{% endfor %}
+
+	////// HASH DEFINES ///////
+	{% for line in hashdefine_lines %}
+	{{line}}
+	{% endfor %}
+
+	///// POINTERS ////////////
+	{% for line in pointers_lines %}
+	{{line}}
+	{% endfor %}
+
 	srand((unsigned int)time(NULL));
 	int _buffer_size = 1024;
 	int *_prebuf = new int[_buffer_size];
@@ -69,8 +90,10 @@ void _flush_buffer(int *buf, py::object &dynarr, int N)
 		data[_curlen+i] = buf[i];
 	}
 }
-double _rand(int n)
-{
-	return (double)rand()/RAND_MAX;
-}
+
+//// SUPPORT CODE //////////////////////////////////////////////////////////
+{% for line in support_code_lines %}
+{{line}}
+{% endfor %}
+
 {% endmacro %}
