@@ -140,6 +140,10 @@ class Language(object):
     def template_synapses_create(self):
         return self.templater.synapses_create
 
+    @property
+    def template_state_variable_indexing(self):
+        return self.templater.state_variable_indexing
+
 
 class CodeObject(object):
     '''

@@ -256,10 +256,10 @@ class SynapticIndices(object):
     target_len : int
         The number of neurons in the postsynaptic group.
     '''
-    def __init__(self, source_len, target_len, language):
+    def __init__(self, source_len, target_len, synapses):
         self.source_len = source_len
         self.target_len = target_len
-        self.language = language
+        self.synapses = weakref.proxy(synapses)
         dtype = smallest_inttype(MAX_SYNAPSES)
         self.synaptic_pre = DynamicArray1D(0, dtype=dtype)
         self.synaptic_post = DynamicArray1D(0, dtype=dtype)
@@ -355,12 +355,12 @@ class SynapticIndices(object):
                                                 self.post_synaptic)}
             codeobj = create_codeobj(None,
                                      abstract_code,
-                                     self.language.template_synapses_create,
+                                     self.synapses.language.template_synapses_create,
                                      {},
                                      additional_specifiers=specifiers,
                                      additional_namespace=additional_namespace,
                                      check_units=False,
-                                     language=self.language)
+                                     language=self.synapses.language)
             codeobj()
             number = len(self.synaptic_pre)
             for variable in self._registered_variables:
@@ -413,15 +413,31 @@ class SynapticIndices(object):
         elif isinstance(index, basestring):
             # interpret the string expression
             identifiers = get_identifiers(index)
-            namespace = {'i': self.synaptic_pre[:],
-                         'j': self.synaptic_post[:]}
+            specifiers = dict(self.specifiers)
             if 'k' in identifiers:
                 synapse_numbers = _synapse_numbers(self.synaptic_pre[:],
                                                    self.synaptic_post[:])
-                namespace['k'] = synapse_numbers
+                specifiers['k'] = ArrayVariable('k', Unit(1), np.int32,
+                                                synapses_numbers,
+                                                '_neuron_idx')
+            # Get the locals and globals from the stack frame
+            frame = inspect.stack()[2][0]
+            namespace = dict(frame.f_globals)
+            namespace.update(frame.f_locals)
+            additional_namespace = ('implicit-namespace', namespace)
+            indices = {'_neuron_idx': Index('_neuron_idx', iterate_all=True)}
+            abstract_code = '_cond = ' + index
+            codeobj = create_codeobj(self.synapses,
+                                     abstract_code,
+                                     self.synapses.language.template_state_variable_indexing,
+                                     indices,
+                                     additional_specifiers=specifiers,
+                                     additional_namespace=additional_namespace,
+                                     check_units=False,
+                                     language=self.synapses.language)
 
-            result = eval(index, namespace)
-            return np.flatnonzero(result)
+            result = codeobj()
+            return result
         else:
             raise IndexError('Unsupported index type {}'.format(type(index)))
 
@@ -470,7 +486,7 @@ class Synapses(BrianObject, Group):
         self._queues = {}
         self._delays = {}
 
-        self.indices = SynapticIndices(len(source), len(target), self.language)
+        self.indices = SynapticIndices(len(source), len(target), self)
 
         # Setup specifiers
         self.specifiers = self._create_specifiers()

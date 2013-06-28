@@ -8,8 +8,13 @@ for i in xrange(_num_source_neurons):
     {% for line in code_lines %}
     {{line}}
     {% endfor %}
-    
-    _cond_nonzero = _cond.nonzero()[0]
+
+    if _cond is False:
+        continue
+    elif _cond is True:
+        _cond_nonzero = j
+    else:
+        _cond_nonzero = _cond.nonzero()[0]
     _cur_num_synapses = len(_synaptic_pre)
     _numnew = len(_cond_nonzero)
     _new_num_synapses = _cur_num_synapses + _numnew
