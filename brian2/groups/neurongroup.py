@@ -56,7 +56,7 @@ class StateUpdater(GroupCodeRunner):
                                                                self.method_choice)
 
         # Update the is_active variable for the refractory period mechanism
-        self.abstract_code = 'is_active = 1* (t >= refractory_until)\n'
+        self.abstract_code = 'not_refractory = 1* (t >= refractory_until)\n'
         
         self.abstract_code += self.method(self.group.equations,
                                           self.group.namespace,
@@ -177,7 +177,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                      "equations {self.equations}.".format(self=self))
 
         # Check flags
-        equations.check_flags({DIFFERENTIAL_EQUATION: ('active'),
+        equations.check_flags({DIFFERENTIAL_EQUATION: ('unless-refractory'),
                                PARAMETER: ('constant')})
 
         ##### Setup the memory

@@ -220,7 +220,7 @@ class GroupCodeRunner(BrianObject):
         '''
         Will be called in every timestep before the `update` method is called.
         
-        Overwritten in `StateUpdater` to update the ``is_active`` parameter of 
+        Overwritten in `StateUpdater` to update the ``not_refractory`` parameter of
         a `NeuronGroup`.
         
         Does nothing by default.

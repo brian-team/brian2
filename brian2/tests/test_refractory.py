@@ -3,7 +3,7 @@ from brian2.equations.refractory import add_refractoriness
     
 def test_add_refractoriness():    
     eqs = Equations('''
-    dv/dt = -x*v/second : volt (active)
+    dv/dt = -x*v/second : volt (unless-refractory)
     dw/dt = -w/second : amp
     x : 1
     ''')
