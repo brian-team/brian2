@@ -65,8 +65,7 @@ def add_refractoriness(eqs):
             new_equations.append(eq)
     
     # add new parameters
-    new_equations.append(SingleEquation(PARAMETER, 'unless-refractory', Unit(1)))
-    new_equations.append(SingleEquation(PARAMETER, 'refractory', second))
-    new_equations.append(SingleEquation(PARAMETER, 'refractory_until', second))
+    new_equations.append(SingleEquation(PARAMETER, 'not_refractory', Unit(1)))
+    new_equations.append(SingleEquation(PARAMETER, 'lastspike', second))
 
     return Equations(new_equations)
