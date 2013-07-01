@@ -111,6 +111,33 @@ class RandFunction(Function):
         pass
 
 
+class BoolFunction(Function):
+    ''' A specifier for the `bool` function. To make sure that they are
+    interpreted as boolean values, references to state variables that are
+    meant as boolean (e.g. ``not_refractory``) should be wrapped in this
+    function to make sure it is interpreted correctly.
+    '''
+    def __init__(self):
+        Function.__init__(self, pyfunc=np.bool_)
+
+    def __call__(self, value):
+        return np.bool_(value)
+
+    def code_cpp(self, language, var):
+
+        support_code = '''
+        double _bool(float value)
+        {
+	        return value == 0 ? false : True
+        }
+        '''
+
+        return {'support_code': support_code,
+                'hashdefine_code': ''}
+
+    def on_compile_cpp(self, namespace, language, var):
+        pass
+
 class FunctionWrapper(Function):
     '''
     Simple wrapper for functions that have exist both in numpy and C++
@@ -202,7 +229,8 @@ def _get_default_functions():
                                        sympy_func=sympy.functions.elementary.complexes.Abs),
                 'mod': FunctionWrapper(np.mod, py_name='mod',
                                        cpp_name='fmod',
-                                       sympy_func=sympy_mod.Mod)
+                                       sympy_func=sympy_mod.Mod),
+                'bool': BoolFunction()
                  }
     
     return functions

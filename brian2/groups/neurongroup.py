@@ -71,12 +71,12 @@ class StateUpdater(GroupCodeRunner):
             unit = unit_from_expression(ref, namespace, self.group.specifiers)
             if have_same_dimensions(unit, second):
                 self.abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
-            elif unit is DIMENSIONLESS:
+            elif have_same_dimensions(unit, Unit(1)):
                 # boolean condition
                 # we have to be a bit careful here, we can't just use the given
                 # condition as it is, because we only want to *leave*
                 # refractoriness, based on the condition
-                self.abstract_code = 'not_refractory = not_refractory or not (%s)\n' % ref
+                self.abstract_code = 'not_refractory = bool(not_refractory) or not (%s)\n' % ref
             else:
                 raise TypeError(('Refractory expression has to evaluate to a #'
                                  'timespan or a boolean value, expression'
