@@ -107,7 +107,7 @@ class CPPLanguage(Language):
     templater = LanguageTemplater(os.path.join(os.path.split(__file__)[0],
                                                'templates'))
 
-    def __init__(self, compiler='gcc', extra_compile_args=['-O3', '-ffast-math'],
+    def __init__(self, compiler='gcc', extra_compile_args=['-w', '-O3', '-ffast-math'],
                  restrict='__restrict__', flush_denormals=False):
         self.compiler = compiler
         self.extra_compile_args = extra_compile_args
