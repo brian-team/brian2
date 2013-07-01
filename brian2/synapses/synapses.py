@@ -455,7 +455,59 @@ class SynapticIndices(object):
 
 
 class Synapses(BrianObject, Group):
+    '''
+    Class representing synaptic connections. Creating a new `Synapses` object
+    does by default not create any synapses -- you either have to provide
+    the `connect` argument or call the `Synapses.connect` method for that.
 
+    Parameters
+    ----------
+
+    source : `SpikeSource`
+        The source of spikes, e.g. a `NeuronGroup`.
+    target : `Group`, optional
+        The target of the spikes, typically a `NeuronGroup`. If none is given,
+        the same as `source`
+    equations : {`str`, `Equations`}, optional
+        The model equations for the synapses.
+    pre : {str, dict}, optional
+        The code that will be executed after every pre-synaptic spike. Can be
+        either a single (possibly multi-line) string, or a dictionary mapping
+        pathway names to code strings. In the first case, the pathway will be
+        called ``pre`` and made available as an attribute of the same name.
+        In the latter case, the given names will be used as the
+        pathway/attribute names. Each pathway has its own code and its own
+        delays.
+    post : {str, dict}, optional
+        The code that will be executed after every post-synaptic spike. Same
+        conventions as for `pre`, the default name for the pathway is ``post``.
+    connect : {str, bool}. optional
+        Determines whether any actual synapses are created. ``False`` (the
+        default) means not to create any synapses, ``True`` means to create
+        synapses between all source/target pairs. Also accepts a string
+        expression that evaluates to ``True`` for every synapse that should
+        be created, e.g. ``'i == j'`` for a one-to-one connectivity. See
+        `Synapses.connect` for more details.
+    namespace : dict, optional
+        A dictionary mapping identifier names to objects. If not given, the
+        namespace will be filled in at the time of the call of `Network.run`,
+        with either the values from the ``network`` argument of the
+        `Network.run` method or from the local context, if no such argument is
+        given.
+    dtype : `dtype`, optional
+        The standard datatype for all state variables. Defaults to
+        `core.default_scalar_type`.
+    language : `Language`, optional
+        The code-generation language to use. Defaults to `PythonLanguage`.
+    clock : `Clock`, optional
+        The clock to use.
+    method : {str, `StateUpdateMethod`}, optional
+        The numerical integration method to use. If none is given, an
+        appropriate one is automatically determined.
+    name : str, optional
+        The name for this object. If none is given, a unique name of the form
+        ``synapses``, ``synapses_1``, etc. will be automatically chosen.
+    '''
     def __init__(self, source, target=None, equations=None, pre=None, post=None,
                  connect=False, namespace=None, dtype=None, language=None,
                  clock=None, method=None, name='synapses*'):
