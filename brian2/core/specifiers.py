@@ -7,7 +7,7 @@ TODO: have a single global dtype rather than specify for each variable?
 from brian2.units.allunits import second
 
 from brian2.utils.stringtools import get_identifiers
-from brian2.units.fundamentalunits import (is_scalar_type,
+from brian2.units.fundamentalunits import (Quantity, is_scalar_type,
                                            fail_for_dimension_mismatch)
 
 __all__ = ['Specifier',
@@ -126,7 +126,7 @@ class Value(VariableSpecifier):
         raise NotImplementedError()
 
     def get_value_with_unit(self):
-        return self.get_value() * self.unit
+        return Quantity(self.get_value(), self.unit.dimensions)
 
     def get_addressable_value(self, level=0):
         return self.get_value()
@@ -296,7 +296,8 @@ class VariableView(object):
         if self.unit is None:
             return self.specifier.get_value()[self.group.indices[i]]
         else:
-            return self.specifier.get_value()[self.group.indices[i]] * self.unit
+            return Quantity(self.specifier.get_value()[self.group.indices[i]],
+                            self.unit.dimensions)
 
     def __setitem__(self, i, value):
         indices = self.group.indices[i]
@@ -308,6 +309,64 @@ class VariableView(object):
             if not self.unit is None:
                 fail_for_dimension_mismatch(value, self.unit)
             self.specifier.array[indices] = value
+
+    def __array__(self, dtype=None):
+        if dtype is not None and dtype != self.specifier.dtype:
+            raise NotImplementedError('Changing dtype not supported')
+        return self[:]
+
+    def __add__(self, other):
+        return self[:] + other
+
+    def __sub__(self, other):
+        return self[:] - other
+
+    def __mul__(self, other):
+        return self[:] * other
+
+    def __div__(self, other):
+        return self[:] * other
+
+    def __iadd__(self, other):
+        if isinstance(other, basestring):
+            rhs = self.specifier.name + ' + ' + other
+        else:
+            rhs = self[:] + other
+        self[:] = rhs
+        return self
+
+    def __isub__(self, other):
+        if isinstance(other, basestring):
+            rhs = self.specifier.name + ' - ' + other
+        else:
+            rhs = self[:] - other
+        self[:] = rhs
+        return self
+
+    def __imul__(self, other):
+        if isinstance(other, basestring):
+            rhs = self.specifier.name + ' * (' + other + ')'
+        else:
+            rhs = self[:] * other
+        self[:] = rhs
+        return self
+
+    def __idiv__(self, other):
+        if isinstance(other, basestring):
+            rhs = self.specifier.name + ' / (' + other + ')'
+        else:
+            rhs = self[:] * other
+        self[:] = rhs
+        return self
+
+    def __repr__(self):
+        if self.unit is None:
+            return '<%s.%s_: %r>' % (self.group.name, self.specifier.name,
+                                     self.specifier.get_value())
+        else:
+            return '<%s.%s: %r>' % (self.group.name, self.specifier.name,
+                                    Quantity(self.specifier.get_value(),
+                                             self.unit.dimensions))
 
 
 class ArrayVariable(Value):

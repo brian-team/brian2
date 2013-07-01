@@ -1,11 +1,12 @@
 import numpy as np
-from numpy.testing.utils import assert_raises, assert_equal
+from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 
 from brian2.groups.neurongroup import NeuronGroup
 from brian2.core.network import Network
 from brian2.core.clocks import defaultclock
 from brian2.units.fundamentalunits import DimensionMismatchError
-from brian2.units.stdunits import ms
+from brian2.units.allunits import second
+from brian2.units.stdunits import ms, mV
 from brian2.codegen.languages.cpp import CPPLanguage
 from brian2.codegen.languages.python import PythonLanguage
 
@@ -200,6 +201,41 @@ def test_syntax_errors():
                                           reset='0',
                                           language=language))            
 
+def test_state_variables():
+    '''
+    Test the setting and accessing of state variables.
+    '''
+    G = NeuronGroup(10, 'v : volt')
+    G.v = -70*mV
+    assert_raises(DimensionMismatchError, lambda: G.__setattr__('v', -70))
+    G.v_ = float(-70*mV)
+    # Numpy methods should be able to deal with state variables
+    # (discarding units)
+    assert_allclose(np.mean(G.v), float(-70*mV))
+    # Getting the content should return a Quantity object which then natively
+    # supports numpy functions that access a method
+    assert_allclose(np.mean(G.v[:]), -70*mV)
+
+    # You should also be able to set variables with a string
+    G.v = '-70*mV + i*mV'
+    assert_allclose(G.v[0], -70*mV)
+    assert_allclose(G.v[9], -61*mV)
+    assert_allclose(G.v[:], -70*mV + np.arange(10)*mV)
+
+    # Calculating with state variables should work too
+    assert all(G.v - G.v == 0)
+
+    # And in-place modification should work as well
+    G.v += 10*mV
+    G.v *= 2
+    # with unit checking
+    assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3*second))
+    assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3))
+    assert_raises(DimensionMismatchError, lambda: G.v.__imul__(3*second))
+    # and even with strings
+    G.v -= 'i*mV'
+
+
 if __name__ == '__main__':
     test_creation()
     test_specifiers()
@@ -210,3 +246,4 @@ if __name__ == '__main__':
     test_incomplete_namespace()
     test_namespace_errors()
     test_syntax_errors()
+    test_state_variables()
