@@ -69,7 +69,7 @@ def test_identifier_checks():
     for identifier in ('t', 'dt', 'xi'):
         assert_raises(ValueError, lambda: check_identifier_reserved(identifier))
 
-    for identifier in ('is_active', 'refractory', 'refractory_until'):
+    for identifier in ('not_refractory', 'refractory', 'refractory_until'):
         assert_raises(ValueError, lambda: check_identifier_refractory(identifier))
 
     for identifier in ('exp', 'sin', 'sqrt'):
@@ -369,7 +369,7 @@ def test_str_repr():
     Test the string representation (only that it does not throw errors).
     '''
     tau = 10 * ms
-    eqs = Equations('''dv/dt = -(v + I)/ tau : volt (active)
+    eqs = Equations('''dv/dt = -(v + I)/ tau : volt (unless-refractory)
                        I = sin(2 * 22/7. * f * t)* volt : volt
                        f : Hz''')
     assert len(str(eqs)) > 0

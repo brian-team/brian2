@@ -1,7 +1,10 @@
+import os
+
+import numpy as np
+
 from ..base import Language, CodeObject
 from ..templates import LanguageTemplater
 from ...ast_parser import NumpyNodeRenderer
-import os
 
 __all__ = ['PythonLanguage', 'PythonCodeObject']
 
@@ -62,6 +65,8 @@ class PythonLanguage(Language):
         return lines, {}
 
     def code_object(self, code, namespace, specifiers):
+        # TODO: This should maybe go somewhere else
+        namespace['logical_not'] = np.logical_not
         return PythonCodeObject(code, namespace, specifiers,
                                 self.compile_methods(namespace))
 
