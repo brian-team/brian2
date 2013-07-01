@@ -271,8 +271,9 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         # Activate name attribute access
         Group.__init__(self)
 
-        # Set the initial lastspike value
+        # Set the refractoriness information
         self.lastspike = -np.inf*second
+        self.not_refractory = True
 
     def __len__(self):
         '''
