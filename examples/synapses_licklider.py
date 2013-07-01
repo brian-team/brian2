@@ -36,8 +36,8 @@ dv/dt=-v/tau+sigma*(2./tau)**.5*xi : 1
 
 neurons = NeuronGroup(N, eqs_neurons, threshold='v>1', reset='v=0', language=language)
 
-synapses = Synapses(receptors, neurons, 'w : 1', pre='v+=w', language=language)
-synapses.connect(True)
+synapses = Synapses(receptors, neurons, 'w : 1', pre='v+=w', connect=True,
+                    language=language)
 synapses.w=0.5
 synapses.delay[1, :] = 1. / exp(linspace(log(min_freq / Hz), log(max_freq / Hz), N)) * second
 

@@ -457,8 +457,8 @@ class SynapticIndices(object):
 class Synapses(BrianObject, Group):
 
     def __init__(self, source, target=None, equations=None, pre=None, post=None,
-                 namespace=None, dtype=None, language=None,
-                 max_delay=0*second, clock=None, method=None, name='synapses*'):
+                 connect=False, namespace=None, dtype=None, language=None,
+                 clock=None, method=None, name='synapses*'):
         
         BrianObject.__init__(self, when=clock, name=name)
 
@@ -468,7 +468,10 @@ class Synapses(BrianObject, Group):
                             % type(source))
 
         self.source = weakref.proxy(source)
-        self.target = weakref.proxy(target)
+        if target is None:
+            self.target = self.source
+        else:
+            self.target = weakref.proxy(target)
             
         ##### Prepare and validate equations
         if isinstance(equations, basestring):
@@ -536,7 +539,15 @@ class Synapses(BrianObject, Group):
         #: Performs numerical integration step
         self.state_updater = StateUpdater(self, method)        
         self.contained_objects.append(self.state_updater)
-        
+
+        # Do an initial connect, if requested
+        if not isinstance(connect, (bool, basestring)):
+            raise TypeError(('"connect" keyword has to be a boolean value or a '
+                             'string, is type %s instead.' % type(connect)))
+        self._initial_connect = connect
+        if not connect is False:
+            self.connect(connect)
+
         # Activate name attribute access
         Group.__init__(self)
 
