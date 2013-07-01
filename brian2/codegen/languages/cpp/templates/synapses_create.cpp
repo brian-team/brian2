@@ -1,5 +1,7 @@
 {% macro main() %}
-    // USE_SPECIFIERS { _synaptic_pre, _synaptic_post, _post_synaptic, _pre_synaptic, _num_source_neurons, _num_target_neurons }
+    // USE_SPECIFIERS { _synaptic_pre, _synaptic_post, _post_synaptic,
+    //                  _pre_synaptic, _num_source_neurons, _num_target_neurons,
+    //                  rand}
 
     //// SUPPORT CODE //////////////////////////////////////////////////////////
 	{% for line in support_code_lines %}
@@ -40,25 +42,34 @@
 			// Add to buffer
 			if(_cond)
 			{
-				_prebuf[_curbuf] = i;
-				_postbuf[_curbuf] = j;
-				_curbuf++;
-                // Flush buffer
-                if(_curbuf==_buffer_size)
-                {
-                    _flush_buffer(_prebuf, _synaptic_pre, _curbuf);
-                    _flush_buffer(_postbuf, _synaptic_post, _curbuf);
-                    _curbuf = 0;
+			    if (_p != 1.0) {
+			        // We have to use _rand instead of rand to use our rand
+			        // function, not the one from the C standard library
+			        if (_rand() >= _p)
+			            continue;
+			    }
+
+			    for (int _repetition=0; _repetition<_n; _repetition++) {
+                    _prebuf[_curbuf] = i;
+                    _postbuf[_curbuf] = j;
+                    _curbuf++;
+                    // Flush buffer
+                    if(_curbuf==_buffer_size)
+                    {
+                        _flush_buffer(_prebuf, _synaptic_pre, _curbuf);
+                        _flush_buffer(_postbuf, _synaptic_post, _curbuf);
+                        _curbuf = 0;
+                    }
+                    // Directly add the synapse numbers to the neuron->synapses
+                    // mapping
+                    _synprebuf[0] = _synapse_idx;
+                    _synpostbuf[0] = _synapse_idx;
+                    py::object _pre_synapses = (py::object)PyList_GetItem(_pre_synaptic, i);
+                    py::object _post_synapses = (py::object)PyList_GetItem(_post_synaptic, j);
+                    _flush_buffer(_synprebuf, _pre_synapses, 1);
+                    _flush_buffer(_synpostbuf, _post_synapses, 1);
+                    _synapse_idx++;
                 }
-                // Directly add the synapse numbers to the neuron->synapses
-                // mapping
-                _synprebuf[0] = _synapse_idx;
-                _synpostbuf[0] = _synapse_idx;
-                py::object _pre_synapses = (py::object)PyList_GetItem(_pre_synaptic, i);
-                py::object _post_synapses = (py::object)PyList_GetItem(_post_synaptic, j);
-                _flush_buffer(_synprebuf, _pre_synapses, 1);
-                _flush_buffer(_synpostbuf, _post_synapses, 1);
-                _synapse_idx++;
 			}
 		}
 

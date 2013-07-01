@@ -309,8 +309,13 @@ class SynapticIndices(object):
                              'indices.').format(type(variable)))
         self._registered_variables.append(weakref.proxy(variable))
 
-    def _add_synapses(self, sources, targets, n, condition=None):
+    def _add_synapses(self, sources, targets, n, p, condition=None):
         if condition is None:
+            if not np.isscalar(p) or p != 1:
+                use_connections = np.random.rand(len(sources)) < p
+                sources = sources[use_connections]
+                targets = targets[use_connections]
+                n = n[use_connections]
             sources = sources.repeat(n)
             targets = targets.repeat(n)
             new_synapses = len(sources)
@@ -331,7 +336,9 @@ class SynapticIndices(object):
                 synapses[-1] = synapse_idx
                 synapse_idx += 1
         else:
-            abstract_code = '_cond = ' + condition
+            abstract_code = '_cond = ' + condition + '\n'
+            abstract_code += '_n = ' + str(n) + '\n'
+            abstract_code += '_p = ' + str(p)
             # Get the locals and globals from the stack frame
             frame = inspect.stack()[2][0]
             namespace = dict(frame.f_globals)
@@ -685,7 +692,7 @@ class Synapses(BrianObject, Group):
                                        np.arange(len(self.target)))
         self.connect(sources.flat(), targets.flat())
 
-    def connect(self, pre_or_cond, post=None, p=None, n=1):
+    def connect(self, pre_or_cond, post=None, p=1., n=1):
         '''
         Add synapses. The first argument can be either a presynaptic index
         (int or array) or a condition for synapse creation in the form of a
@@ -713,22 +720,21 @@ class Synapses(BrianObject, Group):
             Defaults to 1.
         '''
 
-        if p is not None:
-            raise NotImplementedError('Random assignment not implemented yet')
-
         if (not isinstance(pre_or_cond, bool) and
                 isinstance(pre_or_cond, (int, np.ndarray))):
             if not isinstance(post, (int, np.ndarray)):
                 raise TypeError(('Presynaptic indices can only be combined '
                                  'with postsynaptic indices))'))
             if isinstance(n, basestring):
-                raise NotImplementedError(('String expressions for "n" not'
-                                           'implemented yet.'))
+                raise TypeError(('Indices cannot be combined with a string'
+                                 'expression for n. Either use an array/scalar '
+                                 'for n, or a string expression for the '
+                                 'connections'))
             i, j, n = np.broadcast_arrays(pre_or_cond, post, n)
             if i.ndim > 1:
                 raise ValueError('Can only use 1-dimensional indices')
 
-            self.indices._add_synapses(i, j, n)
+            self.indices._add_synapses(i, j, n, p)
         elif isinstance(pre_or_cond, (basestring, bool)):
             if pre_or_cond is False:
                 return  # nothing to do...
@@ -738,10 +744,13 @@ class Synapses(BrianObject, Group):
             if post is not None:
                 raise ValueError('Cannot give a postsynaptic index when '
                                  'using a string expression')
-            if isinstance(n, basestring):
-                raise NotImplementedError(('String expressions for "n" not'
-                                           'implemented yet.'))
-            self.indices._add_synapses(None, None, n, condition=pre_or_cond)
+            if not isinstance(n, (int, basestring)):
+                raise TypeError('n has to be an integer or a string evaluating '
+                                'to an integer, is type %s instead.' % type(n))
+            if not isinstance(p, (float, basestring)):
+                raise TypeError('p has to be a float or a string evaluating '
+                                'to an float, is type %s instead.' % type(n))
+            self.indices._add_synapses(None, None, n, p, condition=pre_or_cond)
         else:
             raise TypeError(('First argument has to be an index or a '
                              'string, is %s instead.') % type(pre_or_cond))

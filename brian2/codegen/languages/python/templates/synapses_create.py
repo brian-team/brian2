@@ -15,6 +15,16 @@ for i in xrange(_num_source_neurons):
         _cond_nonzero = j
     else:
         _cond_nonzero = _cond.nonzero()[0]
+
+    if not np.isscalar(_p) or _p != 1:
+        _cond_nonzero = _cond_nonzero[np.random.rand(len(_cond_nonzero)) < _p]
+
+    if not np.isscalar(_n):
+        # The "n" expression involved j
+        _cond_nonzero = _cond_nonzero.repeat(_n[_cond_nonzero])
+    elif _n != 1:
+        # We have a j-independent number
+        _cond_nonzero = _cond_nonzero.repeat(_n)
     _cur_num_synapses = len(_synaptic_pre)
     _numnew = len(_cond_nonzero)
     _new_num_synapses = _cur_num_synapses + _numnew

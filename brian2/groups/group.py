@@ -251,7 +251,18 @@ def create_codeobj(group, code, template, indices,
 
     # Also add the specifiers that the template needs
     for spec in template.specifiers:
-        specifiers[spec] = all_specifiers[spec]
+        try:
+            specifiers[spec] = all_specifiers[spec]
+        except KeyError as ex:
+            # We abuse template.specifiers here to also store names of things
+            # from the namespace (e.g. rand) that are needed
+            # TODO: Improve all of this namespace/specifier handling
+            if group is not None:
+                # Try to find the name in the group's namespace
+                resolved_namespace[spec] = group.namespace.resolve(spec,
+                                                                   additional_namespace)
+            else:
+                raise ex
 
     if name is None:
         if group is not None:

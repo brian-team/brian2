@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from brian2 import *
 
-language = CPPLanguage()
+language = PythonLanguage()
 
 G1 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
                 threshold='v > 1',
@@ -16,7 +16,7 @@ G2 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
 syn = Synapses(G1, G2, 'dw/dt = -w / (50*ms): 1', pre='v+=w',
                language=language)
 
-syn.connect('(i == j) and (rand() < 0.5)')
+syn.connect('i == j', p=0.75)
 
 # Set the delays
 syn.delay[:] = '1*ms + i * ms + 0.25*randn()*ms'
