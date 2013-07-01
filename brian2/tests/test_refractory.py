@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing.utils import assert_equal
+from numpy.testing.utils import assert_equal, assert_allclose
 
 from brian2 import *
 from brian2.equations.refractory import add_refractoriness
@@ -18,7 +18,7 @@ def test_add_refractoriness():
     assert 'lastspike' in eqs
 
 
-def test_refractoriness_time():
+def test_refractoriness_variables():
     # Try a quantity, a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
     for ref_time in [5*ms, '5*ms', '(t-lastspike) < 5*ms']:
@@ -43,6 +43,24 @@ def test_refractoriness_time():
         assert np.all(mon.v[(mon.t >= 15*ms) & (mon.t <20*ms)] > 0)
 
 
+def test_refractoriness_threshold():
+    # Try a quantity, a string evaluating to a quantity an an explicit boolean
+    # condition -- all should do the same thing
+    for ref_time in [10*ms, '10*ms', '(t-lastspike) <= 10*ms']:
+        G = NeuronGroup(1, '''
+        dv/dt = 200*Hz : 1
+        ''', threshold='not_refractory and (v > 1)',
+                        reset='v=0', refractory=ref_time)
+        # The neuron should spike after 5ms but then not spike for the next
+        # 10ms. The state variable should continue to integrate so there should
+        # be a spike after 15ms
+        spike_mon = SpikeMonitor(G)
+        net = Network(G, spike_mon)
+        net.run(16*ms)
+        assert_allclose(spike_mon.t, [4.9, 15] * ms)
+
+
 if __name__ == '__main__':
     test_add_refractoriness()
-    test_refractoriness_time()
+    test_refractoriness_variables()
+    test_refractoriness_threshold()
