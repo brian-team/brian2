@@ -1,4 +1,3 @@
-import inspect
 import weakref
 
 from brian2.utils.logger import get_logger
@@ -8,7 +7,7 @@ from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second 
 from brian2.core.preferences import brian_prefs
-from brian2.core.tracking import Trackable
+from brian2.core.namespace import get_local_namespace
 
 __all__ = ['Network']
 
@@ -331,10 +330,7 @@ class Network(Nameable):
         if namespace is not None:
             self.pre_run(('explicit-run-namespace', namespace))
         else:
-            # Get the locals and globals from the stack frame
-            frame = inspect.stack()[2 + level][0]
-            namespace = dict(frame.f_globals)
-            namespace.update(frame.f_locals)
+            namespace = get_local_namespace(2 + level)
             self.pre_run(('implicit-run-namespace', namespace))
 
         if len(self.objects)==0:

@@ -21,8 +21,10 @@ from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
+from brian2.core.namespace import get_local_namespace
 
 from .spikequeue import SpikeQueue
+from units.fundamentalunits import have_same_dimensions, fail_for_dimension_mismatch
 
 
 MAX_SYNAPSES = 2147483647
@@ -309,7 +311,8 @@ class SynapticIndices(object):
                              'indices.').format(type(variable)))
         self._registered_variables.append(weakref.proxy(variable))
 
-    def _add_synapses(self, sources, targets, n, p, condition=None):
+    def _add_synapses(self, sources, targets, n, p, condition=None,
+                      level=0):
         if condition is None:
             if not np.isscalar(p) or p != 1:
                 use_connections = np.random.rand(len(sources)) < p
@@ -339,10 +342,7 @@ class SynapticIndices(object):
             abstract_code = '_cond = ' + condition + '\n'
             abstract_code += '_n = ' + str(n) + '\n'
             abstract_code += '_p = ' + str(p)
-            # Get the locals and globals from the stack frame
-            frame = inspect.stack()[2][0]
-            namespace = dict(frame.f_globals)
-            namespace.update(frame.f_locals)
+            namespace = get_local_namespace(level + 1)
             additional_namespace = ('implicit-namespace', namespace)
             specifiers = {
                 '_num_source_neurons': ReadOnlyValue('_num_source_neurons', Unit(1),
@@ -488,6 +488,15 @@ class Synapses(BrianObject, Group):
         expression that evaluates to ``True`` for every synapse that should
         be created, e.g. ``'i == j'`` for a one-to-one connectivity. See
         `Synapses.connect` for more details.
+    delay : {`Quantity`, dict}, optional
+        The delay for the "pre" pathway (same for all synapses) or a dictionary
+        mapping pathway names to delays. If a delay is specified in this way
+        for a pathway, it is stored as a single scalar value. It can still
+        be changed afterwards, but only to a single scalar value. If you want
+        to have delays that vary across synapses, do not use the keyword
+        argument, but instead set the delays via the attribute of the pathway,
+        e.g. ``S.pre.delay = ...`` (or ``S.delay = ...`` as an abbreviation),
+        ``S.post.delay = ...``, etc.
     namespace : dict, optional
         A dictionary mapping identifier names to objects. If not given, the
         namespace will be filled in at the time of the call of `Network.run`,
@@ -509,8 +518,8 @@ class Synapses(BrianObject, Group):
         ``synapses``, ``synapses_1``, etc. will be automatically chosen.
     '''
     def __init__(self, source, target=None, equations=None, pre=None, post=None,
-                 connect=False, namespace=None, dtype=None, language=None,
-                 clock=None, method=None, name='synapses*'):
+                 connect=False, delay=None, namespace=None, dtype=None,
+                 language=None, clock=None, method=None, name='synapses*'):
         
         BrianObject.__init__(self, when=clock, name=name)
 
@@ -588,6 +597,27 @@ class Synapses(BrianObject, Group):
                                                              '_neuron_idx',
                                                              self)
 
+        if delay is not None:
+            if isinstance(delay, Quantity):
+                if not 'pre' in self._updaters:
+                    raise ValueError(('Cannot set delay, no "pre" pathway exists.'
+                                      'Use a dictionary if you want to set the '
+                                      'delay for a pathway with a different name.'))
+                delay = {'pre': delay}
+
+            if not isinstance(delay, collections.Mapping):
+                raise TypeError('Delay argument has to be a quantity or a '
+                                'dictionary, is type %s instead.' % type(delay))
+                for pathway, pathway_delay in delay.iteritems():
+                    fail_for_dimension_mismatch(pathway_delay, second, ('Delay has to be '
+                                                                        'specified in units '
+                                                                        'of seconds.'))
+                    # Change the specifiers for the pathway
+                    if not pathway in self._updaters:
+                        raise ValueError(('Cannot set the delay for pathway '
+                                          '"%s", unknown pathway.') % pathway)
+
+
         #: Performs numerical integration step
         self.state_updater = StateUpdater(self, method)        
         self.contained_objects.append(self.state_updater)
@@ -598,7 +628,7 @@ class Synapses(BrianObject, Group):
                              'string, is type %s instead.' % type(connect)))
         self._initial_connect = connect
         if not connect is False:
-            self.connect(connect)
+            self.connect(connect, level=1)
 
         # Activate name attribute access
         Group.__init__(self)
@@ -755,7 +785,7 @@ class Synapses(BrianObject, Group):
                                        np.arange(len(self.target)))
         self.connect(sources.flat(), targets.flat())
 
-    def connect(self, pre_or_cond, post=None, p=1., n=1):
+    def connect(self, pre_or_cond, post=None, p=1., n=1, level=0):
         '''
         Add synapses. The first argument can be either a presynaptic index
         (int or array) or a condition for synapse creation in the form of a
@@ -797,7 +827,7 @@ class Synapses(BrianObject, Group):
             if i.ndim > 1:
                 raise ValueError('Can only use 1-dimensional indices')
 
-            self.indices._add_synapses(i, j, n, p)
+            self.indices._add_synapses(i, j, n, p, level=level+1)
         elif isinstance(pre_or_cond, (basestring, bool)):
             if pre_or_cond is False:
                 return  # nothing to do...
@@ -813,7 +843,8 @@ class Synapses(BrianObject, Group):
             if not isinstance(p, (float, basestring)):
                 raise TypeError('p has to be a float or a string evaluating '
                                 'to an float, is type %s instead.' % type(n))
-            self.indices._add_synapses(None, None, n, p, condition=pre_or_cond)
+            self.indices._add_synapses(None, None, n, p, condition=pre_or_cond,
+                                       level=level+1)
         else:
             raise TypeError(('First argument has to be an index or a '
                              'string, is %s instead.') % type(pre_or_cond))

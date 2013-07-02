@@ -304,7 +304,7 @@ class VariableView(object):
         if isinstance(value, basestring):
             check_units = self.unit is not None
             self.group._set_with_code(self.specifier, indices, value,
-                                      check_units, level=self.level)
+                                      check_units, level=self.level + 1)
         else:
             if not self.unit is None:
                 fail_for_dimension_mismatch(value, self.unit)

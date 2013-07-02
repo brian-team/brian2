@@ -3,12 +3,12 @@ This module defines the `Group` object, a mix-in class for everything that
 saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
 import weakref
-import inspect
 
 import numpy as np
 
 from brian2.core.base import BrianObject
 from brian2.core.specifiers import ArrayVariable, Index
+from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
 from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
@@ -160,10 +160,7 @@ class Group(object):
 
         abstract_code = specifier.name + ' = ' + code
         indices = {'_neuron_idx': Index('_neuron_idx', iterate_all=False)}
-        # Get the locals and globals from the stack frame
-        frame = inspect.stack()[2+level][0]
-        namespace = dict(frame.f_globals)
-        namespace.update(frame.f_locals)
+        namespace = get_local_namespace(level + 1)
         additional_namespace = ('implicit-namespace', namespace)
         additional_specifiers = dict(self.indices.specifiers)
         # TODO: Find a name that makes sense for reset and variable setting

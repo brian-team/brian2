@@ -2,6 +2,7 @@
 Implementation of the namespace system, used to resolve the identifiers in
 model equations of `NeuronGroup` and `Synapses`
 '''
+import inspect
 import collections
 try:
     from collections import OrderedDict
@@ -19,12 +20,36 @@ from brian2.codegen.functions.numpyfunctions import (RandnFunction,
                                                      DEFAULT_FUNCTIONS)
 import brian2.equations.equations as equations
 
-__all__ = ['create_namespace', 'CompoundNamespace',
+__all__ = ['create_namespace',
+           'CompoundNamespace',
+           'get_local_namespace',
            'get_default_numpy_namespace',
            'DEFAULT_UNIT_NAMESPACE']
 
 logger = get_logger(__name__)
 
+
+def get_local_namespace(level=0):
+    '''
+    Get the surrounding namespace.
+
+    Parameters
+    ----------
+    level : int, optional
+        How far to go back to get the locals/globals. Each function/method
+        call should add ``1`` to this argument, functions/method with a
+        decorator have to add ``2``.
+
+    Returns
+    -------
+    namespace : dict
+        The locals and globals at the given depth of the stack frame.
+    '''
+    # Get the locals and globals from the stack frame
+    frame = inspect.stack()[1 + level][0]
+    namespace = dict(frame.f_globals)
+    namespace.update(frame.f_locals)
+    return namespace
 
 def create_namespace(N, explicit_namespace=None):
     namespace = CompoundNamespace()
