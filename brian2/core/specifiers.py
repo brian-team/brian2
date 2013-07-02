@@ -270,6 +270,10 @@ class AttributeValue(ReadOnlyValue):
     def get_value(self):
         return getattr(self.obj, self.attribute)
 
+
+    def set_value(self, value):
+        setattr(self.obj, self.attribute, value)
+
     def __repr__(self):
         description = ('{classname}(name={name}, unit={unit}, dtype={dtype}, '
                        'obj={obj}, attribute={attribute}, constant={constant})')
@@ -401,7 +405,8 @@ class ArrayVariable(Value):
     constant : bool, optional
         Whether the variable's value is constant during a run.
     '''
-    def __init__(self, name, unit, dtype, array, index, group=None, constant=False):
+    def __init__(self, name, unit, dtype, array, index, group=None,
+                 constant=False, scalar=False):
         Value.__init__(self, name, unit, dtype, scalar=False, constant=constant)
         #: The reference to the array storing the data for the variable.
         self.array = array

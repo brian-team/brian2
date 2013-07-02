@@ -17,15 +17,13 @@ from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
 from brian2.groups.group import Group, GroupCodeRunner, create_codeobj
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.stateupdaters.base import StateUpdateMethod
-from brian2.units.fundamentalunits import Unit
+from brian2.units.fundamentalunits import Unit, Quantity, fail_for_dimension_mismatch, get_dimensions
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 from brian2.core.namespace import get_local_namespace
 
 from .spikequeue import SpikeQueue
-from units.fundamentalunits import have_same_dimensions, fail_for_dimension_mismatch
-
 
 MAX_SYNAPSES = 2147483647
 
@@ -138,7 +136,7 @@ class TargetUpdater(GroupCodeRunner, Group):
         # Update the dt (might have changed between runs)
         self.dt = self.synapses.clock.dt_
         self.queue.compress(np.round(self._delays[:] / self.dt).astype(np.int),
-                            self.synapse_indices)
+                            self.synapse_indices, len(self.synapses))
     
     def pre_update(self):
         # Push new spikes into the queue
@@ -147,7 +145,10 @@ class TargetUpdater(GroupCodeRunner, Group):
             indices = np.hstack((self.synapse_indices[spike]
                                  for spike in spikes)).astype(np.int32)
             if len(indices):
-                delays = np.round(self._delays[indices] / self.dt).astype(int)
+                if len(self._delays) > 1:
+                    delays = np.round(self._delays[indices] / self.dt).astype(int)
+                else:
+                    delays = np.round(self._delays / self.dt).astype(int)
                 self.queue.push(indices, delays)
         # Get the spikes
         self.spiking_synapses = self.queue.peek()
@@ -310,6 +311,12 @@ class SynapticIndices(object):
                              'method, cannot register it with the synaptic '
                              'indices.').format(type(variable)))
         self._registered_variables.append(weakref.proxy(variable))
+
+    def unregister_variable(self, variable):
+        proxy_var = weakref.proxy(variable)
+        # The same variable might have been registered more than once
+        while proxy_var in self._registered_variables:
+            self._registered_variables.remove(proxy_var)
 
     def _add_synapses(self, sources, targets, n, p, condition=None,
                       level=0):
@@ -608,14 +615,33 @@ class Synapses(BrianObject, Group):
             if not isinstance(delay, collections.Mapping):
                 raise TypeError('Delay argument has to be a quantity or a '
                                 'dictionary, is type %s instead.' % type(delay))
-                for pathway, pathway_delay in delay.iteritems():
-                    fail_for_dimension_mismatch(pathway_delay, second, ('Delay has to be '
-                                                                        'specified in units '
-                                                                        'of seconds.'))
-                    # Change the specifiers for the pathway
-                    if not pathway in self._updaters:
-                        raise ValueError(('Cannot set the delay for pathway '
-                                          '"%s", unknown pathway.') % pathway)
+            for pathway, pathway_delay in delay.iteritems():
+                if not pathway in self._updaters:
+                    raise ValueError(('Cannot set the delay for pathway '
+                                      '"%s": unknown pathway.') % pathway)
+                if not isinstance(pathway_delay, Quantity):
+                    raise TypeError(('Cannot set the delay for pathway "%s": '
+                                     'expected a quantity, got %s instead.') % (pathway,
+                                                                                type(pathway_delay)))
+                if pathway_delay.size != 1:
+                    raise TypeError(('Cannot set the delay for pathway "%s": '
+                                     'expected a scalar quantity, got a '
+                                     'quantity with shape %s instead.') % str(pathway_delay.shape))
+                fail_for_dimension_mismatch(pathway_delay, second, ('Delay has to be '
+                                                                    'specified in units '
+                                                                    'of seconds'))
+                updater = getattr(self, pathway)
+                self.indices.unregister_variable(updater._delays)
+                del updater._delays
+                # For simplicity, store the delay as a one-element array
+                # so that for example updater._delays[:] works.
+                updater._delays = np.array([float(pathway_delay)])
+                specifier = ArrayVariable('delay', second, np.float64,
+                                           updater._delays, None,
+                                           group=updater)
+                updater.specifiers['delay'] = specifier
+                if pathway == 'pre':
+                    self.specifiers['delay'] = specifier
 
 
         #: Performs numerical integration step

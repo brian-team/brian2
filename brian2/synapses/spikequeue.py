@@ -75,7 +75,7 @@ class SpikeQueue(object):
         #: precalculated offsets
         self._offsets = None
         
-    def compress(self, delays, synapse_targets):
+    def compress(self, delays, synapse_targets, n_synapses):
         '''
         Prepare the data structure and pre-compute offsets.
         This is called every time the network is run. The size of the
@@ -114,7 +114,7 @@ class SpikeQueue(object):
 
         # Precompute offsets
         if self._precompute_offsets:
-            self.precompute_offsets(delays, synapse_targets)
+            self.precompute_offsets(delays, synapse_targets, n_synapses)
 
     ################################ SPIKE QUEUE DATASTRUCTURE ################
     def next(self):
@@ -131,11 +131,14 @@ class SpikeQueue(object):
         '''      
         return self.X[self.currenttime,:self.n[self.currenttime]]    
     
-    def precompute_offsets(self, delays, synapse_targets):
+    def precompute_offsets(self, delays, synapse_targets, n_synapses):
         '''
         Precompute all offsets corresponding to delays. This assumes that
         delays will not change during the simulation.
         '''
+        if len(delays) == 1 and n_synapses != 1:
+            # We have a scalar delay value
+            delays = delays.repeat(n_synapses)
         self._offsets = np.zeros_like(delays)
         index = 0
         for targets in synapse_targets:
@@ -164,7 +167,7 @@ class SpikeQueue(object):
         BJ = np.hstack((0, B[J]))
         ei = B-BJ[A]
         ofs = np.zeros_like(delay)
-        ofs[I] = np.array(ei,dtype=ofs.dtype) # maybe types should be signed?
+        ofs[I] = np.array(ei, dtype=ofs.dtype) # maybe types should be signed?
         return ofs
            
     def insert(self, delay, target, offset=None):
@@ -214,7 +217,6 @@ class SpikeQueue(object):
         target : ndarray
             Target synaptic indices.
         '''
-        print delay, target
         timestep = (self.currenttime + delay) % len(self.n)
         nevents = len(target)
         m = self.n[timestep]+nevents+1 # If overflow, then at least one self.n is bigger than the size
@@ -223,7 +225,6 @@ class SpikeQueue(object):
         k = timestep*self.X.shape[1] + self.n[timestep]
         self.X_flat[k:k+nevents] = target
         self.n[timestep] += nevents
-        print self.X_flat
         
     def resize(self, maxevents):
         '''

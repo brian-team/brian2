@@ -40,7 +40,7 @@ def test_spikequeue():
     N = 100
     synapses, delays = create_one_to_one(N)
     queue = SpikeQueue()
-    queue.compress(delays, synapses)
+    queue.compress(delays, synapses, N)
     queue.push(np.arange(N, dtype=np.int32), delays)
     for i in xrange(N):
         assert_equal(queue.peek(), np.array([i]))
@@ -52,7 +52,7 @@ def test_spikequeue():
     synapses, delays = create_all_to_all(N)
 
     queue = SpikeQueue()
-    queue.compress(delays, synapses)
+    queue.compress(delays, synapses, N*N)
     queue.push(np.arange(N*N, dtype=np.int32), delays)
     for i in xrange(N):
         assert_equal(queue.peek(), i*N + np.arange(N))
