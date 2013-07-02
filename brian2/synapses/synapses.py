@@ -64,7 +64,7 @@ class StateUpdater(GroupCodeRunner):
                                          self.group.specifiers)
 
 
-class TargetUpdater(GroupCodeRunner, Group):
+class SynapticPathway(GroupCodeRunner, Group):
     '''
     The `GroupCodeRunner` that applies the pre/post statement(s) to the state
     variables of synapses where the pre-/postsynaptic group spiked in this
@@ -678,7 +678,7 @@ class Synapses(BrianObject, Group):
         prepost : {'pre', 'post'}
             Whether the code is triggered by presynaptic or postsynaptic spikes
         objname : str, optional
-            A name for the object, see `TargetUpdater` for more details.
+            A name for the object, see `SynapticPathway` for more details.
 
         Returns
         -------
@@ -687,7 +687,7 @@ class Synapses(BrianObject, Group):
             given (and did not end in a wildcard character).
 
         '''
-        updater = TargetUpdater(self, code, prepost, objname)
+        updater = SynapticPathway(self, code, prepost, objname)
         objname = updater.objname
         if hasattr(self, objname):
             raise ValueError(('Cannot add updater with name "{name}", synapses '
