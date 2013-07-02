@@ -551,8 +551,23 @@ class Synapses(BrianObject, Group):
         # Check flags
         equations.check_flags({DIFFERENTIAL_EQUATION: ('event-driven'),
                                PARAMETER: ('constant')})
-        
-        self.equations = equations
+
+        # Separate the equations into event-driven and continuously updated
+        # equations
+        event_driven = []
+        continuous = []
+        for single_equation in equations.itervalues():
+            if 'event-driven' in single_equation.flags:
+                event_driven.append(single_equation)
+            else:
+                continuous.append(single_equation)
+
+        if len(event_driven):
+            self.equations = Equations(continuous)
+            self.event_driven = Equations(event_driven)
+        else:
+            self.equations = equations
+            self.event_driven = None
 
         ##### Setup the memory
         self.arrays = self._allocate_memory(dtype=dtype)
