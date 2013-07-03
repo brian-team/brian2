@@ -218,7 +218,8 @@ class CPPNodeRenderer(NodeRenderer):
                 'False': 'false',
                 # TODO: This should be handled differently
                 'randn': '_randn',
-                'rand': '_rand'}.get(node.id, node.id)
+                'rand': '_rand',
+                'clip': '_clip'}.get(node.id, node.id)
 
     def render_Assign(self, node):
         return NodeRenderer.render_Assign(self, node)+';'

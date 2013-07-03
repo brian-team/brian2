@@ -9,7 +9,7 @@ import brian2.units.unitsafefunctions as unitsafe
 
 from .base import Function
 
-__all__ = ['RandnFunction', 'FunctionWrapper', 'DEFAULT_FUNCTIONS']
+__all__ = ['FunctionWrapper', 'DEFAULT_FUNCTIONS']
 
 
 class RandnFunction(Function):
@@ -111,6 +111,39 @@ class RandFunction(Function):
         pass
 
 
+class ClipFunction(Function):
+    '''
+    A specifier for the clip function, allowing its use both in Python and
+    C++ code. Only works for scalar ``a_min`` and ``a_max`` arguments or other
+    state variables.
+
+    '''
+    def __init__(self):
+        Function.__init__(self, pyfunc=np.clip)
+
+    def __call__(self, array, a_min, a_max):
+        return np.clip(array, a_min, a_max)
+
+    def code_cpp(self, language, var):
+
+        support_code = '''
+        double _clip(const float value, const float a_min, const float a_max)
+        {
+	        if (value < a_min)
+	            return a_min;
+	        if (value > a_max)
+	            return a_max;
+	        return value;
+        }
+        '''
+
+        return {'support_code': support_code,
+                'hashdefine_code': ''}
+
+    def on_compile_cpp(self, namespace, language, var):
+        pass
+
+
 class FunctionWrapper(Function):
     '''
     Simple wrapper for functions that have exist both in numpy and C++
@@ -202,7 +235,8 @@ def _get_default_functions():
                                        sympy_func=sympy.functions.elementary.complexes.Abs),
                 'mod': FunctionWrapper(np.mod, py_name='mod',
                                        cpp_name='fmod',
-                                       sympy_func=sympy_mod.Mod)
+                                       sympy_func=sympy_mod.Mod),
+                'clip': ClipFunction()
                  }
     
     return functions
