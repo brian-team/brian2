@@ -179,8 +179,11 @@ class IndependentStateUpdater(StateUpdateMethod):
                 solution = general_solution.rhs.subs(t, t0).subs(f(t0), var)
             # Evaluate the expression for one timestep
             solution = solution.subs(t, t + dt).subs(t0, t)
-            # simplify it
-            solution = sp.rcollect(solution.expand())
+            # only try symplifying it -- it sometimes raises an error
+            try:
+                solution = solution.simplify()
+            except ValueError:
+                pass
 
             code.append(name + ' = ' + sympy_to_str(solution))
 
