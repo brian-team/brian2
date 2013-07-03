@@ -4,7 +4,7 @@ Exact integration for linear equations.
 
 import operator
 
-from sympy import Wild, Symbol, Float, sympify
+from sympy import Wild, Symbol, Float
 import sympy as sp
 
 from brian2.core.specifiers import Value
@@ -32,7 +32,7 @@ def get_linear_system(eqs):
     (diff_eq_names, coefficients, constants) : (list of str, `sympy.Matrix`, `sympy.Matrix`)
         A tuple containing the variable names (`diff_eq_names`) corresponding
         to the rows of the matrix `coefficients` and the vector `constants`,
-        representing the system of equations in the for M * X + B
+        representing the system of equations in the form M * X + B
     
     Raises
     ------
@@ -71,6 +71,97 @@ def get_linear_system(eqs):
     return (diff_eq_names, coefficients, constants)
 
 
+def _non_constant_symbols(matrix, specifiers):
+    '''
+    Determine whether the given `sympy.Matrix` only refers to constant
+    variables. Note that variables that are not present in the `specifiers`
+    dictionary are considered to be external variables and therefore constant.
+
+    Parameters
+    ----------
+
+    matrix : `sympy.Base`
+        The matrix of coefficients to check.
+    specifiers : dict
+        The dictionary of `Specifier` objects.
+
+    Returns
+    -------
+    non_constant : set
+        A set of non-constant symbols.
+    '''
+    # As every symbol in the matrix should be either in the namespace or
+    # the specifiers dictionary, it should be sufficient to just check for
+    # the presence of any non-constant specifiers.
+    symbols = set.union(*(el.atoms() for el in matrix))
+    # Only check true symbols, not numbers
+    symbols = set([str(symbol) for symbol in symbols
+                   if isinstance(symbol, Symbol)])
+
+    non_constant = set()
+
+    for symbol in symbols:
+        if symbol in specifiers and not getattr(specifiers[symbol],
+                                                'constant', False):
+            non_constant |= symbol
+
+    return non_constant
+
+
+class IndependentStateUpdater(StateUpdateMethod):
+    '''
+    A state update for equations that do not depend on other state variables,
+    i.e. 1-dimensional differential equations. The individual equations are
+    solved by sympy.
+    '''
+    def can_integrate(self, equations, specifiers):
+        if equations.is_stochastic:
+            return False
+
+        # Not very efficient but guaranteed to give the correct answer:
+        # Just try to apply the integration method
+        try:
+            self.__call__(equations, specifiers)
+        except (ValueError, NotImplementedError, TypeError) as ex:
+            logger.debug('Cannot use independent integration: %s' % ex)
+            return False
+
+        # It worked
+        return True
+
+    def __call__(self, equations, specifiers=None):
+        if specifiers is None:
+            specifiers = {}
+
+        if equations.is_stochastic:
+            raise ValueError('Cannot solve stochastic equations with this state updater')
+
+        diff_eqs = equations.substituted_expressions
+
+        t = Symbol('t', real=True, positive=True)
+
+        # TODO: Shortcut for simple linear equations?
+
+        for name, expression in diff_eqs:
+            rhs = expression.sympy_expr
+            f = sp.Function(name)
+            # We have to be careful and use the real=True assumption as well,
+            # otherwise sympy doesn't consider the symbol a match
+            rhs = rhs.subs(Symbol(name, real=True), f(t))
+            derivative = sp.Derivative(f(t), t)
+            diff_eq = sp.Eq(derivative, rhs)
+
+            general_solution = sp.dsolve(diff_eq, f(t))
+
+            # Check whether this is an explicit solution
+            # Check that there's only one constant
+            # Solve for C1 (assuming "v0" as the initial value and "t0" as time
+            # Insert it into the solution and evaluate it for "t + t0"
+            # simplify it and replace v0 by v
+            # Done!
+            raise NotImplementedError('This state updater does not work yet')
+
+
 class LinearStateUpdater(StateUpdateMethod):    
     '''
     A state updater for linear equations. Derives a state updater step from the
@@ -103,20 +194,11 @@ class LinearStateUpdater(StateUpdateMethod):
 
         # Make sure that the matrix M is constant, i.e. it only contains
         # external variables or constant specifiers
-        # As every symbol in the matrix should be either in the namespace or
-        # the specifiers dictionary, it should be sufficient to just check for
-        # the presence of any non-constant specifiers.
-        symbols = set.union(*(el.atoms() for el in matrix))
-        # Only check true symbols, not numbers
-        symbols = set([str(symbol) for symbol in symbols
-                       if isinstance(symbol, Symbol)])
-
-        for symbol in symbols:
-            if symbol in specifiers and not getattr(specifiers[symbol],
-                                                    'constant', False):
-                raise ValueError(('The coefficient matrix for the equations '
-                                 'contains "%s", which is not constant.') %
-                                 symbol)
+        non_constant = _non_constant_symbols(matrix, specifiers)
+        if len(non_constant):
+            raise ValueError(('The coefficient matrix for the equations '
+                              'contains the symbols %s, which are not '
+                              'constant.') % str(non_constant))
         
         symbols = [Symbol(variable, real=True) for variable in variables]
         solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
@@ -154,4 +236,5 @@ class LinearStateUpdater(StateUpdateMethod):
     def __repr__(self):
         return '%s()' % self.__class__.__name__
 
+independent = IndependentStateUpdater()
 linear = LinearStateUpdater()
