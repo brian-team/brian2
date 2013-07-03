@@ -77,14 +77,14 @@ class LinearStateUpdater(StateUpdateMethod):
     analytical solution given by sympy. Uses the matrix exponential (which is
     only implemented for diagonalizable matrices in sympy).
     ''' 
-    def can_integrate(self, equations, namespace, specifiers):
+    def can_integrate(self, equations, specifiers):
         if equations.is_stochastic:
             return False
                
         # Not very efficient but guaranteed to give the correct answer:
         # Just try to apply the integration method
         try:
-            self.__call__(equations, namespace, specifiers)
+            self.__call__(equations, specifiers)
         except (ValueError, NotImplementedError, TypeError) as ex:
             logger.debug('Cannot use linear integration: %s' % ex)
             return False
@@ -92,10 +92,8 @@ class LinearStateUpdater(StateUpdateMethod):
         # It worked
         return True
     
-    def __call__(self, equations, namespace=None, specifiers=None):
+    def __call__(self, equations, specifiers=None):
         
-        if namespace is None:
-            namespace = {}
         if specifiers is None:
             specifiers = {}
         
@@ -143,13 +141,7 @@ class LinearStateUpdater(StateUpdateMethod):
                     if isinstance(spec, Value) and spec.scalar and spec.constant:
                         float_val = spec.get_value()
                         rhs = rhs.xreplace({Symbol(identifier, real=True): Float(float_val)})
-                elif identifier in namespace:
-                    try:
-                        float_val = float(namespace[identifier])
-                        rhs = rhs.xreplace({Symbol(identifier, real=True): Float(float_val)})
-                    except TypeError:
-                        # Not a number
-                        pass
+
             # Do not overwrite the real state variables yet, the update step
             # of other state variables might still need the original values
             abstract_code.append('_' + variable + ' = ' + sympy_to_str(rhs))

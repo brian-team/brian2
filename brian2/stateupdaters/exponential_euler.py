@@ -76,7 +76,7 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
     category, it is therefore the default integration method used in the
     GENESIS simulator, for example.
     '''
-    def can_integrate(self, equations, namespace, specifiers):
+    def can_integrate(self, equations, specifiers):
         '''
         Return whether the given equations can be integrated using this
         state updater. This method tests for conditional linearity by
@@ -94,7 +94,7 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
         
         return True
     
-    def __call__(self, equations, namespace=None, specifiers=None):
+    def __call__(self, equations, specifiers=None):
         system = get_conditionally_linear_system(equations)
         
         code = []

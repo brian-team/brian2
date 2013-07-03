@@ -87,8 +87,6 @@ def test_priority():
     updater = ExplicitStateUpdater('return x + dt * f(x, t)')
     # Equations that work for the state updater
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
-    # Put up some fake specifiers
-    namespace = {}
     # Fake clock class
     MyClock = namedtuple('MyClock', ['t_', 'dt_'])
     clock = MyClock(t_=0, dt_=0.0001)
@@ -96,7 +94,7 @@ def test_priority():
                                      constant=False),
                   't': AttributeValue('t',  second, np.float64, clock, 't_'),
                   'dt': AttributeValue('dt', second, np.float64, clock, 'dt_', constant=True)} 
-    assert updater.can_integrate(eqs, namespace, specifiers)
+    assert updater.can_integrate(eqs, specifiers)
 
     # Non-constant parameter in the coefficient, linear integration does not
     # work
@@ -104,12 +102,12 @@ def test_priority():
                        param : 1''')
     specifiers['param'] = ArrayVariable('param', Unit(1), np.float, None, '',
                                         constant=False)
-    assert updater.can_integrate(eqs, namespace, specifiers)
+    assert updater.can_integrate(eqs, specifiers)
     can_integrate = {linear: False, euler: True, rk2: True, rk4: True, 
                      milstein: True}
 
     for integrator, able in can_integrate.iteritems():
-        assert integrator.can_integrate(eqs, namespace, specifiers) == able
+        assert integrator.can_integrate(eqs, specifiers) == able
 
     # Constant parameter in the coefficient, linear integration should
     # work
@@ -117,43 +115,41 @@ def test_priority():
                        param : 1 (constant)''')
     specifiers['param'] = ArrayVariable('param', Unit(1), np.float, None, '',
                                         constant=True)
-    assert updater.can_integrate(eqs, namespace, specifiers)
+    assert updater.can_integrate(eqs, specifiers)
     can_integrate = {linear: True, euler: True, rk2: True, rk4: True, 
                      milstein: True}
     del specifiers['param']
 
     for integrator, able in can_integrate.iteritems():
-        assert integrator.can_integrate(eqs, namespace, specifiers) == able
+        assert integrator.can_integrate(eqs, specifiers) == able
 
     # External parameter in the coefficient, linear integration *should* work
     # (external parameters don't change during a run)
     param = 1
-    namespace['param'] = param
     eqs = Equations('dv/dt = -param * v / (10*ms) : 1')
-    assert updater.can_integrate(eqs, namespace, specifiers)
+    assert updater.can_integrate(eqs, specifiers)
     can_integrate = {linear: True, euler: True, rk2: True, rk4: True, 
                      milstein: True}
     for integrator, able in can_integrate.iteritems():
-        assert integrator.can_integrate(eqs, namespace, specifiers) == able
-    del namespace['param']
+        assert integrator.can_integrate(eqs, specifiers) == able
     
     # Equation with additive noise
     eqs = Equations('dv/dt = -v / (10*ms) + xi/(10*ms)**.5 : 1')
-    assert not updater.can_integrate(eqs, namespace, specifiers)
+    assert not updater.can_integrate(eqs, specifiers)
     
     can_integrate = {linear: False, euler: True, rk2: False, rk4: False, 
                      milstein: True}
     for integrator, able in can_integrate.iteritems():
-        assert integrator.can_integrate(eqs, namespace, specifiers) == able
+        assert integrator.can_integrate(eqs, specifiers) == able
     
     # Equation with multiplicative noise
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi/(10*ms)**.5 : 1')
-    assert not updater.can_integrate(eqs, namespace, specifiers)
+    assert not updater.can_integrate(eqs, specifiers)
     
     can_integrate = {linear: False, euler: False, rk2: False, rk4: False, 
                      milstein: True}
     for integrator, able in can_integrate.iteritems():
-        assert integrator.can_integrate(eqs, namespace, specifiers) == able
+        assert integrator.can_integrate(eqs, specifiers) == able
     
 
 def test_registration():
@@ -195,15 +191,14 @@ def test_determination():
     before = list(StateUpdateMethod.stateupdaters)
     
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
-    # namespace and specifiers should not be necessary here
-    namespace = {}
+    # specifiers should not be necessary here
     specifiers = {}
     
     # all methods should work for these equations.
     # First, specify them explicitly (using the object)
     for integrator in (linear, euler, exponential_euler, rk2, rk4, milstein):
         with catch_logs() as logs:
-            returned = determine_stateupdater(eqs, namespace, specifiers,
+            returned = determine_stateupdater(eqs, specifiers,
                                               method=integrator)
             assert returned is integrator
             assert len(logs) == 0
@@ -213,14 +208,14 @@ def test_determination():
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
     for integrator in (linear, euler, exponential_euler, rk2, rk4):
         with catch_logs() as logs:
-            returned = determine_stateupdater(eqs, namespace, specifiers,
+            returned = determine_stateupdater(eqs, specifiers,
                                               method=integrator)
             assert returned is integrator
             # We should get a warning here
             assert len(logs) == 1
             
     with catch_logs() as logs:
-        returned = determine_stateupdater(eqs, namespace, specifiers,
+        returned = determine_stateupdater(eqs, specifiers,
                                           method=milstein)
         assert returned is milstein
         # No warning here
@@ -231,7 +226,7 @@ def test_determination():
     # always work
     my_stateupdater = lambda eqs: 'return x'
     with catch_logs() as logs:
-        returned = determine_stateupdater(eqs, namespace, specifiers,
+        returned = determine_stateupdater(eqs, specifiers,
                                           method=my_stateupdater)
         assert returned is my_stateupdater
         # No warning here
@@ -245,7 +240,7 @@ def test_determination():
                              ('rk2', rk2), ('rk4', rk4),
                              ('milstein', milstein)]:
         with catch_logs() as logs:
-            returned = determine_stateupdater(eqs, namespace, specifiers,
+            returned = determine_stateupdater(eqs, specifiers,
                                               method=name)
         assert returned is integrator
         # No warning here
@@ -255,17 +250,15 @@ def test_determination():
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
     for name in ['linear', 'euler', 'exponential_euler', 'rk2', 'rk4']:
         assert_raises(ValueError, lambda: determine_stateupdater(eqs,
-                                                                 namespace,
                                                                  specifiers,
                                                                  method=name))
     # milstein should work
     with catch_logs() as logs:
-        determine_stateupdater(eqs, namespace, specifiers, method='milstein')
+        determine_stateupdater(eqs, specifiers, method='milstein')
         assert len(logs) == 0
     
     # non-existing name
     assert_raises(ValueError, lambda: determine_stateupdater(eqs,
-                                                             namespace,
                                                              specifiers,
                                                              method='does_not_exist'))
     
@@ -273,30 +266,29 @@ def test_determination():
     # euler for non-linear, non-stochastic equations and equations with
     # additive noise, milstein for equations with multiplicative noise
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
-    assert determine_stateupdater(eqs, namespace, specifiers) is linear
+    assert determine_stateupdater(eqs, specifiers) is linear
     
     # This is conditionally linear
     eqs = Equations('''dv/dt = -(v + w**2)/ (10*ms) : 1
                        dw/dt = -w/ (10*ms) : 1''')
-    assert determine_stateupdater(eqs, namespace, specifiers) is exponential_euler
+    assert determine_stateupdater(eqs, specifiers) is exponential_euler
     
 
     eqs = Equations('dv/dt = -(v**2) / (10*ms) : 1')
-    assert determine_stateupdater(eqs, namespace, specifiers) is euler
+    assert determine_stateupdater(eqs, specifiers) is euler
 
     eqs = Equations('dv/dt = -v / (10*ms) + 0.1*second**-.5*xi: 1')
-    assert determine_stateupdater(eqs, namespace, specifiers) is euler
+    assert determine_stateupdater(eqs, specifiers) is euler
 
     eqs = Equations('dv/dt = -v / (10*ms) + v*0.1*second**-.5*xi: 1')
-    assert determine_stateupdater(eqs, namespace, specifiers) is milstein
+    assert determine_stateupdater(eqs, specifiers) is milstein
 
     # remove all registered state updaters --> automatic choice no longer works
     StateUpdateMethod.stateupdaters = {}
-    assert_raises(ValueError, lambda: determine_stateupdater(eqs, namespace,
-                                                             specifiers))
+    assert_raises(ValueError, lambda: determine_stateupdater(eqs, specifiers))
 
     # reset to state before the test
-    StateUpdateMethod.stateupdaters = before 
+    StateUpdateMethod.stateupdaters = before
 
 def test_static_equations():
     '''

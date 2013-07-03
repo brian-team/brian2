@@ -248,7 +248,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 raise AssertionError('Unknown element name: %s' %
                                      element.getName())
     
-    def can_integrate(self, equations, namespace, specifiers):
+    def can_integrate(self, equations, specifiers):
         # Non-stochastic numerical integrators should work for all equations,
         # except for stochastic equations
         if equations.is_stochastic and self.stochastic is None:
@@ -436,7 +436,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         return RHS
 
 
-    def __call__(self, eqs, namespace=None, specifiers=None):        
+    def __call__(self, eqs, specifiers=None):
         '''
         Apply a state updater description to model equations.
         
@@ -444,10 +444,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         ----------
         eqs : `Equations`
             The equations describing the model
-        
-        namespace: dict-like, optional
-            The namespace used for resolving external identifiers. Ignored
-            by the explicit state updater.
+
         
         specifiers: dict-like, optional
             The `Specifier` objects for the model. Ignored by the explicit

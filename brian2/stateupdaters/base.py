@@ -19,7 +19,7 @@ class StateUpdateMethod(object):
     stateupdaters = []
 
     @abstractmethod
-    def can_integrate(self, equations, namespace, specifiers):
+    def can_integrate(self, equations, specifiers):
         '''
         Determine whether the state updater is a suitable choice. Should return
         ``False`` if it is not appropriate (e.g. non-linear equations for a
@@ -29,9 +29,6 @@ class StateUpdateMethod(object):
         ----------
         equations : `Equations`
             The model equations.
-        namespace : dict
-            The namespace resolving the external identifiers used in the
-            equations.
         specifiers : dict
             The `Specifier` objects for the model variables.
         
@@ -44,22 +41,20 @@ class StateUpdateMethod(object):
         pass
 
     @abstractmethod
-    def __call__(self, equations, namespace=None, specifiers=None):
+    def __call__(self, equations, specifiers=None):
         '''
         Generate abstract code from equations. The method also gets the
-        namespace and the specifiers, this allows state updaters to simplify
-        the generated code by substituting constant values. For convenience,
-        these arguments are optional -- this allows to directly see what code
-        a state updater generates for a set of equations by simply writing
-        ``euler(eqs)``, for example.
+        the specifiers because some state updaters have to check whether
+        variable names reflect other state variables (which can change from
+        timestep to timestep) or are external values (which stay constant during
+        a run)  For convenience, this arguments are optional -- this allows to
+        directly see what code a state updater generates for a set of equations
+        by simply writing ``euler(eqs)``, for example.
         
         Parameters
         ----------
         equations : `Equations`
             The model equations.
-        namespace : dict, optional
-            The namespace resolving the external identifiers used in the
-            equations.
         specifiers : dict, optional
             The `Specifier` objects for the model variables.            
         
@@ -113,8 +108,7 @@ class StateUpdateMethod(object):
             StateUpdateMethod.stateupdaters.append((name, stateupdater))
 
     @staticmethod
-    def determine_stateupdater(equations, namespace,
-                               specifiers, method=None):
+    def determine_stateupdater(equations, specifiers, method=None):
         '''
         Determine a suitable state updater. If a `method` is given, the
         state updater with the given name is used. In case it is a callable, it
@@ -127,9 +121,7 @@ class StateUpdateMethod(object):
         Parameters
         ----------
         equations : `Equations`
-            The model equations.        
-        namespace : `dict`
-            The namespace of external variables/functions.
+            The model equations.
         specifiers : `dict`
             The dictionary of `Specifier` objects, describing the internal
             model variables.
@@ -142,7 +134,7 @@ class StateUpdateMethod(object):
             # can_integrate method, check this method and raise a warning if it
             # claims not to be applicable.
             try:
-                priority = method.can_integrate(equations, namespace, specifiers)
+                priority = method.can_integrate(equations, specifiers)
                 if priority == 0:
                     logger.warn(('The manually specified state updater '
                                  'claims that it does not support the given '
@@ -164,7 +156,7 @@ class StateUpdateMethod(object):
             if stateupdater is None:
                 raise ValueError('No state updater with the name "%s" '
                                  'is known' % method)
-            if not stateupdater.can_integrate(equations, namespace, specifiers):
+            if not stateupdater.can_integrate(equations, specifiers):
                 raise ValueError(('The state updater "%s" cannot be used for '
                                   'the given equations' % method))
             return stateupdater
@@ -173,7 +165,7 @@ class StateUpdateMethod(object):
         best_stateupdater = None
         for name, stateupdater in StateUpdateMethod.stateupdaters:
             try:
-                if stateupdater.can_integrate(equations, namespace, specifiers):
+                if stateupdater.can_integrate(equations, specifiers):
                     best_stateupdater = (name, stateupdater)
                     break
             except KeyError:

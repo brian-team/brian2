@@ -46,14 +46,12 @@ class StateUpdater(GroupCodeRunner):
                                        check_units=False)
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.namespace,
                                                                self.group.specifiers,
                                                                method)
     
     def update_abstract_code(self):        
         
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.namespace,
                                                                self.group.specifiers,
                                                                self.method_choice)
 
@@ -61,7 +59,6 @@ class StateUpdater(GroupCodeRunner):
         self.abstract_code = 'is_active = 1* (t >= refractory_until)\n'
         
         self.abstract_code += self.method(self.group.equations,
-                                          self.group.namespace,
                                           self.group.specifiers)
 
 

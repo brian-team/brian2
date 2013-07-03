@@ -48,19 +48,16 @@ class StateUpdater(GroupCodeRunner):
                                  check_units=False)
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.namespace,
                                                                self.group.specifiers,
                                                                method)
     
     def update_abstract_code(self):        
         
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.namespace,
                                                                self.group.specifiers,
                                                                self.method_choice)
         
         self.abstract_code = self.method(self.group.equations,
-                                         self.group.namespace,
                                          self.group.specifiers)
 
 
