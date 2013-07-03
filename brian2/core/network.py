@@ -346,7 +346,7 @@ class Network(Nameable):
         clock, curclocks = self._nextclocks()
         while clock.running and not self._stopped and not Network._globally_stopped:
             # update the network time to this clocks time
-            self.t = clock.t
+            self.t_ = clock.t_
             # update the objects with this clock
             for obj in self.objects:
                 if obj.clock in curclocks and obj.active:
