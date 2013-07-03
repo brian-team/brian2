@@ -100,13 +100,13 @@ class LinearStateUpdater(StateUpdateMethod):
         # Get a representation of the ODE system in the form of
         # dX/dt = M*X + B
         variables, matrix, constants = get_linear_system(equations)                
-        
+
         # Make sure that the matrix M is constant, i.e. it only contains
         # external variables or constant specifiers
         # As every symbol in the matrix should be either in the namespace or
         # the specifiers dictionary, it should be sufficient to just check for
         # the presence of any non-constant specifiers.
-        symbols = reduce(operator.add, (el.atoms() for el in matrix))
+        symbols = set.union(*(el.atoms() for el in matrix))
         # Only check true symbols, not numbers
         symbols = set([str(symbol) for symbol in symbols
                        if isinstance(symbol, Symbol)])
@@ -123,7 +123,7 @@ class LinearStateUpdater(StateUpdateMethod):
         b = sp.Matrix([solution[symbol] for symbol in symbols]).transpose()
         
         # Solve the system
-        dt = Symbol('dt', real=True)    
+        dt = Symbol('dt', real=True, positive=True)
         A = (matrix * dt).exp()                
         C = sp.Matrix([A.dot(b)]) - b
         S = sp.MatrixSymbol('_S', len(variables), 1)
