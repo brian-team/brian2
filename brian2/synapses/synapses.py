@@ -1,6 +1,8 @@
 import collections
 import weakref
+import itertools
 import inspect
+import re
 
 import numpy as np
 
@@ -12,11 +14,13 @@ from brian2.core.specifiers import (ArrayVariable, Index, DynamicArrayVariable,
                                     StochasticVariable, SynapticArrayVariable,
                                     Specifier)
 from brian2.codegen.languages import PythonLanguage
-from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
-                                        STATIC_EQUATION, PARAMETER)
+from brian2.equations.equations import (Equations, SingleEquation,
+                                        DIFFERENTIAL_EQUATION, STATIC_EQUATION,
+                                        PARAMETER)
 from brian2.groups.group import Group, GroupCodeRunner, create_codeobj
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.stateupdaters.base import StateUpdateMethod
+from brian2.stateupdaters.exponential_euler import exponential_euler
 from brian2.units.fundamentalunits import Unit, Quantity, fail_for_dimension_mismatch, get_dimensions
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
@@ -85,6 +89,7 @@ class SynapticPathway(GroupCodeRunner, Group):
         explanation of the wildcard operator).
     '''
     def __init__(self, synapses, code, prepost, objname=None):
+        self.code = code
         if prepost == 'pre':
             self.source = synapses.source
             self.synapse_indices = synapses.indices.pre_synaptic
@@ -128,10 +133,27 @@ class SynapticPathway(GroupCodeRunner, Group):
         # Enable access to the delay attribute via the specifier
         Group.__init__(self)
 
+    def update_abstract_code(self):
+        if self.synapses.event_driven is not None:
+            # TODO: This should use a specific state updater for 1-d linear
+            #       equations
+            event_driven_update = exponential_euler(self.synapses.event_driven,
+                                                    self.group.specifiers)
+            # TODO: Any way to do this more elegantly?
+            event_driven_update = re.sub(r'\bdt\b', '(t - lastupdate)',
+                                         event_driven_update)
+
+            self.abstract_code = event_driven_update + '\n'
+        else:
+            self.abstract_code = ''
+
+        self.abstract_code += self.code + '\n'
+        self.abstract_code += 'lastupdate = t\n'
+
     def pre_run(self, namespace):
-        GroupCodeRunner.pre_run(self, namespace)
         # Update the dt (might have changed between runs)
         self.dt = self.synapses.clock.dt_
+        GroupCodeRunner.pre_run(self, namespace)
         self.queue.compress(np.round(self._delays[:] / self.dt).astype(np.int),
                             self.synapse_indices, len(self.synapses))
     
@@ -558,19 +580,22 @@ class Synapses(BrianObject, Group):
                 event_driven.append(single_equation)
             else:
                 continuous.append(single_equation)
+        # Add the lastupdate variable, used by event-driven equations
+        continuous.append(SingleEquation(PARAMETER, 'lastupdate', second))
 
         if len(event_driven):
-            self.equations = Equations(continuous)
             self.event_driven = Equations(event_driven)
         else:
-            self.equations = equations
             self.event_driven = None
+
+        self.equations = Equations(continuous)
 
         ##### Setup the memory
         self.arrays = self._allocate_memory(dtype=dtype)
 
         # Setup the namespace
-        self.namespace = create_namespace(1, namespace)  #FIXME
+        self._given_namespace = namespace
+        self.namespace = create_namespace(0, namespace)
 
         # Code generation (TODO: this should be refactored and modularised)
         # Temporary, set default language to Python
@@ -677,6 +702,17 @@ class Synapses(BrianObject, Group):
     def __len__(self):
         return self.N
 
+    def update_namespace(self):
+        self.namespace = create_namespace(self.N, self._given_namespace)
+
+    def pre_run(self, namespace):
+        # This is currently needed for the functions rand and randn that are
+        # part of the namespace and carry information about the number of
+        # synapses (for vectorisation in Python code)
+        self.update_namespace()
+        self.lastupdate = self.clock.t
+        super(Synapses, self).pre_run(namespace)
+
     def _add_updater(self, code, prepost, objname=None):
         '''
         Add a new target updater. Users should call `add_pre` or `add_post`
@@ -718,13 +754,13 @@ class Synapses(BrianObject, Group):
         '''
         # Add all the pre and post specifiers with _pre and _post suffixes
         s = {}
-        for name, spec in self.source.specifiers.iteritems():
+        for name, spec in getattr(self.source, 'specifiers', {}).iteritems():
             if isinstance(spec, ArrayVariable):
                 new_spec = ArrayVariable(spec.name, spec.unit, spec.dtype,
                                          spec.array, '_presynaptic_idx',
                                          self)
                 s[name + '_pre'] = new_spec
-        for name, spec in self.target.specifiers.iteritems():
+        for name, spec in getattr(self.target, 'specifiers', {}).iteritems():
             if isinstance(spec, ArrayVariable):
                 new_spec = ArrayVariable(spec.name, spec.unit, spec.dtype,
                              spec.array, '_postsynaptic_idx', self)
@@ -757,7 +793,8 @@ class Synapses(BrianObject, Group):
                                                   np.int32,
                                                   self.indices.post_synaptic)})
 
-        for eq in self.equations.itervalues():
+        for eq in itertools.chain(self.equations.itervalues(),
+                                  self.event_driven.itervalues() if self.event_driven is not None else []):
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 array = self.arrays[eq.varname]
                 constant = ('constant' in eq.flags)
@@ -793,6 +830,11 @@ class Synapses(BrianObject, Group):
         arrayvarnames = set(eq.varname for eq in self.equations.itervalues() if
                             eq.type in (DIFFERENTIAL_EQUATION,
                                            PARAMETER))
+        if self.event_driven is not None:
+            # Only differential equations are event-driven
+            arrayvarnames |= set(eq.varname
+                                 for eq in self.event_driven.itervalues())
+
         arrays = {}
         for name in arrayvarnames:
             if isinstance(dtype, dict):

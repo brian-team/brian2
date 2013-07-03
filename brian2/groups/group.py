@@ -134,6 +134,9 @@ class Group(object):
         else:
             object.__setattr__(self, name, val)
 
+    def update_namespace(self):
+        pass
+
     def _set_with_code(self, specifier, group_indices, code,
                        check_units=True, level=0):
         '''
@@ -157,6 +160,7 @@ class Group(object):
             Necessary so that both `X.var = ` and `X.var[:] = ` have access
             to the surrounding namespace.
         '''
+        self.update_namespace()
 
         abstract_code = specifier.name + ' = ' + code
         indices = {'_neuron_idx': Index('_neuron_idx', iterate_all=False)}
