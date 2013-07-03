@@ -191,12 +191,13 @@ def test_determination():
     before = list(StateUpdateMethod.stateupdaters)
     
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
-    # specifiers should not be necessary here
-    specifiers = {}
+    # Just make sure that state updaters know about the two state variables
+    specifiers = {'v': None, 'w': None}
     
     # all methods should work for these equations.
     # First, specify them explicitly (using the object)
-    for integrator in (linear, euler, exponential_euler, rk2, rk4, milstein):
+    for integrator in (linear, independent, euler, exponential_euler,
+                       rk2, rk4, milstein):
         with catch_logs() as logs:
             returned = determine_stateupdater(eqs, specifiers,
                                               method=integrator)
@@ -206,7 +207,7 @@ def test_determination():
     # Equation with multiplicative noise, only milstein should work without
     # a warning
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
-    for integrator in (linear, euler, exponential_euler, rk2, rk4):
+    for integrator in (linear, independent, euler, exponential_euler, rk2, rk4):
         with catch_logs() as logs:
             returned = determine_stateupdater(eqs, specifiers,
                                               method=integrator)
@@ -235,7 +236,8 @@ def test_determination():
     
     # Specification with names
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
-    for name, integrator in [('linear', linear), ('euler', euler), 
+    for name, integrator in [('linear', linear), ('euler', euler),
+                             ('independent', independent),
                              ('exponential_euler', exponential_euler),
                              ('rk2', rk2), ('rk4', rk4),
                              ('milstein', milstein)]:
@@ -248,7 +250,8 @@ def test_determination():
 
     # Now all except milstein should refuse to work
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
-    for name in ['linear', 'euler', 'exponential_euler', 'rk2', 'rk4']:
+    for name in ['linear', 'independent', 'euler', 'exponential_euler',
+                 'rk2', 'rk4']:
         assert_raises(ValueError, lambda: determine_stateupdater(eqs,
                                                                  specifiers,
                                                                  method=name))
@@ -272,9 +275,11 @@ def test_determination():
     eqs = Equations('''dv/dt = -(v + w**2)/ (10*ms) : 1
                        dw/dt = -w/ (10*ms) : 1''')
     assert determine_stateupdater(eqs, specifiers) is exponential_euler
-    
 
-    eqs = Equations('dv/dt = -(v**2) / (10*ms) : 1')
+    eqs = Equations('dv/dt = sin(t) / (10*ms) : 1')
+    assert determine_stateupdater(eqs, specifiers) is independent
+
+    eqs = Equations('dv/dt = -sqrt(v) / (10*ms) : 1')
     assert determine_stateupdater(eqs, specifiers) is euler
 
     eqs = Equations('dv/dt = -v / (10*ms) + 0.1*second**-.5*xi: 1')

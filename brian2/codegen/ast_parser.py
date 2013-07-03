@@ -185,7 +185,10 @@ class SympyNodeRenderer(NodeRenderer):
             return NodeRenderer.render_Compare(self, node)
 
     def render_Name(self, node):
-        return 'Symbol("%s", real=True)' % node.id
+        if node.id in ['t', 'dt']:
+            return 'Symbol("%s", real=True, positive=True)' % node.id
+        else:
+            return 'Symbol("%s", real=True)' % node.id
 
     def render_Num(self, node):
         return 'Float(%f)' % node.n

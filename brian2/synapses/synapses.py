@@ -20,7 +20,7 @@ from brian2.equations.equations import (Equations, SingleEquation,
 from brian2.groups.group import Group, GroupCodeRunner, create_codeobj
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.stateupdaters.base import StateUpdateMethod
-from brian2.stateupdaters.exponential_euler import exponential_euler
+from brian2.stateupdaters.exact import independent
 from brian2.units.fundamentalunits import Unit, Quantity, fail_for_dimension_mismatch, get_dimensions
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
@@ -135,10 +135,8 @@ class SynapticPathway(GroupCodeRunner, Group):
 
     def update_abstract_code(self):
         if self.synapses.event_driven is not None:
-            # TODO: This should use a specific state updater for 1-d linear
-            #       equations
-            event_driven_update = exponential_euler(self.synapses.event_driven,
-                                                    self.group.specifiers)
+            event_driven_update = independent(self.synapses.event_driven,
+                                              self.group.specifiers)
             # TODO: Any way to do this more elegantly?
             event_driven_update = re.sub(r'\bdt\b', '(t - lastupdate)',
                                          event_driven_update)

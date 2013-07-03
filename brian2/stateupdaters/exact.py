@@ -13,7 +13,7 @@ from brian2.utils.stringtools import get_identifiers
 from brian2.utils.logger import get_logger
 from brian2.stateupdaters.base import StateUpdateMethod
 
-__all__ = ['linear']
+__all__ = ['linear', 'independent']
 
 logger = get_logger(__name__)
 
@@ -71,7 +71,7 @@ def get_linear_system(eqs):
     return (diff_eq_names, coefficients, constants)
 
 
-def _non_constant_symbols(matrix, specifiers):
+def _non_constant_symbols(symbols, specifiers):
     '''
     Determine whether the given `sympy.Matrix` only refers to constant
     variables. Note that variables that are not present in the `specifiers`
@@ -80,8 +80,8 @@ def _non_constant_symbols(matrix, specifiers):
     Parameters
     ----------
 
-    matrix : `sympy.Base`
-        The matrix of coefficients to check.
+    symbols : set of `Symbol`
+        The symbols to check, e.g. resulting from expression.atoms()
     specifiers : dict
         The dictionary of `Specifier` objects.
 
@@ -93,7 +93,7 @@ def _non_constant_symbols(matrix, specifiers):
     # As every symbol in the matrix should be either in the namespace or
     # the specifiers dictionary, it should be sufficient to just check for
     # the presence of any non-constant specifiers.
-    symbols = set.union(*(el.atoms() for el in matrix))
+
     # Only check true symbols, not numbers
     symbols = set([str(symbol) for symbol in symbols
                    if isinstance(symbol, Symbol)])
@@ -103,7 +103,7 @@ def _non_constant_symbols(matrix, specifiers):
     for symbol in symbols:
         if symbol in specifiers and not getattr(specifiers[symbol],
                                                 'constant', False):
-            non_constant |= symbol
+            non_constant |= set([symbol])
 
     return non_constant
 
@@ -139,27 +139,52 @@ class IndependentStateUpdater(StateUpdateMethod):
         diff_eqs = equations.substituted_expressions
 
         t = Symbol('t', real=True, positive=True)
+        dt = Symbol('dt', real=True, positive=True)
+        t0 = Symbol('t0', real=True, positive=True)
+        f0 = Symbol('f0', real=True)
+        # TODO: Shortcut for simple linear equations? Is all this effort really
+        #       worth it?
 
-        # TODO: Shortcut for simple linear equations?
-
+        code = []
         for name, expression in diff_eqs:
             rhs = expression.sympy_expr
-            f = sp.Function(name)
+            non_constant = _non_constant_symbols(rhs.atoms(),
+                                                 specifiers) - set([name])
+            if len(non_constant):
+                raise ValueError(('Equation for %s referred to non-constant '
+                                  'variables %s') % (name, str(non_constant)))
             # We have to be careful and use the real=True assumption as well,
-            # otherwise sympy doesn't consider the symbol a match
-            rhs = rhs.subs(Symbol(name, real=True), f(t))
+            # otherwise sympy doesn't consider the symbol a match to the content
+            # of the equation
+            var = Symbol(name, real=True)
+            f = sp.Function(name)
+            rhs = rhs.subs(var, f(t))
             derivative = sp.Derivative(f(t), t)
             diff_eq = sp.Eq(derivative, rhs)
-
             general_solution = sp.dsolve(diff_eq, f(t))
-
             # Check whether this is an explicit solution
-            # Check that there's only one constant
-            # Solve for C1 (assuming "v0" as the initial value and "t0" as time
-            # Insert it into the solution and evaluate it for "t + t0"
-            # simplify it and replace v0 by v
-            # Done!
-            raise NotImplementedError('This state updater does not work yet')
+            if not getattr(general_solution, 'lhs', None) == f(t):
+                raise ValueError('Cannot explicitly solve: ' + str(diff_eq))
+            # Solve for C1 (assuming "var" as the initial value and "t0" as time)
+            if Symbol('C1') in general_solution:
+                if Symbol('C2') in general_solution:
+                    raise ValueError('Too many constants in solution: %s' % str(general_solution))
+                constant_solution = sp.solve(general_solution, Symbol('C1'))
+                if len(constant_solution) != 1:
+                    raise ValueError(("Couldn't solve for the constant "
+                                      "C1 in : %s ") % str(general_solution))
+                constant = constant_solution[0].subs(t, t0).subs(f(t0), var)
+                solution = general_solution.rhs.subs('C1', constant)
+            else:
+                solution = general_solution.rhs.subs(t, t0).subs(f(t0), var)
+            # Evaluate the expression for one timestep
+            solution = solution.subs(t, t + dt).subs(t0, t)
+            # simplify it
+            solution = sp.rcollect(solution.expand())
+
+            code.append(name + ' = ' + sympy_to_str(solution))
+
+        return '\n'.join(code)
 
 
 class LinearStateUpdater(StateUpdateMethod):    
@@ -194,7 +219,8 @@ class LinearStateUpdater(StateUpdateMethod):
 
         # Make sure that the matrix M is constant, i.e. it only contains
         # external variables or constant specifiers
-        non_constant = _non_constant_symbols(matrix, specifiers)
+        symbols = symbols = set.union(*(el.atoms() for el in matrix))
+        non_constant = _non_constant_symbols(symbols, specifiers)
         if len(non_constant):
             raise ValueError(('The coefficient matrix for the equations '
                               'contains the symbols %s, which are not '
