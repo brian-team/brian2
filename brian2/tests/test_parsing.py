@@ -1,10 +1,11 @@
 '''
-Tests the brian2.codegen.syntax package
+Tests the brian2.parsing package
 '''
 from brian2.utils.stringtools import get_identifiers
-from brian2.codegen.ast_parser import (NodeRenderer, NumpyNodeRenderer,
-                                       CPPNodeRenderer,
-                                       )
+from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
+                                      CPPNodeRenderer,
+                                      )
+from brian2.parsing.dependencies import abstract_code_dependencies
 
 from numpy.testing import assert_allclose
 
@@ -35,8 +36,6 @@ TEST_EXPRESSIONS = '''
     1+a
     1+3
     a>0.5 and b>0.5
-    a>0.5&b>0.5&c>0.5
-    (a>0.5) & (b>0.5) & (c>0.5)
     a>0.5 and b>0.5 or c>0.5
     a>0.5 and b>0.5 or not c>0.5
     2%4
@@ -126,8 +125,39 @@ def test_parse_expressions_sympy():
     parse_expressions(SympyRenderer(), evaluator)
 
 
+def test_abstract_code_dependencies():
+    code = '''
+    a = b+c
+    d = b+c
+    a = func_a()
+    a = func_b()
+    a = e+d
+    '''
+    known_vars = set(['a', 'b', 'c'])
+    known_funcs = set(['func_a'])
+    res = abstract_code_dependencies(code, known_vars, known_funcs)
+    expected_res = dict(
+        all=['a', 'b', 'c', 'd', 'e',
+             'func_a', 'func_b',
+             ],
+        read=['b', 'c', 'd', 'e'],
+        write=['a', 'd'],
+        funcs=['func_a', 'func_b'],
+        unknown_read=['d', 'e'],
+        unknown_write=['d'],
+        unknown_funcs=['func_b'],
+        undefined_read=['e'],
+        newly_defined=['d'],
+        )
+    for k, v in expected_res.items():
+        if not getattr(res, k)==set(v):
+            raise AssertionError("For '%s' result is %s expected %s" % (
+                                        k, getattr(res, k), set(v)))
+
 if __name__=='__main__':
     test_parse_expressions_python()
     test_parse_expressions_numpy()
     test_parse_expressions_cpp()
     test_parse_expressions_sympy()
+    test_abstract_code_dependencies()
+
