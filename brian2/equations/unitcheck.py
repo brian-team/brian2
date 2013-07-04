@@ -1,6 +1,7 @@
 '''
 Utility functions for handling the units in `Equations`.
 '''
+import numpy as np
 
 from brian2.units.fundamentalunits import Quantity, Unit,\
     fail_for_dimension_mismatch, DimensionMismatchError
@@ -15,6 +16,7 @@ from brian2.units.allunits import (metre, meter, second, amp, kelvin, mole,
 from brian2.codegen.translation import analyse_identifiers
 from brian2.utils.stringtools import get_identifiers
 from brian2.codegen.parsing import parse_statement
+from brian2.codegen.ast_parser import NumpyNodeRenderer
 from brian2.core.specifiers import VariableSpecifier
 
 __all__ = ['unit_from_string', 'unit_from_expression', 'check_unit',
@@ -114,7 +116,7 @@ def unit_from_expression(expression, namespace, specifiers):
     
     # Create a mapping with all identifier names to either their actual
     # value (for external identifiers) or their unit (for specifiers)
-    unit_namespace = {}
+    unit_namespace = {'_vectorisation_idx': np.zeros(1)} # used in randn() etc.
     identifiers = get_identifiers(expression)
     for name in identifiers:
         if name in specifiers:
@@ -127,7 +129,7 @@ def unit_from_expression(expression, namespace, specifiers):
             unit_namespace[name] = namespace[name]
     
     try:
-        unit = eval(expression, unit_namespace)
+        unit = eval(NumpyNodeRenderer().render_expr(expression), unit_namespace)
     except DimensionMismatchError as dim_ex:
         raise DimensionMismatchError(('A unit mismatch occured while '
                                       'evaluating the expression "%s": %s ' %

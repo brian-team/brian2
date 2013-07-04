@@ -301,11 +301,14 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         Create the specifiers dictionary for this `NeuronGroup`, containing
         entries for the equation variables and some standard entries.
         '''
+        # Get the standard specifiers for all groups
+        s = Group._create_specifiers(self)
+
         # Standard specifiers always present
-        s = {'_num_neurons': ReadOnlyValue('_num_neurons', Unit(1), np.int, self.N),
-             '_spikes' : AttributeValue('_spikes', Unit(1), np.int, self, 'spikes'),
-             't': AttributeValue('t',  second, np.float64, self.clock, 't_'),
-             'dt': AttributeValue('dt', second, np.float64, self.clock, 'dt_', constant=True)}
+        s.update({'_num_neurons': ReadOnlyValue('_num_neurons', Unit(1),
+                                                np.int, self.N),
+                  '_spikes': AttributeValue('_spikes', Unit(1), np.int,
+                                             self, 'spikes')})
 
         # First add all the differential equations and parameters, because they
         # may be referred to by static equations
@@ -329,7 +332,6 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                                     self.namespace)})
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
-
 
         # Stochastic variables
         for xi in self.equations.stochastic_variables:

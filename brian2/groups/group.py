@@ -7,9 +7,10 @@ import weakref
 import numpy as np
 
 from brian2.core.base import BrianObject
-from brian2.core.specifiers import ArrayVariable, Index
+from brian2.core.specifiers import ArrayVariable, Index, AttributeValue
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
+from brian2.units.allunits import second
 from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
 
@@ -68,7 +69,14 @@ class Group(object):
                                   'provide 1-d indexing'))
             self.indices = Indices(N)
         self._group_attribute_access_active = True
-    
+
+    def _create_specifiers(self):
+        return {'t': AttributeValue('t',  second, np.float64,
+                                    self.clock, 't_'),
+                'dt': AttributeValue('dt', second, np.float64,
+                                     self.clock, 'dt_', constant=True)
+                }
+
     def state_(self, name):
         '''
         Gets the unitless array.
@@ -134,8 +142,6 @@ class Group(object):
         else:
             object.__setattr__(self, name, val)
 
-    def update_namespace(self):
-        pass
 
     def _set_with_code(self, specifier, group_indices, code,
                        check_units=True, level=0):
@@ -160,8 +166,6 @@ class Group(object):
             Necessary so that both `X.var = ` and `X.var[:] = ` have access
             to the surrounding namespace.
         '''
-        self.update_namespace()
-
         abstract_code = specifier.name + ' = ' + code
         indices = {'_neuron_idx': Index('_neuron_idx', iterate_all=False)}
         namespace = get_local_namespace(level + 1)

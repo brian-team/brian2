@@ -1,7 +1,7 @@
 '''
 TODO: restrict keyword optimisations
 '''
-import re
+import itertools
 import os
 
 import numpy
@@ -172,7 +172,8 @@ class CPPLanguage(Language):
         user_functions = []
         support_code = ''
         hash_defines = ''
-        for var, spec in namespace.items(): 
+        for var, spec in itertools.chain(namespace.items(),
+                                         specifiers.items()):
             if isinstance(spec, Function):
                 user_functions.append(var)
                 speccode = spec.code(self, var)

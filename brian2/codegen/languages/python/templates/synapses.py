@@ -16,7 +16,7 @@ while len(_F):
     _postsynaptic_idx = _u
     _neuron_idx = _spiking_synapses[_i]
     # TODO: how do we get presynaptic indices? do we need to?
-
+    _vectorisation_idx = _neuron_idx
     {% for line in code_lines %}
     {{line}}
     {% endfor %}

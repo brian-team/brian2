@@ -4,7 +4,7 @@ import numpy as np
 
 for i in xrange(_num_source_neurons):
     j = np.arange(_num_target_neurons)
-    
+    _vectorisation_idx = j
     {% for line in code_lines %}
     {{line}}
     {% endfor %}

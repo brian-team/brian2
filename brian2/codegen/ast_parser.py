@@ -78,7 +78,14 @@ class NodeRenderer(object):
             raise ValueError("Variable number of arguments not supported")
         elif node.kwargs is not None:
             raise ValueError("Keyword arguments not supported")
-        return '%s(%s)' % (self.render_func(node.func),
+        if len(node.args) == 0:
+            # argument-less function call such as randn() are transformed into
+            # randn(_vectorisation_idx) -- this is important for Python code
+            # in particular, because it has to return an array of values.
+            return '%s(%s)' % (self.render_func(node.func),
+                               '_vectorisation_idx')
+        else:
+            return '%s(%s)' % (self.render_func(node.func),
                            ', '.join(self.render_node(arg) for arg in node.args))
 
     def render_BinOp_parentheses(self, left, right, op):

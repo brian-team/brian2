@@ -24,17 +24,16 @@ class RandnFunction(Function):
     N : int
         The number of random numbers generated at a time.
     '''
-    def __init__(self, N):
+    def __init__(self):
         Function.__init__(self, pyfunc=randn)
-        self.N = int(N)
     
-    def __call__(self):
-        return randn(self.N)    
+    def __call__(self, vectorisation_idx):
+        return randn(len(vectorisation_idx))
     
     def code_cpp(self, language, var):
         
         support_code = '''
-        #define BUFFER_SIZE %N%
+        #define BUFFER_SIZE 1024
         // A randn() function that returns a single random number. Internally
         // it asks numpy's randn function for N (e.g. the number of neurons)
         // random numbers at a time and then returns one number from this
@@ -63,10 +62,10 @@ class RandnFunction(Function):
                 curbuffer = 0;
             return number;
         }
-        '''.replace('%VAR%', var).replace('%N%', str(self.N))
+        '''.replace('%VAR%', var)
 
         hashdefine_code = '''
-        #define _randn() _call_randn(_python_randn)
+        #define _randn(_vectorisation_idx) _call_randn(_python_randn)
         '''
 
         return {'support_code': support_code,
@@ -79,26 +78,21 @@ class RandnFunction(Function):
 class RandFunction(Function):
     '''
     A specifier for the rand function, allowing its use both in Python and
-    C++ code (e.g. for synaptic connectivity). In Python, a `rand()` call will
-    return `N` random numbers (e.g. the size of the `NeuronGroup`), in C++ it
-    will return a single number.
-
-    Parameters
-    ----------
-    N : int
-        The number of random numbers generated at a time.
+    C++ code (e.g. for synaptic connectivity). In Python, a
+    `rand(vectorisation_idx)` call will return `len(vectorisation_idx)` random
+    numbers (e.g. the size of the `NeuronGroup`), in C++ it will return a
+    single number.
     '''
-    def __init__(self, N):
+    def __init__(self):
         Function.__init__(self, pyfunc=rand)
-        self.N = int(N)
 
-    def __call__(self):
-        return rand(self.N)
+    def __call__(self, vectorisation_idx):
+        return rand(len(vectorisation_idx))
 
     def code_cpp(self, language, var):
 
         support_code = '''
-        double _rand()
+        double _rand(int vectorisation_idx)
         {
 	        return (double)rand()/RAND_MAX;
         }
@@ -236,7 +230,9 @@ def _get_default_functions():
                 'mod': FunctionWrapper(np.mod, py_name='mod',
                                        cpp_name='fmod',
                                        sympy_func=sympy_mod.Mod),
-                'clip': ClipFunction()
+                'clip': ClipFunction(),
+                'rand': RandFunction(),
+                'randn': RandnFunction()
                  }
     
     return functions

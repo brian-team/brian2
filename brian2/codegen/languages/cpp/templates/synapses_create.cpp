@@ -35,6 +35,7 @@
 	{
 		for(int j=0; j<_num_target_neurons; j++)
 		{
+		    const int _vectorisation_idx = j;
 			// Define the condition
 			{% for line in code_lines %}
 			{{line}}
@@ -45,7 +46,7 @@
 			    if (_p != 1.0) {
 			        // We have to use _rand instead of rand to use our rand
 			        // function, not the one from the C standard library
-			        if (_rand() >= _p)
+			        if (_rand(_vectorisation_idx) >= _p)
 			            continue;
 			    }
 

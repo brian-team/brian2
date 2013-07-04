@@ -672,12 +672,11 @@ class Synapses(BrianObject, Group):
                 # so that for example updater._delays[:] works.
                 updater._delays = np.array([float(pathway_delay)])
                 specifier = ArrayVariable('delay', second, np.float64,
-                                           updater._delays, None,
-                                           group=updater)
+                                          updater._delays, None,
+                                          group=updater)
                 updater.specifiers['delay'] = specifier
                 if pathway == 'pre':
                     self.specifiers['delay'] = specifier
-
 
         #: Performs numerical integration step
         self.state_updater = StateUpdater(self, method)        
@@ -700,14 +699,7 @@ class Synapses(BrianObject, Group):
     def __len__(self):
         return self.N
 
-    def update_namespace(self):
-        self.namespace = create_namespace(self.N, self._given_namespace)
-
     def pre_run(self, namespace):
-        # This is currently needed for the functions rand and randn that are
-        # part of the namespace and carry information about the number of
-        # synapses (for vectorisation in Python code)
-        self.update_namespace()
         self.lastupdate = self.clock.t
         super(Synapses, self).pre_run(namespace)
 
@@ -890,7 +882,6 @@ class Synapses(BrianObject, Group):
             The number of synapses to create per pre/post connection pair.
             Defaults to 1.
         '''
-
         if (not isinstance(pre_or_cond, bool) and
                 isinstance(pre_or_cond, (int, np.ndarray))):
             if not isinstance(post, (int, np.ndarray)):

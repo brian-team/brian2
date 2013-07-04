@@ -250,10 +250,7 @@ def get_default_numpy_namespace(N):
     
     # The default numpy functions
     namespace.update(DEFAULT_FUNCTIONS)
-    
-    # numpy functions that need special treatment 
-    namespace.update({'randn': RandnFunction(N),
-                      'rand': RandFunction(N)})
+
     return namespace
 
 _function_names = get_default_numpy_namespace(1).keys()
