@@ -272,22 +272,20 @@ class SynapticIndices(object):
 
     Parameters
     ----------
-    source_len : int
-        The number of neurons in the presynaptic group.
-    target_len : int
-        The number of neurons in the postsynaptic group.
+    synapses : `Synapses`
+        Reference to the main `Synapses object`
     '''
-    def __init__(self, source_len, target_len, synapses):
-        self.source_len = source_len
-        self.target_len = target_len
+    def __init__(self, synapses):
+        self.source_len = len(synapses.source)
+        self.target_len = len(synapses.target)
         self.synapses = weakref.proxy(synapses)
         dtype = smallest_inttype(MAX_SYNAPSES)
         self.synaptic_pre = DynamicArray1D(0, dtype=dtype)
         self.synaptic_post = DynamicArray1D(0, dtype=dtype)
         self.pre_synaptic = [DynamicArray1D(0, dtype=dtype)
-                             for _ in xrange(source_len)]
+                             for _ in xrange(self.source_len)]
         self.post_synaptic = [DynamicArray1D(0, dtype=dtype)
-                              for _ in xrange(target_len)]
+                              for _ in xrange(self.target_len)]
         self.i = IndexView(self, self.synaptic_pre)
         self.j = IndexView(self, self.synaptic_post)
         self.k = SynapseIndexView(self)
@@ -323,6 +321,11 @@ class SynapticIndices(object):
             variable.resize(number)
 
     def register_variable(self, variable):
+        '''
+        Register a `DynamicArray` to be automatically resized when the size of
+        the indices change. Called automatically when a `SynapticArrayVariable`
+        specifier is created.
+        '''
         if not hasattr(variable, 'resize'):
             raise TypeError(('Variable of type {} does not have a resize '
                              'method, cannot register it with the synaptic '
@@ -330,6 +333,9 @@ class SynapticIndices(object):
         self._registered_variables.append(weakref.proxy(variable))
 
     def unregister_variable(self, variable):
+        '''
+        Unregister a `DynamicArray` from the automatic resizing mechanism.
+        '''
         proxy_var = weakref.proxy(variable)
         # The same variable might have been registered more than once
         while proxy_var in self._registered_variables:
@@ -454,7 +460,7 @@ class SynapticIndices(object):
                 synapse_numbers = _synapse_numbers(self.synaptic_pre[:],
                                                    self.synaptic_post[:])
                 specifiers['k'] = ArrayVariable('k', Unit(1), np.int32,
-                                                synapses_numbers,
+                                                synapse_numbers,
                                                 '_neuron_idx')
             # Get the locals and globals from the stack frame
             frame = inspect.stack()[2][0]
@@ -604,7 +610,7 @@ class Synapses(BrianObject, Group):
         self._queues = {}
         self._delays = {}
 
-        self.indices = SynapticIndices(len(source), len(target), self)
+        self.indices = SynapticIndices(self)
         # Allow S.i instead of S.indices.i, etc.
         self.i = self.indices.i
         self.j = self.indices.j
@@ -881,6 +887,19 @@ class Synapses(BrianObject, Group):
         n : int, optional
             The number of synapses to create per pre/post connection pair.
             Defaults to 1.
+
+        Examples
+        --------
+        >>> from brian2 import *
+        >>> import numpy as np
+        >>> G = NeuronGroup(10, 'dv/dt = -v / tau : 1', threshold='v>1', reset='v=0')
+        >>> S = Synapses(G, G, 'w:1', pre='v+=w')
+        >>> S.connect('i != j') # all-to-all but no self-connections
+        >>> S.connect(0, 0) # connect neuron 0 to itself
+        >>> S.connect(np.array([1, 2]), np.array([2, 1])) # connect 1->2 and 2->1
+        >>> S.connect(True) # connect all-to-all
+        >>> S.connect('i != j', p=0.1)  # Connect neurons with 10% probability, exclude self-connections
+        >>> S.connect('i == j', n=2)  # Connect all neurons to themselves with 2 synapses
         '''
         if (not isinstance(pre_or_cond, bool) and
                 isinstance(pre_or_cond, (int, np.ndarray))):
