@@ -29,7 +29,7 @@
 	npy_int *_elements = (npy_int *)malloc(sizeof(npy_int) * _num_neurons);
 	for(int _neuron_idx=0; _neuron_idx<_num_neurons; _neuron_idx++)
 	{
-	    const _vectorisation_idx = _neuron_idx;
+	    const int _vectorisation_idx = _neuron_idx;
 		{% for line in code_lines %}
 		{{line}}
 		{% endfor %}
