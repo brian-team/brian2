@@ -1,7 +1,5 @@
-# USE_SPECIFIERS { _num_neurons, refractory, refractory_until, t }
-import numpy as np
-
-_vectorisation_idx = np.arange(_num_neurons)
+# USE_SPECIFIERS { _indices, refractory, refractory_until, t }
+_vectorisation_idx = _indices
 {% for line in code_lines %}
 {{line}}
 {% endfor %}

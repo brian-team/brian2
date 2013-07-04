@@ -7,7 +7,8 @@ import weakref
 import numpy as np
 
 from brian2.core.base import BrianObject
-from brian2.core.specifiers import ArrayVariable, Index, AttributeValue
+from brian2.core.specifiers import (ArrayVariable, Index, AttributeValue,
+                                    ReadOnlyValue)
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
 from brian2.units.allunits import second
@@ -68,6 +69,11 @@ class Group(object):
                                   'attribute, or a length to automatically '
                                   'provide 1-d indexing'))
             self.indices = Indices(N)
+
+        # Add a reference to the synapses to the template
+        self.specifiers['_indices'] = ReadOnlyValue('_indices', Unit(1),
+                                                    np.int, self.indices)
+
         self._group_attribute_access_active = True
 
     def _create_specifiers(self):
