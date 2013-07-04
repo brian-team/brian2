@@ -197,7 +197,7 @@ class GroupCodeRunner(BrianObject):
         except KeyError:
             pass 
     
-    def update_abstract_code(self):
+    def update_abstract_code(self, additional_namespace):
         '''
         Update the abstract code for the code object. Will be called in
         `pre_run` and should update the `GroupCodeRunner.abstract_code`
@@ -208,7 +208,7 @@ class GroupCodeRunner(BrianObject):
         pass
     
     def pre_run(self, namespace):
-        self.update_abstract_code()
+        self.update_abstract_code(namespace)
         self.codeobj = _create_codeobj(self.group, self.name,
                                        self.abstract_code,
                                        additional_namespace=namespace,
@@ -220,7 +220,7 @@ class GroupCodeRunner(BrianObject):
         '''
         Will be called in every timestep before the `update` method is called.
         
-        Overwritten in `StateUpdater` to update the ``is_active`` parameter of 
+        Overwritten in `StateUpdater` to update the ``not_refractory`` parameter of
         a `NeuronGroup`.
         
         Does nothing by default.

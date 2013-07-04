@@ -14,6 +14,8 @@ The input information needed:
 * The dtype to use for newly created variables
 * The language to translate to
 '''
+import re
+
 from numpy import float64
 
 from brian2.core.specifiers import Value, ArrayVariable, Subexpression, Index
@@ -69,12 +71,16 @@ def analyse_identifiers(code, known=None):
     '''
     if known is None:
         known = set()
+    known = set(known)
+    # TODO: This information should go somewhere else, I guess
+    standard_identifiers = set(['and', 'or', 'not', 'True', 'False'])
+    known |= standard_identifiers
     specifiers = dict((k, Value(k, 1, float64)) for k in known)
     stmts = make_statements(code, specifiers, float64)
     defined = set(stmt.var for stmt in stmts if stmt.op==':=')
     allids = set(get_identifiers(code))
     dependent = allids.difference(defined, known)
-    used_known = allids.intersection(known) 
+    used_known = allids.intersection(known) - standard_identifiers
     return defined, used_known, dependent
 
 
@@ -87,7 +93,7 @@ def make_statements(code, specifiers, dtype):
     :func:`translate`.
     '''
     code = strip_empty_lines(deindent(code))
-    lines = code.split('\n')
+    lines = re.split(r'[;\n]', code)
     lines = [LineInfo(code=line) for line in lines if len(line)]
     if DEBUG:
         print 'INPUT CODE:'

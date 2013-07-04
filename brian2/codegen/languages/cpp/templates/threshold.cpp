@@ -2,7 +2,7 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
-	// USE_SPECIFIERS { _num_neurons, refractory, refractory_until, t }
+	// USE_SPECIFIERS { _num_neurons, not_refractory, lastspike, t }
 	////// SUPPORT CODE ///////
 	{% for line in support_code_lines %}
 	// {{line}}
@@ -33,7 +33,8 @@
 		{% endfor %}
 		if(_cond) {
 			_spikes_space[_cpp_numspikes++] = _neuron_idx;
-			_array_refractory_until[_neuron_idx] = t + _array_refractory[_neuron_idx];
+			_array_not_refractory[_neuron_idx] = false;
+			_array_lastspike[_neuron_idx] = t;
 		}
 	}
 	npy_intp _dims[] = {_cpp_numspikes};
