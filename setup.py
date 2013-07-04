@@ -50,7 +50,7 @@ setup(name='Brian2',
                 'brian2.units',
                 'brian2.utils'],
       package_data={'brian2.codegen.languages.cpp': ['templates/*.cpp'],
-                    'brian2.codegen.languages.python': ['templates/*.py']},
+                    'brian2.codegen.languages.python': ['templates/*.py_']},
       requires=['numpy(>=1.4.1)',
                 'scipy(>=0.7.0)',
                 'sympy(>=0.7.1)'
