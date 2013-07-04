@@ -12,7 +12,7 @@ from brian2.utils.logger import get_logger
 
 from ..base import Language, CodeObject
 from ..templates import LanguageTemplater
-from ...ast_parser import CPPNodeRenderer
+from brian2.parsing.rendering import CPPNodeRenderer
 
 logger = get_logger(__name__)
 try:

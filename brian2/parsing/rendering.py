@@ -2,7 +2,7 @@ import ast
 
 import sympy
 
-from .functions.numpyfunctions import DEFAULT_FUNCTIONS
+from brian2.codegen.functions.numpyfunctions import DEFAULT_FUNCTIONS
 
 __all__ = ['NodeRenderer',
            'NumpyNodeRenderer',
@@ -20,8 +20,6 @@ class NodeRenderer(object):
       'Div': '/',
       'Pow': '**',
       'Mod': '%',
-      'BitAnd': 'and',
-      'BitOr': 'or',
       # Compare
       'Lt': '<',
       'LtE': '<=',
@@ -42,14 +40,10 @@ class NodeRenderer(object):
     def render_expr(self, expr, strip=True):
         if strip:
             expr = expr.strip()
-        expr = expr.replace('&', ' and ')
-        expr = expr.replace('|', ' or ')
         node = ast.parse(expr, mode='eval')
         return self.render_node(node.body)
 
     def render_code(self, code):
-        code = code.replace('&', ' and ')
-        code = code.replace('|', ' or ')
         lines = []
         for node in ast.parse(code).body:
             lines.append(self.render_node(node))
@@ -136,9 +130,6 @@ class NodeRenderer(object):
 class NumpyNodeRenderer(NodeRenderer):           
     expression_ops = NodeRenderer.expression_ops.copy()
     expression_ops.update({
-          # BinOps
-          'BitAnd': '*',
-          'BitOr': '+',
           # Unary ops
           'Not': 'logical_not',
           'Invert': 'logical_not',
@@ -151,9 +142,6 @@ class NumpyNodeRenderer(NodeRenderer):
 class SympyNodeRenderer(NodeRenderer):
     expression_ops = NodeRenderer.expression_ops.copy()
     expression_ops.update({
-          # BinOps
-          'BitAnd': '&',
-          'BitOr': '|',
           # Compare
           'Eq': 'Eq',
           'NotEq': 'Ne',
@@ -194,9 +182,6 @@ class SympyNodeRenderer(NodeRenderer):
 class CPPNodeRenderer(NodeRenderer):
     expression_ops = NodeRenderer.expression_ops.copy()
     expression_ops.update({
-          # BinOps
-          'BitAnd': '&&',
-          'BitOr': '||',
           # Unary ops
           'Not': '!',
           'Invert': '!',
