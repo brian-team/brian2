@@ -2,13 +2,14 @@
 How long does synapse creation take?
 '''
 import time
+import cPickle
 
 import numpy as np
 import joblib
 
 from brian2 import *
 
-repetitions = 5
+repetitions = 3
 
 memory = joblib.Memory(cachedir='.', verbose=0)
 
@@ -19,6 +20,7 @@ def test_connectivity(N, i, j, n, p, language):
     # C code
     S = Synapses(G, G, '', language=language)
     S.connect(i, j, p, n)
+    connections = len(S)
     del S
     times = []
     for _ in xrange(repetitions):
@@ -28,19 +30,38 @@ def test_connectivity(N, i, j, n, p, language):
         times.append(time.time() - start)
         del S
 
-    return np.median(times)
+    return float(np.median(times)), connections
 
-# Full connectivity
+conditions = [('Full', 'True'),
+              ('Full (no-self)', 'i != j'),
+              ('One-to-one', 'i == j'),
+              ('Simple neighbourhood', 'abs(i-j) < 5'),
+              ('Gauss neighbourhood', 'exp(-(i - j)**2/5) > 0.005'),
+              ('Random (50%)', (True, None, 1, 0.5)),
+              ('Random (10%)', (True, None, 1, 0.1)),
+              ('Random (1%)', (True, None, 1, 0.01)),
+              ('Random no-self (50%)', ('(i != j)', None, 1, 0.5)),
+              ('Random no-self (10%)', ('(i != j)', None, 1, 0.1)),
+              ('Random no-self (1%)', ('(i != j)', None, 1, 0.01))]
+languages = [PythonLanguage(), CPPLanguage()]
 results = {}
-for language in [PythonLanguage(), CPPLanguage()]:
+max_connections = 10000000
+for language in languages:
     lang_name = language.__class__.__name__
-    for pattern, condition in [('Full', True),
-                               ('Full (no-self)', 'i != j'),
-                               ('One-to-one', 'i == j'),
-                               ('Neighbourhood', 'abs(i-j) < 5')]:
-        for N in [5, 10, 20, 40, 80, 160, 320, 640, 1280, 2560]:
+    for pattern, condition in conditions:
+        N = 1
+        connections = took = 0
+        while connections < max_connections and took < 60.:
             print lang_name, pattern
-            took = test_connectivity(N, condition, None, 1, 1., language=language)
-            print N, '%.4fs' % took
-            results[(lang_name, N, pattern)] = took
+            if isinstance(condition, basestring):
+                took, connections = test_connectivity(N, condition, None, 1, 1.,
+                                                      language=language)
+            else:
+                took, connections = test_connectivity(N, *condition,
+                                                      language=language)
+            print N, '%.4fs (for %d connections)' % (took, connections)
+            results[(lang_name, connections, pattern)] = took
+            N *= 2
 
+with open('synapse_creation_times_brian2.pickle', 'w') as f:
+    cPickle.dump(results, f)
