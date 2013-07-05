@@ -29,7 +29,6 @@ class NodeRenderer(object):
       'NotEq': '!=',
       # Unary ops
       'Not': 'not',
-      'Invert': '~',
       'UAdd': '+',
       'USub': '-',
       # Bool ops
@@ -132,7 +131,6 @@ class NumpyNodeRenderer(NodeRenderer):
     expression_ops.update({
           # Unary ops
           'Not': 'logical_not',
-          'Invert': 'logical_not',
           # Bool ops
           'And': '*',
           'Or': '+',
@@ -147,7 +145,6 @@ class SympyNodeRenderer(NodeRenderer):
           'NotEq': 'Ne',
           # Unary ops
           'Not': '~',
-          'Invert': '~',
           # Bool ops
           'And': '&',
           'Or': '|',
@@ -184,7 +181,6 @@ class CPPNodeRenderer(NodeRenderer):
     expression_ops.update({
           # Unary ops
           'Not': '!',
-          'Invert': '!',
           # Bool ops
           'And': '&&',
           'Or': '||',
