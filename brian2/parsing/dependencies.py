@@ -58,6 +58,15 @@ def abstract_code_dependencies(code, known_vars=None, known_funcs=None):
             The set of all values that are written to.
         ``funcs``
             The set of all function names.
+        ``known_all``
+            The set of all identifiers that appear in this code block and
+            are known.
+        ``known_read``
+            The set of known values that are read, excluding functions.
+        ``known_write``
+            The set of known values that are written to.
+        ``known_funcs``
+            The set of known functions that are used.
         ``unknown_read``
             The set of all unknown variables whose values are read. Equal
             to ``read-known_vars``.
@@ -81,8 +90,12 @@ def abstract_code_dependencies(code, known_vars=None, known_funcs=None):
         known_vars = set([])
     if known_funcs is None:
         known_funcs = set([])
+    if not isinstance(known_vars, set):
+        known_vars = set(known_vars)
+    if not isinstance(known_funcs, set):
+        known_funcs = set(known_funcs)
     
-    code = deindent(code)
+    code = deindent(code, docstring=True)
     parsed_code = ast.parse(code, mode='exec')
     
     # Get the list of all variables that are read from and written to,
@@ -107,6 +120,10 @@ def abstract_code_dependencies(code, known_vars=None, known_funcs=None):
         read=read,
         write=write,
         funcs=funcs,
+        known_all=allids.intersection(known_vars.union(known_funcs)),
+        known_read=read.intersection(known_vars),
+        known_write=write.intersection(known_vars),
+        known_funcs=funcs.intersection(known_funcs),
         unknown_read=read-known_vars,
         unknown_write=write-known_vars,
         unknown_funcs=funcs-known_funcs,
