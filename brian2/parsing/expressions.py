@@ -1,5 +1,7 @@
 import ast
 
+__all__ = ['is_boolean_expression']
+
 def is_boolean_expression(expr, boolvars=None, boolfuncs=None):
     '''
     Determines if an expression is of boolean type or not
