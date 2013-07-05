@@ -186,6 +186,8 @@ def parse_expression_unit(expr, varunits, funcunits, use_standard_units=True):
         elif op=='Div':
             u = left/right
         elif op=='Pow':
+            if have_same_dimensions(left, 1) and have_same_dimensions(right, 1):
+                return get_unit_fast(1)
             if expr.right.__class__ is not ast.Num:
                 raise SyntaxError("Cannot parse unit expression with variable power")
             u = left**expr.right.n

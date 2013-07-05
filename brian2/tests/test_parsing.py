@@ -189,6 +189,7 @@ def test_parse_expression_unit():
         (volt**2, 'b**2'),
         (volt*amp, 'a%(b*c)'),
         (volt, '-b'),
+        (1, '(a/a)**(a/a)'),
         ]
     for expect, expr in EE:
         if expect is DimensionMismatchError:
