@@ -128,7 +128,7 @@ class BoolFunction(Function):
         support_code = '''
         double _bool(float value)
         {
-	        return value == 0 ? false : True
+	        return value == 0 ? false : true;
         }
         '''
 
