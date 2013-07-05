@@ -34,6 +34,13 @@ class NodeRenderer(object):
       # Bool ops
       'And': 'and',
       'Or': 'or',
+      # Augmented assign
+      'AugAdd': '+=',
+      'AugSub': '-=',
+      'AugMult': '*=',
+      'AugDiv': '/=',
+      'AugPow': '**=',
+      'AugMod': '%=',
       }
     
     def render_expr(self, expr, strip=True):
@@ -124,6 +131,12 @@ class NodeRenderer(object):
             raise SyntaxError("Only support syntax like a=b not a=b=c")
         return '%s = %s' % (self.render_node(node.targets[0]),
                             self.render_node(node.value))
+        
+    def render_AugAssign(self, node):
+        target = node.target.id
+        rhs = self.render_node(node.value)
+        op = self.expression_ops['Aug'+node.op.__class__.__name__]
+        return '%s %s %s' % (target, op, rhs)
 
 
 class NumpyNodeRenderer(NodeRenderer):           
