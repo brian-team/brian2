@@ -1,13 +1,16 @@
 '''
 Tests the brian2.parsing package
 '''
-from brian2.utils.stringtools import get_identifiers
+from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
                                       CPPNodeRenderer,
                                       )
 from brian2.parsing.dependencies import abstract_code_dependencies
 from brian2.parsing.expressions import (is_boolean_expression,
                                         parse_expression_unit)
+from brian2.parsing.functions import (abstract_code_from_function,
+                                      extract_abstract_code_functions,
+                                      substitute_abstract_code_functions)
 from brian2.units import volt, amp, DimensionMismatchError, have_same_dimensions
 
 from numpy.testing import assert_allclose, assert_raises
@@ -202,7 +205,63 @@ def test_parse_expression_unit():
             u = parse_expression_unit(expr, varunits, {})
             assert have_same_dimensions(u, expect)
             
+def test_abstract_code_from_function():
+    # test basic functioning
+    def f(x):
+        y = x+1
+        return y*y
+    ac = abstract_code_from_function(f)
+    assert ac.name=='f'
+    assert ac.args==['x']
+    assert ac.code.strip()=='y = x + 1'
+    assert ac.return_expr=='y * y'
+    # Check that unsupported features raise an error
+    def f(x):
+        return x[:]
+    assert_raises(SyntaxError, abstract_code_from_function, f)
 
+
+def test_extract_abstract_code_functions():
+    code = '''
+    def f(x):
+        return x*x
+        
+    def g(V):
+        V += 1
+        
+    irrelevant_code_here()
+    '''
+    funcs = extract_abstract_code_functions(code)
+    assert funcs['f'].return_expr == 'x * x'
+    assert funcs['g'].args == ['V']
+
+
+def test_substitute_abstract_code_functions():
+    def f(x):
+        y = x*x
+        return y
+    def g(x):
+        return f(x)+1
+    code = '''
+    z = f(x)
+    z = f(x)+f(y)
+    w = f(z)
+    h = f(f(w))
+    p = g(g(x))
+    '''
+    funcs = [abstract_code_from_function(f),
+             abstract_code_from_function(g),
+             ]
+    subcode = substitute_abstract_code_functions(code, funcs)
+    for x, y in [(0, 1), (1, 0), (0.124323, 0.4549483)]:
+        ns1 = {'x':x, 'y':y, 'f':f, 'g':g}
+        ns2 = {'x':x, 'y':y}
+        exec deindent(code) in ns1
+        exec subcode in ns2
+        for k in ['z', 'w', 'h', 'p']:
+            assert ns1[k]==ns2[k]
+    
+    
 if __name__=='__main__':
     test_parse_expressions_python()
     test_parse_expressions_numpy()
@@ -211,3 +270,7 @@ if __name__=='__main__':
     test_abstract_code_dependencies()
     test_is_boolean_expression()
     test_parse_expression_unit()
+    test_abstract_code_from_function()
+    test_extract_abstract_code_functions()
+    test_substitute_abstract_code_functions()
+    
