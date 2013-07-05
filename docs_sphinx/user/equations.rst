@@ -42,9 +42,9 @@ qualifies the equations. There are several keywords:
   event codes (pre and post).
   This can only qualify differential equations of synapses. Currently, only one-dimensional
   linear equations can be handled (see below).
-*active*
-  this means the variable is only updated during the active (not refractory) state.
-  The name may be changed. This can only qualify differential equations of neuron groups.
+*unless-refractory*
+  this means the variable is not updated during the refractory period.
+  This can only qualify differential equations of neuron groups.
 *constant*
   this means the parameter will not be changed during a run. This allows
   optimizations in state updaters.

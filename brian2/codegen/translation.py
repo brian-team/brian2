@@ -14,6 +14,8 @@ The input information needed:
 * The dtype to use for newly created variables
 * The language to translate to
 '''
+import re
+
 from numpy import float64
 
 from brian2.core.specifiers import Value, ArrayVariable, Subexpression, Index
@@ -91,7 +93,7 @@ def make_statements(code, specifiers, dtype):
     :func:`translate`.
     '''
     code = strip_empty_lines(deindent(code))
-    lines = code.split('\n')
+    lines = re.split(r'[;\n]', code)
     lines = [LineInfo(code=line) for line in lines if len(line)]
     if DEBUG:
         print 'INPUT CODE:'

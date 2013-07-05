@@ -11,12 +11,11 @@ from brian2 import *
 N = 1000
 tau = 10 * ms
 eqs = '''
-dv/dt=(v0-v)/tau : volt (active)
+dv/dt=(v0-v)/tau : volt (unless-refractory)
 v0 : volt
 '''
 group = NeuronGroup(N, equations=eqs, threshold='v>10 * mV',
-                    reset='v = 0 * mV')
-group.refractory = 5 * ms
+                    reset='v = 0 * mV', refractory=5*ms)
 group.v = 0 * mV
 group.v0 = linspace(0 * mV, 20 * mV, N)
 

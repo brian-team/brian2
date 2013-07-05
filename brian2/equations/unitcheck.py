@@ -1,6 +1,8 @@
 '''
 Utility functions for handling the units in `Equations`.
 '''
+import re
+
 import numpy as np
 
 from brian2.units.fundamentalunits import Quantity, Unit,\
@@ -208,7 +210,7 @@ def check_units_statements(code, namespace, specifiers):
     # make a copy now
     specs = dict(specifiers)
     
-    code = code.split('\n')
+    code = re.split(r'[;\n]', code)
     for line in code:
         line = line.strip()
         if not len(line):

@@ -133,6 +133,9 @@ def word_substitute(expr, substitutions):
         expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)
     return expr
 
+
+KEYWORDS = set(['and', 'or', 'not', 'True', 'False'])
+
 def get_identifiers(expr):
     '''
     Return all the identifiers in a given string ``expr``, that is everything
@@ -147,7 +150,8 @@ def get_identifiers(expr):
     >>> print(sorted(list(ids)))
     ['A', '_b', 'a', 'c5', 'f']
     '''
-    return set(re.findall(r'\b[A-Za-z_][A-Za-z0-9_]*\b', expr))
+    identifiers = set(re.findall(r'\b[A-Za-z_][A-Za-z0-9_]*\b', expr))
+    return identifiers - KEYWORDS
 
 def strip_empty_lines(s):
     '''

@@ -101,7 +101,9 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
         for var, (A, B) in system.iteritems():
             s_var = sp.Symbol(var)
             s_dt = sp.Symbol('dt')
-            if B != 0:
+            if A == 0:
+                update_expression = s_var + s_dt * B
+            elif B != 0:
                 BA = B / A
                 # Avoid calculating B/A twice
                 BA_name = '_BA_' + var

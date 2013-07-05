@@ -55,7 +55,7 @@ class StateUpdater(GroupCodeRunner):
                                                                self.group.specifiers,
                                                                method)
     
-    def update_abstract_code(self):        
+    def update_abstract_code(self):
         
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.specifiers,

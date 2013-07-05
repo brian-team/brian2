@@ -323,10 +323,6 @@ class GroupCodeRunner(BrianObject):
         updaters (units are already checked for the equations and the generated
         abstract code might have already replaced variables with their unit-less
         values)
-    template_specifiers : list of str, optional
-        A list of specifiers that are needed in the template even though they
-        are not present in the abstract code. TODO: This information should
-        be represented in the template itself.
     
     Notes
     -----
