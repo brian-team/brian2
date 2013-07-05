@@ -6,7 +6,9 @@ from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
                                       CPPNodeRenderer,
                                       )
 from brian2.parsing.dependencies import abstract_code_dependencies
-from brian2.parsing.expressions import is_boolean_expression
+from brian2.parsing.expressions import (is_boolean_expression,
+                                        parse_expression_unit)
+from brian2.units import volt, amp, DimensionMismatchError, have_same_dimensions
 
 from numpy.testing import assert_allclose, assert_raises
 
@@ -171,6 +173,30 @@ def test_is_boolean_expression():
     assert_raises(SyntaxError, is_boolean_expression, 'x<y and z')
     assert_raises(SyntaxError, is_boolean_expression, 'a or b')
     
+    
+def test_parse_expression_unit():
+    varunits = {'a': volt*amp, 'b':volt, 'c':amp}
+    EE = [
+        (volt*amp, 'a+b*c'),
+        (DimensionMismatchError, 'a+b'),
+        (DimensionMismatchError, 'a<b'),
+        (1, 'a<b*c'),
+        (1, 'a or b'),
+        (DimensionMismatchError, 'a or b<c'),
+        (1, 'a/(b*c)<1'),
+        (1, 'a/(a-a)'),
+        (1, 'a<mV*mA'),
+        (volt**2, 'b**2'),
+        (volt*amp, 'a%(b*c)'),
+        (volt, '-b'),
+        ]
+    for expect, expr in EE:
+        if expect is DimensionMismatchError:
+            assert_raises(DimensionMismatchError, parse_expression_unit, expr, varunits, {})
+        else:
+            u = parse_expression_unit(expr, varunits, {})
+            assert have_same_dimensions(u, expect)
+            
 
 if __name__=='__main__':
     test_parse_expressions_python()
@@ -179,3 +205,4 @@ if __name__=='__main__':
     test_parse_expressions_sympy()
     test_abstract_code_dependencies()
     test_is_boolean_expression()
+    test_parse_expression_unit()
