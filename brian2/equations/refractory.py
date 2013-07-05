@@ -60,7 +60,8 @@ def add_refractoriness(eqs):
             new_code = 'not_refractory*(' + eq.expr.code + ')'
             new_equations.append(SingleEquation(DIFFERENTIAL_EQUATION,
                                                 eq.varname, eq.unit,
-                                                Expression(new_code)))
+                                                Expression(new_code),
+                                                flags=eq.flags))
         else:
             new_equations.append(eq)
     

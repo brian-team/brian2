@@ -175,7 +175,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
     def __init__(self, N, equations, method=None,
                  threshold=None,
                  reset=None,
-                 refractory=None,
+                 refractory=False,
                  namespace=None,
                  dtype=None, language=None,
                  clock=None, name='neurongroup*'):
@@ -196,16 +196,20 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         if not isinstance(equations, Equations):
             raise TypeError(('equations has to be a string or an Equations '
                              'object, is "%s" instead.') % type(equations))
-        # add refractoriness
-        equations = add_refractoriness(equations)
-        self.equations = equations
-
-        logger.debug("Creating NeuronGroup of size {self.N}, "
-                     "equations {self.equations}.".format(self=self))
 
         # Check flags
         equations.check_flags({DIFFERENTIAL_EQUATION: ('unless-refractory'),
                                PARAMETER: ('constant')})
+
+        # add refractoriness
+        equations = add_refractoriness(equations)
+        self.equations = equations
+        uses_refractoriness = len(equations) and any(['unless-refractory' in eq.flags
+                                                      for eq in equations.itervalues()
+                                                      if eq.type == DIFFERENTIAL_EQUATION])
+
+        logger.debug("Creating NeuronGroup of size {self.N}, "
+                     "equations {self.equations}.".format(self=self))
 
         ##### Setup the memory
         self.arrays = self._allocate_memory(dtype=dtype)
@@ -235,6 +239,9 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
 
         #: The refractory condition or timespan
         self._refractory = refractory
+        if uses_refractoriness and refractory is False:
+            logger.warn('Model equations use the "unless-refractory" flag but '
+                        'no refractory keyword was given.', 'no_refractory')
 
         #: The state update method selected by the user
         self.method_choice = method
