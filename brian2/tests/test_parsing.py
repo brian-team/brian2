@@ -6,8 +6,9 @@ from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
                                       CPPNodeRenderer,
                                       )
 from brian2.parsing.dependencies import abstract_code_dependencies
+from brian2.parsing.expressions import is_boolean_expression
 
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_raises
 
 import numpy as np
 from brian2.codegen.parsing import str_to_sympy, sympy_to_str
@@ -154,10 +155,27 @@ def test_abstract_code_dependencies():
             raise AssertionError("For '%s' result is %s expected %s" % (
                                         k, getattr(res, k), set(v)))
 
+
+def test_is_boolean_expression():
+    EVF = [
+        (True, 'a or b', ['a', 'b'], []),
+        (True, 'True', [], []),
+        (True, 'a<b', [], []),
+        (False, 'a+b', [], []),
+        (True, 'f(x)', [], ['f']),
+        (False, 'f(x)', [], []),
+        (True, 'f(x) or a<b and c', ['c'], ['f']),
+        ]
+    for expect, expr, vars, funcs in EVF:
+        assert expect==is_boolean_expression(expr, set(vars), set(funcs))
+    assert_raises(SyntaxError, is_boolean_expression, 'x<y and z')
+    assert_raises(SyntaxError, is_boolean_expression, 'a or b')
+    
+
 if __name__=='__main__':
     test_parse_expressions_python()
     test_parse_expressions_numpy()
     test_parse_expressions_cpp()
     test_parse_expressions_sympy()
     test_abstract_code_dependencies()
-
+    test_is_boolean_expression()
