@@ -17,6 +17,7 @@ from numpy.testing import assert_allclose, assert_raises
 
 import numpy as np
 from brian2.codegen.parsing import str_to_sympy, sympy_to_str
+from brian2.core.namespace import DEFAULT_UNIT_NAMESPACE
 
 try:
     from scipy import weave
@@ -188,7 +189,10 @@ def test_is_boolean_expression():
     
     
 def test_parse_expression_unit():
-    varunits = {'a': volt*amp, 'b':volt, 'c':amp}
+    default_units = DEFAULT_UNIT_NAMESPACE
+    varunits = dict(default_units)
+    varunits.update({'a': volt*amp, 'b':volt, 'c':amp})
+
     EE = [
         (volt*amp, 'a+b*c'),
         (DimensionMismatchError, 'a+b'),

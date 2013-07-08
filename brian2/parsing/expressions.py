@@ -4,12 +4,10 @@ AST parsing based analysis of expressions
 
 import ast
 
-from brian2.units.fundamentalunits import (get_unit_fast,
+from brian2.units.fundamentalunits import (Unit, get_unit_fast,
                                            DimensionMismatchError,
                                            have_same_dimensions,
                                            )
-from brian2.units import allunits
-from brian2.units import stdunits
 
 __all__ = ['is_boolean_expression',
            'parse_expression_unit',]
@@ -86,16 +84,9 @@ def is_boolean_expression(expr, boolvars=None, boolfuncs=None):
         return expr.op.__class__.__name__ == 'Not'
     else:
         return False
-
-
-standard_unit_map = dict()
-for k in allunits.__all__:
-    standard_unit_map[k] = get_unit_fast(getattr(allunits, k))
-for k in stdunits.__all__:
-    standard_unit_map[k] = get_unit_fast(getattr(stdunits, k))    
     
     
-def parse_expression_unit(expr, varunits, funcunits, use_standard_units=True):
+def parse_expression_unit(expr, namespace, specifiers):
     '''
     Returns the unit value of an expression, and checks its validity
     
@@ -103,12 +94,10 @@ def parse_expression_unit(expr, varunits, funcunits, use_standard_units=True):
     ----------
     expr : str
         The expression to check.
-    varunits : dict
-        A mapping of (name, unit) pairs.
-    funcunits : dict
-        TODO: support for functions.
-    use_standard_units : bool
-        Whether or not to include the allunits and stdunits units.
+    namespace : dict-like
+        The namespace of external variables.
+    specifiers : dict of `Specifier` objects
+        The information about the internal variables
     
     Returns
     -------
@@ -129,25 +118,26 @@ def parse_expression_unit(expr, varunits, funcunits, use_standard_units=True):
     Currently, functions do not work, see comments in function.
     '''
     # If we are working on a string, convert to the top level node    
-    if isinstance(expr, str):
+    if isinstance(expr, basestring):
         mod = ast.parse(expr, mode='eval')
         expr = mod.body
-    # add standard unit names
-    unitmap = {'True': get_unit_fast(1),
-               'False': get_unit_fast(1),
-               }
-    if use_standard_units:
-        unitmap.update(standard_unit_map)
-    unitmap.update(varunits)
     
     if expr.__class__ is ast.Name:
-        return unitmap[expr.id]
+        name = expr.id
+        if name in specifiers:
+            return specifiers[name].unit
+        elif name in namespace:
+            return get_unit_fast(namespace[name])
+        elif name in ['True', 'False']:
+            return Unit(1)
+        else:
+            raise ValueError('Unknown identifier %s' % name)
     elif expr.__class__ is ast.Num:
         return get_unit_fast(1)
     elif expr.__class__ is ast.BoolOp:
         # check that the units are valid in each subexpression
         for node in expr.values:
-            parse_expression_unit(node, unitmap, funcunits, use_standard_units=False)
+            parse_expression_unit(node, namespace, specifiers)
         # but the result is a bool, so we just return 1 as the unit
         return get_unit_fast(1)
     elif expr.__class__ is ast.Compare:
@@ -155,7 +145,7 @@ def parse_expression_unit(expr, varunits, funcunits, use_standard_units=True):
         subexprs = [expr.left]+expr.comparators
         subunits = []
         for node in subexprs:
-            subunits.append(parse_expression_unit(node, unitmap, funcunits, use_standard_units=False))
+            subunits.append(parse_expression_unit(node, namespace, specifiers))
         for left, right in zip(subunits[:-1], subunits[1:]):
             if not have_same_dimensions(left, right):
                 raise DimensionMismatchError("Comparison of expressions with different units",
@@ -177,8 +167,8 @@ def parse_expression_unit(expr, varunits, funcunits, use_standard_units=True):
         raise NotImplementedError
     elif expr.__class__ is ast.BinOp:
         op = expr.op.__class__.__name__
-        left = parse_expression_unit(expr.left, unitmap, funcunits, use_standard_units=False)
-        right = parse_expression_unit(expr.right, unitmap, funcunits, use_standard_units=False)
+        left = parse_expression_unit(expr.left, namespace, specifiers)
+        right = parse_expression_unit(expr.right, namespace, specifiers)
         if op=='Add' or op=='Sub':
             u = left+right
         elif op=='Mult':
@@ -199,7 +189,7 @@ def parse_expression_unit(expr, varunits, funcunits, use_standard_units=True):
     elif expr.__class__ is ast.UnaryOp:
         op = expr.op.__class__.__name__
         # check validity of operand and get its unit
-        u = parse_expression_unit(expr.operand, unitmap, funcunits, use_standard_units=False)
+        u = parse_expression_unit(expr.operand, namespace, specifiers)
         if op=='Not':
             return get_unit_fast(1)
         else:
