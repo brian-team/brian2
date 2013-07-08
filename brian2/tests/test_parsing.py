@@ -17,7 +17,7 @@ from numpy.testing import assert_allclose, assert_raises
 
 import numpy as np
 from brian2.codegen.parsing import str_to_sympy, sympy_to_str
-from brian2.core.namespace import DEFAULT_UNIT_NAMESPACE
+from brian2.core.namespace import create_namespace
 
 try:
     from scipy import weave
@@ -189,8 +189,8 @@ def test_is_boolean_expression():
     
     
 def test_parse_expression_unit():
-    default_units = DEFAULT_UNIT_NAMESPACE
-    varunits = dict(default_units)
+    default_namespace = create_namespace(1)
+    varunits = dict(default_namespace)
     varunits.update({'a': volt*amp, 'b':volt, 'c':amp})
 
     EE = [
@@ -208,6 +208,14 @@ def test_parse_expression_unit():
         (volt*amp, 'a%(b*c)'),
         (volt, '-b'),
         (1, '(a/a)**(a/a)'),
+        # Expressions involving functions
+        (volt, 'rand()*b'),
+        (volt**0.5, 'sqrt(b)'),
+        (volt, 'ceil(b)'),
+        (volt, 'sqrt(randn()*b**2)'),
+        (1, 'sin(b/b)'),
+        (DimensionMismatchError, 'sin(b)'),
+        (DimensionMismatchError, 'sqrt(b) + b')
         ]
     for expect, expr in EE:
         if expect is DimensionMismatchError:

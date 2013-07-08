@@ -153,18 +153,39 @@ def parse_expression_unit(expr, namespace, specifiers):
         # but the result is a bool, so we just return 1 as the unit
         return get_unit_fast(1)
     elif expr.__class__ is ast.Call:
-        # We will later on have a way to specify units for functions, but
-        # it depends on the data structure. The steps to complete this are:
-        # 1. Check all the function arguments for unit consistency and 
-        #    get their units. Raise an error if the user uses *args, **kwds
-        #    or keywords, as we only allow positional arguments for now.
-        #    See NodeRenderer.render_Call for more details on this.
-        # 2. With this, we check the function arguments against the function
-        #    signature provided by the user and make sure it is OK. The
-        #    function signature can restrict the values it is passed, and
-        #    either provide a single output unit, or an output unit that is
-        #    a function of its input units.
-        raise NotImplementedError
+        if len(expr.keywords):
+            raise ValueError("Keyword arguments not supported.")
+        elif expr.starargs is not None:
+            raise ValueError("Variable number of arguments not supported")
+        elif expr.kwargs is not None:
+            raise ValueError("Keyword arguments not supported")
+
+        arg_units = [parse_expression_unit(arg, namespace, specifiers)
+                     for arg in expr.args]
+
+        func = namespace.get(expr.func.id, specifiers.get(expr.func, None))
+        if func is None:
+            raise SyntaxError('Unknown function %s' % expr.func.id)
+        if not hasattr(func, '_arg_units') or not hasattr(func, '_return_unit'):
+            raise ValueError(('Function %s does not specify how it '
+                              'deals with units.') % expr.func.id)
+
+        for idx, arg_unit in enumerate(arg_units):
+            # A "None" in func._arg_units means: No matter what unit
+            if (func._arg_units[idx] is not None and
+                    not have_same_dimensions(arg_unit, func._arg_units[idx])):
+                raise DimensionMismatchError(('Argument number %d for function '
+                                              '%s does not have the correct '
+                                              'units' % (idx + 1, expr.func.id)),
+                                             arg_unit, func._arg_units[idx])
+
+        if isinstance(func._return_unit, (Unit, int)):
+            # Function always returns the same unit
+            return get_unit_fast(func._return_unit)
+        else:
+            # Function returns a unit that depends on the arguments
+            return func._return_unit(*arg_units)
+
     elif expr.__class__ is ast.BinOp:
         op = expr.op.__class__.__name__
         left = parse_expression_unit(expr.left, namespace, specifiers)
