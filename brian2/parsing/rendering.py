@@ -2,7 +2,7 @@ import ast
 
 import sympy
 
-from .functions.numpyfunctions import DEFAULT_FUNCTIONS
+from brian2.codegen.functions.numpyfunctions import DEFAULT_FUNCTIONS
 
 __all__ = ['NodeRenderer',
            'NumpyNodeRenderer',
@@ -20,8 +20,6 @@ class NodeRenderer(object):
       'Div': '/',
       'Pow': '**',
       'Mod': '%',
-      'BitAnd': 'and',
-      'BitOr': 'or',
       # Compare
       'Lt': '<',
       'LtE': '<=',
@@ -31,25 +29,27 @@ class NodeRenderer(object):
       'NotEq': '!=',
       # Unary ops
       'Not': 'not',
-      'Invert': '~',
       'UAdd': '+',
       'USub': '-',
       # Bool ops
       'And': 'and',
       'Or': 'or',
+      # Augmented assign
+      'AugAdd': '+=',
+      'AugSub': '-=',
+      'AugMult': '*=',
+      'AugDiv': '/=',
+      'AugPow': '**=',
+      'AugMod': '%=',
       }
     
     def render_expr(self, expr, strip=True):
         if strip:
             expr = expr.strip()
-        expr = expr.replace('&', ' and ')
-        expr = expr.replace('|', ' or ')
         node = ast.parse(expr, mode='eval')
         return self.render_node(node.body)
 
     def render_code(self, code):
-        code = code.replace('&', ' and ')
-        code = code.replace('|', ' or ')
         lines = []
         for node in ast.parse(code).body:
             lines.append(self.render_node(node))
@@ -131,17 +131,19 @@ class NodeRenderer(object):
             raise SyntaxError("Only support syntax like a=b not a=b=c")
         return '%s = %s' % (self.render_node(node.targets[0]),
                             self.render_node(node.value))
+        
+    def render_AugAssign(self, node):
+        target = node.target.id
+        rhs = self.render_node(node.value)
+        op = self.expression_ops['Aug'+node.op.__class__.__name__]
+        return '%s %s %s' % (target, op, rhs)
 
 
 class NumpyNodeRenderer(NodeRenderer):           
     expression_ops = NodeRenderer.expression_ops.copy()
     expression_ops.update({
-          # BinOps
-          'BitAnd': '*',
-          'BitOr': '+',
           # Unary ops
           'Not': 'logical_not',
-          'Invert': 'logical_not',
           # Bool ops
           'And': '*',
           'Or': '+',
@@ -151,15 +153,11 @@ class NumpyNodeRenderer(NodeRenderer):
 class SympyNodeRenderer(NodeRenderer):
     expression_ops = NodeRenderer.expression_ops.copy()
     expression_ops.update({
-          # BinOps
-          'BitAnd': '&',
-          'BitOr': '|',
           # Compare
           'Eq': 'Eq',
           'NotEq': 'Ne',
           # Unary ops
           'Not': '~',
-          'Invert': '~',
           # Bool ops
           'And': '&',
           'Or': '|',
@@ -194,12 +192,8 @@ class SympyNodeRenderer(NodeRenderer):
 class CPPNodeRenderer(NodeRenderer):
     expression_ops = NodeRenderer.expression_ops.copy()
     expression_ops.update({
-          # BinOps
-          'BitAnd': '&&',
-          'BitOr': '||',
           # Unary ops
           'Not': '!',
-          'Invert': '!',
           # Bool ops
           'And': '&&',
           'Or': '||',

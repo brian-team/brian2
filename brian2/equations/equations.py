@@ -723,10 +723,10 @@ class Equations(collections.Mapping):
                 continue
 
             if eq.type == DIFFERENTIAL_EQUATION:
-                check_unit(eq.expr, self.units[var] / second,
+                check_unit(str(eq.expr), self.units[var] / second,
                            resolved_namespace, specifiers)
             elif eq.type == STATIC_EQUATION:
-                check_unit(eq.expr, self.units[var],
+                check_unit(str(eq.expr), self.units[var],
                            resolved_namespace, specifiers)
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.type)
