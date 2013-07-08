@@ -7,7 +7,7 @@ import sympy
 from sympy.printing.str import StrPrinter
 
 from .functions.numpyfunctions import DEFAULT_FUNCTIONS, log10
-from .ast_parser import SympyNodeRenderer
+from brian2.parsing.rendering import SympyNodeRenderer
 
 
 def parse_statement(code):

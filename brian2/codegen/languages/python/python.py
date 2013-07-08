@@ -4,7 +4,7 @@ import numpy as np
 
 from ..base import Language, CodeObject
 from ..templates import LanguageTemplater
-from ...ast_parser import NumpyNodeRenderer
+from brian2.parsing.rendering import NumpyNodeRenderer
 
 __all__ = ['PythonLanguage', 'PythonCodeObject']
 
