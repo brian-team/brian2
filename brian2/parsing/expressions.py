@@ -173,7 +173,7 @@ def _get_value_from_expression(expr, namespace, specifiers):
         else:
             raise SyntaxError('Unknown unary operation ' + op)
     else:
-        raise SyntaxError('Unsupported operation '+expr.__class__)
+        raise SyntaxError('Unsupported operation ' + str(expr.__class__))
 
     
 def parse_expression_unit(expr, namespace, specifiers):
