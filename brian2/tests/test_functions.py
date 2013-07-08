@@ -51,9 +51,9 @@ def test_math_functions():
                 assert_equal(numpy_result, mon.func_[0, :],
                              'Function %s did not return the correct values' % func.__name__)
             
-            # Functions with two arguments
+            # Functions/operators
             scalar = 3
-            for func in [np.power, np.mod]:
+            for func, operator in [(np.power, '**'), (np.mod, '%')]:
                 
                 # Calculate the result directly
                 numpy_result = func(test_array, scalar)
@@ -61,13 +61,8 @@ def test_math_functions():
                 # Calculate the result in a somewhat complicated way by using a
                 # static equation in a NeuronGroup
                 clock = Clock()
-                if func.__name__ == 'remainder':
-                    # we want to use the name mod instead of remainder
-                    func_name = 'mod'
-                else:
-                    func_name = func.__name__
                 G = NeuronGroup(len(test_array),
-                                '''func = {func}(test_array, scalar) : 1'''.format(func=func_name),
+                                '''func = test_array {op} scalar : 1'''.format(op=operator),
                                    clock=clock,
                                    language=lang)
                 #G.variable = test_array

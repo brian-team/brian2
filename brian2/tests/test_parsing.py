@@ -7,7 +7,8 @@ from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
                                       )
 from brian2.parsing.dependencies import abstract_code_dependencies
 from brian2.parsing.expressions import (is_boolean_expression,
-                                        parse_expression_unit)
+                                        parse_expression_unit,
+                                        _get_value_from_expression)
 from brian2.parsing.functions import (abstract_code_from_function,
                                       extract_abstract_code_functions,
                                       substitute_abstract_code_functions)
@@ -232,6 +233,37 @@ def test_parse_expression_unit():
         assert_raises(SyntaxError, parse_expression_unit, expr, varunits, {})
 
 
+def test_value_from_expression():
+    # This function is used to get the value of an exponent, necessary for unit checking
+
+    constants = {'c': 3}
+    # dummy class
+    class C(object):
+        pass
+    specifiers = {'s_constant_scalar': C(), 's_non_constant': C(),
+                  's_non_scalar': C()}
+    specifiers['s_constant_scalar'].scalar = True
+    specifiers['s_constant_scalar'].constant = True
+    specifiers['s_constant_scalar'].get_value = lambda: 2.0
+    specifiers['s_non_scalar'].constant = True
+    specifiers['s_non_constant'].scalar = True
+
+    expressions = ['1', '-0.5', 'c', '2**c', '(c + 3) * 5',
+                   'c + s_constant_scalar', 'True', 'False']
+
+    for expr in expressions:
+        eval_expr = expr.replace('s_constant_scalar', 's_constant_scalar.get_value()')
+        assert float(eval(eval_expr, constants, specifiers)) == _get_value_from_expression(expr,
+                                                                                           constants,
+                                                                                           specifiers)
+
+    wrong_expressions = ['s_non_constant', 's_non_scalar', 'c or True']
+    for expr in wrong_expressions:
+        assert_raises(SyntaxError, lambda : _get_value_from_expression(expr,
+                                                                       constants,
+                                                                       specifiers))
+
+
 def test_abstract_code_from_function():
     # test basic functioning
     def f(x):
@@ -307,6 +339,7 @@ if __name__=='__main__':
     test_abstract_code_dependencies()
     test_is_boolean_expression()
     test_parse_expression_unit()
+    test_value_from_expression()
     test_abstract_code_from_function()
     test_extract_abstract_code_functions()
     test_substitute_abstract_code_functions()
