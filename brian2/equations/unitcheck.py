@@ -26,7 +26,7 @@ def unit_from_string(unit_string):
     '''
     Returns the unit that results from evaluating a string like
     "siemens / metre ** 2", allowing for the special string "1" to signify
-    dimensionless units.
+    dimensionless units and the string "bool" to mark a boolean variable.
     
     Parameters
     ----------    
@@ -35,8 +35,8 @@ def unit_from_string(unit_string):
     
     Returns
     -------
-    u : Unit
-        The resulting unit
+    u : Unit or bool
+        The resulting unit or ``True`` for a boolean parameter.
     
     Raises
     ------

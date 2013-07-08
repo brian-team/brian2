@@ -211,7 +211,6 @@ def parse_expression_unit(expr, namespace, specifiers):
     if isinstance(expr, basestring):
         mod = ast.parse(expr, mode='eval')
         expr = mod.body
-    
     if expr.__class__ is ast.Name:
         name = expr.id
         if name in specifiers:
