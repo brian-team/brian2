@@ -305,7 +305,7 @@ def parse_expression_unit(expr, namespace, specifiers):
         else:
             return u
     else:
-        raise SyntaxError('Unsupported operation '+expr.__class__)
+        raise SyntaxError('Unsupported operation ' + str(expr.__class__))
 
 
 if __name__=='__main__':
