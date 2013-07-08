@@ -83,7 +83,7 @@ def is_boolean_expression(expr, boolvars=None, boolfuncs=None):
     elif expr.__class__ is ast.Compare:
         return True
     elif expr.__class__ is ast.UnaryOp:
-        return expr.op.__class__.__name__ is 'not'
+        return expr.op.__class__.__name__ == 'Not'
     else:
         return False
 

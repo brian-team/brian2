@@ -170,13 +170,19 @@ def test_is_boolean_expression():
         (True, 'a or b', ['a', 'b'], []),
         (True, 'True', [], []),
         (True, 'a<b', [], []),
+        (True, 'not (a>=b)', [], []),
         (False, 'a+b', [], []),
         (True, 'f(x)', [], ['f']),
         (False, 'f(x)', [], []),
         (True, 'f(x) or a<b and c', ['c'], ['f']),
         ]
     for expect, expr, vars, funcs in EVF:
-        assert expect==is_boolean_expression(expr, set(vars), set(funcs))
+        ret_val = is_boolean_expression(expr, set(vars), set(funcs))
+        if expect != ret_val:
+            raise AssertionError(('is_boolean_expression(%r) returned %s, '
+                                  'but was supposed to return %s') % (expr,
+                                                                      ret_val,
+                                                                      expect))
     assert_raises(SyntaxError, is_boolean_expression, 'x<y and z')
     assert_raises(SyntaxError, is_boolean_expression, 'a or b')
     
@@ -189,6 +195,7 @@ def test_parse_expression_unit():
         (DimensionMismatchError, 'a<b'),
         (1, 'a<b*c'),
         (1, 'a or b'),
+        (1, 'not (a >= b*c)'),
         (DimensionMismatchError, 'a or b<c'),
         (1, 'a/(b*c)<1'),
         (1, 'a/(a-a)'),
@@ -204,7 +211,15 @@ def test_parse_expression_unit():
         else:
             u = parse_expression_unit(expr, varunits, {})
             assert have_same_dimensions(u, expect)
-            
+
+    wrong_expressions = ['a**b',
+                         'a << b',
+                         'ot True' # typo
+                        ]
+    for expr in wrong_expressions:
+        assert_raises(SyntaxError, parse_expression_unit, expr, varunits, {})
+
+
 def test_abstract_code_from_function():
     # test basic functioning
     def f(x):
@@ -216,9 +231,19 @@ def test_abstract_code_from_function():
     assert ac.code.strip()=='y = x + 1'
     assert ac.return_expr=='y * y'
     # Check that unsupported features raise an error
+
     def f(x):
         return x[:]
     assert_raises(SyntaxError, abstract_code_from_function, f)
+
+    def f(x, **kwarg):
+        return x
+    assert_raises(SyntaxError, abstract_code_from_function, f)
+
+    def f(x, *args):
+        return x
+    assert_raises(SyntaxError, abstract_code_from_function, f)
+
 
 
 def test_extract_abstract_code_functions():
