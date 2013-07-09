@@ -148,7 +148,6 @@ class Group(object):
         else:
             object.__setattr__(self, name, val)
 
-
     def _set_with_code(self, specifier, group_indices, code,
                        check_units=True, level=0):
         '''
@@ -195,6 +194,7 @@ class Group(object):
                                  language=self.language)
         codeobj()
 
+
 def create_codeobj(group, code, template, indices,
                    name=None, check_units=True, additional_specifiers=None,
                    additional_namespace=None, language=None):
@@ -236,24 +236,23 @@ def create_codeobj(group, code, template, indices,
         # Resolve the namespace, resulting in a dictionary containing only the
         # external variables that are needed by the code -- keep the units for
         # the unit checks
-        _, _, unknown = analyse_identifiers(code,
-                                            all_specifiers.keys())
-        if group is not None:
-            resolved_namespace = group.namespace.resolve_all(unknown,
-                                                             additional_namespace,
-                                                             strip_units=False)
-        else:
-            resolved_namespace = {}
+        # Note that here, in contrast to the namespace resolution below, we do
+        # not need to recursively descend into subexpressions. For unit
+        # checking, we only need to know the units of the subexpressions,
+        # not what variables they refer to
+        _, _, unknown = analyse_identifiers(code, all_specifiers)
+        resolved_namespace = group.namespace.resolve_all(unknown,
+                                                         additional_namespace,
+                                                         strip_units=False)
 
         check_units_statements(code, resolved_namespace, all_specifiers)
 
-    # Get the namespace without units
-    _, used_known, unknown = analyse_identifiers(code, all_specifiers.keys())
-    if group is not None:
-        resolved_namespace = group.namespace.resolve_all(unknown,
-                                                         additional_namespace)
-    else:
-        resolved_namespace = {}
+    # Determine the identifiers that were used
+    _, used_known, unknown = analyse_identifiers(code, all_specifiers,
+                                                 recursive=True)
+
+    resolved_namespace = group.namespace.resolve_all(unknown,
+                                                     additional_namespace)
 
     # Only pass the specifiers that are actually used
     specifiers = {}

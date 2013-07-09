@@ -3,12 +3,14 @@ Classes used to specify the type of a function, variable or common sub-expressio
 
 TODO: have a single global dtype rather than specify for each variable?
 '''
+import numpy as np
 
 from brian2.units.allunits import second
 
 from brian2.utils.stringtools import get_identifiers
 from brian2.units.fundamentalunits import (Quantity, is_scalar_type,
-                                           fail_for_dimension_mismatch)
+                                           fail_for_dimension_mismatch,
+                                           have_same_dimensions)
 
 __all__ = ['Specifier',
            'VariableSpecifier',
@@ -20,6 +22,7 @@ __all__ = ['Specifier',
            'Subexpression',           
            'Index',
            ]
+
 
 ###############################################################################
 # Parent classes
@@ -64,15 +67,25 @@ class VariableSpecifier(Specifier):
     constant: bool, optional
         Whether the value of this variable can change during a run. Defaults
         to ``False``.
+    is_bool: bool, optional
+        Whether this is a boolean variable (also implies it is dimensionless).
+        Defaults to ``False``
     See Also
     --------
     Value
     '''
-    def __init__(self, name, unit, scalar=True, constant=False):
+    def __init__(self, name, unit, scalar=True, constant=False, is_bool=False):
         Specifier.__init__(self, name)
         
         #: The variable's unit.
         self.unit = unit
+
+        #: Whether this is a boolean variable
+        self.is_bool = is_bool
+
+        if is_bool:
+            if not have_same_dimensions(unit, 1):
+                raise ValueError('Boolean variables can only be dimensionless')
 
         #: Whether the value is a scalar
         self.scalar = scalar
@@ -112,10 +125,15 @@ class Value(VariableSpecifier):
         defined for every neuron (``False``). Defaults to ``True``.
     constant: bool, optional
         Whether the value of this variable can change during a run. Defaults
-        to ``False``.        
+        to ``False``.
+    is_bool: bool, optional
+        Whether this is a boolean variable (also implies it is dimensionless).
+        Defaults to ``False``
+
     '''
-    def __init__(self, name, unit, dtype, scalar=True, constant=False):
-        VariableSpecifier.__init__(self, name, unit, scalar, constant)
+    def __init__(self, name, unit, dtype, scalar=True, constant=False,
+                 is_bool=False):
+        VariableSpecifier.__init__(self, name, unit, scalar, constant, is_bool)
         #: The dtype used for storing the variable.
         self.dtype = dtype
     
@@ -187,8 +205,11 @@ class ReadOnlyValue(Value):
         self.value = value
         
         scalar = is_scalar_type(value)
-        
-        Value.__init__(self, name, unit, dtype, scalar, constant=True)
+
+        is_bool = value is True or value is False
+
+        Value.__init__(self, name, unit, dtype, scalar, constant=True,
+                       is_bool=is_bool)
 
     def get_value(self):
         return self.value
@@ -245,34 +266,35 @@ class AttributeValue(ReadOnlyValue):
         to be an attribute of `obj`.
     constant : bool, optional
         Whether the attribute's value is constant during a run.
-        
+    is_bool: bool, optional
+        Whether this is a boolean variable (also implies it is dimensionless).
+        Defaults to ``False``
     Raises
     ------
     AttributeError
         If `obj` does not have an attribute `attribute`.
         
     '''
-    def __init__(self, name, unit, dtype, obj, attribute, constant=False):
+    def __init__(self, name, unit, dtype, obj, attribute, constant=False,
+                 is_bool=False):
         if not hasattr(obj, attribute):
             raise AttributeError(('Object %r does not have an attribute %r, '
                                   'providing the value for %r') %
                                  (obj, attribute, name))
+
+        value = getattr(obj, attribute)
+        scalar = is_scalar_type(value)
+
+        is_bool = value is True or value is False
         
-        scalar = is_scalar_type(getattr(obj, attribute))
-        
-        Value.__init__(self, name, unit, dtype, scalar, constant)
+        Value.__init__(self, name, unit, dtype, scalar, constant, is_bool)
         #: A reference to the object storing the variable's value         
         self.obj = obj
         #: The name of the attribute storing the variable's value
         self.attribute = attribute
 
-
     def get_value(self):
         return getattr(self.obj, self.attribute)
-
-
-    def set_value(self, value):
-        setattr(self.obj, self.attribute, value)
 
     def __repr__(self):
         description = ('{classname}(name={name}, unit={unit}, dtype={dtype}, '
@@ -404,10 +426,21 @@ class ArrayVariable(Value):
         variable.
     constant : bool, optional
         Whether the variable's value is constant during a run.
+    is_bool: bool, optional
+        Whether this is a boolean variable (also implies it is dimensionless).
+        Defaults to ``False``
     '''
     def __init__(self, name, unit, dtype, array, index, group=None,
-                 constant=False, scalar=False):
-        Value.__init__(self, name, unit, dtype, scalar=False, constant=constant)
+                 constant=False, is_bool=False):
+
+        self.group = group
+
+        if is_bool:
+            if not dtype == np.bool:
+                raise ValueError(('Boolean variables have to be stored with '
+                                  'boolean dtype'))
+        Value.__init__(self, name, unit, dtype, scalar=False,
+                       constant=constant, is_bool=is_bool)
         #: The reference to the array storing the data for the variable.
         self.array = array
         #: The name for the array used in generated code
@@ -415,8 +448,6 @@ class ArrayVariable(Value):
         self.arrayname = '_array' + groupname + self.name
         #: The name of the index that will be used in the generated code.
         self.index = index
-        #: A reference to the `Group`
-        self.group = group
 
     def get_value(self):        
         return self.array
@@ -490,9 +521,13 @@ class Subexpression(Value):
     namespace : dict
         The namespace dictionary, containing identifiers for all the external
         variables/functions used in the expression
+    is_bool: bool, optional
+        Whether this is a boolean variable (also implies it is dimensionless).
+        Defaults to ``False``
     '''
-    def __init__(self, name, unit, dtype, expr, specifiers, namespace):
-        Value.__init__(self, name, unit, dtype, scalar=False)
+    def __init__(self, name, unit, dtype, expr, specifiers, namespace,
+                 is_bool=False):
+        Value.__init__(self, name, unit, dtype, scalar=False, is_bool=is_bool)
         #: The expression defining the static equation.
         self.expr = expr.strip()
         #: The identifiers used in the expression

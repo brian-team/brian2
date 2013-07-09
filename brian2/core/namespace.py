@@ -51,6 +51,7 @@ def get_local_namespace(level=0):
     namespace.update(frame.f_locals)
     return namespace
 
+
 def create_namespace(N, explicit_namespace=None):
     namespace = CompoundNamespace()
     

@@ -6,8 +6,9 @@ import functools
 import numpy
 
 from brian2.core.preferences import brian_prefs
-from brian2.core.specifiers import ArrayVariable, Value, AttributeValue
-from brian2.utils.stringtools import get_identifiers, deindent
+from brian2.core.specifiers import (ArrayVariable, Value, AttributeValue,
+                                    Subexpression)
+from brian2.utils.stringtools import get_identifiers
 from brian2.utils.logger import get_logger
 
 from ..functions import Function
@@ -144,6 +145,10 @@ class Language(object):
     def template_state_variable_indexing(self):
         return self.templater.state_variable_indexing
 
+    @property
+    def template_lumped_variable(self):
+        return self.templater.lumped_variable
+
 
 class CodeObject(object):
     '''
@@ -180,7 +185,7 @@ class CodeObject(object):
                     if not spec.scalar:
                         self.nonconstant_values.append(('_num' + name,
                                                         spec.get_len))
-                else:
+                elif not isinstance(spec, Subexpression):
                     value = spec.get_value()
                     self.namespace[name] = value
                     # if it is a type that has a length, add a variable called

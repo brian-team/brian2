@@ -1,7 +1,9 @@
 import numpy as np
-from numpy.testing import assert_raises, assert_equal
 
-from brian2.codegen.translation import analyse_identifiers
+from brian2.codegen.translation import analyse_identifiers, get_identifiers_recursively
+from brian2.core.specifiers import Subexpression, Specifier
+from brian2.units.fundamentalunits import Unit
+
 
 def test_analyse_identifiers():
     '''
@@ -20,5 +22,19 @@ def test_analyse_identifiers():
     assert dependent==set(['e', 'f'])
 
 
+def test_get_identifiers_recursively():
+    '''
+    Test finding identifiers including subexpressions.
+    '''
+    specifiers = {}
+    specifiers['sub1'] = Subexpression('sub1', Unit(1), np.float32, 'sub2 * z',
+                                       specifiers, {})
+    specifiers['sub2'] = Subexpression('sub2', Unit(1), np.float32, '5 + y',
+                                       specifiers, {})
+    specifiers['x'] = Specifier('x')
+    identifiers = get_identifiers_recursively('_x = sub1 + x', specifiers)
+    assert identifiers == set(['x', '_x', 'y', 'z', 'sub1', 'sub2'])
+
 if __name__ == '__main__':
     test_analyse_identifiers()
+    test_get_identifiers_recursively()
