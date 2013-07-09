@@ -77,7 +77,14 @@ class PythonCodeObject(CodeObject):
         self.compiled_code = compile(self.code, '(string)', 'exec')
 
     def run(self):
-        exec self.compiled_code in self.namespace
+        #print 'Python code:', self.code
+        try:
+            exec self.compiled_code in self.namespace
+        except NameError as ex:
+            print self.code
+            print self.namespace.keys()
+            import sys
+            sys.exit(1)
         # output variables should land in the variable name _return_values
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']
