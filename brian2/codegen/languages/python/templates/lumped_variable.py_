@@ -1,10 +1,14 @@
-# USE_SPECIFIERS { _post_synaptic }
+# USE_SPECIFIERS { _post_synaptic, _synaptic_pre, _synaptic_post }
 
 import numpy as np
+
+_presynaptic_idx = _synaptic_pre[:]
+_postsynaptic_idx = _synaptic_post[:]
 
 {% for line in code_lines %}
 {{line}}
 {% endfor %}
 
+
 _target_var[:] = np.array([np.sum(_synaptic_var[_post_syns.data])
-                         for _post_syns in _post_synaptic])
+                          for _post_syns in _post_synaptic])
