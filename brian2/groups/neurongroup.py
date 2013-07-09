@@ -77,7 +77,7 @@ class StateUpdater(GroupCodeRunner):
                 # we have to be a bit careful here, we can't just use the given
                 # condition as it is, because we only want to *leave*
                 # refractoriness, based on the condition
-                self.abstract_code = 'not_refractory = bool(not_refractory) or not (%s)\n' % ref
+                self.abstract_code = 'not_refractory = not_refractory or not (%s)\n' % ref
             else:
                 raise TypeError(('Refractory expression has to evaluate to a #'
                                  'timespan or a boolean value, expression'
@@ -291,21 +291,25 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
 
     def _allocate_memory(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)
-        arrayvarnames = set(eq.varname for eq in self.equations.itervalues() if
-                            eq.type in (DIFFERENTIAL_EQUATION,
-                                           PARAMETER))
+
         arrays = {}
-        for name in arrayvarnames:
+        for eq in self.equations.itervalues():
+            if eq.type == STATIC_EQUATION:
+                # nothing to do
+                continue
+            name = eq.varname
             if isinstance(dtype, dict):
                 curdtype = dtype[name]
             else:
                 curdtype = dtype
             if curdtype is None:
                 curdtype = brian_prefs['core.default_scalar_dtype']
-            arrays[name] = allocate_array(self.N, dtype=curdtype)
+            if eq.is_bool:
+                arrays[name] = allocate_array(self.N, dtype=np.bool)
+            else:
+                arrays[name] = allocate_array(self.N, dtype=curdtype)
         logger.debug("NeuronGroup memory allocated successfully.")
         return arrays
-
 
     def runner(self, code, when=None, name=None):
         '''
@@ -358,14 +362,16 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                                     array.dtype,
                                                     array,
                                                     '_neuron_idx',
-                                                    constant)})
+                                                    constant,
+                                                    eq.is_bool)})
         
             elif eq.type == STATIC_EQUATION:
                 s.update({eq.varname: Subexpression(eq.varname, eq.unit,
                                                     brian_prefs['core.default_scalar_dtype'],
                                                     str(eq.expr),
                                                     s,
-                                                    self.namespace)})
+                                                    self.namespace,
+                                                    eq.is_bool)})
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 

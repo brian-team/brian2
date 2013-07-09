@@ -78,11 +78,7 @@ class Group(object):
             object.__setattr__(self, name, val)
         elif name in self.specifiers:
             spec = self.specifiers[name]
-            if spec.is_bool:
-                unit = Unit(1)
-            else:
-                unit = spec.unit
-            fail_for_dimension_mismatch(val, unit,
+            fail_for_dimension_mismatch(val, spec.unit,
                                         'Incorrect units for setting %s' % name)
             spec.set_value(val)
         elif len(name) and name[-1]=='_' and name[:-1] in self.specifiers:

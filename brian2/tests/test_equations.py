@@ -205,9 +205,9 @@ def test_construction_errors():
                                                     v = 2 * t/second * volt : volt'''))
 
     eqs = [SingleEquation(DIFFERENTIAL_EQUATION, 'v', volt,
-                          Expression('-v / tau')),
+                          expr=Expression('-v / tau')),
            SingleEquation(STATIC_EQUATION, 'v', volt,
-                          Expression('2 * t/second * volt'))
+                          expr=Expression('2 * t/second * volt'))
            ]
     assert_raises(EquationError, lambda: Equations(eqs))
 
