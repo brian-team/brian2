@@ -191,6 +191,8 @@ def parse_string_equations(eqns):
         is_bool = unit is True
         if is_bool:
             unit = Unit(1)
+            if eq_type == DIFFERENTIAL_EQUATION:
+                raise EquationError('Differential equations cannot be boolean')
         expression = eq_content.get('expression', None)
         if not expression is None:
             # Replace multiple whitespaces (arising from joining multiline

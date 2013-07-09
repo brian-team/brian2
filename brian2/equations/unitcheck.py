@@ -59,7 +59,11 @@ def unit_from_string(unit_string):
     # Special case: dimensionless unit
     if unit_string == '1':
         return Unit(1, dim=DIMENSIONLESS)
-    
+
+    # Another special case: boolean variable
+    if unit_string == 'bool':
+        return True
+
     # Check first whether the expression evaluates at all, using only base units
     try:
         evaluated_unit = eval(unit_string, namespace)

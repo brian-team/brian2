@@ -115,12 +115,15 @@ def test_parse_equations():
                                     dge/dt = -ge / tau_ge : volt
                                     I = sin(2 * pi * f * t) : volt
                                     f : Hz (constant)
+                                    b : bool
                                  ''')
-    assert len(eqs.keys()) == 4
+    assert len(eqs.keys()) == 5
     assert 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION
     assert 'ge' in eqs and eqs['ge'].type == DIFFERENTIAL_EQUATION
     assert 'I' in eqs and eqs['I'].type == STATIC_EQUATION
     assert 'f' in eqs and eqs['f'].type == PARAMETER
+    assert 'b' in eqs and eqs['b'].type == PARAMETER
+    assert not eqs['f'].is_bool and eqs['b'].is_bool
     assert get_dimensions(eqs['v'].unit) == volt.dim
     assert get_dimensions(eqs['ge'].unit) == volt.dim
     assert get_dimensions(eqs['I'].unit) == volt.dim
@@ -140,10 +143,12 @@ def test_parse_equations():
         x = 2 * t : 1''',
     '''dv/dt = -v / tau : 1 : volt
     x = 2 * t : 1''',
-    ''' dv/dt = -v / tau : 2 * volt''']
+    ''' dv/dt = -v / tau : 2 * volt''',
+    'dv/dt = v / second : bool']
     for error_eqs in parse_error_eqs:
         assert_raises((ValueError, EquationError),
                       lambda: parse_string_equations(error_eqs))
+
 
 
 def test_correct_replacements():
