@@ -157,6 +157,8 @@ def wrap_function_dimensionless(func):
     def f(x, *args, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(x, error_message=func.__name__)
         return func(np.asarray(x), *args, **kwds)
+    f._arg_units = [1]
+    f._return_unit = 1
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
     return f
@@ -175,6 +177,8 @@ def wrap_function_keep_dimensions(func):
     '''
     def f(x, *args, **kwds):  # pylint: disable=C0111
         return Quantity(func(np.asarray(x), *args, **kwds), dim=x.dim)
+    f._arg_units = [None]
+    f._return_unit = lambda u : u
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
     return f
@@ -196,6 +200,8 @@ def wrap_function_change_dimensions(func, change_dim_func):
         ar = np.asarray(x)
         return Quantity(func(ar, *args, **kwds),
                         dim=change_dim_func(ar, x.dim))
+    f._arg_units = [None]
+    f._return_unit = change_dim_func
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
     return f
@@ -213,6 +219,8 @@ def wrap_function_remove_dimensions(func):
     '''
     def f(x, *args, **kwds):  # pylint: disable=C0111
         return func(np.asarray(x), *args, **kwds)
+    f._arg_units = [None]
+    f._return_unit = 1
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
     return f
@@ -244,7 +252,6 @@ _siprefixes = {"y": 1e-24, "z": 1e-21, "a": 1e-18, "f": 1e-15, "p": 1e-12,
                "n": 1e-9, "u": 1e-6, "m": 1e-3, "c": 1e-2, "d": 1e-1, "": 1,
                "da": 1e1, "h": 1e2, "k": 1e3, "M": 1e6, "G": 1e9, "T": 1e12,
                "P": 1e15, "E": 1e18, "Z": 1e21, "Y": 1e24}
-
 
 
 class Dimension(object):

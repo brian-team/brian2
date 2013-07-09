@@ -8,7 +8,6 @@ import sympy
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         STATIC_EQUATION, PARAMETER)
 from brian2.equations.refractory import add_refractoriness
-from brian2.equations.unitcheck import unit_from_expression
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.languages import PythonLanguage
 from brian2.memory import allocate_array
@@ -19,10 +18,10 @@ from brian2.core.specifiers import (ReadOnlyValue, AttributeValue, ArrayVariable
                                     StochasticVariable, Subexpression, Index)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
+from brian2.parsing.expressions import parse_expression_unit
 from brian2.utils.logger import get_logger
 from brian2.units.allunits import second
-from brian2.units.fundamentalunits import (Quantity, Unit, have_same_dimensions,
-                                           DIMENSIONLESS)
+from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
 
 from .group import Group, GroupCodeRunner
 
@@ -66,7 +65,7 @@ class StateUpdater(GroupCodeRunner):
             self.abstract_code = 'not_refractory = (t - lastspike) > %f\n' % ref
         else:
             namespace = self.group.namespace
-            unit = unit_from_expression(ref, namespace, self.group.specifiers)
+            unit = parse_expression_unit(str(ref), namespace, self.group.specifiers)
             if have_same_dimensions(unit, second):
                 self.abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
             elif have_same_dimensions(unit, Unit(1)):

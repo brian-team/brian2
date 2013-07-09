@@ -16,7 +16,7 @@ from brian2.units.allunits import (metre, meter, second, amp, kelvin, mole,
                                    sievert, katal, kgram, kgramme)
 
 from brian2.codegen.translation import analyse_identifiers
-from brian2.utils.stringtools import get_identifiers
+from brian2.parsing.expressions import parse_expression_unit
 from brian2.codegen.parsing import parse_statement
 from brian2.codegen.ast_parser import NumpyNodeRenderer
 from brian2.core.specifiers import VariableSpecifier
@@ -87,64 +87,6 @@ def unit_from_string(unit_string):
     return evaluated_unit
 
 
-def unit_from_expression(expression, namespace, specifiers):
-    '''
-    Evaluates the unit for an expression in a given namespace.
-    
-    Parameters
-    ----------
-    expression : str or `Expression`
-        The expression to evaluate.
-    namespace : dict-like
-        The namespace of external variables.
-    specifiers : dict of `Specifier` objects
-        The information about the internal variables
-    
-    Returns
-    -------
-    q : Quantity
-        The quantity or unit for the expression
-    
-    Raises
-    ------
-    KeyError
-        In case on of the identifiers cannot be resolved.
-    DimensionMismatchError
-        If an unit mismatch occurs during the evaluation.    
-    '''
-    
-    # Make sure we have a string expression
-    expression = str(expression)
-    
-    # Create a mapping with all identifier names to either their actual
-    # value (for external identifiers) or their unit (for specifiers)
-    unit_namespace = {'_vectorisation_idx': np.zeros(1)} # used in randn() etc.
-    identifiers = get_identifiers(expression)
-    for name in identifiers:
-        if name in specifiers:
-            unit_namespace[name] = specifiers[name].unit
-        else:
-            # TODO: Should we add special support for user-defined functions
-            #       or should we just assume that the Python version takes
-            #       care of units?
-            # This raises an error if the identifier cannot be resolved
-            unit_namespace[name] = namespace[name]
-    
-    try:
-        unit = eval(NumpyNodeRenderer().render_expr(expression), unit_namespace)
-    except DimensionMismatchError as dim_ex:
-        raise DimensionMismatchError(('A unit mismatch occured while '
-                                      'evaluating the expression "%s": %s ' %
-                                      (expression, dim_ex.desc)),
-                                     *dim_ex.dims)
-    
-    if not isinstance(unit, Quantity):
-        # It might be a dimensionless array
-        unit = Quantity(unit)
-    
-    return unit
-
-
 def check_unit(expression, unit, namespace, specifiers):
     '''
     Evaluates the unit for an expression in a given namespace.
@@ -169,8 +111,7 @@ def check_unit(expression, unit, namespace, specifiers):
     --------
     unit_from_expression
     '''
-    expr_unit = unit_from_expression(expression, namespace, specifiers)
-    
+    expr_unit = parse_expression_unit(expression, namespace, specifiers)
     fail_for_dimension_mismatch(expr_unit, unit, ('Expression %s does not '
                                                   'have the expected units' %
                                                   expression))
@@ -228,8 +169,8 @@ def check_units_statements(code, namespace, specifiers):
         else:
             raise AssertionError('Unknown operator "%s"' % op) 
     
-        expr_unit = unit_from_expression(expr, namespace, specs)
-        
+        expr_unit = parse_expression_unit(expr, namespace, specs)
+
         if var in specifiers:
             fail_for_dimension_mismatch(specifiers[var].unit,
                                         expr_unit,

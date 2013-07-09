@@ -1,9 +1,21 @@
 __all__ = ['Function', 'SimpleFunction', 'make_function']
 
+
 class Function(object):    
-    def __init__(self, pyfunc, sympy_func=None):
+    def __init__(self, pyfunc, sympy_func=None, arg_units=None,
+                 return_unit=None):
         self.pyfunc = pyfunc
         self.sympy_func = sympy_func
+        if hasattr(pyfunc, '_arg_units'):
+            self._arg_units = pyfunc._arg_units
+            self._return_unit = pyfunc._return_unit
+        else:
+            if arg_units is None or return_unit is None:
+                raise ValueError(('The given Python function does not specify '
+                                  'how it deals with units, need to specify '
+                                  '"arg_units" and "return_unit"'))
+            self._arg_units = arg_units
+            self._return_unit = return_unit
     
     '''
     User-defined function to work with code generation
