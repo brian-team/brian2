@@ -98,19 +98,22 @@ def _create_codeobj(group, name, code, additional_namespace=None,
     if check_units:
         # Resolve the namespace, resulting in a dictionary containing only the
         # external variables that are needed by the code -- keep the units for
-        # the unit checks 
-        _, _, unknown = analyse_identifiers(code, group.specifiers.keys())
+        # the unit checks
+        # Note that here, in contrast to the namespace resolution below, we do
+        # not need to recursively descend into subexpressions. For unit
+        # checking, we only need to know the units of the subexpressions,
+        # not what variables they refer to
+        _, _, unknown = analyse_identifiers(code, group.specifiers)
         resolved_namespace = group.namespace.resolve_all(unknown,
                                                          additional_namespace,
                                                          strip_units=False)
     
         check_units_statements(code, resolved_namespace, group.specifiers)
 
-    # Get the namespace without units
-    _, used_known, unknown = analyse_identifiers(code, group.specifiers.keys())
-    resolved_namespace = group.namespace.resolve_all(unknown,
-                                                     additional_namespace)
-    
+    # Determine the identifiers that were used
+    _, used_known, unknown = analyse_identifiers(code, group.specifiers,
+                                                 recursive=True)
+
     # Only pass the specifiers that are actually used
     specifiers = {}
     for name in used_known:
@@ -120,6 +123,9 @@ def _create_codeobj(group, name, code, additional_namespace=None,
     if template:
         for spec in template.specifiers:
             specifiers[spec] = group.specifiers[spec]
+
+    resolved_namespace = group.namespace.resolve_all(unknown,
+                                                     additional_namespace)
 
     return group.language.create_codeobj(name,
                                          code,

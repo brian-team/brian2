@@ -3,8 +3,8 @@ Utility functions for handling the units in `Equations`.
 '''
 import re
 
-from brian2.units.fundamentalunits import Quantity, Unit,\
-    fail_for_dimension_mismatch, DimensionMismatchError
+from brian2.units.fundamentalunits import (Quantity, Unit,
+                                           fail_for_dimension_mismatch)
 from brian2.units.fundamentalunits import DIMENSIONLESS
 from brian2.units.allunits import (metre, meter, second, amp, kelvin, mole,
                                    candle, kilogram, radian, steradian, hertz,
@@ -116,6 +116,7 @@ def check_unit(expression, unit, namespace, specifiers):
     fail_for_dimension_mismatch(expr_unit, unit, ('Expression %s does not '
                                                   'have the expected units' %
                                                   expression))
+
 
 def check_units_statements(code, namespace, specifiers):
     '''

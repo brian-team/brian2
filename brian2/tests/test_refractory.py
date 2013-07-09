@@ -22,13 +22,18 @@ def test_refractoriness_variables():
     # Try a quantity, a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
     for ref_time in [5*ms, '5*ms', '(t-lastspike) < 5*ms',
+                     'time_since_spike < 5*ms', 'ref_subexpression',
                      '(t-lastspike) < ref', 'ref', 'ref_no_unit*ms']:
         G = NeuronGroup(1, '''
         dv/dt = 100*Hz : 1 (unless-refractory)
         dw/dt = 100*Hz : 1
         ref : second
         ref_no_unit : 1
-        ''', threshold='v>1', reset='v=0;w=0', refractory=ref_time)
+        time_since_spike = t - lastspike : second
+        ref_subexpression = (t - lastspike) < ref : bool
+        ''',
+                        threshold='v>1', reset='v=0;w=0',
+                        refractory=ref_time)
         G.ref = 5*ms
         G.ref_no_unit = 5
         # It should take 10ms to reach the threshold, then v should stay at 0
