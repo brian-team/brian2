@@ -18,7 +18,7 @@ from brian2.core.specifiers import (ReadOnlyValue, AttributeValue, ArrayVariable
                                     StochasticVariable, Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
-from brian2.parsing.expressions import parse_expression_unit
+from brian2.parsing.expressions import parse_expression_unit, is_boolean_expression
 from brian2.utils.logger import get_logger
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (Quantity, Unit, have_same_dimensions,
@@ -73,13 +73,19 @@ class StateUpdater(GroupCodeRunner):
             if have_same_dimensions(unit, second):
                 self.abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
             elif have_same_dimensions(unit, Unit(1)):
+                if not is_boolean_expression(str(ref), namespace,
+                                             self.group.specifiers):
+                    raise TypeError(('Refractory expression is dimensionless '
+                                     'but not a boolean value. It needs to '
+                                     'either evaluate to a timespan or to a '
+                                     'boolean value.'))
                 # boolean condition
                 # we have to be a bit careful here, we can't just use the given
                 # condition as it is, because we only want to *leave*
                 # refractoriness, based on the condition
                 self.abstract_code = 'not_refractory = not_refractory or not (%s)\n' % ref
             else:
-                raise TypeError(('Refractory expression has to evaluate to a #'
+                raise TypeError(('Refractory expression has to evaluate to a '
                                  'timespan or a boolean value, expression'
                                  '"%s" has units %s instead') % (ref, unit))
         
