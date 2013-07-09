@@ -411,7 +411,8 @@ class ArrayVariable(Value):
         #: The reference to the array storing the data for the variable.
         self.array = array
         #: The name for the array used in generated code
-        self.arrayname = '_array_' + self.name
+        groupname = '_'+group.name+'_' if group is not None else '_'
+        self.arrayname = '_array' + groupname + self.name
         #: The name of the index that will be used in the generated code.
         self.index = index
         #: A reference to the `Group`
