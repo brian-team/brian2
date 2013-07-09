@@ -34,8 +34,8 @@
 		{% endfor %}
 		if(_cond) {
 			_spikes_space[_cpp_numspikes++] = _neuron_idx;
-			_array_not_refractory[_neuron_idx] = false;
-			_array_lastspike[_neuron_idx] = t;
+			not_refractory[_neuron_idx] = false;
+			lastspike[_neuron_idx] = t;
 		}
 	}
 	npy_intp _dims[] = {_cpp_numspikes};
