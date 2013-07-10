@@ -10,5 +10,7 @@ _postsynaptic_idx = _synaptic_post[:]
 {% endfor %}
 
 
-_target_var[:] = np.array([np.sum(_synaptic_var[_post_syns.data])
+# We write to the array, using the name provided as a keyword argument to the
+# template
+{{_target_var_array}}[:] = np.array([np.sum(_synaptic_var[_post_syns.data])
                           for _post_syns in _post_synaptic])

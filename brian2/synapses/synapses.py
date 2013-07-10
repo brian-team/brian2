@@ -77,15 +77,15 @@ class LumpedUpdater(GroupCodeRunner):
 
         # Handling lumped variables using the standard mechanisms is not
         # possible, we therefore also directly give the names of the arrays
-        # to the template
+        # to the template. The dummy statement in the second line only serves
+        # the purpose of including the variable in the namespace
 
         code = '''
         _synaptic_var = {varname}
-        _target_var = {varname}_post
+        {varname}_post = {varname}_post
         '''.format(varname=varname)
 
-        template_kwds = {'_synaptic_var_array': synapses.specifiers[varname].arrayname,
-                         '_target_var_array': synapses.specifiers[varname+'_post'].arrayname}
+        template_kwds = {'_target_var_array': synapses.specifiers[varname+'_post'].arrayname}
 
 
         GroupCodeRunner.__init__(self, group=synapses,
