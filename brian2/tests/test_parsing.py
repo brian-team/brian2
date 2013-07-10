@@ -1,6 +1,8 @@
 '''
 Tests the brian2.parsing package
 '''
+from collections import namedtuple
+
 from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
                                       CPPNodeRenderer,
@@ -168,25 +170,58 @@ def test_abstract_code_dependencies():
 
 
 def test_is_boolean_expression():
+    # dummy "specifier" class
+    Spec = namedtuple("Spec", ['is_bool'])
+
+    # dummy function object
+    class Func(object):
+        def __init__(self, returns_bool=False):
+            self._returns_bool = returns_bool
+
+    # namespace values / functions
+    a = True
+    b = False
+    c = 5
+    f = Func(returns_bool=True)
+    g = Func(returns_bool=False)
+
+    # specifier
+    s1 = Spec(is_bool=True)
+    s2 = Spec(is_bool=False)
+
+    namespace = {'a': a, 'b': b, 'c': c, 'f': f, 'g': g}
+    specifiers = {'s1': s1, 's2': s2}
+
     EVF = [
-        (True, 'a or b', ['a', 'b'], []),
-        (True, 'True', [], []),
-        (True, 'a<b', [], []),
-        (True, 'not (a>=b)', [], []),
-        (False, 'a+b', [], []),
-        (True, 'f(x)', [], ['f']),
-        (False, 'f(x)', [], []),
-        (True, 'f(x) or a<b and c', ['c'], ['f']),
+        (True, 'a or b'),
+        (False, 'c'),
+        (False, 's2'),
+        (False, 'g(s1)'),
+        (True, 's2 > c'),
+        (True, 'c > 5'),
+        (True, 'True'),
+        (True, 'a<b'),
+        (True, 'not (a>=b)'),
+        (False, 'a+b'),
+        (True, 'f(c)'),
+        (False, 'g(c)'),
+        (True, 'f(c) or a<b and s1', ),
         ]
-    for expect, expr, vars, funcs in EVF:
-        ret_val = is_boolean_expression(expr, set(vars), set(funcs))
+    for expect, expr in EVF:
+        ret_val = is_boolean_expression(expr, namespace, specifiers)
         if expect != ret_val:
             raise AssertionError(('is_boolean_expression(%r) returned %s, '
                                   'but was supposed to return %s') % (expr,
                                                                       ret_val,
                                                                       expect))
-    assert_raises(SyntaxError, is_boolean_expression, 'x<y and z')
-    assert_raises(SyntaxError, is_boolean_expression, 'a or b')
+    assert_raises(SyntaxError, is_boolean_expression, 'a<b and c',
+                  namespace, specifiers)
+    assert_raises(SyntaxError, is_boolean_expression, 'a or foo',
+                  namespace, specifiers)
+    assert_raises(SyntaxError, is_boolean_expression, 'ot a', # typo
+                  namespace, specifiers)
+    assert_raises(SyntaxError, is_boolean_expression, 'g(c) and f(a)',
+                  namespace, specifiers)
     
     
 def test_parse_expression_unit():

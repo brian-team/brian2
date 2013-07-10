@@ -60,13 +60,14 @@ def add_refractoriness(eqs):
             new_code = 'not_refractory*(' + eq.expr.code + ')'
             new_equations.append(SingleEquation(DIFFERENTIAL_EQUATION,
                                                 eq.varname, eq.unit,
-                                                Expression(new_code),
+                                                expr=Expression(new_code),
                                                 flags=eq.flags))
         else:
             new_equations.append(eq)
     
     # add new parameters
-    new_equations.append(SingleEquation(PARAMETER, 'not_refractory', Unit(1)))
+    new_equations.append(SingleEquation(PARAMETER, 'not_refractory', Unit(1),
+                                        is_bool=True))
     new_equations.append(SingleEquation(PARAMETER, 'lastspike', second))
 
     return Equations(new_equations)

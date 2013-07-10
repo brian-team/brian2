@@ -3,8 +3,8 @@ Utility functions for handling the units in `Equations`.
 '''
 import re
 
-from brian2.units.fundamentalunits import Quantity, Unit,\
-    fail_for_dimension_mismatch, DimensionMismatchError
+from brian2.units.fundamentalunits import (Quantity, Unit,
+                                           fail_for_dimension_mismatch)
 from brian2.units.fundamentalunits import DIMENSIONLESS
 from brian2.units.allunits import (metre, meter, second, amp, kelvin, mole,
                                    candle, kilogram, radian, steradian, hertz,
@@ -26,7 +26,7 @@ def unit_from_string(unit_string):
     '''
     Returns the unit that results from evaluating a string like
     "siemens / metre ** 2", allowing for the special string "1" to signify
-    dimensionless units.
+    dimensionless units and the string "bool" to mark a boolean variable.
     
     Parameters
     ----------    
@@ -35,8 +35,8 @@ def unit_from_string(unit_string):
     
     Returns
     -------
-    u : Unit
-        The resulting unit
+    u : Unit or bool
+        The resulting unit or ``True`` for a boolean parameter.
     
     Raises
     ------
@@ -59,7 +59,11 @@ def unit_from_string(unit_string):
     # Special case: dimensionless unit
     if unit_string == '1':
         return Unit(1, dim=DIMENSIONLESS)
-    
+
+    # Another special case: boolean variable
+    if unit_string == 'bool':
+        return True
+
     # Check first whether the expression evaluates at all, using only base units
     try:
         evaluated_unit = eval(unit_string, namespace)
@@ -112,6 +116,7 @@ def check_unit(expression, unit, namespace, specifiers):
     fail_for_dimension_mismatch(expr_unit, unit, ('Expression %s does not '
                                                   'have the expected units' %
                                                   expression))
+
 
 def check_units_statements(code, namespace, specifiers):
     '''

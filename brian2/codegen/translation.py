@@ -15,6 +15,7 @@ The input information needed:
 * The language to translate to
 '''
 import re
+import collections
 
 from numpy import float64
 
@@ -25,9 +26,11 @@ from brian2.utils.stringtools import (deindent, strip_empty_lines, indent,
 from .statements import Statement
 from .parsing import parse_statement
 
-__all__ = ['translate', 'make_statements']
+__all__ = ['translate', 'make_statements', 'analyse_identifiers',
+           'get_identifiers_recursively']
 
 DEBUG = False
+
 
 class LineInfo(object):
     '''
@@ -37,8 +40,11 @@ class LineInfo(object):
         for k, v in kwds.iteritems():
             setattr(self, k, v)
 
+    # TODO: This information should go somewhere else, I guess
+STANDARD_IDENTIFIERS = set(['and', 'or', 'not', 'True', 'False'])
 
-def analyse_identifiers(code, known=None):
+
+def analyse_identifiers(code, specifiers, recursive=False):
     '''
     Analyses a code string (sequence of statements) to find all identifiers by type.
     
@@ -52,36 +58,57 @@ def analyse_identifiers(code, known=None):
     
     Parameters
     ----------
-    
     code : str
         The code string, a sequence of statements one per line.
-    known : list, set, None
-        A list or set of known (already created) variables.
+    specifiers : dict of `Specifier`, set of names
+        Specifiers for the model variables or a set of known names
+    recursive : bool, optional
+        Whether to recurse down into subexpressions (defaults to ``False``).
     
     Returns
     -------
-    
     newly_defined : set
         A set of variables that are created by the code block.
     used_known : set
-        A set of variables that are used and already known, a subset of the ``known`` parameter.
-    dependent : set
-        A set of variables which are used by the code block but not defined by it and not
-        previously known. If this set is nonempty it may indicate an error, for example.
+        A set of variables that are used and already known, a subset of the
+        ``known`` parameter.
+    unknown : set
+        A set of variables which are used by the code block but not defined by
+        it and not previously known. Should correspond to variables in the
+        external namespace.
     '''
-    if known is None:
-        known = set()
-    known = set(known)
-    # TODO: This information should go somewhere else, I guess
-    standard_identifiers = set(['and', 'or', 'not', 'True', 'False'])
-    known |= standard_identifiers
-    specifiers = dict((k, Value(k, 1, float64)) for k in known)
+    if isinstance(specifiers, collections.Mapping):
+        known = set(specifiers.keys())
+    else:
+        known = set(specifiers)
+        specifiers = dict((k, Value(k, 1, float64)) for k in known)
+
+    known |= STANDARD_IDENTIFIERS
     stmts = make_statements(code, specifiers, float64)
     defined = set(stmt.var for stmt in stmts if stmt.op==':=')
-    allids = set(get_identifiers(code))
+    if recursive:
+        if not isinstance(specifiers, collections.Mapping):
+            raise TypeError('Have to specify a specifiers dictionary.')
+        allids = get_identifiers_recursively(code, specifiers)
+    else:
+        allids = get_identifiers(code)
     dependent = allids.difference(defined, known)
-    used_known = allids.intersection(known) - standard_identifiers
+    used_known = allids.intersection(known) - STANDARD_IDENTIFIERS
+
     return defined, used_known, dependent
+
+
+def get_identifiers_recursively(expr, specifiers):
+    '''
+    Gets all the identifiers in a code, recursing down into subexpressions.
+    '''
+    identifiers = get_identifiers(expr)
+    for name in set(identifiers):
+        if name in specifiers and isinstance(specifiers[name], Subexpression):
+            s_identifiers = get_identifiers_recursively(specifiers[name].expr,
+                                                        specifiers)
+            identifiers |= s_identifiers
+    return identifiers
 
 
 def make_statements(code, specifiers, dtype):
@@ -116,7 +143,7 @@ def make_statements(code, specifiers, dtype):
         # for each line will give the variable being written to
         line.write = var 
         # each line will give a set of variables which are read
-        line.read = set(get_identifiers(expr))
+        line.read = get_identifiers_recursively(expr, specifiers)
         
     if DEBUG:
         print 'PARSED STATEMENTS:'
@@ -153,6 +180,7 @@ def make_statements(code, specifiers, dtype):
     # of the variables appearing in it has changed). All subexpressions start
     # as invalid, and are invalidated whenever one of the variables appearing
     # in the RHS changes value.
+    #subexpressions = get_all_subexpressions()
     subexpressions = dict((name, val) for name, val in specifiers.items() if isinstance(val, Subexpression))
     if DEBUG:
         print 'SUBEXPRESSIONS:', subexpressions.keys()
