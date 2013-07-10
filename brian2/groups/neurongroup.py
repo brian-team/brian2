@@ -68,7 +68,8 @@ class StateUpdater(GroupCodeRunner):
             namespace = dict(self.group.namespace)
             if additional_namespace is not None:
                 namespace.update(additional_namespace[1])
-            unit = parse_expression_unit(ref, namespace, self.group.specifiers)
+            unit = parse_expression_unit(str(ref), namespace,
+                                         self.group.specifiers)
             if have_same_dimensions(unit, second):
                 self.abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
             elif have_same_dimensions(unit, Unit(1)):
