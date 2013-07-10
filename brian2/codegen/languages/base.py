@@ -58,9 +58,23 @@ class Language(object):
         raise NotImplementedError
 
     def create_codeobj(self, name, abstract_code, namespace, specifiers,
-                       template, indices=None):
+                       template, indices=None, template_kwds=None):
+        '''
+        The following arguments keywords are passed to the template:
+        
+        * code_lines coming from translation applied to abstract_code, a list
+          of lines of code, given to the template as ``code_lines`` keyword.
+        * ``template_kwds`` dict
+        * ``kwds`` coming from `translate` function overwrite those in
+          ``template_kwds`` (but you should ensure there are no name
+          clashes.
+        '''
         if indices is None:  # TODO: Do we ever create code without any index?
             indices = {}
+        if template_kwds is None:
+            template_kwds = dict()
+        else:
+            template_kwds = template_kwds.copy()
 
         namespace = self.prepare_namespace(namespace, specifiers)
 
@@ -68,8 +82,9 @@ class Language(object):
         innercode, kwds = translate(abstract_code, specifiers, namespace,
                                     brian_prefs['core.default_scalar_dtype'],
                                     self, indices)
+        template_kwds.update(kwds)
         logger.debug(name + " inner code:\n" + str(innercode))
-        code = template(innercode, **kwds)
+        code = template(innercode, **template_kwds)
         logger.debug(name + " code:\n" + str(code))
 
         specifiers.update(indices)
