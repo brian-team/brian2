@@ -910,6 +910,7 @@ class Synapses(BrianObject, Group):
         logger.debug("NeuronGroup memory allocated successfully.")
         return arrays             
 
+
     def connect_one_to_one(self):
         ''' Manually create a one to one connectivity pattern '''
 
