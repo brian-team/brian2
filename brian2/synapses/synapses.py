@@ -75,17 +75,18 @@ class LumpedUpdater(GroupCodeRunner):
                    '_presynaptic_idx': Index('_presynaptic_idx', False),
                    '_neuron_idx': Index('_neuron_idx', True)}
 
+        # Handling lumped variables using the standard mechanisms is not
+        # possible, we therefore also directly give the names of the arrays
+        # to the template
+
         code = '''
         _synaptic_var = {varname}
         _target_var = {varname}_post
         '''.format(varname=varname)
 
-        # This is a bit tricky: The postsynaptic target value shouldn't iterate
-        # over all synapses, but over all neurons in the target group -- this
-        # is in contrast to how we deal with pre-/postsynaptic variables in
-        # synapses normally. We'll therefore explicitly use the specifier from
-        # the target group
-        self.specifiers = {varname+'_post': target.specifiers[varname]}
+        template_kwds = {'_synaptic_var_array': synapses.specifiers[varname].arrayname,
+                         '_target_var_array': synapses.specifiers[varname+'_post'].arrayname}
+
 
         GroupCodeRunner.__init__(self, group=synapses,
                                  template=synapses.language.template_lumped_variable,
@@ -94,7 +95,8 @@ class LumpedUpdater(GroupCodeRunner):
                                  # We want to update the lumped variable before
                                  # the target group gets updated
                                  when=(target.clock, 'groups', -1),
-                                 name=target.name + '_lumped_variable_' + varname)
+                                 name=target.name + '_lumped_variable_' + varname,
+                                 template_kwds=template_kwds)
 
 
 class SynapticPathway(GroupCodeRunner, Group):
