@@ -197,7 +197,7 @@ class Group(object):
 
 def create_codeobj(group, code, template, indices,
                    name=None, check_units=True, additional_specifiers=None,
-                   additional_namespace=None, language=None):
+                   additional_namespace=None, language=None, template_kwds=None):
     ''' Create a `CodeObject` for the execution of code in the context of a
     `Group`.
 
@@ -223,6 +223,8 @@ def create_codeobj(group, code, template, indices,
     additional_namespace : dict-like, optional
         A mapping from names to objects, used in addition to the namespace
         saved in `group`.
+        template_kwds : dict, optional
+        A dictionary of additional information that is passed to the template.
     '''
     if group is not None:
         all_specifiers = dict(group.specifiers)
@@ -285,7 +287,8 @@ def create_codeobj(group, code, template, indices,
                                    resolved_namespace,
                                    specifiers,
                                    template,
-                                   indices=indices)
+                                   indices=indices,
+                                   template_kwds=template_kwds)
 
 
 class GroupCodeRunner(BrianObject):
@@ -322,6 +325,8 @@ class GroupCodeRunner(BrianObject):
         updaters (units are already checked for the equations and the generated
         abstract code might have already replaced variables with their unit-less
         values)
+    template_kwds : dict, optional
+        A dictionary of additional information that is passed to the template.
     
     Notes
     -----
@@ -334,14 +339,17 @@ class GroupCodeRunner(BrianObject):
     state of the `Group`. For example, the `Thresholder` sets the
     `NeuronGroup.spikes` property in `post_update`.
     '''
-    def __init__(self, group, template, indices, code=None,
-                 when=None, name='coderunner*', check_units=True):
+    def __init__(self, group, template, indices, code=None, iterate_all=True,
+                 when=None, name='coderunner*', check_units=True,
+                 template_kwds=None):
         BrianObject.__init__(self, when=when, name=name)
+        self.indices = indices
         self.group = weakref.proxy(group)
         self.template = template
-        self.indices = indices
         self.abstract_code = code
+        self.iterate_all = iterate_all
         self.check_units = check_units
+        self.template_kwds = template_kwds
         # Try to generate the abstract code and the codeobject without any
         # additional namespace. This might work in situations where the
         # namespace is completely defined in the NeuronGroup. In this case,
@@ -380,7 +388,8 @@ class GroupCodeRunner(BrianObject):
                               self.indices, self.name, self.check_units,
                               additional_specifiers=additional_specifiers,
                               additional_namespace=additional_namespace,
-                              language=self.group.language)
+                              language=self.group.language,
+                              template_kwds=self.template_kwds)
     
     def pre_run(self, namespace):
         self.update_abstract_code()
