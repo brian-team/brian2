@@ -1,4 +1,5 @@
 import weakref
+import time
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
@@ -344,9 +345,18 @@ class Network(Nameable):
         
         # Find the first clock to be updated (see note below)
         clock, curclocks = self._nextclocks()
+        start = time.time()
+        next_report_time = start + 10
         while clock.running and not self._stopped and not Network._globally_stopped:
             # update the network time to this clocks time
             self.t_ = clock.t_
+            current = time.time()
+            if current > next_report_time:
+                report = '{t} simulated ({percent}%), estimated {remaining} s remaining.'
+                remaining = int(round((current - start)/self.t*(duration-self.t)))
+                print report.format(t=self.t, percent=int(round(100*self.t/duration)),
+                                    remaining=remaining)
+                next_report_time = current + 10
             # update the objects with this clock
             for obj in self.objects:
                 if obj.clock in curclocks and obj.active:
