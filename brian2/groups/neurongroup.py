@@ -18,7 +18,7 @@ from brian2.core.specifiers import (ReadOnlyValue, AttributeValue, ArrayVariable
                                     StochasticVariable, Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
-from brian2.parsing.expressions import parse_expression_unit
+from brian2.parsing.expressions import parse_expression_unit, is_boolean_expression
 from brian2.utils.logger import get_logger
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (Quantity, Unit, have_same_dimensions,
@@ -73,13 +73,19 @@ class StateUpdater(GroupCodeRunner):
             if have_same_dimensions(unit, second):
                 self.abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
             elif have_same_dimensions(unit, Unit(1)):
+                if not is_boolean_expression(str(ref), namespace,
+                                             self.group.specifiers):
+                    raise TypeError(('Refractory expression is dimensionless '
+                                     'but not a boolean value. It needs to '
+                                     'either evaluate to a timespan or to a '
+                                     'boolean value.'))
                 # boolean condition
                 # we have to be a bit careful here, we can't just use the given
                 # condition as it is, because we only want to *leave*
                 # refractoriness, based on the condition
-                self.abstract_code = 'not_refractory = bool(not_refractory) or not (%s)\n' % ref
+                self.abstract_code = 'not_refractory = not_refractory or not (%s)\n' % ref
             else:
-                raise TypeError(('Refractory expression has to evaluate to a #'
+                raise TypeError(('Refractory expression has to evaluate to a '
                                  'timespan or a boolean value, expression'
                                  '"%s" has units %s instead') % (ref, unit))
         
@@ -291,21 +297,25 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
 
     def _allocate_memory(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)
-        arrayvarnames = set(eq.varname for eq in self.equations.itervalues() if
-                            eq.type in (DIFFERENTIAL_EQUATION,
-                                           PARAMETER))
+
         arrays = {}
-        for name in arrayvarnames:
+        for eq in self.equations.itervalues():
+            if eq.type == STATIC_EQUATION:
+                # nothing to do
+                continue
+            name = eq.varname
             if isinstance(dtype, dict):
                 curdtype = dtype[name]
             else:
                 curdtype = dtype
             if curdtype is None:
                 curdtype = brian_prefs['core.default_scalar_dtype']
-            arrays[name] = allocate_array(self.N, dtype=curdtype)
+            if eq.is_bool:
+                arrays[name] = allocate_array(self.N, dtype=np.bool)
+            else:
+                arrays[name] = allocate_array(self.N, dtype=curdtype)
         logger.debug("NeuronGroup memory allocated successfully.")
         return arrays
-
 
     def runner(self, code, when=None, name=None):
         '''
@@ -358,14 +368,16 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                                     array.dtype,
                                                     array,
                                                     '_neuron_idx',
-                                                    constant)})
+                                                    constant,
+                                                    eq.is_bool)})
         
             elif eq.type == STATIC_EQUATION:
                 s.update({eq.varname: Subexpression(eq.varname, eq.unit,
                                                     brian_prefs['core.default_scalar_dtype'],
                                                     str(eq.expr),
                                                     s,
-                                                    self.namespace)})
+                                                    self.namespace,
+                                                    eq.is_bool)})
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 

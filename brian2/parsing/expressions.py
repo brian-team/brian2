@@ -12,7 +12,8 @@ from brian2.units.fundamentalunits import (Unit, get_unit_fast,
 __all__ = ['is_boolean_expression',
            'parse_expression_unit',]
 
-def is_boolean_expression(expr, boolvars=None, boolfuncs=None):
+
+def is_boolean_expression(expr, namespace, specifiers):
     '''
     Determines if an expression is of boolean type or not
     
@@ -21,10 +22,10 @@ def is_boolean_expression(expr, boolvars=None, boolfuncs=None):
     
     expr : str
         The expression to test
-    boolvars : set
-        The set of variables of boolean type.
-    boolfuncs : set
-        The set of functions which return booleans.
+    namespace : dict-like
+        The namespace of external variables.
+    specifiers : dict of `Specifier` objects
+        The information about the internal variables
 
     Returns
     -------
@@ -56,28 +57,35 @@ def is_boolean_expression(expr, boolvars=None, boolfuncs=None):
       ``not``, otherwise ``False``.
     * Otherwise we return ``False``.
     '''
-    if boolfuncs is None:
-        boolfuncs = set([])
-    if boolvars is None:
-        boolvars = set([])
-        
-    boolvars.add('True')
-    boolvars.add('False')
-    
+
     # If we are working on a string, convert to the top level node    
     if isinstance(expr, str):
         mod = ast.parse(expr, mode='eval')
         expr = mod.body
         
     if expr.__class__ is ast.BoolOp:
-        if all(is_boolean_expression(node, boolvars, boolfuncs) for node in expr.values):
+        if all(is_boolean_expression(node, namespace, specifiers)
+               for node in expr.values):
             return True
         else:
             raise SyntaxError("Expression ought to be boolean but is not (e.g. 'x<y and 3')")
     elif expr.__class__ is ast.Name:
-        return expr.id in boolvars
+        name = expr.id
+        if name in namespace:
+            value = namespace[name]
+            return value is True or value is False
+        elif name in specifiers:
+            return getattr(specifiers[name], 'is_bool', False)
+        else:
+            return name == 'True' or name == 'False'
     elif expr.__class__ is ast.Call:
-        return expr.func.id in boolfuncs
+        name = expr.func.id
+        if name in namespace:
+            return getattr(namespace[name], '_returns_bool', False)
+        elif name in specifiers:
+            return getattr(specifiers[name], '_returns_bool', False)
+        else:
+            raise SyntaxError('Unknown function %s' % name)
     elif expr.__class__ is ast.Compare:
         return True
     elif expr.__class__ is ast.UnaryOp:
@@ -211,7 +219,6 @@ def parse_expression_unit(expr, namespace, specifiers):
     if isinstance(expr, basestring):
         mod = ast.parse(expr, mode='eval')
         expr = mod.body
-    
     if expr.__class__ is ast.Name:
         name = expr.id
         if name in specifiers:

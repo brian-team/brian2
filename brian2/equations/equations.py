@@ -9,10 +9,9 @@ import string
 import sympy
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
-import sympy
 
 from brian2.codegen.parsing import sympy_to_str, str_to_sympy
-from brian2.units.fundamentalunits import DimensionMismatchError
+from brian2.units.fundamentalunits import Unit, have_same_dimensions
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 
@@ -189,7 +188,11 @@ def parse_string_equations(eqns):
 
         # Convert unit string to Unit object
         unit = unit_from_string(eq_content['unit'])
-
+        is_bool = unit is True
+        if is_bool:
+            unit = Unit(1)
+            if eq_type == DIFFERENTIAL_EQUATION:
+                raise EquationError('Differential equations cannot be boolean')
         expression = eq_content.get('expression', None)
         if not expression is None:
             # Replace multiple whitespaces (arising from joining multiline
@@ -198,7 +201,8 @@ def parse_string_equations(eqns):
             expression = Expression(p.sub(' ', expression))
         flags = list(eq_content.get('flags', []))
 
-        equation = SingleEquation(eq_type, identifier, unit, expression, flags)
+        equation = SingleEquation(eq_type, identifier, unit, is_bool=is_bool,
+                                  expr=expression, flags=flags)
 
         if identifier in equations:
             raise EquationError('Duplicate definition of variable "%s"' %
@@ -225,6 +229,9 @@ class SingleEquation(object):
         The variable that is defined by this equation.
     unit : Unit
         The unit of the variable
+    is_bool : bool, optional
+        Whether this variable is a boolean variable (implies it is
+        dimensionless as well). Defaults to ``False``.
     expr : `Expression`, optional
         The expression defining the variable (or ``None`` for parameters).        
     flags: list of str, optional
@@ -233,10 +240,14 @@ class SingleEquation(object):
         context.
     
     '''
-    def __init__(self, type, varname, unit, expr=None, flags=None):
+    def __init__(self, type, varname, unit, is_bool=False, expr=None,
+                 flags=None):
         self.type = type
         self.varname = varname
         self.unit = unit
+        self.is_bool = is_bool
+        if is_bool and not have_same_dimensions(unit, 1):
+            raise ValueError('Boolean variables are necessarily dimensionless.')
         self.expr = expr
         if flags is None:
             self.flags = []
@@ -313,6 +324,7 @@ class SingleEquation(object):
 
     def _repr_latex_(self):
         return '$' + sympy.latex(self) + '$'
+
 
 class Equations(collections.Mapping):
     """
