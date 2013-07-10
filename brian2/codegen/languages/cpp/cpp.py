@@ -162,10 +162,17 @@ class CPPLanguage(Language):
         # set up the restricted pointers, these are used so that the compiler
         # knows there is no aliasing in the pointers, for optimisation
         lines = []
+        # It is possible that several different variable names refer to the
+        # same array. E.g. in gapjunction code, v_pre and v_post refer to the
+        # same array if a group is connected to itself
+        arraynames = set()
         for var in read.union(write):
             spec = specifiers[var]
-            line = c_data_type(spec.dtype) + ' * ' + self.restrict + '_ptr' + spec.arrayname + ' = ' + spec.arrayname + ';'
-            lines.append(line)
+            arrayname = spec.arrayname
+            if not arrayname in arraynames:
+                line = c_data_type(spec.dtype) + ' * ' + self.restrict + '_ptr' + arrayname + ' = ' + arrayname + ';'
+                lines.append(line)
+                arraynames.add(arrayname)
         pointers = '\n'.join(lines)
         
         # set up the functions
