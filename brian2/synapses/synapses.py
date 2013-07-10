@@ -324,16 +324,16 @@ class SynapticIndices(object):
         self.j = IndexView(self, self.synaptic_post)
         self.k = SynapseIndexView(self)
 
-        self.specifiers = self.specifiers = {'i': DynamicArrayVariable('i',
-                                                                       Unit(1),
-                                                                       self.synaptic_pre.dtype,
-                                                                       self.synaptic_pre,
-                                                                       '_neuron_idx'),
-                                             'j': DynamicArrayVariable('j',
-                                                                       Unit(1),
-                                                                       self.synaptic_post.dtype,
-                                                                       self.synaptic_post,
-                                                                       '_neuron_idx')}
+        self.specifiers = {'i': DynamicArrayVariable('i',
+                                                     Unit(1),
+                                                     self.synaptic_pre.dtype,
+                                                     self.synaptic_pre,
+                                                     '_neuron_idx'),
+                           'j': DynamicArrayVariable('j',
+                                                     Unit(1),
+                                                     self.synaptic_post.dtype,
+                                                     self.synaptic_post,
+                                                     '_neuron_idx')}
 
         self._registered_variables = []
 
@@ -413,6 +413,9 @@ class SynapticIndices(object):
                                                      np.int32, self.source_len),
                 '_num_target_neurons': ReadOnlyValue('_num_target_neurons', Unit(1),
                                                      np.int32, self.target_len),
+                # The template needs to have access to the DynamicArray here,
+                # having access to the underlying array (which would be much
+                # faster), is not enough
                 '_synaptic_pre': ReadOnlyValue('_synaptic_pre', Unit(1),
                                                np.int32,
                                                self.synaptic_pre),
@@ -836,19 +839,24 @@ class Synapses(BrianObject, Group):
                   '_num_neurons': AttributeValue('_num_neurons', Unit(1),
                                                  np.int, self, 'N',
                                                  constant=True),
-                  # We don't need "proper" specifier for these -- they are not accessed in user code
                   '_num_source_neurons':ReadOnlyValue('_num_source_neurons', Unit(1),
                                                       np.int32,
                                                       len(self.source)),
                   '_num_target_neurons':ReadOnlyValue('_num_target_neurons', Unit(1),
                                                       np.int32,
                                                       len(self.target)),
-                  '_synaptic_pre': ReadOnlyValue('_synaptic_pre', Unit(1),
-                                                 np.int32,
-                                                 self.indices.synaptic_pre),
-                  '_synaptic_post': ReadOnlyValue('_synaptic_post', Unit(1),
-                                                  np.int32,
-                                                  self.indices.synaptic_post),
+                  '_synaptic_pre': DynamicArrayVariable('_synaptic_pre',
+                                                        Unit(1),
+                                                        np.int32,
+                                                        self.indices.synaptic_pre,
+                                                        '_neuron_idx'),
+                  '_synaptic_post': DynamicArrayVariable('_synaptic_pre',
+                                                         Unit(1),
+                                                         np.int32,
+                                                         self.indices.synaptic_post,
+                                                         '_neuron_idx'),
+                  # We don't need "proper" specifier for these -- they go
+                  # back to Python code currently
                   '_pre_synaptic': ReadOnlyValue('_pre_synaptic', Unit(1),
                                                  np.int32,
                                                  self.indices.pre_synaptic),
