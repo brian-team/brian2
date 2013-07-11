@@ -798,7 +798,7 @@ class Equations(collections.Mapping):
                 # Normal equation or parameter
                 lhs = varname
             if not eq.type == PARAMETER:
-                rhs = str_to_sympy(eq.expr)
+                rhs = eq.expr.sympy_expr
             if len(eq.flags):
                 flag_str = ', flags: ' + ', '.join(eq.flags)
             else:
