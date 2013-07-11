@@ -274,17 +274,15 @@ def slice_to_test(x):
 def find_synapses(index, neuron_synaptic, synaptic_neuron):
     if isinstance(index, (int, slice)):
         test = slice_to_test(index)
-        neurons = test(synaptic_neuron[:])
-        synapses = np.flatnonzero(neurons)
+        found = test(synaptic_neuron[:])
+        synapses = np.flatnonzero(found)
     else:
-        neurons = []
         synapses = []
         for neuron in index:
             targets = neuron_synaptic[neuron]
-            neurons.extend([neuron] * len(targets))
             synapses.extend(targets)
 
-    return neurons, synapses
+    return synapses
 
 
 def _synapse_numbers(pre_neurons, post_neurons):
@@ -466,11 +464,10 @@ class SynapticIndices(object):
 
             I, J, K = index
 
-            pre_neurons, pre_synapses = find_synapses(I, self.pre_synaptic,
-                                                      self.synaptic_pre)
-            post_neurons, post_synapses = find_synapses(J, self.post_synaptic,
-                                                        self.synaptic_post)
-
+            pre_synapses = find_synapses(I, self.pre_synaptic,
+                                         self.synaptic_pre)
+            post_synapses = find_synapses(J, self.post_synaptic,
+                                          self.synaptic_post)
             matching_synapses = np.intersect1d(pre_synapses, post_synapses,
                                                assume_unique=True)
 
@@ -482,9 +479,10 @@ class SynapticIndices(object):
                 raise NotImplementedError(('Indexing synapses with arrays not'
                                            'implemented yet'))
 
+            pre_neurons = self.synaptic_pre[pre_synapses]
+            post_neurons = self.synaptic_post[post_synapses]
             synapse_numbers = _synapse_numbers(pre_neurons,
                                                post_neurons)
-
             return np.intersect1d(matching_synapses,
                                   np.flatnonzero(test_k(synapse_numbers)),
                                   assume_unique=True)
@@ -719,8 +717,8 @@ class Synapses(BrianObject, Group):
                 # so that for example updater._delays[:] works.
                 updater._delays = np.array([float(pathway_delay)])
                 specifier = ArrayVariable('delay', second, np.float64,
-                                          updater._delays, None,
-                                          group=updater)
+                                          updater._delays, '_neuron_idx',
+                                          group=self, scalar=True)
                 updater.specifiers['delay'] = specifier
                 if pathway == 'pre':
                     self.specifiers['delay'] = specifier

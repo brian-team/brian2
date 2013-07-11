@@ -186,9 +186,65 @@ def test_state_variable_assignment():
                      'Assigning %r gave incorrect result' % assignment)
 
 
+def test_state_variable_indexing():
+    G1 = NeuronGroup(5, 'v:1')
+    G2 = NeuronGroup(7, 'v:1')
+    S = Synapses(G1, G2, 'w:1')
+    S.connect(True, n=2)
+    S.w[:, :, 0] = '5*i + j'
+    S.w[:, :, 1] = '35 + 5*i + j'
+
+    #Slicing
+    assert len(S.w[:]) == len(S.w[:, :]) == len(S.w[:, :, :]) == len(G1)*len(G2)*2
+    assert len(S.w[0]) == len(S.w[0, :]) == len(S.w[0, :, :]) == len(G2)*2
+    assert len(S.w[0:2]) == len(S.w[0:2, :]) == len(S.w[0:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[:, 0]) == len(S.w[:, 0, :]) == len(G1)*2
+    assert len(S.w[:, 0:2]) == len(S.w[:, 0:2, :]) == 2*len(G1)*2
+    assert len(S.w[:, :, 0]) == len(G1)*len(G2)
+    assert len(S.w[:, :, 0:2]) == len(G1)*len(G2)*2
+
+    #Array-indexing (not yet supported for synapse index)
+    assert_equal(S.w[0:3], S.w[[0, 1, 2]])
+    assert_equal(S.w[0:3], S.w[[0, 1, 2], np.arange(len(G2))])
+    assert_equal(S.w[:, 0:3], S.w[:, [0, 1, 2]])
+    assert_equal(S.w[:, 0:3], S.w[np.arange(len(G1)), [0, 1, 2]])
+
+    #string-based indexing
+    assert_equal(S.w[0:3], S.w['i<3'])
+    assert_equal(S.w[:, 0:3], S.w['j<3'])
+    assert_equal(S.w[:, :, 0], S.w['k==0'])
+
+
+def test_delay_specification():
+    # By default delays are state variables (i.e. arrays), but if they are
+    # specified in the initializer, they are scalars.
+    G = NeuronGroup(10, 'v:1')
+
+    # Array delay
+    S = Synapses(G, G, 'w:1', pre='v+=w')
+    S.connect('i==j')
+    assert len(S.delay[:]) == len(G)
+    S.delay = 'i*ms'
+    assert_equal(S.delay[:], np.arange(len(G))*ms)
+    S.delay = 5*ms
+    assert_equal(S.delay[:], np.ones(len(G))*5*ms)
+
+    # Scalar delay
+    S = Synapses(G, G, 'w:1', pre='v+=w', delay=5*ms)
+    S.connect('i==j')
+    S.delay = 10*ms
+    assert_equal(S.delay[:], 10*ms)
+    S.delay = '3*ms'
+    assert_equal(S.delay[:], 3*ms)
+    # TODO: Assignment with strings or arrays is currently possible, it only
+    # takes into account the first value
+
+
 if __name__ == '__main__':
     test_creation()
     test_connection_string_deterministic()
     test_connection_random()
     test_connection_multiple_synapses()
     test_state_variable_assignment()
+    test_state_variable_indexing()
+    test_delay_specification()

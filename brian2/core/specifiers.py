@@ -319,17 +319,29 @@ class VariableView(object):
 #    data = property(lambda self: self.specifier.get_value())
 
     def __getitem__(self, i):
-        if self.unit is None:
-            return self.specifier.get_value()[self.group.indices[i]]
+        spec = self.specifier
+        if spec.scalar:
+            if not i == slice(None) or i == 0:
+                raise IndexError('Variable %s is a scalar variable.' % spec.varname)
+            indices = 0
         else:
-            return Quantity(self.specifier.get_value()[self.group.indices[i]],
-                            self.unit.dimensions)
+            indices = self.group.indices[i]
+        if self.unit is None:
+            return spec.get_value()[indices]
+        else:
+            return Quantity(spec.get_value()[indices], self.unit.dimensions)
 
     def __setitem__(self, i, value):
-        indices = self.group.indices[i]
+        spec = self.specifier
+        if spec.scalar:
+            if not i == slice(None) or i == 0:
+                raise IndexError('Variable %s is a scalar variable.' % spec.varname)
+            indices = np.array([0])
+        else:
+            indices = self.group.indices[i]
         if isinstance(value, basestring):
             check_units = self.unit is not None
-            self.group._set_with_code(self.specifier, indices, value,
+            self.group._set_with_code(spec, indices, value,
                                       check_units, level=self.level + 1)
         else:
             if not self.unit is None:
@@ -426,12 +438,15 @@ class ArrayVariable(Value):
         variable.
     constant : bool, optional
         Whether the variable's value is constant during a run.
+    scalar : bool, optional
+        Whether this array is a 1-element array that should be treated like a
+        scalar (e.g. for a single delay value across synapses)
     is_bool: bool, optional
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
     def __init__(self, name, unit, dtype, array, index, group=None,
-                 constant=False, is_bool=False):
+                 constant=False, scalar=False, is_bool=False):
 
         self.group = group
 
@@ -439,7 +454,7 @@ class ArrayVariable(Value):
             if not dtype == np.bool:
                 raise ValueError(('Boolean variables have to be stored with '
                                   'boolean dtype'))
-        Value.__init__(self, name, unit, dtype, scalar=False,
+        Value.__init__(self, name, unit, dtype, scalar=scalar,
                        constant=constant, is_bool=is_bool)
         #: The reference to the array storing the data for the variable.
         self.array = array
@@ -449,7 +464,7 @@ class ArrayVariable(Value):
         #: The name of the index that will be used in the generated code.
         self.index = index
 
-    def get_value(self):        
+    def get_value(self):
         return self.array
 
     def set_value(self, value):
