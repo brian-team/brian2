@@ -370,8 +370,8 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                                     array,
                                                     '_neuron_idx',
                                                     self,                                                    
-                                                    constant,
-                                                    eq.is_bool)})
+                                                    constant=constant,
+                                                    is_bool=eq.is_bool)})
         
             elif eq.type == STATIC_EQUATION:
                 s.update({eq.varname: Subexpression(eq.varname, eq.unit,
@@ -379,7 +379,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                                     str(eq.expr),
                                                     s,
                                                     self.namespace,
-                                                    eq.is_bool)})
+                                                    is_bool=eq.is_bool)})
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 

@@ -321,8 +321,9 @@ class VariableView(object):
     def __getitem__(self, i):
         spec = self.specifier
         if spec.scalar:
-            if not i == slice(None) or i == 0:
-                raise IndexError('Variable %s is a scalar variable.' % spec.varname)
+            if not (i == slice(None) or i == 0 or (hasattr(i, '__len__') and len(i) == 0)):
+                print 'index', repr(i)
+                raise IndexError('Variable %s is a scalar variable.' % spec.name)
             indices = 0
         else:
             indices = self.group.indices[i]
@@ -334,8 +335,8 @@ class VariableView(object):
     def __setitem__(self, i, value):
         spec = self.specifier
         if spec.scalar:
-            if not i == slice(None) or i == 0:
-                raise IndexError('Variable %s is a scalar variable.' % spec.varname)
+            if not (i == slice(None) or i == 0 or (hasattr(i, '__len__') and len(i) == 0)):
+                raise IndexError('Variable %s is a scalar variable.' % spec.name)
             indices = np.array([0])
         else:
             indices = self.group.indices[i]
@@ -500,8 +501,10 @@ class DynamicArrayVariable(ArrayVariable):
 
 class SynapticArrayVariable(DynamicArrayVariable):
 
-    def __init__(self, name, unit, dtype, array, index, synapses, constant=False):
-        ArrayVariable.__init__(self, name, unit, dtype, array, index, synapses)
+    def __init__(self, name, unit, dtype, array, index, synapses,
+                 constant=False, is_bool=False):
+        ArrayVariable.__init__(self, name, unit, dtype, array, index, synapses,
+                               constant=constant, is_bool=is_bool)
         # Register the object with the `SynapticIndex` object so it gets
         # automatically resized
         synapses.indices.register_variable(self.array)

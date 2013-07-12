@@ -880,14 +880,16 @@ class Synapses(BrianObject, Group):
                                                     array,
                                                     '_neuron_idx',
                                                     self,
-                                                    constant=constant)})
+                                                    constant=constant,
+                                                    is_bool=eq.is_bool)})
         
             elif eq.type == STATIC_EQUATION:
                 s.update({eq.varname: Subexpression(eq.varname, eq.unit,
                                                     brian_prefs['core.default_scalar_dtype'],
                                                     str(eq.expr),
                                                     s,
-                                                    self.namespace)})
+                                                    self.namespace,
+                                                    is_bool=eq.is_bool)})
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
