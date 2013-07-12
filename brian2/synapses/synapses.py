@@ -600,6 +600,9 @@ class Synapses(BrianObject, Group):
             self.target = weakref.proxy(target)
             
         ##### Prepare and validate equations
+        if equations is None:
+            equations = ''
+
         if isinstance(equations, basestring):
             equations = Equations(equations)
         if not isinstance(equations, Equations):
