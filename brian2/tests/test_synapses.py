@@ -1,4 +1,4 @@
-from numpy.testing.utils import assert_equal
+from numpy.testing.utils import assert_equal, assert_allclose
 import numpy as np
 
 from brian2 import *
@@ -240,6 +240,34 @@ def test_delay_specification():
     # takes into account the first value
 
 
+def test_transmission():
+    delays = [[0, 0] * ms, [1, 1] * ms, [1, 2] * ms]
+    for language, delay in zip(languages, delays):
+        # Make sure that the Synapses class actually propagates spikes :)
+        source = NeuronGroup(2, '''dv/dt = rate : 1
+                                   rate : Hz''', threshold='v>1', reset='v=0',
+                             language=language)
+        source.rate = [51, 101] * Hz
+        target = NeuronGroup(2, 'v:1', threshold='v>1', reset='v=0',
+                             language=language)
+
+        source_mon = SpikeMonitor(source)
+        target_mon = SpikeMonitor(target)
+
+        S = Synapses(source, target, pre='v+=1.1', connect='i==j',
+                     language=language)
+        S.delay = delay
+        net = Network(S, source, target, source_mon, target_mon)
+        net.run(100*ms+defaultclock.dt+max(delay))
+
+        # All spikes should trigger spikes in the receiving neurons with
+        # the respective delay ( + one dt)
+        assert_allclose(source_mon.t[source_mon.i==0],
+                        target_mon.t[target_mon.i==0] - defaultclock.dt - delay[0])
+        assert_allclose(source_mon.t[source_mon.i==1],
+                        target_mon.t[target_mon.i==1] - defaultclock.dt - delay[1])
+
+
 if __name__ == '__main__':
     test_creation()
     test_connection_string_deterministic()
@@ -248,3 +276,4 @@ if __name__ == '__main__':
     test_state_variable_assignment()
     test_state_variable_indexing()
     test_delay_specification()
+    test_transmission()
