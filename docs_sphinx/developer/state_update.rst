@@ -16,7 +16,7 @@ Explicit state update
 Explicit state update schemes can be specified in mathematical notation, using
 the `ExplicitStateUpdater` class. A state updater scheme contains of a series
 of statements, defining temporary variables and a final line (starting with
-``return``), giving the updated value for the state variable. The description
+``x_new =``), giving the updated value for the state variable. The description
 can make reference to ``t`` (the current time), ``dt`` (the size of the time
 step), ``x`` (value of the state variable), and ``f(x, t)`` (the definition of
 the state variable ``x``, assuming ``dx/dt = f(x, t)``. In addition, state
@@ -27,12 +27,12 @@ factor multiplied with the noise variable, assuming
 
 Using this notation, simple forward Euler integration is specified as::
 
-	return x + dt * f(x, t)
+	x_new = x + dt * f(x, t)
 
 A Runge-Kutta 2 (midpoint) method is specified as::
 	
     k = dt * f(x,t)
-    return x + dt * f(x +  k/2, t + dt/2)
+    x_new = x + dt * f(x +  k/2, t + dt/2)
 
 When creating a new state updater using `ExplicitStateUpdater`, you can
 specify the ``stochastic`` keyword argument, determining whether this state
@@ -42,7 +42,7 @@ arbitrary stochastic equations (``'multiplicative'``). The provided state
 updaters use the Stratonovich interpretation for stochastic equations (which
 is the correct interpretation if the white noise source is seen as the limit
 of a coloured noise source with a short time constant). As a result of this,
-the simple Euler-Maruyama scheme (``return x + dt*f(x, t) + dW*g(x, t)``) will
+the simple Euler-Maruyama scheme (``x_new = x + dt*f(x, t) + dW*g(x, t)``) will
 only be used for additive noise. You can enforce the Itō interpretation,
 however, by simply directly passing such a state updater. For example, if you 
 specify `euler` for a system with multiplicative noise it will generate a
@@ -57,7 +57,7 @@ method::
     x_support = x + dt*f(x, t) + dt**.5 * g(x, t)
     g_support = g(x_support, t)
     k = 1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)
-    return x + dt*f(x,t) + g(x, t) * dW + k 
+    x_new = x + dt*f(x,t) + g(x, t) * dW + k
 
 Note that a single line in these descriptions is only allowed to mention
 ``g(x, t)``, respectively ``f(x, t)`` only once (and you are not allowed to
