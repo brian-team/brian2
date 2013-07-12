@@ -8,7 +8,7 @@ import numpy as np
 from brian2.units.allunits import second
 
 from brian2.utils.stringtools import get_identifiers
-from brian2.units.fundamentalunits import (Quantity, is_scalar_type,
+from brian2.units.fundamentalunits import (Quantity, Unit, is_scalar_type,
                                            fail_for_dimension_mismatch,
                                            have_same_dimensions)
 
@@ -327,7 +327,7 @@ class VariableView(object):
             indices = 0
         else:
             indices = self.group.indices[i]
-        if self.unit is None:
+        if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
             return spec.get_value()[indices]
         else:
             return Quantity(spec.get_value()[indices], self.unit.dimensions)
@@ -399,7 +399,7 @@ class VariableView(object):
         return self
 
     def __repr__(self):
-        if self.unit is None:
+        if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
             return '<%s.%s_: %r>' % (self.group.name, self.specifier.name,
                                      self.specifier.get_value())
         else:
