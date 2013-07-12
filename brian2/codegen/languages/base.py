@@ -149,6 +149,10 @@ class Language(object):
         return self.templater.threshold
 
     @property
+    def template_spikemonitor(self):
+        return self.templater.spikemonitor
+
+    @property
     def template_synapses(self):
         return self.templater.synapses
 

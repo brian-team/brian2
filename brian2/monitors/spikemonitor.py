@@ -1,14 +1,18 @@
 import weakref
 
-from numpy import zeros
+import numpy as np
 
 from brian2.core.base import BrianObject
 from brian2.core.preferences import brian_prefs
 from brian2.core.scheduler import Scheduler
+from brian2.core.specifiers import ReadOnlyValue, AttributeValue, ArrayVariable
+from brian2.codegen.languages.python import PythonLanguage
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.units.allunits import second
+from brian2.units.fundamentalunits import Unit
 
 __all__ = ['SpikeMonitor']
+
 
 class SpikeMonitor(BrianObject):
     '''
@@ -28,9 +32,14 @@ class SpikeMonitor(BrianObject):
         A unique name for the object, otherwise will use
         ``source.name+'_spikemonitor_0'``, etc.
     '''
-    def __init__(self, source, record=True, when=None, name='spikemonitor*'):
+    def __init__(self, source, record=True, when=None, name='spikemonitor*',
+                 language=None):
         self.source = weakref.proxy(source)
         self.record = bool(record)
+
+        if language is None:
+            language = PythonLanguage()
+        self.language = language
 
         # run by default on source clock at the end
         scheduler = Scheduler(when)
@@ -42,7 +51,27 @@ class SpikeMonitor(BrianObject):
         
         # create data structures
         self.reinit()
-        
+
+        self.specifiers = {'t': AttributeValue('t', second, np.float64,
+                                               self.clock, 't'),
+                           '_spikes': AttributeValue('_spikes', Unit(1),
+                                                     self.source.spikes.dtype,
+                                                     self.source, 'spikes'),
+                           # The template needs to have access to the
+                           # DynamicArray here, having access to the underlying
+                           # array is not enough since we want to do the resize
+                           # in the template
+                           '_i': ReadOnlyValue('_i', Unit(1), self._i.dtype,
+                                               self._i),
+                           '_t': ReadOnlyValue('_t', Unit(1), self._t.dtype,
+                                               self._t),
+                           '_count': ArrayVariable('_count', Unit(1),
+                                                   self.count.dtype,
+                                                   self.count, ''),
+                           '_num_source_neurons': ReadOnlyValue('_num_source_neurons',
+                                                                Unit(1), np.int,
+                                                                len(self.source))}
+
     def reinit(self):
         '''
         Clears all recorded spikes
@@ -52,24 +81,19 @@ class SpikeMonitor(BrianObject):
                                  dtype=brian_prefs['core.default_scalar_dtype'])
         
         #: Array of the number of times each source neuron has spiked
-        self.count = zeros(len(self.source), dtype=int)
-        
+        self.count = np.zeros(len(self.source), dtype=int)
+
+    def pre_run(self, namespace):
+        template = self.language.template_spikemonitor
+        self.codeobj = self.language.create_codeobj(self.name,
+                                                    '', # No model-specific code
+                                                    {}, # no namespace
+                                                    self.specifiers,
+                                                    template,
+                                                    indices={})
+
     def update(self):
-        spikes = self.source.spikes
-        nspikes = len(spikes)
-        if nspikes:
-            if self.record:
-                # update i, t arrays
-                i = self._i
-                t = self._t
-                oldsize = len(i)
-                newsize = oldsize+nspikes
-                i.resize(newsize)
-                t.resize(newsize)
-                i.data[oldsize:] = spikes
-                t.data[oldsize:] = self.clock.t_
-            # update count
-            self.count[spikes] += 1
+        self.codeobj()
             
     @property
     def i(self):
