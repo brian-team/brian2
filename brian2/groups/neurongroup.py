@@ -137,7 +137,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
     ----------
     N : int
         Number of neurons in the group.
-    equations : (str, `Equations`)
+    model : (str, `Equations`)
         The differential equations defining the group
     method : (str, function), optional
         The numerical integration method. Either a string with the name of a
@@ -177,7 +177,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
     attribute is set to 0 initially, but this can be modified using the
     attributes `state_updater`, `thresholder` and `resetter`.    
     '''
-    def __init__(self, N, equations, method=None,
+    def __init__(self, N, model, method=None,
                  threshold=None,
                  reset=None,
                  refractory=False,
@@ -196,22 +196,22 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
             raise ValueError("NeuronGroup size should be at least 1, was " + str(N))
 
         ##### Prepare and validate equations
-        if isinstance(equations, basestring):
-            equations = Equations(equations)
-        if not isinstance(equations, Equations):
-            raise TypeError(('equations has to be a string or an Equations '
-                             'object, is "%s" instead.') % type(equations))
+        if isinstance(model, basestring):
+            model = Equations(model)
+        if not isinstance(model, Equations):
+            raise TypeError(('model has to be a string or an Equations '
+                             'object, is "%s" instead.') % type(model))
 
         # Check flags
-        equations.check_flags({DIFFERENTIAL_EQUATION: ('unless-refractory'),
-                               PARAMETER: ('constant')})
+        model.check_flags({DIFFERENTIAL_EQUATION: ('unless-refractory'),
+                           PARAMETER: ('constant')})
 
         # add refractoriness
-        equations = add_refractoriness(equations)
-        self.equations = equations
-        uses_refractoriness = len(equations) and any(['unless-refractory' in eq.flags
-                                                      for eq in equations.itervalues()
-                                                      if eq.type == DIFFERENTIAL_EQUATION])
+        model = add_refractoriness(model)
+        self.equations = model
+        uses_refractoriness = len(model) and any(['unless-refractory' in eq.flags
+                                                  for eq in model.itervalues()
+                                                  if eq.type == DIFFERENTIAL_EQUATION])
 
         logger.debug("Creating NeuronGroup of size {self.N}, "
                      "equations {self.equations}.".format(self=self))

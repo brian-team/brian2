@@ -38,7 +38,7 @@ dh/dt = 0.128*exp((17.*mV-v+VT)/(18.*mV))/ms*(1.-h)-4./(1+exp((40.*mV-v+VT)/(5.*
 I : amp
 ''')
 # Threshold and refractoriness are only used for spike counting
-group = NeuronGroup(N, equations=eqs, threshold='is_active * (v > -40*mV)',
+group = NeuronGroup(N, model=eqs, threshold='is_active * (v > -40*mV)',
                     language=language)
 group.refractory = 1*ms
 group.v = El

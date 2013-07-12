@@ -23,7 +23,7 @@ def test_creation():
     A basic test that creating a NeuronGroup works.
     '''
     for language in languages:
-        G = NeuronGroup(42, equations='dv/dt = -v/(10*ms) : 1', reset='v=0',
+        G = NeuronGroup(42, model='dv/dt = -v/(10*ms) : 1', reset='v=0',
                         threshold='v>1', language=language)
         assert len(G) == 42
         

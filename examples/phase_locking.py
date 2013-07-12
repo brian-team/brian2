@@ -14,7 +14,7 @@ eqs = '''
 dv/dt=(-v+a*sin(2*pi*freq*t)+b)/tau : 1
 a : 1
 '''
-neurons = NeuronGroup(N, equations=eqs, threshold='v>1', reset='v=0')
+neurons = NeuronGroup(N, model=eqs, threshold='v>1', reset='v=0')
 neurons.v = rand(N)
 neurons.a = linspace(.05, 0.75, N)
 S = SpikeMonitor(neurons)

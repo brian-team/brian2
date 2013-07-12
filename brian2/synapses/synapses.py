@@ -533,7 +533,7 @@ class Synapses(BrianObject, Group):
     target : `Group`, optional
         The target of the spikes, typically a `NeuronGroup`. If none is given,
         the same as `source`
-    equations : {`str`, `Equations`}, optional
+    model : {`str`, `Equations`}, optional
         The model equations for the synapses.
     pre : {str, dict}, optional
         The code that will be executed after every pre-synaptic spike. Can be
@@ -582,7 +582,7 @@ class Synapses(BrianObject, Group):
         The name for this object. If none is given, a unique name of the form
         ``synapses``, ``synapses_1``, etc. will be automatically chosen.
     '''
-    def __init__(self, source, target=None, equations=None, pre=None, post=None,
+    def __init__(self, source, target=None, model=None, pre=None, post=None,
                  connect=False, delay=None, namespace=None, dtype=None,
                  language=None, clock=None, method=None, name='synapses*'):
         
@@ -600,25 +600,25 @@ class Synapses(BrianObject, Group):
             self.target = weakref.proxy(target)
             
         ##### Prepare and validate equations
-        if equations is None:
-            equations = ''
+        if model is None:
+            model = ''
 
-        if isinstance(equations, basestring):
-            equations = Equations(equations)
-        if not isinstance(equations, Equations):
-            raise TypeError(('equations has to be a string or an Equations '
-                             'object, is "%s" instead.') % type(equations))
+        if isinstance(model, basestring):
+            model = Equations(model)
+        if not isinstance(model, Equations):
+            raise TypeError(('model has to be a string or an Equations '
+                             'object, is "%s" instead.') % type(model))
 
         # Check flags
-        equations.check_flags({DIFFERENTIAL_EQUATION: ['event-driven', 'lumped'],
-                               STATIC_EQUATION: ['lumped'],
-                               PARAMETER: ['constant', 'lumped']})
+        model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven', 'lumped'],
+                           STATIC_EQUATION: ['lumped'],
+                           PARAMETER: ['constant', 'lumped']})
 
         # Separate the equations into event-driven and continuously updated
         # equations
         event_driven = []
         continuous = []
-        for single_equation in equations.itervalues():
+        for single_equation in model.itervalues():
             if 'event-driven' in single_equation.flags:
                 if 'lumped' in single_equation.flags:
                     raise ValueError(('Event-driven variable %s cannot be '

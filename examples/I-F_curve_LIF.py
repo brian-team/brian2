@@ -14,7 +14,7 @@ eqs = '''
 dv/dt=(v0-v)/tau : volt (unless-refractory)
 v0 : volt
 '''
-group = NeuronGroup(N, equations=eqs, threshold='v>10 * mV',
+group = NeuronGroup(N, model=eqs, threshold='v>10 * mV',
                     reset='v = 0 * mV', refractory=5*ms)
 group.v = 0 * mV
 group.v0 = linspace(0 * mV, 20 * mV, N)
