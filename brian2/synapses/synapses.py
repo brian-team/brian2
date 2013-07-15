@@ -521,7 +521,7 @@ class SynapticIndices(object):
             result = codeobj()
             return result
         else:
-            raise IndexError('Unsupported index type {}'.format(type(index)))
+            raise IndexError('Unsupported index type {itype}'.format(itype=type(index)))
 
 
 class Synapses(BrianObject, Group):
