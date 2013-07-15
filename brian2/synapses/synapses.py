@@ -375,8 +375,13 @@ class SynapticIndices(object):
 
     def _add_synapses(self, sources, targets, n, p, condition=None,
                       level=0):
+
         if condition is None:
-            if not np.isscalar(p) or p != 1:
+            sources = np.atleast_1d(sources)
+            targets = np.atleast_1d(targets)
+            n = np.atleast_1d(n)
+            p = np.atleast_1d(p)
+            if not len(p) == 1 or p != 1:
                 use_connections = np.random.rand(len(sources)) < p
                 sources = sources[use_connections]
                 targets = targets[use_connections]
@@ -980,11 +985,16 @@ class Synapses(BrianObject, Group):
         >>> S.connect('i != j', p=0.1)  # Connect neurons with 10% probability, exclude self-connections
         >>> S.connect('i == j', n=2)  # Connect all neurons to themselves with 2 synapses
         '''
-        if (not isinstance(pre_or_cond, bool) and
-                isinstance(pre_or_cond, (int, np.ndarray))):
-            if not isinstance(post, (int, np.ndarray)):
+        if not isinstance(pre_or_cond, (bool, basestring)):
+            pre_or_cond = np.asarray(pre_or_cond)
+            if not np.issubdtype(pre_or_cond.dtype, np.int):
+                raise TypeError(('Presynaptic indices have to be given as '
+                                 'integers, are type %s instead.') % pre_or_cond.dtype)
+
+            post = np.asarray(post)
+            if not np.issubdtype(post.dtype, np.int):
                 raise TypeError(('Presynaptic indices can only be combined '
-                                 'with postsynaptic indices))'))
+                                 'with postsynaptic integer indices))'))
             if isinstance(n, basestring):
                 raise TypeError(('Indices cannot be combined with a string'
                                  'expression for n. Either use an array/scalar '
