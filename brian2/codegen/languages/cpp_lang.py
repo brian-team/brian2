@@ -1,5 +1,5 @@
 '''
-TODO: restrict keyword optimisations
+TODO: use preferences to get arguments to Language
 '''
 import itertools
 import os
