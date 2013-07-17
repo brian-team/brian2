@@ -13,7 +13,6 @@ from brian2.core.specifiers import (ArrayVariable, Index, DynamicArrayVariable,
                                     AttributeValue, Subexpression, ReadOnlyValue,
                                     StochasticVariable, SynapticArrayVariable,
                                     Specifier)
-from brian2.codegen.languages import PythonLanguage
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)

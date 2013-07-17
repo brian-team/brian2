@@ -10,18 +10,12 @@ from brian2.utils.stringtools import deindent, stripped_deindented_lines
 from brian2.codegen.functions.base import Function
 from brian2.utils.logger import get_logger
 
-from ..base import Language, CodeObject
-from ..templates import LanguageTemplater
+from .base import Language
 from brian2.parsing.rendering import CPPNodeRenderer
 
 logger = get_logger(__name__)
-try:
-    from scipy import weave
-except ImportError as ex:
-    logger.warn('Importing scipy.weave failed: %s' % ex)
-    weave = None
 
-__all__ = ['CPPLanguage', 'CPPCodeObject',
+__all__ = ['CPPLanguage',
            'c_data_type',
            ]
 
@@ -103,9 +97,6 @@ class CPPLanguage(Language):
     '''
 
     language_id = 'cpp'
-
-    templater = LanguageTemplater(os.path.join(os.path.split(__file__)[0],
-                                               'templates'))
 
     def __init__(self, compiler='gcc', extra_compile_args=['-w', '-O3', '-ffast-math'],
                  restrict='__restrict__', flush_denormals=False):
@@ -209,14 +200,6 @@ class CPPLanguage(Language):
                  'denormals_code_lines': stripped_deindented_lines(self.denormals_to_zero_code()),
                  })
 
-    def code_object(self, code, namespace, specifiers):
-        return CPPCodeObject(code,
-                             namespace,
-                             specifiers,
-                             compile_methods=self.compile_methods(namespace),
-                             compiler=self.compiler,
-                             extra_compile_args=self.extra_compile_args)
-
     def denormals_to_zero_code(self):
         if self.flush_denormals:
             return '''
@@ -227,28 +210,3 @@ class CPPLanguage(Language):
             '''
         else:
             return ''
-
-
-class CPPCodeObject(CodeObject):
-    '''
-    C++ code object
-    
-    The ``code`` should be a `~brian2.codegen.languages.templates.MultiTemplate`
-    object with two macros defined, ``main`` (for the main loop code) and
-    ``support_code`` for any support code (e.g. function definitions).
-    '''
-    def __init__(self, code, namespace, specifiers, compile_methods=[],
-                 compiler='gcc', extra_compile_args=['-O3']):
-        super(CPPCodeObject, self).__init__(code,
-                                            namespace,
-                                            specifiers,
-                                            compile_methods=compile_methods)
-        self.compiler = compiler
-        self.extra_compile_args = extra_compile_args
-
-    def run(self):
-        return weave.inline(self.code.main, self.namespace.keys(),
-                            local_dict=self.namespace,
-                            support_code=self.code.support_code,
-                            compiler=self.compiler,
-                            extra_compile_args=self.extra_compile_args)
