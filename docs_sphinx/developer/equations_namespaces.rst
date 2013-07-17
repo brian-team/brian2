@@ -20,16 +20,7 @@ a ``get_value`` method. Some will also allow setting the values via a
 corresponding ``set_value`` method. These objects can therefore act as proxies
 to the variables' "contents".
 
-Specifiers are used by code generation and for unit checking. In the case of
-synapses, the `Synapses` object itself should only save the specifiers for its
-own state variables (e.g. the synaptic weights). When passing a specifiers
-dictionary to code generation or unit checking, it needs however to pass a
-dictionary not only containing its own specifiers but also the specifiers of
-the pre- and postsynaptic group (with corresponding suffixes for the keys). It
-is important that it does not store this "extended" dictionary in its own
-specifiers attribute as that would break constructions such as a synapse that
-is connected to another synapse (we don't want an expression like
-``w_post_pre`` to refer to ``w`` of the synapse itself...).
+Specifiers are used by code generation and for unit checking.
 
 Namespaces
 ----------
@@ -49,7 +40,7 @@ Objects that have namespaces (`NeuronGroup`, `Synapses`) create this attribute
 using the `create_namespace` function, by using such a line in ``__init__``::
 
 	# 'namespace' is the keyword argument, i.e. a dictionary or None
-	self.namespace = self.create_namespace(self.N, namespace)
+	self.namespace = self.create_namespace(namespace)
 	 
 An object that does not have a user-defined namespace will fill the namespace
 at the time of a run: The `Network.run` function takes an optional

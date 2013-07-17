@@ -107,8 +107,8 @@ variables/functions and a ``specifier`` dictionary for the internal state
 variables. It has to return ``True`` or ``False``, depending on whether it can
 integrate the given equations. The method would typically make use of
 `Equations.is_stochastic` or `Equations.stochastic_type`, check whether any
-external functions are used, etc.. Finally, the state updater has to be registered
-with `StateUpdateMethod` as shown above.
+external functions are used, etc.. Finally, the state updater has to be
+registered with `StateUpdateMethod` as shown above.
 
 Implicit state updates
 ----------------------
@@ -139,23 +139,3 @@ A simple way is to perform fixed point iterations::
 This includes a loop with a different number of iterations depending on the
 neuron.
 
-Exponential Euler
-^^^^^^^^^^^^^^^^^
-This applies to conditionally linear equations, and requires the calculation
-of matrices. It is not clear whether this can be described simply with
-statements as above.
-
-Linear and mixed state updates
-------------------------------
-If the equations are linear (with the special case of coefficients between
-non-constant parameters), then exact state updaters can be used.
-Exponential Euler is similar.
-Currently, the matrix is calculated by direct evaluation of the expressions
-with different vectors. Alternatively, perhaps we could use sympy to calculate
-these matrices symbolically. There are several advantages: 1) it is done only
-once rather than at each time step, 2) it does not need to be computed on
-the target.
-
-I think it would actually be possible to generate target-independent code
-for exact updates, although it would not use target-specific matrix operations
-(simply explicitly spelling the matrix product). But it would be more general.

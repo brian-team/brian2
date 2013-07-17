@@ -34,7 +34,7 @@ object whereas the multiplication of an array with a unit resulted in a
 (unitless) array. Accordingly, scalars where considered as dimensionless
 quantities for the purpose of unit checking (e.g.. 1 + 1 * mV raised an error)
 whereas arrays where not (e.g. array(1) + 1 * mV resulted in 1.001 without any
-errors). I propose to get rid of this distinction, and treat both scalars and
+errors). Brian2 no longer makes this distinction and treats both scalars and
 arrays as dimensionless for unit checking and make all operations involving
 quantities return a quantity.::
 
@@ -63,10 +63,6 @@ The above rules also apply to all comparisons (e.g. ``==`` or ``<``) with one
 further exception: ``inf`` and ``-inf`` also have "any unit", therefore an
 expression like ``v <= inf`` will never raise an exception (and always return
 ``True``).
-
-[Question: Should we leave this rule in? If yes, should this rule also extend
-to other operations, i.e. should ``1 + second + inf`` work? Might be more
-consistent even if there is no real usecase for that. What about NaN?].  
 
 Functions and units
 -------------------
@@ -150,8 +146,7 @@ Not taken care of yet: ``signbit, copysign, nextafter, modf, ldexp, frexp``
   questionable, though)
 * Unit arrays can only be raised to a scalar power, not to an array of
   exponents as this would lead to differing dimensions across entries. For
-  simplicity, this is enforced even for dimensionless quantities (could be
-  changed, though).  
+  simplicity, this is enforced even for dimensionless quantities.
 * Bitwise functions never works on quantities (numpy will by itself throw a 
   ``TypeError`` because they are floats not integers).
 * All comparisons only work for matching dimensions (with the exception of
@@ -210,15 +205,9 @@ they are only using functions/methods that work with quantities:
 User-defined functions and units
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 For performance and simplicity reasons, code within the Brian core does not use
-Quantity objects but unitless numpy arrays instead. This can lead to issues if
-the user provides an external function that uses units and is called by the
-Brian code, e.g. the state updater. To avoid errors arising from dimension
-mismatches, the unit checking can be temporally switched off (currently by
-setting ``fundamentalunits.unit_checking`` to ``False`` but this will change in
-the future). This will only switch the unit *checking* off, units will still be
-used (e.g. ``1 + 1 * second`` will result in ``2 * second``. Therefore, each
-array that is the result of external code has to be wrapped in ``np.asarray``
-to be sure it is a unitless array.  
+Quantity objects but unitless numpy arrays instead.
+
+.. todo:: describe how functions should deal with units.
 
 Comparison with Brian 1
 -----------------------

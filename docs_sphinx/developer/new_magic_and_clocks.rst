@@ -1,13 +1,6 @@
 New magic and clock behaviour
 =============================
 
-Dan and Marcel came up with the following proposal for how the magic and clocks
-should function in Brian 2.0.
-
-Some background: both magic and clocks had a problem in Brian 1.x that they
-were incredibly complicated to explain, confusing for the user, and that this
-led to many subtle bugs or poorly performing code.
-
 Clocks
 ------
 
@@ -104,26 +97,4 @@ or::
 		
 Again, reasonably simple but you can't know about them unless you're told.
 
-Therefore, the suggestion for the new system is to make magic functions gather
-all instances unless they have explicitly been excluded via forget(), or
-possibly by a new .deactivate() or .forget() method. The first type of bug
-still remains, but when we combine this with the suggestions in the
-defensive programming document, and make sure that the run() function does a
-garbage collection before gathering instances, we should be able to eliminate
-the circular references in most cases. In the remaining cases, the problems
-should hopefully be just that the simulation runs slower, and not that it gives
-incorrect results. To ensure this, we should write automated tests to check that
-circular references are avoided, e.g. by doing something like::
-
-	import gc
-	for i in xrange(100):
-		obj = SomeBrianClass(...)
-	gc.collect()
-	objs = get_instances(SomeBrianClass)
-	assert_equal(len(objs), 0)
-	
-To make circular references easier to avoid, Brian objects should use
-weak references to other Brian objects rather than direct references. This has
-two benefits: (1) it eliminates circular references (because weakrefs don't
-count towards this), (2) it helps to avoid certain types of bugs described in
-the defensive programming document.
+.. todo:: Describe how this is implemented in Brian2
