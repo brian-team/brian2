@@ -199,7 +199,7 @@ class SynapticPathway(GroupCodeRunner, Group):
                 if len(self._delays) > 1:
                     delays = np.round(self._delays[indices] / self.dt).astype(int)
                 else:
-                    delays = np.round(self._delays / self.dt).astype(int)
+                    delays = np.round(self._delays[:] / self.dt).astype(int)
                 self.queue.push(indices, delays)
         # Get the spikes
         self.spiking_synapses = self.queue.peek()

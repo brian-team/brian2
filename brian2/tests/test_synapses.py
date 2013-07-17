@@ -332,6 +332,59 @@ def test_lumped_variable():
     assert_equal(target.v, np.array([0.5, 2.5]))
 
 
+def test_event_driven():
+    for language in languages:
+        # Fake example, where the synapse is actually not changing the state of the
+        # postsynaptic neuron, the pre- and post spiketrains are regular spike
+        # trains with different rates
+        pre = NeuronGroup(2, '''dv/dt = rate : 1
+                                rate : Hz''', threshold='v>1', reset='v=0',
+                          language=language)
+        pre.rate = [1000, 1500] * Hz
+        post = NeuronGroup(2, '''dv/dt = rate : 1
+                                 rate : Hz''', threshold='v>1', reset='v=0',
+                          language=language)
+        post.rate = [1100, 1400] * Hz
+        # event-driven formulation
+        taupre = 20 * ms
+        taupost = taupre
+        gmax = .01
+        dApre = .01
+        dApost = -dApre * taupre / taupost * 1.05
+        dApost *= gmax
+        dApre *= gmax
+        # event-driven
+        S1 = Synapses(pre, post,
+                      '''w : 1
+                         dApre/dt = -Apre/taupre : 1 (event-driven)
+                         dApost/dt = -Apost/taupost : 1 (event-driven)''',
+                      pre='''Apre += dApre
+                             w = clip(w+Apost, 0, gmax)''',
+                      post='''Apost += dApost
+                              w = clip(w+Apre, 0, gmax)''',
+                      connect='i==j',
+                      language=language)
+        # not event-driven
+        S2 = Synapses(pre, post,
+                      '''w : 1
+                         Apre : 1
+                         Apost : 1''',
+                      pre='''Apre=Apre*exp((lastupdate-t)/taupre)+dApre
+                             Apost=Apost*exp((lastupdate-t)/taupost)
+                             w = clip(w+Apost, 0, gmax)''',
+                      post='''Apre=Apre*exp((lastupdate-t)/taupre)
+                              Apost=Apost*exp((lastupdate-t)/taupost) +dApost
+                              w = clip(w+Apre, 0, gmax)''',
+                      connect='i==j',
+                      language=language)
+        S1.w = 0.5*gmax
+        S2.w = 0.5*gmax
+        net = Network(pre, post, S1, S2)
+        net.run(100*ms)
+        # The two formulations should yield identical results
+        assert_equal(S1.w[:], S2.w[:])
+
+
 if __name__ == '__main__':
     test_creation()
     test_connection_string_deterministic()
@@ -342,3 +395,4 @@ if __name__ == '__main__':
     test_delay_specification()
     test_transmission()
     test_lumped_variable()
+    test_event_driven()
