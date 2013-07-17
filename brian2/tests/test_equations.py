@@ -256,7 +256,7 @@ def test_unit_checking():
     
     # Let's create a namespace with a user-defined namespace that we can
     # updater later on 
-    namespace = create_namespace(1, {})
+    namespace = create_namespace({})
     # inconsistent unit for a differential equation
     eqs = Equations('dv/dt = -v : volt')
     assert_raises(DimensionMismatchError,

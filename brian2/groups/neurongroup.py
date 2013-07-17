@@ -223,7 +223,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         self.spikes = array([], dtype=int)
 
         # Setup the namespace
-        self.namespace = create_namespace(self.N, namespace)
+        self.namespace = create_namespace(namespace)
 
         # Setup specifiers
         self.specifiers = self._create_specifiers()

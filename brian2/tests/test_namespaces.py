@@ -17,7 +17,7 @@ def test_default_content():
     '''
     Test that the default namespace contains standard units and functions.
     '''
-    namespace = create_namespace(1, {})
+    namespace = create_namespace({})
     # Units
     assert namespace['second'] == second
     assert namespace['volt'] == volt
@@ -36,7 +36,7 @@ def test_explicit_namespace():
     explicit_namespace = {'variable': 'explicit_var',
                           'randn': 'explicit_randn'}
     # Explicitly provided 
-    namespace = create_namespace(1, explicit_namespace)
+    namespace = create_namespace( explicit_namespace)
     
     
     with catch_logs() as l:
@@ -50,16 +50,19 @@ def test_explicit_namespace():
 
 
 def test_errors():
-    
-    namespace = create_namespace(1)
-    
+    # No explicit namespace
+    namespace = create_namespace()
+    assert_raises(KeyError, lambda: namespace['nonexisting_variable'])
+
+    # Empty explicit namespace
+    namespace = create_namespace({})
     assert_raises(KeyError, lambda: namespace['nonexisting_variable'])
 
 
 def test_resolution():
     # implicit namespace
     tau = 10*ms
-    namespace = create_namespace(1)
+    namespace = create_namespace()
     additional_namespace = ('implicit-namespace', {'tau': tau})
     resolved = namespace.resolve_all(['tau', 'ms'], additional_namespace)
     assert len(resolved) == 2
@@ -69,7 +72,7 @@ def test_resolution():
     assert resolved['ms'] == float(ms)
 
     # explicit namespace
-    namespace = create_namespace(1, {'tau': 20 * ms})
+    namespace = create_namespace({'tau': 20 * ms})
 
     resolved = namespace.resolve_all(['tau', 'ms'], additional_namespace)
     assert len(resolved) == 2

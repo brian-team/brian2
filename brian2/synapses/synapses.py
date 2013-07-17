@@ -646,7 +646,7 @@ class Synapses(BrianObject, Group):
 
         # Setup the namespace
         self._given_namespace = namespace
-        self.namespace = create_namespace(0, namespace)
+        self.namespace = create_namespace(namespace)
 
         # Code generation (TODO: this should be refactored and modularised)
         # Temporary, set default language to Python

@@ -52,7 +52,7 @@ def get_local_namespace(level=0):
     return namespace
 
 
-def create_namespace(N, explicit_namespace=None):
+def create_namespace(explicit_namespace=None):
     namespace = CompoundNamespace()
     
     # Functions and units take precedence, overwriting them would lead to
@@ -60,7 +60,7 @@ def create_namespace(N, explicit_namespace=None):
     # take the namespace into account when determining the units of equations
     # (the ": unit" part) -- so an overwritten unit would be ignored there but
     # taken into account in the equation itself.
-    namespace.add_namespace('numpy', get_default_numpy_namespace(N))
+    namespace.add_namespace('numpy', get_default_numpy_namespace())
     namespace.add_namespace('units', DEFAULT_UNIT_NAMESPACE)
     
     if explicit_namespace is not None:
@@ -227,7 +227,7 @@ class CompoundNamespace(collections.Mapping):
         return '<%s containing namespaces: %s>' % (self.__class__.__name__,
                                                    ', '.join(self.namespaces.iterkeys()))
 
-def get_default_numpy_namespace(N):
+def get_default_numpy_namespace():
     '''
     Get the namespace of numpy functions/variables that is recognized by
     default. The namespace includes the constants :np:attr:`pi`,
@@ -254,7 +254,7 @@ def get_default_numpy_namespace(N):
 
     return namespace
 
-_function_names = get_default_numpy_namespace(1).keys()
+_function_names = get_default_numpy_namespace().keys()
 def check_identifier_functions(identifier):
     '''
     Make sure that identifier names do not clash with function names.
