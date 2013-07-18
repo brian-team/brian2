@@ -16,7 +16,7 @@ from brian2.core.specifiers import (ArrayVariable, Index, DynamicArrayVariable,
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)
-from brian2.groups.group import Group, GroupCodeRunner, create_codeobj
+from brian2.groups.group import Group, GroupCodeRunner, create_runner_codeobj
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent

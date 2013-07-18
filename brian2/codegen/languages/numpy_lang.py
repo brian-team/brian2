@@ -7,6 +7,11 @@ __all__ = ['NumpyLanguage']
 
 
 class NumpyLanguage(Language):
+    '''
+    Numpy language
+    
+    Essentially Python but vectorised.
+    '''
 
     language_id = 'numpy'
 

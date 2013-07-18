@@ -39,7 +39,7 @@ class StateUpdater(GroupCodeRunner):
         indices = {'_neuron_idx': Index('_neuron_idx', True)}
         
         GroupCodeRunner.__init__(self, group,
-                                       group.language.template_state_update,
+                                       'stateupdate',
                                        indices=indices,
                                        when=(group.clock, 'groups'),
                                        name=group.name + '_stateupdater*',
@@ -97,7 +97,7 @@ class Thresholder(GroupCodeRunner):
     def __init__(self, group):
         indices = {'_neuron_idx': Index('_neuron_idx', True)}
         GroupCodeRunner.__init__(self, group,
-                                 group.language.template_threshold,
+                                 'threshold',
                                  indices=indices,
                                  when=(group.clock, 'thresholds'),
                                  name=group.name+'_thresholder*')
@@ -118,7 +118,7 @@ class Resetter(GroupCodeRunner):
     def __init__(self, group):
         indices = {'_neuron_idx': Index('_neuron_idx', False)}
         GroupCodeRunner.__init__(self, group,
-                                 group.language.template_reset,
+                                 'reset',
                                  indices=indices,
                                  when=(group.clock, 'resets'),
                                  name=group.name + '_resetter*')
@@ -181,7 +181,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                  reset=None,
                  refractory=False,
                  namespace=None,
-                 dtype=None, language=None,
+                 dtype=None,
                  clock=None, name='neurongroup*'):
         BrianObject.__init__(self, when=clock, name=name)
 
@@ -226,12 +226,6 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
 
         # Setup specifiers
         self.specifiers = self._create_specifiers()
-
-        # Code generation (TODO: this should be refactored and modularised)
-        # Temporary, set default language to Python
-        if language is None:
-            language = PythonLanguage()
-        self.language = language
 
         # All of the following will be created in pre_run
         

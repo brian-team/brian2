@@ -29,14 +29,14 @@ class Language(object):
 
     def translate_statement(self, statement):
         '''
-        Translate a single line Statement into the target language, returns
+        Translate a single line `Statement` into the target language, returns
         a string.
         '''
         raise NotImplementedError
 
     def translate_statement_sequence(self, statements, specifiers, namespace, indices):
         '''
-        Translate a sequence of Statements into the target language, taking
+        Translate a sequence of `Statement` into the target language, taking
         care to declare variables, etc. if necessary.
    
         Returns a pair ``(code_lines, kwds)`` where ``code`` is a list of the

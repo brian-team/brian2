@@ -1,15 +1,33 @@
-from brian2.core.preferences import brian_prefs
+import functools
+
+from brian2.core.specifiers import (ArrayVariable, Value,
+                                    AttributeValue, Subexpression)
+from .functions.base import Function
+from brian2.core.preferences import brian_prefs, BrianPreference
+from brian2.utils.logger import get_logger
 from .translation import translate
+from .runtime.targets import runtime_targets
 
 __all__ = ['CodeObject',
            'create_codeobject',
            'get_codeobject_template',
            ]
 
+logger = get_logger(__name__)
+
+
 def get_default_codeobject_class():
-    # TODO: use preferences for this
-    from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
-    return NumpyCodeObject
+    '''
+    Returns the default `CodeObject` class from the preferences.
+    '''
+    codeobj_class = brian_prefs['codegen.target']
+    if isinstance(codeobj_class, str):
+        try:
+            codeobj_class = runtime_targets[codeobj_class]
+        except KeyError:
+            raise ValueError("Unknown code generation target: %s, should be "
+                             " one of %s"%(codeobj_class, runtime_targets.keys()))
+    return codeobj_class
 
 
 def prepare_namespace(namespace, specifiers):
@@ -24,8 +42,8 @@ def prepare_namespace(namespace, specifiers):
     return namespace
 
 
-def create_codeobj(name, abstract_code, namespace, specifiers, template_name,
-                   codeobj_class=None, indices=None, template_kwds=None):
+def create_codeobject(name, abstract_code, namespace, specifiers, template_name,
+                      codeobj_class=None, indices=None, template_kwds=None):
     '''
     The following arguments keywords are passed to the template:
     
@@ -68,6 +86,9 @@ def create_codeobj(name, abstract_code, namespace, specifiers, template_name,
 
 
 def get_codeobject_template(name, codeobj_class=None):
+    '''
+    Returns the `CodeObject` template ``name`` from the default or given class.
+    '''
     if codeobj_class is None:
         codeobj_class = get_default_codeobject_class()
     return getattr(codeobj_class.templater, name)

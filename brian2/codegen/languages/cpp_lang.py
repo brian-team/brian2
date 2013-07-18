@@ -13,6 +13,8 @@ from brian2.utils.logger import get_logger
 from .base import Language
 from brian2.parsing.rendering import CPPNodeRenderer
 
+from brian2.core.preferences import brian_prefs, BrianPreference
+
 logger = get_logger(__name__)
 
 __all__ = ['CPPLanguage',
@@ -51,25 +53,25 @@ def c_data_type(dtype):
     return dtype
 
 
-class CPPLanguage(Language):
-    '''
-    Initialisation arguments:
-    
-    ``compiler``
-        The distutils name of the compiler.
-    ``extra_compile_args``
-        Extra compilation arguments, e.g. for optimisation. Best performance is
-        often gained by using
-        ``extra_compile_args=['-O3', '-ffast-math', '-march=native']`` 
-        however the ``'-march=native'`` is not compatible with all versions of
-        gcc so is switched off by default.
-    ``restrict``
-        The keyword used for the given compiler to declare pointers as
-        restricted (different on different compilers).
-    ``flush_denormals``
-        Adds code to flush denormals to zero, but the code is gcc and
-        architecture specific, so may not compile on all platforms, therefore
-        it is off by default. The code, for reference is::
+# Preferences
+brian_prefs.register_preferences(
+    'codegen.languages.cpp',
+    'C++ codegen preferences',
+    restrict_keyword = BrianPreference(
+        default='__restrict__',
+        docs='''
+        The keyword used for the given compiler to declare pointers as restricted.
+        
+        This keyword is different on different compilers, the default is for gcc.
+        ''',
+        ),
+    flush_denormals = BrianPreference(
+        default=False,
+        docs='''
+        Adds code to flush denormals to zero.
+        
+        The code is gcc and architecture specific, so may not compile on all
+        platforms. The code, for reference is::
 
             #define CSR_FLUSH_TO_ZERO         (1 << 15)
             unsigned csr = __builtin_ia32_stmxcsr();
@@ -77,7 +79,15 @@ class CPPLanguage(Language):
             __builtin_ia32_ldmxcsr(csr);
             
         Found at `<http://stackoverflow.com/questions/2487653/avoiding-denormal-values-in-c>`_.
-        
+        ''',
+        ),
+    )
+
+
+class CPPLanguage(Language):
+    '''
+    C++ language
+    
     C++ code templates should provide Jinja2 macros with the following names:
     
     ``main``
@@ -98,12 +108,9 @@ class CPPLanguage(Language):
 
     language_id = 'cpp'
 
-    def __init__(self, compiler='gcc', extra_compile_args=['-w', '-O3', '-ffast-math'],
-                 restrict='__restrict__', flush_denormals=False):
-        self.compiler = compiler
-        self.extra_compile_args = extra_compile_args
-        self.restrict = restrict + ' '
-        self.flush_denormals = flush_denormals
+    def __init__(self):
+        self.restrict = brian_prefs['codegen.languages.cpp.restrict_keyword'] + ' '
+        self.flush_denormals = brian_prefs['codegen.languages.cpp.flush_denormals']
 
     def translate_expression(self, expr):
         return CPPNodeRenderer().render_expr(expr).strip()
