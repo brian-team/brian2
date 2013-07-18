@@ -15,8 +15,11 @@ from brian2.units.allunits import second
 from brian2.codegen.codeobject import get_codeobject_template, create_codeobject
 from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
+from brian2.utils.logger import get_logger
 
 __all__ = ['Group', 'GroupCodeRunner', 'Indices']
+
+logger = get_logger(__name__)
 
 
 class Indices(object):
@@ -233,6 +236,8 @@ def create_runner_codeobj(group, code, template_name, indices,
     codeobj_class : `CodeObject`, optional
         The `CodeObject` class to create.
     '''
+    logger.debug('Creating code object for abstract code:\n' + str(code))
+
     if group is not None:
         all_specifiers = dict(group.specifiers)
     else:
@@ -262,6 +267,7 @@ def create_runner_codeobj(group, code, template_name, indices,
     _, used_known, unknown = analyse_identifiers(code, all_specifiers,
                                                  recursive=True)
 
+    logger.debug('Unknown identifiers in the abstract code: ' + str(unknown))
     resolved_namespace = group.namespace.resolve_all(unknown,
                                                      additional_namespace)
 
