@@ -163,6 +163,8 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         The `numpy.dtype` that will be used to store the values, or
         `core.default_scalar_dtype` if not specified (`numpy.float64` by
         default).
+    codeobj_class : class, optional
+        The `CodeObject` class to run code with.
     clock : Clock, optional
         The update clock to be used, or defaultclock if not specified.
     name : str, optional
@@ -182,8 +184,11 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                  refractory=False,
                  namespace=None,
                  dtype=None,
-                 clock=None, name='neurongroup*'):
+                 clock=None, name='neurongroup*',
+                 codeobj_class=None):
         BrianObject.__init__(self, when=clock, name=name)
+
+        self.codeobj_class = codeobj_class
 
         try:
             self.N = N = int(N)

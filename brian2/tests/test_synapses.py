@@ -6,10 +6,10 @@ from brian2 import *
 # We can only test C++ if weave is availabe
 try:
     import scipy.weave
-    languages = [PythonLanguage(), CPPLanguage()]
+    codeobj_classes = [NumpyCodeObject, WeaveCodeObject]
 except ImportError:
     # Can't test C++
-    languages = [PythonLanguage()]
+    codeobj_classes = [NumpyCodeObject]
 
 
 def _compare(synapses, expected):
@@ -25,8 +25,8 @@ def test_creation():
     A basic test that creating a Synapses object works.
     '''
     G = NeuronGroup(42, 'v: 1')
-    for language in languages:
-        S = Synapses(G, G, 'w:1', pre='v+=w', language=language)
+    for codeobj_class in codeobj_classes:
+        S = Synapses(G, G, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
         assert len(S) == 0
 
 
@@ -37,42 +37,42 @@ def test_connection_string_deterministic():
     G = NeuronGroup(42, 'v: 1')
     G2 = NeuronGroup(17, 'v: 1')
 
-    for language in languages:
+    for codeobj_class in codeobj_classes:
         # Full connection
         expected = np.ones((len(G), len(G2)))
 
-        S = Synapses(G, G2, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G2, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect(True)
         _compare(S, expected)
 
-        S = Synapses(G, G2, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G2, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect('True')
         _compare(S, expected)
 
-        S = Synapses(G, G2, 'w:1', 'v+=w', connect=True, language=language)
+        S = Synapses(G, G2, 'w:1', 'v+=w', connect=True, codeobj_class=codeobj_class)
         _compare(S, expected)
 
-        S = Synapses(G, G2, 'w:1', 'v+=w', connect='True', language=language)
+        S = Synapses(G, G2, 'w:1', 'v+=w', connect='True', codeobj_class=codeobj_class)
         _compare(S, expected)
 
         # Full connection without self-connections
         expected = np.ones((len(G), len(G))) - np.eye(len(G))
 
-        S = Synapses(G, G, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect('i != j')
         _compare(S, expected)
 
-        S = Synapses(G, G, 'w:1', 'v+=w', connect='i != j', language=language)
+        S = Synapses(G, G, 'w:1', 'v+=w', connect='i != j', codeobj_class=codeobj_class)
         _compare(S, expected)
 
         # One-to-one connectivity
         expected = np.eye(len(G))
 
-        S = Synapses(G, G, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect('i == j')
         _compare(S, expected)
 
-        S = Synapses(G, G, 'w:1', 'v+=w', connect='i == j', language=language)
+        S = Synapses(G, G, 'w:1', 'v+=w', connect='i == j', codeobj_class=codeobj_class)
         _compare(S, expected)
 
 
@@ -84,61 +84,61 @@ def test_connection_random():
     G = NeuronGroup(42, 'v: 1')
     G2 = NeuronGroup(17, 'v: 1')
 
-    for language in languages:
-        S = Synapses(G, G2, 'w:1', 'v+=w', language=language)
+    for codeobj_class in codeobj_classes:
+        S = Synapses(G, G2, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect(True, p=0.0)
         assert len(S) == 0
         S.connect(True, p=1.0)
         _compare(S, np.ones((len(G), len(G2))))
 
-        S = Synapses(G, G2, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G2, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect('rand() < 0.')
         assert len(S) == 0
         S.connect('rand() < 1.', p=1.0)
         _compare(S, np.ones((len(G), len(G2))))
 
-        S = Synapses(G, G2, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G2, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect(0, 0, p=0.)
         expected = np.zeros((len(G), len(G2)))
         _compare(S, expected)
 
-        S = Synapses(G, G2, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G2, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect(0, 0, p=1.)
         expected = np.zeros((len(G), len(G2)))
         expected[0, 0] = 1
         _compare(S, expected)
 
-        S = Synapses(G, G2, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G2, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect([0, 1], [0, 2], p=1.)
         expected = np.zeros((len(G), len(G2)))
         expected[0, 0] = 1
         expected[1, 2] = 1
         _compare(S, expected)
 
-        S = Synapses(G, G2, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G2, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect('rand() < 1.', p=1.0)
         _compare(S, np.ones((len(G), len(G2))))
 
         # Just make sure using values between 0 and 1 work in principle
-        S = Synapses(G, G2, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G2, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect(True, p=0.3)
-        S = Synapses(G, G2, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G2, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect('rand() < 0.3')
 
-        S = Synapses(G, G, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect('i!=j', p=0.0)
         assert len(S) == 0
         S.connect('i!=j', p=1.0)
         expected = np.ones((len(G), len(G))) - np.eye(len(G))
         _compare(S, expected)
 
-        S = Synapses(G, G, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect('i!=j', p=0.3)
 
-        S = Synapses(G, G, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect(0, 0, p=0.3)
 
-        S = Synapses(G, G, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect([0, 1], [0, 2], p=0.3)
 
 
@@ -149,14 +149,14 @@ def test_connection_multiple_synapses():
     G = NeuronGroup(42, 'v: 1')
     G2 = NeuronGroup(17, 'v: 1')
 
-    for language in languages:
-        S = Synapses(G, G2, 'w:1', 'v+=w', language=language)
+    for codeobj_class in codeobj_classes:
+        S = Synapses(G, G2, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect(True, n=0)
         assert len(S) == 0
         S.connect(True, n=2)
         _compare(S, 2*np.ones((len(G), len(G2))))
 
-        S = Synapses(G, G2, 'w:1', 'v+=w', language=language)
+        S = Synapses(G, G2, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect(True, n='j')
 
         _compare(S, np.arange(len(G2)).reshape(1, len(G2)).repeat(len(G),
@@ -287,20 +287,20 @@ def test_delay_specification():
 
 def test_transmission():
     delays = [[0, 0] * ms, [1, 1] * ms, [1, 2] * ms]
-    for language, delay in zip(languages, delays):
+    for codeobj_class, delay in zip(codeobj_classes, delays):
         # Make sure that the Synapses class actually propagates spikes :)
         source = NeuronGroup(2, '''dv/dt = rate : 1
                                    rate : Hz''', threshold='v>1', reset='v=0',
-                             language=language)
+                             codeobj_class=codeobj_class)
         source.rate = [51, 101] * Hz
         target = NeuronGroup(2, 'v:1', threshold='v>1', reset='v=0',
-                             language=language)
+                             codeobj_class=codeobj_class)
 
         source_mon = SpikeMonitor(source)
         target_mon = SpikeMonitor(target)
 
         S = Synapses(source, target, pre='v+=1.1', connect='i==j',
-                     language=language)
+                     codeobj_class=codeobj_class)
         S.delay = delay
         net = Network(S, source, target, source_mon, target_mon)
         net.run(100*ms+defaultclock.dt+max(delay))
@@ -333,17 +333,17 @@ def test_lumped_variable():
 
 
 def test_event_driven():
-    for language in languages:
+    for codeobj_class in codeobj_classes:
         # Fake example, where the synapse is actually not changing the state of the
         # postsynaptic neuron, the pre- and post spiketrains are regular spike
         # trains with different rates
         pre = NeuronGroup(2, '''dv/dt = rate : 1
                                 rate : Hz''', threshold='v>1', reset='v=0',
-                          language=language)
+                          codeobj_class=codeobj_class)
         pre.rate = [1000, 1500] * Hz
         post = NeuronGroup(2, '''dv/dt = rate : 1
                                  rate : Hz''', threshold='v>1', reset='v=0',
-                          language=language)
+                          codeobj_class=codeobj_class)
         post.rate = [1100, 1400] * Hz
         # event-driven formulation
         taupre = 20 * ms
@@ -363,7 +363,7 @@ def test_event_driven():
                       post='''Apost += dApost
                               w = clip(w+Apre, 0, gmax)''',
                       connect='i==j',
-                      language=language)
+                      codeobj_class=codeobj_class)
         # not event-driven
         S2 = Synapses(pre, post,
                       '''w : 1
@@ -376,7 +376,7 @@ def test_event_driven():
                               Apost=Apost*exp((lastupdate-t)/taupost) +dApost
                               w = clip(w+Apre, 0, gmax)''',
                       connect='i==j',
-                      language=language)
+                      codeobj_class=codeobj_class)
         S1.w = 0.5*gmax
         S2.w = 0.5*gmax
         net = Network(pre, post, S1, S2)

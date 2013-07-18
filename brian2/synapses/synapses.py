@@ -44,7 +44,7 @@ class StateUpdater(GroupCodeRunner):
         self.method_choice = method
         indices = {'_neuron_idx': Index('_neuron_idx', True)}
         GroupCodeRunner.__init__(self, group,
-                                 group.language.template_state_update,
+                                 'stateupdate',
                                  indices=indices,
                                  when=(group.clock, 'groups'),
                                  name=group.name + '_stateupdater',
@@ -88,7 +88,7 @@ class LumpedUpdater(GroupCodeRunner):
 
 
         GroupCodeRunner.__init__(self, group=synapses,
-                                 template=synapses.language.template_lumped_variable,
+                                 template='lumped_variable',
                                  code=code,
                                  indices=indices,
                                  # We want to update the lumped variable before
@@ -151,7 +151,7 @@ class SynapticPathway(GroupCodeRunner, Group):
             objname = prepost + '*'
 
         GroupCodeRunner.__init__(self, synapses,
-                                 synapses.language.template_synapses,
+                                 'synapses',
                                  code=code,
                                  indices=indices,
                                  when=(synapses.clock, 'synapses'),
@@ -434,14 +434,15 @@ class SynapticIndices(object):
                 'i': Specifier('i'),
                 'j': Specifier('j')
             }
-            codeobj = create_codeobj(self.synapses,
-                                     abstract_code,
-                                     self.synapses.language.template_synapses_create,
-                                     {},
-                                     additional_specifiers=specifiers,
-                                     additional_namespace=additional_namespace,
-                                     check_units=False,
-                                     language=self.synapses.language)
+            codeobj = create_runner_codeobj(self.synapses,
+                                            abstract_code,
+                                            'synapses_create',
+                                            {},
+                                            additional_specifiers=specifiers,
+                                            additional_namespace=additional_namespace,
+                                            check_units=False,
+                                            codeobj_class=self.synapses.codeobj_class,
+                                            )
             codeobj()
             number = len(self.synaptic_pre)
             for variable in self._registered_variables:
@@ -508,14 +509,15 @@ class SynapticIndices(object):
             additional_namespace = ('implicit-namespace', namespace)
             indices = {'_neuron_idx': Index('_neuron_idx', iterate_all=True)}
             abstract_code = '_cond = ' + index
-            codeobj = create_codeobj(self.synapses,
-                                     abstract_code,
-                                     self.synapses.language.template_state_variable_indexing,
-                                     indices,
-                                     additional_specifiers=specifiers,
-                                     additional_namespace=additional_namespace,
-                                     check_units=False,
-                                     language=self.synapses.language)
+            codeobj = create_runner_codeobj(self.synapses,
+                                            abstract_code,
+                                            'state_variable_indexing',
+                                            indices,
+                                            additional_specifiers=specifiers,
+                                            additional_namespace=additional_namespace,
+                                            check_units=False,
+                                            codeobj_class=self.synapses.codeobj_class,
+                                            )
 
             result = codeobj()
             return result
@@ -575,8 +577,8 @@ class Synapses(BrianObject, Group):
     dtype : `dtype`, optional
         The standard datatype for all state variables. Defaults to
         `core.default_scalar_type`.
-    language : `Language`, optional
-        The code-generation language to use. Defaults to `PythonLanguage`.
+    codeobj_class : class, optional
+        The `CodeObject` class to use to run code.
     clock : `Clock`, optional
         The clock to use.
     method : {str, `StateUpdateMethod`}, optional
@@ -588,9 +590,12 @@ class Synapses(BrianObject, Group):
     '''
     def __init__(self, source, target=None, model=None, pre=None, post=None,
                  connect=False, delay=None, namespace=None, dtype=None,
-                 language=None, clock=None, method=None, name='synapses*'):
+                 codeobj_class=None,
+                 clock=None, method=None, name='synapses*'):
         
         BrianObject.__init__(self, when=clock, name=name)
+        
+        self.codeobj_class = codeobj_class
 
         if not hasattr(source, 'spikes') and hasattr(source, 'clock'):
             raise TypeError(('Source has to be a SpikeSource with spikes and'
@@ -647,12 +652,6 @@ class Synapses(BrianObject, Group):
         self._given_namespace = namespace
         self.namespace = create_namespace(namespace)
 
-        # Code generation (TODO: this should be refactored and modularised)
-        # Temporary, set default language to Python
-        if language is None:
-            language = PythonLanguage()
-        self.language = language
-        
         self._queues = {}
         self._delays = {}
 

@@ -42,7 +42,7 @@ S = Synapses(input, neurons,
              post='''Apost+=dApost
                      w=clip(w+Apre,0,gmax)''',
              connect=True,
-             language=CPPLanguage())
+             )
 S.w='rand()*gmax'
 start_time = time()
 run(100 * second, report='text')
