@@ -231,15 +231,15 @@ class LinearStateUpdater(StateUpdateMethod):
         
         symbols = [Symbol(variable, real=True) for variable in variables]
         solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
-        b = sp.Matrix([solution[symbol] for symbol in symbols]).transpose()
+        b = sp.ImmutableMatrix([solution[symbol] for symbol in symbols]).transpose()
         
         # Solve the system
         dt = Symbol('dt', real=True, positive=True)
         A = (matrix * dt).exp()                
-        C = sp.Matrix([A.dot(b)]) - b
+        C = sp.ImmutableMatrix([A.dot(b)]) - b
         S = sp.MatrixSymbol('_S', len(variables), 1)
-        updates = A * S + C.transpose()
-        
+        updates = (A * S + C.transpose()).as_explicit()
+
         # The solution contains _S_00, _S_10 etc. for the state variables,
         # replace them with the state variable names 
         abstract_code = []
