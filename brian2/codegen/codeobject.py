@@ -61,7 +61,7 @@ def create_codeobject(name, abstract_code, namespace, specifiers, template_name,
         template_kwds = dict()
     else:
         template_kwds = template_kwds.copy()
-    
+
     if codeobj_class is None:
         codeobj_class = get_default_codeobject_class()
         

@@ -246,7 +246,8 @@ def create_runner_codeobj(group, code, template_name, indices,
     if additional_specifiers is not None:
         all_specifiers.update(additional_specifiers)
         
-    template = get_codeobject_template(template_name)
+    template = get_codeobject_template(template_name,
+                                       codeobj_class=codeobj_class)
 
     if check_units:
         # Resolve the namespace, resulting in a dictionary containing only the
@@ -273,8 +274,8 @@ def create_runner_codeobj(group, code, template_name, indices,
 
     # Only pass the specifiers that are actually used
     specifiers = {}
-    for name in used_known:
-        specifiers[name] = all_specifiers[name]
+    for var in used_known:
+        specifiers[var] = all_specifiers[var]
 
     # Also add the specifiers that the template needs
     for spec in template.specifiers:

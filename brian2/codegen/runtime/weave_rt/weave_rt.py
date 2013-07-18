@@ -42,6 +42,7 @@ class WeaveCodeObject(CodeObject):
     templater = Templater(os.path.join(os.path.split(__file__)[0],
                                        'templates'))
     language = CPPLanguage()
+
     def __init__(self, code, namespace, specifiers):
         super(WeaveCodeObject, self).__init__(code, namespace, specifiers)
         self.compiler = brian_prefs['codegen.runtime.weave.compiler']
