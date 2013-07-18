@@ -238,8 +238,15 @@ class LinearStateUpdater(StateUpdateMethod):
         A = (matrix * dt).exp()                
         C = sp.ImmutableMatrix([A.dot(b)]) - b
         S = sp.MatrixSymbol('_S', len(variables), 1)
-        updates = (A * S + C.transpose()).as_explicit()
-
+        updates = A * S + C.transpose()
+        try:
+            # In sympy 0.7.3, we have to explicitly convert it to a single matrix
+            # In sympy 0.7.2, it is already a matrix (which doesn't have an
+            # is_explicit method)
+            updates = updates.as_explicit()
+        except AttributeError:
+            pass
+        
         # The solution contains _S_00, _S_10 etc. for the state variables,
         # replace them with the state variable names 
         abstract_code = []

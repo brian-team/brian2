@@ -62,7 +62,7 @@ def test_integrator_code():
     # Only test very basic stuff (expected number of lines and last line)
     for integrator, lines in zip([linear, euler, rk2, rk4], [2, 2, 3, 6]):
         code_lines = integrator(eqs).split('\n')
-        err_msg = 'Returned code for integrator %s had %d lines instead of %d' % (integrator.__name__, len(code_lines), lines)
+        err_msg = 'Returned code for integrator %s had %d lines instead of %d' % (integrator.__class__.__name__, len(code_lines), lines)
         assert len(code_lines) == lines, err_msg
         assert code_lines[-1] == 'v = _v'
     
