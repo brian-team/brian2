@@ -36,8 +36,9 @@ setup(name='Brian2',
                 'brian2.codegen',
                 'brian2.codegen.functions',
                 'brian2.codegen.languages',
-                'brian2.codegen.languages.cpp',
-                'brian2.codegen.languages.python',
+                'brian2.codegen.runtime',
+                'brian2.codegen.runtime.numpy_rt',
+                'brian2.codegen.runtime.weave_rt',
                 'brian2.core',
                 'brian2.equations',
                 'brian2.groups',
@@ -50,11 +51,13 @@ setup(name='Brian2',
                 'brian2.tests',
                 'brian2.units',
                 'brian2.utils'],
-      package_data={'brian2.codegen.languages.cpp': ['templates/*.cpp'],
-                    'brian2.codegen.languages.python': ['templates/*.py_']},
+      package_data={'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
+                    'brian2.codegen.runtime.weave_rt': ['templates/*.cpp']},
       requires=['numpy(>=1.4.1)',
                 'scipy(>=0.7.0)',
-                'sympy(>=0.7.1)'
+                'sympy(>=0.7.1)',
+                'pyparsing',
+                'jinja2'
                 ],
-      cmdclass = {'build_py': generate_preferences}                
-     )
+      cmdclass={'build_py': generate_preferences}
+      )

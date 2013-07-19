@@ -14,13 +14,13 @@ def test_math_functions():
     # We can only test C++ if weave is availabe
     try:
         import scipy.weave
-        languages = [PythonLanguage(), CPPLanguage()]
+        codeobj_classes = [WeaveCodeObject, NumpyCodeObject]
     except ImportError:
         # Can't test C++
-        languages = [PythonLanguage()]
+        codeobj_classes = [NumpyCodeObject]
     
     with catch_logs() as _:  # Let's suppress warnings about illegal values        
-        for lang in languages:
+        for codeobj_class in codeobj_classes:
             
             # Functions with a single argument
             for func in [sin, cos, tan, sinh, cosh, tanh,
@@ -42,7 +42,7 @@ def test_math_functions():
                 G = NeuronGroup(len(test_array),
                                 '''func = {func}(test_array) : 1'''.format(func=func_name),
                                    clock=clock,
-                                   language=lang)
+                                   codeobj_class=codeobj_class)
                 #G.variable = test_array
                 mon = StateMonitor(G, 'func', record=True)
                 net = Network(G, mon)
@@ -64,7 +64,7 @@ def test_math_functions():
                 G = NeuronGroup(len(test_array),
                                 '''func = test_array {op} scalar : 1'''.format(op=operator),
                                    clock=clock,
-                                   language=lang)
+                                   codeobj_class=codeobj_class)
                 #G.variable = test_array
                 mon = StateMonitor(G, 'func', record=True)
                 net = Network(G, mon)

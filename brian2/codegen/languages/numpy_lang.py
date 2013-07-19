@@ -1,20 +1,19 @@
 import os
 
-import numpy as np
-
-from ..base import Language, CodeObject
-from ..templates import LanguageTemplater
+from .base import Language
 from brian2.parsing.rendering import NumpyNodeRenderer
 
-__all__ = ['PythonLanguage', 'PythonCodeObject']
+__all__ = ['NumpyLanguage']
 
 
-class PythonLanguage(Language):
+class NumpyLanguage(Language):
+    '''
+    Numpy language
+    
+    Essentially Python but vectorised.
+    '''
 
-    language_id = 'python'
-
-    templater = LanguageTemplater(os.path.join(os.path.split(__file__)[0],
-                                               'templates'))
+    language_id = 'numpy'
 
     def translate_expression(self, expr):
         return NumpyNodeRenderer().render_expr(expr).strip()
@@ -63,21 +62,3 @@ class PythonLanguage(Language):
                 line = line + ' = ' + var
                 lines.append(line)
         return lines, {}
-
-    def code_object(self, code, namespace, specifiers):
-        # TODO: This should maybe go somewhere else
-        namespace['logical_not'] = np.logical_not
-        return PythonCodeObject(code, namespace, specifiers,
-                                self.compile_methods(namespace))
-
-
-class PythonCodeObject(CodeObject):
-    def compile(self):
-        super(PythonCodeObject, self).compile()
-        self.compiled_code = compile(self.code, '(string)', 'exec')
-
-    def run(self):
-        exec self.compiled_code in self.namespace
-        # output variables should land in the variable name _return_values
-        if '_return_values' in self.namespace:
-            return self.namespace['_return_values']
