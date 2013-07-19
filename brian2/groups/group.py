@@ -12,6 +12,7 @@ from brian2.core.specifiers import (ArrayVariable, Index, AttributeValue,
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
 from brian2.units.allunits import second
+from brian2.codegen.codeobject import get_codeobject_template, create_codeobject
 from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
@@ -72,6 +73,9 @@ class Group(object):
                                   'attribute, or a length to automatically '
                                   'provide 1-d indexing'))
             self.indices = Indices(N)
+            
+        if not hasattr(self, 'codeobj_class'):
+            self.codeobj_class = None
 
         # Add a reference to the synapses to the template
         self.specifiers['_indices'] = ReadOnlyValue('_indices', Unit(1),
@@ -187,20 +191,21 @@ class Group(object):
                                                          group_indices,
                                                          '',  # no index,
                                                          self)
-        codeobj = create_codeobj(self,
+        codeobj = create_runner_codeobj(self,
                                  abstract_code,
-                                 self.language.template_reset,
+                                 'reset',
                                  indices,
                                  additional_specifiers=additional_specifiers,
                                  additional_namespace=additional_namespace,
                                  check_units=check_units,
-                                 language=self.language)
+                                 codeobj_class=self.codeobj_class)
         codeobj()
 
 
-def create_codeobj(group, code, template, indices,
-                   name=None, check_units=True, additional_specifiers=None,
-                   additional_namespace=None, language=None, template_kwds=None):
+def create_runner_codeobj(group, code, template_name, indices,
+                          name=None, check_units=True, additional_specifiers=None,
+                          additional_namespace=None, template_kwds=None,
+                          codeobj_class=None):
     ''' Create a `CodeObject` for the execution of code in the context of a
     `Group`.
 
@@ -228,6 +233,8 @@ def create_codeobj(group, code, template, indices,
         saved in `group`.
         template_kwds : dict, optional
         A dictionary of additional information that is passed to the template.
+    codeobj_class : `CodeObject`, optional
+        The `CodeObject` class to create.
     '''
     logger.debug('Creating code object for abstract code:\n' + str(code))
 
@@ -238,6 +245,9 @@ def create_codeobj(group, code, template, indices,
     # If the GroupCodeRunner has specifiers, add them
     if additional_specifiers is not None:
         all_specifiers.update(additional_specifiers)
+        
+    template = get_codeobject_template(template_name,
+                                       codeobj_class=codeobj_class)
 
     if check_units:
         # Resolve the namespace, resulting in a dictionary containing only the
@@ -264,8 +274,8 @@ def create_codeobj(group, code, template, indices,
 
     # Only pass the specifiers that are actually used
     specifiers = {}
-    for name in used_known:
-        specifiers[name] = all_specifiers[name]
+    for var in used_known:
+        specifiers[var] = all_specifiers[var]
 
     # Also add the specifiers that the template needs
     for spec in template.specifiers:
@@ -288,13 +298,14 @@ def create_codeobj(group, code, template, indices,
         else:
             name = '_codeobject*'
 
-    return language.create_codeobj(name,
-                                   code,
-                                   resolved_namespace,
-                                   specifiers,
-                                   template,
-                                   indices=indices,
-                                   template_kwds=template_kwds)
+    return create_codeobject(name,
+                             code,
+                             resolved_namespace,
+                             specifiers,
+                             template_name,
+                             indices=indices,
+                             template_kwds=template_kwds,
+                             codeobj_class=codeobj_class)
 
 
 class GroupCodeRunner(BrianObject):
@@ -390,12 +401,12 @@ class GroupCodeRunner(BrianObject):
         else:
             additional_specifiers = None
 
-        return create_codeobj(self.group, self.abstract_code, self.template,
+        return create_runner_codeobj(self.group, self.abstract_code, self.template,
                               self.indices, self.name, self.check_units,
                               additional_specifiers=additional_specifiers,
                               additional_namespace=additional_namespace,
-                              language=self.group.language,
-                              template_kwds=self.template_kwds)
+                              template_kwds=self.template_kwds,
+                              codeobj_class=self.group.codeobj_class)
     
     def pre_run(self, namespace):
         self.update_abstract_code()

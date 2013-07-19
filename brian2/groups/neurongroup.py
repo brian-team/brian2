@@ -9,7 +9,6 @@ from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         STATIC_EQUATION, PARAMETER)
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
-from brian2.codegen.languages import PythonLanguage
 from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
@@ -40,7 +39,7 @@ class StateUpdater(GroupCodeRunner):
         indices = {'_neuron_idx': Index('_neuron_idx', True)}
         
         GroupCodeRunner.__init__(self, group,
-                                       group.language.template_state_update,
+                                       'stateupdate',
                                        indices=indices,
                                        when=(group.clock, 'groups'),
                                        name=group.name + '_stateupdater*',
@@ -98,7 +97,7 @@ class Thresholder(GroupCodeRunner):
     def __init__(self, group):
         indices = {'_neuron_idx': Index('_neuron_idx', True)}
         GroupCodeRunner.__init__(self, group,
-                                 group.language.template_threshold,
+                                 'threshold',
                                  indices=indices,
                                  when=(group.clock, 'thresholds'),
                                  name=group.name+'_thresholder*')
@@ -119,7 +118,7 @@ class Resetter(GroupCodeRunner):
     def __init__(self, group):
         indices = {'_neuron_idx': Index('_neuron_idx', False)}
         GroupCodeRunner.__init__(self, group,
-                                 group.language.template_reset,
+                                 'reset',
                                  indices=indices,
                                  when=(group.clock, 'resets'),
                                  name=group.name + '_resetter*')
@@ -164,6 +163,8 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         The `numpy.dtype` that will be used to store the values, or
         `core.default_scalar_dtype` if not specified (`numpy.float64` by
         default).
+    codeobj_class : class, optional
+        The `CodeObject` class to run code with.
     clock : Clock, optional
         The update clock to be used, or defaultclock if not specified.
     name : str, optional
@@ -182,9 +183,12 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                  reset=None,
                  refractory=False,
                  namespace=None,
-                 dtype=None, language=None,
-                 clock=None, name='neurongroup*'):
+                 dtype=None,
+                 clock=None, name='neurongroup*',
+                 codeobj_class=None):
         BrianObject.__init__(self, when=clock, name=name)
+
+        self.codeobj_class = codeobj_class
 
         try:
             self.N = N = int(N)
@@ -227,12 +231,6 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
 
         # Setup specifiers
         self.specifiers = self._create_specifiers()
-
-        # Code generation (TODO: this should be refactored and modularised)
-        # Temporary, set default language to Python
-        if language is None:
-            language = PythonLanguage()
-        self.language = language
 
         # All of the following will be created in pre_run
         

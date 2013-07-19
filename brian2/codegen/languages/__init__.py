@@ -1,3 +1,3 @@
 from .base import *
-from .cpp import *
-from .python import *
+from .cpp_lang import *
+from .numpy_lang import *
