@@ -1,6 +1,10 @@
 import os
 
-from scipy import weave
+try:
+    from scipy import weave
+except ImportError:
+    # No weave for Python 3
+    weave = None
 
 from ...codeobject import CodeObject
 from ...templates import Templater
