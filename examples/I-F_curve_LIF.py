@@ -8,6 +8,8 @@ The input is set differently for each neuron.
 from pylab import *
 from brian2 import *
 
+#brian_prefs.codegen.target = 'weave'
+
 N = 1000
 tau = 10 * ms
 eqs = '''

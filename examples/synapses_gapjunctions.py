@@ -7,6 +7,8 @@ import numpy as np
 
 from brian2 import *
 
+#brian_prefs.codegen.target = 'weave'
+
 N = 10
 v0 = 1.05
 tau = 10*ms

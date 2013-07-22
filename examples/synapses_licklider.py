@@ -7,14 +7,16 @@ Romain Brette
 from pylab import *
 from brian2 import *
 
+#brian_prefs.codegen.target = 'weave'
+
 defaultclock.dt = .02 * ms
 
 # Ear and sound
 max_delay = 20 * ms # 50 Hz
 tau_ear = 1 * ms
-sigma_ear = .1
+sigma_ear = .0
 eqs_ear = '''
-dx/dt=(sound-x)/tau_ear+sigma_ear*(2./tau_ear)**.5*xi : 1 (unless-refractory)
+dx/dt=(sound-x)/tau_ear+0.1*(2./tau_ear)**.5*xi : 1 (unless-refractory)
 sound=5*sin(2*pi*frequency*t)**3 : 1 # nonlinear distorsion
 #sound=5*(sin(4*pi*frequency*t)+.5*sin(6*pi*frequency*t)) : 1 # missing fundamental
 frequency=(200+200*t*Hz)*Hz : Hz # increasing pitch

@@ -10,6 +10,8 @@ R. Brette
 from pylab import *
 from brian2 import *
 
+#brian_prefs.codegen.target = 'weave'
+
 N = 25
 tau = 20 * ms
 sigma = .015
