@@ -364,7 +364,7 @@ class VariableView(object):
         return self[:] * other
 
     def __div__(self, other):
-        return self[:] * other
+        return self[:] / other
 
     def __iadd__(self, other):
         if isinstance(other, basestring):
@@ -394,7 +394,7 @@ class VariableView(object):
         if isinstance(other, basestring):
             rhs = self.specifier.name + ' / (' + other + ')'
         else:
-            rhs = self[:] * other
+            rhs = self[:] / other
         self[:] = rhs
         return self
 
