@@ -2,18 +2,17 @@
 TODO: use preferences to get arguments to Language
 '''
 import itertools
-import os
 
 import numpy
 
 from brian2.utils.stringtools import deindent, stripped_deindented_lines
 from brian2.codegen.functions.base import Function
 from brian2.utils.logger import get_logger
+from brian2.parsing.rendering import CPPNodeRenderer
+from brian2.core.preferences import brian_prefs, BrianPreference
+from brian2.core.specifiers import ArrayVariable
 
 from .base import Language
-from brian2.parsing.rendering import CPPNodeRenderer
-
-from brian2.core.preferences import brian_prefs, BrianPreference
 
 logger = get_logger(__name__)
 
@@ -164,13 +163,16 @@ class CPPLanguage(Language):
         # same array. E.g. in gapjunction code, v_pre and v_post refer to the
         # same array if a group is connected to itself
         arraynames = set()
-        for var in read.union(write):
-            spec = specifiers[var]
-            arrayname = spec.arrayname
-            if not arrayname in arraynames:
-                line = c_data_type(spec.dtype) + ' * ' + self.restrict + '_ptr' + arrayname + ' = ' + arrayname + ';'
-                lines.append(line)
-                arraynames.add(arrayname)
+        for var, spec in specifiers.iteritems():
+            if isinstance(spec, ArrayVariable):
+                arrayname = spec.arrayname
+                if not arrayname in arraynames:
+                    if spec.dtype != spec.array.dtype:
+                        print spec.array
+                        raise AssertionError('Conflicting dtype information for %s: %s - %s' % (var, spec.dtype, spec.array.dtype))
+                    line = c_data_type(spec.dtype) + ' * ' + self.restrict + '_ptr' + arrayname + ' = ' + arrayname + ';'
+                    lines.append(line)
+                    arraynames.add(arrayname)
         pointers = '\n'.join(lines)
         
         # set up the functions
