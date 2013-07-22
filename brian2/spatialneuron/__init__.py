@@ -1,2 +1,2 @@
 from morphology import *
-#from spatialneuron import *
+from spatialneuron import *
