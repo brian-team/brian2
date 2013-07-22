@@ -61,12 +61,12 @@ class StateUpdater(GroupCodeRunner):
             # No refractoriness
             self.abstract_code = ''
         elif isinstance(ref, Quantity):
-            self.abstract_code = 'not_refractory = (t - lastspike) > %f\n' % ref
+            self.abstract_code = 'not_refractory = 1*((t - lastspike) > %f)\n' % ref
         else:
             namespace = self.group.namespace
             unit = parse_expression_unit(str(ref), namespace, self.group.specifiers)
             if have_same_dimensions(unit, second):
-                self.abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
+                self.abstract_code = 'not_refractory = 1*((t - lastspike) > %s)\n' % ref
             elif have_same_dimensions(unit, Unit(1)):
                 if not is_boolean_expression(str(ref), namespace,
                                              self.group.specifiers):
@@ -78,7 +78,7 @@ class StateUpdater(GroupCodeRunner):
                 # we have to be a bit careful here, we can't just use the given
                 # condition as it is, because we only want to *leave*
                 # refractoriness, based on the condition
-                self.abstract_code = 'not_refractory = not_refractory or not (%s)\n' % ref
+                self.abstract_code = 'not_refractory = 1*(not_refractory or not (%s))\n' % ref
             else:
                 raise TypeError(('Refractory expression has to evaluate to a '
                                  'timespan or a boolean value, expression'
@@ -96,11 +96,18 @@ class Thresholder(GroupCodeRunner):
     '''
     def __init__(self, group):
         indices = {'_neuron_idx': Index('_neuron_idx', True)}
+        # For C++ code, we need these names explicitly, since not_refractory
+        # and lastspike might also be used in the threshold condition -- the
+        # names will then refer to single (constant) values and cannot be used
+        # for assigning new values
+        template_kwds = {'_array_not_refractory': group.specifiers['not_refractory'].arrayname,
+                         '_array_lastspike': group.specifiers['lastspike'].arrayname}
         GroupCodeRunner.__init__(self, group,
                                  'threshold',
                                  indices=indices,
                                  when=(group.clock, 'thresholds'),
-                                 name=group.name+'_thresholder*')
+                                 name=group.name+'_thresholder*',
+                                 template_kwds=template_kwds)
     
     def update_abstract_code(self):
         self.abstract_code = '_cond = ' + self.group.threshold
@@ -224,7 +231,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         self.arrays = self._allocate_memory(dtype=dtype)
 
         #: The array of spikes from the most recent threshold operation
-        self.spikes = array([], dtype=int)
+        self.spikes = array([], dtype=np.int32)
 
         # Setup the namespace
         self.namespace = create_namespace(namespace)
@@ -353,7 +360,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         # Standard specifiers always present
         s.update({'_num_neurons': ReadOnlyValue('_num_neurons', Unit(1),
                                                 np.int, self.N),
-                  '_spikes': AttributeValue('_spikes', Unit(1), np.int,
+                  '_spikes': AttributeValue('_spikes', Unit(1), np.int32,
                                              self, 'spikes')})
 
         # First add all the differential equations and parameters, because they
