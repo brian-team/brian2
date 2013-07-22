@@ -1,14 +1,20 @@
 import weakref
 
-from numpy import array, arange
+import numpy as np
 
-from brian2.core.specifiers import Value
+from brian2.core.specifiers import (Value, DynamicArrayVariable,
+                                    ReadOnlyValue, ArrayVariable,
+                                    Index)
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
+from brian2.codegen.languages.python import PythonLanguage
 from brian2.groups.group import Group
+from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
+from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 
 __all__ = ['StateMonitor']
+
 
 class MonitorVariable(Value):
     def __init__(self, name, unit, dtype, monitor):
@@ -16,7 +22,7 @@ class MonitorVariable(Value):
         self.monitor = weakref.proxy(monitor)
     
     def get_value(self):
-        return array(self.monitor._values[self.name])
+        return self.monitor._values[self.name]
 
 
 class StateMonitor(BrianObject, Group):
@@ -62,18 +68,15 @@ class StateMonitor(BrianObject, Group):
         run(100*ms)
         plot(M.t, M.V)
         show()
-        
-    Notes
-    -----
 
-    TODO: multiple features, below:
-    
-    * Cacheing extracted values (t, V, etc.)
-    * Improve efficiency by using dynamic arrays instead of lists?
     '''
     def __init__(self, source, variables, record=None, when=None,
-                 name='statemonitor*'):
+                 name='statemonitor*', language=None):
         self.source = weakref.proxy(source)
+
+        if language is None:
+            language = PythonLanguage()
+        self.language = language
 
         # run by default on source clock at the end
         scheduler = Scheduler(when)
@@ -91,12 +94,14 @@ class StateMonitor(BrianObject, Group):
         self.variables = variables
         
         # record should always be an array of ints
+        self.record_all = False
         if record is None or record is False:
-            record = array([], dtype=int)
+            record = np.array([], dtype=int)
         elif record is True:
-            record = arange(len(source))
+            self.record_all = True
+            record = np.arange(len(source))
         else:
-            record = array(record, dtype=int)
+            record = np.array(record, dtype=int)
             
         #: The array of recorded indices
         self.indices = record
@@ -106,61 +111,59 @@ class StateMonitor(BrianObject, Group):
         
         # initialise Group access
         self.specifiers = {}
-        for variable in variables:
+        for idx, variable in enumerate(variables):
             spec = source.specifiers[variable]
+            self.specifiers['_source_' + variable] = ArrayVariable('_source_'+variable,
+                                                                   spec.unit,
+                                                                   spec.dtype,
+                                                                   spec.array,
+                                                                   '_record_idx',
+                                                                   group=spec.group,
+                                                                   constant=spec.constant,
+                                                                   scalar=spec.scalar,
+                                                                   is_bool=spec.is_bool)
             self.specifiers[variable] = MonitorVariable(variable,
                                                         spec.unit,
                                                         spec.dtype,
-                                                        self)        
+                                                        self)
+            self.specifiers['_recorded_'+variable] = ReadOnlyValue('_recorded_'+variable, Unit(1),
+                                                                   self._values[variable].dtype,
+                                                                   self._values[variable])
+        self.specifiers['t'] = DynamicArrayVariable('t', second, dtype=np.float64,
+                                                    array=self._t, index='',
+                                                    group=self)
+
+        self.specifiers['_t'] = ReadOnlyValue('_t', Unit(1), self._t.dtype,
+                                             self._t),
+
         Group.__init__(self)
-        
+
+
     def reinit(self):
-        self._values = dict((var, []) for var in self.variables)
-        self._t = []
+        self._values = dict((v, DynamicArray((0, len(self.variables))))
+                            for v in self.variables)
+        self._t = DynamicArray1D(0)
     
+    def pre_run(self, namespace):
+        template = self.language.template_statemonitor
+        # Some dummy code so that code generation takes care of the indexing
+        # and subexpressions
+        code = ['_to_record_%s = _source_%s' % (v, v)
+                for v in self.variables]
+        code = '\n'.join(code)
+        self.codeobj = self.language.create_codeobj(self.name,
+                                                    code,
+                                                    {}, # no namespace
+                                                    self.specifiers,
+                                                    template,
+                                                    indices={'_record_idx': Index('_record_idx', self.record_all)},
+                                                    template_kwds={'_variable_names': self.variables})
+
     def update(self):
-        for var in self.variables:
-            self._values[var].append(self.source.state_(var)[self.indices])
-        self._t.append(self.clock.t_)
-        
-    @property
-    def t(self):
-        '''
-        Array of record times.
-        '''
-        return array(self._t)*second
-    
-    @property
-    def t_(self):
-        '''
-        Array of record times (without units).
-        '''
-        return array(self._t)
+        self.codeobj()
 
     def __repr__(self):
         description = '<{classname}, recording {variables} from {source}>'
         return description.format(classname=self.__class__.__name__,
                                   variables=repr(self.variables),
                                   source=self.source.name)
-
-
-if __name__=='__main__':
-    from pylab import *
-    from brian2 import *
-    from brian2.codegen.languages import *
-    import time
-
-    N = 100
-    tau = 10*ms
-    eqs = '''
-    dV/dt = (2*volt-V)/tau : volt
-    '''
-    threshold = 'V>1'
-    reset = 'V = 0'
-    G = NeuronGroup(N, eqs, threshold=threshold, reset=reset)
-    G.V = rand(N)*volt
-    M = StateMonitor(G, True, record=range(5))
-    run(100*ms)
-    print M.V.shape
-    plot(M.t, M.V)
-    show()

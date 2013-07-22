@@ -153,6 +153,10 @@ class Language(object):
         return self.templater.spikemonitor
 
     @property
+    def template_statemonitor(self):
+        return self.templater.statemonitor
+
+    @property
     def template_synapses(self):
         return self.templater.synapses
 
