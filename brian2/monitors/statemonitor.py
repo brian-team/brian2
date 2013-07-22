@@ -1,6 +1,6 @@
 import weakref
 
-from numpy import array, arange
+from numpy import array, arange, repeat
 
 from brian2.core.specifiers import Value
 from brian2.core.base import BrianObject
@@ -120,7 +120,12 @@ class StateMonitor(BrianObject, Group):
     
     def update(self):
         for var in self.variables:
-            self._values[var].append(self.source.state_(var)[self.indices])
+            value = self.source.state_(var)
+            # Subexpressions might be scalar values where indexing fails
+            try:
+                self._values[var].append(value[self.indices])
+            except IndexError:
+                self._values[var].append(repeat(value, len(self.indices)))
         self._t.append(self.clock.t_)
         
     @property
