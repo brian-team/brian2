@@ -188,7 +188,7 @@ class Group(object):
         additional_specifiers['_spikes'] = ArrayVariable('_spikes',
                                                          Unit(1),
                                                          np.int32,
-                                                         group_indices,
+                                                         group_indices.astype(np.int32),
                                                          '',  # no index,
                                                          self)
         codeobj = create_runner_codeobj(self,
