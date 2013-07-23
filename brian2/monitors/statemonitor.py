@@ -8,6 +8,7 @@ from brian2.core.specifiers import (Value,
                                     AttributeValue, Index)
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
+from brian2.core.preferences import brian_prefs
 from brian2.groups.group import Group
 from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
@@ -31,7 +32,7 @@ class MonitorTime(Value):
         self.monitor = weakref.proxy(monitor)
 
     def get_value(self):
-        return self.monitor._t[:]
+        return self.monitor._t.data.copy()
 
 class StateMonitor(BrianObject, Group):
     '''
@@ -147,9 +148,12 @@ class StateMonitor(BrianObject, Group):
         Group.__init__(self)
 
     def reinit(self):
-        self._values = dict((v, DynamicArray((0, len(self.variables))))
+        self._values = dict((v, DynamicArray((0, len(self.variables)),
+                                             use_numpy_resize=True,
+                                             dtype=self.source.specifiers[v].dtype))
                             for v in self.variables)
-        self._t = DynamicArray1D(0)
+        self._t = DynamicArray1D(0, use_numpy_resize=True,
+                                 dtype=brian_prefs['core.default_scalar_dtype'])
     
     def pre_run(self, namespace):
         # Some dummy code so that code generation takes care of the indexing

@@ -136,7 +136,9 @@ class SynapticPathway(GroupCodeRunner, Group):
         indices = {'_neuron_idx': Index('_neuron_idx', False),
                    '_postsynaptic_idx': Index('_postsynaptic_idx', False),
                    '_presynaptic_idx': Index('_presynaptic_idx', False)}
-        self._delays = DynamicArray1D(len(synapses.indices), dtype=np.float64)
+        self._delays = DynamicArray1D(len(synapses.indices),
+                                      use_numpy_resize=True,
+                                      dtype=np.float64)
         self.queue = SpikeQueue()
         self.spiking_synapses = []
         self.specifiers = {'_spiking_synapses': AttributeValue('_spiking_synapses',
@@ -311,11 +313,15 @@ class SynapticIndices(object):
         self.target_len = len(synapses.target)
         self.synapses = weakref.proxy(synapses)
         dtype = smallest_inttype(MAX_SYNAPSES)
-        self.synaptic_pre = DynamicArray1D(0, dtype=dtype)
-        self.synaptic_post = DynamicArray1D(0, dtype=dtype)
-        self.pre_synaptic = [DynamicArray1D(0, dtype=dtype)
+        self.synaptic_pre = DynamicArray1D(0, use_numpy_resize=True,
+                                           dtype=dtype)
+        self.synaptic_post = DynamicArray1D(0, use_numpy_resize=True,
+                                            dtype=dtype)
+        self.pre_synaptic = [DynamicArray1D(0, use_numpy_resize=True,
+                                            dtype=dtype)
                              for _ in xrange(self.source_len)]
-        self.post_synaptic = [DynamicArray1D(0, dtype=dtype)
+        self.post_synaptic = [DynamicArray1D(0, use_numpy_resize=True,
+                                             dtype=dtype)
                               for _ in xrange(self.target_len)]
         self.i = IndexView(self, self.synaptic_pre)
         self.j = IndexView(self, self.synaptic_post)
@@ -920,7 +926,7 @@ class Synapses(BrianObject, Group):
                 curdtype = dtype
             if curdtype is None:
                 curdtype = brian_prefs['core.default_scalar_dtype']
-            arrays[name] = DynamicArray1D(0)
+            arrays[name] = DynamicArray1D(0, use_numpy_resize=True)
         logger.debug("NeuronGroup memory allocated successfully.")
         return arrays             
 
