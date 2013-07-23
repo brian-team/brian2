@@ -2,8 +2,7 @@ import weakref
 
 import numpy as np
 
-from brian2.codegen.codeobject import create_codeobject
-from brian2.core.specifiers import (Value,
+from brian2.core.specifiers import (Value, Subexpression,
                                     ReadOnlyValue, ArrayVariable,
                                     AttributeValue, Index)
 from brian2.core.base import BrianObject
@@ -13,6 +12,7 @@ from brian2.groups.group import Group
 from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
+from brian2.groups.group import create_runner_codeobj
 
 __all__ = ['StateMonitor']
 
@@ -119,17 +119,22 @@ class StateMonitor(BrianObject, Group):
         
         # initialise Group access
         self.specifiers = {}
-        for idx, variable in enumerate(variables):
+        for variable in variables:
             spec = source.specifiers[variable]
-            self.specifiers['_source_' + variable] = ArrayVariable(variable,
-                                                                   spec.unit,
-                                                                   spec.dtype,
-                                                                   spec.array,
-                                                                   '_record_idx',
-                                                                   group=spec.group,
-                                                                   constant=spec.constant,
-                                                                   scalar=spec.scalar,
-                                                                   is_bool=spec.is_bool)
+            if isinstance(spec, ArrayVariable):
+                self.specifiers['_source_' + variable] = ArrayVariable(variable,
+                                                                       spec.unit,
+                                                                       spec.dtype,
+                                                                       spec.array,
+                                                                       '_record_idx',
+                                                                       group=spec.group,
+                                                                       constant=spec.constant,
+                                                                       scalar=spec.scalar,
+                                                                       is_bool=spec.is_bool)
+            elif isinstance(spec, Subexpression):
+                self.specifiers['_source_' + variable] = weakref.proxy(spec)
+            else:
+                raise TypeError('Variable %s cannot be recorded.' % variable)
             self.specifiers[variable] = MonitorVariable(variable,
                                                         spec.unit,
                                                         spec.dtype,
@@ -160,11 +165,14 @@ class StateMonitor(BrianObject, Group):
         # and subexpressions
         code = ['_to_record_%s = _source_%s' % (v, v)
                 for v in self.variables]
+        code += ['_recorded_%s = _recorded_%s' % (v, v)
+                 for v in self.variables]
         code = '\n'.join(code)
-        self.codeobj = create_codeobject(self.name,
+        self.codeobj = create_runner_codeobj(self.source,
                                          code,
-                                         {}, # no namespace
-                                         self.specifiers,
+                                         name=self.name,
+                                         additional_specifiers=self.specifiers,
+                                         additional_namespace=namespace,
                                          template_name='statemonitor',
                                          indices={'_record_idx': Index('_record_idx', self.record_all)},
                                          template_kwds={'_variable_names': self.variables},
