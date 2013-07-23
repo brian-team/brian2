@@ -4,7 +4,7 @@ import numpy as np
 
 from brian2.core.specifiers import (Value, DynamicArrayVariable,
                                     ReadOnlyValue, ArrayVariable,
-                                    Index)
+                                    AttributeValue, Index)
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.codegen.languages.python import PythonLanguage
@@ -24,6 +24,14 @@ class MonitorVariable(Value):
     def get_value(self):
         return self.monitor._values[self.name]
 
+
+class MonitorTime(Value):
+    def __init__(self, monitor):
+        Value.__init__(self, 't', second, np.float64)
+        self.monitor = weakref.proxy(monitor)
+
+    def get_value(self):
+        return self.monitor._t[:]
 
 class StateMonitor(BrianObject, Group):
     '''
@@ -129,15 +137,15 @@ class StateMonitor(BrianObject, Group):
             self.specifiers['_recorded_'+variable] = ReadOnlyValue('_recorded_'+variable, Unit(1),
                                                                    self._values[variable].dtype,
                                                                    self._values[variable])
-        self.specifiers['t'] = DynamicArrayVariable('t', second, dtype=np.float64,
-                                                    array=self._t, index='',
-                                                    group=self)
-
         self.specifiers['_t'] = ReadOnlyValue('_t', Unit(1), self._t.dtype,
-                                             self._t),
+                                              self._t)
+
+        self.specifiers['_clock_t'] = AttributeValue('t',  second, np.float64,
+                                                     self.clock, 't_')
+
+        self.specifiers['t'] = MonitorTime(self)
 
         Group.__init__(self)
-
 
     def reinit(self):
         self._values = dict((v, DynamicArray((0, len(self.variables))))
