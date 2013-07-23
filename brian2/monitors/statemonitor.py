@@ -121,7 +121,7 @@ class StateMonitor(BrianObject, Group):
         self.specifiers = {}
         for idx, variable in enumerate(variables):
             spec = source.specifiers[variable]
-            self.specifiers['_source_' + variable] = ArrayVariable('_source_'+variable,
+            self.specifiers['_source_' + variable] = ArrayVariable(variable,
                                                                    spec.unit,
                                                                    spec.dtype,
                                                                    spec.array,
