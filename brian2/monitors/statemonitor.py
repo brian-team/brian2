@@ -73,8 +73,9 @@ class StateMonitor(BrianObject):
             scheduler.clock = source.clock
         if not scheduler.defined_when:
             scheduler.when = 'end'
+
         BrianObject.__init__(self, when=scheduler, name=name)
-        
+
         # variables should always be a list of strings
         if variables is True:
             variables = source.equations.names
@@ -120,6 +121,8 @@ class StateMonitor(BrianObject):
                                                     index='', group=None,
                                                     constant=True)
 
+        self._group_attribute_access_active = True
+
     def reinit(self):
         self._values = dict((v, DynamicArray((0, len(self.indices)),
                                              use_numpy_resize=True,
@@ -150,6 +153,17 @@ class StateMonitor(BrianObject):
         self.codeobj()
 
     def __getattr__(self, item):
+        # We do this because __setattr__ and __getattr__ are not active until
+        # _group_attribute_access_active attribute is set, and if it is set,
+        # then __getattr__ will not be called. Therefore, if getattr is called
+        # with this name, it is because it hasn't been set yet and so this
+        # method should raise an AttributeError to agree that it hasn't been
+        # called yet.
+        if item == '_group_attribute_access_active':
+            raise AttributeError
+        if not hasattr(self, '_group_attribute_access_active'):
+            raise AttributeError
+
         # TODO: Decide about the interface
         if item == 't':
             return Quantity(self._t.data.copy(), dim=second.dim)
@@ -165,7 +179,7 @@ class StateMonitor(BrianObject):
         elif item.endswith('_') and item[:-1] in self.variables:
             return self._values[item[:-1]].data.copy()
         else:
-            getattr(super(StateMonitor, self), item)
+            raise AttributeError('Unknown attribute %s' % item)
 
     def __repr__(self):
         description = '<{classname}, recording {variables} from {source}>'
