@@ -374,10 +374,10 @@ class GroupCodeRunner(BrianObject):
         # wait until the run call. We want to ignore KeyErrors, though, because
         # they possibly result from an incomplete namespace, which is still ok
         # at this time.
-        try:
-            self.pre_run(None)
-        except KeyError:
-            pass 
+        #try: # removed!
+        #    self.pre_run(None)
+        #except KeyError:
+        #    pass
     
     def update_abstract_code(self):
         '''

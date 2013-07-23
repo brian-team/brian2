@@ -359,6 +359,12 @@ class VariableView(object):
 
     def __sub__(self, other):
         return self[:] - other
+    
+    def __pos__(self):
+        return self[:]
+
+    def __neg__(self):
+        return -self[:]
 
     def __mul__(self, other):
         return self[:] * other
