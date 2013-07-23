@@ -8,33 +8,16 @@ from brian2.core.specifiers import (Value, Subexpression,
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.core.preferences import brian_prefs
-from brian2.groups.group import Group
-from brian2.units.fundamentalunits import Unit
+from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.units.allunits import second
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.groups.group import create_runner_codeobj
+from units.fundamentalunits import have_same_dimensions
 
 __all__ = ['StateMonitor']
 
 
-class MonitorVariable(Value):
-    def __init__(self, name, unit, dtype, monitor):
-        Value.__init__(self, name, unit, dtype)
-        self.monitor = weakref.proxy(monitor)
-    
-    def get_value(self):
-        return self.monitor._values[self.name]
-
-
-class MonitorTime(Value):
-    def __init__(self, monitor):
-        Value.__init__(self, 't', second, np.float64)
-        self.monitor = weakref.proxy(monitor)
-
-    def get_value(self):
-        return self.monitor._t.data.copy()
-
-class StateMonitor(BrianObject, Group):
+class StateMonitor(BrianObject):
     '''
     Record values of state variables during a run
     
@@ -100,16 +83,19 @@ class StateMonitor(BrianObject, Group):
         elif isinstance(variables, str):
             variables = [variables]
         self.variables = variables
-        
+
+        if len(self.variables) == 0:
+            raise ValueError('No variables to record')
+
         # record should always be an array of ints
         self.record_all = False
         if record is None or record is False:
-            record = np.array([], dtype=int)
+            record = np.array([], dtype=np.int32)
         elif record is True:
             self.record_all = True
-            record = np.arange(len(source))
+            record = np.arange(len(source), dtype=np.int32)
         else:
-            record = np.array(record, dtype=int)
+            record = np.array(record, dtype=np.int32)
             
         #: The array of recorded indices
         self.indices = record
@@ -117,43 +103,27 @@ class StateMonitor(BrianObject, Group):
         # create data structures
         self.reinit()
         
-        # initialise Group access
+        # Setup specifiers
         self.specifiers = {}
         for variable in variables:
             spec = source.specifiers[variable]
-            if isinstance(spec, ArrayVariable):
-                self.specifiers['_source_' + variable] = ArrayVariable(variable,
-                                                                       spec.unit,
-                                                                       spec.dtype,
-                                                                       spec.array,
-                                                                       '_record_idx',
-                                                                       group=spec.group,
-                                                                       constant=spec.constant,
-                                                                       scalar=spec.scalar,
-                                                                       is_bool=spec.is_bool)
-            elif isinstance(spec, Subexpression):
-                self.specifiers['_source_' + variable] = weakref.proxy(spec)
-            else:
-                raise TypeError('Variable %s cannot be recorded.' % variable)
-            self.specifiers[variable] = MonitorVariable(variable,
-                                                        spec.unit,
-                                                        spec.dtype,
-                                                        self)
+            self.specifiers[variable] = weakref.proxy(spec)
+
             self.specifiers['_recorded_'+variable] = ReadOnlyValue('_recorded_'+variable, Unit(1),
                                                                    self._values[variable].dtype,
                                                                    self._values[variable])
+
         self.specifiers['_t'] = ReadOnlyValue('_t', Unit(1), self._t.dtype,
                                               self._t)
-
         self.specifiers['_clock_t'] = AttributeValue('t',  second, np.float64,
                                                      self.clock, 't_')
-
-        self.specifiers['t'] = MonitorTime(self)
-
-        Group.__init__(self)
+        self.specifiers['_indices'] = ArrayVariable('_indices', Unit(1),
+                                                    np.int32, self.indices,
+                                                    index='', group=None,
+                                                    constant=True)
 
     def reinit(self):
-        self._values = dict((v, DynamicArray((0, len(self.variables)),
+        self._values = dict((v, DynamicArray((0, len(self.indices)),
                                              use_numpy_resize=True,
                                              dtype=self.source.specifiers[v].dtype))
                             for v in self.variables)
@@ -163,7 +133,7 @@ class StateMonitor(BrianObject, Group):
     def pre_run(self, namespace):
         # Some dummy code so that code generation takes care of the indexing
         # and subexpressions
-        code = ['_to_record_%s = _source_%s' % (v, v)
+        code = ['_to_record_%s = %s' % (v, v)
                 for v in self.variables]
         code += ['_recorded_%s = _recorded_%s' % (v, v)
                  for v in self.variables]
@@ -174,12 +144,30 @@ class StateMonitor(BrianObject, Group):
                                          additional_specifiers=self.specifiers,
                                          additional_namespace=namespace,
                                          template_name='statemonitor',
-                                         indices={'_record_idx': Index('_record_idx', self.record_all)},
+                                         indices={'_neuron_idx': Index('_neuron_idx', self.record_all)},
                                          template_kwds={'_variable_names': self.variables},
                                          codeobj_class=self.codeobj_class)
 
     def update(self):
         self.codeobj()
+
+    def __getattr__(self, item):
+        # TODO: Decide about the interface
+        if item == 't':
+            return Quantity(self._t.data.copy(), dim=second.dim)
+        elif item == 't_':
+            return self._t.data.copy()
+        elif item in self.variables:
+            unit = self.specifiers[item].unit
+            if have_same_dimensions(unit, 1):
+                return self._values[item].data.copy()
+            else:
+                return Quantity(self._values[item].data.copy(),
+                                dim=unit.dim)
+        elif item.endswith('_') and item[:-1] in self.variables:
+            return self._values[item[:-1]].data.copy()
+        else:
+            getattr(super(StateMonitor, self), item)
 
     def __repr__(self):
         description = '<{classname}, recording {variables} from {source}>'
