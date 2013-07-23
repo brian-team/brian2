@@ -194,8 +194,8 @@ class SynapticPathway(GroupCodeRunner, Group):
         # Push new spikes into the queue
         spikes = self.source.spikes
         if len(spikes):
-            indices = np.hstack((self.synapse_indices[spike]
-                                 for spike in spikes)).astype(np.int32)
+            indices = np.concatenate([self.synapse_indices[spike]
+                                      for spike in spikes]).astype(np.int32)
             if len(indices):
                 if len(self._delays) > 1:
                     delays = np.round(self._delays[indices] / self.dt).astype(int)
