@@ -2,17 +2,15 @@ import weakref
 
 import numpy as np
 
-from brian2.core.specifiers import (Value, Subexpression,
-                                    ReadOnlyValue, ArrayVariable,
+from brian2.core.specifiers import (ReadOnlyValue, ArrayVariable,
                                     AttributeValue, Index)
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.core.preferences import brian_prefs
-from brian2.units.fundamentalunits import Unit, Quantity
+from brian2.units.fundamentalunits import Unit, Quantity, have_same_dimensions
 from brian2.units.allunits import second
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.groups.group import create_runner_codeobj
-from units.fundamentalunits import have_same_dimensions
 
 __all__ = ['StateMonitor']
 
