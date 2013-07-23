@@ -83,9 +83,6 @@ class StateMonitor(BrianObject):
             variables = [variables]
         self.variables = variables
 
-        if len(self.variables) == 0:
-            raise ValueError('No variables to record')
-
         # record should always be an array of ints
         self.record_all = False
         if record is None or record is False:

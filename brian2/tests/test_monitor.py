@@ -30,7 +30,16 @@ def test_spike_monitor():
 
         assert_allclose(mon.t[mon.i == 0], [9.9]*ms)
         assert_allclose(mon.t[mon.i == 1], np.arange(10)*ms + 0.9*ms)
+        assert_allclose(mon.t_[mon.i == 0], np.array([9.9*float(ms)]))
+        assert_allclose(mon.t_[mon.i == 1], (np.arange(10) + 0.9)*float(ms))
         assert_equal(mon.count, np.array([1, 10]))
+
+        i, t = mon.it
+        i_, t_ = mon.it_
+        assert_equal(i, mon.i)
+        assert_equal(i, i_)
+        assert_equal(t, mon.t)
+        assert_equal(t_, mon.t_)
 
     brian_prefs.codegen.target = language_before
 
@@ -48,6 +57,10 @@ def test_state_monitor():
         G.rate = [100, 1000] * Hz
         G.v = 1
 
+        # A bit peculiar, but in principle one should be allowed to record
+        # nothing except for the time
+        nothing_mon = StateMonitor(G, [], record=True)
+
         # Use a single StateMonitor
         v_mon = StateMonitor(G, 'v', record=True)
         v_mon1 = StateMonitor(G, 'v', record=[1])
@@ -56,9 +69,17 @@ def test_state_monitor():
         multi_mon = StateMonitor(G, ['v', 'f', 'rate'], record=True)
         multi_mon1 = StateMonitor(G, ['v', 'f', 'rate'], record=[1])
 
-        net = Network(G, v_mon, v_mon1,
+        net = Network(G, nothing_mon,
+                      v_mon, v_mon1,
                       multi_mon, multi_mon1)
         net.run(10*ms)
+
+        # Check time recordings
+        assert_equal(nothing_mon.t, v_mon.t)
+        assert_equal(nothing_mon.t_, np.asarray(nothing_mon.t))
+        assert_equal(nothing_mon.t_, v_mon.t_)
+        assert_allclose(nothing_mon.t,
+                        np.arange(len(nothing_mon.t)) * defaultclock.dt)
 
         # Check v recording
         assert_allclose(v_mon.v,
