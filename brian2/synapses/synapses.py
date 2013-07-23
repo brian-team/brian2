@@ -314,14 +314,14 @@ class SynapticIndices(object):
         self.synapses = weakref.proxy(synapses)
         dtype = smallest_inttype(MAX_SYNAPSES)
         self.synaptic_pre = DynamicArray1D(0, use_numpy_resize=True,
-                                           dtype=dtype)
+                                           dtype=dtype, refcheck=False)
         self.synaptic_post = DynamicArray1D(0, use_numpy_resize=True,
-                                            dtype=dtype)
+                                            dtype=dtype, refcheck=False)
         self.pre_synaptic = [DynamicArray1D(0, use_numpy_resize=True,
-                                            dtype=dtype)
+                                            dtype=dtype, refcheck=False)
                              for _ in xrange(self.source_len)]
         self.post_synaptic = [DynamicArray1D(0, use_numpy_resize=True,
-                                             dtype=dtype)
+                                             dtype=dtype, refcheck=False)
                               for _ in xrange(self.target_len)]
         self.i = IndexView(self, self.synaptic_pre)
         self.j = IndexView(self, self.synaptic_post)
@@ -926,7 +926,9 @@ class Synapses(BrianObject, Group):
                 curdtype = dtype
             if curdtype is None:
                 curdtype = brian_prefs['core.default_scalar_dtype']
-            arrays[name] = DynamicArray1D(0, use_numpy_resize=True)
+            arrays[name] = DynamicArray1D(0, use_numpy_resize=True,
+                                          dtype=curdtype,
+                                          refcheck=False)
         logger.debug("NeuronGroup memory allocated successfully.")
         return arrays             
 
