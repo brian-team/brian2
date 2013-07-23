@@ -39,6 +39,7 @@
     _t_data[_new_len - 1] = _clock_t;
 
     {% for _varname in _variable_names %}
+    {
         PyArrayObject *_record_data = (((PyArrayObject*)(PyObject*)_recorded_{{_varname}}.attr("data")));
         const npy_intp* _record_strides = _record_data->strides;
         for (int _idx=0; _idx < _num_indices; _idx++)
@@ -51,6 +52,7 @@
             double *recorded_entry = ((double*)(_record_data->data + (_new_len - 1)*_record_strides[0] + _idx*_record_strides[1]));
             *recorded_entry = _to_record_{{_varname}};
         }
+    }
     {% endfor %}
 
 {% endmacro %}
