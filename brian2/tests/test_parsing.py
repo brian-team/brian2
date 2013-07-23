@@ -225,9 +225,9 @@ def test_is_boolean_expression():
     
     
 def test_parse_expression_unit():
-    default_namespace = create_namespace(1)
+    default_namespace = create_namespace({})
     varunits = dict(default_namespace)
-    varunits.update({'a': volt*amp, 'b':volt, 'c':amp})
+    varunits.update({'a': volt*amp, 'b': volt, 'c': amp})
 
     EE = [
         (volt*amp, 'a+b*c'),

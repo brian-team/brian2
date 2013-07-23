@@ -2,11 +2,11 @@ import weakref
 
 import numpy as np
 
+from brian2.codegen.codeobject import create_codeobject
 from brian2.core.base import BrianObject
 from brian2.core.preferences import brian_prefs
 from brian2.core.scheduler import Scheduler
 from brian2.core.specifiers import ReadOnlyValue, AttributeValue, ArrayVariable
-from brian2.codegen.languages.python import PythonLanguage
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit
@@ -31,15 +31,13 @@ class SpikeMonitor(BrianObject):
     name : str, optional
         A unique name for the object, otherwise will use
         ``source.name+'_spikemonitor_0'``, etc.
+    codeobj_class : class, optional
+        The `CodeObject` class to run code with.
     '''
     def __init__(self, source, record=True, when=None, name='spikemonitor*',
-                 language=None):
+                 codeobj_class=None):
         self.source = weakref.proxy(source)
         self.record = bool(record)
-
-        if language is None:
-            language = PythonLanguage()
-        self.language = language
 
         # run by default on source clock at the end
         scheduler = Scheduler(when)
@@ -47,6 +45,8 @@ class SpikeMonitor(BrianObject):
             scheduler.clock = source.clock
         if not scheduler.defined_when:
             scheduler.when = 'end'
+
+        self.codeobj_class = codeobj_class
         BrianObject.__init__(self, when=scheduler, name=name)
         
         # create data structures
@@ -84,13 +84,12 @@ class SpikeMonitor(BrianObject):
         self.count = np.zeros(len(self.source), dtype=int)
 
     def pre_run(self, namespace):
-        template = self.language.template_spikemonitor
-        self.codeobj = self.language.create_codeobj(self.name,
-                                                    '', # No model-specific code
-                                                    {}, # no namespace
-                                                    self.specifiers,
-                                                    template,
-                                                    indices={})
+        self.codeobj = create_codeobject(self.name,
+                                         '', # No model-specific code
+                                         {}, # no namespace
+                                         self.specifiers,
+                                         template_name='spikemonitor',
+                                         indices={})
 
     def update(self):
         self.codeobj()

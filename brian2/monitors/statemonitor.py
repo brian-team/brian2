@@ -2,12 +2,12 @@ import weakref
 
 import numpy as np
 
-from brian2.core.specifiers import (Value, DynamicArrayVariable,
+from brian2.codegen.codeobject import create_codeobject
+from brian2.core.specifiers import (Value,
                                     ReadOnlyValue, ArrayVariable,
                                     AttributeValue, Index)
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
-from brian2.codegen.languages.python import PythonLanguage
 from brian2.groups.group import Group
 from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
@@ -59,7 +59,9 @@ class StateMonitor(BrianObject, Group):
     name : str, optional
         A unique name for the object, otherwise will use
         ``source.name+'statemonitor_0'``, etc.
-        
+    codeobj_class : `CodeObject`, optional
+        The `CodeObject` class to create.
+
     Examples
     --------
     
@@ -79,12 +81,9 @@ class StateMonitor(BrianObject, Group):
 
     '''
     def __init__(self, source, variables, record=None, when=None,
-                 name='statemonitor*', language=None):
+                 name='statemonitor*', codeobj_class=None):
         self.source = weakref.proxy(source)
-
-        if language is None:
-            language = PythonLanguage()
-        self.language = language
+        self.codeobj_class = codeobj_class
 
         # run by default on source clock at the end
         scheduler = Scheduler(when)
@@ -153,19 +152,19 @@ class StateMonitor(BrianObject, Group):
         self._t = DynamicArray1D(0)
     
     def pre_run(self, namespace):
-        template = self.language.template_statemonitor
         # Some dummy code so that code generation takes care of the indexing
         # and subexpressions
         code = ['_to_record_%s = _source_%s' % (v, v)
                 for v in self.variables]
         code = '\n'.join(code)
-        self.codeobj = self.language.create_codeobj(self.name,
-                                                    code,
-                                                    {}, # no namespace
-                                                    self.specifiers,
-                                                    template,
-                                                    indices={'_record_idx': Index('_record_idx', self.record_all)},
-                                                    template_kwds={'_variable_names': self.variables})
+        self.codeobj = create_codeobject(self.name,
+                                         code,
+                                         {}, # no namespace
+                                         self.specifiers,
+                                         template_name='statemonitor',
+                                         indices={'_record_idx': Index('_record_idx', self.record_all)},
+                                         template_kwds={'_variable_names': self.variables},
+                                         codeobj_class=self.codeobj_class)
 
     def update(self):
         self.codeobj()

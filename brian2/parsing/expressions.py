@@ -40,8 +40,8 @@ def is_boolean_expression(expr, namespace, specifiers):
         If the expression ought to be boolean but is not,
         for example ``x<y and z`` where ``z`` is not a boolean variable.
         
-    Details
-    -------
+    Notes
+    -----
     
     We test the following cases recursively on the abstract syntax tree:
     

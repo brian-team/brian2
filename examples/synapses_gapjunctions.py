@@ -7,8 +7,7 @@ import numpy as np
 
 from brian2 import *
 
-#language = PythonLanguage()
-language = CPPLanguage()
+#brian_prefs.codegen.target = 'weave'
 
 N = 10
 v0 = 1.05
@@ -19,14 +18,13 @@ dv/dt=(v0-v+Igap)/tau : 1
 Igap : 1 # gap junction current
 '''
 
-neurons = NeuronGroup(N, eqs, threshold='v>1', reset='v=0',
-                      language=language)
+neurons = NeuronGroup(N, eqs, threshold='v>1', reset='v=0')
 neurons.v = np.linspace(0, 1, N)
 trace = StateMonitor(neurons, 'v', record=[0, 5])
 
-S=Synapses(neurons, neurons, '''w:1 # gap junction conductance
+S = Synapses(neurons, neurons, '''w:1 # gap junction conductance
                                 Igap=w*(v_pre-v_post): 1 (lumped)''',
-           language=language)
+            )
 S.connect(True)
 S.w = .02
 

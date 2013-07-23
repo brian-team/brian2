@@ -4,21 +4,20 @@ NMDA synapses
 """
 from brian2 import *
 
+brian_prefs.codegen.target = 'weave'
+
 a=1/(10*ms)
 b=1/(10*ms)
 c=1/(10*ms)
 
-#language = PythonLanguage()
-language = CPPLanguage()
-
 input=NeuronGroup(2, 'dv/dt=1/(10*ms):1', threshold='v>1', reset='v=0')
 neurons = NeuronGroup(1, """dv/dt=(g-v)/(10*ms) : 1
-                            g : 1""", language=language)
+                            g : 1""")
 S=Synapses(input,neurons,
            '''dg/dt=-a*g+b*x*(1-g) : 1 (lumped)
               dx/dt=-c*x : 1
               w : 1 # synaptic weight
-           ''', pre='x+=w', language=language) # NMDA synapses
+           ''', pre='x+=w') # NMDA synapses
 
 S.connect(True)
 S.w = [1., 10.]

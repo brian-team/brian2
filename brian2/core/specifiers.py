@@ -8,7 +8,7 @@ import numpy as np
 from brian2.units.allunits import second
 
 from brian2.utils.stringtools import get_identifiers
-from brian2.units.fundamentalunits import (Quantity, is_scalar_type,
+from brian2.units.fundamentalunits import (Quantity, Unit, is_scalar_type,
                                            fail_for_dimension_mismatch,
                                            have_same_dimensions)
 
@@ -321,12 +321,13 @@ class VariableView(object):
     def __getitem__(self, i):
         spec = self.specifier
         if spec.scalar:
-            if not i == slice(None) or i == 0:
-                raise IndexError('Variable %s is a scalar variable.' % spec.varname)
+            if not (i == slice(None) or i == 0 or (hasattr(i, '__len__') and len(i) == 0)):
+                print 'index', repr(i)
+                raise IndexError('Variable %s is a scalar variable.' % spec.name)
             indices = 0
         else:
             indices = self.group.indices[i]
-        if self.unit is None:
+        if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
             return spec.get_value()[indices]
         else:
             return Quantity(spec.get_value()[indices], self.unit.dimensions)
@@ -334,8 +335,8 @@ class VariableView(object):
     def __setitem__(self, i, value):
         spec = self.specifier
         if spec.scalar:
-            if not i == slice(None) or i == 0:
-                raise IndexError('Variable %s is a scalar variable.' % spec.varname)
+            if not (i == slice(None) or i == 0 or (hasattr(i, '__len__') and len(i) == 0)):
+                raise IndexError('Variable %s is a scalar variable.' % spec.name)
             indices = np.array([0])
         else:
             indices = self.group.indices[i]
@@ -363,7 +364,7 @@ class VariableView(object):
         return self[:] * other
 
     def __div__(self, other):
-        return self[:] * other
+        return self[:] / other
 
     def __iadd__(self, other):
         if isinstance(other, basestring):
@@ -393,12 +394,12 @@ class VariableView(object):
         if isinstance(other, basestring):
             rhs = self.specifier.name + ' / (' + other + ')'
         else:
-            rhs = self[:] * other
+            rhs = self[:] / other
         self[:] = rhs
         return self
 
     def __repr__(self):
-        if self.unit is None:
+        if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
             return '<%s.%s_: %r>' % (self.group.name, self.specifier.name,
                                      self.specifier.get_value())
         else:
@@ -500,8 +501,10 @@ class DynamicArrayVariable(ArrayVariable):
 
 class SynapticArrayVariable(DynamicArrayVariable):
 
-    def __init__(self, name, unit, dtype, array, index, synapses, constant=False):
-        ArrayVariable.__init__(self, name, unit, dtype, array, index, synapses)
+    def __init__(self, name, unit, dtype, array, index, synapses,
+                 constant=False, is_bool=False):
+        ArrayVariable.__init__(self, name, unit, dtype, array, index, synapses,
+                               constant=constant, is_bool=is_bool)
         # Register the object with the `SynapticIndex` object so it gets
         # automatically resized
         synapses.indices.register_variable(self.array)

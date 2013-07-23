@@ -126,8 +126,8 @@ class ExplicitStateUpdater(StateUpdateMethod):
     returning abstract code when called with an `Equations` object.
     
     A description of an explicit state updater consists of a (multi-line)
-    string, containing assignments to variables and a final return line,
-    returning the integration result for a single timestep. The assignments
+    string, containing assignments to variables and a final "x_new = ...",
+    stating the integration result for a single timestep. The assignments
     can be used to define an arbitrary number of intermediate results and
     can refer to ``f(x, t)`` (the function being integrated, as a function of
     ``x``, the previous value of the state variable and ``t``, the time) and
@@ -140,7 +140,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             k2 = dt*f(x+k1/2,t+dt/2)
             k3 = dt*f(x+k2/2,t+dt/2)
             k4 = dt*f(x+k3,t+dt)
-            return x+(k1+2*k2+2*k3+k4)/6
+            x_new = x+(k1+2*k2+2*k3+k4)/6
     
     Note that for stochastic equations, the function `f` only corresponds to
     the non-stochastic part of the equation. The additional function `g`
@@ -156,7 +156,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
     stochastic part of an equation. A stochastic state updater could therefore
     use a description like::
         
-        return x + dt*f(x,t) + g(x, t) * dW
+        x_new = x + dt*f(x,t) + g(x, t) * dW
     
     For simplicity, the same syntax is used for state updaters that only support
     additive noise, even though ``g(x, t)`` does not depend on ``x`` or ``t``
@@ -187,7 +187,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
     -----
     Since clocks are updated *after* the state update, the time ``t`` used
     in the state update step is still at its previous value. Enumerating the
-    states and discrete times, ``return x + dt*f(x, t)`` is therefore
+    states and discrete times, ``x_new = x + dt*f(x, t)`` is therefore
     understood as :math:`x_{i+1} = x_i + dt f(x_i, t_i)`, yielding the correct
     forward Euler integration. If the integrator has to refer to the time at
     the end of the timestep, simply use ``t + dt`` instead of ``t``. 
@@ -201,9 +201,9 @@ class ExplicitStateUpdater(StateUpdateMethod):
     # Parsing definitions
     #===========================================================================
     #: Legal names for temporary variables
-    TEMP_VAR = Word(string.ascii_letters + '_',
-                string.ascii_letters +
-                string.digits + '_').setResultsName('identifier')
+    TEMP_VAR = ~Literal('x_new') + Word(string.ascii_letters + '_',
+                                        string.ascii_letters +
+                                        string.digits + '_').setResultsName('identifier')
     
     #: A single expression
     EXPRESSION = restOfLine.setResultsName('expression')
@@ -213,8 +213,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
                       EXPRESSION).setResultsName('statement')
     
     #: The last line of a state updater description
-    OUTPUT = Group(Suppress(Literal('return ')) +
-                   EXPRESSION).setResultsName('output')
+    OUTPUT = Group(Suppress(Literal('x_new')) + Suppress('=') + EXPRESSION).setResultsName('output')
     
     #: A complete state updater description
     DESCRIPTION = ZeroOrMore(STATEMENT) + OUTPUT
@@ -265,7 +264,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
                                  for var, expr in self.statements])
         if len(description):
             description += '\n'
-        description += 'return ' + str(self.output)
+        description += 'x_new = ' + str(self.output)
         r = "{classname}('''{description}''', stochastic={stochastic})"
         return r.format(classname=self.__class__.__name__,
                         description=description,
@@ -516,27 +515,26 @@ class ExplicitStateUpdater(StateUpdateMethod):
 
 #===============================================================================
 # Excplicit state updaters
-# Using the arbitrary priority: euler > rk2 > rk4 > milstein
 #===============================================================================
 
 # these objects can be used like functions because they are callable
 
 #: Forward Euler state updater
-euler = ExplicitStateUpdater('return x + dt * f(x,t) + g(x,t) * dW',
+euler = ExplicitStateUpdater('x_new = x + dt * f(x,t) + g(x,t) * dW',
                              stochastic='additive')
 
 #: Second order Runge-Kutta method (midpoint method)
 rk2 = ExplicitStateUpdater('''
     k = dt * f(x,t)
-    return x + dt*f(x +  k/2, t + dt/2)''')
+    x_new = x + dt*f(x +  k/2, t + dt/2)''')
 
 #: Classical Runge-Kutta method (RK4)
 rk4 = ExplicitStateUpdater('''
-    k_1=dt*f(x,t)
-    k_2=dt*f(x+k_1/2,t+dt/2)
-    k_3=dt*f(x+k_2/2,t+dt/2)
-    k_4=dt*f(x+k_3,t+dt)
-    return x+(k_1+2*k_2+2*k_3+k_4)/6
+    k_1 = dt*f(x,t)
+    k_2 = dt*f(x+k_1/2,t+dt/2)
+    k_3 = dt*f(x+k_2/2,t+dt/2)
+    k_4 = dt*f(x+k_3,t+dt)
+    x_new = x+(k_1+2*k_2+2*k_3+k_4)/6
     ''')
 
 #: Derivative-free Milstein method
@@ -544,5 +542,5 @@ milstein = ExplicitStateUpdater('''
     x_support = x + dt*f(x, t) + dt**.5 * g(x, t)
     g_support = g(x_support, t)
     k = 1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)
-    return x + dt*f(x,t) + g(x, t) * dW + k
+    x_new = x + dt*f(x,t) + g(x, t) * dW + k
     ''', stochastic='multiplicative')

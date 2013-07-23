@@ -10,8 +10,7 @@ from brian2 import *
 
 BrianLogger.log_level_info()
 
-language = PythonLanguage()
-#language = CPPLanguage()
+#brian_prefs.codegen.target = 'weave'
 
 N = 100
 
@@ -38,9 +37,8 @@ dh/dt = 0.128*exp((17.*mV-v+VT)/(18.*mV))/ms*(1.-h)-4./(1+exp((40.*mV-v+VT)/(5.*
 I : amp
 ''')
 # Threshold and refractoriness are only used for spike counting
-group = NeuronGroup(N, equations=eqs, threshold='is_active * (v > -40*mV)',
-                    language=language)
-group.refractory = 1*ms
+group = NeuronGroup(N, model=eqs, threshold='not_refractory and (v > -40*mV)',
+                    refractory='v > -40*mV')
 group.v = El
 group.I = linspace(0 * nA, 0.7 * nA, N)
 

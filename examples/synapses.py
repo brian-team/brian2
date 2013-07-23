@@ -1,20 +1,18 @@
-import numpy as np
 import matplotlib.pyplot as plt
 
 from brian2 import *
 
-language = PythonLanguage()
+#brian_prefs.codegen.target = 'weave'
 
 G1 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
                 threshold='v > 1',
-                reset='v=0.', language=language)
+                reset='v=0.')
 G1.v = 1.2
 G2 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
                  threshold='v > 1',
-                 reset='v=0', language=language)
+                 reset='v=0')
  
-syn = Synapses(G1, G2, 'dw/dt = -w / (50*ms): 1', pre='v+=w',
-               language=language)
+syn = Synapses(G1, G2, 'dw/dt = -w / (50*ms): 1', pre='v+=w')
 
 syn.connect('i == j', p=0.75)
 

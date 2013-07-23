@@ -566,15 +566,16 @@ class Equations(collections.Mapping):
         
         for _, expr in self.substituted_expressions:
             _, stochastic = expr.split_stochastic()
-            for factor in stochastic.itervalues():
-                if 't' in factor.identifiers:
-                    # noise factor depends on time
-                    return 'multiplicative'
-                
-                for identifier in factor.identifiers:
-                    if identifier in self.diff_eq_names:
-                        # factor depends on another state variable
+            if stochastic is not None:
+                for factor in stochastic.itervalues():
+                    if 't' in factor.identifiers:
+                        # noise factor depends on time
                         return 'multiplicative'
+
+                    for identifier in factor.identifiers:
+                        if identifier in self.diff_eq_names:
+                            # factor depends on another state variable
+                            return 'multiplicative'
         
         return 'additive'
 

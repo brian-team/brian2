@@ -8,13 +8,15 @@ The input is set differently for each neuron.
 from pylab import *
 from brian2 import *
 
+#brian_prefs.codegen.target = 'weave'
+
 N = 1000
 tau = 10 * ms
 eqs = '''
 dv/dt=(v0-v)/tau : volt (unless-refractory)
 v0 : volt
 '''
-group = NeuronGroup(N, equations=eqs, threshold='v>10 * mV',
+group = NeuronGroup(N, model=eqs, threshold='v>10 * mV',
                     reset='v = 0 * mV', refractory=5*ms)
 group.v = 0 * mV
 group.v0 = linspace(0 * mV, 20 * mV, N)

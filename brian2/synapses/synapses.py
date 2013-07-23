@@ -13,11 +13,10 @@ from brian2.core.specifiers import (ArrayVariable, Index, DynamicArrayVariable,
                                     AttributeValue, Subexpression, ReadOnlyValue,
                                     StochasticVariable, SynapticArrayVariable,
                                     Specifier)
-from brian2.codegen.languages import PythonLanguage
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)
-from brian2.groups.group import Group, GroupCodeRunner, create_codeobj
+from brian2.groups.group import Group, GroupCodeRunner, create_runner_codeobj
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
@@ -45,7 +44,7 @@ class StateUpdater(GroupCodeRunner):
         self.method_choice = method
         indices = {'_neuron_idx': Index('_neuron_idx', True)}
         GroupCodeRunner.__init__(self, group,
-                                 group.language.template_state_update,
+                                 'stateupdate',
                                  indices=indices,
                                  when=(group.clock, 'groups'),
                                  name=group.name + '_stateupdater',
@@ -89,7 +88,7 @@ class LumpedUpdater(GroupCodeRunner):
 
 
         GroupCodeRunner.__init__(self, group=synapses,
-                                 template=synapses.language.template_lumped_variable,
+                                 template='lumped_variable',
                                  code=code,
                                  indices=indices,
                                  # We want to update the lumped variable before
@@ -152,7 +151,7 @@ class SynapticPathway(GroupCodeRunner, Group):
             objname = prepost + '*'
 
         GroupCodeRunner.__init__(self, synapses,
-                                 synapses.language.template_synapses,
+                                 'synapses',
                                  code=code,
                                  indices=indices,
                                  when=(synapses.clock, 'synapses'),
@@ -199,7 +198,7 @@ class SynapticPathway(GroupCodeRunner, Group):
                 if len(self._delays) > 1:
                     delays = np.round(self._delays[indices] / self.dt).astype(int)
                 else:
-                    delays = np.round(self._delays / self.dt).astype(int)
+                    delays = np.round(self._delays[:] / self.dt).astype(int)
                 self.queue.push(indices, delays)
         # Get the spikes
         self.spiking_synapses = self.queue.peek()
@@ -375,8 +374,13 @@ class SynapticIndices(object):
 
     def _add_synapses(self, sources, targets, n, p, condition=None,
                       level=0):
+
         if condition is None:
-            if not np.isscalar(p) or p != 1:
+            sources = np.atleast_1d(sources)
+            targets = np.atleast_1d(targets)
+            n = np.atleast_1d(n)
+            p = np.atleast_1d(p)
+            if not len(p) == 1 or p != 1:
                 use_connections = np.random.rand(len(sources)) < p
                 sources = sources[use_connections]
                 targets = targets[use_connections]
@@ -430,14 +434,15 @@ class SynapticIndices(object):
                 'i': Specifier('i'),
                 'j': Specifier('j')
             }
-            codeobj = create_codeobj(self.synapses,
-                                     abstract_code,
-                                     self.synapses.language.template_synapses_create,
-                                     {},
-                                     additional_specifiers=specifiers,
-                                     additional_namespace=additional_namespace,
-                                     check_units=False,
-                                     language=self.synapses.language)
+            codeobj = create_runner_codeobj(self.synapses,
+                                            abstract_code,
+                                            'synapses_create',
+                                            {},
+                                            additional_specifiers=specifiers,
+                                            additional_namespace=additional_namespace,
+                                            check_units=False,
+                                            codeobj_class=self.synapses.codeobj_class,
+                                            )
             codeobj()
             number = len(self.synaptic_pre)
             for variable in self._registered_variables:
@@ -504,19 +509,20 @@ class SynapticIndices(object):
             additional_namespace = ('implicit-namespace', namespace)
             indices = {'_neuron_idx': Index('_neuron_idx', iterate_all=True)}
             abstract_code = '_cond = ' + index
-            codeobj = create_codeobj(self.synapses,
-                                     abstract_code,
-                                     self.synapses.language.template_state_variable_indexing,
-                                     indices,
-                                     additional_specifiers=specifiers,
-                                     additional_namespace=additional_namespace,
-                                     check_units=False,
-                                     language=self.synapses.language)
+            codeobj = create_runner_codeobj(self.synapses,
+                                            abstract_code,
+                                            'state_variable_indexing',
+                                            indices,
+                                            additional_specifiers=specifiers,
+                                            additional_namespace=additional_namespace,
+                                            check_units=False,
+                                            codeobj_class=self.synapses.codeobj_class,
+                                            )
 
             result = codeobj()
             return result
         else:
-            raise IndexError('Unsupported index type {}'.format(type(index)))
+            raise IndexError('Unsupported index type {itype}'.format(itype=type(index)))
 
 
 class Synapses(BrianObject, Group):
@@ -533,7 +539,7 @@ class Synapses(BrianObject, Group):
     target : `Group`, optional
         The target of the spikes, typically a `NeuronGroup`. If none is given,
         the same as `source`
-    equations : {`str`, `Equations`}, optional
+    model : {`str`, `Equations`}, optional
         The model equations for the synapses.
     pre : {str, dict}, optional
         The code that will be executed after every pre-synaptic spike. Can be
@@ -571,8 +577,8 @@ class Synapses(BrianObject, Group):
     dtype : `dtype`, optional
         The standard datatype for all state variables. Defaults to
         `core.default_scalar_type`.
-    language : `Language`, optional
-        The code-generation language to use. Defaults to `PythonLanguage`.
+    codeobj_class : class, optional
+        The `CodeObject` class to use to run code.
     clock : `Clock`, optional
         The clock to use.
     method : {str, `StateUpdateMethod`}, optional
@@ -582,11 +588,14 @@ class Synapses(BrianObject, Group):
         The name for this object. If none is given, a unique name of the form
         ``synapses``, ``synapses_1``, etc. will be automatically chosen.
     '''
-    def __init__(self, source, target=None, equations=None, pre=None, post=None,
+    def __init__(self, source, target=None, model=None, pre=None, post=None,
                  connect=False, delay=None, namespace=None, dtype=None,
-                 language=None, clock=None, method=None, name='synapses*'):
+                 codeobj_class=None,
+                 clock=None, method=None, name='synapses*'):
         
         BrianObject.__init__(self, when=clock, name=name)
+        
+        self.codeobj_class = codeobj_class
 
         if not hasattr(source, 'spikes') and hasattr(source, 'clock'):
             raise TypeError(('Source has to be a SpikeSource with spikes and'
@@ -600,22 +609,25 @@ class Synapses(BrianObject, Group):
             self.target = weakref.proxy(target)
             
         ##### Prepare and validate equations
-        if isinstance(equations, basestring):
-            equations = Equations(equations)
-        if not isinstance(equations, Equations):
-            raise TypeError(('equations has to be a string or an Equations '
-                             'object, is "%s" instead.') % type(equations))
+        if model is None:
+            model = ''
+
+        if isinstance(model, basestring):
+            model = Equations(model)
+        if not isinstance(model, Equations):
+            raise TypeError(('model has to be a string or an Equations '
+                             'object, is "%s" instead.') % type(model))
 
         # Check flags
-        equations.check_flags({DIFFERENTIAL_EQUATION: ['event-driven', 'lumped'],
-                               STATIC_EQUATION: ['lumped'],
-                               PARAMETER: ['constant', 'lumped']})
+        model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven', 'lumped'],
+                           STATIC_EQUATION: ['lumped'],
+                           PARAMETER: ['constant', 'lumped']})
 
         # Separate the equations into event-driven and continuously updated
         # equations
         event_driven = []
         continuous = []
-        for single_equation in equations.itervalues():
+        for single_equation in model.itervalues():
             if 'event-driven' in single_equation.flags:
                 if 'lumped' in single_equation.flags:
                     raise ValueError(('Event-driven variable %s cannot be '
@@ -638,14 +650,8 @@ class Synapses(BrianObject, Group):
 
         # Setup the namespace
         self._given_namespace = namespace
-        self.namespace = create_namespace(0, namespace)
+        self.namespace = create_namespace(namespace)
 
-        # Code generation (TODO: this should be refactored and modularised)
-        # Temporary, set default language to Python
-        if language is None:
-            language = PythonLanguage()
-        self.language = language
-        
         self._queues = {}
         self._delays = {}
 
@@ -877,14 +883,16 @@ class Synapses(BrianObject, Group):
                                                     array,
                                                     '_neuron_idx',
                                                     self,
-                                                    constant=constant)})
+                                                    constant=constant,
+                                                    is_bool=eq.is_bool)})
         
             elif eq.type == STATIC_EQUATION:
                 s.update({eq.varname: Subexpression(eq.varname, eq.unit,
                                                     brian_prefs['core.default_scalar_dtype'],
                                                     str(eq.expr),
                                                     s,
-                                                    self.namespace)})
+                                                    self.namespace,
+                                                    is_bool=eq.is_bool)})
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
@@ -975,11 +983,16 @@ class Synapses(BrianObject, Group):
         >>> S.connect('i != j', p=0.1)  # Connect neurons with 10% probability, exclude self-connections
         >>> S.connect('i == j', n=2)  # Connect all neurons to themselves with 2 synapses
         '''
-        if (not isinstance(pre_or_cond, bool) and
-                isinstance(pre_or_cond, (int, np.ndarray))):
-            if not isinstance(post, (int, np.ndarray)):
+        if not isinstance(pre_or_cond, (bool, basestring)):
+            pre_or_cond = np.asarray(pre_or_cond)
+            if not np.issubdtype(pre_or_cond.dtype, np.int):
+                raise TypeError(('Presynaptic indices have to be given as '
+                                 'integers, are type %s instead.') % pre_or_cond.dtype)
+
+            post = np.asarray(post)
+            if not np.issubdtype(post.dtype, np.int):
                 raise TypeError(('Presynaptic indices can only be combined '
-                                 'with postsynaptic indices))'))
+                                 'with postsynaptic integer indices))'))
             if isinstance(n, basestring):
                 raise TypeError(('Indices cannot be combined with a string'
                                  'expression for n. Either use an array/scalar '

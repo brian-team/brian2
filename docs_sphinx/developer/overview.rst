@@ -43,7 +43,7 @@ than the equation strings (this has the consequence for example concatenating
 immutable, so using the same object in different groups does not lead to any
 problems, either. They offer the possibility to specify values or exchange
 variable names (this also increases backward-compatiblity), but this does
-nothing more than string replacements.    
+nothing more than string replacements.
 
 The `Equations` class performs only very generic checks of the equations (e.g.
 whether illegal names such as ``t`` are used for state variables, whether the
@@ -55,7 +55,7 @@ differ between `NeuronGroup` and `Synapses`, for example).
 Specifiers and namespaces
 -------------------------
 Objects referring to variables and functions, in particular `NeuronGroup`
-(and eventually `Synapses`) have two dictionary-like attributes: ``namespace``
+and `Synapses` have two dictionary-like attributes: ``namespace``
 and ``specifiers``. The *namespace* is related to everything external to the
 model itself, i.e. variables and functions defined outside of the model
 equations. It by default consists of a set of standard units and functions 
@@ -77,9 +77,7 @@ of the target group under the key ``v_post``.
 
 Another parent class of `NeuronGroup` is `Group`, which also relies on the
 `Specifier` objects and exposes access to the state variables as attributes.
-This is also used in classes such as `StateMonitor` (which is also the reason
-why this is not merged with `ObjectWithNamespace` -- `StateMonitor` objects do
-not deal with namespaces).
+This is also used in classes such as `StateMonitor`.
 
 State Updaters
 --------------
@@ -89,23 +87,21 @@ State updaters convert equations into abstract code. Any function (or callable,
 in general) that is able to convert an `Equations` object into a string of
 abstract code can therefore be used as a state updater. Many state updaters
 can be described very easily by creating an `ExplicitStateUpdater` object with
-a textual description such as ``return x + dt * f(x, t)`` (which should be
-understood as :math:`x_{t+1} = x_t + dt \cdot f(x_t, t)`).
+a textual description such as ``x_new = x + dt * f(x, t)`` (which should be
+understood as :math:`x_{t+dt} = x_t + dt \cdot f(x_t, t)`).
 
 The `StateUpdateMethod` class provides a mechanism for registering new
 state updaters, registered state updaters will be considered when no state
 updater is explicitly specified. State updaters expose their capabilities via a
-``get_priority`` method, that specifies whether they are unable to integrate
-the given equations (by returning a priority of 0; for example, if a state
-updater does not support stochastic equations but the equations are stochastic)
-or what their priority is so that one state updater can be chosen when several
-state updaters are able to do the job. 
+``can_integrate`` method, that specifies whether they are able to integrate
+the given equations or not (for example, if a state updater does not support
+stochastic equations but the equations are stochastic). The order of the
+registration also provides an implicit priority: If not state updater is
+specified explicitly, the first from the list that claims to be able to
+integrate the equations will be chosen.
 
 Code objects and code generation
 --------------------------------
-For a more detailed description (possibly partly outdated), see
-:doc:`codegen/index`.
-
 The actual computations during a simulation -- the state update, the threshold
 testing, the reset code --  are performed by `CodeObject` objects. A group such
 as `NeuronGroup` creates the code objects for a certain target language (at

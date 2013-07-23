@@ -9,6 +9,8 @@ from brian2 import *
 import matplotlib.pyplot as plt
 from time import time
 
+#brian_prefs.codegen.target = 'weave'
+
 N = 1000
 taum = 10 * ms
 taupre = 20 * ms
@@ -42,7 +44,7 @@ S = Synapses(input, neurons,
              post='''Apost+=dApost
                      w=clip(w+Apre,0,gmax)''',
              connect=True,
-             language=CPPLanguage())
+             )
 S.w='rand()*gmax'
 start_time = time()
 run(100 * second, report='text')

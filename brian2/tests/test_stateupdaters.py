@@ -15,32 +15,32 @@ def test_explicit_stateupdater_parsing():
     Test the parsing of explicit state updater descriptions.
     '''
     # These are valid descriptions and should not raise errors
-    updater = ExplicitStateUpdater('return x + dt * f(x, t)')
+    updater = ExplicitStateUpdater('x_new = x + dt * f(x, t)')
     updater(Equations('dv/dt = -v / tau : 1'))
     updater = ExplicitStateUpdater('''x2 = x + dt * f(x, t)
-                                      return x2''')
+                                      x_new = x2''')
     updater(Equations('dv/dt = -v / tau : 1'))
     updater = ExplicitStateUpdater('''x1 = g(x, t) * dW
                                       x2 = x + dt * f(x, t)
-                                      return x1 + x2''')
+                                      x_new = x1 + x2''')
     updater(Equations('dv/dt = -v / tau + v * xi * tau**-.5: 1'))
     
     updater = ExplicitStateUpdater('''x_support = x + dt*f(x, t) + dt**.5 * g(x, t)
                                       g_support = g(x_support, t)
                                       k = 1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)
-                                      return x + dt*f(x,t) + g(x, t) * dW + k''')
+                                      x_new = x + dt*f(x,t) + g(x, t) * dW + k''')
     updater(Equations('dv/dt = -v / tau + v * xi * tau**-.5: 1'))
 
     
     # Examples of failed parsing
-    # No return statement
-    assert_raises(SyntaxError, lambda: ExplicitStateUpdater('x + dt * f(x, t)'))
+    # No x_new = ... statement
+    assert_raises(SyntaxError, lambda: ExplicitStateUpdater('x = x + dt * f(x, t)'))
     # Not an assigment
     assert_raises(SyntaxError, lambda: ExplicitStateUpdater('''2 * x
-                                                               return x + dt * f(x, t)'''))
+                                                               x_new = x + dt * f(x, t)'''))
     
     # doesn't separate into stochastic and non-stochastic part
-    updater = ExplicitStateUpdater('''return x + dt * f(x, t) * g(x, t) * dW''')
+    updater = ExplicitStateUpdater('''x_new = x + dt * f(x, t) * g(x, t) * dW''')
     assert_raises(ValueError, lambda: updater(Equations('')))
 
 def test_str_repr():
@@ -62,7 +62,8 @@ def test_integrator_code():
     # Only test very basic stuff (expected number of lines and last line)
     for integrator, lines in zip([linear, euler, rk2, rk4], [2, 2, 3, 6]):
         code_lines = integrator(eqs).split('\n')
-        assert len(code_lines) == lines
+        err_msg = 'Returned code for integrator %s had %d lines instead of %d' % (integrator.__class__.__name__, len(code_lines), lines)
+        assert len(code_lines) == lines, err_msg
         assert code_lines[-1] == 'v = _v'
     
     # Make sure that it isn't a problem to use 'x', 'f' and 'g'  as variable
@@ -84,7 +85,7 @@ def test_integrator_code():
 
 
 def test_priority():
-    updater = ExplicitStateUpdater('return x + dt * f(x, t)')
+    updater = ExplicitStateUpdater('x_new = x + dt * f(x, t)')
     # Equations that work for the state updater
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     # Fake clock class
@@ -159,7 +160,7 @@ def test_registration():
     # Save state before tests
     before = list(StateUpdateMethod.stateupdaters)
     
-    lazy_updater = ExplicitStateUpdater('return x')
+    lazy_updater = ExplicitStateUpdater('x_new = x')
     StateUpdateMethod.register('lazy', lazy_updater)
     
     # Trying to register again
@@ -225,7 +226,7 @@ def test_determination():
     
     # Arbitrary functions (converting equations into abstract code) should
     # always work
-    my_stateupdater = lambda eqs: 'return x'
+    my_stateupdater = lambda eqs: 'x_new = x'
     with catch_logs() as logs:
         returned = determine_stateupdater(eqs, specifiers,
                                           method=my_stateupdater)

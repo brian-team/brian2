@@ -10,13 +10,15 @@ R. Brette
 from pylab import *
 from brian2 import *
 
+#brian_prefs.codegen.target = 'weave'
+
 N = 25
 tau = 20 * ms
 sigma = .015
 eqs_neurons = '''
 dx/dt=(1.1-x)/tau+sigma*(2./tau)**.5*xi:1
 '''
-neurons = NeuronGroup(N, equations=eqs_neurons, threshold='x>1', reset='x=0')
+neurons = NeuronGroup(N, model=eqs_neurons, threshold='x>1', reset='x=0')
 neurons.refractory = 5*ms
 spikes = SpikeMonitor(neurons)
 

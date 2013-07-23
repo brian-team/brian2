@@ -7,11 +7,11 @@ from jinja2 import Template, Environment, FileSystemLoader
 import os
 import re
 
-__all__ = ['LanguageTemplater']
+__all__ = ['Templater']
 
-class LanguageTemplater(object):
+class Templater(object):
     '''
-    Class to load and return all the templates a language defines.
+    Class to load and return all the templates a `CodeObject` defines.
     '''
     def __init__(self, basedir):
         self.basedir = basedir
@@ -20,11 +20,11 @@ class LanguageTemplater(object):
                                lstrip_blocks=True,
                                )
         for name in self.env.list_templates():
-            template = LanguageTemplate(self.env.get_template(name))
+            template = CodeObjectTemplate(self.env.get_template(name))
             setattr(self, os.path.splitext(name)[0], template)
 
 
-class LanguageTemplate(object):
+class CodeObjectTemplate(object):
     def __init__(self, template):
         self.template = template
         res = self([''])
@@ -74,5 +74,5 @@ class MultiTemplate(object):
 
 
 if __name__=='__main__':
-    lt = LanguageTemplater('python/templates')
-    print lt.reset('a=b\nc=d')
+    lt = Templater('runtime/numpy_rt/templates')
+    print lt.reset(['a=b', 'c=d'])

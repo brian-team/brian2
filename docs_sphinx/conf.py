@@ -18,6 +18,31 @@ import sys, os, shutil
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
 
+
+# Mock the scipy module
+class Mock(object):
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __call__(self, *args, **kwargs):
+        return Mock()
+
+    @classmethod
+    def __getattr__(cls, name):
+        if name in ('__file__', '__path__'):
+            return '/dev/null'
+        elif name[0] == name[0].upper():
+            mockType = type(name, (), {})
+            mockType.__module__ = __name__
+            return mockType
+        else:
+            return Mock()
+
+MOCK_MODULES = ['scipy']
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = Mock()
+
+
 # -- Automatically generate the reference documentation ------------------------
 import brian2.sphinxext.generate_reference as generate_reference
 # first generate the reference documentation
@@ -265,26 +290,4 @@ intersphinx_mapping = {
                        }
 
 autodoc_default_flags = ['show-inheritance']
-
-class Mock(object):
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def __call__(self, *args, **kwargs):
-        return Mock()
-
-    @classmethod
-    def __getattr__(cls, name):
-        if name in ('__file__', '__path__'):
-            return '/dev/null'
-        elif name[0] == name[0].upper():
-            mockType = type(name, (), {})
-            mockType.__module__ = __name__
-            return mockType
-        else:
-            return Mock()
-
-MOCK_MODULES = ['scipy']
-for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = Mock()
 
