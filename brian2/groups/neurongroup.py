@@ -36,7 +36,7 @@ class StateUpdater(GroupCodeRunner):
     '''
     def __init__(self, group, method):
         self.method_choice = method
-        indices = {'_neuron_idx': Index('_neuron_idx', True)}
+        indices = {'_element_idx': Index('_element_idx', True)}
         
         GroupCodeRunner.__init__(self, group,
                                        'stateupdate',
@@ -95,7 +95,7 @@ class Thresholder(GroupCodeRunner):
     and ``refractory_until`` attributes.
     '''
     def __init__(self, group):
-        indices = {'_neuron_idx': Index('_neuron_idx', True)}
+        indices = {'_element_idx': Index('_element_idx', True)}
         # For C++ code, we need these names explicitly, since not_refractory
         # and lastspike might also be used in the threshold condition -- the
         # names will then refer to single (constant) values and cannot be used
@@ -123,7 +123,7 @@ class Resetter(GroupCodeRunner):
     variables of neurons that have spiked in this timestep.
     '''
     def __init__(self, group):
-        indices = {'_neuron_idx': Index('_neuron_idx', False)}
+        indices = {'_element_idx': Index('_element_idx', False)}
         GroupCodeRunner.__init__(self, group,
                                  'reset',
                                  indices=indices,
@@ -358,7 +358,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         s = Group._create_specifiers(self)
 
         # Standard specifiers always present
-        s.update({'_num_neurons': ReadOnlyValue('_num_neurons', Unit(1),
+        s.update({'_num_elements': ReadOnlyValue('_num_elements', Unit(1),
                                                 np.int, self.N),
                   '_spikes': AttributeValue('_spikes', Unit(1), np.int32,
                                              self, 'spikes')})
@@ -373,7 +373,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                                     eq.unit,
                                                     array.dtype,
                                                     array,
-                                                    '_neuron_idx',
+                                                    '_element_idx',
                                                     self,                                                    
                                                     constant=constant,
                                                     is_bool=eq.is_bool)})

@@ -29,10 +29,10 @@
 		_spiking_synapse_idx<_num_spiking_synapses;
 		_spiking_synapse_idx++)
 	{
-		const int _neuron_idx = _spiking_synapses[_spiking_synapse_idx];
-		const int _postsynaptic_idx = _synaptic_post[_neuron_idx];
-		const int _presynaptic_idx = _synaptic_pre[_neuron_idx];
-		const int _vectorisation_idx = _neuron_idx;
+		const int _element_idx = _spiking_synapses[_spiking_synapse_idx];
+		const int _postsynaptic_idx = _synaptic_post[_element_idx];
+		const int _presynaptic_idx = _synaptic_pre[_element_idx];
+		const int _vectorisation_idx = _element_idx;
 		{% for line in code_lines %}
 		{{line}}
 		{% endfor %}

@@ -31,7 +31,7 @@ class Indices(object):
                                               Unit(1),
                                               self._indices.dtype,
                                               self._indices,
-                                              '_neuron_idx')}
+                                              '_element_idx')}
 
     def __len__(self):
         return self.N
@@ -179,7 +179,7 @@ class Group(object):
             to the surrounding namespace.
         '''
         abstract_code = specifier.name + ' = ' + code
-        indices = {'_neuron_idx': Index('_neuron_idx', iterate_all=False)}
+        indices = {'_element_idx': Index('_element_idx', iterate_all=False)}
         namespace = get_local_namespace(level + 1)
         additional_namespace = ('implicit-namespace', namespace)
         additional_specifiers = dict(self.indices.specifiers)

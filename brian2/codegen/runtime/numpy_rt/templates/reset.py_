@@ -1,6 +1,6 @@
 # USE_SPECIFIERS { _spikes }
-_neuron_idx = _spikes
-_vectorisation_idx = _neuron_idx
+_element_idx = _spikes
+_vectorisation_idx = _element_idx
 {% for line in code_lines %}
 {{line}}
 {% endfor %}

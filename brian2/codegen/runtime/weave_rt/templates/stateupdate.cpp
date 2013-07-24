@@ -2,7 +2,7 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
-	// USE_SPECIFIERS { _num_neurons }
+	// USE_SPECIFIERS { _num_elements }
 
     ////// SUPPORT CODE ///
 	{% for line in support_code_lines %}
@@ -25,9 +25,9 @@
 	{% endfor %}
 
 	//// MAIN CODE ////////////
-	for(int _neuron_idx=0; _neuron_idx<_num_neurons; _neuron_idx++)
+	for(int _element_idx=0; _element_idx<_num_elements; _element_idx++)
 	{
-	    const int _vectorisation_idx = _neuron_idx;
+	    const int _vectorisation_idx = _element_idx;
 		{% for line in code_lines %}
 		{{line}}
 		{% endfor %}

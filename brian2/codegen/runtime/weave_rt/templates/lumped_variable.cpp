@@ -27,10 +27,10 @@
 	    _ptr{{_target_var_array}}[_target_idx] = 0.0;
 
     // A bit confusing: The "neuron" index here refers to the synapses!
-	for(int _neuron_idx=0; _neuron_idx<_num_synaptic_post; _neuron_idx++)
+	for(int _element_idx=0; _element_idx<_num_synaptic_post; _element_idx++)
 	{
-	    const int _postsynaptic_idx = _synaptic_post[_neuron_idx];
-	    const int _presynaptic_idx = _synaptic_pre[_neuron_idx];
+	    const int _postsynaptic_idx = _synaptic_post[_element_idx];
+	    const int _presynaptic_idx = _synaptic_pre[_element_idx];
 		{% for line in code_lines %}
 		{{line}}
 		{% endfor %}
