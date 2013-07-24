@@ -597,11 +597,6 @@ class Synapses(BrianObject, Group):
         
         self.codeobj_class = codeobj_class
 
-        if not hasattr(source, 'spikes') and hasattr(source, 'clock'):
-            raise TypeError(('Source has to be a SpikeSource with spikes and'
-                             ' clock attribute. Is type %r instead')
-                            % type(source))
-
         self.source = weakref.proxy(source)
         if target is None:
             self.target = self.source
@@ -799,6 +794,19 @@ class Synapses(BrianObject, Group):
             given (and did not end in a wildcard character).
 
         '''
+        if prepost == 'pre':
+            spike_group, group_name = self.source, 'Source'
+        elif prepost == 'post':
+            spike_group = self.target, 'Target'
+        else:
+            raise ValueError(('"prepost" argument has to be "pre" or "post", '
+                              'is "%s".') % prepost)
+
+        if not hasattr(spike_group, 'spikes') and hasattr(spike_group, 'clock'):
+            raise TypeError(('%s has to be a SpikeSource with spikes and'
+                             ' clock attribute. Is type %r instead')
+                            % (group_name, type(spike_group)))
+
         updater = SynapticPathway(self, code, prepost, objname)
         objname = updater.objname
         if hasattr(self, objname):
