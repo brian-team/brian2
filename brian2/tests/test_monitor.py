@@ -127,6 +127,6 @@ def test_rate_monitor():
     brian_prefs.codegen.target = language_before
 
 if __name__ == '__main__':
-    #est_spike_monitor()
-    #test_state_monitor()
+    test_spike_monitor()
+    test_state_monitor()
     test_rate_monitor()
