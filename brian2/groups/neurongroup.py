@@ -13,11 +13,12 @@ from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
-from brian2.core.specifiers import (ReadOnlyValue, AttributeValue, ArrayVariable,
+from brian2.core.specifiers import (Variable, AttributeVariable, ArrayVariable,
                                     StochasticVariable, Subexpression, Index)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
-from brian2.parsing.expressions import parse_expression_unit, is_boolean_expression
+from brian2.parsing.expressions import (parse_expression_unit,
+                                        is_boolean_expression)
 from brian2.utils.logger import get_logger
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
@@ -358,23 +359,20 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         s = Group._create_specifiers(self)
 
         # Standard specifiers always present
-        s.update({'_num_elements': ReadOnlyValue('_num_elements', Unit(1),
-                                                np.int, self.N),
-                  '_spikes': AttributeValue('_spikes', Unit(1), np.int32,
-                                             self, 'spikes')})
+        s.update({'_num_elements': Variable('_num_elements', Unit(1), self.N,
+                                            constant=True),
+                  '_spikes': AttributeVariable('_spikes', Unit(1), self,
+                                               'spikes', constant=False)})
 
-        # First add all the differential equations and parameters, because they
-        # may be referred to by static equations
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 array = self.arrays[eq.varname]
                 constant = ('constant' in eq.flags)
                 s.update({eq.varname: ArrayVariable(eq.varname,
                                                     eq.unit,
-                                                    array.dtype,
                                                     array,
                                                     '_element_idx',
-                                                    self,                                                    
+                                                    group=self,
                                                     constant=constant,
                                                     is_bool=eq.is_bool)})
         
@@ -382,8 +380,8 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                 s.update({eq.varname: Subexpression(eq.varname, eq.unit,
                                                     brian_prefs['core.default_scalar_dtype'],
                                                     str(eq.expr),
-                                                    s,
-                                                    self.namespace,
+                                                    specifiers=s,
+                                                    namespace=self.namespace,
                                                     is_bool=eq.is_bool)})
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)

@@ -1,9 +1,10 @@
 import functools
 
-from brian2.core.specifiers import (ArrayVariable, Value,
-                                    AttributeValue, Subexpression)
+from brian2.core.specifiers import (ArrayVariable, Variable,
+                                    AttributeVariable, Subexpression,
+                                    StochasticVariable)
 from .functions.base import Function
-from brian2.core.preferences import brian_prefs, BrianPreference
+from brian2.core.preferences import brian_prefs
 from brian2.utils.logger import get_logger
 from .translation import translate
 from .runtime.targets import runtime_targets
@@ -126,13 +127,13 @@ class CodeObject(object):
         self.nonconstant_values = []
         
         for name, spec in self.specifiers.iteritems():   
-            if isinstance(spec, Value):
-                if isinstance(spec, AttributeValue):
+            if isinstance(spec, Variable):
+                if isinstance(spec, AttributeVariable):
                     self.nonconstant_values.append((name, spec.get_value))
                     if not spec.scalar:
                         self.nonconstant_values.append(('_num' + name,
                                                         spec.get_len))
-                elif not isinstance(spec, Subexpression):
+                elif not isinstance(spec, (Subexpression, StochasticVariable)):
                     value = spec.get_value()
                     self.namespace[name] = value
                     # if it is a type that has a length, add a variable called

@@ -167,9 +167,6 @@ class CPPLanguage(Language):
             if isinstance(spec, ArrayVariable):
                 arrayname = spec.arrayname
                 if not arrayname in arraynames:
-                    if spec.dtype != spec.array.dtype:
-                        print spec.array
-                        raise AssertionError('Conflicting dtype information for %s: %s - %s' % (var, spec.dtype, spec.array.dtype))
                     line = c_data_type(spec.dtype) + ' * ' + self.restrict + '_ptr' + arrayname + ' = ' + arrayname + ';'
                     lines.append(line)
                     arraynames.add(arrayname)

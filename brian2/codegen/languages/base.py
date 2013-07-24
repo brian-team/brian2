@@ -2,7 +2,7 @@
 Base class for languages, gives the methods which should be overridden to
 implement a new language.
 '''
-from brian2.core.specifiers import (ArrayVariable, Value, AttributeValue,
+from brian2.core.specifiers import (ArrayVariable, AttributeVariable,
                                     Subexpression)
 from brian2.utils.stringtools import get_identifiers
 

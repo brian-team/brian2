@@ -7,7 +7,7 @@ from numpy.testing.utils import assert_equal
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
-from brian2.core.specifiers import ArrayVariable, AttributeValue
+from brian2.core.specifiers import ArrayVariable, AttributeVariable
 
 
 def test_explicit_stateupdater_parsing():
@@ -91,17 +91,17 @@ def test_priority():
     # Fake clock class
     MyClock = namedtuple('MyClock', ['t_', 'dt_'])
     clock = MyClock(t_=0, dt_=0.0001)
-    specifiers = {'v': ArrayVariable('v', Unit(1), np.float, None, '',
+    specifiers = {'v': ArrayVariable('v', Unit(1), None, index='',
                                      constant=False),
-                  't': AttributeValue('t',  second, np.float64, clock, 't_'),
-                  'dt': AttributeValue('dt', second, np.float64, clock, 'dt_', constant=True)} 
+                  't': AttributeVariable('t',  second, clock, 't_', constant=False),
+                  'dt': AttributeVariable('dt', second, clock, 'dt_', constant=True)}
     assert updater.can_integrate(eqs, specifiers)
 
     # Non-constant parameter in the coefficient, linear integration does not
     # work
     eqs = Equations('''dv/dt = -param * v / (10*ms) : 1
                        param : 1''')
-    specifiers['param'] = ArrayVariable('param', Unit(1), np.float, None, '',
+    specifiers['param'] = ArrayVariable('param', Unit(1), None, index='',
                                         constant=False)
     assert updater.can_integrate(eqs, specifiers)
     can_integrate = {linear: False, euler: True, rk2: True, rk4: True, 
@@ -114,7 +114,7 @@ def test_priority():
     # work
     eqs = Equations('''dv/dt = -param * v / (10*ms) : 1
                        param : 1 (constant)''')
-    specifiers['param'] = ArrayVariable('param', Unit(1), np.float, None, '',
+    specifiers['param'] = ArrayVariable('param', Unit(1), None, index='',
                                         constant=True)
     assert updater.can_integrate(eqs, specifiers)
     can_integrate = {linear: True, euler: True, rk2: True, rk4: True, 

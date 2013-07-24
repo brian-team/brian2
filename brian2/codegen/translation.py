@@ -19,8 +19,8 @@ import collections
 
 from numpy import float64
 
-from brian2.core.specifiers import Value, ArrayVariable, Subexpression, Index
-from brian2.utils.stringtools import (deindent, strip_empty_lines, indent,
+from brian2.core.specifiers import Variable, Subexpression
+from brian2.utils.stringtools import (deindent, strip_empty_lines,
                                       get_identifiers)
 
 from .statements import Statement
@@ -81,7 +81,8 @@ def analyse_identifiers(code, specifiers, recursive=False):
         known = set(specifiers.keys())
     else:
         known = set(specifiers)
-        specifiers = dict((k, Value(k, 1, float64)) for k in known)
+        specifiers = dict((k, Variable(k, 1, dtype=float64,
+                                       is_bool=False, scalar=False)) for k in known)
 
     known |= STANDARD_IDENTIFIERS
     stmts = make_statements(code, specifiers, float64)

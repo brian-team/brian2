@@ -7,7 +7,7 @@ import operator
 from sympy import Wild, Symbol, Float
 import sympy as sp
 
-from brian2.core.specifiers import Value
+from brian2.core.specifiers import Variable
 from brian2.codegen.parsing import sympy_to_str
 from brian2.utils.stringtools import get_identifiers
 from brian2.utils.logger import get_logger
@@ -256,7 +256,7 @@ class LinearStateUpdater(StateUpdateMethod):
             for identifier in identifiers:
                 if identifier in specifiers:
                     spec = specifiers[identifier]
-                    if isinstance(spec, Value) and spec.scalar and spec.constant:
+                    if isinstance(spec, Variable) and spec.scalar and spec.constant:
                         float_val = spec.get_value()
                         rhs = rhs.xreplace({Symbol(identifier, real=True): Float(float_val)})
 

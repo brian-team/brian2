@@ -16,7 +16,7 @@ from brian2.units.allunits import (metre, meter, second, amp, kelvin, mole,
 from brian2.codegen.translation import analyse_identifiers
 from brian2.parsing.expressions import parse_expression_unit
 from brian2.codegen.parsing import parse_statement
-from brian2.core.specifiers import VariableSpecifier
+from brian2.core.specifiers import Variable
 
 __all__ = ['unit_from_string', 'unit_from_expression', 'check_unit',
            'check_units_statements']
@@ -180,7 +180,8 @@ def check_units_statements(code, namespace, specifiers):
                                          'correct units' % line))
         elif var in newly_defined:
             # note the unit for later
-            specs[var] = VariableSpecifier(var, expr_unit)
+            specs[var] = Variable(var, expr_unit, is_bool=False,
+                                  scalar=False)
         else:
             raise AssertionError(('Variable "%s" is neither in the specifiers '
                                   'dictionary nor in the list of undefined '

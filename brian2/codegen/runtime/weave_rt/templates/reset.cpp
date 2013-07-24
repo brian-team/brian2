@@ -20,9 +20,9 @@
 	{% endfor %}
 
 	//// MAIN CODE ////////////
-	for(int _index__spikes=0; _index__spikes<_num_spikes; _index__spikes++)
+	for(int _index_spikes=0; _index_spikes<_num_spikes; _index_spikes++)
 	{
-		const int _element_idx = _spikes[_index__spikes];
+		const int _element_idx = _spikes[_index_spikes];
 		const int _vectorisation_idx = _element_idx;
 		{% for line in code_lines %}
 		{{line}}

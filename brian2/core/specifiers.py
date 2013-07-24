@@ -13,7 +13,7 @@ from brian2.units.fundamentalunits import (Quantity, Unit, is_scalar_type,
                                            have_same_dimensions)
 
 __all__ = ['Specifier',
-           'VariableSpecifier',
+           'Variable',
            'Value',
            'ReadOnlyValue',
            'StochasticVariable',
@@ -22,6 +22,13 @@ __all__ = ['Specifier',
            'Subexpression',           
            'Index',
            ]
+
+
+def get_dtype(obj):
+    if hasattr(obj, 'dtype'):
+        return obj.dtype
+    else:
+        return np.dtype(type(obj))
 
 
 ###############################################################################
@@ -50,7 +57,7 @@ class Specifier(object):
         return '%s(name=%r)' % (self.__class__.__name__, self.name)
 
 
-class VariableSpecifier(Specifier):
+class Variable(Specifier):
     '''
     An object providing information about model variables (including implicit
     variables such as ``t`` or ``xi``).
@@ -60,86 +67,83 @@ class VariableSpecifier(Specifier):
     name : str
         The name of the variable.
     unit : `Unit`
-        The unit of the variable
+        The unit of the variable. Note that the variable itself (as referenced
+        by value) should never have units attached.
+    value: reference to the variable value, optional
+        Some variables (e.g. stochastic variables) don't have their value
+        stored anywhere, they'd pass ``None`` as a value.
+    dtype: `numpy.dtype`, optional
+        The dtype used for storing the variable. If a
     scalar : bool, optional
-        Whether the variable is a scalar value (``True``) or vector-valued, i.e.
+        Whether the variable is a scalar value (``True``) or vector-valued, e.g.
         defined for every neuron (``False``). Defaults to ``True``.
     constant: bool, optional
         Whether the value of this variable can change during a run. Defaults
         to ``False``.
     is_bool: bool, optional
         Whether this is a boolean variable (also implies it is dimensionless).
-        Defaults to ``False``
+        If no value is given, checks the value itself.
     See Also
     --------
     Value
     '''
-    def __init__(self, name, unit, scalar=True, constant=False, is_bool=False):
+    def __init__(self, name, unit, value=None, dtype=None, scalar=None,
+                 constant=False, is_bool=None):
         Specifier.__init__(self, name)
         
         #: The variable's unit.
         self.unit = unit
 
-        #: Whether this is a boolean variable
-        self.is_bool = is_bool
+        #: reference to a value of type `dtype`
+        self.value = value
+
+
+        if dtype is None:
+            self.dtype = get_dtype(value)
+        else:
+            value_dtype = get_dtype(value)
+            if value is not None and value_dtype != dtype:
+                raise TypeError(('Conflicting dtype information for %s, '
+                                 'referred value has dtype %r, not '
+                                 '%r.') % (name, value_dtype, dtype))
+            #: The dtype used for storing the variable.
+            self.dtype = dtype
+
+        if is_bool is None:
+            if value is None:
+                raise TypeError('is_bool needs to be specified if no value is given')
+            self.is_bool = value is True or value is False
+        else:
+            #: Whether this variable is a boolean
+            self.is_bool = is_bool
 
         if is_bool:
             if not have_same_dimensions(unit, 1):
                 raise ValueError('Boolean variables can only be dimensionless')
 
-        #: Whether the value is a scalar
-        self.scalar = scalar
+        if scalar is None:
+            if value is None:
+                raise TypeError('scalar needs to be specified if no value is given')
+            self.scalar = is_scalar_type(value)
+        else:
+            #: Whether the variable is a scalar
+            self.scalar = scalar
 
-        #: Whether the value is constant during a run
+        #: Whether the variable is constant during a run
         self.constant = constant
 
-
-    def __repr__(self):
-        description = ('{classname}(name={name}, unit={unit}, scalar={scalar}, '
-                       'constant={constant})')
-        return description.format(classname=self.__class__.__name__,
-                                  name=repr(self.name),
-                                  unit=repr(self.unit),
-                                  scalar=repr(self.scalar),
-                                  constant=repr(self.constant))
-
-class Value(VariableSpecifier):
-    '''
-    An object providing information about model variables that have an
-    associated value in the model.
-    
-    Some variables, for example stochastic variables, are not stored anywhere
-    in the model itself. They would therefore be represented by a specifier
-    that is *not* derived from `Value` but from `VariableSpecifier`. 
-    
-    Parameters
-    ----------
-    name : str
-        The name of the variable.
-    unit : `Unit`
-        The unit of the variable
-    dtype: `numpy.dtype`
-        The dtype used for storing the variable.
-    scalar : bool, optional
-        Whether the variable is a scalar value (``True``) or vector-valued, i.e.
-        defined for every neuron (``False``). Defaults to ``True``.
-    constant: bool, optional
-        Whether the value of this variable can change during a run. Defaults
-        to ``False``.
-    is_bool: bool, optional
-        Whether this is a boolean variable (also implies it is dimensionless).
-        Defaults to ``False``
-
-    '''
-    def __init__(self, name, unit, dtype, scalar=True, constant=False,
-                 is_bool=False):
-        VariableSpecifier.__init__(self, name, unit, scalar, constant, is_bool)
-        #: The dtype used for storing the variable.
-        self.dtype = dtype
-    
     def get_value(self):
         '''
         Return the value associated with the variable.
+        '''
+        if self.value is None:
+            raise TypeError('%s does not have a value' % self.name)
+        else:
+            return self.value
+
+    def set_value(self):
+        '''
+        Set the value associated with the variable.
         '''
         raise NotImplementedError()
 
@@ -157,19 +161,14 @@ class Value(VariableSpecifier):
             return 0
         else:
             return len(self.get_value())
-    
-    def set_value(self):
-        '''
-        Set the value associated with the variable.
-        '''
-        raise NotImplementedError()
 
     def __repr__(self):
-        description = ('{classname}(name={name}, unit={unit}, dtype={dtype}, '
-                       'scalar={scalar}, constant={constant})')
+        description = ('<{classname}(name={name}, unit={unit}, value={value}, '
+                       'dtype={dtype}, scalar={scalar}, constant={constant})>')
         return description.format(classname=self.__class__.__name__,
                                   name=repr(self.name),
                                   unit=repr(self.unit),
+                                  value='<value of type %s>' % type(self.value),
                                   dtype=repr(self.dtype),
                                   scalar=repr(self.scalar),
                                   constant=repr(self.constant))
@@ -178,56 +177,8 @@ class Value(VariableSpecifier):
 # Concrete classes that are used as specifiers in practice.
 ###############################################################################
 
-class ReadOnlyValue(Value):
-    '''
-    An object providing information about a model variable that can only be
-    read (e.g. the length of a `NeuronGroup`). It is assumed that the value
-    does never change, for changing values use `AttributeValue` instead.
-    
-    Parameters
-    ----------
-    name : str
-        The name of the variable.
-    unit : `Unit`
-        The unit of the variable
-    dtype: `numpy.dtype`
-        The dtype used for storing the variable.
-    value : reference to a value of type `dtype`
-        Reference to the variable's value
 
-    Raises
-    ------
-    TypeError
-        When trying to use the `set_value` method.
-    '''
-    def __init__(self, name, unit, dtype, value):
-        #: Reference to the variable's value
-        self.value = value
-        
-        scalar = is_scalar_type(value)
-
-        is_bool = value is True or value is False
-
-        Value.__init__(self, name, unit, dtype, scalar, constant=True,
-                       is_bool=is_bool)
-
-    def get_value(self):
-        return self.value
-
-    def set_value(self):
-        raise TypeError('The value "%s" is read-only' % self.name)
-
-    def __repr__(self):
-        description = ('{classname}(name={name}, unit={unit}, dtype={dtype}, '
-                       'value={value}')
-        return description.format(classname=self.__class__.__name__,
-                                  name=repr(self.name),
-                                  unit=repr(self.unit),
-                                  dtype=repr(self.dtype),
-                                  value=repr(self.value))
-
-
-class StochasticVariable(VariableSpecifier):
+class StochasticVariable(Variable):
     '''
     An object providing information about a stochastic variable. Automatically
     sets the unit to ``second**-.5``.
@@ -239,10 +190,11 @@ class StochasticVariable(VariableSpecifier):
     '''
     def __init__(self, name):
         # The units of stochastic variables is fixed
-        VariableSpecifier.__init__(self, name, second**(-.5), scalar=False)
+        Variable.__init__(self, name, second**(-.5), dtype=np.float64,
+                          scalar=False, constant=False, is_bool=False)
 
 
-class AttributeValue(ReadOnlyValue):
+class AttributeVariable(Variable):
     '''
     An object providing information about a value saved as an attribute of an
     object. Instead of saving a reference to the value itself, we save the
@@ -257,37 +209,29 @@ class AttributeValue(ReadOnlyValue):
         The name of the variable.
     unit : `Unit`
         The unit of the variable
-    dtype: `numpy.dtype`
-        The dtype used for storing the variable.
     obj : object
         The object storing the variable's value (e.g. a `NeuronGroup`).
     attribute : str
         The name of the attribute storing the variable's value. `attribute` has
         to be an attribute of `obj`.
     constant : bool, optional
-        Whether the attribute's value is constant during a run.
-    is_bool: bool, optional
-        Whether this is a boolean variable (also implies it is dimensionless).
-        Defaults to ``False``
+        Whether the attribute's value is constant during a run. Defaults to
+        ``True``.
     Raises
     ------
     AttributeError
         If `obj` does not have an attribute `attribute`.
         
     '''
-    def __init__(self, name, unit, dtype, obj, attribute, constant=False,
-                 is_bool=False):
+    def __init__(self, name, unit, obj, attribute, constant=True):
         if not hasattr(obj, attribute):
             raise AttributeError(('Object %r does not have an attribute %r, '
                                   'providing the value for %r') %
                                  (obj, attribute, name))
 
         value = getattr(obj, attribute)
-        scalar = is_scalar_type(value)
-
-        is_bool = value is True or value is False
         
-        Value.__init__(self, name, unit, dtype, scalar, constant, is_bool)
+        Variable.__init__(self, name, unit, value, constant=constant)
         #: A reference to the object storing the variable's value         
         self.obj = obj
         #: The name of the attribute storing the variable's value
@@ -297,12 +241,11 @@ class AttributeValue(ReadOnlyValue):
         return getattr(self.obj, self.attribute)
 
     def __repr__(self):
-        description = ('{classname}(name={name}, unit={unit}, dtype={dtype}, '
+        description = ('{classname}(name={name}, unit={unit}, '
                        'obj={obj}, attribute={attribute}, constant={constant})')
         return description.format(classname=self.__class__.__name__,
                                   name=repr(self.name),
                                   unit=repr(self.unit),
-                                  dtype=repr(self.dtype),
                                   obj=repr(self.obj),
                                   attribute=repr(self.attribute),
                                   constant=repr(self.constant))
@@ -347,7 +290,7 @@ class VariableView(object):
         else:
             if not self.unit is None:
                 fail_for_dimension_mismatch(value, self.unit)
-            self.specifier.array[indices] = value
+            self.specifier.value[indices] = value
 
     def __array__(self, dtype=None):
         if dtype is not None and dtype != self.specifier.dtype:
@@ -408,7 +351,7 @@ class VariableView(object):
                                              self.unit.dimensions))
 
 
-class ArrayVariable(Value):
+class ArrayVariable(Variable):
     '''
     An object providing information about a model variable stored in an array
     (for example, all state variables). The `index` will be used in the
@@ -430,35 +373,34 @@ class ArrayVariable(Value):
         The name of the variable.
     unit : `Unit`
         The unit of the variable
-    dtype : `numpy.dtype`
-        The dtype used for storing the variable.
-    array : `numpy.array`
+    value : `numpy.array`
         A reference to the array storing the data for the variable.
     index : str
         The index that will be used in the generated code when looping over the
         variable.
+    group : `Group`, optional
+        A reference to the `Group` that stores this variable, necessary for
+        correct indexing.
     constant : bool, optional
         Whether the variable's value is constant during a run.
+        Defaults to ``False``.
     scalar : bool, optional
         Whether this array is a 1-element array that should be treated like a
-        scalar (e.g. for a single delay value across synapses)
+        scalar (e.g. for a single delay value across synapses). Defaults to
+        ``False``.
     is_bool: bool, optional
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
-    def __init__(self, name, unit, dtype, array, index, group=None,
+    def __init__(self, name, unit, value, index, group=None,
                  constant=False, scalar=False, is_bool=False):
 
         self.group = group
 
-        if is_bool:
-            if not dtype == np.bool:
-                raise ValueError(('Boolean variables have to be stored with '
-                                  'boolean dtype'))
-        Value.__init__(self, name, unit, dtype, scalar=scalar,
-                       constant=constant, is_bool=is_bool)
+        Variable.__init__(self, name, unit, value, scalar=scalar,
+                          constant=constant, is_bool=is_bool)
         #: The reference to the array storing the data for the variable.
-        self.array = array
+        self.value = value
         #: The name for the array used in generated code
         groupname = '_'+group.name+'_' if group is not None else '_'
         self.arrayname = '_array' + groupname + self.name
@@ -466,26 +408,16 @@ class ArrayVariable(Value):
         self.index = index
 
     def get_value(self):
-        return self.array
+        return self.value
 
     def set_value(self, value):
-        self.array[:] = value
+        self.value[:] = value
 
     def get_addressable_value(self, level=0):
         return VariableView(self, self.group, None, level)
 
     def get_addressable_value_with_unit(self, level=0):
         return VariableView(self, self.group, self.unit, level)
-
-    def __repr__(self):
-        description = ('<{classname}(name={name}, unit={unit}, dtype={dtype}, '
-                       'array=<...>, index={index}, constant={constant})>')
-        return description.format(classname=self.__class__.__name__,
-                                  name=repr(self.name),
-                                  unit=repr(self.unit),
-                                  dtype=repr(self.dtype),
-                                  index=repr(self.index),
-                                  constant=self.constant)
 
 
 class DynamicArrayVariable(ArrayVariable):
@@ -496,18 +428,18 @@ class DynamicArrayVariable(ArrayVariable):
     
     def get_value(self):
         # The actual numpy array is accesible via DynamicArray1D.data
-        return self.array.data
+        return self.value.data
 
 
 class SynapticArrayVariable(DynamicArrayVariable):
 
-    def __init__(self, name, unit, dtype, array, index, synapses,
+    def __init__(self, name, unit, array, index, synapses,
                  constant=False, is_bool=False):
-        ArrayVariable.__init__(self, name, unit, dtype, array, index, synapses,
+        ArrayVariable.__init__(self, name, unit, array, index, synapses,
                                constant=constant, is_bool=is_bool)
         # Register the object with the `SynapticIndex` object so it gets
         # automatically resized
-        synapses.indices.register_variable(self.array)
+        synapses.indices.register_variable(self.value)
 
     def get_addressable_value(self, level=0):
         return VariableView(self, self.group, None, level)
@@ -516,7 +448,7 @@ class SynapticArrayVariable(DynamicArrayVariable):
         return VariableView(self, self.group, self.unit, level)
 
 
-class Subexpression(Value):
+class Subexpression(Variable):
     '''
     An object providing information about a static equation in a model
     definition, used as a hint in optimising. Can test if a variable is used
@@ -545,7 +477,9 @@ class Subexpression(Value):
     '''
     def __init__(self, name, unit, dtype, expr, specifiers, namespace,
                  is_bool=False):
-        Value.__init__(self, name, unit, dtype, scalar=False, is_bool=is_bool)
+        Variable.__init__(self, name, unit, value=None, dtype=dtype,
+                          constant=False, scalar=False, is_bool=is_bool)
+
         #: The expression defining the static equation.
         self.expr = expr.strip()
         #: The identifiers used in the expression

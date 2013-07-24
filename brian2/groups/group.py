@@ -7,8 +7,8 @@ import weakref
 import numpy as np
 
 from brian2.core.base import BrianObject
-from brian2.core.specifiers import (ArrayVariable, Index, AttributeValue,
-                                    ReadOnlyValue)
+from brian2.core.specifiers import (ArrayVariable, Variable, Index,
+                                    StochasticVariable, AttributeVariable)
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
 from brian2.units.allunits import second
@@ -29,9 +29,8 @@ class Indices(object):
         self._indices = np.arange(self.N)
         self.specifiers = {'i': ArrayVariable('i',
                                               Unit(1),
-                                              self._indices.dtype,
                                               self._indices,
-                                              '_element_idx')}
+                                              index='_element_idx')}
 
     def __len__(self):
         return self.N
@@ -78,16 +77,16 @@ class Group(object):
             self.codeobj_class = None
 
         # Add a reference to the synapses to the template
-        self.specifiers['_indices'] = ReadOnlyValue('_indices', Unit(1),
-                                                    np.int, self.indices)
+        self.specifiers['_indices'] = Variable('_indices', Unit(1),
+                                               self.indices)
 
         self._group_attribute_access_active = True
 
     def _create_specifiers(self):
-        return {'t': AttributeValue('t',  second, np.float64,
-                                    self.clock, 't_'),
-                'dt': AttributeValue('dt', second, np.float64,
-                                     self.clock, 'dt_', constant=True)
+        return {'t': AttributeVariable('t',  second, self.clock, 't_',
+                                       constant=False),
+                'dt': AttributeVariable('dt', second, self.clock, 'dt_',
+                                        constant=True)
                 }
 
     def state_(self, name):
@@ -187,10 +186,9 @@ class Group(object):
         # with code
         additional_specifiers['_spikes'] = ArrayVariable('_spikes',
                                                          Unit(1),
-                                                         np.int32,
                                                          group_indices.astype(np.int32),
                                                          '',  # no index,
-                                                         self)
+                                                         group=self)
         codeobj = create_runner_codeobj(self,
                                  abstract_code,
                                  'reset',
@@ -275,7 +273,8 @@ def create_runner_codeobj(group, code, template_name, indices,
     # Only pass the specifiers that are actually used
     specifiers = {}
     for var in used_known:
-        specifiers[var] = all_specifiers[var]
+        if not isinstance(all_specifiers[var], StochasticVariable):
+            specifiers[var] = all_specifiers[var]
 
     # Also add the specifiers that the template needs
     for spec in template.specifiers:
