@@ -45,7 +45,6 @@ def test_spike_monitor():
 
 
 def test_state_monitor():
-    # Record all neurons
     language_before = brian_prefs.codegen.target
     for language in languages:
         brian_prefs.codegen.target = language
@@ -100,7 +99,34 @@ def test_state_monitor():
 
     brian_prefs.codegen.target = language_before
 
-if __name__ == '__main__':
-    test_spike_monitor()
-    test_state_monitor()
 
+def test_rate_monitor():
+    language_before = brian_prefs.codegen.target
+    for language in languages:
+        brian_prefs.codegen.target = language
+        G = NeuronGroup(5, 'v : 1', threshold='v>1') # no reset
+        G.v = 1.1 # All neurons spike every time step
+        rate_mon = PopulationRateMonitor(G)
+        net = Network(G, rate_mon)
+        net.run(10*defaultclock.dt)
+
+        assert_allclose(rate_mon.t, np.arange(10) * defaultclock.dt)
+        assert_allclose(rate_mon.t_, np.arange(10) * float(defaultclock.dt))
+        assert_allclose(rate_mon.rate, np.ones(10) / defaultclock.dt)
+        assert_allclose(rate_mon.rate_, np.asarray(np.ones(10) / defaultclock.dt))
+
+        defaultclock.t = 0*ms
+        G = NeuronGroup(10, 'v : 1', threshold='v>1') # no reset
+        G.v[:5] = 1.1 # Half of the neurons fire every time step
+        rate_mon = PopulationRateMonitor(G)
+        net = Network(G, rate_mon)
+        net.run(10*defaultclock.dt)
+        assert_allclose(rate_mon.rate, 0.5 * np.ones(10) / defaultclock.dt)
+        assert_allclose(rate_mon.rate_, 0.5 *np.asarray(np.ones(10) / defaultclock.dt))
+
+    brian_prefs.codegen.target = language_before
+
+if __name__ == '__main__':
+    #est_spike_monitor()
+    #test_state_monitor()
+    test_rate_monitor()
