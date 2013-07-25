@@ -11,8 +11,7 @@ from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
 from brian2.core.specifiers import (ArrayVariable, Index, DynamicArrayVariable, 
                                     Variable, Subexpression, AttributeVariable,
-                                    StochasticVariable, SynapticArrayVariable,
-                                    Specifier)
+                                    StochasticVariable, Specifier)
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)
@@ -20,7 +19,8 @@ from brian2.groups.group import Group, GroupCodeRunner, create_runner_codeobj
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
-from brian2.units.fundamentalunits import Unit, Quantity, fail_for_dimension_mismatch, get_dimensions
+from brian2.units.fundamentalunits import (Unit, Quantity,
+                                           fail_for_dimension_mismatch)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
@@ -137,15 +137,20 @@ class SynapticPathway(GroupCodeRunner, Group):
                    '_postsynaptic_idx': Index('_postsynaptic_idx', False),
                    '_presynaptic_idx': Index('_presynaptic_idx', False)}
         self._delays = DynamicArray1D(len(synapses.indices), dtype=np.float64)
+        # Register the object with the `SynapticIndex` object so it gets
+        # automatically resized
+        synapses.indices.register_variable(self._delays)
         self.queue = SpikeQueue()
         self.spiking_synapses = []
         self.specifiers = {'_spiking_synapses': AttributeVariable('_spiking_synapses',
                                                                Unit(1), self,
                                                                'spiking_synapses'),
-                           'delay': SynapticArrayVariable('delay', second,
+                           'delay': DynamicArrayVariable('delay', second,
                                                           self._delays,
                                                           index='_element_idx',
-                                                          synapses=self.synapses)}
+                                                          group=self.synapses,
+                                                          constant=True)}
+
         if objname is None:
             objname = prepost + '*'
 
@@ -673,10 +678,7 @@ class Synapses(BrianObject, Group):
         # direct access to its delay via a delay attribute (instead of having
         # to use pre.delay)
         if 'pre' in self._updaters:
-            self.specifiers['delay'] = SynapticArrayVariable('delay', second,
-                                                             self.pre._delays,
-                                                             index='_element_idx',
-                                                             synapses=self)
+            self.specifiers['delay'] = self.pre.specifiers['delay']
 
         if delay is not None:
             if isinstance(delay, Quantity):
@@ -874,14 +876,16 @@ class Synapses(BrianObject, Group):
                 # shouldn't directly access the specifier.array attribute but
                 # use specifier.get_value() to get a reference to the underlying
                 # array
-                s.update({eq.varname: SynapticArrayVariable(eq.varname,
-                                                    eq.unit,
-                                                    array,
-                                                    index='_element_idx',
-                                                    synapses=self,
-                                                    constant=constant,
-                                                    is_bool=eq.is_bool)})
-        
+                s.update({eq.varname: DynamicArrayVariable(eq.varname,
+                                                           eq.unit,
+                                                           array,
+                                                           index='_element_idx',
+                                                           group=self,
+                                                           constant=constant,
+                                                           is_bool=eq.is_bool)})
+                # Register the array with the `SynapticIndex` object so it gets
+                # automatically resized
+                self.indices.register_variable(array)
             elif eq.type == STATIC_EQUATION:
                 s.update({eq.varname: Subexpression(eq.varname, eq.unit,
                                                     brian_prefs['core.default_scalar_dtype'],

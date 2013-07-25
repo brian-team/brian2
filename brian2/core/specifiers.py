@@ -14,12 +14,11 @@ from brian2.units.fundamentalunits import (Quantity, Unit, is_scalar_type,
 
 __all__ = ['Specifier',
            'Variable',
-           'Value',
-           'ReadOnlyValue',
            'StochasticVariable',
-           'AttributeValue'
+           'AttributeVariable',
            'ArrayVariable',
-           'Subexpression',           
+           'DynamicArrayVariable',
+           'Subexpression',
            'Index',
            ]
 
@@ -265,7 +264,6 @@ class VariableView(object):
         spec = self.specifier
         if spec.scalar:
             if not (i == slice(None) or i == 0 or (hasattr(i, '__len__') and len(i) == 0)):
-                print 'index', repr(i)
                 raise IndexError('Variable %s is a scalar variable.' % spec.name)
             indices = 0
         else:
@@ -354,18 +352,9 @@ class VariableView(object):
 class ArrayVariable(Variable):
     '''
     An object providing information about a model variable stored in an array
-    (for example, all state variables). The `index` will be used in the
-    generated code (at least in languages such as C++, where the code always
-    loops over arrays). Stores a reference to the array name used in the
-    generated code, constructed as ``'_array_'`` + ``name``.
-    
-    For example, for::
-    
-        ``v = ArrayVariable('_array_v', volt, float64, group.arrays['v'], '_index')``
-    
-    we would eventually produce C++ code that looked like::
-    
-        double &v = _array_v[_index];
+    (for example, all state variables).
+
+    TODO
     
     Parameters
     ----------
@@ -379,8 +368,8 @@ class ArrayVariable(Variable):
         The index that will be used in the generated code when looping over the
         variable.
     group : `Group`, optional
-        A reference to the `Group` that stores this variable, necessary for
-        correct indexing.
+        The group to which this variable belongs, this is necessary to
+        interpret strings in the context of this group.
     constant : bool, optional
         Whether the variable's value is constant during a run.
         Defaults to ``False``.
@@ -392,8 +381,8 @@ class ArrayVariable(Variable):
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
-    def __init__(self, name, unit, value, index, group=None,
-                 constant=False, scalar=False, is_bool=False):
+    def __init__(self, name, unit, value, index, group=None, constant=False,
+                 scalar=False, is_bool=False):
 
         self.group = group
 
@@ -401,10 +390,12 @@ class ArrayVariable(Variable):
                           constant=constant, is_bool=is_bool)
         #: The reference to the array storing the data for the variable.
         self.value = value
+
+        group_name = '_'+group.name+'_' if group is not None else '_'
         #: The name for the array used in generated code
-        groupname = '_'+group.name+'_' if group is not None else '_'
-        self.arrayname = '_array' + groupname + self.name
-        #: The name of the index that will be used in the generated code.
+        self.arrayname = '_array' + group_name + self.name
+
+        #: The index used for the variable
         self.index = index
 
     def get_value(self):
@@ -429,23 +420,6 @@ class DynamicArrayVariable(ArrayVariable):
     def get_value(self):
         # The actual numpy array is accesible via DynamicArray1D.data
         return self.value.data
-
-
-class SynapticArrayVariable(DynamicArrayVariable):
-
-    def __init__(self, name, unit, array, index, synapses,
-                 constant=False, is_bool=False):
-        ArrayVariable.__init__(self, name, unit, array, index, synapses,
-                               constant=constant, is_bool=is_bool)
-        # Register the object with the `SynapticIndex` object so it gets
-        # automatically resized
-        synapses.indices.register_variable(self.value)
-
-    def get_addressable_value(self, level=0):
-        return VariableView(self, self.group, None, level)
-
-    def get_addressable_value_with_unit(self, level=0):
-        return VariableView(self, self.group, self.unit, level)
 
 
 class Subexpression(Variable):
