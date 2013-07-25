@@ -4,6 +4,8 @@ An infinite cable.
 from pylab import *
 from brian2 import *
 
+brian_prefs.codegen.target = 'weave'
+
 # Morphology
 morpho=Cylinder(diameter=1*um,length=3*mm,n=500)
 
@@ -24,7 +26,7 @@ neuron.I=0*amp/cm**2
 # Monitors
 mon=StateMonitor(neuron,('v','w'),record=range(0,len(neuron)/2,20))
 
-run(1000*ms)
+run(1000*ms,report='text')
 exit()
 
 run(1*ms)
