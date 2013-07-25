@@ -14,7 +14,7 @@ from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
 from brian2.core.specifiers import (Variable, AttributeVariable, ArrayVariable,
-                                    StochasticVariable, Subexpression, Index)
+                                    StochasticVariable, Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.parsing.expressions import (parse_expression_unit,
@@ -37,14 +37,13 @@ class StateUpdater(GroupCodeRunner):
     '''
     def __init__(self, group, method):
         self.method_choice = method
-        indices = {'_element_idx': Index('_element_idx', True)}
         
         GroupCodeRunner.__init__(self, group,
                                        'stateupdate',
-                                       indices=indices,
                                        when=(group.clock, 'groups'),
                                        name=group.name + '_stateupdater*',
-                                       check_units=False)
+                                       check_units=False,
+                                       iterate_all=['_element'])
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.specifiers,
@@ -96,7 +95,6 @@ class Thresholder(GroupCodeRunner):
     and ``refractory_until`` attributes.
     '''
     def __init__(self, group):
-        indices = {'_element_idx': Index('_element_idx', True)}
         # For C++ code, we need these names explicitly, since not_refractory
         # and lastspike might also be used in the threshold condition -- the
         # names will then refer to single (constant) values and cannot be used
@@ -105,10 +103,10 @@ class Thresholder(GroupCodeRunner):
                          '_array_lastspike': group.specifiers['lastspike'].arrayname}
         GroupCodeRunner.__init__(self, group,
                                  'threshold',
-                                 indices=indices,
                                  when=(group.clock, 'thresholds'),
                                  name=group.name+'_thresholder*',
-                                 template_kwds=template_kwds)
+                                 template_kwds=template_kwds,
+                                 iterate_all=['_element'])
     
     def update_abstract_code(self):
         self.abstract_code = '_cond = ' + self.group.threshold
@@ -124,10 +122,8 @@ class Resetter(GroupCodeRunner):
     variables of neurons that have spiked in this timestep.
     '''
     def __init__(self, group):
-        indices = {'_element_idx': Index('_element_idx', False)}
         GroupCodeRunner.__init__(self, group,
                                  'reset',
-                                 indices=indices,
                                  when=(group.clock, 'resets'),
                                  name=group.name + '_resetter*')
     
@@ -347,7 +343,8 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
             name = self.name + '_runner*'
 
         runner = GroupCodeRunner(self, self.language.template_state_update,
-                                 code=code, name=name, when=when)
+                                 code=code, name=name, when=when,
+                                 iterate_all=['_element'])
         return runner
 
     def _create_specifiers(self):
@@ -371,7 +368,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                 s.update({eq.varname: ArrayVariable(eq.varname,
                                                     eq.unit,
                                                     array,
-                                                    '_element_idx',
+                                                    '_element',
                                                     group=self,
                                                     constant=constant,
                                                     is_bool=eq.is_bool)})

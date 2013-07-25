@@ -44,7 +44,8 @@ def prepare_namespace(namespace, specifiers):
 
 
 def create_codeobject(name, abstract_code, namespace, specifiers, template_name,
-                      codeobj_class=None, indices=None, template_kwds=None):
+                      indices, iterate_all, codeobj_class=None,
+                      template_kwds=None):
     '''
     The following arguments keywords are passed to the template:
     
@@ -55,8 +56,6 @@ def create_codeobject(name, abstract_code, namespace, specifiers, template_name,
       ``template_kwds`` (but you should ensure there are no name
       clashes.
     '''
-    if indices is None:  # TODO: Do we ever create code without any index?
-        indices = {}
 
     if template_kwds is None:
         template_kwds = dict()
@@ -73,8 +72,9 @@ def create_codeobject(name, abstract_code, namespace, specifiers, template_name,
 
     logger.debug(name + " abstract code:\n" + abstract_code)
     innercode, kwds = translate(abstract_code, specifiers, namespace,
-                                brian_prefs['core.default_scalar_dtype'],
-                                codeobj_class.language, indices)
+                                dtype=brian_prefs['core.default_scalar_dtype'],
+                                language=codeobj_class.language,
+                                iterate_all=iterate_all)
     template_kwds.update(kwds)
     logger.debug(name + " inner code:\n" + str(innercode))
     code = template(innercode, **template_kwds)
@@ -126,14 +126,14 @@ class CodeObject(object):
         # A list containing tuples of name and a function giving the value
         self.nonconstant_values = []
         
-        for name, spec in self.specifiers.iteritems():   
+        for name, spec in self.specifiers.iteritems():
             if isinstance(spec, Variable):
-                if isinstance(spec, AttributeVariable):
+                if not spec.constant:
                     self.nonconstant_values.append((name, spec.get_value))
                     if not spec.scalar:
                         self.nonconstant_values.append(('_num' + name,
                                                         spec.get_len))
-                elif not isinstance(spec, (Subexpression, StochasticVariable)):
+                else:
                     value = spec.get_value()
                     self.namespace[name] = value
                     # if it is a type that has a length, add a variable called

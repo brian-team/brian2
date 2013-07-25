@@ -215,14 +215,14 @@ class AttributeVariable(Variable):
         to be an attribute of `obj`.
     constant : bool, optional
         Whether the attribute's value is constant during a run. Defaults to
-        ``True``.
+        ``False``.
     Raises
     ------
     AttributeError
         If `obj` does not have an attribute `attribute`.
         
     '''
-    def __init__(self, name, unit, obj, attribute, constant=True):
+    def __init__(self, name, unit, obj, attribute, constant=False):
         if not hasattr(obj, attribute):
             raise AttributeError(('Object %r does not have an attribute %r, '
                                   'providing the value for %r') %
@@ -267,7 +267,7 @@ class VariableView(object):
                 raise IndexError('Variable %s is a scalar variable.' % spec.name)
             indices = 0
         else:
-            indices = self.group.indices[i]
+            indices = self.group.indices[self.specifier.index][i]
         if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
             return spec.get_value()[indices]
         else:
@@ -280,7 +280,7 @@ class VariableView(object):
                 raise IndexError('Variable %s is a scalar variable.' % spec.name)
             indices = np.array([0])
         else:
-            indices = self.group.indices[i]
+            indices = self.group.indices[self.specifier.index][i]
         if isinstance(value, basestring):
             check_units = self.unit is not None
             self.group._set_with_code(spec, indices, value,
@@ -494,32 +494,13 @@ class Subexpression(Variable):
                                   expr=repr(self.expr))        
 
 
-class Index(Specifier):
+class Index(Variable):
     '''
-    An object describing an index variable. You can specify ``iterate_all=True``
-    or ``False`` to say whether it is varying over the whole of an input vector
-    or a subset. Vectorised langauges (i.e. Python) can use this to optimise the
-    reading and writing phase (i.e. you can do ``var = arr`` if
-    ``iterate_all==True`` but you need to ``var = whole[idx]`` if
-    ``iterate_all==False``).
-    
-    Parameters
-    ----------
-    name : str
-        The name of the index.
-    iterate_all : bool, optional
-        Whether the index varies over the whole of an input vector (defaults to
-        ``True``).
+    An object describing an index variable.
     '''
-    def __init__(self, name, iterate_all=True):
-        Specifier.__init__(self, name)
-        if bool(iterate_all) != iterate_all:
-            raise ValueError(('The "all" argument has to be a bool, '
-                              'is type %s instead' % type(all)))
-        #: Whether the index varies over the whole of an input vector
-        self.iterate_all = iterate_all
+    def __init__(self, name):
+        Variable.__init__(self, name, Unit(1), None, dtype=np.int32,
+                          scalar=False, is_bool=False, constant=True)
 
-    def __repr__(self):
-        return '%s(name=%r, iterate_all=%r)' % (self.__class__.__name__,
-                                                self.name,
-                                                self.iterate_all)
+    def get_value(self):
+        return self[:]

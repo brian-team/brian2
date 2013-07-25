@@ -7,7 +7,7 @@ import weakref
 import numpy as np
 
 from brian2.core.base import BrianObject
-from brian2.core.specifiers import (ArrayVariable, Variable, Index,
+from brian2.core.specifiers import (ArrayVariable, Index,
                                     StochasticVariable, AttributeVariable)
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
@@ -17,20 +17,22 @@ from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
 
-__all__ = ['Group', 'GroupCodeRunner', 'Indices']
+__all__ = ['Group', 'GroupCodeRunner', 'GroupIndices']
 
 logger = get_logger(__name__)
 
 
-class Indices(object):
+class GroupIndices(Index):
 
-    def __init__(self, N):
+    def __init__(self, name, N):
         self.N = N
         self._indices = np.arange(self.N)
         self.specifiers = {'i': ArrayVariable('i',
                                               Unit(1),
                                               self._indices,
-                                              index='_element_idx')}
+                                              index='_element')}
+
+        Index.__init__(self, name)
 
     def __len__(self):
         return self.N
@@ -64,21 +66,19 @@ class Group(object):
     def __init__(self):
         if not hasattr(self, 'specifiers'):
             raise ValueError('Classes derived from Group need specifiers attribute.')
-        if not hasattr(self, 'indices'):
+        if not hasattr(self, 'index'):
             try:
                 N = len(self)
             except TypeError:
-                raise ValueError(('Classes derived from Group need an indices '
+                raise ValueError(('Classes derived from Group need an index '
                                   'attribute, or a length to automatically '
                                   'provide 1-d indexing'))
-            self.indices = Indices(N)
+            self.index = GroupIndices('_element', N)
+        if not hasattr(self, 'indices'):
+            self.indices = {'_element': self.index}
             
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
-
-        # Add a reference to the synapses to the template
-        self.specifiers['_indices'] = Variable('_indices', Unit(1),
-                                               self.indices)
 
         self._group_attribute_access_active = True
 
@@ -178,21 +178,23 @@ class Group(object):
             to the surrounding namespace.
         '''
         abstract_code = specifier.name + ' = ' + code
-        indices = {'_element_idx': Index('_element_idx', iterate_all=False)}
         namespace = get_local_namespace(level + 1)
         additional_namespace = ('implicit-namespace', namespace)
-        additional_specifiers = dict(self.indices.specifiers)
         # TODO: Find a name that makes sense for reset and variable setting
         # with code
+        additional_specifiers = self.index.specifiers
         additional_specifiers['_spikes'] = ArrayVariable('_spikes',
-                                                         Unit(1),
-                                                         group_indices.astype(np.int32),
-                                                         '',  # no index,
-                                                         group=self)
+                                                          Unit(1),
+                                                          group_indices.astype(np.int32),
+                                                          '',  # no index,
+                                                          group=self)
+        # TODO: Have an additional argument to avoid going through the index
+        # array for situations where iterate_all could be used
         codeobj = create_runner_codeobj(self,
                                  abstract_code,
                                  'reset',
-                                 indices,
+                                 self.indices,
+                                 iterate_all=[],
                                  additional_specifiers=additional_specifiers,
                                  additional_namespace=additional_namespace,
                                  check_units=check_units,
@@ -200,9 +202,10 @@ class Group(object):
         codeobj()
 
 
-def create_runner_codeobj(group, code, template_name, indices,
+def create_runner_codeobj(group, code, template_name, indices, iterate_all,
                           name=None, check_units=True, additional_specifiers=None,
-                          additional_namespace=None, template_kwds=None,
+                          additional_namespace=None,
+                          template_kwds=None,
                           codeobj_class=None):
     ''' Create a `CodeObject` for the execution of code in the context of a
     `Group`.
@@ -218,6 +221,11 @@ def create_runner_codeobj(group, code, template_name, indices,
     indices : dict-like
         A mapping from index name to `Index` objects, describing the indices
         used for the variables in the code.
+    iterate_all : list of str
+        A list of index names for which the code should iterate over all
+        indices. In numpy code, this allows to not use the indices and use
+        variables directly. For example, the numpy state update template does
+        not provide ``_element``.
     name : str, optional
         A name for this code object, will use ``group + '_codeobject*'`` if
         none is given.
@@ -303,6 +311,7 @@ def create_runner_codeobj(group, code, template_name, indices,
                              specifiers,
                              template_name,
                              indices=indices,
+                             iterate_all=iterate_all,
                              template_kwds=template_kwds,
                              codeobj_class=codeobj_class)
 
@@ -327,10 +336,9 @@ class GroupCodeRunner(BrianObject):
         The abstract code that should be executed every time step. The
         `update_abstract_code` method might generate this code dynamically
         before every run instead.
-    iterate_all : bool, optional
-        Whether the index iterates over all possible values (``True``, the
-        default) or only over a subset (``False``, used for example for the
-        reset which only affects neurons that have spiked).
+    iterate_all : list of str, optional
+        Indices over which the code should loop completely. Used for
+        optimization of numpy code.
     when : `Scheduler`, optional
         At which point in the schedule this object should be executed.
     name : str, optional 
@@ -355,28 +363,18 @@ class GroupCodeRunner(BrianObject):
     state of the `Group`. For example, the `Thresholder` sets the
     `NeuronGroup.spikes` property in `post_update`.
     '''
-    def __init__(self, group, template, indices, code=None, iterate_all=True,
-                 when=None, name='coderunner*', check_units=True,
-                 template_kwds=None):
+    def __init__(self, group, template, code=None, when=None,
+                 name='coderunner*', iterate_all=None,
+                 check_units=True, template_kwds=None):
         BrianObject.__init__(self, when=when, name=name)
-        self.indices = indices
         self.group = weakref.proxy(group)
         self.template = template
         self.abstract_code = code
+        if iterate_all is None:
+            iterate_all = []
         self.iterate_all = iterate_all
         self.check_units = check_units
         self.template_kwds = template_kwds
-        # Try to generate the abstract code and the codeobject without any
-        # additional namespace. This might work in situations where the
-        # namespace is completely defined in the NeuronGroup. In this case,
-        # we might spot parsing or unit errors already now and don't have to
-        # wait until the run call. We want to ignore KeyErrors, though, because
-        # they possibly result from an incomplete namespace, which is still ok
-        # at this time.
-        try:
-            self.pre_run(None)
-        except KeyError:
-            pass 
     
     def update_abstract_code(self):
         '''
@@ -401,7 +399,8 @@ class GroupCodeRunner(BrianObject):
             additional_specifiers = None
 
         return create_runner_codeobj(self.group, self.abstract_code, self.template,
-                              self.indices, self.name, self.check_units,
+                              self.group.indices, self.iterate_all, self.name,
+                              self.check_units,
                               additional_specifiers=additional_specifiers,
                               additional_namespace=additional_namespace,
                               template_kwds=self.template_kwds,

@@ -1,5 +1,4 @@
-# USE_SPECIFIERS { _indices }
-_vectorisation_idx = _indices
+_vectorisation_idx = _element
 {% for line in code_lines %}
 {{line}}
 {% endfor %}

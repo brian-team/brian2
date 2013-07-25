@@ -240,7 +240,7 @@ def make_statements(code, specifiers, dtype):
     return statements
 
 
-def translate(code, specifiers, namespace, dtype, language, indices):
+def translate(code, specifiers, namespace, dtype, language, iterate_all):
     '''
     Translates an abstract code block into the target language.
     
@@ -265,4 +265,5 @@ def translate(code, specifiers, namespace, dtype, language, indices):
     Returns a multi-line string.
     '''
     statements = make_statements(code, specifiers, dtype)
-    return language.translate_statement_sequence(statements, specifiers, namespace, indices)
+    return language.translate_statement_sequence(statements, specifiers,
+                                                 namespace, iterate_all)

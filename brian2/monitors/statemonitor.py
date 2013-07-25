@@ -104,7 +104,7 @@ class StateMonitor(BrianObject, Group):
             record = array(record, dtype=int)
             
         #: The array of recorded indices
-        self.indices = record
+        self.index = record
         
         # create data structures
         self.reinit()

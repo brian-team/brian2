@@ -2,7 +2,6 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
-	// USE_SPECIFIERS { _num_elements }
 	////// SUPPORT CODE ///////
 	{% for line in support_code_lines %}
 	// {{line}}
@@ -27,7 +26,7 @@
 	int _cpp_numelements = 0;
 	// Container for all the potential indices
 	npy_int *_elements = (npy_int *)malloc(sizeof(npy_int) * _num_elements);
-	for(int _element_idx=0; _element_idx<_num_elements; _element_idx++)
+	for(int _element_idx=0; _element_idx<_num_element; _element_idx++)
 	{
 	    const int _vectorisation_idx = _element_idx;
 		{% for line in code_lines %}
