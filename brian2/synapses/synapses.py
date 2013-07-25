@@ -311,16 +311,18 @@ class SynapticIndices(object):
         Reference to the main `Synapses object`
     '''
     def __init__(self, synapses):
-        self.source_len = len(synapses.source)
-        self.target_len = len(synapses.target)
+        self.source = synapses.source
+        self.target = synapses.target
+        source_len = len(synapses.source)
+        target_len = len(synapses.target)
         self.synapses = weakref.proxy(synapses)
         dtype = smallest_inttype(MAX_SYNAPSES)
         self.synaptic_pre = DynamicArray1D(0, dtype=dtype)
         self.synaptic_post = DynamicArray1D(0, dtype=dtype)
         self.pre_synaptic = [DynamicArray1D(0, dtype=dtype)
-                             for _ in xrange(self.source_len)]
+                             for _ in xrange(source_len)]
         self.post_synaptic = [DynamicArray1D(0, dtype=dtype)
-                              for _ in xrange(self.target_len)]
+                              for _ in xrange(target_len)]
         self.i = IndexView(self, self.synaptic_pre)
         self.j = IndexView(self, self.synaptic_post)
         self.k = SynapseIndexView(self)
@@ -395,14 +397,14 @@ class SynapticIndices(object):
             new_N = old_N + new_synapses
             self._resize(new_N)
 
-            self.synaptic_pre[old_N:new_N] = sources
-            self.synaptic_post[old_N:new_N] = targets
+            self.synaptic_pre[old_N:new_N] = self.source.indices[sources]
+            self.synaptic_post[old_N:new_N] = self.target.indices[targets]
             synapse_idx = old_N
             for source, target in zip(sources, targets):
-                synapses = self.pre_synaptic[source]
+                synapses = self.pre_synaptic[self.source.indices[source]]
                 synapses.resize(len(synapses) + 1)
                 synapses[-1] = synapse_idx
-                synapses = self.post_synaptic[target]
+                synapses = self.post_synaptic[self.source.indices[target]]
                 synapses.resize(len(synapses) + 1)
                 synapses[-1] = synapse_idx
                 synapse_idx += 1
@@ -413,11 +415,12 @@ class SynapticIndices(object):
             namespace = get_local_namespace(level + 1)
             additional_namespace = ('implicit-namespace', namespace)
             specifiers = {
-                '_num_source_neurons': Variable('_num_source_neurons', Unit(1),
-                                                self.source_len, constant=True),
-                '_num_target_neurons': Variable('_num_target_neurons', Unit(1),
-                                                     self.target_len,
-                                                     constant=True),
+                '_source_neurons': ArrayVariable('_source_neurons', Unit(1),
+                                                 self.source.indices[:], '',
+                                                 constant=True),
+                '_target_neurons': ArrayVariable('_target_neurons', Unit(1),
+                                                 self.target.indices[:], '',
+                                                 constant=True),
                 # The template needs to have access to the DynamicArray here,
                 # having access to the underlying array (which would be much
                 # faster), is not enough
