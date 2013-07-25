@@ -5,6 +5,7 @@ from pylab import *
 from brian2 import *
 
 brian_prefs.codegen.target = 'weave'
+#BrianLogger.log_level_debug()
 
 # Morphology
 morpho=Cylinder(diameter=1*um,length=3*mm,n=500)
@@ -26,8 +27,8 @@ neuron.I=0*amp/cm**2
 # Monitors
 mon=StateMonitor(neuron,('v','w'),record=range(0,len(neuron)/2,20))
 
-run(1000*ms,report='text')
-exit()
+#run(1000*ms,report='text')
+#exit()
 
 run(1*ms)
 neuron.I[len(neuron)/2]=0.2*nA/neuron.area[len(neuron)/2] # injecting in the middle

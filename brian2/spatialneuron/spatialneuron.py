@@ -14,6 +14,7 @@ from brian2.memory import allocate_array
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.core.preferences import brian_prefs
 from brian2.groups.group import Group, GroupCodeRunner
+from brian2.groups.neurongroup import StateUpdater
 from brian2.core.base import BrianObject
 from brian2.units.allunits import ohm,siemens
 from brian2.units.fundamentalunits import Unit
@@ -115,10 +116,12 @@ class SpatialNeuron(Group,BrianObject):
         self.method_choice = method
         
         #: Performs numerical integration step
-        self.state_updater = SpatialStateUpdater(self, method)
+        self._refractory=None
+        self.membrane_state_updater = StateUpdater(self, method)
+        self.diffusion_state_updater = SpatialStateUpdater(self, method)
 
         # Creation of contained_objects that do the work
-        self.contained_objects.append(self.state_updater)
+        self.contained_objects.extend([self.membrane_state_updater,self.diffusion_state_updater])
 
         # We try to run a pre_run already now. This might fail because of an
         # incomplete namespace but if the namespace is already complete we
@@ -224,58 +227,40 @@ class SpatialStateUpdater(GroupCodeRunner):
         self.method_choice = method
         indices = {'_neuron_idx': Index('_neuron_idx', True)}
         self._isprepared=False
-        
         GroupCodeRunner.__init__(self, group,
-                                       'stateupdate',
+                                       'spatialstateupdate',
                                        indices=indices,
-                                       when=(group.clock, 'groups'),
-                                       name=group.name + '_stateupdater*',
+                                       when=(group.clock, 'groups', 1),
+                                       name=group.name + '_spatialstateupdater*',
                                        check_units=False)
-        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.specifiers,
-                                                               method)
-            
-    def update_abstract_code(self):
-        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.specifiers,
-                                                               self.method_choice)
-        self.abstract_code = self.method(self.group.equations,
-                                         self.group.specifiers)
-
+        self.abstract_code='''
+        _gtot = gtot__private
+        _I0 = I0__private
+        '''
+        self.ab_star=zeros((3,len(self.group)))
+        self.ab_plus=zeros((3,len(self.group)))
+        self.ab_minus=zeros((3,len(self.group)))
+        self.b_plus=zeros(len(self.group))
+        self.b_minus=zeros(len(self.group))
+        self.v_star=zeros(len(self.group))
+        self.u_plus=zeros(len(self.group))
+        self.u_minus=zeros(len(self.group))
+        self.specifiers={'ab_star' : ArrayVariable('ab_star',Unit(1),self.ab_star.dtype,self.ab_star,''),
+                         'b_plus' : ArrayVariable('b_plus',Unit(1),self.b_plus.dtype,self.b_plus,''),
+                         'ab_plus' : ArrayVariable('ab_plus',Unit(1),self.ab_plus.dtype,self.ab_plus,''),
+                         'b_minus' : ArrayVariable('b_minus',Unit(1),self.b_minus.dtype,self.b_minus,''),
+                         'ab_minus' : ArrayVariable('ab_minus',Unit(1),self.ab_minus.dtype,self.ab_minus,''),
+                         'v_star' : ArrayVariable('v_star',Unit(1),self.v_star.dtype,self.v_star,''),
+                         'u_plus' : ArrayVariable('u_plus',Unit(1),self.u_plus.dtype,self.u_plus,''),
+                         'u_minus' : ArrayVariable('u_minus',Unit(1),self.u_minus.dtype,self.u_minus,'')}
+    
     def pre_run(self, namespace):
-        # Updates state update code
-        GroupCodeRunner.pre_run(self,namespace)
-        # For faster access:
-        self.v=self.group.v_
-        self.Cm=self.group.Cm_
-        self.I0=self.group.I0__private_
-        self.gtot=self.group.gtot__private_
         if not self._isprepared: # this is done only once even if there are multiple runs
             self.prepare()
             self._isprepared=True
-
-    def post_update(self, return_value):
-        '''
-        Solves the cable equation (spatial diffusion of currents).
-        This is where most time-consuming time computations are done.
-        Major contributor: (previously state_)
-        * solve_banded()
-        '''
-        # Particular solution
-        b=-(self.Cm/self.group.clock.dt_*self.v)-self.I0
-        ab = zeros((3,len(self.group)))
-        ab[:]=self.ab_star
-        ab[1,:]-=self.gtot
-        self.v_star[:]=solve_banded((1,1),ab,b,overwrite_ab=True,overwrite_b=True)
-        # Homogeneous solutions
-        b[:]=self.b_plus
-        ab[:]=self.ab_plus 
-        ab[1,:]-=self.gtot
-        self.u_plus[:]=solve_banded((1,1),ab,b,overwrite_ab=True,overwrite_b=True)
-        b[:]=self.b_minus
-        ab[:]=self.ab_minus 
-        ab[1,:]-=self.gtot
-        self.u_minus[:]=solve_banded((1,1),ab,b,overwrite_ab=True,overwrite_b=True)
+        GroupCodeRunner.pre_run(self, namespace)
+        
+    def post_update(self,return_value):
         # Solve the linear system connecting branches
         self.P[:]=0
         self.B[:]=0
@@ -302,22 +287,13 @@ class SpatialStateUpdater(GroupCodeRunner):
         # Linear systems
         # The particular solution
         '''a[i,j]=ab[u+i-j,j]''' # u is the number of upper diagonals = 1
-        self.ab_star=zeros((3,len(self.group)))
         self.ab_star[0,1:]=self.invr[1:]/self.group.area[:-1]
         self.ab_star[2,:-1]=self.invr[1:]/self.group.area[1:]
         self.ab_star[1,:]=-(self.group.Cm/self.group.clock.dt)-self.invr/self.group.area
         self.ab_star[1,:-1]-=self.invr[1:]/self.group.area[:-1]
         # Homogeneous solutions
-        self.ab_plus=zeros((3,len(self.group)))
-        self.ab_minus=zeros((3,len(self.group)))
         self.ab_plus[:]=self.ab_star
         self.ab_minus[:]=self.ab_star
-        self.b_plus=zeros(len(self.group))
-        self.b_minus=zeros(len(self.group))
-        # Solutions
-        self.v_star=zeros(len(self.group))
-        self.u_plus=zeros(len(self.group))
-        self.u_minus=zeros(len(self.group))
         
         # Boundary conditions
         self.boundary_conditions(self.group.morphology)
