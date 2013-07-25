@@ -103,8 +103,12 @@ class StateMonitor(BrianObject):
         self.specifiers = {}
         for variable in variables:
             spec = source.specifiers[variable]
+            if spec.dtype != np.float64:
+                raise NotImplementedError(('Cannot record %s with data type '
+                                           '%s, currently only values stored as '
+                                           'doubles can be recorded.') %
+                                          (variable, spec.dtype))
             self.specifiers[variable] = weakref.proxy(spec)
-
             self.specifiers['_recorded_'+variable] = ReadOnlyValue('_recorded_'+variable, Unit(1),
                                                                    self._values[variable].dtype,
                                                                    self._values[variable])
