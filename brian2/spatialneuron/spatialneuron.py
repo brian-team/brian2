@@ -3,7 +3,8 @@ Compartmental models
 
 TODO:
 * subgroups (neuron.axon etc)
-* faster
+* access with metric indexes
+* faster (C?)
 * clean up
 * point processes
 '''
@@ -233,7 +234,7 @@ class SpatialStateUpdater(GroupCodeRunner):
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.specifiers,
                                                                method)
-    
+            
     def update_abstract_code(self):
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.specifiers,
@@ -244,26 +245,36 @@ class SpatialStateUpdater(GroupCodeRunner):
     def pre_run(self, namespace):
         # Updates state update code
         GroupCodeRunner.pre_run(self,namespace)
+        # For faster access:
+        self.v=self.group.v_
+        self.Cm=self.group.Cm_
+        self.I0=self.group.I0__private_
+        self.gtot=self.group.gtot__private_
         if not self._isprepared: # this is done only once even if there are multiple runs
             self.prepare()
             self._isprepared=True
 
     def post_update(self, return_value):
-        neuron=self.group
+        '''
+        Solves the cable equation (spatial diffusion of currents).
+        This is where most time-consuming time computations are done.
+        Major contributor: (previously state_)
+        * solve_banded()
+        '''
         # Particular solution
-        b=-(neuron.Cm_/neuron.clock.dt_*neuron.v_)-neuron.I0__private_
-        ab = zeros((3,len(neuron)))
+        b=-(self.Cm/self.group.clock.dt_*self.v)-self.I0
+        ab = zeros((3,len(self.group)))
         ab[:]=self.ab_star
-        ab[1,:]-=neuron.gtot__private
+        ab[1,:]-=self.gtot
         self.v_star[:]=solve_banded((1,1),ab,b,overwrite_ab=True,overwrite_b=True)
         # Homogeneous solutions
         b[:]=self.b_plus
         ab[:]=self.ab_plus 
-        ab[1,:]-=neuron.gtot__private
+        ab[1,:]-=self.gtot
         self.u_plus[:]=solve_banded((1,1),ab,b,overwrite_ab=True,overwrite_b=True)
         b[:]=self.b_minus
         ab[:]=self.ab_minus 
-        ab[1,:]-=neuron.gtot__private
+        ab[1,:]-=self.gtot
         self.u_minus[:]=solve_banded((1,1),ab,b,overwrite_ab=True,overwrite_b=True)
         # Solve the linear system connecting branches
         self.P[:]=0
@@ -378,6 +389,7 @@ class SpatialStateUpdater(GroupCodeRunner):
     def fill_matrix(self,morphology):
         '''
         Recursively fills the matrix of the linear system that connects branches together.
+        Apparently this is quick.
         '''
         first=morphology._origin # first compartment
         last=first+len(morphology.x)-1 # last compartment
