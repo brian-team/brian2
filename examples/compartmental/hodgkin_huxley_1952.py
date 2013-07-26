@@ -6,6 +6,8 @@ Conduction velocity is about 12.5 m/s (is it right?)
 from pylab import *
 from brian2 import *
 
+#brian_prefs.codegen.target = 'weave' # couldn't this be simpler?
+
 morpho=Cylinder(length=10*cm, diameter=2*238*um, n=1000, type='axon')
 
 El = 10.613* mV
@@ -38,12 +40,12 @@ neuron.n=.5
 neuron.I=0*amp/cm**2
 M=StateMonitor(neuron,'v',record=True)
 
-run(100*ms,report='text')
-#neuron.I[0]=1 * uA/neuron.area[0] # current injection at one end
-#run(3*ms)
-#neuron.I=0*amp/cm**2
-#run(50*ms,report='text')
+#run(100*ms,report='text')
+neuron.I[0]=1 * uA/neuron.area[0] # current injection at one end
+run(3*ms)
+neuron.I=0*amp/cm**2
+run(50*ms,report='text')
 
-#for i in range(10):
-#    plot(M.t/ms,M.v[:,i*10]/mV)
-#show()
+for i in range(10):
+    plot(M.t/ms,M.v[:,i*10]/mV)
+show()
