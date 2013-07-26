@@ -1,4 +1,5 @@
 import weakref
+from collections import defaultdict
 
 import numpy as np
 
@@ -62,7 +63,7 @@ class SpikeMonitor(BrianObject):
                            '_i': Variable(Unit(1), self._i),
                            '_t': Variable(Unit(1), self._t),
                            '_count': ArrayVariable('_count', Unit(1),
-                                                   self.count, ''),
+                                                   self.count),
                            '_num_source_neurons': Variable(Unit(1),
                                                            len(self.source))}
 
@@ -84,6 +85,7 @@ class SpikeMonitor(BrianObject):
                                          self.specifiers,
                                          template_name='spikemonitor',
                                          indices={},
+                                         variable_indices=defaultdict(lambda: '_element'),
                                          iterate_all=[])
 
     def update(self):

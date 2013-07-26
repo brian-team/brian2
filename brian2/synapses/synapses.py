@@ -1,4 +1,5 @@
 import collections
+from collections import defaultdict
 import weakref
 import itertools
 import inspect
@@ -139,7 +140,6 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                                   constant=False),
                            'delay': DynamicArrayVariable('delay', second,
                                                           self._delays,
-                                                          index='_element',
                                                           group=self.synapses,
                                                           constant=True)}
 
@@ -328,12 +328,10 @@ class SynapticIndices(Index):
 
         self.specifiers = {'i': DynamicArrayVariable('i',
                                                      Unit(1),
-                                                     self.synaptic_pre,
-                                                     '_element'),
+                                                     self.synaptic_pre),
                            'j': DynamicArrayVariable('j',
                                                      Unit(1),
-                                                     self.synaptic_post,
-                                                     '_element')}
+                                                     self.synaptic_post)}
 
         self._registered_variables = []
 
@@ -415,10 +413,10 @@ class SynapticIndices(Index):
             additional_namespace = ('implicit-namespace', namespace)
             specifiers = {
                 '_source_neurons': ArrayVariable('_source_neurons', Unit(1),
-                                                 self.source.index[:], '',
+                                                 self.source.index[:],
                                                  constant=True),
                 '_target_neurons': ArrayVariable('_target_neurons', Unit(1),
-                                                 self.target.index[:], '',
+                                                 self.target.index[:],
                                                  constant=True),
                 # The template needs to have access to the DynamicArray here,
                 # having access to the underlying array (which would be much
@@ -442,6 +440,7 @@ class SynapticIndices(Index):
                                             iterate_all=[],
                                             additional_specifiers=specifiers,
                                             additional_namespace=additional_namespace,
+                                            variable_indices=defaultdict(lambda: '_element'),
                                             check_units=False,
                                             codeobj_class=self.synapses.codeobj_class,
                                             )
@@ -502,8 +501,7 @@ class SynapticIndices(Index):
                 synapse_numbers = _synapse_numbers(self.synaptic_pre[:],
                                                    self.synaptic_post[:])
                 specifiers['k'] = ArrayVariable('k', Unit(1),
-                                                synapse_numbers,
-                                                index='_element')
+                                                synapse_numbers)
             # Get the locals and globals from the stack frame
             frame = inspect.stack()[2][0]
             namespace = dict(frame.f_globals)
@@ -515,6 +513,7 @@ class SynapticIndices(Index):
                                             abstract_code,
                                             'state_variable_indexing',
                                             indices=self.synapses.indices,
+                                            variable_indices=defaultdict(lambda: '_element'),
                                             iterate_all=['_element'],
                                             additional_specifiers=specifiers,
                                             additional_namespace=additional_namespace,
@@ -717,7 +716,6 @@ class Synapses(BrianObject, Group):
                 # so that for example updater._delays[:] works.
                 updater._delays = np.array([float(pathway_delay)])
                 specifier = ArrayVariable('delay', second, updater._delays,
-                                          index='_element',
                                           group=self, scalar=True)
                 updater.specifiers['delay'] = specifier
                 if pathway == 'pre':
@@ -825,23 +823,20 @@ class Synapses(BrianObject, Group):
         '''
         # Add all the pre and post specifiers with _pre and _post suffixes
         s = {}
+        self.variable_indices = defaultdict(lambda: '_element')
         for name, spec in getattr(self.source, 'specifiers', {}).iteritems():
-            if isinstance(spec, ArrayVariable):
-                new_spec = ArrayVariable(spec.name, spec.unit, spec.value,
-                                         index='_presynaptic',
-                                         group=self.source)
-                s[name + '_pre'] = new_spec
+            if isinstance(spec, (ArrayVariable, Subexpression)):
+                s[name + '_pre'] = spec
+                self.variable_indices[spec] = '_presynaptic'
         for name, spec in getattr(self.target, 'specifiers', {}).iteritems():
-            if isinstance(spec, ArrayVariable):
-                new_spec = ArrayVariable(spec.name, spec.unit, spec.value,
-                                         index='_postsynaptic',
-                                         group=self.target)
-                s[name + '_post'] = new_spec
+            if isinstance(spec, (ArrayVariable, Subexpression)):
+                s[name + '_post'] = spec
+                self.variable_indices[spec] = '_postsynaptic'
                 # Also add all the post specifiers without a suffix -- if this
                 # clashes with the name of a state variable defined in this
                 # Synapses group, the latter will overwrite the entry later and
                 # take precedence
-                s[name] = new_spec
+                s[name] = spec
 
         # Standard specifiers always present
         s.update({'t': AttributeVariable(second, self.clock, 't_',
@@ -856,12 +851,10 @@ class Synapses(BrianObject, Group):
                                                   constant=True),
                   '_synaptic_pre': DynamicArrayVariable('_synaptic_pre',
                                                         Unit(1),
-                                                        self.index.synaptic_pre,
-                                                        index='_element'),
+                                                        self.index.synaptic_pre),
                   '_synaptic_post': DynamicArrayVariable('_synaptic_pre',
                                                          Unit(1),
-                                                         self.index.synaptic_post,
-                                                         index='_element'),
+                                                         self.index.synaptic_post),
                   # We don't need "proper" specifier for these -- they go
                   # back to Python code currently
                   '_pre_synaptic': Variable(Unit(1), self.index.pre_synaptic),
@@ -880,7 +873,6 @@ class Synapses(BrianObject, Group):
                 s.update({eq.varname: DynamicArrayVariable(eq.varname,
                                                            eq.unit,
                                                            array,
-                                                           index='_element',
                                                            group=self,
                                                            constant=constant,
                                                            is_bool=eq.is_bool)})

@@ -27,21 +27,22 @@ class NumpyLanguage(Language):
         return var + ' ' + op + ' ' + self.translate_expression(expr)
 
     def translate_statement_sequence(self, statements, specifiers, namespace,
-                                     iterate_all):
+                                     variable_indices, iterate_all):
         read, write = self.array_read_write(statements, specifiers)
         lines = []
         # read arrays
         for var in read:
             spec = specifiers[var]
+            index = variable_indices[spec]
             line = var + ' = ' + spec.arrayname
-            if not spec.index in iterate_all:
-                line = line + '[' + spec.index + '_idx]'
+            if not index in iterate_all:
+                line = line + '[' + index + '_idx]'
             lines.append(line)
         # the actual code
         lines.extend([self.translate_statement(stmt) for stmt in statements])
         # write arrays
         for var in write:
-            index_var = specifiers[var].index
+            index_var = variable_indices[specifiers[var]]
             # check if all operations were inplace and we're operating on the
             # whole vector, if so we don't need to write the array back
             if not index_var in iterate_all:

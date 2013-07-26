@@ -1,4 +1,5 @@
 import weakref
+from collections import defaultdict
 
 import numpy as np
 
@@ -80,6 +81,7 @@ class PopulationRateMonitor(BrianObject):
                                          self.specifiers,
                                          template_name='ratemonitor',
                                          indices={},
+                                         variable_indices=defaultdict(lambda: '_element'),
                                          iterate_all=[])
 
     def update(self):

@@ -126,7 +126,7 @@ class CPPLanguage(Language):
         return decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
 
     def translate_statement_sequence(self, statements, specifiers, namespace,
-                                     iterate_all):
+                                     variable_indices, iterate_all):
 
         # Note that C++ code does not care about the iterate_all argument -- it
         # always has to loop over the elements
@@ -135,7 +135,7 @@ class CPPLanguage(Language):
         lines = []
         # read arrays
         for var in read:
-            index_var = specifiers[var].index + '_idx'
+            index_var = variable_indices[specifiers[var]] + '_idx'
             spec = specifiers[var]
             if var not in write:
                 line = 'const '
@@ -154,7 +154,7 @@ class CPPLanguage(Language):
         lines.extend([self.translate_statement(stmt) for stmt in statements])
         # write arrays
         for var in write:
-            index_var = specifiers[var].index + '_idx'
+            index_var = variable_indices[specifiers[var]] + '_idx'
             spec = specifiers[var]
             line = '_ptr' + spec.arrayname + '[' + index_var + '] = ' + var + ';'
             lines.append(line)

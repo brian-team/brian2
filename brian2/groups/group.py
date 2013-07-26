@@ -3,6 +3,7 @@ This module defines the `Group` object, a mix-in class for everything that
 saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
 import weakref
+from collections import defaultdict
 
 import numpy as np
 
@@ -29,8 +30,7 @@ class GroupIndices(Index):
         self._indices = np.arange(self.N)
         self.specifiers = {'i': ArrayVariable('i',
                                               Unit(1),
-                                              self._indices,
-                                              index='_element')}
+                                              self._indices)}
 
         Index.__init__(self)
 
@@ -76,7 +76,8 @@ class Group(object):
             self.index = GroupIndices('_element', N)
         if not hasattr(self, 'indices'):
             self.indices = {'_element': self.index}
-            
+        if not hasattr(self, 'variable_indices'):
+            self.variable_indices = defaultdict(lambda: '_element')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
 
@@ -186,7 +187,6 @@ class Group(object):
         additional_specifiers['_spikes'] = ArrayVariable('_spikes',
                                                          Unit(1),
                                                          group_indices.astype(np.int32),
-                                                         '',  # no index,
                                                          group=self)
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
@@ -194,6 +194,7 @@ class Group(object):
                                  abstract_code,
                                  'reset',
                                  self.indices,
+                                 variable_indices=self.variable_indices,
                                  iterate_all=[],
                                  additional_specifiers=additional_specifiers,
                                  additional_namespace=additional_namespace,
@@ -202,7 +203,9 @@ class Group(object):
         codeobj()
 
 
-def create_runner_codeobj(group, code, template_name, indices, iterate_all,
+def create_runner_codeobj(group, code, template_name, indices,
+                          variable_indices,
+                          iterate_all,
                           name=None, check_units=True, additional_specifiers=None,
                           additional_namespace=None,
                           template_kwds=None,
@@ -221,6 +224,8 @@ def create_runner_codeobj(group, code, template_name, indices, iterate_all,
     indices : dict-like
         A mapping from index name to `Index` objects, describing the indices
         used for the variables in the code.
+    variable_indices : dict-like
+        A mapping from `Specifier` objects to index names (strings).
     iterate_all : list of str
         A list of index names for which the code should iterate over all
         indices. In numpy code, this allows to not use the indices and use
@@ -311,6 +316,7 @@ def create_runner_codeobj(group, code, template_name, indices, iterate_all,
                              specifiers,
                              template_name,
                              indices=indices,
+                             variable_indices=variable_indices,
                              iterate_all=iterate_all,
                              template_kwds=template_kwds,
                              codeobj_class=codeobj_class)
@@ -399,12 +405,15 @@ class GroupCodeRunner(BrianObject):
             additional_specifiers = None
 
         return create_runner_codeobj(self.group, self.abstract_code, self.template,
-                              self.group.indices, self.iterate_all, self.name,
-                              self.check_units,
-                              additional_specifiers=additional_specifiers,
-                              additional_namespace=additional_namespace,
-                              template_kwds=self.template_kwds,
-                              codeobj_class=self.group.codeobj_class)
+                                     variable_indices=self.group.variable_indices,
+                                     indices=self.group.indices,
+                                     iterate_all=self.iterate_all,
+                                     name=self.name,
+                                     check_units=self.check_units,
+                                     additional_specifiers=additional_specifiers,
+                                     additional_namespace=additional_namespace,
+                                     template_kwds=self.template_kwds,
+                                     codeobj_class=self.group.codeobj_class)
     
     def pre_run(self, namespace):
         self.update_abstract_code()

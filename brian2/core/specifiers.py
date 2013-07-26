@@ -245,7 +245,7 @@ class VariableView(object):
                 raise IndexError('Variable is a scalar variable.')
             indices = 0
         else:
-            indices = self.group.indices[self.specifier.index][i]
+            indices = self.group.indices[self.group.variable_indices[spec]][i]
         if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
             return spec.get_value()[indices]
         else:
@@ -258,7 +258,7 @@ class VariableView(object):
                 raise IndexError('Variable is a scalar variable.')
             indices = np.array([0])
         else:
-            indices = self.group.indices[self.specifier.index][i]
+            indices = self.group.indices[self.group.variable_indices[spec]][i]
         if isinstance(value, basestring):
             check_units = self.unit is not None
             self.group._set_with_code(spec, indices, value,
@@ -350,9 +350,6 @@ class ArrayVariable(Variable):
         The unit of the variable
     value : `numpy.array`
         A reference to the array storing the data for the variable.
-    index : str
-        The index that will be used in the generated code when looping over the
-        variable.
     group : `Group`, optional
         The group to which this variable belongs, this is necessary to
         interpret strings in the context of this group.
@@ -367,7 +364,7 @@ class ArrayVariable(Variable):
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
-    def __init__(self, name, unit, value, index, group=None, constant=False,
+    def __init__(self, name, unit, value, group=None, constant=False,
                  scalar=False, is_bool=False):
 
         self.group = group
@@ -381,9 +378,6 @@ class ArrayVariable(Variable):
         group_name = '_'+group.name+'_' if group is not None else '_'
         #: The name for the array used in generated code
         self.arrayname = '_array' + group_name + name
-
-        #: The index used for the variable
-        self.index = index
 
     def get_value(self):
         return self.value

@@ -367,7 +367,6 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                 s.update({eq.varname: ArrayVariable(eq.varname,
                                                     eq.unit,
                                                     array,
-                                                    '_element',
                                                     group=self,
                                                     constant=constant,
                                                     is_bool=eq.is_bool)})

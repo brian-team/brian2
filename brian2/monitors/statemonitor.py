@@ -107,7 +107,7 @@ class StateMonitor(BrianObject):
                                            '%s, currently only values stored as '
                                            'doubles can be recorded.') %
                                           (variable, spec.dtype))
-            self.specifiers[variable] = weakref.proxy(spec)
+            self.specifiers[variable] = spec
             self.specifiers['_recorded_'+variable] = Variable(Unit(1),
                                                               self._values[variable])
 
@@ -115,7 +115,7 @@ class StateMonitor(BrianObject):
         self.specifiers['_clock_t'] = AttributeVariable(second, self.clock, 't_')
         self.specifiers['_indices'] = ArrayVariable('_indices', Unit(1),
                                                     self.indices,
-                                                    index='', group=None,
+                                                    group=None,
                                                     constant=True)
 
         self._group_attribute_access_active = True
@@ -137,15 +137,16 @@ class StateMonitor(BrianObject):
                  for v in self.variables]
         code = '\n'.join(code)
         self.codeobj = create_runner_codeobj(self.source,
-                                         code,
-                                         name=self.name,
-                                         additional_specifiers=self.specifiers,
-                                         additional_namespace=namespace,
-                                         template_name='statemonitor',
-                                         indices=self.source.indices,
-                                         iterate_all=[],
-                                         template_kwds={'_variable_names': self.variables},
-                                         codeobj_class=self.codeobj_class)
+                                             code,
+                                             name=self.name,
+                                             additional_specifiers=self.specifiers,
+                                             additional_namespace=namespace,
+                                             template_name='statemonitor',
+                                             indices=self.source.indices,
+                                             variable_indices=self.source.variable_indices,
+                                             iterate_all=[],
+                                             template_kwds={'_variable_names': self.variables},
+                                             codeobj_class=self.codeobj_class)
 
     def update(self):
         self.codeobj()

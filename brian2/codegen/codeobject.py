@@ -44,7 +44,8 @@ def prepare_namespace(namespace, specifiers):
 
 
 def create_codeobject(name, abstract_code, namespace, specifiers, template_name,
-                      indices, iterate_all, codeobj_class=None,
+                      indices, variable_indices, iterate_all,
+                      codeobj_class=None,
                       template_kwds=None):
     '''
     The following arguments keywords are passed to the template:
@@ -74,6 +75,7 @@ def create_codeobject(name, abstract_code, namespace, specifiers, template_name,
     innercode, kwds = translate(abstract_code, specifiers, namespace,
                                 dtype=brian_prefs['core.default_scalar_dtype'],
                                 language=codeobj_class.language,
+                                variable_indices=variable_indices,
                                 iterate_all=iterate_all)
     template_kwds.update(kwds)
     logger.debug(name + " inner code:\n" + str(innercode))
