@@ -19,10 +19,10 @@
         // Copy the values across
         for(int _idx=0; _idx<_num_spikes; _idx++)
         {
-            const int _neuron_idx = _spikes[_idx];
+            const int _element_idx = _spikes[_idx];
             _t_data[_curlen + _idx] = t;
-            _i_data[_curlen + _idx] = _neuron_idx;
-            _count[_neuron_idx]++;
+            _i_data[_curlen + _idx] = _element_idx;
+            _count[_element_idx]++;
         }
 	}
 {% endmacro %}

@@ -12,7 +12,7 @@ _recorded_{{_varname}}.resize((_new_len, _num_indices))
 _t[-1] = _clock_t
 
 _vectorisation_idx = _indices
-_neuron_idx = _indices[:]
+_element_idx = _indices[:]
 {% for line in code_lines %}
 {{line}}
 {% endfor %}

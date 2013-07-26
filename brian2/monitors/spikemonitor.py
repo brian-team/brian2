@@ -6,7 +6,7 @@ from brian2.codegen.codeobject import create_codeobject
 from brian2.core.base import BrianObject
 from brian2.core.preferences import brian_prefs
 from brian2.core.scheduler import Scheduler
-from brian2.core.specifiers import ReadOnlyValue, AttributeValue, ArrayVariable
+from brian2.core.specifiers import ArrayVariable, AttributeVariable, Variable
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit
@@ -52,25 +52,20 @@ class SpikeMonitor(BrianObject):
         # create data structures
         self.reinit()
 
-        self.specifiers = {'t': AttributeValue('t', second, np.float64,
-                                               self.clock, 't'),
-                           '_spikes': AttributeValue('_spikes', Unit(1),
-                                                     self.source.spikes.dtype,
-                                                     self.source, 'spikes'),
+        self.specifiers = {'t': AttributeVariable('t', second, self.clock, 't'),
+                           '_spikes': AttributeVariable('_spikes', Unit(1),
+                                                        self.source, 'spikes'),
                            # The template needs to have access to the
                            # DynamicArray here, having access to the underlying
                            # array is not enough since we want to do the resize
                            # in the template
-                           '_i': ReadOnlyValue('_i', Unit(1), self._i.dtype,
-                                               self._i),
-                           '_t': ReadOnlyValue('_t', Unit(1), self._t.dtype,
-                                               self._t),
+                           '_i': Variable('_i', Unit(1), self._i),
+                           '_t': Variable('_t', Unit(1), self._t),
                            '_count': ArrayVariable('_count', Unit(1),
-                                                   self.count.dtype,
                                                    self.count, ''),
-                           '_num_source_neurons': ReadOnlyValue('_num_source_neurons',
-                                                                Unit(1), np.int,
-                                                                len(self.source))}
+                           '_num_source_neurons': Variable('_num_source_neurons',
+                                                           Unit(1),
+                                                           len(self.source))}
 
     def reinit(self):
         '''
@@ -89,7 +84,8 @@ class SpikeMonitor(BrianObject):
                                          {}, # no namespace
                                          self.specifiers,
                                          template_name='spikemonitor',
-                                         indices={})
+                                         indices={},
+                                         iterate_all=[])
 
     def update(self):
         self.codeobj()

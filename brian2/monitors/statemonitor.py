@@ -2,7 +2,7 @@ import weakref
 
 import numpy as np
 
-from brian2.core.specifiers import Variable
+from brian2.core.specifiers import Variable, AttributeVariable, ArrayVariable
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.core.preferences import brian_prefs
@@ -108,16 +108,13 @@ class StateMonitor(BrianObject):
                                            'doubles can be recorded.') %
                                           (variable, spec.dtype))
             self.specifiers[variable] = weakref.proxy(spec)
-            self.specifiers['_recorded_'+variable] = ReadOnlyValue('_recorded_'+variable, Unit(1),
-                                                                   self._values[variable].dtype,
-                                                                   self._values[variable])
+            self.specifiers['_recorded_'+variable] = Variable('_recorded_'+variable, Unit(1),
+                                                               self._values[variable])
 
-        self.specifiers['_t'] = ReadOnlyValue('_t', Unit(1), self._t.dtype,
-                                              self._t)
-        self.specifiers['_clock_t'] = AttributeValue('t',  second, np.float64,
-                                                     self.clock, 't_')
+        self.specifiers['_t'] = Variable('_t', Unit(1), self._t)
+        self.specifiers['_clock_t'] = AttributeVariable('t',  second, self.clock, 't_')
         self.specifiers['_indices'] = ArrayVariable('_indices', Unit(1),
-                                                    np.int32, self.indices,
+                                                    self.indices,
                                                     index='', group=None,
                                                     constant=True)
 
@@ -145,7 +142,8 @@ class StateMonitor(BrianObject):
                                          additional_specifiers=self.specifiers,
                                          additional_namespace=namespace,
                                          template_name='statemonitor',
-                                         indices={'_neuron_idx': Index('_neuron_idx', self.record_all)},
+                                         indices=self.source.indices,
+                                         iterate_all=[],
                                          template_kwds={'_variable_names': self.variables},
                                          codeobj_class=self.codeobj_class)
 
@@ -186,25 +184,3 @@ class StateMonitor(BrianObject):
         return description.format(classname=self.__class__.__name__,
                                   variables=repr(self.variables),
                                   source=self.source.name)
-
-
-if __name__=='__main__':
-    from pylab import *
-    from brian2 import *
-    from brian2.codegen.languages import *
-    import time
-
-    N = 100
-    tau = 10*ms
-    eqs = '''
-    dV/dt = (2*volt-V)/tau : volt
-    '''
-    threshold = 'V>1'
-    reset = 'V = 0'
-    G = NeuronGroup(N, eqs, threshold=threshold, reset=reset)
-    G.V = rand(N)*volt
-    M = StateMonitor(G, True, record=range(5))
-    run(100*ms)
-    print M.V.shape
-    plot(M.t, M.V)
-    show()

@@ -44,8 +44,8 @@
         const npy_intp* _record_strides = _record_data->strides;
         for (int _idx=0; _idx < _num_indices; _idx++)
         {
-            const int _neuron_idx = _indices[_idx];
-            const int _vectorisation_idx = _neuron_idx;
+            const int _element_idx = _indices[_idx];
+            const int _vectorisation_idx = _element_idx;
             {% for line in code_lines %}
             {{line}}
             {% endfor %}
