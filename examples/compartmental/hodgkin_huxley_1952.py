@@ -2,6 +2,12 @@
 Hodgkin-Huxley equations (1952)
 
 Conduction velocity is about 12.5 m/s (is it right?)
+
+update=5.1s
+apply=3.6s
+post_update=1.26 s
+
+So there seems to be little space for optimization left (for this morphology)
 '''
 from pylab import *
 from brian2 import *
@@ -32,7 +38,7 @@ alphan=(0.01/mV)*(-v+10*mV)/(exp((-v+10*mV)/(10*mV))-1)/ms : Hz
 betan=0.125*exp(-v/(80*mV))/ms : Hz
 '''
 
-neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=35.4 * ohm * cm)
+neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=35.4 * ohm * cm, method="exponential_euler")
 neuron.v=0*mV
 neuron.h=1
 neuron.m=0
@@ -40,8 +46,8 @@ neuron.n=.5
 neuron.I=0*amp/cm**2
 M=StateMonitor(neuron,'v',record=True)
 
-run(1*second)
-exit()
+#run(1*second,report='text')
+#exit()
 
 run(50*ms,report='text')
 neuron.I[0]=1 * uA/neuron.area[0] # current injection at one end
