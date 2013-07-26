@@ -7,7 +7,7 @@ The input is set differently for each neuron.
 '''
 from pylab import *
 from brian2 import *
-
+BrianLogger.log_level_debug()
 #brian_prefs.codegen.target = 'weave'
 
 N = 1000
