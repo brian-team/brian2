@@ -108,11 +108,11 @@ class StateMonitor(BrianObject):
                                            'doubles can be recorded.') %
                                           (variable, spec.dtype))
             self.specifiers[variable] = weakref.proxy(spec)
-            self.specifiers['_recorded_'+variable] = Variable('_recorded_'+variable, Unit(1),
-                                                               self._values[variable])
+            self.specifiers['_recorded_'+variable] = Variable(Unit(1),
+                                                              self._values[variable])
 
-        self.specifiers['_t'] = Variable('_t', Unit(1), self._t)
-        self.specifiers['_clock_t'] = AttributeVariable('t',  second, self.clock, 't_')
+        self.specifiers['_t'] = Variable(Unit(1), self._t)
+        self.specifiers['_clock_t'] = AttributeVariable(second, self.clock, 't_')
         self.specifiers['_indices'] = ArrayVariable('_indices', Unit(1),
                                                     self.indices,
                                                     index='', group=None,

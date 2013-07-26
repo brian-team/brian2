@@ -235,8 +235,6 @@ def test_state_variables():
     assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3*second))
     assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3))
     assert_raises(DimensionMismatchError, lambda: G.v.__imul__(3*second))
-    # and even with strings
-    G.v -= 'i*mV'
 
 
 if __name__ == '__main__':

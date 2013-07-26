@@ -27,11 +27,11 @@ def test_get_identifiers_recursively():
     Test finding identifiers including subexpressions.
     '''
     specifiers = {}
-    specifiers['sub1'] = Subexpression('sub1', Unit(1), np.float32, 'sub2 * z',
+    specifiers['sub1'] = Subexpression(Unit(1), np.float32, 'sub2 * z',
                                        specifiers, {})
-    specifiers['sub2'] = Subexpression('sub2', Unit(1), np.float32, '5 + y',
+    specifiers['sub2'] = Subexpression(Unit(1), np.float32, '5 + y',
                                        specifiers, {})
-    specifiers['x'] = Specifier('x')
+    specifiers['x'] = Specifier()
     identifiers = get_identifiers_recursively('_x = sub1 + x', specifiers)
     assert identifiers == set(['x', '_x', 'y', 'z', 'sub1', 'sub2'])
 

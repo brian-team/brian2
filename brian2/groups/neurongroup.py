@@ -356,9 +356,8 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         s = Group._create_specifiers(self)
 
         # Standard specifiers always present
-        s.update({'_num_elements': Variable('_num_elements', Unit(1), self.N,
-                                            constant=True),
-                  '_spikes': AttributeVariable('_spikes', Unit(1), self,
+        s.update({'_num_elements': Variable(Unit(1), self.N, constant=True),
+                  '_spikes': AttributeVariable(Unit(1), self,
                                                'spikes', constant=False)})
 
         for eq in self.equations.itervalues():
@@ -374,7 +373,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                                     is_bool=eq.is_bool)})
         
             elif eq.type == STATIC_EQUATION:
-                s.update({eq.varname: Subexpression(eq.varname, eq.unit,
+                s.update({eq.varname: Subexpression(eq.unit,
                                                     brian_prefs['core.default_scalar_dtype'],
                                                     str(eq.expr),
                                                     specifiers=s,
@@ -385,7 +384,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
 
         # Stochastic variables
         for xi in self.equations.stochastic_variables:
-            s.update({xi: StochasticVariable(xi)})
+            s.update({xi: StochasticVariable()})
 
         return s
 

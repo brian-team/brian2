@@ -93,8 +93,8 @@ def test_priority():
     clock = MyClock(t_=0, dt_=0.0001)
     specifiers = {'v': ArrayVariable('v', Unit(1), None, index='',
                                      constant=False),
-                  't': AttributeVariable('t',  second, clock, 't_', constant=False),
-                  'dt': AttributeVariable('dt', second, clock, 'dt_', constant=True)}
+                  't': AttributeVariable(second, clock, 't_', constant=False),
+                  'dt': AttributeVariable(second, clock, 'dt_', constant=True)}
     assert updater.can_integrate(eqs, specifiers)
 
     # Non-constant parameter in the coefficient, linear integration does not

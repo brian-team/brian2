@@ -49,19 +49,18 @@ class PopulationRateMonitor(BrianObject):
         # create data structures
         self.reinit()
 
-        self.specifiers = {'t': AttributeVariable('t', second, self.clock, 't'),
-                           'dt': AttributeVariable('dt', second, self.clock,
+        self.specifiers = {'t': AttributeVariable(second, self.clock, 't'),
+                           'dt': AttributeVariable(second, self.clock,
                                                    'dt', constant=True),
-                           '_spikes': AttributeVariable('_spikes', Unit(1),
+                           '_spikes': AttributeVariable(Unit(1),
                                                         self.source, 'spikes'),
                            # The template needs to have access to the
                            # DynamicArray here, having access to the underlying
                            # array is not enough since we want to do the resize
                            # in the template
-                           '_rate': Variable('_rates', Unit(1), self._rate),
-                           '_t': Variable('_t', Unit(1), self._t),
-                           '_num_source_neurons': Variable('_num_source_neurons',
-                                                           Unit(1),
+                           '_rate': Variable(Unit(1), self._rate),
+                           '_t': Variable(Unit(1), self._t),
+                           '_num_source_neurons': Variable(Unit(1),
                                                            len(self.source))}
 
     def reinit(self):

@@ -133,10 +133,10 @@ class SynapticPathway(GroupCodeRunner, Group):
         synapses.index.register_variable(self._delays)
         self.queue = SpikeQueue()
         self.spiking_synapses = []
-        self.specifiers = {'_spiking_synapses': AttributeVariable('_spiking_synapses',
-                                                               Unit(1), self,
-                                                               'spiking_synapses',
-                                                               constant=False),
+        self.specifiers = {'_spiking_synapses': AttributeVariable(Unit(1),
+                                                                  self,
+                                                                  'spiking_synapses',
+                                                                  constant=False),
                            'delay': DynamicArrayVariable('delay', second,
                                                           self._delays,
                                                           index='_element',
@@ -309,7 +309,7 @@ class SynapticIndices(Index):
         Reference to the main `Synapses object`
     '''
     def __init__(self, synapses):
-        Index.__init__(self, '')
+        Index.__init__(self)
         self.source = synapses.source
         self.target = synapses.target
         source_len = len(synapses.source)
@@ -423,17 +423,17 @@ class SynapticIndices(Index):
                 # The template needs to have access to the DynamicArray here,
                 # having access to the underlying array (which would be much
                 # faster), is not enough
-                '_synaptic_pre': Variable('_synaptic_pre', Unit(1),
+                '_synaptic_pre': Variable(Unit(1),
                                           self.synaptic_pre, constant=True),
-                '_synaptic_post': Variable('_synaptic_post', Unit(1),
+                '_synaptic_post': Variable(Unit(1),
                                            self.synaptic_post, constant=True),
-                '_pre_synaptic': Variable('_pre_synaptic', Unit(1),
+                '_pre_synaptic': Variable(Unit(1),
                                           self.pre_synaptic, constant=True),
-                '_post_synaptic': Variable('_post_synaptic', Unit(1),
+                '_post_synaptic': Variable(Unit(1),
                                            self.post_synaptic, constant=True),
                 # Will be set in the template
-                'i': Specifier('i'),
-                'j': Specifier('j')
+                'i': Specifier(),
+                'j': Specifier()
             }
             codeobj = create_runner_codeobj(self.synapses,
                                             abstract_code,
@@ -844,17 +844,15 @@ class Synapses(BrianObject, Group):
                 s[name] = new_spec
 
         # Standard specifiers always present
-        s.update({'t': AttributeVariable('t',  second, self.clock, 't_',
+        s.update({'t': AttributeVariable(second, self.clock, 't_',
                                          constant=False),
-                  'dt': AttributeVariable('dt', second, self.clock, 'dt_',
+                  'dt': AttributeVariable(second, self.clock, 'dt_',
                                           constant=True),
-                  '_num_elements': AttributeVariable('_num_elements', Unit(1),
+                  '_num_elements': AttributeVariable(Unit(1),
                                                      self, 'N', constant=True),
-                  '_num_source_neurons': Variable('_num_source_neurons',
-                                                  Unit(1), len(self.source),
+                  '_num_source_neurons': Variable(Unit(1), len(self.source),
                                                   constant=True),
-                  '_num_target_neurons': Variable('_num_target_neurons',
-                                                  Unit(1), len(self.target),
+                  '_num_target_neurons': Variable(Unit(1), len(self.target),
                                                   constant=True),
                   '_synaptic_pre': DynamicArrayVariable('_synaptic_pre',
                                                         Unit(1),
@@ -866,9 +864,8 @@ class Synapses(BrianObject, Group):
                                                          index='_element'),
                   # We don't need "proper" specifier for these -- they go
                   # back to Python code currently
-                  '_pre_synaptic': Variable('_pre_synaptic', Unit(1),
-                                            self.index.pre_synaptic),
-                  '_post_synaptic': Variable('_post_synaptic', Unit(1),
+                  '_pre_synaptic': Variable(Unit(1), self.index.pre_synaptic),
+                  '_post_synaptic': Variable(Unit(1),
                                              self.index.post_synaptic)})
 
         for eq in itertools.chain(self.equations.itervalues(),
@@ -891,7 +888,7 @@ class Synapses(BrianObject, Group):
                 # automatically resized
                 self.index.register_variable(array)
             elif eq.type == STATIC_EQUATION:
-                s.update({eq.varname: Subexpression(eq.varname, eq.unit,
+                s.update({eq.varname: Subexpression(eq.unit,
                                                     brian_prefs['core.default_scalar_dtype'],
                                                     str(eq.expr),
                                                     specifiers=s,
@@ -902,7 +899,7 @@ class Synapses(BrianObject, Group):
 
         # Stochastic variables
         for xi in self.equations.stochastic_variables:
-            s.update({xi: StochasticVariable(xi)})
+            s.update({xi: StochasticVariable()})
 
         return s
 

@@ -41,19 +41,11 @@ class Specifier(object):
     generation to specify properties like the dtype.
     
     This class is only used as a parent class for more concrete specifiers.
-    
-    Parameters
-    ----------
-    name : str
-        The name of the specifier (e.g. the name of the model variable)
+
     '''
       
-    def __init__(self, name):
-        #: The name of the thing being specified (e.g. the model variable)
-        self.name = name
-
-    def __repr__(self):
-        return '%s(name=%r)' % (self.__class__.__name__, self.name)
+    def __init__(self):
+        pass
 
 
 class Variable(Specifier):
@@ -63,8 +55,6 @@ class Variable(Specifier):
     
     Parameters
     ----------
-    name : str
-        The name of the variable.
     unit : `Unit`
         The unit of the variable. Note that the variable itself (as referenced
         by value) should never have units attached.
@@ -86,9 +76,9 @@ class Variable(Specifier):
     --------
     Value
     '''
-    def __init__(self, name, unit, value=None, dtype=None, scalar=None,
+    def __init__(self, unit, value=None, dtype=None, scalar=None,
                  constant=False, is_bool=None):
-        Specifier.__init__(self, name)
+        Specifier.__init__(self)
         
         #: The variable's unit.
         self.unit = unit
@@ -96,15 +86,14 @@ class Variable(Specifier):
         #: reference to a value of type `dtype`
         self.value = value
 
-
         if dtype is None:
             self.dtype = get_dtype(value)
         else:
             value_dtype = get_dtype(value)
             if value is not None and value_dtype != dtype:
-                raise TypeError(('Conflicting dtype information for %s, '
+                raise TypeError(('Conflicting dtype information: '
                                  'referred value has dtype %r, not '
-                                 '%r.') % (name, value_dtype, dtype))
+                                 '%r.') % (value_dtype, dtype))
             #: The dtype used for storing the variable.
             self.dtype = dtype
 
@@ -136,7 +125,7 @@ class Variable(Specifier):
         Return the value associated with the variable.
         '''
         if self.value is None:
-            raise TypeError('%s does not have a value' % self.name)
+            raise TypeError('Variable does not have a value')
         else:
             return self.value
 
@@ -162,10 +151,9 @@ class Variable(Specifier):
             return len(self.get_value())
 
     def __repr__(self):
-        description = ('<{classname}(name={name}, unit={unit}, value={value}, '
+        description = ('<{classname}(unit={unit}, value={value}, '
                        'dtype={dtype}, scalar={scalar}, constant={constant})>')
         return description.format(classname=self.__class__.__name__,
-                                  name=repr(self.name),
                                   unit=repr(self.unit),
                                   value='<value of type %s>' % type(self.value),
                                   dtype=repr(self.dtype),
@@ -181,15 +169,11 @@ class StochasticVariable(Variable):
     '''
     An object providing information about a stochastic variable. Automatically
     sets the unit to ``second**-.5``.
-    
-    Parameters
-    ----------
-    name : str
-        The name of the stochastic variable.    
+
     '''
-    def __init__(self, name):
+    def __init__(self):
         # The units of stochastic variables is fixed
-        Variable.__init__(self, name, second**(-.5), dtype=np.float64,
+        Variable.__init__(self, second**(-.5), dtype=np.float64,
                           scalar=False, constant=False, is_bool=False)
 
 
@@ -204,8 +188,6 @@ class AttributeVariable(Variable):
     
     Parameters
     ----------
-    name : str
-        The name of the variable.
     unit : `Unit`
         The unit of the variable
     obj : object
@@ -222,15 +204,14 @@ class AttributeVariable(Variable):
         If `obj` does not have an attribute `attribute`.
         
     '''
-    def __init__(self, name, unit, obj, attribute, constant=False):
+    def __init__(self, unit, obj, attribute, constant=False):
         if not hasattr(obj, attribute):
-            raise AttributeError(('Object %r does not have an attribute %r, '
-                                  'providing the value for %r') %
-                                 (obj, attribute, name))
+            raise AttributeError('Object %r does not have an attribute %r' %
+                                 (obj, attribute))
 
         value = getattr(obj, attribute)
         
-        Variable.__init__(self, name, unit, value, constant=constant)
+        Variable.__init__(self, unit, value, constant=constant)
         #: A reference to the object storing the variable's value         
         self.obj = obj
         #: The name of the attribute storing the variable's value
@@ -240,10 +221,9 @@ class AttributeVariable(Variable):
         return getattr(self.obj, self.attribute)
 
     def __repr__(self):
-        description = ('{classname}(name={name}, unit={unit}, '
-                       'obj={obj}, attribute={attribute}, constant={constant})')
+        description = ('{classname}(unit={unit}, obj={obj}, '
+                       'attribute={attribute}, constant={constant})')
         return description.format(classname=self.__class__.__name__,
-                                  name=repr(self.name),
                                   unit=repr(self.unit),
                                   obj=repr(self.obj),
                                   attribute=repr(self.attribute),
@@ -258,13 +238,11 @@ class VariableView(object):
         self.unit = unit
         self.level = level
 
-#    data = property(lambda self: self.specifier.get_value())
-
     def __getitem__(self, i):
         spec = self.specifier
         if spec.scalar:
             if not (i == slice(None) or i == 0 or (hasattr(i, '__len__') and len(i) == 0)):
-                raise IndexError('Variable %s is a scalar variable.' % spec.name)
+                raise IndexError('Variable is a scalar variable.')
             indices = 0
         else:
             indices = self.group.indices[self.specifier.index][i]
@@ -277,7 +255,7 @@ class VariableView(object):
         spec = self.specifier
         if spec.scalar:
             if not (i == slice(None) or i == 0 or (hasattr(i, '__len__') and len(i) == 0)):
-                raise IndexError('Variable %s is a scalar variable.' % spec.name)
+                raise IndexError('Variable is a scalar variable.')
             indices = np.array([0])
         else:
             indices = self.group.indices[self.specifier.index][i]
@@ -309,7 +287,9 @@ class VariableView(object):
 
     def __iadd__(self, other):
         if isinstance(other, basestring):
-            rhs = self.specifier.name + ' + ' + other
+            raise TypeError(('In-place modification with strings not '
+                             'supported. Use group.var = "var + expression" '
+                             'instead of group.var += "expression".'))
         else:
             rhs = self[:] + other
         self[:] = rhs
@@ -317,7 +297,9 @@ class VariableView(object):
 
     def __isub__(self, other):
         if isinstance(other, basestring):
-            rhs = self.specifier.name + ' - ' + other
+            raise TypeError(('In-place modification with strings not '
+                             'supported. Use group.var = "var - expression" '
+                             'instead of group.var -= "expression".'))
         else:
             rhs = self[:] - other
         self[:] = rhs
@@ -325,7 +307,9 @@ class VariableView(object):
 
     def __imul__(self, other):
         if isinstance(other, basestring):
-            rhs = self.specifier.name + ' * (' + other + ')'
+            raise TypeError(('In-place modification with strings not '
+                             'supported. Use group.var = "var * expression" '
+                             'instead of group.var *= "expression".'))
         else:
             rhs = self[:] * other
         self[:] = rhs
@@ -333,7 +317,9 @@ class VariableView(object):
 
     def __idiv__(self, other):
         if isinstance(other, basestring):
-            rhs = self.specifier.name + ' / (' + other + ')'
+            raise TypeError(('In-place modification with strings not '
+                             'supported. Use group.var = "var / expression" '
+                             'instead of group.var /= "expression".'))
         else:
             rhs = self[:] / other
         self[:] = rhs
@@ -385,15 +371,16 @@ class ArrayVariable(Variable):
                  scalar=False, is_bool=False):
 
         self.group = group
+        self.name = name
 
-        Variable.__init__(self, name, unit, value, scalar=scalar,
+        Variable.__init__(self, unit, value, scalar=scalar,
                           constant=constant, is_bool=is_bool)
         #: The reference to the array storing the data for the variable.
         self.value = value
 
         group_name = '_'+group.name+'_' if group is not None else '_'
         #: The name for the array used in generated code
-        self.arrayname = '_array' + group_name + self.name
+        self.arrayname = '_array' + group_name + name
 
         #: The index used for the variable
         self.index = index
@@ -431,8 +418,6 @@ class Subexpression(Variable):
     
     Parameters
     ----------
-    name : str
-        The name of the static equation.
     unit : `Unit`
         The unit of the static equation
     dtype : `numpy.dtype`
@@ -449,9 +434,9 @@ class Subexpression(Variable):
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
-    def __init__(self, name, unit, dtype, expr, specifiers, namespace,
+    def __init__(self, unit, dtype, expr, specifiers, namespace,
                  is_bool=False):
-        Variable.__init__(self, name, unit, value=None, dtype=dtype,
+        Variable.__init__(self, unit, value=None, dtype=dtype,
                           constant=False, scalar=False, is_bool=is_bool)
 
         #: The expression defining the static equation.
@@ -485,10 +470,9 @@ class Subexpression(Variable):
         return var in self.identifiers
 
     def __repr__(self):
-        description = ('<{classname}(name={name}, unit={unit}, dtype={dtype}, '
+        description = ('<{classname}(unit={unit}, dtype={dtype}, '
                        'expr={expr}, specifiers=<...>, namespace=<....>)>')
         return description.format(classname=self.__class__.__name__,
-                                  name=repr(self.name),
                                   unit=repr(self.unit),
                                   dtype=repr(self.dtype),
                                   expr=repr(self.expr))        
@@ -498,8 +482,8 @@ class Index(Variable):
     '''
     An object describing an index variable.
     '''
-    def __init__(self, name):
-        Variable.__init__(self, name, Unit(1), None, dtype=np.int32,
+    def __init__(self):
+        Variable.__init__(self, Unit(1), None, dtype=np.int32,
                           scalar=False, is_bool=False, constant=True)
 
     def get_value(self):

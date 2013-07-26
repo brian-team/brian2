@@ -52,19 +52,18 @@ class SpikeMonitor(BrianObject):
         # create data structures
         self.reinit()
 
-        self.specifiers = {'t': AttributeVariable('t', second, self.clock, 't'),
-                           '_spikes': AttributeVariable('_spikes', Unit(1),
-                                                        self.source, 'spikes'),
+        self.specifiers = {'t': AttributeVariable(second, self.clock, 't'),
+                           '_spikes': AttributeVariable(Unit(1), self.source,
+                                                        'spikes'),
                            # The template needs to have access to the
                            # DynamicArray here, having access to the underlying
                            # array is not enough since we want to do the resize
                            # in the template
-                           '_i': Variable('_i', Unit(1), self._i),
-                           '_t': Variable('_t', Unit(1), self._t),
+                           '_i': Variable(Unit(1), self._i),
+                           '_t': Variable(Unit(1), self._t),
                            '_count': ArrayVariable('_count', Unit(1),
                                                    self.count, ''),
-                           '_num_source_neurons': Variable('_num_source_neurons',
-                                                           Unit(1),
+                           '_num_source_neurons': Variable(Unit(1),
                                                            len(self.source))}
 
     def reinit(self):
@@ -136,33 +135,3 @@ class SpikeMonitor(BrianObject):
         description = '<{classname}, recording {source}>'
         return description.format(classname=self.__class__.__name__,
                                   source=self.source.name)
-
-    
-if __name__=='__main__':
-    from pylab import *
-    from brian2 import *
-    from brian2.codegen.languages import *
-    import time
-
-    N = 100
-    tau = 10*ms
-    eqs = '''
-    dV/dt = (2-V)/tau : 1
-    Vt : 1
-    '''
-    threshold = 'V>Vt'
-    reset = 'V = 0'
-    G = NeuronGroup(N, eqs, threshold=threshold, reset=reset)
-    G.Vt = arange(N)/(float(N))
-    G.V = rand(N)*G.Vt
-    M = SpikeMonitor(G)
-    run(100*ms)
-    print "Recorded", M.num_spikes, "spikes"
-    i, t = M.it
-    print t
-    print M.name
-    subplot(211)
-    plot(t, i, '.k')
-    subplot(212)
-    plot(M.count)
-    show()

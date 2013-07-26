@@ -81,7 +81,7 @@ def analyse_identifiers(code, specifiers, recursive=False):
         known = set(specifiers.keys())
     else:
         known = set(specifiers)
-        specifiers = dict((k, Variable(k, 1, dtype=float64,
+        specifiers = dict((k, Variable(k, 1.0, dtype=float64,
                                        is_bool=False, scalar=False)) for k in known)
 
     known |= STANDARD_IDENTIFIERS

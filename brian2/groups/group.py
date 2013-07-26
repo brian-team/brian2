@@ -32,7 +32,7 @@ class GroupIndices(Index):
                                               self._indices,
                                               index='_element')}
 
-        Index.__init__(self, name)
+        Index.__init__(self)
 
     def __len__(self):
         return self.N
@@ -83,9 +83,9 @@ class Group(object):
         self._group_attribute_access_active = True
 
     def _create_specifiers(self):
-        return {'t': AttributeVariable('t',  second, self.clock, 't_',
+        return {'t': AttributeVariable(second, self.clock, 't_',
                                        constant=False),
-                'dt': AttributeVariable('dt', second, self.clock, 'dt_',
+                'dt': AttributeVariable(second, self.clock, 'dt_',
                                         constant=True)
                 }
 
@@ -184,10 +184,10 @@ class Group(object):
         # with code
         additional_specifiers = self.index.specifiers
         additional_specifiers['_spikes'] = ArrayVariable('_spikes',
-                                                          Unit(1),
-                                                          group_indices.astype(np.int32),
-                                                          '',  # no index,
-                                                          group=self)
+                                                         Unit(1),
+                                                         group_indices.astype(np.int32),
+                                                         '',  # no index,
+                                                         group=self)
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
         codeobj = create_runner_codeobj(self,
