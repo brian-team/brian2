@@ -18,14 +18,14 @@ from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
 
-__all__ = ['Group', 'GroupCodeRunner', 'GroupIndices']
+__all__ = ['Group', 'GroupCodeRunner', 'GroupItemMapping']
 
 logger = get_logger(__name__)
 
 
-class GroupIndices(Index):
+class GroupItemMapping(Index):
 
-    def __init__(self, name, N):
+    def __init__(self, N):
         self.N = N
         self._indices = np.arange(self.N)
         self.specifiers = {'i': ArrayVariable('i',
@@ -66,16 +66,16 @@ class Group(object):
     def __init__(self):
         if not hasattr(self, 'specifiers'):
             raise ValueError('Classes derived from Group need specifiers attribute.')
-        if not hasattr(self, 'index'):
+        if not hasattr(self, 'item_mapping'):
             try:
                 N = len(self)
             except TypeError:
-                raise ValueError(('Classes derived from Group need an index '
+                raise ValueError(('Classes derived from Group need an item_mapping '
                                   'attribute, or a length to automatically '
                                   'provide 1-d indexing'))
-            self.index = GroupIndices('_element', N)
+            self.item_mapping = GroupItemMapping(N)
         if not hasattr(self, 'indices'):
-            self.indices = {'_element': self.index}
+            self.indices = {'_element': self.item_mapping}
         if not hasattr(self, 'variable_indices'):
             self.variable_indices = defaultdict(lambda: '_element')
         if not hasattr(self, 'codeobj_class'):
@@ -183,7 +183,7 @@ class Group(object):
         additional_namespace = ('implicit-namespace', namespace)
         # TODO: Find a name that makes sense for reset and variable setting
         # with code
-        additional_specifiers = self.index.specifiers
+        additional_specifiers = self.item_mapping.specifiers
         additional_specifiers['_spikes'] = ArrayVariable('_spikes',
                                                          Unit(1),
                                                          group_indices.astype(np.int32),
