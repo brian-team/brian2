@@ -14,8 +14,7 @@ a single `NeuronGroup` object:
 - Create a namespace object.
 - Create `Thresholder`, `Resetter` and `StateUpdater` objects.
   - Collect `Specifier` objects from the group and code template.
-  - Resolve the namespace, i.e. for hierarchical namespace choose just one
-    value for each variable name.
+  - Resolve the namespace, i.e. for hierarchical namespace choose just one value for each variable name.
   - Create a `CodeObject`.
 - At runtime, each object calls `CodeObject.__call__` to execute the code.
 
@@ -180,7 +179,7 @@ Templates are stored in Jinja2 format. They come in one of two forms, either the
 template if code generation only needs to output a single block of code, or they define multiple
 Jinja macros, each of which is a separate code block. The `CodeObject` should define what type of
 template it wants, and the names of the macros to define. For examples, see the templates in the
-directories in ``brian2/codegen/runtime``. See ``brian2.codegen.templates` for more details.
+directories in ``brian2/codegen/runtime``. See ``brian2.codegen.templates`` for more details.
 
 Code guide
 ==========
