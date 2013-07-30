@@ -7,7 +7,7 @@ import sympy
 
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
-from brian2.codegen.parsing import str_to_sympy, sympy_to_str
+from brian2.codegen.sympytools import str_to_sympy, sympy_to_str
 
 __all__ = ['Expression', 'Statements']
 
