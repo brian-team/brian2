@@ -51,6 +51,8 @@ The code for this stage can be seen in `NeuronGroup.__init__`,
 (in ``brian2.groups.neurongroup``), and the `StateUpdateMethod` classes
 defined in the ``brian2.stateupdaters`` package.
 
+For more details, see :doc:`state_update`.
+
 Abstract code
 -------------
 
@@ -157,13 +159,28 @@ hierarchy of named namespaces. The final namespace that code is executed in is a
 simple Python dictionary mapping names to values. Before that final namespace
 is generated, it goes through the process of 'namespace resolution'.
 
-TODO: Namespace resolution.
+Namespace resolution means creating a simple name to value mapping from a nested
+hierarchy, i.e. selecting which value to use in the case of multiple possibilities,
+and removing the units. See :doc:`equations_namespaces` for more details.
 
 Specifiers
 ----------
 
+Specifiers are objects derived from `Specifier`, and contain information about the variable
+they correspond to, including details like the name, the data type, whether it is a single value
+or an array, etc.
+
+See ``brian2.core.specifiers`` and, e.g. `Group._create_specifiers`,
+`NeuronGroup._create_specifiers`.
+
 Templates
 ---------
+
+Templates are stored in Jinja2 format. They come in one of two forms, either they are a single
+template if code generation only needs to output a single block of code, or they define multiple
+Jinja macros, each of which is a separate code block. The `CodeObject` should define what type of
+template it wants, and the names of the macros to define. For examples, see the templates in the
+directories in ``brian2/codegen/runtime``. See ``brian2.codegen.templates` for more details.
 
 Code guide
 ==========
@@ -171,12 +188,26 @@ Code guide
 This section includes a guide to the various relevant packages and subpackages
 involved in the code generation process.
 
-	codegen
-	  codegen.functions
-	  codegen.languages
-	  codegen.runtime
-	core.specifiers
-	equations
-	groups
-	parsing
-	stateupdaters
+``codegen``
+	Stores the majority of all code generation related code.
+	
+	``codegen.functions``
+		Code related to including functions - built-in and user-defined - in generated code.
+	``codegen.languages``
+		Each `Language` is defined in a module here.
+	``codegen.runtime``
+		Each runtime `CodeObject` and its templates are defined in a package here.
+``core``
+	``core.namespace``
+		The `CompoundNamespace` and namespace resolution are defined here.
+	``core.specifiers``
+		The `Specifier` types are defined here.
+``equations``
+	Everything related to `Equations`. 
+``groups``
+	All `NeuronGroup` related stuff is in here.
+``parsing``
+	Various tools using Python's ``ast`` module to parse user-specified code. Includes syntax
+	translation to various languages in ``parsing.rendering``.
+``stateupdaters``
+	Everything related to generating abstract code blocks from integration methods is here.
