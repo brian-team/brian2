@@ -4,10 +4,11 @@ Hodgkin-Huxley equations (1952)
 Conduction velocity is about 12.5 m/s (is it right?)
 
 update=5.1s
-apply=3.6s
+apply=3.6s - this is probably mostly nonlinear state updates
 post_update=1.26 s
 
 So there seems to be little space for optimization left (for this morphology)
+Except perhaps using tables and such for exponential functions (or fastexp? could be in a #define).
 '''
 from pylab import *
 from brian2 import *
