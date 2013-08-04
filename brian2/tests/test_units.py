@@ -26,16 +26,16 @@ from brian2.units.stdunits import ms, mV, kHz, nS, cm
 
 
 def assert_quantity(q, values, unit):
-    assert isinstance(q, Quantity)
+    assert isinstance(q, Quantity) or (isinstance(q, np.ndarray) and have_same_dimensions(unit, 1))
     assert np.all(np.asarray(q) == values)
     assert have_same_dimensions(q, unit), ('Dimension mismatch: (%s) (%s)' %
                                            (get_dimensions(q),
                                             get_dimensions(unit)))
 
+
 # Construct quantities
 def test_construction():
     ''' Test the construction of quantity objects '''
-
     q = 500 * ms
     assert_quantity(q, 0.5, second)
     q = np.float64(500) * ms
@@ -226,25 +226,7 @@ def test_setting():
     assert_raises(DimensionMismatchError, lambda : set_to_value(0, 1 * second))
     assert_raises(DimensionMismatchError, lambda : set_to_value((slice(2), slice(3)),
                                                                 np.ones((2, 3))))
-    
-    # A dimensionless array can be set to values without units
-    dimensionless = quantity / mV
-    dimensionless[0, 1] = 10
-    assert_equal(dimensionless[0, 1], 10)
-    dimensionless[0, 1] = 30 * volt/volt
-    assert_equal(dimensionless[0, 1], 30)
-    dimensionless[:, 1] = 20
-    assert np.all(dimensionless[:, 1] == 20)
-    dimensionless[1, :] = np.ones((1, 3))
-    assert np.all(dimensionless[1, :] == 1)
 
-    def set_to_value2(key, value):
-        dimensionless[key] = value
-
-    assert_raises(DimensionMismatchError, lambda : set_to_value2(0, 1 * second))    
-    assert_raises(DimensionMismatchError, lambda : set_to_value2((slice(2), slice(3)),
-                                                                np.ones((2, 3)) * volt))
-    
 
 # Binary operations
 def test_multiplication_division():
@@ -701,13 +683,13 @@ def test_numpy_functions_dimensionless():
             for ufunc in UFUNCS_DIMENSIONLESS:
                 result_unitless = eval('np.%s(value)' % ufunc)
                 result_array = eval('np.%s(np.array(value))' % ufunc)
-                assert result_unitless.is_dimensionless
-                assert_equal(np.asarray(result_unitless), result_array)
+                assert isinstance(result_unitless, (np.ndarray, np.number)) and not isinstance(result_unitless, Quantity)
+                assert_equal(result_unitless, result_array)
             for ufunc in UFUNCS_DIMENSIONLESS_TWOARGS:
                 result_unitless = eval('np.%s(value, value)' % ufunc)
                 result_array = eval('np.%s(np.array(value), np.array(value))' % ufunc)
-                assert result_unitless.is_dimensionless
-                assert_equal(np.asarray(result_unitless), result_array)
+                assert isinstance(result_unitless, (np.ndarray, np.number)) and not isinstance(result_unitless, Quantity)
+                assert_equal(result_unitless, result_array)
         
         for value in unit_values:
             for ufunc in UFUNCS_DIMENSIONLESS:

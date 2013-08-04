@@ -780,7 +780,7 @@ class Quantity(np.ndarray, object):
     >>> (I * R).in_unit(mvolt)
     '6000.0 mV'
     >>> (I * R) / mvolt
-    Quantity(6000.0)
+    array(6000.0)
     >>> X = I + R  # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
         ...
@@ -816,15 +816,15 @@ class Quantity(np.ndarray, object):
     #==========================================================================
     # Construction and handling of numpy ufuncs
     #==========================================================================
-    def __new__(cls, arr, dim=None, dtype=None, copy=False):
+    def __new__(cls, arr, dim=None, dtype=None, copy=False, force_quantity=False):
+
+        # Do not create dimensionless quantities, use pure numpy arrays instead
+        if dim is DIMENSIONLESS and not force_quantity:
+            return np.array(arr, dtype=dtype, copy=copy)
+
         # All np.ndarray subclasses need something like this, see
         # http://www.scipy.org/Subclasses
         subarr = np.array(arr, dtype=dtype, copy=copy).view(cls)
-
-        # Convert boolean arrays to integers (should only happen during unit
-        # checking, e.g. when checking the threshold condition)
-        if subarr.dtype == np.bool:
-            subarr = subarr.astype(np.int8)
 
         # We only want numerical datatypes
         if not np.issubdtype(subarr.dtype, np.number):
@@ -990,12 +990,11 @@ class Quantity(np.ndarray, object):
         >>> 2 * metre
         2.0 * metre
         """
-        x = Quantity(value)
         if len(args) and isinstance(args[0], Dimension):
-            x.dimensions = args[0]
+            dimensions = args[0]
         else:
-            x.dimensions = get_or_create_dimension(*args, **keywords)
-        return x
+            dimensions = get_or_create_dimension(*args, **keywords)
+        return Quantity(value, dim=dimensions)
 
     ### ATTRIBUTES ###
     is_dimensionless = property(lambda self: self.dim.is_dimensionless,
@@ -1189,14 +1188,8 @@ class Quantity(np.ndarray, object):
         ''' Overwritten to assure that single elements (i.e., indexed with a
         single integer or a tuple of integers) retain their unit.
         '''
-        if (np.issubdtype(type(key), np.integer) or
-            (isinstance(key, tuple) and
-             all([np.issubdtype(type(one_key), np.integer) for
-                  one_key in key]))):
-            return Quantity.with_dimensions(np.ndarray.__getitem__(self, key),
-                                            self.dim)
-        else:
-            return super(Quantity, self).__getitem__(key)
+        return Quantity.with_dimensions(np.ndarray.__getitem__(self, key),
+                                        self.dim)
 
     def __getslice__(self, start, end):
         return self.__getitem__(slice(start, end))
@@ -1515,7 +1508,7 @@ class Quantity(np.ndarray, object):
         # identical
         if dim_exponent.size > 1:
             dim_exponent = dim_exponent[0]
-        return Quantity.with_dimensions(prod_result, self.dim ** dim_exponent)
+        return Quantity.with_dimensions(np.asarray(prod_result), self.dim ** dim_exponent)
     prod.__doc__ = np.ndarray.prod.__doc__
 
     def cumprod(self, *args, **kwds):  # pylint: disable=C0111
@@ -1651,7 +1644,7 @@ class Unit(Quantity):
         if dim is None:
             dim = DIMENSIONLESS
         obj = super(Unit, cls).__new__(cls, arr, dim=dim, dtype=dtype,
-                                       copy=copy)
+                                       copy=copy, force_quantity=True)
         if Unit.automatically_register_units:
             register_new_unit(obj)
         return obj
