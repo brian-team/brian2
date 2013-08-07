@@ -42,15 +42,15 @@ def test_refractoriness_variables():
         net = Network(G, mon)
         net.run(20*ms)
         # No difference before the spike
-        assert_equal(mon.v[mon.t < 10*ms], mon.w[mon.t < 10*ms])
+        assert_equal(mon[0].v[mon.t < 10*ms], mon[0].w[mon.t < 10*ms])
         # v is not updated during refractoriness
-        in_refractoriness = mon.v[(mon.t >= 10*ms) & (mon.t <15*ms)]
+        in_refractoriness = mon[0].v[(mon.t >= 10*ms) & (mon.t <15*ms)]
         assert_equal(in_refractoriness, np.zeros_like(in_refractoriness))
         # w should evolve as before
-        assert_equal(mon.w[mon.t < 5*ms], mon.w[(mon.t >= 10*ms) & (mon.t <15*ms)])
-        assert np.all(mon.w[(mon.t >= 10*ms) & (mon.t <15*ms)] > 0)
+        assert_equal(mon[0].w[mon.t < 5*ms], mon[0].w[(mon.t >= 10*ms) & (mon.t <15*ms)])
+        assert np.all(mon[0].w[(mon.t >= 10*ms) & (mon.t <15*ms)] > 0)
         # After refractoriness, v should increase again
-        assert np.all(mon.v[(mon.t >= 15*ms) & (mon.t <20*ms)] > 0)
+        assert np.all(mon[0].v[(mon.t >= 15*ms) & (mon.t <20*ms)] > 0)
 
 
 def test_refractoriness_threshold():

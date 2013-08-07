@@ -48,7 +48,7 @@ def test_math_functions():
                 net = Network(G, mon)
                 net.run(clock.dt)
                 
-                assert_equal(numpy_result, mon.func_[0, :],
+                assert_equal(numpy_result, mon.func_.flatten(),
                              'Function %s did not return the correct values' % func.__name__)
             
             # Functions/operators
@@ -70,7 +70,7 @@ def test_math_functions():
                 net = Network(G, mon)
                 net.run(clock.dt)
                 
-                assert_equal(numpy_result, mon.func_[0, :],
+                assert_equal(numpy_result, mon.func_.flatten(),
                              'Function %s did not return the correct values' % func.__name__)
 
 

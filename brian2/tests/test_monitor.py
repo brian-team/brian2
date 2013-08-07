@@ -81,19 +81,19 @@ def test_state_monitor():
                         np.arange(len(nothing_mon.t)) * defaultclock.dt)
 
         # Check v recording
-        assert_allclose(v_mon.v,
+        assert_allclose(v_mon.v.T,
                         np.exp(np.tile(-v_mon.t - defaultclock.dt, (2, 1)).T / (10*ms)))
-        assert_allclose(v_mon.v_,
+        assert_allclose(v_mon.v_.T,
                         np.exp(np.tile(-v_mon.t_ - defaultclock.dt_, (2, 1)).T / float(10*ms)))
         assert_equal(v_mon.v, multi_mon.v)
         assert_equal(v_mon.v_, multi_mon.v_)
-        assert_equal(v_mon.v[:, 1:2], v_mon1.v)
-        assert_equal(multi_mon.v[:, 1:2], multi_mon1.v)
+        assert_equal(v_mon.v[1:2], v_mon1.v)
+        assert_equal(multi_mon.v[1:2], multi_mon1.v)
 
         # Other variables
-        assert_equal(multi_mon.rate_, np.tile(np.atleast_2d(G.rate_),
-                                             (multi_mon.rate.shape[0], 1)))
-        assert_equal(multi_mon.rate[:, 1:2], multi_mon1.rate)
+        assert_equal(multi_mon.rate_.T, np.tile(np.atleast_2d(G.rate_),
+                                             (multi_mon.rate.shape[1], 1)))
+        assert_equal(multi_mon.rate[1:2], multi_mon1.rate)
         assert_allclose(np.clip(multi_mon.v, 0.1, 0.9), multi_mon.f)
         assert_allclose(np.clip(multi_mon1.v, 0.1, 0.9), multi_mon1.f)
 
