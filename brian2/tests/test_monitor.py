@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing.utils import assert_allclose, assert_equal
+from numpy.testing.utils import assert_allclose, assert_equal, assert_raises
 
 from brian2 import *
 
@@ -96,6 +96,30 @@ def test_state_monitor():
         assert_equal(multi_mon.rate[1:2], multi_mon1.rate)
         assert_allclose(np.clip(multi_mon.v, 0.1, 0.9), multi_mon.f)
         assert_allclose(np.clip(multi_mon1.v, 0.1, 0.9), multi_mon1.f)
+
+        # Check indexing semantics
+        G = NeuronGroup(10, 'v:volt')
+        G.v = np.arange(10) * volt
+        mon = StateMonitor(G, 'v', record=[5, 6, 7])
+
+        net = Network(G, mon)
+        net.run(2 * defaultclock.dt)
+
+        assert_equal(mon.v, np.array([[5, 5],
+                                      [6, 6],
+                                      [7, 7]]) * volt)
+        assert_equal(mon.v_, np.array([[5, 5],
+                                       [6, 6],
+                                       [7, 7]]))
+        assert_equal(mon[5].v, mon.v[0])
+        assert_equal(mon[7].v, mon.v[2])
+        assert_equal(mon[[5, 7]].v, mon.v[[0, 2]])
+        assert_equal(mon[np.array([5, 7])].v, mon.v[[0, 2]])
+
+        assert_raises(IndexError, lambda: mon[8])
+        assert_raises(TypeError, lambda: mon['string'])
+        assert_raises(TypeError, lambda: mon[5.0])
+        assert_raises(TypeError, lambda: mon[[5.0, 6.0]])
 
     brian_prefs.codegen.target = language_before
 

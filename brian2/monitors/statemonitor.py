@@ -60,11 +60,11 @@ class StateMonitorView(object):
             return indices[0]
 
         if self.monitor.record_all:
-            return index_array
+            return item
         indices = []
-        for position, index in enumerate(self.monitor.indices):
-            if index in index_array:
-                indices.append(position)
+        for index in item:
+            if index in self.monitor.indices:
+                indices.append(np.nonzero(self.monitor.indices == index)[0][0])
             else:
                 raise IndexError('Neuron number %d has not been recorded' % index)
         return np.array(indices)
@@ -224,13 +224,15 @@ class StateMonitor(BrianObject):
     def __getitem__(self, item):
         if isinstance(item, (int, np.ndarray)):
             return StateMonitorView(self, item)
-        elif isinstance(item, collections.Seqquence):
+        elif isinstance(item, collections.Sequence):
             index_array = np.array(item)
             if not np.issubdtype(index_array.dtype, np.int):
-                raise TypeError('Index has to be an integer or a sequence of integers')
+                raise TypeError('Index has to be an integer or a sequence '
+                                'of integers')
             return StateMonitorView(self, item)
         else:
-            raise TypeError('Cannot use object of type %s as an index' % type(item))
+            raise TypeError('Cannot use object of type %s as an index'
+                            % type(item))
 
     def __getattr__(self, item):
         # We do this because __setattr__ and __getattr__ are not active until
