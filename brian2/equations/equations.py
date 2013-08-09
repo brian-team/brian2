@@ -699,7 +699,7 @@ class Equations(collections.Mapping):
             elif eq.type == PARAMETER:
                 eq.update_order = len(sorted_eqs) + 1
 
-    def check_units(self, namespace, specifiers, additional_namespace=None):
+    def check_units(self, namespace, variables, additional_namespace=None):
         '''
         Check all the units for consistency.
         
@@ -708,8 +708,8 @@ class Equations(collections.Mapping):
         namespace : `CompoundNamespace`
             The namespace for resolving external identifiers, should be
             provided by the `NeuronGroup` or `Synapses`.
-        specifiers : dict of `Specifier` objects
-            The specifiers of the state variables and internal variables
+        variables : dict of `Variable` objects
+            The variables of the state variables and internal variables
             (e.g. t and dt)
         additional_namespace = (str, dict-like)
             A namespace tuple (name and dictionary), describing the additional
@@ -724,7 +724,7 @@ class Equations(collections.Mapping):
         '''
         external = frozenset().union(*[expr.identifiers
                                      for _, expr in self.eq_expressions])
-        external -= set(specifiers.keys()) 
+        external -= set(variables.keys())
 
         resolved_namespace = namespace.resolve_all(external,
                                                    additional_namespace,
@@ -737,10 +737,10 @@ class Equations(collections.Mapping):
 
             if eq.type == DIFFERENTIAL_EQUATION:
                 check_unit(str(eq.expr), self.units[var] / second,
-                           resolved_namespace, specifiers)
+                           resolved_namespace, variables)
             elif eq.type == STATIC_EQUATION:
                 check_unit(str(eq.expr), self.units[var],
-                           resolved_namespace, specifiers)
+                           resolved_namespace, variables)
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.type)
 

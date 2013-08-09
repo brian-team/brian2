@@ -36,14 +36,14 @@ class CodeObjectTemplate(object):
         self.words = set([])
         for v in temps:
             self.words.update(get_identifiers(v))
-        #: The set of specifiers in this template
-        self.specifiers = set([])
+        #: The set of variables in this template
+        self.variables = set([])
         for v in temps:
             # This is the bit inside {} for USE_SPECIFIERS { list of words }
             specifier_blocks = re.findall(r'\bUSE_SPECIFIERS\b\s*\{(.*?)\}',
                                           v, re.M|re.S)
             for block in specifier_blocks:
-                self.specifiers.update(get_identifiers(block))
+                self.variables.update(get_identifiers(block))
                 
     def __call__(self, code_lines, **kwds):
         kwds['code_lines'] = code_lines

@@ -7,7 +7,7 @@ from brian2.codegen.codeobject import create_codeobject
 from brian2.core.base import BrianObject
 from brian2.core.preferences import brian_prefs
 from brian2.core.scheduler import Scheduler
-from brian2.core.specifiers import Variable, AttributeVariable
+from brian2.core.variables import Variable, AttributeVariable
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
@@ -50,7 +50,7 @@ class PopulationRateMonitor(BrianObject):
         # create data structures
         self.reinit()
 
-        self.specifiers = {'t': AttributeVariable(second, self.clock, 't'),
+        self.variables = {'t': AttributeVariable(second, self.clock, 't'),
                            'dt': AttributeVariable(second, self.clock,
                                                    'dt', constant=True),
                            '_spikes': AttributeVariable(Unit(1),
@@ -78,7 +78,7 @@ class PopulationRateMonitor(BrianObject):
         self.codeobj = create_codeobject(self.name,
                                          '', # No model-specific code
                                          {}, # no namespace
-                                         self.specifiers,
+                                         self.variables,
                                          template_name='ratemonitor',
                                          indices={},
                                          variable_indices=defaultdict(lambda: '_element'),

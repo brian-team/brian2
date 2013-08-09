@@ -10,7 +10,7 @@ from brian2.codegen.functions.base import Function
 from brian2.utils.logger import get_logger
 from brian2.parsing.rendering import CPPNodeRenderer
 from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.core.specifiers import ArrayVariable
+from brian2.core.variables import ArrayVariable
 
 from .base import Language
 
@@ -125,38 +125,38 @@ class CPPLanguage(Language):
             decl = ''
         return decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
 
-    def translate_statement_sequence(self, statements, specifiers, namespace,
+    def translate_statement_sequence(self, statements, variables, namespace,
                                      variable_indices, iterate_all):
 
         # Note that C++ code does not care about the iterate_all argument -- it
         # always has to loop over the elements
 
-        read, write = self.array_read_write(statements, specifiers)
+        read, write = self.array_read_write(statements, variables)
         lines = []
         # read arrays
-        for var in read:
-            index_var = variable_indices[specifiers[var]] + '_idx'
-            spec = specifiers[var]
-            if var not in write:
+        for varname in read:
+            index_var = variable_indices[variables[varname]] + '_idx'
+            var = variables[varname]
+            if varname not in write:
                 line = 'const '
             else:
                 line = ''
-            line = line + c_data_type(spec.dtype) + ' ' + var + ' = '
-            line = line + '_ptr' + spec.arrayname + '[' + index_var + '];'
+            line = line + c_data_type(var.dtype) + ' ' + varname + ' = '
+            line = line + '_ptr' + var.arrayname + '[' + index_var + '];'
             lines.append(line)
         # simply declare variables that will be written but not read
-        for var in write:
-            if var not in read:
-                spec = specifiers[var]
-                line = c_data_type(spec.dtype) + ' ' + var + ';'
+        for varname in write:
+            if varname not in read:
+                var = variables[varname]
+                line = c_data_type(var.dtype) + ' ' + varname + ';'
                 lines.append(line)
         # the actual code
         lines.extend([self.translate_statement(stmt) for stmt in statements])
         # write arrays
-        for var in write:
-            index_var = variable_indices[specifiers[var]] + '_idx'
-            spec = specifiers[var]
-            line = '_ptr' + spec.arrayname + '[' + index_var + '] = ' + var + ';'
+        for varname in write:
+            index_var = variable_indices[variables[varname]] + '_idx'
+            var = variables[varname]
+            line = '_ptr' + var.arrayname + '[' + index_var + '] = ' + varname + ';'
             lines.append(line)
         code = '\n'.join(lines)
         # set up the restricted pointers, these are used so that the compiler
@@ -166,11 +166,11 @@ class CPPLanguage(Language):
         # same array. E.g. in gapjunction code, v_pre and v_post refer to the
         # same array if a group is connected to itself
         arraynames = set()
-        for var, spec in specifiers.iteritems():
-            if isinstance(spec, ArrayVariable):
-                arrayname = spec.arrayname
+        for varname, var in variables.iteritems():
+            if isinstance(var, ArrayVariable):
+                arrayname = var.arrayname
                 if not arrayname in arraynames:
-                    line = c_data_type(spec.dtype) + ' * ' + self.restrict + '_ptr' + arrayname + ' = ' + arrayname + ';'
+                    line = c_data_type(var.dtype) + ' * ' + self.restrict + '_ptr' + arrayname + ' = ' + arrayname + ';'
                     lines.append(line)
                     arraynames.add(arrayname)
         pointers = '\n'.join(lines)
@@ -179,23 +179,22 @@ class CPPLanguage(Language):
         user_functions = []
         support_code = ''
         hash_defines = ''
-        for var, spec in itertools.chain(namespace.items(),
-                                         specifiers.items()):
-            if isinstance(spec, Function):
-                user_functions.append(var)
-                speccode = spec.code(self, var)
+        for varname, variable in namespace.items():
+            if isinstance(variable, Function):
+                user_functions.append(varname)
+                speccode = variable.code(self, varname)
                 support_code += '\n' + deindent(speccode['support_code'])
                 hash_defines += deindent(speccode['hashdefine_code'])
                 # add the Python function with a leading '_python', if it
                 # exists. This allows the function to make use of the Python
                 # function via weave if necessary (e.g. in the case of randn)
-                if not spec.pyfunc is None:
-                    pyfunc_name = '_python_' + var
-                    if pyfunc_name in  namespace:
+                if not variable.pyfunc is None:
+                    pyfunc_name = '_python_' + varname
+                    if pyfunc_name in namespace:
                         logger.warn(('Namespace already contains function %s, '
                                      'not replacing it') % pyfunc_name)
                     else:
-                        namespace[pyfunc_name] = spec.pyfunc
+                        namespace[pyfunc_name] = variable.pyfunc
         
         # delete the user-defined functions from the namespace
         for func in user_functions:

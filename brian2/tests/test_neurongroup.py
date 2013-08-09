@@ -43,15 +43,15 @@ def test_creation():
     assert_raises(TypeError, lambda: NeuronGroup(1, object()))
 
 
-def test_specifiers():
+def test_variables():
     '''
-    Test the correct creation of the specifiers dictionary.
+    Test the correct creation of the variables dictionary.
     '''
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1')
-    assert 'v' in G.specifiers and 't' in G.specifiers and 'dt' in G.specifiers
+    assert 'v' in G.variables and 't' in G.variables and 'dt' in G.variables
     
     G = NeuronGroup(1, 'dv/dt = -v/tau + xi*tau**-0.5: 1')
-    assert not 'tau' in G.specifiers and 'xi' in G.specifiers
+    assert not 'tau' in G.variables and 'xi' in G.variables
 
 
 def test_stochastic_variable():
@@ -239,7 +239,7 @@ def test_state_variables():
 
 if __name__ == '__main__':
     test_creation()
-    test_specifiers()
+    test_variables()
     test_stochastic_variable()
     test_unit_errors()
     test_threshold_reset()

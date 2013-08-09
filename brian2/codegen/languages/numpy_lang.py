@@ -26,13 +26,13 @@ class NumpyLanguage(Language):
             op = '='
         return var + ' ' + op + ' ' + self.translate_expression(expr)
 
-    def translate_statement_sequence(self, statements, specifiers, namespace,
+    def translate_statement_sequence(self, statements, variables, namespace,
                                      variable_indices, iterate_all):
-        read, write = self.array_read_write(statements, specifiers)
+        read, write = self.array_read_write(statements, variables)
         lines = []
         # read arrays
         for var in read:
-            spec = specifiers[var]
+            spec = variables[var]
             index = variable_indices[spec]
             line = var + ' = ' + spec.arrayname
             if not index in iterate_all:
@@ -42,7 +42,7 @@ class NumpyLanguage(Language):
         lines.extend([self.translate_statement(stmt) for stmt in statements])
         # write arrays
         for var in write:
-            index_var = variable_indices[specifiers[var]]
+            index_var = variable_indices[variables[var]]
             # check if all operations were inplace and we're operating on the
             # whole vector, if so we don't need to write the array back
             if not index_var in iterate_all:
@@ -54,7 +54,7 @@ class NumpyLanguage(Language):
                         all_inplace = False
                         break
             if not all_inplace:
-                line = specifiers[var].arrayname
+                line = variables[var].arrayname
                 if index_var in iterate_all:
                     line = line + '[:]'
                 else:

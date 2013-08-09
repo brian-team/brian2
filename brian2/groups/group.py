@@ -8,7 +8,7 @@ from collections import defaultdict
 import numpy as np
 
 from brian2.core.base import BrianObject
-from brian2.core.specifiers import (ArrayVariable, Index,
+from brian2.core.variables import (ArrayVariable, Index,
                                     StochasticVariable, AttributeVariable)
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
@@ -28,7 +28,7 @@ class GroupItemMapping(Index):
     def __init__(self, N):
         self.N = N
         self._indices = np.arange(self.N)
-        self.specifiers = {'i': ArrayVariable('i',
+        self.variables = {'i': ArrayVariable('i',
                                               Unit(1),
                                               self._indices)}
 
@@ -64,8 +64,8 @@ class Group(object):
     # (should make autocompletion work)
     '''
     def __init__(self):
-        if not hasattr(self, 'specifiers'):
-            raise ValueError('Classes derived from Group need specifiers attribute.')
+        if not hasattr(self, 'variables'):
+            raise ValueError('Classes derived from Group need variables attribute.')
         if not hasattr(self, 'item_mapping'):
             try:
                 N = len(self)
@@ -83,7 +83,7 @@ class Group(object):
 
         self._group_attribute_access_active = True
 
-    def _create_specifiers(self):
+    def _create_variables(self):
         return {'t': AttributeVariable(second, self.clock, 't_',
                                        constant=False),
                 'dt': AttributeVariable(second, self.clock, 'dt_',
@@ -95,7 +95,7 @@ class Group(object):
         Gets the unitless array.
         '''
         try:
-            return self.specifiers[name].get_addressable_value()
+            return self.variables[name].get_addressable_value()
         except KeyError:
             raise KeyError("Array named "+name+" not found.")
         
@@ -104,8 +104,8 @@ class Group(object):
         Gets the array with units.
         '''
         try:
-            spec = self.specifiers[name]
-            return spec.get_addressable_value_with_unit()
+            var = self.variables[name]
+            return var.get_addressable_value_with_unit()
         except KeyError:
             raise KeyError("Array named "+name+" not found.")
 
@@ -140,22 +140,22 @@ class Group(object):
         # Group.__init__
         if not hasattr(self, '_group_attribute_access_active'):
             object.__setattr__(self, name, val)
-        elif name in self.specifiers:
-            spec = self.specifiers[name]
+        elif name in self.variables:
+            var = self.variables[name]
             if not isinstance(val, basestring):
-                fail_for_dimension_mismatch(val, spec.unit,
+                fail_for_dimension_mismatch(val, var.unit,
                                             'Incorrect units for setting %s' % name)
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            spec.get_addressable_value_with_unit(level=1)[:] = val
-        elif len(name) and name[-1]=='_' and name[:-1] in self.specifiers:
+            var.get_addressable_value_with_unit(level=1)[:] = val
+        elif len(name) and name[-1]=='_' and name[:-1] in self.variables:
             # no unit checking
-            spec = self.specifiers[name[:-1]]
+            var = self.variables[name[:-1]]
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            spec.get_addressable_value(level=1)[:] = val
+            var.get_addressable_value(level=1)[:] = val
         else:
             object.__setattr__(self, name, val)
 
-    def _set_with_code(self, specifier, group_indices, code,
+    def _set_with_code(self, variable, group_indices, code,
                        check_units=True, level=0):
         '''
         Sets a variable using a string expression. Is called by
@@ -164,8 +164,8 @@ class Group(object):
 
         Parameters
         ----------
-        specifier : `ArrayVariable`
-            The `Specifier` for the variable to be set
+        variable : `ArrayVariable`
+            The `Variable` for the variable to be set
         group_indices : ndarray of int
             The indices of the elements that are to be set.
         code : str
@@ -178,13 +178,13 @@ class Group(object):
             Necessary so that both `X.var = ` and `X.var[:] = ` have access
             to the surrounding namespace.
         '''
-        abstract_code = specifier.name + ' = ' + code
+        abstract_code = variable.name + ' = ' + code
         namespace = get_local_namespace(level + 1)
         additional_namespace = ('implicit-namespace', namespace)
         # TODO: Find a name that makes sense for reset and variable setting
         # with code
-        additional_specifiers = self.item_mapping.specifiers
-        additional_specifiers['_spikes'] = ArrayVariable('_spikes',
+        additional_variables = self.item_mapping.variables
+        additional_variables['_spikes'] = ArrayVariable('_spikes',
                                                          Unit(1),
                                                          group_indices.astype(np.int32),
                                                          group=self)
@@ -196,7 +196,7 @@ class Group(object):
                                  self.indices,
                                  variable_indices=self.variable_indices,
                                  iterate_all=[],
-                                 additional_specifiers=additional_specifiers,
+                                 additional_variables=additional_variables,
                                  additional_namespace=additional_namespace,
                                  check_units=check_units,
                                  codeobj_class=self.codeobj_class)
@@ -206,7 +206,7 @@ class Group(object):
 def create_runner_codeobj(group, code, template_name, indices,
                           variable_indices,
                           iterate_all,
-                          name=None, check_units=True, additional_specifiers=None,
+                          name=None, check_units=True, additional_variables=None,
                           additional_namespace=None,
                           template_kwds=None,
                           codeobj_class=None):
@@ -225,7 +225,7 @@ def create_runner_codeobj(group, code, template_name, indices,
         A mapping from index name to `Index` objects, describing the indices
         used for the variables in the code.
     variable_indices : dict-like
-        A mapping from `Specifier` objects to index names (strings).
+        A mapping from `Variable` objects to index names (strings).
     iterate_all : list of str
         A list of index names for which the code should iterate over all
         indices. In numpy code, this allows to not use the indices and use
@@ -236,9 +236,9 @@ def create_runner_codeobj(group, code, template_name, indices,
         none is given.
     check_units : bool, optional
         Whether to check units in the statement. Defaults to ``True``.
-    additional_specifiers : dict-like, optional
-        A mapping of names to `Specifier` objects, used in addition to the
-        specifiers saved in `group`.
+    additional_variables : dict-like, optional
+        A mapping of names to `Variable` objects, used in addition to the
+        variables saved in `group`.
     additional_namespace : dict-like, optional
         A mapping from names to objects, used in addition to the namespace
         saved in `group`.
@@ -250,12 +250,12 @@ def create_runner_codeobj(group, code, template_name, indices,
     logger.debug('Creating code object for abstract code:\n' + str(code))
 
     if group is not None:
-        all_specifiers = dict(group.specifiers)
+        all_variables = dict(group.variables)
     else:
-        all_specifiers = {}
-    # If the GroupCodeRunner has specifiers, add them
-    if additional_specifiers is not None:
-        all_specifiers.update(additional_specifiers)
+        all_variables = {}
+    # If the GroupCodeRunner has variables, add them
+    if additional_variables is not None:
+        all_variables.update(additional_variables)
         
     template = get_codeobject_template(template_name,
                                        codeobj_class=codeobj_class)
@@ -268,39 +268,38 @@ def create_runner_codeobj(group, code, template_name, indices,
         # not need to recursively descend into subexpressions. For unit
         # checking, we only need to know the units of the subexpressions,
         # not what variables they refer to
-        _, _, unknown = analyse_identifiers(code, all_specifiers)
+        _, _, unknown = analyse_identifiers(code, all_variables)
         resolved_namespace = group.namespace.resolve_all(unknown,
                                                          additional_namespace,
                                                          strip_units=False)
-
-        check_units_statements(code, resolved_namespace, all_specifiers)
+        check_units_statements(code, resolved_namespace, all_variables)
 
     # Determine the identifiers that were used
-    _, used_known, unknown = analyse_identifiers(code, all_specifiers,
+    _, used_known, unknown = analyse_identifiers(code, all_variables,
                                                  recursive=True)
 
     logger.debug('Unknown identifiers in the abstract code: ' + str(unknown))
     resolved_namespace = group.namespace.resolve_all(unknown,
                                                      additional_namespace)
 
-    # Only pass the specifiers that are actually used
-    specifiers = {}
+    # Only pass the variables that are actually used
+    variables = {}
     for var in used_known:
-        if not isinstance(all_specifiers[var], StochasticVariable):
-            specifiers[var] = all_specifiers[var]
+        if not isinstance(all_variables[var], StochasticVariable):
+            variables[var] = all_variables[var]
 
-    # Also add the specifiers that the template needs
-    for spec in template.specifiers:
+    # Also add the variables that the template needs
+    for var in template.variables:
         try:
-            specifiers[spec] = all_specifiers[spec]
+            variables[var] = all_variables[var]
         except KeyError as ex:
-            # We abuse template.specifiers here to also store names of things
+            # We abuse template.variables here to also store names of things
             # from the namespace (e.g. rand) that are needed
             # TODO: Improve all of this namespace/specifier handling
             if group is not None:
                 # Try to find the name in the group's namespace
-                resolved_namespace[spec] = group.namespace.resolve(spec,
-                                                                   additional_namespace)
+                resolved_namespace[var] = group.namespace.resolve(var,
+                                                                  additional_namespace)
             else:
                 raise ex
 
@@ -313,7 +312,7 @@ def create_runner_codeobj(group, code, template_name, indices,
     return create_codeobject(name,
                              code,
                              resolved_namespace,
-                             specifiers,
+                             variables,
                              template_name,
                              indices=indices,
                              variable_indices=variable_indices,
@@ -394,15 +393,15 @@ class GroupCodeRunner(BrianObject):
 
     def _create_codeobj(self, additional_namespace=None):
         ''' A little helper function to reduce the amount of repetition when
-        calling the language's _create_codeobj (always pass self.specifiers and
+        calling the language's _create_codeobj (always pass self.variables and
         self.namespace + additional namespace).
         '''
 
-        # If the GroupCodeRunner has specifiers, add them
-        if hasattr(self, 'specifiers'):
-            additional_specifiers = self.specifiers
+        # If the GroupCodeRunner has variables, add them
+        if hasattr(self, 'variables'):
+            additional_variables = self.variables
         else:
-            additional_specifiers = None
+            additional_variables = None
 
         return create_runner_codeobj(self.group, self.abstract_code, self.template,
                                      variable_indices=self.group.variable_indices,
@@ -410,7 +409,7 @@ class GroupCodeRunner(BrianObject):
                                      iterate_all=self.iterate_all,
                                      name=self.name,
                                      check_units=self.check_units,
-                                     additional_specifiers=additional_specifiers,
+                                     additional_variables=additional_variables,
                                      additional_namespace=additional_namespace,
                                      template_kwds=self.template_kwds,
                                      codeobj_class=self.group.codeobj_class)

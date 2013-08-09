@@ -170,8 +170,8 @@ def test_abstract_code_dependencies():
 
 
 def test_is_boolean_expression():
-    # dummy "specifier" class
-    Spec = namedtuple("Spec", ['is_bool'])
+    # dummy "Variable" class
+    Var = namedtuple("Var", ['is_bool'])
 
     # dummy function object
     class Func(object):
@@ -185,12 +185,12 @@ def test_is_boolean_expression():
     f = Func(returns_bool=True)
     g = Func(returns_bool=False)
 
-    # specifier
-    s1 = Spec(is_bool=True)
-    s2 = Spec(is_bool=False)
+    # variables
+    s1 = Var(is_bool=True)
+    s2 = Var(is_bool=False)
 
     namespace = {'a': a, 'b': b, 'c': c, 'f': f, 'g': g}
-    specifiers = {'s1': s1, 's2': s2}
+    variables = {'s1': s1, 's2': s2}
 
     EVF = [
         (True, 'a or b'),
@@ -208,20 +208,20 @@ def test_is_boolean_expression():
         (True, 'f(c) or a<b and s1', ),
         ]
     for expect, expr in EVF:
-        ret_val = is_boolean_expression(expr, namespace, specifiers)
+        ret_val = is_boolean_expression(expr, namespace, variables)
         if expect != ret_val:
             raise AssertionError(('is_boolean_expression(%r) returned %s, '
                                   'but was supposed to return %s') % (expr,
                                                                       ret_val,
                                                                       expect))
     assert_raises(SyntaxError, is_boolean_expression, 'a<b and c',
-                  namespace, specifiers)
+                  namespace, variables)
     assert_raises(SyntaxError, is_boolean_expression, 'a or foo',
-                  namespace, specifiers)
+                  namespace, variables)
     assert_raises(SyntaxError, is_boolean_expression, 'ot a', # typo
-                  namespace, specifiers)
+                  namespace, variables)
     assert_raises(SyntaxError, is_boolean_expression, 'g(c) and f(a)',
-                  namespace, specifiers)
+                  namespace, variables)
     
     
 def test_parse_expression_unit():
@@ -275,28 +275,28 @@ def test_value_from_expression():
     # dummy class
     class C(object):
         pass
-    specifiers = {'s_constant_scalar': C(), 's_non_constant': C(),
+    variables = {'s_constant_scalar': C(), 's_non_constant': C(),
                   's_non_scalar': C()}
-    specifiers['s_constant_scalar'].scalar = True
-    specifiers['s_constant_scalar'].constant = True
-    specifiers['s_constant_scalar'].get_value = lambda: 2.0
-    specifiers['s_non_scalar'].constant = True
-    specifiers['s_non_constant'].scalar = True
+    variables['s_constant_scalar'].scalar = True
+    variables['s_constant_scalar'].constant = True
+    variables['s_constant_scalar'].get_value = lambda: 2.0
+    variables['s_non_scalar'].constant = True
+    variables['s_non_constant'].scalar = True
 
     expressions = ['1', '-0.5', 'c', '2**c', '(c + 3) * 5',
                    'c + s_constant_scalar', 'True', 'False']
 
     for expr in expressions:
         eval_expr = expr.replace('s_constant_scalar', 's_constant_scalar.get_value()')
-        assert float(eval(eval_expr, constants, specifiers)) == _get_value_from_expression(expr,
+        assert float(eval(eval_expr, constants, variables)) == _get_value_from_expression(expr,
                                                                                            constants,
-                                                                                           specifiers)
+                                                                                           variables)
 
     wrong_expressions = ['s_non_constant', 's_non_scalar', 'c or True']
     for expr in wrong_expressions:
         assert_raises(SyntaxError, lambda : _get_value_from_expression(expr,
                                                                        constants,
-                                                                       specifiers))
+                                                                       variables))
 
 
 def test_abstract_code_from_function():

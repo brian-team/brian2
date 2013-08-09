@@ -2,7 +2,7 @@ import weakref
 
 import numpy as np
 
-from brian2.core.specifiers import Variable, AttributeVariable, ArrayVariable
+from brian2.core.variables import Variable, AttributeVariable, ArrayVariable
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.core.preferences import brian_prefs
@@ -80,7 +80,8 @@ class StateMonitor(BrianObject):
             variables = source.equations.names
         elif isinstance(variables, str):
             variables = [variables]
-        self.variables = variables
+        #: The variables to record
+        self.record_variables = variables
 
         # record should always be an array of ints
         self.record_all = False
@@ -98,33 +99,33 @@ class StateMonitor(BrianObject):
         # create data structures
         self.reinit()
         
-        # Setup specifiers
-        self.specifiers = {}
-        for variable in variables:
-            spec = source.specifiers[variable]
-            if spec.dtype != np.float64:
+        # Setup variables
+        self.variables = {}
+        for varname in variables:
+            var = source.variables[varname]
+            if var.dtype != np.float64:
                 raise NotImplementedError(('Cannot record %s with data type '
                                            '%s, currently only values stored as '
                                            'doubles can be recorded.') %
-                                          (variable, spec.dtype))
-            self.specifiers[variable] = spec
-            self.specifiers['_recorded_'+variable] = Variable(Unit(1),
-                                                              self._values[variable])
+                                          (varname, var.dtype))
+            self.variables[varname] = var
+            self.variables['_recorded_'+varname] = Variable(Unit(1),
+                                                            self._values[varname])
 
-        self.specifiers['_t'] = Variable(Unit(1), self._t)
-        self.specifiers['_clock_t'] = AttributeVariable(second, self.clock, 't_')
-        self.specifiers['_indices'] = ArrayVariable('_indices', Unit(1),
-                                                    self.indices,
-                                                    group=None,
-                                                    constant=True)
+        self.variables['_t'] = Variable(Unit(1), self._t)
+        self.variables['_clock_t'] = AttributeVariable(second, self.clock, 't_')
+        self.variables['_indices'] = ArrayVariable('_indices', Unit(1),
+                                                   self.indices,
+                                                   group=None,
+                                                   constant=True)
 
         self._group_attribute_access_active = True
 
     def reinit(self):
         self._values = dict((v, DynamicArray((0, len(self.indices)),
                                              use_numpy_resize=True,
-                                             dtype=self.source.specifiers[v].dtype))
-                            for v in self.variables)
+                                             dtype=self.source.variables[v].dtype))
+                            for v in self.record_variables)
         self._t = DynamicArray1D(0, use_numpy_resize=True,
                                  dtype=brian_prefs['core.default_scalar_dtype'])
     
@@ -132,20 +133,22 @@ class StateMonitor(BrianObject):
         # Some dummy code so that code generation takes care of the indexing
         # and subexpressions
         code = ['_to_record_%s = %s' % (v, v)
-                for v in self.variables]
+                for v in self.record_variables]
         code += ['_recorded_%s = _recorded_%s' % (v, v)
-                 for v in self.variables]
+                 for v in self.record_variables]
         code = '\n'.join(code)
         self.codeobj = create_runner_codeobj(self.source,
                                              code,
                                              name=self.name,
-                                             additional_specifiers=self.specifiers,
+                                             additional_variables=self.variables,
                                              additional_namespace=namespace,
                                              template_name='statemonitor',
                                              indices=self.source.indices,
                                              variable_indices=self.source.variable_indices,
                                              iterate_all=[],
-                                             template_kwds={'_variable_names': self.variables},
+                                             template_kwds={'_variable_names':
+                                                                self.record_variables},
+                                             #check_units=False,
                                              codeobj_class=self.codeobj_class)
 
     def update(self):
@@ -168,14 +171,14 @@ class StateMonitor(BrianObject):
             return Quantity(self._t.data.copy(), dim=second.dim)
         elif item == 't_':
             return self._t.data.copy()
-        elif item in self.variables:
-            unit = self.specifiers[item].unit
+        elif item in self.record_variables:
+            unit = self.variables[item].unit
             if have_same_dimensions(unit, 1):
                 return self._values[item].data.copy()
             else:
                 return Quantity(self._values[item].data.copy(),
                                 dim=unit.dim)
-        elif item.endswith('_') and item[:-1] in self.variables:
+        elif item.endswith('_') and item[:-1] in self.record_variables:
             return self._values[item[:-1]].data.copy()
         else:
             raise AttributeError('Unknown attribute %s' % item)
@@ -183,5 +186,5 @@ class StateMonitor(BrianObject):
     def __repr__(self):
         description = '<{classname}, recording {variables} from {source}>'
         return description.format(classname=self.__class__.__name__,
-                                  variables=repr(self.variables),
+                                  variables=repr(self.record_variables),
                                   source=self.source.name)

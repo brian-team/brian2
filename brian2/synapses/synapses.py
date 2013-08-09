@@ -10,9 +10,9 @@ import numpy as np
 from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
-from brian2.core.specifiers import (ArrayVariable, Index, DynamicArrayVariable, 
+from brian2.core.variables import (ArrayVariable, Index, DynamicArrayVariable,
                                     Variable, Subexpression, AttributeVariable,
-                                    StochasticVariable, Specifier)
+                                    StochasticVariable, Variable)
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)
@@ -50,17 +50,17 @@ class StateUpdater(GroupCodeRunner):
                                  check_units=False)
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.specifiers,
+                                                               self.group.variables,
                                                                method)
     
     def update_abstract_code(self):
         
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.specifiers,
+                                                               self.group.variables,
                                                                self.method_choice)
         
         self.abstract_code = self.method(self.group.equations,
-                                         self.group.specifiers)
+                                         self.group.variables)
 
 
 class LumpedUpdater(GroupCodeRunner):
@@ -80,7 +80,7 @@ class LumpedUpdater(GroupCodeRunner):
         {varname}_post = {varname}_post
         '''.format(varname=varname)
 
-        template_kwds = {'_target_var_array': synapses.specifiers[varname+'_post'].arrayname}
+        template_kwds = {'_target_var_array': synapses.variables[varname+'_post'].arrayname}
 
         GroupCodeRunner.__init__(self, group=synapses,
                                  template='lumped_variable',
@@ -134,7 +134,7 @@ class SynapticPathway(GroupCodeRunner, Group):
         synapses.item_mapping.register_variable(self._delays)
         self.queue = SpikeQueue()
         self.spiking_synapses = []
-        self.specifiers = {'_spiking_synapses': AttributeVariable(Unit(1),
+        self.variables = {'_spiking_synapses': AttributeVariable(Unit(1),
                                                                   self,
                                                                   'spiking_synapses',
                                                                   constant=False),
@@ -171,7 +171,7 @@ class SynapticPathway(GroupCodeRunner, Group):
     def update_abstract_code(self):
         if self.synapses.event_driven is not None:
             event_driven_update = independent(self.synapses.event_driven,
-                                              self.group.specifiers)
+                                              self.group.variables)
             # TODO: Any way to do this more elegantly?
             event_driven_update = re.sub(r'\bdt\b', '(t - lastupdate)',
                                          event_driven_update)
@@ -326,7 +326,7 @@ class SynapticItemMapping(Index):
         self.j = IndexView(self, self.synaptic_post)
         self.k = SynapseIndexView(self)
 
-        self.specifiers = {'i': DynamicArrayVariable('i',
+        self.variables = {'i': DynamicArrayVariable('i',
                                                      Unit(1),
                                                      self.synaptic_pre),
                            'j': DynamicArrayVariable('j',
@@ -411,7 +411,7 @@ class SynapticItemMapping(Index):
             abstract_code += '_p = ' + str(p)
             namespace = get_local_namespace(level + 1)
             additional_namespace = ('implicit-namespace', namespace)
-            specifiers = {
+            variables = {
                 '_source_neurons': ArrayVariable('_source_neurons', Unit(1),
                                                  self.source.item_mapping[:],
                                                  constant=True),
@@ -429,16 +429,17 @@ class SynapticItemMapping(Index):
                                           self.pre_synaptic, constant=True),
                 '_post_synaptic': Variable(Unit(1),
                                            self.post_synaptic, constant=True),
-                # Will be set in the template
-                'i': Specifier(),
-                'j': Specifier()
+                # Will be set in the template (they are set to constant to avoid
+                # the get_value() function call at every time step)
+                'i': Variable(unit=Unit(1), constant=True),
+                'j': Variable(unit=Unit(1), constant=True)
             }
             codeobj = create_runner_codeobj(self.synapses,
                                             abstract_code,
                                             'synapses_create',
                                             indices={},
                                             iterate_all=[],
-                                            additional_specifiers=specifiers,
+                                            additional_variables=variables,
                                             additional_namespace=additional_namespace,
                                             variable_indices=defaultdict(lambda: '_element'),
                                             check_units=False,
@@ -496,11 +497,11 @@ class SynapticItemMapping(Index):
         elif isinstance(index, basestring):
             # interpret the string expression
             identifiers = get_identifiers(index)
-            specifiers = dict(self.specifiers)
+            variables = dict(self.variables)
             if 'k' in identifiers:
                 synapse_numbers = _synapse_numbers(self.synaptic_pre[:],
                                                    self.synaptic_post[:])
-                specifiers['k'] = ArrayVariable('k', Unit(1),
+                variables['k'] = ArrayVariable('k', Unit(1),
                                                 synapse_numbers)
             # Get the locals and globals from the stack frame
             frame = inspect.stack()[2][0]
@@ -515,7 +516,7 @@ class SynapticItemMapping(Index):
                                             indices=self.synapses.indices,
                                             variable_indices=defaultdict(lambda: '_element'),
                                             iterate_all=['_element'],
-                                            additional_specifiers=specifiers,
+                                            additional_variables=variables,
                                             additional_namespace=additional_namespace,
                                             check_units=False,
                                             codeobj_class=self.synapses.codeobj_class,
@@ -658,8 +659,8 @@ class Synapses(BrianObject, Group):
         self.j = self.item_mapping.j
         self.k = self.item_mapping.k
 
-        # Setup specifiers
-        self.specifiers = self._create_specifiers()
+        # Setup variables
+        self.variables = self._create_variables()
 
         #: List of names of all updaters, e.g. ['pre', 'post']
         self._updaters = []
@@ -681,7 +682,7 @@ class Synapses(BrianObject, Group):
         # direct access to its delay via a delay attribute (instead of having
         # to use pre.delay)
         if 'pre' in self._updaters:
-            self.specifiers['delay'] = self.pre.specifiers['delay']
+            self.variables['delay'] = self.pre.variables['delay']
 
         if delay is not None:
             if isinstance(delay, Quantity):
@@ -715,11 +716,11 @@ class Synapses(BrianObject, Group):
                 # For simplicity, store the delay as a one-element array
                 # so that for example updater._delays[:] works.
                 updater._delays = np.array([float(pathway_delay)])
-                specifier = ArrayVariable('delay', second, updater._delays,
+                variable = ArrayVariable('delay', second, updater._delays,
                                           group=self, scalar=True)
-                updater.specifiers['delay'] = specifier
+                updater.variables['delay'] = variable
                 if pathway == 'pre':
-                    self.specifiers['delay'] = specifier
+                    self.variables['delay'] = variable
 
         #: Performs numerical integration step
         self.state_updater = StateUpdater(self, method)        
@@ -733,12 +734,12 @@ class Synapses(BrianObject, Group):
                 varname = single_equation.varname
                 # For a lumped variable, we need an equivalent parameter in the
                 # target group
-                if not varname in self.target.specifiers:
+                if not varname in self.target.variables:
                     raise ValueError(('The lumped variable %s needs a variable '
                                       'of the same name in the target '
                                       'group ') % single_equation.varname)
-                fail_for_dimension_mismatch(self.specifiers[varname].unit,
-                                            self.target.specifiers[varname],
+                fail_for_dimension_mismatch(self.variables[varname].unit,
+                                            self.target.variables[varname],
                                             ('Lumped variables need to have '
                                              'the same units in Synapses '
                                              'and the target group'))
@@ -816,30 +817,30 @@ class Synapses(BrianObject, Group):
         self.contained_objects.append(updater)
         return objname
 
-    def _create_specifiers(self):
+    def _create_variables(self):
         '''
-        Create the specifiers dictionary for this `NeuronGroup`, containing
+        Create the variables dictionary for this `NeuronGroup`, containing
         entries for the equation variables and some standard entries.
         '''
-        # Add all the pre and post specifiers with _pre and _post suffixes
-        s = {}
+        # Add all the pre and post variables with _pre and _post suffixes
+        v = {}
         self.variable_indices = defaultdict(lambda: '_element')
-        for name, spec in getattr(self.source, 'specifiers', {}).iteritems():
-            if isinstance(spec, (ArrayVariable, Subexpression)):
-                s[name + '_pre'] = spec
-                self.variable_indices[spec] = '_presynaptic'
-        for name, spec in getattr(self.target, 'specifiers', {}).iteritems():
-            if isinstance(spec, (ArrayVariable, Subexpression)):
-                s[name + '_post'] = spec
-                self.variable_indices[spec] = '_postsynaptic'
-                # Also add all the post specifiers without a suffix -- if this
+        for name, var in getattr(self.source, 'variables', {}).iteritems():
+            if isinstance(var, (ArrayVariable, Subexpression)):
+                v[name + '_pre'] = var
+                self.variable_indices[var] = '_presynaptic'
+        for name, var in getattr(self.target, 'variables', {}).iteritems():
+            if isinstance(var, (ArrayVariable, Subexpression)):
+                v[name + '_post'] = var
+                self.variable_indices[var] = '_postsynaptic'
+                # Also add all the post variables without a suffix -- if this
                 # clashes with the name of a state variable defined in this
                 # Synapses group, the latter will overwrite the entry later and
                 # take precedence
-                s[name] = spec
+                v[name] = var
 
-        # Standard specifiers always present
-        s.update({'t': AttributeVariable(second, self.clock, 't_',
+        # Standard variables always present
+        v.update({'t': AttributeVariable(second, self.clock, 't_',
                                          constant=False),
                   'dt': AttributeVariable(second, self.clock, 'dt_',
                                           constant=True),
@@ -862,7 +863,8 @@ class Synapses(BrianObject, Group):
                                              self.item_mapping.post_synaptic)})
 
         for eq in itertools.chain(self.equations.itervalues(),
-                                  self.event_driven.itervalues() if self.event_driven is not None else []):
+                                  self.event_driven.itervalues()
+                                  if self.event_driven is not None else []):
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 array = self.arrays[eq.varname]
                 constant = ('constant' in eq.flags)
@@ -870,7 +872,7 @@ class Synapses(BrianObject, Group):
                 # shouldn't directly access the specifier.array attribute but
                 # use specifier.get_value() to get a reference to the underlying
                 # array
-                s.update({eq.varname: DynamicArrayVariable(eq.varname,
+                v.update({eq.varname: DynamicArrayVariable(eq.varname,
                                                            eq.unit,
                                                            array,
                                                            group=self,
@@ -880,10 +882,10 @@ class Synapses(BrianObject, Group):
                 # automatically resized
                 self.item_mapping.register_variable(array)
             elif eq.type == STATIC_EQUATION:
-                s.update({eq.varname: Subexpression(eq.unit,
+                v.update({eq.varname: Subexpression(eq.unit,
                                                     brian_prefs['core.default_scalar_dtype'],
                                                     str(eq.expr),
-                                                    specifiers=s,
+                                                    variables=v,
                                                     namespace=self.namespace,
                                                     is_bool=eq.is_bool)})
             else:
@@ -891,9 +893,9 @@ class Synapses(BrianObject, Group):
 
         # Stochastic variables
         for xi in self.equations.stochastic_variables:
-            s.update({xi: StochasticVariable()})
+            v.update({xi: StochasticVariable()})
 
-        return s
+        return v
 
     def _allocate_memory(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)

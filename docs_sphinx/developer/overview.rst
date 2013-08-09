@@ -64,7 +64,7 @@ explicitly, the namespace used for running code will be filled at the time of
 a run with either the namespace provided to the run function or the
 locals/globals surrounding the run call. *Specifiers* on the other hand,
 define everything *internal* to the model, the objects in this dictionary
-inherit from `Specifier` and -- in addition to specifying things like the units
+inherit from `Variable` and -- in addition to specifying things like the units
 -- act as proxy objects, connecting for example state variable names to the
 numpy arrays where the values are actually stored.
 
@@ -72,11 +72,11 @@ This indirection will be useful when dealing with memory on devices. The
 specifiers also offer an explicit and simple way to implement linked variables
 or the access to pre- and postsynaptic variables in `Synapses`: To link the
 symbol ``v_post`` to the postsynaptic membrane potentials, the specifier
-dictionary just has to contain a reference to the respective `Specifier` object
+dictionary just has to contain a reference to the respective `Variable` object
 of the target group under the key ``v_post``.
 
 Another parent class of `NeuronGroup` is `Group`, which also relies on the
-`Specifier` objects and exposes access to the state variables as attributes.
+`Variable` objects and exposes access to the state variables as attributes.
 This is also used in classes such as `StateMonitor`.
 
 State Updaters

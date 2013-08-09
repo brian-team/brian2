@@ -13,7 +13,7 @@ a single `NeuronGroup` object:
 - Allocate memory for the state variables.
 - Create a namespace object.
 - Create `Thresholder`, `Resetter` and `StateUpdater` objects.
-  - Collect `Specifier` objects from the group and code template.
+  - Collect `Variable` objects from the group and code template.
   - Resolve the namespace, i.e. for hierarchical namespace choose just one
     value for each variable name.
   - Create a `CodeObject`.

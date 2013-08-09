@@ -99,7 +99,7 @@ def _same_function(func1, func2):
     '''
     Helper function, used during namespace resolution for comparing wether to
     functions are the same. This takes care of treating a function and a
-    `Function` specifiers whose `Function.pyfunc` attribute matches as the
+    `Function` variables whose `Function.pyfunc` attribute matches as the
     same. This prevents the user from getting spurious warnings when having
     for example a numpy function such as :np:func:`~random.randn` in the local
     namespace, while the ``randn`` symbol in the numpy namespace used for the

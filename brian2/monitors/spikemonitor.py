@@ -7,7 +7,7 @@ from brian2.codegen.codeobject import create_codeobject
 from brian2.core.base import BrianObject
 from brian2.core.preferences import brian_prefs
 from brian2.core.scheduler import Scheduler
-from brian2.core.specifiers import ArrayVariable, AttributeVariable, Variable
+from brian2.core.variables import ArrayVariable, AttributeVariable, Variable
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit
@@ -53,7 +53,7 @@ class SpikeMonitor(BrianObject):
         # create data structures
         self.reinit()
 
-        self.specifiers = {'t': AttributeVariable(second, self.clock, 't'),
+        self.variables = {'t': AttributeVariable(second, self.clock, 't'),
                            '_spikes': AttributeVariable(Unit(1), self.source,
                                                         'spikes'),
                            # The template needs to have access to the
@@ -82,7 +82,7 @@ class SpikeMonitor(BrianObject):
         self.codeobj = create_codeobject(self.name,
                                          '', # No model-specific code
                                          {}, # no namespace
-                                         self.specifiers,
+                                         self.variables,
                                          template_name='spikemonitor',
                                          indices={},
                                          variable_indices=defaultdict(lambda: '_element'),

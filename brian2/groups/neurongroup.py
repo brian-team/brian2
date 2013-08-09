@@ -13,7 +13,7 @@ from brian2.memory import allocate_array
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
-from brian2.core.specifiers import (Variable, AttributeVariable, ArrayVariable,
+from brian2.core.variables import (Variable, AttributeVariable, ArrayVariable,
                                     StochasticVariable, Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
@@ -46,13 +46,13 @@ class StateUpdater(GroupCodeRunner):
                                        iterate_all=['_element'])
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.specifiers,
+                                                               self.group.variables,
                                                                method)
     
     def update_abstract_code(self):
         
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.specifiers,
+                                                               self.group.variables,
                                                                self.method_choice)
 
         # Update the not_refractory variable for the refractory period mechanism
@@ -64,12 +64,12 @@ class StateUpdater(GroupCodeRunner):
             self.abstract_code = 'not_refractory = 1*((t - lastspike) > %f)\n' % ref
         else:
             namespace = self.group.namespace
-            unit = parse_expression_unit(str(ref), namespace, self.group.specifiers)
+            unit = parse_expression_unit(str(ref), namespace, self.group.variables)
             if have_same_dimensions(unit, second):
                 self.abstract_code = 'not_refractory = 1*((t - lastspike) > %s)\n' % ref
             elif have_same_dimensions(unit, Unit(1)):
                 if not is_boolean_expression(str(ref), namespace,
-                                             self.group.specifiers):
+                                             self.group.variables):
                     raise TypeError(('Refractory expression is dimensionless '
                                      'but not a boolean value. It needs to '
                                      'either evaluate to a timespan or to a '
@@ -85,7 +85,7 @@ class StateUpdater(GroupCodeRunner):
                                  '"%s" has units %s instead') % (ref, unit))
         
         self.abstract_code += self.method(self.group.equations,
-                                          self.group.specifiers)
+                                          self.group.variables)
 
 
 class Thresholder(GroupCodeRunner):
@@ -99,8 +99,8 @@ class Thresholder(GroupCodeRunner):
         # and lastspike might also be used in the threshold condition -- the
         # names will then refer to single (constant) values and cannot be used
         # for assigning new values
-        template_kwds = {'_array_not_refractory': group.specifiers['not_refractory'].arrayname,
-                         '_array_lastspike': group.specifiers['lastspike'].arrayname}
+        template_kwds = {'_array_not_refractory': group.variables['not_refractory'].arrayname,
+                         '_array_lastspike': group.variables['lastspike'].arrayname}
         GroupCodeRunner.__init__(self, group,
                                  'threshold',
                                  when=(group.clock, 'thresholds'),
@@ -233,8 +233,8 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         # Setup the namespace
         self.namespace = create_namespace(namespace)
 
-        # Setup specifiers
-        self.specifiers = self._create_specifiers()
+        # Setup variables
+        self.variables = self._create_variables()
 
         # All of the following will be created in pre_run
         
@@ -347,15 +347,15 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                  iterate_all=['_element'])
         return runner
 
-    def _create_specifiers(self):
+    def _create_variables(self):
         '''
-        Create the specifiers dictionary for this `NeuronGroup`, containing
+        Create the variables dictionary for this `NeuronGroup`, containing
         entries for the equation variables and some standard entries.
         '''
-        # Get the standard specifiers for all groups
-        s = Group._create_specifiers(self)
+        # Get the standard variables for all groups
+        s = Group._create_variables(self)
 
-        # Standard specifiers always present
+        # Standard variables always present
         s.update({'_num_elements': Variable(Unit(1), self.N, constant=True),
                   '_spikes': AttributeVariable(Unit(1), self,
                                                'spikes', constant=False)})
@@ -375,7 +375,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                 s.update({eq.varname: Subexpression(eq.unit,
                                                     brian_prefs['core.default_scalar_dtype'],
                                                     str(eq.expr),
-                                                    specifiers=s,
+                                                    variables=s,
                                                     namespace=self.namespace,
                                                     is_bool=eq.is_bool)})
             else:
@@ -389,18 +389,18 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
 
     def pre_run(self, namespace):
     
-        # Update the namespace information in the specifiers in case the
+        # Update the namespace information in the variables in case the
         # namespace was not specified explicitly defined at creation time
         # Note that values in the explicit namespace might still change
         # between runs, but the Subexpression stores a reference to 
         # self.namespace so these changes are taken into account automatically
         if not self.namespace.is_explicit:
-            for spec in self.specifiers.itervalues():
-                if isinstance(spec, Subexpression):
-                    spec.additional_namespace = namespace
+            for var in self.variables.itervalues():
+                if isinstance(var, Subexpression):
+                    var.additional_namespace = namespace
 
         # Check units
-        self.equations.check_units(self.namespace, self.specifiers,
+        self.equations.check_units(self.namespace, self.variables,
                                    namespace)
     
     def _repr_html_(self):
