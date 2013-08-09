@@ -1,4 +1,5 @@
 import weakref
+import collections
 
 import numpy as np
 
@@ -15,18 +16,85 @@ from brian2.groups.group import create_runner_codeobj
 __all__ = ['StateMonitor']
 
 
+class StateMonitorView(object):
+    def __init__(self, monitor, item):
+        self.monitor = monitor
+        self.item = item
+        self.indices = self._calc_indices(item)
+        self._group_attribute_access_active = True
+
+    def __getattr__(self, item):
+               # We do this because __setattr__ and __getattr__ are not active until
+        # _group_attribute_access_active attribute is set, and if it is set,
+        # then __getattr__ will not be called. Therefore, if getattr is called
+        # with this name, it is because it hasn't been set yet and so this
+        # method should raise an AttributeError to agree that it hasn't been
+        # called yet.
+        if item == '_group_attribute_access_active':
+            raise AttributeError
+        if not hasattr(self, '_group_attribute_access_active'):
+            raise AttributeError
+
+        if item == 't':
+            return Quantity(self.monitor._t.data.copy(), dim=second.dim)
+        elif item == 't_':
+            return self.monitor._t.data.copy()
+        elif item in self.monitor.variables:
+            unit = self.monitor.specifiers[item].unit
+            return Quantity(self.monitor._values[item].data.T[self.indices].copy(),
+                            dim=unit.dim)
+        elif item.endswith('_') and item[:-1] in self.monitor.variables:
+            return self.monitor._values[item[:-1]].data.T[self.indices].copy()
+        else:
+            raise AttributeError('Unknown attribute %s' % item)
+
+    def _calc_indices(self, item):
+        '''
+        Convert the neuron indices to indices into the stored values. For example, if neurons [0, 5, 10] have been
+        recorded, [5, 10] is converted to [1, 2].
+        '''
+        if isinstance(item, int):
+            indices = np.nonzero(self.monitor.indices == item)[0]
+            if len(indices) == 0:
+                raise IndexError('Neuron number %d has not been recorded' % item)
+            return indices[0]
+
+        if self.monitor.record_all:
+            return item
+        indices = []
+        for index in item:
+            if index in self.monitor.indices:
+                indices.append(np.nonzero(self.monitor.indices == index)[0][0])
+            else:
+                raise IndexError('Neuron number %d has not been recorded' % index)
+        return np.array(indices)
+
+    def __repr__(self):
+        description = '<{classname}, giving access to elements {elements} recorded by {monitor}>'
+        return description.format(classname=self.__class__.__name__,
+                                  elements=repr(self.item),
+                                  monitor=self.monitor.name)
+
+
 class StateMonitor(BrianObject):
     '''
     Record values of state variables during a run
     
     To extract recorded values after a run, use `t` attribute for the
     array of times at which values were recorded, and variable name attribute
-    for the values. The values will have shape ``(len(t), len(indices))``,
-    where `indices` are the array indices which were recorded.
+    for the values. The values will have shape ``(len(indices), len(t))``,
+    where `indices` are the array indices which were recorded. When indexing the
+    `StateMonitor` directly, the returned object can be used to get the
+    recorded values for the specified indices, i.e. the indexing semantic
+    refers to the indices in `source`, not to the relative indices of the
+    recorded values. For example, when recording only neurons with even numbers,
+    `mon[[0, 2]].v` will return the values for neurons 0 and 2, whereas
+    `mon.v[[0, 2]]` will return the values for the first and third *recorded*
+    neurons, i.e. for neurons 0 and 4.
 
     Parameters
     ----------
-    source : `NeuronGroup`, `Group`
+    source : `Group`
         Which object to record values from.
     variables : str, sequence of str, True
         Which variables to record, or ``True`` to record all variables
@@ -58,7 +126,7 @@ class StateMonitor(BrianObject):
         G.V = rand(len(G))
         M = StateMonitor(G, True, record=range(5))
         run(100*ms)
-        plot(M.t, M.V)
+        plot(M.t, M.V.T)
         show()
 
     '''
@@ -153,6 +221,19 @@ class StateMonitor(BrianObject):
     def update(self):
         self.codeobj()
 
+    def __getitem__(self, item):
+        if isinstance(item, (int, np.ndarray)):
+            return StateMonitorView(self, item)
+        elif isinstance(item, collections.Sequence):
+            index_array = np.array(item)
+            if not np.issubdtype(index_array.dtype, np.int):
+                raise TypeError('Index has to be an integer or a sequence '
+                                'of integers')
+            return StateMonitorView(self, item)
+        else:
+            raise TypeError('Cannot use object of type %s as an index'
+                            % type(item))
+
     def __getattr__(self, item):
         # We do this because __setattr__ and __getattr__ are not active until
         # _group_attribute_access_active attribute is set, and if it is set,
@@ -172,13 +253,10 @@ class StateMonitor(BrianObject):
             return self._t.data.copy()
         elif item in self.variables:
             unit = self.specifiers[item].unit
-            if have_same_dimensions(unit, 1):
-                return self._values[item].data.copy()
-            else:
-                return Quantity(self._values[item].data.copy(),
-                                dim=unit.dim)
+            return Quantity(self._values[item].data.T.copy(),
+                            dim=unit.dim)
         elif item.endswith('_') and item[:-1] in self.variables:
-            return self._values[item[:-1]].data.copy()
+            return self._values[item[:-1]].data.T.copy()
         else:
             raise AttributeError('Unknown attribute %s' % item)
 
