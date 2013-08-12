@@ -25,12 +25,13 @@ logger = get_logger(__name__)
 
 class GroupItemMapping(Variable):
 
-    def __init__(self, N):
+    def __init__(self, N, offset):
         self.N = N
-        self._indices = np.arange(self.N)
+        self.offset = int(offset)
+        self._indices = np.arange(self.N + self.offset)
         self.variables = {'i': ArrayVariable('i',
                                               Unit(1),
-                                              self._indices)}
+                                              self._indices - self.offset)}
         Variable.__init__(self, Unit(1), value=self, constant=True)
 
     def __len__(self):
@@ -47,12 +48,16 @@ class GroupItemMapping(Variable):
                               'got %d dimensions.') % len(index))
         if isinstance(index, basestring):
             # interpret the string expression
-            namespace = {'i': self._indices}
-
+            namespace = {'i': self._indices - self.offset}
             result = eval(index, namespace)
             return np.flatnonzero(result)
         else:
-            return self._indices[index]
+            if isinstance(index, slice):
+                start, stop, step = index.indices(self.N)
+                index = slice(start + self.offset, stop + self.offset, step)
+                return self._indices[index]
+            else:
+                return self._indices[np.asarray(index) + self.offset]
 
 
 class Group(object):
@@ -63,6 +68,8 @@ class Group(object):
     # (should make autocompletion work)
     '''
     def __init__(self):
+        if not hasattr(self, 'offset'):
+            self.offset = 0
         if not hasattr(self, 'variables'):
             raise ValueError('Classes derived from Group need variables attribute.')
         if not hasattr(self, 'item_mapping'):
@@ -72,14 +79,13 @@ class Group(object):
                 raise ValueError(('Classes derived from Group need an item_mapping '
                                   'attribute, or a length to automatically '
                                   'provide 1-d indexing'))
-            self.item_mapping = GroupItemMapping(N)
+            self.item_mapping = GroupItemMapping(N, self.offset)
         if not hasattr(self, 'indices'):
             self.indices = {'_element': self.item_mapping}
         if not hasattr(self, 'variable_indices'):
             self.variable_indices = defaultdict(lambda: '_element')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
-
         self._group_attribute_access_active = True
 
     def _create_variables(self):
@@ -94,7 +100,7 @@ class Group(object):
         Gets the unitless array.
         '''
         try:
-            return self.variables[name].get_addressable_value()
+            return self.variables[name].get_addressable_value(self)
         except KeyError:
             raise KeyError("Array named "+name+" not found.")
         
@@ -104,7 +110,7 @@ class Group(object):
         '''
         try:
             var = self.variables[name]
-            return var.get_addressable_value_with_unit()
+            return var.get_addressable_value_with_unit(self)
         except KeyError:
             raise KeyError("Array named "+name+" not found.")
 
@@ -145,12 +151,12 @@ class Group(object):
                 fail_for_dimension_mismatch(val, var.unit,
                                             'Incorrect units for setting %s' % name)
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value_with_unit(level=1)[:] = val
+            var.get_addressable_value_with_unit(self, level=1)[:] = val
         elif len(name) and name[-1]=='_' and name[:-1] in self.variables:
             # no unit checking
             var = self.variables[name[:-1]]
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value(level=1)[:] = val
+            var.get_addressable_value(self, level=1)[:] = val
         else:
             object.__setattr__(self, name, val)
 
@@ -185,8 +191,8 @@ class Group(object):
         additional_variables = self.item_mapping.variables
         additional_variables['_spikes'] = ArrayVariable('_spikes',
                                                          Unit(1),
-                                                         group_indices.astype(np.int32),
-                                                         group=self)
+                                                         value=group_indices.astype(np.int32),
+                                                         group_name=self.name)
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
         codeobj = create_runner_codeobj(self,

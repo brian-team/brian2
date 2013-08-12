@@ -186,7 +186,6 @@ class StateMonitor(BrianObject):
         self.variables['_clock_t'] = AttributeVariable(second, self.clock, 't_')
         self.variables['_indices'] = ArrayVariable('_indices', Unit(1),
                                                    self.indices,
-                                                   group=None,
                                                    constant=True)
 
         self._group_attribute_access_active = True

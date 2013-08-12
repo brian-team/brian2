@@ -308,13 +308,11 @@ class VariableView(object):
         return self
 
     def __repr__(self):
-        if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
-            return '<%s.%s_: %r>' % (self.group.name, self.variable.name,
-                                     self.variable.get_value())
-        else:
-            return '<%s.%s: %r>' % (self.group.name, self.variable.name,
-                                    Quantity(self.variable.get_value(),
-                                             self.unit.dimensions))
+        varname = self.variable.name
+        if self.unit is None:
+            varname += '_'
+        return '<%s.%s_: %r>' % (self.group.name, varname,
+                                 self[:])
 
 
 class ArrayVariable(Variable):
@@ -346,10 +344,9 @@ class ArrayVariable(Variable):
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
-    def __init__(self, name, unit, value, group=None, constant=False,
+    def __init__(self, name, unit, value, group_name=None, constant=False,
                  scalar=False, is_bool=False):
 
-        self.group = group
         self.name = name
 
         Variable.__init__(self, unit, value, scalar=scalar,
@@ -357,7 +354,7 @@ class ArrayVariable(Variable):
         #: The reference to the array storing the data for the variable.
         self.value = value
 
-        group_name = '_'+group.name+'_' if group is not None else '_'
+        group_name = '_'+group_name+'_' if group_name is not None else '_'
         #: The name for the array used in generated code
         self.arrayname = '_array' + group_name + name
 
@@ -367,11 +364,11 @@ class ArrayVariable(Variable):
     def set_value(self, value):
         self.value[:] = value
 
-    def get_addressable_value(self, level=0):
-        return VariableView(self, self.group, None, level)
+    def get_addressable_value(self, group, level=0):
+        return VariableView(self, group, None, level)
 
-    def get_addressable_value_with_unit(self, level=0):
-        return VariableView(self, self.group, self.unit, level)
+    def get_addressable_value_with_unit(self, group, level=0):
+        return VariableView(self, group, self.unit, level)
 
 
 class DynamicArrayVariable(ArrayVariable):

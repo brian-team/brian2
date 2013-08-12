@@ -127,6 +127,16 @@ class SynapticPathway(GroupCodeRunner, Group):
             raise ValueError('prepost argument has to be either "pre" or '
                              '"post"')
         self.synapses = synapses
+
+        if objname is None:
+            objname = prepost + '*'
+
+        GroupCodeRunner.__init__(self, synapses,
+                                 'synapses',
+                                 code=code,
+                                 when=(synapses.clock, 'synapses'),
+                                 name=synapses.name + '_' + objname)
+
         self._delays = DynamicArray1D(synapses.N, dtype=np.float64)
         # Register the object with the `SynapticIndex` object so it gets
         # automatically resized
@@ -139,17 +149,9 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                                   constant=False),
                            'delay': DynamicArrayVariable('delay', second,
                                                           self._delays,
-                                                          group=self.synapses,
+                                                          group_name=self.name,
                                                           constant=True)}
 
-        if objname is None:
-            objname = prepost + '*'
-
-        GroupCodeRunner.__init__(self, synapses,
-                                 'synapses',
-                                 code=code,
-                                 when=(synapses.clock, 'synapses'),
-                                 name=synapses.name + '_' + objname)
 
         # Re-extract the last part of the name from the full name
         self.objname = self.name[len(synapses.name) + 1:]
@@ -713,7 +715,7 @@ class Synapses(BrianObject, Group):
                 # so that for example updater._delays[:] works.
                 updater._delays = np.array([float(pathway_delay)])
                 variable = ArrayVariable('delay', second, updater._delays,
-                                          group=self, scalar=True)
+                                          group_name=self.name, scalar=True)
                 updater.variables['delay'] = variable
                 if pathway == 'pre':
                     self.variables['delay'] = variable
@@ -871,7 +873,7 @@ class Synapses(BrianObject, Group):
                 v.update({eq.varname: DynamicArrayVariable(eq.varname,
                                                            eq.unit,
                                                            array,
-                                                           group=self,
+                                                           group_name=self.name,
                                                            constant=constant,
                                                            is_bool=eq.is_bool)})
                 # Register the array with the `SynapticIndex` object so it gets

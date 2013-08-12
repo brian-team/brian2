@@ -24,6 +24,7 @@ from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
 
 from .group import Group, GroupCodeRunner
+from .subgroup import Subgroup
 
 __all__ = ['NeuronGroup']
 
@@ -293,6 +294,22 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         '''
         return self.N
 
+
+    def __getitem__(self, item):
+        if not isinstance(item, slice):
+            raise TypeError('Subgroups can only be constructed using slicing syntax')
+        start, stop, step = item.indices(self.N)
+        if step != 1:
+            raise IndexError('Subgroups have to be contiguous')
+        if stop > self.N:
+            raise IndexError(('Cannot extend subgroup to index %d, '
+                              'group has only %d items') % (stop, self.N))
+        if start >= stop:
+            raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
+                             (start, stop))
+
+        return Subgroup(self, start, stop)
+
     def _allocate_memory(self, dtype=None):
         # Allocate memory (TODO: this should be refactored somewhere at some point)
 
@@ -364,7 +381,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                 s.update({eq.varname: ArrayVariable(eq.varname,
                                                     eq.unit,
                                                     array,
-                                                    group=self,
+                                                    group_name=self.name,
                                                     constant=constant,
                                                     is_bool=eq.is_bool)})
         
