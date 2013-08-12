@@ -310,10 +310,10 @@ class VariableView(object):
     def __repr__(self):
         if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
             return '<%s.%s_: %r>' % (self.group.name, self.variable.name,
-                                     self.specifier.get_value())
+                                     self.variable.get_value())
         else:
             return '<%s.%s: %r>' % (self.group.name, self.variable.name,
-                                    Quantity(self.specifier.get_value(),
+                                    Quantity(self.variable.get_value(),
                                              self.unit.dimensions))
 
 
