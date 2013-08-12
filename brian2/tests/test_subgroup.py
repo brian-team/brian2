@@ -31,12 +31,30 @@ def test_state_variables():
 
     # And in-place modification should work as well
     SG.v += 10*mV
+    assert_allclose(G.v[4:9], -70*mV + np.arange(5)*mV)
     SG.v *= 2
+    assert_allclose(G.v[4:9], 2*(-70*mV + np.arange(5)*mV))
     # with unit checking
     assert_raises(DimensionMismatchError, lambda: SG.v.__iadd__(3*second))
     assert_raises(DimensionMismatchError, lambda: SG.v.__iadd__(3))
     assert_raises(DimensionMismatchError, lambda: SG.v.__imul__(3*second))
 
 
+def test_state_monitor():
+    G = NeuronGroup(10, 'v : volt')
+    G.v = np.arange(10) * volt
+    SG = G[5:]
+    mon_all = StateMonitor(SG, 'v', record=True)
+    mon_0 = StateMonitor(SG, 'v', record=0)
+    net = Network(G, SG, mon_all, mon_0)
+    net.run(defaultclock.dt)
+
+    assert_equal(mon_0[0].v, mon_all[0].v)
+    assert_equal(mon_0[0].v, np.array([5]) * volt)
+    assert_equal(mon_all.v.flatten(), np.arange(5, 10) * volt)
+
+    assert_raises(IndexError, lambda: mon_all[5])
+
 if __name__ == '__main__':
     test_state_variables()
+    test_state_monitor()
