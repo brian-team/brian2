@@ -55,6 +55,7 @@ class Subgroup(Group, BrianObject, SpikeSource):
         self.variables = self.source.variables
         self.variable_indices = self.source.variable_indices
         self.namespace = self.source.namespace
+        self.codeobj_class = self.source.codeobj_class
 
         Group.__init__(self)
         
