@@ -19,7 +19,7 @@ from brian2.units import volt, amp, DimensionMismatchError, have_same_dimensions
 from numpy.testing import assert_allclose, assert_raises
 
 import numpy as np
-from brian2.codegen.parsing import str_to_sympy, sympy_to_str
+from brian2.codegen.sympytools import str_to_sympy, sympy_to_str
 from brian2.core.namespace import create_namespace
 
 try:

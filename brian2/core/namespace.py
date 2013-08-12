@@ -169,11 +169,24 @@ class CompoundNamespace(collections.Mapping):
                     
         # use the first match (according to resolution order)
         resolved = matches[0][1]
+
+        # Remove units
         if strip_units and isinstance(resolved, Quantity):
             if resolved.ndim == 0:
                 resolved = float(resolved)
             else:
                 resolved = np.asarray(resolved)
+
+        # Use standard Python types if possible
+        if not isinstance(resolved, np.ndarray) and hasattr(resolved, 'dtype'):
+            numpy_type = resolved.dtype
+            if np.can_cast(numpy_type, np.int_):
+                resolved = int(resolved)
+            elif np.can_cast(numpy_type, np.float_):
+                resolved = float(resolved)
+            elif np.can_cast(numpy_type, np.complex_):
+                resolved = complex(resolved)
+
         return resolved
 
     def resolve_all(self, identifiers, additional_namespace=None,

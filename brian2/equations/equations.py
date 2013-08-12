@@ -10,7 +10,7 @@ import sympy
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 
-from brian2.codegen.parsing import sympy_to_str, str_to_sympy
+from brian2.codegen.sympytools import sympy_to_str, str_to_sympy
 from brian2.units.fundamentalunits import Unit, have_same_dimensions
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger

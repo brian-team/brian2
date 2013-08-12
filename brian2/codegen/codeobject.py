@@ -101,7 +101,7 @@ class CodeObject(object):
     '''
     Executable code object.
     
-     The ``code`` can either be a string or a
+    The ``code`` can either be a string or a
     `brian2.codegen.templates.MultiTemplate`.
     
     After initialisation, the code is compiled with the given namespace

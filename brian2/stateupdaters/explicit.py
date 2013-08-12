@@ -9,7 +9,7 @@ from sympy.core.sympify import SympifyError
 from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
 
-from brian2.codegen.parsing import str_to_sympy, sympy_to_str
+from brian2.codegen.sympytools import str_to_sympy, sympy_to_str
 
 from .base import StateUpdateMethod
 

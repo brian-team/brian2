@@ -24,7 +24,7 @@ from brian2.utils.stringtools import (deindent, strip_empty_lines,
                                       get_identifiers)
 
 from .statements import Statement
-from .parsing import parse_statement
+from brian2.parsing.statements import parse_statement
 
 __all__ = ['translate', 'make_statements', 'analyse_identifiers',
            'get_identifiers_recursively']
