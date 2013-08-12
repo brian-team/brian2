@@ -7,7 +7,7 @@ import operator
 from sympy import Wild, Symbol, Float
 import sympy as sp
 
-from brian2.codegen.parsing import sympy_to_str
+from brian2.codegen.sympytools import sympy_to_str
 from brian2.utils.stringtools import get_identifiers
 from brian2.utils.logger import get_logger
 from brian2.stateupdaters.base import StateUpdateMethod

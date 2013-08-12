@@ -23,7 +23,7 @@ class StateMonitorView(object):
         self._group_attribute_access_active = True
 
     def __getattr__(self, item):
-               # We do this because __setattr__ and __getattr__ are not active until
+        # We do this because __setattr__ and __getattr__ are not active until
         # _group_attribute_access_active attribute is set, and if it is set,
         # then __getattr__ will not be called. Therefore, if getattr is called
         # with this name, it is because it hasn't been set yet and so this
