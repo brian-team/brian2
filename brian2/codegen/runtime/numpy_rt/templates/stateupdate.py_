@@ -1,4 +1,6 @@
-_vectorisation_idx = _element[:]
+# ITERATE_ALL { _element }
+
+_vectorisation_idx = _element
 {% for line in code_lines %}
 {{line}}
 {% endfor %}

@@ -215,7 +215,6 @@ class StateMonitor(BrianObject):
                                              template_name='statemonitor',
                                              indices=self.source.indices,
                                              variable_indices=self.source.variable_indices,
-                                             iterate_all=[],
                                              template_kwds={'_variable_names':
                                                                 self.record_variables},
                                              #check_units=False,

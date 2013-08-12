@@ -10,9 +10,9 @@ import numpy as np
 from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
-from brian2.core.variables import (ArrayVariable, Index, DynamicArrayVariable,
-                                    Variable, Subexpression, AttributeVariable,
-                                    StochasticVariable, Variable)
+from brian2.core.variables import (ArrayVariable, DynamicArrayVariable,
+                                   Variable, Subexpression, AttributeVariable,
+                                   StochasticVariable)
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)
@@ -85,7 +85,6 @@ class LumpedUpdater(GroupCodeRunner):
         GroupCodeRunner.__init__(self, group=synapses,
                                  template='lumped_variable',
                                  code=code,
-                                 iterate_all=['_element'],
                                  # We want to update the lumped variable before
                                  # the target group gets updated
                                  when=(target.clock, 'groups', -1),
@@ -149,7 +148,6 @@ class SynapticPathway(GroupCodeRunner, Group):
         GroupCodeRunner.__init__(self, synapses,
                                  'synapses',
                                  code=code,
-                                 iterate_all=[],
                                  when=(synapses.clock, 'synapses'),
                                  name=synapses.name + '_' + objname)
 
@@ -299,7 +297,7 @@ def _synapse_numbers(pre_neurons, post_neurons):
     return synapse_numbers
 
 
-class SynapticItemMapping(Index):
+class SynapticItemMapping(Variable):
     '''
     Convenience object to store the synaptic indices.
 
@@ -309,7 +307,7 @@ class SynapticItemMapping(Index):
         Reference to the main `Synapses object`
     '''
     def __init__(self, synapses):
-        Index.__init__(self)
+        Variable.__init__(self, Unit(1), value=self, constant=True)
         self.source = synapses.source
         self.target = synapses.target
         source_len = len(synapses.source)
@@ -438,7 +436,6 @@ class SynapticItemMapping(Index):
                                             abstract_code,
                                             'synapses_create',
                                             indices={},
-                                            iterate_all=[],
                                             additional_variables=variables,
                                             additional_namespace=additional_namespace,
                                             variable_indices=defaultdict(lambda: '_element'),
@@ -515,7 +512,6 @@ class SynapticItemMapping(Index):
                                             'state_variable_indexing',
                                             indices=self.synapses.indices,
                                             variable_indices=defaultdict(lambda: '_element'),
-                                            iterate_all=['_element'],
                                             additional_variables=variables,
                                             additional_namespace=additional_namespace,
                                             check_units=False,

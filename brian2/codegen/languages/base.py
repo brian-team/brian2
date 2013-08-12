@@ -34,7 +34,8 @@ class Language(object):
         '''
         raise NotImplementedError
 
-    def translate_statement_sequence(self, statements, variables, namespace, indices):
+    def translate_statement_sequence(self, statements, variables, namespace,
+                                     variable_indices, iterate_all):
         '''
         Translate a sequence of `Statement` into the target language, taking
         care to declare variables, etc. if necessary.

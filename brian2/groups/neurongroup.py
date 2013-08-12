@@ -42,8 +42,7 @@ class StateUpdater(GroupCodeRunner):
                                        'stateupdate',
                                        when=(group.clock, 'groups'),
                                        name=group.name + '_stateupdater*',
-                                       check_units=False,
-                                       iterate_all=['_element'])
+                                       check_units=False)
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.variables,
@@ -105,8 +104,7 @@ class Thresholder(GroupCodeRunner):
                                  'threshold',
                                  when=(group.clock, 'thresholds'),
                                  name=group.name+'_thresholder*',
-                                 template_kwds=template_kwds,
-                                 iterate_all=['_element'])
+                                 template_kwds=template_kwds)
     
     def update_abstract_code(self):
         self.abstract_code = '_cond = ' + self.group.threshold
@@ -343,8 +341,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
             name = self.name + '_runner*'
 
         runner = GroupCodeRunner(self, self.language.template_state_update,
-                                 code=code, name=name, when=when,
-                                 iterate_all=['_element'])
+                                 code=code, name=name, when=when)
         return runner
 
     def _create_variables(self):

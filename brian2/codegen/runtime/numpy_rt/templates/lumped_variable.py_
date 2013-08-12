@@ -1,4 +1,5 @@
 # USES_VARIABLES { _post_synaptic, _synaptic_pre, _synaptic_post }
+# ITERATE_ALL { _element }
 
 import numpy as np
 

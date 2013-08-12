@@ -453,14 +453,3 @@ class Subexpression(Variable):
                                   dtype=repr(self.dtype),
                                   expr=repr(self.expr))        
 
-
-class Index(Variable):
-    '''
-    An object describing an index variable.
-    '''
-    def __init__(self):
-        Variable.__init__(self, Unit(1), None, dtype=np.int32,
-                          scalar=False, is_bool=False, constant=True)
-
-    def get_value(self):
-        return self[:]

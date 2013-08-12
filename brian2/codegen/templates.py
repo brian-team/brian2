@@ -38,12 +38,19 @@ class CodeObjectTemplate(object):
             self.words.update(get_identifiers(v))
         #: The set of variables in this template
         self.variables = set([])
+        #: The indices over which the template iterates completely
+        self.iterate_all = set([])
         for v in temps:
             # This is the bit inside {} for USES_VARIABLES { list of words }
             specifier_blocks = re.findall(r'\bUSES_VARIABLES\b\s*\{(.*?)\}',
                                           v, re.M|re.S)
+            # Same for ITERATE_ALL
+            iterate_all_blocks = re.findall(r'\bITERATE_ALL\b\s*\{(.*?)\}',
+                              v, re.M|re.S)
             for block in specifier_blocks:
                 self.variables.update(get_identifiers(block))
+            for block in iterate_all_blocks:
+                self.iterate_all.update(get_identifiers(block))
                 
     def __call__(self, code_lines, **kwds):
         kwds['code_lines'] = code_lines

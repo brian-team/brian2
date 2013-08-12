@@ -44,8 +44,7 @@ def prepare_namespace(namespace, variables):
 
 
 def create_codeobject(name, abstract_code, namespace, variables, template_name,
-                      indices, variable_indices, iterate_all,
-                      codeobj_class=None,
+                      indices, variable_indices, codeobj_class=None,
                       template_kwds=None):
     '''
     The following arguments keywords are passed to the template:
@@ -72,6 +71,7 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
     namespace = prepare_namespace(namespace, variables)
 
     logger.debug(name + " abstract code:\n" + abstract_code)
+    iterate_all = template.iterate_all
     innercode, kwds = translate(abstract_code, variables, namespace,
                                 dtype=brian_prefs['core.default_scalar_dtype'],
                                 language=codeobj_class.language,
@@ -120,7 +120,7 @@ class CodeObject(object):
         self.namespace = namespace
         self.variables = variables
         
-        # Specifiers can refer to values that are either constant (e.g. dt)
+        # Variables can refer to values that are either constant (e.g. dt)
         # or change every timestep (e.g. t). We add the values of the
         # constant variables here and add the names of non-constant variables
         # to a list
@@ -137,7 +137,7 @@ class CodeObject(object):
             else:
                 try:
                     value = var.get_value()
-                except TypeError:  # A dummy Variable without unit
+                except TypeError:  # A dummy Variable without value
                     continue
                 self.namespace[name] = value
                 # if it is a type that has a length, add a variable called

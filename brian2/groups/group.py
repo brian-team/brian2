@@ -8,8 +8,8 @@ from collections import defaultdict
 import numpy as np
 
 from brian2.core.base import BrianObject
-from brian2.core.variables import (ArrayVariable, Index,
-                                    StochasticVariable, AttributeVariable)
+from brian2.core.variables import (ArrayVariable, StochasticVariable,
+                                   AttributeVariable, Variable)
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
 from brian2.units.allunits import second
@@ -23,7 +23,7 @@ __all__ = ['Group', 'GroupCodeRunner', 'GroupItemMapping']
 logger = get_logger(__name__)
 
 
-class GroupItemMapping(Index):
+class GroupItemMapping(Variable):
 
     def __init__(self, N):
         self.N = N
@@ -31,8 +31,7 @@ class GroupItemMapping(Index):
         self.variables = {'i': ArrayVariable('i',
                                               Unit(1),
                                               self._indices)}
-
-        Index.__init__(self)
+        Variable.__init__(self, Unit(1), value=self, constant=True)
 
     def __len__(self):
         return self.N
@@ -195,7 +194,6 @@ class Group(object):
                                  'reset',
                                  self.indices,
                                  variable_indices=self.variable_indices,
-                                 iterate_all=[],
                                  additional_variables=additional_variables,
                                  additional_namespace=additional_namespace,
                                  check_units=check_units,
@@ -205,7 +203,6 @@ class Group(object):
 
 def create_runner_codeobj(group, code, template_name, indices,
                           variable_indices,
-                          iterate_all,
                           name=None, check_units=True, additional_variables=None,
                           additional_namespace=None,
                           template_kwds=None,
@@ -226,11 +223,6 @@ def create_runner_codeobj(group, code, template_name, indices,
         used for the variables in the code.
     variable_indices : dict-like
         A mapping from `Variable` objects to index names (strings).
-    iterate_all : list of str
-        A list of index names for which the code should iterate over all
-        indices. In numpy code, this allows to not use the indices and use
-        variables directly. For example, the numpy state update template does
-        not provide ``_element``.
     name : str, optional
         A name for this code object, will use ``group + '_codeobject*'`` if
         none is given.
@@ -316,7 +308,6 @@ def create_runner_codeobj(group, code, template_name, indices,
                              template_name,
                              indices=indices,
                              variable_indices=variable_indices,
-                             iterate_all=iterate_all,
                              template_kwds=template_kwds,
                              codeobj_class=codeobj_class)
 
@@ -341,9 +332,6 @@ class GroupCodeRunner(BrianObject):
         The abstract code that should be executed every time step. The
         `update_abstract_code` method might generate this code dynamically
         before every run instead.
-    iterate_all : list of str, optional
-        Indices over which the code should loop completely. Used for
-        optimization of numpy code.
     when : `Scheduler`, optional
         At which point in the schedule this object should be executed.
     name : str, optional 
@@ -369,15 +357,11 @@ class GroupCodeRunner(BrianObject):
     `NeuronGroup.spikes` property in `post_update`.
     '''
     def __init__(self, group, template, code=None, when=None,
-                 name='coderunner*', iterate_all=None,
-                 check_units=True, template_kwds=None):
+                 name='coderunner*', check_units=True, template_kwds=None):
         BrianObject.__init__(self, when=when, name=name)
         self.group = weakref.proxy(group)
         self.template = template
         self.abstract_code = code
-        if iterate_all is None:
-            iterate_all = []
-        self.iterate_all = iterate_all
         self.check_units = check_units
         self.template_kwds = template_kwds
     
@@ -406,7 +390,6 @@ class GroupCodeRunner(BrianObject):
         return create_runner_codeobj(self.group, self.abstract_code, self.template,
                                      variable_indices=self.group.variable_indices,
                                      indices=self.group.indices,
-                                     iterate_all=self.iterate_all,
                                      name=self.name,
                                      check_units=self.check_units,
                                      additional_variables=additional_variables,
