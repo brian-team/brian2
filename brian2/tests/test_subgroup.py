@@ -67,6 +67,45 @@ def test_state_monitor():
         assert_raises(IndexError, lambda: mon_all[5])
 
 
+def test_synapse_creation():
+    for codeobj_class in codeobj_classes:
+        G1 = NeuronGroup(10, 'v:1', codeobj_class=codeobj_class)
+        G2 = NeuronGroup(20, 'v:1', codeobj_class=codeobj_class)
+        SG1 = G1[:5]
+        SG2 = G2[10:]
+        S = Synapses(SG1, SG2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
+        S.connect(2, 2)  # Should correspond to (2, 12)
+        S.connect('i==4 and j==5') # Should correspond to (4, 15)
+
+        # The "true" indices
+        assert_equal(S.item_mapping.synaptic_pre, np.array([2, 4]))
+        assert_equal(S.item_mapping.synaptic_post, np.array([12, 15]))
+
+        # S.i and S.j should give "subgroup-relative" numbers
+        assert_equal(S.i[:], np.array([2, 4]))
+        assert_equal(S.j[:], np.array([2, 5]))
+
+
+def test_synapse_access():
+    for codeobj_class in codeobj_classes:
+        G1 = NeuronGroup(10, 'v:1', codeobj_class=codeobj_class)
+        G2 = NeuronGroup(20, 'v:1', codeobj_class=codeobj_class)
+        SG1 = G1[:5]
+        SG2 = G2[10:]
+        S = Synapses(SG1, SG2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
+        S.connect(True)
+        S.w['j == 0'] = 5
+        assert all(S.w['j==0'] == 5)
+        S.w[2, 2] = 7
+        assert all(S.w['i==2 and j==2'] == 7)
+        S.w = '2*j'
+        assert all(S.w[:, 1] == 2)
+
+        assert len(S.w[:, 10]) == 0
+        assert len(S.w['j==10']) == 0
+
 if __name__ == '__main__':
     test_state_variables()
     test_state_monitor()
+    test_synapse_creation()
+    test_synapse_access()

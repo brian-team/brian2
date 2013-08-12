@@ -216,7 +216,7 @@ class IndexView(object):
 
     def __getitem__(self, item):
         synaptic_indices = self.index[item]
-        return self.mapping[synaptic_indices]
+        return synaptic_indices
 
 
 class SynapseIndexView(object):
@@ -312,8 +312,8 @@ class SynapticItemMapping(Variable):
         Variable.__init__(self, Unit(1), value=self, constant=True)
         self.source = synapses.source
         self.target = synapses.target
-        source_len = len(synapses.source)
-        target_len = len(synapses.target)
+        source_len = len(synapses.source) + synapses.source.offset
+        target_len = len(synapses.target) + synapses.target.offset
         self.synapses = weakref.proxy(synapses)
         dtype = smallest_inttype(MAX_SYNAPSES)
         self.synaptic_pre = DynamicArray1D(0, dtype=dtype)
@@ -322,18 +322,30 @@ class SynapticItemMapping(Variable):
                              for _ in xrange(source_len)]
         self.post_synaptic = [DynamicArray1D(0, dtype=dtype)
                               for _ in xrange(target_len)]
-        self.i = IndexView(self, self.synaptic_pre)
-        self.j = IndexView(self, self.synaptic_post)
-        self.k = SynapseIndexView(self)
+
+        self._registered_variables = []
+        if synapses.source.offset == 0:
+            self.i_variable = self.synaptic_pre
+        else:
+            self._shifted_synaptic_pre = DynamicArray1D(0, dtype=dtype)
+            self.register_variable(self._shifted_synaptic_pre)
+            self.i_variable = self._shifted_synaptic_pre
+        if synapses.target.offset == 0:
+            self.j_variable = self.synaptic_post
+        else:
+            self._shifted_synaptic_post = DynamicArray1D(0, dtype=dtype)
+            self.register_variable(self._shifted_synaptic_post)
+            self.j_variable = self._shifted_synaptic_post
 
         self.variables = {'i': DynamicArrayVariable('i',
                                                      Unit(1),
-                                                     self.synaptic_pre),
-                           'j': DynamicArrayVariable('j',
-                                                     Unit(1),
-                                                     self.synaptic_post)}
-
-        self._registered_variables = []
+                                                     self.i_variable),
+                          'j': DynamicArrayVariable('j',
+                                                    Unit(1),
+                                                    self.j_variable)}
+        self.i = IndexView(self.i_variable, self)
+        self.j = IndexView(self.j_variable, self)
+        self.k = SynapseIndexView(self)
 
     N = property(fget=lambda self: len(self.synaptic_pre),
                  doc='Total number of synapses')
@@ -429,8 +441,7 @@ class SynapticItemMapping(Variable):
                                           self.pre_synaptic, constant=True),
                 '_post_synaptic': Variable(Unit(1),
                                            self.post_synaptic, constant=True),
-                # Will be set in the template (they are set to constant to avoid
-                # the get_value() function call at every time step)
+                # Will be set in the template
                 'i': Variable(unit=Unit(1), constant=True),
                 'j': Variable(unit=Unit(1), constant=True)
             }
@@ -448,6 +459,11 @@ class SynapticItemMapping(Variable):
             number = len(self.synaptic_pre)
             for variable in self._registered_variables:
                 variable.resize(number)
+
+        if self.synapses.source.offset != 0:
+            self._shifted_synaptic_pre[:] = self.synaptic_pre[:] - self.source.offset
+        if self.synapses.target.offset != 0:
+            self._shifted_synaptic_post[:] = self.synaptic_post[:] - self.target.offset
 
     def __len__(self):
         return self.N
@@ -471,9 +487,9 @@ class SynapticItemMapping(Variable):
             I, J, K = index
 
             pre_synapses = find_synapses(I, self.pre_synaptic,
-                                         self.synaptic_pre)
+                                         self.i_variable)
             post_synapses = find_synapses(J, self.post_synaptic,
-                                          self.synaptic_post)
+                                          self.j_variable)
             matching_synapses = np.intersect1d(pre_synapses, post_synapses,
                                                assume_unique=True)
 
@@ -508,7 +524,6 @@ class SynapticItemMapping(Variable):
             namespace.update(frame.f_locals)
             additional_namespace = ('implicit-namespace', namespace)
             abstract_code = '_cond = ' + index
-            print self.synapses.indices
             codeobj = create_runner_codeobj(self.synapses,
                                             abstract_code,
                                             'state_variable_indexing',
@@ -652,6 +667,9 @@ class Synapses(BrianObject, Group):
         self._delays = {}
 
         self.item_mapping = SynapticItemMapping(self)
+        self.indices = {'_element': self.item_mapping,
+                        '_presynaptic': self.item_mapping.synaptic_pre,
+                        '_postsynaptic': self.item_mapping.synaptic_post}
         # Allow S.i instead of S.indices.i, etc.
         self.i = self.item_mapping.i
         self.j = self.item_mapping.j

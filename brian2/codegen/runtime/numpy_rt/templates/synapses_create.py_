@@ -32,7 +32,6 @@ for i in range(_num_source_neurons):
     _synaptic_post.resize(_new_num_synapses)
     _synaptic_pre[_cur_num_synapses:] = _source_neurons[i]
     _synaptic_post[_cur_num_synapses:] = _target_neurons[_cond_nonzero]
-
     _new_synapses = np.arange(_cur_num_synapses, _new_num_synapses)
     _source_synapses = _pre_synaptic[_source_neurons[i]]
     _cur_num_source_synapses = len(_source_synapses)

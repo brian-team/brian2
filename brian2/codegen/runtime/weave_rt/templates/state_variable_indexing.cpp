@@ -25,7 +25,7 @@
 	//// MAIN CODE ////////////
 	int _cpp_numelements = 0;
 	// Container for all the potential indices
-	npy_int *_elements = (npy_int *)malloc(sizeof(npy_int) * _num_elements);
+	npy_int *_elements = (npy_int *)malloc(sizeof(npy_int) * _num_element);
 	for(int _element_idx=0; _element_idx<_num_element; _element_idx++)
 	{
 	    const int _vectorisation_idx = _element_idx;
