@@ -110,7 +110,7 @@ language. This is handled in ``brian2.codegen.templates``.
 
 An example of a template for Python thresholding::
 
-	# USE_SPECIFIERS { not_refractory, lastspike, t }	
+	# USES_VARIABLES { not_refractory, lastspike, t }
 	{% for line in code_lines %}
 	{{line}}
 	{% endfor %}
@@ -121,7 +121,7 @@ An example of a template for Python thresholding::
 
 and the output code from the example equations above::
 
-	# USE_SPECIFIERS { not_refractory, lastspike, t }	
+	# USES_VARIABLES { not_refractory, lastspike, t }
 	v = _array_neurongroup_v
 	_cond = v > 10 * mV
 	_return_values, = _cond.nonzero()

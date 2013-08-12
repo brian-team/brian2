@@ -1,4 +1,4 @@
-# USE_SPECIFIERS { _synaptic_post, _spiking_synapses }
+# USES_VARIABLES { _synaptic_post, _spiking_synapses }
 
 import numpy as np
 

@@ -3,7 +3,7 @@
 
 {% macro main() %}
 
-    // USE_SPECIFIERS { _synaptic_post, _synaptic_pre, _num_target_neurons }
+    // USES_VARIABLES { _synaptic_post, _synaptic_pre, _num_target_neurons }
 
 	////// HANDLE DENORMALS ///
 	{% for line in denormals_code_lines %}

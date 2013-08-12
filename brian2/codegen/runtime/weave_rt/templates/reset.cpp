@@ -2,7 +2,7 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
-	// USE_SPECIFIERS { _spikes }
+	// USES_VARIABLES { _spikes }
 
 	////// HANDLE DENORMALS ///
 	{% for line in denormals_code_lines %}

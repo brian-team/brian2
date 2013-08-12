@@ -39,8 +39,8 @@ class CodeObjectTemplate(object):
         #: The set of variables in this template
         self.variables = set([])
         for v in temps:
-            # This is the bit inside {} for USE_SPECIFIERS { list of words }
-            specifier_blocks = re.findall(r'\bUSE_SPECIFIERS\b\s*\{(.*?)\}',
+            # This is the bit inside {} for USES_VARIABLES { list of words }
+            specifier_blocks = re.findall(r'\bUSES_VARIABLES\b\s*\{(.*?)\}',
                                           v, re.M|re.S)
             for block in specifier_blocks:
                 self.variables.update(get_identifiers(block))

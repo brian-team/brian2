@@ -1,6 +1,6 @@
 {% macro main() %}
 
-    // USE_SPECIFIERS { _t, _clock_t, _indices }
+    // USES_VARIABLES { _t, _clock_t, _indices }
 
     ////// SUPPORT CODE ///
 	{% for line in support_code_lines %}

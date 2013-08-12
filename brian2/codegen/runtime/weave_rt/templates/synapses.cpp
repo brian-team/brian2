@@ -2,7 +2,7 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
-	// USE_SPECIFIERS { _spiking_synapses, _synaptic_pre,_synaptic_post }
+	// USES_VARIABLES { _spiking_synapses, _synaptic_pre,_synaptic_post }
 
     //// SUPPORT CODE //////////////////////////////////////////////////////////
 	{% for line in support_code_lines %}

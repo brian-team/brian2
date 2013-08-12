@@ -2,7 +2,7 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
-	// USE_SPECIFIERS { _num_elements }
+	// USES_VARIABLES { _num_elements }
 
     ////// SUPPORT CODE ///
 	{% for line in support_code_lines %}

@@ -1,4 +1,4 @@
-# USE_SPECIFIERS { _source_neurons, _target_neurons, _synaptic_pre, _synaptic_post, _pre_synaptic, _post_synaptic }
+# USES_VARIABLES { _source_neurons, _target_neurons, _synaptic_pre, _synaptic_post, _pre_synaptic, _post_synaptic }
 
 import numpy as np
 

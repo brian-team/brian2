@@ -1,4 +1,4 @@
-# USE_SPECIFIERS { not_refractory, lastspike, t }
+# USES_VARIABLES { not_refractory, lastspike, t }
 
 {% for line in code_lines %}
 {{line}}

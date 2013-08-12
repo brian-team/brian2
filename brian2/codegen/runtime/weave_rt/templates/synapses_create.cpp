@@ -1,5 +1,5 @@
 {% macro main() %}
-    // USE_SPECIFIERS { _synaptic_pre, _synaptic_post, _post_synaptic,
+    // USES_VARIABLES { _synaptic_pre, _synaptic_post, _post_synaptic,
     //                  _pre_synaptic, _source_neurons, _target_neurons,
     //                  rand}
 

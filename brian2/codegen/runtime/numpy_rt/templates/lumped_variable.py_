@@ -1,4 +1,4 @@
-# USE_SPECIFIERS { _post_synaptic, _synaptic_pre, _synaptic_post }
+# USES_VARIABLES { _post_synaptic, _synaptic_pre, _synaptic_post }
 
 import numpy as np
 

@@ -1,6 +1,6 @@
 {% macro main() %}
 
-    // USE_SPECIFIERS { _t, _i, t, _spikes, _count }
+    // USES_VARIABLES { _t, _i, t, _spikes, _count }
 
     if (_num_spikes > 0)
     {

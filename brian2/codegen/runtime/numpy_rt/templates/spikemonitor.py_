@@ -1,4 +1,4 @@
-# { USE_SPECIFIERS _i, _t, _spikes, _count, _num_source_neurons, t }
+# { USES_VARIABLES _i, _t, _spikes, _count, _num_source_neurons, t }
 
 _n_spikes = len(_spikes)
 if _n_spikes > 0:
