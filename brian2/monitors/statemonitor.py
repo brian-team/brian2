@@ -153,17 +153,18 @@ class StateMonitor(BrianObject):
 
         # record should always be an array of ints
         self.record_all = False
-        if record is None or record is False:
-            record = np.array([], dtype=np.int32)
-        elif record is True:
+        if record is True:
             self.record_all = True
             record = np.arange(len(source), dtype=np.int32)
+        elif record is None or record is False:
+            record = np.array([], dtype=np.int32)
+        elif isinstance(record, int):
+            record = np.array([record], dtype=np.int32)
         else:
             record = np.array(record, dtype=np.int32)
             
         #: The array of recorded indices
         self.indices = record
-        
         # create data structures
         self.reinit()
         
@@ -171,7 +172,8 @@ class StateMonitor(BrianObject):
         self.variables = {}
         for varname in variables:
             var = source.variables[varname]
-            if var.dtype != np.float64:
+            if not (np.issubdtype(var.dtype, np.float64) and
+                        np.issubdtype(np.float64, var.dtype)):
                 raise NotImplementedError(('Cannot record %s with data type '
                                            '%s, currently only values stored as '
                                            'doubles can be recorded.') %
