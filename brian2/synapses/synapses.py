@@ -448,12 +448,9 @@ class SynapticItemMapping(Variable):
             codeobj = create_runner_codeobj(self.synapses,
                                             abstract_code,
                                             'synapses_create',
-                                            indices={},
                                             additional_variables=variables,
                                             additional_namespace=additional_namespace,
-                                            variable_indices=defaultdict(lambda: '_element'),
-                                            check_units=False,
-                                            codeobj_class=self.synapses.codeobj_class,
+                                            check_units=False
                                             )
             codeobj()
             number = len(self.synaptic_pre)
@@ -524,11 +521,8 @@ class SynapticItemMapping(Variable):
             codeobj = create_runner_codeobj(self.synapses,
                                             abstract_code,
                                             'state_variable_indexing',
-                                            indices=self.synapses.indices,
-                                            variable_indices=defaultdict(lambda: '_element'),
                                             additional_variables=variables,
                                             additional_namespace=additional_namespace,
-                                            codeobj_class=self.synapses.codeobj_class,
                                             )
 
             result = codeobj()

@@ -55,11 +55,8 @@ class GroupItemMapping(Variable):
             codeobj = create_runner_codeobj(self.group,
                                             abstract_code,
                                             'state_variable_indexing',
-                                            indices=self.group.indices,
-                                            variable_indices=self.group.variable_indices,
                                             additional_variables=self.variables,
                                             additional_namespace=additional_namespace,
-                                            codeobj_class=self.group.codeobj_class,
                                             )
             return codeobj()
         else:
@@ -212,21 +209,18 @@ class Group(object):
         codeobj = create_runner_codeobj(self,
                                  abstract_code,
                                  'reset',
-                                 self.indices,
-                                 variable_indices=self.variable_indices,
                                  additional_variables=additional_variables,
                                  additional_namespace=additional_namespace,
-                                 check_units=check_units,
-                                 codeobj_class=self.codeobj_class)
+                                 check_units=check_units)
         codeobj()
 
 
-def create_runner_codeobj(group, code, template_name, indices,
-                          variable_indices,
-                          name=None, check_units=True, additional_variables=None,
+def create_runner_codeobj(group, code, template_name, indices=None,
+                          variable_indices=None,
+                          name=None, check_units=True,
+                          additional_variables=None,
                           additional_namespace=None,
-                          template_kwds=None,
-                          codeobj_class=None):
+                          template_kwds=None):
     ''' Create a `CodeObject` for the execution of code in the context of a
     `Group`.
 
@@ -238,11 +232,13 @@ def create_runner_codeobj(group, code, template_name, indices,
         The code to be executed.
     template : `LanguageTemplater`
         The template to use for the code.
-    indices : dict-like
+    indices : dict-like, optional
         A mapping from index name to `Index` objects, describing the indices
-        used for the variables in the code.
-    variable_indices : dict-like
-        A mapping from `Variable` objects to index names (strings).
+        used for the variables in the code. If none are given, uses the
+        corresponding attribute of `group`.
+    variable_indices : dict-like, optional
+        A mapping from `Variable` objects to index names (strings).  If none is
+        given, uses the corresponding attribute of `group`.
     name : str, optional
         A name for this code object, will use ``group + '_codeobject*'`` if
         none is given.
@@ -256,21 +252,15 @@ def create_runner_codeobj(group, code, template_name, indices,
         saved in `group`.
         template_kwds : dict, optional
         A dictionary of additional information that is passed to the template.
-    codeobj_class : `CodeObject`, optional
-        The `CodeObject` class to create.
     '''
     logger.debug('Creating code object for abstract code:\n' + str(code))
 
-    if group is not None:
-        all_variables = dict(group.variables)
-    else:
-        all_variables = {}
-    # If the GroupCodeRunner has variables, add them
+    all_variables = dict(group.variables)
     if additional_variables is not None:
         all_variables.update(additional_variables)
         
     template = get_codeobject_template(template_name,
-                                       codeobj_class=codeobj_class)
+                                       codeobj_class=group.codeobj_class)
 
     if check_units:
         # Resolve the namespace, resulting in a dictionary containing only the
@@ -321,6 +311,11 @@ def create_runner_codeobj(group, code, template_name, indices,
         else:
             name = '_codeobject*'
 
+    if indices is None:
+        indices = group.indices
+    if variable_indices is None:
+        variable_indices = group.variable_indices
+
     return create_codeobject(name,
                              code,
                              resolved_namespace,
@@ -329,7 +324,7 @@ def create_runner_codeobj(group, code, template_name, indices,
                              indices=indices,
                              variable_indices=variable_indices,
                              template_kwds=template_kwds,
-                             codeobj_class=codeobj_class)
+                             codeobj_class=group.codeobj_class)
 
 
 class GroupCodeRunner(BrianObject):
@@ -407,15 +402,13 @@ class GroupCodeRunner(BrianObject):
         else:
             additional_variables = None
 
-        return create_runner_codeobj(self.group, self.abstract_code, self.template,
-                                     variable_indices=self.group.variable_indices,
-                                     indices=self.group.indices,
+        return create_runner_codeobj(self.group, self.abstract_code,
+                                     self.template,
                                      name=self.name,
                                      check_units=self.check_units,
                                      additional_variables=additional_variables,
                                      additional_namespace=additional_namespace,
-                                     template_kwds=self.template_kwds,
-                                     codeobj_class=self.group.codeobj_class)
+                                     template_kwds=self.template_kwds)
     
     def pre_run(self, namespace):
         self.update_abstract_code()

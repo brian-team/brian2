@@ -210,16 +210,13 @@ class StateMonitor(BrianObject):
         code = '\n'.join(code)
         self.codeobj = create_runner_codeobj(self.source,
                                              code,
+                                             'statemonitor',
                                              name=self.name,
                                              additional_variables=self.variables,
                                              additional_namespace=namespace,
-                                             template_name='statemonitor',
-                                             indices=self.source.indices,
-                                             variable_indices=self.source.variable_indices,
                                              template_kwds={'_variable_names':
                                                                 self.record_variables},
-                                             #check_units=False,
-                                             codeobj_class=self.codeobj_class)
+                                             check_units=False)
 
     def update(self):
         self.codeobj()
