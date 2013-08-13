@@ -825,7 +825,7 @@ class Synapses(BrianObject, Group):
 
     def _create_variables(self):
         '''
-        Create the variables dictionary for this `NeuronGroup`, containing
+        Create the variables dictionary for this `Synapses`, containing
         entries for the equation variables and some standard entries.
         '''
         # Add all the pre and post variables with _pre and _post suffixes
@@ -850,8 +850,6 @@ class Synapses(BrianObject, Group):
                                          constant=False),
                   'dt': AttributeVariable(second, self.clock, 'dt_',
                                           constant=True),
-                  '_num_elements': AttributeVariable(Unit(1),
-                                                     self, 'N', constant=True),
                   '_num_source_neurons': Variable(Unit(1), len(self.source),
                                                   constant=True),
                   '_num_target_neurons': Variable(Unit(1), len(self.target),

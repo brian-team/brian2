@@ -370,8 +370,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         s = Group._create_variables(self)
 
         # Standard variables always present
-        s.update({'_num_elements': Variable(Unit(1), self.N, constant=True),
-                  '_spikes': AttributeVariable(Unit(1), self,
+        s.update({'_spikes': AttributeVariable(Unit(1), self,
                                                'spikes', constant=False)})
 
         for eq in self.equations.itervalues():

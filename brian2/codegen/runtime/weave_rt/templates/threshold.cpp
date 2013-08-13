@@ -2,7 +2,7 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
-	// USES_VARIABLES { _num_elements, not_refractory, lastspike, t }
+	// USES_VARIABLES { not_refractory, lastspike, t }
 	////// SUPPORT CODE ///////
 	{% for line in support_code_lines %}
 	// {{line}}
@@ -25,8 +25,8 @@
 
 	//// MAIN CODE ////////////
 	int _cpp_numspikes = 0;
-	npy_int32 *_spikes_space = (npy_int32 *)malloc(sizeof(npy_int32) * _num_elements);
-	for(int _element_idx=0; _element_idx<_num_elements; _element_idx++)
+	npy_int32 *_spikes_space = (npy_int32 *)malloc(sizeof(npy_int32) * _num_element);
+	for(int _element_idx=0; _element_idx<_num_element; _element_idx++)
 	{
 	    const int _vectorisation_idx = _element_idx;
 		{% for line in code_lines %}
