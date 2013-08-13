@@ -25,9 +25,10 @@ logger = get_logger(__name__)
 
 class GroupItemMapping(Variable):
 
-    def __init__(self, N, offset):
+    def __init__(self, N, offset, group):
         self.N = N
         self.offset = int(offset)
+        self.group = weakref.proxy(group)
         self._indices = np.arange(self.N + self.offset)
         self.variables = {'i': ArrayVariable('i',
                                               Unit(1),
@@ -48,16 +49,29 @@ class GroupItemMapping(Variable):
                               'got %d dimensions.') % len(index))
         if isinstance(index, basestring):
             # interpret the string expression
-            namespace = {'i': self._indices - self.offset}
-            result = eval(index, namespace)
-            return np.flatnonzero(result)
+            namespace = get_local_namespace(1)
+            additional_namespace = ('implicit-namespace', namespace)
+            abstract_code = '_cond = ' + index
+            codeobj = create_runner_codeobj(self.group,
+                                            abstract_code,
+                                            'state_variable_indexing',
+                                            indices=self.group.indices,
+                                            variable_indices=self.group.variable_indices,
+                                            additional_variables=self.variables,
+                                            additional_namespace=additional_namespace,
+                                            codeobj_class=self.group.codeobj_class,
+                                            )
+            return codeobj()
         else:
             if isinstance(index, slice):
                 start, stop, step = index.indices(self.N)
                 index = slice(start + self.offset, stop + self.offset, step)
                 return self._indices[index]
             else:
-                return self._indices[np.asarray(index) + self.offset]
+                index_array = np.asarray(index)
+                if not np.issubdtype(index_array.dtype, np.int):
+                    raise TypeError('Indexing is only supported for integer arrays')
+                return self._indices[index_array + self.offset]
 
 
 class Group(object):
@@ -79,7 +93,7 @@ class Group(object):
                 raise ValueError(('Classes derived from Group need an item_mapping '
                                   'attribute, or a length to automatically '
                                   'provide 1-d indexing'))
-            self.item_mapping = GroupItemMapping(N, self.offset)
+            self.item_mapping = GroupItemMapping(N, self.offset, self)
         if not hasattr(self, 'indices'):
             self.indices = {'_element': self.item_mapping}
         if not hasattr(self, 'variable_indices'):

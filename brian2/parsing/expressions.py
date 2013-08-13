@@ -246,7 +246,7 @@ def parse_expression_unit(expr, namespace, variables):
         for left, right in zip(subunits[:-1], subunits[1:]):
             if not have_same_dimensions(left, right):
                 raise DimensionMismatchError("Comparison of expressions with different units",
-                                             *[u.dim for u in subunits])
+                                             *[getattr(u, 'dim', 1) for u in subunits])
         # but the result is a bool, so we just return 1 as the unit
         return get_unit_fast(1)
     elif expr.__class__ is ast.Call:

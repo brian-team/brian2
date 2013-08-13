@@ -518,10 +518,7 @@ class SynapticItemMapping(Variable):
                                                    self.synaptic_post[:])
                 variables['k'] = ArrayVariable('k', Unit(1),
                                                 synapse_numbers)
-            # Get the locals and globals from the stack frame
-            frame = inspect.stack()[2][0]
-            namespace = dict(frame.f_globals)
-            namespace.update(frame.f_locals)
+            namespace = get_local_namespace(1)
             additional_namespace = ('implicit-namespace', namespace)
             abstract_code = '_cond = ' + index
             codeobj = create_runner_codeobj(self.synapses,
@@ -531,7 +528,6 @@ class SynapticItemMapping(Variable):
                                             variable_indices=defaultdict(lambda: '_element'),
                                             additional_variables=variables,
                                             additional_namespace=additional_namespace,
-                                            check_units=False,
                                             codeobj_class=self.synapses.codeobj_class,
                                             )
 

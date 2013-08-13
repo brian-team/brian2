@@ -4,8 +4,9 @@ from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 from brian2.groups.neurongroup import NeuronGroup
 from brian2.core.network import Network
 from brian2.core.clocks import defaultclock
-from brian2.units.fundamentalunits import DimensionMismatchError
-from brian2.units.allunits import second
+from brian2.units.fundamentalunits import (DimensionMismatchError,
+                                           have_same_dimensions)
+from brian2.units.allunits import second, volt
 from brian2.units.stdunits import ms, mV
 from brian2.codegen.runtime.weave_rt import WeaveCodeObject
 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
@@ -237,6 +238,37 @@ def test_state_variables():
     assert_raises(DimensionMismatchError, lambda: G.v.__imul__(3*second))
 
 
+def test_state_variable_access():
+    G = NeuronGroup(10, 'v:volt')
+    G.v = np.arange(10) * volt
+
+    assert_equal(np.asarray(G.v[:]), np.arange(10))
+    assert have_same_dimensions(G.v[:], volt)
+    assert_equal(np.asarray(G.v[:]), G.v_[:])
+    # Accessing single elements, slices and arrays
+    assert G.v[5] == 5 * volt
+    assert G.v_[5] == 5
+    assert_equal(G.v[:5], np.arange(5) * volt)
+    assert_equal(G.v_[:5], np.arange(5))
+    assert_equal(G.v[[0, 5]], [0, 5] * volt)
+    assert_equal(G.v_[[0, 5]], np.array([0, 5]))
+
+    # Illegal indexing
+    assert_raises(IndexError, lambda: G.v[0, 0])
+    assert_raises(IndexError, lambda: G.v_[0, 0])
+    assert_raises(TypeError, lambda: G.v[object()])
+    assert_raises(TypeError, lambda: G.v_[object()])
+
+    # Indexing with strings
+    assert G.v['i==2'] == G.v[2]
+    assert G.v_['i==2'] == G.v_[2]
+    assert_equal(G.v['v >= 3*volt'], G.v[3:])
+    assert_equal(G.v_['v >= 3*volt'], G.v_[3:])
+    # Should also check for units
+    assert_raises(DimensionMismatchError, lambda: G.v['v >= 3'])
+    assert_raises(DimensionMismatchError, lambda: G.v['v >= 3*second'])
+
+
 if __name__ == '__main__':
     test_creation()
     test_variables()
@@ -248,3 +280,4 @@ if __name__ == '__main__':
     test_namespace_errors()
     test_syntax_errors()
     test_state_variables()
+    test_state_variable_access()
