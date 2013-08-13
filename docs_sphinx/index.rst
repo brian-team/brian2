@@ -11,7 +11,7 @@ Contents:
    Reference documentation <reference/brian2>
    developer/index
 
-GroupIndices and tables
+Indices and tables
 ==================
 
 * :ref:`genindex`

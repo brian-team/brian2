@@ -10,13 +10,20 @@ a single `NeuronGroup` object:
 
 - Parse the equations, add refractoriness to them: this isn't really part of
   code generation.
+
 - Allocate memory for the state variables.
+
 - Create a namespace object.
+
 - Create `Thresholder`, `Resetter` and `StateUpdater` objects.
+
   - Collect `Variable` objects from the group and code template.
+
   - Resolve the namespace, i.e. for hierarchical namespace choose just one
     value for each variable name.
+
   - Create a `CodeObject`.
+
 - At runtime, each object calls `CodeObject.__call__` to execute the code.
 
 Stages of code generation

@@ -161,9 +161,7 @@ class SynapticPathway(GroupCodeRunner, Group):
 
         self.item_mapping = synapses.item_mapping
 
-        self.indices = {'_element': self.item_mapping,
-                        '_presynaptic': self.item_mapping.synaptic_pre,
-                        '_postsynaptic': self.item_mapping.synaptic_post}
+        self.indices = self.synapses.indices
 
         # Enable access to the delay attribute via the specifier
         Group.__init__(self)

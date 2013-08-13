@@ -13,13 +13,11 @@ from brian2.units.fundamentalunits import (Quantity, Unit, is_scalar_type,
                                            have_same_dimensions)
 
 __all__ = ['Variable',
-           'Variable',
            'StochasticVariable',
            'AttributeVariable',
            'ArrayVariable',
            'DynamicArrayVariable',
            'Subexpression',
-           'Index',
            ]
 
 
@@ -44,10 +42,13 @@ class Variable(object):
         Some variables (e.g. stochastic variables) don't have their value
         stored anywhere, they'd pass ``None`` as a value.
     dtype: `numpy.dtype`, optional
-        The dtype used for storing the variable. If a
+        The dtype used for storing the variable. If none is given, tries to
+        get the dtype from the referred value.
     scalar : bool, optional
         Whether the variable is a scalar value (``True``) or vector-valued, e.g.
-        defined for every neuron (``False``). Defaults to ``True``.
+        defined for every neuron (``False``). If nothing is specified,
+        determines the correct setting from the `value`, if that is not given
+        defaults to ``True``.
     constant: bool, optional
         Whether the value of this variable can change during a run. Defaults
         to ``False``.
@@ -55,9 +56,6 @@ class Variable(object):
         Whether this is a boolean variable (also implies it is dimensionless).
         If specified as ``None`` and a `value` is given, checks the value
         itself. If no `value` is given, defaults to ``False``.
-    See Also
-    --------
-    Value
     '''
     def __init__(self, unit, value=None, dtype=None, scalar=None,
                  constant=False, is_bool=None):
@@ -104,7 +102,7 @@ class Variable(object):
 
     def get_value(self):
         '''
-        Return the value associated with the variable.
+        Return the value associated with the variable (without units).
         '''
         if self.value is None:
             raise TypeError('Variable does not have a value')
@@ -118,15 +116,30 @@ class Variable(object):
         raise NotImplementedError()
 
     def get_value_with_unit(self):
+        '''
+        Return the value associated with the variable (with units).
+        '''
         return Quantity(self.get_value(), self.unit.dimensions)
 
     def get_addressable_value(self, level=0):
+        '''
+        Get the value associated with the variable (without units) that allows
+        for indexing
+        '''
         return self.get_value()
 
     def get_addressable_value_with_unit(self, level=0):
+        '''
+        Get the value associated with the variable (with units) that allows
+        for indexing
+        '''
         return self.get_value_with_unit()
 
     def get_len(self):
+        '''
+        Get the length of the value associated with the variable or ``0`` for
+        a scalar variable.
+        '''
         if self.scalar:
             return 0
         else:
@@ -141,10 +154,6 @@ class Variable(object):
                                   dtype=repr(self.dtype),
                                   scalar=repr(self.scalar),
                                   constant=repr(self.constant))
-
-###############################################################################
-# Concrete classes that are used as variables in practice.
-###############################################################################
 
 
 class StochasticVariable(Variable):
@@ -320,19 +329,16 @@ class ArrayVariable(Variable):
     An object providing information about a model variable stored in an array
     (for example, all state variables).
 
-    TODO
-    
     Parameters
     ----------
     name : str
         The name of the variable.
     unit : `Unit`
         The unit of the variable
-    value : `numpy.array`
+    value : `numpy.ndarray`
         A reference to the array storing the data for the variable.
-    group : `Group`, optional
-        The group to which this variable belongs, this is necessary to
-        interpret strings in the context of this group.
+    group_name : str, optional
+        The name of the group to which this variable belongs.
     constant : bool, optional
         Whether the variable's value is constant during a run.
         Defaults to ``False``.
@@ -374,7 +380,7 @@ class ArrayVariable(Variable):
 class DynamicArrayVariable(ArrayVariable):
     '''
     An object providing information about a model variable stored in a dynamic
-    array (used in synapses).
+    array (used in `Synapses`).
     '''
     
     def get_value(self):
@@ -387,7 +393,7 @@ class Subexpression(Variable):
     An object providing information about a static equation in a model
     definition, used as a hint in optimising. Can test if a variable is used
     via ``var in spec``. The specifier is also able to return the result of
-    the expression (used in a `StateMonitor`, for example).
+    the expression.
     
     Parameters
     ----------
