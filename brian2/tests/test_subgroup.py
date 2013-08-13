@@ -104,8 +104,27 @@ def test_synapse_access():
         assert len(S.w[:, 10]) == 0
         assert len(S.w['j==10']) == 0
 
+
+def test_synaptic_propagation():
+    for codeobj_class in codeobj_classes:
+        G1 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0',
+                         codeobj_class=codeobj_class)
+        G1.v[::2] = 1.1 # even numbers should spike
+        G2 = NeuronGroup(20, 'v:1', codeobj_class=codeobj_class)
+        SG1 = G1[:5]
+        SG2 = G2[11:]
+        S = Synapses(SG1, SG2, pre='v+=1', codeobj_class=codeobj_class)
+        S.connect('i==j')
+        net = Network(G1, G2, S)
+        net.run(defaultclock.dt)
+        expected = np.zeros(len(G2))
+        # Neurons 0, 2, 4 spiked and are connected to 11, 13, 15
+        expected[[11, 13, 15]] = 1
+        assert_equal(np.asarray(G2.v).flatten(), expected)
+
 if __name__ == '__main__':
     test_state_variables()
     test_state_monitor()
     test_synapse_creation()
     test_synapse_access()
+    test_synaptic_propagation()

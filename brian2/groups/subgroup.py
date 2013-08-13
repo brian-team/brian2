@@ -46,7 +46,6 @@ class Subgroup(Group, BrianObject, SpikeSource):
         schedule = Scheduler(clock=source.clock, when='thresholds',
                              order=source.order+1)
         BrianObject.__init__(self, when=schedule, name=name)
-        self.spikes = np.array([], dtype=int)
         self.N = end-start
         self.start = start
         self.end = end
@@ -58,15 +57,12 @@ class Subgroup(Group, BrianObject, SpikeSource):
         self.codeobj_class = self.source.codeobj_class
 
         Group.__init__(self)
-        
+
+    # Make the spikes from the source group accessible
+    spikes = property(lambda self: self.source.spikes)
+
     def __len__(self):
         return self.N
-        
-    def update(self):
-        spikes = self.source.spikes
-        # TODO: improve efficiency with bisect?
-        spikes = spikes[np.logical_and(spikes>=self.start, spikes<self.end)]
-        self.spikes = spikes-self.start
         
     def __repr__(self):
         description = '<{classname} {name} of {source} from {start} to {end}>'
