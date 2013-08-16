@@ -12,7 +12,6 @@ except ImportError:
     codeobj_classes = [NumpyCodeObject]
 
 
-
 def test_state_variables():
     '''
     Test the setting and accessing of state variables in subgroups.
@@ -77,11 +76,9 @@ def test_synapse_creation():
         S.connect(2, 2)  # Should correspond to (2, 12)
         S.connect('i==4 and j==5') # Should correspond to (4, 15)
 
-        # The "true" indices
+        # Only relative numbers are stored
         assert_equal(S.item_mapping.synaptic_pre, np.array([2, 4]))
-        assert_equal(S.item_mapping.synaptic_post, np.array([12, 15]))
-
-        # S.i and S.j should give "subgroup-relative" numbers
+        assert_equal(S.item_mapping.synaptic_post, np.array([2, 5]))
         assert_equal(S.i[:], np.array([2, 4]))
         assert_equal(S.j[:], np.array([2, 5]))
 
@@ -109,18 +106,44 @@ def test_synaptic_propagation():
     for codeobj_class in codeobj_classes:
         G1 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0',
                          codeobj_class=codeobj_class)
-        G1.v[::2] = 1.1 # even numbers should spike
+        G1.v[1::2] = 1.1 # odd numbers should spike
         G2 = NeuronGroup(20, 'v:1', codeobj_class=codeobj_class)
-        SG1 = G1[:5]
-        SG2 = G2[11:]
+        SG1 = G1[1:6]
+        SG2 = G2[10:]
         S = Synapses(SG1, SG2, pre='v+=1', codeobj_class=codeobj_class)
         S.connect('i==j')
         net = Network(G1, G2, S)
         net.run(defaultclock.dt)
         expected = np.zeros(len(G2))
-        # Neurons 0, 2, 4 spiked and are connected to 11, 13, 15
-        expected[[11, 13, 15]] = 1
+        # Neurons 1, 3, 5 spiked and are connected to 10, 12, 14
+        expected[[10, 12, 14]] = 1
         assert_equal(np.asarray(G2.v).flatten(), expected)
+
+
+def test_spike_monitor():
+    for codeobj_class in codeobj_classes:
+        print codeobj_class
+        G = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0',
+                        codeobj_class=codeobj_class)
+        G.v[0] = 1.1
+        G.v[2] = 1.1
+        G.v[5] = 1.1
+        SG = G[3:]
+        s_mon = SpikeMonitor(G, codeobj_class=codeobj_class)
+        sub_s_mon = SpikeMonitor(SG, codeobj_class=codeobj_class)
+        net = Network(G, s_mon, sub_s_mon)
+        net.run(defaultclock.dt)
+        assert_equal(s_mon.i, np.array([0, 2, 5]))
+        assert_equal(s_mon.t_, np.zeros(3))
+        assert_equal(sub_s_mon.i, np.array([2]))
+        assert_equal(sub_s_mon.t_, np.zeros(1))
+        expected = np.zeros(10, dtype=int)
+        expected[[0, 2, 5]] = 1
+        assert_equal(s_mon.count, expected)
+        expected = np.zeros(7, dtype=int)
+        expected[[2]] = 1
+        assert_equal(sub_s_mon.count, expected)
+
 
 if __name__ == '__main__':
     test_state_variables()
@@ -128,3 +151,4 @@ if __name__ == '__main__':
     test_synapse_creation()
     test_synapse_access()
     test_synaptic_propagation()
+    test_spike_monitor()

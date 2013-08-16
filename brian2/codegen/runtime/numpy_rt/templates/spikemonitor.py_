@@ -1,8 +1,11 @@
-# { USES_VARIABLES _i, _t, _spikes, _count, _num_source_neurons, t }
-
+# { USES_VARIABLES _i, _t, _spikes, _count, t, _source_start, _source_end}
+import numpy as np
+# Take subgroups into account
+_spikes = np.asarray(_spikes)
+_spikes = _spikes[(_spikes >= _source_start) & (_spikes < _source_end)]
+_spikes -= _source_start
 _n_spikes = len(_spikes)
 if _n_spikes > 0:
-    import numpy as np
 
     _curlen = len(_t)
     _newlen = _curlen + _n_spikes
@@ -12,4 +15,4 @@ if _n_spikes > 0:
     _i[_curlen:_newlen] = _spikes
 
     # This is slow but correctly handles multiple spikes per neuron
-    _count += np.bincount(_spikes, minlength=_num_source_neurons);
+    _count += np.bincount(_spikes, minlength=_source_end-_source_start);

@@ -2,7 +2,6 @@ import collections
 from collections import defaultdict
 import weakref
 import itertools
-import inspect
 import re
 
 import numpy as np
@@ -119,9 +118,11 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.code = code
         if prepost == 'pre':
             self.source = synapses.source
+            self.target = synapses.target
             self.synapse_indices = synapses.item_mapping.pre_synaptic
         elif prepost == 'post':
             self.source = synapses.target
+            self.target = synapses.source
             self.synapse_indices = synapses.item_mapping.post_synaptic
         else:
             raise ValueError('prepost argument has to be either "pre" or '
@@ -147,6 +148,10 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                                   self,
                                                                   'spiking_synapses',
                                                                   constant=False),
+                          '_source_offset': Variable(Unit(1), self.source.offset,
+                                                     constant=True),
+                          '_target_offset': Variable(Unit(1), self.target.offset,
+                                                     constant=True),
                            'delay': DynamicArrayVariable('delay', second,
                                                           self._delays,
                                                           group_name=self.name,
@@ -191,11 +196,13 @@ class SynapticPathway(GroupCodeRunner, Group):
     def pre_update(self):
         # Push new spikes into the queue
         spikes = self.source.spikes
+        offset = self.source.offset
         if len(spikes):
             # This check is necessary for subgroups
-            max_index = len(self.synapse_indices)
-            indices = np.concatenate([self.synapse_indices[spike]
-                                      for spike in spikes if spike < max_index]).astype(np.int32)
+            max_index = len(self.synapse_indices) + offset
+            indices = np.concatenate([self.synapse_indices[spike - offset]
+                                      for spike in spikes if
+                                      offset <= spike < max_index]).astype(np.int32)
             if len(indices):
                 if len(self._delays) > 1:
                     delays = np.round(self._delays[indices] / self.dt).astype(int)
@@ -312,8 +319,8 @@ class SynapticItemMapping(Variable):
         Variable.__init__(self, Unit(1), value=self, constant=True)
         self.source = synapses.source
         self.target = synapses.target
-        source_len = len(synapses.source) + synapses.source.offset
-        target_len = len(synapses.target) + synapses.target.offset
+        source_len = len(synapses.source)
+        target_len = len(synapses.target)
         self.synapses = weakref.proxy(synapses)
         dtype = smallest_inttype(MAX_SYNAPSES)
         self.synaptic_pre = DynamicArray1D(0, dtype=dtype)
@@ -324,27 +331,15 @@ class SynapticItemMapping(Variable):
                               for _ in xrange(target_len)]
 
         self._registered_variables = []
-        if synapses.source.offset == 0:
-            self.i_variable = self.synaptic_pre
-        else:
-            self._shifted_synaptic_pre = DynamicArray1D(0, dtype=dtype)
-            self.register_variable(self._shifted_synaptic_pre)
-            self.i_variable = self._shifted_synaptic_pre
-        if synapses.target.offset == 0:
-            self.j_variable = self.synaptic_post
-        else:
-            self._shifted_synaptic_post = DynamicArray1D(0, dtype=dtype)
-            self.register_variable(self._shifted_synaptic_post)
-            self.j_variable = self._shifted_synaptic_post
 
         self.variables = {'i': DynamicArrayVariable('i',
                                                      Unit(1),
-                                                     self.i_variable),
+                                                     self.synaptic_pre),
                           'j': DynamicArrayVariable('j',
                                                     Unit(1),
-                                                    self.j_variable)}
-        self.i = IndexView(self.i_variable, self)
-        self.j = IndexView(self.j_variable, self)
+                                                    self.synaptic_post)}
+        self.i = IndexView(self.synaptic_pre, self)
+        self.j = IndexView(self.synaptic_post, self)
         self.k = SynapseIndexView(self)
 
     N = property(fget=lambda self: len(self.synaptic_pre),
@@ -406,14 +401,14 @@ class SynapticItemMapping(Variable):
             new_N = old_N + new_synapses
             self._resize(new_N)
 
-            self.synaptic_pre[old_N:new_N] = self.source.item_mapping[sources]
-            self.synaptic_post[old_N:new_N] = self.target.item_mapping[targets]
+            self.synaptic_pre[old_N:new_N] = sources
+            self.synaptic_post[old_N:new_N] = targets
             synapse_idx = old_N
             for source, target in zip(sources, targets):
-                synapses = self.pre_synaptic[self.source.item_mapping[source]]
+                synapses = self.pre_synaptic[source]
                 synapses.resize(len(synapses) + 1)
                 synapses[-1] = synapse_idx
-                synapses = self.post_synaptic[self.source.item_mapping[target]]
+                synapses = self.post_synaptic[target]
                 synapses.resize(len(synapses) + 1)
                 synapses[-1] = synapse_idx
                 synapse_idx += 1
@@ -425,10 +420,12 @@ class SynapticItemMapping(Variable):
             additional_namespace = ('implicit-namespace', namespace)
             variables = {
                 '_source_neurons': ArrayVariable('_source_neurons', Unit(1),
-                                                 self.source.item_mapping[:],
+                                                 self.source.item_mapping[:] -
+                                                 self.source.offset,
                                                  constant=True),
                 '_target_neurons': ArrayVariable('_target_neurons', Unit(1),
-                                                 self.target.item_mapping[:],
+                                                 self.target.item_mapping[:] -
+                                                 self.target.offset,
                                                  constant=True),
                 # The template needs to have access to the DynamicArray here,
                 # having access to the underlying array (which would be much
@@ -457,11 +454,6 @@ class SynapticItemMapping(Variable):
             for variable in self._registered_variables:
                 variable.resize(number)
 
-        if self.synapses.source.offset != 0:
-            self._shifted_synaptic_pre[:] = self.synaptic_pre[:] - self.source.offset
-        if self.synapses.target.offset != 0:
-            self._shifted_synaptic_post[:] = self.synaptic_post[:] - self.target.offset
-
     def __len__(self):
         return self.N
 
@@ -484,9 +476,9 @@ class SynapticItemMapping(Variable):
             I, J, K = index
 
             pre_synapses = find_synapses(I, self.pre_synaptic,
-                                         self.i_variable)
+                                         self.synaptic_pre)
             post_synapses = find_synapses(J, self.post_synaptic,
-                                          self.j_variable)
+                                          self.synaptic_post)
             matching_synapses = np.intersect1d(pre_synapses, post_synapses,
                                                assume_unique=True)
 
@@ -1000,7 +992,6 @@ class Synapses(BrianObject, Group):
             i, j, n = np.broadcast_arrays(pre_or_cond, post, n)
             if i.ndim > 1:
                 raise ValueError('Can only use 1-dimensional indices')
-
             self.item_mapping._add_synapses(i, j, n, p, level=level+1)
         elif isinstance(pre_or_cond, (basestring, bool)):
             if pre_or_cond is False:

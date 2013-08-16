@@ -2,7 +2,8 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
-	// USES_VARIABLES { _spiking_synapses, _synaptic_pre,_synaptic_post }
+	// USES_VARIABLES { _spiking_synapses, _synaptic_pre, _synaptic_post,
+    //                  _source_offset, _target_offset}
 
     //// SUPPORT CODE //////////////////////////////////////////////////////////
 	{% for line in support_code_lines %}
@@ -30,8 +31,8 @@
 		_spiking_synapse_idx++)
 	{
 		const int _element_idx = _spiking_synapses[_spiking_synapse_idx];
-		const int _postsynaptic_idx = _synaptic_post[_element_idx];
-		const int _presynaptic_idx = _synaptic_pre[_element_idx];
+		const int _postsynaptic_idx = _synaptic_post[_element_idx] + _target_offset;
+		const int _presynaptic_idx = _synaptic_pre[_element_idx] + _source_offset;
 		const int _vectorisation_idx = _element_idx;
 		{% for line in code_lines %}
 		{{line}}

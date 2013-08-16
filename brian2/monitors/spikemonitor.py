@@ -53,6 +53,10 @@ class SpikeMonitor(BrianObject):
         # create data structures
         self.reinit()
 
+        # Handle subgroups correctly
+        start = getattr(self.source, 'start', 0)
+        end = getattr(self.source, 'end', len(self.source))
+
         self.variables = {'t': AttributeVariable(second, self.clock, 't'),
                            '_spikes': AttributeVariable(Unit(1), self.source,
                                                         'spikes'),
@@ -64,8 +68,10 @@ class SpikeMonitor(BrianObject):
                            '_t': Variable(Unit(1), self._t),
                            '_count': ArrayVariable('_count', Unit(1),
                                                    self.count),
-                           '_num_source_neurons': Variable(Unit(1),
-                                                           len(self.source))}
+                           '_source_start': Variable(Unit(1), start,
+                                                     constant=True),
+                           '_source_end': Variable(Unit(1), end,
+                                                   constant=True)}
 
     def reinit(self):
         '''
@@ -85,7 +91,8 @@ class SpikeMonitor(BrianObject):
                                          self.variables,
                                          template_name='spikemonitor',
                                          indices={},
-                                         variable_indices=defaultdict(lambda: '_element'))
+                                         variable_indices=defaultdict(lambda: '_element'),
+                                         codeobj_class=self.codeobj_class)
 
     def update(self):
         self.codeobj()
