@@ -649,9 +649,9 @@ class Synapses(BrianObject, Group):
         self._delays = {}
 
         self.item_mapping = SynapticItemMapping(self)
-        self.indices = {'_element': self.item_mapping,
-                        '_presynaptic': self.item_mapping.synaptic_pre,
-                        '_postsynaptic': self.item_mapping.synaptic_post}
+        self.indices = {'_idx': self.item_mapping,
+                        '_presynaptic_idx': self.item_mapping.synaptic_pre,
+                        '_postsynaptic_idx': self.item_mapping.synaptic_post}
         # Allow S.i instead of S.indices.i, etc.
         self.i = self.item_mapping.i
         self.j = self.item_mapping.j
@@ -822,15 +822,15 @@ class Synapses(BrianObject, Group):
         '''
         # Add all the pre and post variables with _pre and _post suffixes
         v = {}
-        self.variable_indices = defaultdict(lambda: '_element')
+        self.variable_indices = defaultdict(lambda: '_idx')
         for name, var in getattr(self.source, 'variables', {}).iteritems():
             if isinstance(var, (ArrayVariable, Subexpression)):
                 v[name + '_pre'] = var
-                self.variable_indices[var] = '_presynaptic'
+                self.variable_indices[var] = '_presynaptic_idx'
         for name, var in getattr(self.target, 'variables', {}).iteritems():
             if isinstance(var, (ArrayVariable, Subexpression)):
                 v[name + '_post'] = var
-                self.variable_indices[var] = '_postsynaptic'
+                self.variable_indices[var] = '_postsynaptic_idx'
                 # Also add all the post variables without a suffix -- if this
                 # clashes with the name of a state variable defined in this
                 # Synapses group, the latter will overwrite the entry later and

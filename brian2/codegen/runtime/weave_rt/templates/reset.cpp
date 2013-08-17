@@ -22,8 +22,8 @@
 	//// MAIN CODE ////////////
 	for(int _index_spikes=0; _index_spikes<_num_spikes; _index_spikes++)
 	{
-		const int _element_idx = _spikes[_index_spikes];
-		const int _vectorisation_idx = _element_idx;
+		const int _idx = _spikes[_index_spikes];
+		const int _vectorisation_idx = _idx;
 		{% for line in code_lines %}
 		{{line}}
 		{% endfor %}

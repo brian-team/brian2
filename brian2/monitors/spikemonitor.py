@@ -91,7 +91,7 @@ class SpikeMonitor(BrianObject):
                                          self.variables,
                                          template_name='spikemonitor',
                                          indices={},
-                                         variable_indices=defaultdict(lambda: '_element'),
+                                         variable_indices=defaultdict(lambda: '_idx'),
                                          codeobj_class=self.codeobj_class)
 
     def update(self):

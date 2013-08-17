@@ -25,20 +25,20 @@
 
 	//// MAIN CODE ////////////
 	int _cpp_numspikes = 0;
-	npy_int32 *_spikes_space = (npy_int32 *)malloc(sizeof(npy_int32) * _num_element);
-	for(int _element_idx=0; _element_idx<_num_element; _element_idx++)
+	npy_int32 *_spikes_space = (npy_int32 *)malloc(sizeof(npy_int32) * _num_idx);
+	for(int _idx=0; _idx<_num_idx; _idx++)
 	{
-	    const int _vectorisation_idx = _element_idx;
+	    const int _vectorisation_idx = _idx;
 		{% for line in code_lines %}
 		{{line}}
 		{% endfor %}
 		if(_cond) {
-			_spikes_space[_cpp_numspikes++] = _element_idx;
+			_spikes_space[_cpp_numspikes++] = _idx;
 			// We have to use the pointer names directly here: The condition
 			// might contain references to not_refractory or lastspike and in
 			// that case the names will refer to a single entry.
-			_ptr{{_array_not_refractory}}[_element_idx] = false;
-			_ptr{{_array_lastspike}}[_element_idx] = t;
+			_ptr{{_array_not_refractory}}[_idx] = false;
+			_ptr{{_array_lastspike}}[_idx] = t;
 		}
 	}
 	npy_intp _dims[] = {_cpp_numspikes};

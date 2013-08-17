@@ -24,9 +24,9 @@
 	{% endfor %}
 
 	//// MAIN CODE ////////////
-	for(int _element_idx=0; _element_idx<_num_element; _element_idx++)
+	for(int _idx=0; _idx<_num_idx; _idx++)
 	{
-	    const int _vectorisation_idx = _element_idx;
+	    const int _vectorisation_idx = _idx;
 		{% for line in code_lines %}
 		{{line}}
 		{% endfor %}

@@ -42,16 +42,16 @@
     {
         PyArrayObject *_record_data = (((PyArrayObject*)(PyObject*)_recorded_{{_varname}}.attr("data")));
         const npy_intp* _record_strides = _record_data->strides;
-        for (int _idx=0; _idx < _num_indices; _idx++)
+        for (int _i = 0; _i < _num_indices; _i++)
         {
-            const int _element_idx = _indices[_idx];
-            const int _vectorisation_idx = _element_idx;
+            const int _idx = _indices[_i];
+            const int _vectorisation_idx = _idx;
             {% for line in code_lines %}
             {{line}}
             {% endfor %}
 
             // FIXME: This will not work for variables with other data types
-            double *recorded_entry = (double*)(_record_data->data + (_new_len - 1)*_record_strides[0] + _idx*_record_strides[1]);
+            double *recorded_entry = (double*)(_record_data->data + (_new_len - 1)*_record_strides[0] + _i*_record_strides[1]);
             *recorded_entry = _to_record_{{_varname}};
         }
     }

@@ -92,9 +92,9 @@ a mapping from `Variable` objects to index names. An index object needs to have
 a length and be indexable -- e.g. it could be a numpy array.
 
 For simple classes such as `NeuronGroup` that only have a single index for all
-variables (``'_element'``), nothing needs to be done. ``Group`` automatically
-creates an ``indices`` attribute mapping ``'_element'`` to the ``item_mapping``
-and a ``variable_indices`` attribute that maps everything to ``'_element'``.
+variables (``'_idx'``), nothing needs to be done. ``Group`` automatically
+creates an ``indices`` attribute mapping ``'_idx'`` to the ``item_mapping``
+and a ``variable_indices`` attribute that maps everything to ``'_idx'``.
 
 TODO: Explain ``item_mapping``
 

@@ -1,5 +1,5 @@
 # USES_VARIABLES { not_refractory, lastspike, t }
-# ITERATE_ALL { _element }
+# ITERATE_ALL { _idx }
 
 {% for line in code_lines %}
 {{line}}

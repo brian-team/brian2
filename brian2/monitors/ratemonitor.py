@@ -81,7 +81,7 @@ class PopulationRateMonitor(BrianObject):
                                          self.variables,
                                          template_name='ratemonitor',
                                          indices={},
-                                         variable_indices=defaultdict(lambda: '_element'))
+                                         variable_indices=defaultdict(lambda: '_idx'))
 
     def update(self):
         self.codeobj()

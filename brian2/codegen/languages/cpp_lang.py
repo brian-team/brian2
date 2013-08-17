@@ -135,7 +135,7 @@ class CPPLanguage(Language):
         lines = []
         # read arrays
         for varname in read:
-            index_var = variable_indices[variables[varname]] + '_idx'
+            index_var = variable_indices[variables[varname]]
             var = variables[varname]
             if varname not in write:
                 line = 'const '
@@ -154,7 +154,7 @@ class CPPLanguage(Language):
         lines.extend([self.translate_statement(stmt) for stmt in statements])
         # write arrays
         for varname in write:
-            index_var = variable_indices[variables[varname]] + '_idx'
+            index_var = variable_indices[variables[varname]]
             var = variables[varname]
             line = '_ptr' + var.arrayname + '[' + index_var + '] = ' + varname + ';'
             lines.append(line)

@@ -1,6 +1,6 @@
 # USES_VARIABLES { _spikes }
-_element_idx = _spikes
-_vectorisation_idx = _element_idx
+_idx = _spikes
+_vectorisation_idx = _idx
 {% for line in code_lines %}
 {{line}}
 {% endfor %}

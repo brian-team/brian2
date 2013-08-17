@@ -10,19 +10,19 @@
         // TODO: Will this assumption ever be violated?
         int _start_idx = 0;
         int _end_idx = - 1;
-        for(int _idx=0; _idx<_num_spikes; _idx++)
+        for(int _i=0; _i<_num_spikes; _i++)
         {
-            const int _element_idx = _spikes[_idx];
-            if (_element_idx >= _source_start) {
-                _start_idx = _idx;
+            const int _idx = _spikes[_i];
+            if (_idx >= _source_start) {
+                _start_idx = _i;
                 break;
             }
         }
-        for(int _idx=_start_idx; _idx<_num_spikes; _idx++)
+        for(int _i=_start_idx; _i<_num_spikes; _i++)
         {
-            const int _element_idx = _spikes[_idx];
-            if (_element_idx >= _source_end) {
-                _end_idx = _idx;
+            const int _idx = _spikes[_i];
+            if (_idx >= _source_end) {
+                _end_idx = _i;
                 break;
             }
         }
@@ -43,12 +43,12 @@
             // TODO: How to get the correct datatype automatically here?
             npy_int64 *_i_data = (npy_int64*)(((PyArrayObject*)(PyObject*)_i.attr("data"))->data);
             // Copy the values across
-            for(int _idx=_start_idx; _idx<_end_idx; _idx++)
+            for(int _i=_start_idx; _i<_end_idx; _i++)
             {
-                const int _element_idx = _spikes[_idx];
-                _t_data[_curlen + _idx - _start_idx] = t;
-                _i_data[_curlen + _idx - _start_idx] = _element_idx - _source_start;
-                _count[_element_idx - _source_start]++;
+                const int _idx = _spikes[_i];
+                _t_data[_curlen + _i - _start_idx] = t;
+                _i_data[_curlen + _i - _start_idx] = _idx - _source_start;
+                _count[_idx - _source_start]++;
             }
         }
 	}

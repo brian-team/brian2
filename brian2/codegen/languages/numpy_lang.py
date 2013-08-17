@@ -36,7 +36,7 @@ class NumpyLanguage(Language):
             index = variable_indices[spec]
             line = var + ' = ' + spec.arrayname
             if not index in iterate_all:
-                line = line + '[' + index + '_idx]'
+                line = line + '[' + index + ']'
             lines.append(line)
         # the actual code
         lines.extend([self.translate_statement(stmt) for stmt in statements])
@@ -58,7 +58,7 @@ class NumpyLanguage(Language):
                 if index_var in iterate_all:
                     line = line + '[:]'
                 else:
-                    line = line + '[' + index_var + '_idx]'
+                    line = line + '[' + index_var + ']'
                 line = line + ' = ' + var
                 lines.append(line)
         return lines, {}

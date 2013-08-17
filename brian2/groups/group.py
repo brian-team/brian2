@@ -92,9 +92,9 @@ class Group(object):
                                   'provide 1-d indexing'))
             self.item_mapping = GroupItemMapping(N, self.offset, self)
         if not hasattr(self, 'indices'):
-            self.indices = {'_element': self.item_mapping}
+            self.indices = {'_idx': self.item_mapping}
         if not hasattr(self, 'variable_indices'):
-            self.variable_indices = defaultdict(lambda: '_element')
+            self.variable_indices = defaultdict(lambda: '_idx')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
         self._group_attribute_access_active = True
