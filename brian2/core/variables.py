@@ -321,7 +321,7 @@ class VariableView(object):
         varname = self.name
         if self.unit is None:
             varname += '_'
-        return '<%s.%s_: %r>' % (self.group.name, varname,
+        return '<%s.%s: %r>' % (self.group.name, varname,
                                  self[:])
 
 
