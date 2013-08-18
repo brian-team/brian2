@@ -76,8 +76,6 @@ def test_refractoriness_threshold():
 
 
 def test_refractoriness_types():
-    from nose import SkipTest
-    raise SkipTest()
     # make sure that using a wrong type of refractoriness does not work
     assert_raises(TypeError, lambda: NeuronGroup(1, '', refractory='3*Hz'))
     assert_raises(TypeError, lambda: NeuronGroup(1, 'ref: Hz',

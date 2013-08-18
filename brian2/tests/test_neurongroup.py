@@ -136,8 +136,6 @@ def test_unit_errors_threshold_reset():
     '''
     Test that unit errors in thresholds and resets are detected.
     '''
-    from nose import SkipTest
-    raise SkipTest()
     for codeobj_class in codeobj_classes:    
         # Unit error in threshold
         assert_raises(DimensionMismatchError,
@@ -188,8 +186,6 @@ def test_syntax_errors():
     
     # We do not specify the exact type of exception here: Python throws a
     # SyntaxError while C++ results in a ValueError
-    from nose import SkipTest
-    raise SkipTest()
     for codeobj_class in codeobj_classes:
     
         # Syntax error in threshold

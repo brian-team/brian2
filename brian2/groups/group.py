@@ -18,7 +18,7 @@ from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
 
-__all__ = ['Group', 'GroupCodeRunner', 'GroupItemMapping']
+__all__ = ['Group', 'GroupCodeRunner']
 
 logger = get_logger(__name__)
 
@@ -52,6 +52,9 @@ class GroupItemMapping(Variable):
             namespace = get_local_namespace(1)
             additional_namespace = ('implicit-namespace', namespace)
             abstract_code = '_cond = ' + index
+            check_code_units(abstract_code, self.group,
+                             additional_variables=self.variables,
+                             additional_namespace=additional_namespace)
             codeobj = create_runner_codeobj(self.group,
                                             abstract_code,
                                             'state_variable_indexing',
@@ -215,6 +218,61 @@ class Group(object):
         codeobj()
 
 
+def check_code_units(code, group, additional_variables=None,
+                additional_namespace=None,
+                ignore_keyerrors=False):
+    '''
+    Check statements for correct units.
+
+    Parameters
+    ----------
+    code : str
+        The series of statements to check
+    group : `Group`
+        The context for the code execution
+    additional_variables : dict-like, optional
+        A mapping of names to `Variable` objects, used in addition to the
+        variables saved in `self.group`.
+    additional_namespace : dict-like, optional
+        An additional namespace, as provided to `Group.pre_run`
+    ignore_keyerrors : boolean, optional
+        Whether to silently ignore unresolvable identifiers. Should be set
+         to ``False`` (the default) if the namespace is expected to be
+         complete (e.g. in `Group.pre_run`) but to ``True`` when the check
+         is done during object initialisation where the namespace is not
+         necessarily complete yet
+
+    Raises
+    ------
+    DimensionMismatchError
+        If `code` has unit mismatches
+    '''
+    all_variables = dict(group.variables)
+    if additional_variables is not None:
+        all_variables.update(additional_variables)
+
+    # Resolve the namespace, resulting in a dictionary containing only the
+    # external variables that are needed by the code -- keep the units for
+    # the unit checks
+    # Note that here we do not need to recursively descend into
+    # subexpressions. For unit checking, we only need to know the units of
+    # the subexpressions not what variables they refer to
+    _, _, unknown = analyse_identifiers(code, all_variables)
+    try:
+        resolved_namespace = group.namespace.resolve_all(unknown,
+                                                         additional_namespace,
+                                                         strip_units=False)
+    except KeyError as ex:
+        if ignore_keyerrors:
+            logger.debug('Namespace not complete (yet), ignoring: %s ' % str(ex),
+                         'check_code_units')
+            return
+        else:
+            raise ex
+
+    check_units_statements(code, resolved_namespace, all_variables)
+
+
 def create_runner_codeobj(group, code, template_name, indices=None,
                           variable_indices=None,
                           name=None, check_units=True,
@@ -254,27 +312,13 @@ def create_runner_codeobj(group, code, template_name, indices=None,
         A dictionary of additional information that is passed to the template.
     '''
     logger.debug('Creating code object for abstract code:\n' + str(code))
-
-    all_variables = dict(group.variables)
-    if additional_variables is not None:
-        all_variables.update(additional_variables)
         
     template = get_codeobject_template(template_name,
                                        codeobj_class=group.codeobj_class)
 
-    if check_units:
-        # Resolve the namespace, resulting in a dictionary containing only the
-        # external variables that are needed by the code -- keep the units for
-        # the unit checks
-        # Note that here, in contrast to the namespace resolution below, we do
-        # not need to recursively descend into subexpressions. For unit
-        # checking, we only need to know the units of the subexpressions,
-        # not what variables they refer to
-        _, _, unknown = analyse_identifiers(code, all_variables)
-        resolved_namespace = group.namespace.resolve_all(unknown,
-                                                         additional_namespace,
-                                                         strip_units=False)
-        check_units_statements(code, resolved_namespace, all_variables)
+    all_variables = dict(group.variables)
+    if additional_variables is not None:
+        all_variables.update(additional_variables)
 
     # Determine the identifiers that were used
     _, used_known, unknown = analyse_identifiers(code, all_variables,
@@ -390,29 +434,23 @@ class GroupCodeRunner(BrianObject):
         '''
         pass
 
-    def _create_codeobj(self, additional_namespace=None):
-        ''' A little helper function to reduce the amount of repetition when
-        calling the language's _create_codeobj (always pass self.variables and
-        self.namespace + additional namespace).
-        '''
-
+    def pre_run(self, namespace):
+        self.update_abstract_code()
         # If the GroupCodeRunner has variables, add them
         if hasattr(self, 'variables'):
             additional_variables = self.variables
         else:
             additional_variables = None
-
-        return create_runner_codeobj(self.group, self.abstract_code,
-                                     self.template,
-                                     name=self.name,
-                                     check_units=self.check_units,
-                                     additional_variables=additional_variables,
-                                     additional_namespace=additional_namespace,
-                                     template_kwds=self.template_kwds)
-    
-    def pre_run(self, namespace):
-        self.update_abstract_code()
-        self.codeobj = self._create_codeobj(additional_namespace=namespace)
+        if self.check_units:
+            check_code_units(self.abstract_code, self.group,
+                             additional_variables, namespace)
+        self.codeobj = create_runner_codeobj(self.group, self.abstract_code,
+                                             self.template,
+                                             name=self.name,
+                                             check_units=self.check_units,
+                                             additional_variables=additional_variables,
+                                             additional_namespace=namespace,
+                                             template_kwds=self.template_kwds)
     
     def pre_update(self):
         '''

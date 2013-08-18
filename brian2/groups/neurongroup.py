@@ -23,7 +23,7 @@ from brian2.utils.logger import get_logger
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
 
-from .group import Group, GroupCodeRunner
+from .group import Group, GroupCodeRunner, check_code_units
 from .subgroup import Subgroup
 
 __all__ = ['NeuronGroup']
@@ -48,12 +48,17 @@ class StateUpdater(GroupCodeRunner):
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.variables,
                                                                method)
-    
+
+        # Generate the full abstract code to catch errors in the refractoriness
+        # formulation. However, do not fail on KeyErrors since the
+        # refractoriness might refer to variables that don't exist yet
+        try:
+            self.update_abstract_code()
+        except KeyError as ex:
+            logger.debug('Namespace not complete (yet), ignoring: %s ' % str(ex),
+                         'StateUpdater')
+
     def update_abstract_code(self):
-        
-        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.variables,
-                                                               self.method_choice)
 
         # Update the not_refractory variable for the refractory period mechanism
         ref = self.group._refractory
@@ -106,6 +111,12 @@ class Thresholder(GroupCodeRunner):
                                  when=(group.clock, 'thresholds'),
                                  name=group.name+'_thresholder*',
                                  template_kwds=template_kwds)
+
+        # Check the abstract code for unit mismatches (only works if the
+        # namespace is already complete)
+        self.update_abstract_code()
+        check_code_units(self.abstract_code, self.group, ignore_keyerrors=True)
+
     
     def update_abstract_code(self):
         self.abstract_code = '_cond = ' + self.group.threshold
@@ -125,7 +136,12 @@ class Resetter(GroupCodeRunner):
                                  'reset',
                                  when=(group.clock, 'resets'),
                                  name=group.name + '_resetter*')
-    
+
+        # Check the abstract code for unit mismatches (only works if the
+        # namespace is already complete)
+        self.update_abstract_code()
+        check_code_units(self.abstract_code, self.group, ignore_keyerrors=True)
+
     def update_abstract_code(self):
         self.abstract_code = self.group.reset
 
