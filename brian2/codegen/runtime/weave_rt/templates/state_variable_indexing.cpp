@@ -2,7 +2,6 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
-	// USE_SPECIFIERS { _num_neurons }
 	////// SUPPORT CODE ///////
 	{% for line in support_code_lines %}
 	// {{line}}
@@ -26,15 +25,15 @@
 	//// MAIN CODE ////////////
 	int _cpp_numelements = 0;
 	// Container for all the potential indices
-	npy_int *_elements = (npy_int *)malloc(sizeof(npy_int) * _num_neurons);
-	for(int _neuron_idx=0; _neuron_idx<_num_neurons; _neuron_idx++)
+	npy_int *_elements = (npy_int *)malloc(sizeof(npy_int) * _num_idx);
+	for(int _idx=0; _idx<_num_idx; _idx++)
 	{
-	    const int _vectorisation_idx = _neuron_idx;
+	    const int _vectorisation_idx = _idx;
 		{% for line in code_lines %}
 		{{line}}
 		{% endfor %}
 		if(_cond) {
-			_elements[_cpp_numelements++] = _neuron_idx;
+			_elements[_cpp_numelements++] = _idx;
 		}
 	}
 	npy_intp _dims[] = {_cpp_numelements};

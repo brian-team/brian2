@@ -47,8 +47,8 @@ class WeaveCodeObject(CodeObject):
                                        'templates'))
     language = CPPLanguage()
 
-    def __init__(self, code, namespace, specifiers):
-        super(WeaveCodeObject, self).__init__(code, namespace, specifiers)
+    def __init__(self, code, namespace, variables):
+        super(WeaveCodeObject, self).__init__(code, namespace, variables)
         self.compiler = brian_prefs['codegen.runtime.weave.compiler']
         self.extra_compile_args = brian_prefs['codegen.runtime.weave.extra_compile_args']
 

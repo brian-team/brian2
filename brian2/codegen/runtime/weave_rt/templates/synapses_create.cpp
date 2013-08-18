@@ -1,6 +1,6 @@
 {% macro main() %}
-    // USE_SPECIFIERS { _synaptic_pre, _synaptic_post, _post_synaptic,
-    //                  _pre_synaptic, _num_source_neurons, _num_target_neurons,
+    // USES_VARIABLES { _synaptic_pre, _synaptic_post, _post_synaptic,
+    //                  _pre_synaptic, _source_neurons, _target_neurons,
     //                  rand}
 
     //// SUPPORT CODE //////////////////////////////////////////////////////////
@@ -51,8 +51,8 @@
 			    }
 
 			    for (int _repetition=0; _repetition<_n; _repetition++) {
-                    _prebuf[_curbuf] = i;
-                    _postbuf[_curbuf] = j;
+                    _prebuf[_curbuf] = _source_neurons[i];
+                    _postbuf[_curbuf] = _target_neurons[j];
                     _curbuf++;
                     // Flush buffer
                     if(_curbuf==_buffer_size)
@@ -65,8 +65,8 @@
                     // mapping
                     _synprebuf[0] = _synapse_idx;
                     _synpostbuf[0] = _synapse_idx;
-                    py::object _pre_synapses = (py::object)PyList_GetItem(_pre_synaptic, i);
-                    py::object _post_synapses = (py::object)PyList_GetItem(_post_synaptic, j);
+                    py::object _pre_synapses = (py::object)PyList_GetItem(_pre_synaptic, _source_neurons[i]);
+                    py::object _post_synapses = (py::object)PyList_GetItem(_post_synaptic, _target_neurons[j]);
                     _flush_buffer(_synprebuf, _pre_synapses, 1);
                     _flush_buffer(_synpostbuf, _post_synapses, 1);
                     _synapse_idx++;

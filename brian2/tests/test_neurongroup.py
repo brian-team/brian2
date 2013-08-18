@@ -4,8 +4,9 @@ from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 from brian2.groups.neurongroup import NeuronGroup
 from brian2.core.network import Network
 from brian2.core.clocks import defaultclock
-from brian2.units.fundamentalunits import DimensionMismatchError
-from brian2.units.allunits import second
+from brian2.units.fundamentalunits import (DimensionMismatchError,
+                                           have_same_dimensions)
+from brian2.units.allunits import second, volt
 from brian2.units.stdunits import ms, mV
 from brian2.codegen.runtime.weave_rt import WeaveCodeObject
 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
@@ -43,15 +44,15 @@ def test_creation():
     assert_raises(TypeError, lambda: NeuronGroup(1, object()))
 
 
-def test_specifiers():
+def test_variables():
     '''
-    Test the correct creation of the specifiers dictionary.
+    Test the correct creation of the variables dictionary.
     '''
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1')
-    assert 'v' in G.specifiers and 't' in G.specifiers and 'dt' in G.specifiers
+    assert 'v' in G.variables and 't' in G.variables and 'dt' in G.variables
     
     G = NeuronGroup(1, 'dv/dt = -v/tau + xi*tau**-0.5: 1')
-    assert not 'tau' in G.specifiers and 'xi' in G.specifiers
+    assert not 'tau' in G.variables and 'xi' in G.variables
 
 
 def test_stochastic_variable():
@@ -185,7 +186,6 @@ def test_syntax_errors():
     
     # We do not specify the exact type of exception here: Python throws a
     # SyntaxError while C++ results in a ValueError
-    
     for codeobj_class in codeobj_classes:
     
         # Syntax error in threshold
@@ -232,13 +232,42 @@ def test_state_variables():
     assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3*second))
     assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3))
     assert_raises(DimensionMismatchError, lambda: G.v.__imul__(3*second))
-    # and even with strings
-    G.v -= 'i*mV'
+
+
+def test_state_variable_access():
+    G = NeuronGroup(10, 'v:volt')
+    G.v = np.arange(10) * volt
+
+    assert_equal(np.asarray(G.v[:]), np.arange(10))
+    assert have_same_dimensions(G.v[:], volt)
+    assert_equal(np.asarray(G.v[:]), G.v_[:])
+    # Accessing single elements, slices and arrays
+    assert G.v[5] == 5 * volt
+    assert G.v_[5] == 5
+    assert_equal(G.v[:5], np.arange(5) * volt)
+    assert_equal(G.v_[:5], np.arange(5))
+    assert_equal(G.v[[0, 5]], [0, 5] * volt)
+    assert_equal(G.v_[[0, 5]], np.array([0, 5]))
+
+    # Illegal indexing
+    assert_raises(IndexError, lambda: G.v[0, 0])
+    assert_raises(IndexError, lambda: G.v_[0, 0])
+    assert_raises(TypeError, lambda: G.v[object()])
+    assert_raises(TypeError, lambda: G.v_[object()])
+
+    # Indexing with strings
+    assert G.v['i==2'] == G.v[2]
+    assert G.v_['i==2'] == G.v_[2]
+    assert_equal(G.v['v >= 3*volt'], G.v[3:])
+    assert_equal(G.v_['v >= 3*volt'], G.v_[3:])
+    # Should also check for units
+    assert_raises(DimensionMismatchError, lambda: G.v['v >= 3'])
+    assert_raises(DimensionMismatchError, lambda: G.v['v >= 3*second'])
 
 
 if __name__ == '__main__':
     test_creation()
-    test_specifiers()
+    test_variables()
     test_stochastic_variable()
     test_unit_errors()
     test_threshold_reset()
@@ -247,3 +276,4 @@ if __name__ == '__main__':
     test_namespace_errors()
     test_syntax_errors()
     test_state_variables()
+    test_state_variable_access()

@@ -16,7 +16,7 @@ from brian2.units.allunits import (metre, meter, second, amp, kelvin, mole,
 from brian2.codegen.translation import analyse_identifiers
 from brian2.parsing.expressions import parse_expression_unit
 from brian2.parsing.statements import parse_statement
-from brian2.core.specifiers import VariableSpecifier
+from brian2.core.variables import Variable
 
 __all__ = ['unit_from_string', 'unit_from_expression', 'check_unit',
            'check_units_statements']
@@ -88,7 +88,7 @@ def unit_from_string(unit_string):
     return evaluated_unit
 
 
-def check_unit(expression, unit, namespace, specifiers):
+def check_unit(expression, unit, namespace, variables):
     '''
     Evaluates the unit for an expression in a given namespace.
     
@@ -98,7 +98,7 @@ def check_unit(expression, unit, namespace, specifiers):
         The expression to evaluate.
     namespace : dict-like
         The namespace of external variables.
-    specifiers : dict of `Specifier` objects
+    variables : dict of `Variable` objects
         The information about the internal variables
     
     Raises
@@ -112,13 +112,13 @@ def check_unit(expression, unit, namespace, specifiers):
     --------
     unit_from_expression
     '''
-    expr_unit = parse_expression_unit(expression, namespace, specifiers)
+    expr_unit = parse_expression_unit(expression, namespace, variables)
     fail_for_dimension_mismatch(expr_unit, unit, ('Expression %s does not '
                                                   'have the expected units' %
                                                   expression))
 
 
-def check_units_statements(code, namespace, specifiers):
+def check_units_statements(code, namespace, variables):
     '''
     Check the units for a series of statements. Setting a model variable has to
     use the correct unit. For newly introduced temporary variables, the unit
@@ -131,7 +131,7 @@ def check_units_statements(code, namespace, specifiers):
         The expression to evaluate.
     namespace : dict-like
         The namespace of external variables.
-    specifiers : dict of `Specifier` objects
+    variables : dict of `Variable` objects
         The information about the internal variables
     
     Raises
@@ -141,7 +141,7 @@ def check_units_statements(code, namespace, specifiers):
     DimensionMismatchError
         If an unit mismatch occurs during the evaluation.
     '''
-    known = set(specifiers.keys()) | set(namespace.keys())
+    known = set(variables.keys()) | set(namespace.keys())
     newly_defined, _, unknown = analyse_identifiers(code, known)
     
     if len(unknown):
@@ -149,9 +149,9 @@ def check_units_statements(code, namespace, specifiers):
                              'not happen at this stage. Unkown identifiers: %s'
                              % unknown))
     
-    # We want to add newly defined variables to the specifiers dictionary so we
+    # We want to add newly defined variables to the variables dictionary so we
     # make a copy now
-    specs = dict(specifiers)
+    variables = dict(variables)
     
     code = re.split(r'[;\n]', code)
     for line in code:
@@ -159,10 +159,10 @@ def check_units_statements(code, namespace, specifiers):
         if not len(line):
             continue  # skip empty lines
         
-        var, op, expr = parse_statement(line)
+        varname, op, expr = parse_statement(line)
         if op in ('+=', '-=', '*=', '/=', '%='):
             # Replace statements such as "w *=2" by "w = w * 2"
-            expr = '{var} {op_first} {expr}'.format(var=var,
+            expr = '{var} {op_first} {expr}'.format(var=varname,
                                                     op_first=op[0],
                                                     expr=expr)
             op = '='
@@ -170,18 +170,19 @@ def check_units_statements(code, namespace, specifiers):
             pass
         else:
             raise AssertionError('Unknown operator "%s"' % op) 
-    
-        expr_unit = parse_expression_unit(expr, namespace, specs)
 
-        if var in specifiers:
-            fail_for_dimension_mismatch(specifiers[var].unit,
+        expr_unit = parse_expression_unit(expr, namespace, variables)
+
+        if varname in variables:
+            fail_for_dimension_mismatch(variables[varname].unit,
                                         expr_unit,
                                         ('Code statement "%s" does not use '
                                          'correct units' % line))
-        elif var in newly_defined:
+        elif varname in newly_defined:
             # note the unit for later
-            specs[var] = VariableSpecifier(var, expr_unit)
+            variables[varname] = Variable(expr_unit, is_bool=False,
+                                          scalar=False)
         else:
-            raise AssertionError(('Variable "%s" is neither in the specifiers '
+            raise AssertionError(('Variable "%s" is neither in the variables '
                                   'dictionary nor in the list of undefined '
-                                  'variables.' % var))
+                                  'variables.' % varname))

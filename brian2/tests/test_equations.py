@@ -249,7 +249,7 @@ def test_construction_errors():
                                                    x = 3 * w : 1'''))
 
 def test_unit_checking():
-    # dummy Specifier class
+    # dummy Variable class
     class S(object):
         def __init__(self, unit):
             self.unit = unit

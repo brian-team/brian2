@@ -10,12 +10,20 @@ a single `NeuronGroup` object:
 
 - Parse the equations, add refractoriness to them: this isn't really part of
   code generation.
+
 - Allocate memory for the state variables.
+
 - Create a namespace object.
+
 - Create `Thresholder`, `Resetter` and `StateUpdater` objects.
-  - Collect `Specifier` objects from the group and code template.
-  - Resolve the namespace, i.e. for hierarchical namespace choose just one value for each variable name.
+
+  - Collect `Variable` objects from the group and code template.
+
+  - Resolve the namespace, i.e. for hierarchical namespace choose just one
+    value for each variable name.
+
   - Create a `CodeObject`.
+
 - At runtime, each object calls `CodeObject.__call__` to execute the code.
 
 Stages of code generation
@@ -109,7 +117,7 @@ language. This is handled in ``brian2.codegen.templates``.
 
 An example of a template for Python thresholding::
 
-	# USE_SPECIFIERS { not_refractory, lastspike, t }	
+	# USES_VARIABLES { not_refractory, lastspike, t }
 	{% for line in code_lines %}
 	{{line}}
 	{% endfor %}
@@ -120,7 +128,7 @@ An example of a template for Python thresholding::
 
 and the output code from the example equations above::
 
-	# USE_SPECIFIERS { not_refractory, lastspike, t }	
+	# USES_VARIABLES { not_refractory, lastspike, t }
 	v = _array_neurongroup_v
 	_cond = v > 10 * mV
 	_return_values, = _cond.nonzero()
@@ -162,15 +170,15 @@ Namespace resolution means creating a simple name to value mapping from a nested
 hierarchy, i.e. selecting which value to use in the case of multiple possibilities,
 and removing the units. See :doc:`equations_namespaces` for more details.
 
-Specifiers
+Variable
 ----------
 
-Specifiers are objects derived from `Specifier`, and contain information about the variable
-they correspond to, including details like the name, the data type, whether it is a single value
+`Variable` objects contain information about the variable
+they correspond to, including details like the data type, whether it is a single value
 or an array, etc.
 
-See ``brian2.core.specifiers`` and, e.g. `Group._create_specifiers`,
-`NeuronGroup._create_specifiers`.
+See ``brian2.core.variables`` and, e.g. `Group._create_variables`,
+`NeuronGroup._create_variables`.
 
 Templates
 ---------

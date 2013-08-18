@@ -1,9 +1,10 @@
 import functools
 
-from brian2.core.specifiers import (ArrayVariable, Value,
-                                    AttributeValue, Subexpression)
+from brian2.core.variables import (ArrayVariable, Variable,
+                                    AttributeVariable, Subexpression,
+                                    StochasticVariable)
 from .functions.base import Function
-from brian2.core.preferences import brian_prefs, BrianPreference
+from brian2.core.preferences import brian_prefs
 from brian2.utils.logger import get_logger
 from .translation import translate
 from .runtime.targets import runtime_targets
@@ -30,11 +31,11 @@ def get_default_codeobject_class():
     return codeobj_class
 
 
-def prepare_namespace(namespace, specifiers):
+def prepare_namespace(namespace, variables):
     namespace = dict(namespace)
     # Add variables referring to the arrays
     arrays = []
-    for value in specifiers.itervalues():
+    for value in variables.itervalues():
         if isinstance(value, ArrayVariable):
             arrays.append((value.arrayname, value.get_value()))
     namespace.update(arrays)
@@ -42,8 +43,9 @@ def prepare_namespace(namespace, specifiers):
     return namespace
 
 
-def create_codeobject(name, abstract_code, namespace, specifiers, template_name,
-                      codeobj_class=None, indices=None, template_kwds=None):
+def create_codeobject(name, abstract_code, namespace, variables, template_name,
+                      indices, variable_indices, codeobj_class=None,
+                      template_kwds=None):
     '''
     The following arguments keywords are passed to the template:
     
@@ -54,8 +56,6 @@ def create_codeobject(name, abstract_code, namespace, specifiers, template_name,
       ``template_kwds`` (but you should ensure there are no name
       clashes.
     '''
-    if indices is None:  # TODO: Do we ever create code without any index?
-        indices = {}
 
     if template_kwds is None:
         template_kwds = dict()
@@ -68,19 +68,22 @@ def create_codeobject(name, abstract_code, namespace, specifiers, template_name,
     template = get_codeobject_template(template_name,
                                        codeobj_class=codeobj_class)
 
-    namespace = prepare_namespace(namespace, specifiers)
+    namespace = prepare_namespace(namespace, variables)
 
     logger.debug(name + " abstract code:\n" + abstract_code)
-    innercode, kwds = translate(abstract_code, specifiers, namespace,
-                                brian_prefs['core.default_scalar_dtype'],
-                                codeobj_class.language, indices)
+    iterate_all = template.iterate_all
+    innercode, kwds = translate(abstract_code, variables, namespace,
+                                dtype=brian_prefs['core.default_scalar_dtype'],
+                                language=codeobj_class.language,
+                                variable_indices=variable_indices,
+                                iterate_all=iterate_all)
     template_kwds.update(kwds)
     logger.debug(name + " inner code:\n" + str(innercode))
     code = template(innercode, **template_kwds)
     logger.debug(name + " code:\n" + str(code))
 
-    specifiers.update(indices)
-    codeobj = codeobj_class(code, namespace, specifiers)
+    variables.update(indices)
+    codeobj = codeobj_class(code, namespace, variables)
     codeobj.compile()
     return codeobj
 
@@ -111,40 +114,43 @@ class CodeObject(object):
     #: The `Language` used by this `CodeObject`
     language = None
     
-    def __init__(self, code, namespace, specifiers):
+    def __init__(self, code, namespace, variables):
         self.code = code
-        self.compile_methods = self.get_compile_methods(specifiers)
+        self.compile_methods = self.get_compile_methods(variables)
         self.namespace = namespace
-        self.specifiers = specifiers
+        self.variables = variables
         
-        # Specifiers can refer to values that are either constant (e.g. dt)
+        # Variables can refer to values that are either constant (e.g. dt)
         # or change every timestep (e.g. t). We add the values of the
-        # constant specifiers here and add the names of non-constant specifiers
+        # constant variables here and add the names of non-constant variables
         # to a list
         
         # A list containing tuples of name and a function giving the value
         self.nonconstant_values = []
         
-        for name, spec in self.specifiers.iteritems():   
-            if isinstance(spec, Value):
-                if isinstance(spec, AttributeValue):
-                    self.nonconstant_values.append((name, spec.get_value))
-                    if not spec.scalar:
+        for name, var in self.variables.iteritems():
+            if isinstance(var, Variable) and not isinstance(var, Subexpression):
+                if not var.constant:
+                    self.nonconstant_values.append((name, var.get_value))
+                    if not var.scalar:
                         self.nonconstant_values.append(('_num' + name,
-                                                        spec.get_len))
-                elif not isinstance(spec, Subexpression):
-                    value = spec.get_value()
+                                                        var.get_len))
+                else:
+                    try:
+                        value = var.get_value()
+                    except TypeError:  # A dummy Variable without value
+                        continue
                     self.namespace[name] = value
                     # if it is a type that has a length, add a variable called
                     # '_num'+name with its length
-                    if not spec.scalar:
-                        self.namespace['_num' + name] = spec.get_len()
+                    if not var.scalar:
+                        self.namespace['_num' + name] = var.get_len()
 
-    def get_compile_methods(self, specifiers):
+    def get_compile_methods(self, variables):
         meths = []
-        for var, spec in specifiers.items():
-            if isinstance(spec, Function):
-                meths.append(functools.partial(spec.on_compile,
+        for var, var in variables.items():
+            if isinstance(var, Function):
+                meths.append(functools.partial(var.on_compile,
                                                language=self.language,
                                                var=var))
         return meths

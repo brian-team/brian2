@@ -19,8 +19,8 @@ import collections
 
 from numpy import float64
 
-from brian2.core.specifiers import Value, ArrayVariable, Subexpression, Index
-from brian2.utils.stringtools import (deindent, strip_empty_lines, indent,
+from brian2.core.variables import Variable, Subexpression
+from brian2.utils.stringtools import (deindent, strip_empty_lines,
                                       get_identifiers)
 
 from .statements import Statement
@@ -44,7 +44,7 @@ class LineInfo(object):
 STANDARD_IDENTIFIERS = set(['and', 'or', 'not', 'True', 'False'])
 
 
-def analyse_identifiers(code, specifiers, recursive=False):
+def analyse_identifiers(code, variables, recursive=False):
     '''
     Analyses a code string (sequence of statements) to find all identifiers by type.
     
@@ -60,7 +60,7 @@ def analyse_identifiers(code, specifiers, recursive=False):
     ----------
     code : str
         The code string, a sequence of statements one per line.
-    specifiers : dict of `Specifier`, set of names
+    variables : dict of `Variable`, set of names
         Specifiers for the model variables or a set of known names
     recursive : bool, optional
         Whether to recurse down into subexpressions (defaults to ``False``).
@@ -77,19 +77,19 @@ def analyse_identifiers(code, specifiers, recursive=False):
         it and not previously known. Should correspond to variables in the
         external namespace.
     '''
-    if isinstance(specifiers, collections.Mapping):
-        known = set(specifiers.keys())
+    if isinstance(variables, collections.Mapping):
+        known = set(variables.keys())
     else:
-        known = set(specifiers)
-        specifiers = dict((k, Value(k, 1, float64)) for k in known)
+        known = set(variables)
+        variables = dict((k, Variable(unit=None)) for k in known)
 
     known |= STANDARD_IDENTIFIERS
-    stmts = make_statements(code, specifiers, float64)
+    stmts = make_statements(code, variables, float64)
     defined = set(stmt.var for stmt in stmts if stmt.op==':=')
     if recursive:
-        if not isinstance(specifiers, collections.Mapping):
-            raise TypeError('Have to specify a specifiers dictionary.')
-        allids = get_identifiers_recursively(code, specifiers)
+        if not isinstance(variables, collections.Mapping):
+            raise TypeError('Have to specify a variables dictionary.')
+        allids = get_identifiers_recursively(code, variables)
     else:
         allids = get_identifiers(code)
     dependent = allids.difference(defined, known)
@@ -98,20 +98,20 @@ def analyse_identifiers(code, specifiers, recursive=False):
     return defined, used_known, dependent
 
 
-def get_identifiers_recursively(expr, specifiers):
+def get_identifiers_recursively(expr, variables):
     '''
     Gets all the identifiers in a code, recursing down into subexpressions.
     '''
     identifiers = get_identifiers(expr)
     for name in set(identifiers):
-        if name in specifiers and isinstance(specifiers[name], Subexpression):
-            s_identifiers = get_identifiers_recursively(specifiers[name].expr,
-                                                        specifiers)
+        if name in variables and isinstance(variables[name], Subexpression):
+            s_identifiers = get_identifiers_recursively(variables[name].expr,
+                                                        variables)
             identifiers |= s_identifiers
     return identifiers
 
 
-def make_statements(code, specifiers, dtype):
+def make_statements(code, variables, dtype):
     '''
     Turn a series of abstract code statements into Statement objects, inferring
     whether each line is a set/declare operation, whether the variables are
@@ -125,11 +125,10 @@ def make_statements(code, specifiers, dtype):
     if DEBUG:
         print 'INPUT CODE:'
         print code
-    dtypes = dict((name, value.dtype) for name, value in specifiers.items() if hasattr(value, 'dtype'))
+    dtypes = dict((name, var.dtype) for name, var in variables.iteritems())
     # we will do inference to work out which lines are := and which are =
-    #defined = set(specifiers.keys()) # variables which are already defined
-    defined = set(var for var, spec in specifiers.items()
-                  if hasattr(spec, 'get_value'))
+    defined = set(variables.keys())
+
     for line in lines:
         # parse statement into "var op expr"
         var, op, expr = parse_statement(line.code)
@@ -143,7 +142,7 @@ def make_statements(code, specifiers, dtype):
         # for each line will give the variable being written to
         line.write = var 
         # each line will give a set of variables which are read
-        line.read = get_identifiers_recursively(expr, specifiers)
+        line.read = get_identifiers_recursively(expr, variables)
         
     if DEBUG:
         print 'PARSED STATEMENTS:'
@@ -181,7 +180,7 @@ def make_statements(code, specifiers, dtype):
     # as invalid, and are invalidated whenever one of the variables appearing
     # in the RHS changes value.
     #subexpressions = get_all_subexpressions()
-    subexpressions = dict((name, val) for name, val in specifiers.items() if isinstance(val, Subexpression))
+    subexpressions = dict((name, val) for name, val in variables.items() if isinstance(val, Subexpression))
     if DEBUG:
         print 'SUBEXPRESSIONS:', subexpressions.keys()
     statements = []
@@ -239,15 +238,16 @@ def make_statements(code, specifiers, dtype):
     return statements
 
 
-def translate(code, specifiers, namespace, dtype, language, indices):
+def translate(code, variables, namespace, dtype, language,
+              variable_indices, iterate_all):
     '''
     Translates an abstract code block into the target language.
     
     ``code``
         The abstract code block, a series of one-line statements.
-    ``specifiers``
+    ``variables``
         A dict of ``(var, spec)`` where ``var`` is a variable name whose type
-        is specified by ``spec``, a `Specifier` object. These include
+        is specified by ``spec``, a `Variable` object. These include
         `Value` for a single (non-vector) value that will be inserted
         into the namespace at runtime, `Function` for a function,
         `ArrayVariable` for a value coming from an array of values,
@@ -255,7 +255,7 @@ def translate(code, specifiers, namespace, dtype, language, indices):
         `Subexpression` for a common subexpression used in the code.
         There should only be a single `Index` specifier, and the name
         should correspond to that given in the `ArrayVariable`
-        specifiers.
+        variables.
     ``dtype``
         The default dtype for newly created variables (usually float64).
     ``language``
@@ -263,52 +263,7 @@ def translate(code, specifiers, namespace, dtype, language, indices):
     
     Returns a multi-line string.
     '''
-    statements = make_statements(code, specifiers, dtype)
-    return language.translate_statement_sequence(statements, specifiers, namespace, indices)
-    
-
-if __name__=='__main__':
-    from numpy import float64
-    from languages import CLanguage, PythonLanguage, NumexprPythonLanguage
-    DEBUG = True
-    # switch between these two to invalidate x on the last line
-    if 1:
-        # x invalid on last line
-        code = '''
-        _tmp_V = x
-        I += 1
-        V += _tmp_V*x*dt
-        _cond = V>x
-        '''
-    else:
-        # x valid on last line
-        code = '''
-        _tmp_V = x
-        V += _tmp_V*x*dt
-        '''
-    specifiers = {
-        'V':ArrayVariable('_array_V', '_neuron_idx', float64),
-        'I':ArrayVariable('_array_I', '_neuron_idx', float64),
-        'x':Subexpression('-(V+I)/tau'),
-        'tau':Value(float64),
-        'dt':Value(float64),
-        '_cond':OutputVariable(bool),
-        #'_neuron_idx':Index(),
-        '_neuron_idx':Index(all=False),
-        }
-    for lang in [
-                 CLanguage(),
-                 PythonLanguage(),
-                 NumexprPythonLanguage()
-                 ]:
-        print lang.__class__.__name__
-        print '='*len(lang.__class__.__name__)
-        output = translate(code, specifiers, float64, lang)
-        print 'OUTPUT CODE:'
-        if isinstance(output, str):
-            print indent(output)
-        else:
-            for k, v in output.items():
-                print k+':'
-                print indent(v)
-        print
+    statements = make_statements(code, variables, dtype)
+    return language.translate_statement_sequence(statements, variables,
+                                                 namespace, variable_indices,
+                                                 iterate_all)

@@ -24,7 +24,7 @@ def test_default_content():
     assert namespace['ms'] == ms
     assert namespace['Hz'] == Hz
     assert namespace['mV'] == mV
-    # Functions (the namespace contains specifiers)
+    # Functions (the namespace contains variables)
     assert namespace['sin'].pyfunc == sin 
     assert namespace['log'].pyfunc == log
     assert namespace['exp'].pyfunc == exp

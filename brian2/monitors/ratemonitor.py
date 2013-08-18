@@ -1,4 +1,5 @@
 import weakref
+from collections import defaultdict
 
 import numpy as np
 
@@ -6,7 +7,7 @@ from brian2.codegen.codeobject import create_codeobject
 from brian2.core.base import BrianObject
 from brian2.core.preferences import brian_prefs
 from brian2.core.scheduler import Scheduler
-from brian2.core.specifiers import ReadOnlyValue, AttributeValue, ArrayVariable
+from brian2.core.variables import Variable, AttributeVariable
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
@@ -49,24 +50,19 @@ class PopulationRateMonitor(BrianObject):
         # create data structures
         self.reinit()
 
-        self.specifiers = {'t': AttributeValue('t', second, np.float64,
-                                               self.clock, 't'),
-                           'dt': AttributeValue('dt', second, np.float64,
-                                               self.clock, 'dt'),
-                           '_spikes': AttributeValue('_spikes', Unit(1),
-                                                     self.source.spikes.dtype,
-                                                     self.source, 'spikes'),
+        self.variables = {'t': AttributeVariable(second, self.clock, 't'),
+                           'dt': AttributeVariable(second, self.clock,
+                                                   'dt', constant=True),
+                           '_spikes': AttributeVariable(Unit(1),
+                                                        self.source, 'spikes'),
                            # The template needs to have access to the
                            # DynamicArray here, having access to the underlying
                            # array is not enough since we want to do the resize
                            # in the template
-                           '_rate': ReadOnlyValue('_rates', Unit(1), self._rate.dtype,
-                                               self._rate),
-                           '_t': ReadOnlyValue('_t', Unit(1), self._t.dtype,
-                                               self._t),
-                           '_num_source_neurons': ReadOnlyValue('_num_source_neurons',
-                                                                Unit(1), np.int,
-                                                                len(self.source))}
+                           '_rate': Variable(Unit(1), self._rate),
+                           '_t': Variable(Unit(1), self._t),
+                           '_num_source_neurons': Variable(Unit(1),
+                                                           len(self.source))}
 
     def reinit(self):
         '''
@@ -82,9 +78,10 @@ class PopulationRateMonitor(BrianObject):
         self.codeobj = create_codeobject(self.name,
                                          '', # No model-specific code
                                          {}, # no namespace
-                                         self.specifiers,
+                                         self.variables,
                                          template_name='ratemonitor',
-                                         indices={})
+                                         indices={},
+                                         variable_indices=defaultdict(lambda: '_idx'))
 
     def update(self):
         self.codeobj()
