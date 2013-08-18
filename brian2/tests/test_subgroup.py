@@ -122,7 +122,6 @@ def test_synaptic_propagation():
 
 def test_spike_monitor():
     for codeobj_class in codeobj_classes:
-        print codeobj_class
         G = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0',
                         codeobj_class=codeobj_class)
         G.v[0] = 1.1
@@ -145,6 +144,16 @@ def test_spike_monitor():
         assert_equal(sub_s_mon.count, expected)
 
 
+def test_wrong_indexing():
+    G = NeuronGroup(10, 'v:1')
+    assert_raises(TypeError, lambda: G[0])
+    assert_raises(TypeError, lambda: G[[0, 1]])
+    assert_raises(TypeError, lambda: G['string'])
+
+    assert_raises(IndexError, lambda: G[10:])
+    assert_raises(IndexError, lambda: G[::2])
+    assert_raises(IndexError, lambda: G[3:2])
+
 if __name__ == '__main__':
     test_state_variables()
     test_state_monitor()
@@ -152,3 +161,4 @@ if __name__ == '__main__':
     test_synapse_access()
     test_synaptic_propagation()
     test_spike_monitor()
+    test_wrong_indexing()
