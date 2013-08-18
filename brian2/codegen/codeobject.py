@@ -129,7 +129,7 @@ class CodeObject(object):
         self.nonconstant_values = []
         
         for name, var in self.variables.iteritems():
-            if isinstance(var, Variable):
+            if isinstance(var, Variable) and not isinstance(var, Subexpression):
                 if not var.constant:
                     self.nonconstant_values.append((name, var.get_value))
                     if not var.scalar:

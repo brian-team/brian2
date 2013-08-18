@@ -435,15 +435,7 @@ class Subexpression(Variable):
         self.additional_namespace = None
         
     def get_value(self):
-        variable_values = {}
-        for identifier in self.identifiers:
-            if identifier in self.variables:
-                variable_values[identifier] = self.variables[identifier].get_value()
-            else:
-                variable_values[identifier] = self.namespace.resolve(identifier,
-                                                                     self.additional_namespace,
-                                                                     strip_units=True)
-        return eval(self.expr, variable_values)
+        raise AssertionError('get_value should never be called for a Subexpression')
 
     def __contains__(self, var):
         return var in self.identifiers
