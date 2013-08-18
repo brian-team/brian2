@@ -88,7 +88,7 @@ Indices
 To handle arrays in generated code correctly, information about *indexing* has
 to be stored as well. Every `Group` has two attributes responsible for that:
 ``indices``, a mapping from index names to index objects and ``variable_indices``,
-a mapping from `Variable` objects to index names. An index object needs to have
+a mapping from variable names to index names. An index object needs to have
 a length and be indexable -- e.g. it could be a numpy array.
 
 For simple classes such as `NeuronGroup` that only have a single index for all

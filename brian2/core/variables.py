@@ -223,7 +223,8 @@ class AttributeVariable(Variable):
 
 class VariableView(object):
 
-    def __init__(self, variable, group, unit=None, level=0):
+    def __init__(self, name, variable, group, unit=None, level=0):
+        self.name = name
         self.variable = variable
         self.group = group
         self.unit = unit
@@ -236,7 +237,7 @@ class VariableView(object):
                 raise IndexError('Variable is a scalar variable.')
             indices = 0
         else:
-            indices = self.group.indices[self.group.variable_indices[variable]][i]
+            indices = self.group.indices[self.group.variable_indices[self.name]][i]
         if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
             return variable.get_value()[indices]
         else:
@@ -249,7 +250,7 @@ class VariableView(object):
                 raise IndexError('Variable is a scalar variable.')
             indices = np.array([0])
         else:
-            indices = self.group.indices[self.group.variable_indices[variable]][i]
+            indices = self.group.indices[self.group.variable_indices[self.name]][i]
         if isinstance(value, basestring):
             check_units = self.unit is not None
             self.group._set_with_code(variable, indices, value,
@@ -317,7 +318,7 @@ class VariableView(object):
         return self
 
     def __repr__(self):
-        varname = self.variable.name
+        varname = self.name
         if self.unit is None:
             varname += '_'
         return '<%s.%s_: %r>' % (self.group.name, varname,
@@ -371,10 +372,10 @@ class ArrayVariable(Variable):
         self.value[:] = value
 
     def get_addressable_value(self, group, level=0):
-        return VariableView(self, group, None, level)
+        return VariableView(self.name, self, group, None, level)
 
     def get_addressable_value_with_unit(self, group, level=0):
-        return VariableView(self, group, self.unit, level)
+        return VariableView(self.name, self, group, self.unit, level)
 
 
 class DynamicArrayVariable(ArrayVariable):

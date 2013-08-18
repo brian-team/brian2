@@ -33,7 +33,7 @@ class NumpyLanguage(Language):
         # read arrays
         for var in read:
             spec = variables[var]
-            index = variable_indices[spec]
+            index = variable_indices[var]
             line = var + ' = ' + spec.arrayname
             if not index in iterate_all:
                 line = line + '[' + index + ']'
@@ -42,7 +42,7 @@ class NumpyLanguage(Language):
         lines.extend([self.translate_statement(stmt) for stmt in statements])
         # write arrays
         for var in write:
-            index_var = variable_indices[variables[var]]
+            index_var = variable_indices[var]
             # check if all operations were inplace and we're operating on the
             # whole vector, if so we don't need to write the array back
             if not index_var in iterate_all:

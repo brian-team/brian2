@@ -826,16 +826,17 @@ class Synapses(BrianObject, Group):
         for name, var in getattr(self.source, 'variables', {}).iteritems():
             if isinstance(var, (ArrayVariable, Subexpression)):
                 v[name + '_pre'] = var
-                self.variable_indices[var] = '_presynaptic_idx'
+                self.variable_indices[name + '_pre'] = '_presynaptic_idx'
         for name, var in getattr(self.target, 'variables', {}).iteritems():
             if isinstance(var, (ArrayVariable, Subexpression)):
                 v[name + '_post'] = var
-                self.variable_indices[var] = '_postsynaptic_idx'
+                self.variable_indices[name + '_post'] = '_postsynaptic_idx'
                 # Also add all the post variables without a suffix -- if this
                 # clashes with the name of a state variable defined in this
                 # Synapses group, the latter will overwrite the entry later and
                 # take precedence
                 v[name] = var
+                self.variable_indices[name] = '_postsynaptic_idx'
 
         # Standard variables always present
         v.update({'t': AttributeVariable(second, self.clock, 't_',
@@ -868,14 +869,18 @@ class Synapses(BrianObject, Group):
                 # shouldn't directly access the specifier.array attribute but
                 # use specifier.get_value() to get a reference to the underlying
                 # array
-                v.update({eq.varname: DynamicArrayVariable(eq.varname,
-                                                           eq.unit,
-                                                           array,
-                                                           group_name=self.name,
-                                                           constant=constant,
-                                                           is_bool=eq.is_bool)})
-                # Register the array with the `SynapticIndex` object so it gets
-                # automatically resized
+                v[eq.varname] = DynamicArrayVariable(eq.varname,
+                                                     eq.unit,
+                                                     array,
+                                                     group_name=self.name,
+                                                     constant=constant,
+                                                     is_bool=eq.is_bool)
+                if eq.varname in self.variable_indices:
+                    # we are overwriting a postsynaptic variable of the same
+                    # name, delete the reference to the postsynaptic index
+                    del self.variable_indices[eq.varname]
+                # Register the array with the `SynapticItemMapping` object so
+                # it gets automatically resized
                 self.item_mapping.register_variable(array)
             elif eq.type == STATIC_EQUATION:
                 v.update({eq.varname: Subexpression(eq.unit,
