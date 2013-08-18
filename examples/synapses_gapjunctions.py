@@ -30,6 +30,6 @@ S.w = .02
 
 run(500*ms)
 
-plt.plot(trace.t / ms, trace.v[:, 0])
-plt.plot(trace.t / ms, trace.v[:, 1])
+plt.plot(trace.t / ms, trace[0].v)
+plt.plot(trace.t / ms, trace[5].v)
 plt.show()

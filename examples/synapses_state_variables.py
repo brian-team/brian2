@@ -8,7 +8,8 @@ import numpy as np
 #brian_prefs.codegen.target = 'weave'
 
 G = NeuronGroup(100, 'v:volt')
-G.v = '(sin(2*pi*i/_num_neurons) - 70 + 0.25*randn()) * mV'
+N = len(G)
+G.v = '(sin(2*pi*i/N) - 70 + 0.25*randn()) * mV'
 S = Synapses(G, G, 'w:volt', pre='v+=w')
 S.connect('True')
 

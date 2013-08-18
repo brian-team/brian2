@@ -13,7 +13,7 @@ __all__ = ['is_boolean_expression',
            'parse_expression_unit',]
 
 
-def is_boolean_expression(expr, namespace, specifiers):
+def is_boolean_expression(expr, namespace, variables):
     '''
     Determines if an expression is of boolean type or not
     
@@ -24,7 +24,7 @@ def is_boolean_expression(expr, namespace, specifiers):
         The expression to test
     namespace : dict-like
         The namespace of external variables.
-    specifiers : dict of `Specifier` objects
+    variables : dict of `Variable` objects
         The information about the internal variables
 
     Returns
@@ -64,7 +64,7 @@ def is_boolean_expression(expr, namespace, specifiers):
         expr = mod.body
         
     if expr.__class__ is ast.BoolOp:
-        if all(is_boolean_expression(node, namespace, specifiers)
+        if all(is_boolean_expression(node, namespace, variables)
                for node in expr.values):
             return True
         else:
@@ -74,16 +74,16 @@ def is_boolean_expression(expr, namespace, specifiers):
         if name in namespace:
             value = namespace[name]
             return value is True or value is False
-        elif name in specifiers:
-            return getattr(specifiers[name], 'is_bool', False)
+        elif name in variables:
+            return getattr(variables[name], 'is_bool', False)
         else:
             return name == 'True' or name == 'False'
     elif expr.__class__ is ast.Call:
         name = expr.func.id
         if name in namespace:
             return getattr(namespace[name], '_returns_bool', False)
-        elif name in specifiers:
-            return getattr(specifiers[name], '_returns_bool', False)
+        elif name in variables:
+            return getattr(variables[name], '_returns_bool', False)
         else:
             raise SyntaxError('Unknown function %s' % name)
     elif expr.__class__ is ast.Compare:
@@ -94,7 +94,7 @@ def is_boolean_expression(expr, namespace, specifiers):
         return False
 
 
-def _get_value_from_expression(expr, namespace, specifiers):
+def _get_value_from_expression(expr, namespace, variables):
     '''
     Returns the scalar value of an expression, and checks its validity.
 
@@ -104,7 +104,7 @@ def _get_value_from_expression(expr, namespace, specifiers):
         The expression to check.
     namespace : dict-like
         The namespace of external variables.
-    specifiers : dict of `Specifier` objects
+    variables : dict of `Variable` objects
         The information about the internal variables
 
     Returns
@@ -126,12 +126,12 @@ def _get_value_from_expression(expr, namespace, specifiers):
 
     if expr.__class__ is ast.Name:
         name = expr.id
-        if name in specifiers:
-            if not getattr(specifiers[name], 'constant', False):
+        if name in variables:
+            if not getattr(variables[name], 'constant', False):
                 raise SyntaxError('Value %s is not constant' % name)
-            if not getattr(specifiers[name], 'scalar', False):
+            if not getattr(variables[name], 'scalar', False):
                 raise SyntaxError('Value %s is not scalar' % name)
-            return specifiers[name].get_value()
+            return variables[name].get_value()
         elif name in namespace:
             if not have_same_dimensions(namespace[name], 1):
                 raise SyntaxError('Variable %s is not dimensionless' % name)
@@ -154,8 +154,8 @@ def _get_value_from_expression(expr, namespace, specifiers):
         raise SyntaxError('Cannot determine the numerical value for a function call.')
     elif expr.__class__ is ast.BinOp:
         op = expr.op.__class__.__name__
-        left = _get_value_from_expression(expr.left, namespace, specifiers)
-        right = _get_value_from_expression(expr.right, namespace, specifiers)
+        left = _get_value_from_expression(expr.left, namespace, variables)
+        right = _get_value_from_expression(expr.right, namespace, variables)
         if op=='Add' or op=='Sub':
             v = left + right
         elif op=='Mult':
@@ -172,7 +172,7 @@ def _get_value_from_expression(expr, namespace, specifiers):
     elif expr.__class__ is ast.UnaryOp:
         op = expr.op.__class__.__name__
         # check validity of operand and get its unit
-        v =  _get_value_from_expression(expr.operand, namespace, specifiers)
+        v =  _get_value_from_expression(expr.operand, namespace, variables)
         if op=='Not':
             raise SyntaxError(('Cannot determine the numerical value '
                                'for a boolean operation.'))
@@ -184,7 +184,7 @@ def _get_value_from_expression(expr, namespace, specifiers):
         raise SyntaxError('Unsupported operation ' + str(expr.__class__))
 
     
-def parse_expression_unit(expr, namespace, specifiers):
+def parse_expression_unit(expr, namespace, variables):
     '''
     Returns the unit value of an expression, and checks its validity
     
@@ -194,7 +194,7 @@ def parse_expression_unit(expr, namespace, specifiers):
         The expression to check.
     namespace : dict-like
         The namespace of external variables.
-    specifiers : dict of `Specifier` objects
+    variables : dict of `Variable` objects
         The information about the internal variables
     
     Returns
@@ -221,8 +221,8 @@ def parse_expression_unit(expr, namespace, specifiers):
         expr = mod.body
     if expr.__class__ is ast.Name:
         name = expr.id
-        if name in specifiers:
-            return specifiers[name].unit
+        if name in variables:
+            return variables[name].unit
         elif name in namespace:
             return get_unit_fast(namespace[name])
         elif name in ['True', 'False']:
@@ -234,7 +234,7 @@ def parse_expression_unit(expr, namespace, specifiers):
     elif expr.__class__ is ast.BoolOp:
         # check that the units are valid in each subexpression
         for node in expr.values:
-            parse_expression_unit(node, namespace, specifiers)
+            parse_expression_unit(node, namespace, variables)
         # but the result is a bool, so we just return 1 as the unit
         return get_unit_fast(1)
     elif expr.__class__ is ast.Compare:
@@ -242,11 +242,11 @@ def parse_expression_unit(expr, namespace, specifiers):
         subexprs = [expr.left]+expr.comparators
         subunits = []
         for node in subexprs:
-            subunits.append(parse_expression_unit(node, namespace, specifiers))
+            subunits.append(parse_expression_unit(node, namespace, variables))
         for left, right in zip(subunits[:-1], subunits[1:]):
             if not have_same_dimensions(left, right):
                 raise DimensionMismatchError("Comparison of expressions with different units",
-                                             *[u.dim for u in subunits])
+                                             *[getattr(u, 'dim', 1) for u in subunits])
         # but the result is a bool, so we just return 1 as the unit
         return get_unit_fast(1)
     elif expr.__class__ is ast.Call:
@@ -257,10 +257,10 @@ def parse_expression_unit(expr, namespace, specifiers):
         elif expr.kwargs is not None:
             raise ValueError("Keyword arguments not supported")
 
-        arg_units = [parse_expression_unit(arg, namespace, specifiers)
+        arg_units = [parse_expression_unit(arg, namespace, variables)
                      for arg in expr.args]
 
-        func = namespace.get(expr.func.id, specifiers.get(expr.func, None))
+        func = namespace.get(expr.func.id, variables.get(expr.func, None))
         if func is None:
             raise SyntaxError('Unknown function %s' % expr.func.id)
         if not hasattr(func, '_arg_units') or not hasattr(func, '_return_unit'):
@@ -285,8 +285,8 @@ def parse_expression_unit(expr, namespace, specifiers):
 
     elif expr.__class__ is ast.BinOp:
         op = expr.op.__class__.__name__
-        left = parse_expression_unit(expr.left, namespace, specifiers)
-        right = parse_expression_unit(expr.right, namespace, specifiers)
+        left = parse_expression_unit(expr.left, namespace, variables)
+        right = parse_expression_unit(expr.right, namespace, variables)
         if op=='Add' or op=='Sub':
             u = left+right
         elif op=='Mult':
@@ -296,7 +296,7 @@ def parse_expression_unit(expr, namespace, specifiers):
         elif op=='Pow':
             if have_same_dimensions(left, 1) and have_same_dimensions(right, 1):
                 return get_unit_fast(1)
-            n = _get_value_from_expression(expr.right, namespace, specifiers)
+            n = _get_value_from_expression(expr.right, namespace, variables)
             u = left**n
         elif op=='Mod':
             u = left % right
@@ -306,7 +306,7 @@ def parse_expression_unit(expr, namespace, specifiers):
     elif expr.__class__ is ast.UnaryOp:
         op = expr.op.__class__.__name__
         # check validity of operand and get its unit
-        u = parse_expression_unit(expr.operand, namespace, specifiers)
+        u = parse_expression_unit(expr.operand, namespace, variables)
         if op=='Not':
             return get_unit_fast(1)
         else:

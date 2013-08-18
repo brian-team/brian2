@@ -26,26 +26,26 @@ class NumpyLanguage(Language):
             op = '='
         return var + ' ' + op + ' ' + self.translate_expression(expr)
 
-    def translate_statement_sequence(self, statements, specifiers, namespace, indices):
-        read, write = self.array_read_write(statements, specifiers)
+    def translate_statement_sequence(self, statements, variables, namespace,
+                                     variable_indices, iterate_all):
+        read, write = self.array_read_write(statements, variables)
         lines = []
         # read arrays
         for var in read:
-            spec = specifiers[var]
-            index_spec = indices[spec.index]
+            spec = variables[var]
+            index = variable_indices[var]
             line = var + ' = ' + spec.arrayname
-            if not index_spec.iterate_all:
-                line = line + '[' + spec.index + ']'
+            if not index in iterate_all:
+                line = line + '[' + index + ']'
             lines.append(line)
         # the actual code
         lines.extend([self.translate_statement(stmt) for stmt in statements])
         # write arrays
         for var in write:
-            index_var = specifiers[var].index
-            index_spec = indices[index_var]
+            index_var = variable_indices[var]
             # check if all operations were inplace and we're operating on the
             # whole vector, if so we don't need to write the array back
-            if not index_spec.iterate_all:
+            if not index_var in iterate_all:
                 all_inplace = False
             else:
                 all_inplace = True
@@ -54,8 +54,8 @@ class NumpyLanguage(Language):
                         all_inplace = False
                         break
             if not all_inplace:
-                line = specifiers[var].arrayname
-                if index_spec.iterate_all:
+                line = variables[var].arrayname
+                if index_var in iterate_all:
                     line = line + '[:]'
                 else:
                     line = line + '[' + index_var + ']'

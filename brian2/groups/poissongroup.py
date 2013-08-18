@@ -4,12 +4,15 @@ from numpy.random import rand
 from brian2.core.base import BrianObject
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
+from brian2.core.variables import ArrayVariable
 from brian2.units.fundamentalunits import check_units
 from brian2.units.stdunits import Hz
 
+from .group import Group
+
 __all__ = ['PoissonGroup']
 
-class PoissonGroup(BrianObject, SpikeSource):
+class PoissonGroup(Group, BrianObject, SpikeSource):
     '''
     Poisson spike source
     
@@ -40,16 +43,21 @@ class PoissonGroup(BrianObject, SpikeSource):
         #: The array of spikes from the most recent time step
         self.spikes = np.array([], dtype=int)
         
-        self.rates = rates
+        self._rates = np.asarray(rates)
         self.N = N = int(N)
         
         self.pthresh = self._calc_threshold()
+
+        self.variables = {'rates': ArrayVariable('rates', Hz, self._rates,
+                                                 group_name=self.name,
+                                                 constant=True)}
+        Group.__init__(self)
         
     def __len__(self):
         return self.N
     
     def _calc_threshold(self):
-        return np.array(self.rates*self.clock.dt)
+        return np.array(self._rates*self.clock.dt_)
     
     def pre_run(self, namespace):
         self.pthresh = self._calc_threshold()
@@ -61,15 +69,5 @@ class PoissonGroup(BrianObject, SpikeSource):
         description = '{classname}({N}, rates={rates})'
         return description.format(classname=self.__class__.__name__,
                                         N=self.N,
-                                        rates=repr(self.rates))
+                                        rates=repr(self._rates))
 
-
-if __name__=='__main__':
-    from pylab import *
-    from brian2 import *
-    P = PoissonGroup(1000, rates=100*Hz)
-    M = SpikeMonitor(P)
-    run(100*ms)
-    plot(M.t, M.i, '.k')
-    print 'Estimated rate:', M.num_spikes/(defaultclock.t*len(P))
-    show()

@@ -7,7 +7,6 @@ import operator
 from sympy import Wild, Symbol, Float
 import sympy as sp
 
-from brian2.core.specifiers import Value
 from brian2.codegen.sympytools import sympy_to_str
 from brian2.utils.stringtools import get_identifiers
 from brian2.utils.logger import get_logger
@@ -71,10 +70,10 @@ def get_linear_system(eqs):
     return (diff_eq_names, coefficients, constants)
 
 
-def _non_constant_symbols(symbols, specifiers):
+def _non_constant_symbols(symbols, variables):
     '''
     Determine whether the given `sympy.Matrix` only refers to constant
-    variables. Note that variables that are not present in the `specifiers`
+    variables. Note that variables that are not present in the `variables`
     dictionary are considered to be external variables and therefore constant.
 
     Parameters
@@ -82,8 +81,8 @@ def _non_constant_symbols(symbols, specifiers):
 
     symbols : set of `Symbol`
         The symbols to check, e.g. resulting from expression.atoms()
-    specifiers : dict
-        The dictionary of `Specifier` objects.
+    variables : dict
+        The dictionary of `Variable` objects.
 
     Returns
     -------
@@ -91,8 +90,8 @@ def _non_constant_symbols(symbols, specifiers):
         A set of non-constant symbols.
     '''
     # As every symbol in the matrix should be either in the namespace or
-    # the specifiers dictionary, it should be sufficient to just check for
-    # the presence of any non-constant specifiers.
+    # the variables dictionary, it should be sufficient to just check for
+    # the presence of any non-constant variables.
 
     # Only check true symbols, not numbers
     symbols = set([str(symbol) for symbol in symbols
@@ -101,7 +100,7 @@ def _non_constant_symbols(symbols, specifiers):
     non_constant = set()
 
     for symbol in symbols:
-        if symbol in specifiers and not getattr(specifiers[symbol],
+        if symbol in variables and not getattr(variables[symbol],
                                                 'constant', False):
             non_constant |= set([symbol])
 
@@ -114,14 +113,14 @@ class IndependentStateUpdater(StateUpdateMethod):
     i.e. 1-dimensional differential equations. The individual equations are
     solved by sympy.
     '''
-    def can_integrate(self, equations, specifiers):
+    def can_integrate(self, equations, variables):
         if equations.is_stochastic:
             return False
 
         # Not very efficient but guaranteed to give the correct answer:
         # Just try to apply the integration method
         try:
-            self.__call__(equations, specifiers)
+            self.__call__(equations, variables)
         except (ValueError, NotImplementedError, TypeError) as ex:
             logger.debug('Cannot use independent integration: %s' % ex)
             return False
@@ -129,9 +128,9 @@ class IndependentStateUpdater(StateUpdateMethod):
         # It worked
         return True
 
-    def __call__(self, equations, specifiers=None):
-        if specifiers is None:
-            specifiers = {}
+    def __call__(self, equations, variables=None):
+        if variables is None:
+            variables = {}
 
         if equations.is_stochastic:
             raise ValueError('Cannot solve stochastic equations with this state updater')
@@ -149,7 +148,7 @@ class IndependentStateUpdater(StateUpdateMethod):
         for name, expression in diff_eqs:
             rhs = expression.sympy_expr
             non_constant = _non_constant_symbols(rhs.atoms(),
-                                                 specifiers) - set([name])
+                                                 variables) - set([name])
             if len(non_constant):
                 raise ValueError(('Equation for %s referred to non-constant '
                                   'variables %s') % (name, str(non_constant)))
@@ -196,14 +195,14 @@ class LinearStateUpdater(StateUpdateMethod):
     analytical solution given by sympy. Uses the matrix exponential (which is
     only implemented for diagonalizable matrices in sympy).
     ''' 
-    def can_integrate(self, equations, specifiers):
+    def can_integrate(self, equations, variables):
         if equations.is_stochastic:
             return False
                
         # Not very efficient but guaranteed to give the correct answer:
         # Just try to apply the integration method
         try:
-            self.__call__(equations, specifiers)
+            self.__call__(equations, variables)
         except (ValueError, NotImplementedError, TypeError) as ex:
             logger.debug('Cannot use linear integration: %s' % ex)
             return False
@@ -211,25 +210,25 @@ class LinearStateUpdater(StateUpdateMethod):
         # It worked
         return True
     
-    def __call__(self, equations, specifiers=None):
+    def __call__(self, equations, variables=None):
         
-        if specifiers is None:
-            specifiers = {}
+        if variables is None:
+            variables = {}
         
         # Get a representation of the ODE system in the form of
         # dX/dt = M*X + B
-        variables, matrix, constants = get_linear_system(equations)                
+        varnames, matrix, constants = get_linear_system(equations)
 
         # Make sure that the matrix M is constant, i.e. it only contains
-        # external variables or constant specifiers
-        symbols = symbols = set.union(*(el.atoms() for el in matrix))
-        non_constant = _non_constant_symbols(symbols, specifiers)
+        # external variables or constant variables
+        symbols = set.union(*(el.atoms() for el in matrix))
+        non_constant = _non_constant_symbols(symbols, variables)
         if len(non_constant):
             raise ValueError(('The coefficient matrix for the equations '
                               'contains the symbols %s, which are not '
                               'constant.') % str(non_constant))
         
-        symbols = [Symbol(variable, real=True) for variable in variables]
+        symbols = [Symbol(variable, real=True) for variable in varnames]
         solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
         b = sp.ImmutableMatrix([solution[symbol] for symbol in symbols]).transpose()
         
@@ -237,7 +236,7 @@ class LinearStateUpdater(StateUpdateMethod):
         dt = Symbol('dt', real=True, positive=True)
         A = (matrix * dt).exp()                
         C = sp.ImmutableMatrix([A.dot(b)]) - b
-        _S = sp.MatrixSymbol('_S', len(variables), 1)
+        _S = sp.MatrixSymbol('_S', len(varnames), 1)
         updates = A * _S + C.transpose()
         try:
             # In sympy 0.7.3, we have to explicitly convert it to a single matrix
@@ -250,14 +249,16 @@ class LinearStateUpdater(StateUpdateMethod):
         # The solution contains _S[0, 0], _S[1, 0] etc. for the state variables,
         # replace them with the state variable names 
         abstract_code = []
-        for idx, (variable, update) in enumerate(zip(variables, updates)):
+        for idx, (variable, update) in enumerate(zip(varnames, updates)):
             rhs = update.subs(_S[idx, 0], variable)
             identifiers = get_identifiers(sympy_to_str(rhs))
             for identifier in identifiers:
-                if identifier in specifiers:
-                    spec = specifiers[identifier]
-                    if isinstance(spec, Value) and spec.scalar and spec.constant:
-                        float_val = spec.get_value()
+                if identifier in variables:
+                    var = variables[identifier]
+                    if var is None:
+                        print identifier, variables
+                    if var.scalar and var.constant:
+                        float_val = var.get_value()
                         rhs = rhs.xreplace({Symbol(identifier, real=True): Float(float_val)})
 
             # Do not overwrite the real state variables yet, the update step
@@ -265,7 +266,7 @@ class LinearStateUpdater(StateUpdateMethod):
             abstract_code.append('_' + variable + ' = ' + sympy_to_str(rhs))
         
         # Update the state variables
-        for variable in variables:
+        for variable in varnames:
             abstract_code.append('{variable} = _{variable}'.format(variable=variable))
         return '\n'.join(abstract_code)
 

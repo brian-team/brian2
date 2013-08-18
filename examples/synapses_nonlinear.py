@@ -30,7 +30,7 @@ run(1000*ms)
 
 import matplotlib.pyplot as plt
 plt.subplot(2, 1, 1)
-plt.plot(M.t / ms, M.g)
+plt.plot(M.t / ms, M.g.T)
 plt.subplot(2, 1, 2)
-plt.plot(Mn.t / ms, Mn.g)
+plt.plot(Mn.t / ms, Mn[0].g)
 plt.show()

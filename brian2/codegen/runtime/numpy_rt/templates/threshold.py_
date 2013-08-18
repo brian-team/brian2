@@ -1,4 +1,5 @@
-# USE_SPECIFIERS { not_refractory, lastspike, t }
+# USES_VARIABLES { not_refractory, lastspike, t }
+# ITERATE_ALL { _idx }
 
 {% for line in code_lines %}
 {{line}}

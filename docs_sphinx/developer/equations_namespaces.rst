@@ -14,7 +14,7 @@ Specifiers
 
 Each Brian object that saves state variables (e.g. `NeuronGroup`, `Synapses`,
 `StateMonitor`) has a ``specifiers`` attribute, a dictionary mapping variable
-names to `Specifier` objects. `Specifier` objects contain information *about*
+names to `Variable` objects. `Variable` objects contain information *about*
 the variable (name, dtype, units) as well as access to the variable's value via
 a ``get_value`` method. Some will also allow setting the values via a
 corresponding ``set_value`` method. These objects can therefore act as proxies
