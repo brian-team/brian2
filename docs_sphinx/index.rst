@@ -10,6 +10,7 @@ Contents:
    user/index
    Reference documentation <reference/brian2>
    developer/index
+   notes
 
 Indices and tables
 ==================
