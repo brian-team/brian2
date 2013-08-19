@@ -446,7 +446,7 @@ class GroupCodeRunner(BrianObject):
                              additional_variables, namespace)
         self.codeobj = create_runner_codeobj(self.group, self.abstract_code,
                                              self.template,
-                                             name=self.name,
+                                             name=self.name+'_codeobject*',
                                              check_units=self.check_units,
                                              additional_variables=additional_variables,
                                              additional_namespace=namespace,
