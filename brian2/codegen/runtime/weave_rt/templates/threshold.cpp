@@ -2,7 +2,7 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro main() %}
-	// USES_VARIABLES { not_refractory, lastspike, t }
+	// USES_VARIABLES { not_refractory, lastspike, t, _spikespace }
 	////// SUPPORT CODE ///////
 	{% for line in support_code_lines %}
 	// {{line}}
@@ -24,8 +24,7 @@
 	{% endfor %}
 
 	//// MAIN CODE ////////////
-	int _cpp_numspikes = 0;
-	npy_int32 *_spikes_space = (npy_int32 *)malloc(sizeof(npy_int32) * _num_idx);
+	long _cpp_numspikes = 0;
 	for(int _idx=0; _idx<_num_idx; _idx++)
 	{
 	    const int _vectorisation_idx = _idx;
@@ -33,7 +32,7 @@
 		{{line}}
 		{% endfor %}
 		if(_cond) {
-			_spikes_space[_cpp_numspikes++] = _idx;
+			_spikespace[_cpp_numspikes++] = _idx;
 			// We have to use the pointer names directly here: The condition
 			// might contain references to not_refractory or lastspike and in
 			// that case the names will refer to a single entry.
@@ -41,9 +40,7 @@
 			_ptr{{_array_lastspike}}[_idx] = t;
 		}
 	}
-	npy_intp _dims[] = {_cpp_numspikes};
-	PyObject *_numpy_spikes_array = PyArray_SimpleNewFromData(1, _dims, NPY_INT32, _spikes_space);
-	return_val = _numpy_spikes_array;
+	_spikespace[_num_idx] = _cpp_numspikes;
 {% endmacro %}
 
 ////////////////////////////////////////////////////////////////////////////
