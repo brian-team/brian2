@@ -121,10 +121,6 @@ class Thresholder(GroupCodeRunner):
     def update_abstract_code(self):
         self.abstract_code = '_cond = ' + self.group.threshold
         
-    def post_update(self, return_value):
-        # Save the spikes in the NeuronGroup so others can use it
-        self.group.spikes = return_value
-
 
 class Resetter(GroupCodeRunner):
     '''
@@ -242,8 +238,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         ##### Setup the memory
         self.arrays = self._allocate_memory(dtype=dtype)
 
-        #: The array of spikes from the most recent threshold operation
-        self.spikes = array([], dtype=np.int32)
+        self._spikespace = np.zeros(N+1, dtype=np.int32)
 
         # Setup the namespace
         self.namespace = create_namespace(namespace)
@@ -310,6 +305,12 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         '''
         return self.N
 
+    @property
+    def spikes(self):
+        '''
+        The spikes returned by the most recent thresholding operation.
+        '''
+        return self._spikespace[:self._spikespace[-1]]
 
     def __getitem__(self, item):
         if not isinstance(item, slice):
@@ -386,6 +387,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         s = Group._create_variables(self)
 
         # Standard variables always present
+        s.update({'_spikespace': AttributeVariable(Unit(1), self, '_spikespace', constant=False)})
         s.update({'_spikes': AttributeVariable(Unit(1), self,
                                                'spikes', constant=False)})
 
