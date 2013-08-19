@@ -41,7 +41,7 @@
             // Get the potentially newly created underlying data arrays
             double *_t_data = (double*)(((PyArrayObject*)(PyObject*)_t.attr("data"))->data);
             // TODO: How to get the correct datatype automatically here?
-            npy_int64 *_i_data = (npy_int64*)(((PyArrayObject*)(PyObject*)_i.attr("data"))->data);
+            npy_int32 *_i_data = (npy_int32*)(((PyArrayObject*)(PyObject*)_i.attr("data"))->data);
             // Copy the values across
             for(int _i=_start_idx; _i<_end_idx; _i++)
             {

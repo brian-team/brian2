@@ -77,7 +77,7 @@ class SpikeMonitor(BrianObject):
         '''
         Clears all recorded spikes
         '''
-        self._i = DynamicArray1D(0, use_numpy_resize=True, dtype=int)
+        self._i = DynamicArray1D(0, use_numpy_resize=True, dtype=np.int32)
         self._t = DynamicArray1D(0, use_numpy_resize=True,
                                  dtype=brian_prefs['core.default_scalar_dtype'])
         
