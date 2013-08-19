@@ -107,9 +107,10 @@ class CPPLanguage(Language):
 
     language_id = 'cpp'
 
-    def __init__(self):
+    def __init__(self, c_data_type=c_data_type):
         self.restrict = brian_prefs['codegen.languages.cpp.restrict_keyword'] + ' '
         self.flush_denormals = brian_prefs['codegen.languages.cpp.flush_denormals']
+        self.c_data_type = c_data_type
 
     def translate_expression(self, expr):
         return CPPNodeRenderer().render_expr(expr).strip()
@@ -117,7 +118,7 @@ class CPPLanguage(Language):
     def translate_statement(self, statement):
         var, op, expr = statement.var, statement.op, statement.expr
         if op == ':=':
-            decl = c_data_type(statement.dtype) + ' '
+            decl = self.c_data_type(statement.dtype) + ' '
             op = '='
             if statement.constant:
                 decl = 'const ' + decl
@@ -141,14 +142,14 @@ class CPPLanguage(Language):
                 line = 'const '
             else:
                 line = ''
-            line = line + c_data_type(var.dtype) + ' ' + varname + ' = '
+            line = line + self.c_data_type(var.dtype) + ' ' + varname + ' = '
             line = line + '_ptr' + var.arrayname + '[' + index_var + '];'
             lines.append(line)
         # simply declare variables that will be written but not read
         for varname in write:
             if varname not in read:
                 var = variables[varname]
-                line = c_data_type(var.dtype) + ' ' + varname + ';'
+                line = self.c_data_type(var.dtype) + ' ' + varname + ';'
                 lines.append(line)
         # the actual code
         lines.extend([self.translate_statement(stmt) for stmt in statements])
@@ -170,7 +171,7 @@ class CPPLanguage(Language):
             if isinstance(var, ArrayVariable):
                 arrayname = var.arrayname
                 if not arrayname in arraynames:
-                    line = c_data_type(var.dtype) + ' * ' + self.restrict + '_ptr' + arrayname + ' = ' + arrayname + ';'
+                    line = self.c_data_type(var.dtype) + ' * ' + self.restrict + '_ptr' + arrayname + ' = ' + arrayname + ';'
                     lines.append(line)
                     arraynames.add(arrayname)
         pointers = '\n'.join(lines)
