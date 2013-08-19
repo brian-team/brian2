@@ -75,7 +75,7 @@ class PopulationRateMonitor(BrianObject):
                                                np.dtype(type(self.clock.t))))
 
     def pre_run(self, namespace):
-        self.codeobj = create_codeobject(self.name,
+        self.codeobj = create_codeobject('%s_ratemonitor*' % self.name,
                                          '', # No model-specific code
                                          {}, # no namespace
                                          self.variables,

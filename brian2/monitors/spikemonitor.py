@@ -85,7 +85,7 @@ class SpikeMonitor(BrianObject):
         self.count = np.zeros(len(self.source), dtype=int)
 
     def pre_run(self, namespace):
-        self.codeobj = create_codeobject(self.name,
+        self.codeobj = create_codeobject('%s_spikemonitor*' % self.name,
                                          '', # No model-specific code
                                          {}, # no namespace
                                          self.variables,

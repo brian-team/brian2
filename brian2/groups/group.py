@@ -360,7 +360,7 @@ def create_runner_codeobj(group, code, template_name, indices=None,
     if variable_indices is None:
         variable_indices = group.variable_indices
 
-    return create_codeobject(name,
+    return create_codeobject('%s_%s*' % (name, template_name),
                              code,
                              resolved_namespace,
                              variables,
