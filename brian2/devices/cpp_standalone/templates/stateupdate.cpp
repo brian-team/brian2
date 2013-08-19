@@ -1,23 +1,23 @@
 ////////////////////////////////////////////////////////////////////////////
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
-{% macro main() %}
+{% macro cpp_file() %}
 
-    ////// SUPPORT CODE ///
-	{% for line in support_code_lines %}
-	//{{line}}
-	{% endfor %}
+#include "{{codeobj_name}}.h"
+#include<math.h>
 
-	////// HANDLE DENORMALS ///
-	{% for line in denormals_code_lines %}
-	{{line}}
-	{% endfor %}
+////// SUPPORT CODE ///////
+{% for line in support_code_lines %}
+{{line}}
+{% endfor %}
 
-	////// HASH DEFINES ///////
-	{% for line in hashdefine_lines %}
-	{{line}}
-	{% endfor %}
+////// HASH DEFINES ///////
+{% for line in hashdefine_lines %}
+{{line}}
+{% endfor %}
 
+void _run_{{codeobj_name}}()
+{
 	///// POINTERS ////////////
 	{% for line in pointers_lines %}
 	{{line}}
@@ -32,13 +32,19 @@
 		{{line}}
 		{% endfor %}
 	}
+}
 {% endmacro %}
 
 ////////////////////////////////////////////////////////////////////////////
-//// SUPPORT CODE //////////////////////////////////////////////////////////
+//// HEADER FILE ///////////////////////////////////////////////////////////
 
-{% macro support_code() %}
-	{% for line in support_code_lines %}
-	{{line}}
-	{% endfor %}
+{% macro h_file() %}
+#ifndef _INCLUDED_{{codeobj_name}}
+#define _INCLUDED_{{codeobj_name}}
+
+#include "arrays.h"
+
+void _run_{{codeobj_name}}();
+
+#endif
 {% endmacro %}

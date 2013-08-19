@@ -5,7 +5,7 @@ from brian2.core.variables import (ArrayVariable, Variable,
                                     StochasticVariable)
 from .functions.base import Function
 from brian2.core.preferences import brian_prefs
-from brian2.core.names import Nameable
+from brian2.core.names import Nameable, find_name
 from brian2.utils.logger import get_logger
 from .translation import translate
 from .runtime.targets import runtime_targets
@@ -80,7 +80,10 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
                                 iterate_all=iterate_all)
     template_kwds.update(kwds)
     logger.debug(name + " inner code:\n" + str(innercode))
-    code = template(innercode, **template_kwds)
+    
+    name = find_name(name)
+    
+    code = template(innercode, codeobj_name=name, **template_kwds)
     logger.debug(name + " code:\n" + str(code))
 
     variables.update(indices)

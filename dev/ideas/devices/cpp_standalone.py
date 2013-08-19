@@ -3,6 +3,8 @@ from brian2 import *
 from brian2.utils.stringtools import *
 from brian2.codegen.languages.cpp_lang import *
 from brian2.devices.cpp_standalone import *
+from brian2.devices.cpp_standalone.codeobject import CPPStandaloneCodeObject
+import os
 
 ##### Define the model
 tau = 10*ms
@@ -25,26 +27,34 @@ G = NeuronGroup(N, eqs, reset=reset, threshold=threshold,
 net = Network(G)
 net.run(0*second)
 
-# Extract the necessary information
+# Extract all the CodeObjects
+# Here we hack it directly, as there are more general issues to solve before we can do this automatically
+code_objects = [G.state_updater.codeobj,
+                G.resetter.codeobj,
+                G.thresholder.codeobj,
+                ]
+
+# Extract the array information
 ns = G.state_updater.codeobj.namespace
-code = deindent(G.state_updater.codeobj.code.main)
 arrays = []
 # Freeze all constants
 for k, v in ns.items():
-    if isinstance(v, float):
-        code = ('const double %s = %s;\n' % (k, repr(v)))+code
-    elif isinstance(v, int):
-        code = ('const int %s = %s;\n' % (k, repr(v)))+code
-    elif isinstance(v, ndarray):
+#    if isinstance(v, float):
+#        code = ('const double %s = %s;\n' % (k, repr(v)))+code
+#    elif isinstance(v, int):
+#        code = ('const int %s = %s;\n' % (k, repr(v)))+code
+    if isinstance(v, ndarray):
         if k.startswith('_array'):
             dtype_spec = c_data_type(v.dtype)
             arrays.append((k, dtype_spec, N))
 
-print '*********** DECLARATIONS **********'
-# This is just an example of what you could do with declarations, generate your
-# own code here...
-for varname, dtype_spec, N in arrays:
-    print '%s *%s = new %s [%s];' % (dtype_spec, varname, dtype_spec, N)
+if not os.path.exists('output'):
+    os.mkdir('output')
 
-print '*********** MAIN LOOP *************'
-print code
+arr_tmp = CPPStandaloneCodeObject.templater.arrays(None, array_specs=arrays)
+open('output/arrays.cpp', 'w').write(arr_tmp.cpp_file)
+open('output/arrays.h', 'w').write(arr_tmp.h_file)
+
+for codeobj in code_objects:
+    open('output/'+codeobj.name+'.cpp', 'w').write(codeobj.code.cpp_file)
+    open('output/'+codeobj.name+'.h', 'w').write(codeobj.code.h_file)
