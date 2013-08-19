@@ -3,6 +3,7 @@ Tests the brian2.parsing package
 '''
 from collections import namedtuple
 
+from brian2.core.preferences import brian_prefs
 from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
                                       CPPNodeRenderer,
@@ -99,7 +100,9 @@ def numpy_evaluator(expr, userns):
 def cpp_evaluator(expr, ns):
     if weave is not None:
         return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
-                            compiler='gcc')
+                            compiler=brian_prefs['codegen.runtime.weave.compiler'],
+                            extra_compile_args=brian_prefs['codegen.runtime.weave.extra_compile_args'],
+                            )
     else:
         raise nose.SkipTest('No weave support.')
 
