@@ -6,6 +6,7 @@
 
 #include "{{codeobj_name}}.h"
 #include<math.h>
+#include<stdint.h>
 
 ////// SUPPORT CODE ///////
 {% for line in support_code_lines %}
@@ -17,7 +18,7 @@
 {{line}}
 {% endfor %}
 
-void _run_{{codeobj_name}}()
+void _run_{{codeobj_name}}(double t)
 {
 	///// POINTERS ////////////
 	{% for line in pointers_lines %}
@@ -54,7 +55,7 @@ void _run_{{codeobj_name}}()
 
 #include "arrays.h"
 
-void _run_{{codeobj_name}}();
+void _run_{{codeobj_name}}(double t);
 
 #endif
 {% endmacro %}

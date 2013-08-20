@@ -2,10 +2,11 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro cpp_file() %}
-	// USES_VARIABLES { _spikes }
+	// USES_VARIABLES { _spikespace }
 
 #include "{{codeobj_name}}.h"
 #include<math.h>
+#include<stdint.h>
 
 ////// SUPPORT CODE ///////
 {% for line in support_code_lines %}
@@ -17,12 +18,15 @@
 {{line}}
 {% endfor %}
 
-void _run_{{codeobj_name}}()
+void _run_{{codeobj_name}}(double t)
 {
 	///// POINTERS ////////////
 	{% for line in pointers_lines %}
 	{{line}}
 	{% endfor %}
+
+	const int *_spikes = _spikespace;
+	const int _num_spikes = _spikespace[_num_spikespace-1];
 
 	//// MAIN CODE ////////////
 	for(int _index_spikes=0; _index_spikes<_num_spikes; _index_spikes++)
@@ -45,7 +49,7 @@ void _run_{{codeobj_name}}()
 
 #include "arrays.h"
 
-void _run_{{codeobj_name}}();
+void _run_{{codeobj_name}}(double t);
 
 #endif
 {% endmacro %}

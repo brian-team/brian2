@@ -1,5 +1,6 @@
 from brian2.utils.logger import get_logger
 from brian2.core.tracking import Trackable
+import re
 
 __all__ = ['Nameable']
 
@@ -56,6 +57,8 @@ class Nameable(Trackable):
         if not isinstance(name, basestring):
             raise TypeError(('"name" argument has to be a string, is type '
                              '{type} instead').format(type=repr(type(name))))
+        if not re.match(r"[_A-Za-z][_a-zA-Z0-9]*\*?$", name):
+            raise ValueError("Name %s not valid variable name" % name)
 
         self._name = find_name(name)
         logger.debug("Created object of class "+self.__class__.__name__+" with name "+self._name)

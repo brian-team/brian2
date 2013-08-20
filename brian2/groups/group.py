@@ -354,13 +354,15 @@ def create_runner_codeobj(group, code, template_name, indices=None,
             name = group.name + '_codeobject*'
         else:
             name = '_codeobject*'
+    elif not name.endswith('_codeobject*'):
+        name = name+'_codeobject*'
 
     if indices is None:
         indices = group.indices
     if variable_indices is None:
         variable_indices = group.variable_indices
 
-    return create_codeobject('%s_%s*' % (name, template_name),
+    return create_codeobject(name,
                              code,
                              resolved_namespace,
                              variables,
