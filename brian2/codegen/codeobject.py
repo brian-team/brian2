@@ -5,6 +5,7 @@ from brian2.core.variables import (ArrayVariable, Variable,
                                     StochasticVariable)
 from .functions.base import Function
 from brian2.core.preferences import brian_prefs
+from brian2.core.names import Nameable, find_name
 from brian2.utils.logger import get_logger
 from .translation import translate
 from .runtime.targets import runtime_targets
@@ -79,11 +80,14 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
                                 iterate_all=iterate_all)
     template_kwds.update(kwds)
     logger.debug(name + " inner code:\n" + str(innercode))
+    
+    name = find_name(name)
+    
     code = template(innercode, **template_kwds)
     logger.debug(name + " code:\n" + str(code))
 
     variables.update(indices)
-    codeobj = codeobj_class(code, namespace, variables)
+    codeobj = codeobj_class(code, namespace, variables, name=name)
     codeobj.compile()
     return codeobj
 
@@ -97,7 +101,7 @@ def get_codeobject_template(name, codeobj_class=None):
     return getattr(codeobj_class.templater, name)
 
 
-class CodeObject(object):
+class CodeObject(Nameable):
     '''
     Executable code object.
     
@@ -114,7 +118,8 @@ class CodeObject(object):
     #: The `Language` used by this `CodeObject`
     language = None
     
-    def __init__(self, code, namespace, variables):
+    def __init__(self, code, namespace, variables, name='codeobject*'):
+        Nameable.__init__(self, name=name)
         self.code = code
         self.compile_methods = self.get_compile_methods(variables)
         self.namespace = namespace

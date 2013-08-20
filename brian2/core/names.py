@@ -1,9 +1,33 @@
 from brian2.utils.logger import get_logger
 from brian2.core.tracking import Trackable
+import re
 
 __all__ = ['Nameable']
 
 logger = get_logger(__name__)
+
+
+def find_name(name):
+    if name.endswith('*'):
+        name = name[:-1]
+        wildcard = True
+    else:
+        wildcard = False
+    instances = set(Nameable.__instances__())
+    allnames = set(obj().name for obj in instances
+                   if hasattr(obj(), 'name'))
+
+    # Try the name without any additions first:
+    if name not in allnames:
+        return name
+    elif not wildcard:
+        raise ValueError("An object with name "+name+" is already defined.")
+
+    # Name is already taken, try _1, _2, etc.
+    i = 1
+    while name+'_'+str(i) in allnames:
+        i += 1
+    return name+'_'+str(i)
 
 
 class Nameable(Trackable):
@@ -28,35 +52,15 @@ class Nameable(Trackable):
     ------
     ValueError
         If the name is already taken.
-    '''
-    def _find_name(self, name):
-        if name.endswith('*'):
-            name = name[:-1]
-            wildcard = True
-        else:
-            wildcard = False
-        instances = set(Nameable.__instances__())
-        allnames = set(obj().name for obj in instances
-                       if hasattr(obj(), 'name'))
-
-        # Try the name without any additions first:
-        if name not in allnames:
-            return name
-        elif not wildcard:
-            raise ValueError("An object with name "+name+" is already defined.")
-
-        # Name is already taken, try _1, _2, etc.
-        i = 1
-        while name+'_'+str(i) in allnames:
-            i += 1
-        return name+'_'+str(i)
-    
+    '''    
     def __init__(self, name):
         if not isinstance(name, basestring):
             raise TypeError(('"name" argument has to be a string, is type '
                              '{type} instead').format(type=repr(type(name))))
+        if not re.match(r"[_A-Za-z][_a-zA-Z0-9]*\*?$", name):
+            raise ValueError("Name %s not valid variable name" % name)
 
-        self._name = self._find_name(name)
+        self._name = find_name(name)
         logger.debug("Created object of class "+self.__class__.__name__+" with name "+self._name)
 
     name = property(fget=lambda self:self._name,
