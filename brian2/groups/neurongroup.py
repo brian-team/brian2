@@ -390,8 +390,6 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         s.update({'_spikespace': ArrayVariable('_spikespace', Unit(1),
                                                self._spikespace,
                                                group_name=self.name)})
-        s.update({'_spikes': AttributeVariable(Unit(1), self,
-                                               'spikes', constant=False)})
 
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):

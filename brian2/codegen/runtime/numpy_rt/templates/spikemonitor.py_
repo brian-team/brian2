@@ -1,7 +1,7 @@
-# { USES_VARIABLES _i, _t, _spikes, _count, t, _source_start, _source_end}
+# { USES_VARIABLES _i, _t, _spikespace, _count, t, _source_start, _source_end}
 import numpy as np
+_spikes = _spikespace[:_spikespace[-1]]
 # Take subgroups into account
-_spikes = np.asarray(_spikes)
 _spikes = _spikes[(_spikes >= _source_start) & (_spikes < _source_end)]
 _spikes -= _source_start
 _n_spikes = len(_spikes)
