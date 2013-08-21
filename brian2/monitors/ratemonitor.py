@@ -53,8 +53,7 @@ class PopulationRateMonitor(BrianObject):
         self.variables = {'t': AttributeVariable(second, self.clock, 't'),
                            'dt': AttributeVariable(second, self.clock,
                                                    'dt', constant=True),
-                           '_spikes': AttributeVariable(Unit(1),
-                                                        self.source, 'spikes'),
+                          '_spikespace': self.source.variables['_spikespace'],
                            # The template needs to have access to the
                            # DynamicArray here, having access to the underlying
                            # array is not enough since we want to do the resize
