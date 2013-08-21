@@ -1,0 +1,36 @@
+Template generation keywords:
+
+code block
+multiple code blocks
+
+# Handling lumped variables using the standard mechanisms is not
+# possible, we therefore also directly give the names of the arrays
+# to the template. The dummy statement in the second line only serves
+# the purpose of including the variable in the namespace
+_target_var_array name (lumped updater)
+
+============= StateMonitor ===========================
+
+record variable names (statemonitor)
+
+group.variables ['_spikespace', 't', 'v', 'dt', 'lastspike', 'not_refractory']
+additional_variables {
+	'_t': <Variable(unit=Unit(1), value=<value of type <class 'brian2.memory.dynamicarray.DynamicArray1D'>>, dtype=<type 'numpy.float64'>, scalar=False, constant=False)>,
+	'_clock_t': AttributeVariable(unit=second, obj=Clock(dt=0.10000000000000001 * msecond, name='defaultclock'), attribute='t_', constant=False),
+	'_recorded_v': <Variable(unit=Unit(1), value=<value of type <class 'brian2.memory.dynamicarray.DynamicArray'>>, dtype=dtype('float64'), scalar=False, constant=False)>,
+	'_indices': <ArrayVariable(unit=Unit(1), value=<value of type <type 'numpy.ndarray'>>, dtype=dtype('int32'), scalar=False, constant=True)>,
+	'v': <ArrayVariable(unit=Unit(1), value=<value of type <type 'numpy.ndarray'>>, dtype=dtype('float64'), scalar=False, constant=False)>}
+resolved_namespace []
+resolved_namespace2 []
+variable_indices defaultdict(<function <lambda> at 0x04172570>,
+	{'lastspike': '_idx', 'v': '_idx', 'not_refractory': '_idx'})
+template_kwds {'_variable_names': ['v']}
+
+========================================
+
+# For C++ code, we need these names explicitly, since not_refractory
+# and lastspike might also be used in the threshold condition -- the
+# names will then refer to single (constant) values and cannot be used
+# for assigning new values
+array_not_refractory name (threshold)
+array_lastspike name (threshold)
