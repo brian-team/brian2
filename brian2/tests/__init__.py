@@ -9,3 +9,7 @@ def run():
     
     dirname = os.path.join(os.path.dirname(__file__), '..')
     return nose.run(argv=['', dirname, '--with-doctest'])
+
+if __name__=='__main__':
+    run()
+    

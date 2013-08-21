@@ -351,11 +351,9 @@ def create_runner_codeobj(group, code, template_name, indices=None,
 
     if name is None:
         if group is not None:
-            name = group.name + '_codeobject*'
+            name = '%s_%s_codeobject*' % (group.name, template_name) 
         else:
-            name = '_codeobject*'
-    elif not name.endswith('_codeobject*'):
-        name = name+'_codeobject*'
+            name = '%s_codeobject*' % template_name
 
     if indices is None:
         indices = group.indices
