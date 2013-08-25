@@ -58,8 +58,7 @@ class SpikeMonitor(BrianObject):
         end = getattr(self.source, 'end', len(self.source))
 
         self.variables = {'t': AttributeVariable(second, self.clock, 't'),
-                           '_spikes': AttributeVariable(Unit(1), self.source,
-                                                        'spikes'),
+                          '_spikespace': self.source.variables['_spikespace'],
                            # The template needs to have access to the
                            # DynamicArray here, having access to the underlying
                            # array is not enough since we want to do the resize
