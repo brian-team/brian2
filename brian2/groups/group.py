@@ -200,8 +200,6 @@ class Group(object):
         abstract_code = variable.name + ' = ' + code
         namespace = get_local_namespace(level + 1)
         additional_namespace = ('implicit-namespace', namespace)
-        # TODO: Find a name that makes sense for reset and variable setting
-        # with code
         additional_variables = self.item_mapping.variables
         additional_variables['_group_idx'] = ArrayVariable('_group_idx',
                                                      Unit(1),
