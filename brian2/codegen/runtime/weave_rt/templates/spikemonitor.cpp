@@ -1,8 +1,8 @@
 {% macro main() %}
 
-    // USES_VARIABLES { _t, _i, t, _spikes, _count,
+    // USES_VARIABLES { _t, _i, t, _spikespace, _count,
     //                  _source_start, _source_end}
-
+	int _num_spikes = _spikespace[_num_spikespace-1];
     if (_num_spikes > 0)
     {
         // For subgroups, we do not want to record all spikes
@@ -12,7 +12,7 @@
         int _end_idx = - 1;
         for(int _i=0; _i<_num_spikes; _i++)
         {
-            const int _idx = _spikes[_i];
+            const int _idx = _spikespace[_i];
             if (_idx >= _source_start) {
                 _start_idx = _i;
                 break;
@@ -20,7 +20,7 @@
         }
         for(int _i=_start_idx; _i<_num_spikes; _i++)
         {
-            const int _idx = _spikes[_i];
+            const int _idx = _spikespace[_i];
             if (_idx >= _source_end) {
                 _end_idx = _i;
                 break;
@@ -45,7 +45,7 @@
             // Copy the values across
             for(int _i=_start_idx; _i<_end_idx; _i++)
             {
-                const int _idx = _spikes[_i];
+                const int _idx = _spikespace[_i];
                 _t_data[_curlen + _i - _start_idx] = t;
                 _i_data[_curlen + _i - _start_idx] = _idx - _source_start;
                 _count[_idx - _source_start]++;

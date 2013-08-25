@@ -1,6 +1,7 @@
 {% macro main() %}
 
-    // USES_VARIABLES { _t, _rate, t, dt, _spikes }
+    // USES_VARIABLES { _t, _rate, t, dt, _spikespace }
+	const int _num_spikes = _spikespace[_num_spikespace-1];
 
     // Calculate the new length for the arrays
     const npy_int _new_len = (npy_int)(_t.attr("shape")[0]) + 1;
