@@ -263,11 +263,8 @@ class SingleEquation(object):
                            doc='All identifiers in the RHS of this equation.')
 
     def _latex(self, *args):
-        varname = sympy.Symbol(self.varname)
-        t = sympy.Symbol('t')
-        sympy_expr = sympy.Eq(sympy.Derivative(varname, t),
-                              str_to_sympy(self.expr))
-        return sympy.latex(sympy_expr)
+        return (r'\frac{\mathrm{d}' + sympy.latex(self.varname) + r'}{\mathrm{d}t} = ' +
+                sympy.latex(str_to_sympy(self.expr.code)))
 
     def __str__(self):
         if self.type == DIFFERENTIAL_EQUATION:
@@ -794,7 +791,7 @@ class Equations(collections.Mapping):
             # do not use SingleEquations._latex here as we want nice alignment
             varname = sympy.Symbol(eq.varname)
             if eq.type == DIFFERENTIAL_EQUATION:
-                lhs = sympy.Derivative(varname, t)
+                lhs = r'\frac{\mathrm{d}' + sympy.latex(varname) + r'}{\mathrm{d}t}'
             else:
                 # Normal equation or parameter
                 lhs = varname
@@ -814,7 +811,7 @@ class Equations(collections.Mapping):
                                                                    sympy.latex(eq.unit),
                                                                    flag_str)
             equations.append(eq_latex)
-        return r'\begin{align}' + r'\\'.join(equations) + r'\end{align}'
+        return r'\begin{align*}' + (r'\\' + '\n').join(equations) + r'\end{align*}'
 
     def _repr_latex_(self):
         return sympy.latex(self)
