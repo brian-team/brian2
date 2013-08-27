@@ -43,7 +43,7 @@ class StateUpdater(GroupCodeRunner):
     def __init__(self, group, method):
         self.method_choice = method
         GroupCodeRunner.__init__(self, group,
-                                 'stateupdate',
+                                 'synaptic_stateupdate',
                                  when=(group.clock, 'groups'),
                                  name=group.name + '_stateupdater',
                                  check_units=False)
