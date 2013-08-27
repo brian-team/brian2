@@ -86,7 +86,9 @@ def test_synapse_creation():
 def test_synapse_access():
     for codeobj_class in codeobj_classes:
         G1 = NeuronGroup(10, 'v:1', codeobj_class=codeobj_class)
+        G1.v = 'i'
         G2 = NeuronGroup(20, 'v:1', codeobj_class=codeobj_class)
+        G2.v = '10 + i'
         SG1 = G1[:5]
         SG2 = G2[10:]
         S = Synapses(SG1, SG2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
@@ -100,6 +102,14 @@ def test_synapse_access():
 
         assert len(S.w[:, 10]) == 0
         assert len(S.w['j==10']) == 0
+
+        # Test referencing pre- and postsynaptic variables
+        assert_equal(S.w[2:, :], S.w['v_pre >= 2'])
+        assert_equal(S.w[:, :5], S.w['v_post < 15'])
+        S.w = 'v_post'
+        assert_equal(S.w[:], S.j[:] + 20)
+        S.w = 'v_post + v_pre'
+        assert_equal(S.w[:], S.j[:] + 20 + S.i[:])
 
 
 def test_synaptic_propagation():
