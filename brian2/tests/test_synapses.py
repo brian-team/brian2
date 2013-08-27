@@ -168,6 +168,7 @@ def test_state_variable_assignment():
     Assign values to state variables in various ways
     '''
     G = NeuronGroup(10, 'v: volt')
+    G.v = 'i*mV'
     S = Synapses(G, G, 'w:volt')
     S.connect(True)
 
@@ -179,6 +180,9 @@ def test_state_variable_assignment():
         ('5*mV', np.ones(100)*5*mV),
         ('i*mV', np.ones(100)*S.i[:]*mV),
         ('i*mV +j*mV', S.i[:]*mV + S.j[:]*mV),
+        # reference to pre- and postsynaptic state variables
+        ('v_pre', S.i[:]*mV),
+        ('v_post', S.j[:]*mV),
         #('i*mV + j*mV + k*mV', S.i[:]*mV + S.j[:]*mV + S.k[:]*mV) #not supported yet
     ]
 
@@ -216,7 +220,9 @@ def test_state_variable_assignment():
 
 def test_state_variable_indexing():
     G1 = NeuronGroup(5, 'v:1')
+    G1.v = 'i*mV'
     G2 = NeuronGroup(7, 'v:1')
+    G2.v= '10 + i*mV'
     S = Synapses(G1, G2, 'w:1')
     S.connect(True, n=2)
     S.w[:, :, 0] = '5*i + j'
@@ -244,6 +250,8 @@ def test_state_variable_indexing():
     assert_equal(S.w[0:3], S.w['i<3'])
     assert_equal(S.w[:, 0:3], S.w['j<3'])
     assert_equal(S.w[:, :, 0], S.w['k==0'])
+    assert_equal(S.w[0:3], S.w['v_pre < 3*mV'])
+    assert_equal(S.w[:, 0:3], S.w['v_post < 13*mV'])
 
     #invalid indices
     assert_raises(IndexError, lambda: S.w.__getitem__((1, 2, 3, 4)))

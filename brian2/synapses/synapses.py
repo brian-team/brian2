@@ -657,6 +657,10 @@ class Synapses(BrianObject, Group):
         self.j = self.item_mapping.j
         self.k = self.item_mapping.k
 
+        # Make use of a special template when setting/indexing variables with
+        # code in order to allow references to pre- and postsynaptic variables
+        self._set_with_code_template = 'synaptic_variable_set'
+
         # Setup variables
         self.variables = self._create_variables()
 
