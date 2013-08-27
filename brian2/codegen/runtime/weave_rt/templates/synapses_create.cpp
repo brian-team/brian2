@@ -1,7 +1,7 @@
 {% macro main() %}
     // USES_VARIABLES { _synaptic_pre, _synaptic_post, _post_synaptic,
     //                  _pre_synaptic, _source_neurons, _target_neurons,
-    //                  rand}
+    //                  rand, _source_offset, _target_offset}
 
     //// SUPPORT CODE //////////////////////////////////////////////////////////
 	{% for line in support_code_lines %}
@@ -36,6 +36,8 @@
 		for(int j=0; j<_num_target_neurons; j++)
 		{
 		    const int _vectorisation_idx = j;
+		    const int _presynaptic_idx = i + _source_offset;
+		    const int _postsynaptic_idx = j + _target_offset;
 			// Define the condition
 			{% for line in code_lines %}
 			{{line}}

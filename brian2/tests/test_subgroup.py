@@ -68,8 +68,11 @@ def test_state_monitor():
 
 def test_synapse_creation():
     for codeobj_class in codeobj_classes:
+        print codeobj_class
         G1 = NeuronGroup(10, 'v:1', codeobj_class=codeobj_class)
         G2 = NeuronGroup(20, 'v:1', codeobj_class=codeobj_class)
+        G1.v = 'i'
+        G2.v = '10 + i'
         SG1 = G1[:5]
         SG2 = G2[10:]
         S = Synapses(SG1, SG2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
@@ -81,6 +84,15 @@ def test_synapse_creation():
         assert_equal(S.item_mapping.synaptic_post, np.array([2, 5]))
         assert_equal(S.i[:], np.array([2, 4]))
         assert_equal(S.j[:], np.array([2, 5]))
+
+        # connect based on pre-/postsynaptic state variables
+        S = Synapses(SG1, SG2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
+        S.connect('v_pre > 2')
+        assert len(S) == 2 * len(SG2), str(len(S))
+
+        S = Synapses(SG1, SG2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
+        S.connect('v_post < 25')
+        assert len(S) == 5 * len(SG1)
 
 
 def test_synapse_access():

@@ -35,7 +35,9 @@ def test_connection_string_deterministic():
     Test connecting synapses with a deterministic string expression.
     '''
     G = NeuronGroup(42, 'v: 1')
+    G.v = 'i'
     G2 = NeuronGroup(17, 'v: 1')
+    G2.v = '42 + i'
 
     for codeobj_class in codeobj_classes:
         # Full connection
@@ -62,6 +64,10 @@ def test_connection_string_deterministic():
         S.connect('i != j')
         _compare(S, expected)
 
+        S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
+        S.connect('v_pre != v_post')
+        _compare(S, expected)
+
         S = Synapses(G, G, 'w:1', 'v+=w', connect='i != j', codeobj_class=codeobj_class)
         _compare(S, expected)
 
@@ -70,6 +76,10 @@ def test_connection_string_deterministic():
 
         S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect('i == j')
+        _compare(S, expected)
+
+        S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
+        S.connect('v_pre == v_post')
         _compare(S, expected)
 
         S = Synapses(G, G, 'w:1', 'v+=w', connect='i == j', codeobj_class=codeobj_class)
