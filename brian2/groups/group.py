@@ -55,9 +55,11 @@ class GroupItemMapping(Variable):
             check_code_units(abstract_code, self.group,
                              additional_variables=self.variables,
                              additional_namespace=additional_namespace)
+            template = getattr(self.group, '_index_with_code_template',
+                              'state_variable_indexing')
             codeobj = create_runner_codeobj(self.group,
                                             abstract_code,
-                                            'state_variable_indexing',
+                                            template,
                                             additional_variables=self.variables,
                                             additional_namespace=additional_namespace,
                                             )

@@ -222,7 +222,7 @@ def test_state_variable_indexing():
     G1 = NeuronGroup(5, 'v:1')
     G1.v = 'i*mV'
     G2 = NeuronGroup(7, 'v:1')
-    G2.v= '10 + i*mV'
+    G2.v= '10*mV + i*mV'
     S = Synapses(G1, G2, 'w:1')
     S.connect(True, n=2)
     S.w[:, :, 0] = '5*i + j'

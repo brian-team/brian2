@@ -510,9 +510,11 @@ class SynapticItemMapping(Variable):
             namespace = get_local_namespace(1)
             additional_namespace = ('implicit-namespace', namespace)
             abstract_code = '_cond = ' + index
+            template = getattr(self.synapses, '_index_with_code_template',
+                               'state_variable_indexing')
             codeobj = create_runner_codeobj(self.synapses,
                                             abstract_code,
-                                            'state_variable_indexing',
+                                            template,
                                             additional_variables=variables,
                                             additional_namespace=additional_namespace,
                                             )
@@ -660,6 +662,7 @@ class Synapses(BrianObject, Group):
         # Make use of a special template when setting/indexing variables with
         # code in order to allow references to pre- and postsynaptic variables
         self._set_with_code_template = 'synaptic_variable_set'
+        self._index_with_code_template = 'synaptic_variable_indexing'
 
         # Setup variables
         self.variables = self._create_variables()
