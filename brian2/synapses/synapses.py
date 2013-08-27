@@ -218,7 +218,7 @@ class IndexView(object):
         self.mapping = mapping
 
     def __getitem__(self, item):
-        synaptic_indices = self.index[item]
+        synaptic_indices = self.index[self.mapping[item]]
         return synaptic_indices
 
 

@@ -16,13 +16,14 @@ for i in range(_num_source_neurons):
     {% endfor %}
     if _cond is False or _cond is numpy_False:
         continue
+
+    if not np.isscalar(_p) or _p != 1:
+        _cond_nonzero, = np.logical_and(_cond,
+                                       np.random.rand(len(_vectorisation_idx)) < _p).nonzero()
     elif _cond is True or _cond is numpy_True:
         _cond_nonzero = j
     else:
-        _cond_nonzero = _cond.nonzero()[0]
-
-    if not np.isscalar(_p) or _p != 1:
-        _cond_nonzero = _cond_nonzero[np.random.rand(len(_cond_nonzero)) < _p]
+        _cond_nonzero, = _cond.nonzero()
 
     if not np.isscalar(_n):
         # The "n" expression involved j
