@@ -314,7 +314,11 @@ def create_runner_codeobj(group, code, template_name, indices=None,
         A dictionary of additional information that is passed to the template.
     '''
     logger.debug('Creating code object for abstract code:\n' + str(code))
-        
+
+    if check_units:
+        check_code_units(code, group, additional_variables=additional_variables,
+                         additional_namespace=additional_namespace)
+
     template = get_codeobject_template(template_name,
                                        codeobj_class=group.codeobj_class)
 
@@ -327,14 +331,15 @@ def create_runner_codeobj(group, code, template_name, indices=None,
                                                  recursive=True)
 
     logger.debug('Unknown identifiers in the abstract code: ' + str(unknown))
-    resolved_namespace = group.namespace.resolve_all(unknown,
-                                                     additional_namespace)
 
     # Only pass the variables that are actually used
     variables = {}
     for var in used_known:
         if not isinstance(all_variables[var], StochasticVariable):
             variables[var] = all_variables[var]
+
+    resolved_namespace = group.namespace.resolve_all(unknown,
+                                                     additional_namespace)
 
     # Also add the variables that the template needs
     for var in template.variables:
