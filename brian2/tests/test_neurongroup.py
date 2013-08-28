@@ -201,6 +201,7 @@ def test_syntax_errors():
                                           reset='0',
                                           codeobj_class=codeobj_class))            
 
+
 def test_state_variables():
     '''
     Test the setting and accessing of state variables.
@@ -221,6 +222,12 @@ def test_state_variables():
     assert_allclose(G.v[0], -70*mV)
     assert_allclose(G.v[9], -61*mV)
     assert_allclose(G.v[:], -70*mV + np.arange(10)*mV)
+
+    # And it should raise an unit error if the units are incorrect
+    assert_raises(DimensionMismatchError,
+                  lambda: G.__setattr__('v', '70 + i'))
+    assert_raises(DimensionMismatchError,
+                  lambda: G.__setattr__('v', '70 + i*mV'))
 
     # Calculating with state variables should work too
     assert all(G.v - G.v == 0)

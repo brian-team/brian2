@@ -1,0 +1,9 @@
+# USES_VARIABLES { _group_idx, _synaptic_pre, _synaptic_post,
+#                  _source_offset, _target_offset }
+_idx = _group_idx
+_vectorisation_idx = _idx
+_presynaptic_idx = _synaptic_pre[_idx] + _source_offset
+_postsynaptic_idx = _synaptic_post[_idx] + _target_offset
+{% for line in code_lines %}
+{{line}}
+{% endfor %}
