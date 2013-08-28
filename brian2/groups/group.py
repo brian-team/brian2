@@ -55,9 +55,11 @@ class GroupItemMapping(Variable):
             check_code_units(abstract_code, self.group,
                              additional_variables=self.variables,
                              additional_namespace=additional_namespace)
+            template = getattr(self.group, '_index_with_code_template',
+                              'state_variable_indexing')
             codeobj = create_runner_codeobj(self.group,
                                             abstract_code,
-                                            'state_variable_indexing',
+                                            template,
                                             additional_variables=self.variables,
                                             additional_namespace=additional_namespace,
                                             )
@@ -175,7 +177,7 @@ class Group(object):
             object.__setattr__(self, name, val)
 
     def _set_with_code(self, variable, group_indices, code,
-                       check_units=True, level=0):
+                       template, check_units=True, level=0):
         '''
         Sets a variable using a string expression. Is called by
         `VariableView.__setitem__` for statements such as
@@ -190,6 +192,8 @@ class Group(object):
         code : str
             The code that should be executed to set the variable values.
             Can contain references to indices, such as `i` or `j`
+        template : str
+            The name of the template to use.
         check_units : bool, optional
             Whether to check the units of the expression.
         level : int, optional
@@ -209,7 +213,7 @@ class Group(object):
         # array for situations where iterate_all could be used
         codeobj = create_runner_codeobj(self,
                                  abstract_code,
-                                 'group_variable_set',
+                                 template,
                                  additional_variables=additional_variables,
                                  additional_namespace=additional_namespace,
                                  check_units=check_units)
@@ -310,7 +314,11 @@ def create_runner_codeobj(group, code, template_name, indices=None,
         A dictionary of additional information that is passed to the template.
     '''
     logger.debug('Creating code object for abstract code:\n' + str(code))
-        
+
+    if check_units:
+        check_code_units(code, group, additional_variables=additional_variables,
+                         additional_namespace=additional_namespace)
+
     template = get_codeobject_template(template_name,
                                        codeobj_class=group.codeobj_class)
 
@@ -323,14 +331,15 @@ def create_runner_codeobj(group, code, template_name, indices=None,
                                                  recursive=True)
 
     logger.debug('Unknown identifiers in the abstract code: ' + str(unknown))
-    resolved_namespace = group.namespace.resolve_all(unknown,
-                                                     additional_namespace)
 
     # Only pass the variables that are actually used
     variables = {}
     for var in used_known:
         if not isinstance(all_variables[var], StochasticVariable):
             variables[var] = all_variables[var]
+
+    resolved_namespace = group.namespace.resolve_all(unknown,
+                                                     additional_namespace)
 
     # Also add the variables that the template needs
     for var in template.variables:

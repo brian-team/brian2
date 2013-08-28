@@ -1,23 +1,29 @@
-# USES_VARIABLES { _source_neurons, _target_neurons, _synaptic_pre, _synaptic_post, _pre_synaptic, _post_synaptic }
+# USES_VARIABLES { _source_neurons, _target_neurons, _synaptic_pre, _synaptic_post,
+#                  _pre_synaptic, _post_synaptic, _source_offset, _target_offset }
 
 import numpy as np
+
+numpy_False = np.bool_(False)
+numpy_True = np.bool_(True)
 
 for i in range(_num_source_neurons):
     j = np.arange(_num_target_neurons)
     _vectorisation_idx = j
+    _presynaptic_idx = i + _source_offset
+    _postsynaptic_idx = j + _target_offset
     {% for line in code_lines %}
     {{line}}
     {% endfor %}
-
-    if _cond is False:
+    if _cond is False or _cond is numpy_False:
         continue
-    elif _cond is True:
-        _cond_nonzero = j
-    else:
-        _cond_nonzero = _cond.nonzero()[0]
 
     if not np.isscalar(_p) or _p != 1:
-        _cond_nonzero = _cond_nonzero[np.random.rand(len(_cond_nonzero)) < _p]
+        _cond_nonzero, = np.logical_and(_cond,
+                                       np.random.rand(len(_vectorisation_idx)) < _p).nonzero()
+    elif _cond is True or _cond is numpy_True:
+        _cond_nonzero = j
+    else:
+        _cond_nonzero, = _cond.nonzero()
 
     if not np.isscalar(_n):
         # The "n" expression involved j
