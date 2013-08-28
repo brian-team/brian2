@@ -62,7 +62,7 @@ class RandnFunction(Function):
                 curbuffer = 0;
             return number;
         }
-        '''.replace('%VAR%', var)
+        '''
 
         hashdefine_code = '''
         #define _randn(_vectorisation_idx) _call_randn(_python_randn)
@@ -129,6 +129,32 @@ class ClipFunction(Function):
 	        if (value > a_max)
 	            return a_max;
 	        return value;
+        }
+        '''
+
+        return {'support_code': support_code,
+                'hashdefine_code': ''}
+
+    def on_compile_cpp(self, namespace, language, var):
+        pass
+
+
+class IntFunction(Function):
+    '''
+    An ``int`` function for converting a boolean value into an integer.
+    '''
+    def __init__(self):
+        Function.__init__(self, pyfunc=np.int_, arg_units=[1],
+                          return_unit=1)
+
+    def __call__(self, value):
+        return np.int_(value)
+
+    def code_cpp(self, language, var):
+        support_code = '''
+        double _int(const bool value)
+        {
+	        return value ? 1 : 0;
         }
         '''
 
@@ -246,9 +272,11 @@ def _get_default_functions():
                                        cpp_name='fmod',
                                        sympy_func=sympy_mod.Mod,
                                        arg_units=[None, None], return_unit=lambda u,v : u),
+                # functions that need special treatment
                 'rand': RandFunction(),
                 'randn': RandnFunction(),
-                'clip': ClipFunction()
+                'clip': ClipFunction(),
+                'int_': IntFunction()
                 }
     
     return functions
