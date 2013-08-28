@@ -57,7 +57,7 @@ def add_refractoriness(eqs):
     for eq in eqs.itervalues():
         if eq.type == DIFFERENTIAL_EQUATION and 'unless-refractory' in eq.flags:
             # the only case where we have to change anything
-            new_code = 'not_refractory*(' + eq.expr.code + ')'
+            new_code = 'int_(not_refractory)*(' + eq.expr.code + ')'
             new_equations.append(SingleEquation(DIFFERENTIAL_EQUATION,
                                                 eq.varname, eq.unit,
                                                 expr=Expression(new_code),

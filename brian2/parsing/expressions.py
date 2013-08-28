@@ -48,9 +48,10 @@ def is_boolean_expression(expr, namespace, variables):
     * The node is a boolean operation. If all the subnodes are boolean
       expressions we return ``True``, otherwise we raise the ``SyntaxError``.
     * The node is a function call, we return ``True`` or ``False`` depending
-      on whether the name is in ``boolfuncs``.
+      on whether the function description has the ``_returns_bool`` attribute
+      set.
     * The node is a variable name, we return ``True`` or ``False`` depending
-      on whether the name is in ``boolvars`` or if the name is ``True`` or
+      on whether ``is_bool`` attribute is set or if the name is ``True`` or
       ``False``.
     * The node is a comparison, we return ``True``.
     * The node is a unary operation, we return ``True`` if the operation is
