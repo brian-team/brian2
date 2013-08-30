@@ -95,13 +95,9 @@ open('output/arrays.h', 'w').write(arr_tmp.h_file)
 
 for codeobj in code_objects:
     ns = codeobj.namespace
-    # TODO: fix this hack
-    # Surprise, surprise. Using global variables like this in C++ doesn't work. That's OK, this was
-    # only ever a temporary hack anyway. You can manually modify the codeobject.cpp files to move
-    # these definitions into the function, and then it works! Hurrah!
+    # TODO: fix these freeze/CONSTANTS hacks somehow - they work but not elegant. 
     code = freeze(codeobj.code.cpp_file, ns)
     code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj]))
-    #code = '\n'.join(code_object_defs[codeobj])+code
     code = '#include "arrays.h"\n'+code
     
     open('output/'+codeobj.name+'.cpp', 'w').write(code)
