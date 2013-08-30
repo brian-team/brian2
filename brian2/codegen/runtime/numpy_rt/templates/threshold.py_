@@ -1,6 +1,8 @@
 # USES_VARIABLES { not_refractory, lastspike, t, _spikespace }
 # ITERATE_ALL { _idx }
 
+_vectorisation_idx = _idx
+
 {% for line in code_lines %}
 {{line}}
 {% endfor %}

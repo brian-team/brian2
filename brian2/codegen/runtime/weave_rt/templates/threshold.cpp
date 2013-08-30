@@ -5,7 +5,7 @@
 	// USES_VARIABLES { not_refractory, lastspike, t, _spikespace }
 	////// SUPPORT CODE ///////
 	{% for line in support_code_lines %}
-	// {{line}}
+	//{{line}}
 	{% endfor %}
 
 	////// HANDLE DENORMALS ///
@@ -48,6 +48,6 @@
 
 {% macro support_code() %}
 	{% for line in support_code_lines %}
-	// {{line}}
+	{{line}}
 	{% endfor %}
 {% endmacro %}
