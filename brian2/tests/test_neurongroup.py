@@ -1,3 +1,4 @@
+import sympy
 import numpy as np
 from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 
@@ -272,6 +273,20 @@ def test_state_variable_access():
     assert_raises(DimensionMismatchError, lambda: G.v['v >= 3*second'])
 
 
+def test_repr():
+    G = NeuronGroup(10, '''dv/dt = -(v + Inp) / tau : volt
+                           Inp = sin(2*pi*freq*t) : volt
+                           freq : Hz''')
+
+    # Test that string/LaTeX representations do not raise errors
+    for func in [str, repr, sympy.latex]:
+        assert len(func(G))
+        assert len(func(G.equations))
+        for eq in G.equations.itervalues():
+            print sympy.latex(eq)
+            assert len(func(eq))
+
+
 if __name__ == '__main__':
     test_creation()
     test_variables()
@@ -284,3 +299,4 @@ if __name__ == '__main__':
     test_syntax_errors()
     test_state_variables()
     test_state_variable_access()
+    test_repr()

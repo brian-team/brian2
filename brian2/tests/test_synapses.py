@@ -403,6 +403,21 @@ def test_event_driven():
         assert_equal(S1.w[:], S2.w[:])
 
 
+def test_repr():
+    G = NeuronGroup(1, 'v: volt')
+    S = Synapses(G, G,
+                 '''w : 1
+                    dApre/dt = -Apre/taupre : 1 (event-driven)
+                    dApost/dt = -Apost/taupost : 1 (event-driven)''',
+                 pre='''Apre += dApre
+                        w = clip(w+Apost, 0, gmax)''',
+                 post='''Apost += dApost
+                         w = clip(w+Apre, 0, gmax)''')
+    # Test that string/LaTeX representations do not raise errors
+    for func in [str, repr, sympy.latex]:
+        assert len(func(S.equations))
+
+
 if __name__ == '__main__':
     test_creation()
     test_connection_string_deterministic()
@@ -414,3 +429,4 @@ if __name__ == '__main__':
     test_transmission()
     test_lumped_variable()
     test_event_driven()
+    test_repr()

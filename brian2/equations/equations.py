@@ -263,8 +263,14 @@ class SingleEquation(object):
                            doc='All identifiers in the RHS of this equation.')
 
     def _latex(self, *args):
-        return (r'\frac{\mathrm{d}' + sympy.latex(self.varname) + r'}{\mathrm{d}t} = ' +
-                sympy.latex(str_to_sympy(self.expr.code)))
+        if self.type == DIFFERENTIAL_EQUATION:
+            return (r'\frac{\mathrm{d}' + sympy.latex(self.varname) + r'}{\mathrm{d}t} = ' +
+                    sympy.latex(str_to_sympy(self.expr.code)))
+        elif self.type == STATIC_EQUATION:
+            return (sympy.latex(self.varname) + ' = ' +
+                    sympy.latex(str_to_sympy(self.expr.code)))
+        elif self.type == PARAMETER:
+            return sympy.latex(self.varname)
 
     def __str__(self):
         if self.type == DIFFERENTIAL_EQUATION:
