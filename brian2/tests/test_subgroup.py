@@ -173,7 +173,6 @@ def test_wrong_indexing():
     assert_raises(TypeError, lambda: G['string'])
 
     assert_raises(IndexError, lambda: G[10:])
-    assert_raises(IndexError, lambda: G[:15])
     assert_raises(IndexError, lambda: G[::2])
     assert_raises(IndexError, lambda: G[3:2])
 
