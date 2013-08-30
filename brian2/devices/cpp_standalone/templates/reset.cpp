@@ -20,6 +20,8 @@
 
 void _run_{{codeobj_name}}(double t)
 {
+	///// CONSTANTS ///////////
+	%CONSTANTS%
 	///// POINTERS ////////////
 	{% for line in pointers_lines %}
 	{{line}}

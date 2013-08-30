@@ -57,8 +57,10 @@ for codeobj in code_objects:
             val = v()
             if isinstance(val, int):
                 code_object_defs[codeobj].append('int %s = %s;' % (k, arr_N))
+                #code_object_defs[codeobj].append(('int', k, arr_N))
             elif k=='_spikespace':
                 code_object_defs[codeobj].append('%s *%s = %s;' % (arr_dtype, k, arr_k))
+                #code_object_defs[codeobj].append((arr_dtype+' *', k, arr_k))
             elif isinstance(val, ndarray):
                 pass
                 #code_object_defs[codeobj].append('%s *%s = %s;' % (arr_dtype, k, arr_k))
@@ -73,10 +75,8 @@ def constants(ns):
 def freeze(code, ns):
     # this is a bit of a hack, it should be passed to the template somehow
     for k, v in ns.items():
-        if isinstance(v, float):
-            code = ('const double %s = %s;\n' % (k, repr(v)))+code
-        elif isinstance(v, int):
-            code = ('const int %s = %s;\n' % (k, repr(v)))+code
+        if isinstance(v, (int, float)):
+            code = word_substitute(code, {k: repr(v)})
     return code
 
 if not os.path.exists('output'):
@@ -100,7 +100,8 @@ for codeobj in code_objects:
     # only ever a temporary hack anyway. You can manually modify the codeobject.cpp files to move
     # these definitions into the function, and then it works! Hurrah!
     code = freeze(codeobj.code.cpp_file, ns)
-    code = '\n'.join(code_object_defs[codeobj])+code
+    code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj]))
+    #code = '\n'.join(code_object_defs[codeobj])+code
     code = '#include "arrays.h"\n'+code
     
     open('output/'+codeobj.name+'.cpp', 'w').write(code)
