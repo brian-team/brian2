@@ -315,7 +315,13 @@ class VariableView(object):
     def __div__(self, other):
         return self[:] / other
 
+    def __truediv__(self, other):
+        return self[:] / other
+
     def __rdiv__(self, other):
+        return other / self[:]
+
+    def __rtruediv__(self, other):
         return other / self[:]
 
     def __iadd__(self, other):
