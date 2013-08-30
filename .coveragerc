@@ -5,7 +5,9 @@ branch = True
 source = brian2
 # Do not match templates, etc.
 include = *.py
-omit = */brian2/tests/*
+omit =
+    */brian2/tests/*
+    */brian2/sphinxext/*
 
 [report]
 # Regexes for lines to exclude from consideration
