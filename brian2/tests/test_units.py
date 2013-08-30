@@ -27,7 +27,7 @@ from brian2.units.stdunits import ms, mV, kHz, nS, cm
 
 def assert_quantity(q, values, unit):
     assert isinstance(q, Quantity) or (isinstance(q, np.ndarray) and have_same_dimensions(unit, 1))
-    assert np.all(np.asarray(q) == values)
+    assert_equal(np.asarray(q), values)
     assert have_same_dimensions(q, unit), ('Dimension mismatch: (%s) (%s)' %
                                            (get_dimensions(q),
                                             get_dimensions(unit)))
@@ -64,7 +64,9 @@ def test_construction():
     assert_quantity(q, np.array([1, 2, 3]), Unit(1))
     q = Quantity(np.array([1, 2, 3]))
     assert_quantity(q, np.array([1, 2, 3]), Unit(1))
-    
+    q = Quantity([])
+    assert_quantity(q, np.array([]), Unit(1))
+
     # copying/referencing a quantity
     q1 = Quantity.with_dimensions(np.array([0.5, 1]), second=1)
     q2 = Quantity(q1) # no copy
@@ -326,6 +328,15 @@ def test_addition_subtraction():
         assert_raises(TypeError, lambda: 'string' + q)
         assert_raises(TypeError, lambda: q - 'string')
         assert_raises(TypeError, lambda: 'string' - q)
+
+
+def test_unary_operations():
+    from operator import neg, pos
+
+    for op in [neg, pos]:
+        for x in [2, np.array([2]), np.array([1, 2])]:
+            assert_quantity(op(x*kilogram), op(x), kilogram)
+
 
 def test_binary_operations():
     ''' Test whether binary operations work when they should and raise
@@ -632,6 +643,11 @@ def test_special_case_numpy_functions():
         a.setasflat(b)
         assert_equal(a.flatten(), b.flatten())
 
+    # Check cumprod
+    a = np.arange(1, 10) * mV/mV
+    assert_equal(a.cumprod(), np.asarray(a).cumprod())
+    assert_raises(TypeError, lambda: (np.arange(1, 5)*mV).cumprod())
+
 
 # Functions that should not change units
 def test_numpy_functions_same_dimensions():
@@ -691,12 +707,20 @@ def test_numpy_functions_dimensionless():
                 assert isinstance(result_unitless, (np.ndarray, np.number)) and not isinstance(result_unitless, Quantity)
                 assert_equal(result_unitless, result_array)
         
-        for value in unit_values:
+        for value, unitless_value in zip(unit_values, unitless_values):
             for ufunc in UFUNCS_DIMENSIONLESS:
                 assert_raises(DimensionMismatchError,
                               lambda: eval('np.%s(value)' % ufunc,
                                            globals(), {'value': value}))
             for ufunc in UFUNCS_DIMENSIONLESS_TWOARGS:
+                assert_raises(DimensionMismatchError,
+                              lambda: eval('np.%s(value1, value2)' % ufunc,
+                                           globals(), {'value1': value,
+                                                       'value2': unitless_value}))
+                assert_raises(DimensionMismatchError,
+                              lambda: eval('np.%s(value2, value1)' % ufunc,
+                                           globals(), {'value1': value,
+                                                       'value2': unitless_value}))
                 assert_raises(DimensionMismatchError,
                               lambda: eval('np.%s(value, value)' % ufunc,
                                            globals(), {'value': value}))
@@ -862,6 +886,7 @@ if __name__ == '__main__':
     test_setting()
     test_multiplication_division()
     test_addition_subtraction()
+    test_unary_operations()
     test_binary_operations()
     test_inplace_operations()
     test_unit_discarding_functions()

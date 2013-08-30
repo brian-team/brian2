@@ -925,26 +925,7 @@ class Synapses(BrianObject, Group):
                 curdtype = brian_prefs['core.default_scalar_dtype']
             arrays[name] = DynamicArray1D(0)
         logger.debug("NeuronGroup memory allocated successfully.")
-        return arrays             
-
-
-    def connect_one_to_one(self):
-        ''' Manually create a one to one connectivity pattern '''
-
-        if len(self.source) != len(self.target):
-            raise TypeError('Can only create synapses between groups of same size')
-
-        self.connect(np.arange(len(self.source)),
-                     np.arange(len(self.target)))
-
-    def connect_full(self):
-        '''
-        Connect all neurons in the source group to all neurons in the target
-        group.
-        '''
-        sources, targets = np.meshgrid(np.arange(len(self.source)),
-                                       np.arange(len(self.target)))
-        self.connect(sources.flat(), targets.flat())
+        return arrays
 
     def connect(self, pre_or_cond, post=None, p=1., n=1, level=0):
         '''
@@ -997,7 +978,7 @@ class Synapses(BrianObject, Group):
                 raise TypeError(('Presynaptic indices can only be combined '
                                  'with postsynaptic integer indices))'))
             if isinstance(n, basestring):
-                raise TypeError(('GroupIndices cannot be combined with a string'
+                raise TypeError(('Indices cannot be combined with a string'
                                  'expression for n. Either use an array/scalar '
                                  'for n, or a string expression for the '
                                  'connections'))

@@ -288,17 +288,35 @@ class VariableView(object):
             raise NotImplementedError('Changing dtype not supported')
         return self[:]
 
+    def __neg__(self):
+        return -self[:]
+
+    def __pos__(self):
+        return self[:]
+
     def __add__(self, other):
         return self[:] + other
+
+    def __radd__(self, other):
+        return other + self[:]
 
     def __sub__(self, other):
         return self[:] - other
 
+    def __rsub__(self, other):
+        return other - self[:]
+
     def __mul__(self, other):
         return self[:] * other
 
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
     def __div__(self, other):
         return self[:] / other
+
+    def __rdiv__(self, other):
+        return other / self[:]
 
     def __iadd__(self, other):
         if isinstance(other, basestring):

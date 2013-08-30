@@ -232,14 +232,27 @@ def test_state_variables():
 
     # Calculating with state variables should work too
     assert all(G.v - G.v == 0)
+    assert all(G.v + G.v == 2*G.v)
+    assert all(G.v / 2.0 == 0.5*G.v)
+    assert_equal((-G.v)[:], -G.v[:])
+    assert_equal((+G.v)[:], G.v[:])
 
     # And in-place modification should work as well
     G.v += 10*mV
+    G.v -= 10*mV
     G.v *= 2
+    G.v /= 2.0
+
     # with unit checking
     assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3*second))
     assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3))
     assert_raises(DimensionMismatchError, lambda: G.v.__imul__(3*second))
+
+    # in-place modification with strings should not work
+    assert_raises(TypeError, lambda: G.v.__iadd__('string'))
+    assert_raises(TypeError, lambda: G.v.__imul__('string'))
+    assert_raises(TypeError, lambda: G.v.__idiv__('string'))
+    assert_raises(TypeError, lambda: G.v.__isub__('string'))
 
 
 def test_state_variable_access():
@@ -271,6 +284,10 @@ def test_state_variable_access():
     # Should also check for units
     assert_raises(DimensionMismatchError, lambda: G.v['v >= 3'])
     assert_raises(DimensionMismatchError, lambda: G.v['v >= 3*second'])
+
+    # A string representation should not raise any error
+    assert len(str(G.v))
+    assert len(repr(G.v))
 
 
 def test_repr():

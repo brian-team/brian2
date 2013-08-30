@@ -27,16 +27,65 @@ def test_creation():
     G = NeuronGroup(42, 'v: 1')
     for codeobj_class in codeobj_classes:
         S = Synapses(G, G, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
+        # We store weakref proxys, so we can't directly compare the objects
+        assert S.source.name == S.target.name == G.name
         assert len(S) == 0
+        S = Synapses(G, model='w:1', pre='v+=w', codeobj_class=codeobj_class)
+        assert S.source.name == S.target.name == G.name
+
+
+def test_connection_arrays():
+    '''
+    Test connecting synapses with explictly given arrays
+    '''
+    G = NeuronGroup(42, 'v : 1')
+    G2 = NeuronGroup(17, 'v : 1')
+
+    for codeobj_class in codeobj_classes:
+        # one-to-one
+        expected = np.eye(len(G2))
+        S = Synapses(G2, codeobj_class=codeobj_class)
+        S.connect(np.arange(len(G2)), np.arange(len(G2)))
+        _compare(S, expected)
+
+        # full
+        expected = np.ones((len(G), len(G2)))
+        S = Synapses(G, G2, codeobj_class=codeobj_class)
+        X, Y = np.meshgrid(np.arange(len(G)), np.arange(len(G2)))
+        S.connect(X.flatten(), Y.flatten())
+        _compare(S, expected)
+
+        # Multiple synapses
+        expected = np.zeros((len(G), len(G2)))
+        expected[3, 3] = 2
+        S = Synapses(G, G2, codeobj_class=codeobj_class)
+        S.connect([3, 3], [3, 3])
+        _compare(S, expected)
+
+        # Incorrect usage
+        S = Synapses(G, G2, codeobj_class=codeobj_class)
+        assert_raises(TypeError, lambda: S.connect([1.1, 2.2], [1.1, 2.2]))
+        assert_raises(TypeError, lambda: S.connect([1, 2], 'string'))
+        assert_raises(TypeError, lambda: S.connect([1, 2], [1, 2], n='i'))
+        assert_raises(TypeError, lambda: S.connect([1, 2]))
+        assert_raises(ValueError, lambda: S.connect(np.ones((3, 3), dtype=np.int32),
+                                                    np.ones((3, 1), dtype=np.int32)))
+        assert_raises(ValueError, lambda: S.connect('i==j',
+                                                    post=np.arange(10)))
+        assert_raises(TypeError, lambda: S.connect('i==j',
+                                                   n=object()))
+        assert_raises(TypeError, lambda: S.connect('i==j',
+                                                   p=object()))
+        assert_raises(TypeError, lambda: S.connect(object()))
 
 
 def test_connection_string_deterministic():
     '''
     Test connecting synapses with a deterministic string expression.
     '''
-    G = NeuronGroup(42, 'v: 1')
+    G = NeuronGroup(42, 'v : 1')
     G.v = 'i'
-    G2 = NeuronGroup(17, 'v: 1')
+    G2 = NeuronGroup(17, 'v : 1')
     G2.v = '42 + i'
 
     for codeobj_class in codeobj_classes:
@@ -241,14 +290,22 @@ def test_state_variable_indexing():
     #Slicing
     assert len(S.w[:]) == len(S.w[:, :]) == len(S.w[:, :, :]) == len(G1)*len(G2)*2
     assert len(S.w[0:]) == len(S.w[0:, 0:]) == len(S.w[0:, 0:, 0:]) == len(G1)*len(G2)*2
+    assert len(S.w[0::2]) == len(S.w[0::2, 0:]) == 3*len(G2)*2
     assert len(S.w[0]) == len(S.w[0, :]) == len(S.w[0, :, :]) == len(G2)*2
     assert len(S.w[0:2]) == len(S.w[0:2, :]) == len(S.w[0:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[:2]) == len(S.w[:2, :]) == len(S.w[:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[0:4:2]) == len(S.w[0:4:2, :]) == len(S.w[0:4:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[:4:2]) == len(S.w[:4:2, :]) == len(S.w[:4:2, :, :]) == 2*len(G2)*2
     assert len(S.w[:, 0]) == len(S.w[:, 0, :]) == len(G1)*2
     assert len(S.w[:, 0:2]) == len(S.w[:, 0:2, :]) == 2*len(G1)*2
     assert len(S.w[:, :2]) == len(S.w[:, :2, :]) == 2*len(G1)*2
+    assert len(S.w[:, 0:4:2]) == len(S.w[:, 0:4:2, :]) == 2*len(G1)*2
+    assert len(S.w[:, :4:2]) == len(S.w[:, :4:2, :]) == 2*len(G1)*2
     assert len(S.w[:, :, 0]) == len(G1)*len(G2)
     assert len(S.w[:, :, 0:2]) == len(G1)*len(G2)*2
     assert len(S.w[:, :, :2]) == len(G1)*len(G2)*2
+    assert len(S.w[:, :, 0:2:2]) == len(G1)*len(G2)
+    assert len(S.w[:, :, :2:2]) == len(G1)*len(G2)
 
     #Array-indexing (not yet supported for synapse index)
     assert_equal(S.w[0:3], S.w[[0, 1, 2]])
