@@ -99,6 +99,9 @@ def test_network_reinit_pre_post_run():
     net.reinit()
     assert_equal(x.did_reinit, True)
 
+    # Make sure that running with "report" works
+    net.run(1*ms, report='stdout')
+
 @with_setup(teardown=restore_initial_state)
 def test_magic_network():
     # test that magic network functions correctly

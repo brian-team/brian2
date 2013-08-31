@@ -222,11 +222,33 @@ class AttributeVariable(Variable):
 
 
 class VariableView(object):
+    '''
+    A view on a variable that allows to treat it as an numpy array while
+    allowing special indexing (e.g. with strings) in the context of a `Group`.
 
-    def __init__(self, name, variable, group, unit=None, level=0):
+    Parameters
+    ----------
+    name : str
+        The name of the variable
+    variable : `Variable`
+        The variable description.
+    group : `Group`
+        The group to which this variable belongs
+    template : str
+        The template to use when setting variables with a string expression.
+    unit : `Unit`, optional
+        The unit to be used for the variable, should be `None` when a variable
+         is accessed without units (e.g. when stating `G.var_`).
+    level : int, optional
+        How much farther to go down in the stack to find the namespace.
+    '''
+
+    def __init__(self, name, variable, group, template,
+                 unit=None, level=0):
         self.name = name
         self.variable = variable
         self.group = group
+        self.template = template
         self.unit = unit
         self.level = level
 
@@ -254,7 +276,8 @@ class VariableView(object):
         if isinstance(value, basestring):
             check_units = self.unit is not None
             self.group._set_with_code(variable, indices, value,
-                                      check_units, level=self.level + 1)
+                                      template=self.template,
+                                      check_units=check_units, level=self.level + 1)
         else:
             if not self.unit is None:
                 fail_for_dimension_mismatch(value, self.unit)
@@ -265,17 +288,41 @@ class VariableView(object):
             raise NotImplementedError('Changing dtype not supported')
         return self[:]
 
+    def __neg__(self):
+        return -self[:]
+
+    def __pos__(self):
+        return self[:]
+
     def __add__(self, other):
         return self[:] + other
+
+    def __radd__(self, other):
+        return other + self[:]
 
     def __sub__(self, other):
         return self[:] - other
 
+    def __rsub__(self, other):
+        return other - self[:]
+
     def __mul__(self, other):
         return self[:] * other
 
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
     def __div__(self, other):
         return self[:] / other
+
+    def __truediv__(self, other):
+        return self[:] / other
+
+    def __rdiv__(self, other):
+        return other / self[:]
+
+    def __rtruediv__(self, other):
+        return other / self[:]
 
     def __iadd__(self, other):
         if isinstance(other, basestring):
@@ -372,10 +419,16 @@ class ArrayVariable(Variable):
         self.value[:] = value
 
     def get_addressable_value(self, group, level=0):
-        return VariableView(self.name, self, group, None, level)
+        template = getattr(group, '_set_with_code_template',
+                           'group_variable_set')
+        return VariableView(self.name, self, group, template=template,
+                            unit=None, level=level)
 
     def get_addressable_value_with_unit(self, group, level=0):
-        return VariableView(self.name, self, group, self.unit, level)
+        template = getattr(group, '_set_with_code_template',
+                           'group_variable_set')
+        return VariableView(self.name, self, group, template=template,
+                            unit=self.unit, level=level)
 
 
 class DynamicArrayVariable(ArrayVariable):

@@ -27,15 +27,66 @@ def test_creation():
     G = NeuronGroup(42, 'v: 1')
     for codeobj_class in codeobj_classes:
         S = Synapses(G, G, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
+        # We store weakref proxys, so we can't directly compare the objects
+        assert S.source.name == S.target.name == G.name
         assert len(S) == 0
+        S = Synapses(G, model='w:1', pre='v+=w', codeobj_class=codeobj_class)
+        assert S.source.name == S.target.name == G.name
+
+
+def test_connection_arrays():
+    '''
+    Test connecting synapses with explictly given arrays
+    '''
+    G = NeuronGroup(42, 'v : 1')
+    G2 = NeuronGroup(17, 'v : 1')
+
+    for codeobj_class in codeobj_classes:
+        # one-to-one
+        expected = np.eye(len(G2))
+        S = Synapses(G2, codeobj_class=codeobj_class)
+        S.connect(np.arange(len(G2)), np.arange(len(G2)))
+        _compare(S, expected)
+
+        # full
+        expected = np.ones((len(G), len(G2)))
+        S = Synapses(G, G2, codeobj_class=codeobj_class)
+        X, Y = np.meshgrid(np.arange(len(G)), np.arange(len(G2)))
+        S.connect(X.flatten(), Y.flatten())
+        _compare(S, expected)
+
+        # Multiple synapses
+        expected = np.zeros((len(G), len(G2)))
+        expected[3, 3] = 2
+        S = Synapses(G, G2, codeobj_class=codeobj_class)
+        S.connect([3, 3], [3, 3])
+        _compare(S, expected)
+
+        # Incorrect usage
+        S = Synapses(G, G2, codeobj_class=codeobj_class)
+        assert_raises(TypeError, lambda: S.connect([1.1, 2.2], [1.1, 2.2]))
+        assert_raises(TypeError, lambda: S.connect([1, 2], 'string'))
+        assert_raises(TypeError, lambda: S.connect([1, 2], [1, 2], n='i'))
+        assert_raises(TypeError, lambda: S.connect([1, 2]))
+        assert_raises(ValueError, lambda: S.connect(np.ones((3, 3), dtype=np.int32),
+                                                    np.ones((3, 1), dtype=np.int32)))
+        assert_raises(ValueError, lambda: S.connect('i==j',
+                                                    post=np.arange(10)))
+        assert_raises(TypeError, lambda: S.connect('i==j',
+                                                   n=object()))
+        assert_raises(TypeError, lambda: S.connect('i==j',
+                                                   p=object()))
+        assert_raises(TypeError, lambda: S.connect(object()))
 
 
 def test_connection_string_deterministic():
     '''
     Test connecting synapses with a deterministic string expression.
     '''
-    G = NeuronGroup(42, 'v: 1')
-    G2 = NeuronGroup(17, 'v: 1')
+    G = NeuronGroup(42, 'v : 1')
+    G.v = 'i'
+    G2 = NeuronGroup(17, 'v : 1')
+    G2.v = '42 + i'
 
     for codeobj_class in codeobj_classes:
         # Full connection
@@ -62,6 +113,10 @@ def test_connection_string_deterministic():
         S.connect('i != j')
         _compare(S, expected)
 
+        S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
+        S.connect('v_pre != v_post')
+        _compare(S, expected)
+
         S = Synapses(G, G, 'w:1', 'v+=w', connect='i != j', codeobj_class=codeobj_class)
         _compare(S, expected)
 
@@ -70,6 +125,10 @@ def test_connection_string_deterministic():
 
         S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
         S.connect('i == j')
+        _compare(S, expected)
+
+        S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
+        S.connect('v_pre == v_post')
         _compare(S, expected)
 
         S = Synapses(G, G, 'w:1', 'v+=w', connect='i == j', codeobj_class=codeobj_class)
@@ -168,6 +227,7 @@ def test_state_variable_assignment():
     Assign values to state variables in various ways
     '''
     G = NeuronGroup(10, 'v: volt')
+    G.v = 'i*mV'
     S = Synapses(G, G, 'w:volt')
     S.connect(True)
 
@@ -179,6 +239,9 @@ def test_state_variable_assignment():
         ('5*mV', np.ones(100)*5*mV),
         ('i*mV', np.ones(100)*S.i[:]*mV),
         ('i*mV +j*mV', S.i[:]*mV + S.j[:]*mV),
+        # reference to pre- and postsynaptic state variables
+        ('v_pre', S.i[:]*mV),
+        ('v_post', S.j[:]*mV),
         #('i*mV + j*mV + k*mV', S.i[:]*mV + S.j[:]*mV + S.k[:]*mV) #not supported yet
     ]
 
@@ -215,8 +278,10 @@ def test_state_variable_assignment():
 
 
 def test_state_variable_indexing():
-    G1 = NeuronGroup(5, 'v:1')
-    G2 = NeuronGroup(7, 'v:1')
+    G1 = NeuronGroup(5, 'v:volt')
+    G1.v = 'i*mV'
+    G2 = NeuronGroup(7, 'v:volt')
+    G2.v= '10*mV + i*mV'
     S = Synapses(G1, G2, 'w:1')
     S.connect(True, n=2)
     S.w[:, :, 0] = '5*i + j'
@@ -225,14 +290,22 @@ def test_state_variable_indexing():
     #Slicing
     assert len(S.w[:]) == len(S.w[:, :]) == len(S.w[:, :, :]) == len(G1)*len(G2)*2
     assert len(S.w[0:]) == len(S.w[0:, 0:]) == len(S.w[0:, 0:, 0:]) == len(G1)*len(G2)*2
+    assert len(S.w[0::2]) == len(S.w[0::2, 0:]) == 3*len(G2)*2
     assert len(S.w[0]) == len(S.w[0, :]) == len(S.w[0, :, :]) == len(G2)*2
     assert len(S.w[0:2]) == len(S.w[0:2, :]) == len(S.w[0:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[:2]) == len(S.w[:2, :]) == len(S.w[:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[0:4:2]) == len(S.w[0:4:2, :]) == len(S.w[0:4:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[:4:2]) == len(S.w[:4:2, :]) == len(S.w[:4:2, :, :]) == 2*len(G2)*2
     assert len(S.w[:, 0]) == len(S.w[:, 0, :]) == len(G1)*2
     assert len(S.w[:, 0:2]) == len(S.w[:, 0:2, :]) == 2*len(G1)*2
     assert len(S.w[:, :2]) == len(S.w[:, :2, :]) == 2*len(G1)*2
+    assert len(S.w[:, 0:4:2]) == len(S.w[:, 0:4:2, :]) == 2*len(G1)*2
+    assert len(S.w[:, :4:2]) == len(S.w[:, :4:2, :]) == 2*len(G1)*2
     assert len(S.w[:, :, 0]) == len(G1)*len(G2)
     assert len(S.w[:, :, 0:2]) == len(G1)*len(G2)*2
     assert len(S.w[:, :, :2]) == len(G1)*len(G2)*2
+    assert len(S.w[:, :, 0:2:2]) == len(G1)*len(G2)
+    assert len(S.w[:, :, :2:2]) == len(G1)*len(G2)
 
     #Array-indexing (not yet supported for synapse index)
     assert_equal(S.w[0:3], S.w[[0, 1, 2]])
@@ -244,6 +317,8 @@ def test_state_variable_indexing():
     assert_equal(S.w[0:3], S.w['i<3'])
     assert_equal(S.w[:, 0:3], S.w['j<3'])
     assert_equal(S.w[:, :, 0], S.w['k==0'])
+    assert_equal(S.w[0:3], S.w['v_pre < 3*mV'])
+    assert_equal(S.w[:, 0:3], S.w['v_post < 13*mV'])
 
     #invalid indices
     assert_raises(IndexError, lambda: S.w.__getitem__((1, 2, 3, 4)))
@@ -385,6 +460,21 @@ def test_event_driven():
         assert_equal(S1.w[:], S2.w[:])
 
 
+def test_repr():
+    G = NeuronGroup(1, 'v: volt')
+    S = Synapses(G, G,
+                 '''w : 1
+                    dApre/dt = -Apre/taupre : 1 (event-driven)
+                    dApost/dt = -Apost/taupost : 1 (event-driven)''',
+                 pre='''Apre += dApre
+                        w = clip(w+Apost, 0, gmax)''',
+                 post='''Apost += dApost
+                         w = clip(w+Apre, 0, gmax)''')
+    # Test that string/LaTeX representations do not raise errors
+    for func in [str, repr, sympy.latex]:
+        assert len(func(S.equations))
+
+
 if __name__ == '__main__':
     test_creation()
     test_connection_string_deterministic()
@@ -396,3 +486,4 @@ if __name__ == '__main__':
     test_transmission()
     test_lumped_variable()
     test_event_driven()
+    test_repr()

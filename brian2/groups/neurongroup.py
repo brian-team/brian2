@@ -66,12 +66,12 @@ class StateUpdater(GroupCodeRunner):
             # No refractoriness
             self.abstract_code = ''
         elif isinstance(ref, Quantity):
-            self.abstract_code = 'not_refractory = 1*((t - lastspike) > %f)\n' % ref
+            self.abstract_code = 'not_refractory = (t - lastspike) > %f\n' % ref
         else:
             namespace = self.group.namespace
             unit = parse_expression_unit(str(ref), namespace, self.group.variables)
             if have_same_dimensions(unit, second):
-                self.abstract_code = 'not_refractory = 1*((t - lastspike) > %s)\n' % ref
+                self.abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
             elif have_same_dimensions(unit, Unit(1)):
                 if not is_boolean_expression(str(ref), namespace,
                                              self.group.variables):
@@ -83,7 +83,7 @@ class StateUpdater(GroupCodeRunner):
                 # we have to be a bit careful here, we can't just use the given
                 # condition as it is, because we only want to *leave*
                 # refractoriness, based on the condition
-                self.abstract_code = 'not_refractory = 1*(not_refractory or not (%s))\n' % ref
+                self.abstract_code = 'not_refractory = not_refractory or not (%s)\n' % ref
             else:
                 raise TypeError(('Refractory expression has to evaluate to a '
                                  'timespan or a boolean value, expression'
@@ -318,9 +318,6 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         start, stop, step = item.indices(self.N)
         if step != 1:
             raise IndexError('Subgroups have to be contiguous')
-        if stop > self.N:
-            raise IndexError(('Cannot extend subgroup to index %d, '
-                              'group has only %d items') % (stop, self.N))
         if start >= stop:
             raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
                              (start, stop))
@@ -390,8 +387,6 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         s.update({'_spikespace': ArrayVariable('_spikespace', Unit(1),
                                                self._spikespace,
                                                group_name=self.name)})
-        s.update({'_spikes': AttributeVariable(Unit(1), self,
-                                               'spikes', constant=False)})
 
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):

@@ -1,3 +1,4 @@
+import sympy
 import numpy as np
 from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 
@@ -201,6 +202,7 @@ def test_syntax_errors():
                                           reset='0',
                                           codeobj_class=codeobj_class))            
 
+
 def test_state_variables():
     '''
     Test the setting and accessing of state variables.
@@ -222,16 +224,35 @@ def test_state_variables():
     assert_allclose(G.v[9], -61*mV)
     assert_allclose(G.v[:], -70*mV + np.arange(10)*mV)
 
+    # And it should raise an unit error if the units are incorrect
+    assert_raises(DimensionMismatchError,
+                  lambda: G.__setattr__('v', '70 + i'))
+    assert_raises(DimensionMismatchError,
+                  lambda: G.__setattr__('v', '70 + i*mV'))
+
     # Calculating with state variables should work too
     assert all(G.v - G.v == 0)
+    assert all(G.v + G.v == 2*G.v)
+    assert all(G.v / 2.0 == 0.5*G.v)
+    assert_equal((-G.v)[:], -G.v[:])
+    assert_equal((+G.v)[:], G.v[:])
 
     # And in-place modification should work as well
     G.v += 10*mV
+    G.v -= 10*mV
     G.v *= 2
+    G.v /= 2.0
+
     # with unit checking
     assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3*second))
     assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3))
     assert_raises(DimensionMismatchError, lambda: G.v.__imul__(3*second))
+
+    # in-place modification with strings should not work
+    assert_raises(TypeError, lambda: G.v.__iadd__('string'))
+    assert_raises(TypeError, lambda: G.v.__imul__('string'))
+    assert_raises(TypeError, lambda: G.v.__idiv__('string'))
+    assert_raises(TypeError, lambda: G.v.__isub__('string'))
 
 
 def test_state_variable_access():
@@ -264,6 +285,24 @@ def test_state_variable_access():
     assert_raises(DimensionMismatchError, lambda: G.v['v >= 3'])
     assert_raises(DimensionMismatchError, lambda: G.v['v >= 3*second'])
 
+    # A string representation should not raise any error
+    assert len(str(G.v))
+    assert len(repr(G.v))
+
+
+def test_repr():
+    G = NeuronGroup(10, '''dv/dt = -(v + Inp) / tau : volt
+                           Inp = sin(2*pi*freq*t) : volt
+                           freq : Hz''')
+
+    # Test that string/LaTeX representations do not raise errors
+    for func in [str, repr, sympy.latex]:
+        assert len(func(G))
+        assert len(func(G.equations))
+        for eq in G.equations.itervalues():
+            print sympy.latex(eq)
+            assert len(func(eq))
+
 
 if __name__ == '__main__':
     test_creation()
@@ -277,3 +316,4 @@ if __name__ == '__main__':
     test_syntax_errors()
     test_state_variables()
     test_state_variable_access()
+    test_repr()

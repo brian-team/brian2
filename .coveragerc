@@ -3,10 +3,11 @@
 [run]
 branch = True
 source = brian2
-omit = 
-	brian2/codegen/old/*
-	brian2/codegen/temp/*
-	brian2/tests/*
+# Do not match templates, etc.
+include = *.py
+omit =
+    */brian2/tests/*
+    */brian2/sphinxext/*
 
 [report]
 # Regexes for lines to exclude from consideration

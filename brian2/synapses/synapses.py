@@ -43,7 +43,7 @@ class StateUpdater(GroupCodeRunner):
     def __init__(self, group, method):
         self.method_choice = method
         GroupCodeRunner.__init__(self, group,
-                                 'stateupdate',
+                                 'synaptic_stateupdate',
                                  when=(group.clock, 'groups'),
                                  name=group.name + '_stateupdater',
                                  check_units=False)
@@ -148,10 +148,6 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                                   self,
                                                                   'spiking_synapses',
                                                                   constant=False),
-                          '_source_offset': Variable(Unit(1), self.source.offset,
-                                                     constant=True),
-                          '_target_offset': Variable(Unit(1), self.target.offset,
-                                                     constant=True),
                            'delay': DynamicArrayVariable('delay', second,
                                                           self._delays,
                                                           group_name=self.name,
@@ -222,7 +218,7 @@ class IndexView(object):
         self.mapping = mapping
 
     def __getitem__(self, item):
-        synaptic_indices = self.index[item]
+        synaptic_indices = self.index[self.mapping[item]]
         return synaptic_indices
 
 
@@ -510,9 +506,11 @@ class SynapticItemMapping(Variable):
             namespace = get_local_namespace(1)
             additional_namespace = ('implicit-namespace', namespace)
             abstract_code = '_cond = ' + index
+            template = getattr(self.synapses, '_index_with_code_template',
+                               'state_variable_indexing')
             codeobj = create_runner_codeobj(self.synapses,
                                             abstract_code,
-                                            'state_variable_indexing',
+                                            template,
                                             additional_variables=variables,
                                             additional_namespace=additional_namespace,
                                             )
@@ -656,6 +654,11 @@ class Synapses(BrianObject, Group):
         self.i = self.item_mapping.i
         self.j = self.item_mapping.j
         self.k = self.item_mapping.k
+
+        # Make use of a special template when setting/indexing variables with
+        # code in order to allow references to pre- and postsynaptic variables
+        self._set_with_code_template = 'synaptic_variable_set'
+        self._index_with_code_template = 'synaptic_variable_indexing'
 
         # Setup variables
         self.variables = self._create_variables()
@@ -847,6 +850,10 @@ class Synapses(BrianObject, Group):
                                                   constant=True),
                   '_num_target_neurons': Variable(Unit(1), len(self.target),
                                                   constant=True),
+                  '_source_offset': Variable(Unit(1), self.source.offset,
+                                             constant=True),
+                  '_target_offset': Variable(Unit(1), self.target.offset,
+                                             constant=True),
                   '_synaptic_pre': DynamicArrayVariable('_synaptic_pre',
                                                         Unit(1),
                                                         self.item_mapping.synaptic_pre),
@@ -918,26 +925,7 @@ class Synapses(BrianObject, Group):
                 curdtype = brian_prefs['core.default_scalar_dtype']
             arrays[name] = DynamicArray1D(0)
         logger.debug("NeuronGroup memory allocated successfully.")
-        return arrays             
-
-
-    def connect_one_to_one(self):
-        ''' Manually create a one to one connectivity pattern '''
-
-        if len(self.source) != len(self.target):
-            raise TypeError('Can only create synapses between groups of same size')
-
-        self.connect(np.arange(len(self.source)),
-                     np.arange(len(self.target)))
-
-    def connect_full(self):
-        '''
-        Connect all neurons in the source group to all neurons in the target
-        group.
-        '''
-        sources, targets = np.meshgrid(np.arange(len(self.source)),
-                                       np.arange(len(self.target)))
-        self.connect(sources.flat(), targets.flat())
+        return arrays
 
     def connect(self, pre_or_cond, post=None, p=1., n=1, level=0):
         '''
@@ -990,7 +978,7 @@ class Synapses(BrianObject, Group):
                 raise TypeError(('Presynaptic indices can only be combined '
                                  'with postsynaptic integer indices))'))
             if isinstance(n, basestring):
-                raise TypeError(('GroupIndices cannot be combined with a string'
+                raise TypeError(('Indices cannot be combined with a string'
                                  'expression for n. Either use an array/scalar '
                                  'for n, or a string expression for the '
                                  'connections'))

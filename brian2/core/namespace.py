@@ -13,7 +13,7 @@ except ImportError:
 import numpy as np
 
 from brian2.utils.logger import get_logger
-from brian2.units.fundamentalunits import Quantity, all_registered_units
+from brian2.units.fundamentalunits import Quantity, standard_unit_register
 from brian2.units.stdunits import stdunits
 from brian2.codegen.functions.numpyfunctions import (RandnFunction,
                                                      RandFunction,
@@ -289,7 +289,7 @@ def _get_default_unit_namespace():
     namespace : dict
         The unit namespace
     '''    
-    namespace = dict([(u.name, u) for u in all_registered_units()])
+    namespace = dict([(u.name, u) for u in standard_unit_register.units])
     namespace.update(stdunits)
     return namespace
 
