@@ -458,6 +458,7 @@ class GroupCodeRunner(BrianObject):
                                              additional_variables=additional_variables,
                                              additional_namespace=namespace,
                                              template_kwds=self.template_kwds)
+        self.code_objects[:] = [weakref.proxy(self.codeobj)]
     
     def pre_update(self):
         '''

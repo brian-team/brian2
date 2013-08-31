@@ -58,6 +58,7 @@ class BrianObject(Nameable):
         self._clock = clock
         
         self._contained_objects = []
+        self._code_objects = []
         
         self._active = True
         
@@ -117,6 +118,16 @@ class BrianObject(Nameable):
          be added as well. This allows for compound objects which contain
          a mini-network structure.
          
+         Note that this attribute cannot be set directly, you need to modify
+         the underlying list, e.g. ``obj.contained_objects.extend([A, B])``.
+         ''')
+
+    code_objects = property(fget=lambda self:self._code_objects,
+                                 doc='''
+         The list of `CodeObject` contained within the `BrianObject`.
+         
+         TODO: more details.
+                  
          Note that this attribute cannot be set directly, you need to modify
          the underlying list, e.g. ``obj.contained_objects.extend([A, B])``.
          ''')

@@ -16,32 +16,34 @@ dV/dt = -V/tau : volt (unless-refractory)
 threshold = 'V>-50*mV'
 reset = 'V=-60*mV'
 refractory = 5*ms
-groupname = 'gp'
 N = 1000
 
 ##### Generate C++ code
 
 # Use a NeuronGroup to fake the whole process
-G = NeuronGroup(N, eqs, reset=reset, threshold=threshold,
-                refractory=refractory, name=groupname,
-                )
+G = NeuronGroup(N, eqs, reset=reset, threshold=threshold, refractory=refractory, name='gp')
+G2 = NeuronGroup(1, eqs, reset=reset, threshold=threshold, refractory=refractory, name='gp2')
 # Run the network for 0 seconds to generate the code
-net = Network(G)
+net = Network(G, G2)
 net.run(0*second)
 
 # Extract all the CodeObjects
-# Here we hack it directly, as there are more general issues to solve before we can do this automatically
-code_objects = [G.state_updater.codeobj,
-                G.resetter.codeobj,
-                G.thresholder.codeobj,
-                ]
+# Note that since we ran the Network object, these CodeObjects will be sorted into the right
+# running order, assuming that there is only one clock
+code_objects = []
+for obj in net.objects:
+    code_objects.extend(obj.code_objects)
 
-# Extract the array information
-vars = G.variables
+# Extract the arrays information
+vars = {}
+for obj in net.objects:
+    if hasattr(obj, 'variables'):
+        for k, v in obj.variables.iteritems():
+            vars[(obj, k)] = v
 arrays = {}
-for k, v in vars.items():
+for (obj, k), v in vars.items():
     if isinstance(v, ArrayVariable):
-        k = '_array_%s_%s' % (G.name, k)
+        k = '_array_%s_%s' % (obj.name, k)
         arrays[v] = (k, c_data_type(v.dtype), len(v.value))
 
 # Generate data for non-constant values
@@ -56,14 +58,11 @@ for codeobj in code_objects:
             arr_k, arr_dtype, arr_N = arrays[arr]
             val = v()
             if isinstance(val, int):
-                code_object_defs[codeobj].append('int %s = %s;' % (k, arr_N))
-                #code_object_defs[codeobj].append(('int', k, arr_N))
+                code_object_defs[id(codeobj)].append('int %s = %s;' % (k, arr_N))
             elif k=='_spikespace':
-                code_object_defs[codeobj].append('%s *%s = %s;' % (arr_dtype, k, arr_k))
-                #code_object_defs[codeobj].append((arr_dtype+' *', k, arr_k))
+                code_object_defs[id(codeobj)].append('%s *%s = %s;' % (arr_dtype, k, arr_k))
             elif isinstance(val, ndarray):
                 pass
-                #code_object_defs[codeobj].append('%s *%s = %s;' % (arr_dtype, k, arr_k))
             else:
                 raise ValueError("Unknown")
         else:
@@ -82,6 +81,9 @@ def freeze(code, ns):
 if not os.path.exists('output'):
     os.mkdir('output')
 
+# The code_objects are passed in the right order to run them because they were
+# sorted by the Network object. To support multiple clocks we'll need to be
+# smarter about that.
 main_tmp = CPPStandaloneCodeObject.templater.main(None,
                                                   code_objects=code_objects,
                                                   num_steps=1000,
@@ -97,8 +99,9 @@ for codeobj in code_objects:
     ns = codeobj.namespace
     # TODO: fix these freeze/CONSTANTS hacks somehow - they work but not elegant. 
     code = freeze(codeobj.code.cpp_file, ns)
-    code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj]))
+    code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[id(codeobj)]))
     code = '#include "arrays.h"\n'+code
     
     open('output/'+codeobj.name+'.cpp', 'w').write(code)
     open('output/'+codeobj.name+'.h', 'w').write(codeobj.code.h_file)
+

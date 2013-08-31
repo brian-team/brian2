@@ -8,9 +8,11 @@
 #include<stdint.h>
 
 ////// SUPPORT CODE ///////
-{% for line in support_code_lines %}
-{{line}}
-{% endfor %}
+namespace {
+	{% for line in support_code_lines %}
+	{{line}}
+	{% endfor %}
+}
 
 ////// HASH DEFINES ///////
 {% for line in hashdefine_lines %}
