@@ -92,6 +92,7 @@ class SpikeMonitor(BrianObject):
                                          indices={},
                                          variable_indices=defaultdict(lambda: '_idx'),
                                          codeobj_class=self.codeobj_class)
+        self.code_objects[:] = [weakref.proxy(self.codeobj)]
 
     def update(self):
         self.codeobj()
