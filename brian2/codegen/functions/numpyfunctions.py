@@ -152,7 +152,7 @@ class IntFunction(Function):
 
     def code_cpp(self, language, var):
         support_code = '''
-        double int_(const bool value)
+        int int_(const bool value)
         {
 	        return value ? 1 : 0;
         }
