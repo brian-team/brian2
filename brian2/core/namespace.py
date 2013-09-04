@@ -15,9 +15,7 @@ import numpy as np
 from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Quantity, standard_unit_register
 from brian2.units.stdunits import stdunits
-from brian2.codegen.functions.numpyfunctions import (RandnFunction,
-                                                     RandFunction,
-                                                     DEFAULT_FUNCTIONS)
+from brian2.core.functions import DEFAULT_FUNCTIONS
 import brian2.equations.equations as equations
 
 __all__ = ['create_namespace',

@@ -1,9 +1,7 @@
 import functools
 
-from brian2.core.variables import (ArrayVariable, Variable,
-                                    AttributeVariable, Subexpression,
-                                    StochasticVariable)
-from .functions.base import Function
+from brian2.core.variables import ArrayVariable, Variable, Subexpression
+from brian2.core.functions import Function
 from brian2.core.preferences import brian_prefs
 from brian2.utils.logger import get_logger
 from .translation import translate

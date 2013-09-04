@@ -6,7 +6,7 @@ from brian2.units import second, volt
 from brian2.units.stdunits import ms, Hz, mV
 from brian2.units.unitsafefunctions import sin, log, exp
 from brian2.utils.logger import catch_logs
-from brian2.codegen.functions.numpyfunctions import RandnFunction
+from brian2.core.functions import RandnFunction
 
 def _assert_one_warning(l):
     assert len(l) == 1, "expected one warning got %d" % len(l)

@@ -1,14 +1,12 @@
 '''
 TODO: use preferences to get arguments to Language
 '''
-import itertools
-
 import numpy
 
 from brian2.utils.stringtools import deindent, stripped_deindented_lines
-from brian2.codegen.functions.base import Function
 from brian2.utils.logger import get_logger
 from brian2.parsing.rendering import CPPNodeRenderer
+from brian2.core.functions import Function
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.variables import ArrayVariable
 

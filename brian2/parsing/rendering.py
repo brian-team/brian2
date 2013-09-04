@@ -2,7 +2,7 @@ import ast
 
 import sympy
 
-from brian2.codegen.functions.numpyfunctions import DEFAULT_FUNCTIONS
+from brian2.core.functions import DEFAULT_FUNCTIONS
 
 __all__ = ['NodeRenderer',
            'NumpyNodeRenderer',

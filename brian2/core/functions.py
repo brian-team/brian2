@@ -1,24 +1,159 @@
 import sympy
 from sympy import Function as sympy_Function
-from sympy.core import power as sympy_power
 from sympy.core import mod as sympy_mod
 import numpy as np
 from numpy.random import randn, rand
 
 import brian2.units.unitsafefunctions as unitsafe
 
-from .base import Function
+__all__ = ['FunctionWrapper', 'DEFAULT_FUNCTIONS', 'Function',
+           'SimpleFunction', 'make_function']
 
-__all__ = ['FunctionWrapper', 'DEFAULT_FUNCTIONS']
+
+class Function(object):
+    def __init__(self, pyfunc, sympy_func=None, arg_units=None,
+                 return_unit=None):
+        self.pyfunc = pyfunc
+        self.sympy_func = sympy_func
+        if hasattr(pyfunc, '_arg_units'):
+            self._arg_units = pyfunc._arg_units
+            self._return_unit = pyfunc._return_unit
+        else:
+            if arg_units is None or return_unit is None:
+                raise ValueError(('The given Python function does not specify '
+                                  'how it deals with units, need to specify '
+                                  '"arg_units" and "return_unit"'))
+            self._arg_units = arg_units
+            self._return_unit = return_unit
+
+    '''
+    User-defined function to work with code generation
+
+    To define a language, the user writes two methods,
+    ``code_id(self, language, var)`` and
+    ``on_compile_id(self, language, var, namespace)``, where ``id`` is replaced
+    by the ``Language.language_id`` attribute of the target language. See below
+    for the arguments and return values of these methods. Essentially, the
+    idea is that ``on_compile`` should insert data needed into the namespace,
+    and ``code`` should return code in the target language.
+
+    By default, the Python language is implemented simply by inserting the
+    object into the namespace, which will work if the class has a
+    ``__call__`` method with the appropriate arguments.
+    '''
+    def code(self, language, var):
+        """
+        Returns a dict of ``(slot, section)`` values, where ``slot`` is a
+        language-specific slot for where to include the string ``section``. The
+        input arguments are the language object, and the variable name.
+        Generated code should use unique identifiers of the form
+        ``_func_var`` (where ``var`` is replaced by the value of ``var``) to
+        ensure there are no namespace clashes.
+
+        The list of slot names to use is language-specific.
+        """
+        try:
+            return getattr(self, 'code_'+language.language_id)(language, var)
+        except AttributeError:
+            raise NotImplementedError
+
+    def on_compile(self, namespace, language, var):
+        """
+        What to do at compile time, i.e. insert values into a namespace.
+        """
+        try:
+            return getattr(self, 'on_compile_'+language.language_id)(namespace,
+                                                                     language,
+                                                                     var)
+        except AttributeError:
+            raise NotImplementedError
+
+    # default implementation for Python is just to use the object itself,
+    # which assumes it has a __call__ method
+    def code_python(self, language, var):
+        if not hasattr(self, '__call__'):
+            return NotImplementedError
+        return {}
+
+    def on_compile_python(self, namespace, language, var):
+        namespace[var] = self
+
+    def __call__(self, *args):
+        '''
+        A `Function` specifier is callable, it applies the `Function.pyfunc`
+        function to the arguments. This way, unit checking works.
+        '''
+        return self.pyfunc(*args)
 
 
+class SimpleFunction(Function):
+    '''
+    A simplified, less generic version of `UserFunction`.
+
+    You provide a dict ``codes`` of ``(language_id, code)`` pairs and a
+    namespace of values to be added to the generated code. The ``code`` should
+    be in the format recognised by the language (e.g. dict or string). In
+    addition, you can specify a Python function ``pyfunc`` to call directly if
+    the language is Python.
+    '''
+    def __init__(self, codes, namespace, pyfunc):
+        Function.__init__(self, pyfunc)
+        self.codes = codes
+        self.namespace = namespace
+
+    def code(self, language, var):
+        if language.language_id in self.codes:
+            return self.codes[language.language_id]
+        else:
+            raise NotImplementedError
+
+    def on_compile(self, namespace, language, var):
+        namespace.update(self.namespace)
+        if language.language_id=='python':
+            namespace[var] = self.pyfunc
+
+
+def make_function(codes, namespace):
+    '''
+    A simple decorator to extend user-written Python functions to work with code
+    generation in other languages.
+
+    You provide a dict ``codes`` of ``(language_id, code)`` pairs and a
+    namespace of values to be added to the generated code. The ``code`` should
+    be in the format recognised by the language (e.g. dict or string).
+
+    Sample usage::
+
+        @make_function(codes={
+            'cpp':{
+                'support_code':"""
+                    #include<math.h>
+                    inline double usersin(double x)
+                    {
+                        return sin(x);
+                    }
+                    """,
+                'hashdefine_code':'',
+                },
+            }, namespace={})
+        def usersin(x):
+            return sin(x)
+    '''
+    def do_make_user_function(func):
+        return SimpleFunction(codes, namespace, pyfunc=func)
+    return do_make_user_function
+
+
+################################################################################
+# Standard functions
+################################################################################
 class RandnFunction(Function):
     '''
     A specifier for the randn function, allowing its use both in Python and
     C++ code (e.g. for stochastic variables). In Python, a `randn()` call will
     return `N` random numbers (e.g. the size of the `NeuronGroup`), in C++ it
     will return a single number.
-    
+
     Parameters
     ----------
     N : int
@@ -26,12 +161,12 @@ class RandnFunction(Function):
     '''
     def __init__(self):
         Function.__init__(self, pyfunc=randn, arg_units=[], return_unit=1)
-    
+
     def __call__(self, vectorisation_idx):
         return randn(len(vectorisation_idx))
-    
+
     def code_cpp(self, language, var):
-        
+
         support_code = '''
         #define BUFFER_SIZE 1024
         // A randn() function that returns a single random number. Internally
@@ -41,7 +176,7 @@ class RandnFunction(Function):
         // It needs a reference to the numpy_randn object (the original numpy
         // function), because this is otherwise only available in
         // compiled_function (where is is automatically handled by weave).
-        // 
+        //
         double _call_randn(py::object& numpy_randn) {
             static PyArrayObject *randn_buffer = NULL;
             static double *buf_pointer = NULL;
@@ -70,7 +205,7 @@ class RandnFunction(Function):
 
         return {'support_code': support_code,
                 'hashdefine_code': hashdefine_code}
-    
+
     def on_compile_cpp(self, namespace, language, var):
         pass
 
@@ -169,7 +304,7 @@ class FunctionWrapper(Function):
     '''
     Simple wrapper for functions that have exist both in numpy and C++
     (possibly with a different name, for example ``acos`` vs. ``arccos``).
-    
+
     Parameters
     ----------
     pyfunc : function
@@ -179,7 +314,7 @@ class FunctionWrapper(Function):
         defined by `pyfunc`. For example, the ``abs`` function in numpy is
         actually named ``absolute`` but we want to use the name ``abs``.
     cpp_name : str, optional
-        The name of the corresponding function in C++, in case it is different.        
+        The name of the corresponding function in C++, in case it is different.
     sympy_func : sympy function, optional
         The corresponding sympy function, if it exists.
     arg_units : list of `Unit`, optional
@@ -203,7 +338,7 @@ class FunctionWrapper(Function):
             py_name = pyfunc.__name__
         self.py_name = py_name
         self.cpp_name = cpp_name
-        
+
     def code_cpp(self, language, var):
         if self.cpp_name is None:
             hashdefine_code = ''
@@ -224,8 +359,8 @@ class log10(sympy_Function):
 
 
 def _get_default_functions():
-            
-    functions = { 
+
+    functions = {
                 # numpy functions that have the same name in numpy and math.h
                 'cos': FunctionWrapper(unitsafe.cos,
                                        sympy_func=sympy.functions.elementary.trigonometric.cos),
@@ -278,7 +413,7 @@ def _get_default_functions():
                 'clip': ClipFunction(),
                 'int_': IntFunction()
                 }
-    
+
     return functions
 
 DEFAULT_FUNCTIONS = _get_default_functions()
