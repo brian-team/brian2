@@ -114,7 +114,6 @@ class CodeObject(object):
     
     def __init__(self, code, namespace, variables):
         self.code = code
-        self.compile_methods = self.get_compile_methods(variables)
         self.namespace = namespace
         self.variables = variables
         
@@ -144,18 +143,8 @@ class CodeObject(object):
                     if not var.scalar:
                         self.namespace['_num' + name] = var.get_len()
 
-    def get_compile_methods(self, variables):
-        meths = []
-        for var, var in variables.items():
-            if isinstance(var, Function):
-                meths.append(functools.partial(var.on_compile,
-                                               language=self.language,
-                                               var=var))
-        return meths
-
     def compile(self):
-        for meth in self.compile_methods:
-            meth(self.namespace)
+        pass
 
     def __call__(self, **kwds):
         # update the values of the non-constant values in the namespace

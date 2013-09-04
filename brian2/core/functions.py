@@ -29,17 +29,11 @@ class Function(object):
     '''
     User-defined function to work with code generation
 
-    To define a language, the user writes two methods,
-    ``code_id(self, language, var)`` and
-    ``on_compile_id(self, language, var, namespace)``, where ``id`` is replaced
+    To define a language, the user writes a method,
+    ``code_id(self, language, var)``, where ``id`` is replaced
     by the ``Language.language_id`` attribute of the target language. See below
-    for the arguments and return values of these methods. Essentially, the
-    idea is that ``on_compile`` should insert data needed into the namespace,
-    and ``code`` should return code in the target language.
-
-    By default, the Python language is implemented simply by inserting the
-    object into the namespace, which will work if the class has a
-    ``__call__`` method with the appropriate arguments.
+    for the arguments and return values of this method. Essentially, the
+    idea is that ``code`` should return code in the target language.
     '''
     def code(self, language, var):
         """
@@ -57,26 +51,12 @@ class Function(object):
         except AttributeError:
             raise NotImplementedError
 
-    def on_compile(self, namespace, language, var):
-        """
-        What to do at compile time, i.e. insert values into a namespace.
-        """
-        try:
-            return getattr(self, 'on_compile_'+language.language_id)(namespace,
-                                                                     language,
-                                                                     var)
-        except AttributeError:
-            raise NotImplementedError
-
     # default implementation for Python is just to use the object itself,
     # which assumes it has a __call__ method
     def code_python(self, language, var):
         if not hasattr(self, '__call__'):
             return NotImplementedError
         return {}
-
-    def on_compile_python(self, namespace, language, var):
-        namespace[var] = self
 
     def __call__(self, *args):
         '''
@@ -106,11 +86,6 @@ class SimpleFunction(Function):
             return self.codes[language.language_id]
         else:
             raise NotImplementedError
-
-    def on_compile(self, namespace, language, var):
-        namespace.update(self.namespace)
-        if language.language_id=='python':
-            namespace[var] = self.pyfunc
 
 
 def make_function(codes, namespace):
@@ -206,9 +181,6 @@ class RandnFunction(Function):
         return {'support_code': support_code,
                 'hashdefine_code': hashdefine_code}
 
-    def on_compile_cpp(self, namespace, language, var):
-        pass
-
 
 class RandFunction(Function):
     '''
@@ -235,9 +207,6 @@ class RandFunction(Function):
 
         return {'support_code': support_code,
                 'hashdefine_code': ''}
-
-    def on_compile_cpp(self, namespace, language, var):
-        pass
 
 
 class ClipFunction(Function):
@@ -270,9 +239,6 @@ class ClipFunction(Function):
         return {'support_code': support_code,
                 'hashdefine_code': ''}
 
-    def on_compile_cpp(self, namespace, language, var):
-        pass
-
 
 class IntFunction(Function):
     '''
@@ -295,9 +261,6 @@ class IntFunction(Function):
 
         return {'support_code': support_code,
                 'hashdefine_code': ''}
-
-    def on_compile_cpp(self, namespace, language, var):
-        pass
 
 
 class FunctionWrapper(Function):
