@@ -181,7 +181,7 @@ class CPPLanguage(Language):
         for varname, variable in namespace.items():
             if isinstance(variable, Function):
                 user_functions.append(varname)
-                speccode = variable.code(self, varname)
+                speccode = variable.code(self)
                 support_code += '\n' + deindent(speccode['support_code'])
                 hash_defines += deindent(speccode['hashdefine_code'])
                 # add the Python function with a leading '_python', if it

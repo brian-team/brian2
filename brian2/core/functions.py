@@ -35,25 +35,21 @@ class Function(object):
     for the arguments and return values of this method. Essentially, the
     idea is that ``code`` should return code in the target language.
     '''
-    def code(self, language, var):
+    def code(self, language):
         """
         Returns a dict of ``(slot, section)`` values, where ``slot`` is a
-        language-specific slot for where to include the string ``section``. The
-        input arguments are the language object, and the variable name.
-        Generated code should use unique identifiers of the form
-        ``_func_var`` (where ``var`` is replaced by the value of ``var``) to
-        ensure there are no namespace clashes.
+        language-specific slot for where to include the string ``section``.
 
         The list of slot names to use is language-specific.
         """
         try:
-            return getattr(self, 'code_'+language.language_id)(language, var)
+            return getattr(self, 'code_'+language.language_id)()
         except AttributeError:
             raise NotImplementedError
 
     # default implementation for Python is just to use the object itself,
     # which assumes it has a __call__ method
-    def code_python(self, language, var):
+    def code_python(self):
         if not hasattr(self, '__call__'):
             return NotImplementedError
         return {}
@@ -81,7 +77,7 @@ class SimpleFunction(Function):
         self.codes = codes
         self.namespace = namespace
 
-    def code(self, language, var):
+    def code(self, language):
         if language.language_id in self.codes:
             return self.codes[language.language_id]
         else:
@@ -140,7 +136,7 @@ class RandnFunction(Function):
     def __call__(self, vectorisation_idx):
         return randn(len(vectorisation_idx))
 
-    def code_cpp(self, language, var):
+    def code_cpp(self):
 
         support_code = '''
         #define BUFFER_SIZE 1024
@@ -196,7 +192,7 @@ class RandFunction(Function):
     def __call__(self, vectorisation_idx):
         return rand(len(vectorisation_idx))
 
-    def code_cpp(self, language, var):
+    def code_cpp(self):
 
         support_code = '''
         double _rand(int vectorisation_idx)
@@ -223,7 +219,7 @@ class ClipFunction(Function):
     def __call__(self, array, a_min, a_max):
         return np.clip(array, a_min, a_max)
 
-    def code_cpp(self, language, var):
+    def code_cpp(self):
 
         support_code = '''
         double _clip(const float value, const float a_min, const float a_max)
@@ -251,7 +247,7 @@ class IntFunction(Function):
     def __call__(self, value):
         return np.int_(value)
 
-    def code_cpp(self, language, var):
+    def code_cpp(self):
         support_code = '''
         int int_(const bool value)
         {
@@ -302,7 +298,7 @@ class FunctionWrapper(Function):
         self.py_name = py_name
         self.cpp_name = cpp_name
 
-    def code_cpp(self, language, var):
+    def code_cpp(self):
         if self.cpp_name is None:
             hashdefine_code = ''
         else:
