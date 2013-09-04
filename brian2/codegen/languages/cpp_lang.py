@@ -3,10 +3,12 @@ TODO: use preferences to get arguments to Language
 '''
 import numpy
 
-from brian2.utils.stringtools import deindent, stripped_deindented_lines
+from brian2.utils.stringtools import (deindent, stripped_deindented_lines,
+                                      word_substitute)
 from brian2.utils.logger import get_logger
 from brian2.parsing.rendering import CPPNodeRenderer
-from brian2.core.functions import Function, DEFAULT_FUNCTIONS
+from brian2.core.functions import (Function, FunctionImplementation,
+                                   DEFAULT_FUNCTIONS)
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.variables import ArrayVariable
 
@@ -110,10 +112,15 @@ class CPPLanguage(Language):
         self.flush_denormals = brian_prefs['codegen.languages.cpp.flush_denormals']
         self.c_data_type = c_data_type
 
-    def translate_expression(self, expr):
+    def translate_expression(self, expr, namespace):
+        for varname, var in namespace.iteritems():
+            if isinstance(var, Function):
+                impl_name = var.implementations[self.language_id].name
+                if varname != impl_name:
+                    expr = word_substitute(expr, {varname: impl_name})
         return CPPNodeRenderer().render_expr(expr).strip()
 
-    def translate_statement(self, statement):
+    def translate_statement(self, statement, namespace):
         var, op, expr = statement.var, statement.op, statement.expr
         if op == ':=':
             decl = self.c_data_type(statement.dtype) + ' '
@@ -122,7 +129,7 @@ class CPPLanguage(Language):
                 decl = 'const ' + decl
         else:
             decl = ''
-        return decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
+        return decl + var + ' ' + op + ' ' + self.translate_expression(expr, namespace) + ';'
 
     def translate_statement_sequence(self, statements, variables, namespace,
                                      variable_indices, iterate_all):
@@ -150,7 +157,7 @@ class CPPLanguage(Language):
                 line = self.c_data_type(var.dtype) + ' ' + varname + ';'
                 lines.append(line)
         # the actual code
-        lines.extend([self.translate_statement(stmt) for stmt in statements])
+        lines.extend([self.translate_statement(stmt, namespace) for stmt in statements])
         # write arrays
         for varname in write:
             index_var = variable_indices[varname]
@@ -217,3 +224,86 @@ class CPPLanguage(Language):
             '''
         else:
             return ''
+
+################################################################################
+# Implement functions
+################################################################################
+
+# Functions that exist under the same name in C++
+for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
+             'log10', 'sqrt', 'ceil', 'floor']:
+    DEFAULT_FUNCTIONS[func].implementations['cpp'] = FunctionImplementation(func)
+
+# Functions that need a name translation
+for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),
+                       ('abs', 'fabs'), ('mod', 'fmod')]:
+    DEFAULT_FUNCTIONS[func].implementations['cpp'] = FunctionImplementation(func_cpp)
+
+# Functions that need to be implemented specifically
+randn_code = {'support_code': '''
+        #define BUFFER_SIZE 1024
+        // A randn() function that returns a single random number. Internally
+        // it asks numpy's randn function for N (e.g. the number of neurons)
+        // random numbers at a time and then returns one number from this
+        // buffer.
+        // It needs a reference to the numpy_randn object (the original numpy
+        // function), because this is otherwise only available in
+        // compiled_function (where is is automatically handled by weave).
+        //
+        double _call_randn(py::object& numpy_randn) {
+            static PyArrayObject *randn_buffer = NULL;
+            static double *buf_pointer = NULL;
+            static npy_int curbuffer = 0;
+            if(curbuffer==0)
+            {
+                if(randn_buffer) Py_DECREF(randn_buffer);
+                py::tuple args(1);
+                args[0] = BUFFER_SIZE;
+                randn_buffer = (PyArrayObject *)PyArray_FromAny(numpy_randn.call(args), NULL, 1, 1, 0, NULL);
+                buf_pointer = (double*)PyArray_GETPTR1(randn_buffer, 0);
+            }
+            double number = buf_pointer[curbuffer];
+            curbuffer = curbuffer+1;
+            if (curbuffer == BUFFER_SIZE)
+                // This seems to be safer then using (curbuffer + 1) % BUFFER_SIZE, we might run into
+                // an integer overflow for big networks, otherwise.
+                curbuffer = 0;
+            return number;
+        }
+        ''', 'hashdefine_code': '''
+        #define _randn(_vectorisation_idx) _call_randn(_python_randn)
+        '''}
+DEFAULT_FUNCTIONS['randn'].implementations['cpp'] = FunctionImplementation('_randn',
+                                                                           code=randn_code)
+
+rand_code = {'support_code': '''
+        double _rand(int vectorisation_idx)
+        {
+	        return (double)rand()/RAND_MAX;
+        }
+        '''}
+DEFAULT_FUNCTIONS['rand'].implementations['cpp'] = FunctionImplementation('_rand',
+                                                                          code=rand_code)
+
+clip_code = {'support_code': '''
+        double _clip(const float value, const float a_min, const float a_max)
+        {
+	        if (value < a_min)
+	            return a_min;
+	        if (value > a_max)
+	            return a_max;
+	        return value;
+	    }
+        '''}
+DEFAULT_FUNCTIONS['clip'].implementations['cpp'] = FunctionImplementation('_clip',
+                                                                          code=clip_code)
+
+int_code = {'support_code':
+        '''
+        int int_(const bool value)
+        {
+	        return value ? 1 : 0;
+        }
+        '''}
+DEFAULT_FUNCTIONS['int_'].implementations['cpp'] = FunctionImplementation('int_',
+                                                                          code=int_code)

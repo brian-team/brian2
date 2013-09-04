@@ -219,12 +219,7 @@ class CPPNodeRenderer(NodeRenderer):
     def render_Name(self, node):
         # Replace Python's True and False with their C++ bool equivalents
         return {'True': 'true',
-                'False': 'false',
-                # TODO: This should be handled differently
-                'randn': '_randn',
-                'rand': '_rand',
-                'clip': '_clip',
-                'bool': '_bool'}.get(node.id, node.id)
+                'False': 'false'}.get(node.id, node.id)
 
     def render_Assign(self, node):
         return NodeRenderer.render_Assign(self, node)+';'

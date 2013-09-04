@@ -20,14 +20,14 @@ class Language(object):
     # Subclasses should override this
     language_id = ''
     
-    def translate_expression(self, expr):
+    def translate_expression(self, expr, namespace):
         '''
         Translate the given expression string into a string in the target
         language, returns a string.
         '''
         raise NotImplementedError
 
-    def translate_statement(self, statement):
+    def translate_statement(self, statement, namespace):
         '''
         Translate a single line `Statement` into the target language, returns
         a string.
