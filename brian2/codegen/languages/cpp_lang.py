@@ -182,8 +182,8 @@ class CPPLanguage(Language):
             if isinstance(variable, Function):
                 user_functions.append(varname)
                 speccode = variable.code(self)
-                support_code += '\n' + deindent(speccode['support_code'])
-                hash_defines += deindent(speccode['hashdefine_code'])
+                support_code += '\n' + deindent(speccode.get('support_code', ''))
+                hash_defines += deindent(speccode.get('hashdefine_code', ''))
                 # add the Python function with a leading '_python', if it
                 # exists. This allows the function to make use of the Python
                 # function via weave if necessary (e.g. in the case of randn)
