@@ -11,6 +11,7 @@ from brian2.core.variables import ArrayVariable, AttributeVariable, Variable
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit
+from brian2.devices.device import get_device
 
 __all__ = ['SpikeMonitor']
 
@@ -81,10 +82,10 @@ class SpikeMonitor(BrianObject):
                                  dtype=brian_prefs['core.default_scalar_dtype'])
         
         #: Array of the number of times each source neuron has spiked
-        self.count = np.zeros(len(self.source), dtype=int)
+        self.count = get_device().array(self, '_count', len(self.source), 1, dtype=np.int32)
 
     def pre_run(self, namespace):
-        self.codeobj = create_codeobject(self.name+'_codeobject*',
+        self.codeobj = get_device().code_object(self.name+'_codeobject*',
                                          '', # No model-specific code
                                          {}, # no namespace
                                          self.variables,

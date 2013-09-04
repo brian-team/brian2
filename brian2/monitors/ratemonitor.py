@@ -11,6 +11,7 @@ from brian2.core.variables import Variable, AttributeVariable
 from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
+from brian2.devices.device import get_device
 
 __all__ = ['PopulationRateMonitor']
 
@@ -74,7 +75,8 @@ class PopulationRateMonitor(BrianObject):
                                                np.dtype(type(self.clock.t))))
 
     def pre_run(self, namespace):
-        self.codeobj = create_codeobject(self.name+'_codeobject*',
+        self.codeobj = get_device().code_object(
+                                         self.name+'_codeobject*',
                                          '', # No model-specific code
                                          {}, # no namespace
                                          self.variables,

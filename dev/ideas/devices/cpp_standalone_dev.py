@@ -9,6 +9,7 @@ from brian2.utils.stringtools import *
 from brian2.codegen.languages.cpp_lang import *
 from brian2.devices.cpp_standalone import *
 from brian2.devices.cpp_standalone.codeobject import CPPStandaloneCodeObject
+from brian2.devices.cpp_standalone.device import cpp_standalone_device
 from brian2.core.variables import *
 from brian2.utils.filetools import copy_directory
 from brian2.memory.dynamicarray import DynamicArray1D
@@ -54,6 +55,10 @@ for (obj, k), v in vars.items():
     if isinstance(v, ArrayVariable):
         k = '_array_%s_%s' % (obj.name, k)
         arrays[v] = (k, c_data_type(v.dtype), len(v.value))
+
+print sorted(cpp_standalone_device.arrays.keys())
+print sorted([k for k, _, _ in arrays.values()])
+exit()
 
 # Generate data for non-constant values
 code_object_defs = defaultdict(list)
