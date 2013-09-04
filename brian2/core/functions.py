@@ -12,7 +12,8 @@ __all__ = ['FunctionWrapper', 'DEFAULT_FUNCTIONS', 'Function',
 
 class Function(object):
     def __init__(self, pyfunc, sympy_func=None, arg_units=None,
-                 return_unit=None):
+                 return_unit=None, codes=None):
+
         self.pyfunc = pyfunc
         self.sympy_func = sympy_func
         if hasattr(pyfunc, '_arg_units'):
@@ -25,63 +26,27 @@ class Function(object):
                                   '"arg_units" and "return_unit"'))
             self._arg_units = arg_units
             self._return_unit = return_unit
+        if codes is None:
+            codes = {}
+        self.codes = codes
 
-    '''
-    User-defined function to work with code generation
-
-    To define a language, the user writes a method,
-    ``code_id(self, language, var)``, where ``id`` is replaced
-    by the ``Language.language_id`` attribute of the target language. See below
-    for the arguments and return values of this method. Essentially, the
-    idea is that ``code`` should return code in the target language.
-    '''
-    def code(self, language):
+    def code(self, language_id):
         """
         Returns a dict of ``(slot, section)`` values, where ``slot`` is a
         language-specific slot for where to include the string ``section``.
 
         The list of slot names to use is language-specific.
         """
-        try:
-            return getattr(self, 'code_'+language.language_id)()
-        except AttributeError:
-            raise NotImplementedError
-
-    # default implementation for Python is just to use the object itself,
-    # which assumes it has a __call__ method
-    def code_python(self):
-        if not hasattr(self, '__call__'):
-            return NotImplementedError
-        return {}
+        if language_id in self.codes:
+            return self.codes[language_id]
+        elif language_id == 'python' and self.pyfunc is not None:
+            return self.pyfunc
+        else:
+            raise NotImplementedError('Function not implemented for '
+                                      'language ' + language_id)
 
     def __call__(self, *args):
-        '''
-        A `Function` specifier is callable, it applies the `Function.pyfunc`
-        function to the arguments. This way, unit checking works.
-        '''
-        return self.pyfunc(*args)
-
-
-class SimpleFunction(Function):
-    '''
-    A simplified, less generic version of `UserFunction`.
-
-    You provide a dict ``codes`` of ``(language_id, code)`` pairs and a
-    namespace of values to be added to the generated code. The ``code`` should
-    be in the format recognised by the language (e.g. dict or string). In
-    addition, you can specify a Python function ``pyfunc`` to call directly if
-    the language is Python.
-    '''
-    def __init__(self, codes, namespace, pyfunc):
-        Function.__init__(self, pyfunc)
-        self.codes = codes
-        self.namespace = namespace
-
-    def code(self, language):
-        if language.language_id in self.codes:
-            return self.codes[language.language_id]
-        else:
-            raise NotImplementedError
+        return self.code('python')(*args)
 
 
 def make_function(codes, namespace):
@@ -111,7 +76,7 @@ def make_function(codes, namespace):
             return sin(x)
     '''
     def do_make_user_function(func):
-        return SimpleFunction(codes, namespace, pyfunc=func)
+        return Function(func, codes=codes)
     return do_make_user_function
 
 
@@ -131,14 +96,9 @@ class RandnFunction(Function):
         The number of random numbers generated at a time.
     '''
     def __init__(self):
-        Function.__init__(self, pyfunc=randn, arg_units=[], return_unit=1)
-
-    def __call__(self, vectorisation_idx):
-        return randn(len(vectorisation_idx))
-
-    def code_cpp(self):
-
-        support_code = '''
+        codes = {'python': lambda vectorisation_idx: randn(len(vectorisation_idx)),
+                 'cpp': {'support_code':
+        '''
         #define BUFFER_SIZE 1024
         // A randn() function that returns a single random number. Internally
         // it asks numpy's randn function for N (e.g. the number of neurons)
@@ -168,14 +128,13 @@ class RandnFunction(Function):
                 curbuffer = 0;
             return number;
         }
-        '''
-
-        hashdefine_code = '''
+        ''',
+                         'hashdefine_code': '''
         #define _randn(_vectorisation_idx) _call_randn(_python_randn)
-        '''
-
-        return {'support_code': support_code,
-                'hashdefine_code': hashdefine_code}
+        '''}
+        }
+        Function.__init__(self, pyfunc=randn, arg_units=[], return_unit=1,
+                          codes=codes)
 
 
 class RandFunction(Function):
@@ -187,22 +146,18 @@ class RandFunction(Function):
     single number.
     '''
     def __init__(self):
-        Function.__init__(self, pyfunc=rand, arg_units=[], return_unit=1)
-
-    def __call__(self, vectorisation_idx):
-        return rand(len(vectorisation_idx))
-
-    def code_cpp(self):
-
-        support_code = '''
+        codes = {'python': lambda vectorisation_idx: rand(len(vectorisation_idx)),
+                 'cpp': {'support_code':
+        '''
         double _rand(int vectorisation_idx)
         {
 	        return (double)rand()/RAND_MAX;
         }
         '''
-
-        return {'support_code': support_code,
-                'hashdefine_code': ''}
+                      }
+        }
+        Function.__init__(self, pyfunc=rand, arg_units=[], return_unit=1,
+                          codes=codes)
 
 
 class ClipFunction(Function):
@@ -213,15 +168,10 @@ class ClipFunction(Function):
 
     '''
     def __init__(self):
-        Function.__init__(self, pyfunc=np.clip, arg_units=[None, None, None],
-                          return_unit=lambda u1, u2, u3: u1)
-
-    def __call__(self, array, a_min, a_max):
-        return np.clip(array, a_min, a_max)
-
-    def code_cpp(self):
-
-        support_code = '''
+        codes = {'python': lambda array, a_min, a_max: np.clip(array, a_min, a_max),
+                 'cpp': {
+                     'support_code':
+        '''
         double _clip(const float value, const float a_min, const float a_max)
         {
 	        if (value < a_min)
@@ -229,11 +179,12 @@ class ClipFunction(Function):
 	        if (value > a_max)
 	            return a_max;
 	        return value;
-        }
+	    }
         '''
-
-        return {'support_code': support_code,
-                'hashdefine_code': ''}
+                 }}
+        Function.__init__(self, pyfunc=np.clip, arg_units=[None, None, None],
+                          return_unit=lambda u1, u2, u3: u1,
+                          codes=codes)
 
 
 class IntFunction(Function):
@@ -241,22 +192,17 @@ class IntFunction(Function):
     An ``int`` function for converting a boolean value into an integer.
     '''
     def __init__(self):
-        Function.__init__(self, pyfunc=np.int_, arg_units=[1],
-                          return_unit=1)
-
-    def __call__(self, value):
-        return np.int_(value)
-
-    def code_cpp(self):
-        support_code = '''
+        codes = {'python': lambda value: np.int_(value),
+                 'cpp': {'support_code':
+        '''
         int int_(const bool value)
         {
 	        return value ? 1 : 0;
         }
         '''
-
-        return {'support_code': support_code,
-                'hashdefine_code': ''}
+                 }}
+        Function.__init__(self, pyfunc=np.int_, arg_units=[1],
+                          return_unit=1, codes=codes)
 
 
 class FunctionWrapper(Function):
@@ -291,22 +237,20 @@ class FunctionWrapper(Function):
     # TODO: How to make this easily extendable for other languages?
     def __init__(self, pyfunc, py_name=None, cpp_name=None, sympy_func=None,
                  arg_units=None, return_unit=None):
-        Function.__init__(self, pyfunc, sympy_func, arg_units=arg_units,
-                          return_unit=return_unit)
         if py_name is None:
             py_name = pyfunc.__name__
         self.py_name = py_name
         self.cpp_name = cpp_name
-
-    def code_cpp(self):
         if self.cpp_name is None:
             hashdefine_code = ''
         else:
             hashdefine_code = '#define {python_name} {cpp_name}'.format(python_name=self.py_name,
                                                                         cpp_name=self.cpp_name)
-        return {'support_code': '',
-                'hashdefine_code': hashdefine_code}
-
+        codes = {'python': lambda *args: pyfunc(*args),
+                 'cpp': {'hashdefine_code': hashdefine_code}
+                }
+        Function.__init__(self, pyfunc, sympy_func, arg_units=arg_units,
+                          return_unit=return_unit, codes=codes)
 
 # sympy does not have a log10 function, so let's define one
 class log10(sympy_Function):
