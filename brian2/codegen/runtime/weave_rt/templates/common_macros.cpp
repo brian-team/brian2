@@ -28,6 +28,10 @@
 	{{ insert_lines('POINTERS', pointers_lines) }}
 {% endmacro %}
 
+{% macro insert_code_lines() %}
+	{{ insert_lines('MAIN CODE LINES', code_lines) }}
+{% endmacro %}
+
 {% macro insert_group_preamble() %}
 	{{ insert_support_code_lines_commented() }}
 	{{ insert_denormals_code_lines() }}
