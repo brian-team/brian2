@@ -358,9 +358,9 @@ def create_runner_codeobj(group, code, template_name, indices=None,
 
     if name is None:
         if group is not None:
-            name = group.name + '_codeobject*'
+            name = '%s_%s_codeobject*' % (group.name, template_name) 
         else:
-            name = '_codeobject*'
+            name = '%s_codeobject*' % template_name
 
     if indices is None:
         indices = group.indices
@@ -453,7 +453,7 @@ class GroupCodeRunner(BrianObject):
                              additional_variables, namespace)
         self.codeobj = create_runner_codeobj(self.group, self.abstract_code,
                                              self.template,
-                                             name=self.name,
+                                             name=self.name+'_codeobject*',
                                              check_units=self.check_units,
                                              additional_variables=additional_variables,
                                              additional_namespace=namespace,
