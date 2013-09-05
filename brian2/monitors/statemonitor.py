@@ -211,7 +211,7 @@ class StateMonitor(BrianObject):
         self.codeobj = create_runner_codeobj(self.source,
                                              code,
                                              'statemonitor',
-                                             name=self.name,
+                                             name=self.name+'_codeobject*',
                                              additional_variables=self.variables,
                                              additional_namespace=namespace,
                                              template_kwds={'_variable_names':
