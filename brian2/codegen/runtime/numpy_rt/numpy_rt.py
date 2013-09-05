@@ -19,10 +19,10 @@ class NumpyCodeObject(CodeObject):
                                        'templates'))
     language = NumpyLanguage()
 
-    def __init__(self, code, namespace, variables):
+    def __init__(self, code, namespace, variables, name='numpy_code_object*'):
         # TODO: This should maybe go somewhere else
         namespace['logical_not'] = np.logical_not
-        CodeObject.__init__(self, code, namespace, variables)
+        CodeObject.__init__(self, code, namespace, variables, name=name)
 
     def compile(self):
         super(NumpyCodeObject, self).compile()
