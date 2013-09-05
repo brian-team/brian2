@@ -1,28 +1,7 @@
-////////////////////////////////////////////////////////////////////////////
-//// MAIN CODE /////////////////////////////////////////////////////////////
+{% extends 'common_group.cpp' %}
 
-{% macro main() %}
+{% block maincode %}
     // USES_VARIABLES { _synaptic_pre, _synaptic_post }
-	////// SUPPORT CODE ///////
-	{% for line in support_code_lines %}
-	// {{line}}
-	{% endfor %}
-
-	////// HANDLE DENORMALS ///
-	{% for line in denormals_code_lines %}
-	{{line}}
-	{% endfor %}
-
-	////// HASH DEFINES ///////
-	{% for line in hashdefine_lines %}
-	{{line}}
-	{% endfor %}
-
-	///// POINTERS ////////////
-	{% for line in pointers_lines %}
-	{{line}}
-	{% endfor %}
-
 	//// MAIN CODE ////////////
 	int _cpp_numelements = 0;
 	// Container for all the potential indices
@@ -32,9 +11,7 @@
 	    const int _vectorisation_idx = _idx;
 	    const int _presynaptic_idx = _synaptic_pre[_idx];
 	    const int _postsynaptic_idx = _synaptic_post[_idx];
-		{% for line in code_lines %}
-		{{line}}
-		{% endfor %}
+	    {{ super() }}
 		if(_cond) {
 			_elements[_cpp_numelements++] = _idx;
 		}
@@ -42,13 +19,4 @@
 	npy_intp _dims[] = {_cpp_numelements};
 	PyObject *_numpy_elements = PyArray_SimpleNewFromData(1, _dims, NPY_INT, _elements);
 	return_val = _numpy_elements;
-{% endmacro %}
-
-////////////////////////////////////////////////////////////////////////////
-//// SUPPORT CODE //////////////////////////////////////////////////////////
-
-{% macro support_code() %}
-	{% for line in support_code_lines %}
-	// {{line}}
-	{% endfor %}
-{% endmacro %}
+{% endblock %}

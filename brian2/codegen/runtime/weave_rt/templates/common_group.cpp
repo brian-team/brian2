@@ -12,5 +12,7 @@
 
 
 {% macro support_code() %}
+{% block support_code_block %}
 	{{ common.support_code() }}
+{% endblock %}
 {% endmacro %}

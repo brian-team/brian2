@@ -1,27 +1,7 @@
-{% macro main() %}
+{% extends 'common_group.cpp' %}
 
+{% block maincode %}
     // USES_VARIABLES { _t, _clock_t, _indices }
-
-    ////// SUPPORT CODE ///
-	{% for line in support_code_lines %}
-	//{{line}}
-	{% endfor %}
-
-	////// HANDLE DENORMALS ///
-	{% for line in denormals_code_lines %}
-	{{line}}
-	{% endfor %}
-
-	////// HASH DEFINES ///////
-	{% for line in hashdefine_lines %}
-	{{line}}
-	{% endfor %}
-
-	///// POINTERS ////////////
-	{% for line in pointers_lines %}
-	{{line}}
-	{% endfor %}
-
     // Get the current length and new length of t and value arrays
     const int _curlen = _t.attr("shape")[0];
     const int _new_len = _curlen + 1;
@@ -46,9 +26,7 @@
         {
             const int _idx = _indices[_i];
             const int _vectorisation_idx = _idx;
-            {% for line in code_lines %}
-            {{line}}
-            {% endfor %}
+            {{ super() }}
 
             // FIXME: This will not work for variables with other data types
             double *recorded_entry = (double*)(_record_data->data + (_new_len - 1)*_record_strides[0] + _i*_record_strides[1]);
@@ -57,10 +35,4 @@
     }
     {% endfor %}
 
-{% endmacro %}
-
-{% macro support_code() %}
-{% for line in support_code_lines %}
-{{line}}
-{% endfor %}
-{% endmacro %}
+{% endblock %}
