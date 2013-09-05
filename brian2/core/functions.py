@@ -72,7 +72,7 @@ class FunctionImplementation(object):
         self.code = code
 
 
-def make_function(codes, namespace):
+def make_function(codes):
     '''
     A simple decorator to extend user-written Python functions to work with code
     generation in other languages.
@@ -94,17 +94,19 @@ def make_function(codes, namespace):
                     """,
                 'hashdefine_code':'',
                 },
-            }, namespace={})
+            })
         def usersin(x):
             return sin(x)
     '''
     def do_make_user_function(func):
         function = Function(func)
         for language_id, code in codes.iteritems():
-            function.add_implementation(language_id,
-                                        FunctionImplementation(func.__name__,
-                                                               code=code))
-
+            function.implementations[language_id] = FunctionImplementation(func.__name__,
+                                                                           code=code)
+        if not 'numpy' in function.implementations:
+            function.implementations['numpy'] = FunctionImplementation(func.__name__,
+                                                                       code=func)
+        return function
     return do_make_user_function
 
 

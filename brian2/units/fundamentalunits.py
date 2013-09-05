@@ -2155,5 +2155,9 @@ def check_units(**au):
             return result
         new_f.__doc__ = f.__doc__
         new_f.__name__ = f.__name__
+        # store the information in the function, necessary when using the
+        # function in expressions or equations
+        new_f._arg_units = [unit for name, unit in au.iteritems() if name != 'result']
+        new_f._return_unit = au.get('result', None)
         return new_f
     return do_check_units

@@ -255,7 +255,7 @@ class Network(Nameable):
         their `BrianObject.pre_run` methods are called.
         '''                
         brian_prefs.check_all_validated()
-        
+
         self._clocks = set(obj.clock for obj in self.objects)
         
         self._stopped = False

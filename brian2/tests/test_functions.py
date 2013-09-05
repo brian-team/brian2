@@ -4,21 +4,22 @@ from numpy.testing import assert_equal
 from brian2 import *
 from brian2.utils.logger import catch_logs
 
+# We can only test C++ if weave is availabe
+try:
+    import scipy.weave
+    codeobj_classes = [WeaveCodeObject, NumpyCodeObject]
+except ImportError:
+    # Can't test C++
+    codeobj_classes = [NumpyCodeObject]
+
+
 def test_math_functions():
     '''
     Test that math functions give the same result, regardless of whether used
     directly or in generated Python or C++ code.
     '''
     test_array = np.array([-1, -0.5, 0, 0.5, 1])
-    
-    # We can only test C++ if weave is availabe
-    try:
-        import scipy.weave
-        codeobj_classes = [WeaveCodeObject, NumpyCodeObject]
-    except ImportError:
-        # Can't test C++
-        codeobj_classes = [NumpyCodeObject]
-    
+
     with catch_logs() as _:  # Let's suppress warnings about illegal values        
         for codeobj_class in codeobj_classes:
             
@@ -78,5 +79,36 @@ def test_math_functions():
                              'Function %s did not return the correct values' % func.__name__)
 
 
+def test_user_defined_function():
+    @make_function(codes={
+        'cpp':{
+            'support_code':"""
+                inline double usersin(double x)
+                {
+                    return sin(x);
+                }
+                """,
+            'hashdefine_code':'',
+            },
+        })
+    @check_units(x=1, result=1)
+    def usersin(x):
+        return np.sin(x)
+
+    test_array = np.array([0, 1, 2, 3])
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(len(test_array),
+                        '''func = usersin(variable) : 1
+                                  variable : 1''',
+                        codeobj_class=codeobj_class)
+        G.variable = test_array
+        mon = StateMonitor(G, 'func', record=True)
+        net = Network(G, mon)
+        net.run(defaultclock.dt)
+
+        assert_equal(np.sin(test_array), mon.func_.flatten())
+
+
 if __name__ == '__main__':
     test_math_functions()
+    test_user_defined_function()
