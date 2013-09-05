@@ -1,5 +1,6 @@
 import numpy
 from brian2.devices.device import Device, set_device
+from brian2.core.preferences import brian_prefs
 
 class CPPStandaloneDevice(Device):
     '''
