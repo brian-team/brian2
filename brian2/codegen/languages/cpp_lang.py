@@ -192,7 +192,7 @@ class CPPLanguage(Language):
         hash_defines = ''
         for varname, variable in namespace.items():
             if isinstance(variable, Function):
-                user_functions.append(varname)
+                user_functions.append((varname, variable))
                 speccode = variable.code(self.language_id)
                 support_code += '\n' + deindent(speccode.get('support_code', ''))
                 hash_defines += deindent(speccode.get('hashdefine_code', ''))
@@ -206,12 +206,16 @@ class CPPLanguage(Language):
                                      'not replacing it') % pyfunc_name)
                     else:
                         namespace[pyfunc_name] = variable.pyfunc
+
         
-        # delete the user-defined functions from the namespace
-        for func in user_functions:
-            del namespace[func]
-        
-        # return
+        # delete the user-defined functions from the namespace and add the
+        # function namespaces (if any)
+        for funcname, func in user_functions:
+            del namespace[funcname]
+            func_namespace = func.implementations[self.language_id].namespace
+            if func_namespace is not None:
+                namespace.update(func_namespace)
+
         return (stripped_deindented_lines(code),
                 {'pointers_lines': stripped_deindented_lines(pointers),
                  'support_code_lines': stripped_deindented_lines(support_code),

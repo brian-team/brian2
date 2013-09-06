@@ -77,9 +77,10 @@ class Function(object):
 
 class FunctionImplementation(object):
 
-    def __init__(self, name, code=None):
+    def __init__(self, name, code=None, namespace=None):
         self.name = name
         self.code = code
+        self.namespace = namespace
 
 
 def make_function(codes):
