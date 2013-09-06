@@ -71,6 +71,14 @@ class NumpyLanguage(Language):
                     line = line + '[' + index_var + ']'
                 line = line + ' = ' + var
                 lines.append(line)
+
+        # Make sure we do not use the __call__ function of Function objects but
+        # rather the Python function stored internally. The __call__ function
+        # would otherwise return values with units
+        for varname, var in namespace.iteritems():
+            if isinstance(var, Function):
+                namespace[varname] = var.code(self.language_id)
+
         return lines, {}
 
 ################################################################################

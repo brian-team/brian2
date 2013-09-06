@@ -5,6 +5,7 @@ import numpy as np
 from numpy.random import randn, rand
 
 import brian2.units.unitsafefunctions as unitsafe
+from brian2.units.fundamentalunits import Quantity, Unit, get_dimensions
 
 __all__ = ['DEFAULT_FUNCTIONS', 'Function', 'make_function',
            'FunctionImplementation']
@@ -18,16 +19,22 @@ class Function(object):
         self.name = name
         self.pyfunc = pyfunc
         self.sympy_func = sympy_func
-        if hasattr(pyfunc, '_arg_units'):
-            self._arg_units = pyfunc._arg_units
-            self._return_unit = pyfunc._return_unit
-        else:
-            if arg_units is None or return_unit is None:
+        self._arg_units = arg_units
+        self._return_unit = return_unit
+        if self._arg_units is None:
+            if hasattr(pyfunc, '_arg_units'):
+                self._arg_units = pyfunc._arg_units
+            else:
+                raise ValueError('The given Python function does not specify '
+                                  'how it deals with units, need to specify '
+                                  '"arg_units".')
+        if self._return_unit is None:
+            if hasattr(pyfunc, '_return_unit'):
+                self._return_unit = pyfunc._return_unit
+            else:
                 raise ValueError(('The given Python function does not specify '
                                   'how it deals with units, need to specify '
-                                  '"arg_units" and "return_unit"'))
-            self._arg_units = arg_units
-            self._return_unit = return_unit
+                                  '"return_unit".'))
 
         # Provide the numpy implementation by default
         self.implementations = {'numpy': FunctionImplementation(name,
@@ -60,11 +67,12 @@ class Function(object):
             return self.name
 
     def __call__(self, *args):
-        try:
-            return self.code('numpy')(*args)
-        except TypeError:
-            print self.name, self.code('numpy')
-            raise
+        if callable(self._return_unit):
+            return_dim = get_dimensions(self._return_unit(*args))
+        else:
+            return_dim = get_dimensions(self._return_unit)
+        return Quantity.with_dimensions(self.code('numpy')(*args),
+                                        return_dim)
 
 
 class FunctionImplementation(object):
