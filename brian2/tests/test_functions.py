@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, assert_raises
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
@@ -109,6 +109,40 @@ def test_user_defined_function():
         assert_equal(np.sin(test_array), mon.func_.flatten())
 
 
+def test_simple_user_defined_function():
+    # Make sure that it's possible to use a Python function directly, without
+    # additional wrapping
+    @check_units(x=1, result=1)
+    def usersin(x):
+        return np.sin(x)
+
+    test_array = np.array([0, 1, 2, 3])
+    G = NeuronGroup(len(test_array),
+                    '''func = usersin(variable) : 1
+                              variable : 1''',
+                    codeobj_class=NumpyCodeObject)
+    G.variable = test_array
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    net.run(defaultclock.dt)
+
+    assert_equal(np.sin(test_array), mon.func_.flatten())
+
+    # Check that it raises an error for C++
+    if WeaveCodeObject in codeobj_classes:
+        G = NeuronGroup(len(test_array),
+                    '''func = usersin(variable) : 1
+                              variable : 1''',
+                    codeobj_class=WeaveCodeObject)
+        mon = StateMonitor(G, 'func', record=True)
+        net = Network(G, mon)
+        # This looks a bit odd -- we have to get usersin into the namespace of
+        # the lambda expression
+        assert_raises(NotImplementedError,
+                      lambda usersin: net.run(0.1*ms), usersin)
+
+
 if __name__ == '__main__':
     test_math_functions()
     test_user_defined_function()
+    test_simple_user_defined_function()

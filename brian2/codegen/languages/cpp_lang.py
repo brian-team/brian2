@@ -115,9 +115,14 @@ class CPPLanguage(Language):
     def translate_expression(self, expr, namespace):
         for varname, var in namespace.iteritems():
             if isinstance(var, Function):
-                impl_name = var.implementations[self.language_id].name
-                if varname != impl_name:
-                    expr = word_substitute(expr, {varname: impl_name})
+                impl = var.implementations.get(self.language_id, None)
+                if impl is None:
+                    raise NotImplementedError(('Function {name} is not '
+                                               'implemented for language'
+                                               '{language}').format(name=varname,
+                                                                    language=self.language_id))
+                if varname != impl.name:
+                    expr = word_substitute(expr, {varname: impl.name})
         return CPPNodeRenderer().render_expr(expr).strip()
 
     def translate_statement(self, statement, namespace):

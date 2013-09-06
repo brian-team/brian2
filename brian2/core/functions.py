@@ -29,7 +29,9 @@ class Function(object):
             self._arg_units = arg_units
             self._return_unit = return_unit
 
-        self.implementations = {}
+        # Provide the numpy implementation by default
+        self.implementations = {'numpy': FunctionImplementation(name,
+                                                                code=pyfunc)}
 
     def code(self, language_id):
         """
@@ -103,9 +105,6 @@ def make_function(codes):
         for language_id, code in codes.iteritems():
             function.implementations[language_id] = FunctionImplementation(func.__name__,
                                                                            code=code)
-        if not 'numpy' in function.implementations:
-            function.implementations['numpy'] = FunctionImplementation(func.__name__,
-                                                                       code=func)
         return function
     return do_make_user_function
 

@@ -18,6 +18,8 @@ from brian2.units.stdunits import stdunits
 from brian2.core.functions import DEFAULT_FUNCTIONS
 import brian2.equations.equations as equations
 
+from .functions import Function
+
 __all__ = ['create_namespace',
            'CompoundNamespace',
            'get_local_namespace',
@@ -151,6 +153,8 @@ class CompoundNamespace(collections.Mapping):
 
         if len(matches) == 0:
             # No match at all
+            if additional_namespace is not None:
+                print 'usersin' in additional_namespace[1]
             raise KeyError(('The identifier "%s" could not be resolved.') % 
                            (identifier))
         elif len(matches) > 1:
@@ -184,6 +188,10 @@ class CompoundNamespace(collections.Mapping):
                 resolved = float(resolved)
             elif np.can_cast(numpy_type, np.complex_):
                 resolved = complex(resolved)
+
+        # Replace pure Python functions by a Functions object
+        if callable(resolved) and not isinstance(resolved, Function):
+            resolved = Function(resolved)
 
         return resolved
 
