@@ -96,11 +96,12 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
     logger.debug(name + " snippet:\n" + str(snippet))
     
     name = find_name(name)
-    
-    code = template(snippet, codeobj_name=name, **template_kwds)
-    logger.debug(name + " code:\n" + str(code))
 
     variables.update(indices)
+    
+    code = template(snippet, variables=variables, codeobj_name=name, namespace=namespace, **template_kwds)
+    logger.debug(name + " code:\n" + str(code))
+
     codeobj = codeobj_class(code, namespace, variables, name=name)
     codeobj.compile()
     return codeobj
