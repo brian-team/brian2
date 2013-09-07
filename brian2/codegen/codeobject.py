@@ -73,17 +73,31 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
 
     logger.debug(name + " abstract code:\n" + abstract_code)
     iterate_all = template.iterate_all
-    innercode, kwds = translate(abstract_code, variables, namespace,
-                                dtype=brian_prefs['core.default_scalar_dtype'],
-                                language=codeobj_class.language,
-                                variable_indices=variable_indices,
-                                iterate_all=iterate_all)
+    if isinstance(abstract_code, dict):
+        snippet = {}
+        kwds = {}
+        for ac_name, ac in abstract_code.iteritems():
+            snip, snip_kwds = translate(ac, variables, namespace,
+                                        dtype=brian_prefs['core.default_scalar_dtype'],
+                                        language=codeobj_class.language,
+                                        variable_indices=variable_indices,
+                                        iterate_all=iterate_all)
+            snippet[ac_name] = snip
+            for k, v in snip_kwds:
+                kwds[ac_name+'_'+k] = v
+            
+    else:
+        snippet, kwds = translate(abstract_code, variables, namespace,
+                                  dtype=brian_prefs['core.default_scalar_dtype'],
+                                  language=codeobj_class.language,
+                                  variable_indices=variable_indices,
+                                  iterate_all=iterate_all)
     template_kwds.update(kwds)
-    logger.debug(name + " inner code:\n" + str(innercode))
+    logger.debug(name + " snippet:\n" + str(snippet))
     
     name = find_name(name)
     
-    code = template(innercode, codeobj_name=name, **template_kwds)
+    code = template(snippet, codeobj_name=name, **template_kwds)
     logger.debug(name + " code:\n" + str(code))
 
     variables.update(indices)
