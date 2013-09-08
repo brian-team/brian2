@@ -23,12 +23,12 @@ N = 1000
 
 # Use a NeuronGroup to fake the whole process
 G = NeuronGroup(N, eqs, reset=reset, threshold=threshold, refractory=refractory, name='gp')
-#M = SpikeMonitor(G)
-#G2 = NeuronGroup(1, eqs, reset=reset, threshold=threshold, refractory=refractory, name='gp2')
+M = SpikeMonitor(G)
+G2 = NeuronGroup(1, eqs, reset=reset, threshold=threshold, refractory=refractory, name='gp2')
 # Run the network for 0 seconds to generate the code
 net = Network(G,
-              #M,
-              #G2,
+              M,
+              G2,
               )
 
 net.run(0*second)

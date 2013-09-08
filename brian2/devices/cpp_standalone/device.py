@@ -47,6 +47,9 @@ class CPPStandaloneDevice(Device):
         arr = DynamicArray1D(size, dtype=dtype)
         self.dynamic_arrays['_array_%s_%s' % (owner.name, name)] = arr
         return arr
+    
+    def dynamic_array(self):
+        raise NotImplentedError
 
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is not None:
@@ -85,7 +88,10 @@ class CPPStandaloneDevice(Device):
 
         # Write the arrays            
         array_specs = [(k, c_data_type(v.dtype), len(v)) for k, v in self.arrays.iteritems()]
-        arr_tmp = CPPStandaloneCodeObject.templater.arrays(None, array_specs=array_specs)
+        dynamic_array_specs = [(k, c_data_type(v.dtype)) for k, v in self.dynamic_arrays.iteritems()]
+        print self.dynamic_arrays.keys()
+        arr_tmp = CPPStandaloneCodeObject.templater.arrays(None, array_specs=array_specs,
+                                                           dynamic_array_specs=dynamic_array_specs)
         open('output/arrays.cpp', 'w').write(arr_tmp.cpp_file)
         open('output/arrays.h', 'w').write(arr_tmp.h_file)
 

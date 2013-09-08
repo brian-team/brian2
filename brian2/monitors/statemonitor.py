@@ -7,9 +7,9 @@ from brian2.core.variables import Variable, AttributeVariable, ArrayVariable
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.core.preferences import brian_prefs
+from brian2.devices.device import get_device
 from brian2.units.fundamentalunits import Unit, Quantity, have_same_dimensions
 from brian2.units.allunits import second
-from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.groups.group import create_runner_codeobj
 
 __all__ = ['StateMonitor']
@@ -193,12 +193,12 @@ class StateMonitor(BrianObject):
         self._group_attribute_access_active = True
 
     def reinit(self):
-        self._values = dict((v, DynamicArray((0, len(self.indices)),
-                                             use_numpy_resize=True,
-                                             dtype=self.source.variables[v].dtype))
-                            for v in self.record_variables)
-        self._t = DynamicArray1D(0, use_numpy_resize=True,
-                                 dtype=brian_prefs['core.default_scalar_dtype'])
+        dev = get_device()
+        vars = self.source.variables
+        self._values = dict((v, dev.dynamic_array(self, '_values', (0, len(self.indices)),
+                                                  vars[v].unit,
+                                                  dtype=vars[v].dtype)) for v in self.record_variables)
+        self._t = dev.dynamic_array_1d(self, '_t', 0, second, dtype=brian_prefs['core.default_scalar_dtype'])
     
     def pre_run(self, namespace):
         # Some dummy code so that code generation takes care of the indexing

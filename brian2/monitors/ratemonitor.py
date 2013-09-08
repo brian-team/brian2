@@ -8,7 +8,6 @@ from brian2.core.base import BrianObject
 from brian2.core.preferences import brian_prefs
 from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variable, AttributeVariable
-from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.devices.device import get_device
@@ -68,11 +67,11 @@ class PopulationRateMonitor(BrianObject):
         '''
         Clears all recorded rates
         '''
-        self._rate = DynamicArray1D(0, use_numpy_resize=True,
-                                    dtype=brian_prefs['core.default_scalar_dtype'])
-        self._t = DynamicArray1D(0, use_numpy_resize=True,
-                                 dtype=getattr(self.clock.t, 'dtype',
-                                               np.dtype(type(self.clock.t))))
+        dev = get_device()
+        self._rate = dev.dynamic_array_1d(self, '_rate', 0, 1, dtype=brian_prefs['core.default_scalar_dtype'])
+        self._t = dev.dynamic_array_1d(self, '_t', 0, second,
+                                       dtype=getattr(self.clock.t, 'dtype',
+                                                     np.dtype(type(self.clock.t))))
 
     def pre_run(self, namespace):
         self.codeobj = get_device().code_object(

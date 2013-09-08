@@ -1,5 +1,5 @@
 import numpy
-from brian2.memory.dynamicarray import DynamicArray1D
+from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.codegen.codeobject import create_codeobject
 from brian2.codegen.runtime.targets import runtime_targets
 from brian2.core.preferences import brian_prefs
@@ -38,6 +38,9 @@ class Device(object):
 
     def create_dynamic_array_1d(self, owner, name, size, unit, dtype=None):
         pass
+
+    def create_dynamic_array(self, owner, name, size, unit, dtype=None):
+        pass
     
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is None:
@@ -74,6 +77,11 @@ class RuntimeDevice(Device):
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         return DynamicArray1D(size, dtype=dtype)
+
+    def dynamic_array(self, owner, name, size, unit, dtype):
+        if dtype is None:
+            dtype = brian_prefs['core.default_scalar_dtype']
+        return DynamicArray(size, dtype=dtype)
 
 
 runtime_device = RuntimeDevice()
