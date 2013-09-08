@@ -436,7 +436,6 @@ class DynamicArrayVariable(ArrayVariable):
     An object providing information about a model variable stored in a dynamic
     array (used in `Synapses`).
     '''
-    
     def get_value(self):
         # The actual numpy array is accesible via DynamicArray1D.data
         return self.value.data

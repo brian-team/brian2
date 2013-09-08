@@ -10,7 +10,7 @@ from brian2.core.preferences import brian_prefs
 from brian2.core.variables import *
 from brian2.utils.filetools import copy_directory
 from brian2.utils.stringtools import word_substitute
-from brian2.memory.dynamicarray import DynamicArray1D
+from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.codegen.languages.cpp_lang import c_data_type
 from brian2.codegen.codeobject import CodeObjectUpdater
 
@@ -110,15 +110,19 @@ class CPPStandaloneDevice(Device):
                     if isinstance(val, int):
                         code_object_defs[id(codeobj)].append('int %s = %s;' % (k, arr_N))
                     elif k=='_spikespace':
-                        code_object_defs[id(codeobj)].append('%s *%s = %s;' % (arr_dtype, k, arr_k))
+                        pass
+                        #code_object_defs[id(codeobj)].append('%s *%s = %s;' % (arr_dtype, k, arr_k))
                     elif isinstance(val, numpy.ndarray):
+                        pass
+                    elif isinstance(val, DynamicArray1D):
                         pass
                     else:
                         raise ValueError("Unknown")
                 elif v.im_class is Variable:
-                    vv = v.im_self.value
-                    if vv.__class__ is DynamicArray1D:
-                        print 'Found a dynamic array', k
+                    arr = v.im_self
+                    val = arr.value
+                    if isinstance(val, DynamicArray1D):
+                        pass
                     else:
                         raise ValueError("Unknown")
                 else:

@@ -7,7 +7,7 @@ from brian2.codegen.codeobject import create_codeobject
 from brian2.core.base import BrianObject
 from brian2.core.preferences import brian_prefs
 from brian2.core.scheduler import Scheduler
-from brian2.core.variables import ArrayVariable, AttributeVariable, Variable
+from brian2.core.variables import ArrayVariable, AttributeVariable, Variable, DynamicArrayVariable
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit
 from brian2.devices.device import get_device
@@ -63,13 +63,19 @@ class SpikeMonitor(BrianObject):
                            # DynamicArray here, having access to the underlying
                            # array is not enough since we want to do the resize
                            # in the template
-                           '_i': ArrayVariable('_i', Unit(1), self._i, group_name=self.name),
-                           '_t': ArrayVariable('_t', Unit(1), self._t, group_name=self.name),
+                           # TODO: the lines below should work, but they break SpikeMonitor's template
+#                           '_i': DynamicArrayVariable('_i', Unit(1), self._i, group_name=self.name),
+#                           '_t': DynamicArrayVariable('_t', Unit(1), self._t, group_name=self.name),
+                           '_i': Variable(Unit(1), self._i),
+                           '_t': Variable(Unit(1), self._t),
                            '_count': ArrayVariable('_count', Unit(1), self.count, group_name=self.name),
                            '_source_start': Variable(Unit(1), start,
                                                      constant=True),
                            '_source_end': Variable(Unit(1), end,
                                                    constant=True)}
+        # temporary hack to get full array name of i and t
+        self.variables['_i'].arrayname = '_array_%s__i' % self.name
+        self.variables['_t'].arrayname = '_array_%s__t' % self.name
 
     def reinit(self):
         '''

@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from brian2 import *
 
 #brian_prefs.codegen.target = 'weave'
+BrianLogger.log_level_debug()
 
 G1 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
                 threshold='v > 1',

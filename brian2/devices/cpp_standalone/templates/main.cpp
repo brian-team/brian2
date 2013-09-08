@@ -4,8 +4,12 @@
 #include "{{codeobj.name}}.h"
 {% endfor %}
 
+#include<iostream>
+using namespace std;
+
 int main(void)
 {
+	_init_arrays();
 	const double dt = {{dt}};
 	for(int i=0; i<{{num_steps}}; i++)
 	{
@@ -14,5 +18,7 @@ int main(void)
 		{{run_line}}
 		{% endfor %}
 	}
+	cout << "Num spikes: " << _array_spikemonitor__i.size() << endl;
+	_dealloc_arrays();
 	return 0;
 }
