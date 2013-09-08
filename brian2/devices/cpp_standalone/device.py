@@ -89,7 +89,6 @@ class CPPStandaloneDevice(Device):
         # Write the arrays            
         array_specs = [(k, c_data_type(v.dtype), len(v)) for k, v in self.arrays.iteritems()]
         dynamic_array_specs = [(k, c_data_type(v.dtype)) for k, v in self.dynamic_arrays.iteritems()]
-        print self.dynamic_arrays.keys()
         arr_tmp = CPPStandaloneCodeObject.templater.arrays(None, array_specs=array_specs,
                                                            dynamic_array_specs=dynamic_array_specs)
         open('output/arrays.cpp', 'w').write(arr_tmp.cpp_file)
@@ -99,7 +98,7 @@ class CPPStandaloneDevice(Device):
         code_object_defs = defaultdict(list)
         for codeobj in self.code_objects.values():
             for k, v in codeobj.nonconstant_values:
-                if k=='t' or k=='_spikes' or k=='_num_spikes':
+                if k=='t':
                     pass
                 elif v.im_class is ArrayVariable:
                     # find the corresponding array

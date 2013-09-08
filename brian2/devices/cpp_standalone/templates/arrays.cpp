@@ -1,6 +1,7 @@
 {% macro cpp_file() %}
 
 #include<stdint.h>
+#include<vector>
 #include "arrays.h"
 
 // static arrays
@@ -22,6 +23,7 @@ std::vector<{{dtype_spec}}> {{varname}};
 #ifndef _BRIAN_ARRAYS_H
 #define _BRIAN_ARRAYS_H
 
+#include<vector>
 #include<stdint.h>
 
 // static arrays

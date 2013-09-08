@@ -6,6 +6,7 @@ from pylab import *
 from brian2 import *
 
 #brian_prefs.codegen.target = 'weave'
+BrianLogger.log_level_debug()
 
 tau = 20 * ms
 N = 100
