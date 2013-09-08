@@ -84,8 +84,7 @@ class PopulationRateMonitor(BrianObject):
                                          indices={},
                                          variable_indices=defaultdict(lambda: '_idx'))
 
-    def update(self):
-        self.codeobj()
+        self.updaters[:] = [self.codeobj.get_updater()]
 
     @property
     def rate(self):

@@ -461,32 +461,4 @@ class GroupCodeRunner(BrianObject):
                                              additional_namespace=namespace,
                                              template_kwds=self.template_kwds)
         self.code_objects[:] = [weakref.proxy(self.codeobj)]
-    
-    def pre_update(self):
-        '''
-        Will be called in every timestep before the `update` method is called.
-        
-        Does nothing by default.
-        '''
-        pass
-    
-    def update(self, **kwds):
-        self.pre_update()
-        return_value = self.codeobj(**kwds)
-        self.post_update(return_value)
-
-    def post_update(self, return_value):
-        '''
-        Will be called in every timestep after the `update` method is called.
-        
-        Overwritten in `Thresholder` to update the ``spikes`` list saved in 
-        a `NeuronGroup`.
-        
-        Does nothing by default.
-        
-        Parameters
-        ----------
-        return_value : object
-            The result returned from calling the `CodeObject`.
-        '''
-        pass
+        self.updaters[:] = [self.codeobj.get_updater()]

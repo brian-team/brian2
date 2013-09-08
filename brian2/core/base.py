@@ -3,6 +3,7 @@ All Brian objects should derive from `BrianObject`.
 '''
 
 import gc
+import weakref
 
 from brian2.utils.logger import get_logger
 from brian2.core.scheduler import Scheduler
@@ -10,6 +11,7 @@ from brian2.core.names import Nameable
 
 __all__ = ['BrianObject',
            'clear',
+           'Updater',
            ]
 
 logger = get_logger(__name__)
@@ -35,9 +37,6 @@ class BrianObject(Nameable):
     -----
         
     The set of all `BrianObject` objects is stored in ``BrianObject.__instances__()``.
-    
-    Brian objects deriving from this class should always define an
-    ``update()`` method, that gets called by `Network.run`.    
     '''
     def __init__(self, when=None, name='brianobject*'):
         scheduler = Scheduler(when)
@@ -59,6 +58,7 @@ class BrianObject(Nameable):
         
         self._contained_objects = []
         self._code_objects = []
+        self._updaters = []
         
         self._active = True
         
@@ -98,12 +98,6 @@ class BrianObject(Nameable):
         '''
         pass
     
-    def update(self):
-        '''
-        Every `BrianObject` should define an ``update()`` method which is called every time step.
-        '''
-        pass
-        
     def reinit(self):
         '''
         Reinitialise the object, called by `Network.reinit`.
@@ -129,7 +123,17 @@ class BrianObject(Nameable):
          TODO: more details.
                   
          Note that this attribute cannot be set directly, you need to modify
-         the underlying list, e.g. ``obj.contained_objects.extend([A, B])``.
+         the underlying list, e.g. ``obj.code_objects.extend([A, B])``.
+         ''')
+
+    updaters = property(fget=lambda self:self._updaters,
+                                 doc='''
+         The list of `Updater` that define the runtime behaviour of this object.
+         
+         TODO: more details.
+                  
+         Note that this attribute cannot be set directly, you need to modify
+         the underlying list, e.g. ``obj.updaters.extend([A, B])``.
          ''')
     
     clock = property(fget=lambda self: self._clock,
@@ -212,3 +216,17 @@ def clear(erase=False):
     BrianObject.__instances__().clear()
     Nameable.__instances__().clear()
     gc.collect()
+
+
+class Updater(Nameable):
+    '''
+    Used to implement runtime behaviour of a `BrianObject`.
+    
+    Defines a `run` method that is called by `Network`.
+    '''
+    def __init__(self, owner):
+        self.owner = weakref.proxy(owner)
+        Nameable.__init__(self, owner.name+'_updater*')
+        
+    def run(self):
+        raise NotImplementedError

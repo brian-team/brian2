@@ -49,6 +49,7 @@ def test_propagation():
         G = NeuronGroup(2, 'v:1')
         S = Synapses(P, G, pre='v+=1', connect='i==j')
         net = Network(P, S, G)
+        net.run(0*ms)
         net.run(2*defaultclock.dt)
 
         assert_equal(G.v[:], np.array([0., 2.]))

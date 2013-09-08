@@ -1,4 +1,5 @@
 import functools
+import weakref
 
 from brian2.core.variables import (ArrayVariable, Variable,
                                     AttributeVariable, Subexpression,
@@ -6,6 +7,7 @@ from brian2.core.variables import (ArrayVariable, Variable,
 from .functions.base import Function
 from brian2.core.preferences import brian_prefs
 from brian2.core.names import Nameable, find_name
+from brian2.core.base import Updater
 from brian2.utils.logger import get_logger
 from .translation import translate
 from .runtime.targets import runtime_targets
@@ -13,6 +15,7 @@ from .runtime.targets import runtime_targets
 __all__ = ['CodeObject',
            'create_codeobject',
            'get_codeobject_template',
+           'CodeObjectUpdater',
            ]
 
 logger = get_logger(__name__)
@@ -199,4 +202,17 @@ class CodeObject(Nameable):
             defined during the call of `Language.code_object`.
         '''
         raise NotImplementedError()
+    
+    def get_updater(self):
+        '''
+        Returns a `CodeObjectUpdater` that updates this `CodeObject`
+        '''
+        return CodeObjectUpdater(self)
 
+
+class CodeObjectUpdater(Updater):
+    '''
+    Used to update ``CodeObject``.
+    '''
+    def run(self):
+        self.owner()

@@ -217,9 +217,7 @@ class StateMonitor(BrianObject):
                                              template_kwds={'_variable_names':
                                                                 self.record_variables},
                                              check_units=False)
-
-    def update(self):
-        self.codeobj()
+        self.updaters[:] = [self.codeobj.get_updater()]
 
     def __getitem__(self, item):
         if isinstance(item, (int, np.ndarray)):
