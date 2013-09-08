@@ -24,5 +24,5 @@ syn.w[:] = 1
 
 mon = StateMonitor(G2, 'v', record=True)
 run(20*ms)
-plt.plot(mon.t / ms, mon.v)
+plt.plot(mon.t / ms, mon.v.T)
 plt.show()
