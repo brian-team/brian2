@@ -20,6 +20,10 @@ namespace {
 {{line}}
 {% endfor %}
 
+{% if variables is defined %}
+{% set _spikespace = variables['_spikespace'].arrayname %}
+{% endif %}
+
 void _run_{{codeobj_name}}(double t)
 {
 	///// CONSTANTS ///////////
@@ -29,8 +33,8 @@ void _run_{{codeobj_name}}(double t)
 	{{line}}
 	{% endfor %}
 
-	const int *_spikes = _spikespace;
-	const int _num_spikes = _spikespace[_num_spikespace-1];
+	const int *_spikes = {{_spikespace}};
+	const int _num_spikes = {{_spikespace}}[_num_idx];
 
 	//// MAIN CODE ////////////
 	for(int _index_spikes=0; _index_spikes<_num_spikes; _index_spikes++)

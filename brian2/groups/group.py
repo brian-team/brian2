@@ -13,7 +13,7 @@ from brian2.core.variables import (ArrayVariable, StochasticVariable,
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
 from brian2.units.allunits import second
-from brian2.codegen.codeobject import get_codeobject_template, create_codeobject
+from brian2.codegen.codeobject import create_codeobject
 from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
@@ -319,9 +319,9 @@ def create_runner_codeobj(group, code, template_name, indices=None,
     if check_units:
         check_code_units(code, group, additional_variables=additional_variables,
                          additional_namespace=additional_namespace)
-
-    template = get_codeobject_template(template_name,
-                                       codeobj_class=group.codeobj_class)
+        
+    codeobj_class = get_device().code_object_class(group.codeobj_class)
+    template = getattr(codeobj_class.templater, template_name)
 
     all_variables = dict(group.variables)
     if additional_variables is not None:

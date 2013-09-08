@@ -20,6 +20,10 @@ namespace {
 {{line}}
 {% endfor %}
 
+{% if variables is defined %}
+{% set _spikespace = variables['_spikespace'].arrayname %}
+{% endif %}
+
 void _run_{{codeobj_name}}(double t)
 {
 	///// CONSTANTS ///////////
@@ -38,7 +42,7 @@ void _run_{{codeobj_name}}(double t)
 		{{line}}
 		{% endfor %}
 		if(_cond) {
-			_spikespace[_cpp_numspikes++] = _idx;
+			{{_spikespace}}[_cpp_numspikes++] = _idx;
 			// We have to use the pointer names directly here: The condition
 			// might contain references to not_refractory or lastspike and in
 			// that case the names will refer to a single entry.
@@ -46,7 +50,7 @@ void _run_{{codeobj_name}}(double t)
 			_ptr{{_array_lastspike}}[_idx] = t;
 		}
 	}
-	_spikespace[_num_idx] = _cpp_numspikes;
+	{{_spikespace}}[_num_idx] = _cpp_numspikes;
 }
 {% endmacro %}
 

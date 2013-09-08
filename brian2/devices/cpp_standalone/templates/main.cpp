@@ -10,8 +10,8 @@ int main(void)
 	for(int i=0; i<{{num_steps}}; i++)
 	{
 		double t = i*dt;
-		{% for codeobj in code_objects %}
-		_run_{{codeobj.name}}(t);
+		{% for run_line in run_lines %}
+		{{run_line}}
 		{% endfor %}
 	}
 	return 0;

@@ -14,25 +14,10 @@ from .runtime.targets import runtime_targets
 
 __all__ = ['CodeObject',
            'create_codeobject',
-           'get_codeobject_template',
            'CodeObjectUpdater',
            ]
 
 logger = get_logger(__name__)
-
-
-def get_default_codeobject_class():
-    '''
-    Returns the default `CodeObject` class from the preferences.
-    '''
-    codeobj_class = brian_prefs['codegen.target']
-    if isinstance(codeobj_class, str):
-        try:
-            codeobj_class = runtime_targets[codeobj_class]
-        except KeyError:
-            raise ValueError("Unknown code generation target: %s, should be "
-                             " one of %s"%(codeobj_class, runtime_targets.keys()))
-    return codeobj_class
 
 
 def prepare_namespace(namespace, variables):
@@ -48,7 +33,7 @@ def prepare_namespace(namespace, variables):
 
 
 def create_codeobject(name, abstract_code, namespace, variables, template_name,
-                      indices, variable_indices, codeobj_class=None,
+                      indices, variable_indices, codeobj_class,
                       template_kwds=None):
     '''
     The following arguments keywords are passed to the template:
@@ -66,11 +51,7 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
     else:
         template_kwds = template_kwds.copy()
 
-    if codeobj_class is None:
-        codeobj_class = get_default_codeobject_class()
-        
-    template = get_codeobject_template(template_name,
-                                       codeobj_class=codeobj_class)
+    template = getattr(codeobj_class.templater, template_name)
 
     namespace = prepare_namespace(namespace, variables)
 
@@ -108,15 +89,6 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
     codeobj = codeobj_class(code, namespace, variables, name=name)
     codeobj.compile()
     return codeobj
-
-
-def get_codeobject_template(name, codeobj_class=None):
-    '''
-    Returns the `CodeObject` template ``name`` from the default or given class.
-    '''
-    if codeobj_class is None:
-        codeobj_class = get_default_codeobject_class()
-    return getattr(codeobj_class.templater, name)
 
 
 class CodeObject(Nameable):
