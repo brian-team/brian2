@@ -116,7 +116,7 @@ class CPPLanguage(Language):
         for varname, var in namespace.iteritems():
             if isinstance(var, Function):
                 impl_name = var.implementation(codeobj_class).name
-                if varname != impl_name:
+                if impl_name is not None:
                     expr = word_substitute(expr, {varname: impl_name})
         return CPPNodeRenderer().render_expr(expr).strip()
 
@@ -241,7 +241,7 @@ class CPPLanguage(Language):
 # Functions that exist under the same name in C++
 for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
              'log10', 'sqrt', 'ceil', 'floor']:
-    DEFAULT_FUNCTIONS[func].implementations['cpp'] = FunctionImplementation(func)
+    DEFAULT_FUNCTIONS[func].implementations['cpp'] = FunctionImplementation()
 
 # Functions that need a name translation
 for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),

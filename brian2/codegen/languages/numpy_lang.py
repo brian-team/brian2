@@ -23,7 +23,7 @@ class NumpyLanguage(Language):
         for varname, var in namespace.iteritems():
             if isinstance(var, Function):
                 impl_name = var.implementation(codeobj_class).name
-                if varname != impl_name:
+                if impl_name is not None:
                     expr = word_substitute(expr, {varname: impl_name})
         return NumpyNodeRenderer().render_expr(expr, namespace).strip()
 
@@ -95,19 +95,14 @@ for func_name, func in [('sin', np.sin), ('cos', np.cos), ('tan', np.tan),
                         ('floor', np.floor), ('arcsin', np.arcsin),
                         ('arccos', np.arccos), ('arctan', np.arctan),
                         ('abs', np.abs), ('mod', np.mod)]:
-    DEFAULT_FUNCTIONS[func_name].implementations['numpy'] = FunctionImplementation(func_name,
-                                                                                   code=func)
+    DEFAULT_FUNCTIONS[func_name].implementations['numpy'] = FunctionImplementation(code=func)
 
 # Functions that are implemented in a somewhat special way
 randn_func = lambda vectorisation_idx: np.random.randn(len(vectorisation_idx))
-DEFAULT_FUNCTIONS['randn'].implementations['numpy'] = FunctionImplementation('randn',
-                                                                              code=randn_func)
+DEFAULT_FUNCTIONS['randn'].implementations['numpy'] = FunctionImplementation(code=randn_func)
 rand_func = lambda vectorisation_idx: np.random.rand(len(vectorisation_idx))
-DEFAULT_FUNCTIONS['rand'].implementations['numpy'] = FunctionImplementation('rand',
-                                                                             code=rand_func)
+DEFAULT_FUNCTIONS['rand'].implementations['numpy'] = FunctionImplementation(code=rand_func)
 clip_func = lambda array, a_min, a_max: np.clip(array, a_min, a_max)
-DEFAULT_FUNCTIONS['clip'].implementations['numpy'] = FunctionImplementation('clip',
-                                                                             code=clip_func)
+DEFAULT_FUNCTIONS['clip'].implementations['numpy'] = FunctionImplementation(code=clip_func)
 int_func = lambda value: np.int_(value)
-DEFAULT_FUNCTIONS['int_'].implementations['numpy'] = FunctionImplementation('int_',
-                                                                             code=int_func)
+DEFAULT_FUNCTIONS['int_'].implementations['numpy'] = FunctionImplementation(code=int_func)

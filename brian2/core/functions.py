@@ -12,11 +12,8 @@ __all__ = ['DEFAULT_FUNCTIONS', 'Function', 'make_function',
 
 
 class Function(object):
-    def __init__(self, pyfunc, name=None, sympy_func=None, arg_units=None,
+    def __init__(self, pyfunc, sympy_func=None, arg_units=None,
                  return_unit=None):
-        if name is None:
-            name = pyfunc.__name__
-        self.name = name
         self.pyfunc = pyfunc
         self.sympy_func = sympy_func
         self._arg_units = arg_units
@@ -37,7 +34,7 @@ class Function(object):
                                   '"return_unit".'))
 
         # Provide the numpy implementation by default
-        self.implementations = {'numpy': FunctionImplementation(name,
+        self.implementations = {'numpy': FunctionImplementation(name=None,
                                                                 code=pyfunc)}
 
     def implementation(self, codeobj_class):
@@ -47,9 +44,8 @@ class Function(object):
                                                       None)
 
         if implementation is None:
-            raise NotImplementedError(('Function %s not implemented for '
-                                       'class %s or language %s') % (self.name,
-                                                                     codeobj_class.__name__,
+            raise NotImplementedError(('Function is not implemented for '
+                                       'class %s or language %s') % (codeobj_class.__name__,
                                                                      codeobj_class.language.language_id))
 
         return implementation
@@ -65,7 +61,7 @@ class Function(object):
 
 class FunctionImplementation(object):
 
-    def __init__(self, name, code=None, namespace=None):
+    def __init__(self, name=None, code=None, namespace=None):
         self.name = name
         self.code = code
         self.namespace = namespace

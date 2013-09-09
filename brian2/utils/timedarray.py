@@ -3,15 +3,18 @@ import numpy as np
 from brian2.core.functions import Function, FunctionImplementation
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units, get_unit
+from brian2.core.names import Nameable
 
 __all__ = ['TimedArray']
 
 
-class TimedArray(Function):
+class TimedArray(Function, Nameable):
 
     @check_units(dt=second)
-    def __init__(self, name, values, dt):
-        self.name = name
+    def __init__(self, values, dt, name=None):
+        if name is None:
+            name = '_timedarray*'
+        Nameable.__init__(self, name)
         self.unit = get_unit(values)
         values = np.asarray(values)
         self.values = values
@@ -23,7 +26,7 @@ class TimedArray(Function):
             i = np.clip(np.int_(np.float_(t) / dt + 0.5), 0, len(values)-1)
             return values[i]
 
-        Function.__init__(self, timed_array_func, name=self.name,
+        Function.__init__(self, pyfunc=timed_array_func,
                           arg_units=[second],
                           return_unit=self.unit)
 

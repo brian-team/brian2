@@ -20,7 +20,7 @@ defaultclock.dt = .02 * ms
 dt = defaultclock.dt
 
 # Sound
-sound = TimedArray('sound', 10 * np.random.randn(50000), dt=dt) # white noise
+sound = TimedArray(10 * np.random.randn(50000), dt=dt) # white noise
 
 # Ears and sound motion around the head (constant angular speed)
 sound_speed = 300 * metre / second

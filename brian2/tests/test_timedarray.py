@@ -13,12 +13,12 @@ except ImportError:
 
 
 def test_timedarray_direct_use():
-    ta = TimedArray('ta', np.linspace(0, 10, 11), 1*ms)
+    ta = TimedArray(np.linspace(0, 10, 11), 1*ms)
     assert ta(-1*ms) == 0
     assert ta(5*ms) == 5
     assert ta(10*ms) == 10
     assert ta(15*ms) == 10
-    ta = TimedArray('ta', np.linspace(0, 10, 11)*amp, 1*ms)
+    ta = TimedArray(np.linspace(0, 10, 11)*amp, 1*ms)
     assert ta(-1*ms) == 0*amp
     assert ta(5*ms) == 5*amp
     assert ta(10*ms) == 10*amp
@@ -26,7 +26,7 @@ def test_timedarray_direct_use():
 
 
 def test_timedarray_no_units():
-    ta = TimedArray('ta', np.linspace(0, 10, 11), 1*ms)
+    ta = TimedArray(np.linspace(0, 10, 11), 1*ms)
     for codeobj_class in codeobj_classes:
         G = NeuronGroup(1, 'value = ta(t) : 1', codeobj_class=codeobj_class)
         mon = StateMonitor(G, 'value', record=True)
@@ -37,7 +37,7 @@ def test_timedarray_no_units():
 
 
 def test_timedarray_with_units():
-    ta = TimedArray('ta', np.linspace(0, 10, 11)*amp, 1*ms)
+    ta = TimedArray(np.linspace(0, 10, 11)*amp, 1*ms)
     for codeobj_class in codeobj_classes:
         G = NeuronGroup(1, 'value = ta(t) : amp', codeobj_class=codeobj_class)
         mon = StateMonitor(G, 'value', record=True)
