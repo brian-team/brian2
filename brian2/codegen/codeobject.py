@@ -30,13 +30,21 @@ def get_default_codeobject_class():
     return codeobj_class
 
 
-def prepare_namespace(namespace, variables):
+def prepare_namespace(namespace, variables, codeobj_class):
     namespace = dict(namespace)
     # Add variables referring to the arrays
     arrays = []
     for value in variables.itervalues():
         if isinstance(value, ArrayVariable):
             arrays.append((value.arrayname, value.get_value()))
+    # Check that all functions are available
+    for name, value in namespace.iteritems():
+        if isinstance(value, Function):
+            try:
+                value.implementation(codeobj_class)
+            except NotImplementedError as ex:
+                raise NotImplementedError('Cannot use function %s: %s' % (name,
+                                                                          ex))
     namespace.update(arrays)
 
     return namespace
@@ -67,7 +75,8 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
     template = get_codeobject_template(template_name,
                                        codeobj_class=codeobj_class)
 
-    namespace = prepare_namespace(namespace, variables)
+    namespace = prepare_namespace(namespace, variables,
+                                  codeobj_class=codeobj_class)
 
     logger.debug(name + " abstract code:\n" + abstract_code)
     iterate_all = template.iterate_all
