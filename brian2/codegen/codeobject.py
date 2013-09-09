@@ -73,7 +73,7 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
     iterate_all = template.iterate_all
     innercode, kwds = translate(abstract_code, variables, namespace,
                                 dtype=brian_prefs['core.default_scalar_dtype'],
-                                language=codeobj_class.language,
+                                codeobj_class=codeobj_class,
                                 variable_indices=variable_indices,
                                 iterate_all=iterate_all)
     template_kwds.update(kwds)

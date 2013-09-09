@@ -19,24 +19,27 @@ class NumpyLanguage(Language):
 
     language_id = 'numpy'
 
-    def translate_expression(self, expr, namespace):
+    def translate_expression(self, expr, namespace, codeobj_class):
         for varname, var in namespace.iteritems():
             if isinstance(var, Function):
-                impl_name = var.implementations[self.language_id].name
+                impl_name = var.implementation(codeobj_class).name
                 if varname != impl_name:
                     expr = word_substitute(expr, {varname: impl_name})
         return NumpyNodeRenderer().render_expr(expr, namespace).strip()
 
-    def translate_statement(self, statement, namespace):
+    def translate_statement(self, statement, namespace, codeobj_class):
         # TODO: optimisation, translate arithmetic to a sequence of inplace
         # operations like a=b+c -> add(b, c, a)
         var, op, expr = statement.var, statement.op, statement.expr
         if op == ':=':
             op = '='
-        return var + ' ' + op + ' ' + self.translate_expression(expr, namespace)
+        return var + ' ' + op + ' ' + self.translate_expression(expr,
+                                                                namespace,
+                                                                codeobj_class)
 
     def translate_statement_sequence(self, statements, variables, namespace,
-                                     variable_indices, iterate_all):
+                                     variable_indices, iterate_all,
+                                     codeobj_class):
         read, write = self.array_read_write(statements, variables)
         lines = []
         # read arrays
@@ -48,7 +51,7 @@ class NumpyLanguage(Language):
                 line = line + '[' + index + ']'
             lines.append(line)
         # the actual code
-        lines.extend([self.translate_statement(stmt, namespace)
+        lines.extend([self.translate_statement(stmt, namespace, codeobj_class)
                       for stmt in statements])
         # write arrays
         for var in write:
@@ -77,7 +80,7 @@ class NumpyLanguage(Language):
         # would otherwise return values with units
         for varname, var in namespace.iteritems():
             if isinstance(var, Function):
-                namespace[varname] = var.code(self.language_id)
+                namespace[varname] = var.implementation(codeobj_class).code
 
         return lines, {}
 
@@ -85,10 +88,15 @@ class NumpyLanguage(Language):
 # Implement functions
 ################################################################################
 # Functions that exist under the same name in numpy
-for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
-             'log10', 'sqrt', 'ceil', 'floor', 'arcsin', 'arccos', 'arctan',
-             'abs', 'mod']:
-    DEFAULT_FUNCTIONS[func].implementations['numpy'] = FunctionImplementation(func)
+for func_name, func in [('sin', np.sin), ('cos', np.cos), ('tan', np.tan),
+                        ('sinh', np.sinh), ('cosh', np.cosh), ('tanh', np.tanh),
+                        ('exp', np.exp), ('log', np.log), ('log10', np.log10),
+                        ('sqrt', np.sqrt), ('ceil', np.ceil),
+                        ('floor', np.floor), ('arcsin', np.arcsin),
+                        ('arccos', np.arccos), ('arctan', np.arctan),
+                        ('abs', np.abs), ('mod', np.mod)]:
+    DEFAULT_FUNCTIONS[func_name].implementations['numpy'] = FunctionImplementation(func_name,
+                                                                                   code=func)
 
 # Functions that are implemented in a somewhat special way
 randn_func = lambda vectorisation_idx: np.random.randn(len(vectorisation_idx))

@@ -112,20 +112,15 @@ class CPPLanguage(Language):
         self.flush_denormals = brian_prefs['codegen.languages.cpp.flush_denormals']
         self.c_data_type = c_data_type
 
-    def translate_expression(self, expr, namespace):
+    def translate_expression(self, expr, namespace, codeobj_class):
         for varname, var in namespace.iteritems():
             if isinstance(var, Function):
-                impl = var.implementations.get(self.language_id, None)
-                if impl is None:
-                    raise NotImplementedError(('Function {name} is not '
-                                               'implemented for language'
-                                               '{language}').format(name=varname,
-                                                                    language=self.language_id))
-                if varname != impl.name:
-                    expr = word_substitute(expr, {varname: impl.name})
+                impl_name = var.implementation(codeobj_class).name
+                if varname != impl_name:
+                    expr = word_substitute(expr, {varname: impl_name})
         return CPPNodeRenderer().render_expr(expr).strip()
 
-    def translate_statement(self, statement, namespace):
+    def translate_statement(self, statement, namespace, codeobj_class):
         var, op, expr = statement.var, statement.op, statement.expr
         if op == ':=':
             decl = self.c_data_type(statement.dtype) + ' '
@@ -134,10 +129,13 @@ class CPPLanguage(Language):
                 decl = 'const ' + decl
         else:
             decl = ''
-        return decl + var + ' ' + op + ' ' + self.translate_expression(expr, namespace) + ';'
+        return decl + var + ' ' + op + ' ' + self.translate_expression(expr,
+                                                                       namespace,
+                                                                       codeobj_class) + ';'
 
     def translate_statement_sequence(self, statements, variables, namespace,
-                                     variable_indices, iterate_all):
+                                     variable_indices, iterate_all,
+                                     codeobj_class):
 
         # Note that C++ code does not care about the iterate_all argument -- it
         # always has to loop over the elements
@@ -162,7 +160,8 @@ class CPPLanguage(Language):
                 line = self.c_data_type(var.dtype) + ' ' + varname + ';'
                 lines.append(line)
         # the actual code
-        lines.extend([self.translate_statement(stmt, namespace) for stmt in statements])
+        lines.extend([self.translate_statement(stmt, namespace, codeobj_class)
+                      for stmt in statements])
         # write arrays
         for varname in write:
             index_var = variable_indices[varname]
@@ -193,9 +192,10 @@ class CPPLanguage(Language):
         for varname, variable in namespace.items():
             if isinstance(variable, Function):
                 user_functions.append((varname, variable))
-                speccode = variable.code(self.language_id)
-                support_code += '\n' + deindent(speccode.get('support_code', ''))
-                hash_defines += deindent(speccode.get('hashdefine_code', ''))
+                speccode = variable.implementation(codeobj_class).code
+                if speccode is not None:
+                    support_code += '\n' + deindent(speccode.get('support_code', ''))
+                    hash_defines += deindent(speccode.get('hashdefine_code', ''))
                 # add the Python function with a leading '_python', if it
                 # exists. This allows the function to make use of the Python
                 # function via weave if necessary (e.g. in the case of randn)
@@ -212,7 +212,7 @@ class CPPLanguage(Language):
         # function namespaces (if any)
         for funcname, func in user_functions:
             del namespace[funcname]
-            func_namespace = func.implementations[self.language_id].namespace
+            func_namespace = func.implementation(codeobj_class).namespace
             if func_namespace is not None:
                 namespace.update(func_namespace)
 
@@ -250,37 +250,37 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
 
 # Functions that need to be implemented specifically
 randn_code = {'support_code': '''
-        #define BUFFER_SIZE 1024
-        // A randn() function that returns a single random number. Internally
-        // it asks numpy's randn function for N (e.g. the number of neurons)
-        // random numbers at a time and then returns one number from this
-        // buffer.
-        // It needs a reference to the numpy_randn object (the original numpy
-        // function), because this is otherwise only available in
-        // compiled_function (where is is automatically handled by weave).
-        //
-        double _call_randn(py::object& numpy_randn) {
-            static PyArrayObject *randn_buffer = NULL;
-            static double *buf_pointer = NULL;
-            static npy_int curbuffer = 0;
-            if(curbuffer==0)
-            {
-                if(randn_buffer) Py_DECREF(randn_buffer);
-                py::tuple args(1);
-                args[0] = BUFFER_SIZE;
-                randn_buffer = (PyArrayObject *)PyArray_FromAny(numpy_randn.call(args), NULL, 1, 1, 0, NULL);
-                buf_pointer = (double*)PyArray_GETPTR1(randn_buffer, 0);
-            }
-            double number = buf_pointer[curbuffer];
-            curbuffer = curbuffer+1;
-            if (curbuffer == BUFFER_SIZE)
-                // This seems to be safer then using (curbuffer + 1) % BUFFER_SIZE, we might run into
-                // an integer overflow for big networks, otherwise.
-                curbuffer = 0;
-            return number;
-        }
-        ''', 'hashdefine_code': '''
-        #define _randn(_vectorisation_idx) _call_randn(_python_randn)
+
+    inline double _ranf()
+    {
+        return (double)rand()/RAND_MAX;
+    }
+
+    double _randn(const int vectorisation_idx)
+    {
+         double x1, x2, w;
+         static double y1, y2;
+         static bool need_values = true;
+         if (need_values)
+         {
+             do {
+                     x1 = 2.0 * _ranf() - 1.0;
+                     x2 = 2.0 * _ranf() - 1.0;
+                     w = x1 * x1 + x2 * x2;
+             } while ( w >= 1.0 );
+
+             w = sqrt( (-2.0 * log( w ) ) / w );
+             y1 = x1 * w;
+             y2 = x2 * w;
+
+             need_values = false;
+             return y1;
+         } else
+         {
+            need_values = true;
+            return y2;
+         }
+    }
         '''}
 DEFAULT_FUNCTIONS['randn'].implementations['cpp'] = FunctionImplementation('_randn',
                                                                            code=randn_code)

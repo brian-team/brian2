@@ -8,12 +8,13 @@ except ImportError:
     # No weave for Python 3
     weave = None
 
+from brian2.core.preferences import brian_prefs, BrianPreference
+from brian2.core.functions import DEFAULT_FUNCTIONS, FunctionImplementation
+
 from ...codeobject import CodeObject
 from ...templates import Templater
 from ...languages.cpp_lang import CPPLanguage
 from ..targets import runtime_targets
-
-from brian2.core.preferences import brian_prefs, BrianPreference
 
 __all__ = ['WeaveCodeObject']
 
@@ -79,3 +80,40 @@ class WeaveCodeObject(CodeObject):
                             extra_compile_args=self.extra_compile_args)
 
 runtime_targets['weave'] = WeaveCodeObject
+
+
+# Use a special implementation for the randn function that makes use of numpy's
+# randn
+randn_code = {'support_code': '''
+        #define BUFFER_SIZE 1024
+        // A randn() function that returns a single random number. Internally
+        // it asks numpy's randn function for N (e.g. the number of neurons)
+        // random numbers at a time and then returns one number from this
+        // buffer.
+        // It needs a reference to the numpy_randn object (the original numpy
+        // function), because this is otherwise only available in
+        // compiled_function (where is is automatically handled by weave).
+        //
+        double _call_randn(py::object& numpy_randn) {
+            static PyArrayObject *randn_buffer = NULL;
+            static double *buf_pointer = NULL;
+            static npy_int curbuffer = 0;
+            if(curbuffer==0)
+            {
+                if(randn_buffer) Py_DECREF(randn_buffer);
+                py::tuple args(1);
+                args[0] = BUFFER_SIZE;
+                randn_buffer = (PyArrayObject *)PyArray_FromAny(numpy_randn.call(args), NULL, 1, 1, 0, NULL);
+                buf_pointer = (double*)PyArray_GETPTR1(randn_buffer, 0);
+            }
+            double number = buf_pointer[curbuffer];
+            curbuffer = curbuffer+1;
+            if (curbuffer == BUFFER_SIZE)
+                // This seems to be safer then using (curbuffer + 1) % BUFFER_SIZE, we might run into
+                // an integer overflow for big networks, otherwise.
+                curbuffer = 0;
+            return number;
+        }
+        ''', 'hashdefine_code': '#define _randn(_vectorisation_idx) _call_randn(_python_randn)'}
+DEFAULT_FUNCTIONS['randn'].implementations[WeaveCodeObject] = FunctionImplementation('_randn',
+                                                                                     code=randn_code)

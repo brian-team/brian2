@@ -40,38 +40,26 @@ class Function(object):
         self.implementations = {'numpy': FunctionImplementation(name,
                                                                 code=pyfunc)}
 
-    def code(self, language_id):
-        """
-        Returns a dict of ``(slot, section)`` values, where ``slot`` is a
-        language-specific slot for where to include the string ``section``.
+    def implementation(self, codeobj_class):
+        implementation = self.implementations.get(codeobj_class, None)
+        if implementation is None:
+            implementation = self.implementations.get(codeobj_class.language.language_id,
+                                                      None)
 
-        The list of slot names to use is language-specific.
-        """
-        if language_id in self.implementations:
-            code = self.implementations[language_id].code
-            if code is None:
-                if language_id == 'numpy':
-                    # numpy is a special case, we can use the pyfunc directly
-                    return self.pyfunc
-                else:
-                    return {}
-            return code
+        if implementation is None:
+            raise NotImplementedError(('Function %s not implemented for '
+                                       'class %s or language %s') % (self.name,
+                                                                     codeobj_class.__name__,
+                                                                     codeobj_class.language.language_id))
 
-        raise NotImplementedError(('Function %s not implemented for '
-                                   '%s') % (self.name, language_id))
-
-    def name(self, language_id):
-        if language_id in self.implementations:
-            return self.implementations[language_id].name
-        else:
-            return self.name
+        return implementation
 
     def __call__(self, *args):
         if callable(self._return_unit):
             return_dim = get_dimensions(self._return_unit(*args))
         else:
             return_dim = get_dimensions(self._return_unit)
-        return Quantity.with_dimensions(self.code('numpy')(*args),
+        return Quantity.with_dimensions(self.implementation('numpy').code(*args),
                                         return_dim)
 
 
