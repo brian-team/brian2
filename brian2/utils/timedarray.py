@@ -20,7 +20,7 @@ class TimedArray(Function):
 
         # Python implementation
         def timed_array_func(t):
-            i = np.clip(int(float(t) / dt + 0.5), 0, len(values)-1)
+            i = np.clip(np.int_(np.float_(t) / dt + 0.5), 0, len(values)-1)
             return values[i]
 
         Function.__init__(self, timed_array_func, name=self.name,
