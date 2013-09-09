@@ -740,7 +740,7 @@ class Synapses(BrianObject, Group):
                                       'of the same name in the target '
                                       'group ') % single_equation.varname)
                 fail_for_dimension_mismatch(self.variables[varname].unit,
-                                            self.target.variables[varname],
+                                            self.target.variables[varname].unit,
                                             ('Lumped variables need to have '
                                              'the same units in Synapses '
                                              'and the target group'))
