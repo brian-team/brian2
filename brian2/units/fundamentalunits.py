@@ -121,11 +121,11 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
     if not unit_checking:
         return
 
-    dim1 = get_dimensions(np.asanyarray(obj1))
+    dim1 = get_dimensions(Quantity(obj1))
     if obj2 is None:
         dim2 = DIMENSIONLESS
     else:
-        dim2 = get_dimensions(np.asanyarray(obj2))
+        dim2 = get_dimensions(Quantity(obj2))
 
     if not dim1 is dim2:
         # Special treatment for "0":
@@ -827,7 +827,8 @@ class Quantity(np.ndarray, object):
         subarr = np.array(arr, dtype=dtype, copy=copy).view(cls)
 
         # We only want numerical datatypes
-        if not np.issubdtype(subarr.dtype, np.number):
+        if not (np.issubdtype(subarr.dtype, np.number) or
+                np.issubdtype(subarr.dtype, np.bool_)):
             raise TypeError('Quantities can only be created from numerical data.')
 
         # Use the given dimension or the dimension of the given array (if any)
@@ -1989,7 +1990,8 @@ class UnitRegistry(object):
         matching_values = np.asarray(matching)
         x_flat = np.asarray(x).flatten()
         floatreps = np.tile(x_flat, (len(matching), 1)).T / matching_values
-        good_reps = np.sum((floatreps >= 0.1) & (floatreps < 1000), axis=0)
+        good_reps = np.sum((np.abs(floatreps) >= 0.1) & (np.abs(floatreps) < 1000),
+                           axis=0)
         if any(good_reps):
             return matching[good_reps.argmax()]
         else:
