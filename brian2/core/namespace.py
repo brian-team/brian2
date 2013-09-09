@@ -153,8 +153,6 @@ class CompoundNamespace(collections.Mapping):
 
         if len(matches) == 0:
             # No match at all
-            if additional_namespace is not None:
-                print 'usersin' in additional_namespace[1]
             raise KeyError(('The identifier "%s" could not be resolved.') % 
                            (identifier))
         elif len(matches) > 1:

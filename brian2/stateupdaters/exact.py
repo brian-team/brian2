@@ -255,8 +255,6 @@ class LinearStateUpdater(StateUpdateMethod):
             for identifier in identifiers:
                 if identifier in variables:
                     var = variables[identifier]
-                    if var is None:
-                        print identifier, variables
                     if var.scalar and var.constant:
                         float_val = var.get_value()
                         rhs = rhs.xreplace({Symbol(identifier, real=True): Float(float_val)})
