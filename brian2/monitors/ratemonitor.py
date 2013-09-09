@@ -50,7 +50,7 @@ class PopulationRateMonitor(BrianObject):
         # create data structures
         self.reinit()
 
-        self.variables = {'t': AttributeVariable(second, self.clock, 't'),
+        self.variables = {'t': AttributeVariable(second, self.clock, 't_'),
                            'dt': AttributeVariable(second, self.clock,
                                                    'dt', constant=True),
                           '_spikespace': self.source.variables['_spikespace'],

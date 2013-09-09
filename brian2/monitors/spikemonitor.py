@@ -57,7 +57,7 @@ class SpikeMonitor(BrianObject):
         start = getattr(self.source, 'start', 0)
         end = getattr(self.source, 'end', len(self.source))
 
-        self.variables = {'t': AttributeVariable(second, self.clock, 't'),
+        self.variables = {'t': AttributeVariable(second, self.clock, 't_'),
                           '_spikespace': self.source.variables['_spikespace'],
                            # The template needs to have access to the
                            # DynamicArray here, having access to the underlying
