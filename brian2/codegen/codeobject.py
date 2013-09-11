@@ -22,11 +22,14 @@ def get_default_codeobject_class():
     '''
     codeobj_class = brian_prefs['codegen.target']
     if isinstance(codeobj_class, str):
-        try:
-            codeobj_class = runtime_targets[codeobj_class]
-        except KeyError:
-            raise ValueError("Unknown code generation target: %s, should be "
-                             " one of %s"%(codeobj_class, runtime_targets.keys()))
+        for target in runtime_targets:
+            if target.class_name == codeobj_class:
+                return target
+        # No target found
+        raise ValueError("Unknown code generation target: %s, should be "
+                         " one of %s"%(codeobj_class,
+                                       [target.class_name
+                                        for target in runtime_targets]))
     return codeobj_class
 
 
@@ -41,8 +44,8 @@ def prepare_namespace(namespace, variables, codeobj_class):
     for name, value in namespace.iteritems():
         if isinstance(value, Function):
             try:
-                value.implementation(codeobj_class)
-            except NotImplementedError as ex:
+                value.implementations[codeobj_class]
+            except KeyError as ex:
                 raise NotImplementedError('Cannot use function %s: %s' % (name,
                                                                           ex))
     namespace.update(arrays)
@@ -124,7 +127,9 @@ class CodeObject(Nameable):
     
     #: The `Language` used by this `CodeObject`
     language = None
-    
+    #: A short name for this type of `CodeObject`
+    class_name = None
+
     def __init__(self, code, namespace, variables, name='codeobject*'):
         Nameable.__init__(self, name=name)
         self.code = code

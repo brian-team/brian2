@@ -115,7 +115,7 @@ class CPPLanguage(Language):
     def translate_expression(self, expr, namespace, codeobj_class):
         for varname, var in namespace.iteritems():
             if isinstance(var, Function):
-                impl_name = var.implementation(codeobj_class).name
+                impl_name = var.implementations[codeobj_class].name
                 if impl_name is not None:
                     expr = word_substitute(expr, {varname: impl_name})
         return CPPNodeRenderer().render_expr(expr).strip()
@@ -192,7 +192,7 @@ class CPPLanguage(Language):
         for varname, variable in namespace.items():
             if isinstance(variable, Function):
                 user_functions.append((varname, variable))
-                speccode = variable.implementation(codeobj_class).code
+                speccode = variable.implementations[codeobj_class].code
                 if speccode is not None:
                     support_code += '\n' + deindent(speccode.get('support_code', ''))
                     hash_defines += deindent(speccode.get('hashdefine_code', ''))
@@ -212,7 +212,7 @@ class CPPLanguage(Language):
         # function namespaces (if any)
         for funcname, func in user_functions:
             del namespace[funcname]
-            func_namespace = func.implementation(codeobj_class).namespace
+            func_namespace = func.implementations[codeobj_class].namespace
             if func_namespace is not None:
                 namespace.update(func_namespace)
 

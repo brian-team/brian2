@@ -66,6 +66,7 @@ class WeaveCodeObject(CodeObject):
     templater = Templater(os.path.join(os.path.split(__file__)[0],
                                        'templates'))
     language = CPPLanguage(c_data_type=weave_data_type)
+    class_name = 'weave'
 
     def __init__(self, code, namespace, variables, name='weave_code_object*'):
         super(WeaveCodeObject, self).__init__(code, namespace, variables, name=name)
@@ -79,7 +80,7 @@ class WeaveCodeObject(CodeObject):
                             compiler=self.compiler,
                             extra_compile_args=self.extra_compile_args)
 
-runtime_targets['weave'] = WeaveCodeObject
+runtime_targets.add(WeaveCodeObject)
 
 
 # Use a special implementation for the randn function that makes use of numpy's

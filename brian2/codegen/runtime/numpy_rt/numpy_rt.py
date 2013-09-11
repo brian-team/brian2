@@ -18,6 +18,7 @@ class NumpyCodeObject(CodeObject):
     templater = Templater(os.path.join(os.path.split(__file__)[0],
                                        'templates'))
     language = NumpyLanguage()
+    class_name = 'numpy'
 
     def __init__(self, code, namespace, variables, name='numpy_code_object*'):
         # TODO: This should maybe go somewhere else
@@ -34,4 +35,4 @@ class NumpyCodeObject(CodeObject):
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']
 
-runtime_targets['numpy'] = NumpyCodeObject
+runtime_targets.add(NumpyCodeObject)

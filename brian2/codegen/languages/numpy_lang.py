@@ -22,7 +22,7 @@ class NumpyLanguage(Language):
     def translate_expression(self, expr, namespace, codeobj_class):
         for varname, var in namespace.iteritems():
             if isinstance(var, Function):
-                impl_name = var.implementation(codeobj_class).name
+                impl_name = var.implementations[codeobj_class].name
                 if impl_name is not None:
                     expr = word_substitute(expr, {varname: impl_name})
         return NumpyNodeRenderer().render_expr(expr, namespace).strip()
@@ -80,7 +80,7 @@ class NumpyLanguage(Language):
         # would otherwise return values with units
         for varname, var in namespace.iteritems():
             if isinstance(var, Function):
-                namespace[varname] = var.implementation(codeobj_class).code
+                namespace[varname] = var.implementations[codeobj_class].code
 
         return lines, {}
 

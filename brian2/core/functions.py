@@ -1,3 +1,5 @@
+import collections
+
 import sympy
 from sympy import Function as sympy_Function
 from sympy.core import mod as sympy_mod
@@ -34,28 +36,16 @@ class Function(object):
                                   '"return_unit".'))
 
         # Provide the numpy implementation by default
-        self.implementations = {'numpy': FunctionImplementation(name=None,
-                                                                code=pyfunc)}
-
-    def implementation(self, codeobj_class):
-        implementation = self.implementations.get(codeobj_class, None)
-        if implementation is None:
-            implementation = self.implementations.get(codeobj_class.language.language_id,
-                                                      None)
-
-        if implementation is None:
-            raise NotImplementedError(('Function is not implemented for '
-                                       'class %s or language %s') % (codeobj_class.__name__,
-                                                                     codeobj_class.language.language_id))
-
-        return implementation
+        self.implementations = FunctionImplementationContainer()
+        self.implementations['numpy'] = FunctionImplementation(name=None,
+                                                               code=pyfunc)
 
     def __call__(self, *args):
         if callable(self._return_unit):
             return_dim = get_dimensions(self._return_unit(*args))
         else:
             return_dim = get_dimensions(self._return_unit)
-        return Quantity.with_dimensions(self.implementation('numpy').code(*args),
+        return Quantity.with_dimensions(self.implementations['numpy'].code(*args),
                                         return_dim)
 
 
@@ -65,6 +55,75 @@ class FunctionImplementation(object):
         self.name = name
         self.code = code
         self.namespace = namespace
+
+
+class FunctionImplementationContainer(collections.MutableMapping):
+    '''
+    Helper object to store implementations and give access in a dictionary-like
+    fashion, using `Language` implementations as a fallback for `CodeObject`
+    implementations.
+    '''
+    def __init__(self):
+        self._implementations = dict()
+
+    def __getitem__(self, key):
+        name = language = None
+
+        if hasattr(key, 'language_id'):
+            language = key.language_id
+        elif hasattr(key, 'class_name'):
+            name = key.class_name
+            language = key.language.language_id
+        else:
+            if not isinstance(key, basestring):
+                raise TypeError('Cannot use type %s as a key' % type(key))
+            name = key
+
+        if name in self._implementations:
+            return self._implementations[name]
+        elif language in self._implementations:
+            return self._implementations[language]
+        else:
+            raise KeyError(('No implementation available for {key}. '
+                            'Available implementations: {keys}').format(key=key,
+                                                                        keys=self._implementations.keys()))
+
+    def __setitem__(self, key, value):
+        if hasattr(key, 'language_id'):
+            name = key.language_id
+        elif hasattr(key, 'class_name'):
+            name = key.class_name
+        else:
+            if not isinstance(key, basestring):
+                raise TypeError('Cannot use %s (type %s) as a key' % (key, type(key)))
+            name = key
+        self._implementations[name] = value
+
+    def __delitem__(self, key):
+        name = language = None
+
+        if hasattr(key, 'language_id'):
+            language = key.language_id
+        elif hasattr(key, 'class_name'):
+            name = key.class_name
+            language = key.language.language_id
+        else:
+            if not isinstance(key, basestring):
+                raise TypeError('Cannot use type %s as a key' % type(key))
+            name = key
+
+        if name in self._implementations:
+            del self._implementations[name]
+        elif language in self._implementations:
+            del self._implementations[language]
+        else:
+            raise KeyError('No implementation available')
+
+    def __len__(self):
+        return len(self._implementations)
+
+    def __iter__(self):
+        return iter(self._implementations)
 
 
 def make_function(codes):
