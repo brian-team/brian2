@@ -3,14 +3,14 @@ from collections import defaultdict
 
 import numpy as np
 
-from brian2.codegen.codeobject import create_codeobject
 from brian2.core.base import BrianObject
 from brian2.core.preferences import brian_prefs
 from brian2.core.scheduler import Scheduler
-from brian2.core.variables import Variable, AttributeVariable
-from brian2.memory.dynamicarray import DynamicArray1D
+from brian2.core.variables import (Variable, AttributeVariable,
+                                   DynamicArrayVariable)
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
+from brian2.devices.device import get_device
 
 __all__ = ['PopulationRateMonitor']
 
@@ -50,16 +50,16 @@ class PopulationRateMonitor(BrianObject):
         # create data structures
         self.reinit()
 
-        self.variables = {'t': AttributeVariable(second, self.clock, 't'),
+        self.variables = {'t': AttributeVariable(second, self.clock, 't_'),
                            'dt': AttributeVariable(second, self.clock,
-                                                   'dt', constant=True),
+                                                   'dt_', constant=True),
                           '_spikespace': self.source.variables['_spikespace'],
-                           # The template needs to have access to the
-                           # DynamicArray here, having access to the underlying
-                           # array is not enough since we want to do the resize
-                           # in the template
-                           '_rate': Variable(Unit(1), self._rate),
-                           '_t': Variable(Unit(1), self._t),
+                           '_rate': DynamicArrayVariable('_rate', Unit(1),
+                                                         self._rate,
+                                                         group_name=self.name),
+                           '_t': DynamicArrayVariable('_t', Unit(1),
+                                                      self._t,
+                                                      group_name=self.name),
                            '_num_source_neurons': Variable(Unit(1),
                                                            len(self.source))}
 
@@ -67,14 +67,15 @@ class PopulationRateMonitor(BrianObject):
         '''
         Clears all recorded rates
         '''
-        self._rate = DynamicArray1D(0, use_numpy_resize=True,
-                                    dtype=brian_prefs['core.default_scalar_dtype'])
-        self._t = DynamicArray1D(0, use_numpy_resize=True,
-                                 dtype=getattr(self.clock.t, 'dtype',
-                                               np.dtype(type(self.clock.t))))
+        dev = get_device()
+        self._rate = dev.dynamic_array_1d(self, '_rate', 0, 1, dtype=brian_prefs['core.default_scalar_dtype'])
+        self._t = dev.dynamic_array_1d(self, '_t', 0, second,
+                                       dtype=getattr(self.clock.t, 'dtype',
+                                                     np.dtype(type(self.clock.t))))
 
     def pre_run(self, namespace):
-        self.codeobj = create_codeobject(self.name+'_codeobject*',
+        self.codeobj = get_device().code_object(
+                                         self.name+'_codeobject*',
                                          '', # No model-specific code
                                          {}, # no namespace
                                          self.variables,
@@ -82,8 +83,7 @@ class PopulationRateMonitor(BrianObject):
                                          indices={},
                                          variable_indices=defaultdict(lambda: '_idx'))
 
-    def update(self):
-        self.codeobj()
+        self.updaters[:] = [self.codeobj.get_updater()]
 
     @property
     def rate(self):

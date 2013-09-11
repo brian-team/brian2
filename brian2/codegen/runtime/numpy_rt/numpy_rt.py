@@ -1,6 +1,8 @@
 import os
 import numpy as np
 
+from brian2.core.variables import Variable, Subexpression, DynamicArrayVariable
+
 from ...codeobject import CodeObject
 from ...templates import Templater
 from ...languages.numpy_lang import NumpyLanguage
@@ -23,6 +25,36 @@ class NumpyCodeObject(CodeObject):
         # TODO: This should maybe go somewhere else
         namespace['logical_not'] = np.logical_not
         CodeObject.__init__(self, code, namespace, variables, name=name)
+
+    def variables_to_namespace(self):
+        # Variables can refer to values that are either constant (e.g. dt)
+        # or change every timestep (e.g. t). We add the values of the
+        # constant variables here and add the names of non-constant variables
+        # to a list
+
+        # A list containing tuples of name and a function giving the value
+        self.nonconstant_values = []
+
+        for name, var in self.variables.iteritems():
+            if isinstance(var, Variable) and not isinstance(var, Subexpression):
+                if not var.constant:
+                    self.nonconstant_values.append((name, var.get_value))
+                    if isinstance(var, DynamicArrayVariable):
+                        self.nonconstant_values.append((name+'_object',
+                                                        var.get_object))
+                else:
+                    try:
+                        value = var.get_value()
+                    except TypeError:  # A dummy Variable without value
+                        continue
+                    self.namespace[name] = value
+                    if isinstance(var, DynamicArrayVariable):
+                        self.namespace[name+'_object'] = var.get_object()
+
+    def update_namespace(self):
+        # update the values of the non-constant values in the namespace
+        for name, func in self.nonconstant_values:
+            self.namespace[name] = func()
 
     def compile(self):
         super(NumpyCodeObject, self).compile()

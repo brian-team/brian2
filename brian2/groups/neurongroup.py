@@ -17,6 +17,7 @@ from brian2.core.variables import (Variable, AttributeVariable, ArrayVariable,
                                     StochasticVariable, Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
+from brian2.devices.device import get_device
 from brian2.parsing.expressions import (parse_expression_unit,
                                         is_boolean_expression)
 from brian2.utils.logger import get_logger
@@ -238,7 +239,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         ##### Setup the memory
         self.arrays = self._allocate_memory(dtype=dtype)
 
-        self._spikespace = np.zeros(N+1, dtype=np.int32)
+        self._spikespace = get_device().array(self, '_spikespace', N+1, 1, dtype=np.int32)
 
         # Setup the namespace
         self.namespace = create_namespace(namespace)
@@ -340,9 +341,10 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
             if curdtype is None:
                 curdtype = brian_prefs['core.default_scalar_dtype']
             if eq.is_bool:
-                arrays[name] = allocate_array(self.N, dtype=np.bool)
+                arrays[name] = get_device().array(self, name, self.N, 1, dtype=np.bool)
             else:
-                arrays[name] = allocate_array(self.N, dtype=curdtype)
+                # TODO: specify unit here
+                arrays[name] = get_device().array(self, name, self.N, 1, dtype=curdtype)
         logger.debug("NeuronGroup memory allocated successfully.")
         return arrays
 

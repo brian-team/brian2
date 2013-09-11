@@ -8,12 +8,14 @@ except ImportError:
     # No weave for Python 3
     weave = None
 
+from brian2.core.variables import Variable, Subexpression, DynamicArrayVariable
+from brian2.core.preferences import brian_prefs, BrianPreference
+
 from ...codeobject import CodeObject
 from ...templates import Templater
 from ...languages.cpp_lang import CPPLanguage
 from ..targets import runtime_targets
 
-from brian2.core.preferences import brian_prefs, BrianPreference
 
 __all__ = ['WeaveCodeObject']
 
@@ -70,6 +72,45 @@ class WeaveCodeObject(CodeObject):
         super(WeaveCodeObject, self).__init__(code, namespace, variables, name=name)
         self.compiler = brian_prefs['codegen.runtime.weave.compiler']
         self.extra_compile_args = brian_prefs['codegen.runtime.weave.extra_compile_args']
+
+    def variables_to_namespace(self):
+
+        # Variables can refer to values that are either constant (e.g. dt)
+        # or change every timestep (e.g. t). We add the values of the
+        # constant variables here and add the names of non-constant variables
+        # to a list
+
+        # A list containing tuples of name and a function giving the value
+        self.nonconstant_values = []
+
+        for name, var in self.variables.iteritems():
+            if isinstance(var, Variable) and not isinstance(var, Subexpression):
+                if not var.constant:
+                    self.nonconstant_values.append((name, var.get_value))
+                    if not var.scalar:
+                        self.nonconstant_values.append(('_num' + name,
+                                                        var.get_len))
+                    if isinstance(var, DynamicArrayVariable):
+                        self.nonconstant_values.append((name+'_object',
+                                                        var.get_object))
+                else:
+                    try:
+                        value = var.get_value()
+                    except TypeError:  # A dummy Variable without value
+                        continue
+                    self.namespace[name] = value
+                    # if it is a type that has a length, add a variable called
+                    # '_num'+name with its length
+                    if not var.scalar:
+                        self.namespace['_num' + name] = var.get_len()
+                    if isinstance(value, DynamicArrayVariable):
+                        self.namespace[name+'_object'] = value.get_object()
+
+
+    def update_namespace(self):
+        # update the values of the non-constant values in the namespace
+        for name, func in self.nonconstant_values:
+            self.namespace[name] = func()
 
     def run(self):
         return weave.inline(self.code.main, self.namespace.keys(),

@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from brian2 import *
 
 #brian_prefs.codegen.target = 'weave'
+BrianLogger.log_level_debug()
 
 G1 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
                 threshold='v > 1',
@@ -24,5 +25,5 @@ syn.w[:] = 1
 
 mon = StateMonitor(G2, 'v', record=True)
 run(20*ms)
-plt.plot(mon.t / ms, mon.v)
+plt.plot(mon.t / ms, mon.v.T)
 plt.show()
