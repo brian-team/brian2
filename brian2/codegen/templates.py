@@ -13,12 +13,14 @@ class Templater(object):
     '''
     Class to load and return all the templates a `CodeObject` defines.
     '''
-    def __init__(self, basedir):
+    def __init__(self, basedir, env_globals=None):
         self.basedir = basedir
         self.env = Environment(loader=FileSystemLoader(basedir),
                                trim_blocks=True,
                                lstrip_blocks=True,
                                )
+        if env_globals is not None:
+            self.env.globals.update(env_globals)
         for name in self.env.list_templates():
             template = CodeObjectTemplate(self.env.get_template(name))
             setattr(self, os.path.splitext(name)[0], template)

@@ -6,7 +6,7 @@ import re
 
 import numpy as np
 
-from brian2.core.base import BrianObject
+from brian2.core.base import BrianObject, Updater
 from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import (ArrayVariable, DynamicArrayVariable,
@@ -186,29 +186,34 @@ class SynapticPathway(GroupCodeRunner, Group):
         # Update the dt (might have changed between runs)
         self.dt = self.synapses.clock.dt_
         GroupCodeRunner.pre_run(self, namespace)
+        # we insert rather than replace because GroupCodeRunner puts a CodeObject in updaters already
+        self.updaters.insert(0, SynapticPathwayUpdater(self))
         self.queue.compress(np.round(self._delays[:] / self.dt).astype(np.int),
                             self.synapse_indices, len(self.synapses))
     
-    def pre_update(self):
+
+class SynapticPathwayUpdater(Updater):
+    def run(self):
+        path = self.owner
         # Push new spikes into the queue
-        spikes = self.source.spikes
-        offset = self.source.offset
+        spikes = path.source.spikes
+        offset = path.source.offset
         if len(spikes):
             # This check is necessary for subgroups
-            max_index = len(self.synapse_indices) + offset
-            indices = np.concatenate([self.synapse_indices[spike - offset]
+            max_index = len(path.synapse_indices) + offset
+            indices = np.concatenate([path.synapse_indices[spike - offset]
                                       for spike in spikes if
                                       offset <= spike < max_index]).astype(np.int32)
             if len(indices):
-                if len(self._delays) > 1:
-                    delays = np.round(self._delays[indices] / self.dt).astype(int)
+                if len(path._delays) > 1:
+                    delays = np.round(path._delays[indices] / path.dt).astype(int)
                 else:
-                    delays = np.round(self._delays[:] / self.dt).astype(int)
-                self.queue.push(indices, delays)
+                    delays = np.round(path._delays[:] / path.dt).astype(int)
+                path.queue.push(indices, delays)
         # Get the spikes
-        self.spiking_synapses = self.queue.peek()
+        path.spiking_synapses = path.queue.peek()
         # Advance the spike queue
-        self.queue.next()
+        path.queue.next()
 
 
 class IndexView(object):
@@ -423,17 +428,6 @@ class SynapticItemMapping(Variable):
                                                  self.target.item_mapping[:] -
                                                  self.target.offset,
                                                  constant=True),
-                # The template needs to have access to the DynamicArray here,
-                # having access to the underlying array (which would be much
-                # faster), is not enough
-                '_synaptic_pre': Variable(Unit(1),
-                                          self.synaptic_pre, constant=True),
-                '_synaptic_post': Variable(Unit(1),
-                                           self.synaptic_post, constant=True),
-                '_pre_synaptic': Variable(Unit(1),
-                                          self.pre_synaptic, constant=True),
-                '_post_synaptic': Variable(Unit(1),
-                                           self.post_synaptic, constant=True),
                 # Will be set in the template
                 'i': Variable(unit=Unit(1), constant=True),
                 'j': Variable(unit=Unit(1), constant=True)
@@ -664,7 +658,7 @@ class Synapses(BrianObject, Group):
         self.variables = self._create_variables()
 
         #: List of names of all updaters, e.g. ['pre', 'post']
-        self._updaters = []
+        self._synaptic_updaters = []
         for prepost, argument in zip(('pre', 'post'), (pre, post)):
             if not argument:
                 continue
@@ -682,12 +676,12 @@ class Synapses(BrianObject, Group):
         # If we have a pathway called "pre" (the most common use case), provide
         # direct access to its delay via a delay attribute (instead of having
         # to use pre.delay)
-        if 'pre' in self._updaters:
+        if 'pre' in self._synaptic_updaters:
             self.variables['delay'] = self.pre.variables['delay']
 
         if delay is not None:
             if isinstance(delay, Quantity):
-                if not 'pre' in self._updaters:
+                if not 'pre' in self._synaptic_updaters:
                     raise ValueError(('Cannot set delay, no "pre" pathway exists.'
                                       'Use a dictionary if you want to set the '
                                       'delay for a pathway with a different name.'))
@@ -697,7 +691,7 @@ class Synapses(BrianObject, Group):
                 raise TypeError('Delay argument has to be a quantity or a '
                                 'dictionary, is type %s instead.' % type(delay))
             for pathway, pathway_delay in delay.iteritems():
-                if not pathway in self._updaters:
+                if not pathway in self._synaptic_updaters:
                     raise ValueError(('Cannot set the delay for pathway '
                                       '"%s": unknown pathway.') % pathway)
                 if not isinstance(pathway_delay, Quantity):
@@ -814,7 +808,7 @@ class Synapses(BrianObject, Group):
                               'name.').format(name=objname))
 
         setattr(self, objname, updater)
-        self._updaters.append(objname)
+        self._synaptic_updaters.append(objname)
         self.contained_objects.append(updater)
         return objname
 

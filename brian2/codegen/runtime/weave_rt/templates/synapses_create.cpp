@@ -1,28 +1,9 @@
-{% macro main() %}
+{% extends 'common_group.cpp' %}
+
+{% block maincode %}
     // USES_VARIABLES { _synaptic_pre, _synaptic_post, _post_synaptic,
     //                  _pre_synaptic, _source_neurons, _target_neurons,
     //                  rand, _source_offset, _target_offset}
-
-    //// SUPPORT CODE //////////////////////////////////////////////////////////
-	{% for line in support_code_lines %}
-	// {{line}}
-	{% endfor %}
-
-	////// HANDLE DENORMALS ///
-	{% for line in denormals_code_lines %}
-	{{line}}
-	{% endfor %}
-
-	////// HASH DEFINES ///////
-	{% for line in hashdefine_lines %}
-	{{line}}
-	{% endfor %}
-
-	///// POINTERS ////////////
-	{% for line in pointers_lines %}
-	{{line}}
-	{% endfor %}
-
 	srand((unsigned int)time(NULL));
 	int _buffer_size = 1024;
 	int *_prebuf = new int[_buffer_size];
@@ -30,7 +11,7 @@
 	int *_synprebuf = new int[1];
 	int *_synpostbuf = new int[1];
 	int _curbuf = 0;
-	int _synapse_idx = _synaptic_pre.attr("shape")[0];
+	int _synapse_idx = _synaptic_pre_object.attr("shape")[0];
 	for(int i=0; i<_num_source_neurons; i++)
 	{
 		for(int j=0; j<_num_target_neurons; j++)
@@ -39,9 +20,7 @@
 		    const int _presynaptic_idx = i + _source_offset;
 		    const int _postsynaptic_idx = j + _target_offset;
 			// Define the condition
-			{% for line in code_lines %}
-			{{line}}
-			{% endfor %}
+		    {{ super() }}
 			// Add to buffer
 			if(_cond)
 			{
@@ -59,8 +38,8 @@
                     // Flush buffer
                     if(_curbuf==_buffer_size)
                     {
-                        _flush_buffer(_prebuf, _synaptic_pre, _curbuf);
-                        _flush_buffer(_postbuf, _synaptic_post, _curbuf);
+                        _flush_buffer(_prebuf, _synaptic_pre_object, _curbuf);
+                        _flush_buffer(_postbuf, _synaptic_post_object, _curbuf);
                         _curbuf = 0;
                     }
                     // Directly add the synapse numbers to the neuron->synapses
@@ -78,15 +57,15 @@
 
 	}
 	// Final buffer flush
-	_flush_buffer(_prebuf, _synaptic_pre, _curbuf);
-	_flush_buffer(_postbuf, _synaptic_post, _curbuf);
+	_flush_buffer(_prebuf, _synaptic_pre_object, _curbuf);
+	_flush_buffer(_postbuf, _synaptic_post_object, _curbuf);
 	delete [] _prebuf;
 	delete [] _postbuf;
 	delete [] _synprebuf;
 	delete [] _synpostbuf;
-{% endmacro %}
+{% endblock %}
 
-{% macro support_code() %}
+{% block support_code_block %}
 // Flush a buffered segment into a dynamic array
 void _flush_buffer(int *buf, py::object &dynarr, int N)
 {
@@ -105,9 +84,6 @@ void _flush_buffer(int *buf, py::object &dynarr, int N)
 	}
 }
 
-//// SUPPORT CODE //////////////////////////////////////////////////////////
-{% for line in support_code_lines %}
-{{line}}
-{% endfor %}
+{{ super() }}
 
-{% endmacro %}
+{% endblock %}
