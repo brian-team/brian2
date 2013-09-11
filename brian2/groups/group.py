@@ -279,6 +279,7 @@ def check_code_units(code, group, additional_variables=None,
 def create_runner_codeobj(group, code, template_name, indices=None,
                           variable_indices=None,
                           name=None, check_units=True,
+                          needed_variables=None,
                           additional_variables=None,
                           additional_namespace=None,
                           template_kwds=None):
@@ -305,6 +306,12 @@ def create_runner_codeobj(group, code, template_name, indices=None,
         none is given.
     check_units : bool, optional
         Whether to check units in the statement. Defaults to ``True``.
+    needed_variables: list of str, optional
+        A list of variables that are neither present in the abstract code, nor
+        in the ``USES_VARIABLES`` statement in the template. This is only
+        rarely necessary, an exception being a `StateMonitor` where the
+        names of the variables are neither known to the template nor included
+        in the abstract code statements.
     additional_variables : dict-like, optional
         A mapping of names to `Variable` objects, used in addition to the
         variables saved in `group`.
@@ -341,6 +348,14 @@ def create_runner_codeobj(group, code, template_name, indices=None,
 
     resolved_namespace = group.namespace.resolve_all(unknown,
                                                      additional_namespace)
+
+    # Add variables that are not in the abstract code, nor specified in the
+    # template but nevertheless necessary
+    if needed_variables is None:
+        needed_variables = []
+    for var in needed_variables:
+        print 'adding', var
+        variables[var] = all_variables[var]
 
     # Also add the variables that the template needs
     for var in template.variables:

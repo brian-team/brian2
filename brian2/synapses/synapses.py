@@ -428,17 +428,6 @@ class SynapticItemMapping(Variable):
                                                  self.target.item_mapping[:] -
                                                  self.target.offset,
                                                  constant=True),
-                # The template needs to have access to the DynamicArray here,
-                # having access to the underlying array (which would be much
-                # faster), is not enough
-                '_synaptic_pre': Variable(Unit(1),
-                                          self.synaptic_pre, constant=True),
-                '_synaptic_post': Variable(Unit(1),
-                                           self.synaptic_post, constant=True),
-                '_pre_synaptic': Variable(Unit(1),
-                                          self.pre_synaptic, constant=True),
-                '_post_synaptic': Variable(Unit(1),
-                                           self.post_synaptic, constant=True),
                 # Will be set in the template
                 'i': Variable(unit=Unit(1), constant=True),
                 'j': Variable(unit=Unit(1), constant=True)

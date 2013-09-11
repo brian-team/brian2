@@ -18,7 +18,7 @@ int main(void)
 		{{run_line}}
 		{% endfor %}
 	}
-	cout << "Num spikes: " << _array_spikemonitor__i.size() << endl;
+	cout << "Num spikes: " << _dynamic_array_spikemonitor__i.size() << endl;
 	_dealloc_arrays();
 	return 0;
 }

@@ -21,32 +21,10 @@ class CPPStandaloneCodeObject(CodeObject):
     language = CPPLanguage()
 
     def variables_to_namespace(self):
-
-        # Variables can refer to values that are either constant (e.g. dt)
-        # or change every timestep (e.g. t). We add the values of the
-        # constant variables here and add the names of non-constant variables
-        # to a list
-
-        # A list containing tuples of name and a function giving the value
-        self.nonconstant_values = []
-
-        for name, var in self.variables.iteritems():
-            if isinstance(var, Variable) and not isinstance(var, Subexpression):
-                if not var.constant:
-                    self.nonconstant_values.append((name, var.get_value))
-                    if not var.scalar:
-                        self.nonconstant_values.append(('_num' + name,
-                                                        var.get_len))
-                else:
-                    try:
-                        value = var.get_value()
-                    except TypeError:  # A dummy Variable without value
-                        continue
-                    self.namespace[name] = value
-                    # if it is a type that has a length, add a variable called
-                    # '_num'+name with its length
-                    if not var.scalar:
-                        self.namespace['_num' + name] = var.get_len()
+        # We only copy constant scalar values to the namespace here
+        for varname, var in self.variables.iteritems():
+            if var.constant and var.scalar:
+                self.namespace[varname] = var.get_value()
 
     def run(self):
         raise RuntimeError("Cannot run in C++ standalone mode")

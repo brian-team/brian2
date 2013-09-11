@@ -440,6 +440,9 @@ class DynamicArrayVariable(ArrayVariable):
         # The actual numpy array is accesible via DynamicArray1D.data
         return self.value.data
 
+    def get_object(self):
+        return self.value
+
 
 class Subexpression(Variable):
     '''

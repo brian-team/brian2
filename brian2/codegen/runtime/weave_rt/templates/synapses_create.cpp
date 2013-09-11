@@ -11,7 +11,7 @@
 	int *_synprebuf = new int[1];
 	int *_synpostbuf = new int[1];
 	int _curbuf = 0;
-	int _synapse_idx = _synaptic_pre.attr("shape")[0];
+	int _synapse_idx = _synaptic_pre_object.attr("shape")[0];
 	for(int i=0; i<_num_source_neurons; i++)
 	{
 		for(int j=0; j<_num_target_neurons; j++)
@@ -38,8 +38,8 @@
                     // Flush buffer
                     if(_curbuf==_buffer_size)
                     {
-                        _flush_buffer(_prebuf, _synaptic_pre, _curbuf);
-                        _flush_buffer(_postbuf, _synaptic_post, _curbuf);
+                        _flush_buffer(_prebuf, _synaptic_pre_object, _curbuf);
+                        _flush_buffer(_postbuf, _synaptic_post_object, _curbuf);
                         _curbuf = 0;
                     }
                     // Directly add the synapse numbers to the neuron->synapses
@@ -57,8 +57,8 @@
 
 	}
 	// Final buffer flush
-	_flush_buffer(_prebuf, _synaptic_pre, _curbuf);
-	_flush_buffer(_postbuf, _synaptic_post, _curbuf);
+	_flush_buffer(_prebuf, _synaptic_pre_object, _curbuf);
+	_flush_buffer(_postbuf, _synaptic_post_object, _curbuf);
 	delete [] _prebuf;
 	delete [] _postbuf;
 	delete [] _synprebuf;

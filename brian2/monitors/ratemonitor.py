@@ -3,11 +3,11 @@ from collections import defaultdict
 
 import numpy as np
 
-from brian2.codegen.codeobject import create_codeobject
 from brian2.core.base import BrianObject
 from brian2.core.preferences import brian_prefs
 from brian2.core.scheduler import Scheduler
-from brian2.core.variables import Variable, AttributeVariable
+from brian2.core.variables import (Variable, AttributeVariable,
+                                   DynamicArrayVariable)
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.devices.device import get_device
@@ -50,16 +50,16 @@ class PopulationRateMonitor(BrianObject):
         # create data structures
         self.reinit()
 
-        self.variables = {'t': AttributeVariable(second, self.clock, 't'),
+        self.variables = {'t': AttributeVariable(second, self.clock, 't_'),
                            'dt': AttributeVariable(second, self.clock,
-                                                   'dt', constant=True),
+                                                   'dt_', constant=True),
                           '_spikespace': self.source.variables['_spikespace'],
-                           # The template needs to have access to the
-                           # DynamicArray here, having access to the underlying
-                           # array is not enough since we want to do the resize
-                           # in the template
-                           '_rate': Variable(Unit(1), self._rate),
-                           '_t': Variable(Unit(1), self._t),
+                           '_rate': DynamicArrayVariable('_rate', Unit(1),
+                                                         self._rate,
+                                                         group_name=self.name),
+                           '_t': DynamicArrayVariable('_t', Unit(1),
+                                                      self._t,
+                                                      group_name=self.name),
                            '_num_source_neurons': Variable(Unit(1),
                                                            len(self.source))}
 

@@ -21,8 +21,8 @@ namespace {
 
 {% if variables is defined %}
 {% set _spikespace = variables['_spikespace'].arrayname %}
-{% set _i = variables['_i'].arrayname %}
-{% set _t = variables['_t'].arrayname %}
+{% set _i = '_dynamic'+variables['_i'].arrayname %}
+{% set _t = '_dynamic'+variables['_t'].arrayname %}
 {% endif %}
 
 void _run_{{codeobj_name}}(double t)

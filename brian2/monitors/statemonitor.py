@@ -3,7 +3,8 @@ import collections
 
 import numpy as np
 
-from brian2.core.variables import Variable, AttributeVariable, ArrayVariable
+from brian2.core.variables import (Variable, AttributeVariable, ArrayVariable,
+                                   DynamicArrayVariable)
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.core.preferences import brian_prefs
@@ -181,10 +182,13 @@ class StateMonitor(BrianObject):
                                            'doubles can be recorded.') %
                                           (varname, var.dtype))
             self.variables[varname] = var
-            self.variables['_recorded_'+varname] = Variable(Unit(1),
-                                                            self._values[varname])
+            self.variables['_recorded_'+varname] = DynamicArrayVariable('_recorded_'+varname,
+                                                                        Unit(1),
+                                                                        self._values[varname],
+                                                                        group_name=self.name)
 
-        self.variables['_t'] = Variable(Unit(1), self._t)
+        self.variables['_t'] = DynamicArrayVariable('_t', Unit(1), self._t,
+                                                    group_name=self.name)
         self.variables['_clock_t'] = AttributeVariable(second, self.clock, 't_')
         self.variables['_indices'] = ArrayVariable('_indices', Unit(1),
                                                    self.indices,
@@ -197,25 +201,29 @@ class StateMonitor(BrianObject):
         vars = self.source.variables
         self._values = dict((v, dev.dynamic_array(self, '_values', (0, len(self.indices)),
                                                   vars[v].unit,
-                                                  dtype=vars[v].dtype)) for v in self.record_variables)
-        self._t = dev.dynamic_array_1d(self, '_t', 0, second, dtype=brian_prefs['core.default_scalar_dtype'])
+                                                  dtype=vars[v].dtype))
+                            for v in self.record_variables)
+        self._t = dev.dynamic_array_1d(self, '_t', 0, second,
+                                       dtype=brian_prefs['core.default_scalar_dtype'])
+        # FIXME: This does not update the variables dictionary with the new
+        # references
     
     def pre_run(self, namespace):
         # Some dummy code so that code generation takes care of the indexing
         # and subexpressions
         code = ['_to_record_%s = %s' % (v, v)
                 for v in self.record_variables]
-        code += ['_recorded_%s = _recorded_%s' % (v, v)
-                 for v in self.record_variables]
         code = '\n'.join(code)
+        recorded_names = ['_recorded_' + name for name in self.record_variables]
         self.codeobj = create_runner_codeobj(self.source,
                                              code,
                                              'statemonitor',
                                              name=self.name+'_codeobject*',
+                                             needed_variables=recorded_names,
                                              additional_variables=self.variables,
                                              additional_namespace=namespace,
                                              template_kwds={'_variable_names':
-                                                                self.record_variables},
+                                                            self.record_variables},
                                              check_units=False)
         self.updaters[:] = [self.codeobj.get_updater()]
 

@@ -8,7 +8,7 @@ except ImportError:
     # No weave for Python 3
     weave = None
 
-from brian2.core.variables import Variable, Subexpression
+from brian2.core.variables import Variable, Subexpression, DynamicArrayVariable
 from brian2.core.preferences import brian_prefs, BrianPreference
 
 from ...codeobject import CodeObject
@@ -90,6 +90,9 @@ class WeaveCodeObject(CodeObject):
                     if not var.scalar:
                         self.nonconstant_values.append(('_num' + name,
                                                         var.get_len))
+                    if isinstance(var, DynamicArrayVariable):
+                        self.nonconstant_values.append((name+'_object',
+                                                        var.get_object))
                 else:
                     try:
                         value = var.get_value()
@@ -100,6 +103,9 @@ class WeaveCodeObject(CodeObject):
                     # '_num'+name with its length
                     if not var.scalar:
                         self.namespace['_num' + name] = var.get_len()
+                    if isinstance(value, DynamicArrayVariable):
+                        self.namespace[name+'_object'] = value.get_object()
+
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace

@@ -45,7 +45,7 @@ class CPPStandaloneDevice(Device):
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         arr = DynamicArray1D(size, dtype=dtype)
-        self.dynamic_arrays['_array_%s_%s' % (owner.name, name)] = arr
+        self.dynamic_arrays['_dynamic_array_%s_%s' % (owner.name, name)] = arr
         return arr
     
     def dynamic_array(self):
@@ -96,37 +96,22 @@ class CPPStandaloneDevice(Device):
 
         # Generate data for non-constant values
         code_object_defs = defaultdict(list)
-        for codeobj in self.code_objects.values():
-            for k, v in codeobj.nonconstant_values:
+        for codeobj in self.code_objects.itervalues():
+            for k, v in codeobj.variables.iteritems():
                 if k=='t':
                     pass
-                elif v.im_class is ArrayVariable:
-                    # find the corresponding array
-                    arr = v.im_self
-                    arr_k = arr.name
-                    arr_dtype = arr.dtype
-                    arr_N = len(arr.value)
-                    val = arr.value
-                    if isinstance(val, int):
-                        code_object_defs[id(codeobj)].append('int %s = %s;' % (k, arr_N))
-                    elif k=='_spikespace':
-                        pass
-                        #code_object_defs[id(codeobj)].append('%s *%s = %s;' % (arr_dtype, k, arr_k))
-                    elif isinstance(val, numpy.ndarray):
-                        pass
-                    elif isinstance(val, DynamicArray1D):
-                        pass
-                    else:
-                        raise ValueError("Unknown")
-                elif v.im_class is Variable:
-                    arr = v.im_self
-                    val = arr.value
-                    if isinstance(val, DynamicArray1D):
-                        pass
-                    else:
-                        raise ValueError("Unknown")
-                else:
-                    raise ValueError("Unknown")
+                elif isinstance(v, Subexpression):
+                    pass
+                elif not v.scalar:
+                    N = v.get_len()
+                    code_object_defs[codeobj.name].append('const int _num%s = %s;' % (k, N))
+                    if isinstance(v, DynamicArrayVariable):
+                        c_type = c_data_type(v.dtype)
+                        # Create an alias name for the underlying array
+                        code = ('{c_type}* {arrayname} = '
+                                '&(_dynamic{arrayname}[0]);').format(c_type=c_type,
+                                                                      arrayname=v.arrayname)
+                        code_object_defs[codeobj.name].append(code)
                     
         # Generate the updaters
         run_lines = []
@@ -135,9 +120,9 @@ class CPPStandaloneDevice(Device):
             if cls is CodeObjectUpdater:
                 codeobj = updater.owner
                 ns = codeobj.namespace
-                # TODO: fix these freeze/CONSTANTS hacks somehow - they work but not elegant. 
+                # TODO: fix these freeze/CONSTANTS hacks somehow - they work but not elegant.
                 code = freeze(codeobj.code.cpp_file, ns)
-                code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[id(codeobj)]))
+                code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj.name]))
                 code = '#include "arrays.h"\n'+code
                 
                 open('output/'+codeobj.name+'.cpp', 'w').write(code)

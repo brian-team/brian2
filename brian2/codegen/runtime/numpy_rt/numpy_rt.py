@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-from brian2.core.variables import Variable, Subexpression
+from brian2.core.variables import Variable, Subexpression, DynamicArrayVariable
 
 from ...codeobject import CodeObject
 from ...templates import Templater
@@ -39,12 +39,17 @@ class NumpyCodeObject(CodeObject):
             if isinstance(var, Variable) and not isinstance(var, Subexpression):
                 if not var.constant:
                     self.nonconstant_values.append((name, var.get_value))
+                    if isinstance(var, DynamicArrayVariable):
+                        self.nonconstant_values.append((name+'_object',
+                                                        var.get_object))
                 else:
                     try:
                         value = var.get_value()
                     except TypeError:  # A dummy Variable without value
                         continue
                     self.namespace[name] = value
+                    if isinstance(var, DynamicArrayVariable):
+                        self.namespace[name+'_object'] = var.get_object()
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace
