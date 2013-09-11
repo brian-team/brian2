@@ -142,7 +142,50 @@ def test_simple_user_defined_function():
                       lambda usersin: net.run(0.1*ms), usersin)
 
 
+def test_function_implementation_container():
+    from brian2.core.functions import FunctionImplementationContainer
+    class ALanguage(Language):
+        language_id = 'A language'
+
+    class BLanguage(Language):
+        language_id = 'B language'
+
+    class ACodeObject(CodeObject):
+        language = ALanguage()
+        class_name = 'A'
+
+    class BCodeObject(CodeObject):
+        language = BLanguage()
+        class_name = 'B'
+
+    container = FunctionImplementationContainer()
+    # inserting into the container with a string
+    container['A language'] = 'implementation A language'
+
+    # inserting into the container with a Language class
+    container[BLanguage] = 'implementation B language'
+    assert container['B language'] == 'implementation B language'
+    assert container[BLanguage] == 'implementation B language'
+
+    # inserting into the container with a CodeObject class
+    container[ACodeObject] = 'implementation A CodeObject'
+    assert container['A'] == 'implementation A CodeObject'
+    assert container[ACodeObject] == 'implementation A CodeObject'
+
+    # does the fallback to the language work?
+    assert container[BCodeObject] == 'implementation B language'
+
+    assert_raises(KeyError, lambda: container['unknown'])
+
+    # some basic dictionary properties
+    assert len(container) == 3
+    del container[ACodeObject]
+    assert len(container) == 2
+    assert set((key for key in container)) == set(['A language', 'B language'])
+
+
 if __name__ == '__main__':
     test_math_functions()
     test_user_defined_function()
     test_simple_user_defined_function()
+    test_function_implementation_container()
