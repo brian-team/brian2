@@ -6,8 +6,8 @@ import numpy as np
 numpy_False = np.bool_(False)
 numpy_True = np.bool_(True)
 
-for i in range(_num_source_neurons):
-    j = np.arange(_num_target_neurons)
+for i in range(len(_source_neurons)):
+    j = np.arange(len(_target_neurons))
     _vectorisation_idx = j
     _presynaptic_idx = i + _source_offset
     _postsynaptic_idx = j + _target_offset

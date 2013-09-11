@@ -27,7 +27,6 @@ class NumpyCodeObject(CodeObject):
         CodeObject.__init__(self, code, namespace, variables, name=name)
 
     def variables_to_namespace(self):
-
         # Variables can refer to values that are either constant (e.g. dt)
         # or change every timestep (e.g. t). We add the values of the
         # constant variables here and add the names of non-constant variables
@@ -40,19 +39,12 @@ class NumpyCodeObject(CodeObject):
             if isinstance(var, Variable) and not isinstance(var, Subexpression):
                 if not var.constant:
                     self.nonconstant_values.append((name, var.get_value))
-                    if not var.scalar:
-                        self.nonconstant_values.append(('_num' + name,
-                                                        var.get_len))
                 else:
                     try:
                         value = var.get_value()
                     except TypeError:  # A dummy Variable without value
                         continue
                     self.namespace[name] = value
-                    # if it is a type that has a length, add a variable called
-                    # '_num'+name with its length
-                    if not var.scalar:
-                        self.namespace['_num' + name] = var.get_len()
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace
