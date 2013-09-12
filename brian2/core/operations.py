@@ -1,4 +1,4 @@
-from brian2.core.base import BrianObject
+from brian2.core.base import BrianObject, Updater
 
 __all__ = ['NetworkOperation', 'network_operation']
 
@@ -31,15 +31,21 @@ class NetworkOperation(BrianObject):
             self._has_arg = (self.function.func_code.co_argcount==1)
         else:
             self._has_arg = False
-
-    def update(self):
+            
+        self.updater = NetworkOperationUpdater(self)            
+        self.updaters[:] = [self.updater]
+            
+            
+class NetworkOperationUpdater(Updater):
+    def run(self):
         '''
         Call the `function`.
         '''
-        if self._has_arg:
-            self.function(self.clock.t)
+        op = self.owner
+        if op._has_arg:
+            op.function(op.clock.t)
         else:
-            self.function()
+            op.function()
 
 
 def network_operation(*args, **kwds):

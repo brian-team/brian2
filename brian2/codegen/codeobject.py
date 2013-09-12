@@ -4,33 +4,17 @@ from brian2.core.variables import ArrayVariable, Variable, Subexpression
 from brian2.core.functions import Function
 from brian2.core.preferences import brian_prefs
 from brian2.core.names import Nameable, find_name
+from brian2.core.base import Updater
 from brian2.utils.logger import get_logger
 from .translation import translate
 from .runtime.targets import runtime_targets
 
 __all__ = ['CodeObject',
            'create_codeobject',
-           'get_codeobject_template',
+           'CodeObjectUpdater',
            ]
 
 logger = get_logger(__name__)
-
-
-def get_default_codeobject_class():
-    '''
-    Returns the default `CodeObject` class from the preferences.
-    '''
-    codeobj_class = brian_prefs['codegen.target']
-    if isinstance(codeobj_class, str):
-        for target in runtime_targets:
-            if target.class_name == codeobj_class:
-                return target
-        # No target found
-        raise ValueError("Unknown code generation target: %s, should be "
-                         " one of %s"%(codeobj_class,
-                                       [target.class_name
-                                        for target in runtime_targets]))
-    return codeobj_class
 
 
 def prepare_namespace(namespace, variables, codeobj_class):
@@ -75,40 +59,46 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
     if codeobj_class is None:
         codeobj_class = get_default_codeobject_class()
         
-    template = get_codeobject_template(template_name,
-                                       codeobj_class=codeobj_class)
+    template = getattr(codeobj_class.templater, template_name)
+
 
     namespace = prepare_namespace(namespace, variables,
                                   codeobj_class=codeobj_class)
 
     logger.debug(name + " abstract code:\n" + abstract_code)
     iterate_all = template.iterate_all
-    innercode, kwds = translate(abstract_code, variables, namespace,
-                                dtype=brian_prefs['core.default_scalar_dtype'],
-                                codeobj_class=codeobj_class,
-                                variable_indices=variable_indices,
-                                iterate_all=iterate_all)
+    if isinstance(abstract_code, dict):
+        snippet = {}
+        kwds = {}
+        for ac_name, ac in abstract_code.iteritems():
+            snip, snip_kwds = translate(ac, variables, namespace,
+                                        dtype=brian_prefs['core.default_scalar_dtype'],
+                                        codeobj_class=codeobj_class,
+                                        variable_indices=variable_indices,
+                                        iterate_all=iterate_all)
+            snippet[ac_name] = snip
+            for k, v in snip_kwds:
+                kwds[ac_name+'_'+k] = v
+            
+    else:
+        snippet, kwds = translate(abstract_code, variables, namespace,
+                                  dtype=brian_prefs['core.default_scalar_dtype'],
+                                  codeobj_class=codeobj_class,
+                                  variable_indices=variable_indices,
+                                  iterate_all=iterate_all)
     template_kwds.update(kwds)
-    logger.debug(name + " inner code:\n" + str(innercode))
+    logger.debug(name + " snippet:\n" + str(snippet))
     
     name = find_name(name)
-    
-    code = template(innercode, **template_kwds)
-    logger.debug(name + " code:\n" + str(code))
 
     variables.update(indices)
+    
+    code = template(snippet, variables=variables, codeobj_name=name, namespace=namespace, **template_kwds)
+    logger.debug(name + " code:\n" + str(code))
+
     codeobj = codeobj_class(code, namespace, variables, name=name)
     codeobj.compile()
     return codeobj
-
-
-def get_codeobject_template(name, codeobj_class=None):
-    '''
-    Returns the `CodeObject` template ``name`` from the default or given class.
-    '''
-    if codeobj_class is None:
-        codeobj_class = get_default_codeobject_class()
-    return getattr(codeobj_class.templater, name)
 
 
 class CodeObject(Nameable):
@@ -135,41 +125,40 @@ class CodeObject(Nameable):
         self.code = code
         self.namespace = namespace
         self.variables = variables
-        
-        # Variables can refer to values that are either constant (e.g. dt)
-        # or change every timestep (e.g. t). We add the values of the
-        # constant variables here and add the names of non-constant variables
-        # to a list
-        
-        # A list containing tuples of name and a function giving the value
-        self.nonconstant_values = []
-        
-        for name, var in self.variables.iteritems():
-            if isinstance(var, Variable) and not isinstance(var, Subexpression):
-                if not var.constant:
-                    self.nonconstant_values.append((name, var.get_value))
-                    if not var.scalar:
-                        self.nonconstant_values.append(('_num' + name,
-                                                        var.get_len))
-                else:
-                    try:
-                        value = var.get_value()
-                    except TypeError:  # A dummy Variable without value
-                        continue
-                    self.namespace[name] = value
-                    # if it is a type that has a length, add a variable called
-                    # '_num'+name with its length
-                    if not var.scalar:
-                        self.namespace['_num' + name] = var.get_len()
+
+        self.variables_to_namespace()
+
+    def variables_to_namespace(self):
+        '''
+        Add the values from the variables dictionary to the namespace.
+        This should involve calling the `Variable.get_value` methods and
+        possibly take track of variables that need to be updated at every
+        timestep (see `update_namespace`).
+        '''
+        raise NotImplementedError()
+
+    def update_namespace(self):
+        '''
+        Update the namespace for this timestep. Should only deal with variables
+        where *the reference* changes every timestep, i.e. where the current
+        reference in `namespace` is not correct.
+        '''
+        pass
+
+    def get_compile_methods(self, variables):
+        meths = []
+        for var, var in variables.items():
+            if isinstance(var, Function):
+                meths.append(functools.partial(var.on_compile,
+                                               language=self.language,
+                                               var=var))
+        return meths
 
     def compile(self):
         pass
 
     def __call__(self, **kwds):
-        # update the values of the non-constant values in the namespace
-        for name, func in self.nonconstant_values:
-            self.namespace[name] = func()
-
+        self.update_namespace()
         self.namespace.update(**kwds)
 
         return self.run()
@@ -185,4 +174,17 @@ class CodeObject(Nameable):
             defined during the call of `Language.code_object`.
         '''
         raise NotImplementedError()
+    
+    def get_updater(self):
+        '''
+        Returns a `CodeObjectUpdater` that updates this `CodeObject`
+        '''
+        return CodeObjectUpdater(self)
 
+
+class CodeObjectUpdater(Updater):
+    '''
+    Used to update ``CodeObject``.
+    '''
+    def run(self):
+        self.owner()

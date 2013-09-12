@@ -1,30 +1,8 @@
-////////////////////////////////////////////////////////////////////////////
-//// MAIN CODE /////////////////////////////////////////////////////////////
+{% extends 'common_group.cpp' %}
 
-{% macro main() %}
+{% block maincode %}
 	// USES_VARIABLES { _spiking_synapses, _synaptic_pre, _synaptic_post,
     //                  _source_offset, _target_offset}
-
-    //// SUPPORT CODE //////////////////////////////////////////////////////////
-	{% for line in support_code_lines %}
-	// {{line}}
-	{% endfor %}
-
-	////// HANDLE DENORMALS ///
-	{% for line in denormals_code_lines %}
-	{{line}}
-	{% endfor %}
-
-	////// HASH DEFINES ///////
-	{% for line in hashdefine_lines %}
-	{{line}}
-	{% endfor %}
-
-	///// POINTERS ////////////
-	{% for line in pointers_lines %}
-	{{line}}
-	{% endfor %}
-
 	//// MAIN CODE ////////////
 	for(int _spiking_synapse_idx=0;
 		_spiking_synapse_idx<_num_spiking_synapses;
@@ -38,13 +16,4 @@
 		{{line}}
 		{% endfor %}
 	}
-{% endmacro %}
-
-////////////////////////////////////////////////////////////////////////////
-//// SUPPORT CODE //////////////////////////////////////////////////////////
-
-{% macro support_code() %}
-	{% for line in support_code_lines %}
-	{{line}}
-	{% endfor %}
-{% endmacro %}
+{% endblock %}

@@ -13,10 +13,11 @@ from brian2.core.variables import (ArrayVariable, StochasticVariable,
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
 from brian2.units.allunits import second
-from brian2.codegen.codeobject import get_codeobject_template, create_codeobject
+from brian2.codegen.codeobject import create_codeobject
 from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
+from brian2.devices.device import get_device
 
 __all__ = ['Group', 'GroupCodeRunner']
 
@@ -278,6 +279,7 @@ def check_code_units(code, group, additional_variables=None,
 def create_runner_codeobj(group, code, template_name, indices=None,
                           variable_indices=None,
                           name=None, check_units=True,
+                          needed_variables=None,
                           additional_variables=None,
                           additional_namespace=None,
                           template_kwds=None):
@@ -304,6 +306,12 @@ def create_runner_codeobj(group, code, template_name, indices=None,
         none is given.
     check_units : bool, optional
         Whether to check units in the statement. Defaults to ``True``.
+    needed_variables: list of str, optional
+        A list of variables that are neither present in the abstract code, nor
+        in the ``USES_VARIABLES`` statement in the template. This is only
+        rarely necessary, an exception being a `StateMonitor` where the
+        names of the variables are neither known to the template nor included
+        in the abstract code statements.
     additional_variables : dict-like, optional
         A mapping of names to `Variable` objects, used in addition to the
         variables saved in `group`.
@@ -318,9 +326,9 @@ def create_runner_codeobj(group, code, template_name, indices=None,
     if check_units:
         check_code_units(code, group, additional_variables=additional_variables,
                          additional_namespace=additional_namespace)
-
-    template = get_codeobject_template(template_name,
-                                       codeobj_class=group.codeobj_class)
+        
+    codeobj_class = get_device().code_object_class(group.codeobj_class)
+    template = getattr(codeobj_class.templater, template_name)
 
     all_variables = dict(group.variables)
     if additional_variables is not None:
@@ -340,6 +348,14 @@ def create_runner_codeobj(group, code, template_name, indices=None,
 
     resolved_namespace = group.namespace.resolve_all(unknown,
                                                      additional_namespace)
+
+    # Add variables that are not in the abstract code, nor specified in the
+    # template but nevertheless necessary
+    if needed_variables is None:
+        needed_variables = []
+    for var in needed_variables:
+        print 'adding', var
+        variables[var] = all_variables[var]
 
     # Also add the variables that the template needs
     for var in template.variables:
@@ -367,7 +383,8 @@ def create_runner_codeobj(group, code, template_name, indices=None,
     if variable_indices is None:
         variable_indices = group.variable_indices
 
-    return create_codeobject(name,
+    return get_device().code_object(
+                             name,
                              code,
                              resolved_namespace,
                              variables,
@@ -458,32 +475,5 @@ class GroupCodeRunner(BrianObject):
                                              additional_variables=additional_variables,
                                              additional_namespace=namespace,
                                              template_kwds=self.template_kwds)
-    
-    def pre_update(self):
-        '''
-        Will be called in every timestep before the `update` method is called.
-        
-        Does nothing by default.
-        '''
-        pass
-    
-    def update(self, **kwds):
-        self.pre_update()
-        return_value = self.codeobj(**kwds)
-        self.post_update(return_value)
-
-    def post_update(self, return_value):
-        '''
-        Will be called in every timestep after the `update` method is called.
-        
-        Overwritten in `Thresholder` to update the ``spikes`` list saved in 
-        a `NeuronGroup`.
-        
-        Does nothing by default.
-        
-        Parameters
-        ----------
-        return_value : object
-            The result returned from calling the `CodeObject`.
-        '''
-        pass
+        self.code_objects[:] = [weakref.proxy(self.codeobj)]
+        self.updaters[:] = [self.codeobj.get_updater()]

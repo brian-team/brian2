@@ -6,8 +6,8 @@ import numpy as np
 numpy_False = np.bool_(False)
 numpy_True = np.bool_(True)
 
-for i in range(_num_source_neurons):
-    j = np.arange(_num_target_neurons)
+for i in range(len(_source_neurons)):
+    j = np.arange(len(_target_neurons))
     _vectorisation_idx = j
     _presynaptic_idx = i + _source_offset
     _postsynaptic_idx = j + _target_offset
@@ -31,13 +31,13 @@ for i in range(_num_source_neurons):
     elif _n != 1:
         # We have a j-independent number
         _cond_nonzero = _cond_nonzero.repeat(_n)
-    _cur_num_synapses = len(_synaptic_pre)
+    _cur_num_synapses = len(_synaptic_pre_object)
     _numnew = len(_cond_nonzero)
     _new_num_synapses = _cur_num_synapses + _numnew
-    _synaptic_pre.resize(_new_num_synapses)
-    _synaptic_post.resize(_new_num_synapses)
-    _synaptic_pre[_cur_num_synapses:] = _source_neurons[i]
-    _synaptic_post[_cur_num_synapses:] = _target_neurons[_cond_nonzero]
+    _synaptic_pre_object.resize(_new_num_synapses)
+    _synaptic_post_object.resize(_new_num_synapses)
+    _synaptic_pre_object[_cur_num_synapses:] = _source_neurons[i]
+    _synaptic_post_object[_cur_num_synapses:] = _target_neurons[_cond_nonzero]
     _new_synapses = np.arange(_cur_num_synapses, _new_num_synapses)
     _source_synapses = _pre_synaptic[_source_neurons[i]]
     _cur_num_source_synapses = len(_source_synapses)
