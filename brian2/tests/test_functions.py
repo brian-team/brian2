@@ -144,6 +144,8 @@ def test_simple_user_defined_function():
 
 def test_function_implementation_container():
     from brian2.core.functions import FunctionImplementationContainer
+    import brian2.codegen.targets as targets
+
     class ALanguage(Language):
         language_id = 'A language'
 
@@ -158,18 +160,18 @@ def test_function_implementation_container():
         language = BLanguage()
         class_name = 'B'
 
+    # Register the code generation targets
+    _previous_codegen_targets = set(targets.codegen_targets)
+    targets.codegen_targets = set([ACodeObject, BCodeObject])
+
     container = FunctionImplementationContainer()
-    # inserting into the container with a string
-    container['A language'] = 'implementation A language'
 
     # inserting into the container with a Language class
     container[BLanguage] = 'implementation B language'
-    assert container['B language'] == 'implementation B language'
     assert container[BLanguage] == 'implementation B language'
 
     # inserting into the container with a CodeObject class
     container[ACodeObject] = 'implementation A CodeObject'
-    assert container['A'] == 'implementation A CodeObject'
     assert container[ACodeObject] == 'implementation A CodeObject'
 
     # does the fallback to the language work?
@@ -178,10 +180,13 @@ def test_function_implementation_container():
     assert_raises(KeyError, lambda: container['unknown'])
 
     # some basic dictionary properties
-    assert len(container) == 3
-    del container[ACodeObject]
     assert len(container) == 2
-    assert set((key for key in container)) == set(['A language', 'B language'])
+    del container[ACodeObject]
+    assert len(container) == 1
+    assert set((key for key in container)) == set([BLanguage])
+
+    # Restore the previous codegeneration targets
+    targets.codegen_targets = _previous_codegen_targets
 
 
 if __name__ == '__main__':

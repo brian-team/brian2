@@ -1,13 +1,12 @@
 import functools
 
 from brian2.core.variables import ArrayVariable
-from brian2.core.functions import Function
+from brian2.core.functions import Function, FunctionImplementation
 from brian2.core.preferences import brian_prefs
 from brian2.core.names import Nameable, find_name
 from brian2.core.base import Updater
 from brian2.utils.logger import get_logger
 from .translation import translate
-from brian2.codegen.targets import codegen_targets
 
 __all__ = ['CodeObject',
            'create_codeobject',
@@ -18,6 +17,8 @@ logger = get_logger(__name__)
 
 
 def prepare_namespace(namespace, variables, codeobj_class):
+    # We do the import here to avoid import problems
+    from .runtime.numpy_rt.numpy_rt import NumpyCodeObject
     namespace = dict(namespace)
     # Add variables referring to the arrays
     arrays = []
@@ -30,15 +31,21 @@ def prepare_namespace(namespace, variables, codeobj_class):
             try:
                 value.implementations[codeobj_class]
             except KeyError as ex:
-                raise NotImplementedError('Cannot use function %s: %s' % (name,
-                                                                          ex))
+                # if we are dealing with numpy, add the default implementation
+                if codeobj_class is NumpyCodeObject:
+                    implementation = FunctionImplementation(name=None,
+                                                            code=value.pyfunc)
+                    value.implementations[codeobj_class] = implementation
+                else:
+                    raise NotImplementedError(('Cannot use function '
+                                               '%s: %s') % (name, ex))
     namespace.update(arrays)
 
     return namespace
 
 
 def create_codeobject(name, abstract_code, namespace, variables, template_name,
-                      indices, variable_indices, codeobj_class=None,
+                      indices, variable_indices, codeobj_class,
                       template_kwds=None):
     '''
     The following arguments keywords are passed to the template:
@@ -55,9 +62,6 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
         template_kwds = dict()
     else:
         template_kwds = template_kwds.copy()
-
-    if codeobj_class is None:
-        codeobj_class = get_default_codeobject_class()
         
     template = getattr(codeobj_class.templater, template_name)
 

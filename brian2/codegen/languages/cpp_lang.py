@@ -241,12 +241,12 @@ class CPPLanguage(Language):
 # Functions that exist under the same name in C++
 for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
              'log10', 'sqrt', 'ceil', 'floor']:
-    DEFAULT_FUNCTIONS[func].implementations['cpp'] = FunctionImplementation()
+    DEFAULT_FUNCTIONS[func].implementations[CPPLanguage] = FunctionImplementation()
 
 # Functions that need a name translation
 for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),
                        ('abs', 'fabs'), ('mod', 'fmod')]:
-    DEFAULT_FUNCTIONS[func].implementations['cpp'] = FunctionImplementation(func_cpp)
+    DEFAULT_FUNCTIONS[func].implementations[CPPLanguage] = FunctionImplementation(func_cpp)
 
 # Functions that need to be implemented specifically
 randn_code = {'support_code': '''
@@ -282,7 +282,7 @@ randn_code = {'support_code': '''
          }
     }
         '''}
-DEFAULT_FUNCTIONS['randn'].implementations['cpp'] = FunctionImplementation('_randn',
+DEFAULT_FUNCTIONS['randn'].implementations[CPPLanguage] = FunctionImplementation('_randn',
                                                                            code=randn_code)
 
 rand_code = {'support_code': '''
@@ -291,7 +291,7 @@ rand_code = {'support_code': '''
 	        return (double)rand()/RAND_MAX;
         }
         '''}
-DEFAULT_FUNCTIONS['rand'].implementations['cpp'] = FunctionImplementation('_rand',
+DEFAULT_FUNCTIONS['rand'].implementations[CPPLanguage] = FunctionImplementation('_rand',
                                                                           code=rand_code)
 
 clip_code = {'support_code': '''
@@ -304,7 +304,7 @@ clip_code = {'support_code': '''
 	        return value;
 	    }
         '''}
-DEFAULT_FUNCTIONS['clip'].implementations['cpp'] = FunctionImplementation('_clip',
+DEFAULT_FUNCTIONS['clip'].implementations[CPPLanguage] = FunctionImplementation('_clip',
                                                                           code=clip_code)
 
 int_code = {'support_code':
@@ -314,5 +314,5 @@ int_code = {'support_code':
 	        return value ? 1 : 0;
         }
         '''}
-DEFAULT_FUNCTIONS['int_'].implementations['cpp'] = FunctionImplementation('int_',
+DEFAULT_FUNCTIONS['int_'].implementations[CPPLanguage] = FunctionImplementation('int_',
                                                                           code=int_code)

@@ -48,6 +48,8 @@ class TimedArray(Function, Nameable):
         namespace = {'_%s_dt' % self.name: self.dt,
                      '_%s_num_values' % self.name: len(self.values),
                      '_%s_values' % self.name: self.values}
+        self.implementations['numpy'] = FunctionImplementation(name=None,
+                                                               code=timed_array_func)
         self.implementations['cpp'] = FunctionImplementation(self.name,
                                                              code=code,
                                                              namespace=namespace)

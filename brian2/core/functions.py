@@ -7,10 +7,9 @@ import numpy as np
 from numpy.random import randn, rand
 
 import brian2.units.unitsafefunctions as unitsafe
-from brian2.units.fundamentalunits import Quantity, Unit, get_dimensions
+from brian2.units.fundamentalunits import Quantity, get_dimensions
 
-__all__ = ['DEFAULT_FUNCTIONS', 'Function', 'make_function',
-           'FunctionImplementation']
+__all__ = ['DEFAULT_FUNCTIONS', 'Function', 'FunctionImplementation']
 
 
 class Function(object):
@@ -37,16 +36,13 @@ class Function(object):
 
         # Provide the numpy implementation by default
         self.implementations = FunctionImplementationContainer()
-        self.implementations['numpy'] = FunctionImplementation(name=None,
-                                                               code=pyfunc)
 
     def __call__(self, *args):
         if callable(self._return_unit):
             return_dim = get_dimensions(self._return_unit(*args))
         else:
             return_dim = get_dimensions(self._return_unit)
-        return Quantity.with_dimensions(self.implementations['numpy'].code(*args),
-                                        return_dim)
+        return Quantity.with_dimensions(self.pyfunc(*args), return_dim)
 
 
 class FunctionImplementation(object):
@@ -67,98 +63,30 @@ class FunctionImplementationContainer(collections.MutableMapping):
         self._implementations = dict()
 
     def __getitem__(self, key):
-        name = language = None
+        fallback = None
+        if hasattr(key, 'language'):
+            fallback = key.language.__class__
 
-        if hasattr(key, 'language_id'):
-            language = key.language_id
-        elif hasattr(key, 'class_name'):
-            name = key.class_name
-            language = key.language.language_id
-        else:
-            if not isinstance(key, basestring):
-                raise TypeError('Cannot use type %s as a key' % type(key))
-            name = key
-
-        if name in self._implementations:
-            return self._implementations[name]
-        elif language in self._implementations:
-            return self._implementations[language]
+        if key in self._implementations:
+            return self._implementations[key]
+        elif fallback in self._implementations:
+            return self._implementations[fallback]
         else:
             raise KeyError(('No implementation available for {key}. '
                             'Available implementations: {keys}').format(key=key,
                                                                         keys=self._implementations.keys()))
 
     def __setitem__(self, key, value):
-        if hasattr(key, 'language_id'):
-            name = key.language_id
-        elif hasattr(key, 'class_name'):
-            name = key.class_name
-        else:
-            if not isinstance(key, basestring):
-                raise TypeError('Cannot use %s (type %s) as a key' % (key, type(key)))
-            name = key
-        self._implementations[name] = value
+        self._implementations[key] = value
 
     def __delitem__(self, key):
-        name = language = None
-
-        if hasattr(key, 'language_id'):
-            language = key.language_id
-        elif hasattr(key, 'class_name'):
-            name = key.class_name
-            language = key.language.language_id
-        else:
-            if not isinstance(key, basestring):
-                raise TypeError('Cannot use type %s as a key' % type(key))
-            name = key
-
-        if name in self._implementations:
-            del self._implementations[name]
-        elif language in self._implementations:
-            del self._implementations[language]
-        else:
-            raise KeyError('No implementation available')
+        del self._implementations[key]
 
     def __len__(self):
         return len(self._implementations)
 
     def __iter__(self):
         return iter(self._implementations)
-
-
-def make_function(codes):
-    '''
-    A simple decorator to extend user-written Python functions to work with code
-    generation in other languages.
-
-    You provide a dict ``codes`` of ``(language_id, code)`` pairs and a
-    namespace of values to be added to the generated code. The ``code`` should
-    be in the format recognised by the language (e.g. dict or string).
-
-    Sample usage::
-
-        @make_function(codes={
-            'cpp':{
-                'support_code':"""
-                    #include<math.h>
-                    inline double usersin(double x)
-                    {
-                        return sin(x);
-                    }
-                    """,
-                'hashdefine_code':'',
-                },
-            })
-        def usersin(x):
-            return sin(x)
-    '''
-    def do_make_user_function(func):
-        function = Function(func)
-        for language_id, code in codes.iteritems():
-            function.implementations[language_id] = FunctionImplementation(func.__name__,
-                                                                           code=code)
-        return function
-    return do_make_user_function
 
 
 ################################################################################
