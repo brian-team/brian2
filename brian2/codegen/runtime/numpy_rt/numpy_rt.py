@@ -6,7 +6,7 @@ from brian2.core.variables import Variable, Subexpression, DynamicArrayVariable
 from ...codeobject import CodeObject
 from ...templates import Templater
 from ...languages.numpy_lang import NumpyLanguage
-from ..targets import runtime_targets
+from ...targets import codegen_targets
 
 __all__ = ['NumpyCodeObject']
 
@@ -67,4 +67,4 @@ class NumpyCodeObject(CodeObject):
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']
 
-runtime_targets.add(NumpyCodeObject)
+codegen_targets.add(NumpyCodeObject)

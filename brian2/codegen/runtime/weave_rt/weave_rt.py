@@ -15,7 +15,7 @@ from brian2.core.functions import DEFAULT_FUNCTIONS, FunctionImplementation
 from ...codeobject import CodeObject
 from ...templates import Templater
 from ...languages.cpp_lang import CPPLanguage
-from ..targets import runtime_targets
+from ...targets import codegen_targets
 
 __all__ = ['WeaveCodeObject']
 
@@ -120,7 +120,7 @@ class WeaveCodeObject(CodeObject):
                             compiler=self.compiler,
                             extra_compile_args=self.extra_compile_args)
 
-runtime_targets.add(WeaveCodeObject)
+codegen_targets.add(WeaveCodeObject)
 
 
 # Use a special implementation for the randn function that makes use of numpy's
