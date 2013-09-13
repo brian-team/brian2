@@ -131,15 +131,30 @@ def test_simple_user_defined_function():
     # Check that it raises an error for C++
     if WeaveCodeObject in codeobj_classes:
         G = NeuronGroup(len(test_array),
-                    '''func = usersin(variable) : 1
+                        '''func = usersin(variable) : 1
                               variable : 1''',
-                    codeobj_class=WeaveCodeObject)
+                        codeobj_class=WeaveCodeObject)
         mon = StateMonitor(G, 'func', record=True)
         net = Network(G, mon)
         # This looks a bit odd -- we have to get usersin into the namespace of
         # the lambda expression
         assert_raises(NotImplementedError,
                       lambda usersin: net.run(0.1*ms), usersin)
+
+
+
+def test_user_defined_function_discarding_units():
+    # A function with units that should discard units also inside the function
+    @make_function(discard_units=True)
+    @check_units(v=volt, result=volt)
+    def foo(v):
+        return v + 3*volt  # this normally raises an error for unitless v
+
+    assert foo(5*volt) == 8*volt
+
+    # Test the function that is used during a run
+    from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
+    assert foo.implementations[NumpyCodeObject].code(5) == 8
 
 
 def test_function_implementation_container():
@@ -193,4 +208,5 @@ if __name__ == '__main__':
     test_math_functions()
     test_user_defined_function()
     test_simple_user_defined_function()
+    test_user_defined_function_discarding_units()
     test_function_implementation_container()

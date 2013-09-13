@@ -15,9 +15,6 @@ __all__ = ['Network']
 
 logger = get_logger(__name__)
 
-#: A global flag stating whether the network is currently running
-is_running = False
-
 
 class Network(Nameable):
     '''
@@ -353,8 +350,6 @@ class Network(Nameable):
             start = current = time.time()
             next_report_time = start + 10
 
-        global is_running
-        is_running = True
         while clock.running and not self._stopped and not Network._globally_stopped:
             # update the network time to this clocks time
             self.t_ = clock.t_
@@ -379,8 +374,6 @@ class Network(Nameable):
             # with the smallest t value, unless there are several with the 
             # same t value in which case we update all of them
             clock, curclocks = self._nextclocks()
-
-        is_running = False
 
         self.t = t_end
 

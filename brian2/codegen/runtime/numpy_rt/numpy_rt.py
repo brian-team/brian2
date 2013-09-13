@@ -1,6 +1,7 @@
 import os
 import numpy as np
 
+from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.variables import Variable, Subexpression, DynamicArrayVariable
 
 from ...codeobject import CodeObject
@@ -10,6 +11,18 @@ from ...targets import codegen_targets
 
 __all__ = ['NumpyCodeObject']
 
+# Preferences
+brian_prefs.register_preferences(
+    'codegen.runtime.numpy',
+    'Numpy runtime codegen preferences',
+    discard_units = BrianPreference(
+        default=False,
+        docs='''
+        Whether to change the namespace of user-specifed functions to remove
+        units.
+        '''
+        )
+    )
 
 class NumpyCodeObject(CodeObject):
     '''

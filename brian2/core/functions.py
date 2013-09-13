@@ -38,11 +38,7 @@ class Function(object):
         self.implementations = FunctionImplementationContainer()
 
     def __call__(self, *args):
-        if callable(self._return_unit):
-            return_dim = get_dimensions(self._return_unit(*args))
-        else:
-            return_dim = get_dimensions(self._return_unit)
-        return Quantity.with_dimensions(self.pyfunc(*args), return_dim)
+        return self.pyfunc(*args)
 
 
 class FunctionImplementation(object):

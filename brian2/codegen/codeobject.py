@@ -1,11 +1,13 @@
 import functools
 
 from brian2.core.variables import ArrayVariable
-from brian2.core.functions import Function, FunctionImplementation
+from brian2.core.functions import Function
 from brian2.core.preferences import brian_prefs
 from brian2.core.names import Nameable, find_name
 from brian2.core.base import Updater
 from brian2.utils.logger import get_logger
+
+from .functions import add_numpy_implementation
 from .translation import translate
 
 __all__ = ['CodeObject',
@@ -33,9 +35,7 @@ def prepare_namespace(namespace, variables, codeobj_class):
             except KeyError as ex:
                 # if we are dealing with numpy, add the default implementation
                 if codeobj_class is NumpyCodeObject:
-                    implementation = FunctionImplementation(name=None,
-                                                            code=value.pyfunc)
-                    value.implementations[codeobj_class] = implementation
+                    add_numpy_implementation(value, value.pyfunc)
                 else:
                     raise NotImplementedError(('Cannot use function '
                                                '%s: %s') % (name, ex))

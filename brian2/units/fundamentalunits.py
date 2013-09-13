@@ -2155,6 +2155,7 @@ def check_units(**au):
                                                  get_dimensions(result),
                                                  get_dimensions(au['result']))
             return result
+        new_f._orig_func = f
         new_f.__doc__ = f.__doc__
         new_f.__name__ = f.__name__
         # store the information in the function, necessary when using the

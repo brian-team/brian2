@@ -37,14 +37,16 @@ def test_timedarray_no_units():
 
 
 def test_timedarray_with_units():
-    ta = TimedArray(np.linspace(0, 10, 11)*amp, 1*ms)
-    for codeobj_class in codeobj_classes:
-        G = NeuronGroup(1, 'value = ta(t) : amp', codeobj_class=codeobj_class)
-        mon = StateMonitor(G, 'value', record=True)
-        net = Network(G, mon)
-        net.run(12*ms)
-        assert_equal(mon[0].value,
-                     np.clip(np.int_(mon[0].t / (1*ms) + 0.5), 0, 10)*amp)
+    for discard_units in [False, True]:
+        ta = TimedArray(np.linspace(0, 10, 11)*amp, 1*ms,
+                        discard_units=discard_units)
+        for codeobj_class in codeobj_classes:
+            G = NeuronGroup(1, 'value = ta(t) : amp', codeobj_class=codeobj_class)
+            mon = StateMonitor(G, 'value', record=True)
+            net = Network(G, mon)
+            net.run(12*ms)
+            assert_equal(mon[0].value,
+                         np.clip(np.int_(mon[0].t / (1*ms) + 0.5), 0, 10)*amp)
 
 if __name__ == '__main__':
     test_timedarray_direct_use()
