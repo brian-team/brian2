@@ -12,6 +12,7 @@ from brian2.core.preferences import brian_prefs
 from brian2.core.variables import (ArrayVariable, DynamicArrayVariable,
                                    Variable, Subexpression, AttributeVariable,
                                    StochasticVariable)
+from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)
@@ -187,33 +188,40 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.dt = self.synapses.clock.dt_
         GroupCodeRunner.pre_run(self, namespace)
         # we insert rather than replace because GroupCodeRunner puts a CodeObject in updaters already
-        self.updaters.insert(0, SynapticPathwayUpdater(self))
+        self.pushspikes_codeobj = get_device().code_object(self,
+                                                           self.name+'_push_spikes_codeobject*',
+                                                           '',
+                                                           {},
+                                                           self.group.variables,
+                                                           'synapses_push_spikes',
+                                                           self.group.indices,
+                                                           self.group.variable_indices,
+                                                           )
+        self.updaters.insert(0, self.pushspikes_codeobj.get_updater())
+        #self.updaters.insert(0, SynapticPathwayUpdater(self))
         self.queue.compress(np.round(self._delays[:] / self.dt).astype(np.int),
                             self.synapse_indices, len(self.synapses))
     
-
-class SynapticPathwayUpdater(Updater):
-    def run(self):
-        path = self.owner
+    def push_spikes(self):
         # Push new spikes into the queue
-        spikes = path.source.spikes
-        offset = path.source.offset
+        spikes = self.source.spikes
+        offset = self.source.offset
         if len(spikes):
             # This check is necessary for subgroups
-            max_index = len(path.synapse_indices) + offset
-            indices = np.concatenate([path.synapse_indices[spike - offset]
+            max_index = len(self.synapse_indices) + offset
+            indices = np.concatenate([self.synapse_indices[spike - offset]
                                       for spike in spikes if
                                       offset <= spike < max_index]).astype(np.int32)
             if len(indices):
-                if len(path._delays) > 1:
-                    delays = np.round(path._delays[indices] / path.dt).astype(int)
+                if len(self._delays) > 1:
+                    delays = np.round(self._delays[indices] / self.dt).astype(int)
                 else:
-                    delays = np.round(path._delays[:] / path.dt).astype(int)
-                path.queue.push(indices, delays)
+                    delays = np.round(self._delays[:] / self.dt).astype(int)
+                self.queue.push(indices, delays)
         # Get the spikes
-        path.spiking_synapses = path.queue.peek()
+        self.spiking_synapses = self.queue.peek()
         # Advance the spike queue
-        path.queue.next()
+        self.queue.next()
 
 
 class IndexView(object):

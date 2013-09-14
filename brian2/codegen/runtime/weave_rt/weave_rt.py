@@ -72,6 +72,7 @@ class WeaveCodeObject(CodeObject):
         super(WeaveCodeObject, self).__init__(owner, code, namespace, variables, name=name)
         self.compiler = brian_prefs['codegen.runtime.weave.compiler']
         self.extra_compile_args = brian_prefs['codegen.runtime.weave.extra_compile_args']
+        self.python_code_namespace = {'_owner': owner}
 
     def variables_to_namespace(self):
 
@@ -111,12 +112,23 @@ class WeaveCodeObject(CodeObject):
         # update the values of the non-constant values in the namespace
         for name, func in self.nonconstant_values:
             self.namespace[name] = func()
+            
+    def compile(self):
+        CodeObject.compile(self)
+        if hasattr(self.code, 'python_pre'):
+            self.compiled_python_pre = compile(self.code.python_pre, '(string)', 'exec')
+        if hasattr(self.code, 'python_post'):
+            self.compiled_python_post = compile(self.code.python_post, '(string)', 'exec')
 
     def run(self):
+        if hasattr(self, 'compiled_python_pre'):
+            exec self.compiled_python_pre in self.python_code_namespace
         return weave.inline(self.code.main, self.namespace.keys(),
                             local_dict=self.namespace,
                             support_code=self.code.support_code,
                             compiler=self.compiler,
                             extra_compile_args=self.extra_compile_args)
+        if hasattr(self, 'compiled_python_post'):
+            exec self.compiled_python_post in self.python_code_namespace
 
 runtime_targets['weave'] = WeaveCodeObject
