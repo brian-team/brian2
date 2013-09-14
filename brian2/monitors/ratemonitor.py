@@ -75,6 +75,7 @@ class PopulationRateMonitor(BrianObject):
 
     def pre_run(self, namespace):
         self.codeobj = get_device().code_object(
+                                         self,
                                          self.name+'_codeobject*',
                                          '', # No model-specific code
                                          {}, # no namespace

@@ -79,7 +79,9 @@ class SpikeMonitor(BrianObject):
         self.count = get_device().array(self, '_count', len(self.source), 1, dtype=np.int32)
 
     def pre_run(self, namespace):
-        self.codeobj = get_device().code_object(self.name+'_codeobject*',
+        self.codeobj = get_device().code_object(
+                                         self,
+                                         self.name+'_codeobject*',
                                          '', # No model-specific code
                                          {}, # no namespace
                                          self.variables,

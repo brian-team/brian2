@@ -56,10 +56,10 @@ class CPPStandaloneDevice(Device):
             raise ValueError("Cannot specify codeobj_class for C++ standalone device.")
         return CPPStandaloneCodeObject
 
-    def code_object(self, name, abstract_code, namespace, variables, template_name,
+    def code_object(self, owner, name, abstract_code, namespace, variables, template_name,
                     indices, variable_indices, codeobj_class=None,
                     template_kwds=None):
-        codeobj = super(CPPStandaloneDevice, self).code_object(name, abstract_code, namespace, variables,
+        codeobj = super(CPPStandaloneDevice, self).code_object(owner, name, abstract_code, namespace, variables,
                                                                template_name, indices, variable_indices,
                                                                codeobj_class=codeobj_class,
                                                                template_kwds=template_kwds,

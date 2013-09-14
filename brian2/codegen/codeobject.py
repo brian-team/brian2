@@ -32,7 +32,7 @@ def prepare_namespace(namespace, variables):
     return namespace
 
 
-def create_codeobject(name, abstract_code, namespace, variables, template_name,
+def create_codeobject(owner, name, abstract_code, namespace, variables, template_name,
                       indices, variable_indices, codeobj_class,
                       template_kwds=None):
     '''
@@ -83,10 +83,12 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
 
     variables.update(indices)
     
-    code = template(snippet, variables=variables, codeobj_name=name, namespace=namespace, **template_kwds)
+    code = template(snippet,
+                    owner=owner, variables=variables, codeobj_name=name, namespace=namespace,
+                    **template_kwds)
     logger.debug(name + " code:\n" + str(code))
 
-    codeobj = codeobj_class(code, namespace, variables, name=name)
+    codeobj = codeobj_class(owner, code, namespace, variables, name=name)
     codeobj.compile()
     return codeobj
 
@@ -108,8 +110,13 @@ class CodeObject(Nameable):
     #: The `Language` used by this `CodeObject`
     language = None
 
-    def __init__(self, code, namespace, variables, name='codeobject*'):
+    def __init__(self, owner, code, namespace, variables, name='codeobject*'):
         Nameable.__init__(self, name=name)
+        try:    
+            owner = weakref.proxy(owner)
+        except TypeError:
+            pass # if owner was already a weakproxy then this will be the error raised
+        self.owner = owner
         self.code = code
         self.compile_methods = self.get_compile_methods(variables)
         self.namespace = namespace

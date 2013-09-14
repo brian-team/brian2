@@ -384,6 +384,7 @@ def create_runner_codeobj(group, code, template_name, indices=None,
         variable_indices = group.variable_indices
 
     return get_device().code_object(
+                             group,
                              name,
                              code,
                              resolved_namespace,
