@@ -486,7 +486,7 @@ class Subexpression(Variable):
         self.namespace = namespace
         
         #: An additional namespace provided by the run function (and updated
-        #: in `NeuronGroup.pre_run`) that is used if the NeuronGroup does not
+        #: in `NeuronGroup.before_run`) that is used if the NeuronGroup does not
         #: have an explicitly defined namespace.
         self.additional_namespace = None
         

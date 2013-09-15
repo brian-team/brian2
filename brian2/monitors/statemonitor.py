@@ -208,7 +208,7 @@ class StateMonitor(BrianObject):
         # FIXME: This does not update the variables dictionary with the new
         # references
     
-    def pre_run(self, namespace):
+    def before_run(self, namespace):
         # Some dummy code so that code generation takes care of the indexing
         # and subexpressions
         code = ['_to_record_%s = %s' % (v, v)

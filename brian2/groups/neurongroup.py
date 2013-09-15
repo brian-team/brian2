@@ -247,7 +247,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         # Setup variables
         self.variables = self._create_variables()
 
-        # All of the following will be created in pre_run
+        # All of the following will be created in before_run
         
         #: The threshold condition
         self.threshold = threshold
@@ -275,11 +275,11 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         if self.reset is not None:
             self.resetter = Resetter(self)
 
-        # We try to run a pre_run already now. This might fail because of an
+        # We try to run a before_run already now. This might fail because of an
         # incomplete namespace but if the namespace is already complete we
-        # can spot unit or syntax errors already here, at creation time.
+        # can spot unit errors in the equation already here.
         try:
-            self.pre_run(None)
+            self.before_run(None)
         except KeyError:
             pass
 
@@ -417,7 +417,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
 
         return s
 
-    def pre_run(self, namespace):
+    def before_run(self, namespace):
     
         # Update the namespace information in the variables in case the
         # namespace was not specified explicitly defined at creation time

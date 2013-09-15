@@ -73,7 +73,7 @@ class PopulationRateMonitor(BrianObject):
                                        dtype=getattr(self.clock.t, 'dtype',
                                                      np.dtype(type(self.clock.t))))
 
-    def pre_run(self, namespace):
+    def before_run(self, namespace):
         self.codeobj = get_device().code_object(
                                          self.name+'_codeobject*',
                                          '', # No model-specific code
