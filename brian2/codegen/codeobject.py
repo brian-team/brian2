@@ -1,16 +1,14 @@
 import functools
-import weakref
 
-from brian2.core.variables import (ArrayVariable, Variable,
-                                    AttributeVariable, Subexpression,
-                                    StochasticVariable)
-from .functions.base import Function
+from brian2.core.variables import ArrayVariable
+from brian2.core.functions import Function
 from brian2.core.preferences import brian_prefs
 from brian2.core.names import Nameable, find_name
 from brian2.core.base import Updater
 from brian2.utils.logger import get_logger
+
+from .functions import add_numpy_implementation
 from .translation import translate
-from .runtime.targets import runtime_targets
 
 __all__ = ['CodeObject',
            'create_codeobject',
@@ -20,13 +18,27 @@ __all__ = ['CodeObject',
 logger = get_logger(__name__)
 
 
-def prepare_namespace(namespace, variables):
+def prepare_namespace(namespace, variables, codeobj_class):
+    # We do the import here to avoid import problems
+    from .runtime.numpy_rt.numpy_rt import NumpyCodeObject
     namespace = dict(namespace)
     # Add variables referring to the arrays
     arrays = []
     for value in variables.itervalues():
         if isinstance(value, ArrayVariable):
             arrays.append((value.arrayname, value.get_value()))
+    # Check that all functions are available
+    for name, value in namespace.iteritems():
+        if isinstance(value, Function):
+            try:
+                value.implementations[codeobj_class]
+            except KeyError as ex:
+                # if we are dealing with numpy, add the default implementation
+                if codeobj_class is NumpyCodeObject:
+                    add_numpy_implementation(value, value.pyfunc)
+                else:
+                    raise NotImplementedError(('Cannot use function '
+                                               '%s: %s') % (name, ex))
     namespace.update(arrays)
 
     return namespace
@@ -50,10 +62,12 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
         template_kwds = dict()
     else:
         template_kwds = template_kwds.copy()
-
+        
     template = getattr(codeobj_class.templater, template_name)
 
-    namespace = prepare_namespace(namespace, variables)
+
+    namespace = prepare_namespace(namespace, variables,
+                                  codeobj_class=codeobj_class)
 
     logger.debug(name + " abstract code:\n" + abstract_code)
     iterate_all = template.iterate_all
@@ -63,7 +77,7 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
         for ac_name, ac in abstract_code.iteritems():
             snip, snip_kwds = translate(ac, variables, namespace,
                                         dtype=brian_prefs['core.default_scalar_dtype'],
-                                        language=codeobj_class.language,
+                                        codeobj_class=codeobj_class,
                                         variable_indices=variable_indices,
                                         iterate_all=iterate_all)
             snippet[ac_name] = snip
@@ -73,7 +87,7 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
     else:
         snippet, kwds = translate(abstract_code, variables, namespace,
                                   dtype=brian_prefs['core.default_scalar_dtype'],
-                                  language=codeobj_class.language,
+                                  codeobj_class=codeobj_class,
                                   variable_indices=variable_indices,
                                   iterate_all=iterate_all)
     template_kwds.update(kwds)
@@ -107,11 +121,12 @@ class CodeObject(Nameable):
     
     #: The `Language` used by this `CodeObject`
     language = None
+    #: A short name for this type of `CodeObject`
+    class_name = None
 
     def __init__(self, code, namespace, variables, name='codeobject*'):
         Nameable.__init__(self, name=name)
         self.code = code
-        self.compile_methods = self.get_compile_methods(variables)
         self.namespace = namespace
         self.variables = variables
 
@@ -144,8 +159,7 @@ class CodeObject(Nameable):
         return meths
 
     def compile(self):
-        for meth in self.compile_methods:
-            meth(self.namespace)
+        pass
 
     def __call__(self, **kwds):
         self.update_namespace()

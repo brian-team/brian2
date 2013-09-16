@@ -300,7 +300,6 @@ def test_repr():
         assert len(func(G))
         assert len(func(G.equations))
         for eq in G.equations.itervalues():
-            print sympy.latex(eq)
             assert len(func(eq))
 
 

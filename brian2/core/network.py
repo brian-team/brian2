@@ -12,6 +12,7 @@ from brian2.core.namespace import get_local_namespace
 
 __all__ = ['Network']
 
+
 logger = get_logger(__name__)
 
 
@@ -255,7 +256,7 @@ class Network(Nameable):
         their `BrianObject.before_run` methods are called.
         '''                
         brian_prefs.check_all_validated()
-        
+
         self._clocks = set(obj.clock for obj in self.objects)
         
         self._stopped = False
@@ -348,6 +349,7 @@ class Network(Nameable):
         if report is not None:
             start = current = time.time()
             next_report_time = start + 10
+
         while clock.running and not self._stopped and not Network._globally_stopped:
             # update the network time to this clocks time
             self.t_ = clock.t_
@@ -372,7 +374,7 @@ class Network(Nameable):
             # with the smallest t value, unless there are several with the 
             # same t value in which case we update all of them
             clock, curclocks = self._nextclocks()
-            
+
         self.t = t_end
 
         if report is not None:

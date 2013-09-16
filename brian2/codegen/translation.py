@@ -238,32 +238,17 @@ def make_statements(code, variables, dtype):
     return statements
 
 
-def translate(code, variables, namespace, dtype, language,
+def translate(code, variables, namespace, dtype, codeobj_class,
               variable_indices, iterate_all):
     '''
     Translates an abstract code block into the target language.
-    
-    ``code``
-        The abstract code block, a series of one-line statements.
-    ``variables``
-        A dict of ``(var, spec)`` where ``var`` is a variable name whose type
-        is specified by ``spec``, a `Variable` object. These include
-        `Value` for a single (non-vector) value that will be inserted
-        into the namespace at runtime, `Function` for a function,
-        `ArrayVariable` for a value coming from an array of values,
-        `Index` for the name of the index into these arrays, and
-        `Subexpression` for a common subexpression used in the code.
-        There should only be a single `Index` specifier, and the name
-        should correspond to that given in the `ArrayVariable`
-        variables.
-    ``dtype``
-        The default dtype for newly created variables (usually float64).
-    ``language``
-        The `Language` to translate to.
+
+    TODO
     
     Returns a multi-line string.
     '''
     statements = make_statements(code, variables, dtype)
+    language = codeobj_class.language
     return language.translate_statement_sequence(statements, variables,
                                                  namespace, variable_indices,
-                                                 iterate_all)
+                                                 iterate_all, codeobj_class)

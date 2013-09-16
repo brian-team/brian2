@@ -6,7 +6,6 @@ from brian2.units import second, volt
 from brian2.units.stdunits import ms, Hz, mV
 from brian2.units.unitsafefunctions import sin, log, exp
 from brian2.utils.logger import catch_logs
-from brian2.codegen.functions.numpyfunctions import RandnFunction
 
 def _assert_one_warning(l):
     assert len(l) == 1, "expected one warning got %d" % len(l)
@@ -33,20 +32,13 @@ def test_default_content():
 def test_explicit_namespace():
     ''' Test resolution with an explicitly provided namespace '''
     
-    explicit_namespace = {'variable': 'explicit_var',
-                          'randn': 'explicit_randn'}
+    explicit_namespace = {'variable': 'explicit_var'}
     # Explicitly provided 
     namespace = create_namespace( explicit_namespace)
-    
-    
+
     with catch_logs() as l:
         assert namespace['variable'] == 'explicit_var'
         assert len(l) == 0
-    
-    with catch_logs() as l:
-        # The explicitly provided namespace should not overwrite functions
-        assert isinstance(namespace['randn'], RandnFunction)        
-        _assert_one_warning(l)
 
 
 def test_errors():

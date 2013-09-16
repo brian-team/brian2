@@ -9,7 +9,7 @@ from sympy.core.sympify import SympifyError
 from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
 
-from brian2.codegen.sympytools import str_to_sympy, sympy_to_str
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 
 from .base import StateUpdateMethod
 
@@ -31,6 +31,7 @@ SYMBOLS = {'x' : _symbol('x'),
            'f' : sympy.Function('f'),
            'g' : sympy.Function('g'),
            'dW': _symbol('dW')}
+
 
 def split_expression(expr):
     '''

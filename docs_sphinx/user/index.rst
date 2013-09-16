@@ -5,4 +5,5 @@ User's guide
    :maxdepth: 2
 
    equations
+   functions
    refractoriness

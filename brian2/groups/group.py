@@ -354,7 +354,6 @@ def create_runner_codeobj(group, code, template_name, indices=None,
     if needed_variables is None:
         needed_variables = []
     for var in needed_variables:
-        print 'adding', var
         variables[var] = all_variables[var]
 
     # Also add the variables that the template needs
