@@ -87,7 +87,7 @@ def add_numpy_implementation(function, wrapped_func, discard_units=None):
                                                     len(function._arg_units)))
             new_args = [Quantity.with_dimensions(arg, get_dimensions(arg_unit))
                         for arg, arg_unit in zip(args, function._arg_units)]
-            result = orig_func(new_args)
+            result = orig_func(*new_args)
             fail_for_dimension_mismatch(result, function._return_unit)
             return np.asarray(result)
 

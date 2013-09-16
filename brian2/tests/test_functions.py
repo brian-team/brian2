@@ -142,6 +142,81 @@ def test_simple_user_defined_function():
                       lambda usersin: net.run(0.1*ms), usersin)
 
 
+def test_manual_user_defined_function():
+    # User defined function without any decorators
+    def foo(x, y):
+        return x + y + 3*volt
+    orig_foo = foo
+    # Since the function is not annotated with check units, we need to specify
+    # both the units of the arguments and the return unit
+    assert_raises(ValueError, lambda: Function(foo, return_unit=volt))
+    assert_raises(ValueError, lambda: Function(foo, arg_units=[volt, volt]))
+    foo = Function(foo, arg_units=[volt, volt], return_unit=volt)
+
+    assert foo(1*volt, 2*volt) == 6*volt
+
+    # Incorrect argument units
+    assert_raises(DimensionMismatchError, lambda: NeuronGroup(1, '''
+                       dv/dt = foo(x, y)/ms : volt
+                       x : 1
+                       y : 1''', namespace={'foo': foo}))
+
+    # Incorrect output unit
+    assert_raises(DimensionMismatchError, lambda: NeuronGroup(1, '''
+                       dv/dt = foo(x, y)/ms : 1
+                       x : volt
+                       y : volt''', namespace={'foo': foo}))
+
+    G = NeuronGroup(1, '''
+                       func = foo(x, y) : volt
+                       x : volt
+                       y : volt''')
+    G.x = 1*volt
+    G.y = 2*volt
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    net.run(defaultclock.dt)
+
+    assert mon[0].func == [6] * volt
+
+    # discard units
+    from brian2.codegen.functions import add_numpy_implementation
+    add_numpy_implementation(foo, orig_foo, discard_units=True)
+    G = NeuronGroup(1, '''
+                       func = foo(x, y) : volt
+                       x : volt
+                       y : volt''')
+    G.x = 1*volt
+    G.y = 2*volt
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    net.run(defaultclock.dt)
+
+    assert mon[0].func == [6] * volt
+
+    # Test C++ implementation
+    if WeaveCodeObject in codeobj_classes:
+        code = {'support_code': '''
+        inline double foo(const double x, const double y)
+        {
+            return x + y + 3;
+        }
+        '''}
+        from brian2.codegen.functions import add_implementations
+        add_implementations(foo, codes={'cpp': code})
+
+        G = NeuronGroup(1, '''
+                           func = foo(x, y) : volt
+                           x : volt
+                           y : volt''',
+                        codeobj_class=WeaveCodeObject)
+        G.x = 1*volt
+        G.y = 2*volt
+        mon = StateMonitor(G, 'func', record=True)
+        net = Network(G, mon)
+        net.run(defaultclock.dt)
+        assert mon[0].func == [6] * volt
+
 
 def test_user_defined_function_discarding_units():
     # A function with units that should discard units also inside the function
@@ -208,5 +283,6 @@ if __name__ == '__main__':
     test_math_functions()
     test_user_defined_function()
     test_simple_user_defined_function()
+    test_manual_user_defined_function()
     test_user_defined_function_discarding_units()
     test_function_implementation_container()
