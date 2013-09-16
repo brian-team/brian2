@@ -15,10 +15,10 @@ import numpy as np
 from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Quantity, standard_unit_register
 from brian2.units.stdunits import stdunits
-from brian2.codegen.functions.numpyfunctions import (RandnFunction,
-                                                     RandFunction,
-                                                     DEFAULT_FUNCTIONS)
+from brian2.core.functions import DEFAULT_FUNCTIONS
 import brian2.equations.equations as equations
+
+from .functions import Function
 
 __all__ = ['create_namespace',
            'CompoundNamespace',
@@ -186,6 +186,10 @@ class CompoundNamespace(collections.Mapping):
                 resolved = float(resolved)
             elif np.can_cast(numpy_type, np.complex_):
                 resolved = complex(resolved)
+
+        # Replace pure Python functions by a Functions object
+        if callable(resolved) and not isinstance(resolved, Function):
+            resolved = Function(resolved)
 
         return resolved
 

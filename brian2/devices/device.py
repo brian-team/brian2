@@ -1,7 +1,7 @@
 import numpy
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.codegen.codeobject import create_codeobject
-from brian2.codegen.runtime.targets import runtime_targets
+from brian2.codegen.targets import codegen_targets
 from brian2.core.preferences import brian_prefs
 
 __all__ = ['Device', 'RuntimeDevice',
@@ -18,11 +18,14 @@ def get_default_codeobject_class():
     '''
     codeobj_class = brian_prefs['codegen.target']
     if isinstance(codeobj_class, str):
-        try:
-            codeobj_class = runtime_targets[codeobj_class]
-        except KeyError:
-            raise ValueError("Unknown code generation target: %s, should be "
-                             " one of %s"%(codeobj_class, runtime_targets.keys()))
+        for target in codegen_targets:
+            if target.class_name == codeobj_class:
+                return target
+        # No target found
+        raise ValueError("Unknown code generation target: %s, should be "
+                         " one of %s"%(codeobj_class,
+                                       [target.class_name
+                                        for target in codegen_targets]))
     return codeobj_class
 
 
