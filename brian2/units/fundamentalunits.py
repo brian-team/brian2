@@ -1478,9 +1478,11 @@ class Quantity(np.ndarray, object):
     def clip(self, a_min, a_max, *args, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, a_min, 'clip')
         fail_for_dimension_mismatch(self, a_max, 'clip')
-        return super(Quantity, self).clip(np.asarray(a_min),
-                                          np.asarray(a_max),
-                                          *args, **kwds)
+        return Quantity.with_dimensions(np.clip(np.asarray(self),
+                                                np.asarray(a_min),
+                                                np.asarray(a_max),
+                                                *args, **kwds),
+                                        self.dim)
     clip.__doc__ = np.ndarray.clip.__doc__
 
     def dot(self, other, **kwds): # pylint: disable=C0111
