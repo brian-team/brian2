@@ -1,3 +1,4 @@
+from nose.plugins.skip import SkipTest
 import numpy as np
 from numpy.testing import assert_equal, assert_raises
 
@@ -216,6 +217,30 @@ def test_manual_user_defined_function():
         net = Network(G, mon)
         net.run(defaultclock.dt)
         assert mon[0].func == [6] * volt
+
+
+def test_add_implementations():
+    if not WeaveCodeObject in codeobj_classes:
+        raise SkipTest('No weave support')
+
+    def foo(x):
+        return x
+    foo = Function(foo, arg_units=[None], return_unit=lambda x: x)
+    from brian2.codegen.functions import add_implementations
+    # code object name
+    add_implementations(foo, codes={'weave': {}})
+    assert set(foo.implementations.keys()) == set([WeaveCodeObject])
+    del foo.implementations[WeaveCodeObject]
+    # language name
+    add_implementations(foo, codes={'cpp': {}})
+    assert set(foo.implementations.keys()) == set([CPPLanguage])
+    del foo.implementations[CPPLanguage]
+    # class object
+    add_implementations(foo, codes={CPPLanguage: {}})
+    assert set(foo.implementations.keys()) == set([CPPLanguage])
+    # unknown name
+    assert_raises(ValueError, lambda: add_implementations(foo,
+                                                          codes={'unknown': {}}))
 
 
 def test_user_defined_function_discarding_units():
