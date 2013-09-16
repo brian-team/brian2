@@ -182,10 +182,10 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.abstract_code += self.code + '\n'
         self.abstract_code += 'lastupdate = t\n'
 
-    def pre_run(self, namespace):
+    def before_run(self, namespace):
         # Update the dt (might have changed between runs)
         self.dt = self.synapses.clock.dt_
-        GroupCodeRunner.pre_run(self, namespace)
+        GroupCodeRunner.before_run(self, namespace)
         # we insert rather than replace because GroupCodeRunner puts a CodeObject in updaters already
         self.updaters.insert(0, SynapticPathwayUpdater(self))
         self.queue.compress(np.round(self._delays[:] / self.dt).astype(np.int),
@@ -761,9 +761,9 @@ class Synapses(BrianObject, Group):
     def __len__(self):
         return self.N
 
-    def pre_run(self, namespace):
+    def before_run(self, namespace):
         self.lastupdate = self.clock.t
-        super(Synapses, self).pre_run(namespace)
+        super(Synapses, self).before_run(namespace)
 
     def _add_updater(self, code, prepost, objname=None):
         '''

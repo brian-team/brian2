@@ -139,9 +139,9 @@ class MagicNetwork(Network):
                         numobjs=len(self.objects),
                         names=', '.join(obj.name for obj in self.objects)))
 
-    def pre_run(self, namespace):
+    def before_run(self, namespace):
         self._update_magic_objects()
-        Network.pre_run(self, namespace)
+        Network.before_run(self, namespace)
 
     def reinit(self):
         '''

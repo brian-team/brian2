@@ -237,11 +237,11 @@ def check_code_units(code, group, additional_variables=None,
         A mapping of names to `Variable` objects, used in addition to the
         variables saved in `self.group`.
     additional_namespace : dict-like, optional
-        An additional namespace, as provided to `Group.pre_run`
+        An additional namespace, as provided to `Group.before_run`
     ignore_keyerrors : boolean, optional
         Whether to silently ignore unresolvable identifiers. Should be set
          to ``False`` (the default) if the namespace is expected to be
-         complete (e.g. in `Group.pre_run`) but to ``True`` when the check
+         complete (e.g. in `Group.before_run`) but to ``True`` when the check
          is done during object initialisation where the namespace is not
          necessarily complete yet
 
@@ -400,8 +400,8 @@ class GroupCodeRunner(BrianObject):
     the `Group`. Used in `NeuronGroup` for `Thresholder`, `Resetter` and
     `StateUpdater`.
     
-    On creation, we try to run the pre_run method with an empty additional
-    namespace (see `Network.pre_run`). If the namespace is already complete
+    On creation, we try to run the before_run method with an empty additional
+    namespace (see `Network.before_run`). If the namespace is already complete
     this might catch unit mismatches.
     
     Parameters
@@ -426,17 +426,6 @@ class GroupCodeRunner(BrianObject):
         values)
     template_kwds : dict, optional
         A dictionary of additional information that is passed to the template.
-    
-    Notes
-    -----
-    Objects such as `Thresholder`, `Resetter` or `StateUpdater` inherit from
-    this class. They can customize the behaviour by overwriting the
-    `update_abstract_code`, `pre_update` and `post_update` method.
-    `update_abstract_code` is called before a run to allow taking into account
-    changes in the namespace or in the reset/threshold definition itself.
-    `pre_update` and `post_update` are used to connect the `CodeObject` to the
-    state of the `Group`. For example, the `Thresholder` sets the
-    `NeuronGroup.spikes` property in `post_update`.
     '''
     def __init__(self, group, template, code=None, when=None,
                  name='coderunner*', check_units=True, template_kwds=None):
@@ -450,14 +439,14 @@ class GroupCodeRunner(BrianObject):
     def update_abstract_code(self):
         '''
         Update the abstract code for the code object. Will be called in
-        `pre_run` and should update the `GroupCodeRunner.abstract_code`
+        `before_run` and should update the `GroupCodeRunner.abstract_code`
         attribute.
         
         Does nothing by default.
         '''
         pass
 
-    def pre_run(self, namespace):
+    def before_run(self, namespace):
         self.update_abstract_code()
         # If the GroupCodeRunner has variables, add them
         if hasattr(self, 'variables'):

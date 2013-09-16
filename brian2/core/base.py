@@ -69,7 +69,7 @@ class BrianObject(Nameable):
     #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is created or removed
     invalidates_magic_network = True
     
-    def pre_run(self, namespace):
+    def before_run(self, namespace):
         '''
         Optional method to prepare the object before a run. Receives the 
         `namespace` in which the object should be run (either the locals/globals
@@ -77,7 +77,7 @@ class BrianObject(Nameable):
         as an ``additional_namespace`` argument to calls of
         `CompoundNamespace.resolve` or `CompoundNamespace.resolve_all`. 
         
-        Called by `Network.pre_run` before the main simulation loop is started.
+        Called by `Network.before_run` before the main simulation loop is started.
         Objects such as `NeuronGroup` will generate internal objects such as
         state updaters in this method, taking into account changes in the
         namespace or in constant parameter values.
@@ -90,11 +90,11 @@ class BrianObject(Nameable):
         '''
         pass
     
-    def post_run(self):
+    def after_run(self):
         '''
         Optional method to do work after a run is finished.
         
-        Called by `Network.post_run` after the main simulation loop terminated.
+        Called by `Network.after_run` after the main simulation loop terminated.
         '''
         pass
     
