@@ -65,7 +65,8 @@ class Function(object):
                                   'how it deals with units, need to specify '
                                   '"return_unit".'))
 
-        # Provide the numpy implementation by default
+        #: Stores implementations for this function in a
+        #: `FunctionImplementationContainer`
         self.implementations = FunctionImplementationContainer()
 
     def __call__(self, *args):
