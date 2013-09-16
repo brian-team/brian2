@@ -36,13 +36,13 @@ class TimedArray(Function, Nameable):
     --------
     >>> from brian2 import *
     >>> ta = TimedArray([1, 2, 3, 4] * mV, dt=0.1*ms)
-    >>> print ta(0.3*ms)
+    >>> print(ta(0.3*ms))
     4.0 mV
     >>> G = NeuronGroup(1, 'v = ta(t) : volt')
     >>> mon = StateMonitor(G, 'v', record=True)
     >>> net = Network(G, mon)
     >>> net.run(1*ms)
-    >>> print mon[0].v
+    >>> print(mon[0].v)
     [ 1.  2.  3.  4.  4.  4.  4.  4.  4.  4.] mV
     '''
     @check_units(dt=second)
