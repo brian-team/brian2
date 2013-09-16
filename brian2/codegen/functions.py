@@ -18,10 +18,43 @@ def make_function(codes=None, namespaces=None, discard_units=None):
     A simple decorator to extend user-written Python functions to work with code
     generation in other languages.
 
-    You provide a dict ``codes`` of ``(language_id, code)`` pairs and a
-    namespace of values to be added to the generated code. The ``code`` should
-    be in the format recognised by the language (e.g. dict or string).
+    Parameters
+    ----------
+    codes : dict-like, optional
+        A mapping from `Language` or `CodeObject` class objects, or their
+        corresponding names (e.g. `'numpy'` or `'weave'`) to codes for the
+        target language. What kind of code the target language expectes is
+        language-specific, e.g. C++ code has to be provided as a dictionary
+        of code blocks.
+    namespaces : dict-like, optional
+        If provided, has to use the same keys as the `codes` argument and map
+        it to a namespace dictionary (i.e. a mapping of names to values) that
+        should be added to a `CodeObject` namespace when using this function.
+    discard_units: bool, optional
+        Numpy functions can internally make use of the unit system. However,
+        during a simulation run, state variables are passed around as unitless
+        values for efficiency. If `discard_units` is set to ``False``, input
+        arguments will have units added to them so that the function can still
+        use units internally (the units will be stripped away from the return
+        value as well). Alternatively, if `discard_units` is set to ``True``,
+        the function will receive unitless values as its input. The namespace
+        of the function will be altered to make references to units (e.g.
+        ``ms``) refer to the corresponding floating point values so that no
+        unit mismatch errors are raised. Note that this system cannot work in
+        all cases, e.g. it does not work with functions that internally imports
+        values (e.g. does ``from brian2 import ms``) or access values with
+        units indirectly (e.g. uses ``brian2.ms`` instead of ``ms``). If no
+        value is given, defaults to the preference setting
+        `codegen.runtime.numpy.discard_units`.
 
+    Notes
+    -----
+    While it is in principle possible to provide a numpy implementation
+    as an argument for this decorator, this is normally not necessary -- the
+    numpy implementation should be provided in the decorated function.
+
+    Examples
+    --------
     Sample usage::
 
         @make_function(codes={
@@ -55,6 +88,18 @@ def make_function(codes=None, namespaces=None, discard_units=None):
 
 
 def add_numpy_implementation(function, wrapped_func, discard_units=None):
+    '''
+    Add a numpy implementation to a `Function`.
+
+    Parameters
+    ----------
+    function : `Function`
+        The function description for which an implementation should be added.
+    wrapped_func : callable
+        The original function (that will be used for the numpy implementation)
+    discard_units : bool, optional
+        See `make_function`.
+    '''
     # do the import here to avoid cyclical imports
     from .runtime.numpy_rt.numpy_rt import NumpyCodeObject
 
@@ -95,9 +140,27 @@ def add_numpy_implementation(function, wrapped_func, discard_units=None):
                                                                            code=wrapper_function)
 
 
-def add_implementations(function, codes, namespaces=None, name=None):
+def add_implementations(function, codes, namespaces=None, names=None):
+    '''
+    Add implementations to a `Function`.
+
+    Parameters
+    ----------
+    function : `Function`
+        The function description for which implementations should be added.
+    codes : dict-like
+        See `make_function`
+    namespace : dict-like, optional
+        See `make_function`
+    names : dict-like, optional
+        The name of the function in the given target language, if it should
+        be renamed. Has to use the same keys as the `codes` and `namespaces`
+        dictionary.
+    '''
     if namespaces is None:
         namespaces = {}
+    if names is None:
+        names = {}
     for target, code in codes.iteritems():
         # Try to find the CodeObject or Language class, corresponding to the
         # given string
@@ -115,6 +178,7 @@ def add_implementations(function, codes, namespaces=None, name=None):
         else:
             target_obj = target
         namespace = namespaces.get(target, None)
+        name = names.get(target, None)
         function.implementations[target_obj] = FunctionImplementation(name=name,
                                                                       code=code,
                                                                       namespace=namespace)

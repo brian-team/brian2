@@ -7,12 +7,43 @@ import numpy as np
 from numpy.random import randn, rand
 
 import brian2.units.unitsafefunctions as unitsafe
-from brian2.units.fundamentalunits import Quantity, get_dimensions
 
 __all__ = ['DEFAULT_FUNCTIONS', 'Function', 'FunctionImplementation']
 
 
 class Function(object):
+    '''
+    An abstract specification of a function that can be used as part of
+    model equations, etc.
+
+    Parameters
+    ----------
+    pyfunc : function
+        A Python function that is represented by this `Function` object.
+    sympy_func : `sympy.Function`, optional
+        A corresponding sympy function (if any). Allows functions to be
+        interpreted by sympy and potentially make simplifications. For example,
+        ``sqrt(x**2)`` could be replaced by ``abs(x)``.
+    arg_units : list of `Unit`, optional
+        If `pyfunc` does not provide unit information (which typically means
+        that it was not annotated with a `check_units` decorator), the
+        units of the arguments have to specified explicitly using this
+        parameter.
+    return_unit : `Unit` or callable, optional
+        Same as for `arg_units`: if `pyfunc` does not provide unit information,
+        this information has to be provided explictly here. `return_unit` can
+        either be a specific `Unit`, if the function always returns the same
+        unit, or a function of the input units, e.g. a "square" function would
+        return the square of its input units, i.e. `return_unit` could be
+        specified as ``lambda u: u**2``.
+
+    Notes
+    -----
+    If a function should be usable for code generation targets other than
+    Python/numpy, implementations for these target languages have to be added
+    using the `~brian2.codegen.functions.make_function` decorator or using the
+    `~brian2.codegen.functions.add_implementations` function.
+    '''
     def __init__(self, pyfunc, sympy_func=None, arg_units=None,
                  return_unit=None):
         self.pyfunc = pyfunc
@@ -42,7 +73,21 @@ class Function(object):
 
 
 class FunctionImplementation(object):
+    '''
+    A simple container object for function implementations.
 
+    Parameters
+    ----------
+    name : str, optional
+        The name of the function in the target language. Should only be
+        specified if the function has to be renamed for the target language.
+    code : language-dependent, optional
+        A language dependent argument specifying the implementation in the
+        target language, e.g. a code string or a dictionary of code strings.
+    namespace : dict-like, optional
+        A dictionary of mappings from names to values that should be added
+        to the namespace of a `CodeObject` using the function.
+    '''
     def __init__(self, name=None, code=None, namespace=None):
         self.name = name
         self.code = code

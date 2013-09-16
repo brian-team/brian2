@@ -11,9 +11,42 @@ __all__ = ['TimedArray']
 
 
 class TimedArray(Function, Nameable):
+    '''
+    TimedArray(values, dt, name=None)
 
+    A function of time built from an array of values. The returned object can
+    be used as a function, including in model equations etc.
+
+    Parameters
+    ----------
+    values : ndarray or `Quantity`
+        An array of values providing the values at various points in time
+    dt : `Quantity`
+        The time distance between values in the `values` array.
+    name : str, optional
+        A unique name for this object, see `Nameable` for details. Defaults
+        to ``'_timedarray*'``.
+
+    Notes
+    -----
+    For time values corresponding to elements outside of the range of `values`
+    provided, the first respectively last element is returned.
+
+    Examples
+    --------
+    >>> from brian2 import *
+    >>> ta = TimedArray([1, 2, 3, 4] * mV, dt=0.1*ms)
+    >>> print ta(0.3*ms)
+    4.0 mV
+    >>> G = NeuronGroup(1, 'v = ta(t) : volt')
+    >>> mon = StateMonitor(G, 'v', record=True)
+    >>> net = Network(G, mon)
+    >>> net.run(1*ms)
+    >>> print mon[0].v
+    [ 1.  2.  3.  4.  4.  4.  4.  4.  4.  4.] mV
+    '''
     @check_units(dt=second)
-    def __init__(self, values, dt, name=None, discard_units=None):
+    def __init__(self, values, dt, name=None):
         if name is None:
             name = '_timedarray*'
         Nameable.__init__(self, name)
@@ -50,9 +83,11 @@ class TimedArray(Function, Nameable):
                      '_%s_num_values' % self.name: len(self.values),
                      '_%s_values' % self.name: self.values}
 
-        add_implementations(self, codes={'cpp': code},
-                            namespaces={'cpp': namespace},
-                            name=self.name)
+        add_implementations(self, codes={'weave': code},
+                            namespaces={'weave': namespace},
+                            names={'weave': self.name})
 
-        add_numpy_implementation(self, timed_array_func, discard_units)
+        # Since the function does not internally use any units, always discard
+        # the units
+        add_numpy_implementation(self, timed_array_func, discard_units=True)
 
