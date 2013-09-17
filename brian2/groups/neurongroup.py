@@ -2,22 +2,20 @@
 This model defines the `NeuronGroup`, the core of most simulations.
 '''
 import numpy as np
-from numpy import array
 import sympy
 
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         STATIC_EQUATION, PARAMETER)
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
-from brian2.memory import allocate_array
+from brian2.devices.device import get_device
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
-from brian2.core.variables import (Variable, AttributeVariable, ArrayVariable,
-                                    StochasticVariable, Subexpression)
+from brian2.core.variables import (ArrayVariable, StochasticVariable,
+                                   Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
-from brian2.devices.device import get_device
 from brian2.parsing.expressions import (parse_expression_unit,
                                         is_boolean_expression)
 from brian2.utils.logger import get_logger
@@ -30,6 +28,37 @@ from .subgroup import Subgroup
 __all__ = ['NeuronGroup']
 
 logger = get_logger(__name__)
+
+
+def get_refractory_code(group):
+    ref = group._refractory
+    if ref is None:
+        # No refractoriness
+        abstract_code = ''
+    elif isinstance(ref, Quantity):
+        abstract_code = 'not_refractory = 1*((t - lastspike) > %f)\n' % ref
+    else:
+        namespace = group.namespace
+        unit = parse_expression_unit(str(ref), namespace, group.variables)
+        if have_same_dimensions(unit, second):
+            abstract_code = 'not_refractory = 1*((t - lastspike) > %s)\n' % ref
+        elif have_same_dimensions(unit, Unit(1)):
+            if not is_boolean_expression(str(ref), namespace,
+                                         group.variables):
+                raise TypeError(('Refractory expression is dimensionless '
+                                 'but not a boolean value. It needs to '
+                                 'either evaluate to a timespan or to a '
+                                 'boolean value.'))
+            # boolean condition
+            # we have to be a bit careful here, we can't just use the given
+            # condition as it is, because we only want to *leave*
+            # refractoriness, based on the condition
+            abstract_code = 'not_refractory = 1*(not_refractory or not (%s))\n' % ref
+        else:
+            raise TypeError(('Refractory expression has to evaluate to a '
+                             'timespan or a boolean value, expression'
+                             '"%s" has units %s instead') % (ref, unit))
+    return abstract_code
 
 
 class StateUpdater(GroupCodeRunner):
@@ -62,33 +91,7 @@ class StateUpdater(GroupCodeRunner):
     def update_abstract_code(self):
 
         # Update the not_refractory variable for the refractory period mechanism
-        ref = self.group._refractory
-        if ref is None:
-            # No refractoriness
-            self.abstract_code = ''
-        elif isinstance(ref, Quantity):
-            self.abstract_code = 'not_refractory = (t - lastspike) > %f\n' % ref
-        else:
-            namespace = self.group.namespace
-            unit = parse_expression_unit(str(ref), namespace, self.group.variables)
-            if have_same_dimensions(unit, second):
-                self.abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
-            elif have_same_dimensions(unit, Unit(1)):
-                if not is_boolean_expression(str(ref), namespace,
-                                             self.group.variables):
-                    raise TypeError(('Refractory expression is dimensionless '
-                                     'but not a boolean value. It needs to '
-                                     'either evaluate to a timespan or to a '
-                                     'boolean value.'))
-                # boolean condition
-                # we have to be a bit careful here, we can't just use the given
-                # condition as it is, because we only want to *leave*
-                # refractoriness, based on the condition
-                self.abstract_code = 'not_refractory = not_refractory or not (%s)\n' % ref
-            else:
-                raise TypeError(('Refractory expression has to evaluate to a '
-                                 'timespan or a boolean value, expression'
-                                 '"%s" has units %s instead') % (ref, unit))
+        self.abstract_code = get_refractory_code(self.group)
         
         self.abstract_code += self.method(self.group.equations,
                                           self.group.variables)
@@ -118,9 +121,8 @@ class Thresholder(GroupCodeRunner):
         self.update_abstract_code()
         check_code_units(self.abstract_code, self.group, ignore_keyerrors=True)
 
-    
     def update_abstract_code(self):
-        self.abstract_code = '_cond = ' + self.group.threshold
+        self.abstract_code = '_cond = (%s) and not_refractory' % self.group.threshold
         
 
 class Resetter(GroupCodeRunner):

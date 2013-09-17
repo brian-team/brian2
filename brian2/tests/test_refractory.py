@@ -3,6 +3,7 @@ from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 
 from brian2 import *
 from brian2.equations.refractory import add_refractoriness
+    
 
 # We can only test C++ if weave is availabe
 try:
@@ -72,14 +73,14 @@ def test_refractoriness_threshold():
             dv/dt = 200*Hz : 1
             ref : second
             ref_no_unit : 1
-            ''', threshold='not_refractory and (v > 1)',
+            ''', threshold='v > 1',
                             reset='v=0', refractory=ref_time,
                             codeobj_class=codeobj_class)
             G.ref = 10*ms
             G.ref_no_unit = 10
             # The neuron should spike after 5ms but then not spike for the next
-            # 10ms. The state variable should continue to integrate so there
-            # should be a spike after 15ms
+            # 10ms. The state variable should continue to integrate so there should
+            # be a spike after 15ms
             spike_mon = SpikeMonitor(G)
             net = Network(G, spike_mon)
             net.run(16*ms)

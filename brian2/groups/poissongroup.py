@@ -3,15 +3,15 @@ import numpy as np
 from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
 from brian2.core.spikesource import SpikeSource
-from brian2.core.scheduler import Scheduler
 from brian2.core.variables import ArrayVariable
 from brian2.devices.device import get_device
+from brian2.equations import Equations
 from brian2.units.fundamentalunits import check_units, Unit
 from brian2.units.allunits import second
 from brian2.units.stdunits import Hz
 
 from .group import Group
-from .neurongroup import Thresholder
+from .neurongroup import Thresholder, StateUpdater
 
 __all__ = ['PoissonGroup']
 
@@ -62,7 +62,8 @@ class PoissonGroup(Group, BrianObject, SpikeSource):
         # for more complex use cases.
 
         #: The array storing the refractoriness information (not used, currently)
-        self._not_refractory = get_device().array(self, '_not_refractory', N, 1, dtype=np.bool)
+        self._not_refractory = get_device().array(self, '_not_refractory', N, 1,
+                                                  dtype=np.bool)
         self._lastspike = get_device().array(self, '_lastspike', N, 1)
 
         self.variables = Group._create_variables(self)
@@ -88,6 +89,12 @@ class PoissonGroup(Group, BrianObject, SpikeSource):
         self.thresholder = Thresholder(self)
         self.contained_objects.append(self.thresholder)
 
+        # This is quite inefficient, we need a state updater to reset
+        # not_refractory after every time step
+        self.equations = Equations([])
+        self._refractory = False
+        self.state_updater = StateUpdater(self, method='independent')
+        self.contained_objects.append(self.state_updater)
         Group.__init__(self)
 
     @property
