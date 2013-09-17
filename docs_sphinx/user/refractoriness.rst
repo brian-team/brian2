@@ -87,12 +87,14 @@ stop being updated during refractoriness can be marked with the
 In the above model, the ``v`` variable is clamped at 0 for 2ms after a spike but
 the adaptation variable ``w`` continues to update during this time.
 
-The second behaviour (ignore threshold crossings) can be implemented by
-including the special variable ``not_refractory`` in the threshold condition.
+The second behaviour (ignore threshold crossings) is already implemented
+automatically -- the threshold condition can only evaluate to ``True`` if
+the ``not_refractory`` variable is ``True``. This is achieved by automatically
+appending ``and not_refractory`` to the threshold condition.
 In the following model, the variable ``v`` continues to update during the
 refractory period but it does not elicit a spike if it crosses the threshold::
 
     G = NeuronGroup(N, 'dv/dt = -v / tau : 1',
-                    threshold='not_refractory and (v > 1)', reset='v=0',
+                    threshold='v > 1', reset='v=0',
                     refractory=2*ms)
 
