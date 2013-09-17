@@ -183,10 +183,10 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.abstract_code += self.code + '\n'
         self.abstract_code += 'lastupdate = t\n'
 
-    def pre_run(self, namespace):
+    def before_run(self, namespace):
         # Update the dt (might have changed between runs)
         self.dt = self.synapses.clock.dt_
-        GroupCodeRunner.pre_run(self, namespace)
+        GroupCodeRunner.before_run(self, namespace)
         # we insert rather than replace because GroupCodeRunner puts a CodeObject in updaters already
         self.pushspikes_codeobj = get_device().code_object(self,
                                                            self.name+'_push_spikes_codeobject*',
@@ -742,7 +742,7 @@ class Synapses(BrianObject, Group):
                                       'of the same name in the target '
                                       'group ') % single_equation.varname)
                 fail_for_dimension_mismatch(self.variables[varname].unit,
-                                            self.target.variables[varname],
+                                            self.target.variables[varname].unit,
                                             ('Lumped variables need to have '
                                              'the same units in Synapses '
                                              'and the target group'))
@@ -769,9 +769,9 @@ class Synapses(BrianObject, Group):
     def __len__(self):
         return self.N
 
-    def pre_run(self, namespace):
+    def before_run(self, namespace):
         self.lastupdate = self.clock.t
-        super(Synapses, self).pre_run(namespace)
+        super(Synapses, self).before_run(namespace)
 
     def _add_updater(self, code, prepost, objname=None):
         '''

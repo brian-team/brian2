@@ -1,12 +1,10 @@
 '''
 Utility functions for parsing expressions and statements.
 '''
-import re
-
 import sympy
 from sympy.printing.str import StrPrinter
 
-from .functions.numpyfunctions import DEFAULT_FUNCTIONS, log10
+from brian2.core.functions import DEFAULT_FUNCTIONS, log10
 from brian2.parsing.rendering import SympyNodeRenderer
 
 

@@ -57,7 +57,7 @@ class SpikeMonitor(BrianObject):
         start = getattr(self.source, 'start', 0)
         end = getattr(self.source, 'end', len(self.source))
 
-        self.variables = {'t': AttributeVariable(second, self.clock, 't'),
+        self.variables = {'t': AttributeVariable(second, self.clock, 't_'),
                           '_spikespace': self.source.variables['_spikespace'],
                            '_i': DynamicArrayVariable('_i', Unit(1), self._i, group_name=self.name),
                            '_t': DynamicArrayVariable('_t', Unit(1), self._t, group_name=self.name),
@@ -78,7 +78,7 @@ class SpikeMonitor(BrianObject):
         #: Array of the number of times each source neuron has spiked
         self.count = get_device().array(self, '_count', len(self.source), 1, dtype=np.int32)
 
-    def pre_run(self, namespace):
+    def before_run(self, namespace):
         self.codeobj = get_device().code_object(
                                          self,
                                          self.name+'_codeobject*',

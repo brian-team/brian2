@@ -3,6 +3,9 @@ Tests the brian2.parsing package
 '''
 from collections import namedtuple
 
+from numpy.testing import assert_allclose, assert_raises
+import numpy as np
+
 from brian2.core.preferences import brian_prefs
 from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
@@ -12,15 +15,11 @@ from brian2.parsing.dependencies import abstract_code_dependencies
 from brian2.parsing.expressions import (is_boolean_expression,
                                         parse_expression_unit,
                                         _get_value_from_expression)
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.parsing.functions import (abstract_code_from_function,
                                       extract_abstract_code_functions,
                                       substitute_abstract_code_functions)
 from brian2.units import volt, amp, DimensionMismatchError, have_same_dimensions
-
-from numpy.testing import assert_allclose, assert_raises
-
-import numpy as np
-from brian2.codegen.sympytools import str_to_sympy, sympy_to_str
 from brian2.core.namespace import create_namespace
 
 try:

@@ -17,3 +17,4 @@ interest to others wishing to better understand how Brian works internally.
    new_magic_and_clocks
    preferences
    codegen
+   functions

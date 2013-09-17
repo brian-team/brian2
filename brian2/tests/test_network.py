@@ -84,14 +84,14 @@ class Preparer(BrianObject):
         self.did_post_run = False
     def reinit(self):
         self.did_reinit = True
-    def pre_run(self, namespace):
+    def before_run(self, namespace):
         self.did_pre_run = True
-    def post_run(self):
+    def after_run(self):
         self.did_post_run = True        
 
 @with_setup(teardown=restore_initial_state)
 def test_network_reinit_pre_post_run():
-    # Check that reinit and pre_run and post_run work        
+    # Check that reinit and before_run and after_run work
     x = Preparer()
     net = Network(x)
     assert_equal(x.did_reinit, False)

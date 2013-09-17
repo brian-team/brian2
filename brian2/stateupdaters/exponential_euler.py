@@ -1,6 +1,6 @@
 import sympy as sp
 
-from brian2.codegen.sympytools import sympy_to_str
+from brian2.parsing.sympytools import sympy_to_str
 
 from .base import StateUpdateMethod
 

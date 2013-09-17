@@ -11,6 +11,7 @@ try:
 except ImportError:
     from distutils.command.build_py import build_py
 
+
 class generate_preferences(build_py):
     def run(self):
         # Make sure we first run the build (including running 2to3 for Python3)
@@ -34,7 +35,6 @@ setup(name='Brian2',
       version='2.0dev',
       packages=['brian2',
                 'brian2.codegen',
-                'brian2.codegen.functions',
                 'brian2.codegen.languages',
                 'brian2.codegen.runtime',
                 'brian2.codegen.runtime.numpy_rt',
