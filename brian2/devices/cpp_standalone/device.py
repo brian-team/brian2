@@ -3,14 +3,12 @@ import os
 import inspect
 from collections import defaultdict
 
-from brian2.units import second
 from brian2.core.clocks import defaultclock
-from brian2.devices.device import Device, set_device, all_devices
+from brian2.devices.device import Device, all_devices
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import *
 from brian2.utils.filetools import copy_directory
 from brian2.utils.stringtools import word_substitute
-from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.codegen.languages.cpp_lang import c_data_type
 from brian2.codegen.codeobject import CodeObjectUpdater
 
@@ -162,7 +160,7 @@ class CPPStandaloneDevice(Device):
                 elif isinstance(v, Subexpression):
                     pass
                 elif not v.scalar:
-                    N = v.get_len()
+                    N = len(v)
                     code_object_defs[codeobj.name].append('const int _num%s = %s;' % (k, N))
                     if isinstance(v, StandaloneDynamicArrayVariable):
                         c_type = c_data_type(v.dtype)

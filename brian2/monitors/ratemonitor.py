@@ -83,8 +83,8 @@ class PopulationRateMonitor(BrianObject):
         '''
         Array of recorded rates (in units of Hz).
         '''
-        return Quantity(self.variables['_rate'].get_value().copy(),
-                        dim=hertz.dim)
+        return Quantity(self.variables['_rate'].get_value(), dim=hertz.dim,
+                        copy=True)
 
     @property
     def rate_(self):
@@ -98,8 +98,8 @@ class PopulationRateMonitor(BrianObject):
         '''
         Array of recorded time points (in units of second).
         '''
-        return Quantity(self.variables['_t'].get_value().copy(),
-                        dim=second.dim)
+        return Quantity(self.variables['_t'].get_value(), dim=second.dim,
+                        copy=True)
 
     @property
     def t_(self):

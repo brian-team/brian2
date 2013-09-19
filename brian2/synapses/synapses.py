@@ -214,7 +214,7 @@ class SynapticPathway(GroupCodeRunner, Group):
 
             if len(indices):
                 if len(self._delays) > 1:
-                    delays = np.round(self._delays.get_value()[indices] / self.dt).astype(int)
+                    delays = np.round(self._delays[indices] / self.dt).astype(int)
                 else:
                     delays = np.round(self._delays.get_value() / self.dt).astype(int)
                 self.queue.push(indices, delays)
@@ -232,7 +232,7 @@ class IndexView(object):
 
     def __getitem__(self, item):
         try:
-            synaptic_indices = self.index.get_value()[self.mapping.get_value()[item]]
+            synaptic_indices = self.index[self.mapping.get_value()[item]]
         except TypeError as ex:
             print 'index', self.index
             raise ex
@@ -346,7 +346,7 @@ class SynapticItemMapping(Variable):
         self.j = IndexView(self.variables['j'], self)
         self.k = SynapseIndexView(self)
 
-    N = property(fget=lambda self: self.variables['i'].get_len(),
+    N = property(fget=lambda self: len(self.variables['i']),
                  doc='Total number of synapses')
 
     def _resize(self, number):
@@ -443,7 +443,7 @@ class SynapticItemMapping(Variable):
                                             check_units=False
                                             )
             codeobj()
-            number = self.variables['i'].get_len()
+            number = len(self.variables['i'])
             for variable in self._registered_variables:
                 variable.resize(number)
 

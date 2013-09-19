@@ -310,7 +310,10 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         '''
         The spikes returned by the most recent thresholding operation.
         '''
-        return self.variables['_spikespace'].get_value()[:self.variables['_spikespace'].get_value()[-1]]
+        # Note that we have to directly access the ArrayVariable object here
+        # instead of using the Group mechanism by accessing self._spikespace
+        # Using the latter would cut _spikespace to the length of the group
+        return self.variables['_spikespace'][:self.variables['_spikespace'][-1]]
 
     def __getitem__(self, item):
         if not isinstance(item, slice):

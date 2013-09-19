@@ -100,8 +100,8 @@ class SpikeMonitor(BrianObject):
         '''
         Array of recorded spike times, with corresponding indices `i`.
         '''
-        return Quantity(self.variables['_t'].get_value().copy(),
-                        dim=second.dim)
+        return Quantity(self.variables['_t'].get_value(), dim=second.dim,
+                        copy=True)
 
     @property
     def t_(self):

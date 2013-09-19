@@ -35,14 +35,14 @@ class StateMonitorView(object):
 
         mon = self.monitor
         if item == 't':
-            return Quantity(mon.variables['_t'].get_value().copy(),
-                            dim=second.dim)
+            return Quantity(mon.variables['_t'].get_value(), dim=second.dim,
+                            copy=True)
         elif item == 't_':
             return mon._t.data.copy()
         elif item in mon.record_variables:
             unit = mon.variables[item].unit
-            return Quantity(mon.variables['_recorded_'+item].get_value().T[self.indices].copy(),
-                            dim=unit.dim)
+            return Quantity(mon.variables['_recorded_'+item].get_value().T[self.indices],
+                            dim=unit.dim, copy=True)
         elif item.endswith('_') and item[:-1] in mon.record_variables:
             return mon.variables['_recorded_'+item[:-1]].get_value().T[self.indices].copy()
         else:
@@ -246,14 +246,14 @@ class StateMonitor(BrianObject):
 
         # TODO: Decide about the interface
         if item == 't':
-            return Quantity(self.variables['_t'].get_value().copy(),
-                            dim=second.dim)
+            return Quantity(self.variables['_t'].get_value(),
+                            dim=second.dim, copy=True)
         elif item == 't_':
             return self.variables['_t'].get_value().copy()
         elif item in self.record_variables:
             unit = self.variables[item].unit
             return Quantity(self.variables['_recorded_'+item].get_value().T,
-                            dim=unit.dim)
+                            dim=unit.dim, copy=True)
         elif item.endswith('_') and item[:-1] in self.record_variables:
             return self.variables['_recorded_'+item[:-1]].get_value().T
         else:
