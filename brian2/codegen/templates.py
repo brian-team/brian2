@@ -3,7 +3,7 @@ Handles loading templates from a directory.
 '''
 from brian2.utils.stringtools import (indent, deindent, strip_empty_lines,
                                       get_identifiers)
-from jinja2 import Template, Environment, FileSystemLoader
+from jinja2 import Template, Environment, FileSystemLoader, PackageLoader
 import os
 import re
 
@@ -13,9 +13,8 @@ class Templater(object):
     '''
     Class to load and return all the templates a `CodeObject` defines.
     '''
-    def __init__(self, basedir, env_globals=None):
-        self.basedir = basedir
-        self.env = Environment(loader=FileSystemLoader(basedir),
+    def __init__(self, package_name, env_globals=None):
+        self.env = Environment(loader=PackageLoader(package_name, 'templates'),
                                trim_blocks=True,
                                lstrip_blocks=True,
                                )
@@ -80,8 +79,3 @@ class MultiTemplate(object):
         return s
     
     __repr__ = __str__
-
-
-if __name__=='__main__':
-    lt = Templater('runtime/numpy_rt/templates')
-    print lt.reset(['a=b', 'c=d'])

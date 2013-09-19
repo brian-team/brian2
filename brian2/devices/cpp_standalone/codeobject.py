@@ -16,8 +16,7 @@ class CPPStandaloneCodeObject(CodeObject):
     object with two macros defined, ``main`` (for the main loop code) and
     ``support_code`` for any support code (e.g. function definitions).
     '''
-    templater = Templater(os.path.join(os.path.split(__file__)[0],
-                                       'templates'))
+    templater = Templater('brian2.devices.cpp_standalone')
     language = CPPLanguage()
 
     def variables_to_namespace(self):

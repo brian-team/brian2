@@ -47,7 +47,12 @@ setup(name='Brian2',
       version='2.0dev',
       packages=find_packages(),
       # include template files
-      package_data={'': ['*.py_', '*.cpp', '.h']},
+      package_data={'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
+                    'brian2.codegen.runtime.weave_rt': ['templates/*.cpp',
+                                                        'templates/*.h'],
+                    'brian2.devices.cpp_standalone': ['templates/*.cpp',
+                                                      'templates/*.h']
+                    },
       requires=['numpy(>=1.4.1)',
                 'scipy(>=0.7.0)',
                 'sympy(>=0.7.1)',
