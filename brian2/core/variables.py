@@ -469,26 +469,14 @@ class Subexpression(Variable):
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
-    def __init__(self, unit, dtype, expr, variables, namespace,
-                 is_bool=False):
+    def __init__(self, unit, dtype, expr, is_bool=False):
         Variable.__init__(self, unit, value=None, dtype=dtype,
                           constant=False, scalar=False, is_bool=is_bool)
 
         #: The expression defining the static equation.
         self.expr = expr.strip()
         #: The identifiers used in the expression
-        self.identifiers = get_identifiers(expr)        
-        #: Specifiers for the identifiers used in the expression
-        self.variables = variables
-        
-        #: The NeuronGroup's namespace for the identifiers used in the
-        #: expression
-        self.namespace = namespace
-        
-        #: An additional namespace provided by the run function (and updated
-        #: in `NeuronGroup.before_run`) that is used if the NeuronGroup does not
-        #: have an explicitly defined namespace.
-        self.additional_namespace = None
+        self.identifiers = get_identifiers(expr)
         
     def get_value(self):
         raise AssertionError('get_value should never be called for a Subexpression')
