@@ -30,8 +30,7 @@ class NumpyCodeObject(CodeObject):
     
     Default for Brian because it works on all platforms.
     '''
-    templater = Templater(os.path.join(os.path.split(__file__)[0],
-                                       'templates'))
+    templater = Templater('brian2.codegen.runtime.numpy_rt')
     language = NumpyLanguage()
     class_name = 'numpy'
 
