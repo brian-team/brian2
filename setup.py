@@ -1,67 +1,78 @@
 #! /usr/bin/env python
 '''
-Preliminary Brian2 setup script
+Brian2 setup script
 '''
 import sys
 import os
+import warnings
 
-from distutils.core import setup
-try:
-    from distutils.command.build_py import build_py_2to3 as build_py
-except ImportError:
-    from distutils.command.build_py import build_py
+# This will automatically download setuptools if it is not already installed
+from ez_setup import use_setuptools
+use_setuptools()
+
+from setuptools import setup, find_packages
+from setuptools.command.install import install as _install
 
 
-class generate_preferences(build_py):
+def generate_preferences(dir):
+    '''
+    Generate a file in the brian2 installation dictionary containing all the
+    preferences with their default values and documentation. This file can be
+    used as a starting point for setting user- or project-specific preferences.
+    '''
+    sys.path.insert(0, dir)
+    from brian2.core.preferences import brian_prefs
+    # We generate the file directly in the install directory
+    try:
+        with open(os.path.join(dir,
+                               'brian2', 'default_preferences'), 'wt') as f:
+            defaults = brian_prefs.defaults_as_file
+            f.write(defaults)
+    except IOError as ex:
+        warnings.warn(('Could not write the default preferences to a '
+                       'file: %s' % str(ex)))
+
+
+class install(_install):
     def run(self):
         # Make sure we first run the build (including running 2to3 for Python3)
         # and then import from the build directory
-        build_py.run(self)
-        sys.path.insert(0, self.build_lib)
-        from brian2.core.preferences import brian_prefs
-        
-        # We generate the file directly in the build directory
-        try:
-            with open(os.path.join(self.build_lib,
-                                   'brian2', 'default_preferences'), 'wt') as f:
-                defaults = brian_prefs.defaults_as_file
-                f.write(defaults)
-        except IOError as ex:
-            raise IOError(('Could not write the default preferences to a '
-                           'file: %s' % str(ex)))
+        _install.run(self)
+
+        self.execute(generate_preferences, (self.install_lib, ),
+                     msg='Generating default preferences file')
 
 
 setup(name='Brian2',
       version='2.0dev',
-      packages=['brian2',
-                'brian2.codegen',
-                'brian2.codegen.languages',
-                'brian2.codegen.runtime',
-                'brian2.codegen.runtime.numpy_rt',
-                'brian2.codegen.runtime.weave_rt',
-                'brian2.core',
-                'brian2.devices',
-                'brian2.devices.cpp_standalone',
-                'brian2.equations',
-                'brian2.groups',
-                'brian2.memory',
-                'brian2.monitors',
-                'brian2.parsing',
-                'brian2.sphinxext',
-                'brian2.stateupdaters',
-                'brian2.synapses',
-                'brian2.tests',
-                'brian2.units',
-                'brian2.utils'],
+      packages=find_packages(),
+      # include template files
       package_data={'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
-                    'brian2.codegen.runtime.weave_rt': ['templates/*.cpp'],
-                    'brian2.devices.cpp_standalone': ['templates/*',
-                                                      'brianlib/*']},
+                    'brian2.codegen.runtime.weave_rt': ['templates/*.cpp',
+                                                        'templates/*.h'],
+                    'brian2.devices.cpp_standalone': ['templates/*.cpp',
+                                                      'templates/*.h']
+                    },
       requires=['numpy(>=1.4.1)',
                 'scipy(>=0.7.0)',
                 'sympy(>=0.7.1)',
                 'pyparsing',
                 'jinja2(>=2.7)'
                 ],
-      cmdclass={'build_py': generate_preferences}
+      provides=['brian2'],
+      extras_require={'test': ['nosetests>=1.0'],
+                      'docs': ['sphinx>=1.0.1']},
+      cmdclass={'install': install},
+      use_2to3=True,
+      classifiers=[
+          'Development Status :: 3 - Alpha',
+          'Intended Audience :: Science/Research',
+          'License :: OSI Approved',
+          'Natural Language :: English',
+          'Operating System :: OS Independent',
+          'Programming Language :: Python',
+          'Programming Language :: Python :: 2',
+          'Programming Language :: Python :: 3',
+          'Topic :: Scientific/Engineering :: Bio-Informatics'
+      ]
       )
