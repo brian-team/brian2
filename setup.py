@@ -59,6 +59,20 @@ setup(name='Brian2',
                 'pyparsing',
                 'jinja2(>=2.7)'
                 ],
+      provides=['brian2'],
+      extras_require={'test': ['nosetests>=1.0'],
+                      'docs': ['sphinx>=1.0.1']},
       cmdclass={'install': install},
-      use_2to3=True
+      use_2to3=True,
+      classifiers=[
+          'Development Status :: 3 - Alpha',
+          'Intended Audience :: Science/Research',
+          'License :: OSI Approved',
+          'Natural Language :: English',
+          'Operating System :: OS Independent',
+          'Programming Language :: Python',
+          'Programming Language :: Python :: 2',
+          'Programming Language :: Python :: 3',
+          'Topic :: Scientific/Engineering :: Bio-Informatics'
+      ]
       )
