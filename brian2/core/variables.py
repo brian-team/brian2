@@ -109,7 +109,7 @@ class Variable(object):
         else:
             return self.value
 
-    def set_value(self):
+    def set_value(self, value, index=None):
         '''
         Set the value associated with the variable.
         '''
@@ -144,6 +144,9 @@ class Variable(object):
             return 0
         else:
             return len(self.get_value())
+
+    def __len__(self):
+        return self.get_len()
 
     def __repr__(self):
         description = ('<{classname}(unit={unit}, value={value}, '
@@ -415,8 +418,16 @@ class ArrayVariable(Variable):
     def get_value(self):
         return self.value
 
-    def set_value(self, value):
-        self.value[:] = value
+    def __getitem__(self, item):
+        return self.get_value()[item]
+
+    def set_value(self, value, index=None):
+        if index is None:
+            index = slice(None)
+        self.value[index] = value
+
+    def __setitem__(self, item, value):
+        self.set_value(value, item)
 
     def get_addressable_value(self, group, level=0):
         template = getattr(group, '_set_with_code_template',
@@ -442,6 +453,9 @@ class DynamicArrayVariable(ArrayVariable):
 
     def get_object(self):
         return self.value
+
+    def resize(self, new_size):
+        self.value.resize(new_size)
 
 
 class Subexpression(Variable):

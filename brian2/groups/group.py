@@ -168,12 +168,12 @@ class Group(object):
                 fail_for_dimension_mismatch(val, var.unit,
                                             'Incorrect units for setting %s' % name)
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value_with_unit(self, level=1)[:] = val
+            var.get_addressable_value_with_unit(self, level=1)[slice(None)] = val
         elif len(name) and name[-1]=='_' and name[:-1] in self.variables:
             # no unit checking
             var = self.variables[name[:-1]]
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value(self, level=1)[:] = val
+            var.get_addressable_value(self, level=1)[slice(None)] = val
         else:
             object.__setattr__(self, name, val)
 

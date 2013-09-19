@@ -34,7 +34,6 @@ net = Network(G,
               M,
               #G2,
               )
-
 net.run(0*second)
 build(net)
 

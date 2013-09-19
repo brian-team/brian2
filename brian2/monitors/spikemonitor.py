@@ -3,13 +3,11 @@ from collections import defaultdict
 
 import numpy as np
 
-from brian2.codegen.codeobject import create_codeobject
 from brian2.core.base import BrianObject
-from brian2.core.preferences import brian_prefs
 from brian2.core.scheduler import Scheduler
-from brian2.core.variables import ArrayVariable, AttributeVariable, Variable, DynamicArrayVariable
+from brian2.core.variables import AttributeVariable, Variable
 from brian2.units.allunits import second
-from brian2.units.fundamentalunits import Unit
+from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.devices.device import get_device
 
 __all__ = ['SpikeMonitor']
@@ -49,19 +47,22 @@ class SpikeMonitor(BrianObject):
 
         self.codeobj_class = codeobj_class
         BrianObject.__init__(self, when=scheduler, name=name)
-        
-        # create data structures
-        self.reinit()
 
         # Handle subgroups correctly
         start = getattr(self.source, 'start', 0)
         end = getattr(self.source, 'end', len(self.source))
 
+        device = get_device()
         self.variables = {'t': AttributeVariable(second, self.clock, 't_'),
                           '_spikespace': self.source.variables['_spikespace'],
-                           '_i': DynamicArrayVariable('_i', Unit(1), self._i, group_name=self.name),
-                           '_t': DynamicArrayVariable('_t', Unit(1), self._t, group_name=self.name),
-                           '_count': ArrayVariable('_count', Unit(1), self.count, group_name=self.name),
+                           '_i': device.dynamic_array_1d(self, '_i', 0, Unit(1),
+                                                         dtype=np.int32),
+                           '_t': device.dynamic_array_1d(self, '_t', 0,
+                                                         Unit(1)),
+                           '_count': device.array(self, '_count',
+                                                  len(self.source),
+                                                  Unit(1),
+                                                  dtype=np.int32),
                            '_source_start': Variable(Unit(1), start,
                                                      constant=True),
                            '_source_end': Variable(Unit(1), end,
@@ -71,12 +72,7 @@ class SpikeMonitor(BrianObject):
         '''
         Clears all recorded spikes
         '''
-        dev = get_device()
-        self._i = dev.dynamic_array_1d(self, '_i', 0, 1, dtype=np.int32)
-        self._t = dev.dynamic_array_1d(self, '_t', 0, 1, dtype=brian_prefs['core.default_scalar_dtype'])
-        
-        #: Array of the number of times each source neuron has spiked
-        self.count = get_device().array(self, '_count', len(self.source), 1, dtype=np.int32)
+        raise NotImplementedError()
 
     def before_run(self, namespace):
         self.codeobj = get_device().code_object(
@@ -97,21 +93,22 @@ class SpikeMonitor(BrianObject):
         '''
         Array of recorded spike indices, with corresponding times `t`.
         '''
-        return self._i.data.copy()
+        return self.variables['_i'].get_value().copy()
     
     @property
     def t(self):
         '''
         Array of recorded spike times, with corresponding indices `i`.
         '''
-        return self._t.data.copy()*second
+        return Quantity(self.variables['_t'].get_value().copy(),
+                        dim=second.dim)
 
     @property
     def t_(self):
         '''
         Array of recorded spike times without units, with corresponding indices `i`.
         '''
-        return self._t.data.copy()
+        return self.variables['_t'].get_value().copy()
     
     @property
     def it(self):
@@ -126,7 +123,14 @@ class SpikeMonitor(BrianObject):
         Returns the pair (`i`, `t_`).
         '''
         return self.i, self.t_
-    
+
+    @property
+    def count(self):
+        '''
+        Return the total spike count for each neuron.
+        '''
+        return self.variables['_count'].get_value().copy()
+
     @property
     def num_spikes(self):
         '''

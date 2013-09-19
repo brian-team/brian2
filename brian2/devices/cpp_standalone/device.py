@@ -25,31 +25,92 @@ def freeze(code, ns):
             code = word_substitute(code, {k: repr(v)})
     return code
 
+class StandaloneVariableView():
+    '''
+    Will store information about how the variable was set in the original
+    `ArrayVariable` object.
+    '''
+    def __init__(self, variable):
+        self.variable = variable
+
+    def __setitem__(self, key, value):
+        self.variable.assignments.append((key, value))
+
+    def __getitem__(self, item):
+        raise NotImplementedError()
+
+class StandaloneArrayVariable(ArrayVariable):
+
+    def __init__(self, name, unit, size, dtype, group_name=None, constant=False,
+                 is_bool=False):
+        self.assignments = []
+        self.size = size
+        super(StandaloneArrayVariable, self).__init__(name, unit, value=None,
+                                                      group_name=group_name,
+                                                      constant=constant,
+                                                      is_bool=is_bool)
+        self.dtype = dtype
+
+    def get_len(self):
+        return self.size
+
+    def get_value(self):
+        raise NotImplementedError()
+
+    def set_value(self, value, index=None):
+        if index is None:
+            index = slice(None)
+        self.assignments.append((index, value))
+
+    def get_addressable_value(self, group, level=0):
+        return StandaloneVariableView(self)
+
+    def get_addressable_value_with_unit(self, group, level=0):
+        return StandaloneVariableView(self)
+
+
+class StandaloneDynamicArrayVariable(StandaloneArrayVariable):
+
+    def resize(self, new_size):
+        self.assignments.append(('resize', new_size))
+
 
 class CPPStandaloneDevice(Device):
     '''
     '''
     def __init__(self):
-        self.arrays = {}
-        self.dynamic_arrays = {}
+        self.array_specs = []
+        self.dynamic_array_specs = []
         self.code_objects = {}
         
-    def array(self, owner, name, size, unit, dtype=None):
-        if dtype is None:
+    def array(self, owner, name, size, unit, dtype=None, constant=False,
+              is_bool=False):
+        if is_bool:
+            dtype = numpy.bool
+        elif dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
-        arr = numpy.zeros(size, dtype=dtype)
-        self.arrays['_array_%s_%s' % (owner.name, name)] = arr
-        return arr
+        self.array_specs.append(('_array_%s_%s' % (owner.name, name),
+                                 c_data_type(dtype), size))
+        return StandaloneArrayVariable(name, unit, size=size, dtype=dtype,
+                                       group_name=owner.name,
+                                       constant=constant, is_bool=is_bool)
 
-    def dynamic_array_1d(self, owner, name, size, unit, dtype):
-        if dtype is None:
+    def dynamic_array_1d(self, owner, name, size, unit, dtype=None,
+                         constant=False, is_bool=False):
+        if is_bool:
+            dtype = numpy.bool
+        elif dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
-        arr = DynamicArray1D(size, dtype=dtype)
-        self.dynamic_arrays['_dynamic_array_%s_%s' % (owner.name, name)] = arr
-        return arr
+        self.dynamic_array_specs.append(('_dynamic_array_%s_%s' % (owner.name, name),
+                                         c_data_type(dtype)))
+        return StandaloneDynamicArrayVariable(name, unit, size=size,
+                                              dtype=dtype,
+                                              group_name=owner.name,
+                                              constant=constant, is_bool=is_bool)
     
-    def dynamic_array(self):
-        raise NotImplentedError
+    def dynamic_array(self, owner, name, size, unit, dtype=None,
+                      constant=False, is_bool=False):
+        raise NotImplementedError()
 
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is not None:
@@ -86,11 +147,9 @@ class CPPStandaloneDevice(Device):
         if not os.path.exists('output'):
             os.mkdir('output')
 
-        # Write the arrays            
-        array_specs = [(k, c_data_type(v.dtype), len(v)) for k, v in self.arrays.iteritems()]
-        dynamic_array_specs = [(k, c_data_type(v.dtype)) for k, v in self.dynamic_arrays.iteritems()]
-        arr_tmp = CPPStandaloneCodeObject.templater.arrays(None, array_specs=array_specs,
-                                                           dynamic_array_specs=dynamic_array_specs)
+        # Write the arrays
+        arr_tmp = CPPStandaloneCodeObject.templater.arrays(None, array_specs=self.array_specs,
+                                                           dynamic_array_specs=self.dynamic_array_specs)
         open('output/arrays.cpp', 'w').write(arr_tmp.cpp_file)
         open('output/arrays.h', 'w').write(arr_tmp.h_file)
 
@@ -105,7 +164,7 @@ class CPPStandaloneDevice(Device):
                 elif not v.scalar:
                     N = v.get_len()
                     code_object_defs[codeobj.name].append('const int _num%s = %s;' % (k, N))
-                    if isinstance(v, DynamicArrayVariable):
+                    if isinstance(v, StandaloneDynamicArrayVariable):
                         c_type = c_data_type(v.dtype)
                         # Create an alias name for the underlying array
                         code = ('{c_type}* {arrayname} = '

@@ -2,7 +2,8 @@ import os
 import numpy as np
 
 from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.core.variables import Variable, Subexpression, DynamicArrayVariable
+from brian2.core.variables import (Variable, Subexpression,
+                                   DynamicArrayVariable, ArrayVariable)
 
 from ...codeobject import CodeObject
 from ...templates import Templater
@@ -50,20 +51,27 @@ class NumpyCodeObject(CodeObject):
         self.nonconstant_values = []
 
         for name, var in self.variables.iteritems():
-            if isinstance(var, Variable) and not isinstance(var, Subexpression):
-                if not var.constant:
-                    self.nonconstant_values.append((name, var.get_value))
-                    if isinstance(var, DynamicArrayVariable):
-                        self.nonconstant_values.append((name+'_object',
-                                                        var.get_object))
-                else:
-                    try:
-                        value = var.get_value()
-                    except TypeError:  # A dummy Variable without value
-                        continue
-                    self.namespace[name] = value
-                    if isinstance(var, DynamicArrayVariable):
-                        self.namespace[name+'_object'] = var.get_object()
+            if isinstance(var, Subexpression):
+                continue
+
+            if not var.constant:
+                self.nonconstant_values.append((name, var.get_value))
+                if isinstance(var, ArrayVariable):
+                    self.nonconstant_values.append((var.arrayname,
+                                                    var.get_value))
+                if isinstance(var, DynamicArrayVariable):
+                    self.nonconstant_values.append((name+'_object',
+                                                    var.get_object))
+            else:
+                try:
+                    value = var.get_value()
+                except TypeError:  # A dummy Variable without value
+                    continue
+                if isinstance(var, ArrayVariable):
+                    self.namespace[var.arrayname] = var.get_value()
+                self.namespace[name] = value
+                if isinstance(var, DynamicArrayVariable):
+                    self.namespace[var.name+'_object'] = var.get_object()
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace

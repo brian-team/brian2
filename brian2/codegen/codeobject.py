@@ -22,12 +22,7 @@ logger = get_logger(__name__)
 def prepare_namespace(namespace, variables, codeobj_class):
     # We do the import here to avoid import problems
     from .runtime.numpy_rt.numpy_rt import NumpyCodeObject
-    namespace = dict(namespace)
-    # Add variables referring to the arrays
-    arrays = []
-    for value in variables.itervalues():
-        if isinstance(value, ArrayVariable):
-            arrays.append((value.arrayname, value.get_value()))
+
     # Check that all functions are available
     for name, value in namespace.iteritems():
         if isinstance(value, Function):
@@ -40,7 +35,6 @@ def prepare_namespace(namespace, variables, codeobj_class):
                 else:
                     raise NotImplementedError(('Cannot use function '
                                                '%s: %s') % (name, ex))
-    namespace.update(arrays)
 
     return namespace
 

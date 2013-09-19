@@ -47,31 +47,23 @@ class PopulationRateMonitor(BrianObject):
         self.codeobj_class = codeobj_class
         BrianObject.__init__(self, when=scheduler, name=name)
 
-        # create data structures
-        self.reinit()
-
+        dev = get_device()
         self.variables = {'t': AttributeVariable(second, self.clock, 't_'),
-                           'dt': AttributeVariable(second, self.clock,
-                                                   'dt_', constant=True),
+                          'dt': AttributeVariable(second, self.clock,
+                                                  'dt_', constant=True),
                           '_spikespace': self.source.variables['_spikespace'],
-                           '_rate': DynamicArrayVariable('_rate', Unit(1),
-                                                         self._rate,
-                                                         group_name=self.name),
-                           '_t': DynamicArrayVariable('_t', Unit(1),
-                                                      self._t,
-                                                      group_name=self.name),
-                           '_num_source_neurons': Variable(Unit(1),
-                                                           len(self.source))}
+                          '_rate': dev.dynamic_array_1d(self, '_rate', 0, 1),
+                          '_t': dev.dynamic_array_1d(self, '_t', 0, second,
+                                                     dtype=getattr(self.clock.t, 'dtype',
+                                                                   np.dtype(type(self.clock.t)))),
+                          '_num_source_neurons': Variable(Unit(1),
+                                                          len(self.source))}
 
     def reinit(self):
         '''
         Clears all recorded rates
         '''
-        dev = get_device()
-        self._rate = dev.dynamic_array_1d(self, '_rate', 0, 1, dtype=brian_prefs['core.default_scalar_dtype'])
-        self._t = dev.dynamic_array_1d(self, '_t', 0, second,
-                                       dtype=getattr(self.clock.t, 'dtype',
-                                                     np.dtype(type(self.clock.t))))
+        raise NotImplementedError()
 
     def before_run(self, namespace):
         self.codeobj = get_device().code_object(
@@ -91,28 +83,30 @@ class PopulationRateMonitor(BrianObject):
         '''
         Array of recorded rates (in units of Hz).
         '''
-        return Quantity(self._rate.data.copy(), dim=hertz.dim)
+        return Quantity(self.variables['_rate'].get_value().copy(),
+                        dim=hertz.dim)
 
     @property
     def rate_(self):
         '''
         Array of recorded rates (unitless).
         '''
-        return self._rate.data.copy()
+        return self.variables['_rate'].get_value().copy()
 
     @property
     def t(self):
         '''
         Array of recorded time points (in units of second).
         '''
-        return Quantity(self._t.data.copy(), dim=second.dim)
+        return Quantity(self.variables['_t'].get_value().copy(),
+                        dim=second.dim)
 
     @property
     def t_(self):
         '''
         Array of recorded time points (unitless).
         '''
-        return self._t.data.copy()
+        return self.variables['_t'].get_value().copy()
 
     def __repr__(self):
         description = '<{classname}, recording {source}>'

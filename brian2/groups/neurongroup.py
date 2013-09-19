@@ -1,6 +1,8 @@
 '''
 This model defines the `NeuronGroup`, the core of most simulations.
 '''
+from collections import defaultdict
+
 import numpy as np
 import sympy
 
@@ -12,8 +14,7 @@ from brian2.devices.device import get_device
 from brian2.core.preferences import brian_prefs
 from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
-from brian2.core.variables import (ArrayVariable, StochasticVariable,
-                                   Subexpression)
+from brian2.core.variables import (StochasticVariable, Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.parsing.expressions import (parse_expression_unit,
@@ -178,9 +179,10 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         the local and global namespace surrounding the creation of the class,
         is used.
     dtype : (`dtype`, `dict`), optional
-        The `numpy.dtype` that will be used to store the values, or
-        `core.default_scalar_dtype` if not specified (`numpy.float64` by
-        default).
+        The `numpy.dtype` that will be used to store the values, or a
+        dictionary specifying the type for variable names. If a value is not
+        provided for a variable (or no value is provided at all), the preference
+        setting `core.default_scalar_dtype` is used.
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
     clock : Clock, optional
@@ -238,16 +240,11 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         logger.debug("Creating NeuronGroup of size {self.N}, "
                      "equations {self.equations}.".format(self=self))
 
-        ##### Setup the memory
-        self.arrays = self._allocate_memory(dtype=dtype)
-
-        self._spikespace = get_device().array(self, '_spikespace', N+1, 1, dtype=np.int32)
-
         # Setup the namespace
         self.namespace = create_namespace(namespace)
 
         # Setup variables
-        self.variables = self._create_variables()
+        self.variables = self._create_variables(dtype)
 
         # All of the following will be created in before_run
         
@@ -313,7 +310,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         '''
         The spikes returned by the most recent thresholding operation.
         '''
-        return self._spikespace[:self._spikespace[-1]]
+        return self.variables['_spikespace'].get_value()[:self.variables['_spikespace'].get_value()[-1]]
 
     def __getitem__(self, item):
         if not isinstance(item, slice):
@@ -326,29 +323,6 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                              (start, stop))
 
         return Subgroup(self, start, stop)
-
-    def _allocate_memory(self, dtype=None):
-        # Allocate memory (TODO: this should be refactored somewhere at some point)
-
-        arrays = {}
-        for eq in self.equations.itervalues():
-            if eq.type == STATIC_EQUATION:
-                # nothing to do
-                continue
-            name = eq.varname
-            if isinstance(dtype, dict):
-                curdtype = dtype[name]
-            else:
-                curdtype = dtype
-            if curdtype is None:
-                curdtype = brian_prefs['core.default_scalar_dtype']
-            if eq.is_bool:
-                arrays[name] = get_device().array(self, name, self.N, 1, dtype=np.bool)
-            else:
-                # TODO: specify unit here
-                arrays[name] = get_device().array(self, name, self.N, 1, dtype=curdtype)
-        logger.debug("NeuronGroup memory allocated successfully.")
-        return arrays
 
     def runner(self, code, when=None, name=None):
         '''
@@ -379,37 +353,41 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                  code=code, name=name, when=when)
         return runner
 
-    def _create_variables(self):
+    def _create_variables(self, dtype=None):
         '''
         Create the variables dictionary for this `NeuronGroup`, containing
         entries for the equation variables and some standard entries.
         '''
+        device = get_device()
         # Get the standard variables for all groups
         s = Group._create_variables(self)
 
+        if dtype is None:
+            dtype = defaultdict(lambda: brian_prefs['core.default_scalar_dtype'])
+        elif isinstance(dtype, np.dtype):
+            dtype = defaultdict(lambda: dtype)
+        elif not hasattr(dtype, '__getitem__'):
+            raise TypeError(('Cannot use type %s as dtype '
+                             'specification') % type(dtype))
+
         # Standard variables always present
-        s.update({'_spikespace': ArrayVariable('_spikespace', Unit(1),
-                                               self._spikespace,
-                                               group_name=self.name)})
+        s['_spikespace'] = device.array(self, '_spikespace', self.N+1,
+                                        Unit(1), dtype=np.int32,
+                                        constant=False)
 
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
-                array = self.arrays[eq.varname]
                 constant = ('constant' in eq.flags)
-                s.update({eq.varname: ArrayVariable(eq.varname,
-                                                    eq.unit,
-                                                    array,
-                                                    group_name=self.name,
-                                                    constant=constant,
-                                                    is_bool=eq.is_bool)})
+                s[eq.varname] = device.array(self, eq.varname, self.N, eq.unit,
+                                             dtype=dtype[eq.varname],
+                                             constant=constant,
+                                             is_bool=eq.is_bool)
         
             elif eq.type == STATIC_EQUATION:
-                s.update({eq.varname: Subexpression(eq.unit,
-                                                    brian_prefs['core.default_scalar_dtype'],
-                                                    str(eq.expr),
-                                                    variables=s,
-                                                    namespace=self.namespace,
-                                                    is_bool=eq.is_bool)})
+                s[eq.varname] = Subexpression(eq.unit,
+                                              brian_prefs['core.default_scalar_dtype'],
+                                              str(eq.expr),
+                                              is_bool=eq.is_bool)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 

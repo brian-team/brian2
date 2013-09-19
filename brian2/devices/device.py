@@ -1,8 +1,10 @@
-import numpy
+import numpy as np
+
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.codegen.codeobject import create_codeobject
 from brian2.codegen.targets import codegen_targets
 from brian2.core.preferences import brian_prefs
+from brian2.core.variables import ArrayVariable, DynamicArrayVariable
 
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
@@ -36,15 +38,18 @@ class Device(object):
     def __init__(self):
         pass
     
-    def create_array(self, owner, name, size, unit, dtype=None):
-        pass
+    def array(self, owner, name, size, unit, dtype=None, constant=False,
+              is_bool=False):
+        raise NotImplementedError()
 
-    def create_dynamic_array_1d(self, owner, name, size, unit, dtype=None):
-        pass
+    def dynamic_array_1d(self, owner, name, size, unit, dtype=None,
+                         constant=False, is_bool=False):
+        raise NotImplementedError()
 
-    def create_dynamic_array(self, owner, name, size, unit, dtype=None):
-        pass
-    
+    def dynamic_array(self, owner, name, size, unit, dtype=None,
+                      constant=False, is_bool=False):
+        raise NotImplementedError()
+
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is None:
             codeobj_class = get_default_codeobject_class()
@@ -69,22 +74,37 @@ class RuntimeDevice(Device):
     '''
     '''
     def __init__(self):
-        pass
+        super(Device, self).__init__()
 
-    def array(self, owner, name, size, unit, dtype=None):
+    def array(self, owner, name, size, unit, dtype=None,
+              constant=False, is_bool=False):
+        if is_bool:
+            dtype = np.bool
+        elif dtype is None:
+            dtype = brian_prefs['core.default_scalar_dtype']
+        array = np.zeros(size, dtype=dtype)
+        return ArrayVariable(name, unit, array, group_name=owner.name,
+                             constant=constant, is_bool=is_bool)
+
+    def dynamic_array_1d(self, owner, name, size, unit, dtype=None,
+                         constant=False, is_bool=False):
+        if is_bool:
+            dtype = np.bool
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
-        return numpy.zeros(size, dtype=dtype)
+        array = DynamicArray1D(size, dtype=dtype)
+        return DynamicArrayVariable(name, unit, array, group_name=owner.name,
+                                    constant=constant, is_bool=is_bool)
 
-    def dynamic_array_1d(self, owner, name, size, unit, dtype):
+    def dynamic_array(self, owner, name, size, unit, dtype=None,
+                      constant=False, is_bool=False):
+        if is_bool:
+            dtype = np.bool
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
-        return DynamicArray1D(size, dtype=dtype)
-
-    def dynamic_array(self, owner, name, size, unit, dtype):
-        if dtype is None:
-            dtype = brian_prefs['core.default_scalar_dtype']
-        return DynamicArray(size, dtype=dtype)
+        array = DynamicArray(size, dtype=dtype)
+        return DynamicArrayVariable(name, unit, array, group_name=owner.name,
+                                    constant=constant, is_bool=is_bool)
 
 
 runtime_device = RuntimeDevice()
