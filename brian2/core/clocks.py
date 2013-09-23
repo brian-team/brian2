@@ -8,7 +8,7 @@ from numpy import ceil
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
-from brian2.units.fundamentalunits import check_units
+from brian2.units.fundamentalunits import check_units, Quantity
 from brian2.units.allunits import second, msecond
 
 __all__ = ['Clock', 'defaultclock']
@@ -40,12 +40,12 @@ class Clock(Nameable):
     '''
     
     @check_units(dt=second)
-    def __init__(self, dt=None, name='clock*'):
-        self._dt_spec = dt
+    def __init__(self, dt=0.1*msecond, name='clock*'):
+        self._dt = float(dt)
         self.i = 0  #: The time step of the simulation as an integer.
         self.i_end = 0  #: The time step the simulation will end as an integer
         Nameable.__init__(self, name=name)
-        logger.debug("Created clock {self.name} with dt={self._dt_spec}".format(self=self))
+        logger.debug("Created clock {self.name} with dt={self._dt}".format(self=self))
 
     def reinit(self):
         '''
@@ -77,18 +77,9 @@ class Clock(Nameable):
         self.i_end = int(float(end) / self.dt_)
         
     def _get_dt_(self):
-        if hasattr(self, '_dt'):
-            return self._dt
-        else:
-            dtspec = self._dt_spec
-            if dtspec is None:
-                dtspec = 0.1*msecond
-            self._dt = float(dtspec)
-            return self._dt
+        return self._dt
             
     def _set_dt_(self, dt_):
-        if hasattr(self, '_dt'):
-            raise RuntimeError("Cannot change dt, it has already been set to "+str(self.dt))
         self._dt = dt_
         logger.debug("Set dt for clock {self.name} to {self.dt}".format(self=self))
     
@@ -96,11 +87,9 @@ class Clock(Nameable):
     def _set_dt(self, dt):
         self.dt_ = float(dt)
     
-    dt = property(fget=lambda self: self.dt_*second,
+    dt = property(fget=lambda self: Quantity(self.dt_, dim=second.dim),
                   fset=_set_dt,
-                  doc='''The time step of the simulation in seconds
-                         Returns a `Quantity`, and can only
-                         be set once. Defaults to ``0.1*ms``.''',
+                  doc='''The time step of the simulation in seconds.''',
                   )
     
     dt_ = property(fget=_get_dt_, fset=_set_dt_,
