@@ -7,7 +7,7 @@ from brian2.core.variables import (AttributeVariable, ArrayVariable)
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.devices.device import get_device
-from brian2.units.fundamentalunits import Unit, Quantity, have_same_dimensions
+from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.units.allunits import second
 from brian2.groups.group import create_runner_codeobj
 

@@ -1,6 +1,5 @@
 import numpy as np
 
-from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import ArrayVariable
@@ -15,7 +14,7 @@ from .neurongroup import Thresholder, StateUpdater
 __all__ = ['PoissonGroup']
 
 
-class PoissonGroup(Group, BrianObject, SpikeSource):
+class PoissonGroup(Group, SpikeSource):
     '''
     Poisson spike source
     
@@ -40,7 +39,7 @@ class PoissonGroup(Group, BrianObject, SpikeSource):
     def __init__(self, N, rates, clock=None, name='poissongroup*',
                  codeobj_class=None):
 
-        BrianObject.__init__(self, when=clock, name=name)
+        Group.__init__(self, when=clock, name=name)
 
         self.codeobj_class = codeobj_class
 
@@ -87,7 +86,7 @@ class PoissonGroup(Group, BrianObject, SpikeSource):
         self._refractory = False
         self.state_updater = StateUpdater(self, method='independent')
         self.contained_objects.append(self.state_updater)
-        Group.__init__(self)
+        self._enable_group_attributes()
 
     @property
     def spikes(self):

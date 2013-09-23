@@ -13,7 +13,6 @@ from brian2.core.variables import (ArrayVariable, StochasticVariable,
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
 from brian2.units.allunits import second
-from brian2.codegen.codeobject import create_codeobject
 from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
@@ -77,14 +76,14 @@ class GroupItemMapping(Variable):
                 return self._indices[index_array + self.offset]
 
 
-class Group(object):
+class Group(BrianObject):
     '''
     Mix-in class for accessing arrays by attribute.
     
     # TODO: Overwrite the __dir__ method to return the state variables
     # (should make autocompletion work)
     '''
-    def __init__(self):
+    def _enable_group_attributes(self):
         if not hasattr(self, 'offset'):
             self.offset = 0
         if not hasattr(self, 'variables'):
@@ -159,7 +158,7 @@ class Group(object):
 
     def __setattr__(self, name, val):
         # attribute access is switched off until this attribute is created by
-        # Group.__init__
+        # _enable_group_attributes
         if not hasattr(self, '_group_attribute_access_active'):
             object.__setattr__(self, name, val)
         elif name in self.variables:

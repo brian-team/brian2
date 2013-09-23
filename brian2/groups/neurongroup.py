@@ -12,7 +12,6 @@ from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.devices.device import get_device
 from brian2.core.preferences import brian_prefs
-from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
 from brian2.core.variables import (StochasticVariable, Subexpression)
 from brian2.core.spikesource import SpikeSource
@@ -146,7 +145,7 @@ class Resetter(GroupCodeRunner):
         self.abstract_code = self.group.reset
 
 
-class NeuronGroup(BrianObject, Group, SpikeSource):
+class NeuronGroup(Group, SpikeSource):
     '''
     A group of neurons.
 
@@ -206,7 +205,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                  dtype=None,
                  clock=None, name='neurongroup*',
                  codeobj_class=None):
-        BrianObject.__init__(self, when=clock, name=name)
+        Group.__init__(self, when=clock, name=name)
 
         self.codeobj_class = codeobj_class
 
@@ -293,7 +292,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
             self.contained_objects.append(self.resetter)
 
         # Activate name attribute access
-        Group.__init__(self)
+        self._enable_group_attributes()
 
         # Set the refractoriness information
         self.lastspike = -np.inf*second

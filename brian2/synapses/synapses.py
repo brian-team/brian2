@@ -165,7 +165,7 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.indices = self.synapses.indices
 
         # Enable access to the delay attribute via the specifier
-        Group.__init__(self)
+        self._enable_group_attributes()
 
     def update_abstract_code(self):
         if self.synapses.event_driven is not None:
@@ -518,7 +518,7 @@ class SynapticItemMapping(Variable):
             raise IndexError('Unsupported index type {itype}'.format(itype=type(index)))
 
 
-class Synapses(BrianObject, Group):
+class Synapses(Group):
     '''
     Class representing synaptic connections. Creating a new `Synapses` object
     does by default not create any synapses -- you either have to provide
@@ -586,7 +586,7 @@ class Synapses(BrianObject, Group):
                  codeobj_class=None,
                  clock=None, method=None, name='synapses*'):
         
-        BrianObject.__init__(self, when=clock, name=name)
+        Group.__init__(self, when=clock, name=name)
         
         self.codeobj_class = codeobj_class
 
@@ -759,7 +759,7 @@ class Synapses(BrianObject, Group):
             self.connect(connect, level=1)
 
         # Activate name attribute access
-        Group.__init__(self)
+        self._enable_group_attributes()
 
     N = property(fget=lambda self: self.item_mapping.N,
                  doc='Total number of synapses')
