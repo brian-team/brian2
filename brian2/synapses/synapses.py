@@ -26,6 +26,7 @@ from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 from brian2.core.namespace import get_local_namespace
+from brian2.core.spikesource import SpikeSource
 
 from .spikequeue import SpikeQueue
 
@@ -805,12 +806,12 @@ class Synapses(Group):
         if prepost == 'pre':
             spike_group, group_name = self.source, 'Source'
         elif prepost == 'post':
-            spike_group = self.target, 'Target'
+            spike_group, group_name = self.target, 'Target'
         else:
             raise ValueError(('"prepost" argument has to be "pre" or "post", '
                               'is "%s".') % prepost)
 
-        if not hasattr(spike_group, 'spikes') and hasattr(spike_group, 'clock'):
+        if not isinstance(spike_group, SpikeSource) or not hasattr(spike_group, 'clock'):
             raise TypeError(('%s has to be a SpikeSource with spikes and'
                              ' clock attribute. Is type %r instead')
                             % (group_name, type(spike_group)))
