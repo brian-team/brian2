@@ -183,8 +183,19 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.abstract_code += 'lastupdate = t\n'
 
     def before_run(self, namespace):
+        # Get the existing spikes in the queue
+        spikes = self.queue.extract_spikes()
+        # Convert the integer time steps into floating point time
+        spikes[:, 0] *= self.dt
         # Update the dt (might have changed between runs)
         self.dt = self.synapses.clock.dt_
+        self.queue.compress(np.round(self._delays.get_value() / self.dt).astype(np.int),
+                            self.synapse_indices, len(self.synapses))
+        # Convert the floating point time back to integer time (dt might have changed)
+        spikes[:, 0] = np.round(spikes[:, 0] / self.dt)
+        # Re-insert the spikes into the queue
+        self.queue.store_spikes(spikes)
+
         GroupCodeRunner.before_run(self, namespace)
         # we insert rather than replace because GroupCodeRunner puts a CodeObject in updaters already
         self.pushspikes_codeobj = get_device().code_object(self,
@@ -198,8 +209,6 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                            )
         self.updaters.insert(0, self.pushspikes_codeobj.get_updater())
         #self.updaters.insert(0, SynapticPathwayUpdater(self))
-        self.queue.compress(np.round(self._delays.get_value() / self.dt).astype(np.int),
-                            self.synapse_indices, len(self.synapses))
     
     def push_spikes(self):
         # Push new spikes into the queue

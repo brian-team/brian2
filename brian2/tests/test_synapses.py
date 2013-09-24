@@ -359,7 +359,6 @@ def test_delay_specification():
     assert_raises(ValueError, lambda: Synapses(G, G, 'w:1', pre='v+=w',
                                                delay={'post': 5*ms}))
 
-
 def test_transmission():
     delays = [[0, 0] * ms, [1, 1] * ms, [1, 2] * ms]
     for codeobj_class, delay in zip(codeobj_classes, delays):
@@ -386,6 +385,30 @@ def test_transmission():
                         target_mon.t[target_mon.i==0] - defaultclock.dt - delay[0])
         assert_allclose(source_mon.t[source_mon.i==1],
                         target_mon.t[target_mon.i==1] - defaultclock.dt - delay[1])
+
+
+def test_changed_dt_spikes_in_queue():
+    defaultclock.dt = .5*ms
+    G1 = NeuronGroup(1, 'v:1', threshold='v>1', reset='v=0')
+    G1.v = 1.1
+    G2 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
+    S = Synapses(G1, G2, pre='v+=1.1')
+    S.connect(True)
+    S.delay = 'j*ms'
+    mon = SpikeMonitor(G2)
+    net = Network(G1, G2, S, mon)
+    net.run(5*ms)
+    defaultclock.dt = 1*ms
+    net.run(3*ms)
+    defaultclock.dt = 0.1*ms
+    net.run(2*ms)
+    # Spikes should have delays of 0, 1, 2, ... ms and always
+    # trigger a spike one dt later
+    expected = [0.5, 1.5, 2.5, 3.5, 4.5, # dt=0.5ms
+                6, 7, 8, #dt = 1ms
+                8.1, 9.1 #dt=0.1ms
+                ] * ms
+    assert_equal(mon.t, expected)
 
 
 def test_lumped_variable():
@@ -484,6 +507,7 @@ if __name__ == '__main__':
     test_state_variable_indexing()
     test_delay_specification()
     test_transmission()
+    test_changed_dt_spikes_in_queue()
     test_lumped_variable()
     test_event_driven()
     test_repr()
