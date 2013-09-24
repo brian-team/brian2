@@ -4,6 +4,7 @@ from brian2.core.variables import Variable, Subexpression
 from brian2.codegen.codeobject import CodeObject
 from brian2.codegen.templates import Templater
 from brian2.codegen.languages.cpp_lang import CPPLanguage
+from brian2.devices.device import get_device
 
 __all__ = ['CPPStandaloneCodeObject']
 
@@ -26,4 +27,4 @@ class CPPStandaloneCodeObject(CodeObject):
                 self.namespace[varname] = var.get_value()
 
     def run(self):
-        raise RuntimeError("Cannot run in C++ standalone mode")
+        get_device().main_queue.append(('run_code_object', (self,)))
