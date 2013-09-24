@@ -13,7 +13,6 @@ from brian2.core.variables import (ArrayVariable, StochasticVariable,
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
 from brian2.units.allunits import second
-from brian2.codegen.codeobject import create_codeobject
 from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
@@ -77,14 +76,14 @@ class GroupItemMapping(Variable):
                 return self._indices[index_array + self.offset]
 
 
-class Group(object):
+class Group(BrianObject):
     '''
     Mix-in class for accessing arrays by attribute.
     
     # TODO: Overwrite the __dir__ method to return the state variables
     # (should make autocompletion work)
     '''
-    def __init__(self):
+    def _enable_group_attributes(self):
         if not hasattr(self, 'offset'):
             self.offset = 0
         if not hasattr(self, 'variables'):
@@ -159,7 +158,7 @@ class Group(object):
 
     def __setattr__(self, name, val):
         # attribute access is switched off until this attribute is created by
-        # Group.__init__
+        # _enable_group_attributes
         if not hasattr(self, '_group_attribute_access_active'):
             object.__setattr__(self, name, val)
         elif name in self.variables:
@@ -168,12 +167,12 @@ class Group(object):
                 fail_for_dimension_mismatch(val, var.unit,
                                             'Incorrect units for setting %s' % name)
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value_with_unit(self, level=1)[:] = val
+            var.get_addressable_value_with_unit(self, level=1)[slice(None)] = val
         elif len(name) and name[-1]=='_' and name[:-1] in self.variables:
             # no unit checking
             var = self.variables[name[:-1]]
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value(self, level=1)[:] = val
+            var.get_addressable_value(self, level=1)[slice(None)] = val
         else:
             object.__setattr__(self, name, val)
 
@@ -383,6 +382,7 @@ def create_runner_codeobj(group, code, template_name, indices=None,
         variable_indices = group.variable_indices
 
     return get_device().code_object(
+                             group,
                              name,
                              code,
                              resolved_namespace,

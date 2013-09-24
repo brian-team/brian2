@@ -3,13 +3,11 @@ import collections
 
 import numpy as np
 
-from brian2.core.variables import (Variable, AttributeVariable, ArrayVariable,
-                                   DynamicArrayVariable)
+from brian2.core.variables import (AttributeVariable, ArrayVariable)
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
-from brian2.core.preferences import brian_prefs
 from brian2.devices.device import get_device
-from brian2.units.fundamentalunits import Unit, Quantity, have_same_dimensions
+from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.units.allunits import second
 from brian2.groups.group import create_runner_codeobj
 
@@ -35,16 +33,18 @@ class StateMonitorView(object):
         if not hasattr(self, '_group_attribute_access_active'):
             raise AttributeError
 
+        mon = self.monitor
         if item == 't':
-            return Quantity(self.monitor._t.data.copy(), dim=second.dim)
+            return Quantity(mon.variables['_t'].get_value(), dim=second.dim,
+                            copy=True)
         elif item == 't_':
-            return self.monitor._t.data.copy()
-        elif item in self.monitor.record_variables:
-            unit = self.monitor.variables[item].unit
-            return Quantity(self.monitor._values[item].data.T[self.indices].copy(),
-                            dim=unit.dim)
-        elif item.endswith('_') and item[:-1] in self.monitor.record_variables:
-            return self.monitor._values[item[:-1]].data.T[self.indices].copy()
+            return mon._t.data.copy()
+        elif item in mon.record_variables:
+            unit = mon.variables[item].unit
+            return Quantity(mon.variables['_recorded_'+item].get_value().T[self.indices],
+                            dim=unit.dim, copy=True)
+        elif item.endswith('_') and item[:-1] in mon.record_variables:
+            return mon.variables['_recorded_'+item[:-1]].get_value().T[self.indices].copy()
         else:
             raise AttributeError('Unknown attribute %s' % item)
 
@@ -168,10 +168,9 @@ class StateMonitor(BrianObject):
             
         #: The array of recorded indices
         self.indices = record
-        # create data structures
-        self.reinit()
         
         # Setup variables
+        device = get_device()
         self.variables = {}
         for varname in variables:
             var = source.variables[varname]
@@ -182,13 +181,15 @@ class StateMonitor(BrianObject):
                                            'doubles can be recorded.') %
                                           (varname, var.dtype))
             self.variables[varname] = var
-            self.variables['_recorded_'+varname] = DynamicArrayVariable('_recorded_'+varname,
-                                                                        Unit(1),
-                                                                        self._values[varname],
-                                                                        group_name=self.name)
+            self.variables['_recorded_'+varname] = device.dynamic_array(self,
+                                                                        '_recorded_'+varname,
+                                                                        (0, len(self.indices)),
+                                                                        var.unit,
+                                                                        dtype=var.dtype,
+                                                                        constant=False)
 
-        self.variables['_t'] = DynamicArrayVariable('_t', Unit(1), self._t,
-                                                    group_name=self.name)
+        self.variables['_t'] = device.dynamic_array_1d(self, '_t', 0, Unit(1),
+                                                       constant=False)
         self.variables['_clock_t'] = AttributeVariable(second, self.clock, 't_')
         self.variables['_indices'] = ArrayVariable('_indices', Unit(1),
                                                    self.indices,
@@ -197,16 +198,7 @@ class StateMonitor(BrianObject):
         self._group_attribute_access_active = True
 
     def reinit(self):
-        dev = get_device()
-        vars = self.source.variables
-        self._values = dict((v, dev.dynamic_array(self, '_values', (0, len(self.indices)),
-                                                  vars[v].unit,
-                                                  dtype=vars[v].dtype))
-                            for v in self.record_variables)
-        self._t = dev.dynamic_array_1d(self, '_t', 0, second,
-                                       dtype=brian_prefs['core.default_scalar_dtype'])
-        # FIXME: This does not update the variables dictionary with the new
-        # references
+        raise NotImplementedError()
     
     def before_run(self, namespace):
         # Some dummy code so that code generation takes care of the indexing
@@ -254,18 +246,16 @@ class StateMonitor(BrianObject):
 
         # TODO: Decide about the interface
         if item == 't':
-            return Quantity(self._t.data.copy(), dim=second.dim)
+            return Quantity(self.variables['_t'].get_value(),
+                            dim=second.dim, copy=True)
         elif item == 't_':
-            return self._t.data.copy()
+            return self.variables['_t'].get_value().copy()
         elif item in self.record_variables:
             unit = self.variables[item].unit
-            if have_same_dimensions(unit, 1):
-                return self._values[item].data.T.copy()
-            else:
-                return Quantity(self._values[item].data.T.copy(),
-                                dim=unit.dim)
+            return Quantity(self.variables['_recorded_'+item].get_value().T,
+                            dim=unit.dim, copy=True)
         elif item.endswith('_') and item[:-1] in self.record_variables:
-            return self._values[item[:-1]].data.T.copy()
+            return self.variables['_recorded_'+item[:-1]].get_value().T
         else:
             raise AttributeError('Unknown attribute %s' % item)
 

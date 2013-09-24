@@ -8,7 +8,8 @@ except ImportError:
     # No weave for Python 3
     weave = None
 
-from brian2.core.variables import Variable, Subexpression, DynamicArrayVariable
+from brian2.core.variables import (Variable, Subexpression,
+                                   DynamicArrayVariable, ArrayVariable)
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.functions import DEFAULT_FUNCTIONS, FunctionImplementation
 
@@ -68,10 +69,11 @@ class WeaveCodeObject(CodeObject):
     language = CPPLanguage(c_data_type=weave_data_type)
     class_name = 'weave'
 
-    def __init__(self, code, namespace, variables, name='weave_code_object*'):
-        super(WeaveCodeObject, self).__init__(code, namespace, variables, name=name)
+    def __init__(self, owner, code, namespace, variables, name='weave_code_object*'):
+        super(WeaveCodeObject, self).__init__(owner, code, namespace, variables, name=name)
         self.compiler = brian_prefs['codegen.runtime.weave.compiler']
         self.extra_compile_args = brian_prefs['codegen.runtime.weave.extra_compile_args']
+        self.python_code_namespace = {'_owner': owner}
 
     def variables_to_namespace(self):
 
@@ -86,6 +88,8 @@ class WeaveCodeObject(CodeObject):
         for name, var in self.variables.iteritems():
             if isinstance(var, Variable) and not isinstance(var, Subexpression):
                 if not var.constant:
+                    if isinstance(var, ArrayVariable):
+                        self.nonconstant_values.append((var.arrayname, var.get_value))
                     self.nonconstant_values.append((name, var.get_value))
                     if not var.scalar:
                         self.nonconstant_values.append(('_num' + name,
@@ -98,6 +102,8 @@ class WeaveCodeObject(CodeObject):
                         value = var.get_value()
                     except TypeError:  # A dummy Variable without value
                         continue
+                    if isinstance(var, ArrayVariable):
+                        self.namespace[var.arrayname] = value
                     self.namespace[name] = value
                     # if it is a type that has a length, add a variable called
                     # '_num'+name with its length
@@ -111,13 +117,24 @@ class WeaveCodeObject(CodeObject):
         # update the values of the non-constant values in the namespace
         for name, func in self.nonconstant_values:
             self.namespace[name] = func()
+            
+    def compile(self):
+        CodeObject.compile(self)
+        if hasattr(self.code, 'python_pre'):
+            self.compiled_python_pre = compile(self.code.python_pre, '(string)', 'exec')
+        if hasattr(self.code, 'python_post'):
+            self.compiled_python_post = compile(self.code.python_post, '(string)', 'exec')
 
     def run(self):
+        if hasattr(self, 'compiled_python_pre'):
+            exec self.compiled_python_pre in self.python_code_namespace
         return weave.inline(self.code.main, self.namespace.keys(),
                             local_dict=self.namespace,
                             support_code=self.code.support_code,
                             compiler=self.compiler,
                             extra_compile_args=self.extra_compile_args)
+        if hasattr(self, 'compiled_python_post'):
+            exec self.compiled_python_post in self.python_code_namespace
 
 codegen_targets.add(WeaveCodeObject)
 

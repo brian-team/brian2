@@ -4,7 +4,7 @@ New magic and clock behaviour
 Clocks
 ------
 
-The rule for clocks was that
+The rule for clocks in Brian 1 was that
 you would either specify a clock explicitly, or it would guess it based on the
 following rule: if there is no clock defined in the execution frame of the
 object being defined, use the default clock; if there is a single clock
@@ -21,16 +21,11 @@ introduce.
 
 Incidentally, you could also change the dt of a
 clock after it had been defined, which would invalidate any state updaters that
-were based on a fixed dt. Consequently, in the new design you cannot change the
-dt of a clock once it has been specified. This has one huge problem, it would
-mean that you couldn't change the dt of the defaultclock, which would be too
-annoying in practice. So, you can now leave the dt of a clock unspecified when
-you create the clock, and it can be left unspecified until the .dt attribute
-is accessed. If no value is specified, it uses ``dt=0.1*ms``, and the .dt
-attribute can be set precisely once (if it was left unspecified when created).
-This means you can now set ``defaultclock.dt`` precisely once. Again, this is
-slightly less flexible than the old system, but avoids many potentially
-confusing bugs.
+were based on a fixed dt. This is no longer a problem in Brian 2, since state
+updaters are re-built at every run so they work fine with a changed dt. It is
+important to note that the dt of the respective clock (i.e. in many cases,
+``defaultclock.dt``) at the time of the `run` call, not the dt during
+the `NeuronGroup` creation, for example, is relevant for the simulation.
 
 Magic
 -----
