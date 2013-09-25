@@ -109,7 +109,7 @@ class Variable(object):
         else:
             return self.value
 
-    def set_value(self):
+    def set_value(self, value, index=None):
         '''
         Set the value associated with the variable.
         '''
@@ -144,6 +144,9 @@ class Variable(object):
             return 0
         else:
             return len(self.get_value())
+
+    def __len__(self):
+        return self.get_len()
 
     def __repr__(self):
         description = ('<{classname}(unit={unit}, value={value}, '
@@ -415,8 +418,16 @@ class ArrayVariable(Variable):
     def get_value(self):
         return self.value
 
-    def set_value(self, value):
-        self.value[:] = value
+    def __getitem__(self, item):
+        return self.get_value()[item]
+
+    def set_value(self, value, index=None):
+        if index is None:
+            index = slice(None)
+        self.value[index] = value
+
+    def __setitem__(self, item, value):
+        self.set_value(value, item)
 
     def get_addressable_value(self, group, level=0):
         template = getattr(group, '_set_with_code_template',
@@ -442,6 +453,9 @@ class DynamicArrayVariable(ArrayVariable):
 
     def get_object(self):
         return self.value
+
+    def resize(self, new_size):
+        self.value.resize(new_size)
 
 
 class Subexpression(Variable):
@@ -469,26 +483,14 @@ class Subexpression(Variable):
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
-    def __init__(self, unit, dtype, expr, variables, namespace,
-                 is_bool=False):
+    def __init__(self, unit, dtype, expr, is_bool=False):
         Variable.__init__(self, unit, value=None, dtype=dtype,
                           constant=False, scalar=False, is_bool=is_bool)
 
         #: The expression defining the static equation.
         self.expr = expr.strip()
         #: The identifiers used in the expression
-        self.identifiers = get_identifiers(expr)        
-        #: Specifiers for the identifiers used in the expression
-        self.variables = variables
-        
-        #: The NeuronGroup's namespace for the identifiers used in the
-        #: expression
-        self.namespace = namespace
-        
-        #: An additional namespace provided by the run function (and updated
-        #: in `NeuronGroup.before_run`) that is used if the NeuronGroup does not
-        #: have an explicitly defined namespace.
-        self.additional_namespace = None
+        self.identifiers = get_identifiers(expr)
         
     def get_value(self):
         raise AssertionError('get_value should never be called for a Subexpression')

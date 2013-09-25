@@ -1,8 +1,5 @@
 import weakref
 
-import numpy as np
-
-from brian2.core.base import BrianObject
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.groups.group import Group
@@ -10,7 +7,7 @@ from brian2.groups.group import Group
 __all__ = ['Subgroup']
 
 
-class Subgroup(Group, BrianObject, SpikeSource):
+class Subgroup(Group, SpikeSource):
     '''
     Subgroup of any `Group`
     
@@ -45,7 +42,7 @@ class Subgroup(Group, BrianObject, SpikeSource):
         # parent threshold operation
         schedule = Scheduler(clock=source.clock, when='thresholds',
                              order=source.order+1)
-        BrianObject.__init__(self, when=schedule, name=name)
+        Group.__init__(self, when=schedule, name=name)
         self.N = end-start
         self.start = start
         self.end = end
@@ -56,7 +53,7 @@ class Subgroup(Group, BrianObject, SpikeSource):
         self.namespace = self.source.namespace
         self.codeobj_class = self.source.codeobj_class
 
-        Group.__init__(self)
+        self._enable_group_attributes()
 
     # Make the spikes from the source group accessible
     spikes = property(lambda self: self.source.spikes)

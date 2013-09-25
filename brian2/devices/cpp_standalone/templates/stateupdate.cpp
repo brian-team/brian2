@@ -6,6 +6,7 @@
 #include "{{codeobj_name}}.h"
 #include<math.h>
 #include<stdint.h>
+#include "brianlib/common_math.h"
 
 ////// SUPPORT CODE ///////
 namespace {
