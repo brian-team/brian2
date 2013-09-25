@@ -215,7 +215,7 @@ class CPPLanguage(Language):
             func_namespace = func.implementations[codeobj_class].namespace
             if func_namespace is not None:
                 namespace.update(func_namespace)
-
+                
         return (stripped_deindented_lines(code),
                 {'pointers_lines': stripped_deindented_lines(pointers),
                  'support_code_lines': stripped_deindented_lines(support_code),

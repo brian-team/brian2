@@ -218,7 +218,27 @@ class Group(BrianObject):
                                  additional_namespace=additional_namespace,
                                  check_units=check_units)
         codeobj()
-
+        
+    def _set_with_code_conditional(self, variable, cond, code,
+                                   template, check_units=True, level=0):
+        abstract_code_cond = '_cond = '+cond
+        abstract_code = variable.name + ' = ' + code
+        namespace = get_local_namespace(level + 1)
+        additional_namespace = ('implicit-namespace', namespace)
+        additional_variables = self.item_mapping.variables
+        check_code_units(abstract_code_cond, self,
+                         additional_variables=additional_variables,
+                         additional_namespace=additional_namespace)
+        # TODO: Have an additional argument to avoid going through the index
+        # array for situations where iterate_all could be used
+        codeobj = create_runner_codeobj(self,
+                                 {'condition': abstract_code_cond, 'statement': abstract_code},
+                                 template,
+                                 additional_variables=additional_variables,
+                                 additional_namespace=additional_namespace,
+                                 check_units=check_units)
+        codeobj()
+        
 
 def check_code_units(code, group, additional_variables=None,
                 additional_namespace=None,
@@ -249,6 +269,11 @@ def check_code_units(code, group, additional_variables=None,
     DimensionMismatchError
         If `code` has unit mismatches
     '''
+    if isinstance(code, dict):
+        for v in code.values():
+            check_code_units(v, group, additional_variables=additional_variables,
+                             additional_namespace=additional_namespace,
+                             ignore_keyerrors=ignore_keyerrors)
     all_variables = dict(group.variables)
     if additional_variables is not None:
         all_variables.update(additional_variables)
@@ -259,7 +284,13 @@ def check_code_units(code, group, additional_variables=None,
     # Note that here we do not need to recursively descend into
     # subexpressions. For unit checking, we only need to know the units of
     # the subexpressions not what variables they refer to
-    _, _, unknown = analyse_identifiers(code, all_variables)
+    if isinstance(code, dict):
+        unknown = set()
+        for v in code.values():
+            _, _, u = analyse_identifiers(v, all_variables)
+            unknown |= u
+    else:
+        _, _, unknown = analyse_identifiers(code, all_variables)
     try:
         resolved_namespace = group.namespace.resolve_all(unknown,
                                                          additional_namespace,
@@ -272,7 +303,11 @@ def check_code_units(code, group, additional_variables=None,
         else:
             raise ex
 
-    check_units_statements(code, resolved_namespace, all_variables)
+    if isinstance(code, dict):
+        for v in code.values():
+            check_units_statements(v, resolved_namespace, all_variables)
+    else:
+        check_units_statements(code, resolved_namespace, all_variables)
 
 
 def create_runner_codeobj(group, code, template_name, indices=None,
@@ -332,10 +367,18 @@ def create_runner_codeobj(group, code, template_name, indices=None,
     all_variables = dict(group.variables)
     if additional_variables is not None:
         all_variables.update(additional_variables)
-
+        
     # Determine the identifiers that were used
-    _, used_known, unknown = analyse_identifiers(code, all_variables,
-                                                 recursive=True)
+    if isinstance(code, dict):
+        used_known = set()
+        unknown = set()
+        for v in code.values():
+            _, uk, u = analyse_identifiers(v, all_variables, recursive=True)
+            used_known |= uk
+            unknown |= u
+    else:
+        _, used_known, unknown = analyse_identifiers(code, all_variables,
+                                                     recursive=True)
 
     logger.debug('Unknown identifiers in the abstract code: ' + str(unknown))
 
