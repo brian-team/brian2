@@ -145,7 +145,7 @@ class CPPStandaloneDevice(Device):
                                        constant=constant, is_bool=is_bool)
 
     def dynamic_array_1d(self, owner, name, size, unit, dtype=None,
-                         constant=False, is_bool=False):
+                         constant=False, constant_size=True, is_bool=False):
         if is_bool:
             dtype = numpy.bool
         elif dtype is None:
@@ -156,10 +156,6 @@ class CPPStandaloneDevice(Device):
                                               dtype=dtype,
                                               group_name=owner.name,
                                               constant=constant, is_bool=is_bool)
-    
-    def dynamic_array(self, owner, name, size, unit, dtype=None,
-                      constant=False, is_bool=False):
-        raise NotImplementedError()
 
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is not None:

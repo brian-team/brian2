@@ -447,6 +447,21 @@ class DynamicArrayVariable(ArrayVariable):
     An object providing information about a model variable stored in a dynamic
     array (used in `Synapses`).
     '''
+
+    def __init__(self, name, unit, value, group_name=None,
+                 constant=False, constant_size=True,
+                 scalar=False, is_bool=False):
+        if constant and not constant_size:
+            raise ValueError('A variable cannot be constant and change in size')
+        self.constant_size = constant_size
+        super(DynamicArrayVariable, self).__init__(name=name,
+                                                   unit=unit,
+                                                   value=value,
+                                                   group_name=group_name,
+                                                   constant=constant,
+                                                   scalar=scalar,
+                                                   is_bool=is_bool)
+
     def get_value(self):
         # The actual numpy array is accesible via DynamicArray1D.data
         return self.value.data
@@ -493,7 +508,7 @@ class Subexpression(Variable):
         self.identifiers = get_identifiers(expr)
         
     def get_value(self):
-        raise AssertionError('get_value should never be called for a Subexpression')
+        raise TypeError('get_value should never be called for a Subexpression')
 
     def __contains__(self, var):
         return var in self.identifiers

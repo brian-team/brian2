@@ -50,10 +50,12 @@ class PopulationRateMonitor(BrianObject):
                           'dt': AttributeVariable(second, self.clock,
                                                   'dt_', constant=True),
                           '_spikespace': self.source.variables['_spikespace'],
-                          '_rate': dev.dynamic_array_1d(self, '_rate', 0, 1),
+                          '_rate': dev.dynamic_array_1d(self, '_rate', 0, 1,
+                                                        constant_size=False),
                           '_t': dev.dynamic_array_1d(self, '_t', 0, second,
                                                      dtype=getattr(self.clock.t, 'dtype',
-                                                                   np.dtype(type(self.clock.t)))),
+                                                                   np.dtype(type(self.clock.t))),
+                                                     constant_size=False),
                           '_num_source_neurons': Variable(Unit(1),
                                                           len(self.source))}
 

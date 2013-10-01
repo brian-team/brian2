@@ -59,8 +59,7 @@ class PoissonGroup(Group, SpikeSource):
 
         self.variables = Group._create_variables(self)
         self.variables.update({'rates': ArrayVariable('rates', Hz, self._rates,
-                                                      group_name=self.name,
-                                                      constant=True),
+                                                      group_name=self.name),
                                '_spikespace': get_device().array(self,
                                                                  '_spikespace',
                                                                  N+1,
