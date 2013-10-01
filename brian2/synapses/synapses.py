@@ -329,7 +329,7 @@ def _synapse_numbers(pre_neurons, post_neurons):
     return synapse_numbers
 
 
-class SynapticItemMapping(Variable):
+class SynapticItemMapping(ArrayVariable):
     '''
     Convenience object to store the synaptic indices.
 
@@ -339,7 +339,8 @@ class SynapticItemMapping(Variable):
         Reference to the main `Synapses object`
     '''
     def __init__(self, synapses):
-        Variable.__init__(self, Unit(1), value=self, constant=True)
+        ArrayVariable.__init__(self, '_idx', Unit(1), value=self,
+                               group_name=synapses.name, constant=True)
         self.source = synapses.source
         self.target = synapses.target
         self.synapses = weakref.proxy(synapses)
@@ -723,15 +724,11 @@ class Synapses(Group):
                                                                     'of seconds'))
                 updater = getattr(self, pathway)
                 self.item_mapping.unregister_variable(updater._delays)
-                del updater._delays
                 # For simplicity, store the delay as a one-element array
                 # so that for example updater._delays[:] works.
-                updater._delays = np.array([float(pathway_delay)])
-                variable = ArrayVariable('delay', second, updater._delays,
-                                          group_name=self.name, scalar=True)
-                updater.variables['delay'] = variable
-                if pathway == 'pre':
-                    self.variables['delay'] = variable
+                updater._delays.resize(1)
+                updater._delays[0] = float(pathway_delay)
+                updater._delays.scalar = True
 
         #: Performs numerical integration step
         self.state_updater = StateUpdater(self, method)        
@@ -879,9 +876,11 @@ class Synapses(Group):
                   '_target_offset': Variable(Unit(1), self.target.offset,
                                              constant=True),
                   '_synaptic_pre': dev.dynamic_array_1d(self, '_synaptic_pre',
-                                                        0, Unit(1), dtype=np.int32),
+                                                        0, Unit(1), dtype=np.int32,
+                                                        constant_size=True),
                   '_synaptic_post': dev.dynamic_array_1d(self, '_synaptic_post',
-                                                         0, Unit(1), dtype=np.int32),
+                                                         0, Unit(1), dtype=np.int32,
+                                                         constant_size=True),
                   # We don't need "proper" specifier for these -- they go
                   # back to Python code currently
                   '_pre_synaptic': Variable(Unit(1), self.pre_synaptic),

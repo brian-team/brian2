@@ -43,11 +43,11 @@ class Device(object):
         raise NotImplementedError()
 
     def dynamic_array_1d(self, owner, name, size, unit, dtype=None,
-                         constant=False, is_bool=False):
+                         constant=False, constant_size=True, is_bool=False):
         raise NotImplementedError()
 
     def dynamic_array(self, owner, name, size, unit, dtype=None,
-                      constant=False, is_bool=False):
+                      constant=False, constant_size=True, is_bool=False):
         raise NotImplementedError()
 
     def code_object_class(self, codeobj_class=None):
@@ -87,24 +87,28 @@ class RuntimeDevice(Device):
                              constant=constant, is_bool=is_bool)
 
     def dynamic_array_1d(self, owner, name, size, unit, dtype=None,
-                         constant=False, is_bool=False):
+                         constant=False,constant_size=True, is_bool=False):
         if is_bool:
             dtype = np.bool
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         array = DynamicArray1D(size, dtype=dtype)
         return DynamicArrayVariable(name, unit, array, group_name=owner.name,
-                                    constant=constant, is_bool=is_bool)
+                                    constant=constant,
+                                    constant_size=constant_size,
+                                    is_bool=is_bool)
 
     def dynamic_array(self, owner, name, size, unit, dtype=None,
-                      constant=False, is_bool=False):
+                      constant=False, constant_size=True, is_bool=False):
         if is_bool:
             dtype = np.bool
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         array = DynamicArray(size, dtype=dtype)
         return DynamicArrayVariable(name, unit, array, group_name=owner.name,
-                                    constant=constant, is_bool=is_bool)
+                                    constant=constant,
+                                    constant_size=constant_size,
+                                    is_bool=is_bool)
 
 
 runtime_device = RuntimeDevice()

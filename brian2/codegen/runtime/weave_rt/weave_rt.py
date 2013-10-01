@@ -8,8 +8,8 @@ except ImportError:
     # No weave for Python 3
     weave = None
 
-from brian2.core.variables import (Variable, Subexpression,
-                                   DynamicArrayVariable, ArrayVariable)
+from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
+                                   AttributeVariable)
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.functions import DEFAULT_FUNCTIONS, FunctionImplementation
 
@@ -86,32 +86,36 @@ class WeaveCodeObject(CodeObject):
         self.nonconstant_values = []
 
         for name, var in self.variables.iteritems():
-            if isinstance(var, Variable) and not isinstance(var, Subexpression):
-                if not var.constant:
-                    if isinstance(var, ArrayVariable):
-                        self.nonconstant_values.append((var.arrayname, var.get_value))
-                    self.nonconstant_values.append((name, var.get_value))
-                    if not var.scalar:
-                        self.nonconstant_values.append(('_num' + name,
-                                                        var.get_len))
-                    if isinstance(var, DynamicArrayVariable):
-                        self.nonconstant_values.append((name+'_object',
-                                                        var.get_object))
-                else:
-                    try:
-                        value = var.get_value()
-                    except TypeError:  # A dummy Variable without value
-                        continue
-                    if isinstance(var, ArrayVariable):
-                        self.namespace[var.arrayname] = value
-                    self.namespace[name] = value
-                    # if it is a type that has a length, add a variable called
-                    # '_num'+name with its length
-                    if not var.scalar:
-                        self.namespace['_num' + name] = var.get_len()
-                    if isinstance(value, DynamicArrayVariable):
-                        self.namespace[name+'_object'] = value.get_object()
 
+            try:
+                value = var.get_value()
+            except TypeError:  # A dummy Variable without value or a Subexpression
+                continue
+
+            self.namespace[name] = value
+
+            if isinstance(var, ArrayVariable):
+                self.namespace[var.arrayname] = value
+                self.namespace['_num'+name] = var.get_len()
+
+            if isinstance(var, DynamicArrayVariable):
+                self.namespace[var.name+'_object'] = var.get_object()
+
+            # There are two kinds of objects that we have to inject into the
+            # namespace with their current value at each time step:
+            # * non-constant AttributeValue (this might be removed since it only
+            #   applies to "t" currently)
+            # * Dynamic arrays that change in size during runs (i.e. not
+            #   synapses but e.g. the structures used in monitors)
+            if isinstance(var, AttributeVariable) and not var.constant:
+                self.nonconstant_values.append((name, var.get_value))
+                if not var.scalar:
+                    self.nonconstant_values.append(('_num'+name, var.get_len))
+            elif (isinstance(var, DynamicArrayVariable) and
+                  not var.constant_size):
+                self.nonconstant_values.append((var.arrayname,
+                                                var.get_value))
+                self.nonconstant_values.append(('_num'+name, var.get_len))
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace

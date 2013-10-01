@@ -7,7 +7,7 @@ _spikes -= _source_start
 _n_spikes = len(_spikes)
 if _n_spikes > 0:
 
-    _curlen = len(_t)
+    _curlen = len(_t_object)
     _newlen = _curlen + _n_spikes
     _t_object.resize(_newlen)
     _i_object.resize(_newlen)
