@@ -23,7 +23,7 @@ __all__ = ['Group', 'GroupCodeRunner']
 logger = get_logger(__name__)
 
 
-class GroupItemMapping(Variable):
+class GroupItemMapping(ArrayVariable):
 
     def __init__(self, N, offset, group):
         self.N = N
@@ -33,7 +33,9 @@ class GroupItemMapping(Variable):
         self.variables = {'i': ArrayVariable('i',
                                               Unit(1),
                                               self._indices - self.offset)}
-        Variable.__init__(self, Unit(1), value=self, constant=True)
+        ArrayVariable.__init__(self, '_idx', Unit(1), value=self,
+                               group_name=group.name,
+                               constant=True)
 
     def __len__(self):
         return self.N
