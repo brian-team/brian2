@@ -308,11 +308,18 @@ def create_runner_codeobj(group, code, template_name, indices=None,
     all_variables = dict(group.variables)
     if additional_variables is not None:
         all_variables.update(additional_variables)
-
-
+        
     # Determine the identifiers that were used
-    _, used_known, unknown = analyse_identifiers(code, all_variables,
-                                                 recursive=True)
+    if isinstance(code, dict):
+        used_known = set()
+        unknown = set()
+        for v in code.values():
+            _, uk, u = analyse_identifiers(v, all_variables, recursive=True)
+            used_known |= uk
+            unknown |= u
+    else:
+        _, used_known, unknown = analyse_identifiers(code, all_variables,
+                                                     recursive=True)
 
     logger.debug('Unknown identifiers in the abstract code: ' + str(unknown))
 

@@ -64,7 +64,11 @@ def create_codeobject(owner, name, abstract_code, namespace, variables,
     namespace = prepare_namespace(namespace, variables,
                                   codeobj_class=codeobj_class)
 
-    logger.debug(name + " abstract code:\n" + abstract_code)
+    if isinstance(abstract_code, dict):
+        for k, v in abstract_code.items():
+            logger.debug('%s abstract code key %s:\n%s' % (name, k, v))
+    else:
+        logger.debug(name + " abstract code:\n" + abstract_code)
     iterate_all = template.iterate_all
     if isinstance(abstract_code, dict):
         snippet = {}
@@ -76,7 +80,7 @@ def create_codeobject(owner, name, abstract_code, namespace, variables,
                                         variable_indices=variable_indices,
                                         iterate_all=iterate_all)
             snippet[ac_name] = snip
-            for k, v in snip_kwds:
+            for k, v in snip_kwds.items():
                 kwds[ac_name+'_'+k] = v
             
     else:
