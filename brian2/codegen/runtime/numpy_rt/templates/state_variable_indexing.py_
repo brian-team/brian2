@@ -1,6 +1,10 @@
 # ITERATE_ALL { _idx }
 
-_vectorisation_idx = _idx
+import numpy as np
+
+i = np.arange(N)
+_vectorisation_idx = i
+
 {% for line in code_lines %}
 {{line}}
 {% endfor %}

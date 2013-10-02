@@ -199,11 +199,8 @@ class AttributeVariable(Variable):
         
     '''
     def __init__(self, unit, obj, attribute, constant=False):
-        if not hasattr(obj, attribute):
-            raise AttributeError('Object %r does not have an attribute %r' %
-                                 (obj, attribute))
-
-        value = getattr(obj, attribute)
+        # allow for the attribute to not exist yet
+        value = getattr(obj, attribute, None)
         
         Variable.__init__(self, unit, value, constant=constant)
         #: A reference to the object storing the variable's value         
@@ -255,31 +252,48 @@ class VariableView(object):
         self.unit = unit
         self.level = level
 
-    def __getitem__(self, i):
+    def calc_indices(self, item):
         variable = self.variable
         if variable.scalar:
-            if not (i == slice(None) or i == 0 or (hasattr(i, '__len__') and len(i) == 0)):
+            if not (item == slice(None) or item == 0 or (hasattr(item, '__len__')
+                                                         and len(i) == 0)):
                 raise IndexError('Variable is a scalar variable.')
-            indices = 0
+            indices = np.array([0])
         else:
-            indices = self.group.indices[self.group.variable_indices[self.name]][i]
+            # Translate to an index meaningful for the variable
+            # (e.g. from a subgroup index to the index in the original group
+            #  or from a synaptic [i,j,k] index to the synapse number)
+            indices = self.group.calc_indices(item)
+            # If the standard index of the group is not the same index that the
+            # variable uses, do a second translation step. This is necessary
+            # for example when indexing a pre- or postsynaptic variable in a
+            # Synapses object: S.x_post[0, 0] should return the x value of the
+            # first postsynaptic neuron.
+            var_index = self.group.variable_indices[self.name]
+            if var_index != '_idx':
+                indices = self.group.indices[var_index][indices]
+
+        return indices
+
+    def __getitem__(self, item):
+        variable = self.variable
+        indices = self.calc_indices(item)
+
         if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
             return variable.get_value()[indices]
         else:
             return Quantity(variable.get_value()[indices], self.unit.dimensions)
 
-    def __setitem__(self, i, value):
+    def __setitem__(self, item, value):
         variable = self.variable
-        if variable.scalar:
-            if not (i == slice(None) or i == 0 or (hasattr(i, '__len__') and len(i) == 0)):
-                raise IndexError('Variable is a scalar variable.')
-            indices = np.array([0])
-        else:
-            indices = self.group.indices[self.group.variable_indices[self.name]][i]
+        indices = self.calc_indices(item)
         if isinstance(value, basestring):
             check_units = self.unit is not None
             self.group._set_with_code(variable, indices, value,
                                       template=self.template,
+                                      additional_variables={'i': Variable(Unit(1)),
+                                                            'offset': Variable(Unit(1),
+                                                                               self.group.offset)},
                                       check_units=check_units, level=self.level + 1)
         else:
             if not self.unit is None:

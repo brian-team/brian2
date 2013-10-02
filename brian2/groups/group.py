@@ -23,61 +23,6 @@ __all__ = ['Group', 'GroupCodeRunner']
 logger = get_logger(__name__)
 
 
-class GroupItemMapping(ArrayVariable):
-
-    def __init__(self, N, offset, group):
-        self.N = N
-        self.offset = int(offset)
-        self.group = weakref.proxy(group)
-        self._indices = np.arange(self.N + self.offset)
-        self.variables = {'i': ArrayVariable('i',
-                                              Unit(1),
-                                              self._indices - self.offset)}
-        ArrayVariable.__init__(self, '_idx', Unit(1), value=self,
-                               group_name=group.name,
-                               constant=True)
-
-    def __len__(self):
-        return self.N
-
-    def __getitem__(self, index):
-        '''
-        Returns indices for `index` an array, integer or slice, or a string
-        (that might refer to ``i`` as the group element index).
-
-        '''
-        if isinstance(index, tuple):
-            raise IndexError(('Can only interpret 1-d indices, '
-                              'got %d dimensions.') % len(index))
-        if isinstance(index, basestring):
-            # interpret the string expression
-            namespace = get_local_namespace(1)
-            additional_namespace = ('implicit-namespace', namespace)
-            abstract_code = '_cond = ' + index
-            check_code_units(abstract_code, self.group,
-                             additional_variables=self.variables,
-                             additional_namespace=additional_namespace)
-            template = getattr(self.group, '_index_with_code_template',
-                              'state_variable_indexing')
-            codeobj = create_runner_codeobj(self.group,
-                                            abstract_code,
-                                            template,
-                                            additional_variables=self.variables,
-                                            additional_namespace=additional_namespace,
-                                            )
-            return codeobj()
-        else:
-            if isinstance(index, slice):
-                start, stop, step = index.indices(self.N)
-                index = slice(start + self.offset, stop + self.offset, step)
-                return self._indices[index]
-            else:
-                index_array = np.asarray(index)
-                if not np.issubdtype(index_array.dtype, np.int):
-                    raise TypeError('Indexing is only supported for integer arrays')
-                return self._indices[index_array + self.offset]
-
-
 class Group(BrianObject):
     '''
     Mix-in class for accessing arrays by attribute.
@@ -90,16 +35,8 @@ class Group(BrianObject):
             self.offset = 0
         if not hasattr(self, 'variables'):
             raise ValueError('Classes derived from Group need variables attribute.')
-        if not hasattr(self, 'item_mapping'):
-            try:
-                N = len(self)
-            except TypeError:
-                raise ValueError(('Classes derived from Group need an item_mapping '
-                                  'attribute, or a length to automatically '
-                                  'provide 1-d indexing'))
-            self.item_mapping = GroupItemMapping(N, self.offset, self)
         if not hasattr(self, 'indices'):
-            self.indices = {'_idx': self.item_mapping}
+            self.indices = {}
         if not hasattr(self, 'variable_indices'):
             self.variable_indices = defaultdict(lambda: '_idx')
         if not hasattr(self, 'codeobj_class'):
@@ -110,7 +47,9 @@ class Group(BrianObject):
         return {'t': AttributeVariable(second, self.clock, 't_',
                                        constant=False),
                 'dt': AttributeVariable(second, self.clock, 'dt_',
-                                        constant=True)
+                                        constant=True),
+                'N': AttributeVariable(Unit(1), self, '_N',
+                                       constant=True)
                 }
 
     def state_(self, name):
@@ -178,8 +117,44 @@ class Group(BrianObject):
         else:
             object.__setattr__(self, name, val)
 
+    def calc_indices(self, item):
+        '''
+        Returns indices for `index` an array, integer or slice, or a string
+        (that might refer to ``i`` as the group element index).
+
+        '''
+        if isinstance(item, tuple):
+            raise IndexError(('Can only interpret 1-d indices, '
+                              'got %d dimensions.') % len(item))
+        if isinstance(item, basestring):
+            # interpret the string expression
+            namespace = get_local_namespace(1)
+            additional_namespace = ('implicit-namespace', namespace)
+            # i is defined in the template
+            variables = {'i': Variable(Unit(1))}
+            abstract_code = '_cond = ' + item
+            check_code_units(abstract_code, self,
+                             additional_variables=variables,
+                             additional_namespace=additional_namespace)
+            codeobj = create_runner_codeobj(self,
+                                            abstract_code,
+                                            'state_variable_indexing',
+                                            additional_variables=variables,
+                                            additional_namespace=additional_namespace,
+                                            )
+            return codeobj() + self.offset
+        else:
+            if isinstance(item, slice):
+                start, stop, step = item.indices(self.N)
+                return np.arange(start, stop, step) + self.offset
+            else:
+                index_array = np.asarray(item)
+                if not np.issubdtype(index_array.dtype, np.int):
+                    raise TypeError('Indexing is only supported for integer arrays')
+                return index_array + self.offset
+
     def _set_with_code(self, variable, group_indices, code,
-                       template, check_units=True, level=0):
+                       template, additional_variables, check_units=True, level=0):
         '''
         Sets a variable using a string expression. Is called by
         `VariableView.__setitem__` for statements such as
@@ -206,7 +181,6 @@ class Group(BrianObject):
         abstract_code = variable.name + ' = ' + code
         namespace = get_local_namespace(level + 1)
         additional_namespace = ('implicit-namespace', namespace)
-        additional_variables = self.item_mapping.variables
         additional_variables['_group_idx'] = ArrayVariable('_group_idx',
                                                      Unit(1),
                                                      value=group_indices.astype(np.int32),
@@ -335,6 +309,7 @@ def create_runner_codeobj(group, code, template_name, indices=None,
     if additional_variables is not None:
         all_variables.update(additional_variables)
 
+
     # Determine the identifiers that were used
     _, used_known, unknown = analyse_identifiers(code, all_variables,
                                                  recursive=True)
@@ -359,18 +334,10 @@ def create_runner_codeobj(group, code, template_name, indices=None,
 
     # Also add the variables that the template needs
     for var in template.variables:
-        try:
-            variables[var] = all_variables[var]
-        except KeyError as ex:
-            # We abuse template.variables here to also store names of things
-            # from the namespace (e.g. rand) that are needed
-            # TODO: Improve all of this namespace/specifier handling
-            if group is not None:
-                # Try to find the name in the group's namespace
-                resolved_namespace[var] = group.namespace.resolve(var,
-                                                                  additional_namespace)
-            else:
-                raise ex
+        variables[var] = all_variables[var]
+
+    # Always add N, the number of neurons or synapses
+    variables['N'] = all_variables['N']
 
     if name is None:
         if group is not None:

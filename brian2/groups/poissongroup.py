@@ -43,7 +43,7 @@ class PoissonGroup(Group, SpikeSource):
 
         self.codeobj_class = codeobj_class
 
-        self.N = N = int(N)
+        self._N = N = int(N)
 
         #: The array holding the rates
         self._rates = np.asarray(rates)

@@ -98,9 +98,22 @@ for func_name, func in [('sin', np.sin), ('cos', np.cos), ('tan', np.tan),
     DEFAULT_FUNCTIONS[func_name].implementations[NumpyLanguage] = FunctionImplementation(code=func)
 
 # Functions that are implemented in a somewhat special way
-randn_func = lambda vectorisation_idx: np.random.randn(len(vectorisation_idx))
+def randn_func(vectorisation_idx):
+    try:
+        N = int(vectorisation_idx)
+    except TypeError, ValueError:
+        N = len(vectorisation_idx)
+
+    return np.random.randn(N)
+
+def rand_func(vectorisation_idx):
+    try:
+        N = int(vectorisation_idx)
+    except TypeError, ValueError:
+        N = len(vectorisation_idx)
+
+    return np.random.rand(N)
 DEFAULT_FUNCTIONS['randn'].implementations[NumpyLanguage] = FunctionImplementation(code=randn_func)
-rand_func = lambda vectorisation_idx: np.random.rand(len(vectorisation_idx))
 DEFAULT_FUNCTIONS['rand'].implementations[NumpyLanguage] = FunctionImplementation(code=rand_func)
 clip_func = lambda array, a_min, a_max: np.clip(array, a_min, a_max)
 DEFAULT_FUNCTIONS['clip'].implementations[NumpyLanguage] = FunctionImplementation(code=clip_func)
