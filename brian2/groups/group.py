@@ -334,9 +334,20 @@ def create_runner_codeobj(group, code, template_name, indices=None,
 
     # Also add the variables that the template needs
     for var in template.variables:
-        variables[var] = all_variables[var]
+        try:
+            variables[var] = all_variables[var]
+        except KeyError as ex:
+            # We abuse template.variables here to also store names of things
+            # from the namespace (e.g. rand) that are needed
+            # TODO: Improve all of this namespace/specifier handling
+            if group is not None:
+                # Try to find the name in the group's namespace
+                resolved_namespace[var] = group.namespace.resolve(var,
+                                                                  additional_namespace)
+            else:
+                raise ex
 
-    # Always add N, the number of neurons or synapses
+    # always add N, the number of neurons or synapses
     variables['N'] = all_variables['N']
 
     if name is None:
@@ -345,8 +356,6 @@ def create_runner_codeobj(group, code, template_name, indices=None,
         else:
             name = '%s_codeobject*' % template_name
 
-    if indices is None:
-        indices = group.indices
     if variable_indices is None:
         variable_indices = group.variable_indices
 
@@ -357,7 +366,6 @@ def create_runner_codeobj(group, code, template_name, indices=None,
                              resolved_namespace,
                              variables,
                              template_name,
-                             indices=indices,
                              variable_indices=variable_indices,
                              template_kwds=template_kwds,
                              codeobj_class=group.codeobj_class)

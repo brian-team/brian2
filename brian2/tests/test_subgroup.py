@@ -80,8 +80,8 @@ def test_synapse_creation():
         S.connect('i==4 and j==5') # Should correspond to (4, 15)
 
         # Only relative numbers are stored
-        assert_equal(S.item_mapping.synaptic_pre, np.array([2, 4]))
-        assert_equal(S.item_mapping.synaptic_post, np.array([2, 5]))
+        assert_equal(S._synaptic_pre[:], np.array([2, 4]))
+        assert_equal(S._synaptic_post[:], np.array([2, 5]))
         assert_equal(S.i[:], np.array([2, 4]))
         assert_equal(S.j[:], np.array([2, 5]))
 

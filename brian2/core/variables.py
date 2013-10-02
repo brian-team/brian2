@@ -289,11 +289,12 @@ class VariableView(object):
         indices = self.calc_indices(item)
         if isinstance(value, basestring):
             check_units = self.unit is not None
+            variables = {'offset': Variable(Unit(1), self.group.offset)}
+            if not 'i' in self.group.variables:
+                variables['i'] = Variable(Unit(1))
             self.group._set_with_code(variable, indices, value,
                                       template=self.template,
-                                      additional_variables={'i': Variable(Unit(1)),
-                                                            'offset': Variable(Unit(1),
-                                                                               self.group.offset)},
+                                      additional_variables=variables,
                                       check_units=check_units, level=self.level + 1)
         else:
             if not self.unit is None:

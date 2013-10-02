@@ -2,7 +2,7 @@
 
 {% block maincode %}
     // USES_VARIABLES { _synaptic_pre, _synaptic_post, _post_synaptic,
-    //                  _pre_synaptic, _source_neurons, _target_neurons,
+    //                  _pre_synaptic, _num_source_neurons, _num_target_neurons,
     //                  rand, _source_offset, _target_offset}
 	srand((unsigned int)time(NULL));
 	int _buffer_size = 1024;
@@ -32,8 +32,8 @@
 			    }
 
 			    for (int _repetition=0; _repetition<_n; _repetition++) {
-                    _prebuf[_curbuf] = _source_neurons[i];
-                    _postbuf[_curbuf] = _target_neurons[j];
+                    _prebuf[_curbuf] = _presynaptic_idx - _source_offset;
+                    _postbuf[_curbuf] = _postsynaptic_idx - _target_offset;
                     _curbuf++;
                     // Flush buffer
                     if(_curbuf==_buffer_size)
@@ -46,8 +46,8 @@
                     // mapping
                     _synprebuf[0] = _synapse_idx;
                     _synpostbuf[0] = _synapse_idx;
-                    py::object _pre_synapses = (py::object)PyList_GetItem(_pre_synaptic, _source_neurons[i]);
-                    py::object _post_synapses = (py::object)PyList_GetItem(_post_synaptic, _target_neurons[j]);
+                    py::object _pre_synapses = (py::object)PyList_GetItem(_pre_synaptic, _presynaptic_idx - _source_offset);
+                    py::object _post_synapses = (py::object)PyList_GetItem(_post_synaptic, _postsynaptic_idx - _target_offset);
                     _flush_buffer(_synprebuf, _pre_synapses, 1);
                     _flush_buffer(_synpostbuf, _post_synapses, 1);
                     _synapse_idx++;

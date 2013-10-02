@@ -39,8 +39,8 @@ def prepare_namespace(namespace, variables, codeobj_class):
     return namespace
 
 
-def create_codeobject(owner, name, abstract_code, namespace, variables, template_name,
-                      indices, variable_indices, codeobj_class,
+def create_codeobject(owner, name, abstract_code, namespace, variables,
+                      template_name, variable_indices, codeobj_class,
                       template_kwds=None):
     '''
     The following arguments keywords are passed to the template:
@@ -89,8 +89,6 @@ def create_codeobject(owner, name, abstract_code, namespace, variables, template
     logger.debug(name + " snippet:\n" + str(snippet))
     
     name = find_name(name)
-
-    variables.update(indices)
     
     code = template(snippet,
                     owner=owner, variables=variables, codeobj_name=name, namespace=namespace,

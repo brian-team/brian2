@@ -56,11 +56,11 @@ class Device(object):
         return codeobj_class
 
     def code_object(self, owner, name, abstract_code, namespace, variables, template_name,
-                    indices, variable_indices, codeobj_class=None,
+                    variable_indices, codeobj_class=None,
                     template_kwds=None):
         codeobj_class = self.code_object_class(codeobj_class)
         return create_codeobject(owner, name, abstract_code, namespace, variables, template_name,
-                                 indices, variable_indices, codeobj_class=codeobj_class,
+                                 variable_indices=variable_indices, codeobj_class=codeobj_class,
                                  template_kwds=template_kwds)
     
     def activate(self):

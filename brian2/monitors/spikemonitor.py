@@ -84,7 +84,6 @@ class SpikeMonitor(BrianObject):
                                          {}, # no namespace
                                          self.variables,
                                          template_name='spikemonitor',
-                                         indices={},
                                          variable_indices=defaultdict(lambda: '_idx'),
                                          codeobj_class=self.codeobj_class)
         self.code_objects[:] = [weakref.proxy(self.codeobj)]
