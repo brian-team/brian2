@@ -68,7 +68,6 @@ def test_state_monitor():
 
 def test_synapse_creation():
     for codeobj_class in codeobj_classes:
-        print codeobj_class
         G1 = NeuronGroup(10, 'v:1', codeobj_class=codeobj_class)
         G2 = NeuronGroup(20, 'v:1', codeobj_class=codeobj_class)
         G1.v = 'i'

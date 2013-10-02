@@ -859,8 +859,7 @@ class Synapses(Group):
                                             )
             codeobj()
         number = len(self.variables['_synaptic_pre'])
-        for variable in self._registered_variables:
-            variable.resize(number)
+        self._resize(number)
 
     def calc_indices(self, index):
         '''
