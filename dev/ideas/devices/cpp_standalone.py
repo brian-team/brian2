@@ -9,11 +9,16 @@ from numpy import *
 from brian2 import *
 import time
 
+BrianLogger.log_level_debug()
+
 start = time.time()
 
 if standalone_mode:
     from brian2.devices.cpp_standalone import *
     set_device('cpp_standalone')
+else:
+    brian_prefs['codegen.target'] = 'weave'
+    #brian_prefs['codegen.target'] = 'numpy'
 
 ##### Define the model
 tau = 1*ms
@@ -34,12 +39,19 @@ G = NeuronGroup(N, eqs,
                 refractory=refractory,
                 name='gp')
 M = SpikeMonitor(G)
-#G2 = NeuronGroup(1, eqs, reset=reset, threshold=threshold, refractory=refractory, name='gp2')
+G2 = NeuronGroup(1, eqs, reset=reset, threshold=threshold, refractory=refractory, name='gp2')
+#S = Synapses(G, G2, 'w:volt', pre='V+=w')
 # Run the network for 0 seconds to generate the code
-G.V = '1*volt'
+#print G.V.__class__
+#exit()
+#G.V['i>10'] = '1*volt'
+#G._set_with_code_conditional(G.variables['V'], 'i>10', '1*volt', 'group_variable_set_conditional')
+#print G.V[0], G.V[11]
+#exit()
 net = Network(G,
               M,
-              #G2,
+              G2,
+              #S,
               )
 
 if not standalone_mode:
