@@ -56,9 +56,14 @@ class Variable(object):
         Whether this is a boolean variable (also implies it is dimensionless).
         If specified as ``None`` and a `value` is given, checks the value
         itself. If no `value` is given, defaults to ``False``.
+    read_only : bool, optional
+        Whether this is a read-only variable, i.e. a variable that is set
+        internally and cannot be changed by the user (this is used for example
+        for the variable ``N``, the number of neurons in a group). Defaults
+        to ``False``.
     '''
     def __init__(self, unit, value=None, dtype=None, scalar=None,
-                 constant=False, is_bool=None):
+                 constant=False, is_bool=None, read_only=False):
         
         #: The variable's unit.
         self.unit = unit
@@ -100,6 +105,9 @@ class Variable(object):
         #: Whether the variable is constant during a run
         self.constant = constant
 
+        #: Whether the variable is read-only
+        self.read_only = read_only
+
     def get_value(self):
         '''
         Return the value associated with the variable (without units).
@@ -121,18 +129,10 @@ class Variable(object):
         '''
         return Quantity(self.get_value(), self.unit.dimensions)
 
-    def get_addressable_value(self, level=0):
-        '''
-        Get the value associated with the variable (without units) that allows
-        for indexing
-        '''
+    def get_addressable_value(self, group=None, level=0):
         return self.get_value()
 
-    def get_addressable_value_with_unit(self, level=0):
-        '''
-        Get the value associated with the variable (with units) that allows
-        for indexing
-        '''
+    def get_addressable_value_with_unit(self, group=None, level=0):
         return self.get_value_with_unit()
 
     def get_len(self):
@@ -168,7 +168,8 @@ class StochasticVariable(Variable):
     def __init__(self):
         # The units of stochastic variables is fixed
         Variable.__init__(self, second**(-.5), dtype=np.float64,
-                          scalar=False, constant=False, is_bool=False)
+                          scalar=False, constant=False, is_bool=False,
+                          read_only=True)
 
 
 class AttributeVariable(Variable):
@@ -192,17 +193,23 @@ class AttributeVariable(Variable):
     constant : bool, optional
         Whether the attribute's value is constant during a run. Defaults to
         ``False``.
+    read_only : bool, optional
+        Whether this is a read-only variable, i.e. a variable that is set
+        internally and cannot be changed by the user (this is used for example
+        for the variable ``N``, the number of neurons in a group). Defaults
+        to ``False``.
     Raises
     ------
     AttributeError
         If `obj` does not have an attribute `attribute`.
         
     '''
-    def __init__(self, unit, obj, attribute, constant=False):
+    def __init__(self, unit, obj, attribute, constant=False, read_only=True):
         # allow for the attribute to not exist yet
         value = getattr(obj, attribute, None)
         
-        Variable.__init__(self, unit, value, constant=constant)
+        Variable.__init__(self, unit, value, constant=constant,
+                          read_only=read_only)
         #: A reference to the object storing the variable's value         
         self.obj = obj
         #: The name of the attribute storing the variable's value
@@ -284,6 +291,9 @@ class VariableView(object):
 
     def __setitem__(self, item, value):
         variable = self.variable
+        if variable.read_only:
+            raise TypeError('Variable %s is read-only.' % self.name)
+
         # Both index and values are strings, use a single code object do deal
         # with this situation
         if isinstance(value, basestring) and isinstance(item, basestring):
@@ -431,14 +441,19 @@ class ArrayVariable(Variable):
     is_bool: bool, optional
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
+    read_only : bool, optional
+        Whether this is a read-only variable, i.e. a variable that is set
+        internally and cannot be changed by the user. Defaults
+        to ``False``.
     '''
     def __init__(self, name, unit, value, group_name=None, constant=False,
-                 scalar=False, is_bool=False):
+                 scalar=False, is_bool=False, read_only=False):
 
         self.name = name
 
         Variable.__init__(self, unit, value, scalar=scalar,
-                          constant=constant, is_bool=is_bool)
+                          constant=constant, is_bool=is_bool,
+                          read_only=read_only)
         #: The reference to the array storing the data for the variable.
         self.value = value
 
@@ -475,7 +490,7 @@ class DynamicArrayVariable(ArrayVariable):
 
     def __init__(self, name, unit, value, group_name=None,
                  constant=False, constant_size=True,
-                 scalar=False, is_bool=False):
+                 scalar=False, is_bool=False, read_only=False):
         if constant and not constant_size:
             raise ValueError('A variable cannot be constant and change in size')
         self.constant_size = constant_size
@@ -485,7 +500,8 @@ class DynamicArrayVariable(ArrayVariable):
                                                    group_name=group_name,
                                                    constant=constant,
                                                    scalar=scalar,
-                                                   is_bool=is_bool)
+                                                   is_bool=is_bool,
+                                                   read_only=read_only)
 
     def get_value(self):
         # The actual numpy array is accesible via DynamicArray1D.data

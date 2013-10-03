@@ -11,7 +11,7 @@ from brian2.core.base import BrianObject
 from brian2.core.variables import (ArrayVariable, StochasticVariable,
                                    AttributeVariable, Variable)
 from brian2.core.namespace import get_local_namespace
-from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
+from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit)
 from brian2.units.allunits import second
 from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
@@ -47,11 +47,11 @@ class Group(BrianObject):
 
     def _create_variables(self):
         return {'t': AttributeVariable(second, self.clock, 't_',
-                                       constant=False),
+                                       constant=False, read_only=True),
                 'dt': AttributeVariable(second, self.clock, 'dt_',
-                                        constant=True),
+                                        constant=True, read_only=True),
                 'N': AttributeVariable(Unit(1), self, '_N',
-                                       constant=True)
+                                       constant=True, read_only=True)
                 }
 
     def state_(self, name):
@@ -59,9 +59,14 @@ class Group(BrianObject):
         Gets the unitless array.
         '''
         try:
-            return self.variables[name].get_addressable_value(self)
+            var = self.variables[name]
         except KeyError:
-            raise KeyError("Array named "+name+" not found.")
+            raise KeyError("State variable "+name+" not found.")
+
+        if isinstance(var, ArrayVariable):
+            return var.get_addressable_value(self)
+        else:
+            return var.get_value()
         
     def state(self, name):
         '''
@@ -69,9 +74,13 @@ class Group(BrianObject):
         '''
         try:
             var = self.variables[name]
-            return var.get_addressable_value_with_unit(self)
         except KeyError:
-            raise KeyError("Array named "+name+" not found.")
+            raise KeyError("State variable "+name+" not found.")
+
+        if isinstance(var, ArrayVariable):
+            return var.get_addressable_value_with_unit(self)
+        else:
+            return var.get_value_with_unit()
 
     def __getattr__(self, name):
         # We do this because __setattr__ and __getattr__ are not active until
@@ -109,11 +118,15 @@ class Group(BrianObject):
             if not isinstance(val, basestring):
                 fail_for_dimension_mismatch(val, var.unit,
                                             'Incorrect units for setting %s' % name)
+            if var.read_only:
+                raise TypeError('Variable %s is read-only.' % name)
             # Make the call X.var = ... equivalent to X.var[:] = ...
             var.get_addressable_value_with_unit(self, level=1)[slice(None)] = val
         elif len(name) and name[-1]=='_' and name[:-1] in self.variables:
             # no unit checking
             var = self.variables[name[:-1]]
+            if var.read_only:
+                raise TypeError('Variable %s is read-only.' % name[:-1])
             # Make the call X.var = ... equivalent to X.var[:] = ...
             var.get_addressable_value(self, level=1)[slice(None)] = val
         else:
