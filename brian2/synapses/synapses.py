@@ -6,7 +6,6 @@ import re
 
 import numpy as np
 
-from brian2.core.base import BrianObject, Updater
 from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import (ArrayVariable, DynamicArrayVariable,
@@ -927,16 +926,3 @@ class Synapses(Group):
         else:
             raise IndexError('Unsupported index type {itype}'.format(itype=type(index)))
 
-
-def smallest_inttype(N):
-    '''
-    Returns the smallest signed integer dtype that can store N indexes.
-    '''
-    if N<=127:
-        return np.int8
-    elif N<=32727:
-        return np.int16
-    elif N<=2147483647:
-        return np.int32
-    else:
-        return np.int64
