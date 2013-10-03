@@ -98,7 +98,7 @@ class RuntimeDevice(Device):
                read_only=True):
         if dtype is None:
             dtype = smallest_inttype(size)
-        array = np.arange(start, start+size, dtype=dtype)
+        array = np.arange(start=start, stop=start+size, dtype=dtype)
         return ArrayVariable(name, Unit(1), array, group_name=owner.name,
                              constant=constant, is_bool=False,
                              read_only=read_only)

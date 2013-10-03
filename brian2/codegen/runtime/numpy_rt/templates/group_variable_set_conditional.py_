@@ -1,22 +1,17 @@
-import numpy as np
-
 # Phase 1: we compute the indices where the conditional setting is to
 # be applied, and to do this we want to vectorise over all the values,
 # but we don't want to do the iterate all protocol, so we explicitly
 # set the idx to be slice(None)
 _vectorisation_idx = _idx = slice(None)
-i = np.arange(N)
+
 {% for line in code_lines['condition'] %}
 {{line}}
 {% endfor %}
-
-print '_cond', _cond
 
 # Phase 2: having computed _cond, the boolean array of points where
 # the setting is to be applied, we want to vectorise over idx being
 # only these values.
 _vectorisation_idx = _idx = _cond
-i = i[_cond]
 {% for line in code_lines['statement'] %}
 {{line}}
 {% endfor %}

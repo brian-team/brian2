@@ -1,11 +1,9 @@
 # ITERATE_ALL { _idx }
 
-import numpy as np
-
-i = np.arange(N)
-_vectorisation_idx = i
+_vectorisation_idx = N
 
 {% for line in code_lines %}
 {{line}}
 {% endfor %}
+
 _return_values, = _cond.nonzero()

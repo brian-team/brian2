@@ -438,8 +438,7 @@ class Synapses(Group):
                 # it gets automatically resized
                 self.register_variable(var)
 
-        self.indices = {'_presynaptic_idx': self.variables['_synaptic_pre'],
-                        '_postsynaptic_idx': self.variables['_synaptic_post']}
+        self.indices = {}
 
         #: List of names of all updaters, e.g. ['pre', 'post']
         self._synaptic_updaters = []
@@ -608,17 +607,24 @@ class Synapses(Group):
         for name, var in getattr(self.source, 'variables', {}).iteritems():
             if isinstance(var, (ArrayVariable, Subexpression)):
                 v[name + '_pre'] = var
-                self.variable_indices[name + '_pre'] = '_presynaptic_idx'
+                self.variable_indices[name + '_pre'] = '_synaptic_pre'
         for name, var in getattr(self.target, 'variables', {}).iteritems():
             if isinstance(var, (ArrayVariable, Subexpression)):
                 v[name + '_post'] = var
-                self.variable_indices[name + '_post'] = '_postsynaptic_idx'
+                self.variable_indices[name + '_post'] = '_synaptic_post'
                 # Also add all the post variables without a suffix -- if this
                 # clashes with the name of a state variable defined in this
                 # Synapses group, the latter will overwrite the entry later and
                 # take precedence
                 v[name] = var
-                self.variable_indices[name] = '_postsynaptic_idx'
+                self.variable_indices[name] = '_synaptic_post'
+
+        if '_sub_idx' in self.source.variables:
+            v['_source_sub_idx'] = self.source.variables['_sub_idx']
+            self.variable_indices['_synaptic_pre'] = '_source_sub_idx'
+        if 'sub_idx' in self.target.variables:
+            v['_target_sub_idx'] = self.target.variables['_sub_idx']
+            self.variable_indices['_synaptic_post'] = '_target_sub_idx'
 
         self._pre_synaptic = [DynamicArray1D(0, dtype=np.int32)
                               for _ in xrange(len(self.source))]
@@ -772,9 +778,6 @@ class Synapses(Group):
             raise ValueError(('Cannot reduce number of synapses, '
                               '{} < {}').format(number, len(self)))
 
-        self.variables['i'].resize(number)
-        self.variables['j'].resize(number)
-
         for variable in self._registered_variables:
             variable.resize(number)
 
@@ -847,15 +850,35 @@ class Synapses(Group):
             variables = {
                 # Will be set in the template
                 'i': Variable(unit=Unit(1), constant=True),
-                'j': Variable(unit=Unit(1), constant=True)
+                'j': Variable(unit=Unit(1), constant=True),
             }
+            if '_sub_idx' in self.source.variables:
+                variables['_all_pre'] = self.source.variables['_sub_idx']
+            else:
+                variables['_all_pre'] = self.source.variables['i']
+
+            if '_sub_idx' in self.target.variables:
+                variables['_all_post'] = self.target.variables['_sub_idx']
+            else:
+                variables['_all_post'] = self.target.variables['i']
+
+            variable_indices = defaultdict(lambda: '_idx')
+            for varname in self.variables:
+                if self.variable_indices[varname] == '_synaptic_pre':
+                    variable_indices[varname] = '_all_pre'
+                elif self.variable_indices[varname] == '_synaptic_post':
+                    variable_indices[varname] = '_all_post'
+            variable_indices['_all_pre'] = 'i'
+            variable_indices['_all_post'] = 'j'
             codeobj = create_runner_codeobj(self,
                                             abstract_code,
                                             'synapses_create',
+                                            variable_indices=variable_indices,
                                             additional_variables=variables,
                                             additional_namespace=additional_namespace,
                                             check_units=False
                                             )
+            print 'CODE', codeobj.code
             codeobj()
         number = len(self.variables['_synaptic_pre'])
         self._resize(number)
@@ -879,9 +902,9 @@ class Synapses(Group):
             I, J, K = index
 
             pre_synapses = find_synapses(I, self._pre_synaptic,
-                                         self.variables['i'].get_value())
+                                         self.variables['_synaptic_pre'].get_value())
             post_synapses = find_synapses(J, self._post_synaptic,
-                                          self.variables['j'].get_value())
+                                          self.variables['_synaptic_post'].get_value())
             matching_synapses = np.intersect1d(pre_synapses, post_synapses,
                                                assume_unique=True)
 

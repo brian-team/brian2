@@ -145,30 +145,26 @@ class Group(BrianObject):
             # interpret the string expression
             namespace = get_local_namespace(1)
             additional_namespace = ('implicit-namespace', namespace)
-            # i is defined in the template
-            variables = {'i': Variable(Unit(1))}
             abstract_code = '_cond = ' + item
             check_code_units(abstract_code, self,
-                             additional_variables=variables,
                              additional_namespace=additional_namespace)
             template = self.templates.get('index_with_code',
                                           'state_variable_indexing')
             codeobj = create_runner_codeobj(self,
                                             abstract_code,
                                             template,
-                                            additional_variables=variables,
                                             additional_namespace=additional_namespace,
                                             )
-            return codeobj() + self.offset
+            return codeobj()
         else:
             if isinstance(item, slice):
                 start, stop, step = item.indices(self.N)
-                return np.arange(start, stop, step) + self.offset
+                return np.arange(start, stop, step)
             else:
                 index_array = np.asarray(item)
                 if not np.issubdtype(index_array.dtype, np.int):
                     raise TypeError('Indexing is only supported for integer arrays')
-                return index_array + self.offset
+                return index_array
 
     def _set_with_code(self, variable, group_indices, code,
                        template, additional_variables, check_units=True, level=0):
@@ -408,6 +404,13 @@ def create_runner_codeobj(group, code, template_name, indices=None,
 
     if variable_indices is None:
         variable_indices = group.variable_indices
+
+    # Add the indices needed by the variables
+    varnames = variables.keys()
+    for varname in varnames:
+        var_index = variable_indices[varname]
+        if var_index != '_idx':
+            variables[var_index] = all_variables[var_index]
 
     return get_device().code_object(
                              group,

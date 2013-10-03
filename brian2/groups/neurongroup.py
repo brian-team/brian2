@@ -376,7 +376,9 @@ class NeuronGroup(Group, SpikeSource):
         s['_spikespace'] = device.array(self, '_spikespace', self._N+1,
                                         Unit(1), dtype=np.int32,
                                         constant=False)
-
+        # Add the special variable "i" which can be used to refer to the neuron index
+        s['i'] = device.arange(self, 'i', self._N, constant=True,
+                               read_only=True)
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = ('constant' in eq.flags)

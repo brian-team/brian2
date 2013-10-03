@@ -47,7 +47,7 @@ class Language(object):
         '''
         raise NotImplementedError
 
-    def array_read_write(self, statements, variables):
+    def array_read_write(self, statements, variables, variable_indices):
         '''
         Helper function, gives the set of ArrayVariables that are read from and
         written to in the series of statements. Returns the pair read, write
@@ -66,4 +66,14 @@ class Language(object):
                    if isinstance(var, ArrayVariable) and varname in read)
         write = set(varname for varname, var in variables.items()
                     if isinstance(var, ArrayVariable) and varname in write)
-        return read, write
+        # Gather the indices stored as arrays (ignore _idx which is special)
+        indices = set()
+        indices |= set(variable_indices[varname] for varname in read
+                       if variable_indices[varname] != '_idx'
+                           and isinstance(variables[variable_indices[varname]],
+                                          ArrayVariable))
+        indices |= set(variable_indices[varname] for varname in write
+                       if variable_indices[varname] != '_idx'
+                           and isinstance(variables[variable_indices[varname]],
+                                          ArrayVariable))
+        return read, write, indices

@@ -1,8 +1,12 @@
 import weakref
+from collections import defaultdict
 
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
+from brian2.core.variables import Variable
 from brian2.groups.group import Group
+from brian2.devices.device import get_device
+from brian2.units.fundamentalunits import Unit
 
 __all__ = ['Subgroup']
 
@@ -43,13 +47,33 @@ class Subgroup(Group, SpikeSource):
         schedule = Scheduler(clock=source.clock, when='thresholds',
                              order=source.order+1)
         Group.__init__(self, when=schedule, name=name)
-        self.N = end-start
+        self._N = end-start
         self.start = start
         self.end = end
         self.offset = start
 
-        self.variables = self.source.variables
-        self.variable_indices = self.source.variable_indices
+        self.variables = dict(self.source.variables)
+        # overwrite the meaning of i and N
+        self.variables['i'] = get_device().arange(self, 'i', self._N,
+                                                  constant=True, read_only=True)
+        self.variables['N'] = Variable(Unit(1), value=self._N, constant=True,
+                                       read_only=True)
+        # All variables refer to the original group and have to use a special
+        # index
+        self.variable_indices = defaultdict(lambda: '_sub_idx')
+        # Only the variable i and the _sub_idx itself is stored in the subgroup
+        # and needs the normal index for this group
+        self.variable_indices['i'] = '_idx'
+        self.variable_indices['_sub_idx'] = '_idx'
+        for key, value in self.source.variable_indices.iteritems():
+            if value != '_idx':
+                raise ValueError(('Do not how to deal with variable %s using '
+                                  'index %s in a subgroup') % (key, value))
+        self.variables['_sub_idx'] = get_device().arange(self, '_sub_idx',
+                                                         self._N,
+                                                         start=self.start,
+                                                         constant=True,
+                                                         read_only=True)
         self.namespace = self.source.namespace
         self.codeobj_class = self.source.codeobj_class
 
@@ -59,7 +83,7 @@ class Subgroup(Group, SpikeSource):
     spikes = property(lambda self: self.source.spikes)
 
     def __len__(self):
-        return self.N
+        return self._N
         
     def __repr__(self):
         description = '<{classname} {name} of {source} from {start} to {end}>'

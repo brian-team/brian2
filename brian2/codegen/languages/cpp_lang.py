@@ -1,6 +1,8 @@
 '''
 TODO: use preferences to get arguments to Language
 '''
+import itertools
+
 import numpy
 
 from brian2.utils.stringtools import (deindent, stripped_deindented_lines,
@@ -140,10 +142,11 @@ class CPPLanguage(Language):
         # Note that C++ code does not care about the iterate_all argument -- it
         # always has to loop over the elements
 
-        read, write = self.array_read_write(statements, variables)
+        read, write = self.array_read_write(statements, variables,
+                                            variable_indices)
         lines = []
-        # read arrays
-        for varname in read:
+        # index and read arrays (index arrays first)
+        for varname in itertools.chain(indices, read):
             index_var = variable_indices[varname]
             var = variables[varname]
             if varname not in write:

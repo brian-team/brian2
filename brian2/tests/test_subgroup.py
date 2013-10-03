@@ -4,12 +4,12 @@ from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 from brian2 import *
 
 # We can only test C++ if weave is availabe
-try:
-    import scipy.weave
-    codeobj_classes = [NumpyCodeObject, WeaveCodeObject]
-except ImportError:
-    # Can't test C++
-    codeobj_classes = [NumpyCodeObject]
+#try:
+#    import scipy.weave
+#    codeobj_classes = [NumpyCodeObject, WeaveCodeObject]
+#except ImportError:
+#    # Can't test C++
+codeobj_classes = [NumpyCodeObject]
 
 
 def test_state_variables():
@@ -58,12 +58,12 @@ def test_state_variables_string_indices():
         assert len(SG.v['i>3']) == 1
 
         G.v = np.arange(10) * mV
-        assert len(SG.v['v>7*mv']) == 1
+        assert len(SG.v['v>7*mV']) == 1
 
         # Combined string indexing and assignment
         SG.v['i > 3'] = 'i*10*mV'
 
-        assert_equal(G.v[:], [0, 1, 2, 3, 4, 5, 6, 7, 80, 9] * mV)
+        assert_equal(G.v[:], [0, 1, 2, 3, 4, 5, 6, 7, 40, 9] * mV)
 
 def test_state_monitor():
     for codeobj_class in codeobj_classes:
@@ -107,7 +107,7 @@ def test_synapse_creation():
 
         S = Synapses(SG1, SG2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
         S.connect('v_post < 25')
-        assert len(S) == 5 * len(SG1)
+        assert len(S) == 5 * len(SG1), '%s != %s ' % (len(S),5 * len(SG1))
 
 
 def test_synapse_access():

@@ -60,7 +60,7 @@ class NumpyCodeObject(CodeObject):
             self.namespace[name] = value
 
             if isinstance(var, ArrayVariable):
-                self.namespace[var.arrayname] = var.get_value()
+                self.namespace[var.arrayname] = value
 
             if isinstance(var, DynamicArrayVariable):
                 self.namespace[var.name+'_object'] = var.get_object()

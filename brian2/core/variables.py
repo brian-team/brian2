@@ -266,23 +266,19 @@ class VariableView(object):
             indices = np.array([0])
         else:
             # Translate to an index meaningful for the variable
-            # (e.g. from a subgroup index to the index in the original group
-            #  or from a synaptic [i,j,k] index to the synapse number)
+            # (e.g. from a synaptic [i,j,k] index to the synapse number)
             indices = self.group.calc_indices(item)
-            # If the standard index of the group is not the same index that the
-            # variable uses, do a second translation step. This is necessary
-            # for example when indexing a pre- or postsynaptic variable in a
-            # Synapses object: S.x_post[0, 0] should return the x value of the
-            # first postsynaptic neuron.
-            var_index = self.group.variable_indices[self.name]
-            if var_index != '_idx':
-                indices = self.group.indices[var_index][indices]
 
         return indices
 
     def __getitem__(self, item):
         variable = self.variable
         indices = self.calc_indices(item)
+        # We are not going via code generation so we have to take care
+        # of correct indexing (in particular for subgroups) explicitly
+        var_index = self.group.variable_indices[variable.name]
+        if var_index != '_idx':
+            indices = self.group.variables[var_index].get_value()[indices]
 
         if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
             return variable.get_value()[indices]
@@ -299,8 +295,6 @@ class VariableView(object):
         if isinstance(value, basestring) and isinstance(item, basestring):
             check_units = self.unit is not None
             variables = {'offset': Variable(Unit(1), self.group.offset)}
-            if not 'i' in self.group.variables:
-                variables['i'] = Variable(Unit(1))
             template = self.group.templates.get('set_with_code_conditional',
                                                 'group_variable_set_conditional')
             self.group._set_with_code_conditional(variable, item, value,
@@ -312,8 +306,6 @@ class VariableView(object):
             indices = self.calc_indices(item)
             check_units = self.unit is not None
             variables = {'offset': Variable(Unit(1), self.group.offset)}
-            if not 'i' in self.group.variables:
-                variables['i'] = Variable(Unit(1))
             template = self.group.templates.get('set_with_code',
                                                 'group_variable_set')
             self.group._set_with_code(variable, indices, value,
@@ -325,6 +317,11 @@ class VariableView(object):
             indices = self.calc_indices(item)
             if not self.unit is None:
                 fail_for_dimension_mismatch(value, self.unit)
+            # We are not going via code generation so we have to take care
+            # of correct indexing (in particular for subgroups) explicitly
+            var_index = self.group.variable_indices[variable.name]
+            if var_index != '_idx':
+                indices = self.group.variables[var_index].get_value()[indices]
             variable.value[indices] = value
 
     def __array__(self, dtype=None):
