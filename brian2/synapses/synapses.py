@@ -423,8 +423,8 @@ class Synapses(Group):
 
         # Make use of a special template when setting/indexing variables with
         # code in order to allow references to pre- and postsynaptic variables
-        self._set_with_code_template = 'synaptic_variable_set'
-        self._index_with_code_template = 'synaptic_variable_indexing'
+        self.templates = {'set_with_code': 'synaptic_variable_set',
+                          'index_with_code': 'synaptic_variable_indexing'}
 
         # Setup variables
         self.variables = self._create_variables()

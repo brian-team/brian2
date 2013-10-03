@@ -41,6 +41,8 @@ class Group(BrianObject):
             self.variable_indices = defaultdict(lambda: '_idx')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
+        if not hasattr(self, 'templates'):
+            self.templates = {}
         self._group_attribute_access_active = True
 
     def _create_variables(self):
@@ -136,9 +138,11 @@ class Group(BrianObject):
             check_code_units(abstract_code, self,
                              additional_variables=variables,
                              additional_namespace=additional_namespace)
+            template = self.templates.get('index_with_code',
+                                          'state_variable_indexing')
             codeobj = create_runner_codeobj(self,
                                             abstract_code,
-                                            'state_variable_indexing',
+                                            template,
                                             additional_variables=variables,
                                             additional_namespace=additional_namespace,
                                             )
@@ -318,9 +322,16 @@ def create_runner_codeobj(group, code, template_name, indices=None,
     logger.debug('Creating code object for abstract code:\n' + str(code))
 
     if check_units:
-        check_code_units(code, group, additional_variables=additional_variables,
-                         additional_namespace=additional_namespace)
-        
+        if isinstance(code, dict):
+            for c in code.values():
+                check_code_units(c, group,
+                                 additional_variables=additional_variables,
+                                 additional_namespace=additional_namespace)
+        else:
+            check_code_units(code, group,
+                             additional_variables=additional_variables,
+                             additional_namespace=additional_namespace)
+
     codeobj_class = get_device().code_object_class(group.codeobj_class)
     template = getattr(codeobj_class.templater, template_name)
 

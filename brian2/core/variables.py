@@ -243,12 +243,10 @@ class VariableView(object):
         How much farther to go down in the stack to find the namespace.
     '''
 
-    def __init__(self, name, variable, group, template,
-                 unit=None, level=0):
+    def __init__(self, name, variable, group, unit=None, level=0):
         self.name = name
         self.variable = variable
         self.group = group
-        self.template = template
         self.unit = unit
         self.level = level
 
@@ -286,17 +284,35 @@ class VariableView(object):
 
     def __setitem__(self, item, value):
         variable = self.variable
-        indices = self.calc_indices(item)
-        if isinstance(value, basestring):
+        # Both index and values are strings, use a single code object do deal
+        # with this situation
+        if isinstance(value, basestring) and isinstance(item, basestring):
             check_units = self.unit is not None
             variables = {'offset': Variable(Unit(1), self.group.offset)}
             if not 'i' in self.group.variables:
                 variables['i'] = Variable(Unit(1))
+            template = self.group.templates.get('set_with_code_conditional',
+                                                'group_variable_set_conditional')
+            self.group._set_with_code_conditional(variable, item, value,
+                                                  template=template,
+                                                  additional_variables=variables,
+                                                  check_units=check_units,
+                                                  level=self.level + 1)
+        elif isinstance(value, basestring):
+            indices = self.calc_indices(item)
+            check_units = self.unit is not None
+            variables = {'offset': Variable(Unit(1), self.group.offset)}
+            if not 'i' in self.group.variables:
+                variables['i'] = Variable(Unit(1))
+            template = self.group.templates.get('set_with_code',
+                                                'group_variable_set')
             self.group._set_with_code(variable, indices, value,
-                                      template=self.template,
+                                      template=template,
                                       additional_variables=variables,
-                                      check_units=check_units, level=self.level + 1)
+                                      check_units=check_units,
+                                      level=self.level + 1)
         else:
+            indices = self.calc_indices(item)
             if not self.unit is None:
                 fail_for_dimension_mismatch(value, self.unit)
             variable.value[indices] = value
@@ -445,16 +461,10 @@ class ArrayVariable(Variable):
         self.set_value(value, item)
 
     def get_addressable_value(self, group, level=0):
-        template = getattr(group, '_set_with_code_template',
-                           'group_variable_set')
-        return VariableView(self.name, self, group, template=template,
-                            unit=None, level=level)
+        return VariableView(self.name, self, group, unit=None, level=level)
 
     def get_addressable_value_with_unit(self, group, level=0):
-        template = getattr(group, '_set_with_code_template',
-                           'group_variable_set')
-        return VariableView(self.name, self, group, template=template,
-                            unit=self.unit, level=level)
+        return VariableView(self.name, self, group, unit=self.unit, level=level)
 
 
 class DynamicArrayVariable(ArrayVariable):

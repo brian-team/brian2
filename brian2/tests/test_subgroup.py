@@ -48,6 +48,22 @@ def test_state_variables():
         assert_raises(DimensionMismatchError, lambda: SG.v.__iadd__(3))
         assert_raises(DimensionMismatchError, lambda: SG.v.__imul__(3*second))
 
+def test_state_variables_string_indices():
+    '''
+    Test accessing subgroups with string indices.
+    '''
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, 'v : volt', codeobj_class=codeobj_class)
+        SG = G[4:9]
+        assert len(SG.v['i>3']) == 1
+
+        G.v = np.arange(10) * mV
+        assert len(SG.v['v>7*mv']) == 1
+
+        # Combined string indexing and assignment
+        SG.v['i > 3'] = 'i*10*mV'
+
+        assert_equal(G.v[:], [0, 1, 2, 3, 4, 5, 6, 7, 80, 9] * mV)
 
 def test_state_monitor():
     for codeobj_class in codeobj_classes:
@@ -177,6 +193,7 @@ def test_wrong_indexing():
 
 if __name__ == '__main__':
     test_state_variables()
+    test_state_variables_string_indices()
     test_state_monitor()
     test_synapse_creation()
     test_synapse_access()
