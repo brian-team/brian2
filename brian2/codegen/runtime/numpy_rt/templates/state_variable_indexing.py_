@@ -6,4 +6,10 @@ _vectorisation_idx = N
 {{line}}
 {% endfor %}
 
-_return_values, = _cond.nonzero()
+if _cond is True:
+    _cond = slice(None)
+if _cond is False:
+    _cond = []
+
+# _variable is set in the abstract code, see Group._get_with_code
+_return_values = _variable[_cond]

@@ -3,6 +3,8 @@ Classes used to specify the type of a function, variable or common sub-expressio
 
 TODO: have a single global dtype rather than specify for each variable?
 '''
+import weakref
+
 import numpy as np
 
 from brian2.units.allunits import second
@@ -129,10 +131,10 @@ class Variable(object):
         '''
         return Quantity(self.get_value(), self.unit.dimensions)
 
-    def get_addressable_value(self, group=None, level=0):
+    def get_addressable_value(self, name, group=None, level=0):
         return self.get_value()
 
-    def get_addressable_value_with_unit(self, group=None, level=0):
+    def get_addressable_value_with_unit(self, name, group=None, level=0):
         return self.get_value_with_unit()
 
     def get_len(self):
@@ -253,7 +255,7 @@ class VariableView(object):
     def __init__(self, name, variable, group, unit=None, level=0):
         self.name = name
         self.variable = variable
-        self.group = group
+        self.group = weakref.proxy(group)
         self.unit = unit
         self.level = level
 
@@ -273,17 +275,25 @@ class VariableView(object):
 
     def __getitem__(self, item):
         variable = self.variable
-        indices = self.calc_indices(item)
-        # We are not going via code generation so we have to take care
-        # of correct indexing (in particular for subgroups) explicitly
-        var_index = self.group.variable_indices[variable.name]
-        if var_index != '_idx':
-            indices = self.group.variables[var_index].get_value()[indices]
+        if isinstance(item, basestring):
+            values = self.group._get_with_code(self.name, item, level=0)
+        else:
+            indices = self.calc_indices(item)
+            # We are not going via code generation so we have to take care
+            # of correct indexing (in particular for subgroups) explicitly
+            var_index = self.group.variable_indices[variable.name]
+            if var_index != '_idx':
+                indices = self.group.variables[var_index].get_value()[indices]
+            # For subexpressions, we always have to go through codegen
+            if isinstance(variable, Subexpression):
+                values = self.group._get_with_code(self.name, 'True', level=1)
+            else:
+                values = variable.get_value()[indices]
 
         if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
-            return variable.get_value()[indices]
+            return values
         else:
-            return Quantity(variable.get_value()[indices], self.unit.dimensions)
+            return Quantity(values, self.unit.dimensions)
 
     def __setitem__(self, item, value):
         variable = self.variable
@@ -294,23 +304,19 @@ class VariableView(object):
         # with this situation
         if isinstance(value, basestring) and isinstance(item, basestring):
             check_units = self.unit is not None
-            variables = {'offset': Variable(Unit(1), self.group.offset)}
             template = self.group.templates.get('set_with_code_conditional',
                                                 'group_variable_set_conditional')
             self.group._set_with_code_conditional(variable, item, value,
                                                   template=template,
-                                                  additional_variables=variables,
                                                   check_units=check_units,
                                                   level=self.level + 1)
         elif isinstance(value, basestring):
             indices = self.calc_indices(item)
             check_units = self.unit is not None
-            variables = {'offset': Variable(Unit(1), self.group.offset)}
             template = self.group.templates.get('set_with_code',
                                                 'group_variable_set')
             self.group._set_with_code(variable, indices, value,
                                       template=template,
-                                      additional_variables=variables,
                                       check_units=check_units,
                                       level=self.level + 1)
         else:
@@ -472,11 +478,13 @@ class ArrayVariable(Variable):
     def __setitem__(self, item, value):
         self.set_value(value, item)
 
-    def get_addressable_value(self, group, level=0):
-        return VariableView(self.name, self, group, unit=None, level=level)
+    def get_addressable_value(self, name, group, level=0):
+        return VariableView(name=name, variable=self, group=group, unit=None,
+                            level=level)
 
-    def get_addressable_value_with_unit(self, group, level=0):
-        return VariableView(self.name, self, group, unit=self.unit, level=level)
+    def get_addressable_value_with_unit(self, name, group, level=0):
+        return VariableView(name=name, variable=self, group=group,
+                            unit=self.unit, level=level)
 
 
 class DynamicArrayVariable(ArrayVariable):
@@ -513,19 +521,20 @@ class DynamicArrayVariable(ArrayVariable):
 
 class Subexpression(Variable):
     '''
-    An object providing information about a static equation in a model
-    definition, used as a hint in optimising. Can test if a variable is used
-    via ``var in spec``. The specifier is also able to return the result of
-    the expression.
+    An object providing information about a named subexpression in a model.
     
     Parameters
     ----------
     unit : `Unit`
-        The unit of the static equation
+        The unit of the subexpression.
+    name : str
+        The name of the subexpression.
     dtype : `numpy.dtype`
         The dtype used for the expression.
     expr : str
         The expression defining the static equation.
+    group : `Group`
+        The group to which the expression refers.
     variables : dict
         The variables dictionary, containing variables for the
         model variables used in the expression
@@ -536,9 +545,12 @@ class Subexpression(Variable):
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
-    def __init__(self, unit, dtype, expr, is_bool=False):
+    def __init__(self, name, unit, dtype, expr, group, is_bool=False):
+        self.name = name
+        self.group = group
         Variable.__init__(self, unit, value=None, dtype=dtype,
-                          constant=False, scalar=False, is_bool=is_bool)
+                          constant=False, scalar=False, is_bool=is_bool,
+                          read_only=True)
 
         #: The expression defining the static equation.
         self.expr = expr.strip()
@@ -547,6 +559,14 @@ class Subexpression(Variable):
         
     def get_value(self):
         raise TypeError('get_value should never be called for a Subexpression')
+
+    def get_addressable_value(self, name, group, level=0):
+        return VariableView(name=name, variable=self, group=group, unit=None,
+                            level=level)
+
+    def get_addressable_value_with_unit(self, name, group, level=0):
+        return VariableView(name=name, variable=self, group=group,
+                            unit=self.unit, level=level)
 
     def __contains__(self, var):
         return var in self.identifiers

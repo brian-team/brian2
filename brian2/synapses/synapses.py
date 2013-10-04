@@ -181,6 +181,11 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.abstract_code += 'lastupdate = t\n'
 
     def before_run(self, namespace):
+
+        # Store the subgroup information
+        self.spikes_start = self.source.start
+        self.spikes_stop = self.source.stop
+
         # Get the existing spikes in the queue
         spikes = self.queue.extract_spikes()
         # Convert the integer time steps into floating point time
@@ -210,13 +215,10 @@ class SynapticPathway(GroupCodeRunner, Group):
     def push_spikes(self):
         # Push new spikes into the queue
         spikes = self.source.spikes
-        offset = self.source.offset
         if len(spikes):
-            # This check is necessary for subgroups
-            max_index = len(self.synapse_indices) + offset
-            indices = np.concatenate([self.synapse_indices[spike - offset]
-                                      for spike in spikes if
-                                      offset <= spike < max_index]).astype(np.int32)
+            indices = np.concatenate([self.synapse_indices[spike - self.spikes_start][:]
+                                      for spike in spikes
+                                      if self.spikes_start <= spike < self.spikes_stop]).astype(np.int32)
 
             if len(indices):
                 if len(self._delays) > 1:
@@ -274,7 +276,7 @@ def slice_to_test(x):
 def find_synapses(index, neuron_synaptic, synaptic_neuron):
     if isinstance(index, (int, slice)):
         test = slice_to_test(index)
-        found = test(synaptic_neuron[:])
+        found = test(synaptic_neuron)
         synapses = np.flatnonzero(found)
     else:
         synapses = []
@@ -423,7 +425,7 @@ class Synapses(Group):
         # Make use of a special template when setting/indexing variables with
         # code in order to allow references to pre- and postsynaptic variables
         self.templates = {'set_with_code': 'synaptic_variable_set',
-                          'index_with_code': 'synaptic_variable_indexing'}
+                          'index_with_code': 'state_variable_indexing'}
 
         # Setup variables
         self.variables = self._create_variables()
@@ -605,26 +607,17 @@ class Synapses(Group):
         # Add all the pre and post variables with _pre and _post suffixes
         self.variable_indices = defaultdict(lambda: '_idx')
         for name, var in getattr(self.source, 'variables', {}).iteritems():
-            if isinstance(var, (ArrayVariable, Subexpression)):
-                v[name + '_pre'] = var
-                self.variable_indices[name + '_pre'] = '_synaptic_pre'
+            v[name + '_pre'] = var
+            self.variable_indices[name + '_pre'] = '_synaptic_pre'
         for name, var in getattr(self.target, 'variables', {}).iteritems():
-            if isinstance(var, (ArrayVariable, Subexpression)):
-                v[name + '_post'] = var
-                self.variable_indices[name + '_post'] = '_synaptic_post'
-                # Also add all the post variables without a suffix -- if this
-                # clashes with the name of a state variable defined in this
-                # Synapses group, the latter will overwrite the entry later and
-                # take precedence
-                v[name] = var
-                self.variable_indices[name] = '_synaptic_post'
-
-        if '_sub_idx' in self.source.variables:
-            v['_source_sub_idx'] = self.source.variables['_sub_idx']
-            self.variable_indices['_synaptic_pre'] = '_source_sub_idx'
-        if 'sub_idx' in self.target.variables:
-            v['_target_sub_idx'] = self.target.variables['_sub_idx']
-            self.variable_indices['_synaptic_post'] = '_target_sub_idx'
+            v[name + '_post'] = var
+            self.variable_indices[name + '_post'] = '_synaptic_post'
+            # Also add all the post variables without a suffix -- if this
+            # clashes with the name of a state variable defined in this
+            # Synapses group, the latter will overwrite the entry later and
+            # take precedence
+            v[name] = var
+            self.variable_indices[name] = '_synaptic_post'
 
         self._pre_synaptic = [DynamicArray1D(0, dtype=np.int32)
                               for _ in xrange(len(self.source))]
@@ -637,10 +630,6 @@ class Synapses(Group):
                                                   constant=True),
                   '_num_target_neurons': Variable(Unit(1), len(self.target),
                                                   constant=True),
-                  '_source_offset': Variable(Unit(1), self.source.offset,
-                                             constant=True),
-                  '_target_offset': Variable(Unit(1), self.target.offset,
-                                             constant=True),
                   '_synaptic_pre': dev.dynamic_array_1d(self, '_synaptic_pre',
                                                         0, Unit(1), dtype=np.int32,
                                                         constant_size=True),
@@ -653,8 +642,10 @@ class Synapses(Group):
                   '_post_synaptic': Variable(Unit(1), self._post_synaptic)})
 
         # Allow accessing the pre- and postsynaptic indices in a nicer way
-        v.update({'i': v['_synaptic_pre'],
-                  'j': v['_synaptic_post']})
+        v.update({'i': self.source.variables['i'],
+                  'j': self.target.variables['i']})
+        self.variable_indices['i'] = '_synaptic_pre'
+        self.variable_indices['j'] = '_synaptic_post'
 
         for eq in itertools.chain(self.equations.itervalues(),
                                   self.event_driven.itervalues()
@@ -677,7 +668,8 @@ class Synapses(Group):
                     # name, delete the reference to the postsynaptic index
                     del self.variable_indices[eq.varname]
             elif eq.type == STATIC_EQUATION:
-                v.update({eq.varname: Subexpression(eq.unit,
+                v.update({eq.varname: Subexpression(eq.varname,
+                                                    eq.unit,
                                                     brian_prefs['core.default_scalar_dtype'],
                                                     str(eq.expr),
                                                     is_bool=eq.is_bool)})
@@ -825,9 +817,22 @@ class Synapses(Group):
             new_N = old_N + new_synapses
             self._resize(new_N)
 
-            self.variables['_synaptic_pre'].get_value()[old_N:new_N] = sources
-            self.variables['_synaptic_post'].get_value()[old_N:new_N] = targets
+            # Deal with subgroups
+            if '_sub_idx' in self.source.variables:
+                real_sources = self.source.variables['_sub_idx'][sources]
+            else:
+                real_sources = sources
+            if '_sub_idx' in self.target.variables:
+                real_targets = self.target.variables['_sub_idx'][targets]
+            else:
+                real_targets = targets
+            self.variables['_synaptic_pre'].get_value()[old_N:new_N] = real_sources
+            self.variables['_synaptic_post'].get_value()[old_N:new_N] = real_targets
             synapse_idx = old_N
+
+            # TODO: Use subgroup-relative neuron numbers here, this is what
+            # is needed during spike propagation
+
             for source, target in zip(sources, targets):
                 # We want to access the raw arrays here
                 synapses = self._pre_synaptic[source]
@@ -838,7 +843,9 @@ class Synapses(Group):
                 synapses[-1] = synapse_idx
                 synapse_idx += 1
         else:
-            abstract_code = '_cond = ' + condition + '\n'
+            abstract_code = '_pre_idcs = _all_pre \n'
+            abstract_code += '_post_idcs = _all_post \n'
+            abstract_code += '_cond = ' + condition + '\n'
             abstract_code += '_n = ' + str(n) + '\n'
             abstract_code += '_p = ' + str(p)
             namespace = get_local_namespace(level + 1)
@@ -878,7 +885,6 @@ class Synapses(Group):
                                             additional_namespace=additional_namespace,
                                             check_units=False
                                             )
-            print 'CODE', codeobj.code
             codeobj()
         number = len(self.variables['_synaptic_pre'])
         self._resize(number)
@@ -902,9 +908,9 @@ class Synapses(Group):
             I, J, K = index
 
             pre_synapses = find_synapses(I, self._pre_synaptic,
-                                         self.variables['_synaptic_pre'].get_value())
+                                         self.variables['_synaptic_pre'].get_value() - self.source.start)
             post_synapses = find_synapses(J, self._post_synaptic,
-                                          self.variables['_synaptic_post'].get_value())
+                                          self.variables['_synaptic_post'].get_value() - self.target.start)
             matching_synapses = np.intersect1d(pre_synapses, post_synapses,
                                                assume_unique=True)
 

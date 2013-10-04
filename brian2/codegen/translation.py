@@ -21,10 +21,11 @@ from numpy import float64
 
 from brian2.core.variables import Variable, Subexpression
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
-                                      get_identifiers)
+                                      get_identifiers, word_substitute)
+from brian2.parsing.statements import parse_statement
 
 from .statements import Statement
-from brian2.parsing.statements import parse_statement
+
 
 __all__ = ['translate', 'make_statements', 'analyse_identifiers',
            'get_identifiers_recursively']
@@ -105,7 +106,7 @@ def get_identifiers_recursively(expr, variables):
     identifiers = get_identifiers(expr)
     for name in set(identifiers):
         if name in variables and isinstance(variables[name], Subexpression):
-            s_identifiers = get_identifiers_recursively(variables[name].expr,
+            s_identifiers = get_identifiers_recursively(translate_subexpression(variables[name], variables),
                                                         variables)
             identifiers |= s_identifiers
     return identifiers
@@ -181,6 +182,9 @@ def make_statements(code, variables, dtype):
     # in the RHS changes value.
     #subexpressions = get_all_subexpressions()
     subexpressions = dict((name, val) for name, val in variables.items() if isinstance(val, Subexpression))
+
+    subexpressions = translate_subexpressions(subexpressions, variables)
+
     if DEBUG:
         print 'SUBEXPRESSIONS:', subexpressions.keys()
     statements = []
@@ -237,6 +241,49 @@ def make_statements(code, variables, dtype):
 
     return statements
 
+
+def translate_subexpression(subexpr, variables):
+    substitutions = {}
+    for name in get_identifiers(subexpr.expr):
+        if name not in subexpr.group.variables:
+            # Seems to be a name referring to an external variable,
+            # nothing to do
+            continue
+        subexpr_var = subexpr.group.variables[name]
+        if name in variables and variables[name] is subexpr_var:
+            # Variable is available under the same name, nothing to do
+            continue
+
+        # The variable is not available under the same name, but maybe
+        # under a different name (e.g. x_post instead of x)
+        found_variable = False
+        for varname, variable in variables.iteritems():
+            if variable is subexpr_var:
+                # We found it
+                substitutions[name] = varname
+                found_variable = True
+                break
+        if not found_variable:
+            raise KeyError(('Variable %s, referred to by the subexpression '
+                            '%s, is not available in this '
+                            'context.') % (name, subexpr.name))
+    new_expr = word_substitute(subexpr.expr, substitutions)
+    return new_expr
+
+
+def translate_subexpressions(subexpressions, variables):
+    new_subexpressions = {}
+    for subexpr_name, subexpr in subexpressions.iteritems():
+        new_expr = translate_subexpression(subexpr, variables)
+        new_subexpressions[subexpr_name] = Subexpression(subexpr.name,
+                                                         subexpr.unit,
+                                                         subexpr.dtype,
+                                                         new_expr,
+                                                         subexpr.group,
+                                                         is_bool=subexpr.is_bool)
+
+    subexpressions.update(new_subexpressions)
+    return subexpressions
 
 def translate(code, variables, namespace, dtype, codeobj_class,
               variable_indices, iterate_all):

@@ -76,4 +76,6 @@ class Language(object):
                        if variable_indices[varname] != '_idx'
                            and isinstance(variables[variable_indices[varname]],
                                           ArrayVariable))
+        # don't list arrays that are read explicitly and used as indices twice
+        read -= indices
         return read, write, indices

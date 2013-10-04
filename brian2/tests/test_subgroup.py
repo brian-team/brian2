@@ -4,12 +4,12 @@ from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 from brian2 import *
 
 # We can only test C++ if weave is availabe
-#try:
-#    import scipy.weave
-#    codeobj_classes = [NumpyCodeObject, WeaveCodeObject]
-#except ImportError:
-#    # Can't test C++
-codeobj_classes = [NumpyCodeObject]
+try:
+    import scipy.weave
+    codeobj_classes = [NumpyCodeObject, WeaveCodeObject]
+except ImportError:
+    # Can't test C++
+    codeobj_classes = [NumpyCodeObject]
 
 
 def test_state_variables():
@@ -94,9 +94,10 @@ def test_synapse_creation():
         S.connect(2, 2)  # Should correspond to (2, 12)
         S.connect('i==4 and j==5') # Should correspond to (4, 15)
 
-        # Only relative numbers are stored
+        # Internally, the "real" neuron indices should be used
         assert_equal(S._synaptic_pre[:], np.array([2, 4]))
-        assert_equal(S._synaptic_post[:], np.array([2, 5]))
+        assert_equal(S._synaptic_post[:], np.array([12, 15]))
+        # For the user, the subgroup-relative indices should be presented
         assert_equal(S.i[:], np.array([2, 4]))
         assert_equal(S.j[:], np.array([2, 5]))
 
@@ -115,7 +116,7 @@ def test_synapse_access():
         G1 = NeuronGroup(10, 'v:1', codeobj_class=codeobj_class)
         G1.v = 'i'
         G2 = NeuronGroup(20, 'v:1', codeobj_class=codeobj_class)
-        G2.v = '10 + i'
+        G2.v = 'i'
         SG1 = G1[:5]
         SG2 = G2[10:]
         S = Synapses(SG1, SG2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
@@ -134,9 +135,9 @@ def test_synapse_access():
         assert_equal(S.w[2:, :], S.w['v_pre >= 2'])
         assert_equal(S.w[:, :5], S.w['v_post < 15'])
         S.w = 'v_post'
-        assert_equal(S.w[:], S.j[:] + 20)
+        assert_equal(S.w[:], S.j[:] + 10)
         S.w = 'v_post + v_pre'
-        assert_equal(S.w[:], S.j[:] + 20 + S.i[:])
+        assert_equal(S.w[:], S.j[:] + 10 + S.i[:])
 
 
 def test_synaptic_propagation():
