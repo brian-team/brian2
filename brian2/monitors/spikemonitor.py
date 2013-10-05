@@ -50,7 +50,7 @@ class SpikeMonitor(BrianObject):
 
         # Handle subgroups correctly
         start = getattr(self.source, 'start', 0)
-        end = getattr(self.source, 'end', len(self.source))
+        stop = getattr(self.source, 'stop', len(self.source))
 
         device = get_device()
         self.variables = {'t': AttributeVariable(second, self.clock, 't_'),
@@ -67,7 +67,7 @@ class SpikeMonitor(BrianObject):
                                                   dtype=np.int32),
                            '_source_start': Variable(Unit(1), start,
                                                      constant=True),
-                           '_source_end': Variable(Unit(1), end,
+                           '_source_stop': Variable(Unit(1), stop,
                                                    constant=True)}
 
     def reinit(self):

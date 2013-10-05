@@ -3,6 +3,8 @@ Classes used to specify the type of a function, variable or common sub-expressio
 
 TODO: have a single global dtype rather than specify for each variable?
 '''
+import weakref
+
 import numpy as np
 
 from brian2.units.allunits import second
@@ -56,9 +58,14 @@ class Variable(object):
         Whether this is a boolean variable (also implies it is dimensionless).
         If specified as ``None`` and a `value` is given, checks the value
         itself. If no `value` is given, defaults to ``False``.
+    read_only : bool, optional
+        Whether this is a read-only variable, i.e. a variable that is set
+        internally and cannot be changed by the user (this is used for example
+        for the variable ``N``, the number of neurons in a group). Defaults
+        to ``False``.
     '''
     def __init__(self, unit, value=None, dtype=None, scalar=None,
-                 constant=False, is_bool=None):
+                 constant=False, is_bool=None, read_only=False):
         
         #: The variable's unit.
         self.unit = unit
@@ -100,6 +107,9 @@ class Variable(object):
         #: Whether the variable is constant during a run
         self.constant = constant
 
+        #: Whether the variable is read-only
+        self.read_only = read_only
+
     def get_value(self):
         '''
         Return the value associated with the variable (without units).
@@ -121,18 +131,10 @@ class Variable(object):
         '''
         return Quantity(self.get_value(), self.unit.dimensions)
 
-    def get_addressable_value(self, level=0):
-        '''
-        Get the value associated with the variable (without units) that allows
-        for indexing
-        '''
+    def get_addressable_value(self, name, group=None, level=0):
         return self.get_value()
 
-    def get_addressable_value_with_unit(self, level=0):
-        '''
-        Get the value associated with the variable (with units) that allows
-        for indexing
-        '''
+    def get_addressable_value_with_unit(self, name, group=None, level=0):
         return self.get_value_with_unit()
 
     def get_len(self):
@@ -168,7 +170,8 @@ class StochasticVariable(Variable):
     def __init__(self):
         # The units of stochastic variables is fixed
         Variable.__init__(self, second**(-.5), dtype=np.float64,
-                          scalar=False, constant=False, is_bool=False)
+                          scalar=False, constant=False, is_bool=False,
+                          read_only=True)
 
 
 class AttributeVariable(Variable):
@@ -192,17 +195,23 @@ class AttributeVariable(Variable):
     constant : bool, optional
         Whether the attribute's value is constant during a run. Defaults to
         ``False``.
+    read_only : bool, optional
+        Whether this is a read-only variable, i.e. a variable that is set
+        internally and cannot be changed by the user (this is used for example
+        for the variable ``N``, the number of neurons in a group). Defaults
+        to ``False``.
     Raises
     ------
     AttributeError
         If `obj` does not have an attribute `attribute`.
         
     '''
-    def __init__(self, unit, obj, attribute, constant=False):
+    def __init__(self, unit, obj, attribute, constant=False, read_only=True):
         # allow for the attribute to not exist yet
         value = getattr(obj, attribute, None)
         
-        Variable.__init__(self, unit, value, constant=constant)
+        Variable.__init__(self, unit, value, constant=constant,
+                          read_only=read_only)
         #: A reference to the object storing the variable's value         
         self.obj = obj
         #: The name of the attribute storing the variable's value
@@ -243,12 +252,10 @@ class VariableView(object):
         How much farther to go down in the stack to find the namespace.
     '''
 
-    def __init__(self, name, variable, group, template,
-                 unit=None, level=0):
+    def __init__(self, name, variable, group, unit=None, level=0):
         self.name = name
         self.variable = variable
-        self.group = group
-        self.template = template
+        self.group = weakref.proxy(group)
         self.unit = unit
         self.level = level
 
@@ -261,44 +268,66 @@ class VariableView(object):
             indices = np.array([0])
         else:
             # Translate to an index meaningful for the variable
-            # (e.g. from a subgroup index to the index in the original group
-            #  or from a synaptic [i,j,k] index to the synapse number)
+            # (e.g. from a synaptic [i,j,k] index to the synapse number)
             indices = self.group.calc_indices(item)
-            # If the standard index of the group is not the same index that the
-            # variable uses, do a second translation step. This is necessary
-            # for example when indexing a pre- or postsynaptic variable in a
-            # Synapses object: S.x_post[0, 0] should return the x value of the
-            # first postsynaptic neuron.
-            var_index = self.group.variable_indices[self.name]
-            if var_index != '_idx':
-                indices = self.group.indices[var_index][indices]
 
         return indices
 
     def __getitem__(self, item):
         variable = self.variable
-        indices = self.calc_indices(item)
+        if isinstance(item, basestring):
+            values = self.group._get_with_code(self.name, item, level=0)
+        else:
+            indices = self.calc_indices(item)
+            # We are not going via code generation so we have to take care
+            # of correct indexing (in particular for subgroups) explicitly
+            var_index = self.group.variable_indices[variable.name]
+            if var_index != '_idx':
+                indices = self.group.variables[var_index].get_value()[indices]
+            # For subexpressions, we always have to go through codegen
+            if isinstance(variable, Subexpression):
+                values = self.group._get_with_code(self.name, 'True', level=1)
+            else:
+                values = variable.get_value()[indices]
 
         if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
-            return variable.get_value()[indices]
+            return values
         else:
-            return Quantity(variable.get_value()[indices], self.unit.dimensions)
+            return Quantity(values, self.unit.dimensions)
 
     def __setitem__(self, item, value):
         variable = self.variable
-        indices = self.calc_indices(item)
-        if isinstance(value, basestring):
+        if variable.read_only:
+            raise TypeError('Variable %s is read-only.' % self.name)
+
+        # Both index and values are strings, use a single code object do deal
+        # with this situation
+        if isinstance(value, basestring) and isinstance(item, basestring):
             check_units = self.unit is not None
-            variables = {'offset': Variable(Unit(1), self.group.offset)}
-            if not 'i' in self.group.variables:
-                variables['i'] = Variable(Unit(1))
+            template = self.group.templates.get('set_with_code_conditional',
+                                                'group_variable_set_conditional')
+            self.group._set_with_code_conditional(variable, item, value,
+                                                  template=template,
+                                                  check_units=check_units,
+                                                  level=self.level + 1)
+        elif isinstance(value, basestring):
+            indices = self.calc_indices(item)
+            check_units = self.unit is not None
+            template = self.group.templates.get('set_with_code',
+                                                'group_variable_set')
             self.group._set_with_code(variable, indices, value,
-                                      template=self.template,
-                                      additional_variables=variables,
-                                      check_units=check_units, level=self.level + 1)
+                                      template=template,
+                                      check_units=check_units,
+                                      level=self.level + 1)
         else:
+            indices = self.calc_indices(item)
             if not self.unit is None:
                 fail_for_dimension_mismatch(value, self.unit)
+            # We are not going via code generation so we have to take care
+            # of correct indexing (in particular for subgroups) explicitly
+            var_index = self.group.variable_indices[variable.name]
+            if var_index != '_idx':
+                indices = self.group.variables[var_index].get_value()[indices]
             variable.value[indices] = value
 
     def __array__(self, dtype=None):
@@ -415,14 +444,19 @@ class ArrayVariable(Variable):
     is_bool: bool, optional
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
+    read_only : bool, optional
+        Whether this is a read-only variable, i.e. a variable that is set
+        internally and cannot be changed by the user. Defaults
+        to ``False``.
     '''
     def __init__(self, name, unit, value, group_name=None, constant=False,
-                 scalar=False, is_bool=False):
+                 scalar=False, is_bool=False, read_only=False):
 
         self.name = name
 
         Variable.__init__(self, unit, value, scalar=scalar,
-                          constant=constant, is_bool=is_bool)
+                          constant=constant, is_bool=is_bool,
+                          read_only=read_only)
         #: The reference to the array storing the data for the variable.
         self.value = value
 
@@ -444,16 +478,12 @@ class ArrayVariable(Variable):
     def __setitem__(self, item, value):
         self.set_value(value, item)
 
-    def get_addressable_value(self, group, level=0):
-        template = getattr(group, '_set_with_code_template',
-                           'group_variable_set')
-        return VariableView(self.name, self, group, template=template,
-                            unit=None, level=level)
+    def get_addressable_value(self, name, group, level=0):
+        return VariableView(name=name, variable=self, group=group, unit=None,
+                            level=level)
 
-    def get_addressable_value_with_unit(self, group, level=0):
-        template = getattr(group, '_set_with_code_template',
-                           'group_variable_set')
-        return VariableView(self.name, self, group, template=template,
+    def get_addressable_value_with_unit(self, name, group, level=0):
+        return VariableView(name=name, variable=self, group=group,
                             unit=self.unit, level=level)
 
 
@@ -465,7 +495,7 @@ class DynamicArrayVariable(ArrayVariable):
 
     def __init__(self, name, unit, value, group_name=None,
                  constant=False, constant_size=True,
-                 scalar=False, is_bool=False):
+                 scalar=False, is_bool=False, read_only=False):
         if constant and not constant_size:
             raise ValueError('A variable cannot be constant and change in size')
         self.constant_size = constant_size
@@ -475,7 +505,8 @@ class DynamicArrayVariable(ArrayVariable):
                                                    group_name=group_name,
                                                    constant=constant,
                                                    scalar=scalar,
-                                                   is_bool=is_bool)
+                                                   is_bool=is_bool,
+                                                   read_only=read_only)
 
     def get_value(self):
         # The actual numpy array is accesible via DynamicArray1D.data
@@ -490,19 +521,20 @@ class DynamicArrayVariable(ArrayVariable):
 
 class Subexpression(Variable):
     '''
-    An object providing information about a static equation in a model
-    definition, used as a hint in optimising. Can test if a variable is used
-    via ``var in spec``. The specifier is also able to return the result of
-    the expression.
+    An object providing information about a named subexpression in a model.
     
     Parameters
     ----------
     unit : `Unit`
-        The unit of the static equation
+        The unit of the subexpression.
+    name : str
+        The name of the subexpression.
     dtype : `numpy.dtype`
         The dtype used for the expression.
     expr : str
         The expression defining the static equation.
+    group : `Group`
+        The group to which the expression refers.
     variables : dict
         The variables dictionary, containing variables for the
         model variables used in the expression
@@ -513,9 +545,12 @@ class Subexpression(Variable):
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
-    def __init__(self, unit, dtype, expr, is_bool=False):
+    def __init__(self, name, unit, dtype, expr, group, is_bool=False):
+        self.name = name
+        self.group = group
         Variable.__init__(self, unit, value=None, dtype=dtype,
-                          constant=False, scalar=False, is_bool=is_bool)
+                          constant=False, scalar=False, is_bool=is_bool,
+                          read_only=True)
 
         #: The expression defining the static equation.
         self.expr = expr.strip()
@@ -524,6 +559,14 @@ class Subexpression(Variable):
         
     def get_value(self):
         raise TypeError('get_value should never be called for a Subexpression')
+
+    def get_addressable_value(self, name, group, level=0):
+        return VariableView(name=name, variable=self, group=group, unit=None,
+                            level=level)
+
+    def get_addressable_value_with_unit(self, name, group, level=0):
+        return VariableView(name=name, variable=self, group=group,
+                            unit=self.unit, level=level)
 
     def __contains__(self, var):
         return var in self.identifiers

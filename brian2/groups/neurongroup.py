@@ -218,6 +218,9 @@ class NeuronGroup(Group, SpikeSource):
         if N < 1:
             raise ValueError("NeuronGroup size should be at least 1, was " + str(N))
 
+        self.start = 0
+        self.stop = self._N
+
         ##### Prepare and validate equations
         if isinstance(model, basestring):
             model = Equations(model)
@@ -376,7 +379,9 @@ class NeuronGroup(Group, SpikeSource):
         s['_spikespace'] = device.array(self, '_spikespace', self._N+1,
                                         Unit(1), dtype=np.int32,
                                         constant=False)
-
+        # Add the special variable "i" which can be used to refer to the neuron index
+        s['i'] = device.arange(self, 'i', self._N, constant=True,
+                               read_only=True)
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = ('constant' in eq.flags)
@@ -386,9 +391,11 @@ class NeuronGroup(Group, SpikeSource):
                                              is_bool=eq.is_bool)
         
             elif eq.type == STATIC_EQUATION:
-                s[eq.varname] = Subexpression(eq.unit,
-                                              brian_prefs['core.default_scalar_dtype'],
-                                              str(eq.expr),
+                s[eq.varname] = Subexpression(eq.varname,
+                                              eq.unit,
+                                              dtype=brian_prefs['core.default_scalar_dtype'],
+                                              expr=str(eq.expr),
+                                              group=self,
                                               is_bool=eq.is_bool)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)

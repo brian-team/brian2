@@ -1,3 +1,5 @@
+import itertools
+
 import numpy as np
 
 from brian2.utils.stringtools import word_substitute
@@ -40,10 +42,11 @@ class NumpyLanguage(Language):
     def translate_statement_sequence(self, statements, variables, namespace,
                                      variable_indices, iterate_all,
                                      codeobj_class):
-        read, write = self.array_read_write(statements, variables)
+        read, write, indices = self.array_read_write(statements, variables,
+                                            variable_indices)
         lines = []
-        # read arrays
-        for var in read:
+        # index and read arrays (index arrays first)
+        for var in itertools.chain(indices, read):
             spec = variables[var]
             index = variable_indices[var]
             line = var + ' = ' + spec.arrayname

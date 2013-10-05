@@ -5,9 +5,8 @@
 	int _cpp_numelements = 0;
 	// Container for all the potential indices
 	npy_int *_elements = (npy_int *)malloc(sizeof(npy_int) * N);
-	for(int i=0; i<N; i++)
+	for(int _idx=0; _idx<N; _idx++)
 	{
-	    const int _idx = i;
 	    const int _vectorisation_idx = _idx;
 	    {{ super() }}
 		if(_cond) {

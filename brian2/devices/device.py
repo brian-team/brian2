@@ -5,6 +5,7 @@ from brian2.codegen.codeobject import create_codeobject
 from brian2.codegen.targets import codegen_targets
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import ArrayVariable, DynamicArrayVariable
+from brian2.units.fundamentalunits import Unit
 
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
@@ -39,15 +40,21 @@ class Device(object):
         pass
     
     def array(self, owner, name, size, unit, dtype=None, constant=False,
-              is_bool=False):
+              is_bool=False, read_only=False):
+        raise NotImplementedError()
+
+    def arange(self, owner, name, size, start=0, dtype=None, constant=True,
+               read_only=True):
         raise NotImplementedError()
 
     def dynamic_array_1d(self, owner, name, size, unit, dtype=None,
-                         constant=False, constant_size=True, is_bool=False):
+                         constant=False, constant_size=True, is_bool=False,
+                         read_only=False):
         raise NotImplementedError()
 
     def dynamic_array(self, owner, name, size, unit, dtype=None,
-                      constant=False, constant_size=True, is_bool=False):
+                      constant=False, constant_size=True, is_bool=False,
+                      read_only=False):
         raise NotImplementedError()
 
     def code_object_class(self, codeobj_class=None):
@@ -77,17 +84,28 @@ class RuntimeDevice(Device):
         super(Device, self).__init__()
 
     def array(self, owner, name, size, unit, dtype=None,
-              constant=False, is_bool=False):
+              constant=False, is_bool=False, read_only=False):
         if is_bool:
             dtype = np.bool
         elif dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         array = np.zeros(size, dtype=dtype)
         return ArrayVariable(name, unit, array, group_name=owner.name,
-                             constant=constant, is_bool=is_bool)
+                             constant=constant, is_bool=is_bool,
+                             read_only=read_only)
+
+    def arange(self, owner, name, size, start=0, dtype=None, constant=True,
+               read_only=True):
+        if dtype is None:
+            dtype = smallest_inttype(size)
+        array = np.arange(start=start, stop=start+size, dtype=dtype)
+        return ArrayVariable(name, Unit(1), array, group_name=owner.name,
+                             constant=constant, is_bool=False,
+                             read_only=read_only)
 
     def dynamic_array_1d(self, owner, name, size, unit, dtype=None,
-                         constant=False,constant_size=True, is_bool=False):
+                         constant=False,constant_size=True, is_bool=False,
+                         read_only=False):
         if is_bool:
             dtype = np.bool
         if dtype is None:
@@ -96,10 +114,12 @@ class RuntimeDevice(Device):
         return DynamicArrayVariable(name, unit, array, group_name=owner.name,
                                     constant=constant,
                                     constant_size=constant_size,
-                                    is_bool=is_bool)
+                                    is_bool=is_bool,
+                                    read_only=read_only)
 
     def dynamic_array(self, owner, name, size, unit, dtype=None,
-                      constant=False, constant_size=True, is_bool=False):
+                      constant=False, constant_size=True, is_bool=False,
+                      read_only=False):
         if is_bool:
             dtype = np.bool
         if dtype is None:
@@ -108,7 +128,8 @@ class RuntimeDevice(Device):
         return DynamicArrayVariable(name, unit, array, group_name=owner.name,
                                     constant=constant,
                                     constant_size=constant_size,
-                                    is_bool=is_bool)
+                                    is_bool=is_bool,
+                                    read_only=read_only)
 
 
 runtime_device = RuntimeDevice()
@@ -133,3 +154,16 @@ def set_device(device):
         device = all_devices[device]
     current_device = device
     current_device.activate()
+
+def smallest_inttype(N):
+    '''
+    Returns the smallest signed integer dtype that can store N indexes.
+    '''
+    if N<=127:
+        return np.int8
+    elif N<=32727:
+        return np.int16
+    elif N<=2147483647:
+        return np.int32
+    else:
+        return np.int64

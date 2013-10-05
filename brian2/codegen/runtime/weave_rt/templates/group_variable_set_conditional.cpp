@@ -6,7 +6,7 @@
 	{{ common.insert_lines('HASH DEFINES', condition_hashdefine_lines) }}
 	{{ common.insert_lines('POINTERS', condition_pointers_lines) }}
 	//// MAIN CODE ////////////
-	for(int _idx=0; _idx<_num_idx; _idx++)
+	for(int _idx=0; _idx<N; _idx++)
 	{
 	    const int _vectorisation_idx = _idx;
 	    {{ common.insert_lines('CONDITION', code_lines['condition']) }}

@@ -11,7 +11,7 @@ from brian2.core.base import BrianObject
 from brian2.core.variables import (ArrayVariable, StochasticVariable,
                                    AttributeVariable, Variable)
 from brian2.core.namespace import get_local_namespace
-from brian2.units.fundamentalunits import fail_for_dimension_mismatch, Unit
+from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit)
 from brian2.units.allunits import second
 from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
@@ -31,8 +31,6 @@ class Group(BrianObject):
     # (should make autocompletion work)
     '''
     def _enable_group_attributes(self):
-        if not hasattr(self, 'offset'):
-            self.offset = 0
         if not hasattr(self, 'variables'):
             raise ValueError('Classes derived from Group need variables attribute.')
         if not hasattr(self, 'indices'):
@@ -41,15 +39,17 @@ class Group(BrianObject):
             self.variable_indices = defaultdict(lambda: '_idx')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
+        if not hasattr(self, 'templates'):
+            self.templates = {}
         self._group_attribute_access_active = True
 
     def _create_variables(self):
         return {'t': AttributeVariable(second, self.clock, 't_',
-                                       constant=False),
+                                       constant=False, read_only=True),
                 'dt': AttributeVariable(second, self.clock, 'dt_',
-                                        constant=True),
+                                        constant=True, read_only=True),
                 'N': AttributeVariable(Unit(1), self, '_N',
-                                       constant=True)
+                                       constant=True, read_only=True)
                 }
 
     def state_(self, name):
@@ -57,9 +57,11 @@ class Group(BrianObject):
         Gets the unitless array.
         '''
         try:
-            return self.variables[name].get_addressable_value(self)
+            var = self.variables[name]
         except KeyError:
-            raise KeyError("Array named "+name+" not found.")
+            raise KeyError("State variable "+name+" not found.")
+
+        return var.get_addressable_value(name=name, group=self)
         
     def state(self, name):
         '''
@@ -67,9 +69,10 @@ class Group(BrianObject):
         '''
         try:
             var = self.variables[name]
-            return var.get_addressable_value_with_unit(self)
         except KeyError:
-            raise KeyError("Array named "+name+" not found.")
+            raise KeyError("State variable "+name+" not found.")
+
+        return var.get_addressable_value_with_unit(name=name, group=self)
 
     def __getattr__(self, name):
         # We do this because __setattr__ and __getattr__ are not active until
@@ -107,13 +110,17 @@ class Group(BrianObject):
             if not isinstance(val, basestring):
                 fail_for_dimension_mismatch(val, var.unit,
                                             'Incorrect units for setting %s' % name)
+            if var.read_only:
+                raise TypeError('Variable %s is read-only.' % name)
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value_with_unit(self, level=1)[slice(None)] = val
+            var.get_addressable_value_with_unit(name, self, level=1)[slice(None)] = val
         elif len(name) and name[-1]=='_' and name[:-1] in self.variables:
             # no unit checking
             var = self.variables[name[:-1]]
+            if var.read_only:
+                raise TypeError('Variable %s is read-only.' % name[:-1])
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value(self, level=1)[slice(None)] = val
+            var.get_addressable_value(name, self, level=1)[slice(None)] = val
         else:
             object.__setattr__(self, name, val)
 
@@ -126,35 +133,57 @@ class Group(BrianObject):
         if isinstance(item, tuple):
             raise IndexError(('Can only interpret 1-d indices, '
                               'got %d dimensions.') % len(item))
-        if isinstance(item, basestring):
-            # interpret the string expression
-            namespace = get_local_namespace(1)
-            additional_namespace = ('implicit-namespace', namespace)
-            # i is defined in the template
-            variables = {'i': Variable(Unit(1))}
-            abstract_code = '_cond = ' + item
-            check_code_units(abstract_code, self,
-                             additional_variables=variables,
-                             additional_namespace=additional_namespace)
-            codeobj = create_runner_codeobj(self,
-                                            abstract_code,
-                                            'state_variable_indexing',
-                                            additional_variables=variables,
-                                            additional_namespace=additional_namespace,
-                                            )
-            return codeobj() + self.offset
         else:
             if isinstance(item, slice):
                 start, stop, step = item.indices(self.N)
-                return np.arange(start, stop, step) + self.offset
+                return np.arange(start, stop, step)
             else:
                 index_array = np.asarray(item)
                 if not np.issubdtype(index_array.dtype, np.int):
                     raise TypeError('Indexing is only supported for integer arrays')
-                return index_array + self.offset
+                return index_array
+
+    def _get_with_code(self, variable_name, code, level=0):
+        '''
+        Gets a variable using a string expression. Is called by
+        `VariableView.__getitem__` for statements such as
+        ``print G.v['g_syn > 0']``
+
+        Parameters
+        ----------
+        variable : `ArrayVariable`
+            The `Variable` for the variable to be set
+        code : str
+            The code that should be executed to set the variable values.
+            Can contain references to indices, such as `i` or `j`
+        template : str
+            The name of the template to use.
+        check_units : bool, optional
+            Whether to check the units of the expression.
+        level : int, optional
+            How much farther to go down in the stack to find the namespace.
+            Necessary so that both `X.var = ` and `X.var[:] = ` have access
+            to the surrounding namespace.
+        '''
+        # interpret the string expression
+        namespace = get_local_namespace(level+1)
+        additional_namespace = ('implicit-namespace', namespace)
+        # dummy code, important for subexpressions
+        abstract_code = '_variable = %s\n' % (variable_name)
+        abstract_code += '_cond = ' + code
+        check_code_units(abstract_code, self,
+                         additional_namespace=additional_namespace)
+        template = self.templates.get('index_with_code',
+                                      'state_variable_indexing')
+        codeobj = create_runner_codeobj(self,
+                                        abstract_code,
+                                        template,
+                                        additional_namespace=additional_namespace,
+                                        )
+        return codeobj()
 
     def _set_with_code(self, variable, group_indices, code,
-                       template, additional_variables, check_units=True, level=0):
+                       template, check_units=True, level=0):
         '''
         Sets a variable using a string expression. Is called by
         `VariableView.__setitem__` for statements such as
@@ -181,10 +210,10 @@ class Group(BrianObject):
         abstract_code = variable.name + ' = ' + code
         namespace = get_local_namespace(level + 1)
         additional_namespace = ('implicit-namespace', namespace)
-        additional_variables['_group_idx'] = ArrayVariable('_group_idx',
-                                                     Unit(1),
-                                                     value=group_indices.astype(np.int32),
-                                                     group_name=self.name)
+        additional_variables = {'_group_idx': ArrayVariable('_group_idx',
+                                                            Unit(1),
+                                                            value=group_indices.astype(np.int32),
+                                                            group_name=self.name)}
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
         codeobj = create_runner_codeobj(self,
@@ -195,6 +224,23 @@ class Group(BrianObject):
                                  check_units=check_units)
         codeobj()
 
+    def _set_with_code_conditional(self, variable, cond, code,
+                                   template,
+                                   check_units=True, level=0):
+        abstract_code_cond = '_cond = '+cond
+        abstract_code = variable.name + ' = ' + code
+        namespace = get_local_namespace(level + 1)
+        additional_namespace = ('implicit-namespace', namespace)
+        check_code_units(abstract_code_cond, self,
+                         additional_namespace=additional_namespace)
+        # TODO: Have an additional argument to avoid going through the index
+        # array for situations where iterate_all could be used
+        codeobj = create_runner_codeobj(self,
+                                 {'condition': abstract_code_cond, 'statement': abstract_code},
+                                 template,
+                                 additional_namespace=additional_namespace,
+                                 check_units=check_units)
+        codeobj()
 
 def check_code_units(code, group, additional_variables=None,
                 additional_namespace=None,
@@ -299,9 +345,16 @@ def create_runner_codeobj(group, code, template_name, indices=None,
     logger.debug('Creating code object for abstract code:\n' + str(code))
 
     if check_units:
-        check_code_units(code, group, additional_variables=additional_variables,
-                         additional_namespace=additional_namespace)
-        
+        if isinstance(code, dict):
+            for c in code.values():
+                check_code_units(c, group,
+                                 additional_variables=additional_variables,
+                                 additional_namespace=additional_namespace)
+        else:
+            check_code_units(code, group,
+                             additional_variables=additional_variables,
+                             additional_namespace=additional_namespace)
+
     codeobj_class = get_device().code_object_class(group.codeobj_class)
     template = getattr(codeobj_class.templater, template_name)
 
@@ -365,6 +418,13 @@ def create_runner_codeobj(group, code, template_name, indices=None,
 
     if variable_indices is None:
         variable_indices = group.variable_indices
+
+    # Add the indices needed by the variables
+    varnames = variables.keys()
+    for varname in varnames:
+        var_index = variable_indices[varname]
+        if var_index != '_idx':
+            variables[var_index] = all_variables[var_index]
 
     return get_device().code_object(
                              group,
