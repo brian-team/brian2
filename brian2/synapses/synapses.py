@@ -608,16 +608,16 @@ class Synapses(Group):
         self.variable_indices = defaultdict(lambda: '_idx')
         for name, var in getattr(self.source, 'variables', {}).iteritems():
             v[name + '_pre'] = var
-            self.variable_indices[name + '_pre'] = '_synaptic_pre'
+            self.variable_indices[name + '_pre'] = '_presynaptic_idx'
         for name, var in getattr(self.target, 'variables', {}).iteritems():
             v[name + '_post'] = var
-            self.variable_indices[name + '_post'] = '_synaptic_post'
+            self.variable_indices[name + '_post'] = '_postsynaptic_idx'
             # Also add all the post variables without a suffix -- if this
             # clashes with the name of a state variable defined in this
             # Synapses group, the latter will overwrite the entry later and
             # take precedence
             v[name] = var
-            self.variable_indices[name] = '_synaptic_post'
+            self.variable_indices[name] = '_postsynaptic_idx'
 
         self._pre_synaptic = [DynamicArray1D(0, dtype=np.int32)
                               for _ in xrange(len(self.source))]
@@ -643,9 +643,18 @@ class Synapses(Group):
 
         # Allow accessing the pre- and postsynaptic indices in a nicer way
         v.update({'i': self.source.variables['i'],
-                  'j': self.target.variables['i']})
-        self.variable_indices['i'] = '_synaptic_pre'
-        self.variable_indices['j'] = '_synaptic_post'
+                  'j': self.target.variables['i'],
+                  # we have to make a distinction here between the indices
+                  # and the arrays (even though they refer to the same object)
+                  # the synaptic propagation template would otherwise overwrite
+                  # synaptic_post in its namespace with the value of the
+                  # postsynaptic index, leading to errors for the next
+                  # propagation
+                  '_presynaptic_idx': v['_synaptic_pre'],
+                  '_postsynaptic_idx': v['_synaptic_post']
+                  })
+        self.variable_indices['i'] = '_presynaptic_idx'
+        self.variable_indices['j'] = '_postsynaptic_idx'
 
         for eq in itertools.chain(self.equations.itervalues(),
                                   self.event_driven.itervalues()
@@ -670,8 +679,9 @@ class Synapses(Group):
             elif eq.type == STATIC_EQUATION:
                 v.update({eq.varname: Subexpression(eq.varname,
                                                     eq.unit,
-                                                    brian_prefs['core.default_scalar_dtype'],
-                                                    str(eq.expr),
+                                                    dtype=brian_prefs['core.default_scalar_dtype'],
+                                                    expr=str(eq.expr),
+                                                    group=self,
                                                     is_bool=eq.is_bool)})
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
@@ -871,9 +881,9 @@ class Synapses(Group):
 
             variable_indices = defaultdict(lambda: '_idx')
             for varname in self.variables:
-                if self.variable_indices[varname] == '_synaptic_pre':
+                if self.variable_indices[varname] == '_presynaptic_idx':
                     variable_indices[varname] = '_all_pre'
-                elif self.variable_indices[varname] == '_synaptic_post':
+                elif self.variable_indices[varname] == '_postsynaptic_idx':
                     variable_indices[varname] = '_all_post'
             variable_indices['_all_pre'] = 'i'
             variable_indices['_all_post'] = 'j'

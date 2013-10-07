@@ -309,7 +309,7 @@ def test_abstract_code_from_function():
     ac = abstract_code_from_function(f)
     assert ac.name=='f'
     assert ac.args==['x']
-    assert ac.code.strip()=='y = x + 1'
+    assert ac.code.strip()=='y = x + 1.0'
     assert ac.return_expr=='y * y'
     # Check that unsupported features raise an error
 
@@ -371,7 +371,7 @@ def test_substitute_abstract_code_functions():
 if __name__=='__main__':
     test_parse_expressions_python()
     test_parse_expressions_numpy()
-    test_parse_expressions_cpp()
+    #test_parse_expressions_cpp()
     test_parse_expressions_sympy()
     test_abstract_code_dependencies()
     test_is_boolean_expression()

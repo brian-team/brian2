@@ -281,7 +281,7 @@ class VariableView(object):
             indices = self.calc_indices(item)
             # We are not going via code generation so we have to take care
             # of correct indexing (in particular for subgroups) explicitly
-            var_index = self.group.variable_indices[variable.name]
+            var_index = self.group.variable_indices[self.name]
             if var_index != '_idx':
                 indices = self.group.variables[var_index].get_value()[indices]
             # For subexpressions, we always have to go through codegen

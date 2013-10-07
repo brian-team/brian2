@@ -88,11 +88,7 @@ class NumpyCodeObject(CodeObject):
         self.compiled_code = compile(self.code, '(string)', 'exec')
 
     def run(self):
-        try:
-            exec self.compiled_code in self.namespace
-        except NameError as ex:
-            print self.code
-            raise ex
+        exec self.compiled_code in self.namespace
         # output variables should land in the variable name _return_values
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']
