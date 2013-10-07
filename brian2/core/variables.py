@@ -161,6 +161,13 @@ class Variable(object):
                                   constant=repr(self.constant))
 
 
+class AuxiliaryVariable(Variable):
+
+    def __init__(self, unit, dtype=None, scalar=None, is_bool=None):
+        Variable.__init__(self, unit, value=None, dtype=dtype, scalar=scalar,
+                          is_bool=is_bool, read_only=True)
+
+
 class StochasticVariable(Variable):
     '''
     An object providing information about a stochastic variable. Automatically
@@ -276,18 +283,20 @@ class VariableView(object):
     def __getitem__(self, item):
         variable = self.variable
         if isinstance(item, basestring):
-            values = self.group._get_with_code(self.name, item, level=0)
+            values = self.group._get_with_code(self.name, variable, item,
+                                               level=1)
         else:
             indices = self.calc_indices(item)
-            # We are not going via code generation so we have to take care
-            # of correct indexing (in particular for subgroups) explicitly
-            var_index = self.group.variable_indices[variable.name]
-            if var_index != '_idx':
-                indices = self.group.variables[var_index].get_value()[indices]
-            # For subexpressions, we always have to go through codegen
             if isinstance(variable, Subexpression):
-                values = self.group._get_with_code(self.name, 'True', level=1)
+                # For subexpressions, we always have to go through codegen
+                values = self.group._get_with_code(self.name, variable, 'True',
+                                                   level=1)[indices]
             else:
+                # We are not going via code generation so we have to take care
+                # of correct indexing (in particular for subgroups) explicitly
+                var_index = self.group.variable_indices[self.name]
+                if var_index != '_idx':
+                    indices = self.group.variables[var_index].get_value()[indices]
                 values = variable.get_value()[indices]
 
         if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
@@ -306,6 +315,7 @@ class VariableView(object):
             check_units = self.unit is not None
             template = self.group.templates.get('set_with_code_conditional',
                                                 'group_variable_set_conditional')
+            template = 'group_variable_set_conditional'
             self.group._set_with_code_conditional(variable, item, value,
                                                   template=template,
                                                   check_units=check_units,
@@ -315,6 +325,7 @@ class VariableView(object):
             check_units = self.unit is not None
             template = self.group.templates.get('set_with_code',
                                                 'group_variable_set')
+            template = 'group_variable_set'
             self.group._set_with_code(variable, indices, value,
                                       template=template,
                                       check_units=check_units,

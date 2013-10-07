@@ -1,7 +1,7 @@
 {% macro main() %}
 
     // USES_VARIABLES { _t, _i, t, _spikespace, _count,
-    //                  _source_start, _source_end}
+    //                  _source_start, _source_stop}
 	int _num_spikes = _spikespace[_num_spikespace-1];
     if (_num_spikes > 0)
     {
@@ -21,7 +21,7 @@
         for(int _j=_start_idx; _j<_num_spikes; _j++)
         {
             const int _idx = _spikespace[_j];
-            if (_idx >= _source_end) {
+            if (_idx >= _source_stop) {
                 _end_idx = _j;
                 break;
             }

@@ -1,11 +1,14 @@
 '''
 Handles loading templates from a directory.
 '''
-from brian2.utils.stringtools import (indent, deindent, strip_empty_lines,
-                                      get_identifiers)
-from jinja2 import Template, Environment, FileSystemLoader, PackageLoader
 import os
 import re
+
+from jinja2 import Template, Environment, FileSystemLoader, PackageLoader
+
+from brian2.utils.stringtools import (indent, deindent, strip_empty_lines,
+                                      get_identifiers)
+
 
 __all__ = ['Templater']
 
