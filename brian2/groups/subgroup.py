@@ -60,7 +60,7 @@ class Subgroup(Group, SpikeSource):
         self.variables['_source_i'] = self.source.variables['i']
         self.variables['i'] = Subexpression('i', Unit(1),
                                             dtype=source.variables['i'].dtype,
-                                            expr='_source_i - _offset',
+                                            expr='(1.0*_source_i) - (1.0*_offset)',
                                             group=self)
         self.variables['N'] = Variable(Unit(1), value=self._N, constant=True,
                                        read_only=True)

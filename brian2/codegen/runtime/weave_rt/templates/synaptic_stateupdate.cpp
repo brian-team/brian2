@@ -6,8 +6,6 @@
 	for(int _idx=0; _idx<N; _idx++)
 	{
 	    const int _vectorisation_idx = _idx;
-	    const int _presynaptic_idx = _synaptic_pre[_idx];
-	    const int _postsynaptic_idx = _synaptic_post[_idx];
 	    {{ super() }}
 	}
 {% endblock %}

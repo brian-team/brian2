@@ -3,13 +3,14 @@ This module defines the `Group` object, a mix-in class for everything that
 saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
 import weakref
+import copy
 from collections import defaultdict
 
 import numpy as np
 
 from brian2.core.base import BrianObject
 from brian2.core.variables import (ArrayVariable, StochasticVariable,
-                                   AttributeVariable, Variable)
+                                   AttributeVariable, AuxiliaryVariable)
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit)
 from brian2.units.allunits import second
@@ -17,6 +18,7 @@ from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
 from brian2.devices.device import get_device
+
 
 __all__ = ['Group', 'GroupCodeRunner']
 
@@ -143,7 +145,7 @@ class Group(BrianObject):
                     raise TypeError('Indexing is only supported for integer arrays')
                 return index_array
 
-    def _get_with_code(self, variable_name, code, level=0):
+    def _get_with_code(self, variable_name, variable, code, level=0):
         '''
         Gets a variable using a string expression. Is called by
         `VariableView.__getitem__` for statements such as
@@ -168,8 +170,16 @@ class Group(BrianObject):
         # interpret the string expression
         namespace = get_local_namespace(level+1)
         additional_namespace = ('implicit-namespace', namespace)
-        # dummy code, important for subexpressions
-        abstract_code = '_variable = %s\n' % (variable_name)
+        # Add the recorded variable under a known name to the variables
+        # dictionary. Important to deal correctly with
+        # the type of the variable in C++
+        variables = {'_variable': AuxiliaryVariable(variable.unit,
+                                                    dtype=variable.dtype,
+                                                    scalar=variable.scalar,
+                                                    is_bool=variable.is_bool),
+                     '_cond': AuxiliaryVariable(Unit(1), is_bool=True)}
+
+        abstract_code = '_variable = ' + variable_name + '\n'
         abstract_code += '_cond = ' + code
         check_code_units(abstract_code, self,
                          additional_namespace=additional_namespace)
@@ -178,6 +188,7 @@ class Group(BrianObject):
         codeobj = create_runner_codeobj(self,
                                         abstract_code,
                                         template,
+                                        additional_variables=variables,
                                         additional_namespace=additional_namespace,
                                         )
         return codeobj()
@@ -416,13 +427,14 @@ def create_runner_codeobj(group, code, template_name, indices=None,
         else:
             name = '%s_codeobject*' % template_name
 
-    if variable_indices is None:
-        variable_indices = group.variable_indices
+    all_variable_indices = copy.copy(group.variable_indices)
+    if variable_indices is not None:
+        all_variable_indices.update(variable_indices)
 
     # Add the indices needed by the variables
     varnames = variables.keys()
     for varname in varnames:
-        var_index = variable_indices[varname]
+        var_index = all_variable_indices[varname]
         if var_index != '_idx':
             variables[var_index] = all_variables[var_index]
 
@@ -433,7 +445,7 @@ def create_runner_codeobj(group, code, template_name, indices=None,
                              resolved_namespace,
                              variables,
                              template_name,
-                             variable_indices=variable_indices,
+                             variable_indices=all_variable_indices,
                              template_kwds=template_kwds,
                              codeobj_class=group.codeobj_class)
 

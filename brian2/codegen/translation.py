@@ -19,7 +19,7 @@ import collections
 
 from numpy import float64
 
-from brian2.core.variables import Variable, Subexpression
+from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
                                       get_identifiers, word_substitute)
 from brian2.parsing.statements import parse_statement
@@ -79,7 +79,8 @@ def analyse_identifiers(code, variables, recursive=False):
         external namespace.
     '''
     if isinstance(variables, collections.Mapping):
-        known = set(variables.keys())
+        known = set(k for k, v in variables.iteritems()
+                    if not isinstance(k, AuxiliaryVariable))
     else:
         known = set(variables)
         variables = dict((k, Variable(unit=None)) for k in known)
@@ -95,7 +96,6 @@ def analyse_identifiers(code, variables, recursive=False):
         allids = get_identifiers(code)
     dependent = allids.difference(defined, known)
     used_known = allids.intersection(known) - STANDARD_IDENTIFIERS
-
     return defined, used_known, dependent
 
 
@@ -128,7 +128,8 @@ def make_statements(code, variables, dtype):
         print code
     dtypes = dict((name, var.dtype) for name, var in variables.iteritems())
     # we will do inference to work out which lines are := and which are =
-    defined = set(variables.keys())
+    defined = set(k for k, v in variables.iteritems()
+                  if not isinstance(v, AuxiliaryVariable))
 
     for line in lines:
         # parse statement into "var op expr"

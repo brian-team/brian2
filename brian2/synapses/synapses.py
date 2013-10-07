@@ -186,6 +186,7 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.spikes_start = self.source.start
         self.spikes_stop = self.source.stop
 
+        # TODO: The following is only necessary for a change of dt
         # Get the existing spikes in the queue
         spikes = self.queue.extract_spikes()
         # Convert the integer time steps into floating point time
@@ -940,28 +941,6 @@ class Synapses(Group):
             return np.intersect1d(matching_synapses,
                                   np.flatnonzero(test_k(synapse_numbers)),
                                   assume_unique=True)
-
-        elif isinstance(index, basestring):
-            # interpret the string expression
-            identifiers = get_identifiers(index)
-            variables = dict(self.variables)
-            if 'k' in identifiers:
-                synapse_numbers = _synapse_numbers(self._synaptic_pre[:],
-                                                   self._synaptic_post[:])
-                variables['k'] = ArrayVariable('k', Unit(1),
-                                                synapse_numbers)
-            namespace = get_local_namespace(1)
-            additional_namespace = ('implicit-namespace', namespace)
-            abstract_code = '_cond = ' + index
-            codeobj = create_runner_codeobj(self,
-                                            abstract_code,
-                                            'synaptic_variable_indexing',
-                                            additional_variables=variables,
-                                            additional_namespace=additional_namespace,
-                                            )
-
-            result = codeobj()
-            return result
         else:
             raise IndexError('Unsupported index type {itype}'.format(itype=type(index)))
 
