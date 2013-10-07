@@ -58,7 +58,10 @@ class PoissonGroup(Group, SpikeSource):
         # for more complex use cases.
 
         self.variables = Group._create_variables(self)
-        self.variables.update({'rates': ArrayVariable('rates', Hz, self._rates,
+        self.variables.update({'i': get_device().arange(self, 'i', N,
+                                                        constant=True,
+                                                        read_only=True),
+                               'rates': ArrayVariable('rates', Hz, self._rates,
                                                       group_name=self.name),
                                '_spikespace': get_device().array(self,
                                                                  '_spikespace',
@@ -72,7 +75,8 @@ class PoissonGroup(Group, SpikeSource):
                                'lastspike': get_device().array(self,
                                                                '_lastspike',
                                                                N, 1)})
-
+        self.start = 0
+        self.stop = N
         self.namespace = create_namespace(None)
 
         self.threshold = 'rand() < rates * dt'
