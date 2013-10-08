@@ -1,7 +1,7 @@
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-	// USES_VARIABLES { _spiking_synapses, _synaptic_pre, _synaptic_post}
+	// USES_VARIABLES { _spiking_synapses}
 	//// MAIN CODE ////////////
 	for(int _spiking_synapse_idx=0;
 		_spiking_synapse_idx<_num_spiking_synapses;
