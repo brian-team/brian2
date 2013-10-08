@@ -413,22 +413,25 @@ def test_changed_dt_spikes_in_queue():
 
 
 def test_lumped_variable():
-    source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0')
-    source.v = 1.1  # will spike immediately
-    target = NeuronGroup(2, 'v : 1')
-    # We make this a bit unnecessarily complicated to see whether the lumped
-    # variable mechanism correctly deals with Subexpressions
-    S = Synapses(source, target, '''w : 1
-                                    x : 1
-                                    v = x : 1 (lumped)''', pre='x+=w')
-    S.connect('i==j', n=2)
-    S.w[:, :, 0] = 'i'
-    S.w[:, :, 1] = 'i + 0.5'
-    net = Network(source, target, S)
-    net.run(1*ms)
+    for codeobj_class in codeobj_classes:
+        source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0',
+                             codeobj_class=codeobj_class)
+        source.v = 1.1  # will spike immediately
+        target = NeuronGroup(2, 'v : 1', codeobj_class=codeobj_class)
+        # We make this a bit unnecessarily complicated to see whether the lumped
+        # variable mechanism correctly deals with Subexpressions
+        S = Synapses(source, target, '''w : 1
+                                        x : 1
+                                        v = x : 1 (lumped)''', pre='x+=w',
+                     codeobj_class=codeobj_class)
+        S.connect('i==j', n=2)
+        S.w[:, :, 0] = 'i'
+        S.w[:, :, 1] = 'i + 0.5'
+        net = Network(source, target, S)
+        net.run(1*ms)
 
-    # v of the target should be the sum of the two weights
-    assert_equal(target.v, np.array([0.5, 2.5]))
+        # v of the target should be the sum of the two weights
+        assert_equal(target.v, np.array([0.5, 2.5]))
 
 
 def test_event_driven():

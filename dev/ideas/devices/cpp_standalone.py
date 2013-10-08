@@ -38,16 +38,10 @@ G = NeuronGroup(N, eqs,
                 threshold=threshold,
                 refractory=refractory,
                 name='gp')
+G.V = '-i*mV'
 M = SpikeMonitor(G)
 G2 = NeuronGroup(1, eqs, reset=reset, threshold=threshold, refractory=refractory, name='gp2')
-#S = Synapses(G, G2, 'w:volt', pre='V+=w')
-# Run the network for 0 seconds to generate the code
-#print G.V.__class__
-#exit()
-#G.V['i>10'] = '1*volt'
-#G._set_with_code_conditional(G.variables['V'], 'i>10', '1*volt', 'group_variable_set_conditional')
-#print G.V[0], G.V[11]
-#exit()
+
 net = Network(G,
               M,
               G2,

@@ -3,6 +3,7 @@ from collections import defaultdict
 import weakref
 import itertools
 import re
+import bisect
 
 import numpy as np
 
@@ -44,7 +45,7 @@ class StateUpdater(GroupCodeRunner):
     def __init__(self, group, method):
         self.method_choice = method
         GroupCodeRunner.__init__(self, group,
-                                 'synaptic_stateupdate',
+                                 'stateupdate',
                                  when=(group.clock, 'groups'),
                                  name=group.name + '_stateupdater',
                                  check_units=False)
@@ -160,8 +161,6 @@ class SynapticPathway(GroupCodeRunner, Group):
         #: The simulation dt (necessary for the delays)
         self.dt = self.synapses.clock.dt_
 
-        self.indices = self.synapses.indices
-
         # Enable access to the delay attribute via the specifier
         self._enable_group_attributes()
 
@@ -212,14 +211,20 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                            )
         self.updaters.insert(0, self.pushspikes_codeobj.get_updater())
         #self.updaters.insert(0, SynapticPathwayUpdater(self))
-    
+
     def push_spikes(self):
         # Push new spikes into the queue
         spikes = self.source.spikes
+        # Make use of the fact that the spikes list is sorted for faster
+        # subgroup handling
+        start = self.spikes_start
+        start_idx = bisect.bisect_left(spikes, start)
+        stop_idx = bisect.bisect_left(spikes, self.spikes_stop, lo=start_idx)
+        spikes = spikes[start_idx:stop_idx]
+        synapse_indices = self.synapse_indices
         if len(spikes):
-            indices = np.concatenate([self.synapse_indices[spike - self.spikes_start][:]
-                                      for spike in spikes
-                                      if self.spikes_start <= spike < self.spikes_stop]).astype(np.int32)
+            indices = np.concatenate([synapse_indices[spike - start][:]
+                                      for spike in spikes]).astype(np.int32)
 
             if len(indices):
                 if len(self._delays) > 1:
@@ -423,11 +428,6 @@ class Synapses(Group):
         self._queues = {}
         self._delays = {}
 
-        # Make use of a special template when setting/indexing variables with
-        # code in order to allow references to pre- and postsynaptic variables
-        self.templates = {'set_with_code': 'synaptic_variable_set',
-                          'index_with_code': 'state_variable_indexing'}
-
         # Setup variables
         self.variables = self._create_variables()
 
@@ -440,8 +440,6 @@ class Synapses(Group):
                 # Register the array with the `SynapticItemMapping` object so
                 # it gets automatically resized
                 self.register_variable(var)
-
-        self.indices = {}
 
         #: List of names of all updaters, e.g. ['pre', 'post']
         self._synaptic_updaters = []
@@ -497,6 +495,8 @@ class Synapses(Group):
                 updater._delays.resize(1)
                 updater._delays[0] = float(pathway_delay)
                 updater._delays.scalar = True
+                # Do not resize the scalar delay variable when adding synapses
+                self.unregister_variable(updater._delays)
 
         #: Performs numerical integration step
         self.state_updater = StateUpdater(self, method)        
@@ -603,7 +603,7 @@ class Synapses(Group):
             raise TypeError(('Cannot use type %s as dtype '
                              'specification') % type(dtype))
 
-        v = Group._create_variables(self)
+        v = {}
 
         # Add all the pre and post variables with _pre and _post suffixes
         self.variable_indices = defaultdict(lambda: '_idx')
@@ -656,6 +656,10 @@ class Synapses(Group):
                   })
         self.variable_indices['i'] = '_presynaptic_idx'
         self.variable_indices['j'] = '_postsynaptic_idx'
+
+        # Add the standard variables (this also overwrites their inherited
+        # values from the postsynaptic group)
+        v.update(Group._create_variables(self))
 
         for eq in itertools.chain(self.equations.itervalues(),
                                   self.event_driven.itervalues()

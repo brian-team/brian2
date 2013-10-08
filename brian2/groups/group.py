@@ -35,14 +35,10 @@ class Group(BrianObject):
     def _enable_group_attributes(self):
         if not hasattr(self, 'variables'):
             raise ValueError('Classes derived from Group need variables attribute.')
-        if not hasattr(self, 'indices'):
-            self.indices = {}
         if not hasattr(self, 'variable_indices'):
             self.variable_indices = defaultdict(lambda: '_idx')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
-        if not hasattr(self, 'templates'):
-            self.templates = {}
         self._group_attribute_access_active = True
 
     def _create_variables(self):
@@ -105,7 +101,7 @@ class Group(BrianObject):
     def __setattr__(self, name, val):
         # attribute access is switched off until this attribute is created by
         # _enable_group_attributes
-        if not hasattr(self, '_group_attribute_access_active'):
+        if not hasattr(self, '_group_attribute_access_active') or name in self.__dict__:
             object.__setattr__(self, name, val)
         elif name in self.variables:
             var = self.variables[name]
@@ -183,11 +179,9 @@ class Group(BrianObject):
         abstract_code += '_cond = ' + code
         check_code_units(abstract_code, self,
                          additional_namespace=additional_namespace)
-        template = self.templates.get('index_with_code',
-                                      'state_variable_indexing')
         codeobj = create_runner_codeobj(self,
                                         abstract_code,
-                                        template,
+                                        'state_variable_indexing',
                                         additional_variables=variables,
                                         additional_namespace=additional_namespace,
                                         )
@@ -303,7 +297,8 @@ def check_code_units(code, group, additional_variables=None,
                          'check_code_units')
             return
         else:
-            raise ex
+            raise KeyError('Error occured when checking "%s": %s' % (code,
+                                                                     str(ex)))
 
     check_units_statements(code, resolved_namespace, all_variables)
 

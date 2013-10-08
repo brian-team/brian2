@@ -8,6 +8,11 @@ _vectorisation_idx = _idx = slice(None)
 {{line}}
 {% endfor %}
 
+if _cond is True:
+    _cond = slice(None)
+if _cond is False:
+    _cond = []
+
 # Phase 2: having computed _cond, the boolean array of points where
 # the setting is to be applied, we want to vectorise over idx being
 # only these values.

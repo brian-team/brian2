@@ -30,12 +30,8 @@ void _run_{{codeobj_name}}(double t)
 	{% endfor %}
 
 	//// MAIN CODE ////////////
-	// TODO: this hack only works when writing G.V = str, not e.g. G.v[str] = str.
-	const int _num_group_idx = _num_idx;
-	for(int _idx_group_idx=0; _idx_group_idx<_num_group_idx; _idx_group_idx++)
+	for(int _idx=0; _idx<N; _idx++)
 	{
-		//const int _idx = _group_idx[_idx_group_idx];
-		const int _idx = _idx_group_idx;
 		const int _vectorisation_idx = _idx;
 		{% for line in code_lines %}
 		{{line}}
