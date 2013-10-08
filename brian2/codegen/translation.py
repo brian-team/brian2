@@ -211,7 +211,7 @@ def make_statements(code, variables, dtype):
                 else:
                     op = ':='
                     subdefined[var] = True
-                    dtypes[var] = dtype # default dtype
+                    dtypes[var] = variables[var].dtype
                     # set to constant only if we will not write to it again
                     constant = var not in will_write
                     # check all subvariables are not written to again as well
@@ -220,7 +220,7 @@ def make_statements(code, variables, dtype):
                         constant = all(v not in will_write for v in ids)
                 valid[var] = True
                 statement = Statement(var, op, subexpressions[var].expr,
-                                      dtype, constant=constant,
+                                      variables[var].dtype, constant=constant,
                                       subexpression=True)
                 statements.append(statement)
         var, op, expr = stmt.var, stmt.op, stmt.expr

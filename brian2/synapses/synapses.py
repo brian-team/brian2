@@ -603,7 +603,7 @@ class Synapses(Group):
             raise TypeError(('Cannot use type %s as dtype '
                              'specification') % type(dtype))
 
-        v = Group._create_variables(self)
+        v = {}
 
         # Add all the pre and post variables with _pre and _post suffixes
         self.variable_indices = defaultdict(lambda: '_idx')
@@ -656,6 +656,10 @@ class Synapses(Group):
                   })
         self.variable_indices['i'] = '_presynaptic_idx'
         self.variable_indices['j'] = '_postsynaptic_idx'
+
+        # Add the standard variables (this also overwrites their inherited
+        # values from the postsynaptic group)
+        v.update(Group._create_variables(self))
 
         for eq in itertools.chain(self.equations.itervalues(),
                                   self.event_driven.itervalues()

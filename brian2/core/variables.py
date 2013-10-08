@@ -313,24 +313,33 @@ class VariableView(object):
         # with this situation
         if isinstance(value, basestring) and isinstance(item, basestring):
             check_units = self.unit is not None
-            template = self.group.templates.get('set_with_code_conditional',
-                                                'group_variable_set_conditional')
             template = 'group_variable_set_conditional'
             self.group._set_with_code_conditional(variable, item, value,
+                                                  template=template,
+                                                  check_units=check_units,
+                                                  level=self.level + 1)
+        elif isinstance(item, basestring):
+            try:
+                value = float(value)
+            except (TypeError, ValueError):
+                raise TypeError('When setting a variable based on a string ',
+                                'index, the value has to be a string or a '
+                                'scalar.')
+            check_units = self.unit is not None
+            template = 'group_variable_set_conditional'
+            self.group._set_with_code_conditional(variable, item, repr(value),
                                                   template=template,
                                                   check_units=check_units,
                                                   level=self.level + 1)
         elif isinstance(value, basestring):
             indices = self.calc_indices(item)
             check_units = self.unit is not None
-            template = self.group.templates.get('set_with_code',
-                                                'group_variable_set')
             template = 'group_variable_set'
             self.group._set_with_code(variable, indices, value,
                                       template=template,
                                       check_units=check_units,
                                       level=self.level + 1)
-        else:
+        else:  # No string expressions involved
             indices = self.calc_indices(item)
             if not self.unit is None:
                 fail_for_dimension_mismatch(value, self.unit)
