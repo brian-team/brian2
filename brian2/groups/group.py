@@ -187,8 +187,8 @@ class Group(BrianObject):
                                         )
         return codeobj()
 
-    def _set_with_code(self, variable, group_indices, code,
-                       template, check_units=True, level=0):
+    def _set_with_code(self, variable, group_indices, code, check_units=True,
+                       level=0):
         '''
         Sets a variable using a string expression. Is called by
         `VariableView.__setitem__` for statements such as
@@ -203,8 +203,6 @@ class Group(BrianObject):
         code : str
             The code that should be executed to set the variable values.
             Can contain references to indices, such as `i` or `j`
-        template : str
-            The name of the template to use.
         check_units : bool, optional
             Whether to check the units of the expression.
         level : int, optional
@@ -223,15 +221,14 @@ class Group(BrianObject):
         # array for situations where iterate_all could be used
         codeobj = create_runner_codeobj(self,
                                  abstract_code,
-                                 template,
+                                 'group_variable_set',
                                  additional_variables=additional_variables,
                                  additional_namespace=additional_namespace,
                                  check_units=check_units)
         codeobj()
 
-    def _set_with_code_conditional(self, variable, cond, code,
-                                   template,
-                                   check_units=True, level=0):
+    def _set_with_code_conditional(self, variable, cond, code, check_units=True,
+                                   level=0):
         abstract_code_cond = '_cond = '+cond
         abstract_code = variable.name + ' = ' + code
         namespace = get_local_namespace(level + 1)
@@ -242,7 +239,7 @@ class Group(BrianObject):
         # array for situations where iterate_all could be used
         codeobj = create_runner_codeobj(self,
                                  {'condition': abstract_code_cond, 'statement': abstract_code},
-                                 template,
+                                 'group_variable_set_conditional',
                                  additional_namespace=additional_namespace,
                                  check_units=check_units)
         codeobj()

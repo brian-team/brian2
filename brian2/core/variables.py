@@ -308,18 +308,14 @@ class VariableView(object):
 
     def set_code_with_string_index(self, item, value):
         check_units = self.unit is not None
-        template = 'group_variable_set_conditional'
         self.group._set_with_code_conditional(self.variable, item, value,
-                                              template=template,
                                               check_units=check_units,
                                               level=self.level + 1)
 
     def set_code_with_array_index(self, item, value):
         indices = self.calc_indices(item)
         check_units = self.unit is not None
-        template = 'group_variable_set'
         self.group._set_with_code(self.variable, indices, value,
-                                  template=template,
                                   check_units=check_units,
                                   level=self.level + 1)
 

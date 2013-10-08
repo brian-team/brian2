@@ -36,11 +36,9 @@ class StandaloneVariableView(VariableView):
     Will store information about how the variable was set in the original
     `ArrayVariable` object.
     '''
-    def __init__(self, name, variable, group, template,
-                 unit=None, level=0):
+    def __init__(self, name, variable, group, unit=None, level=0):
         super(StandaloneVariableView, self).__init__(name, variable, group,
                                                      unit=unit, level=level)
-        self.template = template
 
     # Overwrite methods to signal that they are not available for standalone
     def set_array_with_array_index(self, item, value):
@@ -81,16 +79,12 @@ class StandaloneArrayVariable(ArrayVariable):
 #        return StandaloneVariableView(self)
 
     def get_addressable_value(self, name, group, level=0):
-        template = getattr(group, '_set_with_code_template',
-                           'group_variable_set')
-        return StandaloneVariableView(name, self, group, template=template,
-                                      unit=None, level=level)
+        return StandaloneVariableView(name, self, group, unit=None,
+                                      level=level)
 
     def get_addressable_value_with_unit(self, name, group, level=0):
-        template = getattr(group, '_set_with_code_template',
-                           'group_variable_set')
-        return StandaloneVariableView(name, self, group, template=template,
-                                      unit=self.unit, level=level)
+        return StandaloneVariableView(name, self, group, unit=self.unit,
+                                      level=level)
 
 
 class StandaloneDynamicArrayVariable(StandaloneArrayVariable):
