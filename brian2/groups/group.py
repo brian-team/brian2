@@ -101,7 +101,7 @@ class Group(BrianObject):
     def __setattr__(self, name, val):
         # attribute access is switched off until this attribute is created by
         # _enable_group_attributes
-        if not hasattr(self, '_group_attribute_access_active'):
+        if not hasattr(self, '_group_attribute_access_active') or name in self.__dict__:
             object.__setattr__(self, name, val)
         elif name in self.variables:
             var = self.variables[name]

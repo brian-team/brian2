@@ -3,6 +3,7 @@ from collections import defaultdict
 import weakref
 import itertools
 import re
+import bisect
 
 import numpy as np
 
@@ -210,14 +211,20 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                            )
         self.updaters.insert(0, self.pushspikes_codeobj.get_updater())
         #self.updaters.insert(0, SynapticPathwayUpdater(self))
-    
+
     def push_spikes(self):
         # Push new spikes into the queue
         spikes = self.source.spikes
+        # Make use of the fact that the spikes list is sorted for faster
+        # subgroup handling
+        start = self.spikes_start
+        start_idx = bisect.bisect_left(spikes, start)
+        stop_idx = bisect.bisect_left(spikes, self.spikes_stop, lo=start_idx)
+        spikes = spikes[start_idx:stop_idx]
+        synapse_indices = self.synapse_indices
         if len(spikes):
-            indices = np.concatenate([self.synapse_indices[spike - self.spikes_start][:]
-                                      for spike in spikes
-                                      if self.spikes_start <= spike < self.spikes_stop]).astype(np.int32)
+            indices = np.concatenate([synapse_indices[spike - start][:]
+                                      for spike in spikes]).astype(np.int32)
 
             if len(indices):
                 if len(self._delays) > 1:
