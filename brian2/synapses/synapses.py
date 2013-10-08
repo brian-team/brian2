@@ -488,6 +488,8 @@ class Synapses(Group):
                 updater._delays.resize(1)
                 updater._delays[0] = float(pathway_delay)
                 updater._delays.scalar = True
+                # Do not resize the scalar delay variable when adding synapses
+                self.unregister_variable(updater._delays)
 
         #: Performs numerical integration step
         self.state_updater = StateUpdater(self, method)        
