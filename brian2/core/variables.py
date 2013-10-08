@@ -286,13 +286,13 @@ class VariableView(object):
         variable = self.variable
         if isinstance(item, basestring):
             values = self.group._get_with_code(self.name, variable, item,
-                                               level=1)
+                                               level=self.level+1)
         else:
             indices = self.calc_indices(item)
             if isinstance(variable, Subexpression):
                 # For subexpressions, we always have to go through codegen
                 values = self.group._get_with_code(self.name, variable, 'True',
-                                                   level=1)[indices]
+                                                   level=self.level+1)[indices]
             else:
                 # We are not going via code generation so we have to take care
                 # of correct indexing (in particular for subgroups) explicitly
@@ -513,11 +513,11 @@ class ArrayVariable(Variable):
 
     def get_addressable_value(self, name, group, level=0):
         return VariableView(name=name, variable=self, group=group, unit=None,
-                            level=level)
+                            level=level+1)
 
     def get_addressable_value_with_unit(self, name, group, level=0):
         return VariableView(name=name, variable=self, group=group,
-                            unit=self.unit, level=level)
+                            unit=self.unit, level=level+1)
 
 
 class DynamicArrayVariable(ArrayVariable):
