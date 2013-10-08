@@ -17,9 +17,16 @@ std::vector<{{dtype_spec}}> {{varname}};
 
 void _init_arrays()
 {
-	{% for (varname, dtype_spec, N) in array_specs %}
+    // Arrays initialized to 0
+	{% for (varname, dtype_spec, N) in zero_specs %}
 	{{varname}} = new {{dtype_spec}}[{{N}}];
 	for(int i=0; i<{{N}}; i++) {{varname}}[i] = 0;
+	{% endfor %}
+
+	// Arrays initialized to an "arange"
+	{% for (varname, dtype_spec, start, stop) in arange_specs %}
+	{{varname}} = new {{dtype_spec}}[{{stop}}-{{start}}];
+	for(int i=0; i<{{stop}}-{{start}}; i++) {{varname}}[i] = {{start}} + i;
 	{% endfor %}
 }
 

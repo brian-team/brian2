@@ -90,8 +90,6 @@ def test_synapse_creation():
         G2.v = '10 + i'
         SG1 = G1[:5]
         SG2 = G2[10:]
-        print SG1.i[:], SG1.variables['i'].dtype
-        print SG2.i[:], SG2.variables['i'].dtype
         S = Synapses(SG1, SG2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
         S.connect(2, 2)  # Should correspond to (2, 12)
         S.connect('i==4 and j==5') # Should correspond to (4, 15)
@@ -195,15 +193,10 @@ def test_wrong_indexing():
     assert_raises(IndexError, lambda: G[3:2])
 
 if __name__ == '__main__':
-    print 'A'
     test_state_variables()
-    print 'B'
     test_state_variables_string_indices()
-    print 'C'
     test_state_monitor()
-    print 'D'
     test_synapse_creation()
-    print 'E'
     test_synapse_access()
     test_synaptic_propagation()
     test_spike_monitor()

@@ -35,7 +35,7 @@ void _run_{{codeobj_name}}(double t)
 	{% endfor %}
 
 	const int *_spikes = {{_spikespace}};
-	const int _num_spikes = {{_spikespace}}[_num_idx];
+	const int _num_spikes = {{_spikespace}}[N];
 
 	//// MAIN CODE ////////////
 	for(int _index_spikes=0; _index_spikes<_num_spikes; _index_spikes++)

@@ -20,6 +20,8 @@ __all__ = ['Variable',
            'ArrayVariable',
            'DynamicArrayVariable',
            'Subexpression',
+           'VariableView',
+           'AuxiliaryVariable'
            ]
 
 
@@ -304,51 +306,62 @@ class VariableView(object):
         else:
             return Quantity(values, self.unit.dimensions)
 
+    def set_code_with_string_index(self, item, value):
+        check_units = self.unit is not None
+        template = 'group_variable_set_conditional'
+        self.group._set_with_code_conditional(self.variable, item, value,
+                                              template=template,
+                                              check_units=check_units,
+                                              level=self.level + 1)
+
+    def set_code_with_array_index(self, item, value):
+        indices = self.calc_indices(item)
+        check_units = self.unit is not None
+        template = 'group_variable_set'
+        self.group._set_with_code(self.variable, indices, value,
+                                  template=template,
+                                  check_units=check_units,
+                                  level=self.level + 1)
+
+    def set_array_with_array_index(self, item, value):
+        indices = self.calc_indices(item)
+        if not self.unit is None:
+            fail_for_dimension_mismatch(value, self.unit)
+            # We are not going via code generation so we have to take care
+        # of correct indexing (in particular for subgroups) explicitly
+        var_index = self.group.variable_indices[self.variable.name]
+        if var_index != '_idx':
+            indices = self.group.variables[var_index].get_value()[indices]
+        self.variable.value[indices] = value
+
     def __setitem__(self, item, value):
-        variable = self.variable
-        if variable.read_only:
+        if self.variable.read_only:
             raise TypeError('Variable %s is read-only.' % self.name)
+
+        if item == slice(None):
+            item = 'True'
 
         # Both index and values are strings, use a single code object do deal
         # with this situation
         if isinstance(value, basestring) and isinstance(item, basestring):
-            check_units = self.unit is not None
-            template = 'group_variable_set_conditional'
-            self.group._set_with_code_conditional(variable, item, value,
-                                                  template=template,
-                                                  check_units=check_units,
-                                                  level=self.level + 1)
+            self.set_code_with_string_index(item, value)
         elif isinstance(item, basestring):
             try:
-                value = float(value)
+                float(value)  # only checks for the exception
             except (TypeError, ValueError):
-                raise TypeError('When setting a variable based on a string ',
-                                'index, the value has to be a string or a '
-                                'scalar.')
-            check_units = self.unit is not None
-            template = 'group_variable_set_conditional'
-            self.group._set_with_code_conditional(variable, item, repr(value),
-                                                  template=template,
-                                                  check_units=check_units,
-                                                  level=self.level + 1)
+                if not item == 'True':
+                    raise TypeError('When setting a variable based on a string '
+                                    'index, the value has to be a string or a '
+                                    'scalar.')
+                else:
+                    # Fall back to the general array-array pattern
+                    self.set_array_with_array_index(slice(None), value)
+                    return
+            self.set_code_with_string_index(item, repr(value))
         elif isinstance(value, basestring):
-            indices = self.calc_indices(item)
-            check_units = self.unit is not None
-            template = 'group_variable_set'
-            self.group._set_with_code(variable, indices, value,
-                                      template=template,
-                                      check_units=check_units,
-                                      level=self.level + 1)
+            self.set_code_with_array_index(item, value)
         else:  # No string expressions involved
-            indices = self.calc_indices(item)
-            if not self.unit is None:
-                fail_for_dimension_mismatch(value, self.unit)
-            # We are not going via code generation so we have to take care
-            # of correct indexing (in particular for subgroups) explicitly
-            var_index = self.group.variable_indices[variable.name]
-            if var_index != '_idx':
-                indices = self.group.variables[var_index].get_value()[indices]
-            variable.value[indices] = value
+            self.set_array_with_array_index(item, value)
 
     def __array__(self, dtype=None):
         if dtype is not None and dtype != self.variable.dtype:

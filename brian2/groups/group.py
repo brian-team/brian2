@@ -303,7 +303,8 @@ def check_code_units(code, group, additional_variables=None,
                          'check_code_units')
             return
         else:
-            raise ex
+            raise KeyError('Error occured when checking "%s": %s' % (code,
+                                                                     str(ex)))
 
     check_units_statements(code, resolved_namespace, all_variables)
 

@@ -1,7 +1,7 @@
 from brian2 import *
 
-brian_prefs.codegen.target = 'weave'
-brian_prefs['codegen.runtime.weave.extra_compile_args'] = ['-g', '-O0']
+#brian_prefs.codegen.target = 'weave'
+#brian_prefs['codegen.runtime.weave.extra_compile_args'] = ['-g', '-O0']
 import numpy as np
 
 G = NeuronGroup(20, 'x:1')

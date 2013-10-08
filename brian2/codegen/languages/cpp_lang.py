@@ -39,6 +39,10 @@ def c_data_type(dtype):
         dtype = 'float'
     elif dtype == numpy.float64:
         dtype = 'double'
+    elif dtype == numpy.int8:
+        dtype = 'int8_t'
+    elif dtype == numpy.int16:
+        dtype = 'int16_t'
     elif dtype == numpy.int32:
         dtype = 'int32_t'
     elif dtype == numpy.int64:
