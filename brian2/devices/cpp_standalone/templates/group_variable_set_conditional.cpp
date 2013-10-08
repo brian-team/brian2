@@ -10,13 +10,13 @@
 
 ////// SUPPORT CODE ///////
 namespace {
-	{% for line in condition_support_code_lines %}
+	{% for line in support_code_lines %}
 	{{line}}
 	{% endfor %}
 }
 
 ////// HASH DEFINES ///////
-{% for line in condition_hashdefine_lines %}
+{% for line in hashdefine_lines %}
 {{line}}
 {% endfor %}
 
@@ -25,7 +25,7 @@ void _run_{{codeobj_name}}(double t)
 	///// CONSTANTS ///////////
 	%CONSTANTS%
 	///// POINTERS ////////////
-	{% for line in condition_pointers_lines %}
+	{% for line in pointers_lines %}
 	{{line}}
 	{% endfor %}
 
