@@ -272,7 +272,7 @@ class VariableView(object):
         variable = self.variable
         if variable.scalar:
             if not (item == slice(None) or item == 0 or (hasattr(item, '__len__')
-                                                         and len(i) == 0)):
+                                                         and len(item) == 0)):
                 raise IndexError('Variable is a scalar variable.')
             indices = np.array([0])
         else:

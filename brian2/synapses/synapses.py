@@ -44,7 +44,7 @@ class StateUpdater(GroupCodeRunner):
     def __init__(self, group, method):
         self.method_choice = method
         GroupCodeRunner.__init__(self, group,
-                                 'synaptic_stateupdate',
+                                 'stateupdate',
                                  when=(group.clock, 'groups'),
                                  name=group.name + '_stateupdater',
                                  check_units=False)
@@ -159,8 +159,6 @@ class SynapticPathway(GroupCodeRunner, Group):
 
         #: The simulation dt (necessary for the delays)
         self.dt = self.synapses.clock.dt_
-
-        self.indices = self.synapses.indices
 
         # Enable access to the delay attribute via the specifier
         self._enable_group_attributes()
@@ -423,11 +421,6 @@ class Synapses(Group):
         self._queues = {}
         self._delays = {}
 
-        # Make use of a special template when setting/indexing variables with
-        # code in order to allow references to pre- and postsynaptic variables
-        self.templates = {'set_with_code': 'synaptic_variable_set',
-                          'index_with_code': 'state_variable_indexing'}
-
         # Setup variables
         self.variables = self._create_variables()
 
@@ -440,8 +433,6 @@ class Synapses(Group):
                 # Register the array with the `SynapticItemMapping` object so
                 # it gets automatically resized
                 self.register_variable(var)
-
-        self.indices = {}
 
         #: List of names of all updaters, e.g. ['pre', 'post']
         self._synaptic_updaters = []
