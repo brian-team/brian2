@@ -17,7 +17,6 @@ from brian2.units.fundamentalunits import (Quantity, Unit, is_scalar_type,
                                            fail_for_dimension_mismatch,
                                            have_same_dimensions,
                                            )
-from brian2.devices.device import smallest_inttype
 from brian2.units import second
 
 from .codeobject import CPPStandaloneCodeObject
@@ -130,10 +129,8 @@ class CPPStandaloneDevice(Device):
                                        group_name=owner.name,
                                        constant=constant, is_bool=is_bool)
 
-    def arange(self, owner, name, size, start=0, dtype=None, constant=True,
+    def arange(self, owner, name, size, start=0, dtype=numpy.int32, constant=True,
                read_only=True):
-        if dtype is None:
-            dtype = smallest_inttype(size)
         self.array_specs.append(('_array_%s_%s' % (owner.name, name),
                                  c_data_type(dtype), size))
         self.arange_specs.append(('_array_%s_%s' % (owner.name, name),

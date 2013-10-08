@@ -309,7 +309,7 @@ def test_abstract_code_from_function():
     ac = abstract_code_from_function(f)
     assert ac.name=='f'
     assert ac.args==['x']
-    assert ac.code.strip()=='y = x + 1.0'
+    assert ac.code.strip()=='y = x + 1'
     assert ac.return_expr=='y * y'
     # Check that unsupported features raise an error
 

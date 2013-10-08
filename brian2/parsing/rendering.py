@@ -69,10 +69,7 @@ class NodeRenderer(object):
         return node.id
     
     def render_Num(self, node):
-        # We use the floating point values here to avoid unexpected integer
-        # issues. For example, if the neuronal index is stored as an int8,
-        # writing G.x = 'i*100' would otherwise lead to unexpected values.
-        return repr(float(node.n))
+        return repr(node.n)
 
     def render_Call(self, node):
         if len(node.keywords):

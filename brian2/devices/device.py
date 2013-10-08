@@ -94,10 +94,8 @@ class RuntimeDevice(Device):
                              constant=constant, is_bool=is_bool,
                              read_only=read_only)
 
-    def arange(self, owner, name, size, start=0, dtype=None, constant=True,
+    def arange(self, owner, name, size, start=0, dtype=np.int32, constant=True,
                read_only=True):
-        if dtype is None:
-            dtype = smallest_inttype(size)
         array = np.arange(start=start, stop=start+size, dtype=dtype)
         return ArrayVariable(name, Unit(1), array, group_name=owner.name,
                              constant=constant, is_bool=False,
