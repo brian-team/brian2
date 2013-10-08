@@ -39,9 +39,9 @@ class NumpyLanguage(Language):
                                                                 namespace,
                                                                 codeobj_class)
 
-    def translate_statement_sequence(self, statements, variables, namespace,
-                                     variable_indices, iterate_all,
-                                     codeobj_class):
+    def translate_one_statement_sequence(self, statements, variables, namespace,
+                                         variable_indices, iterate_all,
+                                         codeobj_class):
         read, write, indices = self.array_read_write(statements, variables,
                                             variable_indices)
         lines = []
@@ -85,7 +85,27 @@ class NumpyLanguage(Language):
             if isinstance(var, Function):
                 namespace[varname] = var.implementations[codeobj_class].code
 
-        return lines, {}
+        return lines
+
+    def translate_statement_sequence(self, statements, variables, namespace,
+                                     variable_indices, iterate_all,
+                                     codeobj_class):
+        if isinstance(statements, dict):
+            blocks = {}
+            all_kwds = {}
+            for name, block in statements.iteritems():
+                blocks[name] = self.translate_one_statement_sequence(block,
+                                                                     variables,
+                                                                     namespace,
+                                                                     variable_indices,
+                                                                     iterate_all,
+                                                                     codeobj_class)
+            return blocks, {}
+        else:
+            block = self.translate_one_statement_sequence(statements, variables,
+                                                          namespace, variable_indices,
+                                                          iterate_all, codeobj_class)
+            return block, {}
 
 ################################################################################
 # Implement functions

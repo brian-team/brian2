@@ -295,7 +295,12 @@ def translate(code, variables, namespace, dtype, codeobj_class,
     
     Returns a multi-line string.
     '''
-    statements = make_statements(code, variables, dtype)
+    if isinstance(code, dict):
+        statements = {}
+        for ac_name, ac_code in code.iteritems():
+            statements[ac_name] = make_statements(ac_code, variables, dtype)
+    else:
+        statements = make_statements(code, variables, dtype)
     language = codeobj_class.language
     return language.translate_statement_sequence(statements, variables,
                                                  namespace, variable_indices,

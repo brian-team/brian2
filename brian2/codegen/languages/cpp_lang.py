@@ -139,9 +139,9 @@ class CPPLanguage(Language):
                                                                        namespace,
                                                                        codeobj_class) + ';'
 
-    def translate_statement_sequence(self, statements, variables, namespace,
-                                     variable_indices, iterate_all,
-                                     codeobj_class):
+    def translate_one_statement_sequence(self, statements, variables, namespace,
+                                         variable_indices, iterate_all,
+                                         codeobj_class):
 
         # Note that C++ code does not care about the iterate_all argument -- it
         # always has to loop over the elements
@@ -176,6 +176,21 @@ class CPPLanguage(Language):
             line = '_ptr' + var.arrayname + '[' + index_var + '] = ' + varname + ';'
             lines.append(line)
         code = '\n'.join(lines)
+                
+        return stripped_deindented_lines(code)
+
+    def denormals_to_zero_code(self):
+        if self.flush_denormals:
+            return '''
+            #define CSR_FLUSH_TO_ZERO         (1 << 15)
+            unsigned csr = __builtin_ia32_stmxcsr();
+            csr |= CSR_FLUSH_TO_ZERO;
+            __builtin_ia32_ldmxcsr(csr);
+            '''
+        else:
+            return ''
+
+    def determine_keywords(self, variables, namespace, codeobj_class):
         # set up the restricted pointers, these are used so that the compiler
         # knows there is no aliasing in the pointers, for optimisation
         lines = []
@@ -191,7 +206,7 @@ class CPPLanguage(Language):
                     lines.append(line)
                     arraynames.add(arrayname)
         pointers = '\n'.join(lines)
-        
+
         # set up the functions
         user_functions = []
         support_code = ''
@@ -214,7 +229,6 @@ class CPPLanguage(Language):
                     else:
                         namespace[pyfunc_name] = variable.pyfunc
 
-        
         # delete the user-defined functions from the namespace and add the
         # function namespaces (if any)
         for funcname, func in user_functions:
@@ -222,24 +236,34 @@ class CPPLanguage(Language):
             func_namespace = func.implementations[codeobj_class].namespace
             if func_namespace is not None:
                 namespace.update(func_namespace)
-                
-        return (stripped_deindented_lines(code),
-                {'pointers_lines': stripped_deindented_lines(pointers),
-                 'support_code_lines': stripped_deindented_lines(support_code),
-                 'hashdefine_lines': stripped_deindented_lines(hash_defines),
-                 'denormals_code_lines': stripped_deindented_lines(self.denormals_to_zero_code()),
-                 })
 
-    def denormals_to_zero_code(self):
-        if self.flush_denormals:
-            return '''
-            #define CSR_FLUSH_TO_ZERO         (1 << 15)
-            unsigned csr = __builtin_ia32_stmxcsr();
-            csr |= CSR_FLUSH_TO_ZERO;
-            __builtin_ia32_ldmxcsr(csr);
-            '''
+        return {'pointers_lines': stripped_deindented_lines(pointers),
+                'support_code_lines': stripped_deindented_lines(support_code),
+                'hashdefine_lines': stripped_deindented_lines(hash_defines),
+                'denormals_code_lines': stripped_deindented_lines(self.denormals_to_zero_code()),
+                }
+
+    def translate_statement_sequence(self, statements, variables, namespace,
+                                     variable_indices, iterate_all,
+                                     codeobj_class):
+        if isinstance(statements, dict):
+            blocks = {}
+            for name, block in statements.iteritems():
+                blocks[name] = self.translate_one_statement_sequence(block,
+                                                                     variables,
+                                                                     namespace,
+                                                                     variable_indices,
+                                                                     iterate_all,
+                                                                     codeobj_class)
         else:
-            return ''
+            blocks = self.translate_one_statement_sequence(statements, variables,
+                                                           namespace, variable_indices,
+                                                           iterate_all, codeobj_class)
+
+        kwds = self.determine_keywords(variables, namespace, codeobj_class)
+
+        return blocks, kwds
+
 
 ################################################################################
 # Implement functions
