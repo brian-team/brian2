@@ -11,6 +11,7 @@ Contents:
    Reference documentation <reference/brian2>
    developer/index
    notes
+   examples/index
 
 Indices and tables
 ==================

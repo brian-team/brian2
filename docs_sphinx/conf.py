@@ -53,6 +53,12 @@ os.makedirs(target_dir)
 abs_root = os.path.abspath('../brian2')
 generate_reference.main(abs_root, ['tests', 'sphinxext'], target_dir)
 
+# -- Automatically generate the examples documentation -------------------------
+import brian2.sphinxext.generate_examples as generate_examples
+target_dir = './examples'
+root_dir = os.path.abspath('../examples')
+generate_examples.main(root_dir, target_dir)
+
 # -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
