@@ -1,3 +1,6 @@
+'''
+Module implementing the C++ "standalone" device.
+'''
 import numpy
 import os
 import inspect
@@ -71,12 +74,6 @@ class StandaloneArrayVariable(ArrayVariable):
         if index is None:
             index = slice(None)
         self.assignments.append((index, value))
-
-#    def get_addressable_value(self, group, level=0):
-#        return StandaloneVariableView(self)
-#
-#    def get_addressable_value_with_unit(self, group, level=0):
-#        return StandaloneVariableView(self)
 
     def get_addressable_value(self, name, group, level=0):
         return StandaloneVariableView(name, self, group, unit=None,

@@ -1,4 +1,6 @@
-#from expressions import Expression
+'''
+Module providing the `Statement` class.
+'''
 
 class Statement(object):
     '''

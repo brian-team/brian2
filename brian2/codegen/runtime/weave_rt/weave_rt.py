@@ -1,3 +1,7 @@
+'''
+Module providing `WeaveCodeObject`.
+'''
+
 import numpy
 
 try:

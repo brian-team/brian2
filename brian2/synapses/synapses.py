@@ -1,3 +1,7 @@
+'''
+Module providing the `Synapses` class and related helper classes/functions.
+'''
+
 import collections
 from collections import defaultdict
 import weakref
@@ -9,8 +13,8 @@ import numpy as np
 
 from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
-from brian2.core.variables import (ArrayVariable, DynamicArrayVariable,
-                                   Variable, Subexpression, AttributeVariable,
+from brian2.core.variables import (DynamicArrayVariable, Variable,
+                                   Subexpression, AttributeVariable,
                                    StochasticVariable)
 from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
@@ -24,7 +28,6 @@ from brian2.units.fundamentalunits import (Unit, Quantity,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
-from brian2.utils.stringtools import get_identifiers
 from brian2.core.namespace import get_local_namespace
 from brian2.core.spikesource import SpikeSource
 

@@ -42,6 +42,10 @@ class Group(BrianObject):
         self._group_attribute_access_active = True
 
     def _create_variables(self):
+        '''
+        Create standard set of variables every `Group` has, consisting of its
+        clock's ``t`` and ``dt`` and the group's ``N``.
+        '''
         return {'t': AttributeVariable(second, self.clock, 't_',
                                        constant=False, read_only=True),
                 'dt': AttributeVariable(second, self.clock, 'dt_',
@@ -124,9 +128,19 @@ class Group(BrianObject):
 
     def calc_indices(self, item):
         '''
-        Returns indices for `index` an array, integer or slice, or a string
-        (that might refer to ``i`` as the group element index).
+        Return flat indices from to index into state variables from arbitrary
+        group specific indices. In the default implementation, raises an error
+        for multidimensional indices and transforms slices into arrays.
 
+        Parameters
+        ----------
+        item : slice, array, int
+            The indices to translate.
+
+        Returns
+        -------
+        indices : `numpy.ndarray`
+            The flat indices corresponding to the indices given in `item`.
         '''
         if isinstance(item, tuple):
             raise IndexError(('Can only interpret 1-d indices, '
@@ -149,15 +163,14 @@ class Group(BrianObject):
 
         Parameters
         ----------
+        variable_name : str
+            The name of the variable in its context (e.g. `'g_post'` for a
+            variable with name `'g'`)
         variable : `ArrayVariable`
-            The `Variable` for the variable to be set
+            The `ArrayVariable` object for the variable to be set
         code : str
             The code that should be executed to set the variable values.
             Can contain references to indices, such as `i` or `j`
-        template : str
-            The name of the template to use.
-        check_units : bool, optional
-            Whether to check the units of the expression.
         level : int, optional
             How much farther to go down in the stack to find the namespace.
             Necessary so that both `X.var = ` and `X.var[:] = ` have access
@@ -197,7 +210,7 @@ class Group(BrianObject):
         Parameters
         ----------
         variable : `ArrayVariable`
-            The `Variable` for the variable to be set
+            The `ArrayVariable` object for the variable to be set
         group_indices : ndarray of int
             The indices of the elements that are to be set.
         code : str
@@ -229,6 +242,27 @@ class Group(BrianObject):
 
     def _set_with_code_conditional(self, variable, cond, code, check_units=True,
                                    level=0):
+        '''
+        Sets a variable using a string expression and string condition. Is
+        called by `VariableView.__setitem__` for statements such as
+        `S.var['i!=j'] = 'exp(-abs(i-j)/space_constant)*nS'`
+
+        Parameters
+        ----------
+        variable : `ArrayVariable`
+            The `ArrayVariable` object for the variable to be set.
+        cond : str
+            The string condition for which the variables should be set.
+        code : str
+            The code that should be executed to set the variable values.
+        check_units : bool, optional
+            Whether to check the units of the expression.
+        level : int, optional
+            How much farther to go down in the stack to find the namespace.
+            Necessary so that both `X.var = ` and `X.var[:] = ` have access
+            to the surrounding namespace.
+        '''
+
         abstract_code_cond = '_cond = '+cond
         abstract_code = variable.name + ' = ' + code
         namespace = get_local_namespace(level + 1)
@@ -244,9 +278,10 @@ class Group(BrianObject):
                                  check_units=check_units)
         codeobj()
 
+
 def check_code_units(code, group, additional_variables=None,
-                additional_namespace=None,
-                ignore_keyerrors=False):
+                     additional_namespace=None,
+                     ignore_keyerrors=False):
     '''
     Check statements for correct units.
 
@@ -263,10 +298,10 @@ def check_code_units(code, group, additional_variables=None,
         An additional namespace, as provided to `Group.before_run`
     ignore_keyerrors : boolean, optional
         Whether to silently ignore unresolvable identifiers. Should be set
-         to ``False`` (the default) if the namespace is expected to be
-         complete (e.g. in `Group.before_run`) but to ``True`` when the check
-         is done during object initialisation where the namespace is not
-         necessarily complete yet
+        to ``False`` (the default) if the namespace is expected to be
+        complete (e.g. in `Group.before_run`) but to ``True`` when the check
+        is done during object initialisation where the namespace is not
+        necessarily complete yet.
 
     Raises
     ------
@@ -300,7 +335,7 @@ def check_code_units(code, group, additional_variables=None,
     check_units_statements(code, resolved_namespace, all_variables)
 
 
-def create_runner_codeobj(group, code, template_name, indices=None,
+def create_runner_codeobj(group, code, template_name,
                           variable_indices=None,
                           name=None, check_units=True,
                           needed_variables=None,
@@ -316,12 +351,8 @@ def create_runner_codeobj(group, code, template_name, indices=None,
         The group where the code is to be run
     code : str
         The code to be executed.
-    template : `LanguageTemplater`
-        The template to use for the code.
-    indices : dict-like, optional
-        A mapping from index name to `Index` objects, describing the indices
-        used for the variables in the code. If none are given, uses the
-        corresponding attribute of `group`.
+    template_name : str
+        The name of the template to use for the code.
     variable_indices : dict-like, optional
         A mapping from `Variable` objects to index names (strings).  If none is
         given, uses the corresponding attribute of `group`.
@@ -342,7 +373,7 @@ def create_runner_codeobj(group, code, template_name, indices=None,
     additional_namespace : dict-like, optional
         A mapping from names to objects, used in addition to the namespace
         saved in `group`.
-        template_kwds : dict, optional
+    template_kwds : dict, optional
         A dictionary of additional information that is passed to the template.
     '''
     logger.debug('Creating code object for abstract code:\n' + str(code))

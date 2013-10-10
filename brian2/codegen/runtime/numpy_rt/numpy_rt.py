@@ -1,4 +1,6 @@
-import os
+'''
+Module providing `NumpyCodeObject`.
+'''
 import numpy as np
 
 from brian2.core.preferences import brian_prefs, BrianPreference
@@ -25,6 +27,7 @@ brian_prefs.register_preferences(
         '''
         )
     )
+
 
 class NumpyCodeObject(CodeObject):
     '''

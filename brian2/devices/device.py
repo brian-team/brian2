@@ -1,3 +1,8 @@
+'''
+Module containing the `Device` base class as well as the `RuntimeDevice`
+implementation and some helper functions to access/set devices.
+'''
+
 import numpy as np
 
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D

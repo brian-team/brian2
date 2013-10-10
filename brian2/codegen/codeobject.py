@@ -1,7 +1,10 @@
+'''
+Module providing the base `CodeObject` and related functions.
+'''
+
 import functools
 import weakref
 
-from brian2.core.variables import ArrayVariable
 from brian2.core.functions import Function
 from brian2.core.preferences import brian_prefs
 from brian2.core.names import Nameable, find_name
