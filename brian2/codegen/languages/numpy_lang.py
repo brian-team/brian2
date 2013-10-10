@@ -124,7 +124,7 @@ for func_name, func in [('sin', np.sin), ('cos', np.cos), ('tan', np.tan),
 def randn_func(vectorisation_idx):
     try:
         N = int(vectorisation_idx)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         N = len(vectorisation_idx)
 
     return np.random.randn(N)
@@ -132,7 +132,7 @@ def randn_func(vectorisation_idx):
 def rand_func(vectorisation_idx):
     try:
         N = int(vectorisation_idx)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         N = len(vectorisation_idx)
 
     return np.random.rand(N)

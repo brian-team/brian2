@@ -351,6 +351,14 @@ def test_state_variable_access_strings():
         assert_equal(G.v[:],
                      np.array([15, 17, 19, 21, 23, 5, 6, 7, 8, 9])*volt)
 
+        G.v = 'v + randn()*volt'  # only check that it doesn't raise an error
+        G.v[:5] = 'v + randn()*volt'  # only check that it doesn't raise an error
+
+        G.v = np.arange(10) * volt
+        # String index using a random number
+        G.v['rand() <= 1'] = 0*mV
+        assert_equal(G.v[:], np.zeros(10)*volt)
+
         G.v = np.arange(10) * volt
         # String index referring to i and setting to a scalar value
         G.v['i>=5'] = 0*mV
