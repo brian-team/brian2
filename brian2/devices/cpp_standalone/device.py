@@ -1,3 +1,6 @@
+'''
+Module implementing the C++ "standalone" device.
+'''
 import numpy
 import os
 import inspect
@@ -21,6 +24,7 @@ from brian2.units import second
 
 from .codeobject import CPPStandaloneCodeObject
 
+
 __all__ = ['build', 'Network', 'run', 'reinit', 'stop']
 
 def freeze(code, ns):
@@ -30,50 +34,23 @@ def freeze(code, ns):
             code = word_substitute(code, {k: repr(v)})
     return code
 
-class StandaloneVariableView(object):
+class StandaloneVariableView(VariableView):
     '''
     Will store information about how the variable was set in the original
     `ArrayVariable` object.
     '''
-    def __init__(self, name, variable, group, template,
-                 unit=None, level=0):
-        self.name = name
-        self.variable = variable
-        self.group = group
-        self.template = template
-        self.unit = unit
-        self.level = level
+    def __init__(self, name, variable, group, unit=None, level=0):
+        super(StandaloneVariableView, self).__init__(name, variable, group,
+                                                     unit=unit, level=level)
 
-#    def __setitem__(self, key, value):
-#        variable = self.variable
-#        self.variable.assignments.append((key, value))
-    def __setitem__(self, i, value):
-        variable = self.variable
-        if variable.scalar:
-            if not (i == slice(None) or i == 0 or (hasattr(i, '__len__') and len(i) == 0)):
-                raise IndexError('Variable is a scalar variable.')
-            indices = np.array([0])
-        else:
-            indices = self.group.indices[self.group.variable_indices[self.name]][i]
-        try:
-            iter(value)
-            sequence = True
-        except TypeError:
-            sequence = False
-        if not isinstance(value, basestring) and not sequence:
-            if not self.unit is None:
-                fail_for_dimension_mismatch(value, self.unit)
-            value = repr(value)
-        if isinstance(value, basestring):
-            check_units = self.unit is not None
-            self.group._set_with_code(variable, indices, value,
-                                      template=self.template,
-                                      check_units=check_units, level=self.level + 1)
-        else:
-            raise NotImplementedError("Setting variables with sequences not supported on devices.")
+    # Overwrite methods to signal that they are not available for standalone
+    def set_array_with_array_index(self, item, value):
+        raise NotImplementedError(('Cannot set variables this way in'
+                                   'standalone, try using string expressions.'))
 
     def __getitem__(self, item):
         raise NotImplementedError()
+
 
 class StandaloneArrayVariable(ArrayVariable):
 
@@ -98,23 +75,13 @@ class StandaloneArrayVariable(ArrayVariable):
             index = slice(None)
         self.assignments.append((index, value))
 
-#    def get_addressable_value(self, group, level=0):
-#        return StandaloneVariableView(self)
-#
-#    def get_addressable_value_with_unit(self, group, level=0):
-#        return StandaloneVariableView(self)
+    def get_addressable_value(self, name, group, level=0):
+        return StandaloneVariableView(name, self, group, unit=None,
+                                      level=level)
 
-    def get_addressable_value(self, group, level=0):
-        template = getattr(group, '_set_with_code_template',
-                           'group_variable_set')
-        return StandaloneVariableView(self.name, self, group, template=template,
-                                      unit=None, level=level)
-
-    def get_addressable_value_with_unit(self, group, level=0):
-        template = getattr(group, '_set_with_code_template',
-                           'group_variable_set')
-        return StandaloneVariableView(self.name, self, group, template=template,
-                                      unit=self.unit, level=level)
+    def get_addressable_value_with_unit(self, name, group, level=0):
+        return StandaloneVariableView(name, self, group, unit=self.unit,
+                                      level=level)
 
 
 class StandaloneDynamicArrayVariable(StandaloneArrayVariable):
@@ -127,25 +94,45 @@ class CPPStandaloneDevice(Device):
     '''
     '''
     def __init__(self):
+        #: List of all regular arrays with their type and size
         self.array_specs = []
+        #: List of all dynamic arrays with their type
         self.dynamic_array_specs = []
+        #: List of all arrays to be filled with zeros (with type and size)
+        self.zero_specs = []
+        #: List of all arrays to be filled with numbers (with type, size,
+        #: start, and stop)
+        self.arange_specs = []
         self.code_objects = {}
         self.main_queue = []
         
     def array(self, owner, name, size, unit, dtype=None, constant=False,
-              is_bool=False):
+              is_bool=False, read_only=False):
         if is_bool:
             dtype = numpy.bool
         elif dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         self.array_specs.append(('_array_%s_%s' % (owner.name, name),
                                  c_data_type(dtype), size))
+        self.zero_specs.append(('_array_%s_%s' % (owner.name, name),
+                                c_data_type(dtype), size))
         return StandaloneArrayVariable(name, unit, size=size, dtype=dtype,
                                        group_name=owner.name,
                                        constant=constant, is_bool=is_bool)
 
+    def arange(self, owner, name, size, start=0, dtype=numpy.int32, constant=True,
+               read_only=True):
+        self.array_specs.append(('_array_%s_%s' % (owner.name, name),
+                                 c_data_type(dtype), size))
+        self.arange_specs.append(('_array_%s_%s' % (owner.name, name),
+                                  c_data_type(dtype), start, size))
+        return StandaloneArrayVariable(name, Unit(1), size=size, dtype=dtype,
+                                       group_name=owner.name,
+                                       constant=constant, is_bool=False)
+
     def dynamic_array_1d(self, owner, name, size, unit, dtype=None,
-                         constant=False, constant_size=True, is_bool=False):
+                         constant=False, constant_size=True, is_bool=False,
+                         read_only=False):
         if is_bool:
             dtype = numpy.bool
         elif dtype is None:
@@ -163,10 +150,9 @@ class CPPStandaloneDevice(Device):
         return CPPStandaloneCodeObject
 
     def code_object(self, owner, name, abstract_code, namespace, variables, template_name,
-                    indices, variable_indices, codeobj_class=None,
-                    template_kwds=None):
+                    variable_indices, codeobj_class=None, template_kwds=None):
         codeobj = super(CPPStandaloneDevice, self).code_object(owner, name, abstract_code, namespace, variables,
-                                                               template_name, indices, variable_indices,
+                                                               template_name, variable_indices,
                                                                codeobj_class=codeobj_class,
                                                                template_kwds=template_kwds,
                                                                )
@@ -178,8 +164,11 @@ class CPPStandaloneDevice(Device):
             os.mkdir('output')
 
         # Write the arrays
-        arr_tmp = CPPStandaloneCodeObject.templater.arrays(None, array_specs=self.array_specs,
-                                                           dynamic_array_specs=self.dynamic_array_specs)
+        arr_tmp = CPPStandaloneCodeObject.templater.arrays(None,
+                                                           array_specs=self.array_specs,
+                                                           dynamic_array_specs=self.dynamic_array_specs,
+                                                           zero_specs=self.zero_specs,
+                                                           arange_specs=self.arange_specs)
         open('output/arrays.cpp', 'w').write(arr_tmp.cpp_file)
         open('output/arrays.h', 'w').write(arr_tmp.h_file)
 

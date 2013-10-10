@@ -2,8 +2,7 @@
 
 {% block maincode %}
     // USES_VARIABLES { _synaptic_pre, _synaptic_post, _post_synaptic,
-    //                  _pre_synaptic, _source_neurons, _target_neurons,
-    //                  rand, _source_offset, _target_offset}
+    //                  _pre_synaptic, rand}
 	srand((unsigned int)time(NULL));
 	int _buffer_size = 1024;
 	int *_prebuf = new int[_buffer_size];
@@ -12,13 +11,11 @@
 	int *_synpostbuf = new int[1];
 	int _curbuf = 0;
 	int _synapse_idx = _synaptic_pre_object.attr("shape")[0];
-	for(int i=0; i<_num_source_neurons; i++)
+	for(int i=0; i<_num_all_pre; i++)
 	{
-		for(int j=0; j<_num_target_neurons; j++)
+		for(int j=0; j<_num_all_post; j++)
 		{
 		    const int _vectorisation_idx = j;
-		    const int _presynaptic_idx = i + _source_offset;
-		    const int _postsynaptic_idx = j + _target_offset;
 			// Define the condition
 		    {{ super() }}
 			// Add to buffer
@@ -32,8 +29,8 @@
 			    }
 
 			    for (int _repetition=0; _repetition<_n; _repetition++) {
-                    _prebuf[_curbuf] = _source_neurons[i];
-                    _postbuf[_curbuf] = _target_neurons[j];
+                    _prebuf[_curbuf] = _pre_idcs;
+                    _postbuf[_curbuf] = _post_idcs;
                     _curbuf++;
                     // Flush buffer
                     if(_curbuf==_buffer_size)
@@ -46,8 +43,8 @@
                     // mapping
                     _synprebuf[0] = _synapse_idx;
                     _synpostbuf[0] = _synapse_idx;
-                    py::object _pre_synapses = (py::object)PyList_GetItem(_pre_synaptic, _source_neurons[i]);
-                    py::object _post_synapses = (py::object)PyList_GetItem(_post_synaptic, _target_neurons[j]);
+                    py::object _pre_synapses = (py::object)PyList_GetItem(_pre_synaptic, i);
+                    py::object _post_synapses = (py::object)PyList_GetItem(_post_synaptic, j);
                     _flush_buffer(_synprebuf, _pre_synapses, 1);
                     _flush_buffer(_synpostbuf, _post_synapses, 1);
                     _synapse_idx++;

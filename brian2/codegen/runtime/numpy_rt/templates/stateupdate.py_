@@ -1,6 +1,6 @@
 # ITERATE_ALL { _idx }
 
-_vectorisation_idx = _idx
+_vectorisation_idx = N
 {% for line in code_lines %}
 {{line}}
 {% endfor %}

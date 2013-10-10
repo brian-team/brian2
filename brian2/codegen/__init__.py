@@ -1,3 +1,7 @@
+'''
+Package providing the code generation framework.
+'''
+
 from .languages import *
 from .statements import *
 from .translation import *

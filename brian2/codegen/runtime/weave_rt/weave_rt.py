@@ -1,4 +1,7 @@
-import os
+'''
+Module providing `WeaveCodeObject`.
+'''
+
 import numpy
 
 try:
@@ -55,7 +58,7 @@ def weave_data_type(dtype):
     dtype = numpy.empty(0, dtype=dtype).dtype.char
         
     return num_to_c_types[dtype]
-    
+
 
 class WeaveCodeObject(CodeObject):
     '''
@@ -65,7 +68,9 @@ class WeaveCodeObject(CodeObject):
     object with two macros defined, ``main`` (for the main loop code) and
     ``support_code`` for any support code (e.g. function definitions).
     '''
-    templater = Templater('brian2.codegen.runtime.weave_rt')
+    templater = Templater('brian2.codegen.runtime.weave_rt',
+                          env_globals={'c_data_type': weave_data_type,
+                                       'dtype': numpy.dtype})
     language = CPPLanguage(c_data_type=weave_data_type)
     class_name = 'weave'
 

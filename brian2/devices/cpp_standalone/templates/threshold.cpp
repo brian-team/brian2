@@ -36,7 +36,7 @@ void _run_{{codeobj_name}}(double t)
 
 	//// MAIN CODE ////////////
 	long _cpp_numspikes = 0;
-	for(int _idx=0; _idx<_num_idx; _idx++)
+	for(int _idx=0; _idx<N; _idx++)
 	{
 	    const int _vectorisation_idx = _idx;
 		{% for line in code_lines %}
@@ -51,7 +51,7 @@ void _run_{{codeobj_name}}(double t)
 			_ptr{{_array_lastspike}}[_idx] = t;
 		}
 	}
-	{{_spikespace}}[_num_idx] = _cpp_numspikes;
+	{{_spikespace}}[N] = _cpp_numspikes;
 }
 {% endmacro %}
 

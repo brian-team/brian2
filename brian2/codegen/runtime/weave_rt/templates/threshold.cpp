@@ -4,7 +4,7 @@
 	// USES_VARIABLES { not_refractory, lastspike, t, _spikespace }
 	//// MAIN CODE ////////////
 	long _cpp_numspikes = 0;
-	for(int _idx=0; _idx<_num_idx; _idx++)
+	for(int _idx=0; _idx<N; _idx++)
 	{
 	    const int _vectorisation_idx = _idx;
 		{{ super() }}
@@ -17,5 +17,5 @@
 			_ptr{{_array_lastspike}}[_idx] = t;
 		}
 	}
-	_spikespace[_num_idx] = _cpp_numspikes;
+	_spikespace[N] = _cpp_numspikes;
 {% endblock %}
