@@ -412,17 +412,17 @@ def test_changed_dt_spikes_in_queue():
     assert_equal(mon.t, expected)
 
 
-def test_lumped_variable():
+def test_summed_variable():
     for codeobj_class in codeobj_classes:
         source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0',
                              codeobj_class=codeobj_class)
         source.v = 1.1  # will spike immediately
         target = NeuronGroup(2, 'v : 1', codeobj_class=codeobj_class)
-        # We make this a bit unnecessarily complicated to see whether the lumped
+        # We make this a bit unnecessarily complicated to see whether the summed
         # variable mechanism correctly deals with Subexpressions
         S = Synapses(source, target, '''w : 1
                                         x : 1
-                                        v = x : 1 (lumped)''', pre='x+=w',
+                                        v = x : 1 (summed)''', pre='x+=w',
                      codeobj_class=codeobj_class)
         S.connect('i==j', n=2)
         S.w[:, :, 0] = 'i'
@@ -512,6 +512,6 @@ if __name__ == '__main__':
     test_delay_specification()
     test_transmission()
     test_changed_dt_spikes_in_queue()
-    test_lumped_variable()
+    test_summed_variable()
     test_event_driven()
     test_repr()

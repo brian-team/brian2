@@ -23,7 +23,7 @@ neurons.v = np.linspace(0, 1, N)
 trace = StateMonitor(neurons, 'v', record=[0, 5])
 
 S = Synapses(neurons, neurons, '''w:1 # gap junction conductance
-                                Igap=w*(v_pre-v_post): 1 (lumped)''',
+                                Igap=w*(v_pre-v_post): 1 (summed)''',
             )
 S.connect(True)
 S.w = .02

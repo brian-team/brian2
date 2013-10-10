@@ -67,17 +67,16 @@ class StateUpdater(GroupCodeRunner):
                                          self.group.variables)
 
 
-class LumpedUpdater(GroupCodeRunner):
+class SummedVariableUpdater(GroupCodeRunner):
     '''
     The `GroupCodeRunner` that updates a value in the target group with the
     sum over values in the `Synapses` object.
     '''
     def __init__(self, varname, synapses, target):
 
-        # Handling lumped variables using the standard mechanisms is not
+        # Handling sumped variables using the standard mechanisms is not
         # possible, we therefore also directly give the names of the arrays
-        # to the template. The dummy statement in the second line only serves
-        # the purpose of including the variable in the namespace
+        # to the template.
 
         code = '''
         _synaptic_var = {varname}
@@ -87,12 +86,12 @@ class LumpedUpdater(GroupCodeRunner):
         template_kwds = {'_target_var_array': synapses.variables[varname+'_post'].arrayname}
 
         GroupCodeRunner.__init__(self, group=synapses,
-                                 template='lumped_variable',
+                                 template='summed_variable',
                                  code=code,
-                                 # We want to update the lumped variable before
+                                 # We want to update the sumned variable before
                                  # the target group gets updated
                                  when=(target.clock, 'groups', -1),
-                                 name=target.name + '_lumped_variable_' + varname,
+                                 name=target.name + '_summed_variable_' + varname,
                                  template_kwds=template_kwds)
 
 
@@ -398,9 +397,9 @@ class Synapses(Group):
                              'object, is "%s" instead.') % type(model))
 
         # Check flags
-        model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven', 'lumped'],
-                           STATIC_EQUATION: ['lumped'],
-                           PARAMETER: ['constant', 'lumped']})
+        model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven'],
+                           STATIC_EQUATION: ['summed'],
+                           PARAMETER: ['constant']})
 
         # Separate the equations into event-driven and continuously updated
         # equations
@@ -408,9 +407,6 @@ class Synapses(Group):
         continuous = []
         for single_equation in model.itervalues():
             if 'event-driven' in single_equation.flags:
-                if 'lumped' in single_equation.flags:
-                    raise ValueError(('Event-driven variable %s cannot be '
-                                      'a lumped variable.') % single_equation.varname)
                 event_driven.append(single_equation)
             else:
                 continuous.append(single_equation)
@@ -507,25 +503,25 @@ class Synapses(Group):
 
         #: "Lumped variable" mechanism -- sum over all synapses of a
         #: postsynaptic target
-        self.lumped_updaters = {}
+        self.summed_updaters = {}
         for single_equation in self.equations.itervalues():
-            if 'lumped' in single_equation.flags:
+            if 'summed' in single_equation.flags:
                 varname = single_equation.varname
-                # For a lumped variable, we need an equivalent parameter in the
+                # For a summed variable, we need an equivalent parameter in the
                 # target group
                 if not varname in self.target.variables:
-                    raise ValueError(('The lumped variable %s needs a variable '
+                    raise ValueError(('The summed variable %s needs a variable '
                                       'of the same name in the target '
                                       'group ') % single_equation.varname)
                 fail_for_dimension_mismatch(self.variables[varname].unit,
                                             self.target.variables[varname].unit,
-                                            ('Lumped variables need to have '
+                                            ('Summed variables need to have '
                                              'the same units in Synapses '
                                              'and the target group'))
                 # TODO: Add some more stringent check about the type of
                 # variable in the target group
-                updater = LumpedUpdater(varname, self, self.target)
-                self.lumped_updaters[varname] = updater
+                updater = SummedVariableUpdater(varname, self, self.target)
+                self.summed_updaters[varname] = updater
                 self.contained_objects.append(updater)
 
         # Do an initial connect, if requested
