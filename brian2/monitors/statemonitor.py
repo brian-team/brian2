@@ -3,7 +3,8 @@ import collections
 
 import numpy as np
 
-from brian2.core.variables import (AttributeVariable, ArrayVariable)
+from brian2.core.variables import (AttributeVariable, ArrayVariable,
+                                   AuxiliaryVariable)
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.devices.device import get_device
@@ -174,12 +175,6 @@ class StateMonitor(BrianObject):
         self.variables = {}
         for varname in variables:
             var = source.variables[varname]
-            if not (np.issubdtype(var.dtype, np.float64) and
-                        np.issubdtype(np.float64, var.dtype)):
-                raise NotImplementedError(('Cannot record %s with data type '
-                                           '%s, currently only values stored as '
-                                           'doubles can be recorded.') %
-                                          (varname, var.dtype))
             self.variables[varname] = var
             self.variables['_recorded_'+varname] = device.dynamic_array(self,
                                                                         '_recorded_'+varname,
@@ -206,6 +201,11 @@ class StateMonitor(BrianObject):
         code = ['_to_record_%s = %s' % (v, v)
                 for v in self.record_variables]
         code = '\n'.join(code)
+        source_variables = self.source.variables
+        self.variables.update(dict([('_to_record_%s' % v,
+                                     AuxiliaryVariable(source_variables[v].unit,
+                                                       dtype=source_variables[v].dtype))
+                                    for v in self.record_variables]))
         recorded_names = ['_recorded_' + name for name in self.record_variables]
         self.codeobj = create_runner_codeobj(self.source,
                                              code,
