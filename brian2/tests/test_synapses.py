@@ -412,17 +412,15 @@ def test_changed_dt_spikes_in_queue():
     assert_equal(mon.t, expected)
 
 
-def test_lumped_variable():
+def test_summed_variable():
     for codeobj_class in codeobj_classes:
         source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0',
                              codeobj_class=codeobj_class)
         source.v = 1.1  # will spike immediately
         target = NeuronGroup(2, 'v : 1', codeobj_class=codeobj_class)
-        # We make this a bit unnecessarily complicated to see whether the lumped
-        # variable mechanism correctly deals with Subexpressions
         S = Synapses(source, target, '''w : 1
                                         x : 1
-                                        v = x : 1 (lumped)''', pre='x+=w',
+                                        v_post = x : 1 (summed)''', pre='x+=w',
                      codeobj_class=codeobj_class)
         S.connect('i==j', n=2)
         S.w[:, :, 0] = 'i'
@@ -432,6 +430,35 @@ def test_lumped_variable():
 
         # v of the target should be the sum of the two weights
         assert_equal(target.v, np.array([0.5, 2.5]))
+
+
+def test_summed_variable_errors():
+    G = NeuronGroup(10, '''dv/dt = -v / (10*ms) : volt
+                           sub = 2*v : volt
+                           p : volt''')
+
+    # Using the (summed) flag for a differential equation or a parameter
+    assert_raises(ValueError, lambda: Synapses(G, G, '''dp_post/dt = -p_post / (10*ms) : volt (summed)'''))
+    assert_raises(ValueError, lambda: Synapses(G, G, '''p_post : volt (summed)'''))
+
+    # Using the (summed) flag for a variable name without _pre or _post suffix
+    assert_raises(ValueError, lambda: Synapses(G, G, '''p = 3*volt : volt (summed)'''))
+
+    # Using the name of a variable that does not exist
+    assert_raises(ValueError, lambda: Synapses(G, G, '''q_post = 3*volt : volt (summed)'''))
+
+    # Target equation is not a parameter
+    assert_raises(ValueError, lambda: Synapses(G, G, '''sub_post = 3*volt : volt (summed)'''))
+    assert_raises(ValueError, lambda: Synapses(G, G, '''v_post = 3*volt : volt (summed)'''))
+
+    # Unit mismatch between synapses and target
+    assert_raises(DimensionMismatchError,
+                  lambda: Synapses(G, G, '''p_post = 3*second : second (summed)'''))
+
+    # Two summed variable equations targetting the same variable
+    assert_raises(ValueError,
+                  lambda: Synapses(G, G, '''p_post = 3*volt : volt (summed)
+                                            p_pre = 3*volt : volt (summed)'''))
 
 
 def test_event_driven():
@@ -512,6 +539,7 @@ if __name__ == '__main__':
     test_delay_specification()
     test_transmission()
     test_changed_dt_spikes_in_queue()
-    test_lumped_variable()
+    test_summed_variable()
+    test_summed_variable_errors()
     test_event_driven()
     test_repr()
