@@ -1,7 +1,10 @@
+'''
+Module providing the base `CodeObject` and related functions.
+'''
+
 import functools
 import weakref
 
-from brian2.core.variables import ArrayVariable
 from brian2.core.functions import Function
 from brian2.core.preferences import brian_prefs
 from brian2.core.names import Nameable, find_name
@@ -39,8 +42,8 @@ def prepare_namespace(namespace, variables, codeobj_class):
     return namespace
 
 
-def create_codeobject(owner, name, abstract_code, namespace, variables, template_name,
-                      indices, variable_indices, codeobj_class,
+def create_codeobject(owner, name, abstract_code, namespace, variables,
+                      template_name, variable_indices, codeobj_class,
                       template_kwds=None):
     '''
     The following arguments keywords are passed to the template:
@@ -64,33 +67,21 @@ def create_codeobject(owner, name, abstract_code, namespace, variables, template
     namespace = prepare_namespace(namespace, variables,
                                   codeobj_class=codeobj_class)
 
-    logger.debug(name + " abstract code:\n" + abstract_code)
-    iterate_all = template.iterate_all
     if isinstance(abstract_code, dict):
-        snippet = {}
-        kwds = {}
-        for ac_name, ac in abstract_code.iteritems():
-            snip, snip_kwds = translate(ac, variables, namespace,
-                                        dtype=brian_prefs['core.default_scalar_dtype'],
-                                        codeobj_class=codeobj_class,
-                                        variable_indices=variable_indices,
-                                        iterate_all=iterate_all)
-            snippet[ac_name] = snip
-            for k, v in snip_kwds:
-                kwds[ac_name+'_'+k] = v
-            
+        for k, v in abstract_code.items():
+            logger.debug('%s abstract code key %s:\n%s' % (name, k, v))
     else:
-        snippet, kwds = translate(abstract_code, variables, namespace,
-                                  dtype=brian_prefs['core.default_scalar_dtype'],
-                                  codeobj_class=codeobj_class,
-                                  variable_indices=variable_indices,
-                                  iterate_all=iterate_all)
+        logger.debug(name + " abstract code:\n" + abstract_code)
+    iterate_all = template.iterate_all
+    snippet, kwds = translate(abstract_code, variables, namespace,
+                              dtype=brian_prefs['core.default_scalar_dtype'],
+                              codeobj_class=codeobj_class,
+                              variable_indices=variable_indices,
+                              iterate_all=iterate_all)
     template_kwds.update(kwds)
     logger.debug(name + " snippet:\n" + str(snippet))
     
     name = find_name(name)
-
-    variables.update(indices)
     
     code = template(snippet,
                     owner=owner, variables=variables, codeobj_name=name, namespace=namespace,

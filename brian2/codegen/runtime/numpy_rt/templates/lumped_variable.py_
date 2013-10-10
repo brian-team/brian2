@@ -1,10 +1,7 @@
-# USES_VARIABLES { _post_synaptic, _synaptic_pre, _synaptic_post }
+# USES_VARIABLES { _post_synaptic }
 # ITERATE_ALL { _idx }
 
 import numpy as np
-
-_presynaptic_idx = _synaptic_pre[:]
-_postsynaptic_idx = _synaptic_post[:]
 
 {% for line in code_lines %}
 {{line}}

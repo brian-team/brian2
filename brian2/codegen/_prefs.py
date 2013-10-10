@@ -1,3 +1,7 @@
+'''
+Module declaring general code generation preferences.
+'''
+
 from .codeobject import CodeObject
 from brian2.core.preferences import brian_prefs, BrianPreference
 

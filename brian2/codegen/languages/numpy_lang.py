@@ -1,3 +1,5 @@
+import itertools
+
 import numpy as np
 
 from brian2.utils.stringtools import word_substitute
@@ -37,13 +39,14 @@ class NumpyLanguage(Language):
                                                                 namespace,
                                                                 codeobj_class)
 
-    def translate_statement_sequence(self, statements, variables, namespace,
-                                     variable_indices, iterate_all,
-                                     codeobj_class):
-        read, write = self.array_read_write(statements, variables)
+    def translate_one_statement_sequence(self, statements, variables, namespace,
+                                         variable_indices, iterate_all,
+                                         codeobj_class):
+        read, write, indices = self.array_read_write(statements, variables,
+                                            variable_indices)
         lines = []
-        # read arrays
-        for var in read:
+        # index and read arrays (index arrays first)
+        for var in itertools.chain(indices, read):
             spec = variables[var]
             index = variable_indices[var]
             line = var + ' = ' + spec.arrayname
@@ -82,7 +85,27 @@ class NumpyLanguage(Language):
             if isinstance(var, Function):
                 namespace[varname] = var.implementations[codeobj_class].code
 
-        return lines, {}
+        return lines
+
+    def translate_statement_sequence(self, statements, variables, namespace,
+                                     variable_indices, iterate_all,
+                                     codeobj_class):
+        if isinstance(statements, dict):
+            blocks = {}
+            all_kwds = {}
+            for name, block in statements.iteritems():
+                blocks[name] = self.translate_one_statement_sequence(block,
+                                                                     variables,
+                                                                     namespace,
+                                                                     variable_indices,
+                                                                     iterate_all,
+                                                                     codeobj_class)
+            return blocks, {}
+        else:
+            block = self.translate_one_statement_sequence(statements, variables,
+                                                          namespace, variable_indices,
+                                                          iterate_all, codeobj_class)
+            return block, {}
 
 ################################################################################
 # Implement functions
@@ -98,9 +121,22 @@ for func_name, func in [('sin', np.sin), ('cos', np.cos), ('tan', np.tan),
     DEFAULT_FUNCTIONS[func_name].implementations[NumpyLanguage] = FunctionImplementation(code=func)
 
 # Functions that are implemented in a somewhat special way
-randn_func = lambda vectorisation_idx: np.random.randn(len(vectorisation_idx))
+def randn_func(vectorisation_idx):
+    try:
+        N = int(vectorisation_idx)
+    except (TypeError, ValueError):
+        N = len(vectorisation_idx)
+
+    return np.random.randn(N)
+
+def rand_func(vectorisation_idx):
+    try:
+        N = int(vectorisation_idx)
+    except (TypeError, ValueError):
+        N = len(vectorisation_idx)
+
+    return np.random.rand(N)
 DEFAULT_FUNCTIONS['randn'].implementations[NumpyLanguage] = FunctionImplementation(code=randn_func)
-rand_func = lambda vectorisation_idx: np.random.rand(len(vectorisation_idx))
 DEFAULT_FUNCTIONS['rand'].implementations[NumpyLanguage] = FunctionImplementation(code=rand_func)
 clip_func = lambda array, a_min, a_max: np.clip(array, a_min, a_max)
 DEFAULT_FUNCTIONS['clip'].implementations[NumpyLanguage] = FunctionImplementation(code=clip_func)

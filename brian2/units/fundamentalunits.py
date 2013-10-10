@@ -1390,12 +1390,11 @@ class Quantity(np.ndarray, object):
     #### COMPARISONS ####
     def _comparison(self, other, message, operation):
         is_scalar = is_scalar_type(other)
+        if not is_scalar and not isinstance(other, np.ndarray):
+            return NotImplemented
         if not is_scalar or not np.isinf(other):
             fail_for_dimension_mismatch(self, other, message)
-        if isinstance(other, np.ndarray) or is_scalar:
-            return operation(np.asarray(self), np.asarray(other))
-        else:
-            return NotImplemented
+        return operation(np.asarray(self), np.asarray(other))
 
     def __lt__(self, other):
         return self._comparison(other, 'LessThan', operator.lt)

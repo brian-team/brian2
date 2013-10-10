@@ -1,6 +1,6 @@
-import os
-
-from brian2.core.variables import Variable, Subexpression
+'''
+Module implementing the C++ "standalone" `CodeObject`
+'''
 from brian2.codegen.codeobject import CodeObject
 from brian2.codegen.templates import Templater
 from brian2.codegen.languages.cpp_lang import CPPLanguage

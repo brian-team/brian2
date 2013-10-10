@@ -210,13 +210,16 @@ class NeuronGroup(Group, SpikeSource):
         self.codeobj_class = codeobj_class
 
         try:
-            self.N = N = int(N)
+            self._N = N = int(N)
         except ValueError:
             if isinstance(N, str):
                 raise TypeError("First NeuronGroup argument should be size, not equations.")
             raise
         if N < 1:
             raise ValueError("NeuronGroup size should be at least 1, was " + str(N))
+
+        self.start = 0
+        self.stop = self._N
 
         ##### Prepare and validate equations
         if isinstance(model, basestring):
@@ -236,7 +239,7 @@ class NeuronGroup(Group, SpikeSource):
                                                   for eq in model.itervalues()
                                                   if eq.type == DIFFERENTIAL_EQUATION])
 
-        logger.debug("Creating NeuronGroup of size {self.N}, "
+        logger.debug("Creating NeuronGroup of size {self._N}, "
                      "equations {self.equations}.".format(self=self))
 
         # Setup the namespace
@@ -317,7 +320,7 @@ class NeuronGroup(Group, SpikeSource):
     def __getitem__(self, item):
         if not isinstance(item, slice):
             raise TypeError('Subgroups can only be constructed using slicing syntax')
-        start, stop, step = item.indices(self.N)
+        start, stop, step = item.indices(self._N)
         if step != 1:
             raise IndexError('Subgroups have to be contiguous')
         if start >= stop:
@@ -373,22 +376,26 @@ class NeuronGroup(Group, SpikeSource):
                              'specification') % type(dtype))
 
         # Standard variables always present
-        s['_spikespace'] = device.array(self, '_spikespace', self.N+1,
+        s['_spikespace'] = device.array(self, '_spikespace', self._N+1,
                                         Unit(1), dtype=np.int32,
                                         constant=False)
-
+        # Add the special variable "i" which can be used to refer to the neuron index
+        s['i'] = device.arange(self, 'i', self._N, constant=True,
+                               read_only=True)
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = ('constant' in eq.flags)
-                s[eq.varname] = device.array(self, eq.varname, self.N, eq.unit,
+                s[eq.varname] = device.array(self, eq.varname, self._N, eq.unit,
                                              dtype=dtype[eq.varname],
                                              constant=constant,
                                              is_bool=eq.is_bool)
         
             elif eq.type == STATIC_EQUATION:
-                s[eq.varname] = Subexpression(eq.unit,
-                                              brian_prefs['core.default_scalar_dtype'],
-                                              str(eq.expr),
+                s[eq.varname] = Subexpression(eq.varname,
+                                              eq.unit,
+                                              dtype=brian_prefs['core.default_scalar_dtype'],
+                                              expr=str(eq.expr),
+                                              group=self,
                                               is_bool=eq.is_bool)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
@@ -416,7 +423,7 @@ class NeuronGroup(Group, SpikeSource):
                                    namespace)
     
     def _repr_html_(self):
-        text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self.N)]
+        text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self._N)]
         text.append(r'<b>Model:</b><nr>')
         text.append(sympy.latex(self.equations))
         text.append(r'<b>Integration method:</b><br>')

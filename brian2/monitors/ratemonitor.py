@@ -73,7 +73,6 @@ class PopulationRateMonitor(BrianObject):
                                          {}, # no namespace
                                          self.variables,
                                          template_name='ratemonitor',
-                                         indices={},
                                          variable_indices=defaultdict(lambda: '_idx'))
 
         self.updaters[:] = [self.codeobj.get_updater()]
