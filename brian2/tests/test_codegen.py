@@ -32,8 +32,12 @@ def test_get_identifiers_recursively():
     '''
     Test finding identifiers including subexpressions.
     '''
-    variables = {'sub1': Subexpression('sub1', Unit(1), np.float32, 'sub2 * z', FakeGroup(variables={})),
-                 'sub2': Subexpression('sub2', Unit(1), np.float32, '5 + y', FakeGroup(variables={})),
+    variables = {'sub1': Subexpression('sub1', Unit(1), dtype=np.float32,
+                                       expr='sub2 * z',
+                                       group=FakeGroup(variables={})),
+                 'sub2': Subexpression('sub2', Unit(1), dtype=np.float32,
+                                       expr='5 + y',
+                                       group=FakeGroup(variables={})),
                  'x': Variable(unit=None)}
     identifiers = get_identifiers_recursively('_x = sub1 + x', variables)
     assert identifiers == set(['x', '_x', 'y', 'z', 'sub1', 'sub2'])

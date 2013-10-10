@@ -704,17 +704,18 @@ class Subexpression(Variable):
         The name of the subexpression.
     unit : `Unit`
         The unit of the subexpression.
-    dtype : `numpy.dtype`
-        The dtype used for the expression.
     expr : str
         The subexpression itself.
     group : `Group`
         The group to which the expression refers.
+    dtype : `numpy.dtype`, optional
+        The dtype used for the expression. Defaults to
+        `core.default_scalar_dtype`.
     is_bool: bool, optional
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
-    def __init__(self, name, unit, dtype, expr, group, is_bool=False):
+    def __init__(self, name, unit, expr, group, dtype=None, is_bool=False):
         #: The name of the subexpression
         self.name = name
         #: The group to which the expression refers

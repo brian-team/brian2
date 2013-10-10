@@ -278,9 +278,9 @@ def translate_subexpressions(subexpressions, variables):
         new_expr = translate_subexpression(subexpr, variables)
         new_subexpressions[subexpr_name] = Subexpression(subexpr.name,
                                                          subexpr.unit,
-                                                         subexpr.dtype,
-                                                         new_expr,
-                                                         subexpr.group,
+                                                         expr=new_expr,
+                                                         group=subexpr.group,
+                                                         dtype=subexpr.dtype,
                                                          is_bool=subexpr.is_bool)
 
     subexpressions.update(new_subexpressions)
