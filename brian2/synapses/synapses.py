@@ -72,18 +72,19 @@ class SummedVariableUpdater(GroupCodeRunner):
     The `GroupCodeRunner` that updates a value in the target group with the
     sum over values in the `Synapses` object.
     '''
-    def __init__(self, varname, synapses, target):
+    def __init__(self, expression, target_varname, synapses, target):
 
         # Handling sumped variables using the standard mechanisms is not
         # possible, we therefore also directly give the names of the arrays
         # to the template.
 
         code = '''
-        _synaptic_var = {varname}
-        {varname}_post = {varname}_post
-        '''.format(varname=varname)
+        _synaptic_var = {expression}
+        {target_varname} = {target_varname}
+        '''.format(expression=expression,
+                   target_varname=target_varname)
 
-        template_kwds = {'_target_var_array': synapses.variables[varname+'_post'].arrayname}
+        template_kwds = {'_target_var_array': synapses.variables[target_varname].arrayname}
 
         GroupCodeRunner.__init__(self, group=synapses,
                                  template='summed_variable',
@@ -91,7 +92,7 @@ class SummedVariableUpdater(GroupCodeRunner):
                                  # We want to update the sumned variable before
                                  # the target group gets updated
                                  when=(target.clock, 'groups', -1),
-                                 name=target.name + '_summed_variable_' + varname,
+                                 name=synapses.name + '_summed_variable_' + target_varname,
                                  template_kwds=template_kwds)
 
 
@@ -501,26 +502,50 @@ class Synapses(Group):
         self.state_updater = StateUpdater(self, method)        
         self.contained_objects.append(self.state_updater)
 
-        #: "Lumped variable" mechanism -- sum over all synapses of a
-        #: postsynaptic target
+        #: "Summed variable" mechanism -- sum over all synapses of a
+        #: pre-/postsynaptic target
         self.summed_updaters = {}
+        # We want to raise an error if the same variable is updated twice
+        # using this mechanism. This could happen if the Synapses object
+        # connected a NeuronGroup to itself since then all variables are
+        # accessible as var_pre and var_post.
+        summed_targets = set()
         for single_equation in self.equations.itervalues():
             if 'summed' in single_equation.flags:
                 varname = single_equation.varname
-                # For a summed variable, we need an equivalent parameter in the
-                # target group
-                if not varname in self.target.variables:
-                    raise ValueError(('The summed variable %s needs a variable '
-                                      'of the same name in the target '
-                                      'group ') % single_equation.varname)
-                fail_for_dimension_mismatch(self.variables[varname].unit,
-                                            self.target.variables[varname].unit,
+                if not (varname.endswith('_pre') or varname.endswith('_post')):
+                    raise ValueError(('The summed variable "%s" does not end '
+                                      'in "_pre" or "_post".') % varname)
+                if not varname in self.variables:
+                    raise ValueError(('The summed variable "%s" does not refer'
+                                      'do any known variable in the '
+                                      'target group.') % varname)
+                if varname.endswith('_pre'):
+                    summed_target = self.source
+                    orig_varname = varname[:-4]
+                else:
+                    summed_target = self.target
+                    orig_varname = varname[:-5]
+
+                target_eq = getattr(summed_target, 'equations', {}).get(orig_varname, None)
+                if target_eq is None or target_eq.type != PARAMETER:
+                    raise ValueError(('The summed variable "%s" needs a '
+                                      'corresponding parameter "%s" in the '
+                                      'target group.') % (varname,
+                                                          orig_varname))
+
+                fail_for_dimension_mismatch(self.variables['_summed_'+varname].unit,
+                                            self.variables[varname].unit,
                                             ('Summed variables need to have '
                                              'the same units in Synapses '
                                              'and the target group'))
-                # TODO: Add some more stringent check about the type of
-                # variable in the target group
-                updater = SummedVariableUpdater(varname, self, self.target)
+                if self.variables[varname] in summed_targets:
+                    raise ValueError(('The target variable "%s" is already '
+                                      'updated by another summed '
+                                      'variable') % orig_varname)
+                summed_targets.add(self.variables[varname])
+                updater = SummedVariableUpdater(single_equation.expr,
+                                                varname, self, summed_target)
                 self.summed_updaters[varname] = updater
                 self.contained_objects.append(updater)
 
@@ -681,12 +706,19 @@ class Synapses(Group):
                     # name, delete the reference to the postsynaptic index
                     del self.variable_indices[eq.varname]
             elif eq.type == STATIC_EQUATION:
-                v.update({eq.varname: Subexpression(eq.varname,
-                                                    eq.unit,
-                                                    dtype=brian_prefs['core.default_scalar_dtype'],
-                                                    expr=str(eq.expr),
-                                                    group=self,
-                                                    is_bool=eq.is_bool)})
+                if 'summed' in eq.flags:
+                    # Give a special name to the subexpression for summed
+                    # variables to avoid confusion with the pre/postsynaptic
+                    # target variable
+                    varname = '_summed_'+eq.varname
+                else:
+                    varname = eq.varname
+                v.update({varname: Subexpression(varname,
+                                                 eq.unit,
+                                                 dtype=brian_prefs['core.default_scalar_dtype'],
+                                                 expr=str(eq.expr),
+                                                 group=self,
+                                                 is_bool=eq.is_bool)})
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
