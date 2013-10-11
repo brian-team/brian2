@@ -55,7 +55,7 @@ setup(name='Brian2',
                     },
       requires=['numpy(>=1.4.1)',
                 'scipy(>=0.7.0)',
-                'sympy(>=0.7.1)',
+                'sympy(>=0.7.2)',
                 'pyparsing',
                 'jinja2(>=2.7)'
                 ],

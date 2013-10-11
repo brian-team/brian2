@@ -1,9 +1,6 @@
 '''
 Exact integration for linear equations.
 '''
-
-import operator
-
 from sympy import Wild, Symbol, Float
 import sympy as sp
 
