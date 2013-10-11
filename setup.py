@@ -61,7 +61,7 @@ setup(name='Brian2',
                 ],
       provides=['brian2'],
       extras_require={'test': ['nosetests>=1.0'],
-                      'docs': ['sphinx>=1.0.1']},
+                      'docs': ['sphinx>=1.0.1', 'sphinxcontrib-issuetracker']},
       cmdclass={'install': install},
       use_2to3=True,
       classifiers=[

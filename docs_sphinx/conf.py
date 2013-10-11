@@ -71,7 +71,8 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest',
               'sphinx.ext.coverage', 'sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
               'brian2.sphinxext.briandoc',
-              'sphinx.ext.autosummary']
+              'sphinx.ext.autosummary',
+              'sphinxcontrib.issuetracker']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -297,3 +298,6 @@ intersphinx_mapping = {
 
 autodoc_default_flags = ['show-inheritance']
 
+# Configure linking to github
+issuetracker = 'github'
+issuetracker_project = 'brian-team/brian2'
