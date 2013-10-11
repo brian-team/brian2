@@ -7,4 +7,5 @@ User's guide
    models
    equations
    refractoriness
+   synapses
    functions
