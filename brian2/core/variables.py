@@ -638,6 +638,7 @@ class DynamicArrayVariable(ArrayVariable):
     '''
     An object providing information about a model variable stored in a dynamic
     array (used in `Synapses`).
+
     Parameters
     ----------
     name : str

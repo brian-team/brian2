@@ -11,9 +11,8 @@ For a more detailed description, see :doc:`new_magic_and_clocks`.
 
 The clock system has been simplified and is now more explicit: The user either
 defines a `Clock` (and passes it for example to the `NeuronGroup`) or the default
-clock is used. You can only set the ``dt`` of a clock once (there were all kinds
-of issues in Brian1 if you changed the ``dt`` of a clock after you created a
-group, for example).  
+clock is used. Changing the dt of a `Clock` after the creation of a
+`NeuronGroup` or between runs is no longer a problem.
 
 The "magic" system is also more stringent and easier to explain now: Brian
 keeps track of all instances that are created (they also have a unique name,
