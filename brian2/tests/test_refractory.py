@@ -16,7 +16,7 @@ except ImportError:
 
 def test_add_refractoriness():
     eqs = Equations('''
-    dv/dt = -x*v/second : volt (unless-refractory)
+    dv/dt = -x*v/second : volt (unless refractory)
     dw/dt = -w/second : amp
     x : 1
     ''')
@@ -35,7 +35,7 @@ def test_refractoriness_variables():
                          'time_since_spike < 5*ms', 'ref_subexpression',
                          '(t-lastspike) < ref', 'ref', 'ref_no_unit*ms']:
             G = NeuronGroup(1, '''
-            dv/dt = 100*Hz : 1 (unless-refractory)
+            dv/dt = 100*Hz : 1 (unless refractory)
             dw/dt = 100*Hz : 1
             ref : second
             ref_no_unit : 1

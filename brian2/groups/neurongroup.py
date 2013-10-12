@@ -229,13 +229,13 @@ class NeuronGroup(Group, SpikeSource):
                              'object, is "%s" instead.') % type(model))
 
         # Check flags
-        model.check_flags({DIFFERENTIAL_EQUATION: ('unless-refractory'),
+        model.check_flags({DIFFERENTIAL_EQUATION: ('unless refractory'),
                            PARAMETER: ('constant')})
 
         # add refractoriness
         model = add_refractoriness(model)
         self.equations = model
-        uses_refractoriness = len(model) and any(['unless-refractory' in eq.flags
+        uses_refractoriness = len(model) and any(['unless refractory' in eq.flags
                                                   for eq in model.itervalues()
                                                   if eq.type == DIFFERENTIAL_EQUATION])
 
@@ -259,7 +259,7 @@ class NeuronGroup(Group, SpikeSource):
         #: The refractory condition or timespan
         self._refractory = refractory
         if uses_refractoriness and refractory is False:
-            logger.warn('Model equations use the "unless-refractory" flag but '
+            logger.warn('Model equations use the "unless refractory" flag but '
                         'no refractory keyword was given.', 'no_refractory')
 
         #: The state update method selected by the user

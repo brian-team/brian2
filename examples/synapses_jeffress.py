@@ -31,7 +31,7 @@ angular_speed = 2 * np.pi / second # 1 turn/second
 tau_ear = 1 * ms
 sigma_ear = .1
 eqs_ears = '''
-dx/dt = (sound(t-delay)-x)/tau_ear+sigma_ear*(2./tau_ear)**.5*xi : 1 (unless-refractory)
+dx/dt = (sound(t-delay)-x)/tau_ear+sigma_ear*(2./tau_ear)**.5*xi : 1 (unless refractory)
 delay = distance*sin(theta) : second
 distance : second # distance to the centre of the head in time units
 dtheta/dt = angular_speed : radian
