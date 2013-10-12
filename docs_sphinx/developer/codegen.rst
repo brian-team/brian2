@@ -1,6 +1,9 @@
 Code generation
 ~~~~~~~~~~~~~~~
 
+.. warning:: The information in these pages is slightly out of date now. This documentation will be updated for the
+             beta release of Brian 2.
+
 The following is an outline of how the Brian 2 code generation system works,
 with indicators as to which packages to look at and which bits of code to read
 for a clearer understanding.
@@ -39,7 +42,7 @@ which represents the integration code for a single time step.
 An example of this would be converting the following equations::
 
 	eqs = '''
-	dv/dt = (v0-v)/tau : volt (unless-refractory)
+	dv/dt = (v0-v)/tau : volt (unless refractory)
 	v0 : volt
 	'''
 	group = NeuronGroup(N, eqs, threshold='v>10*mV',
@@ -105,7 +108,7 @@ An example of a snippet in C++ for the equations above::
 	_ptr_array_neurongroup_v[_neuron_idx] = v;
 
 The code path that includes snippet generation will be discussed in more detail
-below, since it involves the concepts of namespaces and specifiers which we
+below, since it involves the concepts of namespaces and variables which we
 haven't covered yet.
 
 Snippet to code block
@@ -207,8 +210,8 @@ involved in the code generation process.
 ``core``
 	``core.namespace``
 		The `CompoundNamespace` and namespace resolution are defined here.
-	``core.specifiers``
-		The `Specifier` types are defined here.
+	``core.variables``
+		The `Variable` types are defined here.
 ``equations``
 	Everything related to `Equations`. 
 ``groups``

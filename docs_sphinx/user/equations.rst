@@ -42,7 +42,7 @@ qualifies the equations. There are several keywords:
   event codes (pre and post).
   This can only qualify differential equations of synapses. Currently, only one-dimensional
   linear equations can be handled (see below).
-*unless-refractory*
+*unless refractory*
   this means the variable is not updated during the refractory period.
   This can only qualify differential equations of neuron groups.
 *constant*

@@ -78,9 +78,9 @@ the state variables continue to evolve but threshold crossings are ignored.
 
 To model the first kind of behaviour (clamped variables), variables that should
 stop being updated during refractoriness can be marked with the
-``(unless-refractory)`` flag::
+``(unless refractory)`` flag::
 
-    G = NeuronGroup(N, '''dv/dt = -(v + w)/ tau_v : 1 (unless-refractory)
+    G = NeuronGroup(N, '''dv/dt = -(v + w)/ tau_v : 1 (unless refractory)
                           dw/dt = -w / tau_w : 1''',
                     threshold='v > 1', reset='v=0; w+=0.1', refractory=2*ms)
 
