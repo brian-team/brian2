@@ -1,16 +1,18 @@
 import weakref
+from collections import defaultdict
 
-import numpy as np
-
-from brian2.core.base import BrianObject
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
+from brian2.core.variables import Variable
 from brian2.groups.group import Group
+from brian2.devices.device import get_device
+from brian2.units.fundamentalunits import Unit
+from brian2.core.variables import Subexpression
 
 __all__ = ['Subgroup']
 
 
-class Subgroup(Group, BrianObject, SpikeSource):
+class Subgroup(Group, SpikeSource):
     '''
     Subgroup of any `Group`
     
@@ -18,8 +20,8 @@ class Subgroup(Group, BrianObject, SpikeSource):
     ----------
     source : SpikeSource
         The source object to subgroup.
-    start, end : int
-        Select only spikes with indices from ``start`` to ``end-1``.
+    start, stop : int
+        Select only spikes with indices from ``start`` to ``stop-1``.
     name : str, optional
         A unique name for the group, or use ``source.name+'_subgroup_0'``, etc.
     
@@ -35,7 +37,7 @@ class Subgroup(Group, BrianObject, SpikeSource):
     
     TODO: Group state variable access
     '''
-    def __init__(self, source, start, end, name=None):
+    def __init__(self, source, start, stop, name=None):
         self.source = weakref.proxy(source)
         if name is None:
             name = source.name + '_subgroup*'
@@ -45,24 +47,48 @@ class Subgroup(Group, BrianObject, SpikeSource):
         # parent threshold operation
         schedule = Scheduler(clock=source.clock, when='thresholds',
                              order=source.order+1)
-        BrianObject.__init__(self, when=schedule, name=name)
-        self.N = end-start
+        Group.__init__(self, when=schedule, name=name)
+        self._N = stop-start
         self.start = start
-        self.end = end
-        self.offset = start
+        self.stop = stop
 
-        self.variables = self.source.variables
-        self.variable_indices = self.source.variable_indices
+        self.variables = dict(self.source.variables)
+        # overwrite the meaning of N and i
+        self.variables['_offset'] = Variable(Unit(1), value=self.start,
+                                             scalar=True, constant=True,
+                                             read_only=True)
+        self.variables['_source_i'] = self.source.variables['i']
+        self.variables['i'] = Subexpression('i', Unit(1),
+                                            dtype=source.variables['i'].dtype,
+                                            expr='_source_i - _offset',
+                                            group=self)
+        self.variables['N'] = Variable(Unit(1), value=self._N, constant=True,
+                                       read_only=True)
+        # All variables refer to the original group and have to use a special
+        # index
+        self.variable_indices = defaultdict(lambda: '_sub_idx')
+        # Only the variable _sub_idx itself is stored in the subgroup
+        # and needs the normal index for this group
+        self.variable_indices['_sub_idx'] = '_idx'
+
+        for key, value in self.source.variable_indices.iteritems():
+            if value != '_idx':
+                raise ValueError(('Do not how to deal with variable %s using '
+                                  'index %s in a subgroup') % (key, value))
+        self.variables['_sub_idx'] = get_device().arange(self, '_sub_idx',
+                                                         self._N,
+                                                         start=self.start,
+                                                         constant=True,
+                                                         read_only=True)
         self.namespace = self.source.namespace
         self.codeobj_class = self.source.codeobj_class
 
-        Group.__init__(self)
+        self._enable_group_attributes()
 
-    # Make the spikes from the source group accessible
     spikes = property(lambda self: self.source.spikes)
 
     def __len__(self):
-        return self.N
+        return self._N
         
     def __repr__(self):
         description = '<{classname} {name} of {source} from {start} to {end}>'
@@ -70,4 +96,4 @@ class Subgroup(Group, BrianObject, SpikeSource):
                                   name=repr(self.name),
                                   source=repr(self.source.name),
                                   start=self.start,
-                                  end=self.end)
+                                  end=self.stop)

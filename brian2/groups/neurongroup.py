@@ -1,6 +1,8 @@
 '''
 This model defines the `NeuronGroup`, the core of most simulations.
 '''
+from collections import defaultdict
+
 import numpy as np
 import sympy
 
@@ -10,10 +12,8 @@ from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.devices.device import get_device
 from brian2.core.preferences import brian_prefs
-from brian2.core.base import BrianObject
 from brian2.core.namespace import create_namespace
-from brian2.core.variables import (ArrayVariable, StochasticVariable,
-                                   Subexpression)
+from brian2.core.variables import (StochasticVariable, Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.parsing.expressions import (parse_expression_unit,
@@ -145,7 +145,7 @@ class Resetter(GroupCodeRunner):
         self.abstract_code = self.group.reset
 
 
-class NeuronGroup(BrianObject, Group, SpikeSource):
+class NeuronGroup(Group, SpikeSource):
     '''
     A group of neurons.
 
@@ -178,9 +178,10 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         the local and global namespace surrounding the creation of the class,
         is used.
     dtype : (`dtype`, `dict`), optional
-        The `numpy.dtype` that will be used to store the values, or
-        `core.default_scalar_dtype` if not specified (`numpy.float64` by
-        default).
+        The `numpy.dtype` that will be used to store the values, or a
+        dictionary specifying the type for variable names. If a value is not
+        provided for a variable (or no value is provided at all), the preference
+        setting `core.default_scalar_dtype` is used.
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
     clock : Clock, optional
@@ -204,18 +205,21 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                  dtype=None,
                  clock=None, name='neurongroup*',
                  codeobj_class=None):
-        BrianObject.__init__(self, when=clock, name=name)
+        Group.__init__(self, when=clock, name=name)
 
         self.codeobj_class = codeobj_class
 
         try:
-            self.N = N = int(N)
+            self._N = N = int(N)
         except ValueError:
             if isinstance(N, str):
                 raise TypeError("First NeuronGroup argument should be size, not equations.")
             raise
         if N < 1:
             raise ValueError("NeuronGroup size should be at least 1, was " + str(N))
+
+        self.start = 0
+        self.stop = self._N
 
         ##### Prepare and validate equations
         if isinstance(model, basestring):
@@ -235,19 +239,14 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                                   for eq in model.itervalues()
                                                   if eq.type == DIFFERENTIAL_EQUATION])
 
-        logger.debug("Creating NeuronGroup of size {self.N}, "
+        logger.debug("Creating NeuronGroup of size {self._N}, "
                      "equations {self.equations}.".format(self=self))
-
-        ##### Setup the memory
-        self.arrays = self._allocate_memory(dtype=dtype)
-
-        self._spikespace = get_device().array(self, '_spikespace', N+1, 1, dtype=np.int32)
 
         # Setup the namespace
         self.namespace = create_namespace(namespace)
 
         # Setup variables
-        self.variables = self._create_variables()
+        self.variables = self._create_variables(dtype)
 
         # All of the following will be created in before_run
         
@@ -296,7 +295,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
             self.contained_objects.append(self.resetter)
 
         # Activate name attribute access
-        Group.__init__(self)
+        self._enable_group_attributes()
 
         # Set the refractoriness information
         self.lastspike = -np.inf*second
@@ -313,12 +312,15 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
         '''
         The spikes returned by the most recent thresholding operation.
         '''
-        return self._spikespace[:self._spikespace[-1]]
+        # Note that we have to directly access the ArrayVariable object here
+        # instead of using the Group mechanism by accessing self._spikespace
+        # Using the latter would cut _spikespace to the length of the group
+        return self.variables['_spikespace'][:self.variables['_spikespace'][-1]]
 
     def __getitem__(self, item):
         if not isinstance(item, slice):
             raise TypeError('Subgroups can only be constructed using slicing syntax')
-        start, stop, step = item.indices(self.N)
+        start, stop, step = item.indices(self._N)
         if step != 1:
             raise IndexError('Subgroups have to be contiguous')
         if start >= stop:
@@ -326,29 +328,6 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                              (start, stop))
 
         return Subgroup(self, start, stop)
-
-    def _allocate_memory(self, dtype=None):
-        # Allocate memory (TODO: this should be refactored somewhere at some point)
-
-        arrays = {}
-        for eq in self.equations.itervalues():
-            if eq.type == STATIC_EQUATION:
-                # nothing to do
-                continue
-            name = eq.varname
-            if isinstance(dtype, dict):
-                curdtype = dtype[name]
-            else:
-                curdtype = dtype
-            if curdtype is None:
-                curdtype = brian_prefs['core.default_scalar_dtype']
-            if eq.is_bool:
-                arrays[name] = get_device().array(self, name, self.N, 1, dtype=np.bool)
-            else:
-                # TODO: specify unit here
-                arrays[name] = get_device().array(self, name, self.N, 1, dtype=curdtype)
-        logger.debug("NeuronGroup memory allocated successfully.")
-        return arrays
 
     def runner(self, code, when=None, name=None):
         '''
@@ -379,37 +358,45 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                  code=code, name=name, when=when)
         return runner
 
-    def _create_variables(self):
+    def _create_variables(self, dtype=None):
         '''
         Create the variables dictionary for this `NeuronGroup`, containing
         entries for the equation variables and some standard entries.
         '''
+        device = get_device()
         # Get the standard variables for all groups
         s = Group._create_variables(self)
 
-        # Standard variables always present
-        s.update({'_spikespace': ArrayVariable('_spikespace', Unit(1),
-                                               self._spikespace,
-                                               group_name=self.name)})
+        if dtype is None:
+            dtype = defaultdict(lambda: brian_prefs['core.default_scalar_dtype'])
+        elif isinstance(dtype, np.dtype):
+            dtype = defaultdict(lambda: dtype)
+        elif not hasattr(dtype, '__getitem__'):
+            raise TypeError(('Cannot use type %s as dtype '
+                             'specification') % type(dtype))
 
+        # Standard variables always present
+        s['_spikespace'] = device.array(self, '_spikespace', self._N+1,
+                                        Unit(1), dtype=np.int32,
+                                        constant=False)
+        # Add the special variable "i" which can be used to refer to the neuron index
+        s['i'] = device.arange(self, 'i', self._N, constant=True,
+                               read_only=True)
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
-                array = self.arrays[eq.varname]
                 constant = ('constant' in eq.flags)
-                s.update({eq.varname: ArrayVariable(eq.varname,
-                                                    eq.unit,
-                                                    array,
-                                                    group_name=self.name,
-                                                    constant=constant,
-                                                    is_bool=eq.is_bool)})
+                s[eq.varname] = device.array(self, eq.varname, self._N, eq.unit,
+                                             dtype=dtype[eq.varname],
+                                             constant=constant,
+                                             is_bool=eq.is_bool)
         
             elif eq.type == STATIC_EQUATION:
-                s.update({eq.varname: Subexpression(eq.unit,
-                                                    brian_prefs['core.default_scalar_dtype'],
-                                                    str(eq.expr),
-                                                    variables=s,
-                                                    namespace=self.namespace,
-                                                    is_bool=eq.is_bool)})
+                s[eq.varname] = Subexpression(eq.varname,
+                                              eq.unit,
+                                              dtype=brian_prefs['core.default_scalar_dtype'],
+                                              expr=str(eq.expr),
+                                              group=self,
+                                              is_bool=eq.is_bool)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
@@ -436,7 +423,7 @@ class NeuronGroup(BrianObject, Group, SpikeSource):
                                    namespace)
     
     def _repr_html_(self):
-        text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self.N)]
+        text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self._N)]
         text.append(r'<b>Model:</b><nr>')
         text.append(sympy.latex(self.equations))
         text.append(r'<b>Integration method:</b><br>')

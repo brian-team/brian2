@@ -25,3 +25,4 @@ nosetests.xml
 
 # pycharm project files
 .idea
+/Brian2.egg-info

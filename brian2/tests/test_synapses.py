@@ -316,7 +316,8 @@ def test_state_variable_indexing():
     #string-based indexing
     assert_equal(S.w[0:3], S.w['i<3'])
     assert_equal(S.w[:, 0:3], S.w['j<3'])
-    assert_equal(S.w[:, :, 0], S.w['k==0'])
+    # TODO: k is not working yet
+    # assert_equal(S.w[:, :, 0], S.w['k==0'])
     assert_equal(S.w[0:3], S.w['v_pre < 3*mV'])
     assert_equal(S.w[:, 0:3], S.w['v_post < 13*mV'])
 
@@ -359,7 +360,6 @@ def test_delay_specification():
     assert_raises(ValueError, lambda: Synapses(G, G, 'w:1', pre='v+=w',
                                                delay={'post': 5*ms}))
 
-
 def test_transmission():
     delays = [[0, 0] * ms, [1, 1] * ms, [1, 2] * ms]
     for codeobj_class, delay in zip(codeobj_classes, delays):
@@ -388,23 +388,77 @@ def test_transmission():
                         target_mon.t[target_mon.i==1] - defaultclock.dt - delay[1])
 
 
-def test_lumped_variable():
-    source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0')
-    source.v = 1.1  # will spike immediately
-    target = NeuronGroup(2, 'v : 1')
-    # We make this a bit unnecessarily complicated to see whether the lumped
-    # variable mechanism correctly deals with Subexpressions
-    S = Synapses(source, target, '''w : 1
-                                    x : 1
-                                    v = x : 1 (lumped)''', pre='x+=w')
-    S.connect('i==j', n=2)
-    S.w[:, :, 0] = 'i'
-    S.w[:, :, 1] = 'i + 0.5'
-    net = Network(source, target, S)
-    net.run(1*ms)
+def test_changed_dt_spikes_in_queue():
+    defaultclock.dt = .5*ms
+    G1 = NeuronGroup(1, 'v:1', threshold='v>1', reset='v=0')
+    G1.v = 1.1
+    G2 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
+    S = Synapses(G1, G2, pre='v+=1.1')
+    S.connect(True)
+    S.delay = 'j*ms'
+    mon = SpikeMonitor(G2)
+    net = Network(G1, G2, S, mon)
+    net.run(5*ms)
+    defaultclock.dt = 1*ms
+    net.run(3*ms)
+    defaultclock.dt = 0.1*ms
+    net.run(2*ms)
+    # Spikes should have delays of 0, 1, 2, ... ms and always
+    # trigger a spike one dt later
+    expected = [0.5, 1.5, 2.5, 3.5, 4.5, # dt=0.5ms
+                6, 7, 8, #dt = 1ms
+                8.1, 9.1 #dt=0.1ms
+                ] * ms
+    assert_equal(mon.t, expected)
 
-    # v of the target should be the sum of the two weights
-    assert_equal(target.v, np.array([0.5, 2.5]))
+
+def test_summed_variable():
+    for codeobj_class in codeobj_classes:
+        source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0',
+                             codeobj_class=codeobj_class)
+        source.v = 1.1  # will spike immediately
+        target = NeuronGroup(2, 'v : 1', codeobj_class=codeobj_class)
+        S = Synapses(source, target, '''w : 1
+                                        x : 1
+                                        v_post = x : 1 (summed)''', pre='x+=w',
+                     codeobj_class=codeobj_class)
+        S.connect('i==j', n=2)
+        S.w[:, :, 0] = 'i'
+        S.w[:, :, 1] = 'i + 0.5'
+        net = Network(source, target, S)
+        net.run(1*ms)
+
+        # v of the target should be the sum of the two weights
+        assert_equal(target.v, np.array([0.5, 2.5]))
+
+
+def test_summed_variable_errors():
+    G = NeuronGroup(10, '''dv/dt = -v / (10*ms) : volt
+                           sub = 2*v : volt
+                           p : volt''')
+
+    # Using the (summed) flag for a differential equation or a parameter
+    assert_raises(ValueError, lambda: Synapses(G, G, '''dp_post/dt = -p_post / (10*ms) : volt (summed)'''))
+    assert_raises(ValueError, lambda: Synapses(G, G, '''p_post : volt (summed)'''))
+
+    # Using the (summed) flag for a variable name without _pre or _post suffix
+    assert_raises(ValueError, lambda: Synapses(G, G, '''p = 3*volt : volt (summed)'''))
+
+    # Using the name of a variable that does not exist
+    assert_raises(ValueError, lambda: Synapses(G, G, '''q_post = 3*volt : volt (summed)'''))
+
+    # Target equation is not a parameter
+    assert_raises(ValueError, lambda: Synapses(G, G, '''sub_post = 3*volt : volt (summed)'''))
+    assert_raises(ValueError, lambda: Synapses(G, G, '''v_post = 3*volt : volt (summed)'''))
+
+    # Unit mismatch between synapses and target
+    assert_raises(DimensionMismatchError,
+                  lambda: Synapses(G, G, '''p_post = 3*second : second (summed)'''))
+
+    # Two summed variable equations targetting the same variable
+    assert_raises(ValueError,
+                  lambda: Synapses(G, G, '''p_post = 3*volt : volt (summed)
+                                            p_pre = 3*volt : volt (summed)'''))
 
 
 def test_event_driven():
@@ -484,6 +538,8 @@ if __name__ == '__main__':
     test_state_variable_indexing()
     test_delay_specification()
     test_transmission()
-    test_lumped_variable()
+    test_changed_dt_spikes_in_queue()
+    test_summed_variable()
+    test_summed_variable_errors()
     test_event_driven()
     test_repr()

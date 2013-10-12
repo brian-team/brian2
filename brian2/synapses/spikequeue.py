@@ -116,6 +116,46 @@ class SpikeQueue(object):
         if self._precompute_offsets:
             self.precompute_offsets(delays, synapse_targets, n_synapses)
 
+    def extract_spikes(self):
+        '''
+        Get all the stored spikes
+
+        Returns
+        -------
+        spikes : ndarray
+            A 2d array with two columns, where each row describes a spike.
+            The first column gives the time (as integer time steps) and the
+            second column gives the index of the target synapse.
+        '''
+        spikes = np.zeros((np.sum(self.n), 2))
+        counter = 0
+        for idx, n in enumerate(self.n):
+            t = (idx - self.currenttime) % len(self.n)
+            for target in self.X[idx, :n]:
+                spikes[counter, :] = np.array([t, target])
+                counter += 1
+        return spikes
+
+    def store_spikes(self, spikes):
+        '''
+        Store a list of spikes at the given positions after clearing all
+        spikes in the queue.
+
+        Parameters
+        ----------
+        spikes : ndarray
+            A 2d array with two columns, where each row describes a spike.
+            The first column gives the time (as integer time steps) and the
+            second column gives the index of the target synapse.
+
+        '''
+        # Clear all spikes
+        self.n[:] = 0
+        for t, target in spikes:
+            row_idx = (t + self.currenttime) % len(self.n)
+            self.X[row_idx, self.n[row_idx]] = target
+            self.n[row_idx] += 1
+
     ################################ SPIKE QUEUE DATASTRUCTURE ################
     def next(self):
         '''

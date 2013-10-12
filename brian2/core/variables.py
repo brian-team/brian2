@@ -1,8 +1,9 @@
 '''
-Classes used to specify the type of a function, variable or common sub-expression
-
-TODO: have a single global dtype rather than specify for each variable?
+Classes used to specify the type of a function, variable or common
+sub-expression.
 '''
+import weakref
+
 import numpy as np
 
 from brian2.units.allunits import second
@@ -18,10 +19,25 @@ __all__ = ['Variable',
            'ArrayVariable',
            'DynamicArrayVariable',
            'Subexpression',
+           'VariableView',
+           'AuxiliaryVariable'
            ]
 
 
 def get_dtype(obj):
+    '''
+    Helper function to return the `numpy.dtype` of an arbitrary object.
+
+    Parameters
+    ----------
+    obj : object
+        Any object (but typically some kind of number or array).
+
+    Returns
+    -------
+    dtype : `numpy.dtype`
+        The type of the given object.
+    '''
     if hasattr(obj, 'dtype'):
         return obj.dtype
     else:
@@ -56,9 +72,14 @@ class Variable(object):
         Whether this is a boolean variable (also implies it is dimensionless).
         If specified as ``None`` and a `value` is given, checks the value
         itself. If no `value` is given, defaults to ``False``.
+    read_only : bool, optional
+        Whether this is a read-only variable, i.e. a variable that is set
+        internally and cannot be changed by the user (this is used for example
+        for the variable ``N``, the number of neurons in a group). Defaults
+        to ``False``.
     '''
     def __init__(self, unit, value=None, dtype=None, scalar=None,
-                 constant=False, is_bool=None):
+                 constant=False, is_bool=None, read_only=False):
         
         #: The variable's unit.
         self.unit = unit
@@ -100,16 +121,20 @@ class Variable(object):
         #: Whether the variable is constant during a run
         self.constant = constant
 
+        #: Whether the variable is read-only
+        self.read_only = read_only
+
     def get_value(self):
         '''
-        Return the value associated with the variable (without units).
+        Return the value associated with the variable (without units). This
+        is the way variables are accessed in generated code.
         '''
         if self.value is None:
             raise TypeError('Variable does not have a value')
         else:
             return self.value
 
-    def set_value(self):
+    def set_value(self, value, index=None):
         '''
         Set the value associated with the variable.
         '''
@@ -121,17 +146,49 @@ class Variable(object):
         '''
         return Quantity(self.get_value(), self.unit.dimensions)
 
-    def get_addressable_value(self, level=0):
+    def get_addressable_value(self, name, group, level=0):
         '''
-        Get the value associated with the variable (without units) that allows
-        for indexing
+        Get the value (without units) of this variable in a form that can be
+        indexed in the context of a group. For example, if a
+        postsynaptic variable ``x`` is accessed in a synapse ``S`` as
+        ``S.x_post``, the synaptic indexing scheme can be used.
+
+        Parameters
+        ----------
+        name : str
+            The name of the variable
+        group : `Group`
+            The group providing the context for the indexing.
+        level : int, optional
+            How much farther to go down in the stack to find the namespace.
+
+        Returns
+        -------
+        variable : object
+            The variable in an indexable form (without units).
         '''
         return self.get_value()
 
-    def get_addressable_value_with_unit(self, level=0):
+    def get_addressable_value_with_unit(self, name, group, level=0):
         '''
-        Get the value associated with the variable (with units) that allows
-        for indexing
+        Get the value (with units) of this variable in a form that can be
+        indexed in the context of a group. For example, if a postsynaptic
+        variable ``x`` is accessed in a synapse ``S`` as ``S.x_post``, the
+        synaptic indexing scheme can be used.
+
+        Parameters
+        ----------
+        name : str
+            The name of the variable
+        group : `Group`
+            The group providing the context for the indexing.
+        level : int, optional
+            How much farther to go down in the stack to find the namespace.
+
+        Returns
+        -------
+        variable : object
+            The variable in an indexable form (with units).
         '''
         return self.get_value_with_unit()
 
@@ -145,27 +202,57 @@ class Variable(object):
         else:
             return len(self.get_value())
 
+    def __len__(self):
+        return self.get_len()
+
     def __repr__(self):
         description = ('<{classname}(unit={unit}, value={value}, '
-                       'dtype={dtype}, scalar={scalar}, constant={constant})>')
+                       'dtype={dtype}, scalar={scalar}, constant={constant},'
+                       ' is_bool={is_bool}, read_only={read_only})>')
         return description.format(classname=self.__class__.__name__,
                                   unit=repr(self.unit),
                                   value='<value of type %s>' % type(self.value),
                                   dtype=repr(self.dtype),
                                   scalar=repr(self.scalar),
-                                  constant=repr(self.constant))
+                                  constant=repr(self.constant),
+                                  is_bool=repr(self.is_bool),
+                                  read_only=repr(self.read_only))
 
 
-class StochasticVariable(Variable):
+class AuxiliaryVariable(Variable):
+    '''
+    Variable description for an auxiliary variable (most likely one that is
+    added automatically to abstract code, e.g. ``_cond`` for a threshold
+    condition), specifying its type and unit for code generation.
+
+    Parameters
+    ----------
+    unit : `Unit`
+        The unit of the variable.
+    dtype: `numpy.dtype`, optional
+        The dtype used for storing the variable. If none is given, defaults
+        to `core.default_scalar_dtype`.
+    scalar : bool, optional
+        Whether the variable is a scalar value (``True``) or vector-valued, e.g.
+        defined for every neuron (``False``). Defaults to ``False``.
+    is_bool: bool, optional
+        Whether this is a boolean variable (also implies it is dimensionless).
+        Defaults to ``False``.
+    '''
+    def __init__(self, unit, dtype=None, scalar=False, is_bool=False):
+        Variable.__init__(self, unit, value=None, dtype=dtype, scalar=scalar,
+                          is_bool=is_bool, read_only=True)
+
+
+class StochasticVariable(AuxiliaryVariable):
     '''
     An object providing information about a stochastic variable. Automatically
     sets the unit to ``second**-.5``.
-
     '''
     def __init__(self):
-        # The units of stochastic variables is fixed
-        Variable.__init__(self, second**(-.5), dtype=np.float64,
-                          scalar=False, constant=False, is_bool=False)
+        # The unit of a stochastic variable is always the same
+        AuxiliaryVariable.__init__(self, second**(-.5), dtype=np.float64,
+                                   scalar=False)
 
 
 class AttributeVariable(Variable):
@@ -189,20 +276,18 @@ class AttributeVariable(Variable):
     constant : bool, optional
         Whether the attribute's value is constant during a run. Defaults to
         ``False``.
-    Raises
-    ------
-    AttributeError
-        If `obj` does not have an attribute `attribute`.
-        
+    read_only : bool, optional
+        Whether this is a read-only variable, i.e. a variable that is set
+        internally and cannot be changed by the user (this is used for example
+        for the variable ``N``, the number of neurons in a group). Defaults
+        to ``False``.
     '''
-    def __init__(self, unit, obj, attribute, constant=False):
-        if not hasattr(obj, attribute):
-            raise AttributeError('Object %r does not have an attribute %r' %
-                                 (obj, attribute))
-
-        value = getattr(obj, attribute)
+    def __init__(self, unit, obj, attribute, constant=False, read_only=True):
+        # allow for the attribute to not exist yet
+        value = getattr(obj, attribute, None)
         
-        Variable.__init__(self, unit, value, constant=constant)
+        Variable.__init__(self, unit, value, constant=constant,
+                          read_only=read_only)
         #: A reference to the object storing the variable's value         
         self.obj = obj
         #: The name of the attribute storing the variable's value
@@ -234,8 +319,6 @@ class VariableView(object):
         The variable description.
     group : `Group`
         The group to which this variable belongs
-    template : str
-        The template to use when setting variables with a string expression.
     unit : `Unit`, optional
         The unit to be used for the variable, should be `None` when a variable
          is accessed without units (e.g. when stating `G.var_`).
@@ -243,45 +326,155 @@ class VariableView(object):
         How much farther to go down in the stack to find the namespace.
     '''
 
-    def __init__(self, name, variable, group, template,
-                 unit=None, level=0):
+    def __init__(self, name, variable, group, unit=None, level=0):
         self.name = name
         self.variable = variable
-        self.group = group
-        self.template = template
+        self.group = weakref.proxy(group)
         self.unit = unit
         self.level = level
 
-    def __getitem__(self, i):
-        variable = self.variable
-        if variable.scalar:
-            if not (i == slice(None) or i == 0 or (hasattr(i, '__len__') and len(i) == 0)):
-                raise IndexError('Variable is a scalar variable.')
-            indices = 0
-        else:
-            indices = self.group.indices[self.group.variable_indices[self.name]][i]
-        if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
-            return variable.get_value()[indices]
-        else:
-            return Quantity(variable.get_value()[indices], self.unit.dimensions)
+    def calc_indices(self, item):
+        '''
+        Return flat indices from to index into state variables from arbitrary
+        group specific indices. Thin wrapper around `Group.calc_indices` adding
+        special handling for scalar variables.
 
-    def __setitem__(self, i, value):
+        Parameters
+        ----------
+        item : slice, array, int
+            The indices to translate.
+
+        Returns
+        -------
+        indices : `numpy.ndarray`
+            The flat indices corresponding to the indices given in `item`.
+        '''
         variable = self.variable
         if variable.scalar:
-            if not (i == slice(None) or i == 0 or (hasattr(i, '__len__') and len(i) == 0)):
+            if not (item == slice(None) or item == 0 or (hasattr(item, '__len__')
+                                                         and len(item) == 0)):
                 raise IndexError('Variable is a scalar variable.')
             indices = np.array([0])
         else:
-            indices = self.group.indices[self.group.variable_indices[self.name]][i]
-        if isinstance(value, basestring):
-            check_units = self.unit is not None
-            self.group._set_with_code(variable, indices, value,
-                                      template=self.template,
-                                      check_units=check_units, level=self.level + 1)
+            # Translate to an index meaningful for the variable
+            # (e.g. from a synaptic [i,j,k] index to the synapse number)
+            indices = self.group.calc_indices(item)
+
+        return indices
+
+    def __getitem__(self, item):
+        variable = self.variable
+        if isinstance(item, basestring):
+            values = self.group._get_with_code(self.name, variable, item,
+                                               level=self.level+1)
         else:
-            if not self.unit is None:
-                fail_for_dimension_mismatch(value, self.unit)
-            variable.value[indices] = value
+            indices = self.calc_indices(item)
+            if isinstance(variable, Subexpression):
+                # For subexpressions, we always have to go through codegen
+                values = self.group._get_with_code(self.name, variable, 'True',
+                                                   level=self.level+1)[indices]
+            else:
+                # We are not going via code generation so we have to take care
+                # of correct indexing (in particular for subgroups) explicitly
+                var_index = self.group.variable_indices[self.name]
+                if var_index != '_idx':
+                    indices = self.group.variables[var_index].get_value()[indices]
+                values = variable.get_value()[indices]
+
+        if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
+            return values
+        else:
+            return Quantity(values, self.unit.dimensions)
+
+    def set_code_with_string_index(self, item, value):
+        '''
+        Set a variable's value, based on a string condition and a string
+        expression for the value.
+
+        Parameters
+        ----------
+        item : str
+            The condition specifying which elements of the variable are to be
+            set.
+        value : str
+            The string expression specifying the value for the variable.
+        '''
+        check_units = self.unit is not None
+        self.group._set_with_code_conditional(self.variable, item, value,
+                                              check_units=check_units,
+                                              level=self.level + 1)
+
+    def set_code_with_array_index(self, item, value):
+        '''
+        Set a variable's value, based on a numerical index and a string
+        expression for the value.
+
+        Parameters
+        ----------
+        item : `numpy.ndarray`, slice, tuple
+            The indices specifying which elements of the variable are to be
+            set.
+        value : str
+            The string expression specifying the value for the variable.
+        '''
+        indices = self.calc_indices(item)
+        check_units = self.unit is not None
+        self.group._set_with_code(self.variable, indices, value,
+                                  check_units=check_units,
+                                  level=self.level + 1)
+
+    def set_array_with_array_index(self, item, value):
+        '''
+        Set a variable's value, based on a numerical index and concrete values.
+
+        Parameters
+        ----------
+        item : `numpy.ndarray`, slice, tuple
+            The indices specifying which elements of the variable are to be
+            set.
+        value : `numpy.ndarray`, `Quantity`, or a broadcastable scalar
+            The new values for the variable.
+        '''
+        indices = self.calc_indices(item)
+        if not self.unit is None:
+            fail_for_dimension_mismatch(value, self.unit)
+        # We are not going via code generation so we have to take care
+        # of correct indexing (in particular for subgroups) explicitly
+        var_index = self.group.variable_indices[self.variable.name]
+        if var_index != '_idx':
+            indices = self.group.variables[var_index].get_value()[indices]
+        self.variable.value[indices] = value
+
+    def __setitem__(self, item, value):
+        if self.variable.read_only:
+            raise TypeError('Variable %s is read-only.' % self.name)
+
+        if item == slice(None):
+            item = 'True'
+
+        # Both index and values are strings, use a single code object do deal
+        # with this situation
+        if isinstance(value, basestring) and isinstance(item, basestring):
+            self.set_code_with_string_index(item, value)
+        elif isinstance(item, basestring):
+            try:
+                float(value)  # only checks for the exception
+            except (TypeError, ValueError):
+                if not item == 'True':
+                    raise TypeError('When setting a variable based on a string '
+                                    'index, the value has to be a string or a '
+                                    'scalar.')
+                else:
+                    # Fall back to the general array-array pattern
+                    self.set_array_with_array_index(slice(None), value)
+                    return
+            self.set_code_with_string_index(item, repr(value))
+        elif isinstance(value, basestring):
+            self.set_code_with_array_index(item, value)
+        else:  # No string expressions involved
+            self.set_array_with_array_index(item, value)
+
+    # Allow some basic calculations directly on the ArrayView object
 
     def __array__(self, dtype=None):
         if dtype is not None and dtype != self.variable.dtype:
@@ -397,14 +590,20 @@ class ArrayVariable(Variable):
     is_bool: bool, optional
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
+    read_only : bool, optional
+        Whether this is a read-only variable, i.e. a variable that is set
+        internally and cannot be changed by the user. Defaults
+        to ``False``.
     '''
     def __init__(self, name, unit, value, group_name=None, constant=False,
-                 scalar=False, is_bool=False):
+                 scalar=False, is_bool=False, read_only=False):
 
+        #: The name of the variable.
         self.name = name
 
         Variable.__init__(self, unit, value, scalar=scalar,
-                          constant=constant, is_bool=is_bool)
+                          constant=constant, is_bool=is_bool,
+                          read_only=read_only)
         #: The reference to the array storing the data for the variable.
         self.value = value
 
@@ -415,27 +614,75 @@ class ArrayVariable(Variable):
     def get_value(self):
         return self.value
 
-    def set_value(self, value):
-        self.value[:] = value
+    def __getitem__(self, item):
+        return self.get_value()[item]
 
-    def get_addressable_value(self, group, level=0):
-        template = getattr(group, '_set_with_code_template',
-                           'group_variable_set')
-        return VariableView(self.name, self, group, template=template,
-                            unit=None, level=level)
+    def set_value(self, value, index=None):
+        if index is None:
+            index = slice(None)
+        self.value[index] = value
 
-    def get_addressable_value_with_unit(self, group, level=0):
-        template = getattr(group, '_set_with_code_template',
-                           'group_variable_set')
-        return VariableView(self.name, self, group, template=template,
-                            unit=self.unit, level=level)
+    def __setitem__(self, item, value):
+        self.set_value(value, item)
+
+    def get_addressable_value(self, name, group, level=0):
+        return VariableView(name=name, variable=self, group=group, unit=None,
+                            level=level+1)
+
+    def get_addressable_value_with_unit(self, name, group, level=0):
+        return VariableView(name=name, variable=self, group=group,
+                            unit=self.unit, level=level+1)
 
 
 class DynamicArrayVariable(ArrayVariable):
     '''
     An object providing information about a model variable stored in a dynamic
     array (used in `Synapses`).
+    Parameters
+    ----------
+    name : str
+        The name of the variable.
+    unit : `Unit`
+        The unit of the variable
+    value : `numpy.ndarray`
+        A reference to the array storing the data for the variable.
+    group_name : str, optional
+        The name of the group to which this variable belongs.
+    constant : bool, optional
+        Whether the variable's value is constant during a run.
+        Defaults to ``False``.
+    constant_size : bool, optional
+        Whether the size of the variable is constant during a run.
+        Defaults to ``True``.
+    scalar : bool, optional
+        Whether this array is a 1-element array that should be treated like a
+        scalar (e.g. for a single delay value across synapses). Defaults to
+        ``False``.
+    is_bool: bool, optional
+        Whether this is a boolean variable (also implies it is dimensionless).
+        Defaults to ``False``
+    read_only : bool, optional
+        Whether this is a read-only variable, i.e. a variable that is set
+        internally and cannot be changed by the user. Defaults
+        to ``False``.
     '''
+
+    def __init__(self, name, unit, value, group_name=None,
+                 constant=False, constant_size=True,
+                 scalar=False, is_bool=False, read_only=False):
+        if constant and not constant_size:
+            raise ValueError('A variable cannot be constant and change in size')
+        #: Whether the size of the variable is constant during a run.
+        self.constant_size = constant_size
+        super(DynamicArrayVariable, self).__init__(name=name,
+                                                   unit=unit,
+                                                   value=value,
+                                                   group_name=group_name,
+                                                   constant=constant,
+                                                   scalar=scalar,
+                                                   is_bool=is_bool,
+                                                   read_only=read_only)
+
     def get_value(self):
         # The actual numpy array is accesible via DynamicArray1D.data
         return self.value.data
@@ -443,64 +690,66 @@ class DynamicArrayVariable(ArrayVariable):
     def get_object(self):
         return self.value
 
+    def resize(self, new_size):
+        self.value.resize(new_size)
+
 
 class Subexpression(Variable):
     '''
-    An object providing information about a static equation in a model
-    definition, used as a hint in optimising. Can test if a variable is used
-    via ``var in spec``. The specifier is also able to return the result of
-    the expression.
+    An object providing information about a named subexpression in a model.
     
     Parameters
     ----------
+    name : str
+        The name of the subexpression.
     unit : `Unit`
-        The unit of the static equation
-    dtype : `numpy.dtype`
-        The dtype used for the expression.
+        The unit of the subexpression.
     expr : str
-        The expression defining the static equation.
-    variables : dict
-        The variables dictionary, containing variables for the
-        model variables used in the expression
-    namespace : dict
-        The namespace dictionary, containing identifiers for all the external
-        variables/functions used in the expression
+        The subexpression itself.
+    group : `Group`
+        The group to which the expression refers.
+    dtype : `numpy.dtype`, optional
+        The dtype used for the expression. Defaults to
+        `core.default_scalar_dtype`.
     is_bool: bool, optional
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
-    def __init__(self, unit, dtype, expr, variables, namespace,
-                 is_bool=False):
+    def __init__(self, name, unit, expr, group, dtype=None, is_bool=False):
+        #: The name of the subexpression
+        self.name = name
+        #: The group to which the expression refers
+        self.group = group
         Variable.__init__(self, unit, value=None, dtype=dtype,
-                          constant=False, scalar=False, is_bool=is_bool)
+                          constant=False, scalar=False, is_bool=is_bool,
+                          read_only=True)
 
-        #: The expression defining the static equation.
+        #: The expression defining the subexpression
         self.expr = expr.strip()
         #: The identifiers used in the expression
-        self.identifiers = get_identifiers(expr)        
-        #: Specifiers for the identifiers used in the expression
-        self.variables = variables
-        
-        #: The NeuronGroup's namespace for the identifiers used in the
-        #: expression
-        self.namespace = namespace
-        
-        #: An additional namespace provided by the run function (and updated
-        #: in `NeuronGroup.before_run`) that is used if the NeuronGroup does not
-        #: have an explicitly defined namespace.
-        self.additional_namespace = None
+        self.identifiers = get_identifiers(expr)
         
     def get_value(self):
-        raise AssertionError('get_value should never be called for a Subexpression')
+        raise TypeError('get_value should never be called for a Subexpression')
+
+    def get_addressable_value(self, name, group, level=0):
+        return VariableView(name=name, variable=self, group=group, unit=None,
+                            level=level)
+
+    def get_addressable_value_with_unit(self, name, group, level=0):
+        return VariableView(name=name, variable=self, group=group,
+                            unit=self.unit, level=level)
 
     def __contains__(self, var):
         return var in self.identifiers
 
     def __repr__(self):
-        description = ('<{classname}(unit={unit}, dtype={dtype}, '
-                       'expr={expr}, variables=<...>, namespace=<....>)>')
+        description = ('<{classname}(name={name}, unit={unit}, dtype={dtype}, '
+                       'expr={expr}, group=<{group}>, is_bool={is_bool})>')
         return description.format(classname=self.__class__.__name__,
+                                  name=repr(self.name),
                                   unit=repr(self.unit),
                                   dtype=repr(self.dtype),
-                                  expr=repr(self.expr))        
-
+                                  expr=repr(self.expr),
+                                  group=repr(self.group.name),
+                                  is_bool=repr(self.is_bool))

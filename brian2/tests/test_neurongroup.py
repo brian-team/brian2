@@ -207,87 +207,176 @@ def test_state_variables():
     '''
     Test the setting and accessing of state variables.
     '''
-    G = NeuronGroup(10, 'v : volt')
-    G.v = -70*mV
-    assert_raises(DimensionMismatchError, lambda: G.__setattr__('v', -70))
-    G.v_ = float(-70*mV)
-    # Numpy methods should be able to deal with state variables
-    # (discarding units)
-    assert_allclose(np.mean(G.v), float(-70*mV))
-    # Getting the content should return a Quantity object which then natively
-    # supports numpy functions that access a method
-    assert_allclose(np.mean(G.v[:]), -70*mV)
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, 'v : volt', codeobj_class=codeobj_class)
 
-    # You should also be able to set variables with a string
-    G.v = '-70*mV + i*mV'
-    assert_allclose(G.v[0], -70*mV)
-    assert_allclose(G.v[9], -61*mV)
-    assert_allclose(G.v[:], -70*mV + np.arange(10)*mV)
+        # The variable N should be always present
+        assert G.N == 10
+        # But it should be read-only
+        assert_raises(TypeError, lambda: G.__setattr__('N', 20))
+        assert_raises(TypeError, lambda: G.__setattr__('N_', 20))
 
-    # And it should raise an unit error if the units are incorrect
-    assert_raises(DimensionMismatchError,
-                  lambda: G.__setattr__('v', '70 + i'))
-    assert_raises(DimensionMismatchError,
-                  lambda: G.__setattr__('v', '70 + i*mV'))
+        G.v = -70*mV
+        assert_raises(DimensionMismatchError, lambda: G.__setattr__('v', -70))
+        G.v_ = float(-70*mV)
+        # Numpy methods should be able to deal with state variables
+        # (discarding units)
+        assert_allclose(np.mean(G.v), float(-70*mV))
+        # Getting the content should return a Quantity object which then natively
+        # supports numpy functions that access a method
+        assert_allclose(np.mean(G.v[:]), -70*mV)
 
-    # Calculating with state variables should work too
-    assert all(G.v - G.v == 0)
-    assert all(G.v + G.v == 2*G.v)
-    assert all(G.v / 2.0 == 0.5*G.v)
-    assert_equal((-G.v)[:], -G.v[:])
-    assert_equal((+G.v)[:], G.v[:])
+        # You should also be able to set variables with a string
+        G.v = '-70*mV + i*mV'
+        assert_allclose(G.v[0], -70*mV)
+        assert_allclose(G.v[9], -61*mV)
+        assert_allclose(G.v[:], -70*mV + np.arange(10)*mV)
 
-    # And in-place modification should work as well
-    G.v += 10*mV
-    G.v -= 10*mV
-    G.v *= 2
-    G.v /= 2.0
+        # And it should raise an unit error if the units are incorrect
+        assert_raises(DimensionMismatchError,
+                      lambda: G.__setattr__('v', '70 + i'))
+        assert_raises(DimensionMismatchError,
+                      lambda: G.__setattr__('v', '70 + i*mV'))
 
-    # with unit checking
-    assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3*second))
-    assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3))
-    assert_raises(DimensionMismatchError, lambda: G.v.__imul__(3*second))
+        # Calculating with state variables should work too
+        # With units
+        assert all(G.v - G.v == 0)
+        assert all(G.v - G.v[:] == 0*mV)
+        assert all(G.v[:] - G.v == 0*mV)
+        assert all(G.v + 70*mV == G.v[:] + 70*mV)
+        assert all(70*mV + G.v == G.v[:] + 70*mV)
+        assert all(G.v + G.v == 2*G.v)
+        assert all(G.v / 2.0 == 0.5*G.v)
+        assert all(1.0 / G.v == 1.0 / G.v[:])
+        assert_equal((-G.v)[:], -G.v[:])
+        assert_equal((+G.v)[:], G.v[:])
+        #Without units
+        assert all(G.v_ - G.v_ == 0)
+        assert all(G.v_ - G.v_[:] == 0)
+        assert all(G.v_[:] - G.v_ == 0)
+        assert all(G.v_ + float(70*mV) == G.v_[:] + float(70*mV))
+        assert all(float(70*mV) + G.v_ == G.v_[:] + float(70*mV))
+        assert all(G.v_ + G.v_ == 2*G.v_)
+        assert all(G.v_ / 2.0 == 0.5*G.v_)
+        assert all(1.0 / G.v_ == 1.0 / G.v_[:])
+        assert_equal((-G.v)[:], -G.v[:])
+        assert_equal((+G.v)[:], G.v[:])
 
-    # in-place modification with strings should not work
-    assert_raises(TypeError, lambda: G.v.__iadd__('string'))
-    assert_raises(TypeError, lambda: G.v.__imul__('string'))
-    assert_raises(TypeError, lambda: G.v.__idiv__('string'))
-    assert_raises(TypeError, lambda: G.v.__isub__('string'))
+        # And in-place modification should work as well
+        G.v += 10*mV
+        G.v -= 10*mV
+        G.v *= 2
+        G.v /= 2.0
+
+        # with unit checking
+        assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3*second))
+        assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3))
+        assert_raises(DimensionMismatchError, lambda: G.v.__imul__(3*second))
+
+        # in-place modification with strings should not work
+        assert_raises(TypeError, lambda: G.v.__iadd__('string'))
+        assert_raises(TypeError, lambda: G.v.__imul__('string'))
+        assert_raises(TypeError, lambda: G.v.__idiv__('string'))
+        assert_raises(TypeError, lambda: G.v.__isub__('string'))
 
 
 def test_state_variable_access():
-    G = NeuronGroup(10, 'v:volt')
-    G.v = np.arange(10) * volt
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, 'v:volt', codeobj_class=codeobj_class)
+        G.v = np.arange(10) * volt
 
-    assert_equal(np.asarray(G.v[:]), np.arange(10))
-    assert have_same_dimensions(G.v[:], volt)
-    assert_equal(np.asarray(G.v[:]), G.v_[:])
-    # Accessing single elements, slices and arrays
-    assert G.v[5] == 5 * volt
-    assert G.v_[5] == 5
-    assert_equal(G.v[:5], np.arange(5) * volt)
-    assert_equal(G.v_[:5], np.arange(5))
-    assert_equal(G.v[[0, 5]], [0, 5] * volt)
-    assert_equal(G.v_[[0, 5]], np.array([0, 5]))
+        assert_equal(np.asarray(G.v[:]), np.arange(10))
+        assert have_same_dimensions(G.v[:], volt)
+        assert_equal(np.asarray(G.v[:]), G.v_[:])
+        # Accessing single elements, slices and arrays
+        assert G.v[5] == 5 * volt
+        assert G.v_[5] == 5
+        assert_equal(G.v[:5], np.arange(5) * volt)
+        assert_equal(G.v_[:5], np.arange(5))
+        assert_equal(G.v[[0, 5]], [0, 5] * volt)
+        assert_equal(G.v_[[0, 5]], np.array([0, 5]))
 
-    # Illegal indexing
-    assert_raises(IndexError, lambda: G.v[0, 0])
-    assert_raises(IndexError, lambda: G.v_[0, 0])
-    assert_raises(TypeError, lambda: G.v[object()])
-    assert_raises(TypeError, lambda: G.v_[object()])
+        # Illegal indexing
+        assert_raises(IndexError, lambda: G.v[0, 0])
+        assert_raises(IndexError, lambda: G.v_[0, 0])
+        assert_raises(TypeError, lambda: G.v[object()])
+        assert_raises(TypeError, lambda: G.v_[object()])
 
-    # Indexing with strings
-    assert G.v['i==2'] == G.v[2]
-    assert G.v_['i==2'] == G.v_[2]
-    assert_equal(G.v['v >= 3*volt'], G.v[3:])
-    assert_equal(G.v_['v >= 3*volt'], G.v_[3:])
-    # Should also check for units
-    assert_raises(DimensionMismatchError, lambda: G.v['v >= 3'])
-    assert_raises(DimensionMismatchError, lambda: G.v['v >= 3*second'])
+        # A string representation should not raise any error
+        assert len(str(G.v))
+        assert len(repr(G.v))
+        assert len(str(G.v_))
+        assert len(repr(G.v_))
 
-    # A string representation should not raise any error
-    assert len(str(G.v))
-    assert len(repr(G.v))
+
+def test_state_variable_access_strings():
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, 'v:volt', codeobj_class=codeobj_class)
+        G.v = np.arange(10) * volt
+        # Indexing with strings
+        assert G.v['i==2'] == G.v[2]
+        assert G.v_['i==2'] == G.v_[2]
+        assert_equal(G.v['v >= 3*volt'], G.v[3:])
+        assert_equal(G.v_['v >= 3*volt'], G.v_[3:])
+        # Should also check for units
+        assert_raises(DimensionMismatchError, lambda: G.v['v >= 3'])
+        assert_raises(DimensionMismatchError, lambda: G.v['v >= 3*second'])
+
+        # Setting with strings
+        # --------------------
+        # String value referring to i
+        G.v = '2*i*volt'
+        assert_equal(G.v[:], 2*np.arange(10)*volt)
+        # String value referring to i
+        G.v[:5] = '3*i*volt'
+        assert_equal(G.v[:],
+                     np.array([0, 3, 6, 9, 12, 10, 12, 14, 16, 18])*volt)
+
+        G.v = np.arange(10) * volt
+        # String value referring to a state variable
+        G.v = '2*v'
+        assert_equal(G.v[:], 2*np.arange(10)*volt)
+        G.v[:5] = '2*v'
+        assert_equal(G.v[:],
+                     np.array([0, 4, 8, 12, 16, 10, 12, 14, 16, 18])*volt)
+
+        G.v = np.arange(10) * volt
+        # String value referring to state variables, i, and an external variable
+        ext = 5*volt
+        G.v = 'v + ext + (N + i)*volt'
+        assert_equal(G.v[:], 2*np.arange(10)*volt + 15*volt)
+
+        G.v = np.arange(10) * volt
+        G.v[:5] = 'v + ext + (N + i)*volt'
+        assert_equal(G.v[:],
+                     np.array([15, 17, 19, 21, 23, 5, 6, 7, 8, 9])*volt)
+
+        G.v = 'v + randn()*volt'  # only check that it doesn't raise an error
+        G.v[:5] = 'v + randn()*volt'  # only check that it doesn't raise an error
+
+        G.v = np.arange(10) * volt
+        # String index using a random number
+        G.v['rand() <= 1'] = 0*mV
+        assert_equal(G.v[:], np.zeros(10)*volt)
+
+        G.v = np.arange(10) * volt
+        # String index referring to i and setting to a scalar value
+        G.v['i>=5'] = 0*mV
+        assert_equal(G.v[:], np.array([0, 1, 2, 3, 4, 0, 0, 0, 0, 0])*volt)
+        # String index referring to a state variable
+        G.v['v<3*volt'] = 0*mV
+        assert_equal(G.v[:], np.array([0, 0, 0, 3, 4, 0, 0, 0, 0, 0])*volt)
+        # String index referring to state variables, i, and an external variable
+        ext = 2*volt
+        G.v['v>=ext and i==(N-6)'] = 0*mV
+        assert_equal(G.v[:], np.array([0, 0, 0, 3, 0, 0, 0, 0, 0, 0])*volt)
+
+        G.v = np.arange(10) * volt
+        # Strings for both condition and values
+        G.v['i>=5'] = 'v*2'
+        assert_equal(G.v[:], np.array([0, 1, 2, 3, 4, 10, 12, 14, 16, 18])*volt)
+        G.v['v>=5*volt'] = 'i*volt'
+        assert_equal(G.v[:], np.arange(10)*volt)
 
 
 def test_repr():
@@ -315,4 +404,5 @@ if __name__ == '__main__':
     test_syntax_errors()
     test_state_variables()
     test_state_variable_access()
+    test_state_variable_access_strings()
     test_repr()

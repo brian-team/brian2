@@ -1,6 +1,10 @@
-import functools
+'''
+Module providing the base `CodeObject` and related functions.
+'''
 
-from brian2.core.variables import ArrayVariable
+import functools
+import weakref
+
 from brian2.core.functions import Function
 from brian2.core.preferences import brian_prefs
 from brian2.core.names import Nameable, find_name
@@ -21,12 +25,7 @@ logger = get_logger(__name__)
 def prepare_namespace(namespace, variables, codeobj_class):
     # We do the import here to avoid import problems
     from .runtime.numpy_rt.numpy_rt import NumpyCodeObject
-    namespace = dict(namespace)
-    # Add variables referring to the arrays
-    arrays = []
-    for value in variables.itervalues():
-        if isinstance(value, ArrayVariable):
-            arrays.append((value.arrayname, value.get_value()))
+
     # Check that all functions are available
     for name, value in namespace.iteritems():
         if isinstance(value, Function):
@@ -39,13 +38,12 @@ def prepare_namespace(namespace, variables, codeobj_class):
                 else:
                     raise NotImplementedError(('Cannot use function '
                                                '%s: %s') % (name, ex))
-    namespace.update(arrays)
 
     return namespace
 
 
-def create_codeobject(name, abstract_code, namespace, variables, template_name,
-                      indices, variable_indices, codeobj_class,
+def create_codeobject(owner, name, abstract_code, namespace, variables,
+                      template_name, variable_indices, codeobj_class,
                       template_kwds=None):
     '''
     The following arguments keywords are passed to the template:
@@ -69,38 +67,28 @@ def create_codeobject(name, abstract_code, namespace, variables, template_name,
     namespace = prepare_namespace(namespace, variables,
                                   codeobj_class=codeobj_class)
 
-    logger.debug(name + " abstract code:\n" + abstract_code)
-    iterate_all = template.iterate_all
     if isinstance(abstract_code, dict):
-        snippet = {}
-        kwds = {}
-        for ac_name, ac in abstract_code.iteritems():
-            snip, snip_kwds = translate(ac, variables, namespace,
-                                        dtype=brian_prefs['core.default_scalar_dtype'],
-                                        codeobj_class=codeobj_class,
-                                        variable_indices=variable_indices,
-                                        iterate_all=iterate_all)
-            snippet[ac_name] = snip
-            for k, v in snip_kwds:
-                kwds[ac_name+'_'+k] = v
-            
+        for k, v in abstract_code.items():
+            logger.debug('%s abstract code key %s:\n%s' % (name, k, v))
     else:
-        snippet, kwds = translate(abstract_code, variables, namespace,
-                                  dtype=brian_prefs['core.default_scalar_dtype'],
-                                  codeobj_class=codeobj_class,
-                                  variable_indices=variable_indices,
-                                  iterate_all=iterate_all)
+        logger.debug(name + " abstract code:\n" + abstract_code)
+    iterate_all = template.iterate_all
+    snippet, kwds = translate(abstract_code, variables, namespace,
+                              dtype=brian_prefs['core.default_scalar_dtype'],
+                              codeobj_class=codeobj_class,
+                              variable_indices=variable_indices,
+                              iterate_all=iterate_all)
     template_kwds.update(kwds)
     logger.debug(name + " snippet:\n" + str(snippet))
     
     name = find_name(name)
-
-    variables.update(indices)
     
-    code = template(snippet, variables=variables, codeobj_name=name, namespace=namespace, **template_kwds)
+    code = template(snippet,
+                    owner=owner, variables=variables, codeobj_name=name, namespace=namespace,
+                    **template_kwds)
     logger.debug(name + " code:\n" + str(code))
 
-    codeobj = codeobj_class(code, namespace, variables, name=name)
+    codeobj = codeobj_class(owner, code, namespace, variables, name=name)
     codeobj.compile()
     return codeobj
 
@@ -124,8 +112,13 @@ class CodeObject(Nameable):
     #: A short name for this type of `CodeObject`
     class_name = None
 
-    def __init__(self, code, namespace, variables, name='codeobject*'):
+    def __init__(self, owner, code, namespace, variables, name='codeobject*'):
         Nameable.__init__(self, name=name)
+        try:    
+            owner = weakref.proxy(owner)
+        except TypeError:
+            pass # if owner was already a weakproxy then this will be the error raised
+        self.owner = owner
         self.code = code
         self.namespace = namespace
         self.variables = variables

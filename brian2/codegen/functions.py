@@ -1,3 +1,7 @@
+'''
+Module providing support for multi-language functions.
+'''
+
 import types
 
 import numpy as np

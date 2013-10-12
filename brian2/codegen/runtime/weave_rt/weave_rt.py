@@ -1,4 +1,7 @@
-import os
+'''
+Module providing `WeaveCodeObject`.
+'''
+
 import numpy
 
 try:
@@ -8,7 +11,8 @@ except ImportError:
     # No weave for Python 3
     weave = None
 
-from brian2.core.variables import Variable, Subexpression, DynamicArrayVariable
+from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
+                                   AttributeVariable)
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.functions import DEFAULT_FUNCTIONS, FunctionImplementation
 
@@ -54,7 +58,7 @@ def weave_data_type(dtype):
     dtype = numpy.empty(0, dtype=dtype).dtype.char
         
     return num_to_c_types[dtype]
-    
+
 
 class WeaveCodeObject(CodeObject):
     '''
@@ -64,14 +68,17 @@ class WeaveCodeObject(CodeObject):
     object with two macros defined, ``main`` (for the main loop code) and
     ``support_code`` for any support code (e.g. function definitions).
     '''
-    templater = Templater('brian2.codegen.runtime.weave_rt')
+    templater = Templater('brian2.codegen.runtime.weave_rt',
+                          env_globals={'c_data_type': weave_data_type,
+                                       'dtype': numpy.dtype})
     language = CPPLanguage(c_data_type=weave_data_type)
     class_name = 'weave'
 
-    def __init__(self, code, namespace, variables, name='weave_code_object*'):
-        super(WeaveCodeObject, self).__init__(code, namespace, variables, name=name)
+    def __init__(self, owner, code, namespace, variables, name='weave_code_object*'):
+        super(WeaveCodeObject, self).__init__(owner, code, namespace, variables, name=name)
         self.compiler = brian_prefs['codegen.runtime.weave.compiler']
         self.extra_compile_args = brian_prefs['codegen.runtime.weave.extra_compile_args']
+        self.python_code_namespace = {'_owner': owner}
 
     def variables_to_namespace(self):
 
@@ -84,40 +91,59 @@ class WeaveCodeObject(CodeObject):
         self.nonconstant_values = []
 
         for name, var in self.variables.iteritems():
-            if isinstance(var, Variable) and not isinstance(var, Subexpression):
-                if not var.constant:
-                    self.nonconstant_values.append((name, var.get_value))
-                    if not var.scalar:
-                        self.nonconstant_values.append(('_num' + name,
-                                                        var.get_len))
-                    if isinstance(var, DynamicArrayVariable):
-                        self.nonconstant_values.append((name+'_object',
-                                                        var.get_object))
-                else:
-                    try:
-                        value = var.get_value()
-                    except TypeError:  # A dummy Variable without value
-                        continue
-                    self.namespace[name] = value
-                    # if it is a type that has a length, add a variable called
-                    # '_num'+name with its length
-                    if not var.scalar:
-                        self.namespace['_num' + name] = var.get_len()
-                    if isinstance(value, DynamicArrayVariable):
-                        self.namespace[name+'_object'] = value.get_object()
 
+            try:
+                value = var.get_value()
+            except TypeError:  # A dummy Variable without value or a Subexpression
+                continue
+
+            self.namespace[name] = value
+
+            if isinstance(var, ArrayVariable):
+                self.namespace[var.arrayname] = value
+                self.namespace['_num'+name] = var.get_len()
+
+            if isinstance(var, DynamicArrayVariable):
+                self.namespace[var.name+'_object'] = var.get_object()
+
+            # There are two kinds of objects that we have to inject into the
+            # namespace with their current value at each time step:
+            # * non-constant AttributeValue (this might be removed since it only
+            #   applies to "t" currently)
+            # * Dynamic arrays that change in size during runs (i.e. not
+            #   synapses but e.g. the structures used in monitors)
+            if isinstance(var, AttributeVariable) and not var.constant:
+                self.nonconstant_values.append((name, var.get_value))
+                if not var.scalar:
+                    self.nonconstant_values.append(('_num'+name, var.get_len))
+            elif (isinstance(var, DynamicArrayVariable) and
+                  not var.constant_size):
+                self.nonconstant_values.append((var.arrayname,
+                                                var.get_value))
+                self.nonconstant_values.append(('_num'+name, var.get_len))
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace
         for name, func in self.nonconstant_values:
             self.namespace[name] = func()
+            
+    def compile(self):
+        CodeObject.compile(self)
+        if hasattr(self.code, 'python_pre'):
+            self.compiled_python_pre = compile(self.code.python_pre, '(string)', 'exec')
+        if hasattr(self.code, 'python_post'):
+            self.compiled_python_post = compile(self.code.python_post, '(string)', 'exec')
 
     def run(self):
+        if hasattr(self, 'compiled_python_pre'):
+            exec self.compiled_python_pre in self.python_code_namespace
         return weave.inline(self.code.main, self.namespace.keys(),
                             local_dict=self.namespace,
                             support_code=self.code.support_code,
                             compiler=self.compiler,
                             extra_compile_args=self.extra_compile_args)
+        if hasattr(self, 'compiled_python_post'):
+            exec self.compiled_python_post in self.python_code_namespace
 
 codegen_targets.add(WeaveCodeObject)
 

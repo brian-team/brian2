@@ -6,6 +6,7 @@
 #include "{{codeobj_name}}.h"
 #include<math.h>
 #include<stdint.h>
+#include "brianlib/common_math.h"
 
 ////// SUPPORT CODE ///////
 namespace {
@@ -51,7 +52,7 @@ void _run_{{codeobj_name}}(double t)
         for(int _i=_start_idx; _i<_num_spikes; _i++)
         {
             const int _idx = {{_spikespace}}[_i];
-            if (_idx >= _source_end) {
+            if (_idx >= _source_stop) {
                 _end_idx = _i;
                 break;
             }

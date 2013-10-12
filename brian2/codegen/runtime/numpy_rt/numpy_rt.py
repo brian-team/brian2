@@ -1,10 +1,14 @@
-import os
+'''
+Module providing `NumpyCodeObject`.
+'''
 import numpy as np
 
 from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.core.variables import Variable, Subexpression, DynamicArrayVariable
+from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
+                                   AttributeVariable)
 
 from ...codeobject import CodeObject
+
 from ...templates import Templater
 from ...languages.numpy_lang import NumpyLanguage
 from ...targets import codegen_targets
@@ -24,6 +28,7 @@ brian_prefs.register_preferences(
         )
     )
 
+
 class NumpyCodeObject(CodeObject):
     '''
     Execute code using Numpy
@@ -34,10 +39,11 @@ class NumpyCodeObject(CodeObject):
     language = NumpyLanguage()
     class_name = 'numpy'
 
-    def __init__(self, code, namespace, variables, name='numpy_code_object*'):
+    def __init__(self, owner, code, namespace, variables, name='numpy_code_object*'):
         # TODO: This should maybe go somewhere else
         namespace['logical_not'] = np.logical_not
-        CodeObject.__init__(self, code, namespace, variables, name=name)
+        CodeObject.__init__(self, owner, code, namespace, variables, name=name)
+        namespace['_owner'] = self.owner
 
     def variables_to_namespace(self):
         # Variables can refer to values that are either constant (e.g. dt)
@@ -49,20 +55,31 @@ class NumpyCodeObject(CodeObject):
         self.nonconstant_values = []
 
         for name, var in self.variables.iteritems():
-            if isinstance(var, Variable) and not isinstance(var, Subexpression):
-                if not var.constant:
-                    self.nonconstant_values.append((name, var.get_value))
-                    if isinstance(var, DynamicArrayVariable):
-                        self.nonconstant_values.append((name+'_object',
-                                                        var.get_object))
-                else:
-                    try:
-                        value = var.get_value()
-                    except TypeError:  # A dummy Variable without value
-                        continue
-                    self.namespace[name] = value
-                    if isinstance(var, DynamicArrayVariable):
-                        self.namespace[name+'_object'] = var.get_object()
+            try:
+                value = var.get_value()
+            except TypeError:  # A dummy Variable without value or a Subexpression
+                continue
+
+            self.namespace[name] = value
+
+            if isinstance(var, ArrayVariable):
+                self.namespace[var.arrayname] = value
+
+            if isinstance(var, DynamicArrayVariable):
+                self.namespace[var.name+'_object'] = var.get_object()
+
+            # There are two kinds of objects that we have to inject into the
+            # namespace with their current value at each time step:
+            # * non-constant AttributeValue (this might be removed since it only
+            #   applies to "t" currently)
+            # * Dynamic arrays that change in size during runs (i.e. not
+            #   synapses but e.g. the structures used in monitors)
+            if isinstance(var, AttributeVariable) and not var.constant:
+                self.nonconstant_values.append((name, var.get_value))
+            elif (isinstance(var, DynamicArrayVariable) and
+                  not var.constant_size):
+                self.nonconstant_values.append((var.arrayname,
+                                                var.get_value))
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace

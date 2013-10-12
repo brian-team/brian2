@@ -6,6 +6,7 @@
 #include "{{codeobj_name}}.h"
 #include<math.h>
 #include<stdint.h>
+#include "brianlib/common_math.h"
 
 ////// SUPPORT CODE ///////
 namespace {
@@ -29,7 +30,7 @@ void _run_{{codeobj_name}}(double t)
 	{% endfor %}
 
 	//// MAIN CODE ////////////
-	for(int _idx=0; _idx<_num_idx; _idx++)
+	for(int _idx=0; _idx<N; _idx++)
 	{
 		// THIS MESSAGE IS JUST TO LET YOU KNOW WE'RE IN THE STANDALONE NOT WEAVE TEMPLATE
 	    const int _vectorisation_idx = _idx;
