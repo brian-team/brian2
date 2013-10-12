@@ -170,13 +170,10 @@ for _name, _version in version_infos.iteritems():
                                                        version=str(_version)))
 
 
-UNHANDLED_ERROR_MESSAGE = ('Brian encountered an unexpected error. '
-'If you think this is bug in Brian, please report this issue either to the '
-'mailing list at <http://groups.google.com/group/brian-support/>, '
-'or to the issue tracker at <http://neuralensemble.org/trac/brian/report>. '
-'Please include this file with debug information in your report: {logfile} '
-' Additionally, you can also include a copy of the script that was run, '
-'available at: {filename} Thanks!').format(logfile=TMP_LOG, filename=TMP_SCRIPT)
+UNHANDLED_ERROR_MESSAGE = ('Brian 2 encountered an unexpected error. '
+'If you think this is bug in Brian 2, please report this issue either to the '
+'mailing list at <http://groups.google.com/group/brian-development/>, '
+'or to the issue tracker at <https://github.com/brian-team/brian2/issues>.')
 
 
 def brian_excepthook(exc_type, exc_obj, exc_tb):
@@ -185,9 +182,20 @@ def brian_excepthook(exc_type, exc_obj, exc_tb):
     exception.
     '''
     BrianLogger.exception_occured = True
-    
-    logger.error(UNHANDLED_ERROR_MESSAGE,
-                 exc_info=(exc_type, exc_obj, exc_tb))
+
+    message = UNHANDLED_ERROR_MESSAGE
+    if TMP_LOG is not None:
+        message += (' Please include this file with debug information in your '
+                    'report: {} ').format(TMP_LOG)
+    if TMP_SCRIPT is not None:
+        message += (' Additionally, you can also include a copy '
+                    'of the script that was run, available '
+                    'at: {}').format(TMP_SCRIPT)
+
+    message += ' Thanks!'  # very important :)
+
+    logger.error(message, exc_info=(exc_type, exc_obj, exc_tb))
+
 
 def clean_up_logging():
     '''

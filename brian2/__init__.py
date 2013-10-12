@@ -4,8 +4,8 @@ Brian 2.0
 
 __docformat__ = "restructuredtext en"
 
-__version__ = '2.0dev'
-__release_date__ = 'notyet'
+__version__ = '2.0a'
+__release_date__ = '2013/10/12'
 
 # Check basic dependencies
 import sys
