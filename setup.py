@@ -14,17 +14,17 @@ from setuptools import setup, find_packages
 from setuptools.command.install import install as _install
 
 
-def generate_preferences(dir):
+def generate_preferences(directory):
     '''
     Generate a file in the brian2 installation dictionary containing all the
     preferences with their default values and documentation. This file can be
     used as a starting point for setting user- or project-specific preferences.
     '''
-    sys.path.insert(0, dir)
+    sys.path.insert(0, directory)
     from brian2.core.preferences import brian_prefs
     # We generate the file directly in the install directory
     try:
-        with open(os.path.join(dir,
+        with open(os.path.join(directory,
                                'brian2', 'default_preferences'), 'wt') as f:
             defaults = brian_prefs.defaults_as_file
             f.write(defaults)
@@ -42,9 +42,19 @@ class install(_install):
         self.execute(generate_preferences, (self.install_lib, ),
                      msg='Generating default preferences file')
 
+long_description = '''
+Brian2 is a simulator for spiking neural networks available on almost all platforms.
+The motivation for this project is that a simulator should not only save the time of
+processors, but also the time of scientists.
+
+It is the successor of Brian1 and shares its approach of being highly flexible
+and easily extensible. It is based on a code generation framework that allows
+to execute simulations using other programming languages and/or on different
+devices.
+'''
 
 setup(name='Brian2',
-      version='2.0dev',
+      version='2.0a',
       packages=find_packages(),
       # include template files
       package_data={'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
@@ -64,6 +74,11 @@ setup(name='Brian2',
                       'docs': ['sphinx>=1.0.1', 'sphinxcontrib-issuetracker']},
       cmdclass={'install': install},
       use_2to3=True,
+      url='http://www.briansimulator.org/',
+      description='A clock-driven simulator for spiking neural networks',
+      long_description=long_description,
+      author='Marcel Stimberg, Dan Goodman, Romain Brette',
+      author_email='Romain.Brette at ens.fr',
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Intended Audience :: Science/Research',
