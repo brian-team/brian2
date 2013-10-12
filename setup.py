@@ -51,6 +51,12 @@ It is the successor of Brian1 and shares its approach of being highly flexible
 and easily extensible. It is based on a code generation framework that allows
 to execute simulations using other programming languages and/or on different
 devices.
+
+We currently consider this software to be in the alpha status, please report
+issues to the github issue tracker (https://github.com/brian-team/brian2/issues) or to the
+brian-development mailing list (http://groups.google.com/group/brian-development/)
+
+Documentation for Brian2 can be found at http://brian2.readthedocs.org
 '''
 
 setup(name='Brian2',
