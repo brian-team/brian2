@@ -60,7 +60,7 @@ Documentation for Brian2 can be found at http://brian2.readthedocs.org
 '''
 
 setup(name='Brian2',
-      version='2.0a1',
+      version='2.0a2',
       packages=find_packages(),
       # include template files
       package_data={'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
@@ -69,12 +69,12 @@ setup(name='Brian2',
                     'brian2.devices.cpp_standalone': ['templates/*.cpp',
                                                       'templates/*.h']
                     },
-      requires=['numpy(>=1.4.1)',
-                'scipy(>=0.7.0)',
-                'sympy(>=0.7.2)',
-                'pyparsing',
-                'jinja2(>=2.7)'
-                ],
+      install_requires=['numpy>=1.4.1',
+                        'scipy>=0.7.0',
+                        'sympy>=0.7.2',
+                        'pyparsing',
+                        'jinja2>=2.7'
+                       ],
       provides=['brian2'],
       extras_require={'test': ['nosetests>=1.0'],
                       'docs': ['sphinx>=1.0.1', 'sphinxcontrib-issuetracker']},
