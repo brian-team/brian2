@@ -78,8 +78,6 @@ def test_state_monitor():
                       all_mon)
         net.run(10*ms)
 
-        if language == 'weave':
-            print all_mon.codeobj.code
         # Check time recordings
         assert_equal(nothing_mon.t, v_mon.t)
         assert_equal(nothing_mon.t_, np.asarray(nothing_mon.t))

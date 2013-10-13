@@ -51,7 +51,6 @@ def test_refractoriness_variables():
             mon = StateMonitor(G, ['v', 'w'], record=True)
             net = Network(G, mon)
             net.run(20*ms)
-            print 'mon.t', mon.t
             # No difference before the spike
             assert_equal(mon[0].v[mon.t < 10*ms], mon[0].w[mon.t < 10*ms])
             # v is not updated during refractoriness
