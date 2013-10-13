@@ -3,10 +3,11 @@ Installation
 
 Brian2 is available on the Python package index: https://pypi.python.org/pypi/Brian2
 
-It can therefore be installed using ``easy_install`` or ``pip``::
+It can therefore be installed using ``easy_install`` or ``pip`` (this needs the
+``--pre`` flag to allow for the installation of a prelease)::
 
     easy_install brian2
-    pip install brian2
+    pip install --pre brian2
 
 Alternatively, you can download the source package directly and uncompress it.
 You can then either run ``python setup.py install`` to install it, or simply add
