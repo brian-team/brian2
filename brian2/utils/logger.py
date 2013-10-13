@@ -181,6 +181,9 @@ def brian_excepthook(exc_type, exc_obj, exc_tb):
     Display a message mentioning the debug log in case of an uncaught
     exception.
     '''
+    # Do not catch Ctrl+C
+    if exc_type == KeyboardInterrupt:
+        return
     BrianLogger.exception_occured = True
 
     message = UNHANDLED_ERROR_MESSAGE
