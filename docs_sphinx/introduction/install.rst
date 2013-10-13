@@ -9,6 +9,20 @@ It can therefore be installed using ``easy_install`` or ``pip`` (this needs the
     easy_install brian2
     pip install --pre brian2
 
+.. note::
+
+   In principle, the above commands also install Brian's dependencies.
+   Unfortunately, however, there are two circumstances where this doesn't work:
+
+   1. If numpy isn't installed yet, it has to be installed in a separate step
+      before any other dependencies (``easy_install numpy`` or
+      ``pip install numpy``)
+   2. On Python 2.x, installing sympy via ``easy_install`` does not work because
+      it tries to install the Python 3 version (see this issue_), use ``pip``
+      instead.
+
+.. _issue: http://code.google.com/p/sympy/issues/detail?id=3511
+
 Alternatively, you can download the source package directly and uncompress it.
 You can then either run ``python setup.py install`` to install it, or simply add
 the source directory to your ``PYTHONPATH``. Note that if you are using
