@@ -5,6 +5,7 @@ import numpy
 import os
 import inspect
 from collections import defaultdict
+import weakref
 
 from brian2.core.clocks import defaultclock
 from brian2.core.network import Network as OrigNetwork
@@ -12,6 +13,7 @@ from brian2.core.namespace import get_local_namespace
 from brian2.devices.device import Device, all_devices
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import *
+from brian2.synapses.synapses import Synapses as OrigSynapses
 from brian2.utils.filetools import copy_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.languages.cpp_lang import c_data_type
@@ -25,7 +27,9 @@ from brian2.units import second
 from .codeobject import CPPStandaloneCodeObject
 
 
-__all__ = ['build', 'Network', 'run', 'reinit', 'stop']
+__all__ = ['build', 'Network', 'run', 'reinit', 'stop',
+           'Synapses',
+           ]
 
 def freeze(code, ns):
     # this is a bit of a hack, it should be passed to the template somehow
@@ -106,6 +110,8 @@ class CPPStandaloneDevice(Device):
         self.code_objects = {}
         self.main_queue = []
         
+        self.synapses = []
+        
     def array(self, owner, name, size, unit, dtype=None, constant=False,
               is_bool=False, read_only=False):
         if is_bool:
@@ -164,13 +170,15 @@ class CPPStandaloneDevice(Device):
             os.mkdir('output')
 
         # Write the arrays
-        arr_tmp = CPPStandaloneCodeObject.templater.arrays(None,
-                                                           array_specs=self.array_specs,
-                                                           dynamic_array_specs=self.dynamic_array_specs,
-                                                           zero_specs=self.zero_specs,
-                                                           arange_specs=self.arange_specs)
-        open('output/arrays.cpp', 'w').write(arr_tmp.cpp_file)
-        open('output/arrays.h', 'w').write(arr_tmp.h_file)
+        arr_tmp = CPPStandaloneCodeObject.templater.objects(None,
+                                                            array_specs=self.array_specs,
+                                                            dynamic_array_specs=self.dynamic_array_specs,
+                                                            zero_specs=self.zero_specs,
+                                                            arange_specs=self.arange_specs,
+                                                            synapses=self.synapses,
+                                                            )
+        open('output/objects.cpp', 'w').write(arr_tmp.cpp_file)
+        open('output/objects.h', 'w').write(arr_tmp.h_file)
 
         main_lines = []
         for func, args in self.main_queue:
@@ -214,15 +222,18 @@ class CPPStandaloneDevice(Device):
                 elif isinstance(v, Subexpression):
                     pass
                 elif not v.scalar:
-                    N = len(v)
-                    code_object_defs[codeobj.name].append('const int _num%s = %s;' % (k, N))
-                    if isinstance(v, StandaloneDynamicArrayVariable):
-                        c_type = c_data_type(v.dtype)
-                        # Create an alias name for the underlying array
-                        code = ('{c_type}* {arrayname} = '
-                                '&(_dynamic{arrayname}[0]);').format(c_type=c_type,
-                                                                      arrayname=v.arrayname)
-                        code_object_defs[codeobj.name].append(code)
+                    try:
+                        N = v.get_len()#len(v)
+                        code_object_defs[codeobj.name].append('const int _num%s = %s;' % (k, N))
+                        if isinstance(v, StandaloneDynamicArrayVariable):
+                            c_type = c_data_type(v.dtype)
+                            # Create an alias name for the underlying array
+                            code = ('{c_type}* {arrayname} = '
+                                    '&(_dynamic{arrayname}[0]);').format(c_type=c_type,
+                                                                          arrayname=v.arrayname)
+                            code_object_defs[codeobj.name].append(code)
+                    except TypeError:
+                        pass
 
         # Generate the code objects
         for codeobj in self.code_objects.itervalues():
@@ -230,7 +241,7 @@ class CPPStandaloneDevice(Device):
             # TODO: fix these freeze/CONSTANTS hacks somehow - they work but not elegant.
             code = freeze(codeobj.code.cpp_file, ns)
             code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj.name]))
-            code = '#include "arrays.h"\n'+code
+            code = '#include "objects.h"\n'+code
             
             open('output/'+codeobj.name+'.cpp', 'w').write(code)
             open('output/'+codeobj.name+'.h', 'w').write(codeobj.code.h_file)
@@ -272,3 +283,9 @@ def run(*args, **kwds):
     raise NotImplementedError("Magic networks not implemented for C++ standalone")
 stop = run
 reinit = run
+
+
+class Synapses(OrigSynapses):
+    def __init__(self, *args, **kwds):
+        OrigSynapses.__init__(self, *args, **kwds)
+        cpp_standalone_device.synapses.append(weakref.proxy(self))

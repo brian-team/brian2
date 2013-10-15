@@ -2,7 +2,8 @@
 
 #include<stdint.h>
 #include<vector>
-#include "arrays.h"
+#include "objects.h"
+#include "brianlib/synapses.h"
 
 // static arrays
 {% for (varname, dtype_spec, N) in array_specs %}
@@ -13,6 +14,11 @@ const int _num_{{varname}} = {{N}};
 // dynamic arrays
 {% for (varname, dtype_spec) in dynamic_array_specs %}
 std::vector<{{dtype_spec}}> {{varname}};
+{% endfor %}
+
+// synapses
+{% for S in synapses %}
+Synapses _synapses_{{S.name}};
 {% endfor %}
 
 void _init_arrays()
@@ -27,6 +33,11 @@ void _init_arrays()
 	{% for (varname, dtype_spec, start, stop) in arange_specs %}
 	{{varname}} = new {{dtype_spec}}[{{stop}}-{{start}}];
 	for(int i=0; i<{{stop}}-{{start}}; i++) {{varname}}[i] = {{start}} + i;
+	{% endfor %}
+
+	// Synapse arrays
+	{% for S in synapses %}
+	_synapses_{{S.name}}.init({{S.source|length}}, {{S.target|length}});
 	{% endfor %}
 }
 
@@ -47,11 +58,12 @@ void _dealloc_arrays()
 
 {% macro h_file() %}
 
-#ifndef _BRIAN_ARRAYS_H
-#define _BRIAN_ARRAYS_H
+#ifndef _BRIAN_OBJECTS_H
+#define _BRIAN_OBJECTS_H
 
 #include<vector>
 #include<stdint.h>
+#include "brianlib/synapses.h"
 
 // static arrays
 {% for (varname, dtype_spec, N) in array_specs %}
@@ -62,6 +74,11 @@ extern const int _num_{{varname}};
 // dynamic arrays
 {% for (varname, dtype_spec) in dynamic_array_specs %}
 extern std::vector<{{dtype_spec}}> {{varname}};
+{% endfor %}
+
+// synapses
+{% for S in synapses %}
+extern Synapses _synapses_{{S.name}};
 {% endfor %}
 
 void _init_arrays();
