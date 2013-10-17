@@ -201,7 +201,7 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                                       abstract_code='',
                                                                       namespace={},
                                                                       variables=self.group.variables,
-                                                                      template_name='synapses_initalise_queue',
+                                                                      template_name='synapses_initialise_queue',
                                                                       variable_indices=self.group.variable_indices,
                                                                       )
 
@@ -463,7 +463,8 @@ class Synapses(Group):
         self._registered_variables = []
 
         for var in self.variables.itervalues():
-            if isinstance(var, DynamicArrayVariable):
+            #if isinstance(var, DynamicArrayVariable):
+            if hasattr(var, 'resize'):
                 # Register the array with the `SynapticItemMapping` object so
                 # it gets automatically resized
                 self.register_variable(var)

@@ -43,10 +43,11 @@ M = SpikeMonitor(G)
 S = Synapses(G, G, 'w : volt', pre='V += w')
 S.connect('abs(i-j)<5 and i!=j')
 S.w = 0.1*mV
+S.delay = '0*ms'
 
 net = Network(G,
               M,
-              #S,
+              S,
               )
 
 if not standalone_mode:
@@ -54,6 +55,8 @@ if not standalone_mode:
     start_sim = time.time()
 
 net.run(100*ms)
+
+print [v.name for v in S._registered_variables]
 
 if standalone_mode:
     build()

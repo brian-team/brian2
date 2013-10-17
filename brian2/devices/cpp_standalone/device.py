@@ -215,6 +215,7 @@ class CPPStandaloneDevice(Device):
 
         # Generate data for non-constant values
         code_object_defs = defaultdict(list)
+        already_deffed = defaultdict(set)
         for codeobj in self.code_objects.itervalues():
             for k, v in codeobj.variables.iteritems():
                 if k=='t':
@@ -222,16 +223,21 @@ class CPPStandaloneDevice(Device):
                 elif isinstance(v, Subexpression):
                     pass
                 elif not v.scalar:
+                    if hasattr(v, 'arrayname') and v.arrayname in already_deffed[codeobj.name]:
+                        continue
                     try:
-                        N = v.get_len()#len(v)
-                        code_object_defs[codeobj.name].append('const int _num%s = %s;' % (k, N))
                         if isinstance(v, StandaloneDynamicArrayVariable):
+                            code_object_defs[codeobj.name].append('const int _num{k} = _dynamic{arrayname}.size();'.format(k=k, arrayname=v.arrayname))
                             c_type = c_data_type(v.dtype)
                             # Create an alias name for the underlying array
                             code = ('{c_type}* {arrayname} = '
                                     '&(_dynamic{arrayname}[0]);').format(c_type=c_type,
                                                                           arrayname=v.arrayname)
                             code_object_defs[codeobj.name].append(code)
+                            already_deffed[codeobj.name].add(v.arrayname)
+                        else:
+                            N = v.get_len()#len(v)
+                            code_object_defs[codeobj.name].append('const int _num%s = %s;' % (k, N))
                     except TypeError:
                         pass
 

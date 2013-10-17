@@ -70,8 +70,15 @@ void _run_{{codeobj_name}}(double t)
                 }
 			}
 		}
-
 	}
+
+	// now we need to resize all registered variables
+	{% if owner is defined %}
+	const int newsize = _dynamic{{owner.variables['_synaptic_pre'].arrayname}}.size();
+	{% for variable in owner._registered_variables %}
+	_dynamic{{variable.arrayname}}.resize(newsize);
+	{% endfor %}
+	{% endif %}
 }
 {% endmacro %}
 
