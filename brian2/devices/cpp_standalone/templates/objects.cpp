@@ -18,7 +18,11 @@ std::vector<{{dtype_spec}}> {{varname}};
 
 // synapses
 {% for S in synapses %}
-Synapses _synapses_{{S.name}};
+Synapses<double> _synapses_{{S.name}}({{S.source|length}}, {{S.target|length}});
+// temporarily hardcoded pathway and queue
+SynapticPathway<double> _synaptic_pathway_{{S.name}}_pre({{S.source|length}}, {{S.target|length}},
+		_dynamic_array_{{S.name}}_pre_delay, _synapses_{{S.name}}._pre_synaptic);
+SpikeQueue<double> _spike_queue_{{S.name}}_pre(_synaptic_pathway_{{S.name}}_pre, {{S.source.clock.dt_}});
 {% endfor %}
 
 void _init_arrays()
@@ -33,11 +37,6 @@ void _init_arrays()
 	{% for (varname, dtype_spec, start, stop) in arange_specs %}
 	{{varname}} = new {{dtype_spec}}[{{stop}}-{{start}}];
 	for(int i=0; i<{{stop}}-{{start}}; i++) {{varname}}[i] = {{start}} + i;
-	{% endfor %}
-
-	// Synapse arrays
-	{% for S in synapses %}
-	_synapses_{{S.name}}.init({{S.source|length}}, {{S.target|length}});
 	{% endfor %}
 }
 
@@ -78,7 +77,9 @@ extern std::vector<{{dtype_spec}}> {{varname}};
 
 // synapses
 {% for S in synapses %}
-extern Synapses _synapses_{{S.name}};
+extern Synapses<double> _synapses_{{S.name}};
+extern SynapticPathway<double> _synaptic_pathway_{{S.name}}_pre;
+extern SpikeQueue<double> _spike_queue_{{S.name}}_pre;
 {% endfor %}
 
 void _init_arrays();
