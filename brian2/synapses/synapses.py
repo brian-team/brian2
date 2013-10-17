@@ -716,6 +716,11 @@ class Synapses(Group):
         # values from the postsynaptic group)
         v.update(Group._create_variables(self))
 
+        # For synapses, the number of synapses is not fixed (as for other
+        # groups), therefore replace the "N" entry
+        v['N'] = AttributeVariable(Unit(1), self, '_N', constant=True,
+                                   read_only=True)
+
         for eq in itertools.chain(self.equations.itervalues(),
                                   self.event_driven.itervalues()
                                   if self.event_driven is not None else []):
