@@ -13,6 +13,7 @@ INITPY = '__init__.py'
 
 OPTIONS = ['show-inheritance']
 
+
 def makename(package, module):
     """Join package and module with a dot."""
     # Both package and module can be None/empty.
@@ -91,19 +92,40 @@ def format_directive(module, destdir, package=None, basename='brian2'):
     return directive
 
 
+def find_shortest_import(module_name, obj_name):
+    print module_name, obj_name
+    parts = module_name.split('.')
+    for idx in range(1, len(parts) + 1):
+        try:
+            result = __import__('.'.join(parts[:idx]), globals(), {},
+                                fromlist=[str(obj_name)], level=0)
+            if getattr(result, obj_name, None) is not None:
+                # import seems to have worked
+                return '.'.join(parts[:idx])
+        except ImportError:
+            pass
+    raise AssertionError("Couldn't import " + module_name + '.' + obj_name)
+
+
 def create_member_file(module_name, member, member_obj, destdir, suffix='rst'):
     """Build the text of the file and write the file."""
     
     text = '.. currentmodule:: ' + module_name + '\n\n'
-    
+
+    shortest_import = find_shortest_import(module_name, member)
+    import_text = '(*Shortest import*: ``from {} import {})``\n\n'.format(shortest_import,
+                                                                          member)
     if inspect.isclass(member_obj):
         text += format_heading(1, '%s class' % member)
+        text += import_text
         text += '.. autoclass:: %s\n\n' % member
     elif inspect.isfunction(member_obj):
         text += format_heading(1, '%s function' % member)
+        text += import_text
         text += '.. autofunction:: %s\n\n' % member
     else:
         text += format_heading(1, '%s object' % member)
+        text += import_text
         text += '.. autodata:: %s\n' % member
 
     write_file(makename(module_name, member), text, destdir, suffix)
