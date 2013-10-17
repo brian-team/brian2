@@ -78,6 +78,8 @@ void _run_{{codeobj_name}}(double t)
 	{% for variable in owner._registered_variables %}
 	_dynamic{{variable.arrayname}}.resize(newsize);
 	{% endfor %}
+	// Also update the total number of synapses
+	{{owner.name}}._N = newsize;
 	{% endif %}
 }
 {% endmacro %}

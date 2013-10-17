@@ -222,6 +222,21 @@ class CPPStandaloneDevice(Device):
                     pass
                 elif isinstance(v, Subexpression):
                     pass
+                elif isinstance(v, AttributeVariable):
+                    c_type = c_data_type(v.dtype)
+                    # TODO: Handle dt in the correct way
+                    if v.attribute == 'dt_':
+                        code = ('const {c_type} {k} = '
+                                '{value};').format(c_type=c_type,
+                                                  k=k,
+                                                  value=v.get_value())
+                    else:
+                        code = ('const {c_type} {k} = '
+                                '{name}.{attribute};').format(c_type=c_type,
+                                                             k=k,
+                                                             name=v.obj.name,
+                                                             attribute=v.attribute)
+                    code_object_defs[codeobj.name].append(code)
                 elif not v.scalar:
                     if hasattr(v, 'arrayname') and v.arrayname in already_deffed[codeobj.name]:
                         continue

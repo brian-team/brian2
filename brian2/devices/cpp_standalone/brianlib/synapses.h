@@ -104,6 +104,7 @@ template <class scalar>
 class Synapses
 {
 public:
+    int _N;
 	int Nsource;
 	int Ntarget;
 	vector< vector<int> > _pre_synaptic;
@@ -116,6 +117,7 @@ public:
 			_pre_synaptic.push_back(vector<int>());
 		for(int i=0; i<Ntarget; i++)
 			_post_synaptic.push_back(vector<int>());
+		_N = 0;
 	};
 };
 
