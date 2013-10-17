@@ -11,9 +11,11 @@
 void _run_{{codeobj_name}}(double t)
 {
 	{% if owner is defined %}
+	// we do next at the beginning rather than at the end because it saves us making
+	// a copy of the current spiking synapses
+	{{owner.name}}.queue->next();
 	{{owner.name}}.queue->push({{owner.source.variables['_spikespace'].arrayname}}, {{owner.source.variables['_spikespace'].arrayname}}[{{owner.source|length}}]);
 	{{owner.name}}.queue->peek();
-	{{owner.name}}.queue->next();
 	{% endif %}
 }
 {% endmacro %}

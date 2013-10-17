@@ -142,7 +142,8 @@ class SynapticPathway(GroupCodeRunner, Group):
                                  'synapses',
                                  code=code,
                                  when=(synapses.clock, 'synapses'),
-                                 name=synapses.name + '_' + objname)
+                                 name=synapses.name + '_' + objname,
+                                 template_kwds={'pathway': self})
 
         self._pushspikes_codeobj = None
 
@@ -213,7 +214,7 @@ class SynapticPathway(GroupCodeRunner, Group):
             self._pushspikes_codeobj = get_device().code_object(self,
                                                                 self.name+'_push_spikes_codeobject*',
                                                                 '',
-                {},
+                                                                {},
                                                                 self.group.variables,
                                                                 'synapses_push_spikes',
                                                                 self.group.variable_indices,

@@ -63,7 +63,7 @@ public:
 		}
 	};
 
-	vector<int>& peek()
+	inline vector<int>& peek()
 	{
 		return queue[offset];
 	};

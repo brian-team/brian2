@@ -42,7 +42,7 @@ G.V = '-i*mV'
 M = SpikeMonitor(G)
 S = Synapses(G, G, 'w : volt', pre='V += w')
 S.connect('abs(i-j)<5 and i!=j')
-S.w = 0.1*mV
+S.w = 0.5*mV
 S.delay = '0*ms'
 
 net = Network(G,
