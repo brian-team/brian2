@@ -13,6 +13,9 @@ Documentation for Brian2 can be found at http://brian2.readthedocs.org
 
 Brian2 is released under the terms of the CeCILL 2.1 license.
 
+.. image:: https://pypip.in/v/Brian2/badge.png
+        :target: https://crate.io/packages/Brian2
+
 Testing status for master branch
 --------------------------------
 
