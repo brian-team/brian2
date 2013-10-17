@@ -5,24 +5,29 @@
 #include "objects.h"
 #include "brianlib/synapses.h"
 
-// static arrays
+//////////////// static arrays ////////////
 {% for (varname, dtype_spec, N) in array_specs %}
 {{dtype_spec}} *{{varname}};
 const int _num_{{varname}} = {{N}};
 {% endfor %}
 
-// dynamic arrays
+//////////////// dynamic arrays ///////////
 {% for (varname, dtype_spec) in dynamic_array_specs %}
 std::vector<{{dtype_spec}}> {{varname}};
 {% endfor %}
 
-// synapses
+//////////////// synapses /////////////////
 {% for S in synapses %}
-Synapses<double> _synapses_{{S.name}}({{S.source|length}}, {{S.target|length}});
-// temporarily hardcoded pathway and queue
-SynapticPathway<double> _synaptic_pathway_{{S.name}}_pre({{S.source|length}}, {{S.target|length}},
-		_dynamic_array_{{S.name}}_pre_delay, _synapses_{{S.name}}._pre_synaptic);
-SpikeQueue<double> _spike_queue_{{S.name}}_pre(_synaptic_pathway_{{S.name}}_pre, {{S.source.clock.dt_}});
+// {{S.name}}
+Synapses<double> {{S.name}}({{S.source|length}}, {{S.target|length}});
+{% for path in S._pathways %}
+SynapticPathway<double> {{path.name}}(
+		{{S.source|length}}, {{S.target|length}},
+		_dynamic{{path.variables['delay'].arrayname}},
+		{{S.name}}._{{path.prepost}}_synaptic,
+		{{S.source.dt_}}
+		);
+{% endfor %}
 {% endfor %}
 
 void _init_arrays()
@@ -64,22 +69,24 @@ void _dealloc_arrays()
 #include<stdint.h>
 #include "brianlib/synapses.h"
 
-// static arrays
+//////////////// static arrays ////////////
 {% for (varname, dtype_spec, N) in array_specs %}
 extern {{dtype_spec}} *{{varname}};
 extern const int _num_{{varname}};
 {% endfor %}
 
-// dynamic arrays
+//////////////// dynamic arrays ///////////
 {% for (varname, dtype_spec) in dynamic_array_specs %}
 extern std::vector<{{dtype_spec}}> {{varname}};
 {% endfor %}
 
-// synapses
+//////////////// synapses /////////////////
 {% for S in synapses %}
-extern Synapses<double> _synapses_{{S.name}};
-extern SynapticPathway<double> _synaptic_pathway_{{S.name}}_pre;
-extern SpikeQueue<double> _spike_queue_{{S.name}}_pre;
+// {{S.name}}
+extern Synapses<double> {{S.name}};
+{% for path in S._pathways %}
+extern SynapticPathway<double> {{path.name}};
+{% endfor %}
 {% endfor %}
 
 void _init_arrays();

@@ -27,7 +27,7 @@ namespace {
 {% if variables is defined %}
 {% set synpre = '_dynamic'+variables['_synaptic_pre'].arrayname %}
 {% set synpost = '_dynamic'+variables['_synaptic_post'].arrayname %}
-{% set synobj = '_synapses_'+owner.name %}
+{% set synobj = owner.name %}
 {% endif %}
 
 // {{synobj}}

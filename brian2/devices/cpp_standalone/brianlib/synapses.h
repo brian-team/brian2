@@ -85,16 +85,18 @@ public:
 	int Nsource, Ntarget;
 	vector<scalar>& delay;
 	vector< vector<int> > &indices;
-	//SpikeQueue<scalar> *queue;
-	SynapticPathway(int _Nsource, int _Ntarget, vector<scalar>& _delay, vector< vector<int> > &_indices)
-		: Nsource(_Nsource), Ntarget(_Ntarget), delay(_delay), indices(_indices)
+	scalar dt;
+	SpikeQueue<scalar> *queue;
+	SynapticPathway(int _Nsource, int _Ntarget, vector<scalar>& _delay, vector< vector<int> > &_indices,
+					scalar _dt)
+		: Nsource(_Nsource), Ntarget(_Ntarget), delay(_delay), indices(_indices), dt(_dt)
 	{
-		//this->queue = new SpikeQueue<scalar>(*this);
+		this->queue = new SpikeQueue<scalar>(*this, dt);
 	};
 	~SynapticPathway()
 	{
-		//if(this->queue) delete this->queue;
-		//this->queue = 0;
+		if(this->queue) delete this->queue;
+		this->queue = 0;
 	}
 };
 

@@ -121,6 +121,7 @@ class SynapticPathway(GroupCodeRunner, Group):
     '''
     def __init__(self, synapses, code, prepost, objname=None):
         self.code = code
+        self.prepost = prepost
         if prepost == 'pre':
             self.source = synapses.source
             self.target = synapses.target
@@ -469,6 +470,8 @@ class Synapses(Group):
 
         #: List of names of all updaters, e.g. ['pre', 'post']
         self._synaptic_updaters = []
+        #: List of all `SynapticPathway` objects
+        self._pathways = []
         for prepost, argument in zip(('pre', 'post'), (pre, post)):
             if not argument:
                 continue
@@ -637,6 +640,7 @@ class Synapses(Group):
 
         setattr(self, objname, updater)
         self._synaptic_updaters.append(objname)
+        self._pathways.append(updater)
         self.contained_objects.append(updater)
         return objname
 
