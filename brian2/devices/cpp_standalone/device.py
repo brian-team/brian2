@@ -284,11 +284,19 @@ class CPPStandaloneDevice(Device):
         copy_directory(brianlib_dir, os.path.join(project_dir, 'brianlib'))
         
         # build the project
-        with in_directory(project_dir):
-            if compile_project:
+        if compile_project:
+            with in_directory(project_dir):
                 x = os.system('g++ -I. -g *.cpp code_objects/*.cpp -o main')
-                if x==0 and run_project:
-                    os.system('main')
+                if x==0:
+                    print 'Project compiled successfully'
+                    if run_project:
+                        x = os.system('main')
+                        if x==0:
+                            print 'Project ran successfully'
+                        else:
+                            print 'Project run failed'
+                else:
+                    print 'Project compilation failed'
 
 
 cpp_standalone_device = CPPStandaloneDevice()
