@@ -26,10 +26,6 @@ threshold = 'V>-50*mV'
 reset = 'V=-60*mV'
 refractory = 5*ms
 N = 1000
-
-##### Generate C++ code
-
-# Use a NeuronGroup to fake the whole process
 G = NeuronGroup(N, eqs,
                 reset=reset,
                 threshold=threshold,
@@ -41,12 +37,13 @@ S = Synapses(G, G, 'w : volt', pre='V += w')
 S.connect('abs(i-j)<5 and i!=j')
 S.w = 0.5*mV
 S.delay = '0*ms'
-
 net = Network(G,
               M,
               S,
               )
 
+
+##### Generate/run code
 if not standalone_mode:
     net.run(0*ms)
     start_sim = time.time()

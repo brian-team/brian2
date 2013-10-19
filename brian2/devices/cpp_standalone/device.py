@@ -293,15 +293,12 @@ class CPPStandaloneDevice(Device):
             with in_directory(project_dir):
                 x = os.system('g++ -I. -g *.cpp code_objects/*.cpp -o main')
                 if x==0:
-                    print 'Project compiled successfully'
                     if run_project:
                         x = os.system('main')
-                        if x==0:
-                            print 'Project ran successfully'
-                        else:
-                            print 'Project run failed'
+                        if x:
+                            raise RuntimeError("Project run failed")
                 else:
-                    print 'Project compilation failed'
+                    raise RuntimeError("Project compilation failed")
 
 
 cpp_standalone_device = CPPStandaloneDevice()
