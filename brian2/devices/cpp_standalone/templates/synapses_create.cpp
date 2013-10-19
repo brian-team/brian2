@@ -6,7 +6,7 @@
 // USES_VARIABLES { _synaptic_pre, _synaptic_post, _post_synaptic,
 //                  _pre_synaptic, rand}
 
-#include "{{codeobj_name}}.h"
+#include "code_objects/{{codeobj_name}}.h"
 #include<math.h>
 #include<stdint.h>
 #include "brianlib/common_math.h"

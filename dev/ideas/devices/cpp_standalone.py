@@ -56,10 +56,8 @@ if not standalone_mode:
 
 net.run(100*ms)
 
-print [v.name for v in S._registered_variables]
-
 if standalone_mode:
-    build()
+    build(project_dir='output', compile_project=True, run_project=True)
     print 'Build time:', time.time()-start
 else:
     print 'Build time:', start_sim-start

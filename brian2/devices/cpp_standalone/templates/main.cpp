@@ -4,7 +4,7 @@
 #include<ctime>
 
 {% for codeobj in code_objects %}
-#include "{{codeobj.name}}.h"
+#include "code_objects/{{codeobj.name}}.h"
 {% endfor %}
 
 #include<iostream>
@@ -20,10 +20,8 @@ int main(void)
 	{% for main_line in main_lines %}
 	{{ main_line }}
 	{% endfor %}
-	cout << "Num synapses: " << _dynamic_array_synapses__synaptic_pre.size() << endl;
-	cout << "Num spikes: " << _dynamic_array_spikemonitor__i.size() << endl;
 	double duration = (clock()-start)/(double)CLOCKS_PER_SEC;
-	cout << "Time: " << duration << endl;
+	cout << "Simulation time: " << duration << endl;
 	_dealloc_arrays();
 	return 0;
 }

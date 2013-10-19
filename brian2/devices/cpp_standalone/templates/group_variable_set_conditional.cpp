@@ -3,7 +3,7 @@
 
 {% macro cpp_file() %}
 
-#include "{{codeobj_name}}.h"
+#include "code_objects/{{codeobj_name}}.h"
 #include<math.h>
 #include "brianlib/common_math.h"
 #include<stdint.h>

@@ -14,7 +14,7 @@ from brian2.devices.device import Device, all_devices
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import *
 from brian2.synapses.synapses import Synapses as OrigSynapses
-from brian2.utils.filetools import copy_directory
+from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.languages.cpp_lang import c_data_type
 from brian2.codegen.codeobject import CodeObjectUpdater
@@ -165,9 +165,10 @@ class CPPStandaloneDevice(Device):
         self.code_objects[codeobj.name] = codeobj
         return codeobj
 
-    def build(self):
-        if not os.path.exists('output'):
-            os.mkdir('output')
+    def build(self, project_dir='output', compile_project=True, run_project=False):
+        ensure_directory(project_dir)
+        for d in ['code_objects', 'results']:
+            ensure_directory(os.path.join(project_dir, d))
 
         # Write the arrays
         arr_tmp = CPPStandaloneCodeObject.templater.objects(None,
@@ -177,8 +178,8 @@ class CPPStandaloneDevice(Device):
                                                             arange_specs=self.arange_specs,
                                                             synapses=self.synapses,
                                                             )
-        open('output/objects.cpp', 'w').write(arr_tmp.cpp_file)
-        open('output/objects.h', 'w').write(arr_tmp.h_file)
+        open(os.path.join(project_dir, 'objects.cpp'), 'w').write(arr_tmp.cpp_file)
+        open(os.path.join(project_dir, 'objects.h'), 'w').write(arr_tmp.h_file)
 
         main_lines = []
         for func, args in self.main_queue:
@@ -264,8 +265,8 @@ class CPPStandaloneDevice(Device):
             code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj.name]))
             code = '#include "objects.h"\n'+code
             
-            open('output/'+codeobj.name+'.cpp', 'w').write(code)
-            open('output/'+codeobj.name+'.h', 'w').write(codeobj.code.h_file)
+            open(os.path.join(project_dir, 'code_objects', codeobj.name+'.cpp'), 'w').write(code)
+            open(os.path.join(project_dir, 'code_objects', codeobj.name+'.h'), 'w').write(codeobj.code.h_file)
         
         # The code_objects are passed in the right order to run them because they were
         # sorted by the Network object. To support multiple clocks we'll need to be
@@ -275,12 +276,19 @@ class CPPStandaloneDevice(Device):
                                                           code_objects=self.code_objects.values(),
                                                           dt=float(defaultclock.dt),
                                                           )
-        open('output/main.cpp', 'w').write(main_tmp)
+        open(os.path.join(project_dir, 'main.cpp'), 'w').write(main_tmp)
 
         # Copy the brianlibdirectory
         brianlib_dir = os.path.join(os.path.split(inspect.getsourcefile(CPPStandaloneCodeObject))[0],
                                     'brianlib')
-        copy_directory(brianlib_dir, 'output/brianlib')
+        copy_directory(brianlib_dir, os.path.join(project_dir, 'brianlib'))
+        
+        # build the project
+        with in_directory(project_dir):
+            if compile_project:
+                x = os.system('g++ -I. -g *.cpp code_objects/*.cpp -o main')
+                if x==0 and run_project:
+                    os.system('main')
 
 
 cpp_standalone_device = CPPStandaloneDevice()
