@@ -214,6 +214,11 @@ class CPPStandaloneDevice(Device):
             else:
                 raise NotImplementedError("Unknown main queue function type "+func)
 
+        # generate the finalisations
+        for codeobj in self.code_objects.itervalues():
+            if hasattr(codeobj.code, 'main_finalise'):
+                main_lines.append(codeobj.code.main_finalise);
+
         # Generate data for non-constant values
         code_object_defs = defaultdict(list)
         already_deffed = defaultdict(set)
@@ -267,7 +272,7 @@ class CPPStandaloneDevice(Device):
             
             open(os.path.join(project_dir, 'code_objects', codeobj.name+'.cpp'), 'w').write(code)
             open(os.path.join(project_dir, 'code_objects', codeobj.name+'.h'), 'w').write(codeobj.code.h_file)
-        
+                    
         # The code_objects are passed in the right order to run them because they were
         # sorted by the Network object. To support multiple clocks we'll need to be
         # smarter about that.

@@ -7,6 +7,7 @@
 #include<math.h>
 #include<stdint.h>
 #include "brianlib/common_math.h"
+#include<iostream>
 
 ////// SUPPORT CODE ///////
 namespace {
@@ -45,6 +46,14 @@ void _run_{{codeobj_name}}(double t)
 		{% endfor %}
 	}
 }
+
+void _debugmsg_{{codeobj_name}}()
+{
+	{% if owner is defined %}
+	cout << "Number of synapses: " << _dynamic_array_{{owner.name}}__synaptic_pre.size() << endl;
+	{% endif %}
+}
+
 {% endmacro %}
 
 ////////////////////////////////////////////////////////////////////////////
@@ -57,6 +66,11 @@ void _run_{{codeobj_name}}(double t)
 #include "objects.h"
 
 void _run_{{codeobj_name}}(double t);
+void _debugmsg_{{codeobj_name}}();
 
 #endif
+{% endmacro %}
+
+{% macro main_finalise() %}
+_debugmsg_{{codeobj_name}}();
 {% endmacro %}

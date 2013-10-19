@@ -7,6 +7,8 @@
 #include<math.h>
 #include<stdint.h>
 #include "brianlib/common_math.h"
+#include<iostream>
+#include<fstream>
 
 ////// SUPPORT CODE ///////
 namespace {
@@ -70,6 +72,29 @@ void _run_{{codeobj_name}}(double t)
         }
     }
 }
+
+void _write_{{codeobj_name}}()
+{
+	ofstream outfile;
+	outfile.open("results/{{codeobj_name}}.txt", ios::out);
+	if(outfile.is_open())
+	{
+		for(int s=0; s<{{_i}}.size(); s++)
+		{
+			outfile << {{_i}}[s] << ", " << {{_t}}[s] << endl;
+		}
+		outfile.close();
+	} else
+	{
+		cout << "Error writing output file." << endl;
+	}
+}
+
+void _debugmsg_{{codeobj_name}}()
+{
+	cout << "Number of spikes: " << {{_i}}.size() << endl;
+}
+
 {% endmacro %}
 
 ////////////////////////////////////////////////////////////////////////////
@@ -82,6 +107,13 @@ void _run_{{codeobj_name}}(double t)
 #include "objects.h"
 
 void _run_{{codeobj_name}}(double t);
+void _write_{{codeobj_name}}();
+void _debugmsg_{{codeobj_name}}();
 
 #endif
+{% endmacro %}
+
+{% macro main_finalise() %}
+_write_{{codeobj_name}}();
+_debugmsg_{{codeobj_name}}();
 {% endmacro %}
