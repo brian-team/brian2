@@ -6,9 +6,14 @@ from nose import with_setup
 import tempfile
 import os
 
-@with_setup(teardown=restore_initial_state)
+
+def restore_device():
+    set_device('runtime')
+    restore_initial_state()
+
+
+@with_setup(teardown=restore_device)
 def test_cpp_standalone():
-    previous_device = get_device()
     set_device('cpp_standalone')
     ##### Define the model
     tau = 1*ms
@@ -44,9 +49,6 @@ def test_cpp_standalone():
     i = S['i']
     t = S['t']*second
     assert len(i)==17741
-
-    # reset the device
-    set_device(previous_device)
     
 if __name__=='__main__':
     test_cpp_standalone()

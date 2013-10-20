@@ -65,7 +65,9 @@ setup(name='Brian2',
                     'brian2.codegen.runtime.weave_rt': ['templates/*.cpp',
                                                         'templates/*.h'],
                     'brian2.devices.cpp_standalone': ['templates/*.cpp',
-                                                      'templates/*.h']
+                                                      'templates/*.h',
+                                                      'brianlib/*.cpp',
+                                                      'brianlib/*.h']
                     },
       install_requires=['numpy>=1.4.1',
                         'scipy>=0.7.0',
