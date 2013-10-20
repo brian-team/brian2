@@ -165,7 +165,7 @@ class CPPStandaloneDevice(Device):
         self.code_objects[codeobj.name] = codeobj
         return codeobj
 
-    def build(self, project_dir='output', compile_project=True, run_project=False):
+    def build(self, project_dir='output', compile_project=True, run_project=False, debug=True):
         ensure_directory(project_dir)
         for d in ['code_objects', 'results']:
             ensure_directory(os.path.join(project_dir, d))
@@ -291,10 +291,16 @@ class CPPStandaloneDevice(Device):
         # build the project
         if compile_project:
             with in_directory(project_dir):
-                x = os.system('g++ -I. -g *.cpp code_objects/*.cpp -o main')
+                if debug:
+                    x = os.system('g++ -I. -g *.cpp code_objects/*.cpp -o main')
+                else:
+                    x = os.system('g++ -I. -O3 -ffast-math -march=native *.cpp code_objects/*.cpp -o main')
                 if x==0:
                     if run_project:
-                        x = os.system('./main')
+                        if os.name=='nt':
+                            x = os.system('main')
+                        else:
+                            x = os.system('./main')
                         if x:
                             raise RuntimeError("Project run failed")
                 else:

@@ -4,6 +4,8 @@
 #include<vector>
 #include "objects.h"
 #include "brianlib/synapses.h"
+#include<iostream>
+#include<fstream>
 
 //////////////// static arrays ////////////
 {% for (varname, dtype_spec, N) in array_specs %}
@@ -42,6 +44,41 @@ void _init_arrays()
 	{% for (varname, dtype_spec, start, stop) in arange_specs %}
 	{{varname}} = new {{dtype_spec}}[{{stop}}-{{start}}];
 	for(int i=0; i<{{stop}}-{{start}}; i++) {{varname}}[i] = {{start}} + i;
+	{% endfor %}
+}
+
+void _write_arrays()
+{
+	{% for (varname, dtype_spec, N) in array_specs %}
+	ofstream outfile_{{varname}};
+	outfile_{{varname}}.open("results/{{varname}}.txt", ios::out);
+	if(outfile_{{varname}}.is_open())
+	{
+		for(int s=0; s<{{N}}; s++)
+		{
+			outfile_{{varname}} << {{varname}}[s] << endl;
+		}
+		outfile_{{varname}}.close();
+	} else
+	{
+		cout << "Error writing output file for {{varname}}." << endl;
+	}
+	{% endfor %}
+
+	{% for (varname, dtype_spec) in dynamic_array_specs %}
+	ofstream outfile_{{varname}};
+	outfile_{{varname}}.open("results/{{varname}}.txt", ios::out);
+	if(outfile_{{varname}}.is_open())
+	{
+		for(int s=0; s<{{varname}}.size(); s++)
+		{
+			outfile_{{varname}} << {{varname}}[s] << endl;
+		}
+		outfile_{{varname}}.close();
+	} else
+	{
+		cout << "Error writing output file for {{varname}}." << endl;
+	}
 	{% endfor %}
 }
 
@@ -90,6 +127,7 @@ extern SynapticPathway<double> {{path.name}};
 {% endfor %}
 
 void _init_arrays();
+void _write_arrays();
 void _dealloc_arrays();
 
 #endif

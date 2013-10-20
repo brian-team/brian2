@@ -1,3 +1,4 @@
+from numpy import *
 from brian2 import *
 
 standalone_mode = True
@@ -14,6 +15,8 @@ if standalone_mode:
 else:
     brian_prefs['codegen.target'] = 'weave'
     #brian_prefs['codegen.target'] = 'numpy'
+
+start = time()
 
 N = 1000
 taum = 10 * ms
@@ -59,13 +62,15 @@ net.run(duration)
 
 if standalone_mode:
     shutil.rmtree('output')
-    build(project_dir='output', compile_project=True, run_project=True)
+    build(project_dir='output', compile_project=True, run_project=True, debug=False)
+    w = loadtxt('output/results/_dynamic_array_synapses_w.txt')
 else:
-    pass
+    print 'Simulation time:', time()-start
+    w = S.w[:]
 
-if not standalone_mode and plot_results:
+if plot_results:
     plt.subplot(211)
-    plt.plot(S.w[:] / gmax, '.')
+    plt.plot(w / gmax, '.')
     plt.subplot(212)
-    plt.hist(S.w[:] / gmax, 20)
+    plt.hist(w / gmax, 20)
     plt.show()

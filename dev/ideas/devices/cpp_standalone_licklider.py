@@ -51,7 +51,7 @@ net.run(500 * ms)
 
 if standalone_mode:
     shutil.rmtree('output')
-    build(project_dir='output', compile_project=True, run_project=True)
+    build(project_dir='output', compile_project=True, run_project=True, debug=False)
     S = loadtxt('output/results/spikemonitor_codeobject.txt', delimiter=',',
                 dtype=[('i', int), ('t', float)])
     i = S['i']

@@ -22,6 +22,7 @@ int main(void)
 	{% endfor %}
 	double duration = (clock()-start)/(double)CLOCKS_PER_SEC;
 	cout << "Simulation time: " << duration << endl;
+	_write_arrays();
 	_dealloc_arrays();
 	return 0;
 }
