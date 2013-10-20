@@ -81,11 +81,11 @@ class StandaloneArrayVariable(ArrayVariable):
 
     def get_addressable_value(self, name, group, level=0):
         return StandaloneVariableView(name, self, group, unit=None,
-                                      level=level)
+                                      level=level+1)
 
     def get_addressable_value_with_unit(self, name, group, level=0):
         return StandaloneVariableView(name, self, group, unit=self.unit,
-                                      level=level)
+                                      level=level+1)
 
 
 class StandaloneDynamicArrayVariable(StandaloneArrayVariable):
@@ -294,7 +294,7 @@ class CPPStandaloneDevice(Device):
                 x = os.system('g++ -I. -g *.cpp code_objects/*.cpp -o main')
                 if x==0:
                     if run_project:
-                        x = os.system('main')
+                        x = os.system('./main')
                         if x:
                             raise RuntimeError("Project run failed")
                 else:

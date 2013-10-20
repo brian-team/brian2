@@ -40,9 +40,8 @@ neurons = NeuronGroup(num_neurons, eqs_neurons, threshold='v>1', reset='v=0')
 
 synapses = Synapses(receptors, neurons, 'w : 1', pre='v+=w', connect=True)
 synapses.w = 0.5
-# This should work but doesn't for standalone
-#synapses.delay = 'i*1.0/exp(log(min_freq/Hz)+(j*1.0/(num_neurons-1))*log(max_freq/min_freq))*second'
-synapses.delay = 'i*1.0/exp(log(50.0)+(j*1.0/299)*log(1000.0/50.0))*second'
+
+synapses.delay = 'i*1.0/exp(log(min_freq/Hz)+(j*1.0/(num_neurons-1))*log(max_freq/min_freq))*second'
 
 spikes = SpikeMonitor(neurons)
 
