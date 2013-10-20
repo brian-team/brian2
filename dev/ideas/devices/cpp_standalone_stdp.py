@@ -2,7 +2,7 @@ from brian2 import *
 
 standalone_mode = True
 plot_results = True
-duration = 1*second
+duration = 100*second
 
 import matplotlib.pyplot as plt
 from time import time
@@ -36,7 +36,6 @@ dv/dt=(ge*(Ee-vr)+El-v)/taum : volt   # the synaptic current is linearized
 dge/dt=-ge/taue : 1
 '''
 
-# PoissonGroup doesn't work on standalone because rates is not allocated via the device
 input = PoissonGroup(N, rates=F)
 neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v=vr')
 S = Synapses(input, neurons,
@@ -50,9 +49,9 @@ S = Synapses(input, neurons,
                      w=clip(w+Apre,0,gmax)''',
              connect=True,
              )
-# This should work but doesn't in standalone
-#S.w='rand()*gmax'
-S.w = 'rand()*.01'
+
+S.w='rand()*gmax'
+
 
 net = Network(input, neurons, S)
 

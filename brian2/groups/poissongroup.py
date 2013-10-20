@@ -23,17 +23,13 @@ class PoissonGroup(Group, SpikeSource):
     N : int
         Number of neurons
     rates : `Quantity`, str
-        Single rate or array of rates of length N
+        Single rate, array of rates of length N, or a string expression
         evaluating to a rate
     clock : Clock, optional
         The update clock to be used, or defaultclock if not specified.
     name : str, optional
         Unique name, or use poissongroup, poissongroup_1, etc.
 
-    Notes
-    -----
-
-    TODO: make rates not have to be a value/array, use code generation for str
     '''
     @check_units(rates=Hz)
     def __init__(self, N, rates, clock=None, name='poissongroup*',
@@ -44,11 +40,6 @@ class PoissonGroup(Group, SpikeSource):
         self.codeobj_class = codeobj_class
 
         self._N = N = int(N)
-
-        #: The array holding the rates
-        self._rates = np.asarray(rates)
-        if self._rates.ndim == 0:
-            self._rates = np.repeat(self._rates, N)
 
         # TODO: In principle, it would be nice to support Poisson groups with
         # refactoriness, but we can't currently, since the refractoriness
@@ -61,12 +52,12 @@ class PoissonGroup(Group, SpikeSource):
         self.variables.update({'i': get_device().arange(self, 'i', N,
                                                         constant=True,
                                                         read_only=True),
-                               'rates': ArrayVariable('rates', Hz, self._rates,
-                                                      group_name=self.name),
+                               'rates': get_device().array(self, 'rates',
+                                                           size=N, unit=Hz),
                                '_spikespace': get_device().array(self,
                                                                  '_spikespace',
-                                                                 N+1,
-                                                                 1,
+                                                                 size=N+1,
+                                                                 unit=1,
                                                                  dtype=np.int32),
                                'not_refractory': get_device().array(self,
                                                                     '_not_refractory',
@@ -91,6 +82,9 @@ class PoissonGroup(Group, SpikeSource):
         self.contained_objects.append(self.state_updater)
         self._enable_group_attributes()
 
+        # Set the rates according to the argument
+        self.rates = rates
+
     @property
     def spikes(self):
         '''
@@ -105,8 +99,7 @@ class PoissonGroup(Group, SpikeSource):
         return self.N
 
     def __repr__(self):
-        description = '{classname}({N}, rates={rates})'
+        description = '{classname}({N}, rates=<...>)'
         return description.format(classname=self.__class__.__name__,
-                                  N=self.N,
-                                  rates=repr(self._rates))
+                                  N=self.N)
 
