@@ -3,28 +3,26 @@ python:
   - "2.6"
   - "2.7"
   - "3.3"
-# install build dependencies
+# Use miniconda to install binary versions of numpy etc. from continuum
+# analytic's repository. Follows an approach described by Dan Blanchard:
+# https://gist.github.com/dan-blanchard/7045057
 before_install:
-  - travis_retry sudo apt-get update -qq
-  - travis_retry sudo apt-get build-dep -qq python-scipy python-sympy python-pyparsing
+- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-2.0.0-Linux-x86_64.sh -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-2.0.0-Linux-x86_64.sh -O miniconda.sh; fi
+- chmod +x miniconda.sh
+- ./miniconda.sh -b
+- export PATH=/home/travis/anaconda/bin:$PATH
+# The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
+- sudo rm -rf /dev/shm
+- sudo ln -s /run/shm /dev/shm
 # command to install dependencies
 install:
-  # Use the newest versions available
-  - "pip install -q numpy --upgrade --use-mirrors"
-  - "pip install -q sphinx --upgrade --use-mirrors"
-  - "pip install -q ipython --upgrade --use-mirrors"
-  # Use whatever version is available and be verbose to prevent timeout
-  - "pip install scipy --use-mirrors"
-  # Make sure to use the python 3 version for sympy
-  - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install -q sympy --use-mirrors; else pip install -q http://sympy.googlecode.com/files/sympy-0.7.2-py3.2.tar.gz; fi"
-  # install different pyparsing versions for python 2 and 3
-  - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install -q pyparsing==1.5.7 --use-mirrors; else pip install -q pyparsing --use-mirrors; fi"
-  # Install coverall support
-  - "pip install -q coveralls"
-  - "pip install . --use-mirrors"
+  - "conda create -n travis_conda --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy nose sphinx ipython sympy pyparsing"
+  - "source activate travis_conda"
+  - "pip install -q python-coveralls --use-mirrors"
+  - "pip install ."
 # command to run tests (make sure to not run it from the source directory)
 script: "export SRCDIR=$(pwd); cd ~;coverage run --rcfile=$SRCDIR/.coveragerc $(which nosetests) --logging-clear-handlers --verbose --with-doctest brian2"
 # We only report coverage for one Python version
-after_success: " if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then cp .coverage $SRCDIR; cd $SRCDIR; coveralls; fi"
+after_success: " if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then cp .coverage $SRCDIR; cd $SRCDIR; coveralls --config_file .coveragerc; fi"
 notifications:
   email: false
