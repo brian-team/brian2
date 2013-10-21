@@ -9,7 +9,7 @@ from brian2 import *
 import matplotlib.pyplot as plt
 from time import time
 
-#brian_prefs.codegen.target = 'weave'
+brian_prefs.codegen.target = 'weave'
 
 N = 1000
 taum = 10 * ms

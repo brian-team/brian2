@@ -1,6 +1,7 @@
 '''
 Module implementing the C++ "standalone" `CodeObject`
 '''
+from brian2.core.variables import AttributeVariable
 from brian2.codegen.codeobject import CodeObject
 from brian2.codegen.templates import Templater
 from brian2.codegen.languages.cpp_lang import CPPLanguage
@@ -23,7 +24,7 @@ class CPPStandaloneCodeObject(CodeObject):
     def variables_to_namespace(self):
         # We only copy constant scalar values to the namespace here
         for varname, var in self.variables.iteritems():
-            if var.constant and var.scalar:
+            if not isinstance(var, AttributeVariable) and var.constant and var.scalar:
                 self.namespace[varname] = var.get_value()
 
     def run(self):

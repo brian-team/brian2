@@ -41,7 +41,7 @@ def get_dtype(obj):
     if hasattr(obj, 'dtype'):
         return obj.dtype
     else:
-        return np.obj2sctype(obj)
+        return np.obj2sctype(type(obj))
 
 
 class Variable(object):

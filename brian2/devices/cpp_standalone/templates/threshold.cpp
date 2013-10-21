@@ -4,7 +4,7 @@
 {% macro cpp_file() %}
 // USES_VARIABLES { not_refractory, lastspike, t, _spikespace }
 
-#include "{{codeobj_name}}.h"
+#include "code_objects/{{codeobj_name}}.h"
 #include<math.h>
 #include<stdint.h>
 #include "brianlib/common_math.h"
@@ -62,7 +62,7 @@ void _run_{{codeobj_name}}(double t)
 #ifndef _INCLUDED_{{codeobj_name}}
 #define _INCLUDED_{{codeobj_name}}
 
-#include "arrays.h"
+#include "objects.h"
 
 void _run_{{codeobj_name}}(double t);
 

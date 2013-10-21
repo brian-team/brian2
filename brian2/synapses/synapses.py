@@ -121,6 +121,7 @@ class SynapticPathway(GroupCodeRunner, Group):
     '''
     def __init__(self, synapses, code, prepost, objname=None):
         self.code = code
+        self.prepost = prepost
         if prepost == 'pre':
             self.source = synapses.source
             self.target = synapses.target
@@ -141,9 +142,14 @@ class SynapticPathway(GroupCodeRunner, Group):
                                  'synapses',
                                  code=code,
                                  when=(synapses.clock, 'synapses'),
-                                 name=synapses.name + '_' + objname)
+                                 name=synapses.name + '_' + objname,
+                                 template_kwds={'pathway': self})
 
-        self.queue = SpikeQueue()
+        self._pushspikes_codeobj = None
+
+        self.spikes_start = self.source.start
+        self.spikes_stop = self.source.stop
+
         self.spiking_synapses = []
         self.variables = {'_spiking_synapses': AttributeVariable(Unit(1),
                                                                   self,
@@ -164,6 +170,12 @@ class SynapticPathway(GroupCodeRunner, Group):
         #: The simulation dt (necessary for the delays)
         self.dt = self.synapses.clock.dt_
 
+        #: The `SpikeQueue`
+        self.queue = None
+
+        #: The `CodeObject` initalising the `SpikeQueue` at the begin of a run
+        self._initialise_queue_codeobj = None
+
         # Enable access to the delay attribute via the specifier
         self._enable_group_attributes()
 
@@ -183,37 +195,53 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.abstract_code += 'lastupdate = t\n'
 
     def before_run(self, namespace):
+        # execute code to initalize the spike queue
+        if self._initialise_queue_codeobj is None:
+            self._initialise_queue_codeobj = get_device().code_object(self,
+                                                                      self.name+'_initialise_queue*',
+                                                                      abstract_code='',
+                                                                      namespace={},
+                                                                      variables=self.group.variables,
+                                                                      template_name='synapses_initialise_queue',
+                                                                      variable_indices=self.group.variable_indices,
+                                                                      )
 
-        # Store the subgroup information
-        self.spikes_start = self.source.start
-        self.spikes_stop = self.source.stop
+        self._initialise_queue_codeobj()
+        GroupCodeRunner.before_run(self, namespace)
 
-        # TODO: The following is only necessary for a change of dt
-        # Get the existing spikes in the queue
-        spikes = self.queue.extract_spikes()
-        # Convert the integer time steps into floating point time
-        spikes[:, 0] *= self.dt
+        # we insert rather than replace because GroupCodeRunner puts a CodeObject in updaters already
+        if self._pushspikes_codeobj is None:
+            self._pushspikes_codeobj = get_device().code_object(self,
+                                                                self.name+'_push_spikes_codeobject*',
+                                                                '',
+                                                                {},
+                                                                self.group.variables,
+                                                                'synapses_push_spikes',
+                                                                self.group.variable_indices,
+                                                                )
+        self.updaters.insert(0, self._pushspikes_codeobj.get_updater())
+
+    def initialise_queue(self):
+        if self.queue is None:
+            self.queue = SpikeQueue()
+            spikes = None
+        else:
+            # TODO: The following is only necessary for a change of dt
+            # Get the existing spikes in the queue
+            spikes = self.queue.extract_spikes()
+            # Convert the integer time steps into floating point time
+            spikes[:, 0] *= self.dt
+
         # Update the dt (might have changed between runs)
         self.dt = self.synapses.clock.dt_
+
         self.queue.compress(np.round(self._delays.get_value() / self.dt).astype(np.int),
                             self.synapse_indices, len(self.synapses))
-        # Convert the floating point time back to integer time (dt might have changed)
-        spikes[:, 0] = np.round(spikes[:, 0] / self.dt)
-        # Re-insert the spikes into the queue
-        self.queue.store_spikes(spikes)
-
-        GroupCodeRunner.before_run(self, namespace)
-        # we insert rather than replace because GroupCodeRunner puts a CodeObject in updaters already
-        self.pushspikes_codeobj = get_device().code_object(self,
-                                                           self.name+'_push_spikes_codeobject*',
-                                                           '',
-                                                           {},
-                                                           self.group.variables,
-                                                           'synapses_push_spikes',
-                                                           self.group.variable_indices,
-                                                           )
-        self.updaters.insert(0, self.pushspikes_codeobj.get_updater())
-        #self.updaters.insert(0, SynapticPathwayUpdater(self))
+        if spikes is not None:
+            # Convert the floating point time back to integer time (dt might have changed)
+            spikes[:, 0] = np.round(spikes[:, 0] / self.dt)
+            # Re-insert the spikes into the queue
+            self.queue.store_spikes(spikes)
 
     def push_spikes(self):
         # Push new spikes into the queue
@@ -436,13 +464,16 @@ class Synapses(Group):
         self._registered_variables = []
 
         for var in self.variables.itervalues():
-            if isinstance(var, DynamicArrayVariable):
+            #if isinstance(var, DynamicArrayVariable):
+            if hasattr(var, 'resize'):
                 # Register the array with the `SynapticItemMapping` object so
                 # it gets automatically resized
                 self.register_variable(var)
 
         #: List of names of all updaters, e.g. ['pre', 'post']
         self._synaptic_updaters = []
+        #: List of all `SynapticPathway` objects
+        self._pathways = []
         for prepost, argument in zip(('pre', 'post'), (pre, post)):
             if not argument:
                 continue
@@ -611,6 +642,7 @@ class Synapses(Group):
 
         setattr(self, objname, updater)
         self._synaptic_updaters.append(objname)
+        self._pathways.append(updater)
         self.contained_objects.append(updater)
         return objname
 
@@ -684,6 +716,11 @@ class Synapses(Group):
         # Add the standard variables (this also overwrites their inherited
         # values from the postsynaptic group)
         v.update(Group._create_variables(self))
+
+        # For synapses, the number of synapses is not fixed (as for other
+        # groups), therefore replace the "N" entry
+        v['N'] = AttributeVariable(Unit(1), self, '_N', constant=True,
+                                   read_only=True)
 
         for eq in itertools.chain(self.equations.itervalues(),
                                   self.event_driven.itervalues()

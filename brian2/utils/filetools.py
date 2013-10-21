@@ -4,7 +4,7 @@ File system tools
 
 import os
 
-__all__ = ['ensure_directory_of_file', 'copy_directory']
+__all__ = ['ensure_directory', 'ensure_directory_of_file', 'in_directory', 'copy_directory']
 
 
 def ensure_directory_of_file(f):
@@ -16,6 +16,36 @@ def ensure_directory_of_file(f):
     if not os.path.exists(d):
         os.makedirs(d)
     return d
+
+
+def ensure_directory(d):
+    '''
+    Ensures that a given directory exists (creates it if necessary)
+    '''
+    if not os.path.exists(d):
+        os.makedirs(d)
+    return d
+
+
+class in_directory(object):
+    '''
+    Safely temporarily work in a subdirectory
+    
+    Usage::
+    
+        with in_directory(directory):
+            ... do stuff here
+            
+    Guarantees that the code in the with block will be executed in directory,
+    and that after the block is completed we return to the original directory.
+    '''
+    def __init__(self,new_dir):
+        self.orig_dir = os.getcwd()
+        self.new_dir = new_dir
+    def __enter__(self):
+        os.chdir(self.new_dir)
+    def __exit__(self,*exc_info):
+        os.chdir(self.orig_dir)
 
 
 def copy_directory(source, target):

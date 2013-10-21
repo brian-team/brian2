@@ -8,36 +8,15 @@
 #include<stdint.h>
 #include "brianlib/common_math.h"
 
-////// SUPPORT CODE ///////
-namespace {
-	{% for line in support_code_lines %}
-	{{line}}
-	{% endfor %}
-}
-
-////// HASH DEFINES ///////
-{% for line in hashdefine_lines %}
-{{line}}
-{% endfor %}
-
 void _run_{{codeobj_name}}(double t)
 {
-	///// CONSTANTS ///////////
-	%CONSTANTS%
-	///// POINTERS ////////////
-	{% for line in pointers_lines %}
-	{{line}}
-	{% endfor %}
-
-	//// MAIN CODE ////////////
-	for(int _idx=0; _idx<N; _idx++)
-	{
-		// THIS MESSAGE IS JUST TO LET YOU KNOW WE'RE IN THE STANDALONE NOT WEAVE TEMPLATE
-	    const int _vectorisation_idx = _idx;
-		{% for line in code_lines %}
-		{{line}}
-		{% endfor %}
-	}
+	{% if owner is defined %}
+	// we do next at the beginning rather than at the end because it saves us making
+	// a copy of the current spiking synapses
+	{{owner.name}}.queue->next();
+	{{owner.name}}.queue->push({{owner.source.variables['_spikespace'].arrayname}}, {{owner.source.variables['_spikespace'].arrayname}}[{{owner.source|length}}]);
+	{{owner.name}}.queue->peek();
+	{% endif %}
 }
 {% endmacro %}
 

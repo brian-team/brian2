@@ -10,7 +10,8 @@ import numpy as np
 
 from brian2.core.base import BrianObject
 from brian2.core.variables import (ArrayVariable, StochasticVariable,
-                                   AttributeVariable, AuxiliaryVariable)
+                                   AttributeVariable, AuxiliaryVariable,
+                                   Variable)
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit)
 from brian2.units.allunits import second
@@ -50,8 +51,10 @@ class Group(BrianObject):
                                        constant=False, read_only=True),
                 'dt': AttributeVariable(second, self.clock, 'dt_',
                                         constant=True, read_only=True),
-                'N': AttributeVariable(Unit(1), self, '_N',
-                                       constant=True, read_only=True)
+                # This has to be overwritten for Synapses, since the number of
+                # synapses is not known in the beginning
+                'N': Variable(Unit(1), value=self._N, scalar=True,
+                              constant=True, is_bool=False, read_only=True)
                 }
 
     def state_(self, name):
@@ -186,7 +189,8 @@ class Group(BrianObject):
                                                     dtype=variable.dtype,
                                                     scalar=variable.scalar,
                                                     is_bool=variable.is_bool),
-                     '_cond': AuxiliaryVariable(Unit(1), is_bool=True)}
+                     '_cond': AuxiliaryVariable(Unit(1), dtype=np.bool,
+                                                is_bool=True)}
 
         abstract_code = '_variable = ' + variable_name + '\n'
         abstract_code += '_cond = ' + code

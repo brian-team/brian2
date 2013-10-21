@@ -83,7 +83,7 @@ def analyse_identifiers(code, variables, recursive=False):
                     if not isinstance(k, AuxiliaryVariable))
     else:
         known = set(variables)
-        variables = dict((k, Variable(unit=None)) for k in known)
+        variables = dict((k, Variable(unit=None, value=1.0)) for k in known)
 
     known |= STANDARD_IDENTIFIERS
     stmts = make_statements(code, variables, float64)
