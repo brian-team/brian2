@@ -19,7 +19,7 @@ class StateUpdateMethod(object):
     stateupdaters = []
 
     @abstractmethod
-    def can_integrate(self, equations, specifiers):
+    def can_integrate(self, equations, variables):
         '''
         Determine whether the state updater is a suitable choice. Should return
         ``False`` if it is not appropriate (e.g. non-linear equations for a
@@ -29,8 +29,8 @@ class StateUpdateMethod(object):
         ----------
         equations : `Equations`
             The model equations.
-        specifiers : dict
-            The `Specifier` objects for the model variables.
+        variables : dict
+            The `Variable` objects for the model variables.
         
         Returns
         -------
@@ -41,10 +41,10 @@ class StateUpdateMethod(object):
         pass
 
     @abstractmethod
-    def __call__(self, equations, specifiers=None):
+    def __call__(self, equations, variables=None):
         '''
         Generate abstract code from equations. The method also gets the
-        the specifiers because some state updaters have to check whether
+        the variables because some state updaters have to check whether
         variable names reflect other state variables (which can change from
         timestep to timestep) or are external values (which stay constant during
         a run)  For convenience, this arguments are optional -- this allows to
@@ -55,8 +55,8 @@ class StateUpdateMethod(object):
         ----------
         equations : `Equations`
             The model equations.
-        specifiers : dict, optional
-            The `Specifier` objects for the model variables.            
+        variables : dict, optional
+            The `Variable` objects for the model variables.
         
         Returns
         -------
@@ -108,7 +108,7 @@ class StateUpdateMethod(object):
             StateUpdateMethod.stateupdaters.append((name, stateupdater))
 
     @staticmethod
-    def determine_stateupdater(equations, specifiers, method=None):
+    def determine_stateupdater(equations, variables, method=None):
         '''
         Determine a suitable state updater. If a `method` is given, the
         state updater with the given name is used. In case it is a callable, it
@@ -122,8 +122,8 @@ class StateUpdateMethod(object):
         ----------
         equations : `Equations`
             The model equations.
-        specifiers : `dict`
-            The dictionary of `Specifier` objects, describing the internal
+        variables : `dict`
+            The dictionary of `Variable` objects, describing the internal
             model variables.
         method : {callable, str, ``None``}, optional
             A callable usable as a state updater, the name of a registered
@@ -134,7 +134,7 @@ class StateUpdateMethod(object):
             # can_integrate method, check this method and raise a warning if it
             # claims not to be applicable.
             try:
-                priority = method.can_integrate(equations, specifiers)
+                priority = method.can_integrate(equations, variables)
                 if priority == 0:
                     logger.warn(('The manually specified state updater '
                                  'claims that it does not support the given '
@@ -156,7 +156,7 @@ class StateUpdateMethod(object):
             if stateupdater is None:
                 raise ValueError('No state updater with the name "%s" '
                                  'is known' % method)
-            if not stateupdater.can_integrate(equations, specifiers):
+            if not stateupdater.can_integrate(equations, variables):
                 raise ValueError(('The state updater "%s" cannot be used for '
                                   'the given equations' % method))
             return stateupdater
@@ -165,7 +165,7 @@ class StateUpdateMethod(object):
         best_stateupdater = None
         for name, stateupdater in StateUpdateMethod.stateupdaters:
             try:
-                if stateupdater.can_integrate(equations, specifiers):
+                if stateupdater.can_integrate(equations, variables):
                     best_stateupdater = (name, stateupdater)
                     break
             except KeyError:

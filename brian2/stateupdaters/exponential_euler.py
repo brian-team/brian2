@@ -1,6 +1,6 @@
 import sympy as sp
 
-from brian2.codegen.sympytools import sympy_to_str
+from brian2.parsing.sympytools import sympy_to_str
 
 from .base import StateUpdateMethod
 
@@ -76,7 +76,7 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
     category, it is therefore the default integration method used in the
     GENESIS simulator, for example.
     '''
-    def can_integrate(self, equations, specifiers):
+    def can_integrate(self, equations, variables):
         '''
         Return whether the given equations can be integrated using this
         state updater. This method tests for conditional linearity by
@@ -94,7 +94,7 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
         
         return True
     
-    def __call__(self, equations, specifiers=None):
+    def __call__(self, equations, variables=None):
         system = get_conditionally_linear_system(equations)
         
         code = []

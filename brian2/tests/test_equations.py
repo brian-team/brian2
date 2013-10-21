@@ -4,7 +4,11 @@ from StringIO import StringIO
 
 from numpy.testing import assert_raises
 import numpy as np
-from IPython.lib.pretty import pprint
+try:
+    from IPython.lib.pretty import pprint
+except ImportError:
+    pprint = None
+from nose import SkipTest
 
 from brian2 import volt, amp, mV, second, ms, Hz, farad, metre, cm
 from brian2 import Unit, Equations, Expression, sin
@@ -249,7 +253,7 @@ def test_construction_errors():
                                                    x = 3 * w : 1'''))
 
 def test_unit_checking():
-    # dummy Specifier class
+    # dummy Variable class
     class S(object):
         def __init__(self, unit):
             self.unit = unit
@@ -374,7 +378,7 @@ def test_str_repr():
     Test the string representation (only that it does not throw errors).
     '''
     tau = 10 * ms
-    eqs = Equations('''dv/dt = -(v + I)/ tau : volt (unless-refractory)
+    eqs = Equations('''dv/dt = -(v + I)/ tau : volt (unless refractory)
                        I = sin(2 * 22/7. * f * t)* volt : volt
                        f : Hz''')
     assert len(str(eqs)) > 0
@@ -386,6 +390,12 @@ def test_str_repr():
         assert(len(str(eq))) > 0
         assert(len(repr(eq))) > 0
 
+def test_ipython_pprint():
+    if pprint is None:
+        raise SkipTest('ipython is not available')
+    eqs = Equations('''dv/dt = -(v + I)/ tau : volt (unless refractory)
+                       I = sin(2 * 22/7. * f * t)* volt : volt
+                       f : Hz''')
     # Test ipython's pretty printing
     old_stdout = sys.stdout
     string_output = StringIO()
@@ -393,6 +403,7 @@ def test_str_repr():
     pprint(eqs)
     assert len(string_output.getvalue()) > 0
     sys.stdout = old_stdout
+
 
 if __name__ == '__main__':
     test_utility_functions()

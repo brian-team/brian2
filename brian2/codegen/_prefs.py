@@ -1,3 +1,8 @@
+'''
+Module declaring general code generation preferences.
+'''
+
+from .codeobject import CodeObject
 from brian2.core.preferences import brian_prefs, BrianPreference
 
 # Preferences
@@ -19,5 +24,6 @@ brian_prefs.register_preferences(
         
         Or it can be a ``CodeObject`` class.
         ''',
+        validator=lambda target: isinstance(target, str) or issubclass(target, CodeObject),
         ),
     )

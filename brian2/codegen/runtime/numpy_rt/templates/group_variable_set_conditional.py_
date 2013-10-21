@@ -1,0 +1,30 @@
+import numpy as np
+numpy_False = np.bool_(False)
+numpy_True = np.bool_(True)
+
+# Phase 1: we compute the indices where the conditional setting is to
+# be applied, and to do this we want to vectorise over all the values,
+# but we don't want to do the iterate all protocol, so we explicitly
+# set the idx to be slice(None)
+_idx = slice(None)
+_vectorisation_idx = N
+
+{% for line in code_lines['condition'] %}
+{{line}}
+{% endfor %}
+
+# Phase 2: having computed _cond, the boolean array of points where
+# the setting is to be applied, we want to vectorise over idx being
+# only these values.
+if _cond is True or _cond is numpy_True:
+    _idx = slice(None)
+    _vectorisation_idx = N
+elif _cond is False or _cond is numpy_False:
+    _idx = []
+    _vectorisation_idx = 0
+else:
+    _vectorisation_idx = _idx = _cond
+
+{% for line in code_lines['statement'] %}
+{{line}}
+{% endfor %}

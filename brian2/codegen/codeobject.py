@@ -1,49 +1,50 @@
-import functools
+'''
+Module providing the base `CodeObject` and related functions.
+'''
 
-from brian2.core.specifiers import (ArrayVariable, Value,
-                                    AttributeValue, Subexpression)
-from .functions.base import Function
-from brian2.core.preferences import brian_prefs, BrianPreference
+import functools
+import weakref
+
+from brian2.core.functions import Function
+from brian2.core.preferences import brian_prefs
+from brian2.core.names import Nameable, find_name
+from brian2.core.base import Updater
 from brian2.utils.logger import get_logger
+
+from .functions import add_numpy_implementation
 from .translation import translate
-from .runtime.targets import runtime_targets
 
 __all__ = ['CodeObject',
            'create_codeobject',
-           'get_codeobject_template',
+           'CodeObjectUpdater',
            ]
 
 logger = get_logger(__name__)
 
 
-def get_default_codeobject_class():
-    '''
-    Returns the default `CodeObject` class from the preferences.
-    '''
-    codeobj_class = brian_prefs['codegen.target']
-    if isinstance(codeobj_class, str):
-        try:
-            codeobj_class = runtime_targets[codeobj_class]
-        except KeyError:
-            raise ValueError("Unknown code generation target: %s, should be "
-                             " one of %s"%(codeobj_class, runtime_targets.keys()))
-    return codeobj_class
+def prepare_namespace(namespace, variables, codeobj_class):
+    # We do the import here to avoid import problems
+    from .runtime.numpy_rt.numpy_rt import NumpyCodeObject
 
-
-def prepare_namespace(namespace, specifiers):
-    namespace = dict(namespace)
-    # Add variables referring to the arrays
-    arrays = []
-    for value in specifiers.itervalues():
-        if isinstance(value, ArrayVariable):
-            arrays.append((value.arrayname, value.get_value()))
-    namespace.update(arrays)
+    # Check that all functions are available
+    for name, value in namespace.iteritems():
+        if isinstance(value, Function):
+            try:
+                value.implementations[codeobj_class]
+            except KeyError as ex:
+                # if we are dealing with numpy, add the default implementation
+                if codeobj_class is NumpyCodeObject:
+                    add_numpy_implementation(value, value.pyfunc)
+                else:
+                    raise NotImplementedError(('Cannot use function '
+                                               '%s: %s') % (name, ex))
 
     return namespace
 
 
-def create_codeobject(name, abstract_code, namespace, specifiers, template_name,
-                      codeobj_class=None, indices=None, template_kwds=None):
+def create_codeobject(owner, name, abstract_code, namespace, variables,
+                      template_name, variable_indices, codeobj_class,
+                      template_kwds=None):
     '''
     The following arguments keywords are passed to the template:
     
@@ -54,47 +55,45 @@ def create_codeobject(name, abstract_code, namespace, specifiers, template_name,
       ``template_kwds`` (but you should ensure there are no name
       clashes.
     '''
-    if indices is None:  # TODO: Do we ever create code without any index?
-        indices = {}
 
     if template_kwds is None:
         template_kwds = dict()
     else:
         template_kwds = template_kwds.copy()
-
-    if codeobj_class is None:
-        codeobj_class = get_default_codeobject_class()
         
-    template = get_codeobject_template(template_name,
-                                       codeobj_class=codeobj_class)
+    template = getattr(codeobj_class.templater, template_name)
 
-    namespace = prepare_namespace(namespace, specifiers)
 
-    logger.debug(name + " abstract code:\n" + abstract_code)
-    innercode, kwds = translate(abstract_code, specifiers, namespace,
-                                brian_prefs['core.default_scalar_dtype'],
-                                codeobj_class.language, indices)
+    namespace = prepare_namespace(namespace, variables,
+                                  codeobj_class=codeobj_class)
+
+    if isinstance(abstract_code, dict):
+        for k, v in abstract_code.items():
+            logger.debug('%s abstract code key %s:\n%s' % (name, k, v))
+    else:
+        logger.debug(name + " abstract code:\n" + abstract_code)
+    iterate_all = template.iterate_all
+    snippet, kwds = translate(abstract_code, variables, namespace,
+                              dtype=brian_prefs['core.default_scalar_dtype'],
+                              codeobj_class=codeobj_class,
+                              variable_indices=variable_indices,
+                              iterate_all=iterate_all)
     template_kwds.update(kwds)
-    logger.debug(name + " inner code:\n" + str(innercode))
-    code = template(innercode, **template_kwds)
+    logger.debug(name + " snippet:\n" + str(snippet))
+    
+    name = find_name(name)
+    
+    code = template(snippet,
+                    owner=owner, variables=variables, codeobj_name=name, namespace=namespace,
+                    **template_kwds)
     logger.debug(name + " code:\n" + str(code))
 
-    specifiers.update(indices)
-    codeobj = codeobj_class(code, namespace, specifiers)
+    codeobj = codeobj_class(owner, code, namespace, variables, name=name)
     codeobj.compile()
     return codeobj
 
 
-def get_codeobject_template(name, codeobj_class=None):
-    '''
-    Returns the `CodeObject` template ``name`` from the default or given class.
-    '''
-    if codeobj_class is None:
-        codeobj_class = get_default_codeobject_class()
-    return getattr(codeobj_class.templater, name)
-
-
-class CodeObject(object):
+class CodeObject(Nameable):
     '''
     Executable code object.
     
@@ -110,54 +109,53 @@ class CodeObject(object):
     
     #: The `Language` used by this `CodeObject`
     language = None
-    
-    def __init__(self, code, namespace, specifiers):
-        self.code = code
-        self.compile_methods = self.get_compile_methods(specifiers)
-        self.namespace = namespace
-        self.specifiers = specifiers
-        
-        # Specifiers can refer to values that are either constant (e.g. dt)
-        # or change every timestep (e.g. t). We add the values of the
-        # constant specifiers here and add the names of non-constant specifiers
-        # to a list
-        
-        # A list containing tuples of name and a function giving the value
-        self.nonconstant_values = []
-        
-        for name, spec in self.specifiers.iteritems():   
-            if isinstance(spec, Value):
-                if isinstance(spec, AttributeValue):
-                    self.nonconstant_values.append((name, spec.get_value))
-                    if not spec.scalar:
-                        self.nonconstant_values.append(('_num' + name,
-                                                        spec.get_len))
-                elif not isinstance(spec, Subexpression):
-                    value = spec.get_value()
-                    self.namespace[name] = value
-                    # if it is a type that has a length, add a variable called
-                    # '_num'+name with its length
-                    if not spec.scalar:
-                        self.namespace['_num' + name] = spec.get_len()
+    #: A short name for this type of `CodeObject`
+    class_name = None
 
-    def get_compile_methods(self, specifiers):
+    def __init__(self, owner, code, namespace, variables, name='codeobject*'):
+        Nameable.__init__(self, name=name)
+        try:    
+            owner = weakref.proxy(owner)
+        except TypeError:
+            pass # if owner was already a weakproxy then this will be the error raised
+        self.owner = owner
+        self.code = code
+        self.namespace = namespace
+        self.variables = variables
+
+        self.variables_to_namespace()
+
+    def variables_to_namespace(self):
+        '''
+        Add the values from the variables dictionary to the namespace.
+        This should involve calling the `Variable.get_value` methods and
+        possibly take track of variables that need to be updated at every
+        timestep (see `update_namespace`).
+        '''
+        raise NotImplementedError()
+
+    def update_namespace(self):
+        '''
+        Update the namespace for this timestep. Should only deal with variables
+        where *the reference* changes every timestep, i.e. where the current
+        reference in `namespace` is not correct.
+        '''
+        pass
+
+    def get_compile_methods(self, variables):
         meths = []
-        for var, spec in specifiers.items():
-            if isinstance(spec, Function):
-                meths.append(functools.partial(spec.on_compile,
+        for var, var in variables.items():
+            if isinstance(var, Function):
+                meths.append(functools.partial(var.on_compile,
                                                language=self.language,
                                                var=var))
         return meths
 
     def compile(self):
-        for meth in self.compile_methods:
-            meth(self.namespace)
+        pass
 
     def __call__(self, **kwds):
-        # update the values of the non-constant values in the namespace
-        for name, func in self.nonconstant_values:
-            self.namespace[name] = func()
-
+        self.update_namespace()
         self.namespace.update(**kwds)
 
         return self.run()
@@ -173,4 +171,17 @@ class CodeObject(object):
             defined during the call of `Language.code_object`.
         '''
         raise NotImplementedError()
+    
+    def get_updater(self):
+        '''
+        Returns a `CodeObjectUpdater` that updates this `CodeObject`
+        '''
+        return CodeObjectUpdater(self)
 
+
+class CodeObjectUpdater(Updater):
+    '''
+    Used to update ``CodeObject``.
+    '''
+    def run(self):
+        self.owner()

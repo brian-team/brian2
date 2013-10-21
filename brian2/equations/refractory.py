@@ -36,7 +36,7 @@ Equations.register_identifier_check(check_identifier_refractory)
 def add_refractoriness(eqs):
     '''
     Extends a given set of equations with the refractory mechanism. New
-    parameters are added and differential equations with the "unless-refractory"
+    parameters are added and differential equations with the "unless refractory"
     flag are changed so that their right-hand side is 0 when the neuron is
     refractory (by multiplication with the ``not_refractory`` variable).
     
@@ -49,15 +49,15 @@ def add_refractoriness(eqs):
     -------
     new_eqs : `Equations`
         New equations, with added parameters and changed differential 
-        equations having the "unless-refractory" flag.
+        equations having the "unless refractory" flag.
     '''
     new_equations = []
     
     # replace differential equations having the active flag    
     for eq in eqs.itervalues():
-        if eq.type == DIFFERENTIAL_EQUATION and 'unless-refractory' in eq.flags:
+        if eq.type == DIFFERENTIAL_EQUATION and 'unless refractory' in eq.flags:
             # the only case where we have to change anything
-            new_code = 'not_refractory*(' + eq.expr.code + ')'
+            new_code = 'int_(not_refractory)*(' + eq.expr.code + ')'
             new_equations.append(SingleEquation(DIFFERENTIAL_EQUATION,
                                                 eq.varname, eq.unit,
                                                 expr=Expression(new_code),

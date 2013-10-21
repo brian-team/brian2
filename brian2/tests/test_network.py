@@ -1,6 +1,7 @@
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
                     restore_initial_state, MagicError, magic_network, clear)
+from brian2.core.base import Updater
 import copy
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
@@ -16,8 +17,11 @@ class Counter(BrianObject):
     def __init__(self, **kwds):
         super(Counter, self).__init__(**kwds)
         self.count = 0
-    def update(self):
-        self.count += 1
+        self.updaters[:] = [CounterUpdater(self)]
+        
+class CounterUpdater(Updater):
+    def run(self):
+        self.owner.count += 1
 
 @with_setup(teardown=restore_initial_state)
 def test_network_single_object():
@@ -42,19 +46,22 @@ def test_network_two_objects():
     assert_equal(y.count, 10)
 
 updates = []
-class Updater(BrianObject):
+class NameLister(BrianObject):
     def __init__(self, **kwds):
-        super(Updater, self).__init__(**kwds)
-    def update(self):
-        updates.append(self.name)
+        super(NameLister, self).__init__(**kwds)
+        self.updaters[:] = [NameListerUpdater(self)]
+        
+class NameListerUpdater(Updater):
+    def run(self):
+        updates.append(self.owner.name)
 
 @with_setup(teardown=restore_initial_state)
 def test_network_different_clocks():
     # Check that a network with two different clocks functions correctly
     clock1 = Clock(dt=1*ms)
     clock3 = Clock(dt=3*ms)
-    x = Updater(name='x', when=(clock1, 0))
-    y = Updater(name='y', when=(clock3, 1))
+    x = NameLister(name='x', when=(clock1, 0))
+    y = NameLister(name='y', when=(clock3, 1))
     net = Network(x, y)
     net.run(10*ms)
     assert_equal(''.join(updates), 'xyxxxyxxxyxxxy')
@@ -63,8 +70,8 @@ def test_network_different_clocks():
 def test_network_different_when():
     # Check that a network with different when attributes functions correctly
     updates[:] = []
-    x = Updater(name='x', when='start')
-    y = Updater(name='y', when='end')
+    x = NameLister(name='x', when='start')
+    y = NameLister(name='y', when='end')
     net = Network(x, y)
     net.run(0.3*ms)
     assert_equal(''.join(updates), 'xyxyxy')
@@ -77,16 +84,14 @@ class Preparer(BrianObject):
         self.did_post_run = False
     def reinit(self):
         self.did_reinit = True
-    def pre_run(self, namespace):
+    def before_run(self, namespace):
         self.did_pre_run = True
-    def post_run(self):
+    def after_run(self):
         self.did_post_run = True        
-    def update(self):
-        pass
 
 @with_setup(teardown=restore_initial_state)
 def test_network_reinit_pre_post_run():
-    # Check that reinit and pre_run and post_run work        
+    # Check that reinit and before_run and after_run work
     x = Preparer()
     net = Network(x)
     assert_equal(x.did_reinit, False)
@@ -98,6 +103,9 @@ def test_network_reinit_pre_post_run():
     assert_equal(x.did_post_run, True)
     net.reinit()
     assert_equal(x.did_reinit, True)
+
+    # Make sure that running with "report" works
+    net.run(1*ms, report='stdout')
 
 @with_setup(teardown=restore_initial_state)
 def test_magic_network():
@@ -113,11 +121,14 @@ class Stopper(BrianObject):
         super(Stopper, self).__init__(**kwds)
         self.stoptime = stoptime
         self.stopfunc = stopfunc
-    
-    def update(self):
-        self.stoptime -= 1
-        if self.stoptime<=0:
-            self.stopfunc()
+        self.updaters[:] = [StopperUpdater(self)]
+
+class StopperUpdater(Updater):
+    def run(self):
+        stopper = self.owner
+        stopper.stoptime -= 1
+        if stopper.stoptime<=0:
+            stopper.stopfunc()
 
 @with_setup(teardown=restore_initial_state)
 def test_network_stop():

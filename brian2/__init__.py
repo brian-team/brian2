@@ -4,8 +4,8 @@ Brian 2.0
 
 __docformat__ = "restructuredtext en"
 
-__version__ = '2.0dev'
-__release_date__ = 'notyet'
+__version__ = '2.0a'
+__release_date__ = '2013/10/12'
 
 # Check basic dependencies
 import sys
@@ -47,6 +47,7 @@ from brian2.core.names import *
 from brian2.core.spikesource import *
 
 # The following packages only depend on something in the above set
+from brian2.core.functions import *
 from brian2.core.preferences import *
 from brian2.core.clocks import *
 from brian2.core.scheduler import *
@@ -66,6 +67,7 @@ from brian2.groups import *
 from brian2.synapses import *
 from brian2.monitors import *
 from brian2.spatialneuron import *
+from brian2.devices import set_device
 
 # preferences
 from brian2.core.core_preferences import *

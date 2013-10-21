@@ -1,5 +1,6 @@
-# USE_SPECIFIERS { _indices }
-_vectorisation_idx = _indices
+# ITERATE_ALL { _idx }
+
+_vectorisation_idx = N
 {% for line in code_lines %}
 {{line}}
 {% endfor %}

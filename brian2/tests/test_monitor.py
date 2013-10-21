@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing.utils import assert_allclose, assert_equal
+from numpy.testing.utils import assert_allclose, assert_equal, assert_raises
 
 from brian2 import *
 
@@ -52,7 +52,8 @@ def test_state_monitor():
         # Check that all kinds of variables can be recorded
         G = NeuronGroup(2, '''dv/dt = -v / (10*ms) : 1
                               f = clip(v, 0.1, 0.9) : 1
-                              rate: Hz''', threshold='v>1', reset='v=0')
+                              rate: Hz''', threshold='v>1', reset='v=0',
+                        refractory=2*ms)
         G.rate = [100, 1000] * Hz
         G.v = 1
 
@@ -68,9 +69,13 @@ def test_state_monitor():
         multi_mon = StateMonitor(G, ['v', 'f', 'rate'], record=True)
         multi_mon1 = StateMonitor(G, ['v', 'f', 'rate'], record=[1])
 
+        # Use a StateMonitor recording everything
+        all_mon = StateMonitor(G, True, record=True)
+
         net = Network(G, nothing_mon,
                       v_mon, v_mon1,
-                      multi_mon, multi_mon1)
+                      multi_mon, multi_mon1,
+                      all_mon)
         net.run(10*ms)
 
         # Check time recordings
@@ -81,21 +86,48 @@ def test_state_monitor():
                         np.arange(len(nothing_mon.t)) * defaultclock.dt)
 
         # Check v recording
-        assert_allclose(v_mon.v,
+        assert_allclose(v_mon.v.T,
                         np.exp(np.tile(-v_mon.t - defaultclock.dt, (2, 1)).T / (10*ms)))
-        assert_allclose(v_mon.v_,
+        assert_allclose(v_mon.v_.T,
                         np.exp(np.tile(-v_mon.t_ - defaultclock.dt_, (2, 1)).T / float(10*ms)))
         assert_equal(v_mon.v, multi_mon.v)
         assert_equal(v_mon.v_, multi_mon.v_)
-        assert_equal(v_mon.v[:, 1:2], v_mon1.v)
-        assert_equal(multi_mon.v[:, 1:2], multi_mon1.v)
+        assert_equal(v_mon.v, all_mon.v)
+        assert_equal(v_mon.v[1:2], v_mon1.v)
+        assert_equal(multi_mon.v[1:2], multi_mon1.v)
 
         # Other variables
-        assert_equal(multi_mon.rate_, np.tile(np.atleast_2d(G.rate_),
-                                             (multi_mon.rate.shape[0], 1)))
-        assert_equal(multi_mon.rate[:, 1:2], multi_mon1.rate)
+        assert_equal(multi_mon.rate_.T, np.tile(np.atleast_2d(G.rate_),
+                                             (multi_mon.rate.shape[1], 1)))
+        assert_equal(multi_mon.rate[1:2], multi_mon1.rate)
         assert_allclose(np.clip(multi_mon.v, 0.1, 0.9), multi_mon.f)
         assert_allclose(np.clip(multi_mon1.v, 0.1, 0.9), multi_mon1.f)
+
+        assert all(all_mon[0].not_refractory[:] == True)
+
+        # Check indexing semantics
+        G = NeuronGroup(10, 'v:volt')
+        G.v = np.arange(10) * volt
+        mon = StateMonitor(G, 'v', record=[5, 6, 7])
+
+        net = Network(G, mon)
+        net.run(2 * defaultclock.dt)
+
+        assert_equal(mon.v, np.array([[5, 5],
+                                      [6, 6],
+                                      [7, 7]]) * volt)
+        assert_equal(mon.v_, np.array([[5, 5],
+                                       [6, 6],
+                                       [7, 7]]))
+        assert_equal(mon[5].v, mon.v[0])
+        assert_equal(mon[7].v, mon.v[2])
+        assert_equal(mon[[5, 7]].v, mon.v[[0, 2]])
+        assert_equal(mon[np.array([5, 7])].v, mon.v[[0, 2]])
+
+        assert_raises(IndexError, lambda: mon[8])
+        assert_raises(TypeError, lambda: mon['string'])
+        assert_raises(TypeError, lambda: mon[5.0])
+        assert_raises(TypeError, lambda: mon[[5.0, 6.0]])
 
     brian_prefs.codegen.target = language_before
 

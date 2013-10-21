@@ -121,11 +121,11 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
     if not unit_checking:
         return
 
-    dim1 = get_dimensions(np.asanyarray(obj1))
+    dim1 = get_dimensions(Quantity(obj1))
     if obj2 is None:
         dim2 = DIMENSIONLESS
     else:
-        dim2 = get_dimensions(np.asanyarray(obj2))
+        dim2 = get_dimensions(Quantity(obj2))
 
     if not dim1 is dim2:
         # Special treatment for "0":
@@ -827,7 +827,8 @@ class Quantity(np.ndarray, object):
         subarr = np.array(arr, dtype=dtype, copy=copy).view(cls)
 
         # We only want numerical datatypes
-        if not np.issubdtype(subarr.dtype, np.number):
+        if not (np.issubdtype(subarr.dtype, np.number) or
+                np.issubdtype(subarr.dtype, np.bool_)):
             raise TypeError('Quantities can only be created from numerical data.')
 
         # Use the given dimension or the dimension of the given array (if any)
@@ -1389,12 +1390,11 @@ class Quantity(np.ndarray, object):
     #### COMPARISONS ####
     def _comparison(self, other, message, operation):
         is_scalar = is_scalar_type(other)
+        if not is_scalar and not isinstance(other, np.ndarray):
+            return NotImplemented
         if not is_scalar or not np.isinf(other):
             fail_for_dimension_mismatch(self, other, message)
-        if isinstance(other, np.ndarray) or is_scalar:
-            return operation(np.asarray(self), np.asarray(other))
-        else:
-            return NotImplemented
+        return operation(np.asarray(self), np.asarray(other))
 
     def __lt__(self, other):
         return self._comparison(other, 'LessThan', operator.lt)
@@ -1477,9 +1477,11 @@ class Quantity(np.ndarray, object):
     def clip(self, a_min, a_max, *args, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, a_min, 'clip')
         fail_for_dimension_mismatch(self, a_max, 'clip')
-        return super(Quantity, self).clip(np.asarray(a_min),
-                                          np.asarray(a_max),
-                                          *args, **kwds)
+        return Quantity.with_dimensions(np.clip(np.asarray(self),
+                                                np.asarray(a_min),
+                                                np.asarray(a_max),
+                                                *args, **kwds),
+                                        self.dim)
     clip.__doc__ = np.ndarray.clip.__doc__
 
     def dot(self, other, **kwds): # pylint: disable=C0111
@@ -1989,7 +1991,8 @@ class UnitRegistry(object):
         matching_values = np.asarray(matching)
         x_flat = np.asarray(x).flatten()
         floatreps = np.tile(x_flat, (len(matching), 1)).T / matching_values
-        good_reps = np.sum((floatreps >= 0.1) & (floatreps < 1000), axis=0)
+        good_reps = np.sum((np.abs(floatreps) >= 0.1) & (np.abs(floatreps) < 1000),
+                           axis=0)
         if any(good_reps):
             return matching[good_reps.argmax()]
         else:
@@ -2153,7 +2156,12 @@ def check_units(**au):
                                                  get_dimensions(result),
                                                  get_dimensions(au['result']))
             return result
+        new_f._orig_func = f
         new_f.__doc__ = f.__doc__
         new_f.__name__ = f.__name__
+        # store the information in the function, necessary when using the
+        # function in expressions or equations
+        new_f._arg_units = [unit for name, unit in au.iteritems() if name != 'result']
+        new_f._return_unit = au.get('result', None)
         return new_f
     return do_check_units

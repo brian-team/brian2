@@ -1,11 +1,14 @@
 '''
 Handles loading templates from a directory.
 '''
-from brian2.utils.stringtools import (indent, deindent, strip_empty_lines,
-                                      get_identifiers)
-from jinja2 import Template, Environment, FileSystemLoader
 import os
 import re
+
+from jinja2 import Template, Environment, FileSystemLoader, PackageLoader
+
+from brian2.utils.stringtools import (indent, deindent, strip_empty_lines,
+                                      get_identifiers)
+
 
 __all__ = ['Templater']
 
@@ -13,12 +16,13 @@ class Templater(object):
     '''
     Class to load and return all the templates a `CodeObject` defines.
     '''
-    def __init__(self, basedir):
-        self.basedir = basedir
-        self.env = Environment(loader=FileSystemLoader(basedir),
+    def __init__(self, package_name, env_globals=None):
+        self.env = Environment(loader=PackageLoader(package_name, 'templates'),
                                trim_blocks=True,
                                lstrip_blocks=True,
                                )
+        if env_globals is not None:
+            self.env.globals.update(env_globals)
         for name in self.env.list_templates():
             template = CodeObjectTemplate(self.env.get_template(name))
             setattr(self, os.path.splitext(name)[0], template)
@@ -36,14 +40,21 @@ class CodeObjectTemplate(object):
         self.words = set([])
         for v in temps:
             self.words.update(get_identifiers(v))
-        #: The set of specifiers in this template
-        self.specifiers = set([])
+        #: The set of variables in this template
+        self.variables = set([])
+        #: The indices over which the template iterates completely
+        self.iterate_all = set([])
         for v in temps:
-            # This is the bit inside {} for USE_SPECIFIERS { list of words }
-            specifier_blocks = re.findall(r'\bUSE_SPECIFIERS\b\s*\{(.*?)\}',
+            # This is the bit inside {} for USES_VARIABLES { list of words }
+            specifier_blocks = re.findall(r'\bUSES_VARIABLES\b\s*\{(.*?)\}',
                                           v, re.M|re.S)
+            # Same for ITERATE_ALL
+            iterate_all_blocks = re.findall(r'\bITERATE_ALL\b\s*\{(.*?)\}',
+                              v, re.M|re.S)
             for block in specifier_blocks:
-                self.specifiers.update(get_identifiers(block))
+                self.variables.update(get_identifiers(block))
+            for block in iterate_all_blocks:
+                self.iterate_all.update(get_identifiers(block))
                 
     def __call__(self, code_lines, **kwds):
         kwds['code_lines'] = code_lines
@@ -71,8 +82,3 @@ class MultiTemplate(object):
         return s
     
     __repr__ = __str__
-
-
-if __name__=='__main__':
-    lt = Templater('runtime/numpy_rt/templates')
-    print lt.reset(['a=b', 'c=d'])

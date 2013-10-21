@@ -1,40 +1,13 @@
-////////////////////////////////////////////////////////////////////////////
-//// MAIN CODE /////////////////////////////////////////////////////////////
+{% extends 'common_group.cpp' %}
 
-{% macro main() %}
-	// USE_SPECIFIERS { _spikes }
-
-	////// HANDLE DENORMALS ///
-	{% for line in denormals_code_lines %}
-	{{line}}
-	{% endfor %}
-
-	////// HASH DEFINES ///////
-	{% for line in hashdefine_lines %}
-	{{line}}
-	{% endfor %}
-
-	///// POINTERS ////////////
-	{% for line in pointers_lines %}
-	{{line}}
-	{% endfor %}
-
+{% block maincode %}
+	// USES_VARIABLES { _spikespace }
 	//// MAIN CODE ////////////
-	for(int _index__spikes=0; _index__spikes<_num_spikes; _index__spikes++)
+	const int _num_spikes = _spikespace[_num_spikespace-1];
+	for(int _index_spikes=0; _index_spikes<_num_spikes; _index_spikes++)
 	{
-		const int _neuron_idx = _spikes[_index__spikes];
-		const int _vectorisation_idx = _neuron_idx;
-		{% for line in code_lines %}
-		{{line}}
-		{% endfor %}
+		const int _idx = _spikespace[_index_spikes];
+		const int _vectorisation_idx = _idx;
+		{{ super() }}
 	}
-{% endmacro %}
-
-////////////////////////////////////////////////////////////////////////////
-//// SUPPORT CODE //////////////////////////////////////////////////////////
-
-{% macro support_code() %}
-	{% for line in support_code_lines %}
-	{{line}}
-	{% endfor %}
-{% endmacro %}
+{% endblock %}

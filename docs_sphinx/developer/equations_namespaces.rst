@@ -14,7 +14,7 @@ Specifiers
 
 Each Brian object that saves state variables (e.g. `NeuronGroup`, `Synapses`,
 `StateMonitor`) has a ``specifiers`` attribute, a dictionary mapping variable
-names to `Specifier` objects. `Specifier` objects contain information *about*
+names to `Variable` objects. `Variable` objects contain information *about*
 the variable (name, dtype, units) as well as access to the variable's value via
 a ``get_value`` method. Some will also allow setting the values via a
 corresponding ``set_value`` method. These objects can therefore act as proxies
@@ -48,8 +48,8 @@ at the time of a run: The `Network.run` function takes an optional
 `Network`, but only for those object that do not have a user-defined namespace.
 If this argument is not given, the local context will be used instead.
 
-Internally, this is realized via the ``pre_run`` function. At the start of a
-run, `Network.pre_run` calls `BrianObject.pre_run` of every object in the
+Internally, this is realized via the ``before_run`` function. At the start of a
+run, `Network.before_run` calls `BrianObject.before_run` of every object in the
 network with a namespace argument. This namespace argument contains a tuple, 
 either ``('implicit-run-namespace', namespace)`` or
 ``('explicit-run-namespace, namespace)`` (the use for this tuple instead of a

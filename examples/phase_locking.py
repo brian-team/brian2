@@ -6,6 +6,7 @@ from pylab import *
 from brian2 import *
 
 #brian_prefs.codegen.target = 'weave'
+BrianLogger.log_level_debug()
 
 tau = 20 * ms
 N = 100
@@ -16,7 +17,10 @@ eqs = '''
 dv/dt=(-v+a*sin(2*pi*freq*t)+b)/tau : 1
 a : 1
 '''
-neurons = NeuronGroup(N, model=eqs, threshold='v>1', reset='v=0')
+neurons = NeuronGroup(N, model=eqs,
+                      threshold='v>1',
+                      reset='v=0',
+                      )
 neurons.v = rand(N)
 neurons.a = linspace(.05, 0.75, N)
 S = SpikeMonitor(neurons)
@@ -26,5 +30,5 @@ run(1000 * ms)
 subplot(211)
 plot(S.t / ms, S.i, '.')
 subplot(212)
-plot(trace.t / ms, trace.v)
+plot(trace.t / ms, trace.v.T)
 show()

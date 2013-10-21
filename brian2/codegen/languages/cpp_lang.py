@@ -5,12 +5,14 @@ import itertools
 
 import numpy
 
-from brian2.utils.stringtools import deindent, stripped_deindented_lines
-from brian2.codegen.functions.base import Function
+from brian2.utils.stringtools import (deindent, stripped_deindented_lines,
+                                      word_substitute)
 from brian2.utils.logger import get_logger
 from brian2.parsing.rendering import CPPNodeRenderer
+from brian2.core.functions import (Function, FunctionImplementation,
+                                   DEFAULT_FUNCTIONS)
 from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.core.specifiers import ArrayVariable
+from brian2.core.variables import ArrayVariable
 
 from .base import Language
 
@@ -37,6 +39,10 @@ def c_data_type(dtype):
         dtype = 'float'
     elif dtype == numpy.float64:
         dtype = 'double'
+    elif dtype == numpy.int8:
+        dtype = 'int8_t'
+    elif dtype == numpy.int16:
+        dtype = 'int16_t'
     elif dtype == numpy.int32:
         dtype = 'int32_t'
     elif dtype == numpy.int64:
@@ -107,107 +113,71 @@ class CPPLanguage(Language):
 
     language_id = 'cpp'
 
-    def __init__(self):
+    def __init__(self, c_data_type=c_data_type):
         self.restrict = brian_prefs['codegen.languages.cpp.restrict_keyword'] + ' '
         self.flush_denormals = brian_prefs['codegen.languages.cpp.flush_denormals']
+        self.c_data_type = c_data_type
 
-    def translate_expression(self, expr):
+    def translate_expression(self, expr, namespace, codeobj_class):
+        for varname, var in namespace.iteritems():
+            if isinstance(var, Function):
+                impl_name = var.implementations[codeobj_class].name
+                if impl_name is not None:
+                    expr = word_substitute(expr, {varname: impl_name})
         return CPPNodeRenderer().render_expr(expr).strip()
 
-    def translate_statement(self, statement):
+    def translate_statement(self, statement, namespace, codeobj_class):
         var, op, expr = statement.var, statement.op, statement.expr
         if op == ':=':
-            decl = c_data_type(statement.dtype) + ' '
+            decl = self.c_data_type(statement.dtype) + ' '
             op = '='
             if statement.constant:
                 decl = 'const ' + decl
         else:
             decl = ''
-        return decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
+        return decl + var + ' ' + op + ' ' + self.translate_expression(expr,
+                                                                       namespace,
+                                                                       codeobj_class) + ';'
 
-    def translate_statement_sequence(self, statements, specifiers, namespace, indices):
-        read, write = self.array_read_write(statements, specifiers)
+    def translate_one_statement_sequence(self, statements, variables, namespace,
+                                         variable_indices, iterate_all,
+                                         codeobj_class):
+
+        # Note that C++ code does not care about the iterate_all argument -- it
+        # always has to loop over the elements
+
+        read, write, indices = self.array_read_write(statements, variables,
+                                                     variable_indices)
         lines = []
-        # read arrays
-        for var in read:
-            index_var = specifiers[var].index
-            index_spec = indices[index_var]
-            spec = specifiers[var]
-            if var not in write:
+        # index and read arrays (index arrays first)
+        for varname in itertools.chain(indices, read):
+            index_var = variable_indices[varname]
+            var = variables[varname]
+            if varname not in write:
                 line = 'const '
             else:
                 line = ''
-            line = line + c_data_type(spec.dtype) + ' ' + var + ' = '
-            line = line + '_ptr' + spec.arrayname + '[' + index_var + '];'
+            line = line + self.c_data_type(var.dtype) + ' ' + varname + ' = '
+            line = line + '_ptr' + var.arrayname + '[' + index_var + '];'
             lines.append(line)
         # simply declare variables that will be written but not read
-        for var in write:
-            if var not in read:
-                spec = specifiers[var]
-                line = c_data_type(spec.dtype) + ' ' + var + ';'
+        for varname in write:
+            if varname not in read:
+                var = variables[varname]
+                line = self.c_data_type(var.dtype) + ' ' + varname + ';'
                 lines.append(line)
         # the actual code
-        lines.extend([self.translate_statement(stmt) for stmt in statements])
+        lines.extend([self.translate_statement(stmt, namespace, codeobj_class)
+                      for stmt in statements])
         # write arrays
-        for var in write:
-            index_var = specifiers[var].index
-            index_spec = indices[index_var]
-            spec = specifiers[var]
-            line = '_ptr' + spec.arrayname + '[' + index_var + '] = ' + var + ';'
+        for varname in write:
+            index_var = variable_indices[varname]
+            var = variables[varname]
+            line = '_ptr' + var.arrayname + '[' + index_var + '] = ' + varname + ';'
             lines.append(line)
         code = '\n'.join(lines)
-        # set up the restricted pointers, these are used so that the compiler
-        # knows there is no aliasing in the pointers, for optimisation
-        lines = []
-        # It is possible that several different variable names refer to the
-        # same array. E.g. in gapjunction code, v_pre and v_post refer to the
-        # same array if a group is connected to itself
-        arraynames = set()
-        for var, spec in specifiers.iteritems():
-            if isinstance(spec, ArrayVariable):
-                arrayname = spec.arrayname
-                if not arrayname in arraynames:
-                    if spec.dtype != spec.array.dtype:
-                        print spec.array
-                        raise AssertionError('Conflicting dtype information for %s: %s - %s' % (var, spec.dtype, spec.array.dtype))
-                    line = c_data_type(spec.dtype) + ' * ' + self.restrict + '_ptr' + arrayname + ' = ' + arrayname + ';'
-                    lines.append(line)
-                    arraynames.add(arrayname)
-        pointers = '\n'.join(lines)
-        
-        # set up the functions
-        user_functions = []
-        support_code = ''
-        hash_defines = ''
-        for var, spec in itertools.chain(namespace.items(),
-                                         specifiers.items()):
-            if isinstance(spec, Function):
-                user_functions.append(var)
-                speccode = spec.code(self, var)
-                support_code += '\n' + deindent(speccode['support_code'])
-                hash_defines += deindent(speccode['hashdefine_code'])
-                # add the Python function with a leading '_python', if it
-                # exists. This allows the function to make use of the Python
-                # function via weave if necessary (e.g. in the case of randn)
-                if not spec.pyfunc is None:
-                    pyfunc_name = '_python_' + var
-                    if pyfunc_name in  namespace:
-                        logger.warn(('Namespace already contains function %s, '
-                                     'not replacing it') % pyfunc_name)
-                    else:
-                        namespace[pyfunc_name] = spec.pyfunc
-        
-        # delete the user-defined functions from the namespace
-        for func in user_functions:
-            del namespace[func]
-        
-        # return
-        return (stripped_deindented_lines(code),
-                {'pointers_lines': stripped_deindented_lines(pointers),
-                 'support_code_lines': stripped_deindented_lines(support_code),
-                 'hashdefine_lines': stripped_deindented_lines(hash_defines),
-                 'denormals_code_lines': stripped_deindented_lines(self.denormals_to_zero_code()),
-                 })
+                
+        return stripped_deindented_lines(code)
 
     def denormals_to_zero_code(self):
         if self.flush_denormals:
@@ -219,3 +189,161 @@ class CPPLanguage(Language):
             '''
         else:
             return ''
+
+    def determine_keywords(self, variables, namespace, codeobj_class):
+        # set up the restricted pointers, these are used so that the compiler
+        # knows there is no aliasing in the pointers, for optimisation
+        lines = []
+        # It is possible that several different variable names refer to the
+        # same array. E.g. in gapjunction code, v_pre and v_post refer to the
+        # same array if a group is connected to itself
+        arraynames = set()
+        for varname, var in variables.iteritems():
+            if isinstance(var, ArrayVariable):
+                arrayname = var.arrayname
+                if not arrayname in arraynames:
+                    line = self.c_data_type(var.dtype) + ' * ' + self.restrict + '_ptr' + arrayname + ' = ' + arrayname + ';'
+                    lines.append(line)
+                    arraynames.add(arrayname)
+        pointers = '\n'.join(lines)
+
+        # set up the functions
+        user_functions = []
+        support_code = ''
+        hash_defines = ''
+        for varname, variable in namespace.items():
+            if isinstance(variable, Function):
+                user_functions.append((varname, variable))
+                speccode = variable.implementations[codeobj_class].code
+                if speccode is not None:
+                    support_code += '\n' + deindent(speccode.get('support_code', ''))
+                    hash_defines += deindent(speccode.get('hashdefine_code', ''))
+                # add the Python function with a leading '_python', if it
+                # exists. This allows the function to make use of the Python
+                # function via weave if necessary (e.g. in the case of randn)
+                if not variable.pyfunc is None:
+                    pyfunc_name = '_python_' + varname
+                    if pyfunc_name in namespace:
+                        logger.warn(('Namespace already contains function %s, '
+                                     'not replacing it') % pyfunc_name)
+                    else:
+                        namespace[pyfunc_name] = variable.pyfunc
+
+        # delete the user-defined functions from the namespace and add the
+        # function namespaces (if any)
+        for funcname, func in user_functions:
+            del namespace[funcname]
+            func_namespace = func.implementations[codeobj_class].namespace
+            if func_namespace is not None:
+                namespace.update(func_namespace)
+
+        return {'pointers_lines': stripped_deindented_lines(pointers),
+                'support_code_lines': stripped_deindented_lines(support_code),
+                'hashdefine_lines': stripped_deindented_lines(hash_defines),
+                'denormals_code_lines': stripped_deindented_lines(self.denormals_to_zero_code()),
+                }
+
+    def translate_statement_sequence(self, statements, variables, namespace,
+                                     variable_indices, iterate_all,
+                                     codeobj_class):
+        if isinstance(statements, dict):
+            blocks = {}
+            for name, block in statements.iteritems():
+                blocks[name] = self.translate_one_statement_sequence(block,
+                                                                     variables,
+                                                                     namespace,
+                                                                     variable_indices,
+                                                                     iterate_all,
+                                                                     codeobj_class)
+        else:
+            blocks = self.translate_one_statement_sequence(statements, variables,
+                                                           namespace, variable_indices,
+                                                           iterate_all, codeobj_class)
+
+        kwds = self.determine_keywords(variables, namespace, codeobj_class)
+
+        return blocks, kwds
+
+
+################################################################################
+# Implement functions
+################################################################################
+
+# Functions that exist under the same name in C++
+for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
+             'log10', 'sqrt', 'ceil', 'floor']:
+    DEFAULT_FUNCTIONS[func].implementations[CPPLanguage] = FunctionImplementation()
+
+# Functions that need a name translation
+for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),
+                       ('abs', 'fabs'), ('mod', 'fmod')]:
+    DEFAULT_FUNCTIONS[func].implementations[CPPLanguage] = FunctionImplementation(func_cpp)
+
+# Functions that need to be implemented specifically
+randn_code = {'support_code': '''
+
+    inline double _ranf()
+    {
+        return (double)rand()/RAND_MAX;
+    }
+
+    double _randn(const int vectorisation_idx)
+    {
+         double x1, x2, w;
+         static double y1, y2;
+         static bool need_values = true;
+         if (need_values)
+         {
+             do {
+                     x1 = 2.0 * _ranf() - 1.0;
+                     x2 = 2.0 * _ranf() - 1.0;
+                     w = x1 * x1 + x2 * x2;
+             } while ( w >= 1.0 );
+
+             w = sqrt( (-2.0 * log( w ) ) / w );
+             y1 = x1 * w;
+             y2 = x2 * w;
+
+             need_values = false;
+             return y1;
+         } else
+         {
+            need_values = true;
+            return y2;
+         }
+    }
+        '''}
+DEFAULT_FUNCTIONS['randn'].implementations[CPPLanguage] = FunctionImplementation('_randn',
+                                                                           code=randn_code)
+
+rand_code = {'support_code': '''
+        double _rand(int vectorisation_idx)
+        {
+	        return (double)rand()/RAND_MAX;
+        }
+        '''}
+DEFAULT_FUNCTIONS['rand'].implementations[CPPLanguage] = FunctionImplementation('_rand',
+                                                                          code=rand_code)
+
+clip_code = {'support_code': '''
+        double _clip(const float value, const float a_min, const float a_max)
+        {
+	        if (value < a_min)
+	            return a_min;
+	        if (value > a_max)
+	            return a_max;
+	        return value;
+	    }
+        '''}
+DEFAULT_FUNCTIONS['clip'].implementations[CPPLanguage] = FunctionImplementation('_clip',
+                                                                          code=clip_code)
+
+int_code = {'support_code':
+        '''
+        int int_(const bool value)
+        {
+	        return value ? 1 : 0;
+        }
+        '''}
+DEFAULT_FUNCTIONS['int_'].implementations[CPPLanguage] = FunctionImplementation('int_',
+                                                                          code=int_code)

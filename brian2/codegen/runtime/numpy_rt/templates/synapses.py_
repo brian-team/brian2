@@ -1,4 +1,4 @@
-# USE_SPECIFIERS { _synaptic_post, _spiking_synapses }
+# USES_VARIABLES { _synaptic_post, _spiking_synapses }
 
 import numpy as np
 
@@ -14,9 +14,9 @@ while len(_F):
     _u = _aux.take(_F)
     _i = _perm.take(_F)
     _postsynaptic_idx = _u
-    _neuron_idx = _spiking_synapses[_i]
+    _idx = _spiking_synapses[_i]
     # TODO: how do we get presynaptic indices? do we need to?
-    _vectorisation_idx = _neuron_idx
+    _vectorisation_idx = _idx
     {% for line in code_lines %}
     {{line}}
     {% endfor %}

@@ -2,7 +2,7 @@ import ast
 
 import sympy
 
-from brian2.codegen.functions.numpyfunctions import DEFAULT_FUNCTIONS
+from brian2.core.functions import DEFAULT_FUNCTIONS
 
 __all__ = ['NodeRenderer',
            'NumpyNodeRenderer',
@@ -213,18 +213,17 @@ class CPPNodeRenderer(NodeRenderer):
         if node.op.__class__.__name__=='Pow':
             return 'pow(%s, %s)' % (self.render_node(node.left),
                                     self.render_node(node.right))
+        elif node.op.__class__.__name__ == 'Mod':
+            # In C, the modulo operator is only defined on integers
+            return 'fmod(%s, %s)' % (self.render_node(node.left),
+                                     self.render_node(node.right))
         else:
             return NodeRenderer.render_BinOp(self, node)
 
     def render_Name(self, node):
         # Replace Python's True and False with their C++ bool equivalents
         return {'True': 'true',
-                'False': 'false',
-                # TODO: This should be handled differently
-                'randn': '_randn',
-                'rand': '_rand',
-                'clip': '_clip',
-                'bool': '_bool'}.get(node.id, node.id)
+                'False': 'false'}.get(node.id, node.id)
 
     def render_Assign(self, node):
         return NodeRenderer.render_Assign(self, node)+';'

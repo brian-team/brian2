@@ -9,7 +9,7 @@ from sympy.core.sympify import SympifyError
 from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
 
-from brian2.codegen.sympytools import str_to_sympy, sympy_to_str
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 
 from .base import StateUpdateMethod
 
@@ -31,6 +31,7 @@ SYMBOLS = {'x' : _symbol('x'),
            'f' : sympy.Function('f'),
            'g' : sympy.Function('g'),
            'dW': _symbol('dW')}
+
 
 def split_expression(expr):
     '''
@@ -247,7 +248,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 raise AssertionError('Unknown element name: %s' %
                                      element.getName())
     
-    def can_integrate(self, equations, specifiers):
+    def can_integrate(self, equations, variables):
         # Non-stochastic numerical integrators should work for all equations,
         # except for stochastic equations
         if equations.is_stochastic and self.stochastic is None:
@@ -435,7 +436,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         return RHS
 
 
-    def __call__(self, eqs, specifiers=None):
+    def __call__(self, eqs, variables=None):
         '''
         Apply a state updater description to model equations.
         
@@ -445,8 +446,8 @@ class ExplicitStateUpdater(StateUpdateMethod):
             The equations describing the model
 
         
-        specifiers: dict-like, optional
-            The `Specifier` objects for the model. Ignored by the explicit
+        variables: dict-like, optional
+            The `Variable` objects for the model. Ignored by the explicit
             state updater.
         
         Examples

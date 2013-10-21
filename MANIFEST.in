@@ -1,0 +1,6 @@
+include ez_setup.py
+recursive-include docs_sphinx *.rst
+prune docs_sphinx/reference
+prune docs_sphinx/examples
+
+

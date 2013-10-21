@@ -13,12 +13,12 @@ except ImportError:
 import numpy as np
 
 from brian2.utils.logger import get_logger
-from brian2.units.fundamentalunits import Quantity, all_registered_units
+from brian2.units.fundamentalunits import Quantity, standard_unit_register
 from brian2.units.stdunits import stdunits
-from brian2.codegen.functions.numpyfunctions import (RandnFunction,
-                                                     RandFunction,
-                                                     DEFAULT_FUNCTIONS)
+from brian2.core.functions import DEFAULT_FUNCTIONS
 import brian2.equations.equations as equations
+
+from .functions import Function
 
 __all__ = ['create_namespace',
            'CompoundNamespace',
@@ -99,7 +99,7 @@ def _same_function(func1, func2):
     '''
     Helper function, used during namespace resolution for comparing wether to
     functions are the same. This takes care of treating a function and a
-    `Function` specifiers whose `Function.pyfunc` attribute matches as the
+    `Function` variables whose `Function.pyfunc` attribute matches as the
     same. This prevents the user from getting spurious warnings when having
     for example a numpy function such as :np:func:`~random.randn` in the local
     namespace, while the ``randn`` symbol in the numpy namespace used for the
@@ -186,6 +186,10 @@ class CompoundNamespace(collections.Mapping):
                 resolved = float(resolved)
             elif np.can_cast(numpy_type, np.complex_):
                 resolved = complex(resolved)
+
+        # Replace pure Python functions by a Functions object
+        if callable(resolved) and not isinstance(resolved, Function):
+            resolved = Function(resolved)
 
         return resolved
 
@@ -289,7 +293,7 @@ def _get_default_unit_namespace():
     namespace : dict
         The unit namespace
     '''    
-    namespace = dict([(u.name, u) for u in all_registered_units()])
+    namespace = dict([(u.name, u) for u in standard_unit_register.units])
     namespace.update(stdunits)
     return namespace
 

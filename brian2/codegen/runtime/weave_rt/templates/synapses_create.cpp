@@ -1,28 +1,8 @@
-{% macro main() %}
-    // USE_SPECIFIERS { _synaptic_pre, _synaptic_post, _post_synaptic,
-    //                  _pre_synaptic, _num_source_neurons, _num_target_neurons,
-    //                  rand}
+{% extends 'common_group.cpp' %}
 
-    //// SUPPORT CODE //////////////////////////////////////////////////////////
-	{% for line in support_code_lines %}
-	// {{line}}
-	{% endfor %}
-
-	////// HANDLE DENORMALS ///
-	{% for line in denormals_code_lines %}
-	{{line}}
-	{% endfor %}
-
-	////// HASH DEFINES ///////
-	{% for line in hashdefine_lines %}
-	{{line}}
-	{% endfor %}
-
-	///// POINTERS ////////////
-	{% for line in pointers_lines %}
-	{{line}}
-	{% endfor %}
-
+{% block maincode %}
+    // USES_VARIABLES { _synaptic_pre, _synaptic_post, _post_synaptic,
+    //                  _pre_synaptic, rand}
 	srand((unsigned int)time(NULL));
 	int _buffer_size = 1024;
 	int *_prebuf = new int[_buffer_size];
@@ -30,16 +10,14 @@
 	int *_synprebuf = new int[1];
 	int *_synpostbuf = new int[1];
 	int _curbuf = 0;
-	int _synapse_idx = _synaptic_pre.attr("shape")[0];
-	for(int i=0; i<_num_source_neurons; i++)
+	int _synapse_idx = _synaptic_pre_object.attr("shape")[0];
+	for(int i=0; i<_num_all_pre; i++)
 	{
-		for(int j=0; j<_num_target_neurons; j++)
+		for(int j=0; j<_num_all_post; j++)
 		{
 		    const int _vectorisation_idx = j;
 			// Define the condition
-			{% for line in code_lines %}
-			{{line}}
-			{% endfor %}
+		    {{ super() }}
 			// Add to buffer
 			if(_cond)
 			{
@@ -51,14 +29,14 @@
 			    }
 
 			    for (int _repetition=0; _repetition<_n; _repetition++) {
-                    _prebuf[_curbuf] = i;
-                    _postbuf[_curbuf] = j;
+                    _prebuf[_curbuf] = _pre_idcs;
+                    _postbuf[_curbuf] = _post_idcs;
                     _curbuf++;
                     // Flush buffer
                     if(_curbuf==_buffer_size)
                     {
-                        _flush_buffer(_prebuf, _synaptic_pre, _curbuf);
-                        _flush_buffer(_postbuf, _synaptic_post, _curbuf);
+                        _flush_buffer(_prebuf, _synaptic_pre_object, _curbuf);
+                        _flush_buffer(_postbuf, _synaptic_post_object, _curbuf);
                         _curbuf = 0;
                     }
                     // Directly add the synapse numbers to the neuron->synapses
@@ -76,15 +54,15 @@
 
 	}
 	// Final buffer flush
-	_flush_buffer(_prebuf, _synaptic_pre, _curbuf);
-	_flush_buffer(_postbuf, _synaptic_post, _curbuf);
+	_flush_buffer(_prebuf, _synaptic_pre_object, _curbuf);
+	_flush_buffer(_postbuf, _synaptic_post_object, _curbuf);
 	delete [] _prebuf;
 	delete [] _postbuf;
 	delete [] _synprebuf;
 	delete [] _synpostbuf;
-{% endmacro %}
+{% endblock %}
 
-{% macro support_code() %}
+{% block support_code_block %}
 // Flush a buffered segment into a dynamic array
 void _flush_buffer(int *buf, py::object &dynarr, int N)
 {
@@ -103,9 +81,6 @@ void _flush_buffer(int *buf, py::object &dynarr, int N)
 	}
 }
 
-//// SUPPORT CODE //////////////////////////////////////////////////////////
-{% for line in support_code_lines %}
-{{line}}
-{% endfor %}
+{{ super() }}
 
-{% endmacro %}
+{% endblock %}

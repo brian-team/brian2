@@ -1,15 +1,14 @@
 import weakref
+from collections import defaultdict
 
 import numpy as np
 
-from brian2.codegen.codeobject import create_codeobject
 from brian2.core.base import BrianObject
-from brian2.core.preferences import brian_prefs
 from brian2.core.scheduler import Scheduler
-from brian2.core.specifiers import ReadOnlyValue, AttributeValue, ArrayVariable
-from brian2.memory.dynamicarray import DynamicArray1D
+from brian2.core.variables import (Variable, AttributeVariable)
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
+from brian2.devices.device import get_device
 
 __all__ = ['PopulationRateMonitor']
 
@@ -46,76 +45,67 @@ class PopulationRateMonitor(BrianObject):
         self.codeobj_class = codeobj_class
         BrianObject.__init__(self, when=scheduler, name=name)
 
-        # create data structures
-        self.reinit()
-
-        self.specifiers = {'t': AttributeValue('t', second, np.float64,
-                                               self.clock, 't'),
-                           'dt': AttributeValue('dt', second, np.float64,
-                                               self.clock, 'dt'),
-                           '_spikes': AttributeValue('_spikes', Unit(1),
-                                                     self.source.spikes.dtype,
-                                                     self.source, 'spikes'),
-                           # The template needs to have access to the
-                           # DynamicArray here, having access to the underlying
-                           # array is not enough since we want to do the resize
-                           # in the template
-                           '_rate': ReadOnlyValue('_rates', Unit(1), self._rate.dtype,
-                                               self._rate),
-                           '_t': ReadOnlyValue('_t', Unit(1), self._t.dtype,
-                                               self._t),
-                           '_num_source_neurons': ReadOnlyValue('_num_source_neurons',
-                                                                Unit(1), np.int,
-                                                                len(self.source))}
+        dev = get_device()
+        self.variables = {'t': AttributeVariable(second, self.clock, 't_'),
+                          'dt': AttributeVariable(second, self.clock,
+                                                  'dt_', constant=True),
+                          '_spikespace': self.source.variables['_spikespace'],
+                          '_rate': dev.dynamic_array_1d(self, '_rate', 0, 1,
+                                                        constant_size=False),
+                          '_t': dev.dynamic_array_1d(self, '_t', 0, second,
+                                                     dtype=getattr(self.clock.t, 'dtype',
+                                                                   np.dtype(type(self.clock.t))),
+                                                     constant_size=False),
+                          '_num_source_neurons': Variable(Unit(1),
+                                                          len(self.source))}
 
     def reinit(self):
         '''
         Clears all recorded rates
         '''
-        self._rate = DynamicArray1D(0, use_numpy_resize=True,
-                                    dtype=brian_prefs['core.default_scalar_dtype'])
-        self._t = DynamicArray1D(0, use_numpy_resize=True,
-                                 dtype=getattr(self.clock.t, 'dtype',
-                                               np.dtype(type(self.clock.t))))
+        raise NotImplementedError()
 
-    def pre_run(self, namespace):
-        self.codeobj = create_codeobject(self.name,
+    def before_run(self, namespace):
+        self.codeobj = get_device().code_object(
+                                         self,
+                                         self.name+'_codeobject*',
                                          '', # No model-specific code
                                          {}, # no namespace
-                                         self.specifiers,
+                                         self.variables,
                                          template_name='ratemonitor',
-                                         indices={})
+                                         variable_indices=defaultdict(lambda: '_idx'))
 
-    def update(self):
-        self.codeobj()
+        self.updaters[:] = [self.codeobj.get_updater()]
 
     @property
     def rate(self):
         '''
         Array of recorded rates (in units of Hz).
         '''
-        return Quantity(self._rate.data.copy(), dim=hertz.dim)
+        return Quantity(self.variables['_rate'].get_value(), dim=hertz.dim,
+                        copy=True)
 
     @property
     def rate_(self):
         '''
         Array of recorded rates (unitless).
         '''
-        return self._rate.data.copy()
+        return self.variables['_rate'].get_value().copy()
 
     @property
     def t(self):
         '''
         Array of recorded time points (in units of second).
         '''
-        return Quantity(self._t.data.copy(), dim=second.dim)
+        return Quantity(self.variables['_t'].get_value(), dim=second.dim,
+                        copy=True)
 
     @property
     def t_(self):
         '''
         Array of recorded time points (unitless).
         '''
-        return self._t.data.copy()
+        return self.variables['_t'].get_value().copy()
 
     def __repr__(self):
         description = '<{classname}, recording {source}>'

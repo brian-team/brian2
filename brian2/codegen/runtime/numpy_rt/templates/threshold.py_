@@ -1,9 +1,14 @@
-# USE_SPECIFIERS { not_refractory, lastspike, t }
+# USES_VARIABLES { not_refractory, lastspike, t, _spikespace }
+# ITERATE_ALL { _idx }
+
+_vectorisation_idx = N
 
 {% for line in code_lines %}
 {{line}}
 {% endfor %}
-_return_values, = _cond.nonzero()
+_spikes, = _cond.nonzero()
+_spikespace[-1] = len(_spikes)
+_spikespace[:len(_spikes)] = _spikes
 # Set the neuron to refractory
-not_refractory[_return_values] = False
-lastspike[_return_values] = t
+not_refractory[_spikes] = False
+lastspike[_spikes] = t

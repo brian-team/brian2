@@ -1,23 +1,23 @@
-# USE_SPECIFIERS { _t, _clock_t, _indices }
+# USES_VARIABLES { _t, _clock_t, _indices }
 
 # Resize dynamic arrays
-_new_len = len(_t) + 1
-_t.resize(_new_len)
+_new_len = len(_t_object) + 1
+_t_object.resize(_new_len)
 
 {% for _varname in _variable_names %}
-_recorded_{{_varname}}.resize((_new_len, _num_indices))
+_recorded_{{_varname}}_object.resize((_new_len, len(_indices)))
 {% endfor %}
 
 # Store values
-_t[-1] = _clock_t
+_t_object[-1] = _clock_t
 
 _vectorisation_idx = _indices
-_neuron_idx = _indices[:]
+_idx = _indices[:]
 {% for line in code_lines %}
 {{line}}
 {% endfor %}
 
 {% for _varname in _variable_names %}
-_recorded_{{_varname}}[-1, :] = _to_record_{{_varname}}
+_recorded_{{_varname}}_object[-1, :] = _to_record_{{_varname}}
 {% endfor %}
 
