@@ -19,11 +19,11 @@ from brian2.core.base import BrianObject
 from brian2.units.allunits import ohm,siemens
 from brian2.units.fundamentalunits import Unit
 from brian2.units.stdunits import uF,cm
-from brian2.codegen.parsing import sympy_to_str
+from brian2.parsing.sympytools import sympy_to_str
 from brian2.utils.logger import get_logger
 from brian2.core.namespace import create_namespace
-from brian2.core.specifiers import (ReadOnlyValue, AttributeValue, ArrayVariable,
-                                    StochasticVariable, Subexpression, Index)
+from brian2.core.variables import (AttributeVariable, ArrayVariable,
+                                    StochasticVariable, Subexpression)
 from scipy.linalg import solve_banded
 import sympy as sp
 from numpy import zeros, ones, pi
