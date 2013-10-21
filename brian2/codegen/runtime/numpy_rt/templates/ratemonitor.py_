@@ -1,0 +1,7 @@
+# { USE_SPECIFIERS _rate, _t, _spikes, _num_source_neurons, t, dt }
+
+_new_len = len(_t) + 1
+_t.resize(_new_len)
+_rate.resize(_new_len)
+_t[-1] = t
+_rate[-1] = 1.0 * len(_spikes) / dt / _num_source_neurons

@@ -15,7 +15,7 @@ from brian2.units.allunits import (metre, meter, second, amp, kelvin, mole,
 
 from brian2.codegen.translation import analyse_identifiers
 from brian2.parsing.expressions import parse_expression_unit
-from brian2.codegen.parsing import parse_statement
+from brian2.parsing.statements import parse_statement
 from brian2.core.specifiers import VariableSpecifier
 
 __all__ = ['unit_from_string', 'unit_from_expression', 'check_unit',

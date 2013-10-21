@@ -1,25 +1,21 @@
 import weakref
 
-from numpy import array, arange, repeat
+import numpy as np
 
-from brian2.core.specifiers import Value
+from brian2.core.specifiers import (ReadOnlyValue, ArrayVariable,
+                                    AttributeValue, Index)
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
-from brian2.groups.group import Group
+from brian2.core.preferences import brian_prefs
+from brian2.units.fundamentalunits import Unit, Quantity, have_same_dimensions
 from brian2.units.allunits import second
+from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
+from brian2.groups.group import create_runner_codeobj
 
 __all__ = ['StateMonitor']
 
-class MonitorVariable(Value):
-    def __init__(self, name, unit, dtype, monitor):
-        Value.__init__(self, name, unit, dtype)
-        self.monitor = weakref.proxy(monitor)
-    
-    def get_value(self):
-        return array(self.monitor._values[self.name])
 
-
-class StateMonitor(BrianObject, Group):
+class StateMonitor(BrianObject):
     '''
     Record values of state variables during a run
     
@@ -45,7 +41,9 @@ class StateMonitor(BrianObject, Group):
     name : str, optional
         A unique name for the object, otherwise will use
         ``source.name+'statemonitor_0'``, etc.
-        
+    codeobj_class : `CodeObject`, optional
+        The `CodeObject` class to create.
+
     Examples
     --------
     
@@ -62,18 +60,12 @@ class StateMonitor(BrianObject, Group):
         run(100*ms)
         plot(M.t, M.V)
         show()
-        
-    Notes
-    -----
 
-    TODO: multiple features, below:
-    
-    * Cacheing extracted values (t, V, etc.)
-    * Improve efficiency by using dynamic arrays instead of lists?
     '''
     def __init__(self, source, variables, record=None, when=None,
-                 name='statemonitor*'):
+                 name='statemonitor*', codeobj_class=None):
         self.source = weakref.proxy(source)
+        self.codeobj_class = codeobj_class
 
         # run by default on source clock at the end
         scheduler = Scheduler(when)
@@ -81,22 +73,25 @@ class StateMonitor(BrianObject, Group):
             scheduler.clock = source.clock
         if not scheduler.defined_when:
             scheduler.when = 'end'
+
         BrianObject.__init__(self, when=scheduler, name=name)
-        
+
         # variables should always be a list of strings
         if variables is True:
             variables = source.equations.names
         elif isinstance(variables, str):
             variables = [variables]
         self.variables = variables
-        
+
         # record should always be an array of ints
+        self.record_all = False
         if record is None or record is False:
-            record = array([], dtype=int)
+            record = np.array([], dtype=np.int32)
         elif record is True:
-            record = arange(len(source))
+            self.record_all = True
+            record = np.arange(len(source), dtype=np.int32)
         else:
-            record = array(record, dtype=int)
+            record = np.array(record, dtype=np.int32)
             
         #: The array of recorded indices
         self.indices = record
@@ -104,68 +99,91 @@ class StateMonitor(BrianObject, Group):
         # create data structures
         self.reinit()
         
-        # initialise Group access
+        # Setup specifiers
         self.specifiers = {}
         for variable in variables:
             spec = source.specifiers[variable]
-            self.specifiers[variable] = MonitorVariable(variable,
-                                                        spec.unit,
-                                                        spec.dtype,
-                                                        self)        
-        Group.__init__(self)
-        
+            if spec.dtype != np.float64:
+                raise NotImplementedError(('Cannot record %s with data type '
+                                           '%s, currently only values stored as '
+                                           'doubles can be recorded.') %
+                                          (variable, spec.dtype))
+            self.specifiers[variable] = weakref.proxy(spec)
+            self.specifiers['_recorded_'+variable] = ReadOnlyValue('_recorded_'+variable, Unit(1),
+                                                                   self._values[variable].dtype,
+                                                                   self._values[variable])
+
+        self.specifiers['_t'] = ReadOnlyValue('_t', Unit(1), self._t.dtype,
+                                              self._t)
+        self.specifiers['_clock_t'] = AttributeValue('t',  second, np.float64,
+                                                     self.clock, 't_')
+        self.specifiers['_indices'] = ArrayVariable('_indices', Unit(1),
+                                                    np.int32, self.indices,
+                                                    index='', group=None,
+                                                    constant=True)
+
+        self._group_attribute_access_active = True
+
     def reinit(self):
-        self._values = dict((var, []) for var in self.variables)
-        self._t = []
+        self._values = dict((v, DynamicArray((0, len(self.indices)),
+                                             use_numpy_resize=True,
+                                             dtype=self.source.specifiers[v].dtype))
+                            for v in self.variables)
+        self._t = DynamicArray1D(0, use_numpy_resize=True,
+                                 dtype=brian_prefs['core.default_scalar_dtype'])
     
+    def pre_run(self, namespace):
+        # Some dummy code so that code generation takes care of the indexing
+        # and subexpressions
+        code = ['_to_record_%s = %s' % (v, v)
+                for v in self.variables]
+        code += ['_recorded_%s = _recorded_%s' % (v, v)
+                 for v in self.variables]
+        code = '\n'.join(code)
+        self.codeobj = create_runner_codeobj(self.source,
+                                         code,
+                                         name=self.name,
+                                         additional_specifiers=self.specifiers,
+                                         additional_namespace=namespace,
+                                         template_name='statemonitor',
+                                         indices={'_neuron_idx': Index('_neuron_idx', self.record_all)},
+                                         template_kwds={'_variable_names': self.variables},
+                                         codeobj_class=self.codeobj_class)
+
     def update(self):
-        for var in self.variables:
-            value = self.source.state_(var)
-            # Subexpressions might be scalar values where indexing fails
-            try:
-                self._values[var].append(value[self.indices])
-            except IndexError:
-                self._values[var].append(repeat(value, len(self.indices)))
-        self._t.append(self.clock.t_)
-        
-    @property
-    def t(self):
-        '''
-        Array of record times.
-        '''
-        return array(self._t)*second
-    
-    @property
-    def t_(self):
-        '''
-        Array of record times (without units).
-        '''
-        return array(self._t)
+        self.codeobj()
+
+    def __getattr__(self, item):
+        # We do this because __setattr__ and __getattr__ are not active until
+        # _group_attribute_access_active attribute is set, and if it is set,
+        # then __getattr__ will not be called. Therefore, if getattr is called
+        # with this name, it is because it hasn't been set yet and so this
+        # method should raise an AttributeError to agree that it hasn't been
+        # called yet.
+        if item == '_group_attribute_access_active':
+            raise AttributeError
+        if not hasattr(self, '_group_attribute_access_active'):
+            raise AttributeError
+
+        # TODO: Decide about the interface
+        if item == 't':
+            return Quantity(self._t.data.copy(), dim=second.dim)
+        elif item == 't_':
+            return self._t.data.copy()
+        elif item in self.variables:
+            unit = self.specifiers[item].unit
+            if have_same_dimensions(unit, 1):
+                return self._values[item].data.copy()
+            else:
+                return Quantity(self._values[item].data.copy(),
+                                dim=unit.dim)
+        elif item.endswith('_') and item[:-1] in self.variables:
+            return self._values[item[:-1]].data.copy()
+        else:
+            raise AttributeError('Unknown attribute %s' % item)
 
     def __repr__(self):
         description = '<{classname}, recording {variables} from {source}>'
         return description.format(classname=self.__class__.__name__,
                                   variables=repr(self.variables),
                                   source=self.source.name)
-
-
-if __name__=='__main__':
-    from pylab import *
-    from brian2 import *
-    from brian2.codegen.languages import *
-    import time
-
-    N = 100
-    tau = 10*ms
-    eqs = '''
-    dV/dt = (2*volt-V)/tau : volt
-    '''
-    threshold = 'V>1'
-    reset = 'V = 0'
-    G = NeuronGroup(N, eqs, threshold=threshold, reset=reset)
-    G.V = rand(N)*volt
-    M = StateMonitor(G, True, record=range(5))
-    run(100*ms)
-    print M.V.shape
-    plot(M.t, M.V)
-    show()
