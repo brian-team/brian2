@@ -1,10 +1,12 @@
-from numpy import *
-from brian2 import *
-from brian2.devices.cpp_standalone import *
-from numpy.testing import assert_raises, assert_equal
-from nose import with_setup
 import tempfile
 import os
+
+from nose import with_setup
+from numpy import *
+
+from brian2 import *
+from brian2.devices.cpp_standalone import *
+from brian2.utils.debugging import std_silent
 
 
 def restore_device():
@@ -13,7 +15,7 @@ def restore_device():
 
 
 @with_setup(teardown=restore_device)
-def test_cpp_standalone():
+def test_cpp_standalone(with_output=False):
     set_device('cpp_standalone')
     ##### Define the model
     tau = 1*ms
@@ -43,7 +45,8 @@ def test_cpp_standalone():
                   )
     net.run(100*ms)
     tempdir = tempfile.mkdtemp()
-    build(project_dir=tempdir, compile_project=True, run_project=True)
+    build(project_dir=tempdir, compile_project=True, run_project=True,
+          with_output=with_output)
     S = loadtxt(os.path.join(tempdir, 'results', 'spikemonitor_codeobject.txt'), delimiter=',',
                 dtype=[('i', int), ('t', float)])
     i = S['i']
@@ -51,5 +54,6 @@ def test_cpp_standalone():
     assert len(i)==17741
     
 if __name__=='__main__':
-    test_cpp_standalone()
-    
+    # Print the debug output when testing this file only but not when running
+    # via nose test
+    test_cpp_standalone(with_output=True)

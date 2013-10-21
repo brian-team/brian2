@@ -3,6 +3,7 @@ Module implementing the C++ "standalone" device.
 '''
 import numpy
 import os
+import subprocess
 import inspect
 from collections import defaultdict
 import weakref
@@ -165,7 +166,8 @@ class CPPStandaloneDevice(Device):
         self.code_objects[codeobj.name] = codeobj
         return codeobj
 
-    def build(self, project_dir='output', compile_project=True, run_project=False, debug=True):
+    def build(self, project_dir='output', compile_project=True, run_project=False, debug=True,
+              with_output=True):
         ensure_directory(project_dir)
         for d in ['code_objects', 'results']:
             ensure_directory(os.path.join(project_dir, d))
@@ -297,10 +299,14 @@ class CPPStandaloneDevice(Device):
                     x = os.system('g++ -I. -O3 -ffast-math -march=native *.cpp code_objects/*.cpp -o main')
                 if x==0:
                     if run_project:
-                        if os.name=='nt':
-                            x = os.system('main')
+                        if not with_output:
+                            stdout = open(os.devnull, 'w')
                         else:
-                            x = os.system('./main')
+                            stdout = None
+                        if os.name=='nt':
+                            x = subprocess.call('main', stdout=stdout)
+                        else:
+                            x = subprocess.call('./main', stdout=stdout)
                         if x:
                             raise RuntimeError("Project run failed")
                 else:
