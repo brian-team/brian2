@@ -84,7 +84,7 @@ def restore_initial_state():
     '''
     if hasattr(defaultclock, '_dt'):
         del defaultclock._dt
-    defaultclock.__init__()
+    defaultclock._force_reinit()
     clear(erase=True)
     brian_prefs._restore()
 

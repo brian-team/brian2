@@ -10,6 +10,7 @@ from brian2.utils.debugging import std_silent
 
 
 def restore_device():
+    cpp_standalone_device.reinit()
     set_device('runtime')
     restore_initial_state()
 

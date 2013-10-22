@@ -7,7 +7,7 @@ from brian2 import *
 import time
 import shutil, os
 
-#BrianLogger.log_level_debug()
+BrianLogger.log_level_debug()
 
 start = time.time()
 

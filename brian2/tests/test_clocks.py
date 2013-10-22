@@ -38,6 +38,7 @@ def test_clocks():
 def test_defaultclock():        
     defaultclock.dt = 1*ms
     assert_equal(defaultclock.dt, 1*ms)
+    assert defaultclock.name=='defaultclock'
 
 if __name__=='__main__':
     test_clocks()

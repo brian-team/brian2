@@ -25,6 +25,7 @@ from brian2.units.fundamentalunits import (Quantity, Unit, is_scalar_type,
                                            have_same_dimensions,
                                            )
 from brian2.units import second
+from brian2.utils.logger import get_logger
 
 from .codeobject import CPPStandaloneCodeObject
 
@@ -32,6 +33,8 @@ from .codeobject import CPPStandaloneCodeObject
 __all__ = ['build', 'Network', 'run', 'stop',
            'Synapses',
            ]
+
+logger = get_logger(__name__)
 
 def freeze(code, ns):
     # this is a bit of a hack, it should be passed to the template somehow
@@ -116,6 +119,9 @@ class CPPStandaloneDevice(Device):
         
         self.clocks = set([])
         
+    def reinit(self):
+        self.__init__()
+        
     def array(self, owner, name, size, unit, dtype=None, constant=False,
               is_bool=False, read_only=False):
         if is_bool:
@@ -174,6 +180,8 @@ class CPPStandaloneDevice(Device):
         ensure_directory(project_dir)
         for d in ['code_objects', 'results']:
             ensure_directory(os.path.join(project_dir, d))
+            
+        logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
 
         # Write the arrays
         arr_tmp = CPPStandaloneCodeObject.templater.objects(None,
@@ -184,6 +192,7 @@ class CPPStandaloneDevice(Device):
                                                             synapses=self.synapses,
                                                             clocks=self.clocks,
                                                             )
+        logger.debug("objects: "+str(arr_tmp))
         open(os.path.join(project_dir, 'objects.cpp'), 'w').write(arr_tmp.cpp_file)
         open(os.path.join(project_dir, 'objects.h'), 'w').write(arr_tmp.h_file)
 
@@ -265,6 +274,7 @@ class CPPStandaloneDevice(Device):
                                                           code_objects=self.code_objects.values(),
                                                           dt=float(defaultclock.dt),
                                                           )
+        logger.debug("main: "+str(main_tmp))
         open(os.path.join(project_dir, 'main.cpp'), 'w').write(main_tmp)
 
         # Copy the brianlibdirectory
