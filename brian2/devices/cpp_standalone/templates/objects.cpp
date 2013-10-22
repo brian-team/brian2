@@ -27,7 +27,8 @@ SynapticPathway<double> {{path.name}}(
 		{{S.source|length}}, {{S.target|length}},
 		_dynamic{{path.variables['delay'].arrayname}},
 		{{S.name}}._{{path.prepost}}_synaptic,
-		{{S.source.dt_}}
+		{{S.source.dt_}},
+		{{S.source.start}}, {{S.source.stop}}
 		);
 {% endfor %}
 {% endfor %}
