@@ -3,7 +3,7 @@ plot_results = True
 
 from brian2 import *
 import time
-import shutil
+import shutil, os
 
 start = time.time()
 
@@ -43,7 +43,8 @@ net = Network(input, neurons, S,
 net.run(1000*ms)
 
 if standalone_mode:
-    shutil.rmtree('output')
+    if os.path.exists('output'):
+        shutil.rmtree('output')
     build(project_dir='output', compile_project=True, run_project=True)
 
 if not standalone_mode and plot_results:

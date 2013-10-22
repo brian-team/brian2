@@ -7,7 +7,7 @@ duration = 100*second
 
 import matplotlib.pyplot as plt
 from time import time
-import shutil
+import shutil, os
 
 if standalone_mode:
     from brian2.devices.cpp_standalone import *
@@ -61,7 +61,8 @@ net = Network(input, neurons, S)
 net.run(duration)
 
 if standalone_mode:
-    shutil.rmtree('output')
+    if os.path.exists('output'):
+        shutil.rmtree('output')
     build(project_dir='output', compile_project=True, run_project=True, debug=False)
     w = loadtxt('output/results/_dynamic_array_synapses_w.txt')
 else:

@@ -5,7 +5,7 @@ from pylab import *
 from numpy import *
 from brian2 import *
 import time
-import shutil
+import shutil, os
 
 #BrianLogger.log_level_debug()
 
@@ -57,7 +57,8 @@ run(100*ms)
 #net.run(10*ms)
 
 if standalone_mode:
-    shutil.rmtree('output')
+    if os.path.exists('output'):
+        shutil.rmtree('output')
     build(project_dir='output', compile_project=True, run_project=True)
     print 'Build time:', time.time()-start
     if plot_results:
