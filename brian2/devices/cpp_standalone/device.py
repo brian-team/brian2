@@ -337,7 +337,8 @@ class Network(OrigNetwork):
             
         # Generate the main lines
         num_steps = int(duration/defaultclock.dt)
-        netcode = CPPStandaloneCodeObject.templater.network(None, run_lines=run_lines, num_steps=num_steps)
+        netcode = CPPStandaloneCodeObject.templater.network(None, run_lines=run_lines, num_steps=num_steps,
+                                                            duration=float(duration))
         
         cpp_standalone_device.main_queue.append(('run_network', (self, netcode)))
 

@@ -1,7 +1,9 @@
-for(int i=0; i<{{num_steps}}; i++)
+defaultclock.set_interval(0.0, {{duration}});
+while(defaultclock.running())
 {
-	t = i*dt;
+	t = defaultclock.t();
 	{% for run_line in run_lines %}
 	{{run_line}}
 	{% endfor %}
+	defaultclock.tick();
 }
