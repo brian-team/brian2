@@ -351,8 +351,8 @@ class VariableView(object):
         '''
         variable = self.variable
         if variable.scalar:
-            if not (item == slice(None) or item == 0 or (hasattr(item, '__len__')
-                                                         and len(item) == 0)):
+            if not ((isinstance(item, slice) and item == slice(None)) or item == 0 or (hasattr(item, '__len__')
+                                                                                           and len(item) == 0)):
                 raise IndexError('Variable is a scalar variable.')
             indices = np.array([0])
         else:
@@ -449,7 +449,7 @@ class VariableView(object):
         if self.variable.read_only:
             raise TypeError('Variable %s is read-only.' % self.name)
 
-        if item == slice(None):
+        if isinstance(item, slice) and item == slice(None):
             item = 'True'
 
         # Both index and values are strings, use a single code object do deal
