@@ -4,7 +4,7 @@ import collections
 import numpy as np
 
 from brian2.core.variables import (AttributeVariable, ArrayVariable,
-                                   AuxiliaryVariable)
+                                   AuxiliaryVariable, get_dtype)
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.devices.device import get_device
@@ -54,7 +54,9 @@ class StateMonitorView(object):
         Convert the neuron indices to indices into the stored values. For example, if neurons [0, 5, 10] have been
         recorded, [5, 10] is converted to [1, 2].
         '''
-        if isinstance(item, int):
+        dtype = get_dtype(item)
+        # scalar value
+        if np.issubdtype(dtype, np.int) and not isinstance(item, np.ndarray):
             indices = np.nonzero(self.monitor.indices == item)[0]
             if len(indices) == 0:
                 raise IndexError('Index number %d has not been recorded' % item)
@@ -218,7 +220,8 @@ class StateMonitor(BrianObject):
         self.updaters[:] = [self.codeobj.get_updater()]
 
     def __getitem__(self, item):
-        if isinstance(item, (int, np.ndarray)):
+        dtype = get_dtype(item)
+        if np.issubdtype(dtype, np.int):
             return StateMonitorView(self, item)
         elif isinstance(item, collections.Sequence):
             index_array = np.array(item)
