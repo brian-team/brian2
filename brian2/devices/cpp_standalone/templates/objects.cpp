@@ -13,7 +13,7 @@
 Clock {{clock.name}}({{clock.dt_}});
 {% endfor %}
 
-//////////////// static arrays ////////////
+//////////////// arrays ///////////////////
 {% for (varname, dtype_spec, N) in array_specs %}
 {{dtype_spec}} *{{varname}};
 const int _num_{{varname}} = {{N}};
@@ -22,6 +22,12 @@ const int _num_{{varname}} = {{N}};
 //////////////// dynamic arrays ///////////
 {% for (varname, dtype_spec) in dynamic_array_specs %}
 std::vector<{{dtype_spec}}> {{varname}};
+{% endfor %}
+
+/////////////// static arrays /////////////
+{% for (name, dtype_spec, N, filename) in static_array_specs %}
+{{dtype_spec}} *_static_array_{{name}};
+const int _num__static_array_{{name}} = {{N}};
 {% endfor %}
 
 //////////////// synapses /////////////////
@@ -51,6 +57,27 @@ void _init_arrays()
 	{% for (varname, dtype_spec, start, stop) in arange_specs %}
 	{{varname}} = new {{dtype_spec}}[{{stop}}-{{start}}];
 	for(int i=0; i<{{stop}}-{{start}}; i++) {{varname}}[i] = {{start}} + i;
+	{% endfor %}
+
+	// static arrays
+	{% for (name, dtype_spec, N, filename) in static_array_specs %}
+	_static_array_{{name}} = new {{dtype_spec}}[{{N}}];
+	{% endfor %}
+
+}
+
+void _load_arrays()
+{
+	{% for (name, dtype_spec, N, filename) in static_array_specs %}
+	ifstream f{{name}};
+	f{{name}}.open("static_arrays/{{name}}", ios::in | ios::binary);
+	if(f{{name}}.is_open())
+	{
+		f{{name}}.read(reinterpret_cast<char*>(_static_array_{{name}}), {{N}}*sizeof({{dtype_spec}}));
+	} else
+	{
+		cout << "Error opening static array {{name}}." << endl;
+	}
 	{% endfor %}
 }
 
@@ -98,6 +125,15 @@ void _dealloc_arrays()
 		{{varname}} = 0;
 	}
 	{% endfor %}
+
+	// static arrays
+	{% for (name, dtype_spec, N, filename) in static_array_specs %}
+	if(_static_array_{{name}}!=0)
+	{
+		delete [] _static_array_{{name}};
+		_static_array_{{name}} = 0;
+	}
+	{% endfor %}
 }
 
 {% endmacro %}
@@ -119,7 +155,7 @@ void _dealloc_arrays()
 extern Clock {{clock.name}};
 {% endfor %}
 
-//////////////// static arrays ////////////
+//////////////// arrays ///////////////////
 {% for (varname, dtype_spec, N) in array_specs %}
 extern {{dtype_spec}} *{{varname}};
 extern const int _num_{{varname}};
@@ -128,6 +164,12 @@ extern const int _num_{{varname}};
 //////////////// dynamic arrays ///////////
 {% for (varname, dtype_spec) in dynamic_array_specs %}
 extern std::vector<{{dtype_spec}}> {{varname}};
+{% endfor %}
+
+/////////////// static arrays /////////////
+{% for (name, dtype_spec, N, filename) in static_array_specs %}
+extern {{dtype_spec}} *_static_array_{{name}};
+extern const int _num__static_array_{{name}};
 {% endfor %}
 
 //////////////// synapses /////////////////
@@ -140,6 +182,7 @@ extern SynapticPathway<double> {{path.name}};
 {% endfor %}
 
 void _init_arrays();
+void _load_arrays();
 void _write_arrays();
 void _dealloc_arrays();
 

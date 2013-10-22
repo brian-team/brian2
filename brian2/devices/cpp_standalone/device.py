@@ -112,6 +112,10 @@ class CPPStandaloneDevice(Device):
         #: List of all arrays to be filled with numbers (with type, size,
         #: start, and stop)
         self.arange_specs = []
+        
+        #: Dict of all static saved arrays
+        self.static_arrays = {}
+        
         self.code_objects = {}
         self.main_queue = []
         
@@ -121,6 +125,15 @@ class CPPStandaloneDevice(Device):
         
     def reinit(self):
         self.__init__()
+        
+    def static_array(self, name, arr):
+        basename = name
+        i = 0
+        while name in self.static_arrays:
+            i += 1
+            name = basename+'_'+str(i)
+        self.static_arrays[name] = arr.copy()
+        return name
         
     def array(self, owner, name, size, unit, dtype=None, constant=False,
               is_bool=False, read_only=False):
@@ -178,10 +191,17 @@ class CPPStandaloneDevice(Device):
     def build(self, project_dir='output', compile_project=True, run_project=False, debug=True,
               with_output=True):
         ensure_directory(project_dir)
-        for d in ['code_objects', 'results']:
+        for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(project_dir, d))
             
         logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
+
+        # write the static arrays
+        logger.debug("static arrays: "+str(sorted(self.static_arrays.keys())))
+        static_array_specs = []
+        for name, arr in self.static_arrays.iteritems():
+            arr.tofile(os.path.join(project_dir, 'static_arrays', name))
+            static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
 
         # Write the arrays
         arr_tmp = CPPStandaloneCodeObject.templater.objects(None,
@@ -191,6 +211,7 @@ class CPPStandaloneDevice(Device):
                                                             arange_specs=self.arange_specs,
                                                             synapses=self.synapses,
                                                             clocks=self.clocks,
+                                                            static_array_specs=static_array_specs,
                                                             )
         logger.debug("objects: "+str(arr_tmp))
         open(os.path.join(project_dir, 'objects.cpp'), 'w').write(arr_tmp.cpp_file)

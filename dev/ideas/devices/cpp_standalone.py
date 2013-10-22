@@ -34,6 +34,7 @@ G = NeuronGroup(N, eqs,
                 refractory=refractory,
                 name='gp')
 G.V['i>500'] = '-i*mV'
+cpp_standalone_device.static_array('test', array([1.,2.]))
 #G.u[[1, 2]] = [3.14, 2.78]
 #G.u[array([3, 4])] = array([1.41, 6.66])
 M = SpikeMonitor(G)
