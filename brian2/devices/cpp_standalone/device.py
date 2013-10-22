@@ -103,7 +103,7 @@ class StandaloneDynamicArrayVariable(StandaloneArrayVariable):
     def resize(self, new_size):
         self.assignments.append(('resize', new_size))
 
-
+        
 class CPPStandaloneDevice(Device):
     '''
     '''
@@ -112,6 +112,8 @@ class CPPStandaloneDevice(Device):
         self.array_specs = []
         #: List of all dynamic arrays with their type
         self.dynamic_array_specs = []
+        #: List of all 2d dynamic arrays with their type
+        self.dynamic_array_2d_specs = []
         #: List of all arrays to be filled with zeros (with type and size)
         self.zero_specs = []
         #: List of all arrays to be filled with numbers (with type, size,
@@ -177,6 +179,25 @@ class CPPStandaloneDevice(Device):
                                               dtype=dtype,
                                               group_name=owner.name,
                                               constant=constant, is_bool=is_bool)
+        
+    def dynamic_array(self, owner, name, size, unit, dtype=None,
+                      constant=False, constant_size=True, is_bool=False,
+                      read_only=False):
+        if isinstance(size, int):
+            return self.dynamic_array_1d(owner, name, size, unit, dtype=dtype, constant=constant,
+                                         constant_size=constant_size, is_bool=is_bool, read_only=read_only)
+        if not isinstance(size, tuple) or not len(size)==2:
+            raise NotImplementedError("Only 1D and 2D dynamic arrays are implemented for C++ standalone.")
+        if is_bool:
+            dtype = numpy.bool
+        if dtype is None:
+            dtype = brian_prefs['core.default_scalar_dtype']
+        self.dynamic_array_2d_specs.append(('_dynamic_array_2d_%s_%s' % (owner.name, name),
+                                            c_data_type(dtype)))
+        return StandaloneDynamicArrayVariable(name, unit, size=size,
+                                              dtype=dtype,
+                                              group_name=owner.name,
+                                              constant=constant, is_bool=is_bool)
 
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is not None:
@@ -212,6 +233,7 @@ class CPPStandaloneDevice(Device):
         arr_tmp = CPPStandaloneCodeObject.templater.objects(None,
                                                             array_specs=self.array_specs,
                                                             dynamic_array_specs=self.dynamic_array_specs,
+                                                            dynamic_array_2d_specs=self.dynamic_array_2d_specs,
                                                             zero_specs=self.zero_specs,
                                                             arange_specs=self.arange_specs,
                                                             synapses=self.synapses,

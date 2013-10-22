@@ -5,6 +5,7 @@
 #include "objects.h"
 #include "brianlib/synapses.h"
 #include "brianlib/clocks.h"
+#include "brianlib/dynamic_array.h"
 #include<iostream>
 #include<fstream>
 
@@ -19,9 +20,14 @@ Clock {{clock.name}}({{clock.dt_}});
 const int _num_{{varname}} = {{N}};
 {% endfor %}
 
-//////////////// dynamic arrays ///////////
+//////////////// dynamic arrays 1d /////////
 {% for (varname, dtype_spec) in dynamic_array_specs %}
 std::vector<{{dtype_spec}}> {{varname}};
+{% endfor %}
+
+//////////////// dynamic arrays 2d /////////
+{% for (varname, dtype_spec) in dynamic_array_2d_specs %}
+DynamicArray2D<{{dtype_spec}}> {{varname}};
 {% endfor %}
 
 /////////////// static arrays /////////////
@@ -149,6 +155,7 @@ void _dealloc_arrays()
 #include<stdint.h>
 #include "brianlib/synapses.h"
 #include "brianlib/clocks.h"
+#include "brianlib/dynamic_array.h"
 
 //////////////// clocks ///////////////////
 {% for clock in clocks %}
@@ -164,6 +171,11 @@ extern const int _num_{{varname}};
 //////////////// dynamic arrays ///////////
 {% for (varname, dtype_spec) in dynamic_array_specs %}
 extern std::vector<{{dtype_spec}}> {{varname}};
+{% endfor %}
+
+//////////////// dynamic arrays 2d /////////
+{% for (varname, dtype_spec) in dynamic_array_2d_specs %}
+extern DynamicArray2D<{{dtype_spec}}> {{varname}};
 {% endfor %}
 
 /////////////// static arrays /////////////

@@ -35,6 +35,7 @@ G = NeuronGroup(N, eqs,
                 name='gp')
 G.V['i>500'] = '-i*mV'
 #cpp_standalone_device.static_array('test', array([1.,2.]))
+arr2d = cpp_standalone_device.dynamic_array(G, 'test', (10, 10), 1., dtype=float)
 u = zeros(N)
 u[[1, 2, 3, 4]] = [3.14, 2.78, 1.41, 6.66]
 G.u = u
