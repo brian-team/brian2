@@ -57,6 +57,10 @@ def test_state_monitor():
         G.rate = [100, 1000] * Hz
         G.v = 1
 
+        S = Synapses(G, G, 'w: siemens')
+        S.connect(True)
+        S.w = 'j*nS'
+
         # A bit peculiar, but in principle one should be allowed to record
         # nothing except for the time
         nothing_mon = StateMonitor(G, [], record=True)
@@ -72,10 +76,14 @@ def test_state_monitor():
         # Use a StateMonitor recording everything
         all_mon = StateMonitor(G, True, record=True)
 
-        net = Network(G, nothing_mon,
+        # record from a Synapses object (all synapses connecting to neuron 1)
+        indices = S.calc_indices((slice(None), 1))
+        synapse_mon = StateMonitor(S, 'w', record=indices)
+
+        net = Network(G, S, nothing_mon,
                       v_mon, v_mon1,
                       multi_mon, multi_mon1,
-                      all_mon)
+                      all_mon, synapse_mon)
         net.run(10*ms)
 
         # Check time recordings
@@ -104,6 +112,10 @@ def test_state_monitor():
         assert_allclose(np.clip(multi_mon1.v, 0.1, 0.9), multi_mon1.f)
 
         assert all(all_mon[0].not_refractory[:] == True)
+
+        # Synaptic variables
+        assert_allclose(synapse_mon[indices[0]].w, 1*nS)
+        assert_allclose(synapse_mon.w[1], 1*nS)
 
         # Check indexing semantics
         G = NeuronGroup(10, 'v:volt')
