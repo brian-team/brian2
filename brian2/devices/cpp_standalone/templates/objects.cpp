@@ -4,8 +4,14 @@
 #include<vector>
 #include "objects.h"
 #include "brianlib/synapses.h"
+#include "brianlib/clocks.h"
 #include<iostream>
 #include<fstream>
+
+//////////////// clocks ///////////////////
+{% for clock in clocks %}
+Clock {{clock.name}}({{clock.dt_}});
+{% endfor %}
 
 //////////////// static arrays ////////////
 {% for (varname, dtype_spec, N) in array_specs %}
@@ -106,6 +112,12 @@ void _dealloc_arrays()
 #include<vector>
 #include<stdint.h>
 #include "brianlib/synapses.h"
+#include "brianlib/clocks.h"
+
+//////////////// clocks ///////////////////
+{% for clock in clocks %}
+extern Clock {{clock.name}};
+{% endfor %}
 
 //////////////// static arrays ////////////
 {% for (varname, dtype_spec, N) in array_specs %}

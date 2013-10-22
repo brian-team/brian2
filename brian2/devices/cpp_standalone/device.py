@@ -114,6 +114,8 @@ class CPPStandaloneDevice(Device):
         
         self.synapses = []
         
+        self.clocks = set([])
+        
     def array(self, owner, name, size, unit, dtype=None, constant=False,
               is_bool=False, read_only=False):
         if is_bool:
@@ -180,6 +182,7 @@ class CPPStandaloneDevice(Device):
                                                             zero_specs=self.zero_specs,
                                                             arange_specs=self.arange_specs,
                                                             synapses=self.synapses,
+                                                            clocks=self.clocks,
                                                             )
         open(os.path.join(project_dir, 'objects.cpp'), 'w').write(arr_tmp.cpp_file)
         open(os.path.join(project_dir, 'objects.h'), 'w').write(arr_tmp.h_file)
@@ -311,6 +314,9 @@ class Network(OrigNetwork):
         else:
             namespace = get_local_namespace(1 + level)
             self.before_run(('implicit-run-namespace', namespace))
+            
+        cpp_standalone_device.clocks.update(self._clocks)
+            
         # Extract all the CodeObjects
         # Note that since we ran the Network object, these CodeObjects will be sorted into the right
         # running order, assuming that there is only one clock
