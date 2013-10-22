@@ -50,7 +50,7 @@ class StandaloneVariableView(VariableView):
 
     # Overwrite methods to signal that they are not available for standalone
     def set_array_with_array_index(self, item, value):
-        raise NotImplementedError(('Cannot set variables this way in'
+        raise NotImplementedError(('Cannot set variables this way in '
                                    'standalone, try using string expressions.'))
 
     def __getitem__(self, item):
