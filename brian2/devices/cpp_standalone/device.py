@@ -32,6 +32,7 @@ from .codeobject import CPPStandaloneCodeObject
 
 __all__ = ['build', 'Network', 'run', 'stop',
            'Synapses',
+           'insert_code_into_main',
            ]
 
 logger = get_logger(__name__)
@@ -132,7 +133,16 @@ class CPPStandaloneDevice(Device):
         
     def reinit(self):
         self.__init__()
-        
+
+    def insert_device_code(self, slot, code):
+        '''
+        Insert code directly into main.cpp
+        '''
+        if slot=='main.cpp':
+            self.main_queue.append(('insert_code', code))
+        else:
+            logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
+            
     def static_array(self, name, arr):
         basename = name
         i = 0
@@ -261,6 +271,8 @@ class CPPStandaloneDevice(Device):
                 }}
                 '''.format(arrayname=arrayname, staticarrayname=staticarrayname)
                 main_lines.extend(code.split('\n'))
+            elif func=='insert_code':
+                main_lines.append(args)
             else:
                 raise NotImplementedError("Unknown main queue function type "+func)
 

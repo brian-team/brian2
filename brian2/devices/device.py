@@ -11,11 +11,15 @@ from brian2.codegen.targets import codegen_targets
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import ArrayVariable, DynamicArrayVariable
 from brian2.units.fundamentalunits import Unit
+from brian2.utils.logger import get_logger
 
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
            'all_devices',
+           'insert_device_code',
            ]
+
+logger = get_logger(__name__)
 
 all_devices = {}
 
@@ -81,6 +85,12 @@ class Device(object):
         '''
         pass
 
+    def insert_device_code(self, slot, code):
+        '''
+        Insert code directly into a given slot in the device. By default does nothing.
+        '''
+        logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
+    
     
 class RuntimeDevice(Device):
     '''
@@ -158,3 +168,12 @@ def set_device(device):
     current_device = device
     current_device.activate()
 
+
+def insert_device_code(slot, code):
+    '''
+    Inserts the given set of code into the slot defined by the device.
+    
+    The behaviour of this function is device dependent. The runtime device ignores it (useful for debugging).
+    '''
+    get_device().insert_device_code(slot, code)
+    
