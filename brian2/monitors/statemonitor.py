@@ -55,21 +55,19 @@ class StateMonitorView(object):
         recorded, [5, 10] is converted to [1, 2].
         '''
         if isinstance(item, int):
-            item = self.monitor.source.calc_indices(item)
             indices = np.nonzero(self.monitor.indices == item)[0]
             if len(indices) == 0:
-                raise IndexError('Neuron number %d has not been recorded' % item)
+                raise IndexError('Index number %d has not been recorded' % item)
             return indices[0]
 
         if self.monitor.record_all:
             return item
         indices = []
         for index in item:
-            index = self.monitor.source.calc_indices(index)
             if index in self.monitor.indices:
                 indices.append(np.nonzero(self.monitor.indices == index)[0][0])
             else:
-                raise IndexError('Neuron number %d has not been recorded' % index)
+                raise IndexError('Index number %d has not been recorded' % index)
         return np.array(indices)
 
     def __repr__(self):
@@ -159,13 +157,13 @@ class StateMonitor(BrianObject):
         self.record_all = False
         if record is True:
             self.record_all = True
-            record = source.calc_indices(slice(None))
+            record = np.arange(len(source), dtype=np.int32)
         elif record is None or record is False:
             record = np.array([], dtype=np.int32)
         elif isinstance(record, int):
-            record = np.array([source.calc_indices(record)], dtype=np.int32)
+            record = np.array([record], dtype=np.int32)
         else:
-            record = np.array(source.calc_indices(record), dtype=np.int32)
+            record = np.asarray(record, dtype=np.int32)
             
         #: The array of recorded indices
         self.indices = record
