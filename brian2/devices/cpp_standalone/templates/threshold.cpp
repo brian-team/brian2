@@ -1,40 +1,12 @@
-////////////////////////////////////////////////////////////////////////////
-//// MAIN CODE /////////////////////////////////////////////////////////////
+{% extends 'common_group.cpp' %}
 
-{% macro cpp_file() %}
-// USES_VARIABLES { not_refractory, lastspike, t, _spikespace }
+{% block maincode %}
+	// USES_VARIABLES { not_refractory, lastspike, t, _spikespace }
 
-#include "code_objects/{{codeobj_name}}.h"
-#include<math.h>
-#include<stdint.h>
-#include "brianlib/common_math.h"
+	{% if variables is defined %}
+	{% set _spikespace = variables['_spikespace'].arrayname %}
+	{% endif %}
 
-////// SUPPORT CODE ///////
-namespace {
-	{% for line in support_code_lines %}
-	{{line}}
-	{% endfor %}
-}
-
-////// HASH DEFINES ///////
-{% for line in hashdefine_lines %}
-{{line}}
-{% endfor %}
-
-{% if variables is defined %}
-{% set _spikespace = variables['_spikespace'].arrayname %}
-{% endif %}
-
-void _run_{{codeobj_name}}(double t)
-{
-	///// CONSTANTS ///////////
-	%CONSTANTS%
-	///// POINTERS ////////////
-	{% for line in pointers_lines %}
-	{{line}}
-	{% endfor %}
-
-	//// MAIN CODE ////////////
 	long _cpp_numspikes = 0;
 	for(int _idx=0; _idx<N; _idx++)
 	{
@@ -52,19 +24,4 @@ void _run_{{codeobj_name}}(double t)
 		}
 	}
 	{{_spikespace}}[N] = _cpp_numspikes;
-}
-{% endmacro %}
-
-////////////////////////////////////////////////////////////////////////////
-//// HEADER FILE ///////////////////////////////////////////////////////////
-
-{% macro h_file() %}
-#ifndef _INCLUDED_{{codeobj_name}}
-#define _INCLUDED_{{codeobj_name}}
-
-#include "objects.h"
-
-void _run_{{codeobj_name}}(double t);
-
-#endif
-{% endmacro %}
+{% endblock %}

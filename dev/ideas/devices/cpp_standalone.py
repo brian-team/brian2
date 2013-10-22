@@ -32,7 +32,7 @@ G = NeuronGroup(N, eqs,
                 threshold=threshold,
                 refractory=refractory,
                 name='gp')
-G.V = '-i*mV'
+G.V['i>500'] = '-i*mV'
 M = SpikeMonitor(G)
 S = Synapses(G, G, 'w : volt', pre='V += w')
 S.connect('abs(i-j)<5 and i!=j')

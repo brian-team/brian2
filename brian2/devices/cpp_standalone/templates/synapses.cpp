@@ -1,36 +1,6 @@
-////////////////////////////////////////////////////////////////////////////
-//// MAIN CODE /////////////////////////////////////////////////////////////
+{% extends 'common_synapses.cpp' %}
 
-{% macro cpp_file() %}
-
-#include "code_objects/{{codeobj_name}}.h"
-#include<math.h>
-#include<stdint.h>
-#include "brianlib/common_math.h"
-#include<iostream>
-
-////// SUPPORT CODE ///////
-namespace {
-	{% for line in support_code_lines %}
-	{{line}}
-	{% endfor %}
-}
-
-////// HASH DEFINES ///////
-{% for line in hashdefine_lines %}
-{{line}}
-{% endfor %}
-
-void _run_{{codeobj_name}}(double t)
-{
-	///// CONSTANTS ///////////
-	%CONSTANTS%
-	///// POINTERS ////////////
-	{% for line in pointers_lines %}
-	{{line}}
-	{% endfor %}
-
-	//// MAIN CODE ////////////
+{% block maincode %}
 	{% if pathway is defined %}
 	vector<int> &_spiking_synapses = {{pathway.name}}.queue->peek();
 	const int _num_spiking_synapses = _spiking_synapses.size();
@@ -45,31 +15,20 @@ void _run_{{codeobj_name}}(double t)
 		{{line}}
 		{% endfor %}
 	}
-}
+{% endblock %}
 
+{% block extra_functions_cpp %}
 void _debugmsg_{{codeobj_name}}()
 {
 	{% if owner is defined %}
 	cout << "Number of synapses: " << _dynamic_array_{{owner.name}}__synaptic_pre.size() << endl;
 	{% endif %}
 }
+{% endblock %}
 
-{% endmacro %}
-
-////////////////////////////////////////////////////////////////////////////
-//// HEADER FILE ///////////////////////////////////////////////////////////
-
-{% macro h_file() %}
-#ifndef _INCLUDED_{{codeobj_name}}
-#define _INCLUDED_{{codeobj_name}}
-
-#include "objects.h"
-
-void _run_{{codeobj_name}}(double t);
+{% block extra_functions_h %}
 void _debugmsg_{{codeobj_name}}();
-
-#endif
-{% endmacro %}
+{% endblock %}
 
 {% macro main_finalise() %}
 _debugmsg_{{codeobj_name}}();
