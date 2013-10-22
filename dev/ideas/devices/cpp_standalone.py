@@ -49,7 +49,12 @@ if not standalone_mode:
     net.run(0*ms)
     start_sim = time.time()
 
-net.run(100*ms)
+#net.run(100*ms)
+run(100*ms)
+
+#net.remove(M, S)
+
+#net.run(10*ms)
 
 if standalone_mode:
     shutil.rmtree('output')

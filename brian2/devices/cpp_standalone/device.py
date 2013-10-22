@@ -9,6 +9,7 @@ from collections import defaultdict
 import weakref
 
 from brian2.core.clocks import defaultclock
+from brian2.core.magic import magic_network
 from brian2.core.network import Network as OrigNetwork
 from brian2.core.namespace import get_local_namespace
 from brian2.devices.device import Device, all_devices
@@ -28,7 +29,7 @@ from brian2.units import second
 from .codeobject import CPPStandaloneCodeObject
 
 
-__all__ = ['build', 'Network', 'run', 'reinit', 'stop',
+__all__ = ['build', 'Network', 'run', 'stop',
            'Synapses',
            ]
 
@@ -189,29 +190,7 @@ class CPPStandaloneDevice(Device):
                 codeobj, = args
                 main_lines.append('_run_%s(t);' % codeobj.name)
             elif func=='run_network':
-                net, duration, namespace = args
-                net._prepare_for_device(namespace)
-                # Extract all the CodeObjects
-                # Note that since we ran the Network object, these CodeObjects will be sorted into the right
-                # running order, assuming that there is only one clock
-                updaters = []
-                for obj in net.objects:
-                    for updater in obj.updaters:
-                        updaters.append(updater)
-                
-                # Generate the updaters
-                run_lines = []
-                for updater in updaters:
-                    cls = updater.__class__
-                    if cls is CodeObjectUpdater:
-                        codeobj = updater.owner
-                        run_lines.append('_run_%s(t);' % codeobj.name)
-                    else:
-                        raise NotImplementedError("C++ standalone device has not implemented "+cls.__name__)
-                    
-                # Generate the main lines
-                num_steps = int(duration/defaultclock.dt)
-                netcode = CPPStandaloneCodeObject.templater.network(None, run_lines=run_lines, num_steps=num_steps)
+                net, netcode = args
                 main_lines.extend(netcode.split('\n'))
             else:
                 raise NotImplementedError("Unknown main queue function type "+func)
@@ -322,18 +301,48 @@ build = cpp_standalone_device.build
     
 class Network(OrigNetwork):
     def run(self, duration, report=None, report_period=60*second,
-            namespace=None, level=0):
-        if namespace is None:
-            namespace = get_local_namespace(1 + level)
-        cpp_standalone_device.main_queue.append(('run_network', (self, duration, namespace)))
+            namespace=None, level=0, _magic_network=None):
         
-    def _prepare_for_device(self, namespace):
-        OrigNetwork.run(self, 0*second, namespace=namespace)
+        if _magic_network is not None:
+            self = _magic_network
+            
+        if namespace is not None:
+            self.before_run(('explicit-run-namespace', namespace))
+        else:
+            namespace = get_local_namespace(1 + level)
+            self.before_run(('implicit-run-namespace', namespace))
+        # Extract all the CodeObjects
+        # Note that since we ran the Network object, these CodeObjects will be sorted into the right
+        # running order, assuming that there is only one clock
+        updaters = []
+        for obj in self.objects:
+            for updater in obj.updaters:
+                updaters.append(updater)
+        
+        # Generate the updaters
+        run_lines = []
+        for updater in updaters:
+            cls = updater.__class__
+            if cls is CodeObjectUpdater:
+                codeobj = updater.owner
+                run_lines.append('_run_%s(t);' % codeobj.name)
+            else:
+                raise NotImplementedError("C++ standalone device has not implemented "+cls.__name__)
+            
+        # Generate the main lines
+        num_steps = int(duration/defaultclock.dt)
+        netcode = CPPStandaloneCodeObject.templater.network(None, run_lines=run_lines, num_steps=num_steps)
+        
+        cpp_standalone_device.main_queue.append(('run_network', (self, netcode)))
+
 
 def run(*args, **kwds):
-    raise NotImplementedError("Magic networks not implemented for C++ standalone")
-stop = run
-reinit = run
+    kwds['_magic_network'] = magic_network
+    kwds['level'] = kwds.pop('level', 0)+1
+    Network().run(*args, **kwds)
+    
+def stop(*args, **kwds):
+    raise NotImplementedError("stop() function not supported in standalone mode")
 
 
 class Synapses(OrigSynapses):
