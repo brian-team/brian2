@@ -15,7 +15,7 @@ from brian2.core.namespace import get_local_namespace
 from brian2.devices.device import Device, all_devices
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import *
-from brian2.synapses.synapses import Synapses as OrigSynapses
+from brian2.synapses.synapses import Synapses
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.languages.cpp_lang import c_data_type
@@ -31,7 +31,6 @@ from .codeobject import CPPStandaloneCodeObject
 
 
 __all__ = ['build', 'Network', 'run', 'stop',
-           'Synapses',
            'insert_code_into_main',
            ]
 
@@ -241,13 +240,14 @@ class CPPStandaloneDevice(Device):
 
         # Write the global objects
         networks = [net() for net in Network.__instances__() if net().name!='_fake_network']
+        synapses = [S() for S in Synapses.__instances__()]
         arr_tmp = CPPStandaloneCodeObject.templater.objects(None,
                                                             array_specs=self.array_specs,
                                                             dynamic_array_specs=self.dynamic_array_specs,
                                                             dynamic_array_2d_specs=self.dynamic_array_2d_specs,
                                                             zero_specs=self.zero_specs,
                                                             arange_specs=self.arange_specs,
-                                                            synapses=self.synapses,
+                                                            synapses=synapses,
                                                             clocks=self.clocks,
                                                             static_array_specs=static_array_specs,
                                                             networks=networks,
@@ -263,7 +263,6 @@ class CPPStandaloneDevice(Device):
                 main_lines.append('_run_%s(t);' % codeobj.name)
             elif func=='run_network':
                 net, netcode = args
-                #main_lines.extend(netcode.split('\n'))
                 main_lines.extend(netcode)
             elif func=='set_by_array':
                 arrayname, staticarrayname, item, value = args
@@ -413,20 +412,12 @@ class Network(OrigNetwork):
             cls = updater.__class__
             if cls is CodeObjectUpdater:
                 codeobj = updater.owner
-                #run_lines.append('_run_%s(t);' % codeobj.name)
                 run_lines.append('{self.name}.add(&{clock.name}, _run_{codeobj.name});'.format(clock=clock, self=self,
                                                                                                codeobj=codeobj));
             else:
                 raise NotImplementedError("C++ standalone device has not implemented "+cls.__name__)
         run_lines.append('{self.name}.run({duration});'.format(self=self, duration=float(duration)))
         cpp_standalone_device.main_queue.append(('run_network', (self, run_lines)))
-#            
-#        # Generate the main lines
-#        num_steps = int(duration/defaultclock.dt)
-#        netcode = CPPStandaloneCodeObject.templater.network(None, run_lines=run_lines, num_steps=num_steps,
-#                                                            duration=float(duration))
-#        
-#        cpp_standalone_device.main_queue.append(('run_network', (self, netcode)))
 
 fake_network = Network(name='_fake_network')
 
@@ -437,10 +428,3 @@ def run(*args, **kwds):
     
 def stop(*args, **kwds):
     raise NotImplementedError("stop() function not supported in standalone mode")
-
-
-# TODO: we don't need to overwrite the Synapses class to do this, we can just dynamically get it
-class Synapses(OrigSynapses):
-    def __init__(self, *args, **kwds):
-        OrigSynapses.__init__(self, *args, **kwds)
-        cpp_standalone_device.synapses.append(weakref.proxy(self))
