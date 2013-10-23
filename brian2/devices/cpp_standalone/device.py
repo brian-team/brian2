@@ -263,7 +263,8 @@ class CPPStandaloneDevice(Device):
                 main_lines.append('_run_%s(t);' % codeobj.name)
             elif func=='run_network':
                 net, netcode = args
-                main_lines.extend(netcode.split('\n'))
+                #main_lines.extend(netcode.split('\n'))
+                main_lines.extend(netcode)
             elif func=='set_by_array':
                 arrayname, staticarrayname, item, value = args
                 code = '''
@@ -404,24 +405,28 @@ class Network(OrigNetwork):
         updaters = []
         for obj in self.objects:
             for updater in obj.updaters:
-                updaters.append(updater)
+                updaters.append((obj.clock, updater))
         
         # Generate the updaters
-        run_lines = []
-        for updater in updaters:
+        run_lines = ['{self.name}.clear();'.format(self=self)]
+        for clock, updater in updaters:
             cls = updater.__class__
             if cls is CodeObjectUpdater:
                 codeobj = updater.owner
-                run_lines.append('_run_%s(t);' % codeobj.name)
+                #run_lines.append('_run_%s(t);' % codeobj.name)
+                run_lines.append('{self.name}.add(&{clock.name}, _run_{codeobj.name});'.format(clock=clock, self=self,
+                                                                                               codeobj=codeobj));
             else:
                 raise NotImplementedError("C++ standalone device has not implemented "+cls.__name__)
-            
-        # Generate the main lines
-        num_steps = int(duration/defaultclock.dt)
-        netcode = CPPStandaloneCodeObject.templater.network(None, run_lines=run_lines, num_steps=num_steps,
-                                                            duration=float(duration))
-        
-        cpp_standalone_device.main_queue.append(('run_network', (self, netcode)))
+        run_lines.append('{self.name}.run({duration});'.format(self=self, duration=float(duration)))
+        cpp_standalone_device.main_queue.append(('run_network', (self, run_lines)))
+#            
+#        # Generate the main lines
+#        num_steps = int(duration/defaultclock.dt)
+#        netcode = CPPStandaloneCodeObject.templater.network(None, run_lines=run_lines, num_steps=num_steps,
+#                                                            duration=float(duration))
+#        
+#        cpp_standalone_device.main_queue.append(('run_network', (self, netcode)))
 
 fake_network = Network(name='_fake_network')
 

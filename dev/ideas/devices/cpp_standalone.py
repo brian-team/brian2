@@ -1,5 +1,5 @@
-standalone_mode = True
-plot_results = False
+standalone_mode = False
+plot_results = True
 
 from pylab import *
 from numpy import *
