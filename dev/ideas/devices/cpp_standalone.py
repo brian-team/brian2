@@ -1,5 +1,5 @@
 standalone_mode = True
-plot_results = False
+plot_results = True
 
 from pylab import *
 from numpy import *
@@ -43,6 +43,7 @@ G.u = u
 #G.u[[1, 2]] = [3.14, 2.78]
 #G.u[array([3, 4])] = array([1.41, 6.66])
 M = SpikeMonitor(G)
+R = PopulationRateMonitor(G, name='ratemon')
 S = Synapses(G, G, 'w : volt', pre='V += w')
 S.connect('abs(i-j)<5 and i!=j')
 S.w = 0.5*mV
@@ -50,6 +51,7 @@ S.delay = '0*ms'
 net = Network(G,
               M,
               S,
+              R,
               )
 
 
@@ -77,11 +79,18 @@ if standalone_mode:
     u = loadtxt('output/results/_array_gp_u.txt', delimiter=',', dtype=float)
     print 'G.u[:5] =', u[:5]
     if plot_results:
+        subplot(211)
         S = loadtxt('output/results/spikemonitor_codeobject.txt', delimiter=',',
                     dtype=[('i', int), ('t', float)])
         i = S['i']
         t = S['t']*second
         plot(t, i, '.k')
+        subplot(212)
+        S = loadtxt('output/results/ratemon_codeobject.txt', delimiter=',',
+                    dtype=[('t', float), ('rate', float)])
+        t = S['t']*second
+        rate = S['rate']*Hz
+        plot(t, rate)
 else:
     print 'Build time:', start_sim-start
     print 'Simulation time:', time.time()-start_sim
@@ -89,8 +98,11 @@ else:
     print 'Num synapses:', len(S)
     print 'G.u[:5] =', G.u[:5]
     if plot_results:
+        subplot(211)
         i, t = M.it
         plot(t, i, '.k')
+        subplot(212)
+        plot(R.t, R.rate)
 
 if plot_results:
     show()
