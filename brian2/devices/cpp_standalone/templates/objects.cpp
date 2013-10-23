@@ -6,12 +6,18 @@
 #include "brianlib/synapses.h"
 #include "brianlib/clocks.h"
 #include "brianlib/dynamic_array.h"
+#include "brianlib/network.h"
 #include<iostream>
 #include<fstream>
 
 //////////////// clocks ///////////////////
 {% for clock in clocks %}
 Clock {{clock.name}}({{clock.dt_}});
+{% endfor %}
+
+//////////////// networks /////////////////
+{% for net in networks %}
+Network {{net.name}};
 {% endfor %}
 
 //////////////// arrays ///////////////////
@@ -156,10 +162,16 @@ void _dealloc_arrays()
 #include "brianlib/synapses.h"
 #include "brianlib/clocks.h"
 #include "brianlib/dynamic_array.h"
+#include "brianlib/network.h"
 
 //////////////// clocks ///////////////////
 {% for clock in clocks %}
 extern Clock {{clock.name}};
+{% endfor %}
+
+//////////////// networks /////////////////
+{% for net in networks %}
+extern Network {{net.name}};
 {% endfor %}
 
 //////////////// arrays ///////////////////

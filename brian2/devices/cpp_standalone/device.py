@@ -239,7 +239,8 @@ class CPPStandaloneDevice(Device):
             arr.tofile(os.path.join(project_dir, 'static_arrays', name))
             static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
 
-        # Write the arrays
+        # Write the global objects
+        networks = [net() for net in Network.__instances__() if net().name!='_fake_network']
         arr_tmp = CPPStandaloneCodeObject.templater.objects(None,
                                                             array_specs=self.array_specs,
                                                             dynamic_array_specs=self.dynamic_array_specs,
@@ -249,6 +250,7 @@ class CPPStandaloneDevice(Device):
                                                             synapses=self.synapses,
                                                             clocks=self.clocks,
                                                             static_array_specs=static_array_specs,
+                                                            networks=networks,
                                                             )
         logger.debug("objects: "+str(arr_tmp))
         open(os.path.join(project_dir, 'objects.cpp'), 'w').write(arr_tmp.cpp_file)
@@ -355,9 +357,9 @@ class CPPStandaloneDevice(Device):
         if compile_project:
             with in_directory(project_dir):
                 if debug:
-                    x = os.system('g++ -I. -g *.cpp code_objects/*.cpp -o main')
+                    x = os.system('g++ -I. -g *.cpp code_objects/*.cpp brianlib/*.cpp -o main')
                 else:
-                    x = os.system('g++ -I. -O3 -ffast-math -march=native *.cpp code_objects/*.cpp -o main')
+                    x = os.system('g++ -I. -O3 -ffast-math -march=native *.cpp code_objects/*.cpp brianlib/*.cpp -o main')
                 if x==0:
                     if run_project:
                         if not with_output:
@@ -421,16 +423,18 @@ class Network(OrigNetwork):
         
         cpp_standalone_device.main_queue.append(('run_network', (self, netcode)))
 
+fake_network = Network(name='_fake_network')
 
 def run(*args, **kwds):
     kwds['_magic_network'] = magic_network
     kwds['level'] = kwds.pop('level', 0)+1
-    Network().run(*args, **kwds)
+    fake_network.run(*args, **kwds)
     
 def stop(*args, **kwds):
     raise NotImplementedError("stop() function not supported in standalone mode")
 
 
+# TODO: we don't need to overwrite the Synapses class to do this, we can just dynamically get it
 class Synapses(OrigSynapses):
     def __init__(self, *args, **kwds):
         OrigSynapses.__init__(self, *args, **kwds)
