@@ -8,6 +8,8 @@ import traceback
 
 from pylab import *
 
+only_run_standalone = False
+
 basepath = '../../../examples/'
 
 # Uncomment the example you want to run, double commented ones don't work yet
@@ -105,6 +107,8 @@ if __name__=='__main__':
         shutil.rmtree('output')
     
     t_standalone, rv_standalone = runit(standalone_code, True)
+    if only_run_standalone:
+        exit()
     t_runtime, rv_runtime = runit(runtime_code, False)
     
     print '------', example, '------------------------'
