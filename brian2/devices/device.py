@@ -48,7 +48,7 @@ class Device(object):
     def __init__(self):
         pass
     
-    def array(self, owner, name, size, unit, dtype=None, constant=False,
+    def array(self, owner, name, size, unit, value=None, dtype=None, constant=False,
               is_bool=False, read_only=False):
         raise NotImplementedError()
 
@@ -98,14 +98,17 @@ class RuntimeDevice(Device):
     def __init__(self):
         super(Device, self).__init__()
 
-    def array(self, owner, name, size, unit, dtype=None,
+    def array(self, owner, name, size, unit, value=None, dtype=None,
               constant=False, is_bool=False, read_only=False):
         if is_bool:
             dtype = np.bool
+        elif value is not None:
+            dtype = value.dtype
         elif dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
-        array = np.zeros(size, dtype=dtype)
-        return ArrayVariable(name, unit, array, group_name=owner.name,
+        if value is None:
+            value = np.zeros(size, dtype=dtype)
+        return ArrayVariable(name, unit, value, group_name=owner.name,
                              constant=constant, is_bool=is_bool,
                              read_only=read_only)
 

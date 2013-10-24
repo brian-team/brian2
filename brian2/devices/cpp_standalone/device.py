@@ -173,19 +173,32 @@ class CPPStandaloneDevice(Device):
         self.static_arrays[name] = arr.copy()
         return name
         
-    def array(self, owner, name, size, unit, dtype=None, constant=False,
+    def array(self, owner, name, size, unit, value=None, dtype=None, constant=False,
               is_bool=False, read_only=False):
         if is_bool:
             dtype = numpy.bool
+        elif value is not None:
+            dtype = value.dtype
         elif dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         self.array_specs.append(('_array_%s_%s' % (owner.name, name),
                                  c_data_type(dtype), size))
         self.zero_specs.append(('_array_%s_%s' % (owner.name, name),
                                 c_data_type(dtype), size))
-        return StandaloneArrayVariable(name, unit, size=size, dtype=dtype,
-                                       group_name=owner.name,
-                                       constant=constant, is_bool=is_bool)
+
+        var = StandaloneArrayVariable(name, unit, size=size, dtype=dtype,
+                                      group_name=owner.name,
+                                      constant=constant, is_bool=is_bool)
+
+        if value is not None:
+            arrayname = var.arrayname
+            staticarrayname = self.static_array(arrayname, value)
+            self.main_queue.append(('set_by_array', (arrayname,
+                                                     staticarrayname,
+                                                     slice(None),
+                                                     value)))
+        return var
+
 
     def arange(self, owner, name, size, start=0, dtype=numpy.int32, constant=True,
                read_only=True):
@@ -356,7 +369,7 @@ class CPPStandaloneDevice(Device):
                     if hasattr(v, 'arrayname') and v.arrayname in already_deffed[codeobj.name]:
                         continue
                     try:
-                        if isinstance(v, StandaloneDynamicArrayVariable):
+                        if isinstance(v, StandaloneDynamicArrayVariable) and v.dimensions==1:
                             code_object_defs[codeobj.name].append('const int _num{k} = _dynamic{arrayname}.size();'.format(k=k, arrayname=v.arrayname))
                             c_type = c_data_type(v.dtype)
 
