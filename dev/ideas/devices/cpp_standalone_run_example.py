@@ -88,9 +88,6 @@ if __name__=='__main__':
         skip = False
         if line.startswith('BrianLogger'):
             skip = True
-        # TODO: remove this once statemonitor is implemented
-        if 'StateMonitor' in line:
-            skip = True
         if not skip:
             standalone_lines.append(line)
             runtime_lines.append(line)

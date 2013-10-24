@@ -5,7 +5,7 @@ Phase locking of IF neurons to a periodic input
 from pylab import *
 from brian2 import *
 
-#brian_prefs.codegen.target = 'weave'
+brian_prefs.codegen.target = 'weave'
 BrianLogger.log_level_debug()
 
 tau = 20 * ms
