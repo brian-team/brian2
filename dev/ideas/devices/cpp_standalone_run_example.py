@@ -3,20 +3,23 @@ Run standard examples with C++ standalone
 
 Prints some comparison output and plots some side-by-side comparison figures (not the original plots though)
 '''
-from pylab import *
 import os, re, shutil, multiprocessing, numpy, time
+import traceback
+
+from pylab import *
+
 basepath = '../../../examples/'
 
 # Uncomment the example you want to run, double commented ones don't work yet
 
 #example = 'IF_curve_Hodgkin_Huxley.py'
-example = 'IF_curve_LIF.py'
+#example = 'IF_curve_LIF.py'
 #example = 'non_reliability.py'
 #example = 'phase_locking.py'
 ##example = 'stochastic_odes.py' # too complicated
 #example = 'synapses.py'
 #example = 'synapses_gapjunctions.py'
-##example = 'synapses_jeffress.py' # TimedArray
+example = 'synapses_jeffress.py'
 #example = 'synapses_licklider.py'
 ##example = 'synapses_nonlinear.py' # S.w = [1., 10.] should work but doesn't
 ##example = 'synapses_spatial_connections.py' # doesn't actually run anything
@@ -26,47 +29,52 @@ example = 'IF_curve_LIF.py'
 neuron_group_variables = ['v', 'V', 'x']
 synapse_variables = ['w']
 
+
 def dorunit((code, standalone)):
-    ns = {}
-    start = time.time()
-    exec code in ns
-    tottime = time.time()-start
-    rv = {}
-    for k, v in ns.iteritems():
-        if isinstance(v, ns['SpikeMonitor']):
-            if standalone:
-                S = loadtxt('output/results/%s_codeobject.txt' % v.name, delimiter=',',
-                            dtype=[('i', int), ('t', float)])
-                i = S['i']
-                t = S['t']
-            else:
-                i, t = v.it
-            rv[k] = ('SpikeMonitor', v.name, (i, t))
-        if isinstance(v, ns['NeuronGroup']):
-            found = False
-            for var in neuron_group_variables:
-                if var in v.variables:
-                    found = True
-                    break
-            if found:
+    try:  # wrap everything in try except to get a nicer stacktrace
+        ns = {}
+        start = time.time()
+        exec code in ns
+        tottime = time.time()-start
+        rv = {}
+        for k, v in ns.iteritems():
+            if isinstance(v, ns['SpikeMonitor']):
                 if standalone:
-                    val = loadtxt('output/results/%s.txt' % v.variables[var].arrayname, delimiter=',', dtype=float)
+                    S = loadtxt('output/results/%s_codeobject.txt' % v.name, delimiter=',',
+                                dtype=[('i', int), ('t', float)])
+                    i = S['i']
+                    t = S['t']
                 else:
-                    val = asarray(getattr(v, var))
-                rv[k] = ('NeuronGroup', v.name+'.'+var, val)
-        if isinstance(v, ns['Synapses']):
-            found = False
-            for var in synapse_variables:
-                if var in v.variables:
-                    found = True
-                    break
-            if found:
-                if standalone:
-                    val = loadtxt('output/results/_dynamic%s.txt' % v.variables[var].arrayname, delimiter=',', dtype=float)
-                else:
-                    val = asarray(getattr(v, var))
-                rv[k] = ('Synapses', v.name+'.'+var, val)
-    return tottime, rv
+                    i, t = v.it
+                rv[k] = ('SpikeMonitor', v.name, (i, t))
+            if isinstance(v, ns['NeuronGroup']):
+                found = False
+                for var in neuron_group_variables:
+                    if var in v.variables:
+                        found = True
+                        break
+                if found:
+                    if standalone:
+                        val = loadtxt('output/results/%s.txt' % v.variables[var].arrayname, delimiter=',', dtype=float)
+                    else:
+                        val = asarray(getattr(v, var))
+                    rv[k] = ('NeuronGroup', v.name+'.'+var, val)
+            if isinstance(v, ns['Synapses']):
+                found = False
+                for var in synapse_variables:
+                    if var in v.variables:
+                        found = True
+                        break
+                if found:
+                    if standalone:
+                        val = loadtxt('output/results/_dynamic%s.txt' % v.variables[var].arrayname, delimiter=',', dtype=float)
+                    else:
+                        val = asarray(getattr(v, var))
+                    rv[k] = ('Synapses', v.name+'.'+var, val)
+        return tottime, rv
+    except Exception:
+        # Put all exception text into an exception and raise that
+        raise Exception("".join(traceback.format_exception(*sys.exc_info())))
     
 def runit(code, standalone):
     pool = multiprocessing.Pool(1)
