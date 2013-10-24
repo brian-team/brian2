@@ -166,7 +166,10 @@ class StateMonitor(BrianObject):
             record = np.array([record], dtype=np.int32)
         else:
             record = np.asarray(record, dtype=np.int32)
-        
+
+        #: The array of recorded indices
+        self.indices = record
+
         # Setup variables
         device = get_device()
         self.variables = {}
@@ -175,7 +178,7 @@ class StateMonitor(BrianObject):
             self.variables[varname] = var
             self.variables['_recorded_'+varname] = device.dynamic_array(self,
                                                                         '_recorded_'+varname,
-                                                                        (0, len(record)),
+                                                                        (0, len(self.indices)),
                                                                         var.unit,
                                                                         dtype=var.dtype,
                                                                         constant=False)
@@ -183,10 +186,12 @@ class StateMonitor(BrianObject):
         self.variables['_t'] = device.dynamic_array_1d(self, '_t', 0, Unit(1),
                                                        constant=False)
         self.variables['_clock_t'] = AttributeVariable(second, self.clock, 't_')
-        self.variables['_indices'] = device.array(self, '_indices', value=record,
-                                                  size=len(record), unit=Unit(1),
+        self.variables['_indices'] = device.array(self, '_indices', value=self.indices,
+                                                  size=len(self.indices), unit=Unit(1),
                                                   dtype=record.dtype,
                                                   constant=True)
+
+        self._group_attribute_access_active = True
 
     def reinit(self):
         raise NotImplementedError()
