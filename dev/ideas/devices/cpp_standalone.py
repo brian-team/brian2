@@ -34,14 +34,10 @@ G = NeuronGroup(N, eqs,
                 refractory=refractory,
                 name='gp')
 G.V['i>500'] = '-i*mV'
-#cpp_standalone_device.static_array('test', array([1.,2.]))
 if standalone_mode:
     arr2d = cpp_standalone_device.dynamic_array(G, 'test', (10, 10), 1., dtype=float)
-u = zeros(N)
-u[[1, 2, 3, 4]] = [3.14, 2.78, 1.41, 6.66]
-G.u = u
-#G.u[[1, 2]] = [3.14, 2.78]
-#G.u[array([3, 4])] = array([1.41, 6.66])
+G.u[[1, 2]] = [3.14, 2.78]
+G.u[array([3, 4])] = array([1.41, 6.66])
 M = SpikeMonitor(G)
 R = PopulationRateMonitor(G, name='ratemon')
 S = Synapses(G, G, 'w : volt', pre='V += w')

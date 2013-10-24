@@ -54,10 +54,20 @@ class StandaloneVariableView(VariableView):
 
     # Overwrite methods to signal that they are not available for standalone
     def set_array_with_array_index(self, item, value):
+        if isinstance(item, list):
+            item = numpy.array(item)
+        if isinstance(value, list):
+            value = numpy.array(value)
         if isinstance(item, slice) and item==slice(None) and isinstance(value, numpy.ndarray):
             arrayname = self.group.variables[self.name].arrayname
             staticarrayname = cpp_standalone_device.static_array(arrayname, value)
             cpp_standalone_device.main_queue.append(('set_by_array', (arrayname, staticarrayname, item, value)))
+        elif isinstance(item, numpy.ndarray) and isinstance(value, numpy.ndarray):
+            arrayname = self.group.variables[self.name].arrayname
+            staticarrayname_index = cpp_standalone_device.static_array('_index_'+arrayname, item)
+            staticarrayname_value = cpp_standalone_device.static_array('_value_'+arrayname, value)
+            cpp_standalone_device.main_queue.append(('set_array_by_array', (arrayname, staticarrayname_index,
+                                                                            staticarrayname_value, item, value)))
         else:
             raise NotImplementedError(('Cannot set variables this way in '
                                    'standalone, try using string expressions.'))
@@ -272,6 +282,16 @@ class CPPStandaloneDevice(Device):
                     {arrayname}[i] = _static_array_{staticarrayname}[i];
                 }}
                 '''.format(arrayname=arrayname, staticarrayname=staticarrayname)
+                main_lines.extend(code.split('\n'))
+            elif func=='set_array_by_array':
+                arrayname, staticarrayname_index, staticarrayname_value, item, value = args
+                code = '''
+                for(int i=0; i<_num__static_array_{staticarrayname_index}; i++)
+                {{
+                    {arrayname}[_static_array_{staticarrayname_index}[i]] = _static_array_{staticarrayname_value}[i];
+                }}
+                '''.format(arrayname=arrayname, staticarrayname_index=staticarrayname_index,
+                           staticarrayname_value=staticarrayname_value)
                 main_lines.extend(code.split('\n'))
             elif func=='insert_code':
                 main_lines.append(args)
