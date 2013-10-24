@@ -69,8 +69,9 @@ class StandaloneVariableView(VariableView):
             cpp_standalone_device.main_queue.append(('set_array_by_array', (arrayname, staticarrayname_index,
                                                                             staticarrayname_value, item, value)))
         else:
-            raise NotImplementedError(('Cannot set variables this way in '
-                                   'standalone, try using string expressions.'))
+            raise NotImplementedError(('Cannot set variable "%s" this way in '
+                                       'standalone, try using string '
+                                       'expressions.') % self.name)
 
     def __getitem__(self, item):
         raise NotImplementedError()
@@ -92,7 +93,8 @@ class StandaloneArrayVariable(ArrayVariable):
         return self.size
 
     def get_value(self):
-        raise NotImplementedError()
+        raise NotImplementedError('Getting value for variable %s is not '
+                                  'supported in standalone.' % self.name)
 
     def set_value(self, value, index=None):
         if index is None:
@@ -153,6 +155,7 @@ class CPPStandaloneDevice(Device):
             logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
             
     def static_array(self, name, arr):
+        name = '_static_array_' + name
         basename = name
         i = 0
         while name in self.static_arrays:
@@ -241,6 +244,17 @@ class CPPStandaloneDevice(Device):
             
         logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
 
+        # Find numpy arrays in the namespaces and convert them into static
+        # arrays. Hopefully they are correctly used in the code: For example,
+        # this works for the namespaces for functions with C++ (e.g. TimedArray
+        # treats it as a C array) but does not work in places that are
+        # implicitly vectorized (state updaters, resets, etc.). But arrays
+        # shouldn't be used there anyway.
+        for code_object in self.code_objects.itervalues():
+            for name, value in code_object.namespace.iteritems():
+                if isinstance(value, numpy.ndarray):
+                    self.static_arrays[name] = value
+
         # write the static arrays
         logger.debug("static arrays: "+str(sorted(self.static_arrays.keys())))
         static_array_specs = []
@@ -277,18 +291,18 @@ class CPPStandaloneDevice(Device):
             elif func=='set_by_array':
                 arrayname, staticarrayname, item, value = args
                 code = '''
-                for(int i=0; i<_num__static_array_{staticarrayname}; i++)
+                for(int i=0; i<_num_{staticarrayname}; i++)
                 {{
-                    {arrayname}[i] = _static_array_{staticarrayname}[i];
+                    {arrayname}[i] = {staticarrayname}[i];
                 }}
                 '''.format(arrayname=arrayname, staticarrayname=staticarrayname)
                 main_lines.extend(code.split('\n'))
             elif func=='set_array_by_array':
                 arrayname, staticarrayname_index, staticarrayname_value, item, value = args
                 code = '''
-                for(int i=0; i<_num__static_array_{staticarrayname_index}; i++)
+                for(int i=0; i<_num_{staticarrayname_index}; i++)
                 {{
-                    {arrayname}[_static_array_{staticarrayname_index}[i]] = _static_array_{staticarrayname_value}[i];
+                    {arrayname}[{staticarrayname_index}[i]] = {staticarrayname_value}[i];
                 }}
                 '''.format(arrayname=arrayname, staticarrayname_index=staticarrayname_index,
                            staticarrayname_value=staticarrayname_value)

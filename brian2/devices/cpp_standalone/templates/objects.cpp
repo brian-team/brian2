@@ -39,8 +39,8 @@ DynamicArray2D<{{dtype_spec}}> {{varname}};
 
 /////////////// static arrays /////////////
 {% for (name, dtype_spec, N, filename) in static_array_specs %}
-{{dtype_spec}} *_static_array_{{name}};
-const int _num__static_array_{{name}} = {{N}};
+{{dtype_spec}} *{{name}};
+const int _num_{{name}} = {{N}};
 {% endfor %}
 
 //////////////// synapses /////////////////
@@ -74,7 +74,7 @@ void _init_arrays()
 
 	// static arrays
 	{% for (name, dtype_spec, N, filename) in static_array_specs %}
-	_static_array_{{name}} = new {{dtype_spec}}[{{N}}];
+	{{name}} = new {{dtype_spec}}[{{N}}];
 	{% endfor %}
 
 }
@@ -86,7 +86,7 @@ void _load_arrays()
 	f{{name}}.open("static_arrays/{{name}}", ios::in | ios::binary);
 	if(f{{name}}.is_open())
 	{
-		f{{name}}.read(reinterpret_cast<char*>(_static_array_{{name}}), {{N}}*sizeof({{dtype_spec}}));
+		f{{name}}.read(reinterpret_cast<char*>({{name}}), {{N}}*sizeof({{dtype_spec}}));
 	} else
 	{
 		cout << "Error opening static array {{name}}." << endl;
@@ -141,10 +141,10 @@ void _dealloc_arrays()
 
 	// static arrays
 	{% for (name, dtype_spec, N, filename) in static_array_specs %}
-	if(_static_array_{{name}}!=0)
+	if({{name}}!=0)
 	{
-		delete [] _static_array_{{name}};
-		_static_array_{{name}} = 0;
+		delete [] {{name}};
+		{{name}} = 0;
 	}
 	{% endfor %}
 }
@@ -194,8 +194,8 @@ extern DynamicArray2D<{{dtype_spec}}> {{varname}};
 
 /////////////// static arrays /////////////
 {% for (name, dtype_spec, N, filename) in static_array_specs %}
-extern {{dtype_spec}} *_static_array_{{name}};
-extern const int _num__static_array_{{name}};
+extern {{dtype_spec}} *{{name}};
+extern const int _num_{{name}};
 {% endfor %}
 
 //////////////// synapses /////////////////
