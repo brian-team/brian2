@@ -98,13 +98,10 @@ void _write_arrays()
 {
 	{% for (varname, dtype_spec, N) in array_specs %}
 	ofstream outfile_{{varname}};
-	outfile_{{varname}}.open("results/{{varname}}.txt", ios::out);
+	outfile_{{varname}}.open("results/{{varname}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
-		for(int s=0; s<{{N}}; s++)
-		{
-			outfile_{{varname}} << {{varname}}[s] << endl;
-		}
+		outfile_{{varname}}.write(reinterpret_cast<char*>({{varname}}), {{N}}*sizeof({{varname}}[0]));
 		outfile_{{varname}}.close();
 	} else
 	{
@@ -114,13 +111,10 @@ void _write_arrays()
 
 	{% for (varname, dtype_spec) in dynamic_array_specs %}
 	ofstream outfile_{{varname}};
-	outfile_{{varname}}.open("results/{{varname}}.txt", ios::out);
+	outfile_{{varname}}.open("results/{{varname}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
-		for(int s=0; s<{{varname}}.size(); s++)
-		{
-			outfile_{{varname}} << {{varname}}[s] << endl;
-		}
+		outfile_{{varname}}.write(reinterpret_cast<char*>(&{{varname}}[0]), {{varname}}.size()*sizeof({{varname}}[0]));
 		outfile_{{varname}}.close();
 	} else
 	{

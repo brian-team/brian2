@@ -37,13 +37,10 @@
 void _write_{{codeobj_name}}()
 {
 	ofstream outfile;
-	outfile.open("results/{{codeobj_name}}_t.txt", ios::out);
+	outfile.open("results/{{codeobj_name}}_t", ios::binary | ios::out);
 	if(outfile.is_open())
 	{
-		for(int s=0; s<{{_t}}.size(); s++)
-		{
-			outfile << {{_t}}[s] << endl;
-		}
+		outfile.write(reinterpret_cast<char*>(&{{_t}}[0]), {{_t}}.size()*sizeof({{_t}}[0]));
 		outfile.close();
 	} else
 	{
@@ -55,16 +52,12 @@ void _write_{{codeobj_name}}()
 	    {%set _recorded = '_dynamic_2d' + variables['_recorded_'+_varname].arrayname %}
 	    const int _num_indices = {{_recorded}}.m;
         const int _num_times = {{_t}}.size();
-        outfile.open("results/{{codeobj_name}}_{{_varname}}.txt", ios::out);
+        outfile.open("results/{{codeobj_name}}_{{_varname}}", ios::binary | ios::out);
         if(outfile.is_open())
         {
             for (int s=0; s<_num_times; s++)
             {
-                for (int _i = 0; _i < _num_indices; _i++)
-                {
-                	outfile << {{_recorded}}(s, _i) << " ";
-                }
-                outfile << endl;
+            	outfile.write(reinterpret_cast<char*>(&{{_recorded}}(s, 0)), _num_indices*sizeof({{_recorded}}(0, 0)));
             }
             outfile.close();
         } else

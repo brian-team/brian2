@@ -15,13 +15,13 @@ basepath = '../../../examples/'
 # Uncomment the example you want to run, double commented ones don't work yet
 
 #example = 'IF_curve_Hodgkin_Huxley.py'
-#example = 'IF_curve_LIF.py'
+example = 'IF_curve_LIF.py'
 #example = 'non_reliability.py'
 #example = 'phase_locking.py'
 ##example = 'stochastic_odes.py' # too complicated
 #example = 'synapses.py'
 #example = 'synapses_gapjunctions.py'
-example = 'synapses_jeffress.py'
+#example = 'synapses_jeffress.py'
 #example = 'synapses_licklider.py'
 ##example = 'synapses_nonlinear.py' # S.w = [1., 10.] should work but doesn't
 ##example = 'synapses_spatial_connections.py' # doesn't actually run anything
@@ -42,13 +42,25 @@ def dorunit((code, standalone)):
         for k, v in ns.iteritems():
             if isinstance(v, ns['SpikeMonitor']):
                 if standalone:
-                    S = loadtxt('output/results/%s_codeobject.txt' % v.name, delimiter=',',
-                                dtype=[('i', int), ('t', float)])
-                    i = S['i']
-                    t = S['t']
+                    i = fromfile('output/results/%s_codeobject_i' % v.name, dtype=int)
+                    t = fromfile('output/results/%s_codeobject_t' % v.name, dtype=float)
                 else:
                     i, t = v.it
                 rv[k] = ('SpikeMonitor', v.name, (i, t))
+            if isinstance(v, ns['StateMonitor']):
+                if standalone:
+                    t = fromfile('output/results/%s_codeobject_t' % v.name, dtype=float)
+                    rec = {}
+                    for var in v.record_variables:
+                        vals = fromfile('output/results/%s_codeobject_%s' % (v.name, var), dtype=float)
+                        vals.shape = (t.size, -1)
+                        rec[var] = vals.T
+                else:
+                    t = v.variables['_t'].get_value().copy()
+                    rec = {}
+                    for var in v.record_variables:
+                        rec[var] = v.variables['_recorded_'+var].get_value().T.copy()
+                rv[k] = ('StateMonitor', v.name, (t, rec))
             if isinstance(v, ns['NeuronGroup']):
                 found = False
                 for var in neuron_group_variables:
@@ -57,7 +69,7 @@ def dorunit((code, standalone)):
                         break
                 if found:
                     if standalone:
-                        val = loadtxt('output/results/%s.txt' % v.variables[var].arrayname, delimiter=',', dtype=float)
+                        val = fromfile('output/results/%s' % v.variables[var].arrayname, dtype=float)
                     else:
                         val = asarray(getattr(v, var))
                     rv[k] = ('NeuronGroup', v.name+'.'+var, val)
@@ -69,7 +81,7 @@ def dorunit((code, standalone)):
                         break
                 if found:
                     if standalone:
-                        val = loadtxt('output/results/_dynamic%s.txt' % v.variables[var].arrayname, delimiter=',', dtype=float)
+                        val = fromfile('output/results/_dynamic%s' % v.variables[var].arrayname, dtype=float)
                     else:
                         val = asarray(getattr(v, var))
                     rv[k] = ('Synapses', v.name+'.'+var, val)
@@ -128,6 +140,14 @@ if __name__=='__main__':
             subplot(2, n, n+i_plot+1)
             plot(t, i, '.k')
             print '  Standalone ', len(i)
+        elif plot_type=='StateMonitor':
+            t, rec = plot_args
+            for varname, vals in rec.items():
+                plot(t, vals.T)
+            subplot(2, n, n+i_plot+1)
+            t, rec = rv_standalone[k][2]
+            for varname, vals in rec.items():
+                plot(t, vals.T)
         elif plot_type=='NeuronGroup':
             val = plot_args
             plot(val, '.')
