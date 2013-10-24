@@ -95,7 +95,7 @@ if __name__=='__main__':
             standalone_lines.append('from brian2.devices.cpp_standalone import *')
             standalone_lines.append('set_device("cpp_standalone")')
         if line.startswith('run'):
-            standalone_lines.append("build(project_dir='output', compile_project=True, run_project=True)")        
+            standalone_lines.append("build(project_dir='output', compile_project=True, run_project=True, debug=False)")        
             break
         
     standalone_code = '\n'.join(standalone_lines)

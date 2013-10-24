@@ -14,7 +14,7 @@
     // Resize the dynamic arrays
     {% for _varname in _variable_names %}
     {% set _recorded = '_dynamic_2d' + variables['_recorded_'+_varname].arrayname %}
-    {{_recorded}}.resize(_new_size, _num_indices);
+    {{_recorded}}.resize(_num_indices, _new_size);
     {% endfor %}
 
     for (int _i = 0; _i < _num_indices; _i++)
@@ -26,7 +26,7 @@
 
             {% for _varname in _variable_names %}
             {% set _recorded = '_dynamic_2d' + variables['_recorded_'+_varname].arrayname %}
-            {{_recorded}}.data[_new_size-1][_i] = _to_record_{{_varname}};
+            {{_recorded}}(_i, _new_size-1) = _to_record_{{_varname}};
             {% endfor %}
         {% endblock %}
     }
@@ -53,7 +53,7 @@ void _write_{{codeobj_name}}()
 	{% for _varname in _variable_names %}
 	{
 	    {%set _recorded = '_dynamic_2d' + variables['_recorded_'+_varname].arrayname %}
-        const int _num_indices = {{_recorded}}.data[0].size();
+	    const int _num_indices = {{_recorded}}.n;
         const int _num_times = {{_t}}.size();
         outfile.open("results/{{codeobj_name}}_{{_varname}}.txt", ios::out);
         if(outfile.is_open())
@@ -62,7 +62,7 @@ void _write_{{codeobj_name}}()
             {
                 for (int _i = 0; _i < _num_indices; _i++)
                 {
-                    outfile << {{_recorded}}(s, _i) << " ";
+                	outfile << {{_recorded}}(_i, s) << " ";
                 }
                 outfile << endl;
             }
