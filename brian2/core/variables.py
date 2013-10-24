@@ -668,9 +668,11 @@ class DynamicArrayVariable(ArrayVariable):
         to ``False``.
     '''
 
-    def __init__(self, name, unit, value, group_name=None,
+    def __init__(self, name, unit, value, dimensions, group_name=None,
                  constant=False, constant_size=True,
                  scalar=False, is_bool=False, read_only=False):
+        #: The number of dimensions
+        self.dimensions = dimensions
         if constant and not constant_size:
             raise ValueError('A variable cannot be constant and change in size')
         #: Whether the size of the variable is constant during a run.

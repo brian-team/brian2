@@ -124,7 +124,8 @@ class RuntimeDevice(Device):
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         array = DynamicArray1D(size, dtype=dtype)
-        return DynamicArrayVariable(name, unit, array, group_name=owner.name,
+        return DynamicArrayVariable(name, unit, array, dimensions=1,
+                                    group_name=owner.name,
                                     constant=constant,
                                     constant_size=constant_size,
                                     is_bool=is_bool,
@@ -138,7 +139,8 @@ class RuntimeDevice(Device):
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         array = DynamicArray(size, dtype=dtype)
-        return DynamicArrayVariable(name, unit, array, group_name=owner.name,
+        return DynamicArrayVariable(name, unit, array, dimensions=len(size),
+                                    group_name=owner.name,
                                     constant=constant,
                                     constant_size=constant_size,
                                     is_bool=is_bool,

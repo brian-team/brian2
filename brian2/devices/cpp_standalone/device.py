@@ -112,6 +112,15 @@ class StandaloneArrayVariable(ArrayVariable):
 
 class StandaloneDynamicArrayVariable(StandaloneArrayVariable):
 
+    def __init__(self, name, unit, dimensions,
+                 size, dtype, group_name=None, constant=False, is_bool=False):
+        self.dimensions = dimensions
+        super(StandaloneDynamicArrayVariable, self).__init__(name, unit,
+                                                             size=size,
+                                                             dtype=dtype,
+                                                             group_name=group_name,
+                                                             constant=constant,
+                                                             is_bool=is_bool)
     def resize(self, new_size):
         self.assignments.append(('resize', new_size))
 
@@ -197,7 +206,8 @@ class CPPStandaloneDevice(Device):
             dtype = brian_prefs['core.default_scalar_dtype']
         self.dynamic_array_specs.append(('_dynamic_array_%s_%s' % (owner.name, name),
                                          c_data_type(dtype)))
-        return StandaloneDynamicArrayVariable(name, unit, size=size,
+        return StandaloneDynamicArrayVariable(name, unit, dimensions=1,
+                                              size=size,
                                               dtype=dtype,
                                               group_name=owner.name,
                                               constant=constant, is_bool=is_bool)
@@ -214,9 +224,10 @@ class CPPStandaloneDevice(Device):
             dtype = numpy.bool
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
-        self.dynamic_array_2d_specs.append(('_dynamic_array_2d_%s_%s' % (owner.name, name),
+        self.dynamic_array_2d_specs.append(('_dynamic_2d_array_%s_%s' % (owner.name, name),
                                             c_data_type(dtype)))
-        return StandaloneDynamicArrayVariable(name, unit, size=size,
+        return StandaloneDynamicArrayVariable(name, unit, dimensions=2,
+                                              size=size,
                                               dtype=dtype,
                                               group_name=owner.name,
                                               constant=constant, is_bool=is_bool)
@@ -348,6 +359,7 @@ class CPPStandaloneDevice(Device):
                         if isinstance(v, StandaloneDynamicArrayVariable):
                             code_object_defs[codeobj.name].append('const int _num{k} = _dynamic{arrayname}.size();'.format(k=k, arrayname=v.arrayname))
                             c_type = c_data_type(v.dtype)
+
                             # Create an alias name for the underlying array
                             code = ('{c_type}* {arrayname} = '
                                     '&(_dynamic{arrayname}[0]);').format(c_type=c_type,
