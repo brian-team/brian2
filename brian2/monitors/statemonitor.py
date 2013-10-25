@@ -166,10 +166,10 @@ class StateMonitor(BrianObject):
             record = np.array([record], dtype=np.int32)
         else:
             record = np.asarray(record, dtype=np.int32)
-
+            
         #: The array of recorded indices
         self.indices = record
-
+        
         # Setup variables
         device = get_device()
         self.variables = {}
