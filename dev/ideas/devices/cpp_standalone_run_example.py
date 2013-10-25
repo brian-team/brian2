@@ -15,13 +15,13 @@ basepath = '../../../examples/'
 # Uncomment the example you want to run, double commented ones don't work yet
 
 #example = 'IF_curve_Hodgkin_Huxley.py'
-example = 'IF_curve_LIF.py'
+#example = 'IF_curve_LIF.py'
 #example = 'non_reliability.py'
 #example = 'phase_locking.py'
 ##example = 'stochastic_odes.py' # too complicated
 #example = 'synapses.py'
 #example = 'synapses_gapjunctions.py'
-#example = 'synapses_jeffress.py'
+example = 'synapses_jeffress.py'
 #example = 'synapses_licklider.py'
 ##example = 'synapses_nonlinear.py' # S.w = [1., 10.] should work but doesn't
 ##example = 'synapses_spatial_connections.py' # doesn't actually run anything
@@ -42,17 +42,17 @@ def dorunit((code, standalone)):
         for k, v in ns.iteritems():
             if isinstance(v, ns['SpikeMonitor']):
                 if standalone:
-                    i = fromfile('output/results/%s_codeobject_i' % v.name, dtype=int)
-                    t = fromfile('output/results/%s_codeobject_t' % v.name, dtype=float)
+                    i = fromfile('output/results/%s_codeobject_i' % v.name, dtype=int32)
+                    t = fromfile('output/results/%s_codeobject_t' % v.name, dtype=float64)
                 else:
                     i, t = v.it
                 rv[k] = ('SpikeMonitor', v.name, (i, t))
             if isinstance(v, ns['StateMonitor']):
                 if standalone:
-                    t = fromfile('output/results/%s_codeobject_t' % v.name, dtype=float)
+                    t = fromfile('output/results/%s_codeobject_t' % v.name, dtype=float64)
                     rec = {}
                     for var in v.record_variables:
-                        vals = fromfile('output/results/%s_codeobject_%s' % (v.name, var), dtype=float)
+                        vals = fromfile('output/results/%s_codeobject_%s' % (v.name, var), dtype=float64)
                         vals.shape = (t.size, -1)
                         rec[var] = vals.T
                 else:
@@ -69,7 +69,7 @@ def dorunit((code, standalone)):
                         break
                 if found:
                     if standalone:
-                        val = fromfile('output/results/%s' % v.variables[var].arrayname, dtype=float)
+                        val = fromfile('output/results/%s' % v.variables[var].arrayname, dtype=float64)
                     else:
                         val = asarray(getattr(v, var))
                     rv[k] = ('NeuronGroup', v.name+'.'+var, val)
@@ -81,7 +81,7 @@ def dorunit((code, standalone)):
                         break
                 if found:
                     if standalone:
-                        val = fromfile('output/results/_dynamic%s' % v.variables[var].arrayname, dtype=float)
+                        val = fromfile('output/results/_dynamic%s' % v.variables[var].arrayname, dtype=float64)
                     else:
                         val = asarray(getattr(v, var))
                     rv[k] = ('Synapses', v.name+'.'+var, val)

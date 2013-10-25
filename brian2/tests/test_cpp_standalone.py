@@ -2,11 +2,10 @@ import tempfile
 import os
 
 from nose import with_setup
-from numpy import *
+import numpy
 
 from brian2 import *
 from brian2.devices.cpp_standalone import *
-from brian2.utils.debugging import std_silent
 
 
 def restore_device():
@@ -48,11 +47,14 @@ def test_cpp_standalone(with_output=False):
     tempdir = tempfile.mkdtemp()
     build(project_dir=tempdir, compile_project=True, run_project=True,
           with_output=with_output)
-    S = loadtxt(os.path.join(tempdir, 'results', 'spikemonitor_codeobject.txt'), delimiter=',',
-                dtype=[('i', int), ('t', float)])
-    i = S['i']
-    t = S['t']*second
+    i = numpy.fromfile(os.path.join(tempdir, 'results', 'spikemonitor_codeobject_i'),
+                       dtype=numpy.int32)
+    t = numpy.fromfile(os.path.join(tempdir, 'results', 'spikemonitor_codeobject_t'),
+                       dtype=numpy.float64)
     assert len(i)==17741
+    assert len(t)==17741
+    assert t[0] == 0.
+    assert t[-1] == float(100*ms - defaultclock.dt)
     
 if __name__=='__main__':
     # Print the debug output when testing this file only but not when running
