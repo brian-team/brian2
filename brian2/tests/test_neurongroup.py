@@ -51,9 +51,14 @@ def test_variables():
     '''
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1')
     assert 'v' in G.variables and 't' in G.variables and 'dt' in G.variables
-    
+    assert 'not_refractory' not in G.variables and 'lastspike' not in G.variables
+
     G = NeuronGroup(1, 'dv/dt = -v/tau + xi*tau**-0.5: 1')
     assert not 'tau' in G.variables and 'xi' in G.variables
+
+    # NeuronGroup with refractoriness
+    G = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1', refractory=5*ms)
+    assert 'not_refractory' in G.variables and 'lastspike' in G.variables
 
 
 def test_stochastic_variable():

@@ -58,28 +58,16 @@ class PoissonGroup(Group, SpikeSource):
                                                                  '_spikespace',
                                                                  size=N+1,
                                                                  unit=1,
-                                                                 dtype=np.int32),
-                               'not_refractory': get_device().array(self,
-                                                                    '_not_refractory',
-                                                                    N, 1,
-                                                                    dtype=np.bool),
-                               'lastspike': get_device().array(self,
-                                                               '_lastspike',
-                                                               N, 1)})
+                                                                 dtype=np.int32)})
         self.start = 0
         self.stop = N
         self.namespace = create_namespace(None)
 
         self.threshold = 'rand() < rates * dt'
+        self._refractory = False
         self.thresholder = Thresholder(self)
         self.contained_objects.append(self.thresholder)
 
-        # This is quite inefficient, we need a state updater to reset
-        # not_refractory after every time step
-        self.equations = Equations([])
-        self._refractory = False
-        self.state_updater = StateUpdater(self, method='independent')
-        self.contained_objects.append(self.state_updater)
         self._enable_group_attributes()
 
         # Set the rates according to the argument
