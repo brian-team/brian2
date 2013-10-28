@@ -1,46 +1,13 @@
-////////////////////////////////////////////////////////////////////////////
-//// MAIN CODE /////////////////////////////////////////////////////////////
+{% extends 'common_synapses.cpp' %}
 
-{% macro cpp_file() %}
-
-// USES_VARIABLES { _synaptic_pre, _synaptic_post, _post_synaptic,
-//                  _pre_synaptic, rand}
-
-#include "code_objects/{{codeobj_name}}.h"
-#include<math.h>
-#include<stdint.h>
-#include "brianlib/common_math.h"
-#include "brianlib/synapses.h"
-
-////// SUPPORT CODE ///////
-namespace {
-	{% for line in support_code_lines %}
-	{{line}}
-	{% endfor %}
-}
-
-////// HASH DEFINES ///////
-{% for line in hashdefine_lines %}
-{{line}}
-{% endfor %}
-
-{% if variables is defined %}
-{% set synpre = '_dynamic'+variables['_synaptic_pre'].arrayname %}
-{% set synpost = '_dynamic'+variables['_synaptic_post'].arrayname %}
-{% set synobj = owner.name %}
-{% endif %}
-
-// {{synobj}}
-
-void _run_{{codeobj_name}}(double t)
-{
-	///// CONSTANTS ///////////
-	%CONSTANTS%
-	///// POINTERS ////////////
-	{% for line in pointers_lines %}
-	{{line}}
-	{% endfor %}
-
+{% block maincode %}
+	// USES_VARIABLES { _synaptic_pre, _synaptic_post, _post_synaptic,
+	//                  _pre_synaptic, rand}
+	{% if variables is defined %}
+	{% set synpre = '_dynamic'+variables['_synaptic_pre'].arrayname %}
+	{% set synpost = '_dynamic'+variables['_synaptic_post'].arrayname %}
+	{% set synobj = owner.name %}
+	{% endif %}
 	int _synapse_idx = {{synpre}}.size();
 	for(int i=0; i<_num_all_pre; i++)
 	{
@@ -81,19 +48,4 @@ void _run_{{codeobj_name}}(double t)
 	// Also update the total number of synapses
 	{{owner.name}}._N = newsize;
 	{% endif %}
-}
-{% endmacro %}
-
-////////////////////////////////////////////////////////////////////////////
-//// HEADER FILE ///////////////////////////////////////////////////////////
-
-{% macro h_file() %}
-#ifndef _INCLUDED_{{codeobj_name}}
-#define _INCLUDED_{{codeobj_name}}
-
-#include "objects.h"
-
-void _run_{{codeobj_name}}(double t);
-
-#endif
-{% endmacro %}
+{% endblock %}

@@ -21,6 +21,7 @@ def test_construction_errors():
 
     # Dynamic array variable that is constant but not constant in size
     assert_raises(ValueError, lambda: DynamicArrayVariable('name', Unit(1),
+                                                           dimensions=1,
                                                            value=None,
                                                            constant=True,
                                                            constant_size=False))
@@ -36,7 +37,7 @@ def test_str_repr():
                  AttributeVariable(second, group, 'name'),
                  ArrayVariable('name', second,
                                value=None, group_name=group.name),
-                 DynamicArrayVariable('name', second,
+                 DynamicArrayVariable('name', second, dimensions=1,
                                       value=None, group_name=group.name),
                  Subexpression('sub', second, expr='a+b', group=group)]
     for var in variables:

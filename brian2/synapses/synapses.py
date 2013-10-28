@@ -277,7 +277,7 @@ def slice_to_test(x):
     if isinstance(x,int):
         return lambda y: (y == x)
     elif isinstance(x, slice):
-        if x == slice(None):
+        if isinstance(x, slice) and x == slice(None):
             # No need for testing
             return lambda y: np.repeat(True, len(y))
         start, stop, step = x.start, x.stop, x.step
@@ -997,7 +997,7 @@ class Synapses(Group):
             matching_synapses = np.intersect1d(pre_synapses, post_synapses,
                                                assume_unique=True)
 
-            if K == slice(None):
+            if isinstance(K, slice) and K == slice(None):
                 return matching_synapses
             elif isinstance(K, (int, slice)):
                 test_k = slice_to_test(K)

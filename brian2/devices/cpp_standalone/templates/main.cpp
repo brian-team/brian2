@@ -14,6 +14,7 @@ int main(void)
 {
 	clock_t start = clock();
 	_init_arrays();
+	_load_arrays();
 	srand((unsigned int)time(NULL));
 	const double dt = {{dt}};
 	double t = 0.0;

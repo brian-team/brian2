@@ -9,3 +9,5 @@ User's guide
    refractoriness
    synapses
    functions
+   devices
+   

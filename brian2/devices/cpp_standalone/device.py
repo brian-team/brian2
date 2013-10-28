@@ -9,12 +9,13 @@ from collections import defaultdict
 import weakref
 
 from brian2.core.clocks import defaultclock
+from brian2.core.magic import magic_network
 from brian2.core.network import Network as OrigNetwork
 from brian2.core.namespace import get_local_namespace
 from brian2.devices.device import Device, all_devices
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import *
-from brian2.synapses.synapses import Synapses as OrigSynapses
+from brian2.synapses.synapses import Synapses
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.languages.cpp_lang import c_data_type
@@ -24,13 +25,16 @@ from brian2.units.fundamentalunits import (Quantity, Unit, is_scalar_type,
                                            have_same_dimensions,
                                            )
 from brian2.units import second
+from brian2.utils.logger import get_logger
 
 from .codeobject import CPPStandaloneCodeObject
 
 
-__all__ = ['build', 'Network', 'run', 'reinit', 'stop',
-           'Synapses',
+__all__ = ['build', 'Network', 'run', 'stop',
+           'insert_code_into_main',
            ]
+
+logger = get_logger(__name__)
 
 def freeze(code, ns):
     # this is a bit of a hack, it should be passed to the template somehow
@@ -50,8 +54,24 @@ class StandaloneVariableView(VariableView):
 
     # Overwrite methods to signal that they are not available for standalone
     def set_array_with_array_index(self, item, value):
-        raise NotImplementedError(('Cannot set variables this way in'
-                                   'standalone, try using string expressions.'))
+        if isinstance(item, list):
+            item = numpy.array(item)
+        if isinstance(value, list):
+            value = numpy.array(value)
+        if isinstance(item, slice) and item==slice(None) and isinstance(value, numpy.ndarray):
+            arrayname = self.group.variables[self.name].arrayname
+            staticarrayname = cpp_standalone_device.static_array(arrayname, value)
+            cpp_standalone_device.main_queue.append(('set_by_array', (arrayname, staticarrayname, item, value)))
+        elif isinstance(item, numpy.ndarray) and isinstance(value, numpy.ndarray):
+            arrayname = self.group.variables[self.name].arrayname
+            staticarrayname_index = cpp_standalone_device.static_array('_index_'+arrayname, item)
+            staticarrayname_value = cpp_standalone_device.static_array('_value_'+arrayname, value)
+            cpp_standalone_device.main_queue.append(('set_array_by_array', (arrayname, staticarrayname_index,
+                                                                            staticarrayname_value, item, value)))
+        else:
+            raise NotImplementedError(('Cannot set variable "%s" this way in '
+                                       'standalone, try using string '
+                                       'expressions.') % self.name)
 
     def __getitem__(self, item):
         raise NotImplementedError()
@@ -73,7 +93,8 @@ class StandaloneArrayVariable(ArrayVariable):
         return self.size
 
     def get_value(self):
-        raise NotImplementedError()
+        raise NotImplementedError('Getting value for variable %s is not '
+                                  'supported in standalone.' % self.name)
 
     def set_value(self, value, index=None):
         if index is None:
@@ -91,41 +112,94 @@ class StandaloneArrayVariable(ArrayVariable):
 
 class StandaloneDynamicArrayVariable(StandaloneArrayVariable):
 
+    def __init__(self, name, unit, dimensions,
+                 size, dtype, group_name=None, constant=False, is_bool=False):
+        self.dimensions = dimensions
+        super(StandaloneDynamicArrayVariable, self).__init__(name, unit,
+                                                             size=size,
+                                                             dtype=dtype,
+                                                             group_name=group_name,
+                                                             constant=constant,
+                                                             is_bool=is_bool)
     def resize(self, new_size):
         self.assignments.append(('resize', new_size))
 
-
+        
 class CPPStandaloneDevice(Device):
     '''
+    The `Device` used for C++ standalone simulations.
     '''
     def __init__(self):
         #: List of all regular arrays with their type and size
         self.array_specs = []
         #: List of all dynamic arrays with their type
         self.dynamic_array_specs = []
+        #: List of all 2d dynamic arrays with their type
+        self.dynamic_array_2d_specs = []
         #: List of all arrays to be filled with zeros (with type and size)
         self.zero_specs = []
         #: List of all arrays to be filled with numbers (with type, size,
         #: start, and stop)
         self.arange_specs = []
+        
+        #: Dict of all static saved arrays
+        self.static_arrays = {}
+        
         self.code_objects = {}
         self.main_queue = []
         
         self.synapses = []
         
-    def array(self, owner, name, size, unit, dtype=None, constant=False,
+        self.clocks = set([])
+        
+    def reinit(self):
+        self.__init__()
+
+    def insert_device_code(self, slot, code):
+        '''
+        Insert code directly into main.cpp
+        '''
+        if slot=='main.cpp':
+            self.main_queue.append(('insert_code', code))
+        else:
+            logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
+            
+    def static_array(self, name, arr):
+        name = '_static_array_' + name
+        basename = name
+        i = 0
+        while name in self.static_arrays:
+            i += 1
+            name = basename+'_'+str(i)
+        self.static_arrays[name] = arr.copy()
+        return name
+        
+    def array(self, owner, name, size, unit, value=None, dtype=None, constant=False,
               is_bool=False, read_only=False):
         if is_bool:
             dtype = numpy.bool
+        elif value is not None:
+            dtype = value.dtype
         elif dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         self.array_specs.append(('_array_%s_%s' % (owner.name, name),
                                  c_data_type(dtype), size))
         self.zero_specs.append(('_array_%s_%s' % (owner.name, name),
                                 c_data_type(dtype), size))
-        return StandaloneArrayVariable(name, unit, size=size, dtype=dtype,
-                                       group_name=owner.name,
-                                       constant=constant, is_bool=is_bool)
+
+        var = StandaloneArrayVariable(name, unit, size=size, dtype=dtype,
+                                      group_name=owner.name,
+                                      constant=constant, is_bool=is_bool)
+
+        if value is not None:
+            arrayname = var.arrayname
+            staticarrayname = self.static_array(arrayname, value)
+            self.main_queue.append(('set_by_array', (arrayname,
+                                                     staticarrayname,
+                                                     slice(None),
+                                                     value)))
+        return var
+
 
     def arange(self, owner, name, size, start=0, dtype=numpy.int32, constant=True,
                read_only=True):
@@ -146,7 +220,28 @@ class CPPStandaloneDevice(Device):
             dtype = brian_prefs['core.default_scalar_dtype']
         self.dynamic_array_specs.append(('_dynamic_array_%s_%s' % (owner.name, name),
                                          c_data_type(dtype)))
-        return StandaloneDynamicArrayVariable(name, unit, size=size,
+        return StandaloneDynamicArrayVariable(name, unit, dimensions=1,
+                                              size=size,
+                                              dtype=dtype,
+                                              group_name=owner.name,
+                                              constant=constant, is_bool=is_bool)
+        
+    def dynamic_array(self, owner, name, size, unit, dtype=None,
+                      constant=False, constant_size=True, is_bool=False,
+                      read_only=False):
+        if isinstance(size, int):
+            return self.dynamic_array_1d(owner, name, size, unit, dtype=dtype, constant=constant,
+                                         constant_size=constant_size, is_bool=is_bool, read_only=read_only)
+        if not isinstance(size, tuple) or not len(size)==2:
+            raise NotImplementedError("Only 1D and 2D dynamic arrays are implemented for C++ standalone.")
+        if is_bool:
+            dtype = numpy.bool
+        if dtype is None:
+            dtype = brian_prefs['core.default_scalar_dtype']
+        self.dynamic_array_2d_specs.append(('_dynamic_2d_array_%s_%s' % (owner.name, name),
+                                            c_data_type(dtype)))
+        return StandaloneDynamicArrayVariable(name, unit, dimensions=2,
+                                              size=size,
                                               dtype=dtype,
                                               group_name=owner.name,
                                               constant=constant, is_bool=is_bool)
@@ -169,17 +264,44 @@ class CPPStandaloneDevice(Device):
     def build(self, project_dir='output', compile_project=True, run_project=False, debug=True,
               with_output=True):
         ensure_directory(project_dir)
-        for d in ['code_objects', 'results']:
+        for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(project_dir, d))
+            
+        logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
 
-        # Write the arrays
+        # Find numpy arrays in the namespaces and convert them into static
+        # arrays. Hopefully they are correctly used in the code: For example,
+        # this works for the namespaces for functions with C++ (e.g. TimedArray
+        # treats it as a C array) but does not work in places that are
+        # implicitly vectorized (state updaters, resets, etc.). But arrays
+        # shouldn't be used there anyway.
+        for code_object in self.code_objects.itervalues():
+            for name, value in code_object.namespace.iteritems():
+                if isinstance(value, numpy.ndarray):
+                    self.static_arrays[name] = value
+
+        # write the static arrays
+        logger.debug("static arrays: "+str(sorted(self.static_arrays.keys())))
+        static_array_specs = []
+        for name, arr in self.static_arrays.iteritems():
+            arr.tofile(os.path.join(project_dir, 'static_arrays', name))
+            static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
+
+        # Write the global objects
+        networks = [net() for net in Network.__instances__() if net().name!='_fake_network']
+        synapses = [S() for S in Synapses.__instances__()]
         arr_tmp = CPPStandaloneCodeObject.templater.objects(None,
                                                             array_specs=self.array_specs,
                                                             dynamic_array_specs=self.dynamic_array_specs,
+                                                            dynamic_array_2d_specs=self.dynamic_array_2d_specs,
                                                             zero_specs=self.zero_specs,
                                                             arange_specs=self.arange_specs,
-                                                            synapses=self.synapses,
+                                                            synapses=synapses,
+                                                            clocks=self.clocks,
+                                                            static_array_specs=static_array_specs,
+                                                            networks=networks,
                                                             )
+        logger.debug("objects: "+str(arr_tmp))
         open(os.path.join(project_dir, 'objects.cpp'), 'w').write(arr_tmp.cpp_file)
         open(os.path.join(project_dir, 'objects.h'), 'w').write(arr_tmp.h_file)
 
@@ -189,30 +311,29 @@ class CPPStandaloneDevice(Device):
                 codeobj, = args
                 main_lines.append('_run_%s(t);' % codeobj.name)
             elif func=='run_network':
-                net, duration, namespace = args
-                net._prepare_for_device(namespace)
-                # Extract all the CodeObjects
-                # Note that since we ran the Network object, these CodeObjects will be sorted into the right
-                # running order, assuming that there is only one clock
-                updaters = []
-                for obj in net.objects:
-                    for updater in obj.updaters:
-                        updaters.append(updater)
-                
-                # Generate the updaters
-                run_lines = []
-                for updater in updaters:
-                    cls = updater.__class__
-                    if cls is CodeObjectUpdater:
-                        codeobj = updater.owner
-                        run_lines.append('_run_%s(t);' % codeobj.name)
-                    else:
-                        raise NotImplementedError("C++ standalone device has not implemented "+cls.__name__)
-                    
-                # Generate the main lines
-                num_steps = int(duration/defaultclock.dt)
-                netcode = CPPStandaloneCodeObject.templater.network(None, run_lines=run_lines, num_steps=num_steps)
-                main_lines.extend(netcode.split('\n'))
+                net, netcode = args
+                main_lines.extend(netcode)
+            elif func=='set_by_array':
+                arrayname, staticarrayname, item, value = args
+                code = '''
+                for(int i=0; i<_num_{staticarrayname}; i++)
+                {{
+                    {arrayname}[i] = {staticarrayname}[i];
+                }}
+                '''.format(arrayname=arrayname, staticarrayname=staticarrayname)
+                main_lines.extend(code.split('\n'))
+            elif func=='set_array_by_array':
+                arrayname, staticarrayname_index, staticarrayname_value, item, value = args
+                code = '''
+                for(int i=0; i<_num_{staticarrayname_index}; i++)
+                {{
+                    {arrayname}[{staticarrayname_index}[i]] = {staticarrayname_value}[i];
+                }}
+                '''.format(arrayname=arrayname, staticarrayname_index=staticarrayname_index,
+                           staticarrayname_value=staticarrayname_value)
+                main_lines.extend(code.split('\n'))
+            elif func=='insert_code':
+                main_lines.append(args)
             else:
                 raise NotImplementedError("Unknown main queue function type "+func)
 
@@ -249,9 +370,10 @@ class CPPStandaloneDevice(Device):
                     if hasattr(v, 'arrayname') and v.arrayname in already_deffed[codeobj.name]:
                         continue
                     try:
-                        if isinstance(v, StandaloneDynamicArrayVariable):
+                        if isinstance(v, StandaloneDynamicArrayVariable) and v.dimensions==1:
                             code_object_defs[codeobj.name].append('const int _num{k} = _dynamic{arrayname}.size();'.format(k=k, arrayname=v.arrayname))
                             c_type = c_data_type(v.dtype)
+
                             # Create an alias name for the underlying array
                             code = ('{c_type}* {arrayname} = '
                                     '&(_dynamic{arrayname}[0]);').format(c_type=c_type,
@@ -283,6 +405,7 @@ class CPPStandaloneDevice(Device):
                                                           code_objects=self.code_objects.values(),
                                                           dt=float(defaultclock.dt),
                                                           )
+        logger.debug("main: "+str(main_tmp))
         open(os.path.join(project_dir, 'main.cpp'), 'w').write(main_tmp)
 
         # Copy the brianlibdirectory
@@ -294,9 +417,9 @@ class CPPStandaloneDevice(Device):
         if compile_project:
             with in_directory(project_dir):
                 if debug:
-                    x = os.system('g++ -I. -g *.cpp code_objects/*.cpp -o main')
+                    x = os.system('g++ -I. -g *.cpp code_objects/*.cpp brianlib/*.cpp -o main')
                 else:
-                    x = os.system('g++ -I. -O3 -ffast-math -march=native *.cpp code_objects/*.cpp -o main')
+                    x = os.system('g++ -I. -O3 -ffast-math -march=native *.cpp code_objects/*.cpp brianlib/*.cpp -o main')
                 if x==0:
                     if run_project:
                         if not with_output:
@@ -322,21 +445,51 @@ build = cpp_standalone_device.build
     
 class Network(OrigNetwork):
     def run(self, duration, report=None, report_period=60*second,
-            namespace=None, level=0):
-        if namespace is None:
-            namespace = get_local_namespace(1 + level)
-        cpp_standalone_device.main_queue.append(('run_network', (self, duration, namespace)))
+            namespace=None, level=0, _magic_network=None):
         
-    def _prepare_for_device(self, namespace):
-        OrigNetwork.run(self, 0*second, namespace=namespace)
+        if _magic_network is not None:
+            self = _magic_network
+            
+        if namespace is not None:
+            self.before_run(('explicit-run-namespace', namespace))
+        else:
+            namespace = get_local_namespace(1 + level)
+            self.before_run(('implicit-run-namespace', namespace))
+            
+        cpp_standalone_device.clocks.update(self._clocks)
+            
+        # Extract all the CodeObjects
+        # Note that since we ran the Network object, these CodeObjects will be sorted into the right
+        # running order, assuming that there is only one clock
+        updaters = []
+        for obj in self.objects:
+            for updater in obj.updaters:
+                updaters.append((obj.clock, updater))
+        
+        # Generate the updaters
+        run_lines = ['{self.name}.clear();'.format(self=self)]
+        for clock, updater in updaters:
+            cls = updater.__class__
+            if cls is CodeObjectUpdater:
+                codeobj = updater.owner
+                run_lines.append('{self.name}.add(&{clock.name}, _run_{codeobj.name});'.format(clock=clock, self=self,
+                                                                                               codeobj=codeobj));
+            else:
+                raise NotImplementedError("C++ standalone device has not implemented "+cls.__name__)
+        run_lines.append('{self.name}.run({duration});'.format(self=self, duration=float(duration)))
+        cpp_standalone_device.main_queue.append(('run_network', (self, run_lines)))
+
+    def __repr__(self):
+        return '<Network for C++ standalone>'
+
+
+#: `Network` object that is "run" in standalone
+fake_network = Network(name='_fake_network')
 
 def run(*args, **kwds):
-    raise NotImplementedError("Magic networks not implemented for C++ standalone")
-stop = run
-reinit = run
-
-
-class Synapses(OrigSynapses):
-    def __init__(self, *args, **kwds):
-        OrigSynapses.__init__(self, *args, **kwds)
-        cpp_standalone_device.synapses.append(weakref.proxy(self))
+    kwds['_magic_network'] = magic_network
+    kwds['level'] = kwds.pop('level', 0)+1
+    fake_network.run(*args, **kwds)
+    
+def stop(*args, **kwds):
+    raise NotImplementedError("stop() function not supported in standalone mode")

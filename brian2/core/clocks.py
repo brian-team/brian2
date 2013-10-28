@@ -41,11 +41,14 @@ class Clock(Nameable):
     
     @check_units(dt=second)
     def __init__(self, dt=0.1*msecond, name='clock*'):
+        self._force_reinit(dt=dt)
+        Nameable.__init__(self, name=name)
+        logger.debug("Created clock {self.name} with dt={self._dt}".format(self=self))
+        
+    def _force_reinit(self, dt=0.1*msecond):
         self._dt = float(dt)
         self.i = 0  #: The time step of the simulation as an integer.
         self.i_end = 0  #: The time step the simulation will end as an integer
-        Nameable.__init__(self, name=name)
-        logger.debug("Created clock {self.name} with dt={self._dt}".format(self=self))
 
     def reinit(self):
         '''

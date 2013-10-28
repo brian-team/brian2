@@ -46,8 +46,9 @@ public:
 
 	void push(int *spikes, int nspikes)
 	{
-		// TODO: handle offsets for subgroups
-		for(int idx_spike=0; idx_spike<nspikes; idx_spike++)
+		int start = lower_bound(spikes, spikes+nspikes, path.spikes_start)-spikes;
+		int stop = upper_bound(spikes, spikes+nspikes, path.spikes_stop)-spikes;
+		for(int idx_spike=start; idx_spike<stop; idx_spike++)
 		{
 			int idx_neuron = spikes[idx_spike];
 			vector<int> &cur_indices = path.indices[idx_neuron];
@@ -83,13 +84,15 @@ class SynapticPathway
 {
 public:
 	int Nsource, Ntarget;
+	int spikes_start, spikes_stop;
 	vector<scalar>& delay;
 	vector< vector<int> > &indices;
 	scalar dt;
 	SpikeQueue<scalar> *queue;
 	SynapticPathway(int _Nsource, int _Ntarget, vector<scalar>& _delay, vector< vector<int> > &_indices,
-					scalar _dt)
-		: Nsource(_Nsource), Ntarget(_Ntarget), delay(_delay), indices(_indices), dt(_dt)
+					scalar _dt, int _spikes_start, int _spikes_stop)
+		: Nsource(_Nsource), Ntarget(_Ntarget), delay(_delay), indices(_indices), dt(_dt),
+		  spikes_start(_spikes_start), spikes_stop(_spikes_stop)
 	{
 		this->queue = new SpikeQueue<scalar>(*this, dt);
 	};

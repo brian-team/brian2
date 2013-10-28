@@ -19,7 +19,7 @@ syn.connect('i == j', p=0.75)
 
 # Set the delays
 syn.delay[:] = '1*ms + i * ms + 0.25*randn()*ms'
-print 'delays:', syn.delay[:]
+#print 'delays:', syn.delay[:]
 # Set the initial values of the synaptic variable
 syn.w[:] = 1
 

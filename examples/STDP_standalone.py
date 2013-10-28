@@ -1,22 +1,18 @@
-from numpy import *
+#!/usr/bin/env python
+'''
+Spike-timing dependent plasticity
+Adapted from Song, Miller and Abbott (2000) and Song and Abbott (2001)
+
+This example is modified from ``synapses_STDP.py`` and writes a standalone C++ project in the directory
+``STDP_standalone``.
+'''
 from brian2 import *
-
-standalone_mode = True
-plot_results = True
-duration = 100*second
-
+from brian2.devices.cpp_standalone import *
 import matplotlib.pyplot as plt
+import numpy
 from time import time
-import shutil, os
 
-if standalone_mode:
-    from brian2.devices.cpp_standalone import *
-    set_device('cpp_standalone')
-else:
-    brian_prefs['codegen.target'] = 'weave'
-    #brian_prefs['codegen.target'] = 'numpy'
-
-start = time()
+set_device('cpp_standalone')
 
 N = 1000
 taum = 10 * ms
@@ -52,26 +48,14 @@ S = Synapses(input, neurons,
                      w=clip(w+Apre,0,gmax)''',
              connect=True,
              )
-
 S.w='rand()*gmax'
+start_time = time()
+run(100 * second)
+build(project_dir='STDP_standalone', compile_project=True, run_project=True, debug=False)
+w = numpy.fromfile('STDP_standalone/results/_dynamic_array_synapses_w', dtype=numpy.float64)
 
-
-net = Network(input, neurons, S)
-
-net.run(duration)
-
-if standalone_mode:
-    if os.path.exists('output'):
-        shutil.rmtree('output')
-    build(project_dir='output', compile_project=True, run_project=True, debug=False)
-    w = loadtxt('output/results/_dynamic_array_synapses_w.txt')
-else:
-    print 'Simulation time:', time()-start
-    w = S.w[:]
-
-if plot_results:
-    plt.subplot(211)
-    plt.plot(w / gmax, '.')
-    plt.subplot(212)
-    plt.hist(w / gmax, 20)
-    plt.show()
+plt.subplot(211)
+plt.plot(w / gmax, '.')
+plt.subplot(212)
+plt.hist(w / gmax, 20)
+plt.show()

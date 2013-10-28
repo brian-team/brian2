@@ -12,7 +12,7 @@ from brian2.parsing.rendering import CPPNodeRenderer
 from brian2.core.functions import (Function, FunctionImplementation,
                                    DEFAULT_FUNCTIONS)
 from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.core.variables import ArrayVariable
+from brian2.core.variables import ArrayVariable, DynamicArrayVariable
 
 from .base import Language
 
@@ -202,6 +202,8 @@ class CPPLanguage(Language):
             if isinstance(var, ArrayVariable):
                 arrayname = var.arrayname
                 if not arrayname in arraynames:
+                    if getattr(var, 'dimensions', 1) > 1:
+                        continue  # multidimensional (dynamic) arrays have to be treated differently
                     line = self.c_data_type(var.dtype) + ' * ' + self.restrict + '_ptr' + arrayname + ' = ' + arrayname + ';'
                     lines.append(line)
                     arraynames.add(arrayname)

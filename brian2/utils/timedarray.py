@@ -83,9 +83,9 @@ class TimedArray(Function, Nameable):
                      '_%s_num_values' % self.name: len(self.values),
                      '_%s_values' % self.name: self.values}
 
-        add_implementations(self, codes={'weave': code},
-                            namespaces={'weave': namespace},
-                            names={'weave': self.name})
+        add_implementations(self, codes={'cpp': code},
+                            namespaces={'cpp': namespace},
+                            names={'cpp': self.name})
 
         # Since the function does not internally use any units, always discard
         # the units

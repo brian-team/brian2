@@ -37,27 +37,32 @@ distance : second # distance to the centre of the head in time units
 dtheta/dt = angular_speed : radian
 '''
 ears = NeuronGroup(2, model=eqs_ears, threshold='x>1',
-                   reset='x=0', refractory=2.5 * ms)
+                   reset='x=0', refractory=2.5 * ms, name='ears')
 ears.distance = [-.5 * max_delay, .5 * max_delay]
 traces = StateMonitor(ears, 'delay', record=True)
 # Coincidence detectors
-N = 300
+num_neurons = 30
 tau = 1 * ms
 sigma = .1
 eqs_neurons = '''
 dv/dt=-v/tau+sigma*(2./tau)**.5*xi : 1
 '''
-neurons = NeuronGroup(N, model=eqs_neurons, threshold='v>1', reset='v=0')
+neurons = NeuronGroup(num_neurons, model=eqs_neurons, threshold='v>1',
+                      reset='v=0', name='neurons')
 
 synapses = Synapses(ears, neurons, model='w:1', pre='v+=w')
 synapses.connect(True)
 synapses.w=.5
-synapses.delay[0, :] = np.linspace(0 * ms, 1.1 * max_delay, N)
-synapses.delay[1, :] = np.linspace(0 * ms, 1.1 * max_delay, N)[::-1]
+
+synapses.delay['i==0'] = '(1.0*j)/(num_neurons-1)*1.1*max_delay'
+synapses.delay['i==1'] = '(1.0*(num_neurons-j-1))/(num_neurons-1)*1.1*max_delay'
+# This could be also formulated like this (but then it wouldn't work with
+# standalone at the moment)
+#synapses.delay[0, :] = np.linspace(0 * ms, 1.1 * max_delay, num_neurons)
+#synapses.delay[1, :] = np.linspace(0 * ms, 1.1 * max_delay, num_neurons)[::-1]
 
 spikes = SpikeMonitor(neurons)
 
-run(0*ms)
 t1 = time()
 run(1000 * ms)
 t2 = time()

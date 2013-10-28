@@ -3,7 +3,7 @@ plot_results = True
 
 from pylab import *
 from brian2 import *
-import shutil
+import shutil, os
 
 if standalone_mode:
     from brian2.devices.cpp_standalone import *
@@ -50,7 +50,8 @@ net = Network(receptors, neurons, synapses, spikes)
 net.run(500 * ms)
 
 if standalone_mode:
-    shutil.rmtree('output')
+    if os.path.exists('output'):
+        shutil.rmtree('output')
     build(project_dir='output', compile_project=True, run_project=True, debug=False)
     S = loadtxt('output/results/spikemonitor_codeobject.txt', delimiter=',',
                 dtype=[('i', int), ('t', float)])

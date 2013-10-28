@@ -11,11 +11,15 @@ from brian2.codegen.targets import codegen_targets
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import ArrayVariable, DynamicArrayVariable
 from brian2.units.fundamentalunits import Unit
+from brian2.utils.logger import get_logger
 
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
            'all_devices',
+           'insert_device_code',
            ]
+
+logger = get_logger(__name__)
 
 all_devices = {}
 
@@ -44,7 +48,7 @@ class Device(object):
     def __init__(self):
         pass
     
-    def array(self, owner, name, size, unit, dtype=None, constant=False,
+    def array(self, owner, name, size, unit, value=None, dtype=None, constant=False,
               is_bool=False, read_only=False):
         raise NotImplementedError()
 
@@ -81,6 +85,12 @@ class Device(object):
         '''
         pass
 
+    def insert_device_code(self, slot, code):
+        '''
+        Insert code directly into a given slot in the device. By default does nothing.
+        '''
+        logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
+    
     
 class RuntimeDevice(Device):
     '''
@@ -88,14 +98,17 @@ class RuntimeDevice(Device):
     def __init__(self):
         super(Device, self).__init__()
 
-    def array(self, owner, name, size, unit, dtype=None,
+    def array(self, owner, name, size, unit, value=None, dtype=None,
               constant=False, is_bool=False, read_only=False):
         if is_bool:
             dtype = np.bool
+        elif value is not None:
+            dtype = value.dtype
         elif dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
-        array = np.zeros(size, dtype=dtype)
-        return ArrayVariable(name, unit, array, group_name=owner.name,
+        if value is None:
+            value = np.zeros(size, dtype=dtype)
+        return ArrayVariable(name, unit, value, group_name=owner.name,
                              constant=constant, is_bool=is_bool,
                              read_only=read_only)
 
@@ -114,7 +127,8 @@ class RuntimeDevice(Device):
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         array = DynamicArray1D(size, dtype=dtype)
-        return DynamicArrayVariable(name, unit, array, group_name=owner.name,
+        return DynamicArrayVariable(name, unit, array, dimensions=1,
+                                    group_name=owner.name,
                                     constant=constant,
                                     constant_size=constant_size,
                                     is_bool=is_bool,
@@ -128,7 +142,8 @@ class RuntimeDevice(Device):
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         array = DynamicArray(size, dtype=dtype)
-        return DynamicArrayVariable(name, unit, array, group_name=owner.name,
+        return DynamicArrayVariable(name, unit, array, dimensions=len(size),
+                                    group_name=owner.name,
                                     constant=constant,
                                     constant_size=constant_size,
                                     is_bool=is_bool,
@@ -158,3 +173,12 @@ def set_device(device):
     current_device = device
     current_device.activate()
 
+
+def insert_device_code(slot, code):
+    '''
+    Inserts the given set of code into the slot defined by the device.
+    
+    The behaviour of this function is device dependent. The runtime device ignores it (useful for debugging).
+    '''
+    get_device().insert_device_code(slot, code)
+    

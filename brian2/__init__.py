@@ -66,7 +66,7 @@ from brian2.core.namespace import *
 from brian2.groups import *
 from brian2.synapses import *
 from brian2.monitors import *
-from brian2.devices import set_device, get_device
+from brian2.devices import set_device, get_device, insert_device_code
 
 # preferences
 from brian2.core.core_preferences import *
@@ -84,7 +84,7 @@ def restore_initial_state():
     '''
     if hasattr(defaultclock, '_dt'):
         del defaultclock._dt
-    defaultclock.__init__()
+    defaultclock._force_reinit()
     clear(erase=True)
     brian_prefs._restore()
 

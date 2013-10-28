@@ -351,8 +351,8 @@ class VariableView(object):
         '''
         variable = self.variable
         if variable.scalar:
-            if not (item == slice(None) or item == 0 or (hasattr(item, '__len__')
-                                                         and len(item) == 0)):
+            if not ((isinstance(item, slice) and item == slice(None)) or item == 0 or (hasattr(item, '__len__')
+                                                                                           and len(item) == 0)):
                 raise IndexError('Variable is a scalar variable.')
             indices = np.array([0])
         else:
@@ -449,7 +449,7 @@ class VariableView(object):
         if self.variable.read_only:
             raise TypeError('Variable %s is read-only.' % self.name)
 
-        if item == slice(None):
+        if isinstance(item, slice) and item == slice(None):
             item = 'True'
 
         # Both index and values are strings, use a single code object do deal
@@ -668,9 +668,11 @@ class DynamicArrayVariable(ArrayVariable):
         to ``False``.
     '''
 
-    def __init__(self, name, unit, value, group_name=None,
+    def __init__(self, name, unit, value, dimensions, group_name=None,
                  constant=False, constant_size=True,
                  scalar=False, is_bool=False, read_only=False):
+        #: The number of dimensions
+        self.dimensions = dimensions
         if constant and not constant_size:
             raise ValueError('A variable cannot be constant and change in size')
         #: Whether the size of the variable is constant during a run.

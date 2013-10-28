@@ -1,26 +1,4 @@
-////////////////////////////////////////////////////////////////////////////
-//// MAIN CODE /////////////////////////////////////////////////////////////
-
-{% macro cpp_file() %}
-
-#include "code_objects/{{codeobj_name}}.h"
-#include<math.h>
-#include<stdint.h>
-#include "brianlib/common_math.h"
-#include<iostream>
-#include<fstream>
-
-////// SUPPORT CODE ///////
-namespace {
-	{% for line in support_code_lines %}
-	{{line}}
-	{% endfor %}
-}
-
-////// HASH DEFINES ///////
-{% for line in hashdefine_lines %}
-{{line}}
-{% endfor %}
+{% extends 'common_group.cpp' %}
 
 {% if variables is defined %}
 {% set _spikespace = variables['_spikespace'].arrayname %}
@@ -28,16 +6,9 @@ namespace {
 {% set _t = '_dynamic'+variables['_t'].arrayname %}
 {% endif %}
 
-void _run_{{codeobj_name}}(double t)
-{
-	///// CONSTANTS ///////////
-	%CONSTANTS%
-	///// POINTERS ////////////
-	{% for line in pointers_lines %}
-	{{line}}
-	{% endfor %}
-
+{% block maincode %}
 	//// MAIN CODE ////////////
+
 	int _num_spikes = {{_spikespace}}[_num_{{_spikespace}}-1];
     if (_num_spikes > 0)
     {
@@ -71,47 +42,56 @@ void _run_{{codeobj_name}}(double t)
         	}
         }
     }
-}
+{% endblock %}
 
+{% block extra_functions_cpp %}
 void _write_{{codeobj_name}}()
 {
-	ofstream outfile;
-	outfile.open("results/{{codeobj_name}}.txt", ios::out);
-	if(outfile.is_open())
+	ofstream outfile_t;
+	outfile_t.open("results/{{codeobj_name}}_t", ios::binary | ios::out);
+	if(outfile_t.is_open())
 	{
-		for(int s=0; s<{{_i}}.size(); s++)
-		{
-			outfile << {{_i}}[s] << ", " << {{_t}}[s] << endl;
-		}
-		outfile.close();
+		outfile_t.write(reinterpret_cast<char*>(&{{_t}}[0]), {{_t}}.size()*sizeof({{_t}}[0]));
+		outfile_t.close();
 	} else
 	{
-		cout << "Error writing output file." << endl;
+		cout << "Error writing output file results/{{codeobj_name}}_t." << endl;
 	}
+	ofstream outfile_i;
+	outfile_i.open("results/{{codeobj_name}}_i", ios::binary | ios::out);
+	if(outfile_i.is_open())
+	{
+		outfile_i.write(reinterpret_cast<char*>(&{{_i}}[0]), {{_i}}.size()*sizeof({{_i}}[0]));
+		outfile_i.close();
+	} else
+	{
+		cout << "Error writing output file results/{{codeobj_name}}_i." << endl;
+	}
+//	ofstream outfile;
+//	outfile.open("results/{{codeobj_name}}.txt", ios::out);
+//	if(outfile.is_open())
+//	{
+//		for(int s=0; s<{{_i}}.size(); s++)
+//		{
+//			outfile << {{_i}}[s] << ", " << {{_t}}[s] << endl;
+//		}
+//		outfile.close();
+//	} else
+//	{
+//		cout << "Error writing output file." << endl;
+//	}
 }
 
 void _debugmsg_{{codeobj_name}}()
 {
 	cout << "Number of spikes: " << {{_i}}.size() << endl;
 }
+{% endblock %}
 
-{% endmacro %}
-
-////////////////////////////////////////////////////////////////////////////
-//// HEADER FILE ///////////////////////////////////////////////////////////
-
-{% macro h_file() %}
-#ifndef _INCLUDED_{{codeobj_name}}
-#define _INCLUDED_{{codeobj_name}}
-
-#include "objects.h"
-
-void _run_{{codeobj_name}}(double t);
+{% block extra_functions_h %}
 void _write_{{codeobj_name}}();
 void _debugmsg_{{codeobj_name}}();
-
-#endif
-{% endmacro %}
+{% endblock %}
 
 {% macro main_finalise() %}
 _write_{{codeobj_name}}();
