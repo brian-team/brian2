@@ -127,6 +127,7 @@ class StandaloneDynamicArrayVariable(StandaloneArrayVariable):
         
 class CPPStandaloneDevice(Device):
     '''
+    The `Device` used for C++ standalone simulations.
     '''
     def __init__(self):
         #: List of all regular arrays with their type and size
@@ -478,6 +479,11 @@ class Network(OrigNetwork):
         run_lines.append('{self.name}.run({duration});'.format(self=self, duration=float(duration)))
         cpp_standalone_device.main_queue.append(('run_network', (self, run_lines)))
 
+    def __repr__(self):
+        return '<Network for C++ standalone>'
+
+
+#: `Network` object that is "run" in standalone
 fake_network = Network(name='_fake_network')
 
 def run(*args, **kwds):
