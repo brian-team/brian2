@@ -368,7 +368,7 @@ def create_runner_codeobj(group, code, template_name,
     needed_variables: list of str, optional
         A list of variables that are neither present in the abstract code, nor
         in the ``USES_VARIABLES`` statement in the template. This is only
-        rarely necessary, an exception being a `StateMonitor` where the
+        rarely necessary, an example being a `StateMonitor` where the
         names of the variables are neither known to the template nor included
         in the abstract code statements.
     additional_variables : dict-like, optional
@@ -509,14 +509,24 @@ class GroupCodeRunner(BrianObject):
         values)
     template_kwds : dict, optional
         A dictionary of additional information that is passed to the template.
+    needed_variables: list of str, optional
+        A list of variables that are neither present in the abstract code, nor
+        in the ``USES_VARIABLES`` statement in the template. This is only
+        rarely necessary, an example being a `StateMonitor` where the
+        names of the variables are neither known to the template nor included
+        in the abstract code statements.
     '''
     def __init__(self, group, template, code=None, when=None,
-                 name='coderunner*', check_units=True, template_kwds=None):
+                 name='coderunner*', check_units=True, template_kwds=None,
+                 needed_variables=None):
         BrianObject.__init__(self, when=when, name=name)
         self.group = weakref.proxy(group)
         self.template = template
         self.abstract_code = code
         self.check_units = check_units
+        if needed_variables is None:
+            needed_variables = []
+        self.needed_variables = needed_variables
         self.template_kwds = template_kwds
     
     def update_abstract_code(self):
@@ -545,6 +555,7 @@ class GroupCodeRunner(BrianObject):
                                              check_units=self.check_units,
                                              additional_variables=additional_variables,
                                              additional_namespace=namespace,
+                                             needed_variables=self.needed_variables,
                                              template_kwds=self.template_kwds)
         self.code_objects[:] = [weakref.proxy(self.codeobj)]
         self.updaters[:] = [self.codeobj.get_updater()]

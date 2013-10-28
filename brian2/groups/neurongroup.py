@@ -32,7 +32,7 @@ logger = get_logger(__name__)
 
 def get_refractory_code(group):
     ref = group._refractory
-    if ref is None:
+    if ref is False:
         # No refractoriness
         abstract_code = ''
     elif isinstance(ref, Quantity):
@@ -104,16 +104,23 @@ class Thresholder(GroupCodeRunner):
     and ``refractory_until`` attributes.
     '''
     def __init__(self, group):
-        # For C++ code, we need these names explicitly, since not_refractory
-        # and lastspike might also be used in the threshold condition -- the
-        # names will then refer to single (constant) values and cannot be used
-        # for assigning new values
-        template_kwds = {'_array_not_refractory': group.variables['not_refractory'].arrayname,
-                         '_array_lastspike': group.variables['lastspike'].arrayname}
+        if group._refractory is False:
+            template_kwds = {'_uses_refractory': False}
+            needed_variables = []
+        else:
+            # For C++ code, we need these names explicitly, since not_refractory
+            # and lastspike might also be used in the threshold condition -- the
+            # names will then refer to single (constant) values and cannot be
+            # used for assigning new values
+            template_kwds = {'_uses_refractory': True,
+                             '_array_not_refractory': group.variables['not_refractory'].arrayname,
+                             '_array_lastspike': group.variables['lastspike'].arrayname}
+            needed_variables=['not_refractory', 'lastspike']
         GroupCodeRunner.__init__(self, group,
                                  'threshold',
                                  when=(group.clock, 'thresholds'),
                                  name=group.name+'_thresholder*',
+                                 needed_variables=needed_variables,
                                  template_kwds=template_kwds)
 
         # Check the abstract code for unit mismatches (only works if the
@@ -122,7 +129,10 @@ class Thresholder(GroupCodeRunner):
         check_code_units(self.abstract_code, self.group, ignore_keyerrors=True)
 
     def update_abstract_code(self):
-        self.abstract_code = '_cond = (%s) and not_refractory' % self.group.threshold
+        if self.group._refractory is False:
+            self.abstract_code = '_cond = %s' % self.group.threshold
+        else:
+            self.abstract_code = '_cond = (%s) and not_refractory' % self.group.threshold
         
 
 class Resetter(GroupCodeRunner):
@@ -233,7 +243,8 @@ class NeuronGroup(Group, SpikeSource):
                            PARAMETER: ('constant')})
 
         # add refractoriness
-        model = add_refractoriness(model)
+        if refractory is not False:
+            model = add_refractoriness(model)
         self.equations = model
         uses_refractoriness = len(model) and any(['unless refractory' in eq.flags
                                                   for eq in model.itervalues()
@@ -297,9 +308,10 @@ class NeuronGroup(Group, SpikeSource):
         # Activate name attribute access
         self._enable_group_attributes()
 
-        # Set the refractoriness information
-        self.lastspike = -np.inf*second
-        self.not_refractory = True
+        if refractory is not False:
+            # Set the refractoriness information
+            self.lastspike = -np.inf*second
+            self.not_refractory = True
 
     def __len__(self):
         '''

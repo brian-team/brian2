@@ -1,4 +1,7 @@
-# USES_VARIABLES { not_refractory, lastspike, t, _spikespace }
+# USES_VARIABLES { t, _spikespace }
+# not_refractory and lastspike are added as needed_variables in the
+# Thresholder class, we cannot use the USES_VARIABLE mechanism
+# conditionally
 # ITERATE_ALL { _idx }
 
 _vectorisation_idx = N
@@ -9,6 +12,8 @@ _vectorisation_idx = N
 _spikes, = _cond.nonzero()
 _spikespace[-1] = len(_spikes)
 _spikespace[:len(_spikes)] = _spikes
+{% if _uses_refractory %}
 # Set the neuron to refractory
 not_refractory[_spikes] = False
 lastspike[_spikes] = t
+{% endif %}
