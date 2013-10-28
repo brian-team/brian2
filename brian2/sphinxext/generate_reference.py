@@ -93,13 +93,13 @@ def format_directive(module, destdir, package=None, basename='brian2'):
 
 
 def find_shortest_import(module_name, obj_name):
-    print module_name, obj_name
     parts = module_name.split('.')
     for idx in range(1, len(parts) + 1):
         try:
             result = __import__('.'.join(parts[:idx]), globals(), {},
                                 fromlist=[str(obj_name)], level=0)
-            if getattr(result, obj_name, None) is not None:
+            result_obj = getattr(result, obj_name, None)
+            if result_obj is not None and result_obj.__module__ == module_name:
                 # import seems to have worked
                 return '.'.join(parts[:idx])
         except ImportError:
