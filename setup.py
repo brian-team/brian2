@@ -29,14 +29,16 @@ Documentation for Brian2 can be found at http://brian2.readthedocs.org
 setup(name='Brian2',
       version='2.0a5',
       packages=find_packages(),
-      # include template files
-      package_data={'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
+      package_data={# include template files
+                    'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
                     'brian2.codegen.runtime.weave_rt': ['templates/*.cpp',
                                                         'templates/*.h'],
                     'brian2.devices.cpp_standalone': ['templates/*.cpp',
                                                       'templates/*.h',
                                                       'brianlib/*.cpp',
-                                                      'brianlib/*.h']
+                                                      'brianlib/*.h'],
+                    # include default_preferences file
+                    'brian2': ['default_preferences']
                     },
       install_requires=['numpy>=1.4.1',
                         'scipy>=0.7.0',
