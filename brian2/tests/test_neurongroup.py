@@ -11,14 +11,16 @@ from brian2.units.allunits import second, volt
 from brian2.units.stdunits import ms, mV
 from brian2.codegen.runtime.weave_rt import WeaveCodeObject
 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
+from brian2.utils.logger import catch_logs
 
-# We can only test C++ if weave is availabe
+# We can only test C++ if weave is available
 try:
     import scipy.weave
     codeobj_classes = [NumpyCodeObject, WeaveCodeObject]
 except ImportError:
     # Can't test C++
     codeobj_classes = [NumpyCodeObject]
+
 
 def test_creation():
     '''
@@ -124,6 +126,27 @@ def test_namespace_errors():
                         codeobj_class=codeobj_class)
         net = Network(G)
         assert_raises(KeyError, lambda: net.run(1*ms))
+
+
+def test_namespace_warnings():
+    G = NeuronGroup(1, '''x : 1
+                          y : 1''')
+    # conflicting variable in namespace
+    y = 5
+    with catch_logs() as l:
+        G.x = 'y'
+        assert len(l) == 1
+        assert l[0][1].endswith('.resolution_conflict')
+
+    # conflicting variables with special meaning
+    i = 5
+    N = 3
+    with catch_logs() as l:
+        G.x = 'i / N'
+        assert len(l) == 2
+        assert l[0][1].endswith('.resolution_conflict')
+        assert l[1][1].endswith('.resolution_conflict')
+
 
 def test_threshold_reset():
     '''
@@ -406,6 +429,7 @@ if __name__ == '__main__':
     test_unit_errors_threshold_reset()
     test_incomplete_namespace()
     test_namespace_errors()
+    test_namespace_warnings()
     test_syntax_errors()
     test_state_variables()
     test_state_variable_access()

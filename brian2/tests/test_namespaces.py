@@ -1,11 +1,15 @@
+from _threading_local import local
+from oauthlib.oauth2.rfc6749.grant_types import implicit
 import numpy as np
 from numpy.testing.utils import assert_raises
+from pyPdf.xmp import DC_NAMESPACE
 
-from brian2.core.namespace import create_namespace
+from brian2.core.namespace import create_namespace, get_local_namespace
 from brian2.units import second, volt
 from brian2.units.stdunits import ms, Hz, mV
 from brian2.units.unitsafefunctions import sin, log, exp
 from brian2.utils.logger import catch_logs
+
 
 def _assert_one_warning(l):
     assert len(l) == 1, "expected one warning got %d" % len(l)
@@ -71,8 +75,29 @@ def test_resolution():
     assert resolved['tau'] == np.asarray(20 * ms)
 
 
+def test_warning():
+    from brian2.core.functions import DEFAULT_FUNCTIONS
+    from brian2.units.stdunits import cm as brian_cm
+    # Name in external namespace clashes with unit/function name
+    exp = 'not the function'
+    cm = 'not the unit'
+    namespace = create_namespace()
+    local_ns = get_local_namespace()
+    with catch_logs() as l:
+        resolved = namespace.resolve('exp', ('implicit namespace', local_ns))
+        assert resolved == DEFAULT_FUNCTIONS['exp']
+        assert len(l) == 1
+        assert l[0][1].endswith('.resolution_conflict')
+    with catch_logs() as l:
+        resolved = namespace.resolve('cm', ('implicit namespace', local_ns))
+        assert resolved == brian_cm
+        assert len(l) == 1
+        assert l[0][1].endswith('.resolution_conflict')
+
+
 if __name__ == '__main__':
     test_default_content()
     test_explicit_namespace()
     test_errors()
     test_resolution()
+    test_warning()

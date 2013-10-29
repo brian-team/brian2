@@ -417,6 +417,13 @@ def create_runner_codeobj(group, code, template_name,
     # Only pass the variables that are actually used
     variables = {}
     for var in used_known:
+        # Emit a warning if a variable is also present in the namespace
+        if var in group.namespace or var in additional_namespace[1]:
+            message = ('Variable {var} is present in the namespace but is also an'
+                       ' internal variable of {name}, the internal variable will'
+                       ' be used.'.format(var=var, name=group.name))
+            logger.warn(message, 'create_runner_codeobj.resolution_conflict',
+                        once=True)
         if not isinstance(all_variables[var], StochasticVariable):
             variables[var] = all_variables[var]
 
