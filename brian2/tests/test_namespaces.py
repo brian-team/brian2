@@ -1,8 +1,5 @@
-from _threading_local import local
-from oauthlib.oauth2.rfc6749.grant_types import implicit
 import numpy as np
 from numpy.testing.utils import assert_raises
-from pyPdf.xmp import DC_NAMESPACE
 
 from brian2.core.namespace import create_namespace, get_local_namespace
 from brian2.units import second, volt
