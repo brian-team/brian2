@@ -1,5 +1,4 @@
-# USES_VARIABLES { _synaptic_pre, _synaptic_post,
-#                  _pre_synaptic, _post_synaptic, }
+# USES_VARIABLES { _synaptic_pre, _synaptic_post }
 # ITERATE_ALL { _idx }
 import numpy as np
 
@@ -39,14 +38,3 @@ for i in range(len(_all_pre)):
     _synaptic_post_object.resize(_new_num_synapses)
     _synaptic_pre_object[_cur_num_synapses:] = _pre_idcs
     _synaptic_post_object[_cur_num_synapses:] = _post_idcs[_cond_nonzero]
-
-    _new_synapses = np.arange(_cur_num_synapses, _new_num_synapses)
-    _source_synapses = _pre_synaptic[i]
-    _cur_num_source_synapses = len(_source_synapses)
-    _source_synapses.resize(_cur_num_source_synapses + _numnew)
-    _source_synapses[_cur_num_source_synapses:] = _new_synapses
-    for _new_synapse, _target in zip(_new_synapses, _cond_nonzero):
-        _target_synapses = _post_synaptic[_target]
-        _cur_num_target_synapses = len(_target_synapses)
-        _target_synapses.resize(_cur_num_target_synapses + 1)
-        _target_synapses[_cur_num_target_synapses] = _new_synapse

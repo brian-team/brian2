@@ -125,11 +125,11 @@ class SynapticPathway(GroupCodeRunner, Group):
         if prepost == 'pre':
             self.source = synapses.source
             self.target = synapses.target
-            self.synapse_indices = synapses._pre_synaptic
+            self.synapse_sources = synapses.variables['_synaptic_pre']
         elif prepost == 'post':
             self.source = synapses.target
             self.target = synapses.source
-            self.synapse_indices = synapses._post_synaptic
+            self.synapse_sources = synapses.variables['_synaptic_post']
         else:
             raise ValueError('prepost argument has to be either "pre" or '
                              '"post"')
@@ -236,7 +236,8 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.dt = self.synapses.clock.dt_
 
         self.queue.compress(np.round(self._delays.get_value() / self.dt).astype(np.int),
-                            self.synapse_indices, len(self.synapses))
+                            self.synapse_sources, len(self.synapses),
+                            len(self.source), self.source.start)
         if spikes is not None:
             # Convert the floating point time back to integer time (dt might have changed)
             spikes[:, 0] = np.round(spikes[:, 0] / self.dt)
@@ -246,23 +247,12 @@ class SynapticPathway(GroupCodeRunner, Group):
     def push_spikes(self):
         # Push new spikes into the queue
         spikes = self.source.spikes
-        # Make use of the fact that the spikes list is sorted for faster
-        # subgroup handling
-        start = self.spikes_start
-        start_idx = bisect.bisect_left(spikes, start)
-        stop_idx = bisect.bisect_left(spikes, self.spikes_stop, lo=start_idx)
-        spikes = spikes[start_idx:stop_idx]
-        synapse_indices = self.synapse_indices
         if len(spikes):
-            indices = np.concatenate([synapse_indices[spike - start][:]
-                                      for spike in spikes]).astype(np.int32)
-
-            if len(indices):
-                if len(self._delays) > 1:
-                    delays = np.round(self._delays[indices] / self.dt).astype(int)
-                else:
-                    delays = np.round(self._delays.get_value() / self.dt).astype(int)
-                self.queue.push(indices, delays)
+            if len(self._delays) > 1:
+                delays = np.round(self._delays.get_value() / self.dt).astype(int)
+            else:
+                delays = np.round(self._delays.get_value() / self.dt).astype(int)
+            self.queue.push(spikes, delays, self.source.start, self.source.stop)
         # Get the spikes
         self.spiking_synapses = self.queue.peek()
         # Advance the spike queue
@@ -310,7 +300,7 @@ def slice_to_test(x):
         raise TypeError('Expected int or slice, got {} instead'.format(type(x)))
 
 
-def find_synapses(index, neuron_synaptic, synaptic_neuron):
+def find_synapses(index, synaptic_neuron):
     if isinstance(index, (int, slice)):
         test = slice_to_test(index)
         found = test(synaptic_neuron)
@@ -318,7 +308,7 @@ def find_synapses(index, neuron_synaptic, synaptic_neuron):
     else:
         synapses = []
         for neuron in index:
-            targets = neuron_synaptic[neuron]
+            targets = np.flatnonzero(synaptic_neuron == neuron)
             synapses.extend(targets)
 
     return synapses
@@ -676,11 +666,6 @@ class Synapses(Group):
             v[name] = var
             self.variable_indices[name] = '_postsynaptic_idx'
 
-        self._pre_synaptic = [DynamicArray1D(0, dtype=np.int32)
-                              for _ in xrange(len(self.source))]
-        self._post_synaptic = [DynamicArray1D(0, dtype=np.int32)
-                               for _ in xrange(len(self.target))]
-
         dev = get_device()
         # Standard variables always present
         v.update({'_num_source_neurons': Variable(Unit(1), len(self.source),
@@ -692,11 +677,7 @@ class Synapses(Group):
                                                         constant_size=True),
                   '_synaptic_post': dev.dynamic_array_1d(self, '_synaptic_post',
                                                          0, Unit(1), dtype=np.int32,
-                                                         constant_size=True),
-                  # We don't need "proper" specifier for these -- they go
-                  # back to Python code currently
-                  '_pre_synaptic': Variable(Unit(1), self._pre_synaptic),
-                  '_post_synaptic': Variable(Unit(1), self._post_synaptic)})
+                                                         constant_size=True)})
 
         # Allow accessing the pre- and postsynaptic indices in a nicer way
         v.update({'i': self.source.variables['i'],
@@ -912,19 +893,6 @@ class Synapses(Group):
             self.variables['_synaptic_pre'].get_value()[old_N:new_N] = real_sources
             self.variables['_synaptic_post'].get_value()[old_N:new_N] = real_targets
             synapse_idx = old_N
-
-            # TODO: Use subgroup-relative neuron numbers here, this is what
-            # is needed during spike propagation
-
-            for source, target in zip(sources, targets):
-                # We want to access the raw arrays here
-                synapses = self._pre_synaptic[source]
-                synapses.resize(len(synapses) + 1)
-                synapses[-1] = synapse_idx
-                synapses = self._post_synaptic[target]
-                synapses.resize(len(synapses) + 1)
-                synapses[-1] = synapse_idx
-                synapse_idx += 1
         else:
             abstract_code = '_pre_idcs = _all_pre \n'
             abstract_code += '_post_idcs = _all_post \n'
@@ -990,10 +958,8 @@ class Synapses(Group):
 
             I, J, K = index
 
-            pre_synapses = find_synapses(I, self._pre_synaptic,
-                                         self.variables['_synaptic_pre'].get_value() - self.source.start)
-            post_synapses = find_synapses(J, self._post_synaptic,
-                                          self.variables['_synaptic_post'].get_value() - self.target.start)
+            pre_synapses = find_synapses(I, self.variables['_synaptic_pre'].get_value() - self.source.start)
+            post_synapses = find_synapses(J, self.variables['_synaptic_post'].get_value() - self.target.start)
             matching_synapses = np.intersect1d(pre_synapses, post_synapses,
                                                assume_unique=True)
 

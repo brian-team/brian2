@@ -3,9 +3,11 @@ The spike queue class stores future synaptic events
 produced by a given presynaptic neuron group (or postsynaptic for backward
 propagation in STDP).
 """
+import bisect
+
 import numpy as np
 
-from brian2.units.stdunits import ms
+from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.utils.logger import get_logger
 
 __all__=['SpikeQueue']
@@ -74,8 +76,9 @@ class SpikeQueue(object):
         self.n = np.zeros(1, dtype=int)
         #: precalculated offsets
         self._offsets = None
-        
-    def compress(self, delays, synapse_targets, n_synapses):
+
+    def compress(self, delays, synapse_sources,
+                 n_synapses, source_len, source_start):
         '''
         Prepare the data structure and pre-compute offsets.
         This is called every time the network is run. The size of the
@@ -91,11 +94,16 @@ class SpikeQueue(object):
         else:
             max_delays = min_delays = 0
 
-        n_targets = [len(targets) for targets in synapse_targets]
-        if len(n_targets):
-            max_events = max(n_targets)
-        else:
-            max_events = 0
+        # Prepare the data structure used in propagation
+        self._neurons_to_synapses =  []
+
+        max_events = 0
+        synapse_sources = synapse_sources[:]
+        for source in xrange(source_len):
+            indices = np.flatnonzero(synapse_sources == (source + source_start))
+            size = len(indices)
+            self._neurons_to_synapses.append(indices)
+            max_events = max(max_events, size)
 
         n_steps = max_delays + 1
         
@@ -114,7 +122,9 @@ class SpikeQueue(object):
 
         # Precompute offsets
         if self._precompute_offsets:
-            self.precompute_offsets(delays, synapse_targets, n_synapses)
+            self.precompute_offsets(delays, n_synapses)
+
+
 
     def extract_spikes(self):
         '''
@@ -171,7 +181,7 @@ class SpikeQueue(object):
         '''      
         return self.X[self.currenttime,:self.n[self.currenttime]]    
     
-    def precompute_offsets(self, delays, synapse_targets, n_synapses):
+    def precompute_offsets(self, delays, n_synapses):
         '''
         Precompute all offsets corresponding to delays. This assumes that
         delays will not change during the simulation.
@@ -181,8 +191,8 @@ class SpikeQueue(object):
             delays = delays.repeat(n_synapses)
         self._offsets = np.zeros_like(delays)
         index = 0
-        for targets in synapse_targets:
-            target_delays = delays[targets[:]]
+        for targets in self._neurons_to_synapses:
+            target_delays = delays[targets]
             self._offsets[index:index+len(target_delays)] = self.offsets(target_delays)
             index += len(target_delays)
     
@@ -287,24 +297,43 @@ class SpikeQueue(object):
         self.X = newX
         self.X_flat = self.X.reshape(self.X.shape[0]*new_maxevents,)
         
-    def push(self, indices, delays):
+    def push(self, sources, delays, start, stop):
         '''
         Push spikes to the queue.
         
         Parameters
         ----------
-        indices : ndarray of int
-            The synaptic indices of the synapses receiving a spike
+        sources : ndarray of int
+            The indices of the neurons that spiked.
         delays : ndarray of int
-            The synaptic delays for the synapses in `indices`, given as integer
-            values (multiples of dt).
+            The synaptic delays all synapses, given as integer values
+            (multiples of dt).
+        start : int
+            The index after which spikes should be considered (necessary for
+            subgroups)
+        stop : int
+            The index until which spikes should be considered (necessary for
+            subgroups)
         '''
-        if len(indices):
+        if len(sources):
+            if start > 0:
+                start_idx = bisect.bisect_left(sources, start)
+            else:
+                start_idx = 0
+            if stop <= sources[-1]:
+                stop_idx = bisect.bisect_left(sources, stop, lo=start_idx)
+            else:
+                stop_idx = len(self._neurons_to_synapses)
+            sources = sources[start_idx:stop_idx]
+            synapse_indices = self._neurons_to_synapses
+            indices = np.concatenate([synapse_indices[source - start]
+                                      for source in sources]).astype(np.int32)
+
             if self._homogeneous:  # homogeneous delays
                 self.insert_homogeneous(delays[0], indices)
             elif self._offsets is None:  # vectorise over synaptic events
                 # there are no precomputed offsets, this is the case
                 # (in particular) when there are dynamic delays
-                self.insert(delays, indices)
+                self.insert(delays[indices], indices)
             else: # offsets are precomputed
-                self.insert(delays, indices, self._offsets[indices])
+                self.insert(delays[indices], indices, self._offsets[indices])
