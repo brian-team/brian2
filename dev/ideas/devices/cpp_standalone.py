@@ -72,14 +72,12 @@ if standalone_mode:
         shutil.rmtree('output')
     build(project_dir='output', compile_project=True, run_project=True)
     print 'Build time:', time.time()-start
-    u = loadtxt('output/results/_array_gp_u.txt', delimiter=',', dtype=float)
+    u = fromfile('output/results/_array_gp_u', dtype=float64)
     print 'G.u[:5] =', u[:5]
     if plot_results:
         subplot(211)
-        S = loadtxt('output/results/spikemonitor_codeobject.txt', delimiter=',',
-                    dtype=[('i', int), ('t', float)])
-        i = S['i']
-        t = S['t']*second
+        i = fromfile('output/results/spikemonitor_codeobject_i', dtype=int32)
+        t = fromfile('output/results/spikemonitor_codeobject_t', dtype=float64) * second
         plot(t, i, '.k')
         subplot(212)
         S = loadtxt('output/results/ratemon_codeobject.txt', delimiter=',',

@@ -53,10 +53,8 @@ if standalone_mode:
     if os.path.exists('output'):
         shutil.rmtree('output')
     build(project_dir='output', compile_project=True, run_project=True, debug=False)
-    S = loadtxt('output/results/spikemonitor_codeobject.txt', delimiter=',',
-                dtype=[('i', int), ('t', float)])
-    i = S['i']
-    t = S['t']*second
+    i = fromfile('output/results/spikemonitor_codeobject_i', dtype=int32)
+    t = fromfile('output/results/spikemonitor_codeobject_t', dtype=float64) * second
 else:
     i, t = spikes.it
 
