@@ -1,4 +1,4 @@
-{% import 'common_macros.cpp' as common with context %}
+com{% import 'common_macros.cpp' as common with context %}
 
 {% macro main() %}
 	{{ common.insert_group_preamble() }}
