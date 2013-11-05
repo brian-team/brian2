@@ -235,7 +235,7 @@ class SynapticPathway(GroupCodeRunner, Group):
         # Update the dt (might have changed between runs)
         self.dt = self.synapses.clock.dt_
 
-        self.queue.compress(np.round(self._delays.get_value() / self.dt).astype(np.int),
+        self.queue.prepare(np.round(self._delays.get_value() / self.dt).astype(np.int),
                             self.synapse_sources, len(self.synapses),
                             len(self.source), self.source.start)
         if spikes is not None:

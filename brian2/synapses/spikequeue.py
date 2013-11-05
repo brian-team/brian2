@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 
 INITIAL_MAXSPIKESPER_DT = 1
 
+
 class SpikeQueue(object):
     '''
     Data structure saving the spikes and taking care of delays.
@@ -77,7 +78,7 @@ class SpikeQueue(object):
         #: precalculated offsets
         self._offsets = None
 
-    def compress(self, delays, synapse_sources,
+    def prepare(self, delays, synapse_sources,
                  n_synapses, source_len, source_start):
         '''
         Prepare the data structure and pre-compute offsets.
@@ -122,9 +123,7 @@ class SpikeQueue(object):
 
         # Precompute offsets
         if self._precompute_offsets:
-            self.precompute_offsets(delays, n_synapses)
-
-
+            self._do_precompute_offsets(delays, n_synapses)
 
     def extract_spikes(self):
         '''
@@ -181,126 +180,10 @@ class SpikeQueue(object):
         '''      
         return self.X[self.currenttime,:self.n[self.currenttime]]    
     
-    def precompute_offsets(self, delays, n_synapses):
-        '''
-        Precompute all offsets corresponding to delays. This assumes that
-        delays will not change during the simulation.
-        '''
-        if len(delays) == 1 and n_synapses != 1:
-            # We have a scalar delay value
-            delays = delays.repeat(n_synapses)
-        self._offsets = np.zeros_like(delays)
-        index = 0
-        for targets in self._neurons_to_synapses:
-            target_delays = delays[targets]
-            self._offsets[index:index+len(target_delays)] = self.offsets(target_delays)
-            index += len(target_delays)
-    
-    def offsets(self, delay):
-        '''
-        Calculates offsets corresponding to a delay array.
-        If there n identical delays, there are given offsets between
-        0 and n-1.
-        Example:
-        
-            [7,5,7,3,7,5] -> [0,0,1,0,2,1]
-            
-        The code is complex because tricks are needed for vectorisation.
-        '''
-        # We use merge sort because it preserves the input order of equal
-        # elements in the sorted output
-        I = np.argsort(delay, kind='mergesort')
-        xs = delay[I]
-        J = xs[1:]!=xs[:-1]
-        A = np.hstack((0, np.cumsum(J)))
-        B = np.hstack((0, np.cumsum(-J)))
-        BJ = np.hstack((0, B[J]))
-        ei = B-BJ[A]
-        ofs = np.zeros_like(delay)
-        ofs[I] = np.array(ei, dtype=ofs.dtype) # maybe types should be signed?
-        return ofs
-           
-    def insert(self, delay, target, offset=None):
-        '''
-        Vectorised insertion of spike events.
-        
-        Parameters
-        ----------
-        
-        delay : ndarray
-            Delays in timesteps.
-            
-        target : ndarray
-            Target synaptic indices.
-            
-        offset : ndarray
-            Offsets within timestep. If unspecified, they are calculated
-            from the delay array.
-        '''
-        delay = np.array(delay, dtype=int)
-
-        if offset is None:
-            offset = self.offsets(delay)
-        
-        # Calculate row indices in the data structure
-        timesteps = (self.currenttime + delay) % len(self.n)
-        # (Over)estimate the number of events to be stored, to resize the array
-        # It's an overestimation for the current time, but I believe a good one
-        # for future events
-        m = max(self.n) + len(target)
-        if (m >= self.X.shape[1]): # overflow
-            self.resize(m+1)
-
-        self.X_flat[timesteps*self.X.shape[1]+offset+self.n[timesteps]] = target
-        self.n[timesteps] += offset+1 # that's a trick (to update stack size)
-        # Note: the trick can only work if offsets are ordered in the right way
-        
-    def insert_homogeneous(self, delay, target):
-        '''
-        Inserts events at a fixed delay.
-        
-        Parameters
-        ----------
-        delay : int
-            Delay in timesteps.
-            
-        target : ndarray
-            Target synaptic indices.
-        '''
-        timestep = (self.currenttime + delay) % len(self.n)
-        nevents = len(target)
-        m = self.n[timestep]+nevents+1 # If overflow, then at least one self.n is bigger than the size
-        if (m >= self.X.shape[1]):
-            self.resize(m + 1)  # was m previously (not enough)
-        k = timestep*self.X.shape[1] + self.n[timestep]
-        self.X_flat[k:k+nevents] = target
-        self.n[timestep] += nevents
-        
-    def resize(self, maxevents):
-        '''
-        Resizes the underlying data structure (number of columns = spikes per
-        dt).
-        
-        Parameters
-        ----------
-        maxevents : int
-            The new number of columns. It will be rounded to the closest power
-            of 2.
-        '''
-        # old and new sizes
-        old_maxevents = self.X.shape[1]
-        new_maxevents = int(2**np.ceil(np.log2(maxevents))) # maybe 2 is too large
-        # new array
-        newX = np.zeros((self.X.shape[0], new_maxevents), dtype = self.X.dtype)
-        newX[:, :old_maxevents] = self.X[:, :old_maxevents] # copy old data
-        
-        self.X = newX
-        self.X_flat = self.X.reshape(self.X.shape[0]*new_maxevents,)
-        
     def push(self, sources, delays, start, stop):
         '''
         Push spikes to the queue.
-        
+
         Parameters
         ----------
         sources : ndarray of int
@@ -330,10 +213,126 @@ class SpikeQueue(object):
                                       for source in sources]).astype(np.int32)
 
             if self._homogeneous:  # homogeneous delays
-                self.insert_homogeneous(delays[0], indices)
+                self._insert_homogeneous(delays[0], indices)
             elif self._offsets is None:  # vectorise over synaptic events
                 # there are no precomputed offsets, this is the case
                 # (in particular) when there are dynamic delays
-                self.insert(delays[indices], indices)
+                self._insert(delays[indices], indices)
             else: # offsets are precomputed
-                self.insert(delays[indices], indices, self._offsets[indices])
+                self._insert(delays[indices], indices, self._offsets[indices])
+                # Note: the trick can only work if offsets are ordered in the right way
+
+    def _do_precompute_offsets(self, delays, n_synapses):
+        '''
+        Precompute all offsets corresponding to delays. This assumes that
+        delays will not change during the simulation.
+        '''
+        if len(delays) == 1 and n_synapses != 1:
+            # We have a scalar delay value
+            delays = delays.repeat(n_synapses)
+        self._offsets = np.zeros_like(delays)
+        index = 0
+        for targets in self._neurons_to_synapses:
+            target_delays = delays[targets]
+            self._offsets[index:index+len(target_delays)] = self._calc_offsets(target_delays)
+            index += len(target_delays)
+
+    def _calc_offsets(self, delay):
+        '''
+        Calculates offsets corresponding to a delay array.
+        If there n identical delays, there are given offsets between
+        0 and n-1.
+        Example:
+
+            [7,5,7,3,7,5] -> [0,0,1,0,2,1]
+
+        The code is complex because tricks are needed for vectorisation.
+        '''
+        # We use merge sort because it preserves the input order of equal
+        # elements in the sorted output
+        I = np.argsort(delay, kind='mergesort')
+        xs = delay[I]
+        J = xs[1:]!=xs[:-1]
+        A = np.hstack((0, np.cumsum(J)))
+        B = np.hstack((0, np.cumsum(-J)))
+        BJ = np.hstack((0, B[J]))
+        ei = B-BJ[A]
+        ofs = np.zeros_like(delay)
+        ofs[I] = np.array(ei, dtype=ofs.dtype) # maybe types should be signed?
+        return ofs
+
+    def _insert(self, delay, target, offset=None):
+        '''
+        Vectorised insertion of spike events.
+
+        Parameters
+        ----------
+
+        delay : ndarray
+            Delays in timesteps.
+
+        target : ndarray
+            Target synaptic indices.
+
+        offset : ndarray
+            Offsets within timestep. If unspecified, they are calculated
+            from the delay array.
+        '''
+        delay = np.array(delay, dtype=int)
+
+        if offset is None:
+            offset = self._calc_offsets(delay)
+
+        # Calculate row indices in the data structure
+        timesteps = (self.currenttime + delay) % len(self.n)
+        # (Over)estimate the number of events to be stored, to resize the array
+        # It's an overestimation for the current time, but I believe a good one
+        # for future events
+        m = max(self.n) + len(target)
+        if (m >= self.X.shape[1]): # overflow
+            self._resize(m+1)
+
+        self.X_flat[timesteps*self.X.shape[1]+offset+self.n[timesteps]] = target
+        self.n[timesteps] += offset+1 # that's a trick (to update stack size)
+
+    def _insert_homogeneous(self, delay, target):
+        '''
+        Inserts events at a fixed delay.
+
+        Parameters
+        ----------
+        delay : int
+            Delay in timesteps.
+
+        target : ndarray
+            Target synaptic indices.
+        '''
+        timestep = (self.currenttime + delay) % len(self.n)
+        nevents = len(target)
+        m = self.n[timestep]+nevents+1 # If overflow, then at least one self.n is bigger than the size
+        if (m >= self.X.shape[1]):
+            self._resize(m + 1)  # was m previously (not enough)
+        k = timestep*self.X.shape[1] + self.n[timestep]
+        self.X_flat[k:k+nevents] = target
+        self.n[timestep] += nevents
+
+    def _resize(self, maxevents):
+        '''
+        Resizes the underlying data structure (number of columns = spikes per
+        dt).
+
+        Parameters
+        ----------
+        maxevents : int
+            The new number of columns. It will be rounded to the closest power
+            of 2.
+        '''
+        # old and new sizes
+        old_maxevents = self.X.shape[1]
+        new_maxevents = int(2**np.ceil(np.log2(maxevents))) # maybe 2 is too large
+        # new array
+        newX = np.zeros((self.X.shape[0], new_maxevents), dtype = self.X.dtype)
+        newX[:, :old_maxevents] = self.X[:, :old_maxevents] # copy old data
+
+        self.X = newX
+        self.X_flat = self.X.reshape(self.X.shape[0]*new_maxevents,)
