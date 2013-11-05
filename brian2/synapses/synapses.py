@@ -29,7 +29,6 @@ from brian2.utils.logger import get_logger
 from brian2.core.namespace import get_local_namespace
 from brian2.core.spikesource import SpikeSource
 
-from .spikequeue import SpikeQueue
 
 MAX_SYNAPSES = 2147483647
 
@@ -220,6 +219,8 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.updaters.insert(0, self._pushspikes_codeobj.get_updater())
 
     def initialise_queue(self):
+        codeobj_class = get_device().code_object_class(self.synapses.codeobj_class)
+        SpikeQueue = codeobj_class.spikequeue_class
         if self.queue is None:
             self.queue = SpikeQueue(self.source.start, self.source.stop)
 
@@ -227,7 +228,7 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.dt = self.synapses.clock.dt_
 
         self.queue.prepare(self._delays.get_value(), self.dt,
-                           self.synapse_sources)
+                           self.synapse_sources.get_value())
 
     def push_spikes(self):
         # Push new spikes into the queue

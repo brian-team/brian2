@@ -15,6 +15,7 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable)
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.functions import DEFAULT_FUNCTIONS, FunctionImplementation
+from brian2.synapses.cythonspikequeue import SpikeQueue
 
 from ...codeobject import CodeObject
 from ...templates import Templater
@@ -73,7 +74,7 @@ class WeaveCodeObject(CodeObject):
                                        'dtype': numpy.dtype})
     language = CPPLanguage(c_data_type=weave_data_type)
     class_name = 'weave'
-
+    spikequeue_class = SpikeQueue
     def __init__(self, owner, code, namespace, variables, name='weave_code_object*'):
         super(WeaveCodeObject, self).__init__(owner, code, namespace, variables, name=name)
         self.compiler = brian_prefs['codegen.runtime.weave.compiler']
