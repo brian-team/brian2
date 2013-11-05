@@ -64,9 +64,16 @@ class SpikeQueue(object):
     possible to also vectorise over presynaptic spikes.
     '''
     
-    def __init__(self, dtype=np.int32, precompute_offsets=True):
+    def __init__(self, source_start, source_end, dtype=np.int32,
+                 precompute_offsets=True):
         #: Whether the offsets should be precomputed
         self._precompute_offsets = precompute_offsets
+
+        #: The start of the source indices (for subgroups)
+        self._source_start = source_start
+
+        #: The end of the source indices (for subgroups)
+        self._source_end = source_end
 
         self.dtype=dtype
         self.X = np.zeros((1,1), dtype=dtype) # target synapses
@@ -81,8 +88,7 @@ class SpikeQueue(object):
         #: The dt used for storing the spikes (will be set in `prepare`)
         self._dt = None
 
-    def prepare(self, delays, dt, synapse_sources,
-                n_synapses, source_len, source_start):
+    def prepare(self, delays, dt, synapse_sources):
         '''
         Prepare the data structure and pre-compute offsets.
         This is called every time the network is run. The size of the
@@ -92,6 +98,8 @@ class SpikeQueue(object):
         delays are homogeneous, in which case insertion will use a faster method
         implemented in `insert_homogeneous`.        
         '''
+        n_synapses = len(synapse_sources)
+
         if self._dt is not None:
             # store the current spikes
             spikes = self._extract_spikes()
@@ -116,8 +124,9 @@ class SpikeQueue(object):
 
         max_events = 0
         synapse_sources = synapse_sources[:]
-        for source in xrange(source_len):
-            indices = np.flatnonzero(synapse_sources == (source + source_start))
+        for source in xrange(self._source_end - self._source_start):
+            indices = np.flatnonzero(synapse_sources == (source +
+                                                         self._source_start))
             size = len(indices)
             self._neurons_to_synapses.append(indices)
             max_events = max(max_events, size)
@@ -202,7 +211,7 @@ class SpikeQueue(object):
         '''      
         return self.X[self.currenttime,:self.n[self.currenttime]]    
     
-    def push(self, sources, start, stop):
+    def push(self, sources):
         '''
         Push spikes to the queue.
 
@@ -210,14 +219,10 @@ class SpikeQueue(object):
         ----------
         sources : ndarray of int
             The indices of the neurons that spiked.
-        start : int
-            The index after which spikes should be considered (necessary for
-            subgroups)
-        stop : int
-            The index until which spikes should be considered (necessary for
-            subgroups)
         '''
         if len(sources):
+            start = self._source_start
+            stop = self._source_end
             if start > 0:
                 start_idx = bisect.bisect_left(sources, start)
             else:

@@ -7,7 +7,6 @@ from collections import defaultdict
 import weakref
 import itertools
 import re
-import bisect
 
 import numpy as np
 
@@ -21,7 +20,6 @@ from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)
 from brian2.groups.group import Group, GroupCodeRunner, create_runner_codeobj
-from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
 from brian2.units.fundamentalunits import (Unit, Quantity,
@@ -223,20 +221,19 @@ class SynapticPathway(GroupCodeRunner, Group):
 
     def initialise_queue(self):
         if self.queue is None:
-            self.queue = SpikeQueue()
+            self.queue = SpikeQueue(self.source.start, self.source.stop)
 
         # Update the dt (might have changed between runs)
         self.dt = self.synapses.clock.dt_
 
         self.queue.prepare(self._delays.get_value(), self.dt,
-                           self.synapse_sources, len(self.synapses),
-                           len(self.source), self.source.start)
+                           self.synapse_sources)
 
     def push_spikes(self):
         # Push new spikes into the queue
         spikes = self.source.spikes
         if len(spikes):
-            self.queue.push(spikes, self.source.start, self.source.stop)
+            self.queue.push(spikes)
         # Get the spikes
         self.spiking_synapses = self.queue.peek()
         # Advance the spike queue
