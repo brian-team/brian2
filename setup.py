@@ -7,7 +7,7 @@ from ez_setup import use_setuptools
 use_setuptools()
 
 from setuptools import setup, find_packages
-
+from Cython.Build import cythonize
 
 long_description = '''
 Brian2 is a simulator for spiking neural networks available on almost all platforms.
@@ -37,6 +37,7 @@ setup(name='Brian2',
                                                       'templates/*.h',
                                                       'brianlib/*.cpp',
                                                       'brianlib/*.h'],
+                    'brian.synapses': ['*.cpp'],
                     # include default_preferences file
                     'brian2': ['default_preferences']
                     },
@@ -50,6 +51,7 @@ setup(name='Brian2',
       extras_require={'test': ['nosetests>=1.0'],
                       'docs': ['sphinx>=1.0.1', 'sphinxcontrib-issuetracker']},
       use_2to3=True,
+      ext_modules= cythonize("brian2/synapses/cythonspikequeue.pyx"),
       url='http://www.briansimulator.org/',
       description='A clock-driven simulator for spiking neural networks',
       long_description=long_description,

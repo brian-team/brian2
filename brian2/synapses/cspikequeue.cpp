@@ -3,23 +3,45 @@
 
 using namespace std;
 
-class SpikeQueue
+class CSpikeQueue
 {
 public:
 	vector< vector<int> > queue; // queue[(offset+i)%queue.size()] is delay i relative to current time
-	double dt;
+	double dt = 0.0;
 	int offset;
+	int *delays = NULL;
+	int source_start;
+	int source_end;
+    vector< vector<int> > synapses;
 
-	SpikeQueue(double _dt)
-		: dt(_dt)
+	CSpikeQueue(int _source_start, int _source_end)
+		: source_start(_source_start), source_end(_source_end)
 	{
 		queue.resize(1);
 		offset = 0;
 	};
 
+    void prepare(double *real_delays, int *sources, int n_sources,
+                 int n_synapses, double _dt)
+    {
+        if (delays)
+            delete [] delays;
+
+        delays = new int[n_synapses];
+        synapses.clear();
+        synapses.resize(n_sources);
+        for (int i=0; i<n_synapses; i++)
+        {
+            delays[i] =  (int)(real_delays[i] / _dt + 0.5); //round to nearest int
+            synapses[sources[i]].push_back(i);
+        }
+
+        dt = _dt;
+    }
+
 	void expand(int newsize)
 	{
-		int n = queue.size();
+		const int n = queue.size();
 		if(newsize<=n) return;
 		// rotate offset back to start (leaves the circular structure unchanged)
 		rotate(queue.begin(), queue.begin()+offset, queue.end());
@@ -36,18 +58,18 @@ public:
 		}
 	};
 
-	void push(int *spikes, double *delays, int nspikes)
+	void push(int *spikes, int nspikes)
 	{
-		int start = lower_bound(spikes, spikes+nspikes, path.spikes_start)-spikes;
-		int stop = upper_bound(spikes, spikes+nspikes, path.spikes_stop)-spikes;
+		const int start = lower_bound(spikes, spikes+nspikes, source_start)-spikes;
+		const int stop = upper_bound(spikes, spikes+nspikes, source_end)-spikes;
 		for(int idx_spike=start; idx_spike<stop; idx_spike++)
 		{
-			int idx_neuron = spikes[idx_spike];
-			vector<int> &cur_indices = path.indices[idx_neuron];
+			const int idx_neuron = spikes[idx_spike];
+			vector<int> &cur_indices = synapses[idx_neuron];
 			for(int idx_indices=0; idx_indices<cur_indices.size(); idx_indices++)
 			{
-				int synaptic_index = cur_indices[idx_indices];
-				int delay = (int)(path.delay[synaptic_index]/dt+0.5); // rounds to nearest int
+				const int synaptic_index = cur_indices[idx_indices];
+				const int delay = delays[synaptic_index];
 				// make sure there is enough space and resize if not
 				ensure_delay(delay);
 				// insert the index into the correct queue

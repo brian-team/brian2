@@ -82,7 +82,7 @@ class SpikeQueue(object):
         self._dt = None
 
     def prepare(self, delays, dt, synapse_sources,
-                 n_synapses, source_len, source_start):
+                n_synapses, source_len, source_start):
         '''
         Prepare the data structure and pre-compute offsets.
         This is called every time the network is run. The size of the
