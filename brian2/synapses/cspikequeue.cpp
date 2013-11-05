@@ -1,3 +1,4 @@
+#include<iostream>
 #include<vector>
 #include<algorithm>
 
@@ -30,10 +31,11 @@ public:
         delays = new int[n_synapses];
         synapses.clear();
         synapses.resize(n_sources);
+
         for (int i=0; i<n_synapses; i++)
         {
             delays[i] =  (int)(real_delays[i] / _dt + 0.5); //round to nearest int
-            synapses[sources[i]].push_back(i);
+            synapses[sources[i] - source_start].push_back(i);
         }
 
         dt = _dt;
@@ -64,7 +66,7 @@ public:
 		const int stop = upper_bound(spikes, spikes+nspikes, source_end)-spikes;
 		for(int idx_spike=start; idx_spike<stop; idx_spike++)
 		{
-			const int idx_neuron = spikes[idx_spike];
+			const int idx_neuron = spikes[idx_spike] - source_start;
 			vector<int> &cur_indices = synapses[idx_neuron];
 			for(int idx_indices=0; idx_indices<cur_indices.size(); idx_indices++)
 			{
