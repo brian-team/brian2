@@ -78,7 +78,10 @@ class SpikeQueue(object):
         #: precalculated offsets
         self._offsets = None
 
-    def prepare(self, delays, synapse_sources,
+        #: The dt used for storing the spikes (will be set in `prepare`)
+        self._dt = None
+
+    def prepare(self, delays, dt, synapse_sources,
                  n_synapses, source_len, source_start):
         '''
         Prepare the data structure and pre-compute offsets.
@@ -89,11 +92,24 @@ class SpikeQueue(object):
         delays are homogeneous, in which case insertion will use a faster method
         implemented in `insert_homogeneous`.        
         '''
+        if self._dt is not None:
+            # store the current spikes
+            spikes = self._extract_spikes()
+            # adapt the spikes to the new dt if it changed
+            if self._dt != dt:
+                spiketimes = spikes[:, 0] * self._dt
+                spikes[:, 0] = np.round(spiketimes / dt).astype(np.int)
+        else:
+            spikes = None
+
         if len(delays):
+            delays = np.array(np.round(delays / dt)).astype(np.int)
             max_delays = max(delays)
             min_delays = min(delays)
         else:
             max_delays = min_delays = 0
+
+        self._delays = delays
 
         # Prepare the data structure used in propagation
         self._neurons_to_synapses =  []
@@ -123,9 +139,15 @@ class SpikeQueue(object):
 
         # Precompute offsets
         if self._precompute_offsets:
-            self._do_precompute_offsets(delays, n_synapses)
+            self._do_precompute_offsets(n_synapses)
 
-    def extract_spikes(self):
+        # Re-insert the spikes into the data structure
+        if spikes is not None:
+            self._store_spikes(spikes)
+
+        self._dt = dt
+
+    def _extract_spikes(self):
         '''
         Get all the stored spikes
 
@@ -145,7 +167,7 @@ class SpikeQueue(object):
                 counter += 1
         return spikes
 
-    def store_spikes(self, spikes):
+    def _store_spikes(self, spikes):
         '''
         Store a list of spikes at the given positions after clearing all
         spikes in the queue.
@@ -180,7 +202,7 @@ class SpikeQueue(object):
         '''      
         return self.X[self.currenttime,:self.n[self.currenttime]]    
     
-    def push(self, sources, delays, start, stop):
+    def push(self, sources, start, stop):
         '''
         Push spikes to the queue.
 
@@ -188,9 +210,6 @@ class SpikeQueue(object):
         ----------
         sources : ndarray of int
             The indices of the neurons that spiked.
-        delays : ndarray of int
-            The synaptic delays all synapses, given as integer values
-            (multiples of dt).
         start : int
             The index after which spikes should be considered (necessary for
             subgroups)
@@ -213,23 +232,25 @@ class SpikeQueue(object):
                                       for source in sources]).astype(np.int32)
 
             if self._homogeneous:  # homogeneous delays
-                self._insert_homogeneous(delays[0], indices)
+                self._insert_homogeneous(self._delays[0], indices)
             elif self._offsets is None:  # vectorise over synaptic events
                 # there are no precomputed offsets, this is the case
                 # (in particular) when there are dynamic delays
-                self._insert(delays[indices], indices)
+                self._insert(self._delays[indices], indices)
             else: # offsets are precomputed
-                self._insert(delays[indices], indices, self._offsets[indices])
+                self._insert(self._delays[indices], indices, self._offsets[indices])
                 # Note: the trick can only work if offsets are ordered in the right way
 
-    def _do_precompute_offsets(self, delays, n_synapses):
+    def _do_precompute_offsets(self, n_synapses):
         '''
         Precompute all offsets corresponding to delays. This assumes that
         delays will not change during the simulation.
         '''
-        if len(delays) == 1 and n_synapses != 1:
+        if len(self._delays) == 1 and n_synapses != 1:
             # We have a scalar delay value
-            delays = delays.repeat(n_synapses)
+            delays = self._delays.repeat(n_synapses)
+        else:
+            delays = self._delays
         self._offsets = np.zeros_like(delays)
         index = 0
         for targets in self._neurons_to_synapses:

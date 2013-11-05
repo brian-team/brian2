@@ -224,35 +224,19 @@ class SynapticPathway(GroupCodeRunner, Group):
     def initialise_queue(self):
         if self.queue is None:
             self.queue = SpikeQueue()
-            spikes = None
-        else:
-            # TODO: The following is only necessary for a change of dt
-            # Get the existing spikes in the queue
-            spikes = self.queue.extract_spikes()
-            # Convert the integer time steps into floating point time
-            spikes[:, 0] *= self.dt
 
         # Update the dt (might have changed between runs)
         self.dt = self.synapses.clock.dt_
 
-        self.queue.prepare(np.round(self._delays.get_value() / self.dt).astype(np.int),
-                            self.synapse_sources, len(self.synapses),
-                            len(self.source), self.source.start)
-        if spikes is not None:
-            # Convert the floating point time back to integer time (dt might have changed)
-            spikes[:, 0] = np.round(spikes[:, 0] / self.dt)
-            # Re-insert the spikes into the queue
-            self.queue.store_spikes(spikes)
+        self.queue.prepare(self._delays.get_value(), self.dt,
+                           self.synapse_sources, len(self.synapses),
+                           len(self.source), self.source.start)
 
     def push_spikes(self):
         # Push new spikes into the queue
         spikes = self.source.spikes
         if len(spikes):
-            if len(self._delays) > 1:
-                delays = np.round(self._delays.get_value() / self.dt).astype(int)
-            else:
-                delays = np.round(self._delays.get_value() / self.dt).astype(int)
-            self.queue.push(spikes, delays, self.source.start, self.source.stop)
+            self.queue.push(spikes, self.source.start, self.source.stop)
         # Get the spikes
         self.spiking_synapses = self.queue.peek()
         # Advance the spike queue
