@@ -85,7 +85,8 @@ class PoissonGroup(Group, SpikeSource):
         # Note that we have to directly access the ArrayVariable object here
         # instead of using the Group mechanism by accessing self._spikespace
         # Using the latter would cut _spikespace to the length of the group
-        return self.variables['_spikespace'][:self.variables['_spikespace'][-1]]
+        spikespace = self.variables['_spikespace'].get_value()
+        return spikespace[:spikespace[-1]]
 
     def __len__(self):
         return self.N
