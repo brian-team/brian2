@@ -1,15 +1,15 @@
 #include<iostream>
 #include<vector>
 #include<algorithm>
-
+#include<inttypes.h>
 using namespace std;
 
 //TODO: The data type for delays and indices is currently fixed (double and int)
-
+typedef int32_t DTYPE_int;
 class CSpikeQueue
 {
 public:
-	vector< vector<int> > queue; // queue[(offset+i)%queue.size()] is delay i relative to current time
+	vector< vector<DTYPE_int> > queue; // queue[(offset+i)%queue.size()] is delay i relative to current time
 	double dt;
 	unsigned int offset;
 	unsigned int *delays = NULL;
@@ -35,7 +35,7 @@ public:
         {
             // dt changed, we have to get the old spikes out of the queue and
             // reinsert them at the correct positions
-            vector< vector<int> > queue_copy = queue; // does a real copy
+            vector< vector<DTYPE_int> > queue_copy = queue; // does a real copy
             const double conversion_factor = dt / _dt;
             const unsigned int oldsize = queue.size();
             const unsigned int newsize = (int)(oldsize * conversion_factor) + 1;
@@ -43,7 +43,7 @@ public:
             queue.resize(newsize);
             for (unsigned int i=0; i<oldsize; i++)
             {
-                vector<int> spikes = queue_copy[(i + offset) % oldsize];
+                vector<DTYPE_int> spikes = queue_copy[(i + offset) % oldsize];
                 queue[(int)(i * conversion_factor + 0.5)] = spikes;
             }
             offset = 0;
@@ -102,7 +102,7 @@ public:
 		}
 	};
 
-	inline vector<int>& peek()
+	inline vector<DTYPE_int>& peek()
 	{
 		return queue[offset];
 	};
