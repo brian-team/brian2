@@ -4,13 +4,15 @@
 
 using namespace std;
 
+//TODO: The data type for delays and indices is currently fixed (double and int)
+
 class CSpikeQueue
 {
 public:
 	vector< vector<int> > queue; // queue[(offset+i)%queue.size()] is delay i relative to current time
-	double dt = 0.0;
-	int offset;
-	int *delays = NULL;
+	double dt;
+	unsigned int offset;
+	unsigned int *delays = NULL;
 	int source_start;
 	int source_end;
     vector< vector<int> > synapses;
@@ -20,19 +22,38 @@ public:
 	{
 		queue.resize(1);
 		offset = 0;
+		dt = 0.0;
 	};
 
-    void prepare(double *real_delays, int *sources, int n_sources,
-                 int n_synapses, double _dt)
+    void prepare(double *real_delays, int *sources, unsigned int n_sources,
+                 unsigned int n_synapses, double _dt)
     {
         if (delays)
             delete [] delays;
 
-        delays = new int[n_synapses];
+        if (dt != 0.0 && dt != _dt)
+        {
+            // dt changed, we have to get the old spikes out of the queue and
+            // reinsert them at the correct positions
+            vector< vector<int> > queue_copy = queue; // does a real copy
+            const double conversion_factor = dt / _dt;
+            const unsigned int oldsize = queue.size();
+            const unsigned int newsize = (int)(oldsize * conversion_factor) + 1;
+            queue.clear();
+            queue.resize(newsize);
+            for (unsigned int i=0; i<oldsize; i++)
+            {
+                vector<int> spikes = queue_copy[(i + offset) % oldsize];
+                queue[(int)(i * conversion_factor + 0.5)] = spikes;
+            }
+            offset = 0;
+        }
+
+        delays = new unsigned int[n_synapses];
         synapses.clear();
         synapses.resize(n_sources);
 
-        for (int i=0; i<n_synapses; i++)
+        for (unsigned int i=0; i<n_synapses; i++)
         {
             delays[i] =  (int)(real_delays[i] / _dt + 0.5); //round to nearest int
             synapses[sources[i] - source_start].push_back(i);
@@ -41,10 +62,11 @@ public:
         dt = _dt;
     }
 
-	void expand(int newsize)
+	void expand(unsigned int newsize)
 	{
-		const int n = queue.size();
-		if(newsize<=n) return;
+		const unsigned int n = queue.size();
+		if (newsize<=n)
+		    return;
 		// rotate offset back to start (leaves the circular structure unchanged)
 		rotate(queue.begin(), queue.begin()+offset, queue.end());
 		offset = 0;
@@ -52,7 +74,7 @@ public:
 		queue.resize(newsize);
 	};
 
-	inline void ensure_delay(int delay)
+	inline void ensure_delay(unsigned int delay)
 	{
 		if(delay>=queue.size())
 		{
@@ -60,18 +82,18 @@ public:
 		}
 	};
 
-	void push(int *spikes, int nspikes)
+	void push(int *spikes, unsigned int nspikes)
 	{
-		const int start = lower_bound(spikes, spikes+nspikes, source_start)-spikes;
-		const int stop = upper_bound(spikes, spikes+nspikes, source_end)-spikes;
-		for(int idx_spike=start; idx_spike<stop; idx_spike++)
+		const unsigned int start = lower_bound(spikes, spikes+nspikes, source_start)-spikes;
+		const unsigned int stop = upper_bound(spikes, spikes+nspikes, source_end)-spikes;
+		for(unsigned int idx_spike=start; idx_spike<stop; idx_spike++)
 		{
-			const int idx_neuron = spikes[idx_spike] - source_start;
+			const unsigned int idx_neuron = spikes[idx_spike] - source_start;
 			vector<int> &cur_indices = synapses[idx_neuron];
-			for(int idx_indices=0; idx_indices<cur_indices.size(); idx_indices++)
+			for(unsigned int idx_indices=0; idx_indices<cur_indices.size(); idx_indices++)
 			{
 				const int synaptic_index = cur_indices[idx_indices];
-				const int delay = delays[synaptic_index];
+				const unsigned int delay = delays[synaptic_index];
 				// make sure there is enough space and resize if not
 				ensure_delay(delay);
 				// insert the index into the correct queue
