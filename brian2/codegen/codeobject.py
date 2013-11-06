@@ -111,8 +111,7 @@ class CodeObject(Nameable):
     language = None
     #: A short name for this type of `CodeObject`
     class_name = None
-    #: The class used as the `SpikeQueue`
-    spikequeue_class = None
+
     def __init__(self, owner, code, namespace, variables, name='codeobject*'):
         Nameable.__init__(self, name=name)
         try:    

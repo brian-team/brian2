@@ -74,7 +74,7 @@ class WeaveCodeObject(CodeObject):
                                        'dtype': numpy.dtype})
     language = CPPLanguage(c_data_type=weave_data_type)
     class_name = 'weave'
-    spikequeue_class = SpikeQueue
+
     def __init__(self, owner, code, namespace, variables, name='weave_code_object*'):
         super(WeaveCodeObject, self).__init__(owner, code, namespace, variables, name=name)
         self.compiler = brian_prefs['codegen.runtime.weave.compiler']

@@ -39,7 +39,7 @@ class NumpyCodeObject(CodeObject):
     templater = Templater('brian2.codegen.runtime.numpy_rt')
     language = NumpyLanguage()
     class_name = 'numpy'
-    spikequeue_class = SpikeQueue
+
     def __init__(self, owner, code, namespace, variables, name='numpy_code_object*'):
         # TODO: This should maybe go somewhere else
         namespace['logical_not'] = np.logical_not

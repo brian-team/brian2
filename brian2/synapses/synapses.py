@@ -219,10 +219,8 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.updaters.insert(0, self._pushspikes_codeobj.get_updater())
 
     def initialise_queue(self):
-        codeobj_class = get_device().code_object_class(self.synapses.codeobj_class)
-        SpikeQueue = codeobj_class.spikequeue_class
         if self.queue is None:
-            self.queue = SpikeQueue(self.source.start, self.source.stop)
+            self.queue = get_device().spike_queue(self.source.start, self.source.stop)
 
         # Update the dt (might have changed between runs)
         self.dt = self.synapses.clock.dt_
