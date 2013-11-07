@@ -3,6 +3,9 @@
 
 from libcpp.vector cimport vector
 
+from cython.operator import dereference
+from cython.operator cimport dereference
+
 cimport numpy as np
 import numpy as np
 
@@ -16,7 +19,7 @@ cdef extern from "cspikequeue.cpp":
         CSpikeQueue(int, int) except +
         void prepare(double*, int*, int, int, double)
         void push(int *, int)
-        vector[DTYPE_int] peek()
+        vector[DTYPE_int]& peek()
         void next()
 
 cdef class SpikeQueue:
@@ -43,23 +46,16 @@ cdef class SpikeQueue:
         # copying -- &spikes[0] is guaranteed to point to a contiguous array
         # according to the C++ standard.
         cdef:
-            vector[DTYPE_int] spikes = self.thisptr.peek()
-            DTYPE_int* spikes_data = &(spikes[0])
-            unsigned int spikes_size = spikes.size()
+            vector[DTYPE_int]* spikes = &(self.thisptr.peek())
+            DTYPE_int* spikes_data = &(dereference(spikes)[0])
+            unsigned int spikes_size = dereference(spikes).size()
 
         if spikes_size == 0:
             return np.empty(0, dtype=np.int)
 
         cdef np.npy_intp shape[1]
-        cdef DTYPE_int[:] spikes_data_view = <DTYPE_int[:spikes_size]> spikes_data
-        # FIXME: For some reason Cython changes the data type here from int32
-        #        to int64 (therefore it also has to copy the data...?), using
-        #        int32 here will lead to useless numbers in the array on the
-        #        Python side
-        cdef np.ndarray[np.int_t, ndim=1, mode='c'] ar = np.asarray(spikes_data_view,
-                                                                    dtype=np.int,
-                                                                    order='C')
-        return <np.ndarray[np.int_t, ndim=1, mode='c']>ar
+        shape[0] = spikes_size
+        return np.PyArray_SimpleNewFromData(1, shape, np.NPY_INT32, spikes_data)
 
     def next(self):
         self.thisptr.next()
