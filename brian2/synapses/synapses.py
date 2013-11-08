@@ -173,6 +173,7 @@ class SynapticPathway(GroupCodeRunner, Group):
         #: The `CodeObject` initalising the `SpikeQueue` at the begin of a run
         self._initialise_queue_codeobj = None
 
+        self.namespace = create_namespace(None)
         # Enable access to the delay attribute via the specifier
         self._enable_group_attributes()
 
@@ -194,28 +195,24 @@ class SynapticPathway(GroupCodeRunner, Group):
     def before_run(self, namespace):
         # execute code to initalize the spike queue
         if self._initialise_queue_codeobj is None:
-            self._initialise_queue_codeobj = get_device().code_object(self,
-                                                                      self.name+'_initialise_queue*',
-                                                                      abstract_code='',
-                                                                      namespace={},
-                                                                      variables=self.group.variables,
-                                                                      template_name='synapses_initialise_queue',
-                                                                      variable_indices=self.group.variable_indices,
-                                                                      )
-
+            self._initialise_queue_codeobj = create_runner_codeobj(self,
+                                                                   '', # no code,
+                                                                   'synapses_initialise_queue',
+                                                                   name=self.name+'_initialise_queue',
+                                                                   check_units=False,
+                                                                   additional_variables=self.group.variables)
         self._initialise_queue_codeobj()
         GroupCodeRunner.before_run(self, namespace)
 
         # we insert rather than replace because GroupCodeRunner puts a CodeObject in updaters already
         if self._pushspikes_codeobj is None:
-            self._pushspikes_codeobj = get_device().code_object(self,
-                                                                self.name+'_push_spikes_codeobject*',
-                                                                '',
-                                                                {},
-                                                                self.group.variables,
-                                                                'synapses_push_spikes',
-                                                                self.group.variable_indices,
-                                                                )
+            self._pushspikes_codeobj = create_runner_codeobj(self,
+                                                             '', # no code
+                                                             'synapses_push_spikes',
+                                                             name=self.name+'_push_spikes',
+                                                             check_units=False,
+                                                             additional_variables=self.group.variables)
+
         self.updaters.insert(0, self._pushspikes_codeobj.get_updater())
 
     def initialise_queue(self):
