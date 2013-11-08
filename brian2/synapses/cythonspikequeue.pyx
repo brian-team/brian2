@@ -15,26 +15,27 @@ ctypedef np.int32_t DTYPE_int
 ctypedef np.float64_t DTYPE_float
 
 cdef extern from "cspikequeue.cpp":
-    cdef cppclass CSpikeQueue:
+    cdef cppclass CSpikeQueue[T]:
         CSpikeQueue(int, int) except +
-        void prepare(double*, int*, int, int, double)
+        void prepare(T*, int*, int, int, double)
         void push(int *, int)
         vector[DTYPE_int]& peek()
         void next()
 
 cdef class SpikeQueue:
-    cdef CSpikeQueue *thisptr
+    # TODO: Currently, the data type for dt and delays is fixed
+    cdef CSpikeQueue[DTYPE_float] *thisptr
 
     def __cinit__(self, int source_start, int source_end):
-        self.thisptr = new CSpikeQueue(source_start, source_end)
+        self.thisptr = new CSpikeQueue[DTYPE_float](source_start, source_end)
 
     def __dealloc__(self):
         del self.thisptr
 
     def prepare(self, np.ndarray[DTYPE_float, ndim=1, mode='c'] real_delays,
-                double dt,
+                DTYPE_float dt,
                 np.ndarray[DTYPE_int, ndim=1, mode='c'] sources):
-        self.thisptr.prepare(<double*>real_delays.data,
+        self.thisptr.prepare(<DTYPE_float*>real_delays.data,
                              <int*>sources.data, sources.shape[0],
                              real_delays.shape[0], dt)
 

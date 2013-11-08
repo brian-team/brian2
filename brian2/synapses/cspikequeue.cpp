@@ -4,13 +4,16 @@
 #include<inttypes.h>
 using namespace std;
 
-//TODO: The data type for delays and indices is currently fixed (double and int)
+//TODO: The data type for indices is currently fixed (int), all floating point
+//      variables (delays, dt) are assumed to use the same data type
 typedef int32_t DTYPE_int;
+
+template <class scalar>
 class CSpikeQueue
 {
 public:
 	vector< vector<DTYPE_int> > queue; // queue[(offset+i)%queue.size()] is delay i relative to current time
-	double dt;
+	scalar dt;
 	unsigned int offset;
 	unsigned int *delays = NULL;
 	int source_start;
@@ -25,7 +28,7 @@ public:
 		dt = 0.0;
 	};
 
-    void prepare(double *real_delays, int *sources, unsigned int n_sources,
+    void prepare(scalar *real_delays, int *sources, unsigned int n_sources,
                  unsigned int n_synapses, double _dt)
     {
         if (delays)
