@@ -115,7 +115,7 @@ class Thresholder(GroupCodeRunner):
             template_kwds = {'_uses_refractory': True,
                              '_array_not_refractory': group.variables['not_refractory'].arrayname,
                              '_array_lastspike': group.variables['lastspike'].arrayname}
-            needed_variables=['not_refractory', 'lastspike']
+            needed_variables=['t', 'not_refractory', 'lastspike']
         GroupCodeRunner.__init__(self, group,
                                  'threshold',
                                  when=(group.clock, 'thresholds'),
