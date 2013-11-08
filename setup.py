@@ -45,7 +45,8 @@ setup(name='Brian2',
                         'scipy>=0.7.0',
                         'sympy>=0.7.2',
                         'pyparsing',
-                        'jinja2>=2.7'
+                        'jinja2>=2.7',
+                        'cython>=0.15'
                        ],
       provides=['brian2'],
       extras_require={'test': ['nosetests>=1.0'],
