@@ -1,8 +1,7 @@
 {% extends 'common_synapses.cpp' %}
 
 {% block maincode %}
-	// USES_VARIABLES { _synaptic_pre, _synaptic_post, _post_synaptic,
-	//                  _pre_synaptic, rand}
+	// USES_VARIABLES { _synaptic_pre, _synaptic_post, rand}
 	{% if variables is defined %}
 	{% set synpre = '_dynamic'+variables['_synaptic_pre'].arrayname %}
 	{% set synpost = '_dynamic'+variables['_synaptic_post'].arrayname %}
@@ -31,8 +30,6 @@
 			    for (int _repetition=0; _repetition<_n; _repetition++) {
 			    	{{synpre}}.push_back(_pre_idcs);
 			    	{{synpost}}.push_back(_post_idcs);
-			    	{{synobj}}._pre_synaptic[i].push_back(_synapse_idx);
-			    	{{synobj}}._post_synaptic[j].push_back(_synapse_idx);
                     _synapse_idx++;
                 }
 			}
