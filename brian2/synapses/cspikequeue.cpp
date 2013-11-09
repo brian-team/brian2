@@ -15,7 +15,7 @@ public:
 	vector< vector<DTYPE_int> > queue; // queue[(offset+i)%queue.size()] is delay i relative to current time
 	scalar dt;
 	unsigned int offset;
-	unsigned int *delays = NULL;
+	unsigned int *delays;
 	int source_start;
 	int source_end;
     vector< vector<int> > synapses;
@@ -26,6 +26,7 @@ public:
 		queue.resize(1);
 		offset = 0;
 		dt = 0.0;
+		delays = NULL;
 	};
 
     void prepare(scalar *real_delays, int *sources, unsigned int n_sources,
