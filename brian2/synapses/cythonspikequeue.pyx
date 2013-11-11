@@ -20,7 +20,7 @@ cdef extern from "cspikequeue.cpp":
         void prepare(T*, int*, int, int, double)
         void push(int *, int)
         vector[DTYPE_int]& peek()
-        void next()
+        void advance()
 
 cdef class SpikeQueue:
     # TODO: Currently, the data type for dt and delays is fixed
@@ -58,5 +58,5 @@ cdef class SpikeQueue:
         shape[0] = spikes_size
         return np.PyArray_SimpleNewFromData(1, shape, np.NPY_INT32, spikes_data)
 
-    def next(self):
-        self.thisptr.next()
+    def advance(self):
+        self.thisptr.advance()

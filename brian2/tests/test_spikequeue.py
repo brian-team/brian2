@@ -40,10 +40,10 @@ def test_spikequeue():
     queue.push(np.arange(N, dtype=np.int32))
     for i in xrange(N):
         assert_equal(queue.peek(), np.array([i]))
-        queue.next()
+        queue.advance()
     for i in xrange(N):
         assert_equal(queue.peek(), np.array([]))
-        queue.next()
+        queue.advance()
 
     synapses, delays = create_all_to_all(N, dt)
 
@@ -52,10 +52,10 @@ def test_spikequeue():
     queue.push(np.arange(N*N, dtype=np.int32))
     for i in xrange(N):
         assert_equal(queue.peek(), i*N + np.arange(N))
-        queue.next()
+        queue.advance()
     for i in xrange(N):
         assert_equal(queue.peek(), np.array([]))
-        queue.next()
+        queue.advance()
 
 
 if __name__ == '__main__':

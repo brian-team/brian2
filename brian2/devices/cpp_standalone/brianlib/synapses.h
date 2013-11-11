@@ -116,7 +116,7 @@ public:
 		return queue[offset];
 	};
 
-	void next()
+	void advance()
 	{
 		// empty the current queue, note that for most compilers this shouldn't deallocate the memory,
 		// although VC<=7.1 will, so it will be less efficient with that compiler

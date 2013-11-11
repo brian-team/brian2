@@ -233,7 +233,7 @@ class SynapticPathway(GroupCodeRunner, Group):
         # Get the spikes
         self.spiking_synapses = self.queue.peek()
         # Advance the spike queue
-        self.queue.next()
+        self.queue.advance()
 
 
 def slice_to_test(x):

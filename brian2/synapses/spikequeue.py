@@ -197,7 +197,7 @@ class SpikeQueue(object):
             self.n[row_idx] += 1
 
     ################################ SPIKE QUEUE DATASTRUCTURE ################
-    def next(self):
+    def advance(self):
         '''
         Advances by one timestep
         '''
