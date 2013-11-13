@@ -16,13 +16,15 @@ before_install:
 - sudo ln -s /run/shm /dev/shm
 # command to install dependencies
 install:
-  - "conda create -n travis_conda --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy nose sphinx ipython sympy pyparsing"
-  - "source activate travis_conda"
-  - "pip install -q python-coveralls --use-mirrors"
-  - "pip install ."
+  - conda create -n travis_conda --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy nose sphinx ipython sympy pyparsing
+  - source activate travis_conda
+  - pip install -q python-coveralls --use-mirrors
+  - pip install .
+  # Make sure that weave uses Anaconda's header files
+  - mkdir ~/.brian;echo -e "[codegen.runtime.weave]\ninclude_dirs = ['/home/travis/anaconda/envs/travis_conda/include']\n" > ~/.brian/user_preferences
 # command to run tests (make sure to not run it from the source directory)
-script: "export SRCDIR=$(pwd); cd ~;coverage run --rcfile=$SRCDIR/.coveragerc $(which nosetests) --logging-clear-handlers --verbose --with-doctest brian2"
+script: export SRCDIR=$(pwd); cd ~;coverage run --rcfile=$SRCDIR/.coveragerc $(which nosetests) --logging-clear-handlers --verbose --with-doctest brian2
 # We only report coverage for one Python version
-after_success: " if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then cp .coverage $SRCDIR; cd $SRCDIR; coveralls --config_file .coveragerc; fi"
+after_success: if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then cp .coverage $SRCDIR; cd $SRCDIR; coveralls --config_file .coveragerc; fi
 notifications:
   email: false
