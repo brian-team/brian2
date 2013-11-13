@@ -32,14 +32,20 @@ brian_prefs.register_preferences(
         validator=lambda pref: pref=='gcc',
         docs='''
         Compiler to use for weave.
-        ''',
+        '''
         ),
     extra_compile_args = BrianPreference(
         default=['-w', '-O3'],
         docs='''
         Extra compile arguments to pass to compiler
-        ''',
+        '''
         ),
+    include_dirs = BrianPreference(
+        default=[],
+        docs='''
+        Include directories to use.
+        '''
+        )
     )
 
 
@@ -78,6 +84,7 @@ class WeaveCodeObject(CodeObject):
         super(WeaveCodeObject, self).__init__(owner, code, namespace, variables, name=name)
         self.compiler = brian_prefs['codegen.runtime.weave.compiler']
         self.extra_compile_args = brian_prefs['codegen.runtime.weave.extra_compile_args']
+        self.include_dirs = brian_prefs['codegen.runtime.weave.include_dirs']
         self.python_code_namespace = {'_owner': owner}
 
     def variables_to_namespace(self):
@@ -141,7 +148,8 @@ class WeaveCodeObject(CodeObject):
                             local_dict=self.namespace,
                             support_code=self.code.support_code,
                             compiler=self.compiler,
-                            extra_compile_args=self.extra_compile_args)
+                            extra_compile_args=self.extra_compile_args,
+                            include_dirs=self.include_dirs)
         if hasattr(self, 'compiled_python_post'):
             exec self.compiled_python_post in self.python_code_namespace
 
