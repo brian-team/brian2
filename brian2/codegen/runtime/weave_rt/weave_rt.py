@@ -35,7 +35,7 @@ brian_prefs.register_preferences(
         '''
         ),
     extra_compile_args = BrianPreference(
-        default=['-w', '-O3'],
+        default=['-w', '-O3', '-ffast-math'],
         docs='''
         Extra compile arguments to pass to compiler
         '''
