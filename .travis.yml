@@ -23,7 +23,7 @@ install:
   # Make sure that weave uses Anaconda's header files
   - mkdir ~/.brian;echo -e "[codegen.runtime.weave]\ninclude_dirs = ['/home/travis/anaconda/envs/travis_conda/include']\n" > ~/.brian/user_preferences
 # command to run tests (make sure to not run it from the source directory)
-script: export SRCDIR=$(pwd); cd ~;coverage run --rcfile=$SRCDIR/.coveragerc $(which nosetests) --logging-clear-handlers --verbose --with-doctest brian2
+script: export SRCDIR=$(pwd); cd ~;coverage run --rcfile=$SRCDIR/.coveragerc $(which nosetests) --logging-clear-handlers --verbose --with-doctest --exe brian2
 # We only report coverage for one Python version
 after_success: if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then cp .coverage $SRCDIR; cd $SRCDIR; coveralls --config_file .coveragerc; fi
 notifications:
