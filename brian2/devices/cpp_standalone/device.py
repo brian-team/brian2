@@ -3,10 +3,10 @@ Module implementing the C++ "standalone" device.
 '''
 import numpy
 import os
+import shutil
 import subprocess
 import inspect
 from collections import defaultdict
-import weakref
 
 from brian2.core.clocks import defaultclock
 from brian2.core.magic import magic_network
@@ -412,7 +412,12 @@ class CPPStandaloneDevice(Device):
         brianlib_dir = os.path.join(os.path.split(inspect.getsourcefile(CPPStandaloneCodeObject))[0],
                                     'brianlib')
         copy_directory(brianlib_dir, os.path.join(project_dir, 'brianlib'))
-        
+
+        # Copy the CSpikeQueue implementation
+        shutil.copy(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0],
+                                    'cspikequeue.cpp'),
+                    os.path.join(project_dir, 'brianlib', 'spikequeue.h'))
+
         # build the project
         if compile_project:
             with in_directory(project_dir):
