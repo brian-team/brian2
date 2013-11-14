@@ -46,10 +46,20 @@ if WITH_CYTHON or not os.path.exists(cpp_fname):
     if not os.path.exists(pyx_fname):
         raise RuntimeError(('Compilation with Cython requested/necessary but '
                             'Cython source file %s does not exist') % pyx_fname)
-    extensions = cythonize(pyx_fname)
+    try:
+        import numpy
+    except ImportError:
+        raise RuntimeError(('Compiling with Cython needs numpy.'))
+    fname = pyx_fname
 else:
-    extensions = [Extension("brian2.synapses.cythonspikequeue",
-                            [cpp_fname])]
+    fname = cpp_fname
+
+extensions = [Extension("brian2.synapses.cythonspikequeue",
+                        [fname],
+                        include_dirs=[numpy.get_include()])]
+
+if fname == pyx_fname:
+    extensions = cythonize(extensions)
 
 
 class optional_build_ext(build_ext):
@@ -64,6 +74,7 @@ class optional_build_ext(build_ext):
 
     def build_extension(self, ext):
         try:
+            print 'Building with include_dirs', ext.include_dirs
             build_ext.build_extension(self, ext)
         except CompileError as ex:
             if FAIL_ON_ERROR:
