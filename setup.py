@@ -74,7 +74,6 @@ class optional_build_ext(build_ext):
 
     def build_extension(self, ext):
         try:
-            print 'Building with include_dirs', ext.include_dirs
             build_ext.build_extension(self, ext)
         except CompileError as ex:
             if FAIL_ON_ERROR:
