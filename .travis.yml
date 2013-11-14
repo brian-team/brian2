@@ -22,7 +22,7 @@ install:
   - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install -q pyparsing==1.5.7 --use-mirrors; else pip install -q pyparsing --use-mirrors; fi"
   # Install coverall support
   - "pip install -q coveralls"
-  - "pip install . --use-mirrors --install-option=--with-cython --install-option=--fail-on-error"
+  - "python setup.py install --with-cython --fail-on-error"
 # command to run tests (make sure to not run it from the source directory)
 script: "export SRCDIR=$(pwd); cd ~;coverage run --rcfile=$SRCDIR/.coveragerc $(which nosetests) --logging-clear-handlers --verbose --with-doctest brian2"
 # We only report coverage for one Python version
