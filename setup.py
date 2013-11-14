@@ -105,7 +105,7 @@ setup(name='Brian2',
                                                       'brianlib/*.cpp',
                                                       'brianlib/*.h'],
                     # include C++ version of spike queue
-                    'brian.synapses': ['*.cpp'],
+                    'brian2.synapses': ['*.cpp'],
                     # include default_preferences file
                     'brian2': ['default_preferences']
                     },
