@@ -9,6 +9,7 @@ import os
 from ez_setup import use_setuptools
 use_setuptools()
 
+import pkg_resources
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.errors import CompileError
@@ -46,17 +47,13 @@ if WITH_CYTHON or not os.path.exists(cpp_fname):
     if not os.path.exists(pyx_fname):
         raise RuntimeError(('Compilation with Cython requested/necessary but '
                             'Cython source file %s does not exist') % pyx_fname)
-    try:
-        import numpy
-    except ImportError:
-        raise RuntimeError(('Compiling with Cython needs numpy.'))
     fname = pyx_fname
 else:
     fname = cpp_fname
 
 extensions = [Extension("brian2.synapses.cythonspikequeue",
                         [fname],
-                        include_dirs=[numpy.get_include()])]
+                        include_dirs=[])]  # numpy include dir will be added later
 
 if fname == pyx_fname:
     extensions = cythonize(extensions)
@@ -71,8 +68,11 @@ class optional_build_ext(build_ext):
     *should* work, use the "--fail-on-error" option or set the environment
     variable FAIL_ON_ERROR to true.
     '''
-
     def build_extension(self, ext):
+        import numpy
+        numpy_incl = numpy.get_include()
+        if hasattr(ext, 'include_dirs') and not numpy_incl in ext.include_dirs:
+                ext.include_dirs.append(numpy_incl)
         try:
             build_ext.build_extension(self, ext)
         except CompileError as ex:
@@ -125,6 +125,7 @@ setup(name='Brian2',
                         'pyparsing',
                         'jinja2>=2.7',
                        ],
+      setup_requires=['numpy>=1.4.1'],
       cmdclass={'build_ext': optional_build_ext},
       provides=['brian2'],
       extras_require={'test': ['nosetests>=1.0'],
