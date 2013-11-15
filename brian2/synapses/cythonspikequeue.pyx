@@ -19,7 +19,7 @@ cdef extern from "cspikequeue.cpp":
         CSpikeQueue(int, int) except +
         void prepare(T*, int*, int, int, double)
         void push(int *, int)
-        vector[DTYPE_int]& peek()
+        vector[DTYPE_int]* peek()
         void advance()
 
 cdef class SpikeQueue:
@@ -47,7 +47,7 @@ cdef class SpikeQueue:
         # copying -- &spikes[0] is guaranteed to point to a contiguous array
         # according to the C++ standard.
         cdef:
-            vector[DTYPE_int]* spikes = <vector[DTYPE_int]*>&(self.thisptr.peek())
+            vector[DTYPE_int]* spikes = self.thisptr.peek()
             DTYPE_int* spikes_data = &(dereference(spikes)[0])
             unsigned int spikes_size = dereference(spikes).size()
 

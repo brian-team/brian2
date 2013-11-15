@@ -2,14 +2,14 @@
 
 {% block maincode %}
 	{% if pathway is defined %}
-	vector<int> &_spiking_synapses = {{pathway.name}}.queue->peek();
-	const int _num_spiking_synapses = _spiking_synapses.size();
+	vector<int> *_spiking_synapses = {{pathway.name}}.queue->peek();
+	const int _num_spiking_synapses = _spiking_synapses->size();
 	{% endif %}
 	for(int _spiking_synapse_idx=0;
 		_spiking_synapse_idx<_num_spiking_synapses;
 		_spiking_synapse_idx++)
 	{
-		const int _idx = _spiking_synapses[_spiking_synapse_idx];
+		const int _idx = (*_spiking_synapses)[_spiking_synapse_idx];
 		const int _vectorisation_idx = _idx;
 		{% for line in code_lines %}
 		{{line}}

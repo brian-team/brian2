@@ -106,9 +106,9 @@ public:
 		}
 	};
 
-	inline vector<DTYPE_int>& peek()
+	inline vector<DTYPE_int>* peek()
 	{
-		return queue[offset];
+		return &queue[offset];
 	};
 
 	void advance()
