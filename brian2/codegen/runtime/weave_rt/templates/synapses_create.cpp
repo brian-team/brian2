@@ -1,8 +1,7 @@
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-    // USES_VARIABLES { _synaptic_pre, _synaptic_post, _post_synaptic,
-    //                  _pre_synaptic, rand}
+    // USES_VARIABLES { _synaptic_pre, _synaptic_post, rand}
 	srand((unsigned int)time(NULL));
 	int _buffer_size = 1024;
 	int *_prebuf = new int[_buffer_size];
@@ -10,7 +9,6 @@
 	int *_synprebuf = new int[1];
 	int *_synpostbuf = new int[1];
 	int _curbuf = 0;
-	int _synapse_idx = _synaptic_pre_object.attr("shape")[0];
 	for(int i=0; i<_num_all_pre; i++)
 	{
 		for(int j=0; j<_num_all_post; j++)
@@ -39,19 +37,9 @@
                         _flush_buffer(_postbuf, _synaptic_post_object, _curbuf);
                         _curbuf = 0;
                     }
-                    // Directly add the synapse numbers to the neuron->synapses
-                    // mapping
-                    _synprebuf[0] = _synapse_idx;
-                    _synpostbuf[0] = _synapse_idx;
-                    py::object _pre_synapses = (py::object)PyList_GetItem(_pre_synaptic, i);
-                    py::object _post_synapses = (py::object)PyList_GetItem(_post_synaptic, j);
-                    _flush_buffer(_synprebuf, _pre_synapses, 1);
-                    _flush_buffer(_synpostbuf, _post_synapses, 1);
-                    _synapse_idx++;
                 }
 			}
 		}
-
 	}
 	// Final buffer flush
 	_flush_buffer(_prebuf, _synaptic_pre_object, _curbuf);

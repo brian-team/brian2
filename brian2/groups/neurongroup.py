@@ -115,7 +115,7 @@ class Thresholder(GroupCodeRunner):
             template_kwds = {'_uses_refractory': True,
                              '_array_not_refractory': group.variables['not_refractory'].arrayname,
                              '_array_lastspike': group.variables['lastspike'].arrayname}
-            needed_variables=['not_refractory', 'lastspike']
+            needed_variables=['t', 'not_refractory', 'lastspike']
         GroupCodeRunner.__init__(self, group,
                                  'threshold',
                                  when=(group.clock, 'thresholds'),
@@ -327,7 +327,8 @@ class NeuronGroup(Group, SpikeSource):
         # Note that we have to directly access the ArrayVariable object here
         # instead of using the Group mechanism by accessing self._spikespace
         # Using the latter would cut _spikespace to the length of the group
-        return self.variables['_spikespace'][:self.variables['_spikespace'][-1]]
+        spikespace = self.variables['_spikespace'].get_value()
+        return spikespace[:spikespace[-1]]
 
     def __getitem__(self, item):
         if not isinstance(item, slice):

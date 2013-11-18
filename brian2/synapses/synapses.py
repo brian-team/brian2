@@ -7,7 +7,6 @@ from collections import defaultdict
 import weakref
 import itertools
 import re
-import bisect
 
 import numpy as np
 
@@ -21,7 +20,6 @@ from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)
 from brian2.groups.group import Group, GroupCodeRunner, create_runner_codeobj
-from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
 from brian2.units.fundamentalunits import (Unit, Quantity,
@@ -31,7 +29,6 @@ from brian2.utils.logger import get_logger
 from brian2.core.namespace import get_local_namespace
 from brian2.core.spikesource import SpikeSource
 
-from .spikequeue import SpikeQueue
 
 MAX_SYNAPSES = 2147483647
 
@@ -125,11 +122,11 @@ class SynapticPathway(GroupCodeRunner, Group):
         if prepost == 'pre':
             self.source = synapses.source
             self.target = synapses.target
-            self.synapse_indices = synapses._pre_synaptic
+            self.synapse_sources = synapses.variables['_synaptic_pre']
         elif prepost == 'post':
             self.source = synapses.target
             self.target = synapses.source
-            self.synapse_indices = synapses._post_synaptic
+            self.synapse_sources = synapses.variables['_synaptic_post']
         else:
             raise ValueError('prepost argument has to be either "pre" or '
                              '"post"')
@@ -176,6 +173,7 @@ class SynapticPathway(GroupCodeRunner, Group):
         #: The `CodeObject` initalising the `SpikeQueue` at the begin of a run
         self._initialise_queue_codeobj = None
 
+        self.namespace = create_namespace(None)
         # Enable access to the delay attribute via the specifier
         self._enable_group_attributes()
 
@@ -197,76 +195,45 @@ class SynapticPathway(GroupCodeRunner, Group):
     def before_run(self, namespace):
         # execute code to initalize the spike queue
         if self._initialise_queue_codeobj is None:
-            self._initialise_queue_codeobj = get_device().code_object(self,
-                                                                      self.name+'_initialise_queue*',
-                                                                      abstract_code='',
-                                                                      namespace={},
-                                                                      variables=self.group.variables,
-                                                                      template_name='synapses_initialise_queue',
-                                                                      variable_indices=self.group.variable_indices,
-                                                                      )
-
+            self._initialise_queue_codeobj = create_runner_codeobj(self,
+                                                                   '', # no code,
+                                                                   'synapses_initialise_queue',
+                                                                   name=self.name+'_initialise_queue',
+                                                                   check_units=False,
+                                                                   additional_variables=self.group.variables)
         self._initialise_queue_codeobj()
         GroupCodeRunner.before_run(self, namespace)
 
         # we insert rather than replace because GroupCodeRunner puts a CodeObject in updaters already
         if self._pushspikes_codeobj is None:
-            self._pushspikes_codeobj = get_device().code_object(self,
-                                                                self.name+'_push_spikes_codeobject*',
-                                                                '',
-                                                                {},
-                                                                self.group.variables,
-                                                                'synapses_push_spikes',
-                                                                self.group.variable_indices,
-                                                                )
+            self._pushspikes_codeobj = create_runner_codeobj(self,
+                                                             '', # no code
+                                                             'synapses_push_spikes',
+                                                             name=self.name+'_push_spikes',
+                                                             check_units=False,
+                                                             additional_variables=self.group.variables)
+
         self.updaters.insert(0, self._pushspikes_codeobj.get_updater())
 
     def initialise_queue(self):
         if self.queue is None:
-            self.queue = SpikeQueue()
-            spikes = None
-        else:
-            # TODO: The following is only necessary for a change of dt
-            # Get the existing spikes in the queue
-            spikes = self.queue.extract_spikes()
-            # Convert the integer time steps into floating point time
-            spikes[:, 0] *= self.dt
+            self.queue = get_device().spike_queue(self.source.start, self.source.stop)
 
         # Update the dt (might have changed between runs)
         self.dt = self.synapses.clock.dt_
 
-        self.queue.compress(np.round(self._delays.get_value() / self.dt).astype(np.int),
-                            self.synapse_indices, len(self.synapses))
-        if spikes is not None:
-            # Convert the floating point time back to integer time (dt might have changed)
-            spikes[:, 0] = np.round(spikes[:, 0] / self.dt)
-            # Re-insert the spikes into the queue
-            self.queue.store_spikes(spikes)
+        self.queue.prepare(self._delays.get_value(), self.dt,
+                           self.synapse_sources.get_value())
 
     def push_spikes(self):
         # Push new spikes into the queue
         spikes = self.source.spikes
-        # Make use of the fact that the spikes list is sorted for faster
-        # subgroup handling
-        start = self.spikes_start
-        start_idx = bisect.bisect_left(spikes, start)
-        stop_idx = bisect.bisect_left(spikes, self.spikes_stop, lo=start_idx)
-        spikes = spikes[start_idx:stop_idx]
-        synapse_indices = self.synapse_indices
         if len(spikes):
-            indices = np.concatenate([synapse_indices[spike - start][:]
-                                      for spike in spikes]).astype(np.int32)
-
-            if len(indices):
-                if len(self._delays) > 1:
-                    delays = np.round(self._delays[indices] / self.dt).astype(int)
-                else:
-                    delays = np.round(self._delays.get_value() / self.dt).astype(int)
-                self.queue.push(indices, delays)
+            self.queue.push(spikes)
         # Get the spikes
         self.spiking_synapses = self.queue.peek()
         # Advance the spike queue
-        self.queue.next()
+        self.queue.advance()
 
 
 def slice_to_test(x):
@@ -310,7 +277,7 @@ def slice_to_test(x):
         raise TypeError('Expected int or slice, got {} instead'.format(type(x)))
 
 
-def find_synapses(index, neuron_synaptic, synaptic_neuron):
+def find_synapses(index, synaptic_neuron):
     if isinstance(index, (int, slice)):
         test = slice_to_test(index)
         found = test(synaptic_neuron)
@@ -318,7 +285,7 @@ def find_synapses(index, neuron_synaptic, synaptic_neuron):
     else:
         synapses = []
         for neuron in index:
-            targets = neuron_synaptic[neuron]
+            targets = np.flatnonzero(synaptic_neuron == neuron)
             synapses.extend(targets)
 
     return synapses
@@ -676,11 +643,6 @@ class Synapses(Group):
             v[name] = var
             self.variable_indices[name] = '_postsynaptic_idx'
 
-        self._pre_synaptic = [DynamicArray1D(0, dtype=np.int32)
-                              for _ in xrange(len(self.source))]
-        self._post_synaptic = [DynamicArray1D(0, dtype=np.int32)
-                               for _ in xrange(len(self.target))]
-
         dev = get_device()
         # Standard variables always present
         v.update({'_num_source_neurons': Variable(Unit(1), len(self.source),
@@ -692,11 +654,7 @@ class Synapses(Group):
                                                         constant_size=True),
                   '_synaptic_post': dev.dynamic_array_1d(self, '_synaptic_post',
                                                          0, Unit(1), dtype=np.int32,
-                                                         constant_size=True),
-                  # We don't need "proper" specifier for these -- they go
-                  # back to Python code currently
-                  '_pre_synaptic': Variable(Unit(1), self._pre_synaptic),
-                  '_post_synaptic': Variable(Unit(1), self._post_synaptic)})
+                                                         constant_size=True)})
 
         # Allow accessing the pre- and postsynaptic indices in a nicer way
         v.update({'i': self.source.variables['i'],
@@ -912,19 +870,6 @@ class Synapses(Group):
             self.variables['_synaptic_pre'].get_value()[old_N:new_N] = real_sources
             self.variables['_synaptic_post'].get_value()[old_N:new_N] = real_targets
             synapse_idx = old_N
-
-            # TODO: Use subgroup-relative neuron numbers here, this is what
-            # is needed during spike propagation
-
-            for source, target in zip(sources, targets):
-                # We want to access the raw arrays here
-                synapses = self._pre_synaptic[source]
-                synapses.resize(len(synapses) + 1)
-                synapses[-1] = synapse_idx
-                synapses = self._post_synaptic[target]
-                synapses.resize(len(synapses) + 1)
-                synapses[-1] = synapse_idx
-                synapse_idx += 1
         else:
             abstract_code = '_pre_idcs = _all_pre \n'
             abstract_code += '_post_idcs = _all_post \n'
@@ -990,10 +935,8 @@ class Synapses(Group):
 
             I, J, K = index
 
-            pre_synapses = find_synapses(I, self._pre_synaptic,
-                                         self.variables['_synaptic_pre'].get_value() - self.source.start)
-            post_synapses = find_synapses(J, self._post_synaptic,
-                                          self.variables['_synaptic_post'].get_value() - self.target.start)
+            pre_synapses = find_synapses(I, self.variables['_synaptic_pre'].get_value() - self.source.start)
+            post_synapses = find_synapses(J, self.variables['_synaptic_post'].get_value() - self.target.start)
             matching_synapses = np.intersect1d(pre_synapses, post_synapses,
                                                assume_unique=True)
 

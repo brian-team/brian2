@@ -66,6 +66,19 @@ class Device(object):
                       read_only=False):
         raise NotImplementedError()
 
+    def spike_queue(self, source_start, source_end):
+        '''
+        Create and return a new `SpikeQueue` for this `Device`.
+
+        Parameters
+        ----------
+        source_start : int
+            The start index of the source group (necessary for subgroups)
+        source_end : int
+            The end index of the source group (necessary for subgroups)
+        '''
+        raise NotImplementedError()
+
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is None:
             codeobj_class = get_default_codeobject_class()
@@ -148,6 +161,17 @@ class RuntimeDevice(Device):
                                     constant_size=constant_size,
                                     is_bool=is_bool,
                                     read_only=read_only)
+
+    def spike_queue(self, source_start, source_end):
+        # Use the C++ version of the SpikeQueue when available
+        try:
+            from brian2.synapses.cythonspikequeue import SpikeQueue
+            logger.info('Using the C++ SpikeQueue', once=True)
+        except ImportError:
+            from brian2.synapses.spikequeue import SpikeQueue
+            logger.info('Using the Python SpikeQueue', once=True)
+
+        return SpikeQueue(source_start=source_start, source_end=source_end)
 
 
 runtime_device = RuntimeDevice()

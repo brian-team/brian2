@@ -389,27 +389,30 @@ def test_transmission():
 
 
 def test_changed_dt_spikes_in_queue():
-    defaultclock.dt = .5*ms
-    G1 = NeuronGroup(1, 'v:1', threshold='v>1', reset='v=0')
-    G1.v = 1.1
-    G2 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
-    S = Synapses(G1, G2, pre='v+=1.1')
-    S.connect(True)
-    S.delay = 'j*ms'
-    mon = SpikeMonitor(G2)
-    net = Network(G1, G2, S, mon)
-    net.run(5*ms)
-    defaultclock.dt = 1*ms
-    net.run(3*ms)
-    defaultclock.dt = 0.1*ms
-    net.run(2*ms)
-    # Spikes should have delays of 0, 1, 2, ... ms and always
-    # trigger a spike one dt later
-    expected = [0.5, 1.5, 2.5, 3.5, 4.5, # dt=0.5ms
-                6, 7, 8, #dt = 1ms
-                8.1, 9.1 #dt=0.1ms
-                ] * ms
-    assert_equal(mon.t, expected)
+    for codeobj_class in codeobj_classes:
+        defaultclock.dt = .5*ms
+        G1 = NeuronGroup(1, 'v:1', threshold='v>1', reset='v=0',
+                         codeobj_class=codeobj_class)
+        G1.v = 1.1
+        G2 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0',
+                         codeobj_class=codeobj_class)
+        S = Synapses(G1, G2, pre='v+=1.1', codeobj_class=codeobj_class)
+        S.connect(True)
+        S.delay = 'j*ms'
+        mon = SpikeMonitor(G2)
+        net = Network(G1, G2, S, mon)
+        net.run(5*ms)
+        defaultclock.dt = 1*ms
+        net.run(3*ms)
+        defaultclock.dt = 0.1*ms
+        net.run(2*ms)
+        # Spikes should have delays of 0, 1, 2, ... ms and always
+        # trigger a spike one dt later
+        expected = [0.5, 1.5, 2.5, 3.5, 4.5, # dt=0.5ms
+                    6, 7, 8, #dt = 1ms
+                    8.1, 9.1 #dt=0.1ms
+                    ] * ms
+        assert_equal(mon.t, expected)
 
 
 def test_summed_variable():

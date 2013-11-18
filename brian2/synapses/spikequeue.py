@@ -3,9 +3,11 @@ The spike queue class stores future synaptic events
 produced by a given presynaptic neuron group (or postsynaptic for backward
 propagation in STDP).
 """
+import bisect
+
 import numpy as np
 
-from brian2.units.stdunits import ms
+from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.utils.logger import get_logger
 
 __all__=['SpikeQueue']
@@ -13,6 +15,7 @@ __all__=['SpikeQueue']
 logger = get_logger(__name__)
 
 INITIAL_MAXSPIKESPER_DT = 1
+
 
 class SpikeQueue(object):
     '''
@@ -61,9 +64,16 @@ class SpikeQueue(object):
     possible to also vectorise over presynaptic spikes.
     '''
     
-    def __init__(self, dtype=np.int32, precompute_offsets=True):
+    def __init__(self, source_start, source_end, dtype=np.int32,
+                 precompute_offsets=True):
         #: Whether the offsets should be precomputed
         self._precompute_offsets = precompute_offsets
+
+        #: The start of the source indices (for subgroups)
+        self._source_start = source_start
+
+        #: The end of the source indices (for subgroups)
+        self._source_end = source_end
 
         self.dtype=dtype
         self.X = np.zeros((1,1), dtype=dtype) # target synapses
@@ -74,8 +84,11 @@ class SpikeQueue(object):
         self.n = np.zeros(1, dtype=int)
         #: precalculated offsets
         self._offsets = None
-        
-    def compress(self, delays, synapse_targets, n_synapses):
+
+        #: The dt used for storing the spikes (will be set in `prepare`)
+        self._dt = None
+
+    def prepare(self, delays, dt, synapse_sources):
         '''
         Prepare the data structure and pre-compute offsets.
         This is called every time the network is run. The size of the
@@ -85,17 +98,38 @@ class SpikeQueue(object):
         delays are homogeneous, in which case insertion will use a faster method
         implemented in `insert_homogeneous`.        
         '''
+        n_synapses = len(synapse_sources)
+
+        if self._dt is not None:
+            # store the current spikes
+            spikes = self._extract_spikes()
+            # adapt the spikes to the new dt if it changed
+            if self._dt != dt:
+                spiketimes = spikes[:, 0] * self._dt
+                spikes[:, 0] = np.round(spiketimes / dt).astype(np.int)
+        else:
+            spikes = None
+
         if len(delays):
+            delays = np.array(np.round(delays / dt)).astype(np.int)
             max_delays = max(delays)
             min_delays = min(delays)
         else:
             max_delays = min_delays = 0
 
-        n_targets = [len(targets) for targets in synapse_targets]
-        if len(n_targets):
-            max_events = max(n_targets)
-        else:
-            max_events = 0
+        self._delays = delays
+
+        # Prepare the data structure used in propagation
+        self._neurons_to_synapses =  []
+
+        max_events = 0
+        synapse_sources = synapse_sources[:]
+        for source in xrange(self._source_end - self._source_start):
+            indices = np.flatnonzero(synapse_sources == (source +
+                                                         self._source_start))
+            size = len(indices)
+            self._neurons_to_synapses.append(indices)
+            max_events = max(max_events, size)
 
         n_steps = max_delays + 1
         
@@ -114,9 +148,15 @@ class SpikeQueue(object):
 
         # Precompute offsets
         if self._precompute_offsets:
-            self.precompute_offsets(delays, synapse_targets, n_synapses)
+            self._do_precompute_offsets(n_synapses)
 
-    def extract_spikes(self):
+        # Re-insert the spikes into the data structure
+        if spikes is not None:
+            self._store_spikes(spikes)
+
+        self._dt = dt
+
+    def _extract_spikes(self):
         '''
         Get all the stored spikes
 
@@ -136,7 +176,7 @@ class SpikeQueue(object):
                 counter += 1
         return spikes
 
-    def store_spikes(self, spikes):
+    def _store_spikes(self, spikes):
         '''
         Store a list of spikes at the given positions after clearing all
         spikes in the queue.
@@ -157,7 +197,7 @@ class SpikeQueue(object):
             self.n[row_idx] += 1
 
     ################################ SPIKE QUEUE DATASTRUCTURE ################
-    def next(self):
+    def advance(self):
         '''
         Advances by one timestep
         '''
@@ -171,30 +211,67 @@ class SpikeQueue(object):
         '''      
         return self.X[self.currenttime,:self.n[self.currenttime]]    
     
-    def precompute_offsets(self, delays, synapse_targets, n_synapses):
+    def push(self, sources):
+        '''
+        Push spikes to the queue.
+
+        Parameters
+        ----------
+        sources : ndarray of int
+            The indices of the neurons that spiked.
+        '''
+        if len(sources):
+            start = self._source_start
+            stop = self._source_end
+            if start > 0:
+                start_idx = bisect.bisect_left(sources, start)
+            else:
+                start_idx = 0
+            if stop <= sources[-1]:
+                stop_idx = bisect.bisect_left(sources, stop, lo=start_idx)
+            else:
+                stop_idx = len(self._neurons_to_synapses)
+            sources = sources[start_idx:stop_idx]
+            synapse_indices = self._neurons_to_synapses
+            indices = np.concatenate([synapse_indices[source - start]
+                                      for source in sources]).astype(np.int32)
+
+            if self._homogeneous:  # homogeneous delays
+                self._insert_homogeneous(self._delays[0], indices)
+            elif self._offsets is None:  # vectorise over synaptic events
+                # there are no precomputed offsets, this is the case
+                # (in particular) when there are dynamic delays
+                self._insert(self._delays[indices], indices)
+            else: # offsets are precomputed
+                self._insert(self._delays[indices], indices, self._offsets[indices])
+                # Note: the trick can only work if offsets are ordered in the right way
+
+    def _do_precompute_offsets(self, n_synapses):
         '''
         Precompute all offsets corresponding to delays. This assumes that
         delays will not change during the simulation.
         '''
-        if len(delays) == 1 and n_synapses != 1:
+        if len(self._delays) == 1 and n_synapses != 1:
             # We have a scalar delay value
-            delays = delays.repeat(n_synapses)
+            delays = self._delays.repeat(n_synapses)
+        else:
+            delays = self._delays
         self._offsets = np.zeros_like(delays)
         index = 0
-        for targets in synapse_targets:
-            target_delays = delays[targets[:]]
-            self._offsets[index:index+len(target_delays)] = self.offsets(target_delays)
+        for targets in self._neurons_to_synapses:
+            target_delays = delays[targets]
+            self._offsets[index:index+len(target_delays)] = self._calc_offsets(target_delays)
             index += len(target_delays)
-    
-    def offsets(self, delay):
+
+    def _calc_offsets(self, delay):
         '''
         Calculates offsets corresponding to a delay array.
         If there n identical delays, there are given offsets between
         0 and n-1.
         Example:
-        
+
             [7,5,7,3,7,5] -> [0,0,1,0,2,1]
-            
+
         The code is complex because tricks are needed for vectorisation.
         '''
         # We use merge sort because it preserves the input order of equal
@@ -209,20 +286,20 @@ class SpikeQueue(object):
         ofs = np.zeros_like(delay)
         ofs[I] = np.array(ei, dtype=ofs.dtype) # maybe types should be signed?
         return ofs
-           
-    def insert(self, delay, target, offset=None):
+
+    def _insert(self, delay, target, offset=None):
         '''
         Vectorised insertion of spike events.
-        
+
         Parameters
         ----------
-        
+
         delay : ndarray
             Delays in timesteps.
-            
+
         target : ndarray
             Target synaptic indices.
-            
+
         offset : ndarray
             Offsets within timestep. If unspecified, they are calculated
             from the delay array.
@@ -230,8 +307,8 @@ class SpikeQueue(object):
         delay = np.array(delay, dtype=int)
 
         if offset is None:
-            offset = self.offsets(delay)
-        
+            offset = self._calc_offsets(delay)
+
         # Calculate row indices in the data structure
         timesteps = (self.currenttime + delay) % len(self.n)
         # (Over)estimate the number of events to be stored, to resize the array
@@ -239,21 +316,20 @@ class SpikeQueue(object):
         # for future events
         m = max(self.n) + len(target)
         if (m >= self.X.shape[1]): # overflow
-            self.resize(m+1)
+            self._resize(m+1)
 
         self.X_flat[timesteps*self.X.shape[1]+offset+self.n[timesteps]] = target
         self.n[timesteps] += offset+1 # that's a trick (to update stack size)
-        # Note: the trick can only work if offsets are ordered in the right way
-        
-    def insert_homogeneous(self, delay, target):
+
+    def _insert_homogeneous(self, delay, target):
         '''
         Inserts events at a fixed delay.
-        
+
         Parameters
         ----------
         delay : int
             Delay in timesteps.
-            
+
         target : ndarray
             Target synaptic indices.
         '''
@@ -261,16 +337,16 @@ class SpikeQueue(object):
         nevents = len(target)
         m = self.n[timestep]+nevents+1 # If overflow, then at least one self.n is bigger than the size
         if (m >= self.X.shape[1]):
-            self.resize(m + 1)  # was m previously (not enough)
+            self._resize(m + 1)  # was m previously (not enough)
         k = timestep*self.X.shape[1] + self.n[timestep]
         self.X_flat[k:k+nevents] = target
         self.n[timestep] += nevents
-        
-    def resize(self, maxevents):
+
+    def _resize(self, maxevents):
         '''
         Resizes the underlying data structure (number of columns = spikes per
         dt).
-        
+
         Parameters
         ----------
         maxevents : int
@@ -283,28 +359,6 @@ class SpikeQueue(object):
         # new array
         newX = np.zeros((self.X.shape[0], new_maxevents), dtype = self.X.dtype)
         newX[:, :old_maxevents] = self.X[:, :old_maxevents] # copy old data
-        
+
         self.X = newX
         self.X_flat = self.X.reshape(self.X.shape[0]*new_maxevents,)
-        
-    def push(self, indices, delays):
-        '''
-        Push spikes to the queue.
-        
-        Parameters
-        ----------
-        indices : ndarray of int
-            The synaptic indices of the synapses receiving a spike
-        delays : ndarray of int
-            The synaptic delays for the synapses in `indices`, given as integer
-            values (multiples of dt).
-        '''
-        if len(indices):
-            if self._homogeneous:  # homogeneous delays
-                self.insert_homogeneous(delays[0], indices)
-            elif self._offsets is None:  # vectorise over synaptic events
-                # there are no precomputed offsets, this is the case
-                # (in particular) when there are dynamic delays
-                self.insert(delays, indices)
-            else: # offsets are precomputed
-                self.insert(delays, indices, self._offsets[indices])

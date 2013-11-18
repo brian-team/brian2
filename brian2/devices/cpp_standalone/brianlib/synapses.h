@@ -3,6 +3,7 @@
 
 #include<vector>
 #include<algorithm>
+#include "spikequeue.h"
 
 using namespace std;
 
@@ -10,91 +11,19 @@ template<class scalar> class Synapses;
 template<class scalar> class SynapticPathway;
 
 template <class scalar>
-class SpikeQueue
-{
-public:
-	SynapticPathway<scalar> &path;
-	vector< vector<int> > queue; // queue[(offset+i)%queue.size()] is delay i relative to current time
-	scalar dt;
-	int offset;
-
-	SpikeQueue(SynapticPathway<scalar> &_path, scalar _dt)
-		: path(_path), dt(_dt)
-	{
-		queue.resize(1);
-		offset = 0;
-	};
-
-	void expand(int newsize)
-	{
-		int n = queue.size();
-		if(newsize<=n) return;
-		// rotate offset back to start (leaves the circular structure unchanged)
-		rotate(queue.begin(), queue.begin()+offset, queue.end());
-		offset = 0;
-		// add new elements
-		queue.resize(newsize);
-	};
-
-	inline void ensure_delay(int delay)
-	{
-		if(delay>=queue.size())
-		{
-			expand(delay+1);
-		}
-	};
-
-	void push(int *spikes, int nspikes)
-	{
-		int start = lower_bound(spikes, spikes+nspikes, path.spikes_start)-spikes;
-		int stop = upper_bound(spikes, spikes+nspikes, path.spikes_stop)-spikes;
-		for(int idx_spike=start; idx_spike<stop; idx_spike++)
-		{
-			int idx_neuron = spikes[idx_spike];
-			vector<int> &cur_indices = path.indices[idx_neuron];
-			for(int idx_indices=0; idx_indices<cur_indices.size(); idx_indices++)
-			{
-				int synaptic_index = cur_indices[idx_indices];
-				int delay = (int)(path.delay[synaptic_index]/dt+0.5); // rounds to nearest int
-				// make sure there is enough space and resize if not
-				ensure_delay(delay);
-				// insert the index into the correct queue
-				queue[(offset+delay)%queue.size()].push_back(synaptic_index);
-			}
-		}
-	};
-
-	inline vector<int>& peek()
-	{
-		return queue[offset];
-	};
-
-	void next()
-	{
-		// empty the current queue, note that for most compilers this shouldn't deallocate the memory,
-		// although VC<=7.1 will, so it will be less efficient with that compiler
-		queue[offset].clear();
-		// and advance to the next offset
-		offset = (offset+1)%queue.size();
-	};
-};
-
-template <class scalar>
 class SynapticPathway
 {
 public:
 	int Nsource, Ntarget;
-	int spikes_start, spikes_stop;
 	vector<scalar>& delay;
-	vector< vector<int> > &indices;
+	vector<int> &sources;
 	scalar dt;
-	SpikeQueue<scalar> *queue;
-	SynapticPathway(int _Nsource, int _Ntarget, vector<scalar>& _delay, vector< vector<int> > &_indices,
+	CSpikeQueue<scalar> *queue;
+	SynapticPathway(int _Nsource, int _Ntarget, vector<scalar>& _delay, vector<int> &_sources,
 					scalar _dt, int _spikes_start, int _spikes_stop)
-		: Nsource(_Nsource), Ntarget(_Ntarget), delay(_delay), indices(_indices), dt(_dt),
-		  spikes_start(_spikes_start), spikes_stop(_spikes_stop)
+		: Nsource(_Nsource), Ntarget(_Ntarget), delay(_delay), sources(_sources), dt(_dt)
 	{
-		this->queue = new SpikeQueue<scalar>(*this, dt);
+		this->queue = new CSpikeQueue<scalar>(_spikes_start, _spikes_stop);
 	};
 	~SynapticPathway()
 	{

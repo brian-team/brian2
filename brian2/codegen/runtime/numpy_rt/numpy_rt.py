@@ -6,6 +6,7 @@ import numpy as np
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable)
+from brian2.synapses.spikequeue import SpikeQueue
 
 from ...codeobject import CodeObject
 
