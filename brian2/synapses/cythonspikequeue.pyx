@@ -20,7 +20,7 @@ cdef extern from "inttypes.h":
 cdef extern from "cspikequeue.cpp":
     cdef cppclass CSpikeQueue[T]:
         CSpikeQueue(int, int) except +
-        void prepare(T*, int32_t*, int, int, double)
+        void prepare(T*, int32_t*, int, double)
         void push(int32_t *, int)
         vector[int32_t]* peek()
         void advance()
@@ -28,13 +28,9 @@ cdef extern from "cspikequeue.cpp":
 cdef class SpikeQueue:
     # TODO: Currently, the data type for dt and delays is fixed
     cdef CSpikeQueue[double] *thisptr
-    cdef unsigned int _source_start
-    cdef unsigned int _source_end
 
     def __cinit__(self, int source_start, int source_end):
         self.thisptr = new CSpikeQueue[double](source_start, source_end)
-        self._source_start = source_start
-        self._source_end = source_end
 
     def __dealloc__(self):
         del self.thisptr
@@ -44,7 +40,6 @@ cdef class SpikeQueue:
                 np.ndarray[int32_t, ndim=1, mode='c'] sources):
         self.thisptr.prepare(<double*>real_delays.data,
                              <int32_t*>sources.data,
-                             self._source_end-self._source_start,
                              real_delays.shape[0], dt)
 
     def push(self, np.ndarray[int32_t, ndim=1, mode='c'] spikes):

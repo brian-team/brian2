@@ -7,8 +7,8 @@ void _run_{{codeobj_name}}(double t) {
     double* real_delays = &({{pathobj}}.delay[0]);
     int* sources = &({{pathobj}}.sources[0]);
     const unsigned int n_synapses = {{pathobj}}.sources.size();
-    {{pathobj}}.queue->prepare(real_delays, sources, {{pathobj}}.Nsource,
-                               n_synapses, {{pathobj}}.dt);
+    {{pathobj}}.queue->prepare(real_delays, sources, n_synapses,
+                               {{pathobj}}.dt);
 }
 {% endmacro %}
 

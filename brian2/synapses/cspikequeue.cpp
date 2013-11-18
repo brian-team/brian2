@@ -29,8 +29,8 @@ public:
 		delays = NULL;
 	};
 
-    void prepare(scalar *real_delays, int *sources, unsigned int n_sources,
-                 unsigned int n_synapses, double _dt)
+    void prepare(scalar *real_delays, int *sources, unsigned int n_synapses,
+                 double _dt)
     {
         if (delays)
             delete [] delays;
@@ -55,7 +55,7 @@ public:
 
         delays = new unsigned int[n_synapses];
         synapses.clear();
-        synapses.resize(n_sources);
+        synapses.resize(source_end - source_start);
 
         for (unsigned int i=0; i<n_synapses; i++)
         {
