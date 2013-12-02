@@ -1,5 +1,22 @@
 # USES_VARIABLES { _synaptic_post, _spiking_synapses }
 
+{# The following checks whether all the variables referred to in the code are
+   synaptic (and not pre- or postsynaptic). If this is the case, we can do a
+   much simpler propagation where we do not have to take care of the possibility
+   of repeating targets. #}
+
+{% if variable_indices is defined %}
+{% set _non_synaptic = [] %}
+{% for var in variables %}
+    {% if variable_indices[var] != '_idx' %}
+        {# This is a trick to get around the scoping problem #}
+        {% if _non_synaptic.append(1) %}{% endif %}
+    {% endif %}
+{% endfor %}
+{% endif %}
+
+{% if _non_synaptic %}
+# Use the complicated propagation algorithm
 import numpy as np
 
 _post_neurons = _synaptic_post.take(_spiking_synapses)
@@ -23,3 +40,11 @@ while len(_F):
 
     _F += 1
     _F = np.extract(_flag.take(_F), _F)
+{% else %}
+# use the simple propagation algorithm
+_idx = _spiking_synapses
+_vectorisation_idx = _idx
+{% for line in code_lines %}
+{{line}}
+{% endfor %}
+{% endif %}
