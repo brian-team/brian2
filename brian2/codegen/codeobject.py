@@ -85,6 +85,7 @@ def create_codeobject(owner, name, abstract_code, namespace, variables,
     
     code = template(snippet,
                     owner=owner, variables=variables, codeobj_name=name, namespace=namespace,
+                    variable_indices=variable_indices,
                     **template_kwds)
     logger.debug(name + " code:\n" + str(code))
 

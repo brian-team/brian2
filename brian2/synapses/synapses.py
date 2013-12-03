@@ -12,7 +12,7 @@ import numpy as np
 
 from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
-from brian2.core.variables import (DynamicArrayVariable, Variable,
+from brian2.core.variables import (ArrayVariable, Variable,
                                    Subexpression, AttributeVariable,
                                    StochasticVariable)
 from brian2.devices.device import get_device
@@ -632,16 +632,19 @@ class Synapses(Group):
         self.variable_indices = defaultdict(lambda: '_idx')
         for name, var in getattr(self.source, 'variables', {}).iteritems():
             v[name + '_pre'] = var
-            self.variable_indices[name + '_pre'] = '_presynaptic_idx'
+            if isinstance(var, ArrayVariable):
+                self.variable_indices[name + '_pre'] = '_presynaptic_idx'
         for name, var in getattr(self.target, 'variables', {}).iteritems():
             v[name + '_post'] = var
-            self.variable_indices[name + '_post'] = '_postsynaptic_idx'
+            if isinstance(var, ArrayVariable):
+                self.variable_indices[name + '_post'] = '_postsynaptic_idx'
             # Also add all the post variables without a suffix -- if this
             # clashes with the name of a state variable defined in this
             # Synapses group, the latter will overwrite the entry later and
             # take precedence
             v[name] = var
-            self.variable_indices[name] = '_postsynaptic_idx'
+            if isinstance(var, ArrayVariable):
+                self.variable_indices[name] = '_postsynaptic_idx'
 
         dev = get_device()
         # Standard variables always present
