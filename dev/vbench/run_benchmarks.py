@@ -22,7 +22,9 @@ treating improvements/regressions in external libraries as numpy/scipy as
 improvements /regressions in Brian.
 '''
 
-import os, sys
+import os
+import sys
+import logging
 import tempfile
 from datetime import datetime
 
@@ -77,5 +79,5 @@ if __name__ == '__main__':
 
     runner = BenchmarkRunner(benchmarks, REPO_PATH, GIT_URL, BUILD, DB_PATH,
                              TMP_DIR, PREPARE, start_date=START_DATE,
-                             run_option='eod')
+                             run_option='eod', run_order='reverse')
     runner.run()

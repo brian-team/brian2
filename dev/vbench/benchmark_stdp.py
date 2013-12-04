@@ -12,7 +12,7 @@ weave_setup = """
 brian_prefs.codegen.target = 'weave'
 """
 
-setup= """
+setup = """
 N = 1000
 taum = 10 * ms
 taupre = 20 * ms
@@ -35,7 +35,8 @@ dge/dt=-ge/taue : 1
 '''
 
 input = PoissonGroup(N, rates=F)
-neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v=vr')
+neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v=vr',
+                      method='euler')
 S = Synapses(input, neurons,
              '''w:1
                 dApre/dt=-Apre/taupre : 1 (event-driven)
