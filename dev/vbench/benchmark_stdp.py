@@ -48,10 +48,11 @@ S = Synapses(input, neurons,
              connect=True,
              )
 S.w='rand()*gmax'
+net = Network(input, neurons, S)
 """
 
 statement = '''
-run(100 * second)
+net.run(100 * second)
 '''
 
 bench_stdp_numpy = Benchmark(statement, common_setup + numpy_setup + setup,

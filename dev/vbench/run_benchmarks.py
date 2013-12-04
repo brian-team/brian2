@@ -62,17 +62,6 @@ if __name__ == '__main__':
 
     # if the directory does not exist it will be created
     PATH = sys.argv[1]
-    
-    if len(sys.argv) == 3:
-        try:
-            run_option = int(sys.argv[2])
-            if run_option < 1:
-                raise ValueError()
-        except ValueError:
-            sys.stderr.write('n has to be an integer number > 0 not %r\n' % sys.argv[2])
-            sys.exit(2)
-    else:
-        run_option = 10
 
     DB_PATH = os.path.join(PATH, 'benchmarks.db')
     
@@ -88,5 +77,5 @@ if __name__ == '__main__':
 
     runner = BenchmarkRunner(benchmarks, REPO_PATH, GIT_URL, BUILD, DB_PATH,
                              TMP_DIR, PREPARE, start_date=START_DATE,
-                             run_option=run_option)
+                             run_option='eod')
     runner.run()
