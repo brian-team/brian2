@@ -144,7 +144,7 @@ class IndependentStateUpdater(StateUpdateMethod):
         for name, expression in diff_eqs:
             rhs = expression.sympy_expr
             non_constant = _non_constant_symbols(rhs.atoms(),
-                                                 variables) - set([name])
+                                                 variables) - set([name, 't'])
             if len(non_constant):
                 raise ValueError(('Equation for %s referred to non-constant '
                                   'variables %s') % (name, str(non_constant)))
@@ -156,7 +156,12 @@ class IndependentStateUpdater(StateUpdateMethod):
             rhs = rhs.subs(var, f(t))
             derivative = sp.Derivative(f(t), t)
             diff_eq = sp.Eq(derivative, rhs)
-            general_solution = sp.dsolve(diff_eq, f(t))
+            # TODO: simplify=True sometimes fails with 0.7.4, see:
+            # https://github.com/sympy/sympy/issues/2666
+            try:
+                general_solution = sp.dsolve(diff_eq, f(t), simplify=True)
+            except RuntimeError:
+                general_solution = sp.dsolve(diff_eq, f(t), simplify=False)
             # Check whether this is an explicit solution
             if not getattr(general_solution, 'lhs', None) == f(t):
                 raise ValueError('Cannot explicitly solve: ' + str(diff_eq))
