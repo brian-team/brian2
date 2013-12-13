@@ -160,7 +160,7 @@ class IndependentStateUpdater(StateUpdateMethod):
             # https://github.com/sympy/sympy/issues/2666
             try:
                 general_solution = sp.dsolve(diff_eq, f(t), simplify=True)
-            except RuntimeError:
+            except (RuntimeError, AttributeError):  #AttributeError seems to be raised on Python 2.6
                 general_solution = sp.dsolve(diff_eq, f(t), simplify=False)
             # Check whether this is an explicit solution
             if not getattr(general_solution, 'lhs', None) == f(t):
