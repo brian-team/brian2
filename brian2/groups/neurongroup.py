@@ -13,7 +13,7 @@ from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.devices.device import get_device
 from brian2.core.preferences import brian_prefs
 from brian2.core.namespace import create_namespace
-from brian2.core.variables import (StochasticVariable, Subexpression)
+from brian2.core.variables import (AuxiliaryVariable, Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.parsing.expressions import (parse_expression_unit,
@@ -415,7 +415,7 @@ class NeuronGroup(Group, SpikeSource):
 
         # Stochastic variables
         for xi in self.equations.stochastic_variables:
-            s.update({xi: StochasticVariable()})
+            s.update({xi: AuxiliaryVariable(unit=second**-0.5)})
 
         return s
 

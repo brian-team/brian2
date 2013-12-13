@@ -6,15 +6,14 @@ import weakref
 
 import numpy as np
 
-from brian2.units.allunits import second
-
 from brian2.utils.stringtools import get_identifiers
 from brian2.units.fundamentalunits import (Quantity, Unit, is_scalar_type,
                                            fail_for_dimension_mismatch,
                                            have_same_dimensions)
 
+from .preferences import brian_prefs
+
 __all__ = ['Variable',
-           'StochasticVariable',
            'AttributeVariable',
            'ArrayVariable',
            'DynamicArrayVariable',
@@ -59,7 +58,9 @@ class Variable(object):
         stored anywhere, they'd pass ``None`` as a value.
     dtype: `numpy.dtype`, optional
         The dtype used for storing the variable. If none is given, tries to
-        get the dtype from the referred value.
+        get the dtype from the referred value. If no `value` has been given
+        either, use the preference `core.default_scalar.dtype` (or ``bool``, if
+        `is_bool` is ``True``).
     scalar : bool, optional
         Whether the variable is a scalar value (``True``) or vector-valued, e.g.
         defined for every neuron (``False``). If nothing is specified,
@@ -87,8 +88,13 @@ class Variable(object):
         #: reference to a value of type `dtype`
         self.value = value
 
-        if dtype is None:
+        if dtype is None and value is not None:
             self.dtype = get_dtype(value)
+        elif dtype is None:
+            if is_bool:
+                self.dtype = bool
+            else:
+                self.dtype = brian_prefs.core.default_scalar_dtype
         else:
             value_dtype = get_dtype(value)
             if value is not None and value_dtype != dtype:
@@ -242,17 +248,6 @@ class AuxiliaryVariable(Variable):
     def __init__(self, unit, dtype=None, scalar=False, is_bool=False):
         Variable.__init__(self, unit, value=None, dtype=dtype, scalar=scalar,
                           is_bool=is_bool, read_only=True)
-
-
-class StochasticVariable(AuxiliaryVariable):
-    '''
-    An object providing information about a stochastic variable. Automatically
-    sets the unit to ``second**-.5``.
-    '''
-    def __init__(self):
-        # The unit of a stochastic variable is always the same
-        AuxiliaryVariable.__init__(self, second**(-.5), dtype=np.float64,
-                                   scalar=False)
 
 
 class AttributeVariable(Variable):

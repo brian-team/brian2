@@ -14,7 +14,7 @@ from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import (ArrayVariable, Variable,
                                    Subexpression, AttributeVariable,
-                                   StochasticVariable)
+                                   AuxiliaryVariable)
 from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
@@ -722,7 +722,7 @@ class Synapses(Group):
 
         # Stochastic variables
         for xi in self.equations.stochastic_variables:
-            v.update({xi: StochasticVariable()})
+            v.update({xi: AuxiliaryVariable(unit=second**-0.5)})
 
         return v
 

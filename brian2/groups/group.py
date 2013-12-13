@@ -9,7 +9,7 @@ from collections import defaultdict
 import numpy as np
 
 from brian2.core.base import BrianObject
-from brian2.core.variables import (ArrayVariable, StochasticVariable,
+from brian2.core.variables import (ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,
                                    Variable)
 from brian2.core.namespace import get_local_namespace
@@ -424,8 +424,7 @@ def create_runner_codeobj(group, code, template_name,
                        ' be used.'.format(var=var, name=group.name))
             logger.warn(message, 'create_runner_codeobj.resolution_conflict',
                         once=True)
-        if not isinstance(all_variables[var], StochasticVariable):
-            variables[var] = all_variables[var]
+        variables[var] = all_variables[var]
 
     resolved_namespace = group.namespace.resolve_all(unknown,
                                                      additional_namespace)

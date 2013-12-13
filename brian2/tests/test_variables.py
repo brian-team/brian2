@@ -33,7 +33,6 @@ def test_str_repr():
     group = FakeGroup(name='groupname')
     variables = [Variable(second),
                  AuxiliaryVariable(second),
-                 StochasticVariable(),
                  AttributeVariable(second, group, 'name'),
                  ArrayVariable('name', second,
                                value=None, group_name=group.name),
