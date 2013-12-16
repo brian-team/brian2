@@ -68,11 +68,6 @@ class PopulationRateMonitor(BrianObject):
         self.codeobj = create_runner_codeobj(self.source,
                                              '', # No model-specific code
                                              template_name='ratemonitor',
-                                             needed_variables=['_spikespace',
-                                                               '_t',
-                                                               '_rate',
-                                                               't', 'dt',
-                                                               '_num_source_neurons'],
                                              additional_variables=self.variables,
                                              name=self.name+'_codeobject*')
 

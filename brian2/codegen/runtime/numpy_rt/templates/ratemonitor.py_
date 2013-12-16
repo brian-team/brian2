@@ -1,4 +1,4 @@
-# { USES_VARIABLES _rate, _t, _spikespace, _num_source_neurons, t, dt }
+# USES_VARIABLES { _rate, _t, _spikespace, _num_source_neurons, t, dt }
 _spikes = _spikespace[:_spikespace[-1]]
 _new_len = len(_t_object) + 1
 _t_object.resize(_new_len)

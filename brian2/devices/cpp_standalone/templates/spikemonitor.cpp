@@ -8,7 +8,8 @@
 
 {% block maincode %}
 	//// MAIN CODE ////////////
-
+    // USES_VARIABLES { _t, _i, t, _spikespace, _count,
+    //                  _source_start, _source_stop}
 	int _num_spikes = {{_spikespace}}[_num_{{_spikespace}}-1];
     if (_num_spikes > 0)
     {

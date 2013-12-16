@@ -81,13 +81,6 @@ class SpikeMonitor(BrianObject):
         self.codeobj = create_runner_codeobj(self.source,
                                              '', # No model-specific code
                                              template_name='spikemonitor',
-                                             needed_variables=['_spikespace',
-                                                               '_i',
-                                                               '_t',
-                                                               '_count',
-                                                               '_source_start',
-                                                               '_source_stop',
-                                                               't'],
                                              additional_variables=self.variables,
                                              name=self.name+'_codeobject*')
         self.code_objects[:] = [weakref.proxy(self.codeobj)]
