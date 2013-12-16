@@ -9,6 +9,7 @@ from brian2.core.variables import AttributeVariable, Variable
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.devices.device import get_device
+from brian2.groups.group import create_runner_codeobj
 
 __all__ = ['SpikeMonitor']
 
@@ -77,15 +78,18 @@ class SpikeMonitor(BrianObject):
         raise NotImplementedError()
 
     def before_run(self, namespace):
-        self.codeobj = get_device().code_object(
-                                         self,
-                                         self.name+'_codeobject*',
-                                         '', # No model-specific code
-                                         {}, # no namespace
-                                         self.variables,
-                                         template_name='spikemonitor',
-                                         variable_indices=defaultdict(lambda: '_idx'),
-                                         codeobj_class=self.codeobj_class)
+        self.codeobj = create_runner_codeobj(self.source,
+                                             '', # No model-specific code
+                                             template_name='spikemonitor',
+                                             needed_variables=['_spikespace',
+                                                               '_i',
+                                                               '_t',
+                                                               '_count',
+                                                               '_source_start',
+                                                               '_source_stop',
+                                                               't'],
+                                             additional_variables=self.variables,
+                                             name=self.name+'_codeobject*')
         self.code_objects[:] = [weakref.proxy(self.codeobj)]
         self.updaters[:] = [self.codeobj.get_updater()]
 

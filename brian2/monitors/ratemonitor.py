@@ -1,5 +1,4 @@
 import weakref
-from collections import defaultdict
 
 import numpy as np
 
@@ -9,6 +8,7 @@ from brian2.core.variables import (Variable, AttributeVariable)
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.devices.device import get_device
+from brian2.groups.group import create_runner_codeobj
 
 __all__ = ['PopulationRateMonitor']
 
@@ -49,7 +49,6 @@ class PopulationRateMonitor(BrianObject):
         self.variables = {'t': AttributeVariable(second, self.clock, 't_'),
                           'dt': AttributeVariable(second, self.clock,
                                                   'dt_', constant=True),
-                          '_spikespace': self.source.variables['_spikespace'],
                           '_rate': dev.dynamic_array_1d(self, '_rate', 0, 1,
                                                         constant_size=False),
                           '_t': dev.dynamic_array_1d(self, '_t', 0, second,
@@ -66,14 +65,16 @@ class PopulationRateMonitor(BrianObject):
         raise NotImplementedError()
 
     def before_run(self, namespace):
-        self.codeobj = get_device().code_object(
-                                         self,
-                                         self.name+'_codeobject*',
-                                         '', # No model-specific code
-                                         {}, # no namespace
-                                         self.variables,
-                                         template_name='ratemonitor',
-                                         variable_indices=defaultdict(lambda: '_idx'))
+        self.codeobj = create_runner_codeobj(self.source,
+                                             '', # No model-specific code
+                                             template_name='ratemonitor',
+                                             needed_variables=['_spikespace',
+                                                               '_t',
+                                                               '_rate',
+                                                               't', 'dt',
+                                                               '_num_source_neurons'],
+                                             additional_variables=self.variables,
+                                             name=self.name+'_codeobject*')
 
         self.updaters[:] = [self.codeobj.get_updater()]
 
