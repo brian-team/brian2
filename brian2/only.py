@@ -2,7 +2,7 @@
 A dummy package to allow wildcard import from brian2 without also importing
 the pylab (numpy + matplotlib) namespace.
 
-Usage: ``from brian2.only import *`
+Usage: ``from brian2.only import *``
 
 '''
 

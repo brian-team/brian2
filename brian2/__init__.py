@@ -38,6 +38,11 @@ try:
 except ImportError:
     from scipy import *
 
+# Make sure that Brian's unit-aware functions are used, even when directly
+# using names prefixed with numpy or np
+import brian2.numpy_ as numpy
+import brian2.numpy_ as np
+
 # delete some annoying names from the namespace
 if 'x' in globals():
     del x
