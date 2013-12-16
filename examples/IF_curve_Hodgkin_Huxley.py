@@ -5,7 +5,6 @@ The input is set differently for each neuron.
 
 This simulation should use exponential Euler integration
 '''
-from pylab import *
 from brian2 import *
 
 BrianLogger.log_level_info()

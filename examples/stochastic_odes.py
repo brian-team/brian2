@@ -1,6 +1,7 @@
-import numpy as np
-import matplotlib.pyplot as plt
-
+'''
+Check the correctness of the "derivative-free Milstein method" for
+multiplicative noise.
+'''
 from brian2 import *
 
 # setting a random seed makes all variants use exactly the same Wiener process
@@ -17,7 +18,7 @@ def simulate(method, dt):
     '''
     simulate geometrical Brownian with the given method
     ''' 
-    np.random.seed(seed)
+    random.seed(seed)
     G = NeuronGroup(1, 'dX/dt = (mu - 0.5*second*sigma**2)*X + X*sigma*xi*second**.5: 1',
                     clock=Clock(dt=dt), method=method)
     G.X = X0
@@ -36,23 +37,23 @@ def exact_solution(t, dt):
     my_mu = float(mu)
     my_sigma = float(sigma)
     dt = float(dt)
-    t = np.asarray(t)
+    t = asarray(t)
     
-    np.random.seed(seed)
+    random.seed(seed)
     # We are calculating the values at the *end* of a time step, as when using
     # a StateMonitor. Therefore also the Brownian motion starts not with zero
     # but with a random value.
-    brownian = np.cumsum(np.sqrt(dt) * np.random.randn(len(t)))
+    brownian = cumsum(sqrt(dt) * random.randn(len(t)))
     
-    return (X0 * np.exp((my_mu - 0.5*my_sigma**2)*(t+dt) + my_sigma*brownian))
+    return (X0 * exp((my_mu - 0.5*my_sigma**2)*(t+dt) + my_sigma*brownian))
 
 
 methods = ['milstein']
 dts = [1*ms, 0.5*ms, 0.2*ms, 0.1*ms, 0.05*ms, 0.025*ms, 0.01*ms, 0.005*ms]
 
-rows = np.floor(np.sqrt(len(dts)))
-cols = np.ceil(1.0 * len(dts) / rows)
-errors = dict([(method, np.zeros(len(dts))) for method in methods])
+rows = floor(sqrt(len(dts)))
+cols = ceil(1.0 * len(dts) / rows)
+errors = dict([(method, zeros(len(dts))) for method in methods])
 for dt_idx, dt in enumerate(dts):
     print 'dt: ', dt
     trajectories = {}
@@ -64,33 +65,33 @@ for dt_idx, dt in enumerate(dts):
     
     for method in methods:
         # plot the trajectories
-        plt.figure(1)
-        plt.subplot(rows, cols, dt_idx+1)
-        plt.plot(t, trajectories[method], label=method, alpha=0.75)
+        figure(1)
+        subplot(rows, cols, dt_idx+1)
+        plot(t, trajectories[method], label=method, alpha=0.75)
         
         # determine the mean absolute error
-        errors[method][dt_idx] = np.mean(np.abs(trajectories[method] - exact))
+        errors[method][dt_idx] = mean(abs(trajectories[method] - exact))
         # plot the difference to the real trajectory
-        plt.figure(2)
-        plt.subplot(rows, cols, dt_idx+1)
-        plt.plot(t, trajectories[method] - exact, label=method, alpha=0.75)
+        figure(2)
+        subplot(rows, cols, dt_idx+1)
+        plot(t, trajectories[method] - exact, label=method, alpha=0.75)
         
-    plt.figure(1)
-    plt.plot(t, exact, color='gray', lw=2, label='exact', alpha=0.75)
-    plt.title('dt = %s' % str(dt))
-    plt.xticks([])
+    figure(1)
+    plot(t, exact, color='gray', lw=2, label='exact', alpha=0.75)
+    title('dt = %s' % str(dt))
+    xticks([])
 
-plt.figure(1)
-plt.legend(frameon=False, loc='best')
-plt.figure(2)
-plt.legend(frameon=False, loc='best')
+figure(1)
+legend(frameon=False, loc='best')
+figure(2)
+legend(frameon=False, loc='best')
 
-plt.figure(3)
+figure(3)
 for method in methods:
-    plt.plot(np.array(dts) / ms, errors[method], 'o', label=method)
-plt.legend(frameon=False, loc='best')
-plt.xscale('log')
-plt.yscale('log')
-plt.xlabel('dt (ms)')
-plt.ylabel('mean absolute error')
-plt.show()
+    plot(array(dts) / ms, errors[method], 'o', label=method)
+legend(frameon=False, loc='best')
+xscale('log')
+yscale('log')
+xlabel('dt (ms)')
+ylabel('mean absolute error')
+show()

@@ -5,10 +5,9 @@ Network: 1000 unconnected integrate-and-fire neurons (leaky IF)
 with an input parameter v0.
 The input is set differently for each neuron.
 '''
-from pylab import *
 from brian2 import *
-BrianLogger.log_level_debug()
-brian_prefs.codegen.target = 'weave'
+
+# brian_prefs.codegen.target = 'weave'
 
 N = 1000
 tau = 10 * ms

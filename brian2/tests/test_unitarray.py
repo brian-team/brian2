@@ -1,7 +1,7 @@
-import numpy as np
 import scipy as sp
 
 from brian2 import *
+
 from brian2.units.fundamentalunits import DimensionMismatchError, Quantity
 
 def print_eval(expr):

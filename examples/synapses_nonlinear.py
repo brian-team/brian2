@@ -30,9 +30,9 @@ Mn = StateMonitor(neurons, 'g', record=0)
 
 run(1000*ms)
 
-import matplotlib.pyplot as plt
-plt.subplot(2, 1, 1)
-plt.plot(M.t / ms, M.g.T)
-plt.subplot(2, 1, 2)
-plt.plot(Mn.t / ms, Mn[0].g)
-plt.show()
+
+subplot(2, 1, 1)
+plot(M.t / ms, M.g.T)
+subplot(2, 1, 2)
+plot(Mn.t / ms, Mn[0].g)
+show()
