@@ -10,7 +10,7 @@ def run():
         raise ImportError('Running the test suite requires the "nose" package.')
     
     dirname = os.path.join(os.path.dirname(__file__), '..')
-    return nose.run(argv=['', dirname, '--with-doctest'])
+    return nose.run(argv=['', dirname, '--with-doctest', '--nologcapture'])
 
 if __name__=='__main__':
     run()
