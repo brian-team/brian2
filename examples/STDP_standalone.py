@@ -6,11 +6,10 @@ Adapted from Song, Miller and Abbott (2000) and Song and Abbott (2001)
 This example is modified from ``synapses_STDP.py`` and writes a standalone C++ project in the directory
 ``STDP_standalone``.
 '''
+from time import time
+
 from brian2 import *
 from brian2.devices.cpp_standalone import *
-import matplotlib.pyplot as plt
-import numpy
-from time import time
 
 set_device('cpp_standalone')
 

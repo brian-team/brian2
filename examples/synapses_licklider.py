@@ -4,7 +4,6 @@ delay lines) with phase locking.
 
 Romain Brette
 '''
-from pylab import *
 from brian2 import *
 
 #brian_prefs.codegen.target = 'weave'

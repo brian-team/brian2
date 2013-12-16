@@ -5,11 +5,11 @@ Adapted from Song, Miller and Abbott (2000) and Song and Abbott (2001)
 
 This simulation takes a long time!
 '''
-from brian2 import *
-import matplotlib.pyplot as plt
 from time import time
 
-brian_prefs.codegen.target = 'weave'
+from brian2 import *
+
+#brian_prefs.codegen.target = 'weave'
 
 N = 1000
 taum = 10 * ms
@@ -50,8 +50,8 @@ start_time = time()
 run(100 * second, report='text')
 print "Simulation time:", time() - start_time
 
-plt.subplot(211)
-plt.plot(S.w[:] / gmax, '.')
-plt.subplot(212)
-plt.hist(S.w[:] / gmax, 20)
-plt.show()
+subplot(211)
+plot(S.w[:] / gmax, '.')
+subplot(212)
+hist(S.w[:] / gmax, 20)
+show()

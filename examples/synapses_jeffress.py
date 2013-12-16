@@ -9,18 +9,15 @@ from both ears, with different delays).
 Romain Brette
 '''
 from time import time
-import numpy as np
-import matplotlib.pyplot as plt
 
 from brian2 import *
 
 # brian_prefs.codegen.target = 'weave'
 
 defaultclock.dt = .02 * ms
-dt = defaultclock.dt
 
 # Sound
-sound = TimedArray(10 * np.random.randn(50000), dt=dt) # white noise
+sound = TimedArray(10 * np.random.randn(50000), dt=defaultclock.dt) # white noise
 
 # Ears and sound motion around the head (constant angular speed)
 sound_speed = 300 * metre / second
@@ -70,14 +67,14 @@ print "Simulation took",t2-t1,"s"
 
 # Plot the results
 i, t = spikes.it
-plt.subplot(2, 1, 1)
-plt.plot(t / ms, i, '.')
-plt.xlabel('time (ms)')
-plt.ylabel('neuron index')
-plt.xlim(0, 1000)
-plt.subplot(2, 1, 2)
-plt.plot(traces.t / ms, traces.delay.T / ms)
-plt.xlabel('time (ms)')
-plt.ylabel('input delay (ms)')
-plt.xlim(0, 1000)
-plt.show()
+subplot(2, 1, 1)
+plot(t / ms, i, '.')
+xlabel('time (ms)')
+ylabel('neuron index')
+xlim(0, 1000)
+subplot(2, 1, 2)
+plot(traces.t / ms, traces.delay.T / ms)
+xlabel('time (ms)')
+ylabel('input delay (ms)')
+xlim(0, 1000)
+show()

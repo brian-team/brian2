@@ -3,7 +3,6 @@ Set state variable values with a string (using code generation)
 '''
 
 from brian2 import *
-import numpy as np
 
 #brian_prefs.codegen.target = 'weave'
 
@@ -20,9 +19,8 @@ S.w['i > j'] = 'exp(-(i - j)**2/space_constant) * mV'
 w_matrix = np.zeros((len(G), len(G)))
 w_matrix[S.i[:], S.j[:]] = S.w[:]
 
-import matplotlib.pyplot as plt
-plt.subplot(1, 2, 1)
-plt.plot(G.v[:] / mV)
-plt.subplot(1, 2, 2)
-plt.imshow(w_matrix)
-plt.show()
+subplot(1, 2, 1)
+plot(G.v[:] / mV)
+subplot(1, 2, 2)
+imshow(w_matrix)
+show()
