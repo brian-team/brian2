@@ -49,11 +49,11 @@ const int _num_{{name}} = {{N}};
 Synapses<double> {{S.name}}({{S.source|length}}, {{S.target|length}});
 {% for path in S._pathways %}
 SynapticPathway<double> {{path.name}}(
-		{{S.source|length}}, {{S.target|length}},
+		{{path.source|length}}, {{path.target|length}},
 		_dynamic{{path.variables['delay'].arrayname}},
 		_dynamic{{path.synapse_sources.arrayname}},
-		{{S.source.dt_}},
-		{{S.source.start}}, {{S.source.stop}}
+		{{path.source.dt_}},
+		{{path.source.start}}, {{path.source.stop}}
 		);
 {% endfor %}
 {% endfor %}
