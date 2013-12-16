@@ -522,7 +522,7 @@ class GroupCodeRunner(BrianObject):
         names of the variables are neither known to the template nor included
         in the abstract code statements.
     '''
-    def __init__(self, group, template, code=None, when=None,
+    def __init__(self, group, template, code='', when=None,
                  name='coderunner*', check_units=True, template_kwds=None,
                  needed_variables=None):
         BrianObject.__init__(self, when=when, name=name)

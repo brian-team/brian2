@@ -8,12 +8,12 @@ from brian2.core.variables import (Variable, AttributeVariable)
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.devices.device import get_device
-from brian2.groups.group import create_runner_codeobj
+from brian2.groups.group import GroupCodeRunner
 
 __all__ = ['PopulationRateMonitor']
 
 
-class PopulationRateMonitor(BrianObject):
+class PopulationRateMonitor(GroupCodeRunner):
     '''
     Record instantaneous firing rates, averaged across neurons from a
     `NeuronGroup` or other spike source.
@@ -33,7 +33,6 @@ class PopulationRateMonitor(BrianObject):
     '''
     def __init__(self, source, when=None, name='ratemonitor*',
                  codeobj_class=None):
-        self.source = weakref.proxy(source)
 
         # run by default on source clock at the end
         scheduler = Scheduler(when)
@@ -56,22 +55,15 @@ class PopulationRateMonitor(BrianObject):
                                                                    np.dtype(type(self.clock.t))),
                                                      constant_size=False),
                           '_num_source_neurons': Variable(Unit(1),
-                                                          len(self.source))}
+                                                          len(source))}
+
+        GroupCodeRunner.__init__(self, source, 'ratemonitor', when=scheduler)
 
     def reinit(self):
         '''
         Clears all recorded rates
         '''
         raise NotImplementedError()
-
-    def before_run(self, namespace):
-        self.codeobj = create_runner_codeobj(self.source,
-                                             '', # No model-specific code
-                                             template_name='ratemonitor',
-                                             additional_variables=self.variables,
-                                             name=self.name+'_codeobject*')
-
-        self.updaters[:] = [self.codeobj.get_updater()]
 
     @property
     def rate(self):

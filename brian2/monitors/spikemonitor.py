@@ -9,12 +9,12 @@ from brian2.core.variables import AttributeVariable, Variable
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.devices.device import get_device
-from brian2.groups.group import create_runner_codeobj
+from brian2.groups.group import GroupCodeRunner
 
 __all__ = ['SpikeMonitor']
 
 
-class SpikeMonitor(BrianObject):
+class SpikeMonitor(GroupCodeRunner):
     '''
     Record spikes from a `NeuronGroup` or other spike source
     
@@ -36,7 +36,6 @@ class SpikeMonitor(BrianObject):
     '''
     def __init__(self, source, record=True, when=None, name='spikemonitor*',
                  codeobj_class=None):
-        self.source = weakref.proxy(source)
         self.record = bool(record)
 
         # run by default on source clock at the end
@@ -50,12 +49,12 @@ class SpikeMonitor(BrianObject):
         BrianObject.__init__(self, when=scheduler, name=name)
 
         # Handle subgroups correctly
-        start = getattr(self.source, 'start', 0)
-        stop = getattr(self.source, 'stop', len(self.source))
+        start = getattr(source, 'start', 0)
+        stop = getattr(source, 'stop', len(source))
 
         device = get_device()
         self.variables = {'t': AttributeVariable(second, self.clock, 't_'),
-                          '_spikespace': self.source.variables['_spikespace'],
+                          '_spikespace': source.variables['_spikespace'],
                            '_i': device.dynamic_array_1d(self, '_i', 0, Unit(1),
                                                          dtype=np.int32,
                                                          constant_size=False),
@@ -63,7 +62,7 @@ class SpikeMonitor(BrianObject):
                                                          Unit(1),
                                                          constant_size=False),
                            '_count': device.array(self, '_count',
-                                                  len(self.source),
+                                                  len(source),
                                                   Unit(1),
                                                   dtype=np.int32),
                            '_source_start': Variable(Unit(1), start,
@@ -71,20 +70,14 @@ class SpikeMonitor(BrianObject):
                            '_source_stop': Variable(Unit(1), stop,
                                                    constant=True)}
 
+        GroupCodeRunner.__init__(self, source, 'spikemonitor',
+                                 when=scheduler)
+
     def reinit(self):
         '''
         Clears all recorded spikes
         '''
         raise NotImplementedError()
-
-    def before_run(self, namespace):
-        self.codeobj = create_runner_codeobj(self.source,
-                                             '', # No model-specific code
-                                             template_name='spikemonitor',
-                                             additional_variables=self.variables,
-                                             name=self.name+'_codeobject*')
-        self.code_objects[:] = [weakref.proxy(self.codeobj)]
-        self.updaters[:] = [self.codeobj.get_updater()]
 
     @property
     def i(self):
