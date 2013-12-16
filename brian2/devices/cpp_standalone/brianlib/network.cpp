@@ -34,8 +34,12 @@ void Network::run(double duration)
 		for(int i=0; i<objects.size(); i++)
 		{
 			Clock *obj_clock = objects[i].first;
-			codeobj_func func = objects[i].second;
-			func(t);
+			// Only execute the object if it uses the right clock for this step
+			if (curclocks.find(obj_clock) != curclocks.end())
+			{
+                codeobj_func func = objects[i].second;
+                func(t);
+			}
 		}
 		for(set<Clock*>::iterator i=curclocks.begin(); i!=curclocks.end(); i++)
 		{
