@@ -3,10 +3,10 @@
 {% block maincode %}
 	// USES_VARIABLES { _spikespace }
 	//// MAIN CODE ////////////
-	const int _num_spikes = _spikespace[_num_spikespace-1];
+	const int _num_spikes = _spikespace_array[_num_spikespace-1];
 	for(int _index_spikes=0; _index_spikes<_num_spikes; _index_spikes++)
 	{
-		const int _idx = _spikespace[_index_spikes];
+		const int _idx = _spikespace_array[_index_spikes];
 		const int _vectorisation_idx = _idx;
 		{{ super() }}
 	}

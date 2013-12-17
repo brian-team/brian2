@@ -46,9 +46,8 @@ class NumpyLanguage(Language):
         lines = []
         # index and read arrays (index arrays first)
         for var in itertools.chain(indices, read):
-            spec = variables[var]
             index = variable_indices[var]
-            line = var + ' = ' + spec.arrayname
+            line = var + ' = ' + var + '_array'
             if not index in iterate_all:
                 line = line + '[' + index + ']'
             lines.append(line)
@@ -69,7 +68,7 @@ class NumpyLanguage(Language):
                         all_inplace = False
                         break
             if not all_inplace:
-                line = variables[var].arrayname
+                line = var + '_array'
                 if index_var in iterate_all:
                     line = line + '[:]'
                 else:

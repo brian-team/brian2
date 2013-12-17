@@ -108,13 +108,7 @@ class Thresholder(GroupCodeRunner):
             template_kwds = {'_uses_refractory': False}
             needed_variables = []
         else:
-            # For C++ code, we need these names explicitly, since not_refractory
-            # and lastspike might also be used in the threshold condition -- the
-            # names will then refer to single (constant) values and cannot be
-            # used for assigning new values
-            template_kwds = {'_uses_refractory': True,
-                             '_array_not_refractory': group.variables['not_refractory'].arrayname,
-                             '_array_lastspike': group.variables['lastspike'].arrayname}
+            template_kwds = {'_uses_refractory': True}
             needed_variables=['t', 'not_refractory', 'lastspike']
         GroupCodeRunner.__init__(self, group,
                                  'threshold',

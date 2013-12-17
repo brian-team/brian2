@@ -64,13 +64,13 @@ class NumpyCodeObject(CodeObject):
                 self.namespace[name] = var
                 continue
 
-            self.namespace[name] = value
-
             if isinstance(var, ArrayVariable):
-                self.namespace[var.arrayname] = value
+                self.namespace[name+'_array'] = value
+            else:
+                self.namespace[name] = value
 
             if isinstance(var, DynamicArrayVariable):
-                self.namespace[var.name+'_object'] = var.get_object()
+                self.namespace[name+'_object'] = var.get_object()
 
             # There are two kinds of objects that we have to inject into the
             # namespace with their current value at each time step:
@@ -82,7 +82,7 @@ class NumpyCodeObject(CodeObject):
                 self.nonconstant_values.append((name, var.get_value))
             elif (isinstance(var, DynamicArrayVariable) and
                   not var.constant_size):
-                self.nonconstant_values.append((var.arrayname,
+                self.nonconstant_values.append((name + '_array',
                                                 var.get_value))
 
     def update_namespace(self):

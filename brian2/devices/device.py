@@ -121,14 +121,14 @@ class RuntimeDevice(Device):
             dtype = brian_prefs['core.default_scalar_dtype']
         if value is None:
             value = np.zeros(size, dtype=dtype)
-        return ArrayVariable(name, unit, value, group_name=owner.name,
+        return ArrayVariable(name, unit, value,
                              constant=constant, is_bool=is_bool,
                              read_only=read_only)
 
     def arange(self, owner, name, size, start=0, dtype=np.int32, constant=True,
                read_only=True):
         array = np.arange(start=start, stop=start+size, dtype=dtype)
-        return ArrayVariable(name, Unit(1), array, group_name=owner.name,
+        return ArrayVariable(name, Unit(1), array,
                              constant=constant, is_bool=False,
                              read_only=read_only)
 
@@ -141,7 +141,6 @@ class RuntimeDevice(Device):
             dtype = brian_prefs['core.default_scalar_dtype']
         array = DynamicArray1D(size, dtype=dtype)
         return DynamicArrayVariable(name, unit, array, dimensions=1,
-                                    group_name=owner.name,
                                     constant=constant,
                                     constant_size=constant_size,
                                     is_bool=is_bool,

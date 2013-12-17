@@ -108,11 +108,11 @@ class WeaveCodeObject(CodeObject):
                 self.namespace[name] = var
                 continue
 
-            self.namespace[name] = value
-
             if isinstance(var, ArrayVariable):
-                self.namespace[var.arrayname] = value
+                self.namespace[name + '_array'] = value
                 self.namespace['_num'+name] = var.get_len()
+            else:
+                self.namespace[name] = value
 
             if isinstance(var, DynamicArrayVariable):
                 self.namespace[var.name+'_object'] = var.get_object()
@@ -129,7 +129,7 @@ class WeaveCodeObject(CodeObject):
                     self.nonconstant_values.append(('_num'+name, var.get_len))
             elif (isinstance(var, DynamicArrayVariable) and
                   not var.constant_size):
-                self.nonconstant_values.append((var.arrayname,
+                self.nonconstant_values.append((name + '_array',
                                                 var.get_value))
                 self.nonconstant_values.append(('_num'+name, var.get_len))
 

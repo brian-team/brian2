@@ -158,7 +158,7 @@ class CPPLanguage(Language):
             else:
                 line = ''
             line = line + self.c_data_type(var.dtype) + ' ' + varname + ' = '
-            line = line + '_ptr' + var.arrayname + '[' + index_var + '];'
+            line = line + '_ptr' + varname + '_array[' + index_var + '];'
             lines.append(line)
         # simply declare variables that will be written but not read
         for varname in write:
@@ -173,7 +173,7 @@ class CPPLanguage(Language):
         for varname in write:
             index_var = variable_indices[varname]
             var = variables[varname]
-            line = '_ptr' + var.arrayname + '[' + index_var + '] = ' + varname + ';'
+            line = '_ptr' + varname + '_array[' + index_var + '] = ' + varname + ';'
             lines.append(line)
         code = '\n'.join(lines)
                 
@@ -200,7 +200,7 @@ class CPPLanguage(Language):
         arraynames = set()
         for varname, var in variables.iteritems():
             if isinstance(var, ArrayVariable):
-                arrayname = var.arrayname
+                arrayname = varname + '_array'
                 if not arrayname in arraynames:
                     if getattr(var, 'dimensions', 1) > 1:
                         continue  # multidimensional (dynamic) arrays have to be treated differently

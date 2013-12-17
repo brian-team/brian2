@@ -26,7 +26,7 @@
         const npy_intp* _record_strides = _record_data->strides;
         for (int _i = 0; _i < _num_indices; _i++)
         {
-            const int _idx = _indices[_i];
+            const int _idx = _indices_array[_i];
             const int _vectorisation_idx = _idx;
             {{ super() }}
 

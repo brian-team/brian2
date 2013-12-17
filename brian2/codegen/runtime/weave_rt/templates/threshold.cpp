@@ -13,15 +13,12 @@
 	    const int _vectorisation_idx = _idx;
 		{{ super() }}
 		if(_cond) {
-			_spikespace[_cpp_numspikes++] = _idx;
+			_spikespace_array[_cpp_numspikes++] = _idx;
 			{% if _uses_refractory %}
-			// We have to use the pointer names directly here: The condition
-			// might contain references to not_refractory or lastspike and in
-			// that case the names will refer to a single entry.
-			_ptr{{_array_not_refractory}}[_idx] = false;
-			_ptr{{_array_lastspike}}[_idx] = t;
+			not_refractory_array[_idx] = false;
+			lastspike_array[_idx] = t;
 			{% endif %}
 		}
 	}
-	_spikespace[N] = _cpp_numspikes;
+	_spikespace_array[N] = _cpp_numspikes;
 {% endblock %}

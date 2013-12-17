@@ -590,7 +590,7 @@ class ArrayVariable(Variable):
         internally and cannot be changed by the user. Defaults
         to ``False``.
     '''
-    def __init__(self, name, unit, value, group_name=None, constant=False,
+    def __init__(self, name, unit, value, constant=False,
                  scalar=False, is_bool=False, read_only=False):
 
         #: The name of the variable.
@@ -599,12 +599,7 @@ class ArrayVariable(Variable):
         Variable.__init__(self, unit, value, scalar=scalar,
                           constant=constant, is_bool=is_bool,
                           read_only=read_only)
-        #: The reference to the array storing the data for the variable.
-        self.value = value
 
-        group_name = '_'+group_name+'_' if group_name is not None else '_'
-        #: The name for the array used in generated code
-        self.arrayname = '_array' + group_name + name
 
     def get_value(self):
         return self.value
@@ -675,7 +670,6 @@ class DynamicArrayVariable(ArrayVariable):
         super(DynamicArrayVariable, self).__init__(name=name,
                                                    unit=unit,
                                                    value=value,
-                                                   group_name=group_name,
                                                    constant=constant,
                                                    scalar=scalar,
                                                    is_bool=is_bool,

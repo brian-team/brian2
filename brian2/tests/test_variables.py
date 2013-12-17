@@ -34,10 +34,9 @@ def test_str_repr():
     variables = [Variable(second),
                  AuxiliaryVariable(second),
                  AttributeVariable(second, group, 'name'),
-                 ArrayVariable('name', second,
-                               value=None, group_name=group.name),
+                 ArrayVariable('name', second, value=None),
                  DynamicArrayVariable('name', second, dimensions=1,
-                                      value=None, group_name=group.name),
+                                      value=None),
                  Subexpression('sub', second, expr='a+b', group=group)]
     for var in variables:
         assert len(str(var))

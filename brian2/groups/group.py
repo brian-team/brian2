@@ -234,8 +234,7 @@ class Group(BrianObject):
         additional_namespace = ('implicit-namespace', namespace)
         additional_variables = {'_group_idx': ArrayVariable('_group_idx',
                                                             Unit(1),
-                                                            value=group_indices.astype(np.int32),
-                                                            group_name=self.name)}
+                                                            value=group_indices.astype(np.int32))}
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
         codeobj = create_runner_codeobj(self,

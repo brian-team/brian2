@@ -81,7 +81,7 @@ class SummedVariableUpdater(GroupCodeRunner):
         '''.format(expression=expression,
                    target_varname=target_varname)
 
-        template_kwds = {'_target_var_array': synapses.variables[target_varname].arrayname}
+        template_kwds = {'_target_var': target_varname}
 
         GroupCodeRunner.__init__(self, group=synapses,
                                  template='summed_variable',
