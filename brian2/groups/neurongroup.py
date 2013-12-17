@@ -383,16 +383,16 @@ class NeuronGroup(Group, SpikeSource):
                              'specification') % type(dtype))
 
         # Standard variables always present
-        s['_spikespace'] = device.array(self, '_spikespace', self._N+1,
+        s['_spikespace'] = device.array(self, self._N+1,
                                         Unit(1), dtype=np.int32,
                                         constant=False)
         # Add the special variable "i" which can be used to refer to the neuron index
-        s['i'] = device.arange(self, 'i', self._N, constant=True,
+        s['i'] = device.arange(self, self._N, constant=True,
                                read_only=True)
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = ('constant' in eq.flags)
-                s[eq.varname] = device.array(self, eq.varname, self._N, eq.unit,
+                s[eq.varname] = device.array(self, self._N, eq.unit,
                                              dtype=dtype[eq.varname],
                                              constant=constant,
                                              is_bool=eq.is_bool)

@@ -77,7 +77,6 @@ class SummedVariableUpdater(GroupCodeRunner):
 
         code = '''
         _synaptic_var = {expression}
-        {target_varname} = {target_varname}
         '''.format(expression=expression,
                    target_varname=target_varname)
 
@@ -86,6 +85,7 @@ class SummedVariableUpdater(GroupCodeRunner):
         GroupCodeRunner.__init__(self, group=synapses,
                                  template='summed_variable',
                                  code=code,
+                                 needed_variables=[target_varname],
                                  # We want to update the sumned variable before
                                  # the target group gets updated
                                  when=(target.clock, 'groups', -1),
@@ -152,7 +152,7 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                                   self,
                                                                   'spiking_synapses',
                                                                   constant=False),
-                           'delay': get_device().dynamic_array_1d(self, 'delay',
+                           'delay': get_device().dynamic_array_1d(self,
                                                                   synapses._N,
                                                                   second,
                                                                   constant=True)}
@@ -652,11 +652,11 @@ class Synapses(Group):
                                                   constant=True),
                   '_num_target_neurons': Variable(Unit(1), len(self.target),
                                                   constant=True),
-                  '_synaptic_pre': dev.dynamic_array_1d(self, '_synaptic_pre',
-                                                        0, Unit(1), dtype=np.int32,
+                  '_synaptic_pre': dev.dynamic_array_1d(self, 0, Unit(1),
+                                                        dtype=np.int32,
                                                         constant_size=True),
-                  '_synaptic_post': dev.dynamic_array_1d(self, '_synaptic_post',
-                                                         0, Unit(1), dtype=np.int32,
+                  '_synaptic_post': dev.dynamic_array_1d(self, 0, Unit(1),
+                                                         dtype=np.int32,
                                                          constant_size=True)})
 
         # Allow accessing the pre- and postsynaptic indices in a nicer way
@@ -693,7 +693,6 @@ class Synapses(Group):
                 # use specifier.get_value() to get a reference to the underlying
                 # array
                 v[eq.varname] = dev.dynamic_array_1d(self,
-                                                     eq.varname,
                                                      0,
                                                      eq.unit,
                                                      dtype=dtype[eq.varname],

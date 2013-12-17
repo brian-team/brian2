@@ -10,6 +10,6 @@
 	for(int _idx=0; _idx<_num_synaptic_post; _idx++)
 	{
 	    {{ super() }}
-		_ptr{{_target_var}}_array[_postsynaptic_idx] += _synaptic_var;
+		_ptr{{_target_var}}_array[_postsynaptic_idx_array[_idx]] += _synaptic_var;
 	}
 {% endblock %}

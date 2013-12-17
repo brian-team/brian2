@@ -127,7 +127,7 @@ class Group(BrianObject):
             if var.read_only:
                 raise TypeError('Variable %s is read-only.' % name[:-1])
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value(name, self, level=1)[slice(None)] = val
+            var.get_addressable_value(name[:-1], self, level=1)[slice(None)] = val
         else:
             object.__setattr__(self, name, val)
 
@@ -206,7 +206,7 @@ class Group(BrianObject):
                                         )
         return codeobj()
 
-    def _set_with_code(self, variable, group_indices, code, check_units=True,
+    def _set_with_code(self, varname, group_indices, code, check_units=True,
                        level=0):
         '''
         Sets a variable using a string expression. Is called by
@@ -215,8 +215,8 @@ class Group(BrianObject):
 
         Parameters
         ----------
-        variable : `ArrayVariable`
-            The `ArrayVariable` object for the variable to be set
+        varname : str
+            The name of the variable to be set
         group_indices : ndarray of int
             The indices of the elements that are to be set.
         code : str
@@ -229,11 +229,10 @@ class Group(BrianObject):
             Necessary so that both `X.var = ` and `X.var[:] = ` have access
             to the surrounding namespace.
         '''
-        abstract_code = variable.name + ' = ' + code
+        abstract_code = varname + ' = ' + code
         namespace = get_local_namespace(level + 1)
         additional_namespace = ('implicit-namespace', namespace)
-        additional_variables = {'_group_idx': ArrayVariable('_group_idx',
-                                                            Unit(1),
+        additional_variables = {'_group_idx': ArrayVariable(Unit(1),
                                                             value=group_indices.astype(np.int32))}
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
@@ -245,7 +244,7 @@ class Group(BrianObject):
                                  check_units=check_units)
         codeobj()
 
-    def _set_with_code_conditional(self, variable, cond, code, check_units=True,
+    def _set_with_code_conditional(self, varname, cond, code, check_units=True,
                                    level=0):
         '''
         Sets a variable using a string expression and string condition. Is
@@ -254,8 +253,8 @@ class Group(BrianObject):
 
         Parameters
         ----------
-        variable : `ArrayVariable`
-            The `ArrayVariable` object for the variable to be set.
+        varname : str
+            The name of the variable to be set.
         cond : str
             The string condition for which the variables should be set.
         code : str
@@ -269,7 +268,7 @@ class Group(BrianObject):
         '''
 
         abstract_code_cond = '_cond = '+cond
-        abstract_code = variable.name + ' = ' + code
+        abstract_code = varname + ' = ' + code
         namespace = get_local_namespace(level + 1)
         additional_namespace = ('implicit-namespace', namespace)
         check_code_units(abstract_code_cond, self,

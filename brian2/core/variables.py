@@ -395,7 +395,7 @@ class VariableView(object):
             The string expression specifying the value for the variable.
         '''
         check_units = self.unit is not None
-        self.group._set_with_code_conditional(self.variable, item, value,
+        self.group._set_with_code_conditional(self.name, item, value,
                                               check_units=check_units,
                                               level=self.level + 1)
 
@@ -414,7 +414,7 @@ class VariableView(object):
         '''
         indices = self.calc_indices(item)
         check_units = self.unit is not None
-        self.group._set_with_code(self.variable, indices, value,
+        self.group._set_with_code(self.name, indices, value,
                                   check_units=check_units,
                                   level=self.level + 1)
 
@@ -435,7 +435,7 @@ class VariableView(object):
             fail_for_dimension_mismatch(value, self.unit)
         # We are not going via code generation so we have to take care
         # of correct indexing (in particular for subgroups) explicitly
-        var_index = self.group.variable_indices[self.variable.name]
+        var_index = self.group.variable_indices[self.name]
         if var_index != '_idx':
             indices = self.group.variables[var_index].get_value()[indices]
         self.variable.value[indices] = value
@@ -567,8 +567,6 @@ class ArrayVariable(Variable):
 
     Parameters
     ----------
-    name : str
-        The name of the variable.
     unit : `Unit`
         The unit of the variable
     value : `numpy.ndarray`
@@ -590,11 +588,8 @@ class ArrayVariable(Variable):
         internally and cannot be changed by the user. Defaults
         to ``False``.
     '''
-    def __init__(self, name, unit, value, constant=False,
+    def __init__(self, unit, value, constant=False,
                  scalar=False, is_bool=False, read_only=False):
-
-        #: The name of the variable.
-        self.name = name
 
         Variable.__init__(self, unit, value, scalar=scalar,
                           constant=constant, is_bool=is_bool,
@@ -631,8 +626,6 @@ class DynamicArrayVariable(ArrayVariable):
 
     Parameters
     ----------
-    name : str
-        The name of the variable.
     unit : `Unit`
         The unit of the variable
     value : `numpy.ndarray`
@@ -658,7 +651,7 @@ class DynamicArrayVariable(ArrayVariable):
         to ``False``.
     '''
 
-    def __init__(self, name, unit, value, dimensions, group_name=None,
+    def __init__(self, unit, value, dimensions,
                  constant=False, constant_size=True,
                  scalar=False, is_bool=False, read_only=False):
         #: The number of dimensions
@@ -667,8 +660,7 @@ class DynamicArrayVariable(ArrayVariable):
             raise ValueError('A variable cannot be constant and change in size')
         #: Whether the size of the variable is constant during a run.
         self.constant_size = constant_size
-        super(DynamicArrayVariable, self).__init__(name=name,
-                                                   unit=unit,
+        super(DynamicArrayVariable, self).__init__(unit=unit,
                                                    value=value,
                                                    constant=constant,
                                                    scalar=scalar,

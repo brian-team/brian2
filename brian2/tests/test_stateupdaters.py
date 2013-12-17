@@ -89,7 +89,7 @@ def test_priority():
     # Fake clock class
     MyClock = namedtuple('MyClock', ['t_', 'dt_'])
     clock = MyClock(t_=0, dt_=0.0001)
-    variables = {'v': ArrayVariable('v', Unit(1), None, constant=False),
+    variables = {'v': ArrayVariable(Unit(1), None, constant=False),
                   't': AttributeVariable(second, clock, 't_', constant=False),
                   'dt': AttributeVariable(second, clock, 'dt_', constant=True)}
     assert updater.can_integrate(eqs, variables)
@@ -98,7 +98,7 @@ def test_priority():
     # work
     eqs = Equations('''dv/dt = -param * v / (10*ms) : 1
                        param : 1''')
-    variables['param'] = ArrayVariable('param', Unit(1), None, constant=False)
+    variables['param'] = ArrayVariable(Unit(1), None, constant=False)
     assert updater.can_integrate(eqs, variables)
     can_integrate = {linear: False, euler: True, rk2: True, rk4: True, 
                      milstein: True}
@@ -110,7 +110,7 @@ def test_priority():
     # work
     eqs = Equations('''dv/dt = -param * v / (10*ms) : 1
                        param : 1 (constant)''')
-    variables['param'] = ArrayVariable('param', Unit(1), None, constant=True)
+    variables['param'] = ArrayVariable(Unit(1), None, constant=True)
     assert updater.can_integrate(eqs, variables)
     can_integrate = {linear: True, euler: True, rk2: True, rk4: True, 
                      milstein: True}

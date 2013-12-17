@@ -48,20 +48,20 @@ class Device(object):
     def __init__(self):
         pass
     
-    def array(self, owner, name, size, unit, value=None, dtype=None, constant=False,
+    def array(self, owner, size, unit, value=None, dtype=None, constant=False,
               is_bool=False, read_only=False):
         raise NotImplementedError()
 
-    def arange(self, owner, name, size, start=0, dtype=None, constant=True,
+    def arange(self, owner, size, start=0, dtype=None, constant=True,
                read_only=True):
         raise NotImplementedError()
 
-    def dynamic_array_1d(self, owner, name, size, unit, dtype=None,
+    def dynamic_array_1d(self, owner, size, unit, dtype=None,
                          constant=False, constant_size=True, is_bool=False,
                          read_only=False):
         raise NotImplementedError()
 
-    def dynamic_array(self, owner, name, size, unit, dtype=None,
+    def dynamic_array(self, owner, size, unit, dtype=None,
                       constant=False, constant_size=True, is_bool=False,
                       read_only=False):
         raise NotImplementedError()
@@ -111,7 +111,7 @@ class RuntimeDevice(Device):
     def __init__(self):
         super(Device, self).__init__()
 
-    def array(self, owner, name, size, unit, value=None, dtype=None,
+    def array(self, owner, size, unit, value=None, dtype=None,
               constant=False, is_bool=False, read_only=False):
         if is_bool:
             dtype = np.bool
@@ -121,18 +121,18 @@ class RuntimeDevice(Device):
             dtype = brian_prefs['core.default_scalar_dtype']
         if value is None:
             value = np.zeros(size, dtype=dtype)
-        return ArrayVariable(name, unit, value,
+        return ArrayVariable(unit, value,
                              constant=constant, is_bool=is_bool,
                              read_only=read_only)
 
-    def arange(self, owner, name, size, start=0, dtype=np.int32, constant=True,
+    def arange(self, owner, size, start=0, dtype=np.int32, constant=True,
                read_only=True):
         array = np.arange(start=start, stop=start+size, dtype=dtype)
-        return ArrayVariable(name, Unit(1), array,
+        return ArrayVariable(Unit(1), array,
                              constant=constant, is_bool=False,
                              read_only=read_only)
 
-    def dynamic_array_1d(self, owner, name, size, unit, dtype=None,
+    def dynamic_array_1d(self, owner, size, unit, dtype=None,
                          constant=False,constant_size=True, is_bool=False,
                          read_only=False):
         if is_bool:
@@ -140,13 +140,13 @@ class RuntimeDevice(Device):
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         array = DynamicArray1D(size, dtype=dtype)
-        return DynamicArrayVariable(name, unit, array, dimensions=1,
+        return DynamicArrayVariable(unit, array, dimensions=1,
                                     constant=constant,
                                     constant_size=constant_size,
                                     is_bool=is_bool,
                                     read_only=read_only)
 
-    def dynamic_array(self, owner, name, size, unit, dtype=None,
+    def dynamic_array(self, owner, size, unit, dtype=None,
                       constant=False, constant_size=True, is_bool=False,
                       read_only=False):
         if is_bool:
@@ -154,8 +154,7 @@ class RuntimeDevice(Device):
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         array = DynamicArray(size, dtype=dtype)
-        return DynamicArrayVariable(name, unit, array, dimensions=len(size),
-                                    group_name=owner.name,
+        return DynamicArrayVariable(unit, array, dimensions=len(size),
                                     constant=constant,
                                     constant_size=constant_size,
                                     is_bool=is_bool,

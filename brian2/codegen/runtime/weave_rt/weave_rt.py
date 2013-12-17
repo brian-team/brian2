@@ -115,7 +115,7 @@ class WeaveCodeObject(CodeObject):
                 self.namespace[name] = value
 
             if isinstance(var, DynamicArrayVariable):
-                self.namespace[var.name+'_object'] = var.get_object()
+                self.namespace[name+'_object'] = var.get_object()
 
             # There are two kinds of objects that we have to inject into the
             # namespace with their current value at each time step:

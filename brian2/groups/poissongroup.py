@@ -49,13 +49,12 @@ class PoissonGroup(Group, SpikeSource):
         # for more complex use cases.
 
         self.variables = Group._create_variables(self)
-        self.variables.update({'i': get_device().arange(self, 'i', N,
+        self.variables.update({'i': get_device().arange(self, N,
                                                         constant=True,
                                                         read_only=True),
-                               'rates': get_device().array(self, 'rates',
-                                                           size=N, unit=Hz),
+                               'rates': get_device().array(self, size=N,
+                                                           unit=Hz),
                                '_spikespace': get_device().array(self,
-                                                                 '_spikespace',
                                                                  size=N+1,
                                                                  unit=1,
                                                                  dtype=np.int32)})
@@ -72,7 +71,7 @@ class PoissonGroup(Group, SpikeSource):
 
         # Set the rates according to the argument (make sure to use the correct
         # namespace)
-        rate_value = self.variables['rates'].get_addressable_value_with_unit(name,
+        rate_value = self.variables['rates'].get_addressable_value_with_unit('rates',
                                                                              self,
                                                                              level=2)
         rate_value[:] = rates

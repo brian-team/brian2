@@ -177,16 +177,15 @@ class StateMonitor(BrianObject):
             var = source.variables[varname]
             self.variables[varname] = var
             self.variables['_recorded_'+varname] = device.dynamic_array(self,
-                                                                        '_recorded_'+varname,
                                                                         (0, len(self.indices)),
                                                                         var.unit,
                                                                         dtype=var.dtype,
                                                                         constant=False)
 
-        self.variables['_t'] = device.dynamic_array_1d(self, '_t', 0, Unit(1),
+        self.variables['_t'] = device.dynamic_array_1d(self, 0, Unit(1),
                                                        constant=False)
         self.variables['_clock_t'] = AttributeVariable(second, self.clock, 't_')
-        self.variables['_indices'] = device.array(self, '_indices', value=self.indices,
+        self.variables['_indices'] = device.array(self, value=self.indices,
                                                   size=len(self.indices), unit=Unit(1),
                                                   dtype=record.dtype,
                                                   constant=True)

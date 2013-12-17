@@ -417,7 +417,6 @@ def test_changed_dt_spikes_in_queue():
 
 def test_summed_variable():
     for codeobj_class in codeobj_classes:
-        print codeobj_class
         source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0',
                              codeobj_class=codeobj_class)
         source.v = 1.1  # will spike immediately
@@ -534,16 +533,16 @@ def test_repr():
 
 
 if __name__ == '__main__':
-    # test_creation()
-    # test_connection_string_deterministic()
-    # test_connection_random()
-    # test_connection_multiple_synapses()
-    # test_state_variable_assignment()
-    # test_state_variable_indexing()
-    # test_delay_specification()
-    # test_transmission()
-    # test_changed_dt_spikes_in_queue()
+    test_creation()
+    test_connection_string_deterministic()
+    test_connection_random()
+    test_connection_multiple_synapses()
+    test_state_variable_assignment()
+    test_state_variable_indexing()
+    test_delay_specification()
+    test_transmission()
+    test_changed_dt_spikes_in_queue()
     test_summed_variable()
-    # test_summed_variable_errors()
-    # test_event_driven()
-    # test_repr()
+    test_summed_variable_errors()
+    test_event_driven()
+    test_repr()

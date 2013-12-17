@@ -75,7 +75,7 @@ class Subgroup(Group, SpikeSource):
             if value != '_idx':
                 raise ValueError(('Do not how to deal with variable %s using '
                                   'index %s in a subgroup') % (key, value))
-        self.variables['_sub_idx'] = get_device().arange(self, '_sub_idx',
+        self.variables['_sub_idx'] = get_device().arange(self,
                                                          self._N,
                                                          start=self.start,
                                                          constant=True,
