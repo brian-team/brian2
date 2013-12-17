@@ -12,6 +12,7 @@ from brian2.core.base import BrianObject
 from brian2.core.variables import (ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,
                                    Variable)
+from brian2.core.functions import Function
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit)
 from brian2.units.allunits import second
@@ -19,6 +20,7 @@ from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
 from brian2.devices.device import get_device
+from brian2.units.fundamentalunits import get_unit
 
 
 __all__ = ['Group', 'GroupCodeRunner']
@@ -429,6 +431,18 @@ def create_runner_codeobj(group, code, template_name,
     resolved_namespace = group.namespace.resolve_all(unknown,
                                                      additional_namespace)
 
+    for varname, value in resolved_namespace.iteritems():
+        if isinstance(value, Function):
+            variables[varname] = value
+        else:
+            unit = get_unit(value)
+            # For the moment, only allow the use of scalar values
+            array_value = np.asarray(value)
+            if array_value.shape != ():
+                raise TypeError('Name "%s" does not refer to a scalar value' % varname)
+            variables[varname] = Variable(unit, value=value, scalar=True,
+                                       constant=True, read_only=True)
+
     # Add variables that are not in the abstract code, nor specified in the
     # template but nevertheless necessary
     if needed_variables is None:
@@ -446,7 +460,7 @@ def create_runner_codeobj(group, code, template_name,
             # TODO: Improve all of this namespace/specifier handling
             if group is not None:
                 # Try to find the name in the group's namespace
-                resolved_namespace[var] = group.namespace.resolve(var,
+                variables[var] = group.namespace.resolve(var,
                                                                   additional_namespace)
             else:
                 raise ex
@@ -471,16 +485,14 @@ def create_runner_codeobj(group, code, template_name,
         if var_index != '_idx':
             variables[var_index] = all_variables[var_index]
 
-    return get_device().code_object(
-                             group,
-                             name,
-                             code,
-                             resolved_namespace,
-                             variables,
-                             template_name,
-                             variable_indices=all_variable_indices,
-                             template_kwds=template_kwds,
-                             codeobj_class=group.codeobj_class)
+    return get_device().code_object(owner=group,
+                                    name=name,
+                                    abstract_code=code,
+                                    variables=variables,
+                                    template_name=template_name,
+                                    variable_indices=all_variable_indices,
+                                    template_kwds=template_kwds,
+                                    codeobj_class=group.codeobj_class)
 
 
 class GroupCodeRunner(BrianObject):
@@ -555,8 +567,9 @@ class GroupCodeRunner(BrianObject):
         if self.check_units:
             check_code_units(self.abstract_code, self.group,
                              additional_variables, namespace)
-        self.codeobj = create_runner_codeobj(self.group, self.abstract_code,
-                                             self.template,
+        self.codeobj = create_runner_codeobj(group=self.group,
+                                             code=self.abstract_code,
+                                             template_name=self.template,
                                              name=self.name+'_codeobject*',
                                              check_units=self.check_units,
                                              additional_variables=additional_variables,

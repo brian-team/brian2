@@ -80,12 +80,14 @@ class WeaveCodeObject(CodeObject):
     language = CPPLanguage(c_data_type=weave_data_type)
     class_name = 'weave'
 
-    def __init__(self, owner, code, namespace, variables, name='weave_code_object*'):
-        super(WeaveCodeObject, self).__init__(owner, code, namespace, variables, name=name)
+    def __init__(self, owner, code, variables, name='weave_code_object*'):
+        self.namespace = {'_owner': owner}
+        super(WeaveCodeObject, self).__init__(owner, code, variables, name=name)
         self.compiler = brian_prefs['codegen.runtime.weave.compiler']
         self.extra_compile_args = brian_prefs['codegen.runtime.weave.extra_compile_args']
         self.include_dirs = brian_prefs['codegen.runtime.weave.include_dirs']
         self.python_code_namespace = {'_owner': owner}
+        self.variables_to_namespace()
 
     def variables_to_namespace(self):
 
@@ -101,7 +103,9 @@ class WeaveCodeObject(CodeObject):
 
             try:
                 value = var.get_value()
-            except TypeError:  # A dummy Variable without value or a Subexpression
+            except (TypeError, AttributeError):
+                # A dummy Variable without value, a function or a Subexpression
+                self.namespace[name] = var
                 continue
 
             self.namespace[name] = value

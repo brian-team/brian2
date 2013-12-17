@@ -22,27 +22,7 @@ __all__ = ['CodeObject',
 logger = get_logger(__name__)
 
 
-def prepare_namespace(namespace, variables, codeobj_class):
-    # We do the import here to avoid import problems
-    from .runtime.numpy_rt.numpy_rt import NumpyCodeObject
-
-    # Check that all functions are available
-    for name, value in namespace.iteritems():
-        if isinstance(value, Function):
-            try:
-                value.implementations[codeobj_class]
-            except KeyError as ex:
-                # if we are dealing with numpy, add the default implementation
-                if codeobj_class is NumpyCodeObject:
-                    add_numpy_implementation(value, value.pyfunc)
-                else:
-                    raise NotImplementedError(('Cannot use function '
-                                               '%s: %s') % (name, ex))
-
-    return namespace
-
-
-def create_codeobject(owner, name, abstract_code, namespace, variables,
+def create_codeobject(owner, name, abstract_code, variables,
                       template_name, variable_indices, codeobj_class,
                       template_kwds=None):
     '''
@@ -55,7 +35,8 @@ def create_codeobject(owner, name, abstract_code, namespace, variables,
       ``template_kwds`` (but you should ensure there are no name
       clashes.
     '''
-
+    # We do the import here to avoid import problems
+    from .runtime.numpy_rt.numpy_rt import NumpyCodeObject
     if template_kwds is None:
         template_kwds = dict()
     else:
@@ -63,9 +44,18 @@ def create_codeobject(owner, name, abstract_code, namespace, variables,
         
     template = getattr(codeobj_class.templater, template_name)
 
-
-    namespace = prepare_namespace(namespace, variables,
-                                  codeobj_class=codeobj_class)
+    # Check that all functions are available
+    for varname, value in variables.iteritems():
+        if isinstance(value, Function):
+            try:
+                value.implementations[codeobj_class]
+            except KeyError as ex:
+                # if we are dealing with numpy, add the default implementation
+                if codeobj_class is NumpyCodeObject:
+                    add_numpy_implementation(value, value.pyfunc)
+                else:
+                    raise NotImplementedError(('Cannot use function '
+                                               '%s: %s') % (varname, ex))
 
     if isinstance(abstract_code, dict):
         for k, v in abstract_code.items():
@@ -73,7 +63,7 @@ def create_codeobject(owner, name, abstract_code, namespace, variables,
     else:
         logger.debug(name + " abstract code:\n" + abstract_code)
     iterate_all = template.iterate_all
-    snippet, kwds = translate(abstract_code, variables, namespace,
+    snippet, kwds = translate(abstract_code, variables,
                               dtype=brian_prefs['core.default_scalar_dtype'],
                               codeobj_class=codeobj_class,
                               variable_indices=variable_indices,
@@ -84,12 +74,12 @@ def create_codeobject(owner, name, abstract_code, namespace, variables,
     name = find_name(name)
     
     code = template(snippet,
-                    owner=owner, variables=variables, codeobj_name=name, namespace=namespace,
+                    owner=owner, variables=variables, codeobj_name=name,
                     variable_indices=variable_indices,
                     **template_kwds)
     logger.debug(name + " code:\n" + str(code))
 
-    codeobj = codeobj_class(owner, code, namespace, variables, name=name)
+    codeobj = codeobj_class(owner, code, variables, name=name)
     codeobj.compile()
     return codeobj
 
@@ -113,7 +103,7 @@ class CodeObject(Nameable):
     #: A short name for this type of `CodeObject`
     class_name = None
 
-    def __init__(self, owner, code, namespace, variables, name='codeobject*'):
+    def __init__(self, owner, code, variables, name='codeobject*'):
         Nameable.__init__(self, name=name)
         try:    
             owner = weakref.proxy(owner)
@@ -121,19 +111,7 @@ class CodeObject(Nameable):
             pass # if owner was already a weakproxy then this will be the error raised
         self.owner = owner
         self.code = code
-        self.namespace = namespace
         self.variables = variables
-
-        self.variables_to_namespace()
-
-    def variables_to_namespace(self):
-        '''
-        Add the values from the variables dictionary to the namespace.
-        This should involve calling the `Variable.get_value` methods and
-        possibly take track of variables that need to be updated at every
-        timestep (see `update_namespace`).
-        '''
-        raise NotImplementedError()
 
     def update_namespace(self):
         '''

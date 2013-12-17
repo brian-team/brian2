@@ -20,6 +20,7 @@ import collections
 from numpy import float64
 
 from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
+from brian2.core.functions import Function
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
                                       get_identifiers, word_substitute)
 from brian2.parsing.statements import parse_statement
@@ -126,7 +127,8 @@ def make_statements(code, variables, dtype):
     if DEBUG:
         print 'INPUT CODE:'
         print code
-    dtypes = dict((name, var.dtype) for name, var in variables.iteritems())
+    dtypes = dict((name, var.dtype) for name, var in variables.iteritems()
+                  if not isinstance(var, Function))
     # we will do inference to work out which lines are := and which are =
     defined = set(k for k, v in variables.iteritems()
                   if not isinstance(v, AuxiliaryVariable))
@@ -286,7 +288,7 @@ def translate_subexpressions(subexpressions, variables):
     subexpressions.update(new_subexpressions)
     return subexpressions
 
-def translate(code, variables, namespace, dtype, codeobj_class,
+def translate(code, variables, dtype, codeobj_class,
               variable_indices, iterate_all):
     '''
     Translates an abstract code block into the target language.
@@ -303,5 +305,5 @@ def translate(code, variables, namespace, dtype, codeobj_class,
         statements = make_statements(code, variables, dtype)
     language = codeobj_class.language
     return language.translate_statement_sequence(statements, variables,
-                                                 namespace, variable_indices,
+                                                 variable_indices,
                                                  iterate_all, codeobj_class)

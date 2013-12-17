@@ -118,15 +118,15 @@ class CPPLanguage(Language):
         self.flush_denormals = brian_prefs['codegen.languages.cpp.flush_denormals']
         self.c_data_type = c_data_type
 
-    def translate_expression(self, expr, namespace, codeobj_class):
-        for varname, var in namespace.iteritems():
+    def translate_expression(self, expr, variables, codeobj_class):
+        for varname, var in variables.iteritems():
             if isinstance(var, Function):
                 impl_name = var.implementations[codeobj_class].name
                 if impl_name is not None:
                     expr = word_substitute(expr, {varname: impl_name})
         return CPPNodeRenderer().render_expr(expr).strip()
 
-    def translate_statement(self, statement, namespace, codeobj_class):
+    def translate_statement(self, statement, variables, codeobj_class):
         var, op, expr = statement.var, statement.op, statement.expr
         if op == ':=':
             decl = self.c_data_type(statement.dtype) + ' '
@@ -136,10 +136,10 @@ class CPPLanguage(Language):
         else:
             decl = ''
         return decl + var + ' ' + op + ' ' + self.translate_expression(expr,
-                                                                       namespace,
+                                                                       variables,
                                                                        codeobj_class) + ';'
 
-    def translate_one_statement_sequence(self, statements, variables, namespace,
+    def translate_one_statement_sequence(self, statements, variables,
                                          variable_indices, iterate_all,
                                          codeobj_class):
 
@@ -167,7 +167,7 @@ class CPPLanguage(Language):
                 line = self.c_data_type(var.dtype) + ' ' + varname + ';'
                 lines.append(line)
         # the actual code
-        lines.extend([self.translate_statement(stmt, namespace, codeobj_class)
+        lines.extend([self.translate_statement(stmt, variables, codeobj_class)
                       for stmt in statements])
         # write arrays
         for varname in write:
@@ -190,7 +190,7 @@ class CPPLanguage(Language):
         else:
             return ''
 
-    def determine_keywords(self, variables, namespace, codeobj_class):
+    def determine_keywords(self, variables, codeobj_class):
         # set up the restricted pointers, these are used so that the compiler
         # knows there is no aliasing in the pointers, for optimisation
         lines = []
@@ -213,7 +213,7 @@ class CPPLanguage(Language):
         user_functions = []
         support_code = ''
         hash_defines = ''
-        for varname, variable in namespace.items():
+        for varname, variable in variables.items():
             if isinstance(variable, Function):
                 user_functions.append((varname, variable))
                 speccode = variable.implementations[codeobj_class].code
@@ -225,19 +225,19 @@ class CPPLanguage(Language):
                 # function via weave if necessary (e.g. in the case of randn)
                 if not variable.pyfunc is None:
                     pyfunc_name = '_python_' + varname
-                    if pyfunc_name in namespace:
+                    if pyfunc_name in variables:
                         logger.warn(('Namespace already contains function %s, '
                                      'not replacing it') % pyfunc_name)
                     else:
-                        namespace[pyfunc_name] = variable.pyfunc
+                        variables[pyfunc_name] = variable.pyfunc
 
         # delete the user-defined functions from the namespace and add the
         # function namespaces (if any)
         for funcname, func in user_functions:
-            del namespace[funcname]
+            del variables[funcname]
             func_namespace = func.implementations[codeobj_class].namespace
             if func_namespace is not None:
-                namespace.update(func_namespace)
+                variables.update(func_namespace)
 
         return {'pointers_lines': stripped_deindented_lines(pointers),
                 'support_code_lines': stripped_deindented_lines(support_code),
@@ -245,7 +245,7 @@ class CPPLanguage(Language):
                 'denormals_code_lines': stripped_deindented_lines(self.denormals_to_zero_code()),
                 }
 
-    def translate_statement_sequence(self, statements, variables, namespace,
+    def translate_statement_sequence(self, statements, variables,
                                      variable_indices, iterate_all,
                                      codeobj_class):
         if isinstance(statements, dict):
@@ -253,16 +253,15 @@ class CPPLanguage(Language):
             for name, block in statements.iteritems():
                 blocks[name] = self.translate_one_statement_sequence(block,
                                                                      variables,
-                                                                     namespace,
                                                                      variable_indices,
                                                                      iterate_all,
                                                                      codeobj_class)
         else:
             blocks = self.translate_one_statement_sequence(statements, variables,
-                                                           namespace, variable_indices,
+                                                           variable_indices,
                                                            iterate_all, codeobj_class)
 
-        kwds = self.determine_keywords(variables, namespace, codeobj_class)
+        kwds = self.determine_keywords(variables, codeobj_class)
 
         return blocks, kwds
 

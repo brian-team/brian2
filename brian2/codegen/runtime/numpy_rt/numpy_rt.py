@@ -6,7 +6,6 @@ import numpy as np
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable)
-from brian2.synapses.spikequeue import SpikeQueue
 
 from ...codeobject import CodeObject
 
@@ -40,11 +39,13 @@ class NumpyCodeObject(CodeObject):
     language = NumpyLanguage()
     class_name = 'numpy'
 
-    def __init__(self, owner, code, namespace, variables, name='numpy_code_object*'):
-        # TODO: This should maybe go somewhere else
-        namespace['logical_not'] = np.logical_not
-        CodeObject.__init__(self, owner, code, namespace, variables, name=name)
-        namespace['_owner'] = self.owner
+    def __init__(self, owner, code, variables, name='numpy_code_object*'):
+
+        self.namespace = {'_owner': owner,
+                          # TODO: This should maybe go somewhere else
+                          'logical_not': np.logical_not}
+        CodeObject.__init__(self, owner, code, variables, name=name)
+        self.variables_to_namespace()
 
     def variables_to_namespace(self):
         # Variables can refer to values that are either constant (e.g. dt)
@@ -58,7 +59,9 @@ class NumpyCodeObject(CodeObject):
         for name, var in self.variables.iteritems():
             try:
                 value = var.get_value()
-            except TypeError:  # A dummy Variable without value or a Subexpression
+            except (TypeError, AttributeError):
+                # A dummy Variable without value, a function or a Subexpression
+                self.namespace[name] = var
                 continue
 
             self.namespace[name] = value
@@ -98,3 +101,4 @@ class NumpyCodeObject(CodeObject):
             return self.namespace['_return_values']
 
 codegen_targets.add(NumpyCodeObject)
+

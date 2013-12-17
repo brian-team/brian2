@@ -84,11 +84,11 @@ class Device(object):
             codeobj_class = get_default_codeobject_class()
         return codeobj_class
 
-    def code_object(self, owner, name, abstract_code, namespace, variables, template_name,
+    def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None,
                     template_kwds=None):
         codeobj_class = self.code_object_class(codeobj_class)
-        return create_codeobject(owner, name, abstract_code, namespace, variables, template_name,
+        return create_codeobject(owner, name, abstract_code, variables, template_name,
                                  variable_indices=variable_indices, codeobj_class=codeobj_class,
                                  template_kwds=template_kwds)
     

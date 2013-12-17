@@ -21,25 +21,24 @@ class NumpyLanguage(Language):
 
     language_id = 'numpy'
 
-    def translate_expression(self, expr, namespace, codeobj_class):
-        for varname, var in namespace.iteritems():
+    def translate_expression(self, expr, variables, codeobj_class):
+        for varname, var in variables.iteritems():
             if isinstance(var, Function):
                 impl_name = var.implementations[codeobj_class].name
                 if impl_name is not None:
                     expr = word_substitute(expr, {varname: impl_name})
-        return NumpyNodeRenderer().render_expr(expr, namespace).strip()
+        return NumpyNodeRenderer().render_expr(expr, variables).strip()
 
-    def translate_statement(self, statement, namespace, codeobj_class):
+    def translate_statement(self, statement, variables, codeobj_class):
         # TODO: optimisation, translate arithmetic to a sequence of inplace
         # operations like a=b+c -> add(b, c, a)
         var, op, expr = statement.var, statement.op, statement.expr
         if op == ':=':
             op = '='
-        return var + ' ' + op + ' ' + self.translate_expression(expr,
-                                                                namespace,
+        return var + ' ' + op + ' ' + self.translate_expression(expr, variables,
                                                                 codeobj_class)
 
-    def translate_one_statement_sequence(self, statements, variables, namespace,
+    def translate_one_statement_sequence(self, statements, variables,
                                          variable_indices, iterate_all,
                                          codeobj_class):
         read, write, indices = self.array_read_write(statements, variables,
@@ -54,7 +53,7 @@ class NumpyLanguage(Language):
                 line = line + '[' + index + ']'
             lines.append(line)
         # the actual code
-        lines.extend([self.translate_statement(stmt, namespace, codeobj_class)
+        lines.extend([self.translate_statement(stmt, variables, codeobj_class)
                       for stmt in statements])
         # write arrays
         for var in write:
@@ -81,13 +80,13 @@ class NumpyLanguage(Language):
         # Make sure we do not use the __call__ function of Function objects but
         # rather the Python function stored internally. The __call__ function
         # would otherwise return values with units
-        for varname, var in namespace.iteritems():
+        for varname, var in variables.iteritems():
             if isinstance(var, Function):
-                namespace[varname] = var.implementations[codeobj_class].code
+                variables[varname] = var.implementations[codeobj_class].code
 
         return lines
 
-    def translate_statement_sequence(self, statements, variables, namespace,
+    def translate_statement_sequence(self, statements, variables,
                                      variable_indices, iterate_all,
                                      codeobj_class):
         if isinstance(statements, dict):
@@ -96,14 +95,13 @@ class NumpyLanguage(Language):
             for name, block in statements.iteritems():
                 blocks[name] = self.translate_one_statement_sequence(block,
                                                                      variables,
-                                                                     namespace,
                                                                      variable_indices,
                                                                      iterate_all,
                                                                      codeobj_class)
             return blocks, {}
         else:
             block = self.translate_one_statement_sequence(statements, variables,
-                                                          namespace, variable_indices,
+                                                          variable_indices,
                                                           iterate_all, codeobj_class)
             return block, {}
 

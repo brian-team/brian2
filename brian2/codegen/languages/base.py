@@ -27,14 +27,14 @@ class Language(object):
         '''
         raise NotImplementedError
 
-    def translate_statement(self, statement, namespace, codeobj_class):
+    def translate_statement(self, statement, variables, codeobj_class):
         '''
         Translate a single line `Statement` into the target language, returns
         a string.
         '''
         raise NotImplementedError
 
-    def translate_statement_sequence(self, statements, variables, namespace,
+    def translate_statement_sequence(self, statements, variables,
                                      variable_indices, iterate_all,
                                      codeobj_class):
         '''
