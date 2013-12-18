@@ -67,6 +67,8 @@ if fname is not None:
                             include_dirs=[])]  # numpy include dir will be added later
     if fname == pyx_fname:
         extensions = cythonize(extensions)
+else:
+    extensions = []
 
 
 class optional_build_ext(build_ext):
