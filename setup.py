@@ -8,8 +8,6 @@ import os
 # This will automatically download setuptools if it is not already installed
 from ez_setup import use_setuptools
 use_setuptools()
-
-import pkg_resources
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.errors import CompileError
@@ -103,7 +101,7 @@ brian-development mailing list (http://groups.google.com/group/brian-development
 Documentation for Brian2 can be found at http://brian2.readthedocs.org
 '''
 
-setup(name='Brian2',
+setup(name='brian2',
       version='2.0a5',
       packages=find_packages(),
       package_data={# include template files
