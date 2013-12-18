@@ -1,0 +1,40 @@
+package:
+  name: brian2
+  version: 2.0a6
+
+source:
+  fn: Brian2-2.0a6.tar.bz2
+  url: https://pypi.python.org/packages/source/B/Brian2/Brian2-2.0a6.tar.bz2
+  md5: fc6e389e6c05d90d125c4828f2690a31
+
+requirements:
+  build:
+    - python
+    - distribute
+    - numpy
+    - scipy
+    - sympy
+    - pyparsing
+    - jinja2
+
+  run:
+    - python
+    - distribute
+    - numpy
+    - scipy
+    - sympy
+    - pyparsing
+    - jinja2
+
+test:
+  # Python imports
+  imports:
+    - brian2
+
+  requires:    
+    - nose
+
+about:
+  home: http://www.briansimulator.org/
+  license: CeCILLv2.1
+
