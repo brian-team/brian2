@@ -1,11 +1,11 @@
 package:
   name: brian2
-  version: 2.0a6
+  version: 2.0a7
 
 source:
-  fn: Brian2-2.0a6.tar.bz2
-  url: https://pypi.python.org/packages/source/B/Brian2/Brian2-2.0a6.tar.bz2
-  md5: fc6e389e6c05d90d125c4828f2690a31
+  fn: Brian2-2.0a7.tar.bz2
+  url: https://pypi.python.org/packages/source/B/Brian2/Brian2-2.0a7.tar.bz2
+  md5: 39a5c651cc0669e64be2d78748f5f208
 
 requirements:
   build:
