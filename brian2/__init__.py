@@ -1,11 +1,6 @@
 '''
 Brian 2.0
 '''
-__docformat__ = "restructuredtext en"
-
-__version__ = '2.0a5'
-__release_date__ = '2013-10-28'
-
 # Check basic dependencies
 import sys
 missing = []
@@ -50,5 +45,10 @@ if 'f' in globals():
     del f
 if 'rate' in globals():
     del rate
+
+__docformat__ = "restructuredtext en"
+
+__version__ = '2.0a5'
+__release_date__ = '2013-10-28'
 
 from brian2.only import *
