@@ -41,6 +41,7 @@ pyx_fname = os.path.join('brian2', 'synapses', 'cythonspikequeue.pyx')
 cpp_fname = os.path.join('brian2', 'synapses', 'cythonspikequeue.cpp')
 
 if WITH_CYTHON or not os.path.exists(cpp_fname):
+    fname = pyx_fname
     if not cython_available:
         if FAIL_ON_ERROR:
             raise RuntimeError('Compilation with Cython requested/necesary but '
@@ -48,6 +49,7 @@ if WITH_CYTHON or not os.path.exists(cpp_fname):
         else:
             sys.stderr.write('Compilation with Cython requested/necesary but '
                              'Cython is not available.\n')
+            fname = None
     if not os.path.exists(pyx_fname):
         if FAIL_ON_ERROR:
             raise RuntimeError(('Compilation with Cython requested/necessary but '
@@ -55,16 +57,16 @@ if WITH_CYTHON or not os.path.exists(cpp_fname):
         else:
             sys.stderr.write(('Compilation with Cython requested/necessary but '
                                 'Cython source file %s does not exist\n') % pyx_fname)
-    fname = pyx_fname
+            fname = None
 else:
     fname = cpp_fname
 
-extensions = [Extension("brian2.synapses.cythonspikequeue",
-                        [fname],
-                        include_dirs=[])]  # numpy include dir will be added later
-
-if fname == pyx_fname:
-    extensions = cythonize(extensions)
+if fname is not None:
+    extensions = [Extension("brian2.synapses.cythonspikequeue",
+                            [fname],
+                            include_dirs=[])]  # numpy include dir will be added later
+    if fname == pyx_fname:
+        extensions = cythonize(extensions)
 
 
 class optional_build_ext(build_ext):
