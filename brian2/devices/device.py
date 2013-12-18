@@ -6,10 +6,14 @@ implementation and some helper functions to access/set devices.
 import numpy as np
 
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
-from brian2.codegen.codeobject import create_codeobject
 from brian2.codegen.targets import codegen_targets
+from brian2.codegen.functions import add_numpy_implementation
+from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
+from brian2.codegen.translation import translate
+from brian2.core.names import find_name
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import ArrayVariable, DynamicArrayVariable
+from brian2.core.functions import Function
 from brian2.units.fundamentalunits import Unit
 from brian2.utils.logger import get_logger
 
@@ -88,9 +92,52 @@ class Device(object):
                     variable_indices, codeobj_class=None,
                     template_kwds=None):
         codeobj_class = self.code_object_class(codeobj_class)
-        return create_codeobject(owner, name, abstract_code, variables, template_name,
-                                 variable_indices=variable_indices, codeobj_class=codeobj_class,
-                                 template_kwds=template_kwds)
+
+        if template_kwds is None:
+            template_kwds = dict()
+        else:
+            template_kwds = template_kwds.copy()
+
+        template = getattr(codeobj_class.templater, template_name)
+
+        # Check that all functions are available
+        for varname, value in variables.iteritems():
+            if isinstance(value, Function):
+                try:
+                    value.implementations[codeobj_class]
+                except KeyError as ex:
+                    # if we are dealing with numpy, add the default implementation
+                    if codeobj_class is NumpyCodeObject:
+                        add_numpy_implementation(value, value.pyfunc)
+                    else:
+                        raise NotImplementedError(('Cannot use function '
+                                                   '%s: %s') % (varname, ex))
+
+        if isinstance(abstract_code, dict):
+            for k, v in abstract_code.items():
+                logger.debug('%s abstract code key %s:\n%s' % (name, k, v))
+        else:
+            logger.debug(name + " abstract code:\n" + abstract_code)
+        iterate_all = template.iterate_all
+        snippet, kwds = translate(abstract_code, variables,
+                                  dtype=brian_prefs['core.default_scalar_dtype'],
+                                  codeobj_class=codeobj_class,
+                                  variable_indices=variable_indices,
+                                  iterate_all=iterate_all)
+        template_kwds.update(kwds)
+        logger.debug(name + " snippet:\n" + str(snippet))
+
+        name = find_name(name)
+
+        code = template(snippet,
+                        owner=owner, variables=variables, codeobj_name=name,
+                        variable_indices=variable_indices,
+                        **template_kwds)
+        logger.debug(name + " code:\n" + str(code))
+
+        codeobj = codeobj_class(owner, code, variables, name=name)
+        codeobj.compile()
+        return codeobj
     
     def activate(self):
         '''

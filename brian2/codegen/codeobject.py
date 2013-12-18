@@ -6,82 +6,15 @@ import functools
 import weakref
 
 from brian2.core.functions import Function
-from brian2.core.preferences import brian_prefs
-from brian2.core.names import Nameable, find_name
+from brian2.core.names import Nameable
 from brian2.core.base import Updater
 from brian2.utils.logger import get_logger
 
-from .functions import add_numpy_implementation
-from .translation import translate
-
 __all__ = ['CodeObject',
-           'create_codeobject',
            'CodeObjectUpdater',
            ]
 
 logger = get_logger(__name__)
-
-
-def create_codeobject(owner, name, abstract_code, variables,
-                      template_name, variable_indices, codeobj_class,
-                      template_kwds=None):
-    '''
-    The following arguments keywords are passed to the template:
-    
-    * code_lines coming from translation applied to abstract_code, a list
-      of lines of code, given to the template as ``code_lines`` keyword.
-    * ``template_kwds`` dict
-    * ``kwds`` coming from `translate` function overwrite those in
-      ``template_kwds`` (but you should ensure there are no name
-      clashes.
-    '''
-    # We do the import here to avoid import problems
-    from .runtime.numpy_rt.numpy_rt import NumpyCodeObject
-    if template_kwds is None:
-        template_kwds = dict()
-    else:
-        template_kwds = template_kwds.copy()
-        
-    template = getattr(codeobj_class.templater, template_name)
-
-    # Check that all functions are available
-    for varname, value in variables.iteritems():
-        if isinstance(value, Function):
-            try:
-                value.implementations[codeobj_class]
-            except KeyError as ex:
-                # if we are dealing with numpy, add the default implementation
-                if codeobj_class is NumpyCodeObject:
-                    add_numpy_implementation(value, value.pyfunc)
-                else:
-                    raise NotImplementedError(('Cannot use function '
-                                               '%s: %s') % (varname, ex))
-
-    if isinstance(abstract_code, dict):
-        for k, v in abstract_code.items():
-            logger.debug('%s abstract code key %s:\n%s' % (name, k, v))
-    else:
-        logger.debug(name + " abstract code:\n" + abstract_code)
-    iterate_all = template.iterate_all
-    snippet, kwds = translate(abstract_code, variables,
-                              dtype=brian_prefs['core.default_scalar_dtype'],
-                              codeobj_class=codeobj_class,
-                              variable_indices=variable_indices,
-                              iterate_all=iterate_all)
-    template_kwds.update(kwds)
-    logger.debug(name + " snippet:\n" + str(snippet))
-    
-    name = find_name(name)
-    
-    code = template(snippet,
-                    owner=owner, variables=variables, codeobj_name=name,
-                    variable_indices=variable_indices,
-                    **template_kwds)
-    logger.debug(name + " code:\n" + str(code))
-
-    codeobj = codeobj_class(owner, code, variables, name=name)
-    codeobj.compile()
-    return codeobj
 
 
 class CodeObject(Nameable):
