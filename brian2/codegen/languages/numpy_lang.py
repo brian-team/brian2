@@ -45,9 +45,10 @@ class NumpyLanguage(Language):
                                             variable_indices)
         lines = []
         # index and read arrays (index arrays first)
-        for var in itertools.chain(indices, read):
-            index = variable_indices[var]
-            line = var + ' = ' + var + '_array'
+        for varname in itertools.chain(indices, read):
+            var = variables[varname]
+            index = variable_indices[varname]
+            line = varname + ' = ' + self.get_array_name(var)
             if not index in iterate_all:
                 line = line + '[' + index + ']'
             lines.append(line)
@@ -55,8 +56,9 @@ class NumpyLanguage(Language):
         lines.extend([self.translate_statement(stmt, variables, codeobj_class)
                       for stmt in statements])
         # write arrays
-        for var in write:
-            index_var = variable_indices[var]
+        for varname in write:
+            var = variables[varname]
+            index_var = variable_indices[varname]
             # check if all operations were inplace and we're operating on the
             # whole vector, if so we don't need to write the array back
             if not index_var in iterate_all:
@@ -64,16 +66,16 @@ class NumpyLanguage(Language):
             else:
                 all_inplace = True
                 for stmt in statements:
-                    if stmt.var == var and not stmt.inplace:
+                    if stmt.var == varname and not stmt.inplace:
                         all_inplace = False
                         break
             if not all_inplace:
-                line = var + '_array'
+                line = self.get_array_name(var)
                 if index_var in iterate_all:
                     line = line + '[:]'
                 else:
                     line = line + '[' + index_var + ']'
-                line = line + ' = ' + var
+                line = line + ' = ' + varname
                 lines.append(line)
 
         # Make sure we do not use the __call__ function of Function objects but

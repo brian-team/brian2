@@ -5,8 +5,8 @@ import numpy as np
 numpy_False = np.bool_(False)
 numpy_True = np.bool_(True)
 
-for i in range(len(_all_pre_array)):
-    j = np.arange(len(_all_post_array))
+for i in range(len({{_all_pre}})):
+    j = np.arange(len({{_all_post}}))
     _vectorisation_idx = j
 
     {% for line in code_lines %}

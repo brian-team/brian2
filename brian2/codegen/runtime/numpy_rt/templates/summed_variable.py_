@@ -10,6 +10,6 @@ import numpy as np
 
 # We write to the array, using the name provided as a keyword argument to the
 # template
-{{_target_var}}_array[:] = np.bincount(_synaptic_post_array,
-                                       minlength=len({{_target_var}}_array),
-                                       weights=_synaptic_var)
+{{_target_var}}[:] = np.bincount({{_synaptic_post}},
+                                 minlength=len({{_target_var}}),
+                                 weights=_synaptic_var)

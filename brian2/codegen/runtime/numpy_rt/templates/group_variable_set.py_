@@ -1,5 +1,5 @@
 # USES_VARIABLES { _group_idx }
-_idx = _group_idx_array
+_idx = {{_group_idx}}
 _vectorisation_idx = _idx
 {% for line in code_lines %}
 {{line}}

@@ -1,5 +1,5 @@
 # USES_VARIABLES { _spikespace }
-_idx = _spikespace_array[:_spikespace_array[-1]]
+_idx = {{_spikespace}}[:{{_spikespace}}[-1]]
 _vectorisation_idx = _idx
 {% for line in code_lines %}
 {{line}}

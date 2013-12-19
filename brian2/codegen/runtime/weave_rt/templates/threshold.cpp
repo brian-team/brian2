@@ -13,12 +13,12 @@
 	    const int _vectorisation_idx = _idx;
 		{{ super() }}
 		if(_cond) {
-			_spikespace_array[_cpp_numspikes++] = _idx;
+			{{_spikespace}}[_cpp_numspikes++] = _idx;
 			{% if _uses_refractory %}
-			not_refractory_array[_idx] = false;
-			lastspike_array[_idx] = t;
+			{{not_refractory}}[_idx] = false;
+			{{lastspike}}[_idx] = t;
 			{% endif %}
 		}
 	}
-	_spikespace_array[N] = _cpp_numspikes;
+	{{_spikespace}}[N] = _cpp_numspikes;
 {% endblock %}

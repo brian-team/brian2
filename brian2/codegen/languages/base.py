@@ -19,7 +19,24 @@ class Language(object):
 
     # Subclasses should override this
     language_id = ''
-    
+
+    def get_array_name(self, var):
+        '''
+        Get a globally unique name for a `ArrayVariable`.
+
+        Parameters
+        ----------
+        var : `ArrayVariable`
+            The variable for which a name should be found.
+
+        Returns
+        -------
+        name : str
+            A uniqe name for `var`.
+        '''
+        orig_name = var.owner.variables.keys()[var.owner.variables.values().index(var)]
+        return '_array_%s_%s' % (var.owner.name, orig_name)
+
     def translate_expression(self, expr, namespace, codeobj_class):
         '''
         Translate the given expression string into a string in the target

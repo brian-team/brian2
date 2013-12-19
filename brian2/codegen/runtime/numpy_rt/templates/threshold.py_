@@ -10,10 +10,10 @@ _vectorisation_idx = N
 {{line}}
 {% endfor %}
 _spikes, = _cond.nonzero()
-_spikespace_array[-1] = len(_spikes)
-_spikespace_array[:len(_spikes)] = _spikes
+{{_spikespace}}[-1] = len(_spikes)
+{{_spikespace}}[:len(_spikes)] = _spikes
 {% if _uses_refractory %}
 # Set the neuron to refractory
-not_refractory_array[_spikes] = False
-lastspike_array[_spikes] = t
+{{not_refractory}}[_spikes] = False
+{{lastspike}}[_spikes] = t
 {% endif %}

@@ -92,11 +92,20 @@ class Device(object):
                     variable_indices, codeobj_class=None,
                     template_kwds=None):
         codeobj_class = self.code_object_class(codeobj_class)
+        language = codeobj_class.language
 
         if template_kwds is None:
             template_kwds = dict()
         else:
             template_kwds = template_kwds.copy()
+
+        for varname, var in variables.iteritems():
+            if isinstance(var, ArrayVariable):
+                if varname in template_kwds:
+                    raise KeyError(('%s is already a template argument, '
+                                    'cannot add it for variable %s') % (varname,
+                                                                        var))
+                template_kwds[varname] = language.get_array_name(var)
 
         template = getattr(codeobj_class.templater, template_name)
 
