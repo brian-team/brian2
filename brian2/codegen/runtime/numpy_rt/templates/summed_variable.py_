@@ -1,5 +1,8 @@
 # USES_VARIABLES { _synaptic_post }
 # ITERATE_ALL { _idx }
+{% if _get_target_var_name is defined %}
+{% set _target_var = _get_target_var_name() %}
+{% endif %}
 
 import numpy as np
 

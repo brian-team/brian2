@@ -158,7 +158,7 @@ class CPPLanguage(Language):
             else:
                 line = ''
             line = line + self.c_data_type(var.dtype) + ' ' + varname + ' = '
-            line = line + '_ptr' + self.get_array_name(var) + '[' + index_var + '];'
+            line = line + '_ptr' + self.get_array_name(var, variables) + '[' + index_var + '];'
             lines.append(line)
         # simply declare variables that will be written but not read
         for varname in write:
@@ -173,7 +173,7 @@ class CPPLanguage(Language):
         for varname in write:
             index_var = variable_indices[varname]
             var = variables[varname]
-            line = '_ptr' + self.get_array_name(var) + '[' + index_var + '] = ' + varname + ';'
+            line = '_ptr' + self.get_array_name(var, variables) + '[' + index_var + '] = ' + varname + ';'
             lines.append(line)
         code = '\n'.join(lines)
                 
@@ -198,15 +198,17 @@ class CPPLanguage(Language):
         # same array. E.g. in gapjunction code, v_pre and v_post refer to the
         # same array if a group is connected to itself
         arraynames = set()
+        template_kwds = {}
         for varname, var in variables.iteritems():
             if isinstance(var, ArrayVariable):
-                arrayname = self.get_array_name(var)
+                arrayname = self.get_array_name(var, variables)
                 if not arrayname in arraynames:
                     if getattr(var, 'dimensions', 1) > 1:
                         continue  # multidimensional (dynamic) arrays have to be treated differently
                     line = self.c_data_type(var.dtype) + ' * ' + self.restrict + '_ptr' + arrayname + ' = ' + arrayname + ';'
                     lines.append(line)
                     arraynames.add(arrayname)
+                    template_kwds[varname] = '_ptr' + arrayname
         pointers = '\n'.join(lines)
 
         # set up the functions
@@ -239,11 +241,13 @@ class CPPLanguage(Language):
             if func_namespace is not None:
                 variables.update(func_namespace)
 
-        return {'pointers_lines': stripped_deindented_lines(pointers),
-                'support_code_lines': stripped_deindented_lines(support_code),
-                'hashdefine_lines': stripped_deindented_lines(hash_defines),
-                'denormals_code_lines': stripped_deindented_lines(self.denormals_to_zero_code()),
-                }
+        keywords = {'pointers_lines': stripped_deindented_lines(pointers),
+                    'support_code_lines': stripped_deindented_lines(support_code),
+                    'hashdefine_lines': stripped_deindented_lines(hash_defines),
+                    'denormals_code_lines': stripped_deindented_lines(self.denormals_to_zero_code()),
+                    }
+        keywords.update(template_kwds)
+        return keywords
 
     def translate_statement_sequence(self, statements, variables,
                                      variable_indices, iterate_all,

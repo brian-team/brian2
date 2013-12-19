@@ -80,7 +80,12 @@ class SummedVariableUpdater(GroupCodeRunner):
         '''.format(expression=expression,
                    target_varname=target_varname)
 
-        template_kwds = {'_target_var': target_varname}
+        # TODO: Can we simplify this?
+        import jinja2
+        @jinja2.contextfunction
+        def _get_target_var_name(context):
+            return context[target_varname]
+        template_kwds = {'_get_target_var_name': _get_target_var_name}
 
         GroupCodeRunner.__init__(self, group=synapses,
                                  template='summed_variable',

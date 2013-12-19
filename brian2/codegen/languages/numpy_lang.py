@@ -6,6 +6,7 @@ from brian2.utils.stringtools import word_substitute
 from brian2.parsing.rendering import NumpyNodeRenderer
 from brian2.core.functions import (DEFAULT_FUNCTIONS, Function,
                                    FunctionImplementation)
+from brian2.core.variables import ArrayVariable
 
 from .base import Language
 
@@ -48,7 +49,7 @@ class NumpyLanguage(Language):
         for varname in itertools.chain(indices, read):
             var = variables[varname]
             index = variable_indices[varname]
-            line = varname + ' = ' + self.get_array_name(var)
+            line = varname + ' = ' + self.get_array_name(var, variables)
             if not index in iterate_all:
                 line = line + '[' + index + ']'
             lines.append(line)
@@ -70,7 +71,7 @@ class NumpyLanguage(Language):
                         all_inplace = False
                         break
             if not all_inplace:
-                line = self.get_array_name(var)
+                line = self.get_array_name(var, variables)
                 if index_var in iterate_all:
                     line = line + '[:]'
                 else:
@@ -90,21 +91,26 @@ class NumpyLanguage(Language):
     def translate_statement_sequence(self, statements, variables,
                                      variable_indices, iterate_all,
                                      codeobj_class):
+        # Add keywords mapping names to array names
+        kwds = {}
+        for varname, var in variables.iteritems():
+            if isinstance(var, ArrayVariable):
+                kwds[varname] = self.get_array_name(var, variables)
+
         if isinstance(statements, dict):
             blocks = {}
-            all_kwds = {}
             for name, block in statements.iteritems():
                 blocks[name] = self.translate_one_statement_sequence(block,
                                                                      variables,
                                                                      variable_indices,
                                                                      iterate_all,
                                                                      codeobj_class)
-            return blocks, {}
+            return blocks, kwds
         else:
             block = self.translate_one_statement_sequence(statements, variables,
                                                           variable_indices,
                                                           iterate_all, codeobj_class)
-            return block, {}
+            return block, kwds
 
 ################################################################################
 # Implement functions
