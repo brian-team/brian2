@@ -12,15 +12,16 @@ from brian2.units.allunits import second
 
 def test_construction_errors():
     # Mismatching dtype information
-    assert_raises(TypeError, lambda: Variable(Unit(1),
+    assert_raises(TypeError, lambda: Variable(Unit(1), owner=None,
                                               value=np.arange(10),
                                               dtype=np.float32))
     # Boolean variable that isn't dimensionless
-    assert_raises(ValueError, lambda: Variable(second,
+    assert_raises(ValueError, lambda: Variable(second, owner=None,
                                                is_bool=True))
 
     # Dynamic array variable that is constant but not constant in size
     assert_raises(ValueError, lambda: DynamicArrayVariable(Unit(1),
+                                                           owner=None,
                                                            dimensions=1,
                                                            value=None,
                                                            constant=True,
@@ -31,13 +32,13 @@ def test_str_repr():
     # Basic test that the str/repr methods work
     FakeGroup = namedtuple('G', ['name'])
     group = FakeGroup(name='groupname')
-    variables = [Variable(second),
+    variables = [Variable(second, owner=None),
                  AuxiliaryVariable(second),
                  AttributeVariable(second, group, 'name'),
-                 ArrayVariable(second, value=None),
-                 DynamicArrayVariable(second, dimensions=1,
+                 ArrayVariable(second, owner=None, value=None),
+                 DynamicArrayVariable(second, owner=None, dimensions=1,
                                       value=None),
-                 Subexpression('sub', second, expr='a+b', group=group)]
+                 Subexpression('sub', second, expr='a+b', owner=group)]
     for var in variables:
         assert len(str(var))
         # The repr value should contain the name of the class

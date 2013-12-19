@@ -168,14 +168,14 @@ class RuntimeDevice(Device):
             dtype = brian_prefs['core.default_scalar_dtype']
         if value is None:
             value = np.zeros(size, dtype=dtype)
-        return ArrayVariable(unit, value,
+        return ArrayVariable(unit, value, owner=owner,
                              constant=constant, is_bool=is_bool,
                              read_only=read_only)
 
     def arange(self, owner, size, start=0, dtype=np.int32, constant=True,
                read_only=True):
         array = np.arange(start=start, stop=start+size, dtype=dtype)
-        return ArrayVariable(Unit(1), array,
+        return ArrayVariable(unit=Unit(1), value=array, owner=owner,
                              constant=constant, is_bool=False,
                              read_only=read_only)
 
@@ -187,7 +187,7 @@ class RuntimeDevice(Device):
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         array = DynamicArray1D(size, dtype=dtype)
-        return DynamicArrayVariable(unit, array, dimensions=1,
+        return DynamicArrayVariable(unit, array, owner=owner, dimensions=1,
                                     constant=constant,
                                     constant_size=constant_size,
                                     is_bool=is_bool,
@@ -201,7 +201,8 @@ class RuntimeDevice(Device):
         if dtype is None:
             dtype = brian_prefs['core.default_scalar_dtype']
         array = DynamicArray(size, dtype=dtype)
-        return DynamicArrayVariable(unit, array, dimensions=len(size),
+        return DynamicArrayVariable(unit, array, owner=owner,
+                                    dimensions=len(size),
                                     constant=constant,
                                     constant_size=constant_size,
                                     is_bool=is_bool,
@@ -250,4 +251,3 @@ def insert_device_code(slot, code):
     The behaviour of this function is device dependent. The runtime device ignores it (useful for debugging).
     '''
     get_device().insert_device_code(slot, code)
-    

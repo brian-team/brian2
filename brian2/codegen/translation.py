@@ -84,7 +84,8 @@ def analyse_identifiers(code, variables, recursive=False):
                     if not isinstance(k, AuxiliaryVariable))
     else:
         known = set(variables)
-        variables = dict((k, Variable(unit=None, value=1.0)) for k in known)
+        variables = dict((k, Variable(unit=None, owner=None, value=1.0))
+                         for k in known)
 
     known |= STANDARD_IDENTIFIERS
     stmts = make_statements(code, variables, float64)
@@ -248,11 +249,11 @@ def make_statements(code, variables, dtype):
 def translate_subexpression(subexpr, variables):
     substitutions = {}
     for name in get_identifiers(subexpr.expr):
-        if name not in subexpr.group.variables:
+        if name not in subexpr.owner.variables:
             # Seems to be a name referring to an external variable,
             # nothing to do
             continue
-        subexpr_var = subexpr.group.variables[name]
+        subexpr_var = subexpr.owner.variables[name]
         if name in variables and variables[name] is subexpr_var:
             # Variable is available under the same name, nothing to do
             continue
@@ -281,7 +282,7 @@ def translate_subexpressions(subexpressions, variables):
         new_subexpressions[subexpr_name] = Subexpression(subexpr.name,
                                                          subexpr.unit,
                                                          expr=new_expr,
-                                                         group=subexpr.group,
+                                                         owner=subexpr.owner,
                                                          dtype=subexpr.dtype,
                                                          is_bool=subexpr.is_bool)
 

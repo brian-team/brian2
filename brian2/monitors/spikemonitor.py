@@ -65,10 +65,12 @@ class SpikeMonitor(GroupCodeRunner):
                                                   len(source),
                                                   Unit(1),
                                                   dtype=np.int32),
-                           '_source_start': Variable(Unit(1), start,
+                           '_source_start': Variable(unit=Unit(1), owner=self,
+                                                     value=start,
                                                      constant=True),
-                           '_source_stop': Variable(Unit(1), stop,
-                                                   constant=True)}
+                           '_source_stop': Variable(unit=Unit(1), owner=self,
+                                                    value=stop,
+                                                    constant=True)}
 
         GroupCodeRunner.__init__(self, source, 'spikemonitor',
                                  when=scheduler)

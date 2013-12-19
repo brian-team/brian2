@@ -648,9 +648,11 @@ class Synapses(Group):
 
         dev = get_device()
         # Standard variables always present
-        v.update({'_num_source_neurons': Variable(Unit(1), len(self.source),
+        v.update({'_num_source_neurons': Variable(Unit(1), owner=self,
+                                                  value=len(self.source),
                                                   constant=True),
-                  '_num_target_neurons': Variable(Unit(1), len(self.target),
+                  '_num_target_neurons': Variable(Unit(1), owner=self,
+                                                  value=len(self.target),
                                                   constant=True),
                   '_synaptic_pre': dev.dynamic_array_1d(self, 0, Unit(1),
                                                         dtype=np.int32,
@@ -714,7 +716,7 @@ class Synapses(Group):
                                                  eq.unit,
                                                  dtype=brian_prefs['core.default_scalar_dtype'],
                                                  expr=str(eq.expr),
-                                                 group=self,
+                                                 owner=self,
                                                  is_bool=eq.is_bool)})
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
@@ -886,8 +888,8 @@ class Synapses(Group):
             # synapses but to all the possible sources/targets
             variables = {
                 # Will be set in the template
-                'i': Variable(unit=Unit(1), constant=True),
-                'j': Variable(unit=Unit(1), constant=True),
+                'i': AuxiliaryVariable(unit=Unit(1)),
+                'j': AuxiliaryVariable(unit=Unit(1)),
             }
             if '_sub_idx' in self.source.variables:
                 variables['_all_pre'] = self.source.variables['_sub_idx']

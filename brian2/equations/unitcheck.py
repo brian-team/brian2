@@ -148,10 +148,7 @@ def check_units_statements(code, namespace, variables):
         raise AssertionError(('Encountered unknown identifiers, this should '
                              'not happen at this stage. Unkown identifiers: %s'
                              % unknown))
-    
-    # We want to add newly defined variables to the variables dictionary so we
-    # make a copy now
-    variables = dict(variables)
+
     
     code = re.split(r'[;\n]', code)
     for line in code:
@@ -180,7 +177,7 @@ def check_units_statements(code, namespace, variables):
                                          'correct units' % line))
         elif varname in newly_defined:
             # note the unit for later
-            variables[varname] = Variable(expr_unit, is_bool=False,
+            variables[varname] = Variable(expr_unit, owner=None, is_bool=False,
                                           scalar=False)
         else:
             raise AssertionError(('Variable "%s" is neither in the variables '

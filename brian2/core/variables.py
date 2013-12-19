@@ -56,6 +56,9 @@ class Variable(object):
     value: reference to the variable value, optional
         Some variables (e.g. stochastic variables) don't have their value
         stored anywhere, they'd pass ``None`` as a value.
+    owner : `Nameable`
+        The object that "owns" this variable, e.g. the `NeuronGroup` or
+        `Synapses` object that declares the variable in its model equations.
     dtype: `numpy.dtype`, optional
         The dtype used for storing the variable. If none is given, tries to
         get the dtype from the referred value. If no `value` has been given
@@ -79,7 +82,7 @@ class Variable(object):
         for the variable ``N``, the number of neurons in a group). Defaults
         to ``False``.
     '''
-    def __init__(self, unit, value=None, dtype=None, scalar=None,
+    def __init__(self, unit, owner, value=None, dtype=None, scalar=None,
                  constant=False, is_bool=None, read_only=False):
         
         #: The variable's unit.
@@ -87,6 +90,13 @@ class Variable(object):
 
         #: reference to a value of type `dtype`
         self.value = value
+
+        try:
+            owner = weakref.proxy(owner)
+        except TypeError:  # Happens during testing with namedtuple
+            pass
+        #: The owner of the variable
+        self.owner = owner
 
         if dtype is None and value is not None:
             self.dtype = get_dtype(value)
@@ -164,7 +174,10 @@ class Variable(object):
         name : str
             The name of the variable
         group : `Group`
-            The group providing the context for the indexing.
+            The group providing the context for the indexing. Note that this
+            `group` is not necessarily the same as `Variable.owner`: a variable
+             owned by a `NeuronGroup` can be indexed in a different way if
+             accessed via a `Synapses` object.
         level : int, optional
             How much farther to go down in the stack to find the namespace.
 
@@ -187,7 +200,10 @@ class Variable(object):
         name : str
             The name of the variable
         group : `Group`
-            The group providing the context for the indexing.
+            The group providing the context for the indexing. Note that this
+            `group` is not necessarily the same as `Variable.owner`: a variable
+             owned by a `NeuronGroup` can be indexed in a different way if
+             accessed via a `Synapses` object.
         level : int, optional
             How much farther to go down in the stack to find the namespace.
 
@@ -212,12 +228,14 @@ class Variable(object):
         return self.get_len()
 
     def __repr__(self):
-        description = ('<{classname}(unit={unit}, value={value}, '
-                       'dtype={dtype}, scalar={scalar}, constant={constant},'
+        owner_name = self.owner.name if not self.owner is None else 'None'
+        description = ('<{classname}(unit={unit}, value={value}, owner=<{owner}>,'
+                       ' dtype={dtype}, scalar={scalar}, constant={constant},'
                        ' is_bool={is_bool}, read_only={read_only})>')
         return description.format(classname=self.__class__.__name__,
                                   unit=repr(self.unit),
                                   value='<value of type %s>' % type(self.value),
+                                  owner=owner_name,
                                   dtype=repr(self.dtype),
                                   scalar=repr(self.scalar),
                                   constant=repr(self.constant),
@@ -225,7 +243,7 @@ class Variable(object):
                                   read_only=repr(self.read_only))
 
 
-class AuxiliaryVariable(Variable):
+class AuxiliaryVariable(object):
     '''
     Variable description for an auxiliary variable (most likely one that is
     added automatically to abstract code, e.g. ``_cond`` for a threshold
@@ -246,8 +264,15 @@ class AuxiliaryVariable(Variable):
         Defaults to ``False``.
     '''
     def __init__(self, unit, dtype=None, scalar=False, is_bool=False):
-        Variable.__init__(self, unit, value=None, dtype=dtype, scalar=scalar,
-                          is_bool=is_bool, read_only=True)
+        self.unit = unit
+        if dtype is None:
+            if is_bool:
+                dtype = bool
+            else:
+                dtype = brian_prefs.core.default_scalar_dtype
+        self.dtype = dtype
+        self.scalar = scalar
+        self.is_bool = is_bool
 
 
 class AttributeVariable(Variable):
@@ -263,11 +288,12 @@ class AttributeVariable(Variable):
     ----------
     unit : `Unit`
         The unit of the variable
-    obj : object
-        The object storing the variable's value (e.g. a `NeuronGroup`).
+    owner : `Nameable`
+        The object that "owns" this variable, e.g. the `NeuronGroup` or
+        `Synapses` object that declares the variable in its model equations.
     attribute : str
         The name of the attribute storing the variable's value. `attribute` has
-        to be an attribute of `obj`.
+        to be an attribute of `owner`.
     constant : bool, optional
         Whether the attribute's value is constant during a run. Defaults to
         ``False``.
@@ -277,26 +303,26 @@ class AttributeVariable(Variable):
         for the variable ``N``, the number of neurons in a group). Defaults
         to ``False``.
     '''
-    def __init__(self, unit, obj, attribute, constant=False, read_only=True):
+    def __init__(self, unit, owner, attribute, constant=False, read_only=True):
         # allow for the attribute to not exist yet
-        value = getattr(obj, attribute, None)
+        value = getattr(owner, attribute, None)
         
-        Variable.__init__(self, unit, value, constant=constant,
+        Variable.__init__(self, unit, owner, value, constant=constant,
                           read_only=read_only)
-        #: A reference to the object storing the variable's value         
-        self.obj = obj
+
         #: The name of the attribute storing the variable's value
         self.attribute = attribute
 
     def get_value(self):
-        return getattr(self.obj, self.attribute)
+        return getattr(self.owner, self.attribute)
 
     def __repr__(self):
-        description = ('{classname}(unit={unit}, obj={obj}, '
+        owner_name = self.owner.name if not self.owner is None else 'None'
+        description = ('{classname}(unit={unit}, owner=<{owner}>, '
                        'attribute={attribute}, constant={constant})')
         return description.format(classname=self.__class__.__name__,
                                   unit=repr(self.unit),
-                                  obj=repr(self.obj),
+                                  owner=owner_name,
                                   attribute=repr(self.attribute),
                                   constant=repr(self.constant))
 
@@ -313,7 +339,8 @@ class VariableView(object):
     variable : `Variable`
         The variable description.
     group : `Group`
-        The group to which this variable belongs
+        The group through which the variable is accessed (not necessarily the
+        same as `variable.owner`).
     unit : `Unit`, optional
         The unit to be used for the variable, should be `None` when a variable
          is accessed without units (e.g. when stating `G.var_`).
@@ -571,8 +598,9 @@ class ArrayVariable(Variable):
         The unit of the variable
     value : `numpy.ndarray`
         A reference to the array storing the data for the variable.
-    group_name : str, optional
-        The name of the group to which this variable belongs.
+    owner : `Nameable`
+        The object that "owns" this variable, e.g. the `NeuronGroup` or
+        `Synapses` object that declares the variable in its model equations.
     constant : bool, optional
         Whether the variable's value is constant during a run.
         Defaults to ``False``.
@@ -588,11 +616,11 @@ class ArrayVariable(Variable):
         internally and cannot be changed by the user. Defaults
         to ``False``.
     '''
-    def __init__(self, unit, value, constant=False,
+    def __init__(self, unit, value, owner, constant=False,
                  scalar=False, is_bool=False, read_only=False):
 
-        Variable.__init__(self, unit, value, scalar=scalar,
-                          constant=constant, is_bool=is_bool,
+        Variable.__init__(self, unit=unit, owner=owner, value=value,
+                          scalar=scalar, constant=constant, is_bool=is_bool,
                           read_only=read_only)
 
 
@@ -630,8 +658,9 @@ class DynamicArrayVariable(ArrayVariable):
         The unit of the variable
     value : `numpy.ndarray`
         A reference to the array storing the data for the variable.
-    group_name : str, optional
-        The name of the group to which this variable belongs.
+    owner : `Nameable`
+        The object that "owns" this variable, e.g. the `NeuronGroup` or
+        `Synapses` object that declares the variable in its model equations.
     constant : bool, optional
         Whether the variable's value is constant during a run.
         Defaults to ``False``.
@@ -651,7 +680,7 @@ class DynamicArrayVariable(ArrayVariable):
         to ``False``.
     '''
 
-    def __init__(self, unit, value, dimensions,
+    def __init__(self, unit, value, owner, dimensions,
                  constant=False, constant_size=True,
                  scalar=False, is_bool=False, read_only=False):
         #: The number of dimensions
@@ -662,6 +691,7 @@ class DynamicArrayVariable(ArrayVariable):
         self.constant_size = constant_size
         super(DynamicArrayVariable, self).__init__(unit=unit,
                                                    value=value,
+                                                   owner=owner,
                                                    constant=constant,
                                                    scalar=scalar,
                                                    is_bool=is_bool,
@@ -690,7 +720,7 @@ class Subexpression(Variable):
         The unit of the subexpression.
     expr : str
         The subexpression itself.
-    group : `Group`
+    owner : `Group`
         The group to which the expression refers.
     dtype : `numpy.dtype`, optional
         The dtype used for the expression. Defaults to
@@ -699,12 +729,10 @@ class Subexpression(Variable):
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
-    def __init__(self, name, unit, expr, group, dtype=None, is_bool=False):
+    def __init__(self, name, unit, expr, owner, dtype=None, is_bool=False):
         #: The name of the subexpression
         self.name = name
-        #: The group to which the expression refers
-        self.group = group
-        Variable.__init__(self, unit, value=None, dtype=dtype,
+        Variable.__init__(self, unit, value=None, owner=owner, dtype=dtype,
                           constant=False, scalar=False, is_bool=is_bool,
                           read_only=True)
 
@@ -728,12 +756,13 @@ class Subexpression(Variable):
         return var in self.identifiers
 
     def __repr__(self):
+        owner_name = self.owner.name if not self.owner is None else 'None'
         description = ('<{classname}(name={name}, unit={unit}, dtype={dtype}, '
-                       'expr={expr}, group=<{group}>, is_bool={is_bool})>')
+                       'expr={expr}, owner=<{owner}>, is_bool={is_bool})>')
         return description.format(classname=self.__class__.__name__,
                                   name=repr(self.name),
                                   unit=repr(self.unit),
                                   dtype=repr(self.dtype),
                                   expr=repr(self.expr),
-                                  group=repr(self.group.name),
+                                  owner=owner_name,
                                   is_bool=repr(self.is_bool))

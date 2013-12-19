@@ -383,8 +383,8 @@ class NeuronGroup(Group, SpikeSource):
                              'specification') % type(dtype))
 
         # Standard variables always present
-        s['_spikespace'] = device.array(self, self._N+1,
-                                        Unit(1), dtype=np.int32,
+        s['_spikespace'] = device.array(owner=self, size=self._N+1,
+                                        unit=Unit(1), dtype=np.int32,
                                         constant=False)
         # Add the special variable "i" which can be used to refer to the neuron index
         s['i'] = device.arange(self, self._N, constant=True,
@@ -402,7 +402,7 @@ class NeuronGroup(Group, SpikeSource):
                                               eq.unit,
                                               dtype=brian_prefs['core.default_scalar_dtype'],
                                               expr=str(eq.expr),
-                                              group=self,
+                                              owner=self,
                                               is_bool=eq.is_bool)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)

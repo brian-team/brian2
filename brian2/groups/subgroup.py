@@ -55,14 +55,16 @@ class Subgroup(Group, SpikeSource):
         self.variables = dict(self.source.variables)
         # overwrite the meaning of N and i
         self.variables['_offset'] = Variable(Unit(1), value=self.start,
+                                             owner=self,
                                              scalar=True, constant=True,
                                              read_only=True)
         self.variables['_source_i'] = self.source.variables['i']
         self.variables['i'] = Subexpression('i', Unit(1),
                                             dtype=source.variables['i'].dtype,
                                             expr='_source_i - _offset',
-                                            group=self)
-        self.variables['N'] = Variable(Unit(1), value=self._N, constant=True,
+                                            owner=self)
+        self.variables['N'] = Variable(Unit(1), value=self._N, owner=self,
+                                       constant=True,
                                        read_only=True)
         # All variables refer to the original group and have to use a special
         # index
@@ -75,8 +77,8 @@ class Subgroup(Group, SpikeSource):
             if value != '_idx':
                 raise ValueError(('Do not how to deal with variable %s using '
                                   'index %s in a subgroup') % (key, value))
-        self.variables['_sub_idx'] = get_device().arange(self,
-                                                         self._N,
+        self.variables['_sub_idx'] = get_device().arange(owner=self,
+                                                         size=self._N,
                                                          start=self.start,
                                                          constant=True,
                                                          read_only=True)

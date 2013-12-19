@@ -55,7 +55,8 @@ class PopulationRateMonitor(GroupCodeRunner):
                                                                    np.dtype(type(self.clock.t))),
                                                      constant_size=False),
                           '_num_source_neurons': Variable(Unit(1),
-                                                          len(source))}
+                                                          owner=self,
+                                                          value=len(source))}
 
         GroupCodeRunner.__init__(self, source, 'ratemonitor', when=scheduler)
 

@@ -14,6 +14,7 @@ from brian2.core.variables import (ArrayVariable,
                                    Variable)
 from brian2.core.functions import Function
 from brian2.core.namespace import get_local_namespace
+from brian2.core.names import Nameable
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit)
 from brian2.units.allunits import second
 from brian2.codegen.translation import analyse_identifiers
@@ -55,7 +56,7 @@ class Group(BrianObject):
                                         constant=True, read_only=True),
                 # This has to be overwritten for Synapses, since the number of
                 # synapses is not known in the beginning
-                'N': Variable(Unit(1), value=self._N, scalar=True,
+                'N': Variable(Unit(1), value=self._N, owner=self, scalar=True,
                               constant=True, is_bool=False, read_only=True)
                 }
 
@@ -233,6 +234,7 @@ class Group(BrianObject):
         namespace = get_local_namespace(level + 1)
         additional_namespace = ('implicit-namespace', namespace)
         additional_variables = {'_group_idx': ArrayVariable(Unit(1),
+                                                            owner=self,
                                                             value=group_indices.astype(np.int32))}
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
@@ -438,8 +440,8 @@ def create_runner_codeobj(group, code, template_name,
             array_value = np.asarray(value)
             if array_value.shape != ():
                 raise TypeError('Name "%s" does not refer to a scalar value' % varname)
-            variables[varname] = Variable(unit, value=value, scalar=True,
-                                       constant=True, read_only=True)
+            variables[varname] = Variable(unit, value=value, owner=None, scalar=True,
+                                          constant=True, read_only=True)
 
     # Add variables that are not in the abstract code, nor specified in the
     # template but nevertheless necessary
@@ -459,7 +461,7 @@ def create_runner_codeobj(group, code, template_name,
             if group is not None:
                 # Try to find the name in the group's namespace
                 variables[var] = group.namespace.resolve(var,
-                                                                  additional_namespace)
+                                                         additional_namespace)
             else:
                 raise ex
 
