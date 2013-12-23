@@ -333,6 +333,9 @@ class VariableView(object):
         self.unit = unit
         self.level = level
 
+    dim = property(lambda self: self.unit.dim,
+                   doc='The dimensions of this variable.')
+
     def calc_indices(self, item):
         '''
         Return flat indices from to index into state variables from arbitrary
