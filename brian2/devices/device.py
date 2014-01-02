@@ -120,11 +120,13 @@ class Device(object):
         else:
             logger.debug(name + " abstract code:\n" + abstract_code)
         iterate_all = template.iterate_all
-        snippet, kwds = translate(abstract_code, variables,
-                                  dtype=brian_prefs['core.default_scalar_dtype'],
-                                  codeobj_class=codeobj_class,
-                                  variable_indices=variable_indices,
-                                  iterate_all=iterate_all)
+        snippet, array_names, kwds = translate(abstract_code, variables,
+                                               dtype=brian_prefs['core.default_scalar_dtype'],
+                                               codeobj_class=codeobj_class,
+                                               variable_indices=variable_indices,
+                                               iterate_all=iterate_all)
+        # Add the array names as keywords as well
+        template_kwds.update(array_names)
         template_kwds.update(kwds)
         logger.debug(name + " snippet:\n" + str(snippet))
 
@@ -133,6 +135,7 @@ class Device(object):
         code = template(snippet,
                         owner=owner, variables=variables, codeobj_name=name,
                         variable_indices=variable_indices,
+                        array_names=array_names,
                         **template_kwds)
         logger.debug(name + " code:\n" + str(code))
 

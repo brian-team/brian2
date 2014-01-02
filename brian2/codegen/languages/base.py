@@ -70,9 +70,13 @@ class Language(object):
         Translate a sequence of `Statement` into the target language, taking
         care to declare variables, etc. if necessary.
    
-        Returns a pair ``(code_lines, kwds)`` where ``code`` is a list of the
-        lines of code in the inner loop, and ``kwds`` is a dictionary of values
-        that is made available to the template.
+        Returns a tuple ``(code_lines, array_names, kwds)`` where ``code`` is
+        list of the lines of code in the inner loop, ``array_names`` is a
+        dictionary mapping variable names to the names of the underlying array
+        (or a pointer to this array in the case of C code), and ``kwds`` is a
+        dictionary of values that is made available to the template. Note that
+        the content of ``array_names`` will also be added to the template
+        keywords automatically.
         '''
         raise NotImplementedError
 

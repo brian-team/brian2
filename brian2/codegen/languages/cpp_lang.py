@@ -190,25 +190,33 @@ class CPPLanguage(Language):
         else:
             return ''
 
-    def determine_keywords(self, variables, codeobj_class):
+    def get_pointer_names(self, variables):
+        pointer_names = {}
+        for varname, var in variables.iteritems():
+            if isinstance(var, ArrayVariable):
+                pointer_names[varname] = '_ptr' + self.get_array_name(var, variables)
+        return pointer_names
+
+    def determine_keywords(self, variables, pointer_names, codeobj_class):
         # set up the restricted pointers, these are used so that the compiler
         # knows there is no aliasing in the pointers, for optimisation
         lines = []
         # It is possible that several different variable names refer to the
         # same array. E.g. in gapjunction code, v_pre and v_post refer to the
         # same array if a group is connected to itself
-        arraynames = set()
+        handled_pointers = set()
         template_kwds = {}
-        for varname, var in variables.iteritems():
-            if isinstance(var, ArrayVariable):
-                arrayname = self.get_array_name(var, variables)
-                if not arrayname in arraynames:
-                    if getattr(var, 'dimensions', 1) > 1:
-                        continue  # multidimensional (dynamic) arrays have to be treated differently
-                    line = self.c_data_type(var.dtype) + ' * ' + self.restrict + '_ptr' + arrayname + ' = ' + arrayname + ';'
-                    lines.append(line)
-                    arraynames.add(arrayname)
-                    template_kwds[varname] = '_ptr' + arrayname
+        for varname, pointer_name in pointer_names.iteritems():
+            var = variables[varname]
+            array_name = self.get_array_name(var, variables)
+            if pointer_name in handled_pointers:
+                continue
+            if getattr(var, 'dimensions', 1) > 1:
+                continue  # multidimensional (dynamic) arrays have to be treated differently
+            line = self.c_data_type(var.dtype) + ' * ' + self.restrict + pointer_name + ' = ' + array_name + ';'
+            lines.append(line)
+            handled_pointers.add(pointer_name)
+
         pointers = '\n'.join(lines)
 
         # set up the functions
@@ -265,9 +273,10 @@ class CPPLanguage(Language):
                                                            variable_indices,
                                                            iterate_all, codeobj_class)
 
-        kwds = self.determine_keywords(variables, codeobj_class)
+        pointer_names = self.get_pointer_names(variables)
+        kwds = self.determine_keywords(variables, pointer_names, codeobj_class)
 
-        return blocks, kwds
+        return blocks, pointer_names, kwds
 
 
 ################################################################################

@@ -103,4 +103,3 @@ class NumpyCodeObject(CodeObject):
             return self.namespace['_return_values']
 
 codegen_targets.add(NumpyCodeObject)
-

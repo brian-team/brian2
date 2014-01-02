@@ -91,11 +91,13 @@ class NumpyLanguage(Language):
     def translate_statement_sequence(self, statements, variables,
                                      variable_indices, iterate_all,
                                      codeobj_class):
-        # Add keywords mapping names to array names
+        # For numpy, no addiional keywords are provided to the template
         kwds = {}
+        # Add dictionary mapping names to array names
+        array_names = {}
         for varname, var in variables.iteritems():
             if isinstance(var, ArrayVariable):
-                kwds[varname] = self.get_array_name(var, variables)
+                array_names[varname] = self.get_array_name(var, variables)
 
         if isinstance(statements, dict):
             blocks = {}
@@ -105,12 +107,12 @@ class NumpyLanguage(Language):
                                                                      variable_indices,
                                                                      iterate_all,
                                                                      codeobj_class)
-            return blocks, kwds
+            return blocks, array_names, kwds
         else:
             block = self.translate_one_statement_sequence(statements, variables,
                                                           variable_indices,
                                                           iterate_all, codeobj_class)
-            return block, kwds
+            return block, array_names, kwds
 
 ################################################################################
 # Implement functions

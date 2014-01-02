@@ -4,7 +4,7 @@ NMDA synapses
 """
 from brian2 import *
 
-# brian_prefs.codegen.target = 'weave'
+brian_prefs.codegen.target = 'weave'
 
 a=1/(10*ms)
 b=1/(10*ms)
