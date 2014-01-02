@@ -1,11 +1,10 @@
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
                     restore_initial_state, MagicError, magic_network, clear)
-from brian2.core.base import Updater
 import copy
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
-import weakref
+
 
 @with_setup(teardown=restore_initial_state)
 def test_empty_network():
@@ -17,11 +16,10 @@ class Counter(BrianObject):
     def __init__(self, **kwds):
         super(Counter, self).__init__(**kwds)
         self.count = 0
-        self.updaters[:] = [CounterUpdater(self)]
-        
-class CounterUpdater(Updater):
+
     def run(self):
-        self.owner.count += 1
+        self.count += 1
+
 
 @with_setup(teardown=restore_initial_state)
 def test_network_single_object():
@@ -49,11 +47,9 @@ updates = []
 class NameLister(BrianObject):
     def __init__(self, **kwds):
         super(NameLister, self).__init__(**kwds)
-        self.updaters[:] = [NameListerUpdater(self)]
-        
-class NameListerUpdater(Updater):
+
     def run(self):
-        updates.append(self.owner.name)
+        updates.append(self.name)
 
 @with_setup(teardown=restore_initial_state)
 def test_network_different_clocks():
@@ -121,14 +117,11 @@ class Stopper(BrianObject):
         super(Stopper, self).__init__(**kwds)
         self.stoptime = stoptime
         self.stopfunc = stopfunc
-        self.updaters[:] = [StopperUpdater(self)]
 
-class StopperUpdater(Updater):
     def run(self):
-        stopper = self.owner
-        stopper.stoptime -= 1
-        if stopper.stoptime<=0:
-            stopper.stopfunc()
+        self.stoptime -= 1
+        if self.stoptime<=0:
+            self.stopfunc()
 
 @with_setup(teardown=restore_initial_state)
 def test_network_stop():

@@ -2,14 +2,12 @@ import numpy as np
 
 from brian2.core.namespace import create_namespace
 from brian2.core.spikesource import SpikeSource
-from brian2.core.variables import ArrayVariable
 from brian2.devices.device import get_device
-from brian2.equations import Equations
 from brian2.units.fundamentalunits import check_units
 from brian2.units.stdunits import Hz
 
 from .group import Group
-from .neurongroup import Thresholder, StateUpdater
+from .neurongroup import Thresholder
 
 __all__ = ['PoissonGroup']
 

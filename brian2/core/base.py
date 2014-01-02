@@ -11,7 +11,6 @@ from brian2.core.names import Nameable
 
 __all__ = ['BrianObject',
            'clear',
-           'Updater',
            ]
 
 logger = get_logger(__name__)
@@ -58,7 +57,6 @@ class BrianObject(Nameable):
         
         self._contained_objects = []
         self._code_objects = []
-        self._updaters = []
         
         self._active = True
         
@@ -97,7 +95,11 @@ class BrianObject(Nameable):
         Called by `Network.after_run` after the main simulation loop terminated.
         '''
         pass
-    
+
+    def run(self):
+        for codeobj in self._code_objects:
+            codeobj()
+
     def reinit(self):
         '''
         Reinitialise the object, called by `Network.reinit`.
@@ -217,16 +219,3 @@ def clear(erase=False):
     Nameable.__instances__().clear()
     gc.collect()
 
-
-class Updater(Nameable):
-    '''
-    Used to implement runtime behaviour of a `BrianObject`.
-    
-    Defines a `run` method that is called by `Network`.
-    '''
-    def __init__(self, owner):
-        self.owner = weakref.proxy(owner)
-        Nameable.__init__(self, owner.name+'_updater*')
-        
-    def run(self):
-        raise NotImplementedError

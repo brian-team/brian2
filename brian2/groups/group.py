@@ -14,7 +14,6 @@ from brian2.core.variables import (ArrayVariable,
                                    Variable)
 from brian2.core.functions import Function
 from brian2.core.namespace import get_local_namespace
-from brian2.core.names import Nameable
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit)
 from brian2.units.allunits import second
 from brian2.codegen.translation import analyse_identifiers
@@ -577,4 +576,4 @@ class GroupCodeRunner(BrianObject):
                                              needed_variables=self.needed_variables,
                                              template_kwds=self.template_kwds)
         self.code_objects[:] = [weakref.proxy(self.codeobj)]
-        self.updaters[:] = [self.codeobj.get_updater()]
+

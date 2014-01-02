@@ -46,14 +46,14 @@ class SpikeMonitor(GroupCodeRunner):
             scheduler.when = 'end'
 
         self.codeobj_class = codeobj_class
-        BrianObject.__init__(self, when=scheduler, name=name)
+        #BrianObject.__init__(self, when=scheduler, name=name)
 
         # Handle subgroups correctly
         start = getattr(source, 'start', 0)
         stop = getattr(source, 'stop', len(source))
 
         device = get_device()
-        self.variables = {'t': AttributeVariable(second, self.clock, 't_'),
+        self.variables = {'t': AttributeVariable(second, scheduler.clock, 't_'),
                           '_spikespace': source.variables['_spikespace'],
                            '_i': device.dynamic_array_1d(self, 0, Unit(1),
                                                          dtype=np.int32,
@@ -73,7 +73,7 @@ class SpikeMonitor(GroupCodeRunner):
                                                     constant=True)}
 
         GroupCodeRunner.__init__(self, source, 'spikemonitor',
-                                 when=scheduler)
+                                 name=name, when=scheduler)
 
     def reinit(self):
         '''
@@ -134,4 +134,4 @@ class SpikeMonitor(GroupCodeRunner):
     def __repr__(self):
         description = '<{classname}, recording {source}>'
         return description.format(classname=self.__class__.__name__,
-                                  source=self.source.name)
+                                  source=self.group.name)

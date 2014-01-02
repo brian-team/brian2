@@ -7,7 +7,6 @@ import weakref
 
 from brian2.core.functions import Function
 from brian2.core.names import Nameable
-from brian2.core.base import Updater
 from brian2.utils.logger import get_logger
 
 __all__ = ['CodeObject',
@@ -83,17 +82,4 @@ class CodeObject(Nameable):
             defined during the call of `Language.code_object`.
         '''
         raise NotImplementedError()
-    
-    def get_updater(self):
-        '''
-        Returns a `CodeObjectUpdater` that updates this `CodeObject`
-        '''
-        return CodeObjectUpdater(self)
 
-
-class CodeObjectUpdater(Updater):
-    '''
-    Used to update ``CodeObject``.
-    '''
-    def run(self):
-        self.owner()

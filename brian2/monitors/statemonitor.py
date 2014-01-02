@@ -217,7 +217,7 @@ class StateMonitor(BrianObject):
                                              template_kwds={'_variable_names':
                                                             self.record_variables},
                                              check_units=False)
-        self.updaters[:] = [self.codeobj.get_updater()]
+        self._code_objects[:] = [weakref.proxy(self.codeobj)]
 
     def __getitem__(self, item):
         dtype = get_dtype(item)

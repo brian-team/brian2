@@ -364,8 +364,7 @@ class Network(Nameable):
                 # update the objects with this clock
             for obj in self.objects:
                 if obj.clock in curclocks and obj.active:
-                    for updater in obj.updaters:
-                        updater.run()
+                    obj.run()
             # tick the clock forward one time step
             for c in curclocks:
                 c.tick()

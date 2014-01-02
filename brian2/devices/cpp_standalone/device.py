@@ -19,7 +19,6 @@ from brian2.synapses.synapses import Synapses
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.languages.cpp_lang import c_data_type
-from brian2.codegen.codeobject import CodeObjectUpdater
 from brian2.units.fundamentalunits import (Quantity, Unit, is_scalar_type,
                                            fail_for_dimension_mismatch,
                                            have_same_dimensions,

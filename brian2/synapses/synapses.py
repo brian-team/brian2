@@ -213,7 +213,7 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                              check_units=False,
                                                              additional_variables=self.group.variables)
 
-        self.updaters.insert(0, self._pushspikes_codeobj.get_updater())
+        self._code_objects.insert(0, weakref.proxy(self._pushspikes_codeobj))
 
     def initialise_queue(self):
         if self.queue is None:
