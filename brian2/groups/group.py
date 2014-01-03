@@ -9,7 +9,7 @@ from collections import defaultdict
 import numpy as np
 
 from brian2.core.base import BrianObject
-from brian2.core.variables import (ArrayVariable,
+from brian2.core.variables import (Variables,
                                    AttributeVariable, AuxiliaryVariable,
                                    Variable)
 from brian2.core.functions import Function
@@ -232,9 +232,12 @@ class Group(BrianObject):
         abstract_code = varname + ' = ' + code
         namespace = get_local_namespace(level + 1)
         additional_namespace = ('implicit-namespace', namespace)
-        additional_variables = {'_group_idx': ArrayVariable(Unit(1),
-                                                            owner=None,
-                                                            value=group_indices.astype(np.int32))}
+        indices = group_indices.astype(np.int32)
+        additional_variables = Variables(None)
+        additional_variables.add_array('_group_idx', unit=Unit(1),
+                                       size=len(indices), dtype=np.int32)
+        additional_variables['_group_idx'].set_value(indices)
+
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
         codeobj = create_runner_codeobj(self,
@@ -439,8 +442,8 @@ def create_runner_codeobj(group, code, template_name,
             array_value = np.asarray(value)
             if array_value.shape != ():
                 raise TypeError('Name "%s" does not refer to a scalar value' % varname)
-            variables[varname] = Variable(unit, value=value, owner=None, scalar=True,
-                                          constant=True, read_only=True)
+            variables[varname] = Variable(unit, value=value, owner=None, device=None,
+                                          scalar=True, constant=True, read_only=True)
 
     # Add variables that are not in the abstract code, nor specified in the
     # template but nevertheless necessary

@@ -20,7 +20,7 @@ class Language(object):
     # Subclasses should override this
     language_id = ''
 
-    def get_array_name(self, var, variables):
+    def get_array_name(self, var, access_data=True):
         '''
         Get a globally unique name for a `ArrayVariable`.
 
@@ -28,26 +28,19 @@ class Language(object):
         ----------
         var : `ArrayVariable`
             The variable for which a name should be found.
-        variables : dict
-            The dictionary of variables, used to get a name for `var` if it
-            doesn't have an owner.
-
+        access_data : bool, optional
+            For `DynamicArrayVariable` objects, specifying `True` here means the
+            name for the underlying data is returned. If specifying `False`,
+            the name of object itself is returned (e.g. to allow resizing).
         Returns
         -------
         name : str
             A uniqe name for `var`.
         '''
-
-        if var.owner is None:
-            # This should only happen for one-time use objects
-            variable_dict = variables
-            owner_name = ''
-        else:
-            variable_dict = var.owner.variables
-            owner_name = var.owner.name + '_'
-        orig_name = variable_dict.keys()[variable_dict.values().index(var)]
-
-        return '_array_%s%s' % (owner_name, orig_name)
+         # We have to do the import here to avoid circular import dependencies.
+        from brian2.devices.device import get_device
+        device = get_device()
+        return device.get_array_name(var, access_data=access_data)
 
     def translate_expression(self, expr, namespace, codeobj_class):
         '''
@@ -70,13 +63,16 @@ class Language(object):
         Translate a sequence of `Statement` into the target language, taking
         care to declare variables, etc. if necessary.
    
-        Returns a tuple ``(code_lines, array_names, kwds)`` where ``code`` is
-        list of the lines of code in the inner loop, ``array_names`` is a
-        dictionary mapping variable names to the names of the underlying array
-        (or a pointer to this array in the case of C code), and ``kwds`` is a
+        Returns a tuple ``(code_lines, array_names, dynamic_array_names, kwds)``
+        where ``code`` is list of the lines of code in the inner loop,
+        ``array_names`` is a dictionary mapping variable names to the names of
+        the underlying array (or a pointer to this array in the case of C code),
+        ``dynamic_array_names`` is a dictionary mapping ``_object``+variable
+        names to the corresponding dynamic array objects and ``kwds`` is a
         dictionary of values that is made available to the template. Note that
         the content of ``array_names`` will also be added to the template
-        keywords automatically.
+        keywords automatically. The same goes for ``dynamic_array_names`` but
+        note that the keys in this array start all with ``_object``.
         '''
         raise NotImplementedError
 

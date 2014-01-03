@@ -16,6 +16,7 @@ def restore_device():
 
 @with_setup(teardown=restore_device)
 def test_cpp_standalone(with_output=False):
+    Synapses.__instances__().clear()  # TODO: Shouldn't clear do this?
     set_device('cpp_standalone')
     ##### Define the model
     tau = 1*ms
@@ -59,4 +60,4 @@ def test_cpp_standalone(with_output=False):
 if __name__=='__main__':
     # Print the debug output when testing this file only but not when running
     # via nose test
-    test_cpp_standalone(with_output=True)
+    test_cpp_standalone(with_output=False)

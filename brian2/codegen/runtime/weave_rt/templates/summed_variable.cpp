@@ -1,14 +1,13 @@
 {% extends 'common_group.cpp' %}
-
 {% block maincode %}
-    // USES_VARIABLES { _synaptic_post, _num_target_neurons }
+    // USES_VARIABLES { _synaptic_post, N_post }
 	//// MAIN CODE ////////////
-	{% if array_names is defined %}
-	{% set _target_var_array = array_names[_target_var] %}
+	{% if _target_var is defined %}
+	{% set _target_var_array = get_array_name(_target_var) %}
 	{% endif %}
 
 	// Set all the target variable values to zero
-	for (int _target_idx=0; _target_idx<_num_target_neurons; _target_idx++)
+	for (int _target_idx=0; _target_idx<N_post; _target_idx++)
 	    {{_target_var_array}}[_target_idx] = 0.0;
 
 	for(int _idx=0; _idx<_num_synaptic_post; _idx++)

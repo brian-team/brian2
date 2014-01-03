@@ -19,10 +19,10 @@ def test_analyse_identifiers():
     a = b+c
     d = e+f
     '''
-    known = {'b': Variable(unit=None, owner=None),
-             'c': Variable(unit=None, owner=None),
-             'd': Variable(unit=None, owner=None),
-             'g': Variable(unit=None, owner=None)}
+    known = {'b': Variable(unit=None, owner=None, device=None),
+             'c': Variable(unit=None, owner=None, device=None),
+             'd': Variable(unit=None, owner=None, device=None),
+             'g': Variable(unit=None, owner=None, device=None)}
     
     defined, used_known, dependent = analyse_identifiers(code, known)
     
@@ -41,7 +41,7 @@ def test_get_identifiers_recursively():
                  'sub2': Subexpression('sub2', Unit(1), dtype=np.float32,
                                        expr='5 + y',
                                        owner=FakeGroup(variables={})),
-                 'x': Variable(unit=None, owner=None)}
+                 'x': Variable(unit=None, owner=None, device=None)}
     identifiers = get_identifiers_recursively('_x = sub1 + x', variables)
     assert identifiers == set(['x', '_x', 'y', 'z', 'sub1', 'sub2'])
 

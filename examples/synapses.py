@@ -1,4 +1,4 @@
-from brian2 import *
+gedit from brian2 import *
 
 #brian_prefs.codegen.target = 'weave'
 

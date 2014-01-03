@@ -2,10 +2,6 @@
 {% block maincode %}
 	// USES_VARIABLES { _spikespace }
 
-	{% if variables is defined %}
-	{% set _spikespace = variables['_spikespace'].arrayname %}
-	{% endif %}
-
 	const int *_spikes = {{_spikespace}};
 	const int _num_spikes = {{_spikespace}}[N];
 

@@ -1,14 +1,10 @@
-import weakref
-from collections import defaultdict
-
 import numpy as np
 
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
-from brian2.core.variables import AttributeVariable, Variable
+from brian2.core.variables import Variables
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit, Quantity
-from brian2.devices.device import get_device
 from brian2.groups.group import GroupCodeRunner
 
 __all__ = ['SpikeMonitor']
@@ -46,34 +42,24 @@ class SpikeMonitor(GroupCodeRunner):
             scheduler.when = 'end'
 
         self.codeobj_class = codeobj_class
-        #BrianObject.__init__(self, when=scheduler, name=name)
+        GroupCodeRunner.__init__(self, source, 'spikemonitor',
+                                 name=name, when=scheduler)
 
         # Handle subgroups correctly
         start = getattr(source, 'start', 0)
         stop = getattr(source, 'stop', len(source))
 
-        device = get_device()
-        self.variables = {'t': AttributeVariable(second, scheduler.clock, 't_'),
-                          '_spikespace': source.variables['_spikespace'],
-                           '_i': device.dynamic_array_1d(self, 0, Unit(1),
-                                                         dtype=np.int32,
-                                                         constant_size=False),
-                           '_t': device.dynamic_array_1d(self, 0,
-                                                         Unit(1),
-                                                         constant_size=False),
-                           '_count': device.array(self,
-                                                  len(source),
-                                                  Unit(1),
-                                                  dtype=np.int32),
-                           '_source_start': Variable(unit=Unit(1), owner=self,
-                                                     value=start,
-                                                     constant=True),
-                           '_source_stop': Variable(unit=Unit(1), owner=self,
-                                                    value=stop,
-                                                    constant=True)}
-
-        GroupCodeRunner.__init__(self, source, 'spikemonitor',
-                                 name=name, when=scheduler)
+        self.variables = Variables(self)
+        self.variables.add_attribute_variable('t', second, scheduler.clock, 't_')
+        self.variables.add_reference('_spikespace', source.variables['_spikespace'])
+        self.variables.add_dynamic_array('_i', size=0, unit=Unit(1),
+                                         dtype=np.int32, constant_size=False)
+        self.variables.add_dynamic_array('_t', size=0, unit=Unit(1),
+                                         constant_size=False)
+        self.variables.add_array('_count', size=len(source), unit=Unit(1),
+                                 dtype=np.int32)
+        self.variables.add_constant('_source_start', Unit(1), start)
+        self.variables.add_constant('_source_stop', Unit(1), stop)
 
     def reinit(self):
         '''

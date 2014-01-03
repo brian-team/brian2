@@ -31,10 +31,12 @@ for i in range(len({{_all_pre}})):
         # We have a j-independent number
         _cond_nonzero = _cond_nonzero.repeat(_n)
 
-    _cur_num_synapses = len(_synaptic_pre_object)
+    _cur_num_synapses = len({{_object__synaptic_pre}})
     _numnew = len(_cond_nonzero)
     _new_num_synapses = _cur_num_synapses + _numnew
-    _synaptic_pre_object.resize(_new_num_synapses)
-    _synaptic_post_object.resize(_new_num_synapses)
-    _synaptic_pre_object[_cur_num_synapses:] = _pre_idcs
-    _synaptic_post_object[_cur_num_synapses:] = _post_idcs[_cond_nonzero]
+    {{_object__synaptic_pre}}.resize(_new_num_synapses)
+    {{_object__synaptic_post}}.resize(_new_num_synapses)
+    {{_object__synaptic_pre}}[_cur_num_synapses:] = _pre_idcs
+    {{_object__synaptic_post}}[_cur_num_synapses:] = _post_idcs[_cond_nonzero]
+    # Resize all dependent dynamic arrays (synaptic weights, delays, etc.)
+    _owner._resize(_new_num_synapses)

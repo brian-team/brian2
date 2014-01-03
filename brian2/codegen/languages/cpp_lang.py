@@ -114,9 +114,19 @@ class CPPLanguage(Language):
     language_id = 'cpp'
 
     def __init__(self, c_data_type=c_data_type):
+        super(CPPLanguage, self).__init__()
         self.restrict = brian_prefs['codegen.languages.cpp.restrict_keyword'] + ' '
         self.flush_denormals = brian_prefs['codegen.languages.cpp.flush_denormals']
         self.c_data_type = c_data_type
+
+    def get_array_name(self, var, access_data=True):
+        # We have to do the import here to avoid circular import dependencies.
+        from brian2.devices.device import get_device
+        device = get_device()
+        if access_data:
+            return '_ptr' + device.get_array_name(var)
+        else:
+            return device.get_array_name(var, access_data=False)
 
     def translate_expression(self, expr, variables, codeobj_class):
         for varname, var in variables.iteritems():
@@ -158,7 +168,7 @@ class CPPLanguage(Language):
             else:
                 line = ''
             line = line + self.c_data_type(var.dtype) + ' ' + varname + ' = '
-            line = line + '_ptr' + self.get_array_name(var, variables) + '[' + index_var + '];'
+            line = line + self.get_array_name(var, variables) + '[' + index_var + '];'
             lines.append(line)
         # simply declare variables that will be written but not read
         for varname in write:
@@ -173,7 +183,7 @@ class CPPLanguage(Language):
         for varname in write:
             index_var = variable_indices[varname]
             var = variables[varname]
-            line = '_ptr' + self.get_array_name(var, variables) + '[' + index_var + '] = ' + varname + ';'
+            line = self.get_array_name(var, variables) + '[' + index_var + '] = ' + varname + ';'
             lines.append(line)
         code = '\n'.join(lines)
                 
@@ -190,14 +200,7 @@ class CPPLanguage(Language):
         else:
             return ''
 
-    def get_pointer_names(self, variables):
-        pointer_names = {}
-        for varname, var in variables.iteritems():
-            if isinstance(var, ArrayVariable):
-                pointer_names[varname] = '_ptr' + self.get_array_name(var, variables)
-        return pointer_names
-
-    def determine_keywords(self, variables, pointer_names, codeobj_class):
+    def determine_keywords(self, variables, codeobj_class):
         # set up the restricted pointers, these are used so that the compiler
         # knows there is no aliasing in the pointers, for optimisation
         lines = []
@@ -206,16 +209,21 @@ class CPPLanguage(Language):
         # same array if a group is connected to itself
         handled_pointers = set()
         template_kwds = {}
-        for varname, pointer_name in pointer_names.iteritems():
-            var = variables[varname]
-            array_name = self.get_array_name(var, variables)
-            if pointer_name in handled_pointers:
-                continue
-            if getattr(var, 'dimensions', 1) > 1:
-                continue  # multidimensional (dynamic) arrays have to be treated differently
-            line = self.c_data_type(var.dtype) + ' * ' + self.restrict + pointer_name + ' = ' + array_name + ';'
-            lines.append(line)
-            handled_pointers.add(pointer_name)
+        # Again, do the import here to avoid a circular dependency.
+        from brian2.devices.device import get_device
+        device = get_device()
+        for varname, var in variables.iteritems():
+            if isinstance(var, ArrayVariable):
+                # This is the "true" array name, not the restricted pointer.
+                array_name = device.get_array_name(var)
+                pointer_name = self.get_array_name(var)
+                if pointer_name in handled_pointers:
+                    continue
+                if getattr(var, 'dimensions', 1) > 1:
+                    continue  # multidimensional (dynamic) arrays have to be treated differently
+                line = self.c_data_type(var.dtype) + ' * ' + self.restrict + pointer_name + ' = ' + array_name + ';'
+                lines.append(line)
+                handled_pointers.add(pointer_name)
 
         pointers = '\n'.join(lines)
 
@@ -273,10 +281,9 @@ class CPPLanguage(Language):
                                                            variable_indices,
                                                            iterate_all, codeobj_class)
 
-        pointer_names = self.get_pointer_names(variables)
-        kwds = self.determine_keywords(variables, pointer_names, codeobj_class)
+        kwds = self.determine_keywords(variables, codeobj_class)
 
-        return blocks, pointer_names, kwds
+        return blocks, kwds
 
 
 ################################################################################

@@ -41,6 +41,8 @@ class NumpyCodeObject(CodeObject):
 
     def __init__(self, owner, code, variables, name='numpy_code_object*'):
 
+        from brian2.devices.device import get_device
+        self.device = get_device()
         self.namespace = {'_owner': owner,
                           # TODO: This should maybe go somewhere else
                           'logical_not': np.logical_not}
@@ -65,13 +67,15 @@ class NumpyCodeObject(CodeObject):
                 continue
 
             if isinstance(var, ArrayVariable):
-                self.namespace[self.language.get_array_name(var,
-                                                            self.variables)] = value
+                self.namespace[self.language.get_array_name(var)] = value
             else:
                 self.namespace[name] = value
 
             if isinstance(var, DynamicArrayVariable):
-                self.namespace[name+'_object'] = var.get_object()
+                dyn_array_name = self.language.get_array_name(var,
+                                                              access_data=False)
+                self.namespace[dyn_array_name] = self.device.get_value(var,
+                                                                       access_data=False)
 
             # There are two kinds of objects that we have to inject into the
             # namespace with their current value at each time step:

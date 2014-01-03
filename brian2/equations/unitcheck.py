@@ -177,8 +177,8 @@ def check_units_statements(code, namespace, variables):
                                          'correct units' % line))
         elif varname in newly_defined:
             # note the unit for later
-            variables[varname] = Variable(expr_unit, owner=None, is_bool=False,
-                                          scalar=False)
+            variables[varname] = Variable(expr_unit, owner=None, device=None,
+                                          is_bool=False, scalar=False)
         else:
             raise AssertionError(('Variable "%s" is neither in the variables '
                                   'dictionary nor in the list of undefined '

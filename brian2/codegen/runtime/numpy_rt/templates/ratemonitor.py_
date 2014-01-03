@@ -1,8 +1,8 @@
 # USES_VARIABLES { _rate, _t, _spikespace, _num_source_neurons, t, dt }
 _spikes = {{_spikespace}}[:{{_spikespace}}[-1]]
-_new_len = len(_t_object) + 1
-_t_object.resize(_new_len)
-_rate_object.resize(_new_len)
+_new_len = len({{_object__t}}) + 1
+{{_object__t}}.resize(_new_len)
+{{_object__rate}}.resize(_new_len)
 # Note that _t refers directly to the underlying array which might have changed
-_t_object[-1] = t
-_rate_object[-1] = 1.0 * len(_spikes) / dt / _num_source_neurons
+{{_object__t}}[-1] = t
+{{_object__rate}}[-1] = 1.0 * len(_spikes) / dt / _num_source_neurons

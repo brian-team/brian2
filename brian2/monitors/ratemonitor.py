@@ -1,10 +1,8 @@
-import weakref
-
 import numpy as np
 
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
-from brian2.core.variables import (Variable, AttributeVariable)
+from brian2.core.variables import (Variable, AttributeVariable, Variables)
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.devices.device import get_device
@@ -45,18 +43,16 @@ class PopulationRateMonitor(GroupCodeRunner):
         BrianObject.__init__(self, when=scheduler, name=name)
 
         dev = get_device()
-        self.variables = {'t': AttributeVariable(second, self.clock, 't_'),
-                          'dt': AttributeVariable(second, self.clock,
-                                                  'dt_', constant=True),
-                          '_rate': dev.dynamic_array_1d(self, 0, 1,
-                                                        constant_size=False),
-                          '_t': dev.dynamic_array_1d(self, 0, second,
-                                                     dtype=getattr(self.clock.t, 'dtype',
-                                                                   np.dtype(type(self.clock.t))),
-                                                     constant_size=False),
-                          '_num_source_neurons': Variable(Unit(1),
-                                                          owner=self,
-                                                          value=len(source))}
+        self.variables = Variables(self)
+        self.variables.add_attribute_variable('t', second, self.clock, 't_')
+        self.variables.add_attribute_variable('dt', second, self.clock, 'dt_',
+                                              constant=True)
+        self.variables.add_dynamic_array('_rate', size=0, unit=hertz,
+                                         constant_size=False)
+        self.variables.add_dynamic_array('_t', size=0, unit=second,
+                                         constant_size=False)
+        self.variables.add_constant('_num_source_neurons', unit=Unit(1),
+                                    value=len(source))
 
         GroupCodeRunner.__init__(self, source, 'ratemonitor', when=scheduler)
 

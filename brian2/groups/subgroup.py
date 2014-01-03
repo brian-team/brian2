@@ -3,7 +3,7 @@ from collections import defaultdict
 
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
-from brian2.core.variables import Variable
+from brian2.core.variables import Variable, Variables
 from brian2.groups.group import Group
 from brian2.devices.device import get_device
 from brian2.units.fundamentalunits import Unit
@@ -52,36 +52,33 @@ class Subgroup(Group, SpikeSource):
         self.start = start
         self.stop = stop
 
-        self.variables = dict(self.source.variables)
+        self.variables = Variables(self)
+
         # overwrite the meaning of N and i
-        self.variables['_offset'] = Variable(Unit(1), value=self.start,
-                                             owner=self,
-                                             scalar=True, constant=True,
-                                             read_only=True)
-        self.variables['_source_i'] = self.source.variables['i']
-        self.variables['i'] = Subexpression('i', Unit(1),
-                                            dtype=source.variables['i'].dtype,
-                                            expr='_source_i - _offset',
-                                            owner=self)
-        self.variables['N'] = Variable(Unit(1), value=self._N, owner=self,
-                                       constant=True,
-                                       read_only=True)
+        self.variables.add_constant('_offset', unit=Unit(1), value=self.start)
+        self.variables.add_reference('_source_i', source.variables['i'])
+        self.variables.add_subexpression('i', unit=Unit(1),
+                                         dtype=source.variables['i'].dtype,
+                                         expr='_source_i - _offset')
+        self.variables.add_constant('N', unit=Unit(1), value=self._N)
+        # add references for all variables in the original group
+        self.variables.add_references(source.variables)
+
         # All variables refer to the original group and have to use a special
         # index
         self.variable_indices = defaultdict(lambda: '_sub_idx')
+
+
         # Only the variable _sub_idx itself is stored in the subgroup
         # and needs the normal index for this group
+        self.variables.add_arange('_sub_idx', size=self._N, start=self.start)
         self.variable_indices['_sub_idx'] = '_idx'
 
         for key, value in self.source.variable_indices.iteritems():
             if value != '_idx':
                 raise ValueError(('Do not how to deal with variable %s using '
                                   'index %s in a subgroup') % (key, value))
-        self.variables['_sub_idx'] = get_device().arange(owner=self,
-                                                         size=self._N,
-                                                         start=self.start,
-                                                         constant=True,
-                                                         read_only=True)
+
         self.namespace = self.source.namespace
         self.codeobj_class = self.source.codeobj_class
 

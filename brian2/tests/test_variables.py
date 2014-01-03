@@ -14,16 +14,18 @@ def test_construction_errors():
     # Mismatching dtype information
     assert_raises(TypeError, lambda: Variable(Unit(1), owner=None,
                                               value=np.arange(10),
-                                              dtype=np.float32))
+                                              dtype=np.float32,
+                                              device=None))
     # Boolean variable that isn't dimensionless
     assert_raises(ValueError, lambda: Variable(second, owner=None,
-                                               is_bool=True))
+                                               is_bool=True, device=None))
 
     # Dynamic array variable that is constant but not constant in size
     assert_raises(ValueError, lambda: DynamicArrayVariable(Unit(1),
                                                            owner=None,
-                                                           dimensions=1,
-                                                           value=None,
+                                                           name='name',
+                                                           size=0,
+                                                           device=None,
                                                            constant=True,
                                                            constant_size=False))
 
@@ -32,12 +34,12 @@ def test_str_repr():
     # Basic test that the str/repr methods work
     FakeGroup = namedtuple('G', ['name'])
     group = FakeGroup(name='groupname')
-    variables = [Variable(second, owner=None),
+    variables = [Variable(second, owner=None, device=None),
                  AuxiliaryVariable(second),
-                 AttributeVariable(second, group, 'name'),
-                 ArrayVariable(second, owner=None, value=None),
-                 DynamicArrayVariable(second, owner=None, dimensions=1,
-                                      value=None),
+                 AttributeVariable(second, group, 'name', dtype=np.float32),
+                 ArrayVariable(second, owner=None, name='name', size=10, device=None),
+                 DynamicArrayVariable(second, owner=None, name='name', size=0,
+                                      device=None),
                  Subexpression('sub', second, expr='a+b', owner=group)]
     for var in variables:
         assert len(str(var))

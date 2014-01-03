@@ -60,8 +60,10 @@ def weave_data_type(dtype):
         dtype = numpy.array([1]).dtype.type
     if dtype is float:
         dtype = numpy.array([1.]).dtype.type
-        
-    dtype = numpy.empty(0, dtype=dtype).dtype.char
+    try:
+        dtype = numpy.empty(0, dtype=dtype).dtype.char
+    except TypeError:
+        raise TypeError('Illegal dtype %r' % dtype)
         
     return num_to_c_types[dtype]
 
@@ -81,6 +83,8 @@ class WeaveCodeObject(CodeObject):
     class_name = 'weave'
 
     def __init__(self, owner, code, variables, name='weave_code_object*'):
+        from brian2.devices.device import get_device
+        self.device = get_device()
         self.namespace = {'_owner': owner}
         super(WeaveCodeObject, self).__init__(owner, code, variables, name=name)
         self.compiler = brian_prefs['codegen.runtime.weave.compiler']
@@ -109,14 +113,17 @@ class WeaveCodeObject(CodeObject):
                 continue
 
             if isinstance(var, ArrayVariable):
-                self.namespace[self.language.get_array_name(var,
+                self.namespace[self.device.get_array_name(var,
                                                             self.variables)] = value
-                self.namespace['_num'+name] = var.get_len()
+                self.namespace['_num'+name] = var.size
             else:
                 self.namespace[name] = value
 
             if isinstance(var, DynamicArrayVariable):
-                self.namespace[name+'_object'] = var.get_object()
+                dyn_array_name = self.language.get_array_name(var,
+                                                              access_data=False)
+                self.namespace[dyn_array_name] = self.device.get_value(var,
+                                                                       access_data=False)
 
             # There are two kinds of objects that we have to inject into the
             # namespace with their current value at each time step:
@@ -127,13 +134,13 @@ class WeaveCodeObject(CodeObject):
             if isinstance(var, AttributeVariable) and not var.constant:
                 self.nonconstant_values.append((name, var.get_value))
                 if not var.scalar:
-                    self.nonconstant_values.append(('_num'+name, var.get_len))
+                    self.nonconstant_values.append(('_num'+name, var.get_size))
             elif (isinstance(var, DynamicArrayVariable) and
                   not var.constant_size):
-                self.nonconstant_values.append((self.language.get_array_name(var,
-                                                                             self.variables),
+                self.nonconstant_values.append((self.device.get_array_name(var,
+                                                                           self.variables),
                                                 var.get_value))
-                self.nonconstant_values.append(('_num'+name, var.get_len))
+                self.nonconstant_values.append(('_num'+name, var.get_size))
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace

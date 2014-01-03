@@ -10,10 +10,9 @@ from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         STATIC_EQUATION, PARAMETER)
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
-from brian2.devices.device import get_device
 from brian2.core.preferences import brian_prefs
 from brian2.core.namespace import create_namespace
-from brian2.core.variables import (AuxiliaryVariable, Subexpression)
+from brian2.core.variables import (Variables, AuxiliaryVariable, Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.parsing.expressions import (parse_expression_unit,
@@ -251,7 +250,7 @@ class NeuronGroup(Group, SpikeSource):
         self.namespace = create_namespace(namespace)
 
         # Setup variables
-        self.variables = self._create_variables(dtype)
+        self._create_variables(dtype)
 
         # All of the following will be created in before_run
         
@@ -370,9 +369,10 @@ class NeuronGroup(Group, SpikeSource):
         Create the variables dictionary for this `NeuronGroup`, containing
         entries for the equation variables and some standard entries.
         '''
-        device = get_device()
-        # Get the standard variables for all groups
-        s = Group._create_variables(self)
+        self.variables = Variables(self)
+        self.variables.add_attribute_variable('t', second, self.clock, 't_')
+        self.variables.add_attribute_variable('dt', second, self.clock, 'dt_')
+        self.variables.add_constant('N', Unit(1), self._N)
 
         if dtype is None:
             dtype = defaultdict(lambda: brian_prefs['core.default_scalar_dtype'])
@@ -383,35 +383,28 @@ class NeuronGroup(Group, SpikeSource):
                              'specification') % type(dtype))
 
         # Standard variables always present
-        s['_spikespace'] = device.array(owner=self, size=self._N+1,
-                                        unit=Unit(1), dtype=np.int32,
-                                        constant=False)
+        self.variables.add_array('_spikespace', unit=Unit(1), size=self._N+1,
+                                 dtype=np.int32, constant=False)
         # Add the special variable "i" which can be used to refer to the neuron index
-        s['i'] = device.arange(self, self._N, constant=True,
-                               read_only=True)
+        self.variables.add_arange('i', size=self._N, constant=True,
+                                  read_only=True)
+
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = ('constant' in eq.flags)
-                s[eq.varname] = device.array(self, self._N, eq.unit,
-                                             dtype=dtype[eq.varname],
-                                             constant=constant,
-                                             is_bool=eq.is_bool)
-        
+                self.variables.add_array(eq.varname, size=self._N,
+                                         unit=eq.unit, dtype=dtype[eq.varname],
+                                         constant=constant, is_bool=eq.is_bool)
             elif eq.type == STATIC_EQUATION:
-                s[eq.varname] = Subexpression(eq.varname,
-                                              eq.unit,
-                                              dtype=brian_prefs['core.default_scalar_dtype'],
-                                              expr=str(eq.expr),
-                                              owner=self,
-                                              is_bool=eq.is_bool)
+                self.variables.add_subexpression(eq.varname, unit=eq.unit,
+                                                 expr=str(eq.expr),
+                                                 is_bool=eq.is_bool)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
         # Stochastic variables
         for xi in self.equations.stochastic_variables:
-            s.update({xi: AuxiliaryVariable(unit=second**-0.5)})
-
-        return s
+            self.variables.add_auxiliary_variable(xi, unit=second**-0.5)
 
     def before_run(self, namespace):
     

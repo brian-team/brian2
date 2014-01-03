@@ -17,7 +17,7 @@ The input information needed:
 import re
 import collections
 
-from numpy import float64
+import numpy as np
 
 from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
 from brian2.core.functions import Function
@@ -84,11 +84,12 @@ def analyse_identifiers(code, variables, recursive=False):
                     if not isinstance(k, AuxiliaryVariable))
     else:
         known = set(variables)
-        variables = dict((k, Variable(unit=None, owner=None, value=1.0))
+        variables = dict((k, Variable(unit=None, owner=None, device=None,
+                                      value=1.0, dtype=np.float64))
                          for k in known)
 
     known |= STANDARD_IDENTIFIERS
-    stmts = make_statements(code, variables, float64)
+    stmts = make_statements(code, variables, np.float64)
     defined = set(stmt.var for stmt in stmts if stmt.op==':=')
     if recursive:
         if not isinstance(variables, collections.Mapping):

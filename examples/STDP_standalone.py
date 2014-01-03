@@ -50,7 +50,7 @@ S = Synapses(input, neurons,
 S.w='rand()*gmax'
 start_time = time()
 run(100 * second)
-build(project_dir='STDP_standalone', compile_project=True, run_project=True, debug=False)
+build(project_dir='STDP_standalone', compile_project=True, run_project=True, debug=True)
 w = numpy.fromfile('STDP_standalone/results/_dynamic_array_synapses_w', dtype=numpy.float64)
 
 plt.subplot(211)

@@ -51,23 +51,30 @@ class Device(object):
     '''
     def __init__(self):
         pass
-    
-    def array(self, owner, size, unit, value=None, dtype=None, constant=False,
-              is_bool=False, read_only=False):
+
+    def get_array_name(self, var, access_data=True):
+        '''
+        Return a globally unique name for `var`.
+
+        Parameters
+        ----------
+        access_data : bool, optional
+            For `DynamicArrayVariable` objects, specifying `True` here means the
+            name for the underlying data is returned. If specifying `False`,
+            the name of object itself is returned (e.g. to allow resizing).
+        '''
         raise NotImplementedError()
 
-    def arange(self, owner, size, start=0, dtype=None, constant=True,
-               read_only=True):
+    def add_variable(self, var):
         raise NotImplementedError()
 
-    def dynamic_array_1d(self, owner, size, unit, dtype=None,
-                         constant=False, constant_size=True, is_bool=False,
-                         read_only=False):
+    def init_with_zeros(self, var):
         raise NotImplementedError()
 
-    def dynamic_array(self, owner, size, unit, dtype=None,
-                      constant=False, constant_size=True, is_bool=False,
-                      read_only=False):
+    def init_with_arange(self, var, start):
+        raise NotImplementedError()
+
+    def fill_with_array(self, var, arr):
         raise NotImplementedError()
 
     def spike_queue(self, source_start, source_end):
@@ -120,13 +127,22 @@ class Device(object):
         else:
             logger.debug(name + " abstract code:\n" + abstract_code)
         iterate_all = template.iterate_all
-        snippet, array_names, kwds = translate(abstract_code, variables,
-                                               dtype=brian_prefs['core.default_scalar_dtype'],
-                                               codeobj_class=codeobj_class,
-                                               variable_indices=variable_indices,
-                                               iterate_all=iterate_all)
+        snippet, kwds = translate(abstract_code, variables,
+                                  dtype=brian_prefs['core.default_scalar_dtype'],
+                                  codeobj_class=codeobj_class,
+                                  variable_indices=variable_indices,
+                                  iterate_all=iterate_all)
         # Add the array names as keywords as well
-        template_kwds.update(array_names)
+        for varname, var in variables.iteritems():
+            if isinstance(var, ArrayVariable):
+                pointer_name = language.get_array_name(var)
+                template_kwds[varname] = pointer_name
+                if hasattr(var, 'resize'):
+                    dyn_array_name = language.get_array_name(var,
+                                                             access_data=False)
+                    template_kwds['_object_'+varname] = dyn_array_name
+
+
         template_kwds.update(kwds)
         logger.debug(name + " snippet:\n" + str(snippet))
 
@@ -135,7 +151,7 @@ class Device(object):
         code = template(snippet,
                         owner=owner, variables=variables, codeobj_name=name,
                         variable_indices=variable_indices,
-                        array_names=array_names,
+                        get_array_name=language.get_array_name,
                         **template_kwds)
         logger.debug(name + " code:\n" + str(code))
 
@@ -161,56 +177,61 @@ class RuntimeDevice(Device):
     '''
     def __init__(self):
         super(Device, self).__init__()
+        #: Mapping from `Variable` objects to numpy arrays (or `DynamicArray`
+        #: objects)
+        self.arrays = {}
 
-    def array(self, owner, size, unit, value=None, dtype=None,
-              constant=False, is_bool=False, read_only=False):
-        if is_bool:
-            dtype = np.bool
-        elif value is not None:
-            dtype = value.dtype
-        elif dtype is None:
-            dtype = brian_prefs['core.default_scalar_dtype']
-        if value is None:
-            value = np.zeros(size, dtype=dtype)
-        return ArrayVariable(unit, value, owner=owner,
-                             constant=constant, is_bool=is_bool,
-                             read_only=read_only)
+    def get_array_name(self, var, access_data=True):
+        # if no owner is set, this is a temporary object (e.g. the array
+        # of indices when doing G.x[indices] = ...). The name is not
+        # necessarily unique over several CodeObjects in this case.
+        owner_name = getattr(var.owner, 'name', 'temporary')
 
-    def arange(self, owner, size, start=0, dtype=np.int32, constant=True,
-               read_only=True):
-        array = np.arange(start=start, stop=start+size, dtype=dtype)
-        return ArrayVariable(unit=Unit(1), value=array, owner=owner,
-                             constant=constant, is_bool=False,
-                             read_only=read_only)
+        if isinstance(var, DynamicArrayVariable):
+            if access_data:
+                return '_array_' + owner_name + '_' + var.name
+            else:
+                return '_dynamic_array_' + owner_name + '_' + var.name
+        elif isinstance(var, ArrayVariable):
+            return '_array_' + owner_name + '_' + var.name
+        else:
+            raise TypeError(('Do not have a name for variable of type '
+                             '%s') % type(var))
 
-    def dynamic_array_1d(self, owner, size, unit, dtype=None,
-                         constant=False,constant_size=True, is_bool=False,
-                         read_only=False):
-        if is_bool:
-            dtype = np.bool
-        if dtype is None:
-            dtype = brian_prefs['core.default_scalar_dtype']
-        array = DynamicArray1D(size, dtype=dtype)
-        return DynamicArrayVariable(unit, array, owner=owner, dimensions=1,
-                                    constant=constant,
-                                    constant_size=constant_size,
-                                    is_bool=is_bool,
-                                    read_only=read_only)
+    def add_variable(self, var):
+        # This creates the actual numpy arrays (or DynamicArrayVariable objects)
+        arr = None
+        if isinstance(var, DynamicArrayVariable):
+            if var.dimensions == 1:
+                arr = DynamicArray1D(var.size, dtype=var.dtype)
+            else:
+                arr = DynamicArray(var.size, dtype=var.dtype)
+        elif isinstance(var, ArrayVariable):
+            arr = np.empty(var.size, dtype=var.dtype)
 
-    def dynamic_array(self, owner, size, unit, dtype=None,
-                      constant=False, constant_size=True, is_bool=False,
-                      read_only=False):
-        if is_bool:
-            dtype = np.bool
-        if dtype is None:
-            dtype = brian_prefs['core.default_scalar_dtype']
-        array = DynamicArray(size, dtype=dtype)
-        return DynamicArrayVariable(unit, array, owner=owner,
-                                    dimensions=len(size),
-                                    constant=constant,
-                                    constant_size=constant_size,
-                                    is_bool=is_bool,
-                                    read_only=read_only)
+        if arr is not None:
+            self.arrays[var] = arr
+
+    def get_value(self, var, access_data=True):
+        if isinstance(var, DynamicArrayVariable) and access_data:
+                return self.arrays[var].data
+        else:
+            return self.arrays[var]
+
+    def set_value(self, var, value):
+        self.arrays[var][:] = value
+
+    def resize(self, var, new_size):
+        self.arrays[var].resize(new_size)
+
+    def init_with_zeros(self, var):
+        self.arrays[var][:] = 0
+
+    def init_with_arange(self, var, start):
+        self.arrays[var][:] = np.arange(start, stop=var.size+start)
+
+    def fill_with_array(self, var, arr):
+        self.arrays[var][:] = arr
 
     def spike_queue(self, source_start, source_end):
         # Use the C++ version of the SpikeQueue when available

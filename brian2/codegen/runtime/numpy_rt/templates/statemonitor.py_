@@ -1,15 +1,16 @@
 # USES_VARIABLES { _t, _clock_t, _indices }
 
 # Resize dynamic arrays
-_new_len = len(_t_object) + 1
-_t_object.resize(_new_len)
+_new_len = len({{_object__t}}) + 1
+{{_object__t}}.resize(_new_len)
 
-{% for _varname in _variable_names %}
-_recorded_{{_varname}}_object.resize((_new_len, len({{_indices}})))
+{% if _recorded_variables is defined %}
+{% for var in _recorded_variables.values() %}
+{{get_array_name(var, access_data=False)}}.resize((_new_len, len({{_indices}})))
 {% endfor %}
 
 # Store values
-_t_object[-1] = _clock_t
+{{_object__t}}[-1] = _clock_t
 
 _vectorisation_idx = {{_indices}}
 _idx = {{_indices}}
@@ -17,7 +18,7 @@ _idx = {{_indices}}
 {{line}}
 {% endfor %}
 
-{% for _varname in _variable_names %}
-_recorded_{{_varname}}_object[-1, :] = _to_record_{{_varname}}
+{% for varname, var in _recorded_variables.items() %}
+{{get_array_name(var, access_data=False)}}[-1, :] = _to_record_{{varname}}
 {% endfor %}
-
+{% endif %}

@@ -22,6 +22,8 @@ class NumpyLanguage(Language):
 
     language_id = 'numpy'
 
+
+
     def translate_expression(self, expr, variables, codeobj_class):
         for varname, var in variables.iteritems():
             if isinstance(var, Function):
@@ -49,7 +51,7 @@ class NumpyLanguage(Language):
         for varname in itertools.chain(indices, read):
             var = variables[varname]
             index = variable_indices[varname]
-            line = varname + ' = ' + self.get_array_name(var, variables)
+            line = varname + ' = ' + self.get_array_name(var)
             if not index in iterate_all:
                 line = line + '[' + index + ']'
             lines.append(line)
@@ -71,7 +73,7 @@ class NumpyLanguage(Language):
                         all_inplace = False
                         break
             if not all_inplace:
-                line = self.get_array_name(var, variables)
+                line = self.get_array_name(var)
                 if index_var in iterate_all:
                     line = line + '[:]'
                 else:
@@ -93,11 +95,6 @@ class NumpyLanguage(Language):
                                      codeobj_class):
         # For numpy, no addiional keywords are provided to the template
         kwds = {}
-        # Add dictionary mapping names to array names
-        array_names = {}
-        for varname, var in variables.iteritems():
-            if isinstance(var, ArrayVariable):
-                array_names[varname] = self.get_array_name(var, variables)
 
         if isinstance(statements, dict):
             blocks = {}
@@ -107,12 +104,12 @@ class NumpyLanguage(Language):
                                                                      variable_indices,
                                                                      iterate_all,
                                                                      codeobj_class)
-            return blocks, array_names, kwds
+            return blocks, kwds
         else:
             block = self.translate_one_statement_sequence(statements, variables,
                                                           variable_indices,
                                                           iterate_all, codeobj_class)
-            return block, array_names, kwds
+            return block, kwds
 
 ################################################################################
 # Implement functions
