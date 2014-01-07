@@ -168,10 +168,14 @@ class BrianGlobalPreferences(MutableMapping):
 
     def __setitem__(self, name, value):
         basename, endname = parse_preference_name(name)
+        # FIXME: We do not want to raise an error here because we load
+        # preferences early (for the logging system) when we don't know all
+        # the preference categories yet. But with the code below, we do no
+        # check at all for non-existing categories.
         if basename not in self.pref_register:
-            raise PreferenceError("Preference category " + basename +
-                                  " is unregistered. Spelling error?")
-        prefdefs, _ = self.pref_register[basename]
+            prefdefs = {}
+        else:
+            prefdefs, _ = self.pref_register[basename]
         if endname in prefdefs:
             # do validation
             pref = prefdefs[endname]
