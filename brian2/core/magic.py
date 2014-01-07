@@ -2,9 +2,10 @@ import weakref
 
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second
-from brian2.utils.logger import get_logger
 from brian2.core.network import Network
 from brian2.core.base import BrianObject
+
+from .logger import get_logger
 
 __all__ = ['MagicNetwork', 'magic_network',
            'MagicError',

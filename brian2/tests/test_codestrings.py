@@ -1,13 +1,9 @@
-import numpy as np
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_raises
 import sympy
 
 from brian2 import Expression, Statements
-from brian2 import Hz, ms, mV, volt, second, get_dimensions, DimensionMismatchError
+from brian2 import ms
 
-from brian2.utils.logger import catch_logs
-
-import brian2
 
 def sympy_equals(expr1, expr2):
     '''

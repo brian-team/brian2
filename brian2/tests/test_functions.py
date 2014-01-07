@@ -3,7 +3,7 @@ import numpy as np
 from numpy.testing import assert_equal, assert_raises
 
 from brian2 import *
-from brian2.utils.logger import catch_logs
+from brian2.core.logger import catch_logs
 
 # We can only test C++ if weave is availabe
 try:
@@ -258,7 +258,7 @@ def test_user_defined_function_discarding_units():
 
 
 def test_function_implementation_container():
-    from brian2.core.functions import FunctionImplementationContainer
+    from brian2.functions.base import FunctionImplementationContainer
     import brian2.codegen.targets as targets
 
     class ALanguage(Language):

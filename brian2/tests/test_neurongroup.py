@@ -1,6 +1,7 @@
-import sympy
 import numpy as np
 from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
+
+import sympy
 
 from brian2.groups.neurongroup import NeuronGroup
 from brian2.core.network import Network
@@ -11,7 +12,8 @@ from brian2.units.allunits import second, volt
 from brian2.units.stdunits import ms, mV
 from brian2.codegen.runtime.weave_rt import WeaveCodeObject
 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
-from brian2.utils.logger import catch_logs
+from brian2.core.logger import catch_logs
+
 
 # We can only test C++ if weave is available
 try:

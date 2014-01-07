@@ -17,7 +17,7 @@ from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit)
 from brian2.units.allunits import second
 from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
-from brian2.utils.logger import get_logger
+from brian2.core.logger import get_logger
 from brian2.devices.device import get_device
 
 

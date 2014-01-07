@@ -12,13 +12,13 @@ except ImportError:
 
 import numpy as np
 
-from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Quantity, standard_unit_register
 from brian2.units.stdunits import stdunits
-from brian2.core.functions import DEFAULT_FUNCTIONS
+from brian2.functions.base import Function, DEFAULT_FUNCTIONS
+
 import brian2.equations.equations as equations
 
-from .functions import Function
+from .logger import get_logger
 
 __all__ = ['create_namespace',
            'CompoundNamespace',

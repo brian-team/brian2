@@ -6,10 +6,11 @@ __docformat__ = "restructuredtext en"
 
 from numpy import ceil 
 
-from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.units.fundamentalunits import check_units, Quantity
 from brian2.units.allunits import second, msecond
+
+from .logger import get_logger
 
 __all__ = ['Clock', 'defaultclock']
 

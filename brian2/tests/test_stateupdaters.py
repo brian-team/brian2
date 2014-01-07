@@ -4,7 +4,7 @@ from collections import namedtuple
 from numpy.testing.utils import assert_equal, assert_raises
 
 from brian2 import *
-from brian2.utils.logger import catch_logs
+from brian2.core.logger import catch_logs
 from brian2.core.variables import ArrayVariable, AttributeVariable, Variable
 
 

@@ -4,7 +4,7 @@ import numpy as np
 
 from brian2.utils.stringtools import word_substitute
 from brian2.parsing.rendering import NumpyNodeRenderer
-from brian2.core.functions import (DEFAULT_FUNCTIONS, Function,
+from brian2.functions.base import (DEFAULT_FUNCTIONS, Function,
                                    FunctionImplementation)
 
 from .base import Language

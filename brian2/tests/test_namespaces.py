@@ -5,7 +5,7 @@ from brian2.core.namespace import create_namespace, get_local_namespace
 from brian2.units import second, volt
 from brian2.units.stdunits import ms, Hz, mV
 from brian2.units.unitsafefunctions import sin, log, exp
-from brian2.utils.logger import catch_logs
+from brian2.core.logger import catch_logs
 
 
 def _assert_one_warning(l):
@@ -73,7 +73,7 @@ def test_resolution():
 
 
 def test_warning():
-    from brian2.core.functions import DEFAULT_FUNCTIONS
+    from brian2.functions.base import DEFAULT_FUNCTIONS
     from brian2.units.stdunits import cm as brian_cm
     # Name in external namespace clashes with unit/function name
     exp = 'not the function'

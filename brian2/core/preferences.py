@@ -2,7 +2,6 @@
 Brian global preferences are stored as attributes of a `BrianGlobalPreferences`
 object ``brian_prefs``.
 '''
-import itertools
 import re
 import os
 from collections import MutableMapping
@@ -490,7 +489,10 @@ class BrianGlobalPreferences(MutableMapping):
                                        'it is already registered as a '
                                        'preference category.') % fullname)
             check_preference_name(k)
-            self.prefs_unvalidated[fullname] = v.default
+            # Set default value only if the preference is not already set
+            # in a file.
+            if fullname not in self.prefs_unvalidated:
+                self.prefs_unvalidated[fullname] = v.default
         self.do_validation()
         
         # Update the docstring (a new toplevel category might have been added)
@@ -511,7 +513,7 @@ class BrianGlobalPreferences(MutableMapping):
         key Brian functions.
         '''
         if len(self.prefs_unvalidated):
-            from brian2.utils.logger import get_logger
+            from .logger import get_logger
             logger = get_logger(__name__)
             logger.warn("The following preferences values have been set but "
                         "are not registered preferences:\n%s\nThis is usually "

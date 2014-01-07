@@ -1,6 +1,6 @@
 import numpy as np
 
-from brian2.core.functions import Function
+from brian2.functions.base import Function
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units, get_unit
 from brian2.core.names import Nameable

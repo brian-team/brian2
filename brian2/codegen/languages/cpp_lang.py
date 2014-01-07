@@ -7,12 +7,12 @@ import numpy
 
 from brian2.utils.stringtools import (deindent, stripped_deindented_lines,
                                       word_substitute)
-from brian2.utils.logger import get_logger
+from brian2.core.logger import get_logger
 from brian2.parsing.rendering import CPPNodeRenderer
-from brian2.core.functions import (Function, FunctionImplementation,
+from brian2.functions.base import (Function, FunctionImplementation,
                                    DEFAULT_FUNCTIONS)
 from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.core.variables import ArrayVariable, DynamicArrayVariable
+from brian2.core.variables import ArrayVariable
 
 from .base import Language
 

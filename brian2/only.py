@@ -13,14 +13,20 @@ Usage: ``from brian2.only import *``
 # should be imported first
 from brian2.units import *
 from brian2.units.stdunits import *
+
+# but make sure to load the preferences before the logging module
+from brian2.core.preferences import *
+from brian2.core.core_preferences import *
+brian_prefs.load_preferences()
+from brian2.core.logger import *
+
 from brian2.utils import *
+from brian2.functions import *
 from brian2.core.tracking import *
 from brian2.core.names import *
 from brian2.core.spikesource import *
 
 # The following packages only depend on something in the above set
-from brian2.core.functions import *
-from brian2.core.preferences import *
 from brian2.core.clocks import *
 from brian2.core.scheduler import *
 from brian2.equations import *
@@ -40,11 +46,8 @@ from brian2.synapses import *
 from brian2.monitors import *
 from brian2.devices import set_device, get_device, insert_device_code
 
-# preferences
-from brian2.core.core_preferences import *
-brian_prefs.load_preferences()
+# validate preferences now that we know all standard preferences
 brian_prefs.do_validation()
-
 brian_prefs._backup()
 
 def restore_initial_state():

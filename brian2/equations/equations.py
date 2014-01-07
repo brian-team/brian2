@@ -5,19 +5,19 @@ import collections
 import keyword
 import re
 import string
-
-import sympy
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
+
+import sympy
 
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.units.fundamentalunits import Unit, have_same_dimensions
 from brian2.units.allunits import second
-from brian2.utils.logger import get_logger
-
+from brian2.core.logger import get_logger
 from .codestrings import Expression
 from .unitcheck import unit_from_string
 from brian2.equations.unitcheck import check_unit
+
 
 __all__ = ['Equations']
 

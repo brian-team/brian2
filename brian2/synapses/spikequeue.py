@@ -7,8 +7,7 @@ import bisect
 
 import numpy as np
 
-from brian2.memory.dynamicarray import DynamicArray1D
-from brian2.utils.logger import get_logger
+from brian2.core.logger import get_logger
 
 __all__=['SpikeQueue']
 

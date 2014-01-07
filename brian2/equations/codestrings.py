@@ -5,7 +5,7 @@ information about its namespace. Only serves as a parent class, its subclasses
 '''
 import sympy
 
-from brian2.utils.logger import get_logger
+from brian2.core.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 
