@@ -10,7 +10,7 @@ from brian2.units.fundamentalunits import (fail_for_dimension_mismatch,
                                            get_dimensions)
 from brian2.units.fundamentalunits import Quantity
 from brian2.core.preferences import brian_prefs
-from brian2.functions.base import Function, FunctionImplementation
+from brian2.core.functions import Function, FunctionImplementation
 
 from .targets import codegen_targets
 

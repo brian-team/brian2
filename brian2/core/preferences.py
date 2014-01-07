@@ -2,6 +2,7 @@
 Brian global preferences are stored as attributes of a `BrianGlobalPreferences`
 object ``brian_prefs``.
 '''
+import itertools
 import re
 import os
 from collections import MutableMapping
@@ -168,14 +169,10 @@ class BrianGlobalPreferences(MutableMapping):
 
     def __setitem__(self, name, value):
         basename, endname = parse_preference_name(name)
-        # FIXME: We do not want to raise an error here because we load
-        # preferences early (for the logging system) when we don't know all
-        # the preference categories yet. But with the code below, we do no
-        # check at all for non-existing categories.
         if basename not in self.pref_register:
-            prefdefs = {}
-        else:
-            prefdefs, _ = self.pref_register[basename]
+            raise PreferenceError("Preference category " + basename +
+                                  " is unregistered. Spelling error?")
+        prefdefs, _ = self.pref_register[basename]
         if endname in prefdefs:
             # do validation
             pref = prefdefs[endname]
@@ -493,10 +490,7 @@ class BrianGlobalPreferences(MutableMapping):
                                        'it is already registered as a '
                                        'preference category.') % fullname)
             check_preference_name(k)
-            # Set default value only if the preference is not already set
-            # in a file.
-            if fullname not in self.prefs_unvalidated:
-                self.prefs_unvalidated[fullname] = v.default
+            self.prefs_unvalidated[fullname] = v.default
         self.do_validation()
         
         # Update the docstring (a new toplevel category might have been added)
@@ -517,7 +511,7 @@ class BrianGlobalPreferences(MutableMapping):
         key Brian functions.
         '''
         if len(self.prefs_unvalidated):
-            from .logger import get_logger
+            from brian2.utils.logger import get_logger
             logger = get_logger(__name__)
             logger.warn("The following preferences values have been set but "
                         "are not registered preferences:\n%s\nThis is usually "

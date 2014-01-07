@@ -6,7 +6,7 @@ for example in `NeuronGroup` when no state updater is given explicitly.
 '''
 from abc import abstractmethod, ABCMeta
 
-from brian2.core.logger import get_logger
+from brian2.utils.logger import get_logger
 
 __all__ = ['StateUpdateMethod']
 

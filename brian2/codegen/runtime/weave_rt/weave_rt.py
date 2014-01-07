@@ -14,7 +14,7 @@ except ImportError:
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable)
 from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.functions.base import DEFAULT_FUNCTIONS, FunctionImplementation
+from brian2.core.functions import DEFAULT_FUNCTIONS, FunctionImplementation
 
 from ...codeobject import CodeObject
 from ...templates import Templater

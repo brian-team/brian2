@@ -5,11 +5,11 @@ Module providing the base `CodeObject` and related functions.
 import functools
 import weakref
 
-from brian2.functions.base import Function
+from brian2.core.functions import Function
 from brian2.core.preferences import brian_prefs
 from brian2.core.names import Nameable, find_name
 from brian2.core.base import Updater
-from brian2.core.logger import get_logger
+from brian2.utils.logger import get_logger
 
 from .functions import add_numpy_implementation
 from .translation import translate

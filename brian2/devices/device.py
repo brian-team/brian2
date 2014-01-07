@@ -11,7 +11,7 @@ from brian2.codegen.targets import codegen_targets
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import ArrayVariable, DynamicArrayVariable
 from brian2.units.fundamentalunits import Unit
-from brian2.core.logger import get_logger
+from brian2.utils.logger import get_logger
 
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',

@@ -6,7 +6,7 @@ import sympy as sp
 
 from brian2.parsing.sympytools import sympy_to_str
 from brian2.utils.stringtools import get_identifiers
-from brian2.core.logger import get_logger
+from brian2.utils.logger import get_logger
 from brian2.stateupdaters.base import StateUpdateMethod
 
 __all__ = ['linear', 'independent']

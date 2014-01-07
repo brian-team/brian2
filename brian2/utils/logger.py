@@ -20,16 +20,10 @@ import sympy
 
 import brian2
 from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.utils.environment import running_from_ipython
+
+from .environment import running_from_ipython
 
 __all__ = ['get_logger', 'BrianLogger']
-
-#: Translation from string representation to number
-LOG_LEVELS = {'CRITICAL': logging.CRITICAL,
-              'ERROR': logging.ERROR,
-              'WARNING': logging.WARNING,
-              'INFO': logging.INFO,
-              'DEBUG': logging.DEBUG}
 
 #===============================================================================
 # Logging preferences
@@ -39,12 +33,19 @@ def log_level_validator(log_level):
     log_levels = ('CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG')
     return log_level.upper() in log_levels
 
+#: Translation from string representation to number
+LOG_LEVELS = {'CRITICAL': logging.CRITICAL,
+              'ERROR': logging.ERROR,
+              'WARNING': logging.WARNING,
+              'INFO': logging.INFO,
+              'DEBUG': logging.DEBUG}
+
 brian_prefs.register_preferences('logging', 'Logging system preferences',
     delete_log_on_exit=BrianPreference(
         default=True,
         docs=    '''
         Whether to delete the log and script file on exit.
-
+        
         If set to ``True`` (the default), log files (and the copy of the main
         script) will be deleted after the brian process has exited, unless an
         uncaught exception occured. If set to ``False``, all log files will be kept.
@@ -54,7 +55,7 @@ brian_prefs.register_preferences('logging', 'Logging system preferences',
         default='DEBUG',
         docs='''
         What log level to use for the log written to the log file.
-
+        
         In case file logging is activated (see `logging.file_log`), which log
         level should be used for logging. Has to be one of CRITICAL, ERROR,
         WARNING, INFO or DEBUG.
@@ -64,7 +65,7 @@ brian_prefs.register_preferences('logging', 'Logging system preferences',
         default='WARNING',
         docs='''
         What log level to use for the log written to the console.
-
+        
         Has to be one of CRITICAL, ERROR, WARNING, INFO or DEBUG.
         ''',
         validator=log_level_validator),
@@ -72,7 +73,7 @@ brian_prefs.register_preferences('logging', 'Logging system preferences',
         default=True,
         docs= '''
         Whether to log to a file or not.
-
+        
         If set to ``True`` (the default), logging information will be written
         to a file. The log level can be set via the `logging.file_log_level`
         preference.
@@ -81,7 +82,7 @@ brian_prefs.register_preferences('logging', 'Logging system preferences',
         default=True,
         docs= '''
         Whether to save a copy of the script that is run.
-
+        
         If set to ``True`` (the default), a copy of the currently run script
         is saved to a temporary location. It is deleted after a successful
         run (unless `logging.delete_log_on_exit` is ``False``) but is kept after

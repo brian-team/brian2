@@ -5,10 +5,9 @@ All Brian objects should derive from `BrianObject`.
 import gc
 import weakref
 
+from brian2.utils.logger import get_logger
 from brian2.core.scheduler import Scheduler
 from brian2.core.names import Nameable
-
-from .logger import get_logger
 
 __all__ = ['BrianObject',
            'clear',
