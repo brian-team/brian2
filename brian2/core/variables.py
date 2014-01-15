@@ -443,7 +443,7 @@ class VariableView(object):
             else:
                 # We are not going via code generation so we have to take care
                 # of correct indexing (in particular for subgroups) explicitly
-                var_index = self.group.variable_indices[self.name]
+                var_index = self.group.variables.indices[self.name]
                 if var_index != '_idx':
                     indices = self.group.variables[var_index].get_value()[indices]
                 values = variable.get_value()[indices]
@@ -507,7 +507,7 @@ class VariableView(object):
             fail_for_dimension_mismatch(value, self.unit)
         # We are not going via code generation so we have to take care
         # of correct indexing (in particular for subgroups) explicitly
-        var_index = self.group.variable_indices[self.name]
+        var_index = self.group.variables.indices[self.name]
         if var_index != '_idx':
             indices = self.group.variables[var_index].get_value()[indices]
         self.variable.get_value()[indices] = value
@@ -829,15 +829,19 @@ class Variables(collections.Mapping):
         else:
             return dtype
 
-    def __init__(self, owner):
+    def __init__(self, owner, default_index='_idx'):
         #: A reference to the `Group` owning these variables
         self.owner = owner
+        # The index that is used for arrays if no index is given explicitly
+        self.default_index = default_index
 
         # We do the import here to avoid a circular dependency.
         from brian2.devices.device import get_device
         self.device = get_device()
 
         self._variables = {}
+        #: A dictionary given the index name for every array name
+        self.indices = collections.defaultdict(lambda: default_index)
 
     def __getitem__(self, item):
         return self._variables[item]
@@ -848,7 +852,7 @@ class Variables(collections.Mapping):
     def __iter__(self):
         return iter(self._variables)
 
-    def _add_variable(self, name, var):
+    def _add_variable(self, name, var, index=None):
         if name in self._variables:
             raise KeyError(('The name "%s" is already present in the variables'
                             ' dictionary.') % name)
@@ -859,27 +863,32 @@ class Variables(collections.Mapping):
         # later code generation in standalone).
         self.device.add_variable(var)
 
+        if index is not None:
+            self.indices[name] = index
+
     def add_array(self, name, size, unit, dtype=None,
-                  constant=False, is_bool=False, read_only=False):
+                  constant=False, is_bool=False, read_only=False,
+                  index=None):
         var = ArrayVariable(unit, owner=self.owner, name=name, device=self.device,
                             size=size, dtype=Variables.get_dtype(dtype, is_bool),
                             constant=constant, is_bool=is_bool,
                             read_only=read_only)
-        self._add_variable(name, var)
+        self._add_variable(name, var, index)
         self.device.init_with_zeros(var)
 
     def add_dynamic_array(self, name, size, unit, dtype=None, constant=False,
-                          constant_size=False, is_bool=False, read_only=False):
+                          constant_size=False, is_bool=False, read_only=False,
+                          index=None):
         var = DynamicArrayVariable(unit, owner=self.owner, name=name, device=self.device,
                                    size=size, dtype=Variables.get_dtype(dtype, is_bool),
                                    constant=constant, constant_size=constant_size,
                                    is_bool=is_bool, read_only=read_only)
-        self._add_variable(name, var)
+        self._add_variable(name, var, index)
 
     def add_arange(self, name, size, start=0, dtype=np.int32, constant=True,
-                   read_only=True):
+                   read_only=True, index=None):
         self.add_array(name, size, unit=Unit(1), dtype=dtype, constant=constant,
-                       is_bool=False, read_only=read_only)
+                       is_bool=False, read_only=read_only, index=index)
         self.device.init_with_arange(self._variables[name], start)
 
     def add_attribute_variable(self, name, unit, owner, attribute, dtype=None,
@@ -911,16 +920,17 @@ class Variables(collections.Mapping):
                                 is_bool=is_bool)
         self._add_variable(name, var)
 
-    def add_reference(self, name, var):
+    def add_reference(self, name, var, index=None):
+        if index is None:
+            index = self.default_index
         # We don't overwrite existing names with references
         if not name in self._variables:
             self._variables[name] = var
+            self.indices[name] = index
 
-    def add_references(self, variables):
+    def add_references(self, variables, index=None):
         '''
         Add all `Variable` objects from a name to `Variable` mapping.
         '''
         for name, var in variables.iteritems():
-            self.add_reference(name, var)
-
-    # TODO: Include the variable_indices stuff here
+            self.add_reference(name, var, index)

@@ -52,7 +52,9 @@ class Subgroup(Group, SpikeSource):
         self.start = start
         self.stop = stop
 
-        self.variables = Variables(self)
+        # All the variables have to go via the _sub_idx to refer to the
+        # appropriate values in the source group
+        self.variables = Variables(self, default_index='_sub_idx')
 
         # overwrite the meaning of N and i
         self.variables.add_constant('_offset', unit=Unit(1), value=self.start)
@@ -64,17 +66,13 @@ class Subgroup(Group, SpikeSource):
         # add references for all variables in the original group
         self.variables.add_references(source.variables)
 
-        # All variables refer to the original group and have to use a special
-        # index
-        self.variable_indices = defaultdict(lambda: '_sub_idx')
-
 
         # Only the variable _sub_idx itself is stored in the subgroup
         # and needs the normal index for this group
-        self.variables.add_arange('_sub_idx', size=self._N, start=self.start)
-        self.variable_indices['_sub_idx'] = '_idx'
+        self.variables.add_arange('_sub_idx', size=self._N, start=self.start,
+                                  index='_idx')
 
-        for key, value in self.source.variable_indices.iteritems():
+        for key, value in self.source.variables.indices.iteritems():
             if value != '_idx':
                 raise ValueError(('Do not how to deal with variable %s using '
                                   'index %s in a subgroup') % (key, value))

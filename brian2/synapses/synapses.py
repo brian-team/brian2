@@ -631,7 +631,6 @@ class Synapses(Group):
                              'specification') % type(dtype))
 
         self.variables = Variables(self)
-        self.variable_indices = defaultdict(lambda: '_idx')
 
         # Standard variables always present
         self.variables.add_dynamic_array('_synaptic_pre', size=0, unit=Unit(1),
@@ -639,8 +638,10 @@ class Synapses(Group):
         self.variables.add_dynamic_array('_synaptic_post', size=0, unit=Unit(1),
                                          dtype=np.int32, constant_size=True)
 
-        self.variables.add_reference('i', self.source.variables['i'])
-        self.variables.add_reference('j', self.target.variables['i'])
+        self.variables.add_reference('i', self.source.variables['i'],
+                                     index='_presynaptic_idx')
+        self.variables.add_reference('j', self.target.variables['i'],
+                                     index='_postsynaptic_idx')
         # We have to make a distinction here between the indices
         # and the arrays (even though they refer to the same object)
         # the synaptic propagation template would otherwise overwrite
@@ -651,9 +652,6 @@ class Synapses(Group):
                                      self.variables['_synaptic_pre'])
         self.variables.add_reference('_postsynaptic_idx',
                                      self.variables['_synaptic_post'])
-
-        self.variable_indices['i'] = '_presynaptic_idx'
-        self.variable_indices['j'] = '_postsynaptic_idx'
 
         # Add the standard variables
         self.variables.add_attribute_variable('t', second, self.clock, 't_')
@@ -675,10 +673,6 @@ class Synapses(Group):
                                                  dtype=dtype[eq.varname],
                                                  constant=constant,
                                                  is_bool=eq.is_bool)
-                if eq.varname in self.variable_indices:
-                    # we are overwriting a postsynaptic variable of the same
-                    # name, delete the reference to the postsynaptic index
-                    del self.variable_indices[eq.varname]
             elif eq.type == STATIC_EQUATION:
                 if 'summed' in eq.flags:
                     # Give a special name to the subexpression for summed
@@ -699,18 +693,14 @@ class Synapses(Group):
 
         # Add all the pre and post variables with _pre and _post suffixes
         for name, var in getattr(self.source, 'variables', {}).iteritems():
-            self.variables.add_reference(name + '_pre', var)
-            if isinstance(var, ArrayVariable):
-                self.variable_indices[name + '_pre'] = '_presynaptic_idx'
+            self.variables.add_reference(name + '_pre', var,
+                                         index='_presynaptic_idx')
         for name, var in getattr(self.target, 'variables', {}).iteritems():
-            self.variables.add_reference(name + '_post', var)
-            if isinstance(var, ArrayVariable):
-                self.variable_indices[name + '_post'] = '_postsynaptic_idx'
+            self.variables.add_reference(name + '_post', var,
+                                         index='_postsynaptic_idx')
             # Also add all the post variables without a suffix -- note that a
             # reference will never overwrite the name of an existing name
-            self.variables.add_reference(name, var)
-            if isinstance(var, ArrayVariable) and not name in self.variable_indices:
-                self.variable_indices[name] = '_postsynaptic_idx'
+            self.variables.add_reference(name, var, index='_postsynaptic_idx')
 
     def connect(self, pre_or_cond, post=None, p=1., n=1, level=0):
         '''
@@ -884,9 +874,9 @@ class Synapses(Group):
 
             variable_indices = defaultdict(lambda: '_idx')
             for varname in self.variables:
-                if self.variable_indices[varname] == '_presynaptic_idx':
+                if self.variables.indices[varname] == '_presynaptic_idx':
                     variable_indices[varname] = '_all_pre'
-                elif self.variable_indices[varname] == '_postsynaptic_idx':
+                elif self.variables.indices[varname] == '_postsynaptic_idx':
                     variable_indices[varname] = '_all_post'
             variable_indices['_all_pre'] = 'i'
             variable_indices['_all_post'] = 'j'

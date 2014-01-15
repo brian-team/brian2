@@ -38,8 +38,6 @@ class Group(BrianObject):
     def _enable_group_attributes(self):
         if not hasattr(self, 'variables'):
             raise ValueError('Classes derived from Group need variables attribute.')
-        if not hasattr(self, 'variable_indices'):
-            self.variable_indices = defaultdict(lambda: '_idx')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
         self._group_attribute_access_active = True
@@ -476,7 +474,7 @@ def create_runner_codeobj(group, code, template_name,
         else:
             name = '%s_codeobject*' % template_name
 
-    all_variable_indices = copy.copy(group.variable_indices)
+    all_variable_indices = copy.copy(group.variables.indices)
     if variable_indices is not None:
         all_variable_indices.update(variable_indices)
 
