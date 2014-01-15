@@ -11,14 +11,9 @@ from brian2.units.allunits import second
 
 
 def test_construction_errors():
-    # Mismatching dtype information
-    assert_raises(TypeError, lambda: Variable(Unit(1), owner=None,
-                                              value=np.arange(10),
-                                              dtype=np.float32,
-                                              device=None))
     # Boolean variable that isn't dimensionless
-    assert_raises(ValueError, lambda: Variable(second, owner=None,
-                                               is_bool=True, device=None))
+    assert_raises(ValueError, lambda: Variable(name='name', unit=second,
+                                               owner=None, is_bool=True))
 
     # Dynamic array variable that is constant but not constant in size
     assert_raises(ValueError, lambda: DynamicArrayVariable(Unit(1),
@@ -34,13 +29,15 @@ def test_str_repr():
     # Basic test that the str/repr methods work
     FakeGroup = namedtuple('G', ['name'])
     group = FakeGroup(name='groupname')
-    variables = [Variable(second, owner=None, device=None),
-                 AuxiliaryVariable(second),
-                 AttributeVariable(second, group, 'name', dtype=np.float32),
+    variables = [Variable(name='name', unit=second, owner=None),
+                 Constant(name='name', unit=second, value=1.0, owner=None),
+                 AuxiliaryVariable(name='name', unit=second),
+                 AttributeVariable(name='name', unit=second, owner=group,
+                                   attribute='name', dtype=np.float32),
                  ArrayVariable(second, owner=None, name='name', size=10, device=None),
                  DynamicArrayVariable(second, owner=None, name='name', size=0,
                                       device=None),
-                 Subexpression('sub', second, expr='a+b', owner=group)]
+                 Subexpression(name='sub', unit=second, expr='a+b', owner=group)]
     for var in variables:
         assert len(str(var))
         # The repr value should contain the name of the class

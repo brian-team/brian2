@@ -39,7 +39,8 @@ logger = get_logger(__name__)
 def freeze(code, ns):
     # this is a bit of a hack, it should be passed to the template somehow
     for k, v in ns.items():
-        if isinstance(v, Variable) and v.scalar and v.constant and v.read_only:
+        if (isinstance(v, Variable) and not isinstance(v, AttributeVariable) and
+                v.scalar and v.constant and v.read_only):
             code = word_substitute(code, {k: repr(v.get_value())})
     return code
 
@@ -193,7 +194,6 @@ class CPPStandaloneDevice(Device):
         # Write the global objects
         networks = [net() for net in Network.__instances__() if net().name!='_fake_network']
         synapses = [S() for S in Synapses.__instances__()]
-        print synapses
         arr_tmp = CPPStandaloneCodeObject.templater.objects(None,
                                                             array_specs=self.arrays,
                                                             dynamic_array_specs=self.dynamic_arrays,

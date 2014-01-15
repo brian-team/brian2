@@ -134,13 +134,13 @@ class WeaveCodeObject(CodeObject):
             if isinstance(var, AttributeVariable) and not var.constant:
                 self.nonconstant_values.append((name, var.get_value))
                 if not var.scalar:
-                    self.nonconstant_values.append(('_num'+name, var.get_size))
+                    self.nonconstant_values.append(('_num'+name, var.get_len))
             elif (isinstance(var, DynamicArrayVariable) and
                   not var.constant_size):
                 self.nonconstant_values.append((self.device.get_array_name(var,
                                                                            self.variables),
                                                 var.get_value))
-                self.nonconstant_values.append(('_num'+name, var.get_size))
+                self.nonconstant_values.append(('_num'+name, var.get_len))
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace

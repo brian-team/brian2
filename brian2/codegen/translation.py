@@ -84,8 +84,8 @@ def analyse_identifiers(code, variables, recursive=False):
                     if not isinstance(k, AuxiliaryVariable))
     else:
         known = set(variables)
-        variables = dict((k, Variable(unit=None, owner=None, device=None,
-                                      value=1.0, dtype=np.float64))
+        variables = dict((k, Variable(unit=None, name=k, owner=None,
+                                      dtype=np.float64))
                          for k in known)
 
     known |= STANDARD_IDENTIFIERS
@@ -280,8 +280,8 @@ def translate_subexpressions(subexpressions, variables):
     new_subexpressions = {}
     for subexpr_name, subexpr in subexpressions.iteritems():
         new_expr = translate_subexpression(subexpr, variables)
-        new_subexpressions[subexpr_name] = Subexpression(subexpr.name,
-                                                         subexpr.unit,
+        new_subexpressions[subexpr_name] = Subexpression(name=subexpr.name,
+                                                         unit=subexpr.unit,
                                                          expr=new_expr,
                                                          owner=subexpr.owner,
                                                          dtype=subexpr.dtype,

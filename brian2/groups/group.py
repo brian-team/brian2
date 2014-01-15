@@ -4,12 +4,11 @@ saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
 import weakref
 import copy
-from collections import defaultdict
 
 import numpy as np
 
 from brian2.core.base import BrianObject
-from brian2.core.variables import (Variables,
+from brian2.core.variables import (Variables, Constant,
                                    AttributeVariable, AuxiliaryVariable,
                                    Variable)
 from brian2.core.functions import Function
@@ -186,11 +185,12 @@ class Group(BrianObject):
         # dictionary. Important to deal correctly with
         # the type of the variable in C++
         variables = {'_variable': AuxiliaryVariable(variable.unit,
+                                                    name='_variable',
                                                     dtype=variable.dtype,
                                                     scalar=variable.scalar,
                                                     is_bool=variable.is_bool),
-                     '_cond': AuxiliaryVariable(Unit(1), dtype=np.bool,
-                                                is_bool=True)}
+                     '_cond': AuxiliaryVariable(Unit(1), name='_cond',
+                                                dtype=np.bool, is_bool=True)}
 
         abstract_code = '_variable = ' + variable_name + '\n'
         abstract_code += '_cond = ' + code
@@ -440,8 +440,8 @@ def create_runner_codeobj(group, code, template_name,
             array_value = np.asarray(value)
             if array_value.shape != ():
                 raise TypeError('Name "%s" does not refer to a scalar value' % varname)
-            variables[varname] = Variable(unit, value=value, owner=None, device=None,
-                                          scalar=True, constant=True, read_only=True)
+            variables[varname] = Constant(unit, name=varname, value=value,
+                                          owner=None)
 
     # Add variables that are not in the abstract code, nor specified in the
     # template but nevertheless necessary

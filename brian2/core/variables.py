@@ -15,6 +15,7 @@ from brian2.units.fundamentalunits import (Quantity, Unit, is_scalar_type,
 from .preferences import brian_prefs
 
 __all__ = ['Variable',
+           'Constant',
            'AttributeVariable',
            'ArrayVariable',
            'DynamicArrayVariable',
@@ -54,46 +55,40 @@ class Variable(object):
     unit : `Unit`
         The unit of the variable. Note that the variable itself (as referenced
         by value) should never have units attached.
-    value: reference to the variable value, optional
-        Some variables (e.g. stochastic variables) don't have their value
-        stored anywhere, they'd pass ``None`` as a value.
     owner : `Nameable`
         The object that "owns" this variable, e.g. the `NeuronGroup` or
         `Synapses` object that declares the variable in its model equations.
+    name : 'str'
+        The name of the variable. Note that this refers to the *original*
+        name in the owning group. The same variable may be known under other
+        names in other groups (e.g. the variable ``v`` of a `NeuronGroup` is
+        known as ``v_post`` in a `Synapse` connecting to the group).
     dtype: `numpy.dtype`, optional
-        The dtype used for storing the variable. If none is given, tries to
-        get the dtype from the referred value. If no `value` has been given
-        either, use the preference `core.default_scalar.dtype` (or ``bool``, if
-        `is_bool` is ``True``).
+        The dtype used for storing the variable. Defaults to the preference
+        `core.default_scalar.dtype` (or ``bool``, if `is_bool` is ``True``).
     scalar : bool, optional
         Whether the variable is a scalar value (``True``) or vector-valued, e.g.
-        defined for every neuron (``False``). If nothing is specified,
-        determines the correct setting from the `value`, if that is not given
-        defaults to ``True``.
+        defined for every neuron (``False``). Defaults to ``True``.
     constant: bool, optional
         Whether the value of this variable can change during a run. Defaults
         to ``False``.
     is_bool: bool, optional
         Whether this is a boolean variable (also implies it is dimensionless).
-        If specified as ``None`` and a `value` is given, checks the value
-        itself. If no `value` is given, defaults to ``False``.
+        Defaults to ``False``.
     read_only : bool, optional
         Whether this is a read-only variable, i.e. a variable that is set
         internally and cannot be changed by the user (this is used for example
         for the variable ``N``, the number of neurons in a group). Defaults
         to ``False``.
     '''
-    def __init__(self, unit, owner, device, value=None, dtype=None, scalar=None,
-                 constant=False, is_bool=None, read_only=False):
+    def __init__(self, unit, owner, name, dtype=None, scalar=False,
+                 constant=False, is_bool=False, read_only=False):
         
         #: The variable's unit.
         self.unit = unit
 
-        #: The device
-        self.device = device
-
-        #: reference to a value of type `dtype`
-        self.value = value
+        #: The variable's name.
+        self.name = name
 
         try:
             owner = weakref.proxy(owner)
@@ -102,41 +97,24 @@ class Variable(object):
         #: The owner of the variable
         self.owner = owner
 
-        if dtype is None and value is not None:
-            self.dtype = get_dtype(value)
-        elif dtype is None:
+        if dtype is None:
             if is_bool:
-                self.dtype = bool
+                dtype = bool
             else:
-                self.dtype = brian_prefs.core.default_scalar_dtype
-        else:
-            value_dtype = get_dtype(value)
-            if value is not None and value_dtype != dtype:
-                raise TypeError(('Conflicting dtype information: '
-                                 'referred value has dtype %r, not '
-                                 '%r.') % (value_dtype, dtype))
-            #: The dtype used for storing the variable.
-            self.dtype = dtype
+                dtype = brian_prefs.core.default_scalar_dtype
 
-        if is_bool is None:
-            if value is None:
-                self.is_bool = False
-            self.is_bool = value is True or value is False
-        else:
-            #: Whether this variable is a boolean
-            self.is_bool = is_bool
+        #: The dtype used for storing the variable.
+        self.dtype = dtype
+
+        #: Whether this variable is a boolean
+        self.is_bool = is_bool
 
         if is_bool:
             if not have_same_dimensions(unit, 1):
                 raise ValueError('Boolean variables can only be dimensionless')
 
-        if scalar is None:
-            if value is None:
-                self.scalar = True
-            self.scalar = is_scalar_type(value)
-        else:
-            #: Whether the variable is a scalar
-            self.scalar = scalar
+        #: Whether the variable is a scalar
+        self.scalar = scalar
 
         #: Whether the variable is constant during a run
         self.constant = constant
@@ -149,16 +127,13 @@ class Variable(object):
         Return the value associated with the variable (without units). This
         is the way variables are accessed in generated code.
         '''
-        if self.value is None:
-            raise TypeError('Variable does not have a value')
-        else:
-            return self.value
+        raise TypeError('Cannot get value for variable %s' % self)
 
-    def set_value(self, value, index=None):
+    def set_value(self, value):
         '''
         Set the value associated with the variable.
         '''
-        raise NotImplementedError()
+        raise TypeError('Cannot set value for variable %s' % self)
 
     def get_value_with_unit(self):
         '''
@@ -233,12 +208,11 @@ class Variable(object):
 
     def __repr__(self):
         owner_name = self.owner.name if not self.owner is None else 'None'
-        description = ('<{classname}(unit={unit}, value={value}, owner=<{owner}>,'
+        description = ('<{classname}(unit={unit}, owner=<{owner}>,'
                        ' dtype={dtype}, scalar={scalar}, constant={constant},'
                        ' is_bool={is_bool}, read_only={read_only})>')
         return description.format(classname=self.__class__.__name__,
                                   unit=repr(self.unit),
-                                  value='<value of type %s>' % type(self.value),
                                   owner=owner_name,
                                   dtype=repr(self.dtype),
                                   scalar=repr(self.scalar),
@@ -247,7 +221,42 @@ class Variable(object):
                                   read_only=repr(self.read_only))
 
 
-class AuxiliaryVariable(object):
+# ------------------------------------------------------------------------------
+# Concrete classes derived from `Variable` -- these are the only ones ever
+# instantiated.
+# ------------------------------------------------------------------------------
+
+class Constant(Variable):
+    '''
+    A scalar constant (e.g. the number of neurons ``N``). Information such as
+    the dtype or whether this variable is a boolean are directly derived from
+    the `value`.
+
+    Parameters
+    ----------
+    unit : `Unit`
+        The unit of the variable. Note that the variable itself (as referenced
+        by value) should never have units attached.
+    value: reference to the variable value
+        The value of the constant.
+    '''
+    def __init__(self, unit, value, owner, name):
+        # Determine the type of the value
+        dtype = get_dtype(value)
+        is_bool = (value is True or value is False or
+                   value is np.True_ or value is np.False_)
+
+        #: The constant's value
+        self.value = value
+
+        super(Constant, self).__init__(unit=unit, owner=owner, name=name,
+                                       dtype=dtype, scalar=True, constant=True,
+                                       read_only=True, is_bool=is_bool)
+
+    def get_value(self):
+        return self.value
+
+class AuxiliaryVariable(Variable):
     '''
     Variable description for an auxiliary variable (most likely one that is
     added automatically to abstract code, e.g. ``_cond`` for a threshold
@@ -267,19 +276,18 @@ class AuxiliaryVariable(object):
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``.
     '''
-    def __init__(self, unit, dtype=None, scalar=False, is_bool=False):
-        self.unit = unit
+    def __init__(self, unit, name, dtype=None, scalar=False, is_bool=False):
         if dtype is None:
             if is_bool:
                 dtype = bool
             else:
                 dtype = brian_prefs.core.default_scalar_dtype
-        self.dtype = dtype
-        self.scalar = scalar
-        self.is_bool = is_bool
+        super(AuxiliaryVariable, self).__init__(unit=unit, owner=None,
+                                                name=name, dtype=dtype,
+                                                scalar=scalar, is_bool=is_bool)
 
 
-class AttributeVariable(object):
+class AttributeVariable(Variable):
     '''
     An object providing information about a value saved as an attribute of an
     object. Instead of saving a reference to the value itself, we save the
@@ -306,60 +314,26 @@ class AttributeVariable(object):
         internally and cannot be changed by the user (this is used for example
         for the variable ``N``, the number of neurons in a group). Defaults
         to ``False``.
+    scalar : bool, optional
+        Whether the variable is a scalar value (``True``) or vector-valued, e.g.
+        defined for every neuron (``False``). Defaults to ``True``.
+    is_bool: bool, optional
+        Whether this is a boolean variable (also implies it is dimensionless).
+        Defaults to ``False``.
     '''
-    def __init__(self, unit, owner, attribute, dtype, constant=False, scalar=True,
-                 read_only=True):
-        
-        self.unit = unit
-        self.owner = owner
-        self.constant = constant
-        self.dtype = dtype
-        self.read_only = read_only
-        self.scalar = scalar
+    def __init__(self, unit, owner, name, attribute, dtype, constant=False, scalar=True,
+                 is_bool=False):
+        super(AttributeVariable, self).__init__(unit=unit, owner=owner,
+                                                name=name, dtype=dtype,
+                                                constant=constant,
+                                                scalar=scalar,
+                                                is_bool=is_bool, read_only=True)
 
         #: The name of the attribute storing the variable's value
         self.attribute = attribute
 
     def get_value(self):
         return getattr(self.owner, self.attribute)
-
-    def get_size(self):
-        if self.scalar:
-            return 0
-        else:
-            return len(self.get_value())
-
-    def get_value_with_unit(self):
-        '''
-        Return the value associated with the variable (with units).
-        '''
-        return Quantity(self.get_value(), self.unit.dimensions)
-
-    def get_addressable_value(self, name, group, level=0):
-        '''
-        Get the value (without units) of this variable in a form that can be
-        indexed in the context of a group. For example, if a
-        postsynaptic variable ``x`` is accessed in a synapse ``S`` as
-        ``S.x_post``, the synaptic indexing scheme can be used.
-
-        Parameters
-        ----------
-        name : str
-            The name of the variable
-        group : `Group`
-            The group providing the context for the indexing. Note that this
-            `group` is not necessarily the same as `Variable.owner`: a variable
-             owned by a `NeuronGroup` can be indexed in a different way if
-             accessed via a `Synapses` object.
-        level : int, optional
-            How much farther to go down in the stack to find the namespace.
-
-        Returns
-        -------
-        variable : object
-            The variable in an indexable form (without units).
-        '''
-        return self.get_value()
 
     def __repr__(self):
         owner_name = self.owner.name if not self.owner is None else 'None'
@@ -632,7 +606,7 @@ class VariableView(object):
                                  self[:])
 
 
-class ArrayVariable(object):
+class ArrayVariable(Variable):
     '''
     An object providing information about a model variable stored in an array
     (for example, all state variables).
@@ -661,17 +635,12 @@ class ArrayVariable(object):
     '''
     def __init__(self, unit, owner, name, size, device, dtype=None,
                  constant=False, scalar=False, is_bool=False, read_only=False):
-
-        self.unit = unit
-        self.owner = owner
-        self.dtype = dtype
+        super(ArrayVariable, self).__init__(unit=unit, owner=owner, name=name,
+                                            dtype=dtype, scalar=scalar,
+                                            constant=constant, is_bool=is_bool,
+                                            read_only=read_only)
         self.device = device
-        self.scalar = scalar
-        self.constant = constant
-        self.is_bool = is_bool
-        self.read_only = read_only
         self.size = size
-        self.name = name
 
     def get_value(self):
         return self.device.get_value(self)
@@ -732,7 +701,7 @@ class DynamicArrayVariable(ArrayVariable):
             self.dimensions = 1
         else:
             self.dimensions = len(size)
-        self.size = size
+
         if constant and not constant_size:
             raise ValueError('A variable cannot be constant and change in size')
         #: Whether the size of the variable is constant during a run.
@@ -752,7 +721,7 @@ class DynamicArrayVariable(ArrayVariable):
         self.size = new_size
 
 
-class Subexpression(object):
+class Subexpression(Variable):
     '''
     An object providing information about a named subexpression in a model.
     
@@ -773,16 +742,11 @@ class Subexpression(object):
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
-    def __init__(self, name, unit, expr, owner, dtype=None, is_bool=False):
-        #: The name of the subexpression
-        self.name = name
-        self.unit = unit
-        self.owner = owner
-        self.dtype = dtype
-        self.constant = False
-        self.scalar = False
-        self.is_bool = is_bool
-        self.read_only = True
+    def __init__(self, unit, expr, owner, name, dtype=None, is_bool=False):
+        super(Subexpression, self).__init__(unit=unit, owner=owner,
+                                            name=name, dtype=dtype,
+                                            is_bool=is_bool, scalar=False,
+                                            constant=False, read_only=True)
 
         #: The expression defining the subexpression
         self.expr = expr.strip()
@@ -900,13 +864,12 @@ class Variables(collections.Mapping):
                                   'of object "%r"') % (attribute, owner))
             dtype = get_dtype(value)
 
-        var = AttributeVariable(unit, owner=owner, attribute=attribute,
+        var = AttributeVariable(unit, owner=owner, name=name, attribute=attribute,
                                 dtype=dtype, constant=constant, scalar=scalar)
         self._add_variable(name, var)
 
     def add_constant(self, name, unit, value):
-        var = Variable(unit, self.owner, value=value, device=self.device,
-                       constant=True, read_only=True)
+        var = Constant(unit, owner=self.owner, name=name, value=value)
         self._add_variable(name, var)
 
     def add_subexpression(self, name, unit, expr, dtype=None, is_bool=False):
@@ -916,7 +879,7 @@ class Variables(collections.Mapping):
 
     def add_auxiliary_variable(self, name, unit, dtype=None, scalar=False,
                                is_bool=False):
-        var = AuxiliaryVariable(unit, dtype=dtype, scalar=scalar,
+        var = AuxiliaryVariable(unit, name=name, dtype=dtype, scalar=scalar,
                                 is_bool=is_bool)
         self._add_variable(name, var)
 
