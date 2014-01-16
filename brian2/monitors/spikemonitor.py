@@ -50,7 +50,7 @@ class SpikeMonitor(GroupCodeRunner):
         stop = getattr(source, 'stop', len(source))
 
         self.variables = Variables(self)
-        self.variables.add_attribute_variable('t', second, scheduler.clock, 't_')
+        self.variables.add_clock_variables(scheduler.clock)
         self.variables.add_reference('_spikespace', source.variables['_spikespace'])
         self.variables.add_dynamic_array('_i', size=0, unit=Unit(1),
                                          dtype=np.int32, constant_size=False)

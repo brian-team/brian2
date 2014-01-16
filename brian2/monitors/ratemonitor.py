@@ -40,9 +40,7 @@ class PopulationRateMonitor(GroupCodeRunner):
         BrianObject.__init__(self, when=scheduler, name=name)
 
         self.variables = Variables(self)
-        self.variables.add_attribute_variable('t', second, self.clock, 't_')
-        self.variables.add_attribute_variable('dt', second, self.clock, 'dt_',
-                                              constant=True)
+        self.variables.add_clock_variables(self.clock)
         self.variables.add_dynamic_array('_rate', size=0, unit=hertz,
                                          constant_size=False)
         self.variables.add_dynamic_array('_t', size=0, unit=second,

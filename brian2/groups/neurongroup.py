@@ -370,8 +370,7 @@ class NeuronGroup(Group, SpikeSource):
         entries for the equation variables and some standard entries.
         '''
         self.variables = Variables(self)
-        self.variables.add_attribute_variable('t', second, self.clock, 't_')
-        self.variables.add_attribute_variable('dt', second, self.clock, 'dt_')
+        self.variables.add_clock_variables(self.clock)
         self.variables.add_constant('N', Unit(1), self._N)
 
         if dtype is None:

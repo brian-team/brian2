@@ -8,9 +8,10 @@ import collections
 import numpy as np
 
 from brian2.utils.stringtools import get_identifiers
-from brian2.units.fundamentalunits import (Quantity, Unit, is_scalar_type,
+from brian2.units.fundamentalunits import (Quantity, Unit,
                                            fail_for_dimension_mismatch,
                                            have_same_dimensions)
+from brian2.units.allunits import second
 
 from .preferences import brian_prefs
 
@@ -897,3 +898,21 @@ class Variables(collections.Mapping):
         '''
         for name, var in variables.iteritems():
             self.add_reference(name, var, index)
+
+    def add_clock_variables(self, clock):
+        '''
+        Convenience function to add the ``t`` and ``dt`` attributes of a
+        `clock`.
+
+        Parameters
+        ----------
+        clock : `Clock`
+            The clock that should be used for ``t`` and ``dt``. Note that the
+            actual attributes referred to are ``t_`` and ``dt_``, i.e. the
+            unitless values.
+        '''
+        self.add_attribute_variable('t', unit=second, owner=clock,
+                                    attribute='t_', dtype=np.float64)
+        self.add_attribute_variable('dt', unit=second, owner=clock,
+                                    attribute='dt_', dtype=np.float64,
+                                    constant=True)

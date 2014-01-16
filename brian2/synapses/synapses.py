@@ -651,8 +651,7 @@ class Synapses(Group):
                                      self.variables['_synaptic_post'])
 
         # Add the standard variables
-        self.variables.add_attribute_variable('t', second, self.clock, 't_')
-        self.variables.add_attribute_variable('dt', second, self.clock, 'dt_')
+        self.variables.add_clock_variables(self.clock)
         self.variables.add_attribute_variable('N', Unit(1), self, '_N',
                                               constant=True)
 

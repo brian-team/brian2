@@ -49,8 +49,7 @@ class PoissonGroup(Group, SpikeSource):
 
         self.variables = Variables(self)
         # standard variables
-        self.variables.add_attribute_variable('t', second, self.clock, 't_')
-        self.variables.add_attribute_variable('dt', second, self.clock, 'dt_')
+        self.variables.add_clock_variables(self.clock)
         self.variables.add_constant('N', unit=Unit(1), value=self._N)
         self.variables.add_arange('i', self._N, constant=True, read_only=True)
         self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
