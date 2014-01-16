@@ -65,7 +65,7 @@ class Device(object):
         '''
         raise NotImplementedError()
 
-    def add_variable(self, var):
+    def add_array(self, var):
         raise NotImplementedError()
 
     def init_with_zeros(self, var):
@@ -198,19 +198,17 @@ class RuntimeDevice(Device):
             raise TypeError(('Do not have a name for variable of type '
                              '%s') % type(var))
 
-    def add_variable(self, var):
+    def add_array(self, var):
         # This creates the actual numpy arrays (or DynamicArrayVariable objects)
-        arr = None
         if isinstance(var, DynamicArrayVariable):
             if var.dimensions == 1:
                 arr = DynamicArray1D(var.size, dtype=var.dtype)
             else:
                 arr = DynamicArray(var.size, dtype=var.dtype)
-        elif isinstance(var, ArrayVariable):
+        else:
             arr = np.empty(var.size, dtype=var.dtype)
 
-        if arr is not None:
-            self.arrays[var] = arr
+        self.arrays[var] = arr
 
     def get_value(self, var, access_data=True):
         if isinstance(var, DynamicArrayVariable) and access_data:

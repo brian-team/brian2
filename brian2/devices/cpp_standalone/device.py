@@ -120,12 +120,9 @@ class CPPStandaloneDevice(Device):
             raise TypeError(('Do not have a name for variable of type '
                              '%s') % type(var))
 
-    def add_variable(self, var):
+    def add_array(self, var):
         # Note that a dynamic array variable is added to both the arrays and
         # the _dynamic_array dictionary
-        if isinstance(var, ArrayVariable):
-            name = '_array_%s_%s' % (var.owner.name, var.name)
-            self.arrays[var] = name
         if isinstance(var, DynamicArrayVariable):
             name = '_dynamic_array_%s_%s' % (var.owner.name, var.name)
             if var.dimensions == 1:
@@ -135,7 +132,9 @@ class CPPStandaloneDevice(Device):
             else:
                 raise AssertionError(('Did not expect a dynamic array with %d '
                                       'dimensions.') % var.dimensions)
-        # TODO: Anything to do for AttributeVariable objects?
+
+        name = '_array_%s_%s' % (var.owner.name, var.name)
+        self.arrays[var] = name
 
     def init_with_zeros(self, var):
         self.zero_arrays.append(var)

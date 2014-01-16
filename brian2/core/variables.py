@@ -824,9 +824,10 @@ class Variables(collections.Mapping):
         #TODO: do some check for the name, part of it has to be device-specific
         self._variables[name] = var
 
-        # Tell the device to actually create the array (or note it down for
-        # later code generation in standalone).
-        self.device.add_variable(var)
+        if isinstance(var, ArrayVariable):
+            # Tell the device to actually create the array (or note it down for
+            # later code generation in standalone).
+            self.device.add_array(var)
 
         if index is not None:
             self.indices[name] = index
