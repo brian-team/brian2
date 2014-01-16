@@ -72,8 +72,7 @@ class PoissonGroup(Group, SpikeSource):
         # Set the rates according to the argument (make sure to use the correct
         # namespace)
         rate_value = self.variables['rates'].get_addressable_value_with_unit('rates',
-                                                                             self,
-                                                                             level=2)
+                                                                             self)
         rate_value[:] = rates
 
     @property

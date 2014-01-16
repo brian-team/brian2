@@ -886,9 +886,6 @@ class Synapses(Group):
                                             )
             codeobj()
 
-        # TODO: This should be done in the template (as in standalone)
-        # number = len(self.variables['_synaptic_pre'])
-        #self._resize(number)
 
     def calc_indices(self, index):
         '''

@@ -38,27 +38,34 @@ class Group(BrianObject):
             self.codeobj_class = None
         self._group_attribute_access_active = True
 
-    def state_(self, name):
+    def _state(self, name, use_units, level=0):
         '''
-        Gets the unitless array.
+        Return the state variable in a way that properly supports indexing in
+        the context of this group
+
+        Parameters
+        ----------
+        name : str
+            The name of the state variable
+        use_units : bool
+            Whether to use the state variable's unit.
+        level : int, optional
+            How much farther to go down in the stack to find the namespace.
+        Returns
+        -------
+        var : `VariableView` or scalar value
+            The state variable's value that can be indexed (for non-scalar
+            values).
         '''
         try:
             var = self.variables[name]
         except KeyError:
             raise KeyError("State variable "+name+" not found.")
 
-        return var.get_addressable_value(name=name, group=self)
-        
-    def state(self, name):
-        '''
-        Gets the array with units.
-        '''
-        try:
-            var = self.variables[name]
-        except KeyError:
-            raise KeyError("State variable "+name+" not found.")
-
-        return var.get_addressable_value_with_unit(name=name, group=self)
+        if use_units:
+            return var.get_addressable_value_with_unit(name=name, group=self)
+        else:
+            return var.get_addressable_value(name=name, group=self)
 
     def __getattr__(self, name):
         # We do this because __setattr__ and __getattr__ are not active until
@@ -76,13 +83,15 @@ class Group(BrianObject):
         # because this is what is used during simulations
         # We do not specifically check for len(name) here, we simply assume
         # that __getattr__ is not called with an empty string (which wouldn't
-        # be possibly using the normal dot syntax, anyway)
+        # be possible using the normal dot syntax, anyway)
         try:
             if name[-1] == '_':
-                origname = name[:-1]
-                return self.state_(origname)
+                name = name[:-1]
+                use_units = False
             else:
-                return self.state(name)
+                use_units = True
+            return self._state(name, use_units)
+
         except KeyError:
             raise AttributeError('No attribute with name ' + name)
 
@@ -99,20 +108,20 @@ class Group(BrianObject):
             if var.read_only:
                 raise TypeError('Variable %s is read-only.' % name)
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value_with_unit(name, self, level=1)[slice(None)] = val
+            var.get_addressable_value_with_unit(name, self)[slice(None)] = val
         elif len(name) and name[-1]=='_' and name[:-1] in self.variables:
             # no unit checking
             var = self.variables[name[:-1]]
             if var.read_only:
                 raise TypeError('Variable %s is read-only.' % name[:-1])
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value(name[:-1], self, level=1)[slice(None)] = val
+            var.get_addressable_value(name[:-1], self)[slice(None)] = val
         else:
             object.__setattr__(self, name, val)
 
     def calc_indices(self, item):
         '''
-        Return flat indices from to index into state variables from arbitrary
+        Return flat indices to index into state variables from arbitrary
         group specific indices. In the default implementation, raises an error
         for multidimensional indices and transforms slices into arrays.
 
@@ -125,6 +134,10 @@ class Group(BrianObject):
         -------
         indices : `numpy.ndarray`
             The flat indices corresponding to the indices given in `item`.
+
+        See Also
+        --------
+        Synapses.calc_indices
         '''
         if isinstance(item, tuple):
             raise IndexError(('Can only interpret 1-d indices, '
@@ -153,8 +166,9 @@ class Group(BrianObject):
         variable : `ArrayVariable`
             The `ArrayVariable` object for the variable to be set
         code : str
-            The code that should be executed to set the variable values.
-            Can contain references to indices, such as `i` or `j`
+            An expression that states a condition for elements that should be
+            selected. Can contain references to indices, such as ``i`` or ``j``
+            and to state variables. For example: ``'i>3 and v>0*mV'``.
         level : int, optional
             How much farther to go down in the stack to find the namespace.
             Necessary so that both `X.var = ` and `X.var[:] = ` have access

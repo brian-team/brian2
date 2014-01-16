@@ -52,7 +52,6 @@ def test_cpp_standalone(with_output=False):
                        dtype=numpy.int32)
     t = numpy.fromfile(os.path.join(tempdir, 'results', 'spikemonitor_codeobject_t'),
                        dtype=numpy.float64)
-    print len(i), len(t)
     assert len(i)==17741
     assert len(t)==17741
     assert t[0] == 0.

@@ -142,7 +142,7 @@ class Variable(object):
         '''
         return Quantity(self.get_value(), self.unit.dimensions)
 
-    def get_addressable_value(self, name, group, level=0):
+    def get_addressable_value(self, name, group):
         '''
         Get the value (without units) of this variable in a form that can be
         indexed in the context of a group. For example, if a
@@ -158,8 +158,6 @@ class Variable(object):
             `group` is not necessarily the same as `Variable.owner`: a variable
              owned by a `NeuronGroup` can be indexed in a different way if
              accessed via a `Synapses` object.
-        level : int, optional
-            How much farther to go down in the stack to find the namespace.
 
         Returns
         -------
@@ -168,7 +166,7 @@ class Variable(object):
         '''
         return self.get_value()
 
-    def get_addressable_value_with_unit(self, name, group, level=0):
+    def get_addressable_value_with_unit(self, name, group):
         '''
         Get the value (with units) of this variable in a form that can be
         indexed in the context of a group. For example, if a postsynaptic
@@ -184,8 +182,6 @@ class Variable(object):
             `group` is not necessarily the same as `Variable.owner`: a variable
              owned by a `NeuronGroup` can be indexed in a different way if
              accessed via a `Synapses` object.
-        level : int, optional
-            How much farther to go down in the stack to find the namespace.
 
         Returns
         -------
@@ -364,20 +360,17 @@ class VariableView(object):
     unit : `Unit`, optional
         The unit to be used for the variable, should be `None` when a variable
          is accessed without units (e.g. when stating `G.var_`).
-    level : int, optional
-        How much farther to go down in the stack to find the namespace.
     '''
 
-    def __init__(self, name, variable, group, unit=None, level=0):
+    def __init__(self, name, variable, group, unit=None):
         self.name = name
         self.variable = variable
         self.group = weakref.proxy(group)
         self.unit = unit
-        self.level = level
 
     def calc_indices(self, item):
         '''
-        Return flat indices from to index into state variables from arbitrary
+        Return flat indices to index into state variables from arbitrary
         group specific indices. Thin wrapper around `Group.calc_indices` adding
         special handling for scalar variables.
 
@@ -408,13 +401,16 @@ class VariableView(object):
         variable = self.variable
         if isinstance(item, basestring):
             values = self.group._get_with_code(self.name, variable, item,
-                                               level=self.level+1)
+                                               level=1)
         else:
             indices = self.calc_indices(item)
             if isinstance(variable, Subexpression):
                 # For subexpressions, we always have to go through codegen
+                # Note that this is not very efficient: we evaluate the
+                # subexpression for all elements and then only return a
+                # view.
                 values = self.group._get_with_code(self.name, variable, 'True',
-                                                   level=self.level+1)[indices]
+                                                   level=1)[indices]
             else:
                 # We are not going via code generation so we have to take care
                 # of correct indexing (in particular for subgroups) explicitly
@@ -444,7 +440,7 @@ class VariableView(object):
         check_units = self.unit is not None
         self.group._set_with_code_conditional(self.name, item, value,
                                               check_units=check_units,
-                                              level=self.level + 1)
+                                              level=1)
 
     def set_code_with_array_index(self, item, value):
         '''
@@ -463,7 +459,7 @@ class VariableView(object):
         check_units = self.unit is not None
         self.group._set_with_code(self.name, indices, value,
                                   check_units=check_units,
-                                  level=self.level + 1)
+                                  level=1)
 
     def set_array_with_array_index(self, item, value):
         '''
@@ -647,18 +643,17 @@ class ArrayVariable(Variable):
         return self.device.get_value(self)
 
     def set_value(self, value):
-        self.device.set_value(self, value)
+        self.device.fill_with_array(self, value)
 
     def get_size(self):
         return self.size
 
-    def get_addressable_value(self, name, group, level=0):
-        return VariableView(name=name, variable=self, group=group, unit=None,
-                            level=level+1)
+    def get_addressable_value(self, name, group):
+        return VariableView(name=name, variable=self, group=group, unit=None)
 
-    def get_addressable_value_with_unit(self, name, group, level=0):
+    def get_addressable_value_with_unit(self, name, group):
         return VariableView(name=name, variable=self, group=group,
-                            unit=self.unit, level=level+1)
+                            unit=self.unit)
 
 
 class DynamicArrayVariable(ArrayVariable):
@@ -754,13 +749,12 @@ class Subexpression(Variable):
         #: The identifiers used in the expression
         self.identifiers = get_identifiers(expr)
         
-    def get_addressable_value(self, name, group, level=0):
-        return VariableView(name=name, variable=self, group=group, unit=None,
-                            level=level)
+    def get_addressable_value(self, name, group):
+        return VariableView(name=name, variable=self, group=group, unit=None)
 
-    def get_addressable_value_with_unit(self, name, group, level=0):
+    def get_addressable_value_with_unit(self, name, group):
         return VariableView(name=name, variable=self, group=group,
-                            unit=self.unit, level=level)
+                            unit=self.unit)
 
     def __contains__(self, var):
         return var in self.identifiers

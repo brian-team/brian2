@@ -12,7 +12,7 @@ from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.core.preferences import brian_prefs
 from brian2.core.namespace import create_namespace
-from brian2.core.variables import (Variables, AuxiliaryVariable, Subexpression)
+from brian2.core.variables import (Variables, Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.parsing.expressions import (parse_expression_unit,
@@ -298,13 +298,14 @@ class NeuronGroup(Group, SpikeSource):
         if self.resetter is not None:
             self.contained_objects.append(self.resetter)
 
+        if refractory is not False:
+            # Set the refractoriness information
+            self.variables['lastspike'].set_value(-np.inf*second)
+            self.variables['not_refractory'].set_value(True)
+
         # Activate name attribute access
         self._enable_group_attributes()
 
-        if refractory is not False:
-            # Set the refractoriness information
-            self.lastspike = -np.inf*second
-            self.not_refractory = True
 
     def __len__(self):
         '''

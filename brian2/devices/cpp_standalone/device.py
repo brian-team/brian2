@@ -89,7 +89,15 @@ class CPPStandaloneDevice(Device):
         else:
             logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
             
-    def static_array(self, name, arr):
+    def static_array(self, name, arr, size):
+        arr = numpy.asarray(arr)
+        if arr.shape == ():
+            arr = numpy.repeat(arr, size)  # repeat scalar values
+        if arr.shape != (size, ):
+            raise ValueError(('Array values given for variable "%s" have the'
+                              'wrong size: %s instead of (%d, )') % (name,
+                                                                     str(arr.shape),
+                                                                     size))
         name = '_static_array_' + name
         basename = name
         i = 0
@@ -144,7 +152,7 @@ class CPPStandaloneDevice(Device):
 
     def fill_with_array(self, var, arr):
         array_name = self.arrays[var]
-        static_array_name = self.static_array(array_name, arr)
+        static_array_name = self.static_array(array_name, arr, var.size)
         self.main_queue.append(('set_by_array', (array_name,
                                                  static_array_name)))
 
