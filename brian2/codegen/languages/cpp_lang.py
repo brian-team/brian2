@@ -12,7 +12,7 @@ from brian2.parsing.rendering import CPPNodeRenderer
 from brian2.core.functions import (Function, FunctionImplementation,
                                    DEFAULT_FUNCTIONS)
 from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.core.variables import ArrayVariable, DynamicArrayVariable
+from brian2.core.variables import ArrayVariable
 
 from .base import Language
 

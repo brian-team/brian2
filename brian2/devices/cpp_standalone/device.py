@@ -244,7 +244,7 @@ class CPPStandaloneDevice(Device):
         # generate the finalisations
         for codeobj in self.code_objects.itervalues():
             if hasattr(codeobj.code, 'main_finalise'):
-                main_lines.append(codeobj.code.main_finalise);
+                main_lines.append(codeobj.code.main_finalise)
 
         # Generate data for non-constant values
         handled_arrays = defaultdict(set)

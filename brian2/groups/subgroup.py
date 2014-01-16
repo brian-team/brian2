@@ -1,13 +1,10 @@
 import weakref
-from collections import defaultdict
 
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
-from brian2.core.variables import Variable, Variables
+from brian2.core.variables import Variables
 from brian2.groups.group import Group
-from brian2.devices.device import get_device
 from brian2.units.fundamentalunits import Unit
-from brian2.core.variables import Subexpression
 
 __all__ = ['Subgroup']
 
@@ -65,7 +62,6 @@ class Subgroup(Group, SpikeSource):
         self.variables.add_constant('N', unit=Unit(1), value=self._N)
         # add references for all variables in the original group
         self.variables.add_references(source.variables)
-
 
         # Only the variable _sub_idx itself is stored in the subgroup
         # and needs the normal index for this group

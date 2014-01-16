@@ -1,11 +1,8 @@
-import numpy as np
-
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
-from brian2.core.variables import (Variable, AttributeVariable, Variables)
+from brian2.core.variables import Variables
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
-from brian2.devices.device import get_device
 from brian2.groups.group import GroupCodeRunner
 
 __all__ = ['PopulationRateMonitor']
@@ -42,7 +39,6 @@ class PopulationRateMonitor(GroupCodeRunner):
         self.codeobj_class = codeobj_class
         BrianObject.__init__(self, when=scheduler, name=name)
 
-        dev = get_device()
         self.variables = Variables(self)
         self.variables.add_attribute_variable('t', second, self.clock, 't_')
         self.variables.add_attribute_variable('dt', second, self.clock, 'dt_',

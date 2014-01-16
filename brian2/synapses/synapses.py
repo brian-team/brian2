@@ -12,9 +12,7 @@ import numpy as np
 
 from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
-from brian2.core.variables import (ArrayVariable, Variable, Variables,
-                                   Subexpression, AttributeVariable,
-                                   AuxiliaryVariable)
+from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
@@ -435,8 +433,7 @@ class Synapses(Group):
         self._registered_variables = set()
 
         for varname, var in self.variables.iteritems():
-            #if isinstance(var, DynamicArrayVariable):
-            if hasattr(var, 'resize'):
+            if isinstance(var, DynamicArrayVariable):
                 # Register the array with the `SynapticItemMapping` object so
                 # it gets automatically resized
                 self.register_variable(var)

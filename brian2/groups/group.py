@@ -8,13 +8,10 @@ import copy
 import numpy as np
 
 from brian2.core.base import BrianObject
-from brian2.core.variables import (Variables, Constant,
-                                   AttributeVariable, AuxiliaryVariable,
-                                   Variable)
+from brian2.core.variables import (Variables, Constant)
 from brian2.core.functions import Function
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit)
-from brian2.units.allunits import second
 from brian2.codegen.translation import analyse_identifiers
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
@@ -40,21 +37,6 @@ class Group(BrianObject):
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
         self._group_attribute_access_active = True
-
-    def _create_variables(self):
-        '''
-        Create standard set of variables every `Group` has, consisting of its
-        clock's ``t`` and ``dt`` and the group's ``N``.
-        '''
-        return {'t': AttributeVariable(second, self.clock, 't_',
-                                       constant=False, read_only=True),
-                'dt': AttributeVariable(second, self.clock, 'dt_',
-                                        constant=True, read_only=True),
-                # This has to be overwritten for Synapses, since the number of
-                # synapses is not known in the beginning
-                'N': Variable(Unit(1), value=self._N, owner=self, scalar=True,
-                              constant=True, is_bool=False, read_only=True)
-                }
 
     def state_(self, name):
         '''
@@ -184,13 +166,13 @@ class Group(BrianObject):
         # Add the recorded variable under a known name to the variables
         # dictionary. Important to deal correctly with
         # the type of the variable in C++
-        variables = {'_variable': AuxiliaryVariable(variable.unit,
-                                                    name='_variable',
-                                                    dtype=variable.dtype,
-                                                    scalar=variable.scalar,
-                                                    is_bool=variable.is_bool),
-                     '_cond': AuxiliaryVariable(Unit(1), name='_cond',
-                                                dtype=np.bool, is_bool=True)}
+        variables = Variables(None)
+        variables.add_auxiliary_variable('_variable', unit=variable.unit,
+                                         dtype=variable.dtype,
+                                         scalar=variable.scalar,
+                                         is_bool=variable.is_bool)
+        variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool,
+                                         is_bool=True)
 
         abstract_code = '_variable = ' + variable_name + '\n'
         abstract_code += '_cond = ' + code
