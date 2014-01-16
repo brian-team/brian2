@@ -58,7 +58,9 @@ def get_local_namespace(level):
             # We are only interested in numbers and functions, not in
             # everything else (classes, modules, etc.)
             if (((isinstance(v, (numbers.Number, np.ndarray, np.number, Function))) or
-                (hasattr(v, '_arg_units') and hasattr(v, '_return_unit'))) and
+                (inspect.isfunction(v) and
+                     hasattr(v, '_arg_units') and
+                     hasattr(v, '_return_unit'))) and
                     not k.startswith('_')):
                 # If possible, add a weak reference
                 try:
