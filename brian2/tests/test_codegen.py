@@ -37,10 +37,12 @@ def test_get_identifiers_recursively():
     '''
     variables = {'sub1': Subexpression(name='sub1', unit=Unit(1),
                                        dtype=np.float32, expr='sub2 * z',
-                                       owner=FakeGroup(variables={})),
+                                       owner=FakeGroup(variables={}),
+                                       device=None),
                  'sub2': Subexpression(name='sub2', unit=Unit(1),
                                        dtype=np.float32, expr='5 + y',
-                                       owner=FakeGroup(variables={})),
+                                       owner=FakeGroup(variables={}),
+                                       device=None),
                  'x': Variable(unit=None, owner=None, name='x')}
     identifiers = get_identifiers_recursively('_x = sub1 + x', variables)
     assert identifiers == set(['x', '_x', 'y', 'z', 'sub1', 'sub2'])
@@ -51,7 +53,7 @@ def test_translate_subexpression():
     G1 = FakeGroup(variables={'var1': var1, 'var2': var2})
     G2 = FakeGroup(variables={'var1': var1, 'var2_post': var2})
     G3 = FakeGroup(variables={'var1': var1})
-    sub = Subexpression(name='sub', unit=Unit(1),dtype=None,
+    sub = Subexpression(name='sub', unit=Unit(1), dtype=None, device=None,
                         expr='var1 + var2', owner=G1)
     # Interpreted in the context of G1, the variable names should stay the
     # same

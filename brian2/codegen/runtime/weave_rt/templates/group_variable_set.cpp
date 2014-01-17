@@ -7,6 +7,7 @@
 	{
 		const int _idx = {{_group_idx}}[_idx_group_idx];
 		const int _vectorisation_idx = _idx;
+		const int _target_idx = _idx;
 		{{ super() }}
 	}
 {% endblock %}

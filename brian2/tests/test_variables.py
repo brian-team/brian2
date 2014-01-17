@@ -37,7 +37,8 @@ def test_str_repr():
                  ArrayVariable(second, owner=None, name='name', size=10, device=None),
                  DynamicArrayVariable(second, owner=None, name='name', size=0,
                                       device=None),
-                 Subexpression(name='sub', unit=second, expr='a+b', owner=group)]
+                 Subexpression(name='sub', unit=second, expr='a+b', owner=group,
+                               device=None)]
     for var in variables:
         assert len(str(var))
         # The repr value should contain the name of the class

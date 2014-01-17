@@ -285,6 +285,7 @@ def translate_subexpressions(subexpressions, variables):
                                                          expr=new_expr,
                                                          owner=subexpr.owner,
                                                          dtype=subexpr.dtype,
+                                                         device=subexpr.device,
                                                          is_bool=subexpr.is_bool)
 
     subexpressions.update(new_subexpressions)

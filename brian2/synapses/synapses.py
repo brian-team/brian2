@@ -13,11 +13,12 @@ import numpy as np
 from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import (DynamicArrayVariable, Variables)
+from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)
-from brian2.groups.group import Group, GroupCodeRunner, create_runner_codeobj
+from brian2.groups.group import Group, GroupCodeRunner
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
 from brian2.units.fundamentalunits import (Unit, Quantity,

@@ -6,9 +6,9 @@ import numpy as np
 from brian2.core.variables import (Variables, get_dtype)
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
+from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.units.allunits import second
-from brian2.groups.group import create_runner_codeobj
 
 __all__ = ['StateMonitor']
 
@@ -172,7 +172,8 @@ class StateMonitor(BrianObject):
         self.variables = Variables(self)
         for varname in variables:
             var = source.variables[varname]
-            self.variables.add_reference(varname, var)
+            self.variables.add_reference(varname, var,
+                                         index=source.variables.indices[varname])
             self.variables.add_dynamic_array('_recorded_' + varname,
                                              size=(0, len(self.indices)),
                                              unit=var.unit,

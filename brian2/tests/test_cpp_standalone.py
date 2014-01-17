@@ -39,7 +39,7 @@ def test_cpp_standalone(with_output=False):
     S.connect('abs(i-j)<5 and i!=j')
     S.w = 0.5*mV
     S.delay = '0*ms'
-    
+
     net = Network(G,
                   M,
                   S,

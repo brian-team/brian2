@@ -10,6 +10,7 @@ from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         STATIC_EQUATION, PARAMETER)
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
+from brian2.codegen.codeobject import check_code_units
 from brian2.core.preferences import brian_prefs
 from brian2.core.namespace import create_namespace
 from brian2.core.variables import (Variables, Subexpression)
@@ -21,7 +22,7 @@ from brian2.utils.logger import get_logger
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
 
-from .group import Group, GroupCodeRunner, check_code_units
+from .group import Group, GroupCodeRunner
 from .subgroup import Subgroup
 
 __all__ = ['NeuronGroup']

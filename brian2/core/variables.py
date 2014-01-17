@@ -368,149 +368,67 @@ class VariableView(object):
         self.group = weakref.proxy(group)
         self.unit = unit
 
-    def calc_indices(self, item):
-        '''
-        Return flat indices to index into state variables from arbitrary
-        group specific indices. Thin wrapper around `Group.calc_indices` adding
-        special handling for scalar variables.
-
-        Parameters
-        ----------
-        item : slice, array, int
-            The indices to translate.
-
-        Returns
-        -------
-        indices : `numpy.ndarray`
-            The flat indices corresponding to the indices given in `item`.
-        '''
-        variable = self.variable
-        if variable.scalar:
-            if not ((isinstance(item, slice) and item == slice(None)) or item == 0 or (hasattr(item, '__len__')
-                                                                                           and len(item) == 0)):
-                raise IndexError('Variable is a scalar variable.')
-            indices = np.array([0])
-        else:
-            # Translate to an index meaningful for the variable
-            # (e.g. from a synaptic [i,j,k] index to the synapse number)
-            indices = self.group.calc_indices(item)
-
-        return indices
-
     def __getitem__(self, item):
         variable = self.variable
         if isinstance(item, basestring):
-            values = self.group._get_with_code(self.name, variable, item,
-                                               level=1)
+            values = variable.device.get_with_expression(self.group, self.name,
+                                                         variable, item,
+                                                         level=1)
         else:
-            indices = self.calc_indices(item)
-            if isinstance(variable, Subexpression):
-                # For subexpressions, we always have to go through codegen
-                # Note that this is not very efficient: we evaluate the
-                # subexpression for all elements and then only return a
-                # view.
-                values = self.group._get_with_code(self.name, variable, 'True',
-                                                   level=1)[indices]
-            else:
-                # We are not going via code generation so we have to take care
-                # of correct indexing (in particular for subgroups) explicitly
-                var_index = self.group.variables.indices[self.name]
-                if var_index != '_idx':
-                    indices = self.group.variables[var_index].get_value()[indices]
-                values = variable.get_value()[indices]
+            values = variable.device.get_with_index_array(self.group,
+                                                          self.name, variable,
+                                                          item)
 
-        if self.unit is None or have_same_dimensions(self.unit, Unit(1)):
+        if self.unit is None:
             return values
         else:
             return Quantity(values, self.unit.dimensions)
 
-    def set_code_with_string_index(self, item, value):
-        '''
-        Set a variable's value, based on a string condition and a string
-        expression for the value.
-
-        Parameters
-        ----------
-        item : str
-            The condition specifying which elements of the variable are to be
-            set.
-        value : str
-            The string expression specifying the value for the variable.
-        '''
-        check_units = self.unit is not None
-        self.group._set_with_code_conditional(self.name, item, value,
-                                              check_units=check_units,
-                                              level=1)
-
-    def set_code_with_array_index(self, item, value):
-        '''
-        Set a variable's value, based on a numerical index and a string
-        expression for the value.
-
-        Parameters
-        ----------
-        item : `numpy.ndarray`, slice, tuple
-            The indices specifying which elements of the variable are to be
-            set.
-        value : str
-            The string expression specifying the value for the variable.
-        '''
-        indices = self.calc_indices(item)
-        check_units = self.unit is not None
-        self.group._set_with_code(self.name, indices, value,
-                                  check_units=check_units,
-                                  level=1)
-
-    def set_array_with_array_index(self, item, value):
-        '''
-        Set a variable's value, based on a numerical index and concrete values.
-
-        Parameters
-        ----------
-        item : `numpy.ndarray`, slice, tuple
-            The indices specifying which elements of the variable are to be
-            set.
-        value : `numpy.ndarray`, `Quantity`, or a broadcastable scalar
-            The new values for the variable.
-        '''
-        indices = self.calc_indices(item)
-        if not self.unit is None:
-            fail_for_dimension_mismatch(value, self.unit)
-        # We are not going via code generation so we have to take care
-        # of correct indexing (in particular for subgroups) explicitly
-        var_index = self.group.variables.indices[self.name]
-        if var_index != '_idx':
-            indices = self.group.variables[var_index].get_value()[indices]
-        self.variable.get_value()[indices] = value
-
     def __setitem__(self, item, value):
-        if self.variable.read_only:
+        variable = self.variable
+        if variable.read_only:
             raise TypeError('Variable %s is read-only.' % self.name)
 
         if isinstance(item, slice) and item == slice(None):
             item = 'True'
 
+        check_units = self.unit is not None
+
         # Both index and values are strings, use a single code object do deal
         # with this situation
         if isinstance(value, basestring) and isinstance(item, basestring):
-            self.set_code_with_string_index(item, value)
+            variable.device.set_with_expression_conditional(self.group, self.name,
+                                                            item, value,
+                                                            check_units=check_units,
+                                                            level=1)
         elif isinstance(item, basestring):
             try:
                 float(value)  # only checks for the exception
             except (TypeError, ValueError):
-                if not item == 'True':
+                if item == 'True':
+                    # Fall back to the general array-array pattern
+                    variable.device.set_with_index_array(self.group, self.name,
+                                                         self.variable,
+                                                         slice(None), value,
+                                                         check_units=check_units)
+                    return
+                else:
                     raise TypeError('When setting a variable based on a string '
                                     'index, the value has to be a string or a '
                                     'scalar.')
-                else:
-                    # Fall back to the general array-array pattern
-                    self.set_array_with_array_index(slice(None), value)
-                    return
-            self.set_code_with_string_index(item, repr(value))
+
+            variable.device.set_with_expression_conditional(self.group, self.name,
+                                                            item, repr(value),
+                                                            check_units=check_units,
+                                                            level=1)
         elif isinstance(value, basestring):
-            self.set_code_with_array_index(item, value)
+            variable.device.set_with_expression(self.group, self.name, item, value,
+                                                check_units=check_units,
+                                                level=1)
         else:  # No string expressions involved
-            self.set_array_with_array_index(item, value)
+            variable.device.set_with_index_array(self.group, self.name,
+                                                 self.variable, item, value,
+                                                 check_units=check_units)
 
     # Allow some basic calculations directly on the ArrayView object
 
@@ -738,11 +656,13 @@ class Subexpression(Variable):
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
     '''
-    def __init__(self, unit, expr, owner, name, dtype=None, is_bool=False):
+    def __init__(self, unit, expr, owner, name, device, dtype=None, is_bool=False):
         super(Subexpression, self).__init__(unit=unit, owner=owner,
                                             name=name, dtype=dtype,
                                             is_bool=is_bool, scalar=False,
                                             constant=False, read_only=True)
+
+        self.device = device
 
         #: The expression defining the subexpression
         self.expr = expr.strip()
@@ -870,7 +790,7 @@ class Variables(collections.Mapping):
 
     def add_subexpression(self, name, unit, expr, dtype=None, is_bool=False):
         var = Subexpression(name=name, unit=unit, expr=expr, owner=self.owner,
-                            dtype=dtype, is_bool=is_bool)
+                            dtype=dtype, device=self.device, is_bool=is_bool)
         self._add_variable(name, var)
 
     def add_auxiliary_variable(self, name, unit, dtype=None, scalar=False,

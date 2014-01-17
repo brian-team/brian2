@@ -839,14 +839,20 @@ class Quantity(np.ndarray, object):
                                              'information between array and '
                                              'dim keyword',
                                              arr.dim, dim)
-        elif not isinstance(arr, np.ndarray):
+        elif hasattr(arr, 'unit'):
+            subarr.dim = arr.unit.dim
+            if not (dim is None) and not (dim is subarr.dim):
+                raise DimensionMismatchError('Conflicting dimension '
+                                             'information between array and '
+                                             'dim keyword',
+                                             arr.dim, dim)
+        elif not isinstance(arr, (np.ndarray, np.number, numbers.Number)):
             # check whether it is an iterable containing Quantity objects
             try:
                 is_quantity = [isinstance(x, Quantity) for x in _flatten(arr)]
             except TypeError:
                 # Not iterable
                 is_quantity = [False]
-
             if len(is_quantity) == 0:
                 # Empty list
                 dim = DIMENSIONLESS

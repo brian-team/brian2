@@ -9,7 +9,7 @@ from time import time
 
 from brian2 import *
 
-#brian_prefs.codegen.target = 'weave'
+# brian_prefs.codegen.target = 'weave'
 
 N = 1000
 taum = 10 * ms
