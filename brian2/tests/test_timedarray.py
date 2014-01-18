@@ -28,23 +28,23 @@ def test_timedarray_direct_use():
 def test_timedarray_no_units():
     ta = TimedArray(np.linspace(0, 10, 11), .9*ms)
     for codeobj_class in codeobj_classes:
-        G = NeuronGroup(1, 'value = ta(t) : 1', codeobj_class=codeobj_class)
+        G = NeuronGroup(1, 'value = ta(t) + 1: 1', codeobj_class=codeobj_class)
         mon = StateMonitor(G, 'value', record=True)
         net = Network(G, mon)
         net.run(11*ms)
         assert_equal(mon[0].value_,
-                     np.clip(np.int_(mon[0].t / (.9*ms) + 0.5), 0, 10))
+                     np.clip(np.int_(mon[0].t / (.9*ms) + 0.5), 0, 10) + 1)
 
 
 def test_timedarray_with_units():
     ta = TimedArray(np.linspace(0, 10, 11)*amp, .9*ms)
     for codeobj_class in codeobj_classes:
-        G = NeuronGroup(1, 'value = ta(t) : amp', codeobj_class=codeobj_class)
+        G = NeuronGroup(1, 'value = ta(t) + 2*nA: amp', codeobj_class=codeobj_class)
         mon = StateMonitor(G, 'value', record=True)
         net = Network(G, mon)
         net.run(11*ms)
         assert_equal(mon[0].value,
-                     np.clip(np.int_(mon[0].t / (.9*ms) + 0.5), 0, 10)*amp)
+                     np.clip(np.int_(mon[0].t / (.9*ms) + 0.5), 0, 10)*amp + 2*nA)
 
 if __name__ == '__main__':
     test_timedarray_direct_use()

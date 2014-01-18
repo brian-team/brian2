@@ -253,9 +253,27 @@ def test_user_defined_function_discarding_units():
     assert foo(5*volt) == 8*volt
 
     # Test the function that is used during a run
-    from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
     assert foo.implementations[NumpyCodeObject].code(5) == 8
 
+
+def test_user_defined_function_discarding_units_2():
+    # Add a numpy implementation explicitly (as in TimedArray)
+    from brian2.codegen.functions import add_implementations
+    unit = volt
+    @check_units(v=volt, result=unit)
+    def foo(v):
+        return v + 3*unit  # this normally raises an error for unitless v
+
+    foo = Function(pyfunc=foo)
+    def unitless_foo(v):
+        return v + 3
+
+    add_implementations(foo, codes={'numpy': unitless_foo})
+
+    assert foo(5*volt) == 8*volt
+
+    # Test the function that is used during a run
+    assert foo.implementations[NumpyCodeObject].code(5) == 8
 
 def test_function_implementation_container():
     from brian2.core.functions import FunctionImplementationContainer
@@ -310,4 +328,5 @@ if __name__ == '__main__':
     test_simple_user_defined_function()
     test_manual_user_defined_function()
     test_user_defined_function_discarding_units()
+    test_user_defined_function_discarding_units_2()
     test_function_implementation_container()

@@ -4,8 +4,7 @@ from brian2.core.functions import Function
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units, get_unit
 from brian2.core.names import Nameable
-from brian2.codegen.functions import (add_implementations,
-                                      add_numpy_implementation)
+from brian2.codegen.functions import add_implementations
 
 __all__ = ['TimedArray']
 
@@ -56,7 +55,8 @@ class TimedArray(Function, Nameable):
         dt = float(dt)
         self.dt = dt
 
-        # Python implementation
+        # Python implementation (with units), used when calling the TimedArray
+        # directly, outside of a simulation
         @check_units(t=second, result=unit)
         def timed_array_func(t):
             i = np.clip(np.int_(np.float_(t) / dt + 0.5), 0, len(values)-1)
@@ -64,8 +64,15 @@ class TimedArray(Function, Nameable):
 
         Function.__init__(self, pyfunc=timed_array_func)
 
+        # Implementation for numpy, without units
+        def unitless_timed_array_func(t):
+            i = np.clip(np.int_(np.float_(t) / dt + 0.5), 0, len(values)-1)
+            return values[i]
+        unitless_timed_array_func._arg_units = [second]
+        unitless_timed_array_func._return_unit = unit
+
         # Implementation for C++
-        code = {'support_code': '''
+        cpp_code = {'support_code': '''
         inline double _timedarray_%NAME%(const double t, const double _dt, const int _num_values, const double* _values)
         {
             int i = (int)(t/_dt + 0.5); // rounds to nearest int for positive values
@@ -83,11 +90,9 @@ class TimedArray(Function, Nameable):
                      '_%s_num_values' % self.name: len(self.values),
                      '_%s_values' % self.name: self.values}
 
-        add_implementations(self, codes={'cpp': code},
+        add_implementations(self, codes={'cpp': cpp_code,
+                                         'numpy': unitless_timed_array_func},
                             namespaces={'cpp': namespace},
                             names={'cpp': self.name})
 
-        # Since the function does not internally use any units, always discard
-        # the units
-        add_numpy_implementation(self, timed_array_func, discard_units=True)
 
