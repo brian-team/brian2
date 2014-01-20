@@ -326,6 +326,17 @@ def test_state_variable_indexing():
     assert_raises(IndexError, lambda: S.w.__getitem__(object()))
 
 
+def test_indices():
+    G = NeuronGroup(10, 'v : 1')
+    S = Synapses(G, G, '', connect=True)
+    G.v = 'i'
+
+    assert_equal(S.indices[:], np.arange(10*10))
+    assert len(S.indices[5, :]) == 10
+    assert_equal(S.indices['v_pre >=5'], S.indices[5:, :])
+    assert_equal(S.indices['j >=5'], S.indices[:, 5:])
+
+
 def test_delay_specification():
     # By default delays are state variables (i.e. arrays), but if they are
     # specified in the initializer, they are scalars.
@@ -539,6 +550,7 @@ if __name__ == '__main__':
     test_connection_multiple_synapses()
     test_state_variable_assignment()
     test_state_variable_indexing()
+    test_indices()
     test_delay_specification()
     test_transmission()
     test_changed_dt_spikes_in_queue()
