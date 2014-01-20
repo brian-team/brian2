@@ -384,7 +384,22 @@ class VariableView(object):
         else:
             return Quantity(values, self.unit.dimensions)
 
-    def __setitem__(self, item, value):
+    def set_item(self, item, value, level=0):
+        '''
+        Set this variable. This function is called by `__setitem__` but there
+        is also a situation where it should be called directly: if the context
+        for string-based expressions is higher up in the stack, this function
+        allows to set the `level` argument accordingly.
+
+        Parameters
+        ----------
+        item : slice, `ndarray` or string
+            The index for the setting operation
+        value : `Quantity`, `ndarray` or number
+            The value for the setting operation
+        level : int, optional
+            How much farther to go up in the stack to find the namespace.
+        '''
         variable = self.variable
         if variable.read_only:
             raise TypeError('Variable %s is read-only.' % self.name)
@@ -400,11 +415,19 @@ class VariableView(object):
             variable.device.set_with_expression_conditional(self.group, self.name,
                                                             item, value,
                                                             check_units=check_units,
-                                                            level=1)
+                                                            level=level+1)
         elif isinstance(item, basestring):
             try:
                 float(value)  # only checks for the exception
-            except (TypeError, ValueError):
+                try:
+                    # length-1 arrays are also convertible to float, but we
+                    # don't want the repr used later to be something like
+                    # array([...]).
+                    value = value[0]
+                except (IndexError, TypeError):
+                    # was scalar already apparently
+                    pass
+            except (TypeError, ValueError) as ex:
                 if item == 'True':
                     # Fall back to the general array-array pattern
                     variable.device.set_with_index_array(self.group, self.name,
@@ -417,10 +440,12 @@ class VariableView(object):
                                     'index, the value has to be a string or a '
                                     'scalar.')
 
-            variable.device.set_with_expression_conditional(self.group, self.name,
-                                                            item, repr(value),
+            variable.device.set_with_expression_conditional(self.group,
+                                                            self.name,
+                                                            item,
+                                                            repr(value),
                                                             check_units=check_units,
-                                                            level=1)
+                                                            level=level+1)
         elif isinstance(value, basestring):
             variable.device.set_with_expression(self.group, self.name, item, value,
                                                 check_units=check_units,
@@ -429,6 +454,9 @@ class VariableView(object):
             variable.device.set_with_index_array(self.group, self.name,
                                                  self.variable, item, value,
                                                  check_units=check_units)
+
+    def __setitem__(self, item, value):
+        self.set_item(item, value, level=1)
 
     # Allow some basic calculations directly on the ArrayView object
 

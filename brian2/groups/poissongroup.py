@@ -67,19 +67,10 @@ class PoissonGroup(Group, SpikeSource):
         self.thresholder = Thresholder(self)
         self.contained_objects.append(self.thresholder)
 
+        self._enable_group_attributes()
         # Set the rates according to the argument (make sure to use the correct
         # namespace)
-        # TODO: This should be simpler
-        from brian2.devices.device import get_device
-        device = get_device()
-        if isinstance(rates, basestring):
-            device.set_with_expression_conditional(self, 'rates', cond=True,
-                                                   code=rates, check_units=True,
-                                                   level=2)
-        else:
-            device.fill_with_array(self.variables['rates'], rates)
-
-        self._enable_group_attributes()
+        self.rates.set_item(slice(None), rates, level=2)
 
     @property
     def spikes(self):
