@@ -89,8 +89,8 @@ def test_priority():
     # Fake clock class
     MyClock = namedtuple('MyClock', ['t_', 'dt_'])
     clock = MyClock(t_=0, dt_=0.0001)
-    variables = {'v': ArrayVariable(Unit(1), name='name', size=10, owner=None,
-                                    device=None, dtype=np.float64,
+    variables = {'v': ArrayVariable(name='name', unit=Unit(1), size=10,
+                                    owner=None, device=None, dtype=np.float64,
                                     constant=False),
                   't': AttributeVariable(name='t', unit=second, obj=clock,
                                          attribute='t_', constant=False,
@@ -104,7 +104,7 @@ def test_priority():
     # work
     eqs = Equations('''dv/dt = -param * v / (10*ms) : 1
                        param : 1''')
-    variables['param'] = ArrayVariable(Unit(1), owner=None, name='name',
+    variables['param'] = ArrayVariable(name='name', unit=Unit(1), owner=None,
                                        size=10, dtype=np.float64,
                                        constant=False, device=None)
     assert updater.can_integrate(eqs, variables)
@@ -118,7 +118,7 @@ def test_priority():
     # work
     eqs = Equations('''dv/dt = -param * v / (10*ms) : 1
                        param : 1 (constant)''')
-    variables['param'] = ArrayVariable(Unit(1), owner=None, name='name',
+    variables['param'] = ArrayVariable(name='name', unit=Unit(1), owner=None,
                                        size=10, dtype=np.float64,
                                        device=None, constant=True)
     assert updater.can_integrate(eqs, variables)

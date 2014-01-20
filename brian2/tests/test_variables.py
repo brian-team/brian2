@@ -16,9 +16,9 @@ def test_construction_errors():
                                                is_bool=True))
 
     # Dynamic array variable that is constant but not constant in size
-    assert_raises(ValueError, lambda: DynamicArrayVariable(Unit(1),
+    assert_raises(ValueError, lambda: DynamicArrayVariable(name='name',
+                                                           unit=Unit(1),
                                                            owner=None,
-                                                           name='name',
                                                            size=0,
                                                            device=None,
                                                            constant=True,
@@ -34,8 +34,8 @@ def test_str_repr():
                  AuxiliaryVariable(name='name', unit=second),
                  AttributeVariable(name='name', unit=second, obj=group,
                                    attribute='name', dtype=np.float32),
-                 ArrayVariable(second, owner=None, name='name', size=10, device=None),
-                 DynamicArrayVariable(second, owner=None, name='name', size=0,
+                 ArrayVariable(name='name', unit=second, owner=None, size=10, device=None),
+                 DynamicArrayVariable(name='name', unit=second, owner=None, size=0,
                                       device=None),
                  Subexpression(name='sub', unit=second, expr='a+b', owner=group,
                                device=None)]

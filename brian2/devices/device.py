@@ -69,32 +69,69 @@ class Device(object):
         raise NotImplementedError()
 
     def add_array(self, var):
+        '''
+        Add an array to this device.
+
+        Parameters
+        ----------
+        var : `ArrayVariable`
+            The array to add.
+        '''
         raise NotImplementedError()
 
     def init_with_zeros(self, var):
+        '''
+        Initialize an array with zeros.
+
+        Parameters
+        ----------
+        var : `ArrayVariable`
+            The array to initialize with zeros.
+        '''
         raise NotImplementedError()
 
     def init_with_arange(self, var, start):
+        '''
+        Initialize an array with an integer range.
+
+        Parameters
+        ----------
+        var : `ArrayVariable`
+            The array to fill with the integer range.
+        start : int
+            The start value for the integer range
+        '''
         raise NotImplementedError()
 
     def fill_with_array(self, var, arr):
+        '''
+        Fill an array with the values given in another array.
+
+        Parameters
+        ----------
+        var : `ArrayVariable`
+            The array to fill.
+        arr : `ndarray`
+            The array values that should be copied to `var`.
+        '''
         raise NotImplementedError()
 
     def get_with_index_array(self, group, variable_name, variable, item):
         '''
         Gets a variable using array indices. Is called by
-        `VariableView.__getitem__` for statements such as
-        ``print G.v[[0, 1, 2]]``
+        `VariableView.get_item` for statements such as ``print G.v[[0, 1, 2]]``
 
         Parameters
         ----------
+        group : `Group`
+            The group providing the context for the indexing.
         variable_name : str
-            The name of the variable in its context (e.g. `'g_post'` for a
-            variable with name `'g'`)
+            The name of the variable in its context (e.g. ``'g_post'`` for a
+            variable with name ``'g'``)
         variable : `ArrayVariable`
             The `ArrayVariable` object for the variable to be set
-        indices : `ndarray`
-            The indices for the variable (in the context of this group).
+        item : `ndarray`
+            The indices for the variable (in the context of this `group`).
         '''
         raise NotImplementedError(('This device does not support accessing '
                                    'a state variable with an index array or '
@@ -103,14 +140,16 @@ class Device(object):
     def get_with_expression(self, group, variable_name, variable, code, level=0):
         '''
         Gets a variable using a string expression. Is called by
-        `VariableView.__getitem__` for statements such as
-        ``print G.v['g_syn > 0']``
+        `VariableView.get_item` for statements such as
+        ``print G.v['g_syn > 0']``.
 
         Parameters
         ----------
+        group : `Group`
+            The group providing the context for the indexing.
         variable_name : str
-            The name of the variable in its context (e.g. `'g_post'` for a
-            variable with name `'g'`)
+            The name of the variable in its context (e.g. ``'g_post'`` for a
+            variable with name ``'g'``)
         variable : `ArrayVariable`
             The `ArrayVariable` object for the variable to be set
         code : str
@@ -118,9 +157,7 @@ class Device(object):
             selected. Can contain references to indices, such as ``i`` or ``j``
             and to state variables. For example: ``'i>3 and v>0*mV'``.
         level : int, optional
-            How much farther to go down in the stack to find the namespace.
-            Necessary so that both `X.var = ` and `X.var[:] = ` have access
-            to the surrounding namespace.
+            How much farther to go up in the stack to find the namespace.
         '''
         # interpret the string expression
         namespace = get_local_namespace(level+1)
@@ -153,15 +190,18 @@ class Device(object):
                              check_units):
         '''
         Sets a variable using array indices. Is called by
-        `VariableView.__setitem__` for statements such as
-        `S.var[:, :] = 42`.
+        `VariableView.set_item` for statements such as ``S.var[:, :] = 42``.
 
         Parameters
         ----------
+        group : `Group`
+            The group providing the context for the indexing.
         variable_name : str
-            The name of the variable to be set
-        group_indices : `ndarray` of int
-            The indices of the elements that are to be set.
+            The name of the variable to be set.
+        variable : `ArrayVariable`
+            The variable to be set.
+        item : `ndarray`
+            The indices for the variable (in the context of this `group`).
         value : `ndarray`
             Array containing the target values. Has to be the same size as
             `group_indices`.
@@ -172,28 +212,30 @@ class Device(object):
                                    'a state variable with an index array or '
                                    'slice.'))
 
-    def set_with_expression(self, group, varname, item, code, check_units=True,
-                            level=0):
+    def set_with_expression(self, group, varname, variable, item, code,
+                            check_units=True, level=0):
         '''
         Sets a variable using a string expression. Is called by
-        `VariableView.__setitem__` for statements such as
-        `S.var[:, :] = 'exp(-abs(i-j)/space_constant)*nS'`
+        `VariableView.set_item` for statements such as
+        ``S.var[:, :] = 'exp(-abs(i-j)/space_constant)*nS'``
 
         Parameters
         ----------
+        group : `Group`
+            The group providing the context for the indexing.
         varname : str
             The name of the variable to be set
-        group_indices : ndarray of int
-            The indices of the elements that are to be set.
+        variable : `ArrayVariable`
+            The `ArrayVariable` object for the variable to be set.
+        item : `ndarray`
+            The indices for the variable (in the context of this `group`).
         code : str
             The code that should be executed to set the variable values.
             Can contain references to indices, such as `i` or `j`
         check_units : bool, optional
             Whether to check the units of the expression.
         level : int, optional
-            How much farther to go down in the stack to find the namespace.
-            Necessary so that both `X.var = ` and `X.var[:] = ` have access
-            to the surrounding namespace.
+            How much farther to go up in the stack to find the namespace.
         '''
         indices = group.calc_indices(item)
         abstract_code = varname + ' = ' + code
@@ -214,17 +256,21 @@ class Device(object):
                                  check_units=check_units)
         codeobj()
 
-    def set_with_expression_conditional(self, group, varname, cond, code, check_units=True,
-                                        level=0):
+    def set_with_expression_conditional(self, group, varname, variable, cond,
+                                        code, check_units=True, level=0):
         '''
         Sets a variable using a string expression and string condition. Is
-        called by `VariableView.__setitem__` for statements such as
-        `S.var['i!=j'] = 'exp(-abs(i-j)/space_constant)*nS'`
+        called by `VariableView.set_item` for statements such as
+        ``S.var['i!=j'] = 'exp(-abs(i-j)/space_constant)*nS'``
 
         Parameters
         ----------
+        group : `Group`
+            The group providing the context for the indexing.
         varname : str
             The name of the variable to be set.
+        variable : `ArrayVariable`
+            The `ArrayVariable` object for the variable to be set.
         cond : str
             The string condition for which the variables should be set.
         code : str
@@ -232,9 +278,7 @@ class Device(object):
         check_units : bool, optional
             Whether to check the units of the expression.
         level : int, optional
-            How much farther to go down in the stack to find the namespace.
-            Necessary so that both `X.var = ` and `X.var[:] = ` have access
-            to the surrounding namespace.
+            How much farther to go up in the stack to find the namespace.
         '''
 
         abstract_code_cond = '_cond = '+cond
@@ -250,7 +294,8 @@ class Device(object):
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
         codeobj = create_runner_codeobj(group,
-                                 {'condition': abstract_code_cond, 'statement': abstract_code},
+                                 {'condition': abstract_code_cond,
+                                  'statement': abstract_code},
                                  'group_variable_set_conditional',
                                  additional_variables=variables,
                                  additional_namespace=additional_namespace,
