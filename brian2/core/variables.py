@@ -541,6 +541,24 @@ class VariableView(object):
         self[:] = rhs
         return self
 
+    def __eq__(self, other):
+        return self[:] == other
+
+    def __ne__(self, other):
+        return self[:] != other
+
+    def __lt__(self, other):
+        return self[:] < other
+
+    def __le__(self, other):
+        return self[:] <= other
+
+    def __gt__(self, other):
+        return self[:] > other
+
+    def __ge__(self, other):
+        return self[:] >= other
+
     def __repr__(self):
         varname = self.name
         if self.unit is None:
