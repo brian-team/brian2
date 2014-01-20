@@ -24,37 +24,29 @@ class Templater(object):
         if env_globals is not None:
             self.env.globals.update(env_globals)
         for name in self.env.list_templates():
-            template = CodeObjectTemplate(self.env.get_template(name))
+            template = CodeObjectTemplate(self.env.get_template(name),
+                                          self.env.loader.get_source(self.env,
+                                                                     name)[0])
             setattr(self, os.path.splitext(name)[0], template)
 
 
 class CodeObjectTemplate(object):
-    def __init__(self, template):
+    def __init__(self, template, template_source):
         self.template = template
-        res = self([''])
-        if isinstance(res, str):
-            temps = [res]
-        else:
-            temps = res._templates.values()
-        #: The set of words in this template
-        self.words = set([])
-        for v in temps:
-            self.words.update(get_identifiers(v))
         #: The set of variables in this template
         self.variables = set([])
         #: The indices over which the template iterates completely
         self.iterate_all = set([])
-        for v in temps:
-            # This is the bit inside {} for USES_VARIABLES { list of words }
-            specifier_blocks = re.findall(r'\bUSES_VARIABLES\b\s*\{(.*?)\}',
-                                          v, re.M|re.S)
-            # Same for ITERATE_ALL
-            iterate_all_blocks = re.findall(r'\bITERATE_ALL\b\s*\{(.*?)\}',
-                              v, re.M|re.S)
-            for block in specifier_blocks:
-                self.variables.update(get_identifiers(block))
-            for block in iterate_all_blocks:
-                self.iterate_all.update(get_identifiers(block))
+        # This is the bit inside {} for USES_VARIABLES { list of words }
+        specifier_blocks = re.findall(r'\bUSES_VARIABLES\b\s*\{(.*?)\}',
+                                      template_source, re.M|re.S)
+        # Same for ITERATE_ALL
+        iterate_all_blocks = re.findall(r'\bITERATE_ALL\b\s*\{(.*?)\}',
+                                        template_source, re.M|re.S)
+        for block in specifier_blocks:
+            self.variables.update(get_identifiers(block))
+        for block in iterate_all_blocks:
+            self.iterate_all.update(get_identifiers(block))
                 
     def __call__(self, code_lines, **kwds):
         kwds['code_lines'] = code_lines
