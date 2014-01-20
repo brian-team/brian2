@@ -139,7 +139,8 @@ class Device(object):
         abstract_code = '_variable = ' + variable_name + '\n'
         abstract_code += '_cond = ' + code
         check_code_units(abstract_code, group,
-                         additional_namespace=additional_namespace)
+                         additional_namespace=additional_namespace,
+                         additional_variables=variables)
         codeobj = create_runner_codeobj(group,
                                         abstract_code,
                                         'group_variable_get_conditional',

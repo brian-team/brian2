@@ -50,26 +50,23 @@ def get_local_namespace(level):
     '''
     # Get the locals and globals from the stack frame
     namespace = dict()
-    stack = inspect.stack()
-    for f in xrange(len(stack)-1, level, -1):
-        frame = stack[f][0]
-        for k, v in itertools.chain(frame.f_globals.iteritems(),
-                                    frame.f_locals.iteritems()):
-            # We are only interested in numbers and functions, not in
-            # everything else (classes, modules, etc.)
-            if (((isinstance(v, (numbers.Number, np.ndarray, np.number, Function))) or
-                (inspect.isfunction(v) and
-                     hasattr(v, '_arg_units') and
-                     hasattr(v, '_return_unit'))) and
-                    not k.startswith('_')):
-                # If possible, add a weak reference
-                try:
-                    v = weakref.proxy(v)
-                except TypeError:
-                    pass
-                namespace[k] = v
-        del frame
-    del stack
+    frame = inspect.stack()[level + 1][0]
+    for k, v in itertools.chain(frame.f_globals.iteritems(),
+                                frame.f_locals.iteritems()):
+        # We are only interested in numbers and functions, not in
+        # everything else (classes, modules, etc.)
+        if (((isinstance(v, (numbers.Number, np.ndarray, np.number, Function))) or
+            (inspect.isfunction(v) and
+                 hasattr(v, '_arg_units') and
+                 hasattr(v, '_return_unit'))) and
+                not k.startswith('_')):
+            # If possible, add a weak reference
+            try:
+                v = weakref.proxy(v)
+            except TypeError:
+                pass
+            namespace[k] = v
+    del frame
     return namespace
 
 

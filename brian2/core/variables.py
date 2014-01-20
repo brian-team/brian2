@@ -449,7 +449,7 @@ class VariableView(object):
         elif isinstance(value, basestring):
             variable.device.set_with_expression(self.group, self.name, item, value,
                                                 check_units=check_units,
-                                                level=1)
+                                                level=level+1)
         else:  # No string expressions involved
             variable.device.set_with_index_array(self.group, self.name,
                                                  self.variable, item, value,
