@@ -1,10 +1,8 @@
 {% extends 'common_group.cpp' %}
 
-{% if variables is defined %}
 {% set _spikespace = variables['_spikespace'].arrayname %}
 {% set _rate = '_dynamic'+variables['_rate'].arrayname %}
 {% set _t = '_dynamic'+variables['_t'].arrayname %}
-{% endif %}
 
 {% block maincode %}
 	// { USES_VARIABLES _rate, _t, _spikespace, t, dt, _num_source_neurons }

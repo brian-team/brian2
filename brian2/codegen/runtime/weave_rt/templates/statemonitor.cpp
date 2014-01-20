@@ -8,7 +8,6 @@
     const int _new_len = _curlen + 1;
     // Resize the arrays
     PyObject_CallMethod({{_object__t}}, "resize", "i", _new_len);
-    {% if _recorded_variables is defined %}
     {% for var in _recorded_variables.values() %}
     PyObject_CallMethod({{get_array_name(var, access_data=False)}}, "resize", "((ii))",
                         _new_len, _num_indices);
@@ -35,5 +34,4 @@
         }
     }
     {% endfor %}
-    {% endif %}
 {% endblock %}

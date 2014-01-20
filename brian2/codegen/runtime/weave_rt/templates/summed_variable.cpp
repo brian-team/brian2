@@ -2,9 +2,7 @@
 {% block maincode %}
     // USES_VARIABLES { _synaptic_post, N_post }
 	//// MAIN CODE ////////////
-	{% if _target_var is defined %}
 	{% set _target_var_array = get_array_name(_target_var) %}
-	{% endif %}
 
 	// Set all the target variable values to zero
 	for (int _target_idx=0; _target_idx<N_post; _target_idx++)

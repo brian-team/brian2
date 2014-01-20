@@ -47,11 +47,9 @@
 
 	const int newsize = {{_object__synaptic_pre}}.size();
 	// now we need to resize all registered variables (via Python)
-	{% if owner is defined %}
 	py::tuple _newlen_tuple(1);
 	_newlen_tuple[0] = newsize;
 	_owner.mcall("_resize", _newlen_tuple);
-	{% endif %}
 
 	delete [] _prebuf;
 	delete [] _postbuf;

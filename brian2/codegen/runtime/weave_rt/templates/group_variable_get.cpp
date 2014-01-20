@@ -6,11 +6,9 @@
 {% block maincode %}
     // USES_VARIABLES { _group_idx }
 	//// MAIN CODE ////////////
-	{% if variables is defined %}
 	{%set c_type = c_data_type(variables['_variable'].dtype) %}
 	{%set numpy_dtype = dtype(variables['_variable'].dtype).char %}
 	{%set numpy_type_int = dtype(variables['_variable'].dtype).num %}
-	{% endif %}
 	// {{c_type}} {{numpy_dtype}} {{numpy_type_int}}
 	int _cpp_numelements = 0;
 	// Container for the return values

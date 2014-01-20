@@ -4,7 +4,6 @@
 _new_len = len({{_object__t}}) + 1
 {{_object__t}}.resize(_new_len)
 
-{% if _recorded_variables is defined %}
 {% for var in _recorded_variables.values() %}
 {{get_array_name(var, access_data=False)}}.resize((_new_len, len({{_indices}})))
 {% endfor %}
@@ -21,4 +20,4 @@ _idx = {{_indices}}
 {% for varname, var in _recorded_variables.items() %}
 {{get_array_name(var, access_data=False)}}[-1, :] = _to_record_{{varname}}
 {% endfor %}
-{% endif %}
+

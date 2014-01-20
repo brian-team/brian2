@@ -33,7 +33,6 @@
 	}
 
 	// now we need to resize all registered variables
-	{% if owner is defined %}
 	const int newsize = {{_object__synaptic_pre}}.size();
 	{% for variable in owner._registered_variables %}
 	{% set varname = get_array_name(variable, access_data=False) %}
@@ -41,5 +40,4 @@
 	{% endfor %}
 	// Also update the total number of synapses
 	{{owner.name}}._N = newsize;
-	{% endif %}
 {% endblock %}

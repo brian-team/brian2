@@ -5,7 +5,6 @@
    much simpler propagation where we do not have to take care of the possibility
    of repeating targets. #}
 
-{% if variable_indices is defined %}
 {% set _non_synaptic = [] %}
 {% for var in variables %}
     {% if variable_indices[var] != '_idx' %}
@@ -13,7 +12,7 @@
         {% if _non_synaptic.append(1) %}{% endif %}
     {% endif %}
 {% endfor %}
-{% endif %}
+
 
 {% if _non_synaptic %}
 # Use the complicated propagation algorithm
