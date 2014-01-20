@@ -3,26 +3,58 @@ This module defines the `Group` object, a mix-in class for everything that
 saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
 import weakref
-import copy
 
 import numpy as np
 
 from brian2.core.base import BrianObject
 from brian2.codegen.codeobject import create_runner_codeobj, check_code_units
-from brian2.core.variables import (Variables, Constant)
-from brian2.core.functions import Function
+from brian2.core.variables import AuxiliaryVariable, Variables
 from brian2.core.namespace import get_local_namespace
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit)
-from brian2.codegen.translation import analyse_identifiers
-from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
 from brian2.devices.device import get_device
-from brian2.units.fundamentalunits import get_unit
+
 
 
 __all__ = ['Group', 'GroupCodeRunner']
 
 logger = get_logger(__name__)
+
+
+class IndexWrapper(object):
+    '''
+    Convenience class to allow access to the indices via indexing syntax. This
+    allows for example to get all indices for synapses originating from neuron
+    10 by writing `synapses.indices[10, :]` instead of
+    `synapses.calc_indices((10, slice(None))`.
+    '''
+    def __init__(self, group):
+        self.group = weakref.proxy(group)
+
+    def __getitem__(self, item):
+        if isinstance(item, basestring):
+            namespace = get_local_namespace(1)
+            additional_namespace = ('implicit-namespace', namespace)
+            variables = Variables(None)
+            variables.add_auxiliary_variable('_indices', unit=Unit(1),
+                                             dtype=np.int32)
+            variables.add_auxiliary_variable('_cond', unit=Unit(1),
+                                             dtype=np.bool,
+                                             is_bool=True)
+
+            abstract_code = '_cond = ' + item
+            check_code_units(abstract_code, self.group,
+                             additional_namespace=additional_namespace,
+                             additional_variables=variables)
+            codeobj = create_runner_codeobj(self.group,
+                                            abstract_code,
+                                            'group_get_indices',
+                                            additional_variables=variables,
+                                            additional_namespace=additional_namespace,
+                                            )
+            return codeobj()
+        else:
+            return self.group.calc_indices(item)
 
 
 class Group(BrianObject):
@@ -37,6 +69,9 @@ class Group(BrianObject):
             raise ValueError('Classes derived from Group need variables attribute.')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
+        if not hasattr(self, 'indices'):
+            self.indices = IndexWrapper(self)
+
         self._group_attribute_access_active = True
 
     def _state(self, name, use_units, level=0):
@@ -109,14 +144,18 @@ class Group(BrianObject):
             if var.read_only:
                 raise TypeError('Variable %s is read-only.' % name)
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value_with_unit(name, self)[slice(None)] = val
+            var.get_addressable_value_with_unit(name, self).set_item(slice(None),
+                                                                     val,
+                                                                     level=1)
         elif len(name) and name[-1]=='_' and name[:-1] in self.variables:
             # no unit checking
             var = self.variables[name[:-1]]
             if var.read_only:
                 raise TypeError('Variable %s is read-only.' % name[:-1])
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value(name[:-1], self)[slice(None)] = val
+            var.get_addressable_value(name[:-1], self).set_item(slice(None),
+                                                                val,
+                                                                level=1)
         else:
             object.__setattr__(self, name, val)
 
