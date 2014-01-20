@@ -89,15 +89,8 @@ class CPPStandaloneDevice(Device):
         else:
             logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
             
-    def static_array(self, name, arr, size):
-        arr = numpy.asarray(arr)
-        if arr.shape == ():
-            arr = numpy.repeat(arr, size)  # repeat scalar values
-        if arr.shape != (size, ):
-            raise ValueError(('Array values given for variable "%s" have the'
-                              'wrong size: %s instead of (%d, )') % (name,
-                                                                     str(arr.shape),
-                                                                     size))
+    def static_array(self, name, arr):
+        assert len(arr), 'length for %s: %d' % (name, len(arr))
         name = '_static_array_' + name
         basename = name
         i = 0
@@ -118,12 +111,13 @@ class CPPStandaloneDevice(Device):
             name for the underlying data is returned. If specifying `False`,
             the name of object itself is returned (e.g. to allow resizing).
         '''
-        if isinstance(var, ArrayVariable) and not isinstance(var, DynamicArrayVariable):
+        if isinstance(var, DynamicArrayVariable):
+            if access_data:
+                return self.arrays[var]
+            else:
+                return self.dynamic_arrays[var]
+        elif isinstance(var, ArrayVariable):
             return self.arrays[var]
-        elif isinstance(var, DynamicArrayVariable) and access_data:
-            return self.arrays[var]
-        elif isinstance(var, DynamicArrayVariable):
-            return self.dynamic_arrays[var]
         else:
             raise TypeError(('Do not have a name for variable of type '
                              '%s') % type(var))
@@ -151,11 +145,45 @@ class CPPStandaloneDevice(Device):
         self.arange_arrays.append((var, start))
 
     def fill_with_array(self, var, arr):
-        array_name = self.arrays[var]
-        static_array_name = self.static_array(array_name, arr, var.size)
+        arr = numpy.asarray(arr)
+        if arr.shape == ():
+            arr = numpy.repeat(arr, var.size)
+        # Using the std::vector instead of a pointer to the underlying
+        # data for dynamic arrays is fast enough here and it saves us some
+        # additional work to set up the pointer
+        array_name = self.get_array_name(var, access_data=False)
+        static_array_name = self.static_array(array_name, arr)
         self.main_queue.append(('set_by_array', (array_name,
                                                  static_array_name)))
 
+    def set_with_index_array(self, group, variable_name, variable, item, value,
+                             check_units):
+        value = Quantity(value)
+
+        # Simple case where we don't have to do any indexing
+        if (isinstance(item, slice) and item == slice(None)
+            and group.variables.indices[variable_name] == '_idx'):
+            self.fill_with_array(variable, value)
+        else:
+            # We have to calculate indices. This will not work for synaptic
+            # variables
+            try:
+                indices = group.calc_indices(item)
+            except NotImplementedError:
+                raise NotImplementedError(('Cannot set variable "%s" this way in '
+                                           'standalone, try using string '
+                                           'expressions.') % variable_name)
+            # Using the std::vector instead of a pointer to the underlying
+            # data for dynamic arrays is fast enough here and it saves us some
+            # additional work to set up the pointer
+            arrayname = self.get_array_name(variable, access_data=False)
+            staticarrayname_index = self.static_array('_index_'+arrayname,
+                                                      indices)
+            staticarrayname_value = self.static_array('_value_'+arrayname,
+                                                      value)
+            self.main_queue.append(('set_array_by_array', (arrayname,
+                                                           staticarrayname_index,
+                                                           staticarrayname_value)))
 
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is not None:
@@ -234,7 +262,7 @@ class CPPStandaloneDevice(Device):
                 '''.format(arrayname=arrayname, staticarrayname=staticarrayname)
                 main_lines.extend(code.split('\n'))
             elif func=='set_array_by_array':
-                arrayname, staticarrayname_index, staticarrayname_value, item, value = args
+                arrayname, staticarrayname_index, staticarrayname_value = args
                 code = '''
                 for(int i=0; i<_num_{staticarrayname_index}; i++)
                 {{
