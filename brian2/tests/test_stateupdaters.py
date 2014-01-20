@@ -92,10 +92,10 @@ def test_priority():
     variables = {'v': ArrayVariable(Unit(1), name='name', size=10, owner=None,
                                     device=None, dtype=np.float64,
                                     constant=False),
-                  't': AttributeVariable(name='t', unit=second, owner=clock,
+                  't': AttributeVariable(name='t', unit=second, obj=clock,
                                          attribute='t_', constant=False,
                                          dtype=np.float64),
-                  'dt': AttributeVariable(name='dt', unit=second, owner=clock,
+                  'dt': AttributeVariable(name='dt', unit=second, obj=clock,
                                           attribute='dt_', constant=True,
                                           dtype=np.float64)}
     assert updater.can_integrate(eqs, variables)
@@ -198,8 +198,8 @@ def test_determination():
     
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     # Just make sure that state updaters know about the two state variables
-    variables = {'v': Variable(name='v', unit=None, owner=None),
-                 'w': Variable(name='w', unit=None, owner=None)}
+    variables = {'v': Variable(name='v', unit=None),
+                 'w': Variable(name='w', unit=None)}
     
     # all methods should work for these equations.
     # First, specify them explicitly (using the object)

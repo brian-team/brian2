@@ -84,7 +84,7 @@ def analyse_identifiers(code, variables, recursive=False):
                     if not isinstance(k, AuxiliaryVariable))
     else:
         known = set(variables)
-        variables = dict((k, Variable(unit=None, name=k, owner=None,
+        variables = dict((k, Variable(unit=None, name=k,
                                       dtype=np.float64))
                          for k in known)
 

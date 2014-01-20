@@ -56,9 +56,6 @@ class Variable(object):
     unit : `Unit`
         The unit of the variable. Note that the variable itself (as referenced
         by value) should never have units attached.
-    owner : `Nameable`
-        The object that "owns" this variable, e.g. the `NeuronGroup` or
-        `Synapses` object that declares the variable in its model equations.
     name : 'str'
         The name of the variable. Note that this refers to the *original*
         name in the owning group. The same variable may be known under other
@@ -82,7 +79,7 @@ class Variable(object):
         for the variable ``N``, the number of neurons in a group). Defaults
         to ``False``.
     '''
-    def __init__(self, unit, owner, name, dtype=None, scalar=False,
+    def __init__(self, unit, name, dtype=None, scalar=False,
                  constant=False, is_bool=False, read_only=False):
         
         #: The variable's unit.
@@ -90,13 +87,6 @@ class Variable(object):
 
         #: The variable's name.
         self.name = name
-
-        try:
-            owner = weakref.proxy(owner)
-        except TypeError:  # Happens during testing with namedtuple
-            pass
-        #: The owner of the variable
-        self.owner = owner
 
         if dtype is None:
             if is_bool:
@@ -204,13 +194,11 @@ class Variable(object):
         return self.get_len()
 
     def __repr__(self):
-        owner_name = self.owner.name if not self.owner is None else 'None'
-        description = ('<{classname}(unit={unit}, owner=<{owner}>,'
+        description = ('<{classname}(unit={unit}, '
                        ' dtype={dtype}, scalar={scalar}, constant={constant},'
                        ' is_bool={is_bool}, read_only={read_only})>')
         return description.format(classname=self.__class__.__name__,
                                   unit=repr(self.unit),
-                                  owner=owner_name,
                                   dtype=repr(self.dtype),
                                   scalar=repr(self.scalar),
                                   constant=repr(self.constant),
@@ -237,7 +225,7 @@ class Constant(Variable):
     value: reference to the variable value
         The value of the constant.
     '''
-    def __init__(self, unit, value, owner, name):
+    def __init__(self, unit, value, name):
         # Determine the type of the value
         dtype = get_dtype(value)
         is_bool = (value is True or value is False or
@@ -246,7 +234,7 @@ class Constant(Variable):
         #: The constant's value
         self.value = value
 
-        super(Constant, self).__init__(unit=unit, owner=owner, name=name,
+        super(Constant, self).__init__(unit=unit, name=name,
                                        dtype=dtype, scalar=True, constant=True,
                                        read_only=True, is_bool=is_bool)
 
@@ -279,7 +267,7 @@ class AuxiliaryVariable(Variable):
                 dtype = bool
             else:
                 dtype = brian_prefs.core.default_scalar_dtype
-        super(AuxiliaryVariable, self).__init__(unit=unit, owner=None,
+        super(AuxiliaryVariable, self).__init__(unit=unit,
                                                 name=name, dtype=dtype,
                                                 scalar=scalar, is_bool=is_bool)
 
@@ -297,12 +285,11 @@ class AttributeVariable(Variable):
     ----------
     unit : `Unit`
         The unit of the variable
-    owner : `Nameable`
-        The object that "owns" this variable, e.g. the `NeuronGroup` or
-        `Synapses` object that declares the variable in its model equations.
+    obj : object
+        The object storing the attribute.
     attribute : str
         The name of the attribute storing the variable's value. `attribute` has
-        to be an attribute of `owner`.
+        to be an attribute of `obj`.
     constant : bool, optional
         Whether the attribute's value is constant during a run. Defaults to
         ``False``.
@@ -318,27 +305,29 @@ class AttributeVariable(Variable):
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``.
     '''
-    def __init__(self, unit, owner, name, attribute, dtype, constant=False, scalar=True,
+    def __init__(self, unit, obj, name, attribute, dtype, constant=False, scalar=True,
                  is_bool=False):
-        super(AttributeVariable, self).__init__(unit=unit, owner=owner,
+        super(AttributeVariable, self).__init__(unit=unit,
                                                 name=name, dtype=dtype,
                                                 constant=constant,
                                                 scalar=scalar,
                                                 is_bool=is_bool, read_only=True)
 
+        #: The object storing the `attribute`
+        self.obj = obj
+
         #: The name of the attribute storing the variable's value
         self.attribute = attribute
 
     def get_value(self):
-        return getattr(self.owner, self.attribute)
+        return getattr(self.obj, self.attribute)
 
     def __repr__(self):
-        owner_name = self.owner.name if not self.owner is None else 'None'
-        description = ('{classname}(unit={unit}, owner=<{owner}>, '
+        description = ('{classname}(unit={unit}, obj=<{obj}>, '
                        'attribute={attribute}, constant={constant})')
         return description.format(classname=self.__class__.__name__,
                                   unit=repr(self.unit),
-                                  owner=owner_name,
+                                  obj=self.obj,
                                   attribute=repr(self.attribute),
                                   constant=repr(self.constant))
 
@@ -596,10 +585,11 @@ class ArrayVariable(Variable):
     '''
     def __init__(self, unit, owner, name, size, device, dtype=None,
                  constant=False, scalar=False, is_bool=False, read_only=False):
-        super(ArrayVariable, self).__init__(unit=unit, owner=owner, name=name,
+        super(ArrayVariable, self).__init__(unit=unit, name=name,
                                             dtype=dtype, scalar=scalar,
                                             constant=constant, is_bool=is_bool,
                                             read_only=read_only)
+        self.owner = owner
         self.device = device
         self.size = size
 
@@ -703,11 +693,11 @@ class Subexpression(Variable):
         Defaults to ``False``
     '''
     def __init__(self, unit, expr, owner, name, device, dtype=None, is_bool=False):
-        super(Subexpression, self).__init__(unit=unit, owner=owner,
+        super(Subexpression, self).__init__(unit=unit,
                                             name=name, dtype=dtype,
                                             is_bool=is_bool, scalar=False,
                                             constant=False, read_only=True)
-
+        self.owner = owner
         self.device = device
 
         #: The expression defining the subexpression
@@ -726,7 +716,6 @@ class Subexpression(Variable):
         return var in self.identifiers
 
     def __repr__(self):
-        owner_name = self.owner.name if not self.owner is None else 'None'
         description = ('<{classname}(name={name}, unit={unit}, dtype={dtype}, '
                        'expr={expr}, owner=<{owner}>, is_bool={is_bool})>')
         return description.format(classname=self.__class__.__name__,
@@ -734,7 +723,7 @@ class Subexpression(Variable):
                                   unit=repr(self.unit),
                                   dtype=repr(self.dtype),
                                   expr=repr(self.expr),
-                                  owner=owner_name,
+                                  owner=self.owner.name,
                                   is_bool=repr(self.is_bool))
 
 
@@ -817,21 +806,21 @@ class Variables(collections.Mapping):
                        is_bool=False, read_only=read_only, index=index)
         self.device.init_with_arange(self._variables[name], start)
 
-    def add_attribute_variable(self, name, unit, owner, attribute, dtype=None,
+    def add_attribute_variable(self, name, unit, obj, attribute, dtype=None,
                                constant=False, scalar=True):
         if dtype is None:
-            value = getattr(owner, attribute, None)
+            value = getattr(obj, attribute, None)
             if value is None:
                 raise ValueError(('Cannot determine dtype for attribute "%s" '
-                                  'of object "%r"') % (attribute, owner))
+                                  'of object "%r"') % (attribute, obj))
             dtype = get_dtype(value)
 
-        var = AttributeVariable(unit, owner=owner, name=name, attribute=attribute,
+        var = AttributeVariable(unit, obj=obj, name=name, attribute=attribute,
                                 dtype=dtype, constant=constant, scalar=scalar)
         self._add_variable(name, var)
 
     def add_constant(self, name, unit, value):
-        var = Constant(unit, owner=self.owner, name=name, value=value)
+        var = Constant(unit, name=name, value=value)
         self._add_variable(name, var)
 
     def add_subexpression(self, name, unit, expr, dtype=None, is_bool=False):
@@ -872,8 +861,8 @@ class Variables(collections.Mapping):
             actual attributes referred to are ``t_`` and ``dt_``, i.e. the
             unitless values.
         '''
-        self.add_attribute_variable('t', unit=second, owner=clock,
+        self.add_attribute_variable('t', unit=second, obj=clock,
                                     attribute='t_', dtype=np.float64)
-        self.add_attribute_variable('dt', unit=second, owner=clock,
+        self.add_attribute_variable('dt', unit=second, obj=clock,
                                     attribute='dt_', dtype=np.float64,
                                     constant=True)

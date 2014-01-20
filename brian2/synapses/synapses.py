@@ -149,7 +149,7 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.spiking_synapses = []
         self.variables = Variables(self)
         self.variables.add_attribute_variable('_spiking_synapses', unit=Unit(1),
-                                              owner=self,
+                                              obj=self,
                                               attribute='spiking_synapses',
                                               constant=False,
                                               scalar=False)

@@ -249,8 +249,7 @@ def create_runner_codeobj(group, code, template_name,
             array_value = np.asarray(value)
             if array_value.shape != ():
                 raise TypeError('Name "%s" does not refer to a scalar value' % varname)
-            variables[varname] = Constant(unit, name=varname, value=value,
-                                          owner=None)
+            variables[varname] = Constant(unit, name=varname, value=value)
 
     # Add variables that are not in the abstract code, nor specified in the
     # template but nevertheless necessary

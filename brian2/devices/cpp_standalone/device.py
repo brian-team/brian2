@@ -302,7 +302,7 @@ class CPPStandaloneDevice(Device):
                         code = ('const {c_type} {k} = '
                                 '{name}.{attribute};').format(c_type=c_type,
                                                              k=k,
-                                                             name=v.owner.name,
+                                                             name=v.obj.name,
                                                              attribute=v.attribute)
                     code_object_defs[codeobj.name].append(code)
                 elif isinstance(v, ArrayVariable):
