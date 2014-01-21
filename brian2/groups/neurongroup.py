@@ -123,6 +123,10 @@ class Thresholder(GroupCodeRunner):
         check_code_units(self.abstract_code, self.group, ignore_keyerrors=True)
 
     def update_abstract_code(self):
+        if not is_boolean_expression(self.group.threshold, self.group.namespace,
+                                     self.group.variables):
+            raise TypeError(('Threshold condition "%s" is not a boolean '
+                             'expression') % self.group.threshold)
         if self.group._refractory is False:
             self.abstract_code = '_cond = %s' % self.group.threshold
         else:
