@@ -115,7 +115,7 @@ def _conflict_warning(message, resolutions):
 
 def _same_function(func1, func2):
     '''
-    Helper function, used during namespace resolution for comparing wether to
+    Helper function, used during namespace resolution for comparing whether to
     functions are the same. This takes care of treating a function and a
     `Function` variables whose `Function.pyfunc` attribute matches as the
     same. This prevents the user from getting spurious warnings when having
