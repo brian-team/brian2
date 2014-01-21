@@ -193,7 +193,8 @@ def _get_default_functions():
                 'randn': Function(pyfunc=randn, arg_units=[], return_unit=1),
                 'clip': Function(pyfunc=np.clip, arg_units=[None, None, None],
                                  return_unit=lambda u1, u2, u3: u1,),
-                'int_': Function(pyfunc=np.int_, arg_units=[1], return_unit=1)
+                'int': Function(pyfunc=np.int_,
+                                arg_units=[1], return_unit=1)
                 }
 
     return functions

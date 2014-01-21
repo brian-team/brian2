@@ -145,4 +145,4 @@ DEFAULT_FUNCTIONS['rand'].implementations[NumpyLanguage] = FunctionImplementatio
 clip_func = lambda array, a_min, a_max: np.clip(array, a_min, a_max)
 DEFAULT_FUNCTIONS['clip'].implementations[NumpyLanguage] = FunctionImplementation(code=clip_func)
 int_func = lambda value: np.int_(value)
-DEFAULT_FUNCTIONS['int_'].implementations[NumpyLanguage] = FunctionImplementation(code=int_func)
+DEFAULT_FUNCTIONS['int'].implementations[NumpyLanguage] = FunctionImplementation(code=int_func)

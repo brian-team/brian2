@@ -176,7 +176,11 @@ class SympyNodeRenderer(NodeRenderer):
                 if f.sympy_func is not None and isinstance(f.sympy_func,
                                                            sympy.FunctionClass):
                     return '%s' % str(f.sympy_func)
-        return 'Function("%s")' % node.id
+        # special workaround for the "int" function
+        if node.id == 'int':
+            return 'Function("int_")'
+        else:
+            return 'Function("%s")' % node.id
 
     def render_Compare(self, node):
         if len(node.comparators)>1:

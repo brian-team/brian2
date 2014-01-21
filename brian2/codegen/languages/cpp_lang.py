@@ -335,7 +335,7 @@ randn_code = {'support_code': '''
     }
         '''}
 DEFAULT_FUNCTIONS['randn'].implementations[CPPLanguage] = FunctionImplementation('_randn',
-                                                                           code=randn_code)
+                                                                                 code=randn_code)
 
 rand_code = {'support_code': '''
         double _rand(int vectorisation_idx)
@@ -344,7 +344,7 @@ rand_code = {'support_code': '''
         }
         '''}
 DEFAULT_FUNCTIONS['rand'].implementations[CPPLanguage] = FunctionImplementation('_rand',
-                                                                          code=rand_code)
+                                                                                code=rand_code)
 
 clip_code = {'support_code': '''
         double _clip(const float value, const float a_min, const float a_max)
@@ -357,7 +357,7 @@ clip_code = {'support_code': '''
 	    }
         '''}
 DEFAULT_FUNCTIONS['clip'].implementations[CPPLanguage] = FunctionImplementation('_clip',
-                                                                          code=clip_code)
+                                                                                code=clip_code)
 
 int_code = {'support_code':
         '''
@@ -366,5 +366,5 @@ int_code = {'support_code':
 	        return value ? 1 : 0;
         }
         '''}
-DEFAULT_FUNCTIONS['int_'].implementations[CPPLanguage] = FunctionImplementation('int_',
-                                                                          code=int_code)
+DEFAULT_FUNCTIONS['int'].implementations[CPPLanguage] = FunctionImplementation('int_',
+                                                                               code=int_code)

@@ -75,6 +75,13 @@ class CustomSympyPrinter(StrPrinter):
             raise AssertionError('"Not" with %d arguments?' % len(expr.args))
         return 'not (%s)' % self.doprint(expr.args[0])
 
+    def _print_Function(self, expr):
+        # Special workaround for the int function
+        if expr.func.__name__ == 'int_':
+            return "int(%s)" % self.stringify(expr.args, ", ")
+        else:
+            return expr.func.__name__ + "(%s)" % self.stringify(expr.args, ", ")
+
 PRINTER = CustomSympyPrinter()
 
 

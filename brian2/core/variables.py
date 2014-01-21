@@ -610,6 +610,9 @@ class VariableView(object):
         self.group = weakref.proxy(group)
         self.unit = unit
 
+    dim = property(lambda self: self.unit.dim,
+                   doc='The dimensions of this variable.')
+
     def get_item(self, item, level=0):
         '''
         Get the value of this variable. Called by `__getitem__`.
