@@ -4,6 +4,8 @@ multiplicative noise.
 '''
 from brian2 import *
 
+#brian_prefs.codegen.target = 'weave'
+
 # setting a random seed makes all variants use exactly the same Wiener process
 seed = 12347  
 
@@ -18,7 +20,7 @@ def simulate(method, dt):
     '''
     simulate geometrical Brownian with the given method
     ''' 
-    random.seed(seed)
+    np.random.seed(seed)
     G = NeuronGroup(1, 'dX/dt = (mu - 0.5*second*sigma**2)*X + X*sigma*xi*second**.5: 1',
                     clock=Clock(dt=dt), method=method)
     G.X = X0
@@ -39,11 +41,11 @@ def exact_solution(t, dt):
     dt = float(dt)
     t = asarray(t)
     
-    random.seed(seed)
+    np.random.seed(seed)
     # We are calculating the values at the *end* of a time step, as when using
     # a StateMonitor. Therefore also the Brownian motion starts not with zero
     # but with a random value.
-    brownian = cumsum(sqrt(dt) * random.randn(len(t)))
+    brownian = cumsum(sqrt(dt) * np.random.randn(len(t)))
     
     return (X0 * exp((my_mu - 0.5*my_sigma**2)*(t+dt) + my_sigma*brownian))
 
