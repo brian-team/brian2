@@ -1,6 +1,6 @@
 from nose.plugins.skip import SkipTest
 import numpy as np
-from numpy.testing import assert_equal, assert_raises
+from numpy.testing import assert_equal, assert_raises, assert_allclose
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
@@ -51,8 +51,8 @@ def test_math_functions():
                 net = Network(G, mon)
                 net.run(clock.dt)
                 
-                assert_equal(numpy_result, mon.func_.flatten(),
-                             'Function %s did not return the correct values' % func.__name__)
+                assert_allclose(numpy_result, mon.func_.flatten(),
+                                err_msg='Function %s did not return the correct values' % func.__name__)
             
             # Functions/operators
             scalar = 3
@@ -76,8 +76,8 @@ def test_math_functions():
                 net = Network(G, mon)
                 net.run(clock.dt)
                 
-                assert_equal(numpy_result, mon.func_.flatten(),
-                             'Function %s did not return the correct values' % func.__name__)
+                assert_allclose(numpy_result, mon.func_.flatten(),
+                                err_msg='Function %s did not return the correct values' % func.__name__)
 
 
 def test_user_defined_function():
