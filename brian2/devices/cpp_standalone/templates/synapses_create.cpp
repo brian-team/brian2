@@ -9,7 +9,14 @@
 		for(int j=0; j<_num_all_post; j++)
 		{
 		    const int _vectorisation_idx = j;
-			// Define the condition
+            {# The abstract code consists of the following lines (the first two lines
+            are there to properly support subgroups as sources/targets):
+             _pre_idx = _all_pre
+             _post_idx = _all_post
+             _cond = {user-specified condition}
+            _n = {user-specified number of synapses}
+            _p = {user-specified probability}
+            #}
 			{% for line in code_lines %}
 			{{line}}
 			{% endfor %}
@@ -24,8 +31,8 @@
 			    }
 
 			    for (int _repetition=0; _repetition<_n; _repetition++) {
-			    	{{_dynamic__synaptic_pre}}.push_back(_pre_idcs);
-			    	{{_dynamic__synaptic_post}}.push_back(_post_idcs);
+			    	{{_dynamic__synaptic_pre}}.push_back(_pre_idx);
+			    	{{_dynamic__synaptic_post}}.push_back(_post_idx);
                     _synapse_idx++;
                 }
 			}

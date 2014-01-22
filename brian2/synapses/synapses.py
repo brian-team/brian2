@@ -843,8 +843,8 @@ class Synapses(Group):
             self.variables['_synaptic_pre'].get_value()[old_N:new_N] = real_sources
             self.variables['_synaptic_post'].get_value()[old_N:new_N] = real_targets
         else:
-            abstract_code = '_pre_idcs = _all_pre \n'
-            abstract_code += '_post_idcs = _all_post \n'
+            abstract_code = '_pre_idx = _all_pre \n'
+            abstract_code += '_post_idx = _all_post \n'
             abstract_code += '_cond = ' + condition + '\n'
             abstract_code += '_n = ' + str(n) + '\n'
             abstract_code += '_p = ' + str(p)
