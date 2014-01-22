@@ -12,6 +12,28 @@ from brian2.utils.stringtools import (indent, deindent, strip_empty_lines,
 
 __all__ = ['Templater']
 
+AUTOINDENT_START = '%%START_AUTOINDENT%%'
+AUTOINDENT_END = '%%END_AUTOINDENT%%'
+
+def autoindent(code):
+    return AUTOINDENT_START+code+AUTOINDENT_END
+
+def autoindent_postfilter(code):
+    lines = code.split('\n')
+    outlines = []
+    addspaces = 0
+    for line in lines:
+        if AUTOINDENT_START in line:
+            if addspaces>0:
+                raise SyntaxError("Cannot nest autoindents")
+            addspaces = line.find(AUTOINDENT_START)
+            line = line.replace(AUTOINDENT_START, '')
+        if AUTOINDENT_END in line:
+            line = line.replace(AUTOINDENT_END, '')
+            addspaces = 0
+        outlines.append(' '*addspaces+line)
+    return '\n'.join(outlines)
+
 class Templater(object):
     '''
     Class to load and return all the templates a `CodeObject` defines.
@@ -21,6 +43,8 @@ class Templater(object):
                                trim_blocks=True,
                                lstrip_blocks=True,
                                )
+        self.env.globals['autoindent'] = autoindent
+        self.env.filters['autoindent'] = autoindent
         if env_globals is not None:
             self.env.globals.update(env_globals)
         for name in self.env.list_templates():
@@ -54,7 +78,7 @@ class CodeObjectTemplate(object):
         if len([k for k in module.__dict__.keys() if not k.startswith('_')]):
             return MultiTemplate(module)
         else:
-            return str(module)
+            return autoindent_postfilter(str(module))
 
 
 class MultiTemplate(object):
@@ -62,7 +86,7 @@ class MultiTemplate(object):
         self._templates = {}
         for k, f in module.__dict__.items():
             if not k.startswith('_'):
-                s = str(f())
+                s = autoindent_postfilter(str(f()))
                 setattr(self, k, s)
                 self._templates[k] = s
                 
