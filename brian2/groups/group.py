@@ -74,7 +74,7 @@ class Group(BrianObject):
 
         self._group_attribute_access_active = True
 
-    def _state(self, name, use_units, level=0):
+    def state(self, name, use_units, level=0):
         '''
         Return the state variable in a way that properly supports indexing in
         the context of this group
@@ -126,7 +126,7 @@ class Group(BrianObject):
                 use_units = False
             else:
                 use_units = True
-            return self._state(name, use_units)
+            return self.state(name, use_units)
 
         except KeyError:
             raise AttributeError('No attribute with name ' + name)
