@@ -1,7 +1,7 @@
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-    // USES_VARIABLES { _t, _clock_t, _indices }
+    {# USES_VARIABLES { _t, _clock_t, _indices } #}
 
     // Get the current length and new length of t and value arrays
     const int _curlen = {{_dynamic__t}}.attr("shape")[0];

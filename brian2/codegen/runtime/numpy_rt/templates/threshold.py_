@@ -1,8 +1,8 @@
-# USES_VARIABLES { _spikespace }
+{# USES_VARIABLES { _spikespace } #}
 # t, not_refractory and lastspike are added as needed_variables in the
 # Thresholder class, we cannot use the USES_VARIABLE mechanism
 # conditionally
-# ITERATE_ALL { _idx }
+{# ITERATE_ALL { _idx } #}
 
 _vectorisation_idx = N
 

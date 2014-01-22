@@ -1,7 +1,7 @@
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-    // USES_VARIABLES { _synaptic_pre, _synaptic_post, rand}
+    {# USES_VARIABLES { _synaptic_pre, _synaptic_post, rand} #}
 	srand((unsigned int)time(NULL));
 	int _buffer_size = 1024;
 	int *_prebuf = new int[_buffer_size];

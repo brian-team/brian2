@@ -1,4 +1,4 @@
-# USES_VARIABLES { _t, _clock_t, _indices }
+{# USES_VARIABLES { _t, _clock_t, _indices } #}
 
 # Resize dynamic arrays
 _new_len = len({{_dynamic__t}}) + 1

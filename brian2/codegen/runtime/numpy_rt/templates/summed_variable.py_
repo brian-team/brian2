@@ -1,5 +1,5 @@
-# USES_VARIABLES { _synaptic_post }
-# ITERATE_ALL { _idx }
+{# USES_VARIABLES { _synaptic_post } #}
+{# ITERATE_ALL { _idx } #}
 {% set _target_var_array = get_array_name(_target_var) %}
 
 import numpy as np

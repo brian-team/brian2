@@ -1,6 +1,6 @@
 {% extends 'common_group.cpp' %}
 {% block maincode %}
-    // USES_VARIABLES { _synaptic_post, N_post }
+    {# USES_VARIABLES { _synaptic_post, N_post } #}
 	//// MAIN CODE ////////////
 	{% set _target_var_array = get_array_name(_target_var) %}
 

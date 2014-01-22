@@ -1,7 +1,7 @@
 {% import 'common_macros.cpp' as common with context %}
 {% macro main() %}
     {{ common.insert_group_preamble() }}
-    // USES_VARIABLES { _t, _rate, t, dt, _spikespace, _num_source_neurons }
+    {# USES_VARIABLES { _t, _rate, t, dt, _spikespace, _num_source_neurons } #}
 	const int _num_spikes = {{_spikespace}}[_num_spikespace-1];
 
     // Calculate the new length for the arrays

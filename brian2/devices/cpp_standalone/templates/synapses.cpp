@@ -2,7 +2,7 @@
 
 {% block maincode %}
     // This is only needed for the _debugmsg function below
-    // USES_VARIABLES { _synaptic_pre }
+    {# USES_VARIABLES { _synaptic_pre } #}
 	vector<int32_t> *_spiking_synapses = {{pathway.name}}.queue->peek();
 	const unsigned int _num_spiking_synapses = _spiking_synapses->size();
 	for(unsigned int _spiking_synapse_idx=0;

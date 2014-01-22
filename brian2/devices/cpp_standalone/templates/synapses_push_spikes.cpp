@@ -3,7 +3,7 @@
 
 {% macro cpp_file() %}
 
-// USES_VARIABLES { _spikespace }
+{# USES_VARIABLES { _spikespace } #}
 
 #include "code_objects/{{codeobj_name}}.h"
 #include<math.h>

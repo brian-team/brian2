@@ -1,4 +1,4 @@
-# USES_VARIABLES { _spikespace }
+{# USES_VARIABLES { _spikespace } #}
 _idx = {{_spikespace}}[:{{_spikespace}}[-1]]
 _vectorisation_idx = _idx
 {% for line in code_lines %}

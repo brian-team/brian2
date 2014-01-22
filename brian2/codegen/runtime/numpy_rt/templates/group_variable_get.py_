@@ -2,7 +2,7 @@
    we do not generate any code but simply access the data in the underlying
    array directly. See RuntimeDevice.get_with_array #}
 
-# USES_VARIABLES { _group_idx }
+{# USES_VARIABLES { _group_idx } #}
 _idx = {{_group_idx}}
 
 {% for line in code_lines %}

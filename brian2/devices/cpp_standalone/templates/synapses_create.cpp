@@ -2,7 +2,7 @@
 
 {% block maincode %}
     #include<iostream>
-	// USES_VARIABLES { _synaptic_pre, _synaptic_post, rand}
+	{# USES_VARIABLES { _synaptic_pre, _synaptic_post, rand} #}
 	int _synapse_idx = {{_dynamic__synaptic_pre}}.size();
 	for(int i=0; i<_num_all_pre; i++)
 	{

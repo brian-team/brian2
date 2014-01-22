@@ -1,4 +1,4 @@
-# USES_VARIABLES { _synaptic_post, _spiking_synapses }
+{# USES_VARIABLES { _synaptic_post, _spiking_synapses } #}
 
 {# The following checks whether all the variables referred to in the code are
    synaptic (and not pre- or postsynaptic). If this is the case, we can do a

@@ -4,7 +4,7 @@
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-    // USES_VARIABLES { _group_idx }
+    {# USES_VARIABLES { _group_idx } #}
 	//// MAIN CODE ////////////
 	{%set c_type = c_data_type(variables['_variable'].dtype) %}
 	{%set numpy_dtype = dtype(variables['_variable'].dtype).char %}

@@ -1,4 +1,4 @@
-# USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post }
+{# USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post } #}
 # ITERATE_ALL { _idx }
 import numpy as np
 

@@ -1,6 +1,6 @@
 {% extends 'common_group.cpp' %}
 {% block maincode %}
-	// USES_VARIABLES { _spikespace }
+	{# USES_VARIABLES { _spikespace } #}
 
 	const int *_spikes = {{_spikespace}};
 	const int _num_spikes = {{_spikespace}}[N];

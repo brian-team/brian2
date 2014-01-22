@@ -5,7 +5,7 @@
 {% set _t = '_dynamic'+variables['_t'].arrayname %}
 
 {% block maincode %}
-	// { USES_VARIABLES _rate, _t, _spikespace, t, dt, _num_source_neurons }
+	{# USES_VARIABLES { _rate, _t, _spikespace, t, dt, _num_source_neurons } #}
 
 	int _num_spikes = {{_spikespace}}[_num_{{_spikespace}}-1];
 	int _num_source_neurons = _num_{{_spikespace}}-1;

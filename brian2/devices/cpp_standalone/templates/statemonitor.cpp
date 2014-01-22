@@ -4,7 +4,7 @@
 {% set _indices = variables['_indices'].arrayname %}
 
 {% block maincode %}
-    // USES_VARIABLES { _t, _indices }
+    {# USES_VARIABLES { _t, _indices } #}
 
     {{_t}}.push_back(t);
 
