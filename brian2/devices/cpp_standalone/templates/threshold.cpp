@@ -1,15 +1,12 @@
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-	// USES_VARIABLES { t, _spikespace }
+	{# USES_VARIABLES { t, _spikespace } #}
 	// not_refractory and lastspike are added as needed_variables in the
 	// Thresholder class, we cannot use the USES_VARIABLE mechanism
 	// conditionally
 
 	//// MAIN CODE ////////////
-	{% if variables is defined %}
-	{% set _spikespace = variables['_spikespace'].arrayname %}
-	{% endif %}
 	long _cpp_numspikes = 0;
 	for(int _idx=0; _idx<N; _idx++)
 	{
@@ -23,8 +20,8 @@
 			// We have to use the pointer names directly here: The condition
 			// might contain references to not_refractory or lastspike and in
 			// that case the names will refer to a single entry.
-			_ptr{{_array_not_refractory}}[_idx] = false;
-			_ptr{{_array_lastspike}}[_idx] = t;
+			{{not_refractory}}[_idx] = false;
+			{{lastspike}}[_idx] = t;
 			{% endif %}
 		}
 	}

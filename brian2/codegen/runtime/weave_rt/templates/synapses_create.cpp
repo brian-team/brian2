@@ -1,7 +1,7 @@
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-    // USES_VARIABLES { _synaptic_pre, _synaptic_post, rand}
+    {# USES_VARIABLES { _synaptic_pre, _synaptic_post, rand} #}
 	srand((unsigned int)time(NULL));
 	int _buffer_size = 1024;
 	int *_prebuf = new int[_buffer_size];
@@ -14,7 +14,14 @@
 		for(int j=0; j<_num_all_post; j++)
 		{
 		    const int _vectorisation_idx = j;
-			// Define the condition
+            {# The abstract code consists of the following lines (the first two lines
+            are there to properly support subgroups as sources/targets):
+            _pre_idx = _all_pre
+            _post_idx = _all_post
+            _cond = {user-specified condition}
+            _n = {user-specified number of synapses}
+            _p = {user-specified probability}
+            #}
 		    {{ super() }}
 			// Add to buffer
 			if(_cond)
@@ -27,14 +34,14 @@
 			    }
 
 			    for (int _repetition=0; _repetition<_n; _repetition++) {
-                    _prebuf[_curbuf] = _pre_idcs;
-                    _postbuf[_curbuf] = _post_idcs;
+                    _prebuf[_curbuf] = _pre_idx;
+                    _postbuf[_curbuf] = _post_idx;
                     _curbuf++;
                     // Flush buffer
                     if(_curbuf==_buffer_size)
                     {
-                        _flush_buffer(_prebuf, _synaptic_pre_object, _curbuf);
-                        _flush_buffer(_postbuf, _synaptic_post_object, _curbuf);
+                        _flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf);
+                        _flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf);
                         _curbuf = 0;
                     }
                 }
@@ -42,8 +49,15 @@
 		}
 	}
 	// Final buffer flush
-	_flush_buffer(_prebuf, _synaptic_pre_object, _curbuf);
-	_flush_buffer(_postbuf, _synaptic_post_object, _curbuf);
+	_flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf);
+	_flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf);
+
+	const int newsize = {{_dynamic__synaptic_pre}}.size();
+	// now we need to resize all registered variables (via Python)
+	py::tuple _newlen_tuple(1);
+	_newlen_tuple[0] = newsize;
+	_owner.mcall("_resize", _newlen_tuple);
+
 	delete [] _prebuf;
 	delete [] _postbuf;
 	delete [] _synprebuf;

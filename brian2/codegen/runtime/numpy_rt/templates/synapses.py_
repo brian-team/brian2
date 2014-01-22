@@ -1,11 +1,10 @@
-# USES_VARIABLES { _synaptic_post, _spiking_synapses }
+{# USES_VARIABLES { _synaptic_post, _spiking_synapses } #}
 
 {# The following checks whether all the variables referred to in the code are
    synaptic (and not pre- or postsynaptic). If this is the case, we can do a
    much simpler propagation where we do not have to take care of the possibility
    of repeating targets. #}
 
-{% if variable_indices is defined %}
 {% set _non_synaptic = [] %}
 {% for var in variables %}
     {% if variable_indices[var] != '_idx' %}
@@ -13,13 +12,13 @@
         {% if _non_synaptic.append(1) %}{% endif %}
     {% endif %}
 {% endfor %}
-{% endif %}
+
 
 {% if _non_synaptic %}
 # Use the complicated propagation algorithm
 import numpy as np
 
-_post_neurons = _synaptic_post.take(_spiking_synapses)
+_post_neurons = {{_synaptic_post}}.take(_spiking_synapses)
 _perm = _post_neurons.argsort()
 _aux = _post_neurons.take(_perm)
 _flag = np.empty(len(_aux)+1, dtype=bool)

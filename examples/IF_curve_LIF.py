@@ -7,7 +7,7 @@ The input is set differently for each neuron.
 '''
 from brian2 import *
 
-# brian_prefs.codegen.target = 'weave'
+#brian_prefs.codegen.target = 'weave'
 
 N = 1000
 tau = 10 * ms

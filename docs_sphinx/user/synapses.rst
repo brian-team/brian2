@@ -265,12 +265,13 @@ creates a monitor for variable ``w`` for the synapses 0 and 1::
 
 	M = StateMonitor(S,'w',record=[0,1])
 
-Note that these are synapse indexes, not neuron indexes.
-These can be obtained with the `~Synapses.calc_indices` method::
+Note that these are *synapse* indices, not neuron indices.
+These can be obtained via the `~Synapses.indices` attribute that can be indexed
+in the same way as synaptic state variables, for example::
 
-	s = S.calc_indices((i,j))
-
-where ``i`` and ``j`` may be integers, arrays or slices. A third index can also be given.
+	s = S.indices[0, :]  # all synapses originating from neuron 0
+	s = S.indices['i != j']  # all synapses excluding autapses
+	s = S.indices['w > 0']  # all synapses with non-zero weights (at this time)
 
 The recorded traces can then be accessed in the usual way, for example::
 

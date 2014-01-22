@@ -1,18 +1,18 @@
-# { USES_VARIABLES _i, _t, _spikespace, _count, t, _source_start, _source_stop}
+{# USES_VARIABLES {_i, _t, _spikespace, _count, t, _source_start, _source_stop} #}
 import numpy as np
-_spikes = _spikespace[:_spikespace[-1]]
+_spikes = {{_spikespace}}[:{{_spikespace}}[-1]]
 # Take subgroups into account
 _spikes = _spikes[(_spikes >= _source_start) & (_spikes < _source_stop)]
 _spikes -= _source_start
 _n_spikes = len(_spikes)
 if _n_spikes > 0:
 
-    _curlen = len(_t_object)
+    _curlen = len({{_dynamic__t}})
     _newlen = _curlen + _n_spikes
-    _t_object.resize(_newlen)
-    _i_object.resize(_newlen)
-    _t_object[_curlen:_newlen] = t
-    _i_object[_curlen:_newlen] = _spikes
+    {{_dynamic__t}}.resize(_newlen)
+    {{_dynamic__i}}.resize(_newlen)
+    {{_dynamic__t}}[_curlen:_newlen] = t
+    {{_dynamic__i}}[_curlen:_newlen] = _spikes
 
     # This is slow but correctly handles multiple spikes per neuron
-    _count += np.bincount(_spikes, minlength=_source_stop-_source_start);
+    {{_count}} += np.bincount(_spikes, minlength=_source_stop-_source_start);

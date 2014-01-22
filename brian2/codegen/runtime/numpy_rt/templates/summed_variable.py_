@@ -1,5 +1,6 @@
-# USES_VARIABLES { _synaptic_post }
-# ITERATE_ALL { _idx }
+{# USES_VARIABLES { _synaptic_post } #}
+{# ITERATE_ALL { _idx } #}
+{% set _target_var_array = get_array_name(_target_var) %}
 
 import numpy as np
 
@@ -10,6 +11,6 @@ import numpy as np
 
 # We write to the array, using the name provided as a keyword argument to the
 # template
-{{_target_var_array}}[:] = np.bincount(_synaptic_post,
-                                       minlength=len({{_target_var_array}}),
-                                       weights=_synaptic_var)
+{{_target_var_array}}[:] = np.bincount({{_synaptic_post}},
+                                 minlength=len({{_target_var_array}}),
+                                 weights=_synaptic_var)

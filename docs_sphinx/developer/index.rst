@@ -13,6 +13,7 @@ interest to others wishing to better understand how Brian works internally.
    clocks
    units
    equations_namespaces
+   variables_indices
    state_update
    new_magic_and_clocks
    preferences

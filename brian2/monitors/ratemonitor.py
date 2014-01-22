@@ -1,19 +1,14 @@
-import weakref
-from collections import defaultdict
-
-import numpy as np
-
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
-from brian2.core.variables import (Variable, AttributeVariable)
+from brian2.core.variables import Variables
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
-from brian2.devices.device import get_device
+from brian2.groups.group import GroupCodeRunner
 
 __all__ = ['PopulationRateMonitor']
 
 
-class PopulationRateMonitor(BrianObject):
+class PopulationRateMonitor(GroupCodeRunner):
     '''
     Record instantaneous firing rates, averaged across neurons from a
     `NeuronGroup` or other spike source.
@@ -33,7 +28,6 @@ class PopulationRateMonitor(BrianObject):
     '''
     def __init__(self, source, when=None, name='ratemonitor*',
                  codeobj_class=None):
-        self.source = weakref.proxy(source)
 
         # run by default on source clock at the end
         scheduler = Scheduler(when)
@@ -45,37 +39,22 @@ class PopulationRateMonitor(BrianObject):
         self.codeobj_class = codeobj_class
         BrianObject.__init__(self, when=scheduler, name=name)
 
-        dev = get_device()
-        self.variables = {'t': AttributeVariable(second, self.clock, 't_'),
-                          'dt': AttributeVariable(second, self.clock,
-                                                  'dt_', constant=True),
-                          '_spikespace': self.source.variables['_spikespace'],
-                          '_rate': dev.dynamic_array_1d(self, '_rate', 0, 1,
-                                                        constant_size=False),
-                          '_t': dev.dynamic_array_1d(self, '_t', 0, second,
-                                                     dtype=getattr(self.clock.t, 'dtype',
-                                                                   np.dtype(type(self.clock.t))),
-                                                     constant_size=False),
-                          '_num_source_neurons': Variable(Unit(1),
-                                                          len(self.source))}
+        self.variables = Variables(self)
+        self.variables.add_clock_variables(self.clock)
+        self.variables.add_dynamic_array('_rate', size=0, unit=hertz,
+                                         constant_size=False)
+        self.variables.add_dynamic_array('_t', size=0, unit=second,
+                                         constant_size=False)
+        self.variables.add_constant('_num_source_neurons', unit=Unit(1),
+                                    value=len(source))
+
+        GroupCodeRunner.__init__(self, source, 'ratemonitor', when=scheduler)
 
     def reinit(self):
         '''
         Clears all recorded rates
         '''
         raise NotImplementedError()
-
-    def before_run(self, namespace):
-        self.codeobj = get_device().code_object(
-                                         self,
-                                         self.name+'_codeobject*',
-                                         '', # No model-specific code
-                                         {}, # no namespace
-                                         self.variables,
-                                         template_name='ratemonitor',
-                                         variable_indices=defaultdict(lambda: '_idx'))
-
-        self.updaters[:] = [self.codeobj.get_updater()]
 
     @property
     def rate(self):

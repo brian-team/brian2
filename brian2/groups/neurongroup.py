@@ -10,10 +10,10 @@ from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         STATIC_EQUATION, PARAMETER)
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
-from brian2.devices.device import get_device
+from brian2.codegen.codeobject import check_code_units
 from brian2.core.preferences import brian_prefs
 from brian2.core.namespace import create_namespace
-from brian2.core.variables import (StochasticVariable, Subexpression)
+from brian2.core.variables import (Variables, Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.parsing.expressions import (parse_expression_unit,
@@ -22,7 +22,7 @@ from brian2.utils.logger import get_logger
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
 
-from .group import Group, GroupCodeRunner, check_code_units
+from .group import Group, GroupCodeRunner
 from .subgroup import Subgroup
 
 __all__ = ['NeuronGroup']
@@ -108,13 +108,7 @@ class Thresholder(GroupCodeRunner):
             template_kwds = {'_uses_refractory': False}
             needed_variables = []
         else:
-            # For C++ code, we need these names explicitly, since not_refractory
-            # and lastspike might also be used in the threshold condition -- the
-            # names will then refer to single (constant) values and cannot be
-            # used for assigning new values
-            template_kwds = {'_uses_refractory': True,
-                             '_array_not_refractory': group.variables['not_refractory'].arrayname,
-                             '_array_lastspike': group.variables['lastspike'].arrayname}
+            template_kwds = {'_uses_refractory': True}
             needed_variables=['t', 'not_refractory', 'lastspike']
         GroupCodeRunner.__init__(self, group,
                                  'threshold',
@@ -129,6 +123,10 @@ class Thresholder(GroupCodeRunner):
         check_code_units(self.abstract_code, self.group, ignore_keyerrors=True)
 
     def update_abstract_code(self):
+        if not is_boolean_expression(self.group.threshold, self.group.namespace,
+                                     self.group.variables):
+            raise TypeError(('Threshold condition "%s" is not a boolean '
+                             'expression') % self.group.threshold)
         if self.group._refractory is False:
             self.abstract_code = '_cond = %s' % self.group.threshold
         else:
@@ -257,7 +255,7 @@ class NeuronGroup(Group, SpikeSource):
         self.namespace = create_namespace(namespace)
 
         # Setup variables
-        self.variables = self._create_variables(dtype)
+        self._create_variables(dtype)
 
         # All of the following will be created in before_run
         
@@ -305,13 +303,14 @@ class NeuronGroup(Group, SpikeSource):
         if self.resetter is not None:
             self.contained_objects.append(self.resetter)
 
+        if refractory is not False:
+            # Set the refractoriness information
+            self.variables['lastspike'].set_value(-np.inf*second)
+            self.variables['not_refractory'].set_value(True)
+
         # Activate name attribute access
         self._enable_group_attributes()
 
-        if refractory is not False:
-            # Set the refractoriness information
-            self.lastspike = -np.inf*second
-            self.not_refractory = True
 
     def __len__(self):
         '''
@@ -376,9 +375,9 @@ class NeuronGroup(Group, SpikeSource):
         Create the variables dictionary for this `NeuronGroup`, containing
         entries for the equation variables and some standard entries.
         '''
-        device = get_device()
-        # Get the standard variables for all groups
-        s = Group._create_variables(self)
+        self.variables = Variables(self)
+        self.variables.add_clock_variables(self.clock)
+        self.variables.add_constant('N', Unit(1), self._N)
 
         if dtype is None:
             dtype = defaultdict(lambda: brian_prefs['core.default_scalar_dtype'])
@@ -389,35 +388,28 @@ class NeuronGroup(Group, SpikeSource):
                              'specification') % type(dtype))
 
         # Standard variables always present
-        s['_spikespace'] = device.array(self, '_spikespace', self._N+1,
-                                        Unit(1), dtype=np.int32,
-                                        constant=False)
+        self.variables.add_array('_spikespace', unit=Unit(1), size=self._N+1,
+                                 dtype=np.int32, constant=False)
         # Add the special variable "i" which can be used to refer to the neuron index
-        s['i'] = device.arange(self, 'i', self._N, constant=True,
-                               read_only=True)
+        self.variables.add_arange('i', size=self._N, constant=True,
+                                  read_only=True)
+
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = ('constant' in eq.flags)
-                s[eq.varname] = device.array(self, eq.varname, self._N, eq.unit,
-                                             dtype=dtype[eq.varname],
-                                             constant=constant,
-                                             is_bool=eq.is_bool)
-        
+                self.variables.add_array(eq.varname, size=self._N,
+                                         unit=eq.unit, dtype=dtype[eq.varname],
+                                         constant=constant, is_bool=eq.is_bool)
             elif eq.type == STATIC_EQUATION:
-                s[eq.varname] = Subexpression(eq.varname,
-                                              eq.unit,
-                                              dtype=brian_prefs['core.default_scalar_dtype'],
-                                              expr=str(eq.expr),
-                                              group=self,
-                                              is_bool=eq.is_bool)
+                self.variables.add_subexpression(eq.varname, unit=eq.unit,
+                                                 expr=str(eq.expr),
+                                                 is_bool=eq.is_bool)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
         # Stochastic variables
         for xi in self.equations.stochastic_variables:
-            s.update({xi: StochasticVariable()})
-
-        return s
+            self.variables.add_auxiliary_variable(xi, unit=second**-0.5)
 
     def before_run(self, namespace):
     

@@ -76,10 +76,10 @@ def test_warning():
     from brian2.core.functions import DEFAULT_FUNCTIONS
     from brian2.units.stdunits import cm as brian_cm
     # Name in external namespace clashes with unit/function name
-    exp = 'not the function'
-    cm = 'not the unit'
+    exp = 23
+    cm = 42
     namespace = create_namespace()
-    local_ns = get_local_namespace()
+    local_ns = get_local_namespace(level=0)
     with catch_logs() as l:
         resolved = namespace.resolve('exp', ('implicit namespace', local_ns))
         assert resolved == DEFAULT_FUNCTIONS['exp']

@@ -17,9 +17,10 @@ The input information needed:
 import re
 import collections
 
-from numpy import float64
+import numpy as np
 
 from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
+from brian2.core.functions import Function
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
                                       get_identifiers, word_substitute)
 from brian2.parsing.statements import parse_statement
@@ -83,10 +84,12 @@ def analyse_identifiers(code, variables, recursive=False):
                     if not isinstance(k, AuxiliaryVariable))
     else:
         known = set(variables)
-        variables = dict((k, Variable(unit=None, value=1.0)) for k in known)
+        variables = dict((k, Variable(unit=None, name=k,
+                                      dtype=np.float64))
+                         for k in known)
 
     known |= STANDARD_IDENTIFIERS
-    stmts = make_statements(code, variables, float64)
+    stmts = make_statements(code, variables, np.float64)
     defined = set(stmt.var for stmt in stmts if stmt.op==':=')
     if recursive:
         if not isinstance(variables, collections.Mapping):
@@ -126,7 +129,8 @@ def make_statements(code, variables, dtype):
     if DEBUG:
         print 'INPUT CODE:'
         print code
-    dtypes = dict((name, var.dtype) for name, var in variables.iteritems())
+    dtypes = dict((name, var.dtype) for name, var in variables.iteritems()
+                  if not isinstance(var, Function))
     # we will do inference to work out which lines are := and which are =
     defined = set(k for k, v in variables.iteritems()
                   if not isinstance(v, AuxiliaryVariable))
@@ -246,11 +250,11 @@ def make_statements(code, variables, dtype):
 def translate_subexpression(subexpr, variables):
     substitutions = {}
     for name in get_identifiers(subexpr.expr):
-        if name not in subexpr.group.variables:
+        if name not in subexpr.owner.variables:
             # Seems to be a name referring to an external variable,
             # nothing to do
             continue
-        subexpr_var = subexpr.group.variables[name]
+        subexpr_var = subexpr.owner.variables[name]
         if name in variables and variables[name] is subexpr_var:
             # Variable is available under the same name, nothing to do
             continue
@@ -276,17 +280,18 @@ def translate_subexpressions(subexpressions, variables):
     new_subexpressions = {}
     for subexpr_name, subexpr in subexpressions.iteritems():
         new_expr = translate_subexpression(subexpr, variables)
-        new_subexpressions[subexpr_name] = Subexpression(subexpr.name,
-                                                         subexpr.unit,
+        new_subexpressions[subexpr_name] = Subexpression(name=subexpr.name,
+                                                         unit=subexpr.unit,
                                                          expr=new_expr,
-                                                         group=subexpr.group,
+                                                         owner=subexpr.owner,
                                                          dtype=subexpr.dtype,
+                                                         device=subexpr.device,
                                                          is_bool=subexpr.is_bool)
 
     subexpressions.update(new_subexpressions)
     return subexpressions
 
-def translate(code, variables, namespace, dtype, codeobj_class,
+def translate(code, variables, dtype, codeobj_class,
               variable_indices, iterate_all):
     '''
     Translates an abstract code block into the target language.
@@ -303,5 +308,5 @@ def translate(code, variables, namespace, dtype, codeobj_class,
         statements = make_statements(code, variables, dtype)
     language = codeobj_class.language
     return language.translate_statement_sequence(statements, variables,
-                                                 namespace, variable_indices,
+                                                 variable_indices,
                                                  iterate_all, codeobj_class)

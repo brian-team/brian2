@@ -1,32 +1,27 @@
 {% extends 'common_group.cpp' %}
 
-{% if variables is defined %}
-{% set _spikespace = variables['_spikespace'].arrayname %}
-{% set _i = '_dynamic'+variables['_i'].arrayname %}
-{% set _t = '_dynamic'+variables['_t'].arrayname %}
-{% endif %}
-
 {% block maincode %}
 	//// MAIN CODE ////////////
-
-	int _num_spikes = {{_spikespace}}[_num_{{_spikespace}}-1];
+    {# USES_VARIABLES { _t, _i, t, _spikespace, _count,
+                        _source_start, _source_stop} #}
+	int _num_spikes = {{_spikespace}}[_num_spikespace-1];
     if (_num_spikes > 0)
     {
         int _start_idx = 0;
         int _end_idx = - 1;
-        for(int _i=0; _i<_num_spikes; _i++)
+        for(int _j=0; _j<_num_spikes; _j++)
         {
-            const int _idx = {{_spikespace}}[_i];
+            const int _idx = {{_spikespace}}[_j];
             if (_idx >= _source_start) {
-                _start_idx = _i;
+                _start_idx = _j;
                 break;
             }
         }
-        for(int _i=_start_idx; _i<_num_spikes; _i++)
+        for(int _j=_start_idx; _j<_num_spikes; _j++)
         {
-            const int _idx = {{_spikespace}}[_i];
+            const int _idx = {{_spikespace}}[_j];
             if (_idx >= _source_stop) {
-                _end_idx = _i;
+                _end_idx = _j;
                 break;
             }
         }
@@ -34,11 +29,11 @@
             _end_idx =_num_spikes;
         _num_spikes = _end_idx - _start_idx;
         if (_num_spikes > 0) {
-        	for(int _i=_start_idx; _i<_end_idx; _i++)
+        	for(int _j=_start_idx; _j<_end_idx; _j++)
         	{
-        		const int _idx = {{_spikespace}}[_i];
-        		{{_i}}.push_back(_idx-_source_start);
-        		{{_t}}.push_back(t);
+        		const int _idx = {{_spikespace}}[_j];
+        		{{_dynamic__i}}.push_back(_idx-_source_start);
+        		{{_dynamic__t}}.push_back(t);
         	}
         }
     }
@@ -51,7 +46,7 @@ void _write_{{codeobj_name}}()
 	outfile_t.open("results/{{codeobj_name}}_t", ios::binary | ios::out);
 	if(outfile_t.is_open())
 	{
-		outfile_t.write(reinterpret_cast<char*>(&{{_t}}[0]), {{_t}}.size()*sizeof({{_t}}[0]));
+		outfile_t.write(reinterpret_cast<char*>(&{{_dynamic__t}}[0]), {{_dynamic__t}}.size()*sizeof({{_dynamic__t}}[0]));
 		outfile_t.close();
 	} else
 	{
@@ -61,7 +56,7 @@ void _write_{{codeobj_name}}()
 	outfile_i.open("results/{{codeobj_name}}_i", ios::binary | ios::out);
 	if(outfile_i.is_open())
 	{
-		outfile_i.write(reinterpret_cast<char*>(&{{_i}}[0]), {{_i}}.size()*sizeof({{_i}}[0]));
+		outfile_i.write(reinterpret_cast<char*>(&{{_dynamic__i}}[0]), {{_dynamic__i}}.size()*sizeof({{_dynamic__i}}[0]));
 		outfile_i.close();
 	} else
 	{
@@ -84,7 +79,7 @@ void _write_{{codeobj_name}}()
 
 void _debugmsg_{{codeobj_name}}()
 {
-	cout << "Number of spikes: " << {{_i}}.size() << endl;
+	cout << "Number of spikes: " << {{_dynamic__i}}.size() << endl;
 }
 {% endblock %}
 

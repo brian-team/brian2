@@ -2,14 +2,13 @@ import numpy as np
 
 from brian2.core.namespace import create_namespace
 from brian2.core.spikesource import SpikeSource
-from brian2.core.variables import ArrayVariable
-from brian2.devices.device import get_device
-from brian2.equations import Equations
-from brian2.units.fundamentalunits import check_units
+from brian2.core.variables import Variables
+from brian2.units.fundamentalunits import check_units, Unit
+from brian2.units.allunits import second
 from brian2.units.stdunits import Hz
 
 from .group import Group
-from .neurongroup import Thresholder, StateUpdater
+from .neurongroup import Thresholder
 
 __all__ = ['PoissonGroup']
 
@@ -48,17 +47,17 @@ class PoissonGroup(Group, SpikeSource):
         # users write their own NeuronGroup (with threshold rand() < rates*dt)
         # for more complex use cases.
 
-        self.variables = Group._create_variables(self)
-        self.variables.update({'i': get_device().arange(self, 'i', N,
-                                                        constant=True,
-                                                        read_only=True),
-                               'rates': get_device().array(self, 'rates',
-                                                           size=N, unit=Hz),
-                               '_spikespace': get_device().array(self,
-                                                                 '_spikespace',
-                                                                 size=N+1,
-                                                                 unit=1,
-                                                                 dtype=np.int32)})
+        self.variables = Variables(self)
+        # standard variables
+        self.variables.add_clock_variables(self.clock)
+        self.variables.add_constant('N', unit=Unit(1), value=self._N)
+        self.variables.add_arange('i', self._N, constant=True, read_only=True)
+        self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
+                                 dtype=np.int32)
+
+        # The firing rates
+        self.variables.add_array('rates', size=N, unit=Hz)
+
         self.start = 0
         self.stop = N
         self.namespace = create_namespace(None)
@@ -69,13 +68,9 @@ class PoissonGroup(Group, SpikeSource):
         self.contained_objects.append(self.thresholder)
 
         self._enable_group_attributes()
-
         # Set the rates according to the argument (make sure to use the correct
         # namespace)
-        rate_value = self.variables['rates'].get_addressable_value_with_unit(name,
-                                                                             self,
-                                                                             level=2)
-        rate_value[:] = rates
+        self.rates.set_item(slice(None), rates, level=2)
 
     @property
     def spikes(self):

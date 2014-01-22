@@ -3,6 +3,9 @@ Implementation of the namespace system, used to resolve the identifiers in
 model equations of `NeuronGroup` and `Synapses`
 '''
 import inspect
+import itertools
+import numbers
+import weakref
 import collections
 try:
     from collections import OrderedDict
@@ -29,7 +32,7 @@ __all__ = ['create_namespace',
 logger = get_logger(__name__)
 
 
-def get_local_namespace(level=0):
+def get_local_namespace(level):
     '''
     Get the surrounding namespace.
 
@@ -46,9 +49,24 @@ def get_local_namespace(level=0):
         The locals and globals at the given depth of the stack frame.
     '''
     # Get the locals and globals from the stack frame
-    frame = inspect.stack()[1 + level][0]
-    namespace = dict(frame.f_globals)
-    namespace.update(frame.f_locals)
+    namespace = dict()
+    frame = inspect.stack()[level + 1][0]
+    for k, v in itertools.chain(frame.f_globals.iteritems(),
+                                frame.f_locals.iteritems()):
+        # We are only interested in numbers and functions, not in
+        # everything else (classes, modules, etc.)
+        if (((isinstance(v, (numbers.Number, np.ndarray, np.number, Function))) or
+            (inspect.isfunction(v) and
+                 hasattr(v, '_arg_units') and
+                 hasattr(v, '_return_unit'))) and
+                not k.startswith('_')):
+            # If possible, add a weak reference
+            try:
+                v = weakref.proxy(v)
+            except TypeError:
+                pass
+            namespace[k] = v
+    del frame
     return namespace
 
 
@@ -97,7 +115,7 @@ def _conflict_warning(message, resolutions):
 
 def _same_function(func1, func2):
     '''
-    Helper function, used during namespace resolution for comparing wether to
+    Helper function, used during namespace resolution for comparing whether to
     functions are the same. This takes care of treating a function and a
     `Function` variables whose `Function.pyfunc` attribute matches as the
     same. This prevents the user from getting spurious warnings when having
@@ -105,10 +123,20 @@ def _same_function(func1, func2):
     namespace, while the ``randn`` symbol in the numpy namespace used for the
     code objects refers to a `RandnFunction` specifier.
     '''
-    # use the function itself if it doesn't have a pyfunc attribute
+    # use the function itself if it doesn't have a pyfunc attribute and try
+    # to create a weak proxy to make a comparison to other weak proxys return
+    # true
     func1 = getattr(func1, 'pyfunc', func1)
+    try:
+        func1 = weakref.proxy(func1)
+    except TypeError:
+        pass  # already a weakref proxy
     func2 = getattr(func2, 'pyfunc', func2)
-    
+    try:
+        func2 = weakref.proxy(func2)
+    except TypeError:
+        pass
+
     return func1 is func2  
 
 
@@ -158,8 +186,24 @@ class CompoundNamespace(collections.Mapping):
         elif len(matches) > 1:
             # Possibly, all matches refer to the same object
             first_obj = matches[0][1]
-            if not all([(m[1] is first_obj) or _same_function(m[1], first_obj)
-                        for m in matches]):
+            found_mismatch = False
+            for m in matches:
+                if m[1] is first_obj:
+                    continue
+                if _same_function(m[1], first_obj):
+                    continue
+                try:
+                    proxy = weakref.proxy(first_obj)
+                    if m[1] is proxy:
+                        continue
+                except TypeError:
+                    pass
+
+                # Found a mismatch
+                found_mismatch = True
+                break
+
+            if found_mismatch:
                 _conflict_warning(('The name "%s" refers to different objects '
                                    'in different namespaces used for resolving. '
                                    'Will use the object from the %s namespace '

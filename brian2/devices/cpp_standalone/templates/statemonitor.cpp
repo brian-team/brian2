@@ -1,12 +1,10 @@
 {% extends 'common_group.cpp' %}
 
-{% if variables is defined %}
 {% set _t = '_dynamic'+variables['_t'].arrayname %}
 {% set _indices = variables['_indices'].arrayname %}
-{% endif %}
 
 {% block maincode %}
-    // USES_VARIABLES { _t, _indices }
+    {# USES_VARIABLES { _t, _indices } #}
 
     {{_t}}.push_back(t);
 

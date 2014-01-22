@@ -3,14 +3,12 @@ import collections
 
 import numpy as np
 
-from brian2.core.variables import (AttributeVariable, ArrayVariable,
-                                   AuxiliaryVariable, get_dtype)
+from brian2.core.variables import (Variables, get_dtype)
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
-from brian2.devices.device import get_device
+from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.units.allunits import second
-from brian2.groups.group import create_runner_codeobj
 
 __all__ = ['StateMonitor']
 
@@ -171,25 +169,26 @@ class StateMonitor(BrianObject):
         self.indices = record
         
         # Setup variables
-        device = get_device()
-        self.variables = {}
+        self.variables = Variables(self)
         for varname in variables:
             var = source.variables[varname]
-            self.variables[varname] = var
-            self.variables['_recorded_'+varname] = device.dynamic_array(self,
-                                                                        '_recorded_'+varname,
-                                                                        (0, len(self.indices)),
-                                                                        var.unit,
-                                                                        dtype=var.dtype,
-                                                                        constant=False)
+            self.variables.add_reference(varname, var,
+                                         index=source.variables.indices[varname])
+            self.variables.add_dynamic_array('_recorded_' + varname,
+                                             size=(0, len(self.indices)),
+                                             unit=var.unit,
+                                             dtype=var.dtype,
+                                             constant=False,
+                                             constant_size=False,
+                                             is_bool=var.is_bool)
 
-        self.variables['_t'] = device.dynamic_array_1d(self, '_t', 0, Unit(1),
-                                                       constant=False)
-        self.variables['_clock_t'] = AttributeVariable(second, self.clock, 't_')
-        self.variables['_indices'] = device.array(self, '_indices', value=self.indices,
-                                                  size=len(self.indices), unit=Unit(1),
-                                                  dtype=record.dtype,
-                                                  constant=True)
+        self.variables.add_dynamic_array('_t', size=0, unit=Unit(1),
+                                         constant=False, constant_size=False)
+        self.variables.add_attribute_variable('_clock_t', second, self.clock, 't_')
+        self.variables.add_array('_indices', size=len(self.indices),
+                                 unit=Unit(1), dtype=self.indices.dtype,
+                                 constant=True, read_only=True)
+        self.variables['_indices'].set_value(self.indices)
 
         self._group_attribute_access_active = True
 
@@ -202,12 +201,19 @@ class StateMonitor(BrianObject):
         code = ['_to_record_%s = %s' % (v, v)
                 for v in self.record_variables]
         code = '\n'.join(code)
-        source_variables = self.source.variables
-        self.variables.update(dict([('_to_record_%s' % v,
-                                     AuxiliaryVariable(source_variables[v].unit,
-                                                       dtype=source_variables[v].dtype))
-                                    for v in self.record_variables]))
-        recorded_names = ['_recorded_' + name for name in self.record_variables]
+
+        for varname in self.record_variables:
+            var = self.source.variables[varname]
+            self.variables.add_auxiliary_variable('_to_record_' + varname,
+                                                  unit=var.unit,
+                                                  dtype=var.dtype,
+                                                  scalar=var.scalar,
+                                                  is_bool=var.is_bool)
+
+        recorded_variables = dict([(name,
+                                   self.variables['_recorded_'+name])
+                                   for name in self.record_variables])
+        recorded_names = ['_recorded_'+name for name in self.record_variables]
         self.codeobj = create_runner_codeobj(self.source,
                                              code,
                                              'statemonitor',
@@ -215,10 +221,10 @@ class StateMonitor(BrianObject):
                                              needed_variables=recorded_names,
                                              additional_variables=self.variables,
                                              additional_namespace=namespace,
-                                             template_kwds={'_variable_names':
-                                                            self.record_variables},
+                                             template_kwds={'_recorded_variables':
+                                                                recorded_variables},
                                              check_units=False)
-        self.updaters[:] = [self.codeobj.get_updater()]
+        self._code_objects[:] = [weakref.proxy(self.codeobj)]
 
     def __getitem__(self, item):
         dtype = get_dtype(item)

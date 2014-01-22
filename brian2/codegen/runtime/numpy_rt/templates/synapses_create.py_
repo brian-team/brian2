@@ -1,14 +1,22 @@
-# USES_VARIABLES { _synaptic_pre, _synaptic_post }
+{# USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post } #}
 # ITERATE_ALL { _idx }
 import numpy as np
 
 numpy_False = np.bool_(False)
 numpy_True = np.bool_(True)
 
-for i in range(len(_all_pre)):
-    j = np.arange(len(_all_post))
+for i in range(len({{_all_pre}})):
+    j = np.arange(len({{_all_post}}))
     _vectorisation_idx = j
 
+    {# The abstract code consists of the following lines (the first two lines
+    are there to properly support subgroups as sources/targets):
+     _pre_idx = _all_pre
+     _post_idx = _all_post
+     _cond = {user-specified condition}
+    _n = {user-specified number of synapses}
+    _p = {user-specified probability}
+    #}
     {% for line in code_lines %}
     {{line}}
     {% endfor %}
@@ -31,10 +39,12 @@ for i in range(len(_all_pre)):
         # We have a j-independent number
         _cond_nonzero = _cond_nonzero.repeat(_n)
 
-    _cur_num_synapses = len(_synaptic_pre_object)
+    _cur_num_synapses = len({{_dynamic__synaptic_pre}})
     _numnew = len(_cond_nonzero)
     _new_num_synapses = _cur_num_synapses + _numnew
-    _synaptic_pre_object.resize(_new_num_synapses)
-    _synaptic_post_object.resize(_new_num_synapses)
-    _synaptic_pre_object[_cur_num_synapses:] = _pre_idcs
-    _synaptic_post_object[_cur_num_synapses:] = _post_idcs[_cond_nonzero]
+    {{_dynamic__synaptic_pre}}.resize(_new_num_synapses)
+    {{_dynamic__synaptic_post}}.resize(_new_num_synapses)
+    {{_dynamic__synaptic_pre}}[_cur_num_synapses:] = _pre_idx
+    {{_dynamic__synaptic_post}}[_cur_num_synapses:] = _post_idx[_cond_nonzero]
+    # Resize all dependent dynamic arrays (synaptic weights, delays, etc.)
+    _owner._resize(_new_num_synapses)

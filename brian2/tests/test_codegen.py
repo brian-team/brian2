@@ -19,7 +19,10 @@ def test_analyse_identifiers():
     a = b+c
     d = e+f
     '''
-    known = ['b', 'c', 'd', 'g']
+    known = {'b': Variable(unit=None, name='b'),
+             'c': Variable(unit=None, name='c'),
+             'd': Variable(unit=None, name='d'),
+             'g': Variable(unit=None, name='g')}
     
     defined, used_known, dependent = analyse_identifiers(code, known)
     
@@ -32,13 +35,15 @@ def test_get_identifiers_recursively():
     '''
     Test finding identifiers including subexpressions.
     '''
-    variables = {'sub1': Subexpression('sub1', Unit(1), dtype=np.float32,
-                                       expr='sub2 * z',
-                                       group=FakeGroup(variables={})),
-                 'sub2': Subexpression('sub2', Unit(1), dtype=np.float32,
-                                       expr='5 + y',
-                                       group=FakeGroup(variables={})),
-                 'x': Variable(unit=None)}
+    variables = {'sub1': Subexpression(name='sub1', unit=Unit(1),
+                                       dtype=np.float32, expr='sub2 * z',
+                                       owner=FakeGroup(variables={}),
+                                       device=None),
+                 'sub2': Subexpression(name='sub2', unit=Unit(1),
+                                       dtype=np.float32, expr='5 + y',
+                                       owner=FakeGroup(variables={}),
+                                       device=None),
+                 'x': Variable(unit=None, name='x')}
     identifiers = get_identifiers_recursively('_x = sub1 + x', variables)
     assert identifiers == set(['x', '_x', 'y', 'z', 'sub1', 'sub2'])
 
@@ -48,8 +53,8 @@ def test_translate_subexpression():
     G1 = FakeGroup(variables={'var1': var1, 'var2': var2})
     G2 = FakeGroup(variables={'var1': var1, 'var2_post': var2})
     G3 = FakeGroup(variables={'var1': var1})
-    sub = Subexpression('sub', Unit(1), dtype=None,
-                        expr='var1 + var2', group=G1)
+    sub = Subexpression(name='sub', unit=Unit(1), dtype=None, device=None,
+                        expr='var1 + var2', owner=G1)
     # Interpreted in the context of G1, the variable names should stay the
     # same
     assert translate_subexpression(sub, G1.variables) == 'var1 + var2'

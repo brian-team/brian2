@@ -3,6 +3,8 @@
 
 {% macro cpp_file() %}
 
+{# USES_VARIABLES { _spikespace } #}
+
 #include "code_objects/{{codeobj_name}}.h"
 #include<math.h>
 #include<stdint.h>
@@ -10,13 +12,19 @@
 
 void _run_{{codeobj_name}}(double t)
 {
-	{% if owner is defined %}
+    ///// CONSTANTS ///////////
+	%CONSTANTS%
+	///// POINTERS ////////////
+	{% for line in pointers_lines %}
+	{{line}}
+	{% endfor %}
+
+    //// MAIN CODE ////////////
 	// we do advance at the beginning rather than at the end because it saves us making
 	// a copy of the current spiking synapses
 	{{owner.name}}.queue->advance();
-	{{owner.name}}.queue->push({{owner.source.variables['_spikespace'].arrayname}}, {{owner.source.variables['_spikespace'].arrayname}}[{{owner.source|length}}]);
+	{{owner.name}}.queue->push({{_spikespace}}, {{_spikespace}}[{{owner.source|length}}]);
 	{{owner.name}}.queue->peek();
-	{% endif %}
 }
 {% endmacro %}
 

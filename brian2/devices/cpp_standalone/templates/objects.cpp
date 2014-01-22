@@ -22,19 +22,21 @@ Network {{net.name}};
 {% endfor %}
 
 //////////////// arrays ///////////////////
-{% for (varname, dtype_spec, N) in array_specs %}
-{{dtype_spec}} *{{varname}};
-const int _num_{{varname}} = {{N}};
+{% for var, varname in array_specs.items() %}
+{% if not var in dynamic_array_specs %}
+{{c_data_type(var.dtype)}} *{{varname}};
+const int _num_{{varname}} = {{var.size}};
+{% endif %}
 {% endfor %}
 
 //////////////// dynamic arrays 1d /////////
-{% for (varname, dtype_spec) in dynamic_array_specs %}
-std::vector<{{dtype_spec}}> {{varname}};
+{% for var, varname in dynamic_array_specs.items() %}
+std::vector<{{c_data_type(var.dtype)}}> {{varname}};
 {% endfor %}
 
 //////////////// dynamic arrays 2d /////////
-{% for (varname, dtype_spec) in dynamic_array_2d_specs %}
-DynamicArray2D<{{dtype_spec}}> {{varname}};
+{% for var, varname in dynamic_array_2d_specs.items() %}
+DynamicArray2D<{{c_data_type(var.dtype)}}> {{varname}};
 {% endfor %}
 
 /////////////// static arrays /////////////
@@ -50,33 +52,35 @@ Synapses<double> {{S.name}}({{S.source|length}}, {{S.target|length}});
 {% for path in S._pathways %}
 SynapticPathway<double> {{path.name}}(
 		{{path.source|length}}, {{path.target|length}},
-		_dynamic{{path.variables['delay'].arrayname}},
-		_dynamic{{path.synapse_sources.arrayname}},
+		{{dynamic_array_specs[path.variables['delay']]}},
+		{{dynamic_array_specs[path.synapse_sources]}},
 		{{path.source.dt_}},
 		{{path.source.start}}, {{path.source.stop}}
 		);
 {% endfor %}
 {% endfor %}
 
+
 void _init_arrays()
 {
     // Arrays initialized to 0
-	{% for (varname, dtype_spec, N) in zero_specs %}
-	{{varname}} = new {{dtype_spec}}[{{N}}];
-	for(int i=0; i<{{N}}; i++) {{varname}}[i] = 0;
+	{% for var in zero_arrays %}
+	{% set varname = array_specs[var] %}
+	{{varname}} = new {{c_data_type(var.dtype)}}[{{var.size}}];
+	for(int i=0; i<{{var.size}}; i++) {{varname}}[i] = 0;
 	{% endfor %}
 
 	// Arrays initialized to an "arange"
-	{% for (varname, dtype_spec, start, stop) in arange_specs %}
-	{{varname}} = new {{dtype_spec}}[{{stop}}-{{start}}];
-	for(int i=0; i<{{stop}}-{{start}}; i++) {{varname}}[i] = {{start}} + i;
+	{% for var, start in arange_arrays %}
+	{% set varname = array_specs[var] %}
+	{{varname}} = new {{c_data_type(var.dtype)}}[{{var.size}}];
+	for(int i=0; i<{{var.size}}; i++) {{varname}}[i] = {{start}} + i;
 	{% endfor %}
 
 	// static arrays
 	{% for (name, dtype_spec, N, filename) in static_array_specs %}
 	{{name}} = new {{dtype_spec}}[{{N}}];
 	{% endfor %}
-
 }
 
 void _load_arrays()
@@ -96,20 +100,22 @@ void _load_arrays()
 
 void _write_arrays()
 {
-	{% for (varname, dtype_spec, N) in array_specs %}
+	{% for var, varname in array_specs.items() %}
+	{% if not var in dynamic_array_specs %}
 	ofstream outfile_{{varname}};
 	outfile_{{varname}}.open("results/{{varname}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
-		outfile_{{varname}}.write(reinterpret_cast<char*>({{varname}}), {{N}}*sizeof({{varname}}[0]));
+		outfile_{{varname}}.write(reinterpret_cast<char*>({{varname}}), {{var.size}}*sizeof({{varname}}[0]));
 		outfile_{{varname}}.close();
 	} else
 	{
 		cout << "Error writing output file for {{varname}}." << endl;
 	}
+	{% endif %}
 	{% endfor %}
 
-	{% for (varname, dtype_spec) in dynamic_array_specs %}
+	{% for var, varname in dynamic_array_specs.items() %}
 	ofstream outfile_{{varname}};
 	outfile_{{varname}}.open("results/{{varname}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
@@ -125,12 +131,14 @@ void _write_arrays()
 
 void _dealloc_arrays()
 {
-	{% for (varname, dtype_spec, N) in array_specs %}
+	{% for var, varname in array_specs.items() %}
+	{% if not var in dynamic_array_specs %}
 	if({{varname}}!=0)
 	{
 		delete [] {{varname}};
 		{{varname}} = 0;
 	}
+	{% endif %}
 	{% endfor %}
 
 	// static arrays
@@ -170,20 +178,23 @@ extern Network magicnetwork;
 extern Network {{net.name}};
 {% endfor %}
 
-//////////////// arrays ///////////////////
-{% for (varname, dtype_spec, N) in array_specs %}
-extern {{dtype_spec}} *{{varname}};
-extern const int _num_{{varname}};
-{% endfor %}
 
 //////////////// dynamic arrays ///////////
-{% for (varname, dtype_spec) in dynamic_array_specs %}
-extern std::vector<{{dtype_spec}}> {{varname}};
+{% for var, varname in dynamic_array_specs.items() %}
+extern std::vector<{{c_data_type(var.dtype)}}> {{varname}};
+{% endfor %}
+
+//////////////// arrays ///////////////////
+{% for var, varname in array_specs.items() %}
+{% if not var in dynamic_array_specs %}
+extern {{c_data_type(var.dtype)}} *{{varname}};
+extern const int _num_{{varname}};
+{% endif %}
 {% endfor %}
 
 //////////////// dynamic arrays 2d /////////
-{% for (varname, dtype_spec) in dynamic_array_2d_specs %}
-extern DynamicArray2D<{{dtype_spec}}> {{varname}};
+{% for var, varname in dynamic_array_2d_specs.items() %}
+extern DynamicArray2D<{{c_data_type(var.dtype)}}> {{varname}};
 {% endfor %}
 
 /////////////// static arrays /////////////
@@ -207,5 +218,6 @@ void _write_arrays();
 void _dealloc_arrays();
 
 #endif
+
 
 {% endmacro %}

@@ -11,18 +11,16 @@ from brian2.units.allunits import second
 
 
 def test_construction_errors():
-    # Mismatching dtype information
-    assert_raises(TypeError, lambda: Variable(Unit(1),
-                                              value=np.arange(10),
-                                              dtype=np.float32))
     # Boolean variable that isn't dimensionless
-    assert_raises(ValueError, lambda: Variable(second,
+    assert_raises(ValueError, lambda: Variable(name='name', unit=second,
                                                is_bool=True))
 
     # Dynamic array variable that is constant but not constant in size
-    assert_raises(ValueError, lambda: DynamicArrayVariable('name', Unit(1),
-                                                           dimensions=1,
-                                                           value=None,
+    assert_raises(ValueError, lambda: DynamicArrayVariable(name='name',
+                                                           unit=Unit(1),
+                                                           owner=None,
+                                                           size=0,
+                                                           device=None,
                                                            constant=True,
                                                            constant_size=False))
 
@@ -31,15 +29,16 @@ def test_str_repr():
     # Basic test that the str/repr methods work
     FakeGroup = namedtuple('G', ['name'])
     group = FakeGroup(name='groupname')
-    variables = [Variable(second),
-                 AuxiliaryVariable(second),
-                 StochasticVariable(),
-                 AttributeVariable(second, group, 'name'),
-                 ArrayVariable('name', second,
-                               value=None, group_name=group.name),
-                 DynamicArrayVariable('name', second, dimensions=1,
-                                      value=None, group_name=group.name),
-                 Subexpression('sub', second, expr='a+b', group=group)]
+    variables = [Variable(name='name', unit=second),
+                 Constant(name='name', unit=second, value=1.0),
+                 AuxiliaryVariable(name='name', unit=second),
+                 AttributeVariable(name='name', unit=second, obj=group,
+                                   attribute='name', dtype=np.float32),
+                 ArrayVariable(name='name', unit=second, owner=None, size=10, device=None),
+                 DynamicArrayVariable(name='name', unit=second, owner=None, size=0,
+                                      device=None),
+                 Subexpression(name='sub', unit=second, expr='a+b', owner=group,
+                               device=None)]
     for var in variables:
         assert len(str(var))
         # The repr value should contain the name of the class

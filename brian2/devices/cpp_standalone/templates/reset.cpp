@@ -1,10 +1,6 @@
 {% extends 'common_group.cpp' %}
 {% block maincode %}
-	// USES_VARIABLES { _spikespace }
-
-	{% if variables is defined %}
-	{% set _spikespace = variables['_spikespace'].arrayname %}
-	{% endif %}
+	{# USES_VARIABLES { _spikespace } #}
 
 	const int *_spikes = {{_spikespace}};
 	const int _num_spikes = {{_spikespace}}[N];

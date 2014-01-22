@@ -419,6 +419,14 @@ def test_repr():
         for eq in G.equations.itervalues():
             assert len(func(eq))
 
+def test_indices():
+    G = NeuronGroup(10, 'v : 1')
+    G.v = 'i'
+
+    assert_equal(G.indices[:], G.i[:])
+    assert_equal(G.indices[5:], G.indices['i >= 5'])
+    assert_equal(G.indices['v >= 5'], np.nonzero(G.v >= 5)[0])
+
 
 if __name__ == '__main__':
     test_creation()
@@ -434,4 +442,5 @@ if __name__ == '__main__':
     test_state_variables()
     test_state_variable_access()
     test_state_variable_access_strings()
+    test_indices()
     test_repr()

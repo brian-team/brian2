@@ -89,16 +89,24 @@ def test_priority():
     # Fake clock class
     MyClock = namedtuple('MyClock', ['t_', 'dt_'])
     clock = MyClock(t_=0, dt_=0.0001)
-    variables = {'v': ArrayVariable('v', Unit(1), None, constant=False),
-                  't': AttributeVariable(second, clock, 't_', constant=False),
-                  'dt': AttributeVariable(second, clock, 'dt_', constant=True)}
+    variables = {'v': ArrayVariable(name='name', unit=Unit(1), size=10,
+                                    owner=None, device=None, dtype=np.float64,
+                                    constant=False),
+                  't': AttributeVariable(name='t', unit=second, obj=clock,
+                                         attribute='t_', constant=False,
+                                         dtype=np.float64),
+                  'dt': AttributeVariable(name='dt', unit=second, obj=clock,
+                                          attribute='dt_', constant=True,
+                                          dtype=np.float64)}
     assert updater.can_integrate(eqs, variables)
 
     # Non-constant parameter in the coefficient, linear integration does not
     # work
     eqs = Equations('''dv/dt = -param * v / (10*ms) : 1
                        param : 1''')
-    variables['param'] = ArrayVariable('param', Unit(1), None, constant=False)
+    variables['param'] = ArrayVariable(name='name', unit=Unit(1), owner=None,
+                                       size=10, dtype=np.float64,
+                                       constant=False, device=None)
     assert updater.can_integrate(eqs, variables)
     can_integrate = {linear: False, euler: True, rk2: True, rk4: True, 
                      milstein: True}
@@ -110,7 +118,9 @@ def test_priority():
     # work
     eqs = Equations('''dv/dt = -param * v / (10*ms) : 1
                        param : 1 (constant)''')
-    variables['param'] = ArrayVariable('param', Unit(1), None, constant=True)
+    variables['param'] = ArrayVariable(name='name', unit=Unit(1), owner=None,
+                                       size=10, dtype=np.float64,
+                                       device=None, constant=True)
     assert updater.can_integrate(eqs, variables)
     can_integrate = {linear: True, euler: True, rk2: True, rk4: True, 
                      milstein: True}
@@ -188,7 +198,8 @@ def test_determination():
     
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     # Just make sure that state updaters know about the two state variables
-    variables = {'v': Variable(unit=None), 'w': Variable(unit=None)}
+    variables = {'v': Variable(name='v', unit=None),
+                 'w': Variable(name='w', unit=None)}
     
     # all methods should work for these equations.
     # First, specify them explicitly (using the object)
