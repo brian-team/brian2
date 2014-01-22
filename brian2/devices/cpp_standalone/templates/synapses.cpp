@@ -20,7 +20,7 @@
 {% block extra_functions_cpp %}
 void _debugmsg_{{codeobj_name}}()
 {
-	cout << "Number of synapses: " << {{_object__synaptic_pre}}.size() << endl;
+	cout << "Number of synapses: " << {{_dynamic__synaptic_pre}}.size() << endl;
 }
 {% endblock %}
 

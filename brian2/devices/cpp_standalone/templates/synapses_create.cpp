@@ -3,7 +3,7 @@
 {% block maincode %}
     #include<iostream>
 	// USES_VARIABLES { _synaptic_pre, _synaptic_post, rand}
-	int _synapse_idx = {{_object__synaptic_pre}}.size();
+	int _synapse_idx = {{_dynamic__synaptic_pre}}.size();
 	for(int i=0; i<_num_all_pre; i++)
 	{
 		for(int j=0; j<_num_all_post; j++)
@@ -24,8 +24,8 @@
 			    }
 
 			    for (int _repetition=0; _repetition<_n; _repetition++) {
-			    	{{_object__synaptic_pre}}.push_back(_pre_idcs);
-			    	{{_object__synaptic_post}}.push_back(_post_idcs);
+			    	{{_dynamic__synaptic_pre}}.push_back(_pre_idcs);
+			    	{{_dynamic__synaptic_post}}.push_back(_post_idcs);
                     _synapse_idx++;
                 }
 			}
@@ -33,7 +33,7 @@
 	}
 
 	// now we need to resize all registered variables
-	const int newsize = {{_object__synaptic_pre}}.size();
+	const int newsize = {{_dynamic__synaptic_pre}}.size();
 	{% for variable in owner._registered_variables %}
 	{% set varname = get_array_name(variable, access_data=False) %}
 	{{varname}}.resize(newsize);

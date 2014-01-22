@@ -32,8 +32,8 @@
         	for(int _j=_start_idx; _j<_end_idx; _j++)
         	{
         		const int _idx = {{_spikespace}}[_j];
-        		{{_object__i}}.push_back(_idx-_source_start);
-        		{{_object__t}}.push_back(t);
+        		{{_dynamic__i}}.push_back(_idx-_source_start);
+        		{{_dynamic__t}}.push_back(t);
         	}
         }
     }
@@ -46,7 +46,7 @@ void _write_{{codeobj_name}}()
 	outfile_t.open("results/{{codeobj_name}}_t", ios::binary | ios::out);
 	if(outfile_t.is_open())
 	{
-		outfile_t.write(reinterpret_cast<char*>(&{{_object__t}}[0]), {{_object__t}}.size()*sizeof({{_object__t}}[0]));
+		outfile_t.write(reinterpret_cast<char*>(&{{_dynamic__t}}[0]), {{_dynamic__t}}.size()*sizeof({{_dynamic__t}}[0]));
 		outfile_t.close();
 	} else
 	{
@@ -56,7 +56,7 @@ void _write_{{codeobj_name}}()
 	outfile_i.open("results/{{codeobj_name}}_i", ios::binary | ios::out);
 	if(outfile_i.is_open())
 	{
-		outfile_i.write(reinterpret_cast<char*>(&{{_object__i}}[0]), {{_object__i}}.size()*sizeof({{_object__i}}[0]));
+		outfile_i.write(reinterpret_cast<char*>(&{{_dynamic__i}}[0]), {{_dynamic__i}}.size()*sizeof({{_dynamic__i}}[0]));
 		outfile_i.close();
 	} else
 	{
@@ -79,7 +79,7 @@ void _write_{{codeobj_name}}()
 
 void _debugmsg_{{codeobj_name}}()
 {
-	cout << "Number of spikes: " << {{_object__i}}.size() << endl;
+	cout << "Number of spikes: " << {{_dynamic__i}}.size() << endl;
 }
 {% endblock %}
 

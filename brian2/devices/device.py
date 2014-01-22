@@ -365,7 +365,7 @@ class Device(object):
                 if hasattr(var, 'resize'):
                     dyn_array_name = language.get_array_name(var,
                                                              access_data=False)
-                    template_kwds['_object_'+varname] = dyn_array_name
+                    template_kwds['_dynamic_'+varname] = dyn_array_name
 
 
         template_kwds.update(kwds)

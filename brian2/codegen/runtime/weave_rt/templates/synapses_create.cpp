@@ -33,8 +33,8 @@
                     // Flush buffer
                     if(_curbuf==_buffer_size)
                     {
-                        _flush_buffer(_prebuf, {{_object__synaptic_pre}}, _curbuf);
-                        _flush_buffer(_postbuf, {{_object__synaptic_post}}, _curbuf);
+                        _flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf);
+                        _flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf);
                         _curbuf = 0;
                     }
                 }
@@ -42,10 +42,10 @@
 		}
 	}
 	// Final buffer flush
-	_flush_buffer(_prebuf, {{_object__synaptic_pre}}, _curbuf);
-	_flush_buffer(_postbuf, {{_object__synaptic_post}}, _curbuf);
+	_flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf);
+	_flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf);
 
-	const int newsize = {{_object__synaptic_pre}}.size();
+	const int newsize = {{_dynamic__synaptic_pre}}.size();
 	// now we need to resize all registered variables (via Python)
 	py::tuple _newlen_tuple(1);
 	_newlen_tuple[0] = newsize;

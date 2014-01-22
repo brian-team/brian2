@@ -33,17 +33,17 @@
         _num_spikes = _end_idx - _start_idx;
         if (_num_spikes > 0) {
             // Get the current length and new length of t and i arrays
-            const int _curlen = {{_object__t}}.attr("shape")[0];
+            const int _curlen = {{_dynamic__t}}.attr("shape")[0];
             const int _newlen = _curlen + _num_spikes;
             // Resize the arrays
             py::tuple _newlen_tuple(1);
             _newlen_tuple[0] = _newlen;
-            {{_object__t}}.mcall("resize", _newlen_tuple);
-            {{_object__i}}.mcall("resize", _newlen_tuple);
+            {{_dynamic__t}}.mcall("resize", _newlen_tuple);
+            {{_dynamic__i}}.mcall("resize", _newlen_tuple);
             // Get the potentially newly created underlying data arrays
-            double *_t_data = (double*)(((PyArrayObject*)(PyObject*){{_object__t}}.attr("data"))->data);
+            double *_t_data = (double*)(((PyArrayObject*)(PyObject*){{_dynamic__t}}.attr("data"))->data);
             // TODO: How to get the correct datatype automatically here?
-            npy_int32 *_i_data = (npy_int32*)(((PyArrayObject*)(PyObject*){{_object__i}}.attr("data"))->data);
+            npy_int32 *_i_data = (npy_int32*)(((PyArrayObject*)(PyObject*){{_dynamic__i}}.attr("data"))->data);
             // Copy the values across
             for(int _j=_start_idx; _j<_end_idx; _j++)
             {

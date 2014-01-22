@@ -4,10 +4,10 @@
     // USES_VARIABLES { _t, _clock_t, _indices }
 
     // Get the current length and new length of t and value arrays
-    const int _curlen = {{_object__t}}.attr("shape")[0];
+    const int _curlen = {{_dynamic__t}}.attr("shape")[0];
     const int _new_len = _curlen + 1;
     // Resize the arrays
-    PyObject_CallMethod({{_object__t}}, "resize", "i", _new_len);
+    PyObject_CallMethod({{_dynamic__t}}, "resize", "i", _new_len);
     {% for var in _recorded_variables.values() %}
     PyObject_CallMethod({{get_array_name(var, access_data=False)}}, "resize", "((ii))",
                         _new_len, _num_indices);
@@ -15,7 +15,7 @@
 
     // Get the potentially newly created underlying data arrays and copy the
     // data
-    double *_t_data = (double*)(((PyArrayObject*)(PyObject*){{_object__t}}.attr("data"))->data);
+    double *_t_data = (double*)(((PyArrayObject*)(PyObject*){{_dynamic__t}}.attr("data"))->data);
     _t_data[_new_len - 1] = _clock_t;
 
     {% for varname, var in _recorded_variables.items() %}
