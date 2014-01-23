@@ -18,7 +18,7 @@ from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)
-from brian2.groups.group import Group, GroupCodeRunner
+from brian2.groups.group import Group, GroupCodeRunner, group_metaclass
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
 from brian2.units.fundamentalunits import (Unit, Quantity,
@@ -115,6 +115,9 @@ class SynapticPathway(GroupCodeRunner, Group):
         default), ``prepost+'*'`` will be used (see `Nameable` for an
         explanation of the wildcard operator).
     '''
+    
+    __metaclass__ = group_metaclass
+    
     def __init__(self, synapses, code, prepost, objname=None):
         self.code = code
         self.prepost = prepost
@@ -177,8 +180,6 @@ class SynapticPathway(GroupCodeRunner, Group):
         self._initialise_queue_codeobj = None
 
         self.namespace = create_namespace(None)
-        # Enable access to the delay attribute via the specifier
-        self._enable_group_attributes()
 
     def update_abstract_code(self):
         if self.synapses.event_driven is not None:
