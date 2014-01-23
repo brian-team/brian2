@@ -11,6 +11,7 @@ from brian2.codegen.functions import add_numpy_implementation
 from brian2.codegen.codeobject import create_runner_codeobj, check_code_units
 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
 from brian2.codegen.translation import translate
+from brian2.core.dynamic import switcher
 from brian2.core.namespace import get_local_namespace
 from brian2.core.names import find_name
 from brian2.core.preferences import brian_prefs
@@ -405,6 +406,9 @@ class RuntimeDevice(Device):
         #: Mapping from `Variable` objects to numpy arrays (or `DynamicArray`
         #: objects)
         self.arrays = {}
+        
+    def activate(self):
+        switcher.reset()
 
     def get_array_name(self, var, access_data=True):
         # if no owner is set, this is a temporary object (e.g. the array

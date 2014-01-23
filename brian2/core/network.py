@@ -10,6 +10,8 @@ from brian2.units.allunits import second
 from brian2.core.preferences import brian_prefs
 from brian2.core.namespace import get_local_namespace
 
+from .dynamic import switchable_function
+
 __all__ = ['Network']
 
 
@@ -200,6 +202,7 @@ class Network(Nameable):
                                     "BrianObject, or containers of such "
                                     "objects from Network")
 
+    @switchable_function
     def reinit(self):
         '''
         Reinitialises all contained objects.
@@ -248,6 +251,7 @@ class Network(Nameable):
         when_to_int = dict((when, i) for i, when in enumerate(self.schedule))
         self.objects.sort(key=lambda obj: (when_to_int[obj.when], obj.order))
     
+    @switchable_function
     def before_run(self, namespace):
         '''
         Prepares the `Network` for a run.
@@ -279,6 +283,7 @@ class Network(Nameable):
                         clocknames=', '.join(obj.name for obj in self._clocks)),
                      "before_run")
     
+    @switchable_function
     def after_run(self):
         for obj in self.objects:
             obj.after_run()
@@ -290,6 +295,7 @@ class Network(Nameable):
                          abs(clock.t_ - minclock.t_)<Clock.epsilon))
         return minclock, curclocks
     
+    @switchable_function
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=60*second,
             namespace=None, level=0):
@@ -332,7 +338,7 @@ class Network(Nameable):
         if namespace is not None:
             self.before_run(('explicit-run-namespace', namespace))
         else:
-            namespace = get_local_namespace(2 + level)
+            namespace = get_local_namespace(3 + level)
             self.before_run(('implicit-run-namespace', namespace))
 
         if len(self.objects)==0:
@@ -380,6 +386,7 @@ class Network(Nameable):
             print 'Took ', current-start, 's in total.'
         self.after_run()
         
+    @switchable_function
     def stop(self):
         '''
         Stops the network from running, this is reset the next time `Network.run` is called.

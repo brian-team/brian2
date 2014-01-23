@@ -22,7 +22,7 @@ from brian2.utils.logger import get_logger
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
 
-from .group import Group, GroupCodeRunner
+from .group import Group, GroupCodeRunner, group_metaclass
 from .subgroup import Subgroup
 
 __all__ = ['NeuronGroup']
@@ -205,6 +205,9 @@ class NeuronGroup(Group, SpikeSource):
     attribute is set to 0 initially, but this can be modified using the
     attributes `state_updater`, `thresholder` and `resetter`.    
     '''
+    
+    __metaclass__ = group_metaclass
+    
     def __init__(self, N, model, method=None,
                  threshold=None,
                  reset=None,
@@ -307,10 +310,6 @@ class NeuronGroup(Group, SpikeSource):
             # Set the refractoriness information
             self.variables['lastspike'].set_value(-np.inf*second)
             self.variables['not_refractory'].set_value(True)
-
-        # Activate name attribute access
-        self._enable_group_attributes()
-
 
     def __len__(self):
         '''

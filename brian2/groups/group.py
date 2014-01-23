@@ -16,7 +16,7 @@ from brian2.devices.device import get_device
 
 
 
-__all__ = ['Group', 'GroupCodeRunner']
+__all__ = ['Group', 'GroupCodeRunner', 'group_metaclass']
 
 logger = get_logger(__name__)
 
@@ -57,6 +57,21 @@ class IndexWrapper(object):
             return self.group.calc_indices(item)
 
 
+def group_metaclass(name, parents, attributes):
+    '''
+    Use this metaclass when deriving from `Group` to enable attribute access after ``__init__``.
+    '''
+    if Group not in parents:
+        parents = parents+(Group,)
+    obj = type(name, parents, attributes)
+    obj._orig_init = obj.__init__
+    def newinit(self, *args, **kwds):
+        self._orig_init(*args, **kwds)
+        self._enable_group_attributes()
+    obj.__init__ = newinit
+    return obj
+
+
 class Group(BrianObject):
     '''
     Mix-in class for accessing arrays by attribute.
@@ -65,6 +80,8 @@ class Group(BrianObject):
     # (should make autocompletion work)
     '''
     def _enable_group_attributes(self):
+        if hasattr(self, '_group_attribute_access_active') and self._group_attribute_access_active:
+            return
         if not hasattr(self, 'variables'):
             raise ValueError('Classes derived from Group need variables attribute.')
         if not hasattr(self, 'codeobj_class'):

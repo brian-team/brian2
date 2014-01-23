@@ -3,7 +3,7 @@ import weakref
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
-from brian2.groups.group import Group
+from brian2.groups.group import Group, group_metaclass
 from brian2.units.fundamentalunits import Unit
 
 __all__ = ['Subgroup']
@@ -34,6 +34,9 @@ class Subgroup(Group, SpikeSource):
     
     TODO: Group state variable access
     '''
+    
+    __metaclass__ = group_metaclass
+    
     def __init__(self, source, start, stop, name=None):
         self.source = weakref.proxy(source)
         if name is None:
@@ -75,8 +78,6 @@ class Subgroup(Group, SpikeSource):
 
         self.namespace = self.source.namespace
         self.codeobj_class = self.source.codeobj_class
-
-        self._enable_group_attributes()
 
     spikes = property(lambda self: self.source.spikes)
 
