@@ -12,7 +12,6 @@ from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.codeobject import check_code_units
 from brian2.core.preferences import brian_prefs
-from brian2.core.namespace import create_namespace
 from brian2.core.variables import (Variables, Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
@@ -38,13 +37,12 @@ def get_refractory_code(group):
     elif isinstance(ref, Quantity):
         abstract_code = 'not_refractory = 1*((t - lastspike) > %f)\n' % ref
     else:
-        namespace = group.namespace
-        unit = parse_expression_unit(str(ref), namespace, group.variables)
+        # TODO: Also include external namespace
+        unit = parse_expression_unit(str(ref), group.variables)
         if have_same_dimensions(unit, second):
             abstract_code = 'not_refractory = 1*((t - lastspike) > %s)\n' % ref
         elif have_same_dimensions(unit, Unit(1)):
-            if not is_boolean_expression(str(ref), namespace,
-                                         group.variables):
+            if not is_boolean_expression(str(ref), group):
                 raise TypeError(('Refractory expression is dimensionless '
                                  'but not a boolean value. It needs to '
                                  'either evaluate to a timespan or to a '
@@ -123,8 +121,7 @@ class Thresholder(GroupCodeRunner):
         check_code_units(self.abstract_code, self.group, ignore_keyerrors=True)
 
     def update_abstract_code(self):
-        if not is_boolean_expression(self.group.threshold, self.group.namespace,
-                                     self.group.variables):
+        if not is_boolean_expression(self.group.threshold, self.group):
             raise TypeError(('Threshold condition "%s" is not a boolean '
                              'expression') % self.group.threshold)
         if self.group._refractory is False:
@@ -251,8 +248,8 @@ class NeuronGroup(Group, SpikeSource):
         logger.debug("Creating NeuronGroup of size {self._N}, "
                      "equations {self.equations}.".format(self=self))
 
-        # Setup the namespace
-        self.namespace = create_namespace(namespace)
+        #: The group-specific namespace
+        self.namespace = namespace
 
         # Setup variables
         self._create_variables(dtype)
@@ -411,21 +408,10 @@ class NeuronGroup(Group, SpikeSource):
         for xi in self.equations.stochastic_variables:
             self.variables.add_auxiliary_variable(xi, unit=second**-0.5)
 
-    def before_run(self, namespace):
-    
-        # Update the namespace information in the variables in case the
-        # namespace was not specified explicitly defined at creation time
-        # Note that values in the explicit namespace might still change
-        # between runs, but the Subexpression stores a reference to 
-        # self.namespace so these changes are taken into account automatically
-        if not self.namespace.is_explicit:
-            for var in self.variables.itervalues():
-                if isinstance(var, Subexpression):
-                    var.additional_namespace = namespace
-
+    def before_run(self, namespace, level=0):
         # Check units
-        self.equations.check_units(self.namespace, self.variables,
-                                   namespace)
+        self.equations.check_units(self, run_namespace=namespace,
+                                   level=level+1)
     
     def _repr_html_(self):
         text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self._N)]

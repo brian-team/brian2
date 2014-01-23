@@ -80,7 +80,7 @@ class Preparer(BrianObject):
         self.did_post_run = False
     def reinit(self):
         self.did_reinit = True
-    def before_run(self, namespace):
+    def before_run(self, namespace, level=0):
         self.did_pre_run = True
     def after_run(self):
         self.did_post_run = True        

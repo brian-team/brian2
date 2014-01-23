@@ -195,7 +195,7 @@ class StateMonitor(BrianObject):
     def reinit(self):
         raise NotImplementedError()
     
-    def before_run(self, namespace):
+    def before_run(self, namespace, level=0):
         # Some dummy code so that code generation takes care of the indexing
         # and subexpressions
         code = ['_to_record_%s = %s' % (v, v)
@@ -221,6 +221,7 @@ class StateMonitor(BrianObject):
                                              needed_variables=recorded_names,
                                              additional_variables=self.variables,
                                              additional_namespace=namespace,
+                                             level=level+1,
                                              template_kwds={'_recorded_variables':
                                                                 recorded_variables},
                                              check_units=False)

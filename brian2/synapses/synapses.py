@@ -10,7 +10,6 @@ import re
 
 import numpy as np
 
-from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.codegen.codeobject import create_runner_codeobj
@@ -176,7 +175,7 @@ class SynapticPathway(GroupCodeRunner, Group):
         #: The `CodeObject` initalising the `SpikeQueue` at the begin of a run
         self._initialise_queue_codeobj = None
 
-        self.namespace = create_namespace(None)
+        self.namespace = synapses.namespace
         # Enable access to the delay attribute via the specifier
         self._enable_group_attributes()
 
@@ -195,7 +194,7 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.abstract_code += self.code + '\n'
         self.abstract_code += 'lastupdate = t\n'
 
-    def before_run(self, namespace):
+    def before_run(self, namespace, level=0):
         # execute code to initalize the spike queue
         if self._initialise_queue_codeobj is None:
             self._initialise_queue_codeobj = create_runner_codeobj(self,
@@ -203,7 +202,8 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                                    'synapses_initialise_queue',
                                                                    name=self.name+'_initialise_queue',
                                                                    check_units=False,
-                                                                   additional_variables=self.variables)
+                                                                   additional_variables=self.variables,
+                                                                   level=level+1)
         self._initialise_queue_codeobj()
         GroupCodeRunner.before_run(self, namespace)
 
@@ -214,7 +214,8 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                              'synapses_push_spikes',
                                                              name=self.name+'_push_spikes',
                                                              check_units=False,
-                                                             additional_variables=self.variables)
+                                                             additional_variables=self.variables,
+                                                             level=level+1)
 
         self._code_objects.insert(0, weakref.proxy(self._pushspikes_codeobj))
 
@@ -420,8 +421,7 @@ class Synapses(Group):
         self.equations = Equations(continuous)
 
         # Setup the namespace
-        self._given_namespace = namespace
-        self.namespace = create_namespace(namespace)
+        self.namespace = namespace
 
         self._queues = {}
         self._delays = {}
@@ -563,9 +563,9 @@ class Synapses(Group):
     def __len__(self):
         return self._N
 
-    def before_run(self, namespace):
+    def before_run(self, namespace, level=0):
         self.lastupdate = self.clock.t
-        super(Synapses, self).before_run(namespace)
+        super(Synapses, self).before_run(namespace, level=level+1)
 
     def _add_updater(self, code, prepost, objname=None):
         '''

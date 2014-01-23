@@ -258,16 +258,14 @@ class GroupCodeRunner(BrianObject):
         '''
         pass
 
-    def before_run(self, namespace):
+    def before_run(self, namespace, level=0):
         self.update_abstract_code()
         # If the GroupCodeRunner has variables, add them
         if hasattr(self, 'variables'):
             additional_variables = self.variables
         else:
             additional_variables = None
-        if self.check_units:
-            check_code_units(self.abstract_code, self.group,
-                             additional_variables, namespace)
+
         self.codeobj = create_runner_codeobj(group=self.group,
                                              code=self.abstract_code,
                                              template_name=self.template,
@@ -276,6 +274,7 @@ class GroupCodeRunner(BrianObject):
                                              additional_variables=additional_variables,
                                              additional_namespace=namespace,
                                              needed_variables=self.needed_variables,
+                                             level=level+1,
                                              template_kwds=self.template_kwds)
         self.code_objects[:] = [weakref.proxy(self.codeobj)]
 

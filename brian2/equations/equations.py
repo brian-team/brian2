@@ -5,19 +5,23 @@ import collections
 import keyword
 import re
 import string
-
+import numpy as np
 import sympy
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 
+from brian2.core.namespace import (resolve_all, get_default_numpy_namespace,
+                                   DEFAULT_UNIT_NAMESPACE)
+from brian2.core.variables import Constant
+from brian2.core.functions import Function
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
-from brian2.units.fundamentalunits import Unit, have_same_dimensions
+from brian2.units.fundamentalunits import Unit, have_same_dimensions, get_unit
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 
 from .codestrings import Expression
-from .unitcheck import unit_from_string
-from brian2.equations.unitcheck import check_unit
+from .unitcheck import unit_from_string, check_unit
+
 
 __all__ = ['Equations']
 
@@ -155,6 +159,25 @@ def check_identifier_reserved(identifier):
     if identifier in ('t', 'dt', 'xi') or identifier.startswith('xi_'):
         raise ValueError(('"%s" has a special meaning in equations and cannot '
                          ' be used as a variable name.') % identifier)
+
+
+def check_identifier_units(identifier):
+    '''
+    Make sure that identifier names do not clash with unit names.
+    '''
+    if identifier in DEFAULT_UNIT_NAMESPACE:
+        raise ValueError('"%s" is the name of a unit, cannot be used as a '
+                         'variable name.')
+
+_function_names = get_default_numpy_namespace().keys()
+def check_identifier_functions(identifier):
+    '''
+    Make sure that identifier names do not clash with function names.
+    '''
+    if identifier in _function_names:
+        raise ValueError('"%s" is the name of a function, cannot be used as a '
+                         'variable name.')
+
 
 
 def parse_string_equations(eqns):
@@ -458,7 +481,9 @@ class Equations(collections.Mapping):
     #: `Equations.register_identifier_check` and will be automatically
     #: used when checking identifiers
     identifier_checks = set([check_identifier_basic,
-                             check_identifier_reserved])
+                             check_identifier_reserved,
+                             check_identifier_functions,
+                             check_identifier_units])
 
     @staticmethod
     def register_identifier_check(func):
@@ -702,37 +727,43 @@ class Equations(collections.Mapping):
             elif eq.type == PARAMETER:
                 eq.update_order = len(sorted_eqs) + 1
 
-    def check_units(self, namespace, variables, additional_namespace=None):
+    def check_units(self, group, run_namespace=None, level=0):
         '''
         Check all the units for consistency.
         
         Parameters
         ----------
-        namespace : `CompoundNamespace`
-            The namespace for resolving external identifiers, should be
-            provided by the `NeuronGroup` or `Synapses`.
-        variables : dict of `Variable` objects
-            The variables of the state variables and internal variables
-            (e.g. t and dt)
-        additional_namespace = (str, dict-like)
-            A namespace tuple (name and dictionary), describing the additional
-            namespace provided by the run function in case the `namespace`
-            was not explicitly defined at the creation of the `NeuronGroup`
-            or `Synapses` object.
-        
+        group : `Group`
+            The group providing the context
+        run_namespace : dict, optional
+            A namespace provided to the `Network.run` function.
+        level : int, optional
+            How much further to go up in the stack to find the calling frame
+
         Raises
         ------
         DimensionMismatchError
             In case of any inconsistencies.
         '''
+        all_variables = dict(group.variables)
         external = frozenset().union(*[expr.identifiers
                                      for _, expr in self.eq_expressions])
-        external -= set(variables.keys())
+        external -= set(all_variables.keys())
 
-        resolved_namespace = namespace.resolve_all(external,
-                                                   additional_namespace,
-                                                   strip_units=False) 
+        resolved_namespace = resolve_all(external, group,
+                                         run_namespace=run_namespace,
+                                         level=level+1)
 
+        for name, item in resolved_namespace.iteritems():
+            if isinstance(item, Function):
+                all_variables[name] = item
+            else:
+                unit = get_unit(item)
+                array_value = np.asarray(item)
+                all_variables[name] = Constant(name, unit=unit, value=array_value)
+
+        if 'int' in all_variables:
+            print 'all_variables["int"]', all_variables['int']
         for var, eq in self._equations.iteritems():
             if eq.type == PARAMETER:
                 # no need to check units for parameters
@@ -740,10 +771,10 @@ class Equations(collections.Mapping):
 
             if eq.type == DIFFERENTIAL_EQUATION:
                 check_unit(str(eq.expr), self.units[var] / second,
-                           resolved_namespace, variables)
+                           all_variables)
             elif eq.type == STATIC_EQUATION:
                 check_unit(str(eq.expr), self.units[var],
-                           resolved_namespace, variables)
+                           all_variables)
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.type)
 

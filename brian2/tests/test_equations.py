@@ -1,4 +1,5 @@
 # encoding: utf8
+from collections import namedtuple
 import sys
 from StringIO import StringIO
 
@@ -16,11 +17,11 @@ from brian2.units.fundamentalunits import (DIMENSIONLESS, get_dimensions,
                                            have_same_dimensions,
                                            DimensionMismatchError)
 from brian2.equations.unitcheck import unit_from_string
-from brian2.core.namespace import (DEFAULT_UNIT_NAMESPACE, create_namespace,
-                                   check_identifier_functions,
-                                   check_identifier_units)
+from brian2.core.namespace import DEFAULT_UNIT_NAMESPACE
 from brian2.equations.equations import (check_identifier_basic,
                                         check_identifier_reserved,
+                                        check_identifier_functions,
+                                        check_identifier_units,
                                         parse_string_equations,
                                         SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
@@ -28,7 +29,8 @@ from brian2.equations.equations import (check_identifier_basic,
                                         EquationError)
 from brian2.equations.refractory import check_identifier_refractory
 
-
+# A simple group class with a variables and a namespace argument
+SimpleGroup = namedtuple('SimpleGroup', ['namespace', 'variables'])
 
 def test_utility_functions():
     unit_namespace = DEFAULT_UNIT_NAMESPACE
@@ -257,36 +259,36 @@ def test_unit_checking():
     class S(object):
         def __init__(self, unit):
             self.unit = unit
-    
-    # Let's create a namespace with a user-defined namespace that we can
-    # updater later on 
-    namespace = create_namespace({})
+
     # inconsistent unit for a differential equation
     eqs = Equations('dv/dt = -v : volt')
+    group = SimpleGroup(namespace={}, variables={'v': S(volt)})
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(namespace, {'v': S(volt)}))
+                  lambda: eqs.check_units(group))
 
     eqs = Equations('dv/dt = -v / tau: volt')
-    namespace['tau'] = 5*mV
+    group = SimpleGroup(namespace={'tau': 5*mV}, variables={'v': S(volt)})
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(namespace, {'v': S(volt)}))
-    namespace['I'] = 3*second
+                  lambda: eqs.check_units(group))
+    group = SimpleGroup(namespace={'I': 3*second}, variables={'v': S(volt)})
     eqs = Equations('dv/dt = -(v + I) / (5 * ms): volt')
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(namespace, {'v': S(volt)}))
+                  lambda: eqs.check_units(group))
 
     eqs = Equations('''dv/dt = -(v + I) / (5 * ms): volt
                        I : second''')
+    group = SimpleGroup(variables={'v': S(volt),
+                                   'I': S(second)}, namespace={})
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(namespace, {'v': S(volt),
-                                                      'I': S(second)}))
+                  lambda: eqs.check_units(group))
     
     # inconsistent unit for a static equation
     eqs = Equations('''dv/dt = -v / (5 * ms) : volt
                        I = 2 * v : amp''')
+    group = SimpleGroup(variables={'v': S(volt),
+                                   'I': S(second)}, namespace={})
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(namespace, {'v': S(volt),
-                                                      'I': S(amp)}))
+                  lambda: eqs.check_units(group))
     
 
 def test_properties():

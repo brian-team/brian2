@@ -9,6 +9,7 @@ import numpy as np
 
 from brian2.core.functions import Function
 from brian2.core.names import Nameable
+from brian2.core.namespace import resolve, resolve_all
 from brian2.core.variables import Constant
 from brian2.equations.unitcheck import check_units_statements
 from brian2.units.fundamentalunits import get_unit
@@ -93,6 +94,7 @@ class CodeObject(Nameable):
 
 def check_code_units(code, group, additional_variables=None,
                      additional_namespace=None,
+                     level=0,
                      ignore_keyerrors=False):
     '''
     Check statements for correct units.
@@ -108,6 +110,8 @@ def check_code_units(code, group, additional_variables=None,
         variables saved in `self.group`.
     additional_namespace : dict-like, optional
         An additional namespace, as provided to `Group.before_run`
+    level : int, optional
+        How far to go up in the stack to find the calling frame.
     ignore_keyerrors : boolean, optional
         Whether to silently ignore unresolvable identifiers. Should be set
         to ``False`` (the default) if the namespace is expected to be
@@ -132,9 +136,10 @@ def check_code_units(code, group, additional_variables=None,
     # the subexpressions not what variables they refer to
     _, _, unknown = analyse_identifiers(code, all_variables)
     try:
-        resolved_namespace = group.namespace.resolve_all(unknown,
-                                                         additional_namespace,
-                                                         strip_units=False)
+        resolved_namespace = resolve_all(unknown, group,
+                                         run_namespace=additional_namespace,
+                                         level=level+1,
+                                         strip_units=False)
     except KeyError as ex:
         if ignore_keyerrors:
             logger.debug('Namespace not complete (yet), ignoring: %s ' % str(ex),
@@ -144,7 +149,15 @@ def check_code_units(code, group, additional_variables=None,
             raise KeyError('Error occured when checking "%s": %s' % (code,
                                                                      str(ex)))
 
-    check_units_statements(code, resolved_namespace, all_variables)
+    for name, item in resolved_namespace.iteritems():
+        if isinstance(item, Function):
+            all_variables[name] = item
+        else:
+            unit = get_unit(item)
+            array_value = np.asarray(item)
+            all_variables[name] = Constant(name, unit=unit, value=array_value)
+
+    check_units_statements(code, all_variables)
 
 
 def create_runner_codeobj(group, code, template_name,
@@ -153,7 +166,8 @@ def create_runner_codeobj(group, code, template_name,
                           needed_variables=None,
                           additional_variables=None,
                           additional_namespace=None,
-                          template_kwds=None):
+                          level=0,
+                          template_kwds=None,):
     ''' Create a `CodeObject` for the execution of code in the context of a
     `Group`.
 
@@ -185,6 +199,8 @@ def create_runner_codeobj(group, code, template_name,
     additional_namespace : dict-like, optional
         A mapping from names to objects, used in addition to the namespace
         saved in `group`.
+    level : int, optional
+        How far to go up in the stack to find the call frame.
     template_kwds : dict, optional
         A dictionary of additional information that is passed to the template.
     '''
@@ -197,11 +213,13 @@ def create_runner_codeobj(group, code, template_name,
             for c in code.values():
                 check_code_units(c, group,
                                  additional_variables=additional_variables,
-                                 additional_namespace=additional_namespace)
+                                 additional_namespace=additional_namespace,
+                                 level=level+1)
         else:
             check_code_units(code, group,
                              additional_variables=additional_variables,
-                             additional_namespace=additional_namespace)
+                             additional_namespace=additional_namespace,
+                             level=level+1)
 
     codeobj_class = device.code_object_class(group.codeobj_class)
     template = getattr(codeobj_class.templater, template_name)
@@ -228,17 +246,22 @@ def create_runner_codeobj(group, code, template_name,
     variables = {}
     for var in used_known:
         # Emit a warning if a variable is also present in the namespace
-        if (var in group.namespace or (additional_namespace is not None and
-                                       var in additional_namespace[1])):
+        try:
+            resolve(var, group, run_namespace=additional_namespace,
+                    level=level+1)
+            # If this didn't raise an Exception, we found the variable
             message = ('Variable {var} is present in the namespace but is also an'
                        ' internal variable of {name}, the internal variable will'
                        ' be used.'.format(var=var, name=group.name))
             logger.warn(message, 'create_runner_codeobj.resolution_conflict',
                         once=True)
+        except KeyError:
+            pass  # all good
         variables[var] = all_variables[var]
 
-    resolved_namespace = group.namespace.resolve_all(unknown,
-                                                     additional_namespace)
+    resolved_namespace = resolve_all(unknown, group,
+                                     run_namespace=additional_namespace,
+                                     level=level+1)
 
     for varname, value in resolved_namespace.iteritems():
         if isinstance(value, Function):
@@ -249,7 +272,8 @@ def create_runner_codeobj(group, code, template_name,
             array_value = np.asarray(value)
             if array_value.shape != ():
                 raise TypeError('Name "%s" does not refer to a scalar value' % varname)
-            variables[varname] = Constant(name=varname, unit=unit, value=value)
+            variables[varname] = Constant(name=varname, unit=unit,
+                                          value=array_value)
 
     # Add variables that are not in the abstract code, nor specified in the
     # template but nevertheless necessary
@@ -262,16 +286,13 @@ def create_runner_codeobj(group, code, template_name,
     for var in template.variables:
         try:
             variables[var] = all_variables[var]
-        except KeyError as ex:
+        except KeyError:
             # We abuse template.variables here to also store names of things
             # from the namespace (e.g. rand) that are needed
-            # TODO: Improve all of this namespace/specifier handling
-            if group is not None:
-                # Try to find the name in the group's namespace
-                variables[var] = group.namespace.resolve(var,
-                                                         additional_namespace)
-            else:
-                raise ex
+            # Try to find the name in the group's namespace
+            variables[var] = resolve(var, group,
+                                     run_namespace=additional_namespace,
+                                     level=level+1)
 
     # always add N, the number of neurons or synapses
     variables['N'] = all_variables['N']

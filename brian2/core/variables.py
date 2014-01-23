@@ -258,6 +258,21 @@ class Constant(Variable):
         else:
             dtype = get_dtype(value)
 
+        # Use standard Python types if possible for numpy scalars (generates
+        # nicer code for C++ when using weave)
+        if getattr(value, 'shape', None) == () and hasattr(value, 'dtype'):
+            numpy_type = value.dtype
+            if np.can_cast(numpy_type, np.int_):
+                value = int(value)
+            elif np.can_cast(numpy_type, np.float_):
+                value = float(value)
+            elif np.can_cast(numpy_type, np.complex_):
+                value = complex(value)
+            elif value is np.True_:
+                value = True
+            elif value is np.False_:
+                value = False
+
         #: The constant's value
         self.value = value
 

@@ -248,7 +248,7 @@ class Network(Nameable):
         when_to_int = dict((when, i) for i, when in enumerate(self.schedule))
         self.objects.sort(key=lambda obj: (when_to_int[obj.when], obj.order))
     
-    def before_run(self, namespace):
+    def before_run(self, namespace, level=0):
         '''
         Prepares the `Network` for a run.
         
@@ -271,7 +271,7 @@ class Network(Nameable):
                      "before_run")
         
         for obj in self.objects:
-            obj.before_run(namespace)
+            obj.before_run(namespace, level=level+1)
 
         logger.debug("Network {self.name} has {num} "
                      "clocks: {clocknames}".format(self=self,
@@ -328,12 +328,8 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
-        
-        if namespace is not None:
-            self.before_run(('explicit-run-namespace', namespace))
-        else:
-            namespace = get_local_namespace(2 + level)
-            self.before_run(('implicit-run-namespace', namespace))
+
+        self.before_run(namespace, level=level+2)
 
         if len(self.objects)==0:
             return # TODO: raise an error? warning?

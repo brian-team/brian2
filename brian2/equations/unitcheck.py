@@ -1,6 +1,7 @@
 '''
 Utility functions for handling the units in `Equations`.
 '''
+from collections import namedtuple
 import re
 
 from brian2.units.fundamentalunits import (Quantity, Unit,
@@ -88,7 +89,7 @@ def unit_from_string(unit_string):
     return evaluated_unit
 
 
-def check_unit(expression, unit, namespace, variables):
+def check_unit(expression, unit, variables):
     '''
     Evaluates the unit for an expression in a given namespace.
     
@@ -96,10 +97,9 @@ def check_unit(expression, unit, namespace, variables):
     ----------
     expression : str
         The expression to evaluate.
-    namespace : dict-like
-        The namespace of external variables.
-    variables : dict of `Variable` objects
-        The information about the internal variables
+    variables : dict
+        Dictionary of all variables (including external constants) used in
+        the `expression`.
     
     Raises
     ------
@@ -112,13 +112,13 @@ def check_unit(expression, unit, namespace, variables):
     --------
     unit_from_expression
     '''
-    expr_unit = parse_expression_unit(expression, namespace, variables)
+    expr_unit = parse_expression_unit(expression, variables)
     fail_for_dimension_mismatch(expr_unit, unit, ('Expression %s does not '
                                                   'have the expected units' %
                                                   expression))
 
 
-def check_units_statements(code, namespace, variables):
+def check_units_statements(code, variables):
     '''
     Check the units for a series of statements. Setting a model variable has to
     use the correct unit. For newly introduced temporary variables, the unit
@@ -129,10 +129,9 @@ def check_units_statements(code, namespace, variables):
     ----------
     expression : str
         The expression to evaluate.
-    namespace : dict-like
-        The namespace of external variables.
     variables : dict of `Variable` objects
-        The information about the internal variables
+        The information about all variables used in `expression` (including
+        `Constant` objects for external variables)
     
     Raises
     ------
@@ -141,7 +140,7 @@ def check_units_statements(code, namespace, variables):
     DimensionMismatchError
         If an unit mismatch occurs during the evaluation.
     '''
-    known = set(variables.keys()) | set(namespace.keys())
+    known = set(variables.keys())
     newly_defined, _, unknown = analyse_identifiers(code, known)
     
     if len(unknown):
@@ -168,7 +167,7 @@ def check_units_statements(code, namespace, variables):
         else:
             raise AssertionError('Unknown operator "%s"' % op) 
 
-        expr_unit = parse_expression_unit(expr, namespace, variables)
+        expr_unit = parse_expression_unit(expr, variables)
 
         if varname in variables:
             fail_for_dimension_mismatch(variables[varname].unit,

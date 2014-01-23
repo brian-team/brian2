@@ -6,7 +6,7 @@ import inspect
 import itertools
 import numbers
 import weakref
-import collections
+
 try:
     from collections import OrderedDict
 except ImportError:
@@ -19,12 +19,11 @@ from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Quantity, standard_unit_register
 from brian2.units.stdunits import stdunits
 from brian2.core.functions import DEFAULT_FUNCTIONS
-import brian2.equations.equations as equations
 
 from .functions import Function
 
-__all__ = ['create_namespace',
-           'CompoundNamespace',
+__all__ = ['resolve',
+           'resolve_all',
            'get_local_namespace',
            'get_default_numpy_namespace',
            'DEFAULT_UNIT_NAMESPACE']
@@ -67,23 +66,6 @@ def get_local_namespace(level):
                 pass
             namespace[k] = v
     del frame
-    return namespace
-
-
-def create_namespace(explicit_namespace=None):
-    namespace = CompoundNamespace()
-    
-    # Functions and units take precedence, overwriting them would lead to
-    # very confusing equations. In particular, the Equations objects does not
-    # take the namespace into account when determining the units of equations
-    # (the ": unit" part) -- so an overwritten unit would be ignored there but
-    # taken into account in the equation itself.
-    namespace.add_namespace('numpy', get_default_numpy_namespace())
-    namespace.add_namespace('units', DEFAULT_UNIT_NAMESPACE)
-    
-    if explicit_namespace is not None:
-        namespace.add_namespace('user-defined', explicit_namespace)            
-    
     return namespace
 
 
@@ -139,154 +121,107 @@ def _same_function(func1, func2):
 
     return func1 is func2  
 
-
-class CompoundNamespace(collections.Mapping):
-
-    def __init__(self):        
-        self.namespaces = OrderedDict()        
     
-    is_explicit = property(lambda self: 'user-defined' in self.namespaces,
-                        doc=('Whether this namespace is explicit (i.e. '
-                             'provided by the user at creation time and not '
-                             'affected by the context in which it is run'))
-    
-    def add_namespace(self, name, namespace):
-        try:
-            namespace = dict(namespace)
-        except TypeError:
-            raise TypeError('namespace has to be mapping, is type %s' %
-                            type(namespace))
-        self.namespaces[name] = namespace
-    
-    def resolve(self, identifier, additional_namespace=None, strip_units=False):
-        '''
-        The additional_namespace (e.g. the local/global namespace) will only
-        be used if the namespace does not contain any user-defined namespace.
-        '''        
-        # We save tuples of (namespace description, referred object) to
-        # give meaningful warnings in case of duplicate definitions
-        matches = []
-        
-        if self.is_explicit or additional_namespace is None: 
-            namespaces = self.namespaces
-        else:            
-            namespaces = OrderedDict(self.namespaces)
-            # Add the additional namespace in the end
-            description, namespace = additional_namespace
-            namespaces[description] = namespace
-        
-        for description, namespace in namespaces.iteritems():
-            if identifier in namespace:
-                matches.append((description, namespace[identifier]))            
+def resolve(identifier, group, run_namespace=None, level=0,
+            strip_units=False):
+    '''
+    Resolve an external identifier in the context of a `Group`. If the `Group`
+    declares an explicit namespace, this namespace is used in addition to the
+    standard namespace for units and functions. Additionally, the namespace in
+    the `run_namespace` argument (i.e. the namespace provided to `Network.run`)
+    is used. Only if both are undefined, the implicit namespace of
+    surrounding variables in the stack frame where the original call was made
+    is used (to determine this stack frame, the `level` argument has to be set
+    correctly).
 
-        if len(matches) == 0:
-            # No match at all
-            raise KeyError(('The identifier "%s" could not be resolved.') % 
-                           (identifier))
-        elif len(matches) > 1:
-            # Possibly, all matches refer to the same object
-            first_obj = matches[0][1]
-            found_mismatch = False
-            for m in matches:
-                if m[1] is first_obj:
+    Parameters
+    ----------
+    identifier : str
+        The name to resolve.
+    group : `Group`
+        The group that potentially defines an explicit namespace for looking up
+        external names.
+    run_namespace : dict, optional
+        A namespace (mapping from strings to objects), as provided as an
+        argument to the `Network.run` function.
+    level : int, optional
+        How far to go up in the stack to find the calling frame.
+    strip_unit : bool, optional
+        Whether to get rid of units (for the code used in simulation) or not
+        (when checking the units of an expression, for example). Defaults to
+        ``False``.
+    '''
+    # We save tuples of (namespace description, referred object) to
+    # give meaningful warnings in case of duplicate definitions
+    matches = []
+
+    namespaces = OrderedDict()
+    namespaces['units'] = _get_default_unit_namespace()
+    namespaces['functions'] = get_default_numpy_namespace()
+    if getattr(group, 'namespace', None) is not None:
+        namespaces['group-specific'] = group.namespace
+    if run_namespace is not None:
+        namespaces['run'] = run_namespace
+
+    if getattr(group, 'namespace', None) is None and run_namespace is None:
+        namespaces['implicit'] = get_local_namespace(level+1)
+
+    for description, namespace in namespaces.iteritems():
+        if identifier in namespace:
+            matches.append((description, namespace[identifier]))
+
+    if len(matches) == 0:
+        # No match at all
+        raise KeyError(('The identifier "%s" could not be resolved.') %
+                       (identifier))
+    elif len(matches) > 1:
+        # Possibly, all matches refer to the same object
+        first_obj = matches[0][1]
+        found_mismatch = False
+        for m in matches:
+            if m[1] is first_obj:
+                continue
+            if _same_function(m[1], first_obj):
+                continue
+            try:
+                proxy = weakref.proxy(first_obj)
+                if m[1] is proxy:
                     continue
-                if _same_function(m[1], first_obj):
-                    continue
-                try:
-                    proxy = weakref.proxy(first_obj)
-                    if m[1] is proxy:
-                        continue
-                except TypeError:
-                    pass
+            except TypeError:
+                pass
 
-                # Found a mismatch
-                found_mismatch = True
-                break
+            # Found a mismatch
+            found_mismatch = True
+            break
 
-            if found_mismatch:
-                _conflict_warning(('The name "%s" refers to different objects '
-                                   'in different namespaces used for resolving. '
-                                   'Will use the object from the %s namespace '
-                                   'with the value %r') %
-                                  (identifier, matches[0][0],
-                                   first_obj), matches[1:])
-                    
-        # use the first match (according to resolution order)
-        resolved = matches[0][1]
+        if found_mismatch:
+            _conflict_warning(('The name "%s" refers to different objects '
+                               'in different namespaces used for resolving. '
+                               'Will use the object from the %s namespace '
+                               'with the value %r') %
+                              (identifier, matches[0][0],
+                               first_obj), matches[1:])
 
-        # Remove units
-        if strip_units and isinstance(resolved, Quantity):
-            if resolved.ndim == 0:
-                resolved = float(resolved)
-            else:
-                resolved = np.asarray(resolved)
+    # use the first match (according to resolution order)
+    resolved = matches[0][1]
 
-        # Use standard Python types if possible
-        if not isinstance(resolved, np.ndarray) and hasattr(resolved, 'dtype'):
-            numpy_type = resolved.dtype
-            if np.can_cast(numpy_type, np.int_):
-                resolved = int(resolved)
-            elif np.can_cast(numpy_type, np.float_):
-                resolved = float(resolved)
-            elif np.can_cast(numpy_type, np.complex_):
-                resolved = complex(resolved)
+    # Replace pure Python functions by a Functions object
+    if callable(resolved) and not isinstance(resolved, Function):
+        resolved = Function(resolved)
 
-        # Replace pure Python functions by a Functions object
-        if callable(resolved) and not isinstance(resolved, Function):
-            resolved = Function(resolved)
+    return resolved
 
-        return resolved
 
-    def resolve_all(self, identifiers, additional_namespace=None,
-                    strip_units=True):
-        resolutions = {}
-        for identifier in identifiers:            
-            resolved = self.resolve(identifier, additional_namespace,
-                                    strip_units=strip_units)            
-            resolutions[identifier] = resolved                
-        
-        return resolutions
+def resolve_all(identifiers, group, run_namespace=None, level=0,
+            strip_units=False):
+    resolutions = {}
+    for identifier in identifiers:
+        resolved = resolve(identifier, group, run_namespace=run_namespace,
+                           level=level+1, strip_units=strip_units)
+        resolutions[identifier] = resolved
 
-    def __getitem__(self, key):
-        return self.resolve(key)
-    
-    def __setitem__(self, key, value):
-        if not self.is_explicit:
-            raise TypeError('This object does not have a user-defined '
-                            'namespace, cannot add items directly.')
-        self.namespaces['user-defined'][key] = value
-    
-    def __delitem__(self, key):
-        if not self.is_explicit:
-            raise TypeError('this object does not have a user-defined '
-                            'namespace, cannot delete keys from it.')
-        del self.namespaces['user-defined'][key]
-    
-    def __len__(self):
-        total_length = 0
-        for namespace in self.namespaces:
-            total_length += len(self.namespaces[namespace])
-        return total_length
-    
-    def __iter__(self):
-        # do not repeat entries
-        previous_entries = []
-        for entries in self.namespaces.itervalues():
-            for entry in entries:                
-                if not entry in previous_entries:
-                    previous_entries.append(entry)
-                    yield entry
-    
-    def __contains__(self, key):
-        for entries in self.namespaces.itervalues():
-            if key in entries:
-                return True
-        
-        return False
-    
-    def __repr__(self):
-        return '<%s containing namespaces: %s>' % (self.__class__.__name__,
-                                                   ', '.join(self.namespaces.iterkeys()))
+    return resolutions
+
 
 def get_default_numpy_namespace():
     '''
@@ -315,16 +250,6 @@ def get_default_numpy_namespace():
 
     return namespace
 
-_function_names = get_default_numpy_namespace().keys()
-def check_identifier_functions(identifier):
-    '''
-    Make sure that identifier names do not clash with function names.
-    '''
-    if identifier in _function_names:
-        raise ValueError('"%s" is the name of a function, cannot be used as a '
-                         'variable name.')
-        
-equations.Equations.register_identifier_check(check_identifier_functions)
 
 def _get_default_unit_namespace():
     '''
@@ -342,13 +267,3 @@ def _get_default_unit_namespace():
     return namespace
 
 DEFAULT_UNIT_NAMESPACE = _get_default_unit_namespace()
-
-def check_identifier_units(identifier):
-    '''
-    Make sure that identifier names do not clash with unit names.
-    '''
-    if identifier in DEFAULT_UNIT_NAMESPACE:
-        raise ValueError('"%s" is the name of a unit, cannot be used as a '
-                         'variable name.')
-        
-equations.Equations.register_identifier_check(check_identifier_units)

@@ -67,7 +67,7 @@ class BrianObject(Nameable):
     #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is created or removed
     invalidates_magic_network = True
     
-    def before_run(self, namespace):
+    def before_run(self, namespace, level=0):
         '''
         Optional method to prepare the object before a run. Receives the 
         `namespace` in which the object should be run (either the locals/globals

@@ -1,6 +1,5 @@
 import numpy as np
 
-from brian2.core.namespace import create_namespace
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Variables
 from brian2.units.fundamentalunits import check_units, Unit
@@ -60,7 +59,6 @@ class PoissonGroup(Group, SpikeSource):
 
         self.start = 0
         self.stop = N
-        self.namespace = create_namespace(None)
 
         self.threshold = 'rand() < rates * dt'
         self._refractory = False

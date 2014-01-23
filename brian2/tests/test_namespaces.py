@@ -1,12 +1,16 @@
+from collections import namedtuple
+
 import numpy as np
 from numpy.testing.utils import assert_raises
 
-from brian2.core.namespace import create_namespace, get_local_namespace
+from brian2.core.namespace import get_local_namespace, resolve, resolve_all
 from brian2.units import second, volt
 from brian2.units.stdunits import ms, Hz, mV
 from brian2.units.unitsafefunctions import sin, log, exp
 from brian2.utils.logger import catch_logs
 
+# A simple group class with a variables and a namespace argument
+SimpleGroup = namedtuple('SimpleGroup', ['namespace', 'variables'])
 
 def _assert_one_warning(l):
     assert len(l) == 1, "expected one warning got %d" % len(l)
@@ -17,59 +21,56 @@ def test_default_content():
     '''
     Test that the default namespace contains standard units and functions.
     '''
-    namespace = create_namespace({})
     # Units
-    assert namespace['second'] == second
-    assert namespace['volt'] == volt
-    assert namespace['ms'] == ms
-    assert namespace['Hz'] == Hz
-    assert namespace['mV'] == mV
-    # Functions (the namespace contains variables)
-    assert namespace['sin'].pyfunc == sin 
-    assert namespace['log'].pyfunc == log
-    assert namespace['exp'].pyfunc == exp
+    assert resolve('second', None) == second
+    assert resolve('volt', None) == volt
+    assert resolve('ms', None) == ms
+    assert resolve('Hz', None) == Hz
+    assert resolve('mV', None) == mV
+
+    # Functions
+    assert resolve('sin', None).pyfunc == sin
+    assert resolve('log', None).pyfunc == log
+    assert resolve('exp', None).pyfunc == exp
 
 
 def test_explicit_namespace():
     ''' Test resolution with an explicitly provided namespace '''
-    
-    explicit_namespace = {'variable': 'explicit_var'}
-    # Explicitly provided 
-    namespace = create_namespace( explicit_namespace)
 
+    group = SimpleGroup(namespace={'variable': 42}, variables={})
+
+    # Explicitly provided
     with catch_logs() as l:
-        assert namespace['variable'] == 'explicit_var'
+        assert resolve('variable', group) == 42
         assert len(l) == 0
 
 
 def test_errors():
     # No explicit namespace
-    namespace = create_namespace()
-    assert_raises(KeyError, lambda: namespace['nonexisting_variable'])
+    group = SimpleGroup(namespace=None, variables={})
+    assert_raises(KeyError, lambda: resolve('nonexisting_variable', group))
 
     # Empty explicit namespace
-    namespace = create_namespace({})
-    assert_raises(KeyError, lambda: namespace['nonexisting_variable'])
+    group = SimpleGroup(namespace={}, variables={})
+    assert_raises(KeyError, lambda: resolve('nonexisting_variable', group))
 
 
 def test_resolution():
     # implicit namespace
     tau = 10*ms
-    namespace = create_namespace()
-    additional_namespace = ('implicit-namespace', {'tau': tau})
-    resolved = namespace.resolve_all(['tau', 'ms'], additional_namespace)
+    group = SimpleGroup(namespace=None, variables={})
+    resolved = resolve_all(['tau', 'ms'], group)
     assert len(resolved) == 2
     assert type(resolved) == type(dict())
-    # make sure that the units are stripped
-    assert resolved['tau'] == np.asarray(tau)
-    assert resolved['ms'] == float(ms)
+    assert resolved['tau'] == tau
+    assert resolved['ms'] == ms
 
     # explicit namespace
-    namespace = create_namespace({'tau': 20 * ms})
+    group = SimpleGroup(namespace={'tau': 20 * ms}, variables={})
 
-    resolved = namespace.resolve_all(['tau', 'ms'], additional_namespace)
+    resolved = resolve_all(['tau', 'ms'], group)
     assert len(resolved) == 2
-    assert resolved['tau'] == np.asarray(20 * ms)
+    assert resolved['tau'] == 20 * ms
 
 
 def test_warning():
@@ -78,15 +79,14 @@ def test_warning():
     # Name in external namespace clashes with unit/function name
     exp = 23
     cm = 42
-    namespace = create_namespace()
-    local_ns = get_local_namespace(level=0)
+    group = SimpleGroup(namespace=None, variables={})
     with catch_logs() as l:
-        resolved = namespace.resolve('exp', ('implicit namespace', local_ns))
+        resolved = resolve('exp', group)
         assert resolved == DEFAULT_FUNCTIONS['exp']
         assert len(l) == 1
         assert l[0][1].endswith('.resolution_conflict')
     with catch_logs() as l:
-        resolved = namespace.resolve('cm', ('implicit namespace', local_ns))
+        resolved = resolve('cm', group)
         assert resolved == brian_cm
         assert len(l) == 1
         assert l[0][1].endswith('.resolution_conflict')

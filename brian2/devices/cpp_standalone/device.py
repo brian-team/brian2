@@ -389,12 +389,8 @@ class Network(OrigNetwork):
         
         if _magic_network is not None:
             self = _magic_network
-            
-        if namespace is not None:
-            self.before_run(('explicit-run-namespace', namespace))
-        else:
-            namespace = get_local_namespace(1 + level)
-            self.before_run(('implicit-run-namespace', namespace))
+
+        self.before_run(namespace, level=level+1)
             
         cpp_standalone_device.clocks.update(self._clocks)
             

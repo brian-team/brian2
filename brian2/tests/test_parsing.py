@@ -7,6 +7,8 @@ from numpy.testing import assert_allclose, assert_raises
 import numpy as np
 
 from brian2.core.preferences import brian_prefs
+from brian2.core.variables import Constant
+from brian2.core.functions import Function
 from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
                                       CPPNodeRenderer,
@@ -19,14 +21,28 @@ from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.parsing.functions import (abstract_code_from_function,
                                       extract_abstract_code_functions,
                                       substitute_abstract_code_functions)
-from brian2.units import volt, amp, DimensionMismatchError, have_same_dimensions
-from brian2.core.namespace import create_namespace
+from brian2.units import (volt, amp, DimensionMismatchError,
+                          have_same_dimensions, Unit, get_unit)
+from brian2.core.namespace import resolve
 
 try:
     from scipy import weave
 except ImportError:
     weave = None
 import nose
+
+# A simple group class with a variables and a namespace argument
+SimpleGroup = namedtuple('SimpleGroup', ['namespace', 'variables'])
+
+# FIXME: This shouldn't be only used for testing
+def namespace_to_variable(name, group):
+    value = resolve(name, group)
+    if isinstance(value, Function):
+        return value
+    else:
+        unit = get_unit(value)
+        array_value = np.asarray(value)
+        return Constant(name, unit=unit, value=array_value)
 
 # TODO: add some tests with e.g. 1.0%2.0 etc. once this is implemented in C++
 TEST_EXPRESSIONS = '''
@@ -181,19 +197,18 @@ def test_is_boolean_expression():
         def __init__(self, returns_bool=False):
             self._returns_bool = returns_bool
 
-    # namespace values / functions
-    a = True
-    b = False
-    c = 5
+    # variables / functions
+    a = Constant('a', unit=Unit(1), value=True)
+    b = Constant('b', unit=Unit(1), value=False)
+    c = Constant('c', unit=Unit(1), value=5)
     f = Func(returns_bool=True)
     g = Func(returns_bool=False)
-
-    # variables
     s1 = Var(is_bool=True)
     s2 = Var(is_bool=False)
 
-    namespace = {'a': a, 'b': b, 'c': c, 'f': f, 'g': g}
-    variables = {'s1': s1, 's2': s2}
+    variables = {'a': a, 'b': b, 'c': c, 'f': f, 'g': g, 's1': s1, 's2': s2}
+
+    group = SimpleGroup(variables=variables, namespace={})
 
     EVF = [
         (True, 'a or b'),
@@ -211,27 +226,28 @@ def test_is_boolean_expression():
         (True, 'f(c) or a<b and s1', ),
         ]
     for expect, expr in EVF:
-        ret_val = is_boolean_expression(expr, namespace, variables)
+        ret_val = is_boolean_expression(expr, group)
         if expect != ret_val:
             raise AssertionError(('is_boolean_expression(%r) returned %s, '
                                   'but was supposed to return %s') % (expr,
                                                                       ret_val,
                                                                       expect))
     assert_raises(SyntaxError, is_boolean_expression, 'a<b and c',
-                  namespace, variables)
+                  variables)
     assert_raises(SyntaxError, is_boolean_expression, 'a or foo',
-                  namespace, variables)
+                  variables)
     assert_raises(SyntaxError, is_boolean_expression, 'ot a', # typo
-                  namespace, variables)
+                  variables)
     assert_raises(SyntaxError, is_boolean_expression, 'g(c) and f(a)',
-                  namespace, variables)
+                  variables)
     
     
 def test_parse_expression_unit():
-    default_namespace = create_namespace({})
-    varunits = dict(default_namespace)
-    varunits.update({'a': volt*amp, 'b': volt, 'c': amp})
-
+    Var = namedtuple('Var', ['unit'])
+    variables = {'a': Var(unit=volt*amp),
+                 'b': Var(unit=volt),
+                 'c': Var(unit=amp)}
+    group = SimpleGroup(namespace={}, variables=variables)
     EE = [
         (volt*amp, 'a+b*c'),
         (DimensionMismatchError, 'a+b'),
@@ -257,18 +273,32 @@ def test_parse_expression_unit():
         (DimensionMismatchError, 'sqrt(b) + b')
         ]
     for expect, expr in EE:
+        all_variables = {}
+        for name in get_identifiers(expr):
+            if name in variables:
+                all_variables[name] = variables[name]
+            else:
+                all_variables[name] = namespace_to_variable(name, group)
+
         if expect is DimensionMismatchError:
-            assert_raises(DimensionMismatchError, parse_expression_unit, expr, varunits, {})
+            assert_raises(DimensionMismatchError, parse_expression_unit, expr,
+                          all_variables)
         else:
-            u = parse_expression_unit(expr, varunits, {})
+            u = parse_expression_unit(expr, all_variables)
             assert have_same_dimensions(u, expect)
 
     wrong_expressions = ['a**b',
                          'a << b',
-                         'ot True' # typo
+                         'int(True' # typo
                         ]
     for expr in wrong_expressions:
-        assert_raises(SyntaxError, parse_expression_unit, expr, varunits, {})
+        all_variables = {}
+        for name in get_identifiers(expr):
+            if name in variables:
+                all_variables[name] = variables[name]
+            else:
+                all_variables[name] = namespace_to_variable(name, group)
+        assert_raises(SyntaxError, parse_expression_unit, expr, all_variables)
 
 
 def test_value_from_expression():
@@ -285,20 +315,19 @@ def test_value_from_expression():
     variables['s_constant_scalar'].get_value = lambda: 2.0
     variables['s_non_scalar'].constant = True
     variables['s_non_constant'].scalar = True
+    variables['c'] = Constant('c', unit=Unit(1), value=3)
 
     expressions = ['1', '-0.5', 'c', '2**c', '(c + 3) * 5',
                    'c + s_constant_scalar', 'True', 'False']
 
     for expr in expressions:
         eval_expr = expr.replace('s_constant_scalar', 's_constant_scalar.get_value()')
-        assert float(eval(eval_expr, constants, variables)) == _get_value_from_expression(expr,
-                                                                                           constants,
-                                                                                           variables)
+        assert float(eval(eval_expr, variables, constants)) == _get_value_from_expression(expr,
+                                                                                          variables)
 
     wrong_expressions = ['s_non_constant', 's_non_scalar', 'c or True']
     for expr in wrong_expressions:
         assert_raises(SyntaxError, lambda : _get_value_from_expression(expr,
-                                                                       constants,
                                                                        variables))
 
 

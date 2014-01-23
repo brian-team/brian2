@@ -239,8 +239,6 @@ class Device(object):
         '''
         indices = group.calc_indices(item)
         abstract_code = varname + ' = ' + code
-        namespace = get_local_namespace(level + 1)
-        additional_namespace = ('implicit-namespace', namespace)
         variables = Variables(None)
         variables.add_array('_group_idx', unit=Unit(1),
                             size=len(indices), dtype=np.int32)
@@ -252,8 +250,8 @@ class Device(object):
                                  abstract_code,
                                  'group_variable_set',
                                  additional_variables=variables,
-                                 additional_namespace=additional_namespace,
-                                 check_units=check_units)
+                                 check_units=check_units,
+                                 level=level+1)
         codeobj()
 
     def set_with_expression_conditional(self, group, varname, variable, cond,
@@ -283,14 +281,12 @@ class Device(object):
 
         abstract_code_cond = '_cond = '+cond
         abstract_code = varname + ' = ' + code
-        namespace = get_local_namespace(level + 1)
-        additional_namespace = ('implicit-namespace', namespace)
         variables = Variables(None)
         variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool,
                                          is_bool=True)
         check_code_units(abstract_code_cond, group,
                          additional_variables=variables,
-                         additional_namespace=additional_namespace)
+                         level=level+1)
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
         codeobj = create_runner_codeobj(group,
@@ -298,8 +294,8 @@ class Device(object):
                                   'statement': abstract_code},
                                  'group_variable_set_conditional',
                                  additional_variables=variables,
-                                 additional_namespace=additional_namespace,
-                                 check_units=check_units)
+                                 check_units=check_units,
+                                 level=level+1)
         codeobj()
 
     def spike_queue(self, source_start, source_end):
