@@ -6,17 +6,15 @@
 #include<set>
 #include "clocks.h"
 
-using namespace std;
-
 typedef void (*codeobj_func)(double);
 
 class Network
 {
-	set<Clock*> clocks, curclocks;
+	std::set<Clock*> clocks, curclocks;
 	void compute_clocks();
 	Clock* next_clocks();
 public:
-	vector< pair< Clock*, codeobj_func > > objects;
+	std::vector< std::pair< Clock*, codeobj_func > > objects;
 	double t;
 
 	Network();

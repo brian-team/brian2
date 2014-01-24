@@ -3,8 +3,6 @@
 
 #include<vector>
 
-using namespace std;
-
 /*
  * 2D Dynamic array class
  *
@@ -16,7 +14,7 @@ template<class T>
 class DynamicArray2D
 {
 	int old_n, old_m;
-	vector< vector<T>* > data;
+	std::vector< std::vector<T>* > data;
 public:
 	int n, m;
 	DynamicArray2D(int _n=0, int _m=0)
@@ -46,7 +44,7 @@ public:
 			{
 				for(int i=old_n; i<n; i++)
 				{
-					data[i] = new vector<T>;
+					data[i] = new std::vector<T>;
 				}
 			}
 			if(old_m!=m)

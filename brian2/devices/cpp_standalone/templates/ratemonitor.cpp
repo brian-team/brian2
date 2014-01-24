@@ -27,7 +27,7 @@ void _write_{{codeobj_name}}()
 		outfile.close();
 	} else
 	{
-		cout << "Error writing output file." << endl;
+		std::cout << "Error writing output file." << endl;
 	}
 }
 {% endblock %}

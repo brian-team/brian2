@@ -92,7 +92,7 @@ void _load_arrays()
 		f{{name}}.read(reinterpret_cast<char*>({{name}}), {{N}}*sizeof({{dtype_spec}}));
 	} else
 	{
-		cout << "Error opening static array {{name}}." << endl;
+		std::cout << "Error opening static array {{name}}." << endl;
 	}
 	{% endfor %}
 }
@@ -109,7 +109,7 @@ void _write_arrays()
 		outfile_{{varname}}.close();
 	} else
 	{
-		cout << "Error writing output file for {{varname}}." << endl;
+		std::cout << "Error writing output file for {{varname}}." << endl;
 	}
 	{% endif %}
 	{% endfor %}
@@ -123,7 +123,7 @@ void _write_arrays()
 		outfile_{{varname}}.close();
 	} else
 	{
-		cout << "Error writing output file for {{varname}}." << endl;
+		std::cout << "Error writing output file for {{varname}}." << endl;
 	}
 	{% endfor %}
 }
