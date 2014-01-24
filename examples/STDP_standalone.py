@@ -9,7 +9,6 @@ This example is modified from ``synapses_STDP.py`` and writes a standalone C++ p
 from time import time
 
 from brian2 import *
-from brian2.devices.cpp_standalone import *
 
 set_device('cpp_standalone')
 

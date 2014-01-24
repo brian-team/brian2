@@ -9,8 +9,6 @@ from brian2.utils.logger import get_logger
 from brian2.core.scheduler import Scheduler
 from brian2.core.names import Nameable
 
-from .dynamic import SwitchableClass
-
 __all__ = ['BrianObject',
            'clear',
            ]
@@ -18,7 +16,7 @@ __all__ = ['BrianObject',
 logger = get_logger(__name__)
 
 
-class BrianObject(Nameable, SwitchableClass):
+class BrianObject(Nameable):
     '''
     All Brian objects derive from this class, defines magic tracking and update.
 
