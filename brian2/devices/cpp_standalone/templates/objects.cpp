@@ -16,7 +16,6 @@ Clock {{clock.name}}({{clock.dt_}});
 {% endfor %}
 
 //////////////// networks /////////////////
-Network magicnetwork;
 {% for net in networks %}
 Network {{net.name}};
 {% endfor %}

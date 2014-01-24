@@ -38,7 +38,8 @@ from brian2.core.namespace import *
 from brian2.groups import *
 from brian2.synapses import *
 from brian2.monitors import *
-from brian2.devices import set_device, get_device, insert_device_code
+from brian2.devices import set_device, get_device, insert_device_code, build
+import brian2.devices.cpp_standalone as _cpp_standalone
 
 # preferences
 from brian2.core.core_preferences import *
