@@ -204,6 +204,8 @@ class Network(Nameable):
     @device_override('network_reinit')
     def reinit(self):
         '''
+        reinit()
+
         Reinitialises all contained objects.
         
         Calls `BrianObject.reinit` on each object.
@@ -253,10 +255,18 @@ class Network(Nameable):
     @device_override('network_before_run')
     def before_run(self, namespace):
         '''
+        before_run(namespace)
+
         Prepares the `Network` for a run.
         
         Objects in the `Network` are sorted into the correct running order, and
         their `BrianObject.before_run` methods are called.
+
+        Parameters
+        ----------
+        namespace : dict-like, optional
+            A namespace in which objects which do not define their own
+            namespace will be run.
         '''                
         brian_prefs.check_all_validated()
 
@@ -284,6 +294,9 @@ class Network(Nameable):
     
     @device_override('network_after_run')
     def after_run(self):
+        '''
+        after_run()
+        '''
         for obj in self.objects:
             obj.after_run()
         
@@ -299,7 +312,7 @@ class Network(Nameable):
     def run(self, duration, report=None, report_period=60*second,
             namespace=None, level=0):
         '''
-        run(duration, report=None, report_period=60*second)
+        run(duration, report=None, report_period=60*second, namespace=None, level=0)
         
         Runs the simulation for the given duration.
         
@@ -320,8 +333,8 @@ class Network(Nameable):
             How frequently (in real time) to report progress.
         namespace : dict-like, optional
             A namespace in which objects which do not define their own
-            namespace will be run. If not namespace is given, the locals and
-            globals around the run function will be used. 
+            namespace will be run. If no namespace is given at all, the locals
+            and globals around the run function will be used.
         level : int, optional
             How deep to go down the stack frame to look for the locals/global
             (see `namespace` argument). Only used by run functions that call
@@ -388,6 +401,8 @@ class Network(Nameable):
     @device_override('network_stop')
     def stop(self):
         '''
+        stop()
+
         Stops the network from running, this is reset the next time `Network.run` is called.
         '''
         self._stopped = True
