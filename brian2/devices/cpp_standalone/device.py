@@ -383,6 +383,11 @@ class CPPStandaloneDevice(Device):
             net.before_run(('implicit-run-namespace', namespace))
             
         self.clocks.update(net._clocks)
+        
+        # TODO: remove this horrible hack
+        for clock in self.clocks:
+            if clock.name=='clock':
+                clock._name = 'clock_'
             
         # Extract all the CodeObjects
         # Note that since we ran the Network object, these CodeObjects will be sorted into the right

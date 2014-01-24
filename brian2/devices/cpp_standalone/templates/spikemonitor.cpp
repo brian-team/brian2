@@ -50,7 +50,7 @@ void _write_{{codeobj_name}}()
 		outfile_t.close();
 	} else
 	{
-		cout << "Error writing output file results/{{codeobj_name}}_t." << endl;
+		std::cout << "Error writing output file results/{{codeobj_name}}_t." << endl;
 	}
 	ofstream outfile_i;
 	outfile_i.open("results/{{codeobj_name}}_i", ios::binary | ios::out);
@@ -60,7 +60,7 @@ void _write_{{codeobj_name}}()
 		outfile_i.close();
 	} else
 	{
-		cout << "Error writing output file results/{{codeobj_name}}_i." << endl;
+		std::cout << "Error writing output file results/{{codeobj_name}}_i." << endl;
 	}
 //	ofstream outfile;
 //	outfile.open("results/{{codeobj_name}}.txt", ios::out);
@@ -73,13 +73,13 @@ void _write_{{codeobj_name}}()
 //		outfile.close();
 //	} else
 //	{
-//		cout << "Error writing output file." << endl;
+//		std::cout << "Error writing output file." << endl;
 //	}
 }
 
 void _debugmsg_{{codeobj_name}}()
 {
-	cout << "Number of spikes: " << {{_dynamic__i}}.size() << endl;
+	std::cout << "Number of spikes: " << {{_dynamic__i}}.size() << endl;
 }
 {% endblock %}
 

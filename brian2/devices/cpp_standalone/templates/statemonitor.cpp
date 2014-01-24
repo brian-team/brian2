@@ -42,7 +42,7 @@ void _write_{{codeobj_name}}()
 		outfile.close();
 	} else
 	{
-		cout << "Error writing output file." << endl;
+		std::cout << "Error writing output file." << endl;
 	}
 
 	{% for _varname in _variable_names %}
@@ -60,7 +60,7 @@ void _write_{{codeobj_name}}()
             outfile.close();
         } else
         {
-            cout << "Error writing output file." << endl;
+            std::cout << "Error writing output file." << endl;
         }
 	}
 	{% endfor %}
