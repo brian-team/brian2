@@ -69,22 +69,9 @@ class BrianObject(Nameable):
     
     def before_run(self, namespace, level=0):
         '''
-        Optional method to prepare the object before a run. Receives the 
-        `namespace` in which the object should be run (either the locals/globals
-        or an explicitly defined namespace). This namespace has to be passed
-        as an ``additional_namespace`` argument to calls of
-        `CompoundNamespace.resolve` or `CompoundNamespace.resolve_all`. 
-        
-        Called by `Network.before_run` before the main simulation loop is started.
-        Objects such as `NeuronGroup` will generate internal objects such as
-        state updaters in this method, taking into account changes in the
-        namespace or in constant parameter values.
-        
-        Parameters
-        ----------
-        namespace : (str, dict-like)
-            A (name, namespace) tuple with a description and the namespace in
-            which the `BrianObject` should be executed.
+        Optional method to prepare the object before a run.
+
+        TODO
         '''
         pass
     

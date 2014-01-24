@@ -3,22 +3,80 @@ This module defines the `Group` object, a mix-in class for everything that
 saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
 import weakref
+try:
+    from collections import OrderedDict
+except ImportError:
+    # OrderedDict was added in Python 2.7, use backport for Python 2.6
+    from brian2.utils.ordereddict import OrderedDict
 
 import numpy as np
 
 from brian2.core.base import BrianObject
 from brian2.codegen.codeobject import create_runner_codeobj, check_code_units
-from brian2.core.variables import AuxiliaryVariable, Variables
-from brian2.core.namespace import get_local_namespace
+from brian2.core.variables import Variables
+from brian2.core.functions import Function
+from brian2.core.namespace import (get_local_namespace,
+                                   get_default_numpy_namespace,
+                                   _get_default_unit_namespace)
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit)
 from brian2.utils.logger import get_logger
-from brian2.devices.device import get_device
-
-
 
 __all__ = ['Group', 'GroupCodeRunner']
 
 logger = get_logger(__name__)
+
+
+def _conflict_warning(message, resolutions):
+    '''
+    A little helper functions to generate warnings for logging. Specific
+    to the `Namespace.resolve` method and should only be used by it.
+
+    Parameters
+    ----------
+    message : str
+        The first part of the warning message.
+    resolutions : list of str
+        A list of (namespace, object) tuples.
+    '''
+    if len(resolutions) == 0:
+        # nothing to warn about
+        return
+    elif len(resolutions) == 1:
+        second_part = ('but also refers to a variable in the %s namespace:'
+                       ' %r') % (resolutions[0][0], resolutions[0][1])
+    else:
+        second_part = ('but also refers to a variable in the following '
+                       'namespaces: %s') % (', '.join([r[0] for r in resolutions]))
+
+    logger.warn(message + ' ' + second_part,
+                'Group.resolve.resolution_conflict', once=True)
+
+
+def _same_function(func1, func2):
+    '''
+    Helper function, used during namespace resolution for comparing whether to
+    functions are the same. This takes care of treating a function and a
+    `Function` variables whose `Function.pyfunc` attribute matches as the
+    same. This prevents the user from getting spurious warnings when having
+    for example a numpy function such as :np:func:`~random.randn` in the local
+    namespace, while the ``randn`` symbol in the numpy namespace used for the
+    code objects refers to a `RandnFunction` specifier.
+    '''
+    # use the function itself if it doesn't have a pyfunc attribute and try
+    # to create a weak proxy to make a comparison to other weak proxys return
+    # true
+    func1 = getattr(func1, 'pyfunc', func1)
+    try:
+        func1 = weakref.proxy(func1)
+    except TypeError:
+        pass  # already a weakref proxy
+    func2 = getattr(func2, 'pyfunc', func2)
+    try:
+        func2 = weakref.proxy(func2)
+    except TypeError:
+        pass
+
+    return func1 is func2
 
 
 class IndexWrapper(object):
@@ -195,6 +253,103 @@ class Group(BrianObject):
                     index_array = np.array([index_array])
                 return index_array
 
+    def resolve(self, identifier, run_namespace=None, level=0):
+        '''
+        Resolve an external identifier in the context of a `Group`. If the `Group`
+        declares an explicit namespace, this namespace is used in addition to the
+        standard namespace for units and functions. Additionally, the namespace in
+        the `run_namespace` argument (i.e. the namespace provided to `Network.run`)
+        is used. Only if both are undefined, the implicit namespace of
+        surrounding variables in the stack frame where the original call was made
+        is used (to determine this stack frame, the `level` argument has to be set
+        correctly).
+
+        Parameters
+        ----------
+        identifier : str
+            The name to resolve.
+        group : `Group`
+            The group that potentially defines an explicit namespace for looking up
+            external names.
+        run_namespace : dict, optional
+            A namespace (mapping from strings to objects), as provided as an
+            argument to the `Network.run` function.
+        level : int, optional
+            How far to go up in the stack to find the calling frame.
+        strip_unit : bool, optional
+            Whether to get rid of units (for the code used in simulation) or not
+            (when checking the units of an expression, for example). Defaults to
+            ``False``.
+        '''
+        # We save tuples of (namespace description, referred object) to
+        # give meaningful warnings in case of duplicate definitions
+        matches = []
+
+        namespaces = OrderedDict()
+        namespaces['units'] = _get_default_unit_namespace()
+        namespaces['functions'] = get_default_numpy_namespace()
+        if getattr(self, 'namespace', None) is not None:
+            namespaces['group-specific'] = self.namespace
+        if run_namespace is not None:
+            namespaces['run'] = run_namespace
+
+        if getattr(self, 'namespace', None) is None and run_namespace is None:
+            namespaces['implicit'] = get_local_namespace(level+1)
+
+        for description, namespace in namespaces.iteritems():
+            if identifier in namespace:
+                matches.append((description, namespace[identifier]))
+
+        if len(matches) == 0:
+            # No match at all
+            raise KeyError(('The identifier "%s" could not be resolved.') %
+                           (identifier))
+        elif len(matches) > 1:
+            # Possibly, all matches refer to the same object
+            first_obj = matches[0][1]
+            found_mismatch = False
+            for m in matches:
+                if m[1] is first_obj:
+                    continue
+                if _same_function(m[1], first_obj):
+                    continue
+                try:
+                    proxy = weakref.proxy(first_obj)
+                    if m[1] is proxy:
+                        continue
+                except TypeError:
+                    pass
+
+                # Found a mismatch
+                found_mismatch = True
+                break
+
+            if found_mismatch:
+                _conflict_warning(('The name "%s" refers to different objects '
+                                   'in different namespaces used for resolving. '
+                                   'Will use the object from the %s namespace '
+                                   'with the value %r') %
+                                  (identifier, matches[0][0],
+                                   first_obj), matches[1:])
+
+        # use the first match (according to resolution order)
+        resolved = matches[0][1]
+
+        # Replace pure Python functions by a Functions object
+        if callable(resolved) and not isinstance(resolved, Function):
+            resolved = Function(resolved)
+
+        return resolved
+
+    def resolve_all(self, identifiers, run_namespace=None, level=0):
+        resolutions = {}
+        for identifier in identifiers:
+            resolved = self.resolve(identifier, run_namespace=run_namespace,
+                                    level=level+1)
+            resolutions[identifier] = resolved
+
+        return resolutions
+
 
 class GroupCodeRunner(BrianObject):
     '''
@@ -277,4 +432,3 @@ class GroupCodeRunner(BrianObject):
                                              level=level+1,
                                              template_kwds=self.template_kwds)
         self.code_objects[:] = [weakref.proxy(self.codeobj)]
-

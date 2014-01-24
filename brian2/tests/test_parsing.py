@@ -9,6 +9,7 @@ import numpy as np
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import Constant
 from brian2.core.functions import Function
+from brian2.groups.group import Group
 from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
                                       CPPNodeRenderer,
@@ -23,7 +24,6 @@ from brian2.parsing.functions import (abstract_code_from_function,
                                       substitute_abstract_code_functions)
 from brian2.units import (volt, amp, DimensionMismatchError,
                           have_same_dimensions, Unit, get_unit)
-from brian2.core.namespace import resolve
 
 try:
     from scipy import weave
@@ -31,12 +31,16 @@ except ImportError:
     weave = None
 import nose
 
-# A simple group class with a variables and a namespace argument
-SimpleGroup = namedtuple('SimpleGroup', ['namespace', 'variables'])
+
+# a simple Group for testing
+class SimpleGroup(Group):
+    def __init__(self, variables, namespace=None):
+        self.variables = variables
+        self.namespace = namespace
 
 # FIXME: This shouldn't be only used for testing
 def namespace_to_variable(name, group):
-    value = resolve(name, group)
+    value = group.resolve(name)
     if isinstance(value, Function):
         return value
     else:

@@ -9,7 +9,6 @@ import numpy as np
 
 from brian2.core.functions import Function
 from brian2.core.names import Nameable
-from brian2.core.namespace import resolve, resolve_all
 from brian2.core.variables import Constant
 from brian2.equations.unitcheck import check_units_statements
 from brian2.units.fundamentalunits import get_unit
@@ -136,10 +135,9 @@ def check_code_units(code, group, additional_variables=None,
     # the subexpressions not what variables they refer to
     _, _, unknown = analyse_identifiers(code, all_variables)
     try:
-        resolved_namespace = resolve_all(unknown, group,
-                                         run_namespace=additional_namespace,
-                                         level=level+1,
-                                         strip_units=False)
+        resolved_namespace = group.resolve_all(unknown,
+                                               run_namespace=additional_namespace,
+                                               level=level+1)
     except KeyError as ex:
         if ignore_keyerrors:
             logger.debug('Namespace not complete (yet), ignoring: %s ' % str(ex),
@@ -247,8 +245,8 @@ def create_runner_codeobj(group, code, template_name,
     for var in used_known:
         # Emit a warning if a variable is also present in the namespace
         try:
-            resolve(var, group, run_namespace=additional_namespace,
-                    level=level+1)
+            group.resolve(var, run_namespace=additional_namespace,
+                          level=level+1)
             # If this didn't raise an Exception, we found the variable
             message = ('Variable {var} is present in the namespace but is also an'
                        ' internal variable of {name}, the internal variable will'
@@ -259,9 +257,9 @@ def create_runner_codeobj(group, code, template_name,
             pass  # all good
         variables[var] = all_variables[var]
 
-    resolved_namespace = resolve_all(unknown, group,
-                                     run_namespace=additional_namespace,
-                                     level=level+1)
+    resolved_namespace = group.resolve_all(unknown,
+                                           run_namespace=additional_namespace,
+                                           level=level+1)
 
     for varname, value in resolved_namespace.iteritems():
         if isinstance(value, Function):
@@ -290,9 +288,9 @@ def create_runner_codeobj(group, code, template_name,
             # We abuse template.variables here to also store names of things
             # from the namespace (e.g. rand) that are needed
             # Try to find the name in the group's namespace
-            variables[var] = resolve(var, group,
-                                     run_namespace=additional_namespace,
-                                     level=level+1)
+            variables[var] = group.resolve(var,
+                                           run_namespace=additional_namespace,
+                                           level=level+1)
 
     # always add N, the number of neurons or synapses
     variables['N'] = all_variables['N']

@@ -10,7 +10,7 @@ import sympy
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 
-from brian2.core.namespace import (resolve_all, get_default_numpy_namespace,
+from brian2.core.namespace import (get_default_numpy_namespace,
                                    DEFAULT_UNIT_NAMESPACE)
 from brian2.core.variables import Constant
 from brian2.core.functions import Function
@@ -750,9 +750,9 @@ class Equations(collections.Mapping):
                                      for _, expr in self.eq_expressions])
         external -= set(all_variables.keys())
 
-        resolved_namespace = resolve_all(external, group,
-                                         run_namespace=run_namespace,
-                                         level=level+1)
+        resolved_namespace = group.resolve_all(external,
+                                               run_namespace=run_namespace,
+                                               level=level+1)
 
         for name, item in resolved_namespace.iteritems():
             if isinstance(item, Function):
@@ -762,8 +762,6 @@ class Equations(collections.Mapping):
                 array_value = np.asarray(item)
                 all_variables[name] = Constant(name, unit=unit, value=array_value)
 
-        if 'int' in all_variables:
-            print 'all_variables["int"]', all_variables['int']
         for var, eq in self._equations.iteritems():
             if eq.type == PARAMETER:
                 # no need to check units for parameters

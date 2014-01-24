@@ -28,9 +28,14 @@ from brian2.equations.equations import (check_identifier_basic,
                                         PARAMETER,
                                         EquationError)
 from brian2.equations.refractory import check_identifier_refractory
+from brian2.groups.group import Group
 
-# A simple group class with a variables and a namespace argument
-SimpleGroup = namedtuple('SimpleGroup', ['namespace', 'variables'])
+
+# a simple Group for testing
+class SimpleGroup(Group):
+    def __init__(self, variables, namespace=None):
+        self.variables = variables
+        self.namespace = namespace
 
 def test_utility_functions():
     unit_namespace = DEFAULT_UNIT_NAMESPACE
@@ -262,7 +267,7 @@ def test_unit_checking():
 
     # inconsistent unit for a differential equation
     eqs = Equations('dv/dt = -v : volt')
-    group = SimpleGroup(namespace={}, variables={'v': S(volt)})
+    group = SimpleGroup({'v': S(volt)})
     assert_raises(DimensionMismatchError,
                   lambda: eqs.check_units(group))
 

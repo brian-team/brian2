@@ -205,7 +205,7 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                                    additional_variables=self.variables,
                                                                    level=level+1)
         self._initialise_queue_codeobj()
-        GroupCodeRunner.before_run(self, namespace)
+        GroupCodeRunner.before_run(self, namespace, level=level+1)
 
         # we insert rather than replace because GroupCodeRunner puts a CodeObject in updaters already
         if self._pushspikes_codeobj is None:
