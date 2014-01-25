@@ -13,12 +13,13 @@ import numpy as np
 
 from brian2.core.base import BrianObject
 from brian2.codegen.codeobject import create_runner_codeobj, check_code_units
-from brian2.core.variables import Variables
+from brian2.core.variables import Variables, Constant
 from brian2.core.functions import Function
 from brian2.core.namespace import (get_local_namespace,
                                    get_default_numpy_namespace,
                                    _get_default_unit_namespace)
-from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit)
+from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
+                                           get_unit)
 from brian2.utils.logger import get_logger
 
 __all__ = ['Group', 'GroupCodeRunner']
@@ -253,7 +254,116 @@ class Group(BrianObject):
                     index_array = np.array([index_array])
                 return index_array
 
-    def resolve(self, identifier, run_namespace=None, level=0):
+    def resolve(self, identifier, additional_variables=None,
+                run_namespace=None, level=0):
+        '''
+        Resolve an identifier (i.e. variable, constant or function name) in the
+        context of this group. This function will first lookup the name in the
+        state variables, then look for a standard function or unit of that
+        name and finally look in `Group.namespace` and in `run_namespace`. If
+        neither is given, it will try to find the variable in the local
+        namespace where the original function call took place. See
+        :doc:`user/equations#external-variables-and-functions`.
+
+        Parameters
+        ----------
+        identifiers : str
+            The name to look up.
+        additional_variables : dict-like, optional
+            An additional mapping of names to `Variable` objects that will be
+            checked before `Group.variables`.
+        run_namespace : dict-like, optional
+            An additional namespace, provided as an argument to the
+            `Network.run` method.
+        level : int, optional
+            How far to go up in the stack to find the original call frame.
+
+        Returns
+        -------
+        obj : `Variable` or `Function`
+            Returns a `Variable` object describing the variable or a `Function`
+            object for a function. External variables are represented as
+            `Constant` objects
+
+        Raises
+        ------
+        KeyError
+            If the `identifier` could not be resolved
+        '''
+        resolved_internal = None
+
+        if identifier in (additional_variables or {}):
+            resolved_internal = additional_variables[identifier]
+        elif identifier in getattr(self, 'variables', {}):
+            resolved_internal = self.variables[identifier]
+
+        if resolved_internal is not None:
+            # We already found the identifier, but we try to resolve it in the
+            # external namespace nevertheless, to report a warning if it is
+            # present there as well.
+            try:
+                self._resolve_external(identifier,
+                                       run_namespace=run_namespace,
+                                       level=level+1,
+                                       do_warn=False)
+                # If we arrive here without a KeyError then the name is present
+                # in the external namespace as well
+                message = ('Variable {var} is present in the namespace but is '
+                           'also an internal variable of {name}, the internal '
+                           'variable will be used.'.format(var=identifier,
+                                                           name=self.name))
+                logger.warn(message, 'Group.resolve.resolution_conflict',
+                            once=True)
+            except KeyError:
+                pass  # Nothing to warn about
+
+            return resolved_internal
+
+        # We did not find the name internally, try to resolve it in the external
+        # namespace
+        return self._resolve_external(identifier, run_namespace=run_namespace,
+                                      level=level+1)
+
+    def resolve_all(self, identifiers, additional_variables=None,
+                    run_namespace=None, level=0):
+        '''
+        Resolve a list of identifiers. Calls `Group.resolve` for each
+        identifier.
+
+        Parameters
+        ----------
+        identifiers : iterable of str
+            The names to look up.
+        additional_variables : dict-like, optional
+            An additional mapping of names to `Variable` objects that will be
+            checked before `Group.variables`.
+        run_namespace : dict-like, optional
+            An additional namespace, provided as an argument to the
+            `Network.run` method.
+        level : int, optional
+            How far to go up in the stack to find the original call frame.
+
+        Returns
+        -------
+        variables : dict of `Variable` or `Function`
+            A mapping from name to `Variable`/`Function` object for each of the
+            names given in `identifiers`
+
+        Raises
+        ------
+        KeyError
+            If one of the names in `identifier` cannot be resolved
+        '''
+        resolved = {}
+        for identifier in identifiers:
+            resolved[identifier] = self.resolve(identifier,
+                                                additional_variables=additional_variables,
+                                                run_namespace=run_namespace,
+                                                level=level+1)
+        return resolved
+
+    def _resolve_external(self, identifier, run_namespace=None, level=0,
+                          do_warn=True):
         '''
         Resolve an external identifier in the context of a `Group`. If the `Group`
         declares an explicit namespace, this namespace is used in addition to the
@@ -276,10 +386,9 @@ class Group(BrianObject):
             argument to the `Network.run` function.
         level : int, optional
             How far to go up in the stack to find the calling frame.
-        strip_unit : bool, optional
-            Whether to get rid of units (for the code used in simulation) or not
-            (when checking the units of an expression, for example). Defaults to
-            ``False``.
+        do_warn : int, optional
+            Whether to display a warning if an identifier resolves to different
+            objects in different namespaces. Defaults to ``True``.
         '''
         # We save tuples of (namespace description, referred object) to
         # give meaningful warnings in case of duplicate definitions
@@ -324,7 +433,7 @@ class Group(BrianObject):
                 found_mismatch = True
                 break
 
-            if found_mismatch:
+            if found_mismatch and do_warn:
                 _conflict_warning(('The name "%s" refers to different objects '
                                    'in different namespaces used for resolving. '
                                    'Will use the object from the %s namespace '
@@ -339,9 +448,25 @@ class Group(BrianObject):
         if callable(resolved) and not isinstance(resolved, Function):
             resolved = Function(resolved)
 
+        if not isinstance(resolved, Function):
+            # Wrap the value in a Constant object
+            unit = get_unit(resolved)
+            value = np.asarray(resolved)
+            if value.shape != ():
+                raise KeyError('Variable %s was found in the namespace, but is'
+                               ' not a scalar value' % identifier)
+            resolved = Constant(identifier, unit=unit, value=value)
+
         return resolved
 
-    def resolve_all(self, identifiers, run_namespace=None, level=0):
+    def _resolve_all_external(self, identifiers, run_namespace=None, level=0):
+        '''
+        Parameters
+        ----------
+        do_warn : int, optional
+            Whether to display a warning if an identifier resolves to different
+            objects in different namespaces. Defaults to ``True``.
+        '''
         resolutions = {}
         for identifier in identifiers:
             resolved = self.resolve(identifier, run_namespace=run_namespace,
@@ -403,7 +528,7 @@ class GroupCodeRunner(BrianObject):
         self.needed_variables = needed_variables
         self.template_kwds = template_kwds
     
-    def update_abstract_code(self):
+    def update_abstract_code(self, run_namespace=None, level=0):
         '''
         Update the abstract code for the code object. Will be called in
         `before_run` and should update the `GroupCodeRunner.abstract_code`
@@ -414,7 +539,7 @@ class GroupCodeRunner(BrianObject):
         pass
 
     def before_run(self, namespace, level=0):
-        self.update_abstract_code()
+        self.update_abstract_code(run_namespace=namespace, level=level+1)
         # If the GroupCodeRunner has variables, add them
         if hasattr(self, 'variables'):
             additional_variables = self.variables

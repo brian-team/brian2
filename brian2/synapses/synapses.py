@@ -52,7 +52,7 @@ class StateUpdater(GroupCodeRunner):
                                                                self.group.variables,
                                                                method)
     
-    def update_abstract_code(self):
+    def update_abstract_code(self, run_namespace=None, level=0):
         
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.variables,
@@ -179,7 +179,7 @@ class SynapticPathway(GroupCodeRunner, Group):
         # Enable access to the delay attribute via the specifier
         self._enable_group_attributes()
 
-    def update_abstract_code(self):
+    def update_abstract_code(self, run_namespace=None, level=0):
         if self.synapses.event_driven is not None:
             event_driven_update = independent(self.synapses.event_driven,
                                               self.group.variables)

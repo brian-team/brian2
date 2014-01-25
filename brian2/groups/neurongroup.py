@@ -18,45 +18,17 @@ from brian2.core.scheduler import Scheduler
 from brian2.parsing.expressions import (parse_expression_unit,
                                         is_boolean_expression)
 from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import get_identifiers
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
 
 from .group import Group, GroupCodeRunner
 from .subgroup import Subgroup
 
+
 __all__ = ['NeuronGroup']
 
 logger = get_logger(__name__)
-
-
-def get_refractory_code(group):
-    ref = group._refractory
-    if ref is False:
-        # No refractoriness
-        abstract_code = ''
-    elif isinstance(ref, Quantity):
-        abstract_code = 'not_refractory = 1*((t - lastspike) > %f)\n' % ref
-    else:
-        # TODO: Also include external namespace
-        unit = parse_expression_unit(str(ref), group.variables)
-        if have_same_dimensions(unit, second):
-            abstract_code = 'not_refractory = 1*((t - lastspike) > %s)\n' % ref
-        elif have_same_dimensions(unit, Unit(1)):
-            if not is_boolean_expression(str(ref), group):
-                raise TypeError(('Refractory expression is dimensionless '
-                                 'but not a boolean value. It needs to '
-                                 'either evaluate to a timespan or to a '
-                                 'boolean value.'))
-            # boolean condition
-            # we have to be a bit careful here, we can't just use the given
-            # condition as it is, because we only want to *leave*
-            # refractoriness, based on the condition
-            abstract_code = 'not_refractory = 1*(not_refractory or not (%s))\n' % ref
-        else:
-            raise TypeError(('Refractory expression has to evaluate to a '
-                             'timespan or a boolean value, expression'
-                             '"%s" has units %s instead') % (ref, unit))
-    return abstract_code
 
 
 class StateUpdater(GroupCodeRunner):
@@ -81,15 +53,48 @@ class StateUpdater(GroupCodeRunner):
         # formulation. However, do not fail on KeyErrors since the
         # refractoriness might refer to variables that don't exist yet
         try:
-            self.update_abstract_code()
+            self.update_abstract_code(level=1)
         except KeyError as ex:
             logger.debug('Namespace not complete (yet), ignoring: %s ' % str(ex),
                          'StateUpdater')
 
-    def update_abstract_code(self):
+    def _get_refractory_code(self, run_namespace, level=0):
+        ref = self.group._refractory
+        if ref is False:
+            # No refractoriness
+            abstract_code = ''
+        elif isinstance(ref, Quantity):
+            abstract_code = 'not_refractory = 1*((t - lastspike) > %f)\n' % ref
+        else:
+            identifiers = get_identifiers(ref)
+            variables = self.group.resolve_all(identifiers,
+                                               run_namespace=run_namespace,
+                                               level=level+1)
+            unit = parse_expression_unit(str(ref), variables)
+            if have_same_dimensions(unit, second):
+                abstract_code = 'not_refractory = 1*((t - lastspike) > %s)\n' % ref
+            elif have_same_dimensions(unit, Unit(1)):
+                if not is_boolean_expression(str(ref), variables):
+                    raise TypeError(('Refractory expression is dimensionless '
+                                     'but not a boolean value. It needs to '
+                                     'either evaluate to a timespan or to a '
+                                     'boolean value.'))
+                # boolean condition
+                # we have to be a bit careful here, we can't just use the given
+                # condition as it is, because we only want to *leave*
+                # refractoriness, based on the condition
+                abstract_code = 'not_refractory = 1*(not_refractory or not (%s))\n' % ref
+            else:
+                raise TypeError(('Refractory expression has to evaluate to a '
+                                 'timespan or a boolean value, expression'
+                                 '"%s" has units %s instead') % (ref, unit))
+        return abstract_code
+
+    def update_abstract_code(self, run_namespace=None, level=0):
 
         # Update the not_refractory variable for the refractory period mechanism
-        self.abstract_code = get_refractory_code(self.group)
+        self.abstract_code = self._get_refractory_code(run_namespace=run_namespace,
+                                                       level=level+1)
         
         self.abstract_code += self.method(self.group.equations,
                                           self.group.variables)
@@ -117,11 +122,19 @@ class Thresholder(GroupCodeRunner):
 
         # Check the abstract code for unit mismatches (only works if the
         # namespace is already complete)
-        self.update_abstract_code()
-        check_code_units(self.abstract_code, self.group, ignore_keyerrors=True)
+        try:
+            self.update_abstract_code(level=1)
+            check_code_units(self.abstract_code, self.group)
+        except KeyError:
+            pass
 
-    def update_abstract_code(self):
-        if not is_boolean_expression(self.group.threshold, self.group):
+    def update_abstract_code(self, run_namespace=None, level=0):
+        code = self.group.threshold
+        identifiers = get_identifiers(code)
+        variables = self.group.resolve_all(identifiers,
+                                           run_namespace=run_namespace,
+                                           level=level+1)
+        if not is_boolean_expression(self.group.threshold, variables):
             raise TypeError(('Threshold condition "%s" is not a boolean '
                              'expression') % self.group.threshold)
         if self.group._refractory is False:
@@ -143,10 +156,13 @@ class Resetter(GroupCodeRunner):
 
         # Check the abstract code for unit mismatches (only works if the
         # namespace is already complete)
-        self.update_abstract_code()
-        check_code_units(self.abstract_code, self.group, ignore_keyerrors=True)
+        try:
+            self.update_abstract_code(level=1)
+            check_code_units(self.abstract_code, self.group)
+        except KeyError:
+            pass
 
-    def update_abstract_code(self):
+    def update_abstract_code(self, run_namespace=None, level=0):
         self.abstract_code = self.group.reset
 
 

@@ -131,6 +131,9 @@ class Variable(object):
         #: Whether the variable is read-only
         self.read_only = read_only
 
+    dim = property(lambda self: self.unit.dim,
+                   doc='The dimensions of this variable.')
+
     def get_value(self):
         '''
         Return the value associated with the variable (without units). This

@@ -25,11 +25,11 @@ def test_default_content():
     '''
     group = Group({})
     # Units
-    assert group.resolve('second', None) == second
-    assert group.resolve('volt', None) == volt
-    assert group.resolve('ms', None) == ms
-    assert group.resolve('Hz', None) == Hz
-    assert group.resolve('mV', None) == mV
+    assert group.resolve('second', None).get_value_with_unit() == second
+    assert group.resolve('volt', None).get_value_with_unit() == volt
+    assert group.resolve('ms', None).get_value_with_unit() == ms
+    assert group.resolve('Hz', None).get_value_with_unit() == Hz
+    assert group.resolve('mV', None).get_value_with_unit() == mV
 
     # Functions
     assert group.resolve('sin', None).pyfunc == sin
@@ -44,7 +44,7 @@ def test_explicit_namespace():
 
     # Explicitly provided
     with catch_logs() as l:
-        assert group.resolve('variable') == 42
+        assert group.resolve('variable').get_value_with_unit() == 42
         assert len(l) == 0
 
 
@@ -65,15 +65,15 @@ def test_resolution():
     resolved = group.resolve_all(['tau', 'ms'])
     assert len(resolved) == 2
     assert type(resolved) == type(dict())
-    assert resolved['tau'] == tau
-    assert resolved['ms'] == ms
+    assert resolved['tau'].get_value_with_unit() == tau
+    assert resolved['ms'].get_value_with_unit() == ms
 
     # explicit namespace
     group = SimpleGroup(namespace={'tau': 20 * ms}, variables={})
 
     resolved = group.resolve_all(['tau', 'ms'])
     assert len(resolved) == 2
-    assert resolved['tau'] == 20 * ms
+    assert resolved['tau'].get_value_with_unit() == 20 * ms
 
 
 def test_warning():
@@ -90,7 +90,7 @@ def test_warning():
         assert l[0][1].endswith('.resolution_conflict')
     with catch_logs() as l:
         resolved = group.resolve('cm')
-        assert resolved == brian_cm
+        assert resolved.get_value_with_unit() == brian_cm
         assert len(l) == 1
         assert l[0][1].endswith('.resolution_conflict')
 

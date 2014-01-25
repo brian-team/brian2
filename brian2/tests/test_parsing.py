@@ -212,8 +212,6 @@ def test_is_boolean_expression():
 
     variables = {'a': a, 'b': b, 'c': c, 'f': f, 'g': g, 's1': s1, 's2': s2}
 
-    group = SimpleGroup(variables=variables, namespace={})
-
     EVF = [
         (True, 'a or b'),
         (False, 'c'),
@@ -230,7 +228,7 @@ def test_is_boolean_expression():
         (True, 'f(c) or a<b and s1', ),
         ]
     for expect, expr in EVF:
-        ret_val = is_boolean_expression(expr, group)
+        ret_val = is_boolean_expression(expr, variables)
         if expect != ret_val:
             raise AssertionError(('is_boolean_expression(%r) returned %s, '
                                   'but was supposed to return %s') % (expr,

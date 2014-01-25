@@ -13,7 +13,7 @@ __all__ = ['is_boolean_expression',
            'parse_expression_unit',]
 
 
-def is_boolean_expression(expr, group):
+def is_boolean_expression(expr, variables):
     '''
     Determines if an expression is of boolean type or not
     
@@ -22,8 +22,8 @@ def is_boolean_expression(expr, group):
     
     expr : str
         The expression to test
-    group : `Group`
-        The group providing the context for the expression
+    variables : dict-like of `Variable`
+        The variables used in the expression.
 
     Returns
     -------
@@ -57,35 +57,27 @@ def is_boolean_expression(expr, group):
     * Otherwise we return ``False``.
     '''
 
-    namespace = getattr(group, 'namespace', {})
-    variables = getattr(group, 'variables', {})
-
     # If we are working on a string, convert to the top level node    
     if isinstance(expr, str):
         mod = ast.parse(expr, mode='eval')
         expr = mod.body
         
     if expr.__class__ is ast.BoolOp:
-        if all(is_boolean_expression(node, group)
+        if all(is_boolean_expression(node, variables)
                for node in expr.values):
             return True
         else:
             raise SyntaxError("Expression ought to be boolean but is not (e.g. 'x<y and 3')")
     elif expr.__class__ is ast.Name:
         name = expr.id
-        if name in namespace:
-            value = namespace[name]
-            return value is True or value is False
         if name in variables:
-            return getattr(variables[name], 'is_bool', False)
+            return variables[name].is_bool
         else:
             return name == 'True' or name == 'False'
     elif expr.__class__ is ast.Call:
         name = expr.func.id
-        if name in namespace:
-            return getattr(namespace[name], '_returns_bool', False)
-        elif name in variables:
-            return getattr(variables[name], '_returns_bool', False)
+        if name in variables and hasattr(variables[name], '_returns_bool'):
+            return variables[name]._returns_bool
         else:
             raise SyntaxError('Unknown function %s' % name)
     elif expr.__class__ is ast.Compare:

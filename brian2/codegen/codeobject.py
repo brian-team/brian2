@@ -93,8 +93,7 @@ class CodeObject(Nameable):
 
 def check_code_units(code, group, additional_variables=None,
                      additional_namespace=None,
-                     level=0,
-                     ignore_keyerrors=False):
+                     level=0):
     '''
     Check statements for correct units.
 
@@ -111,12 +110,6 @@ def check_code_units(code, group, additional_variables=None,
         An additional namespace, as provided to `Group.before_run`
     level : int, optional
         How far to go up in the stack to find the calling frame.
-    ignore_keyerrors : boolean, optional
-        Whether to silently ignore unresolvable identifiers. Should be set
-        to ``False`` (the default) if the namespace is expected to be
-        complete (e.g. in `Group.before_run`) but to ``True`` when the check
-        is done during object initialisation where the namespace is not
-        necessarily complete yet.
 
     Raises
     ------
@@ -139,21 +132,10 @@ def check_code_units(code, group, additional_variables=None,
                                                run_namespace=additional_namespace,
                                                level=level+1)
     except KeyError as ex:
-        if ignore_keyerrors:
-            logger.debug('Namespace not complete (yet), ignoring: %s ' % str(ex),
-                         'check_code_units')
-            return
-        else:
-            raise KeyError('Error occured when checking "%s": %s' % (code,
-                                                                     str(ex)))
+        raise KeyError('Error occured when checking "%s": %s' % (code,
+                                                                 str(ex)))
 
-    for name, item in resolved_namespace.iteritems():
-        if isinstance(item, Function):
-            all_variables[name] = item
-        else:
-            unit = get_unit(item)
-            array_value = np.asarray(item)
-            all_variables[name] = Constant(name, unit=unit, value=array_value)
+    all_variables.update(resolved_namespace)
 
     check_units_statements(code, all_variables)
 
@@ -241,56 +223,25 @@ def create_runner_codeobj(group, code, template_name,
     logger.debug('Unknown identifiers in the abstract code: ' + str(unknown))
 
     # Only pass the variables that are actually used
-    variables = {}
-    for var in used_known:
-        # Emit a warning if a variable is also present in the namespace
-        try:
-            group.resolve(var, run_namespace=additional_namespace,
-                          level=level+1)
-            # If this didn't raise an Exception, we found the variable
-            message = ('Variable {var} is present in the namespace but is also an'
-                       ' internal variable of {name}, the internal variable will'
-                       ' be used.'.format(var=var, name=group.name))
-            logger.warn(message, 'create_runner_codeobj.resolution_conflict',
-                        once=True)
-        except KeyError:
-            pass  # all good
-        variables[var] = all_variables[var]
-
-    resolved_namespace = group.resolve_all(unknown,
-                                           run_namespace=additional_namespace,
-                                           level=level+1)
-
-    for varname, value in resolved_namespace.iteritems():
-        if isinstance(value, Function):
-            variables[varname] = value
-        else:
-            unit = get_unit(value)
-            # For the moment, only allow the use of scalar values
-            array_value = np.asarray(value)
-            if array_value.shape != ():
-                raise TypeError('Name "%s" does not refer to a scalar value' % varname)
-            variables[varname] = Constant(name=varname, unit=unit,
-                                          value=array_value)
+    variables = group.resolve_all(used_known | unknown,
+                                  additional_variables=additional_variables,
+                                  run_namespace=additional_namespace,
+                                  level=level+1)
 
     # Add variables that are not in the abstract code, nor specified in the
     # template but nevertheless necessary
     if needed_variables is None:
         needed_variables = []
-    for var in needed_variables:
-        variables[var] = all_variables[var]
+    variables.update(group.resolve_all(needed_variables,
+                                       additional_variables=additional_variables,
+                                       run_namespace=additional_namespace,
+                                       level=level+1))
 
     # Also add the variables that the template needs
-    for var in template.variables:
-        try:
-            variables[var] = all_variables[var]
-        except KeyError:
-            # We abuse template.variables here to also store names of things
-            # from the namespace (e.g. rand) that are needed
-            # Try to find the name in the group's namespace
-            variables[var] = group.resolve(var,
-                                           run_namespace=additional_namespace,
-                                           level=level+1)
+    variables.update(group.resolve_all(template.variables,
+                                       additional_variables=additional_variables,
+                                       run_namespace=additional_namespace,
+                                       level=level+1))
 
     # always add N, the number of neurons or synapses
     variables['N'] = all_variables['N']
