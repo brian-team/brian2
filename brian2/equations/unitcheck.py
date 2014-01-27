@@ -91,12 +91,15 @@ def unit_from_string(unit_string):
 
 def check_unit(expression, unit, variables):
     '''
-    Evaluates the unit for an expression in a given namespace.
+    Compares the unit for an expression to an expected unit in a given
+    namespace.
     
     Parameters
     ----------
     expression : str
         The expression to evaluate.
+    unit : `Unit`
+        The expected unit for the `expression.
     variables : dict
         Dictionary of all variables (including external constants) used in
         the `expression`.
@@ -107,10 +110,6 @@ def check_unit(expression, unit, variables):
         In case on of the identifiers cannot be resolved.
     DimensionMismatchError
         If an unit mismatch occurs during the evaluation.
-    
-    See Also
-    --------
-    unit_from_expression
     '''
     expr_unit = parse_expression_unit(expression, variables)
     fail_for_dimension_mismatch(expr_unit, unit, ('Expression %s does not '
@@ -127,10 +126,10 @@ def check_units_statements(code, variables):
     
     Parameters
     ----------
-    expression : str
-        The expression to evaluate.
+    code : str
+        The statements as a (multi-line) string
     variables : dict of `Variable` objects
-        The information about all variables used in `expression` (including
+        The information about all variables used in `code` (including
         `Constant` objects for external variables)
     
     Raises

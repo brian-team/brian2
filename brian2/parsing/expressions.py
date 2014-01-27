@@ -27,20 +27,17 @@ def is_boolean_expression(expr, variables):
 
     Returns
     -------
-    
     isbool : bool
         Whether or not the expression is boolean.
 
     Raises
     ------
-    
     SyntaxError
         If the expression ought to be boolean but is not,
         for example ``x<y and z`` where ``z`` is not a boolean variable.
         
     Notes
     -----
-    
     We test the following cases recursively on the abstract syntax tree:
     
     * The node is a boolean operation. If all the subnodes are boolean

@@ -422,9 +422,10 @@ def test_repr():
 def test_indices():
     G = NeuronGroup(10, 'v : 1')
     G.v = 'i'
-
+    ext_var = 5
     assert_equal(G.indices[:], G.i[:])
     assert_equal(G.indices[5:], G.indices['i >= 5'])
+    assert_equal(G.indices[5:], G.indices['i >= ext_var'])
     assert_equal(G.indices['v >= 5'], np.nonzero(G.v >= 5)[0])
 
 

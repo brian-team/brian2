@@ -92,8 +92,6 @@ class IndexWrapper(object):
 
     def __getitem__(self, item):
         if isinstance(item, basestring):
-            namespace = get_local_namespace(1)
-            additional_namespace = ('implicit-namespace', namespace)
             variables = Variables(None)
             variables.add_auxiliary_variable('_indices', unit=Unit(1),
                                              dtype=np.int32)
@@ -103,13 +101,13 @@ class IndexWrapper(object):
 
             abstract_code = '_cond = ' + item
             check_code_units(abstract_code, self.group,
-                             additional_namespace=additional_namespace,
-                             additional_variables=variables)
+                             additional_variables=variables,
+                             level=1)
             codeobj = create_runner_codeobj(self.group,
                                             abstract_code,
                                             'group_get_indices',
                                             additional_variables=variables,
-                                            additional_namespace=additional_namespace,
+                                            level=1
                                             )
             return codeobj()
         else:

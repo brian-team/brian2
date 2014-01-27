@@ -848,8 +848,6 @@ class Synapses(Group):
             abstract_code += '_cond = ' + condition + '\n'
             abstract_code += '_n = ' + str(n) + '\n'
             abstract_code += '_p = ' + str(p)
-            namespace = get_local_namespace(level + 1)
-            additional_namespace = ('implicit-namespace', namespace)
             # This overwrites 'i' and 'j' in the synapses' variables dictionary
             # This is necessary because in the context of synapse creation, i
             # and j do not correspond to the sources/targets of the existing
@@ -882,7 +880,6 @@ class Synapses(Group):
                                             'synapses_create',
                                             variable_indices=variable_indices,
                                             additional_variables=variables,
-                                            additional_namespace=additional_namespace,
                                             check_units=False
                                             )
             codeobj()
