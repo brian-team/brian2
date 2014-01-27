@@ -4,6 +4,7 @@ sub-expression.
 '''
 import weakref
 import collections
+import functools
 
 import numpy as np
 
@@ -131,8 +132,12 @@ class Variable(object):
         #: Whether the variable is read-only
         self.read_only = read_only
 
-    dim = property(lambda self: self.unit.dim,
-                   doc='The dimensions of this variable.')
+    @property
+    def dim(self):
+        '''
+        The dimensions of this variable.
+        '''
+        return self.unit.dim
 
     def get_value(self):
         '''
@@ -628,8 +633,12 @@ class VariableView(object):
         self.group = weakref.proxy(group)
         self.unit = unit
 
-    dim = property(lambda self: self.unit.dim,
-                   doc='The dimensions of this variable.')
+    @property
+    def dim(self):
+        '''
+        The dimensions of this variable.
+        '''
+        return self.unit.dim
 
     def get_item(self, item, level=0):
         '''
@@ -876,7 +885,9 @@ class Variables(collections.Mapping):
 
         self._variables = {}
         #: A dictionary given the index name for every array name
-        self.indices = collections.defaultdict(lambda: default_index)
+        self.indices = collections.defaultdict(functools.partial(str, default_index))
+        # Note that by using functools.partial (instead of e.g. a lambda
+        # function) above, this object remains pickable.
 
     def __getitem__(self, item):
         return self._variables[item]
