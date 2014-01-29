@@ -22,7 +22,7 @@ from brian2.utils.stringtools import get_identifiers
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
 
-from .group import Group, GroupCodeRunner
+from .group import Group, CodeRunner
 from .subgroup import Subgroup
 
 
@@ -31,19 +31,19 @@ __all__ = ['NeuronGroup']
 logger = get_logger(__name__)
 
 
-class StateUpdater(GroupCodeRunner):
+class StateUpdater(CodeRunner):
     '''
-    The `GroupCodeRunner` that updates the state variables of a `NeuronGroup`
+    The `CodeRunner` that updates the state variables of a `NeuronGroup`
     at every timestep.
     '''
     def __init__(self, group, method):
         self.method_choice = method
         
-        GroupCodeRunner.__init__(self, group,
-                                       'stateupdate',
-                                       when=(group.clock, 'groups'),
-                                       name=group.name + '_stateupdater*',
-                                       check_units=False)
+        CodeRunner.__init__(self, group,
+                            'stateupdate',
+                            when=(group.clock, 'groups'),
+                            name=group.name + '_stateupdater*',
+                            check_units=False)
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.variables,
@@ -100,9 +100,9 @@ class StateUpdater(GroupCodeRunner):
                                           self.group.variables)
 
 
-class Thresholder(GroupCodeRunner):
+class Thresholder(CodeRunner):
     '''
-    The `GroupCodeRunner` that applies the threshold condition to the state
+    The `CodeRunner` that applies the threshold condition to the state
     variables of a `NeuronGroup` at every timestep and sets its ``spikes``
     and ``refractory_until`` attributes.
     '''
@@ -113,12 +113,12 @@ class Thresholder(GroupCodeRunner):
         else:
             template_kwds = {'_uses_refractory': True}
             needed_variables=['t', 'not_refractory', 'lastspike']
-        GroupCodeRunner.__init__(self, group,
-                                 'threshold',
-                                 when=(group.clock, 'thresholds'),
-                                 name=group.name+'_thresholder*',
-                                 needed_variables=needed_variables,
-                                 template_kwds=template_kwds)
+        CodeRunner.__init__(self, group,
+                            'threshold',
+                            when=(group.clock, 'thresholds'),
+                            name=group.name+'_thresholder*',
+                            needed_variables=needed_variables,
+                            template_kwds=template_kwds)
 
         # Check the abstract code for unit mismatches (only works if the
         # namespace is already complete)
@@ -143,16 +143,16 @@ class Thresholder(GroupCodeRunner):
             self.abstract_code = '_cond = (%s) and not_refractory' % self.group.threshold
         
 
-class Resetter(GroupCodeRunner):
+class Resetter(CodeRunner):
     '''
-    The `GroupCodeRunner` that applies the reset statement(s) to the state
+    The `CodeRunner` that applies the reset statement(s) to the state
     variables of neurons that have spiked in this timestep.
     '''
     def __init__(self, group):
-        GroupCodeRunner.__init__(self, group,
-                                 'reset',
-                                 when=(group.clock, 'resets'),
-                                 name=group.name + '_resetter*')
+        CodeRunner.__init__(self, group,
+                            'reset',
+                            when=(group.clock, 'resets'),
+                            name=group.name + '_resetter*')
 
         # Check the abstract code for unit mismatches (only works if the
         # namespace is already complete)

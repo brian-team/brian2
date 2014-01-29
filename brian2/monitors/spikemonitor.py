@@ -5,12 +5,12 @@ from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit, Quantity
-from brian2.groups.group import GroupCodeRunner
+from brian2.groups.group import CodeRunner
 
 __all__ = ['SpikeMonitor']
 
 
-class SpikeMonitor(GroupCodeRunner):
+class SpikeMonitor(CodeRunner):
     '''
     Record spikes from a `NeuronGroup` or other spike source
     
@@ -42,8 +42,8 @@ class SpikeMonitor(GroupCodeRunner):
             scheduler.when = 'end'
 
         self.codeobj_class = codeobj_class
-        GroupCodeRunner.__init__(self, source, 'spikemonitor',
-                                 name=name, when=scheduler)
+        CodeRunner.__init__(self, source, 'spikemonitor',
+                            name=name, when=scheduler)
 
         # Handle subgroups correctly
         start = getattr(source, 'start', 0)

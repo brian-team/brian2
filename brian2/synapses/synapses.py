@@ -17,7 +17,7 @@ from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)
-from brian2.groups.group import Group, GroupCodeRunner
+from brian2.groups.group import Group, CodeRunner
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
 from brian2.units.fundamentalunits import (Unit, Quantity,
@@ -35,18 +35,18 @@ __all__ = ['Synapses']
 logger = get_logger(__name__)
 
 
-class StateUpdater(GroupCodeRunner):
+class StateUpdater(CodeRunner):
     '''
-    The `GroupCodeRunner` that updates the state variables of a `Synapses`
+    The `CodeRunner` that updates the state variables of a `Synapses`
     at every timestep.
     '''
     def __init__(self, group, method):
         self.method_choice = method
-        GroupCodeRunner.__init__(self, group,
-                                 'stateupdate',
-                                 when=(group.clock, 'groups'),
-                                 name=group.name + '_stateupdater',
-                                 check_units=False)
+        CodeRunner.__init__(self, group,
+                            'stateupdate',
+                            when=(group.clock, 'groups'),
+                            name=group.name + '_stateupdater',
+                            check_units=False)
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.variables,
@@ -62,9 +62,9 @@ class StateUpdater(GroupCodeRunner):
                                          self.group.variables)
 
 
-class SummedVariableUpdater(GroupCodeRunner):
+class SummedVariableUpdater(CodeRunner):
     '''
-    The `GroupCodeRunner` that updates a value in the target group with the
+    The `CodeRunner` that updates a value in the target group with the
     sum over values in the `Synapses` object.
     '''
     def __init__(self, expression, target_varname, synapses, target):
@@ -80,20 +80,20 @@ class SummedVariableUpdater(GroupCodeRunner):
 
         template_kwds = {'_target_var': synapses.variables[target_varname]}
 
-        GroupCodeRunner.__init__(self, group=synapses,
-                                 template='summed_variable',
-                                 code=code,
-                                 needed_variables=[target_varname],
-                                 # We want to update the sumned variable before
-                                 # the target group gets updated
-                                 when=(target.clock, 'groups', -1),
-                                 name=synapses.name + '_summed_variable_' + target_varname,
-                                 template_kwds=template_kwds)
+        CodeRunner.__init__(self, group=synapses,
+                            template='summed_variable',
+                            code=code,
+                            needed_variables=[target_varname],
+                            # We want to update the sumned variable before
+                            # the target group gets updated
+                            when=(target.clock, 'groups', -1),
+                            name=synapses.name + '_summed_variable_' + target_varname,
+                            template_kwds=template_kwds)
 
 
-class SynapticPathway(GroupCodeRunner, Group):
+class SynapticPathway(CodeRunner, Group):
     '''
-    The `GroupCodeRunner` that applies the pre/post statement(s) to the state
+    The `CodeRunner` that applies the pre/post statement(s) to the state
     variables of synapses where the pre-/postsynaptic group spiked in this
     time step.
 
@@ -133,12 +133,12 @@ class SynapticPathway(GroupCodeRunner, Group):
         if objname is None:
             objname = prepost + '*'
 
-        GroupCodeRunner.__init__(self, synapses,
-                                 'synapses',
-                                 code=code,
-                                 when=(synapses.clock, 'synapses'),
-                                 name=synapses.name + '_' + objname,
-                                 template_kwds={'pathway': self})
+        CodeRunner.__init__(self, synapses,
+                            'synapses',
+                            code=code,
+                            when=(synapses.clock, 'synapses'),
+                            name=synapses.name + '_' + objname,
+                            template_kwds={'pathway': self})
 
         self._pushspikes_codeobj = None
 
@@ -205,9 +205,9 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                                    additional_variables=self.variables,
                                                                    level=level+1)
         self._initialise_queue_codeobj()
-        GroupCodeRunner.before_run(self, namespace, level=level+1)
+        CodeRunner.before_run(self, namespace, level=level+1)
 
-        # we insert rather than replace because GroupCodeRunner puts a CodeObject in updaters already
+        # we insert rather than replace because CodeRunner puts a CodeObject in updaters already
         if self._pushspikes_codeobj is None:
             self._pushspikes_codeobj = create_runner_codeobj(self,
                                                              '', # no code

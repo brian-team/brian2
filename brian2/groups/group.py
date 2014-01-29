@@ -23,7 +23,7 @@ from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit)
 from brian2.utils.logger import get_logger
 
-__all__ = ['Group', 'GroupCodeRunner']
+__all__ = ['Group', 'CodeRunner']
 
 logger = get_logger(__name__)
 
@@ -500,12 +500,12 @@ class Group(BrianObject):
         if name is None:
             name = self.name + '_runner*'
 
-        runner = GroupCodeRunner(self, self.language.template_state_update,
-                                 code=code, name=name, when=when)
+        runner = CodeRunner(self, self.language.template_state_update,
+                            code=code, name=name, when=when)
         return runner
 
 
-class GroupCodeRunner(BrianObject):
+class CodeRunner(BrianObject):
     '''
     A "runner" that runs a `CodeObject` every timestep and keeps a reference to
     the `Group`. Used in `NeuronGroup` for `Thresholder`, `Resetter` and
@@ -560,7 +560,7 @@ class GroupCodeRunner(BrianObject):
     def update_abstract_code(self, run_namespace=None, level=0):
         '''
         Update the abstract code for the code object. Will be called in
-        `before_run` and should update the `GroupCodeRunner.abstract_code`
+        `before_run` and should update the `CodeRunner.abstract_code`
         attribute.
         
         Does nothing by default.
@@ -569,7 +569,7 @@ class GroupCodeRunner(BrianObject):
 
     def before_run(self, namespace, level=0):
         self.update_abstract_code(run_namespace=namespace, level=level+1)
-        # If the GroupCodeRunner has variables, add them
+        # If the CodeRunner has variables, add them
         if hasattr(self, 'variables'):
             additional_variables = self.variables
         else:

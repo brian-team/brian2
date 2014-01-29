@@ -3,12 +3,12 @@ from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
-from brian2.groups.group import GroupCodeRunner
+from brian2.groups.group import CodeRunner
 
 __all__ = ['PopulationRateMonitor']
 
 
-class PopulationRateMonitor(GroupCodeRunner):
+class PopulationRateMonitor(CodeRunner):
     '''
     Record instantaneous firing rates, averaged across neurons from a
     `NeuronGroup` or other spike source.
@@ -48,7 +48,7 @@ class PopulationRateMonitor(GroupCodeRunner):
         self.variables.add_constant('_num_source_neurons', unit=Unit(1),
                                     value=len(source))
 
-        GroupCodeRunner.__init__(self, source, 'ratemonitor', when=scheduler)
+        CodeRunner.__init__(self, source, 'ratemonitor', when=scheduler)
 
     def reinit(self):
         '''
