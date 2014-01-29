@@ -18,6 +18,7 @@ from brian2.core.functions import Function
 from brian2.core.namespace import (get_local_namespace,
                                    get_default_numpy_namespace,
                                    _get_default_unit_namespace)
+from brian2.core.scheduler import Scheduler
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit)
 from brian2.utils.logger import get_logger
@@ -472,6 +473,36 @@ class Group(BrianObject):
             resolutions[identifier] = resolved
 
         return resolutions
+
+
+    def runner(self, code, when=None, name=None):
+        '''
+        Returns a `CodeRunner` that runs abstract code in the groups namespace
+
+        Parameters
+        ----------
+        code : str
+            The abstract code to run.
+        when : `Scheduler`, optional
+            When to run, by default in the 'start' slot with the same clock as
+            the group.
+        name : str, optional
+            A unique name, if non is given the name of the group appended with
+            'runner', 'runner_1', etc. will be used. If a name is given
+            explicitly, it will be used as given (i.e. the group name will not
+            be prepended automatically).
+        '''
+        if when is None:  # TODO: make this better with default values
+            when = Scheduler(clock=self.clock)
+        else:
+            raise NotImplementedError
+
+        if name is None:
+            name = self.name + '_runner*'
+
+        runner = GroupCodeRunner(self, self.language.template_state_update,
+                                 code=code, name=name, when=when)
+        return runner
 
 
 class GroupCodeRunner(BrianObject):
