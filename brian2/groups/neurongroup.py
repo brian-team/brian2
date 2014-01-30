@@ -12,9 +12,8 @@ from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.codeobject import check_code_units
 from brian2.core.preferences import brian_prefs
-from brian2.core.variables import (Variables, Subexpression)
+from brian2.core.variables import Variables
 from brian2.core.spikesource import SpikeSource
-from brian2.core.scheduler import Scheduler
 from brian2.parsing.expressions import (parse_expression_unit,
                                         is_boolean_expression)
 from brian2.utils.logger import get_logger

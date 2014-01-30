@@ -1,6 +1,5 @@
 import numpy as np
 
-from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
 from brian2.units.allunits import second

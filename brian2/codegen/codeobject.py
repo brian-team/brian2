@@ -5,13 +5,9 @@ import copy
 import functools
 import weakref
 
-import numpy as np
-
 from brian2.core.functions import Function
 from brian2.core.names import Nameable
-from brian2.core.variables import Constant
 from brian2.equations.unitcheck import check_units_statements
-from brian2.units.fundamentalunits import get_unit
 from brian2.utils.logger import get_logger
 
 from .translation import analyse_identifiers

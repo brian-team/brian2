@@ -61,7 +61,7 @@ def str_to_sympy(expr):
 class CustomSympyPrinter(StrPrinter):
     '''
     Printer that overrides the printing of some basic sympy objects. E.g.
-    print "a & b" instead of "And(a, b)".
+    print "a and b" instead of "And(a, b)".
     '''
 
     def _print_And(self, expr):
