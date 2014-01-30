@@ -1,5 +1,5 @@
-from collections import namedtuple
-
+import sympy
+import numpy
 from numpy.testing.utils import assert_raises
 
 from brian2.groups.group import Group
@@ -35,6 +35,14 @@ def test_default_content():
     assert group.resolve('sin', None).pyfunc == sin
     assert group.resolve('log', None).pyfunc == log
     assert group.resolve('exp', None).pyfunc == exp
+
+    # Constants
+    assert group.resolve('e').sympy_obj == sympy.E
+    assert group.resolve('e').get_value() == numpy.e
+    assert group.resolve('pi').sympy_obj == sympy.pi
+    assert group.resolve('pi').get_value() == numpy.pi
+    assert group.resolve('inf').sympy_obj == sympy.oo
+    assert group.resolve('inf').get_value() == numpy.inf
 
 
 def test_explicit_namespace():

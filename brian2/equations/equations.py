@@ -10,8 +10,9 @@ import sympy
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 
-from brian2.core.namespace import (get_default_numpy_namespace,
-                                   DEFAULT_UNIT_NAMESPACE)
+from brian2.core.namespace import (DEFAULT_FUNCTIONS,
+                                   DEFAULT_CONSTANTS,
+                                   DEFAULT_UNITS)
 from brian2.core.variables import Constant
 from brian2.core.functions import Function
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
@@ -165,19 +166,25 @@ def check_identifier_units(identifier):
     '''
     Make sure that identifier names do not clash with unit names.
     '''
-    if identifier in DEFAULT_UNIT_NAMESPACE:
+    if identifier in DEFAULT_UNITS:
         raise ValueError('"%s" is the name of a unit, cannot be used as a '
                          'variable name.')
 
-_function_names = get_default_numpy_namespace().keys()
 def check_identifier_functions(identifier):
     '''
     Make sure that identifier names do not clash with function names.
     '''
-    if identifier in _function_names:
+    if identifier in DEFAULT_FUNCTIONS:
         raise ValueError('"%s" is the name of a function, cannot be used as a '
                          'variable name.')
 
+def check_identifier_constants(identifier):
+    '''
+    Make sure that identifier names do not clash with function names.
+    '''
+    if identifier in DEFAULT_CONSTANTS:
+        raise ValueError('"%s" is the name of a constant, cannot be used as a '
+                         'variable name.')
 
 
 def parse_string_equations(eqns):

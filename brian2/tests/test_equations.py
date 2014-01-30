@@ -17,7 +17,7 @@ from brian2.units.fundamentalunits import (DIMENSIONLESS, get_dimensions,
                                            have_same_dimensions,
                                            DimensionMismatchError)
 from brian2.equations.unitcheck import unit_from_string
-from brian2.core.namespace import DEFAULT_UNIT_NAMESPACE
+from brian2.core.namespace import DEFAULT_UNITS
 from brian2.equations.equations import (check_identifier_basic,
                                         check_identifier_reserved,
                                         check_identifier_functions,
@@ -38,7 +38,7 @@ class SimpleGroup(Group):
         self.namespace = namespace
 
 def test_utility_functions():
-    unit_namespace = DEFAULT_UNIT_NAMESPACE
+    unit_namespace = DEFAULT_UNITS
 
     # Some simple tests whether the namespace returned by
     # get_default_namespace() makes sense

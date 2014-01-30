@@ -10,15 +10,16 @@ import weakref
 import numpy as np
 
 from brian2.utils.logger import get_logger
-from brian2.units.fundamentalunits import Quantity, standard_unit_register
+from brian2.units.fundamentalunits import standard_unit_register
 from brian2.units.stdunits import stdunits
-from brian2.core.functions import DEFAULT_FUNCTIONS
+from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
 
 from .functions import Function
 
 __all__ = ['get_local_namespace',
-           'get_default_numpy_namespace',
-           'DEFAULT_UNIT_NAMESPACE']
+           'DEFAULT_FUNCTIONS',
+           'DEFAULT_UNITS',
+           'DEFAULT_CONSTANTS']
 
 logger = get_logger(__name__)
 
@@ -61,34 +62,6 @@ def get_local_namespace(level):
     return namespace
 
 
-def get_default_numpy_namespace():
-    '''
-    Get the namespace of numpy functions/variables that is recognized by
-    default. The namespace includes the constants :np:attr:`pi`,
-    :np:attr:`e` and :np:attr:`inf` and the following
-    functions:
-    :np:func:`abs`, :np:func:`arccos`, :np:func:`arcsin`, :np:func:`arctan`,
-    :np:func:`arctanh`, :np:func:`ceil`, :np:func:`cos`, :np:func:`cosh`,
-    :np:func:`exp`, :np:func:`floor`, :np:func:`log`, :np:func:`sin`,
-    :np:func:`sinh`, :np:func:`sqrt`, :np:func:`tan`, :np:func:`tanh`  
-    
-    Returns
-    -------
-    namespace : dict
-        A dictionary mapping function/variable names to numpy objects or
-        their unitsafe Brian counterparts.
-    '''        
-    # numpy constants
-    # TODO: Make them accesible to sympy as well, maybe introduce a similar
-    #       system as for functions, e.g. C++ would use M_PI for pi?
-    namespace = {'pi': np.pi, 'e': np.e, 'inf': np.inf}
-    
-    # The default numpy functions
-    namespace.update(DEFAULT_FUNCTIONS)
-
-    return namespace
-
-
 def _get_default_unit_namespace():
     '''
     Return the namespace that is used by default for looking up units when
@@ -104,4 +77,4 @@ def _get_default_unit_namespace():
     namespace.update(stdunits)
     return namespace
 
-DEFAULT_UNIT_NAMESPACE = _get_default_unit_namespace()
+DEFAULT_UNITS = _get_default_unit_namespace()
