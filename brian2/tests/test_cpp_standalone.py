@@ -60,4 +60,4 @@ def test_cpp_standalone(with_output=False):
 if __name__=='__main__':
     # Print the debug output when testing this file only but not when running
     # via nose test
-    test_cpp_standalone(with_output=False)
+    test_cpp_standalone(with_output=True)

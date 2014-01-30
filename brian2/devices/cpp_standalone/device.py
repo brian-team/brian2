@@ -112,8 +112,10 @@ class CPPStandaloneDevice(Device):
         if isinstance(var, DynamicArrayVariable):
             if access_data:
                 return self.arrays[var]
-            else:
+            elif var.dimensions == 1:
                 return self.dynamic_arrays[var]
+            else:
+                return self.dynamic_arrays_2d[var]
         elif isinstance(var, ArrayVariable):
             return self.arrays[var]
         else:

@@ -100,7 +100,7 @@ void _load_arrays()
 void _write_arrays()
 {
 	{% for var, varname in array_specs.items() %}
-	{% if not var in dynamic_array_specs %}
+	{% if not (var in dynamic_array_specs or var in dynamic_array_2d_specs) %}
 	ofstream outfile_{{varname}};
 	outfile_{{varname}}.open("results/{{varname}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
