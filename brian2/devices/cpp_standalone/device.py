@@ -37,8 +37,10 @@ logger = get_logger(__name__)
 def freeze(code, ns):
     # this is a bit of a hack, it should be passed to the template somehow
     for k, v in ns.items():
-        if (isinstance(v, Variable) and not isinstance(v, AttributeVariable) and
-                v.scalar and v.constant and v.read_only):
+        if isinstance(v, (int, float)): # for the namespace provided for functions
+            code = word_substitute(code, {k: str(v)})
+        elif (isinstance(v, Variable) and not isinstance(v, AttributeVariable) and
+              v.scalar and v.constant and v.read_only):
             code = word_substitute(code, {k: repr(v.get_value())})
     return code
 
@@ -214,10 +216,10 @@ class CPPStandaloneDevice(Device):
         # # treats it as a C array) but does not work in places that are
         # # implicitly vectorized (state updaters, resets, etc.). But arrays
         # # shouldn't be used there anyway.
-        # for code_object in self.code_objects.itervalues():
-        #     for name, value in code_object.variables.iteritems():
-        #         if isinstance(value, numpy.ndarray):
-        #             self.static_arrays[name] = value
+        for code_object in self.code_objects.itervalues():
+            for name, value in code_object.variables.iteritems():
+                if isinstance(value, numpy.ndarray):
+                    self.static_arrays[name] = value
 
         # write the static arrays
         logger.debug("static arrays: "+str(sorted(self.static_arrays.keys())))
