@@ -1,4 +1,3 @@
-#include<time.h>
 #include<stdlib.h>
 #include "objects.h"
 #include<ctime>
@@ -8,11 +7,10 @@
 {% endfor %}
 
 #include<iostream>
-using namespace std;
 
 int main(void)
 {
-	clock_t start = clock();
+	std::clock_t start = std::clock();
 	_init_arrays();
 	_load_arrays();
 	srand((unsigned int)time(NULL));
@@ -21,8 +19,8 @@ int main(void)
 	{% for main_line in main_lines %}
 	{{ main_line }}
 	{% endfor %}
-	double duration = (clock()-start)/(double)CLOCKS_PER_SEC;
-	cout << "Simulation time: " << duration << endl;
+	double duration = (std::clock()-start)/(double)CLOCKS_PER_SEC;
+	std::cout << "Simulation time: " << duration << endl;
 	_write_arrays();
 	_dealloc_arrays();
 	return 0;

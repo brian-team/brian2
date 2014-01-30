@@ -10,7 +10,7 @@ from collections import defaultdict
 
 from brian2.core.clocks import defaultclock
 from brian2.core.magic import magic_network
-from brian2.core.network import Network as OrigNetwork
+from brian2.core.network import Network
 from brian2.core.namespace import get_local_namespace
 from brian2.devices.device import Device, all_devices
 from brian2.core.preferences import brian_prefs
@@ -29,9 +29,7 @@ from brian2.utils.logger import get_logger
 from .codeobject import CPPStandaloneCodeObject
 
 
-__all__ = ['build', 'Network', 'run', 'stop',
-           'insert_code_into_main',
-           ]
+__all__ = []
 
 logger = get_logger(__name__)
 
@@ -39,8 +37,10 @@ logger = get_logger(__name__)
 def freeze(code, ns):
     # this is a bit of a hack, it should be passed to the template somehow
     for k, v in ns.items():
-        if (isinstance(v, Variable) and not isinstance(v, AttributeVariable) and
-                v.scalar and v.constant and v.read_only):
+        if isinstance(v, (int, float)): # for the namespace provided for functions
+            code = word_substitute(code, {k: str(v)})
+        elif (isinstance(v, Variable) and not isinstance(v, AttributeVariable) and
+              v.scalar and v.constant and v.read_only):
             code = word_substitute(code, {k: repr(v.get_value())})
     return code
 
@@ -114,8 +114,10 @@ class CPPStandaloneDevice(Device):
         if isinstance(var, DynamicArrayVariable):
             if access_data:
                 return self.arrays[var]
-            else:
+            elif var.dimensions == 1:
                 return self.dynamic_arrays[var]
+            else:
+                return self.dynamic_arrays_2d[var]
         elif isinstance(var, ArrayVariable):
             return self.arrays[var]
         else:
@@ -214,10 +216,10 @@ class CPPStandaloneDevice(Device):
         # # treats it as a C array) but does not work in places that are
         # # implicitly vectorized (state updaters, resets, etc.). But arrays
         # # shouldn't be used there anyway.
-        # for code_object in self.code_objects.itervalues():
-        #     for name, value in code_object.variables.iteritems():
-        #         if isinstance(value, numpy.ndarray):
-        #             self.static_arrays[name] = value
+        for code_object in self.code_objects.itervalues():
+            for name, value in code_object.variables.iteritems():
+                if isinstance(value, numpy.ndarray):
+                    self.static_arrays[name] = value
 
         # write the static arrays
         logger.debug("static arrays: "+str(sorted(self.static_arrays.keys())))
@@ -375,52 +377,38 @@ class CPPStandaloneDevice(Device):
                 else:
                     raise RuntimeError("Project compilation failed")
 
+    def network_run(self, net, duration, report=None, report_period=60*second,
+                    namespace=None, level=0):
 
-cpp_standalone_device = CPPStandaloneDevice()
-
-all_devices['cpp_standalone'] = cpp_standalone_device
-
-build = cpp_standalone_device.build
-
-    
-class Network(OrigNetwork):
-    def run(self, duration, report=None, report_period=60*second,
-            namespace=None, level=0, _magic_network=None):
-        
-        if _magic_network is not None:
-            self = _magic_network
-
-        self.before_run(namespace, level=level+1)
+        # We have to use +2 for the level argument here, since this function is
+        # called through the device_override mechanism
+        net.before_run(namespace, level=level+2)
             
-        cpp_standalone_device.clocks.update(self._clocks)
+        self.clocks.update(net._clocks)
+
+        # TODO: remove this horrible hack
+        for clock in self.clocks:
+            if clock.name=='clock':
+                clock._name = 'clock_'
             
         # Extract all the CodeObjects
         # Note that since we ran the Network object, these CodeObjects will be sorted into the right
         # running order, assuming that there is only one clock
         code_objects = []
-        for obj in self.objects:
+        for obj in net.objects:
             for codeobj in obj._code_objects:
                 code_objects.append((obj.clock, codeobj))
         
         # Generate the updaters
-        run_lines = ['{self.name}.clear();'.format(self=self)]
+        run_lines = ['{net.name}.clear();'.format(net=net)]
         for clock, codeobj in code_objects:
-            run_lines.append('{self.name}.add(&{clock.name}, _run_{codeobj.name});'.format(clock=clock, self=self,
+            run_lines.append('{net.name}.add(&{clock.name}, _run_{codeobj.name});'.format(clock=clock, net=net,
                                                                                                codeobj=codeobj))
-        run_lines.append('{self.name}.run({duration});'.format(self=self, duration=float(duration)))
-        cpp_standalone_device.main_queue.append(('run_network', (self, run_lines)))
-
-    def __repr__(self):
-        return '<Network for C++ standalone>'
+        run_lines.append('{net.name}.run({duration});'.format(net=net, duration=float(duration)))
+        self.main_queue.append(('run_network', (net, run_lines)))
 
 
-#: `Network` object that is "run" in standalone
-fake_network = Network(name='_fake_network')
 
-def run(*args, **kwds):
-    kwds['_magic_network'] = magic_network
-    kwds['level'] = kwds.pop('level', 0)+1
-    fake_network.run(*args, **kwds)
-    
-def stop(*args, **kwds):
-    raise NotImplementedError("stop() function not supported in standalone mode")
+cpp_standalone_device = CPPStandaloneDevice()
+
+all_devices['cpp_standalone'] = cpp_standalone_device

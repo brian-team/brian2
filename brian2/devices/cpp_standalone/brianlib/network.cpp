@@ -14,7 +14,7 @@ void Network::clear()
 
 void Network::add(Clock* clock, codeobj_func func)
 {
-	objects.push_back(make_pair<Clock*, codeobj_func>(clock, func));
+	objects.push_back(std::make_pair<Clock*, codeobj_func>(clock, func));
 }
 
 void Network::run(double duration)
@@ -23,7 +23,7 @@ void Network::run(double duration)
 	// compute the set of clocks
 	compute_clocks();
 	// set interval for all clocks
-	for(set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
+	for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
 	{
 		(*i)->set_interval(t, t_end);
 	}
@@ -41,7 +41,7 @@ void Network::run(double duration)
                 func(t);
 			}
 		}
-		for(set<Clock*>::iterator i=curclocks.begin(); i!=curclocks.end(); i++)
+		for(std::set<Clock*>::iterator i=curclocks.begin(); i!=curclocks.end(); i++)
 		{
 			(*i)->tick();
 		}
@@ -64,7 +64,7 @@ Clock* Network::next_clocks()
 {
 	// find minclock, clock with smallest t value
 	Clock *minclock = *clocks.begin();
-	for(set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
+	for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
 	{
 		Clock *clock = *i;
 		if(clock->t()<minclock->t())
@@ -73,7 +73,7 @@ Clock* Network::next_clocks()
 	// find set of equal clocks
 	curclocks.clear();
 	double t = minclock->t();
-	for(set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
+	for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
 	{
 		Clock *clock = *i;
 		double s = clock->t();

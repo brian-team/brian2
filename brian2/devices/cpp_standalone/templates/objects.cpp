@@ -16,7 +16,6 @@ Clock {{clock.name}}({{clock.dt_}});
 {% endfor %}
 
 //////////////// networks /////////////////
-Network magicnetwork;
 {% for net in networks %}
 Network {{net.name}};
 {% endfor %}
@@ -93,7 +92,7 @@ void _load_arrays()
 		f{{name}}.read(reinterpret_cast<char*>({{name}}), {{N}}*sizeof({{dtype_spec}}));
 	} else
 	{
-		cout << "Error opening static array {{name}}." << endl;
+		std::cout << "Error opening static array {{name}}." << endl;
 	}
 	{% endfor %}
 }
@@ -101,7 +100,7 @@ void _load_arrays()
 void _write_arrays()
 {
 	{% for var, varname in array_specs.items() %}
-	{% if not var in dynamic_array_specs %}
+	{% if not (var in dynamic_array_specs or var in dynamic_array_2d_specs) %}
 	ofstream outfile_{{varname}};
 	outfile_{{varname}}.open("results/{{varname}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
@@ -110,7 +109,7 @@ void _write_arrays()
 		outfile_{{varname}}.close();
 	} else
 	{
-		cout << "Error writing output file for {{varname}}." << endl;
+		std::cout << "Error writing output file for {{varname}}." << endl;
 	}
 	{% endif %}
 	{% endfor %}
@@ -124,7 +123,7 @@ void _write_arrays()
 		outfile_{{varname}}.close();
 	} else
 	{
-		cout << "Error writing output file for {{varname}}." << endl;
+		std::cout << "Error writing output file for {{varname}}." << endl;
 	}
 	{% endfor %}
 }

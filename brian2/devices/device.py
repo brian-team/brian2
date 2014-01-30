@@ -24,6 +24,8 @@ __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
            'all_devices',
            'insert_device_code',
+           'device_override',
+           'build',
            ]
 
 logger = get_logger(__name__)
@@ -391,6 +393,12 @@ class Device(object):
         Insert code directly into a given slot in the device. By default does nothing.
         '''
         logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
+        
+    def build(self, **kwds):
+        '''
+        For standalone projects, called when the project is ready to be built. Does nothing for runtime mode.
+        '''
+        pass
     
     
 class RuntimeDevice(Device):
@@ -401,7 +409,7 @@ class RuntimeDevice(Device):
         #: Mapping from `Variable` objects to numpy arrays (or `DynamicArray`
         #: objects)
         self.arrays = {}
-
+        
     def get_array_name(self, var, access_data=True):
         # if no owner is set, this is a temporary object (e.g. the array
         # of indices when doing G.x[indices] = ...). The name is not
@@ -553,3 +561,31 @@ def insert_device_code(slot, code):
     The behaviour of this function is device dependent. The runtime device ignores it (useful for debugging).
     '''
     get_device().insert_device_code(slot, code)
+
+
+def device_override(name):
+    '''
+    Decorates a function/method to allow it to be overridden by the current `Device`.
+    
+    The ``name`` is the function name in the `Device` to use as an override if it exists.
+    '''
+    def device_override_decorator(func):
+        def device_override_decorated_function(*args, **kwds):
+            curdev = get_device()
+            if hasattr(curdev, name):
+                return getattr(curdev, name)(*args, **kwds)
+            else:
+                return func(*args, **kwds)
+        
+        device_override_decorated_function.__doc__ = func.__doc__
+        
+        return device_override_decorated_function
+    
+    return device_override_decorator
+
+
+def build(**kwds):
+    '''
+    Builds the project for standalone devices, does nothing for runtime. Calls `Device.build`.
+    '''
+    get_device().build(**kwds)

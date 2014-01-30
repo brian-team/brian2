@@ -9,7 +9,6 @@ This example is modified from ``synapses_STDP.py`` and writes a standalone C++ p
 from time import time
 
 from brian2 import *
-from brian2.devices.cpp_standalone import *
 
 set_device('cpp_standalone')
 
@@ -48,13 +47,18 @@ S = Synapses(input, neurons,
              connect=True,
              )
 S.w='rand()*gmax'
+mon = StateMonitor(S, 'w', record=[0])
 start_time = time()
 run(100 * second)
 build(project_dir='STDP_standalone', compile_project=True, run_project=True, debug=True)
 w = numpy.fromfile('STDP_standalone/results/_dynamic_array_synapses_w', dtype=numpy.float64)
+t = numpy.fromfile('STDP_standalone/results/statemonitor_codeobject_t', dtype=numpy.float64)
+w_over_time = numpy.fromfile('STDP_standalone/results/statemonitor_codeobject_w', dtype=numpy.float64)
 
-plt.subplot(211)
+plt.subplot(311)
 plt.plot(w / gmax, '.')
-plt.subplot(212)
+plt.subplot(312)
 plt.hist(w / gmax, 20)
+plt.subplot(313)
+plt.plot(t, w_over_time)
 plt.show()

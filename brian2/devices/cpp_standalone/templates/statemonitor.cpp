@@ -1,17 +1,14 @@
 {% extends 'common_group.cpp' %}
 
-{% set _t = '_dynamic'+variables['_t'].arrayname %}
-{% set _indices = variables['_indices'].arrayname %}
-
 {% block maincode %}
     {# USES_VARIABLES { _t, _indices } #}
 
-    {{_t}}.push_back(t);
+    {{_dynamic__t}}.push_back(t);
 
-    const int _new_size = {{_t}}.size();
+    const int _new_size = {{_dynamic__t}}.size();
     // Resize the dynamic arrays
-    {% for _varname in _variable_names %}
-    {% set _recorded = '_dynamic_2d' + variables['_recorded_'+_varname].arrayname %}
+    {% for var in _recorded_variables.values() %}
+    {% set _recorded =  get_array_name(var, access_data=False) %}
     {{_recorded}}.resize(_new_size, _num_indices);
     {% endfor %}
 
@@ -22,9 +19,9 @@
         {% block maincode_inner %}
             {{ super() }}
 
-            {% for _varname in _variable_names %}
-            {% set _recorded = '_dynamic_2d' + variables['_recorded_'+_varname].arrayname %}
-            {{_recorded}}(_new_size-1, _i) = _to_record_{{_varname}};
+            {% for varname, var in _recorded_variables.items() %}
+            {% set _recorded =  get_array_name(var, access_data=False) %}
+            {{_recorded}}(_new_size-1, _i) = _to_record_{{varname}};
             {% endfor %}
         {% endblock %}
     }
@@ -38,19 +35,19 @@ void _write_{{codeobj_name}}()
 	outfile.open("results/{{codeobj_name}}_t", ios::binary | ios::out);
 	if(outfile.is_open())
 	{
-		outfile.write(reinterpret_cast<char*>(&{{_t}}[0]), {{_t}}.size()*sizeof({{_t}}[0]));
+		outfile.write(reinterpret_cast<char*>(&{{_dynamic__t}}[0]), {{_dynamic__t}}.size()*sizeof({{_dynamic__t}}[0]));
 		outfile.close();
 	} else
 	{
-		cout << "Error writing output file." << endl;
+		std::cout << "Error writing output file." << endl;
 	}
 
-	{% for _varname in _variable_names %}
+	{% for varname, var in _recorded_variables.items() %}
 	{
-	    {%set _recorded = '_dynamic_2d' + variables['_recorded_'+_varname].arrayname %}
+	    {% set _recorded =  get_array_name(var, access_data=False) %}
 	    const int _num_indices = {{_recorded}}.m;
-        const int _num_times = {{_t}}.size();
-        outfile.open("results/{{codeobj_name}}_{{_varname}}", ios::binary | ios::out);
+        const int _num_times = {{_dynamic__t}}.size();
+        outfile.open("results/{{codeobj_name}}_{{varname}}", ios::binary | ios::out);
         if(outfile.is_open())
         {
             for (int s=0; s<_num_times; s++)
@@ -60,7 +57,7 @@ void _write_{{codeobj_name}}()
             outfile.close();
         } else
         {
-            cout << "Error writing output file." << endl;
+            std::cout << "Error writing output file." << endl;
         }
 	}
 	{% endfor %}
