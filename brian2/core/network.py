@@ -253,7 +253,7 @@ class Network(Nameable):
         self.objects.sort(key=lambda obj: (when_to_int[obj.when], obj.order))
     
     @device_override('network_before_run')
-    def before_run(self, namespace):
+    def before_run(self, run_namespace=None, level=0):
         '''
         before_run(namespace)
 
@@ -284,7 +284,7 @@ class Network(Nameable):
                      "before_run")
         
         for obj in self.objects:
-            obj.before_run(namespace)
+            obj.before_run(run_namespace, level=level+2)
 
         logger.debug("Network {self.name} has {num} "
                      "clocks: {clocknames}".format(self=self,
@@ -347,11 +347,7 @@ class Network(Nameable):
         global `stop` function.
         '''
         
-        if namespace is not None:
-            self.before_run(('explicit-run-namespace', namespace))
-        else:
-            namespace = get_local_namespace(3 + level)
-            self.before_run(('implicit-run-namespace', namespace))
+        self.before_run(namespace, level=level+3)
 
         if len(self.objects)==0:
             return # TODO: raise an error? warning?

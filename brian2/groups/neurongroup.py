@@ -12,68 +12,37 @@ from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.codeobject import check_code_units
 from brian2.core.preferences import brian_prefs
-from brian2.core.namespace import create_namespace
-from brian2.core.variables import (Variables, Subexpression)
+from brian2.core.variables import Variables
 from brian2.core.spikesource import SpikeSource
-from brian2.core.scheduler import Scheduler
 from brian2.parsing.expressions import (parse_expression_unit,
                                         is_boolean_expression)
 from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import get_identifiers
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
 
-from .group import Group, GroupCodeRunner
+from .group import Group, CodeRunner
 from .subgroup import Subgroup
+
 
 __all__ = ['NeuronGroup']
 
 logger = get_logger(__name__)
 
 
-def get_refractory_code(group):
-    ref = group._refractory
-    if ref is False:
-        # No refractoriness
-        abstract_code = ''
-    elif isinstance(ref, Quantity):
-        abstract_code = 'not_refractory = 1*((t - lastspike) > %f)\n' % ref
-    else:
-        namespace = group.namespace
-        unit = parse_expression_unit(str(ref), namespace, group.variables)
-        if have_same_dimensions(unit, second):
-            abstract_code = 'not_refractory = 1*((t - lastspike) > %s)\n' % ref
-        elif have_same_dimensions(unit, Unit(1)):
-            if not is_boolean_expression(str(ref), namespace,
-                                         group.variables):
-                raise TypeError(('Refractory expression is dimensionless '
-                                 'but not a boolean value. It needs to '
-                                 'either evaluate to a timespan or to a '
-                                 'boolean value.'))
-            # boolean condition
-            # we have to be a bit careful here, we can't just use the given
-            # condition as it is, because we only want to *leave*
-            # refractoriness, based on the condition
-            abstract_code = 'not_refractory = 1*(not_refractory or not (%s))\n' % ref
-        else:
-            raise TypeError(('Refractory expression has to evaluate to a '
-                             'timespan or a boolean value, expression'
-                             '"%s" has units %s instead') % (ref, unit))
-    return abstract_code
-
-
-class StateUpdater(GroupCodeRunner):
+class StateUpdater(CodeRunner):
     '''
-    The `GroupCodeRunner` that updates the state variables of a `NeuronGroup`
+    The `CodeRunner` that updates the state variables of a `NeuronGroup`
     at every timestep.
     '''
     def __init__(self, group, method):
         self.method_choice = method
         
-        GroupCodeRunner.__init__(self, group,
-                                       'stateupdate',
-                                       when=(group.clock, 'groups'),
-                                       name=group.name + '_stateupdater*',
-                                       check_units=False)
+        CodeRunner.__init__(self, group,
+                            'stateupdate',
+                            when=(group.clock, 'groups'),
+                            name=group.name + '_stateupdater*',
+                            check_units=False)
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.variables,
@@ -83,23 +52,56 @@ class StateUpdater(GroupCodeRunner):
         # formulation. However, do not fail on KeyErrors since the
         # refractoriness might refer to variables that don't exist yet
         try:
-            self.update_abstract_code()
+            self.update_abstract_code(level=1)
         except KeyError as ex:
             logger.debug('Namespace not complete (yet), ignoring: %s ' % str(ex),
                          'StateUpdater')
 
-    def update_abstract_code(self):
+    def _get_refractory_code(self, run_namespace, level=0):
+        ref = self.group._refractory
+        if ref is False:
+            # No refractoriness
+            abstract_code = ''
+        elif isinstance(ref, Quantity):
+            abstract_code = 'not_refractory = 1*((t - lastspike) > %f)\n' % ref
+        else:
+            identifiers = get_identifiers(ref)
+            variables = self.group.resolve_all(identifiers,
+                                               run_namespace=run_namespace,
+                                               level=level+1)
+            unit = parse_expression_unit(str(ref), variables)
+            if have_same_dimensions(unit, second):
+                abstract_code = 'not_refractory = 1*((t - lastspike) > %s)\n' % ref
+            elif have_same_dimensions(unit, Unit(1)):
+                if not is_boolean_expression(str(ref), variables):
+                    raise TypeError(('Refractory expression is dimensionless '
+                                     'but not a boolean value. It needs to '
+                                     'either evaluate to a timespan or to a '
+                                     'boolean value.'))
+                # boolean condition
+                # we have to be a bit careful here, we can't just use the given
+                # condition as it is, because we only want to *leave*
+                # refractoriness, based on the condition
+                abstract_code = 'not_refractory = 1*(not_refractory or not (%s))\n' % ref
+            else:
+                raise TypeError(('Refractory expression has to evaluate to a '
+                                 'timespan or a boolean value, expression'
+                                 '"%s" has units %s instead') % (ref, unit))
+        return abstract_code
+
+    def update_abstract_code(self, run_namespace=None, level=0):
 
         # Update the not_refractory variable for the refractory period mechanism
-        self.abstract_code = get_refractory_code(self.group)
+        self.abstract_code = self._get_refractory_code(run_namespace=run_namespace,
+                                                       level=level+1)
         
         self.abstract_code += self.method(self.group.equations,
                                           self.group.variables)
 
 
-class Thresholder(GroupCodeRunner):
+class Thresholder(CodeRunner):
     '''
-    The `GroupCodeRunner` that applies the threshold condition to the state
+    The `CodeRunner` that applies the threshold condition to the state
     variables of a `NeuronGroup` at every timestep and sets its ``spikes``
     and ``refractory_until`` attributes.
     '''
@@ -110,21 +112,28 @@ class Thresholder(GroupCodeRunner):
         else:
             template_kwds = {'_uses_refractory': True}
             needed_variables=['t', 'not_refractory', 'lastspike']
-        GroupCodeRunner.__init__(self, group,
-                                 'threshold',
-                                 when=(group.clock, 'thresholds'),
-                                 name=group.name+'_thresholder*',
-                                 needed_variables=needed_variables,
-                                 template_kwds=template_kwds)
+        CodeRunner.__init__(self, group,
+                            'threshold',
+                            when=(group.clock, 'thresholds'),
+                            name=group.name+'_thresholder*',
+                            needed_variables=needed_variables,
+                            template_kwds=template_kwds)
 
         # Check the abstract code for unit mismatches (only works if the
         # namespace is already complete)
-        self.update_abstract_code()
-        check_code_units(self.abstract_code, self.group, ignore_keyerrors=True)
+        try:
+            self.update_abstract_code(level=1)
+            check_code_units(self.abstract_code, self.group)
+        except KeyError:
+            pass
 
-    def update_abstract_code(self):
-        if not is_boolean_expression(self.group.threshold, self.group.namespace,
-                                     self.group.variables):
+    def update_abstract_code(self, run_namespace=None, level=0):
+        code = self.group.threshold
+        identifiers = get_identifiers(code)
+        variables = self.group.resolve_all(identifiers,
+                                           run_namespace=run_namespace,
+                                           level=level+1)
+        if not is_boolean_expression(self.group.threshold, variables):
             raise TypeError(('Threshold condition "%s" is not a boolean '
                              'expression') % self.group.threshold)
         if self.group._refractory is False:
@@ -133,23 +142,26 @@ class Thresholder(GroupCodeRunner):
             self.abstract_code = '_cond = (%s) and not_refractory' % self.group.threshold
         
 
-class Resetter(GroupCodeRunner):
+class Resetter(CodeRunner):
     '''
-    The `GroupCodeRunner` that applies the reset statement(s) to the state
+    The `CodeRunner` that applies the reset statement(s) to the state
     variables of neurons that have spiked in this timestep.
     '''
     def __init__(self, group):
-        GroupCodeRunner.__init__(self, group,
-                                 'reset',
-                                 when=(group.clock, 'resets'),
-                                 name=group.name + '_resetter*')
+        CodeRunner.__init__(self, group,
+                            'reset',
+                            when=(group.clock, 'resets'),
+                            name=group.name + '_resetter*')
 
         # Check the abstract code for unit mismatches (only works if the
         # namespace is already complete)
-        self.update_abstract_code()
-        check_code_units(self.abstract_code, self.group, ignore_keyerrors=True)
+        try:
+            self.update_abstract_code(level=1)
+            check_code_units(self.abstract_code, self.group)
+        except KeyError:
+            pass
 
-    def update_abstract_code(self):
+    def update_abstract_code(self, run_namespace=None, level=0):
         self.abstract_code = self.group.reset
 
 
@@ -251,8 +263,8 @@ class NeuronGroup(Group, SpikeSource):
         logger.debug("Creating NeuronGroup of size {self._N}, "
                      "equations {self.equations}.".format(self=self))
 
-        # Setup the namespace
-        self.namespace = create_namespace(namespace)
+        #: The group-specific namespace
+        self.namespace = namespace
 
         # Setup variables
         self._create_variables(dtype)
@@ -341,35 +353,6 @@ class NeuronGroup(Group, SpikeSource):
 
         return Subgroup(self, start, stop)
 
-    def runner(self, code, when=None, name=None):
-        '''
-        Returns a `CodeRunner` that runs abstract code in the groups namespace
-        
-        Parameters
-        ----------
-        code : str
-            The abstract code to run.
-        when : `Scheduler`, optional
-            When to run, by default in the 'start' slot with the same clock as
-            the group.
-        name : str, optional
-            A unique name, if non is given the name of the group appended with
-            'runner', 'runner_1', etc. will be used. If a name is given
-            explicitly, it will be used as given (i.e. the group name will not
-            be prepended automatically).
-        '''
-        if when is None:  # TODO: make this better with default values
-            when = Scheduler(clock=self.clock)
-        else:
-            raise NotImplementedError
-
-        if name is None:
-            name = self.name + '_runner*'
-
-        runner = GroupCodeRunner(self, self.language.template_state_update,
-                                 code=code, name=name, when=when)
-        return runner
-
     def _create_variables(self, dtype=None):
         '''
         Create the variables dictionary for this `NeuronGroup`, containing
@@ -411,21 +394,10 @@ class NeuronGroup(Group, SpikeSource):
         for xi in self.equations.stochastic_variables:
             self.variables.add_auxiliary_variable(xi, unit=second**-0.5)
 
-    def before_run(self, namespace):
-    
-        # Update the namespace information in the variables in case the
-        # namespace was not specified explicitly defined at creation time
-        # Note that values in the explicit namespace might still change
-        # between runs, but the Subexpression stores a reference to 
-        # self.namespace so these changes are taken into account automatically
-        if not self.namespace.is_explicit:
-            for var in self.variables.itervalues():
-                if isinstance(var, Subexpression):
-                    var.additional_namespace = namespace
-
+    def before_run(self, run_namespace=None, level=0):
         # Check units
-        self.equations.check_units(self.namespace, self.variables,
-                                   namespace)
+        self.equations.check_units(self, run_namespace=run_namespace,
+                                   level=level+1)
     
     def _repr_html_(self):
         text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self._N)]

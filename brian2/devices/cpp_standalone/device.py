@@ -379,15 +379,13 @@ class CPPStandaloneDevice(Device):
 
     def network_run(self, net, duration, report=None, report_period=60*second,
                     namespace=None, level=0):
-        
-        if namespace is not None:
-            net.before_run(('explicit-run-namespace', namespace))
-        else:
-            namespace = get_local_namespace(2 + level)
-            net.before_run(('implicit-run-namespace', namespace))
+
+        # We have to use +2 for the level argument here, since this function is
+        # called through the device_override mechanism
+        net.before_run(namespace, level=level+2)
             
         self.clocks.update(net._clocks)
-        
+
         # TODO: remove this horrible hack
         for clock in self.clocks:
             if clock.name=='clock':

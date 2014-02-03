@@ -1,10 +1,8 @@
 import numpy as np
 
-from brian2.core.namespace import create_namespace
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Variables
 from brian2.units.fundamentalunits import check_units, Unit
-from brian2.units.allunits import second
 from brian2.units.stdunits import Hz
 
 from .group import Group
@@ -60,16 +58,20 @@ class PoissonGroup(Group, SpikeSource):
 
         self.start = 0
         self.stop = N
-        self.namespace = create_namespace(None)
 
-        self.threshold = 'rand() < rates * dt'
         self._refractory = False
+
+        #
+        self._enable_group_attributes()
+        # To avoid a warning about the local variable rates, we set the real
+        # threshold condition only after creating the object
+        self.threshold = 'False'
         self.thresholder = Thresholder(self)
+        self.threshold = 'rand() < rates * dt'
         self.contained_objects.append(self.thresholder)
 
-        self._enable_group_attributes()
-        # Set the rates according to the argument (make sure to use the correct
-        # namespace)
+        # Here we want to use the local namespace, but at the level where the
+        # constructor was called
         self.rates.set_item(slice(None), rates, level=2)
 
     @property

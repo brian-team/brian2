@@ -563,7 +563,7 @@ def get_dimensions(obj):
         isinstance(obj, np.ndarray) and not isinstance(obj, Quantity)):
         return DIMENSIONLESS 
     try:
-        return obj.dimensions
+        return obj.dim
     except AttributeError:
         raise TypeError('Object of type %s does not have dimensions' %
                         type(obj))

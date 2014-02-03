@@ -139,7 +139,8 @@ class Device(object):
                                    'a state variable with an index array or '
                                    'slice.'))
 
-    def get_with_expression(self, group, variable_name, variable, code, level=0):
+    def get_with_expression(self, group, variable_name, variable, code,
+                            level=0, run_namespace=None):
         '''
         Gets a variable using a string expression. Is called by
         `VariableView.get_item` for statements such as
@@ -159,11 +160,12 @@ class Device(object):
             selected. Can contain references to indices, such as ``i`` or ``j``
             and to state variables. For example: ``'i>3 and v>0*mV'``.
         level : int, optional
-            How much farther to go up in the stack to find the namespace.
+            How much farther to go up in the stack to find the implicit
+            namespace (if used, see `run_namespace).
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
         '''
-        # interpret the string expression
-        namespace = get_local_namespace(level+1)
-        additional_namespace = ('implicit-namespace', namespace)
         # Add the recorded variable under a known name to the variables
         # dictionary. Important to deal correctly with
         # the type of the variable in C++
@@ -178,13 +180,15 @@ class Device(object):
         abstract_code = '_variable = ' + variable_name + '\n'
         abstract_code += '_cond = ' + code
         check_code_units(abstract_code, group,
-                         additional_namespace=additional_namespace,
-                         additional_variables=variables)
+                         additional_variables=variables,
+                         level=level+1,
+                         run_namespace=run_namespace)
         codeobj = create_runner_codeobj(group,
                                         abstract_code,
                                         'group_variable_get_conditional',
                                         additional_variables=variables,
-                                        additional_namespace=additional_namespace,
+                                        level=level+1,
+                                        run_namespace=run_namespace,
                                         )
         return codeobj()
 
@@ -215,7 +219,7 @@ class Device(object):
                                    'slice.'))
 
     def set_with_expression(self, group, varname, variable, item, code,
-                            check_units=True, level=0):
+                            check_units=True, level=0, run_namespace=None):
         '''
         Sets a variable using a string expression. Is called by
         `VariableView.set_item` for statements such as
@@ -237,12 +241,14 @@ class Device(object):
         check_units : bool, optional
             Whether to check the units of the expression.
         level : int, optional
-            How much farther to go up in the stack to find the namespace.
+            How much farther to go up in the stack to find the implicit
+            namespace (if used, see `run_namespace).
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
         '''
         indices = group.calc_indices(item)
         abstract_code = varname + ' = ' + code
-        namespace = get_local_namespace(level + 1)
-        additional_namespace = ('implicit-namespace', namespace)
         variables = Variables(None)
         variables.add_array('_group_idx', unit=Unit(1),
                             size=len(indices), dtype=np.int32)
@@ -254,12 +260,14 @@ class Device(object):
                                  abstract_code,
                                  'group_variable_set',
                                  additional_variables=variables,
-                                 additional_namespace=additional_namespace,
-                                 check_units=check_units)
+                                 check_units=check_units,
+                                 level=level+1,
+                                 run_namespace=run_namespace)
         codeobj()
 
     def set_with_expression_conditional(self, group, varname, variable, cond,
-                                        code, check_units=True, level=0):
+                                        code, check_units=True, level=0,
+                                        run_namespace=None):
         '''
         Sets a variable using a string expression and string condition. Is
         called by `VariableView.set_item` for statements such as
@@ -280,28 +288,32 @@ class Device(object):
         check_units : bool, optional
             Whether to check the units of the expression.
         level : int, optional
-            How much farther to go up in the stack to find the namespace.
+            How much farther to go up in the stack to find the implicit
+            namespace (if used, see `run_namespace).
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
         '''
 
         abstract_code_cond = '_cond = '+cond
         abstract_code = varname + ' = ' + code
-        namespace = get_local_namespace(level + 1)
-        additional_namespace = ('implicit-namespace', namespace)
         variables = Variables(None)
         variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool,
                                          is_bool=True)
         check_code_units(abstract_code_cond, group,
                          additional_variables=variables,
-                         additional_namespace=additional_namespace)
+                         level=level+1,
+                         run_namespace=run_namespace)
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
         codeobj = create_runner_codeobj(group,
-                                 {'condition': abstract_code_cond,
-                                  'statement': abstract_code},
-                                 'group_variable_set_conditional',
-                                 additional_variables=variables,
-                                 additional_namespace=additional_namespace,
-                                 check_units=check_units)
+                                        {'condition': abstract_code_cond,
+                                         'statement': abstract_code},
+                                        'group_variable_set_conditional',
+                                        additional_variables=variables,
+                                        check_units=check_units,
+                                        level=level+1,
+                                        run_namespace=run_namespace)
         codeobj()
 
     def spike_queue(self, source_start, source_end):

@@ -10,7 +10,6 @@ import re
 
 import numpy as np
 
-from brian2.core.namespace import create_namespace
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.codegen.codeobject import create_runner_codeobj
@@ -18,14 +17,13 @@ from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)
-from brian2.groups.group import Group, GroupCodeRunner
+from brian2.groups.group import Group, CodeRunner
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
 from brian2.units.fundamentalunits import (Unit, Quantity,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
-from brian2.core.namespace import get_local_namespace
 from brian2.core.spikesource import SpikeSource
 
 
@@ -36,24 +34,24 @@ __all__ = ['Synapses']
 logger = get_logger(__name__)
 
 
-class StateUpdater(GroupCodeRunner):
+class StateUpdater(CodeRunner):
     '''
-    The `GroupCodeRunner` that updates the state variables of a `Synapses`
+    The `CodeRunner` that updates the state variables of a `Synapses`
     at every timestep.
     '''
     def __init__(self, group, method):
         self.method_choice = method
-        GroupCodeRunner.__init__(self, group,
-                                 'stateupdate',
-                                 when=(group.clock, 'groups'),
-                                 name=group.name + '_stateupdater',
-                                 check_units=False)
+        CodeRunner.__init__(self, group,
+                            'stateupdate',
+                            when=(group.clock, 'groups'),
+                            name=group.name + '_stateupdater',
+                            check_units=False)
 
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.variables,
                                                                method)
     
-    def update_abstract_code(self):
+    def update_abstract_code(self, run_namespace=None, level=0):
         
         self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
                                                                self.group.variables,
@@ -63,9 +61,9 @@ class StateUpdater(GroupCodeRunner):
                                          self.group.variables)
 
 
-class SummedVariableUpdater(GroupCodeRunner):
+class SummedVariableUpdater(CodeRunner):
     '''
-    The `GroupCodeRunner` that updates a value in the target group with the
+    The `CodeRunner` that updates a value in the target group with the
     sum over values in the `Synapses` object.
     '''
     def __init__(self, expression, target_varname, synapses, target):
@@ -81,20 +79,20 @@ class SummedVariableUpdater(GroupCodeRunner):
 
         template_kwds = {'_target_var': synapses.variables[target_varname]}
 
-        GroupCodeRunner.__init__(self, group=synapses,
-                                 template='summed_variable',
-                                 code=code,
-                                 needed_variables=[target_varname],
-                                 # We want to update the sumned variable before
-                                 # the target group gets updated
-                                 when=(target.clock, 'groups', -1),
-                                 name=synapses.name + '_summed_variable_' + target_varname,
-                                 template_kwds=template_kwds)
+        CodeRunner.__init__(self, group=synapses,
+                            template='summed_variable',
+                            code=code,
+                            needed_variables=[target_varname],
+                            # We want to update the sumned variable before
+                            # the target group gets updated
+                            when=(target.clock, 'groups', -1),
+                            name=synapses.name + '_summed_variable_' + target_varname,
+                            template_kwds=template_kwds)
 
 
-class SynapticPathway(GroupCodeRunner, Group):
+class SynapticPathway(CodeRunner, Group):
     '''
-    The `GroupCodeRunner` that applies the pre/post statement(s) to the state
+    The `CodeRunner` that applies the pre/post statement(s) to the state
     variables of synapses where the pre-/postsynaptic group spiked in this
     time step.
 
@@ -134,12 +132,12 @@ class SynapticPathway(GroupCodeRunner, Group):
         if objname is None:
             objname = prepost + '*'
 
-        GroupCodeRunner.__init__(self, synapses,
-                                 'synapses',
-                                 code=code,
-                                 when=(synapses.clock, 'synapses'),
-                                 name=synapses.name + '_' + objname,
-                                 template_kwds={'pathway': self})
+        CodeRunner.__init__(self, synapses,
+                            'synapses',
+                            code=code,
+                            when=(synapses.clock, 'synapses'),
+                            name=synapses.name + '_' + objname,
+                            template_kwds={'pathway': self})
 
         self._pushspikes_codeobj = None
 
@@ -176,11 +174,11 @@ class SynapticPathway(GroupCodeRunner, Group):
         #: The `CodeObject` initalising the `SpikeQueue` at the begin of a run
         self._initialise_queue_codeobj = None
 
-        self.namespace = create_namespace(None)
+        self.namespace = synapses.namespace
         # Enable access to the delay attribute via the specifier
         self._enable_group_attributes()
 
-    def update_abstract_code(self):
+    def update_abstract_code(self, run_namespace=None, level=0):
         if self.synapses.event_driven is not None:
             event_driven_update = independent(self.synapses.event_driven,
                                               self.group.variables)
@@ -195,7 +193,7 @@ class SynapticPathway(GroupCodeRunner, Group):
         self.abstract_code += self.code + '\n'
         self.abstract_code += 'lastupdate = t\n'
 
-    def before_run(self, namespace):
+    def before_run(self, run_namespace=None, level=0):
         # execute code to initalize the spike queue
         if self._initialise_queue_codeobj is None:
             self._initialise_queue_codeobj = create_runner_codeobj(self,
@@ -203,18 +201,22 @@ class SynapticPathway(GroupCodeRunner, Group):
                                                                    'synapses_initialise_queue',
                                                                    name=self.name+'_initialise_queue',
                                                                    check_units=False,
-                                                                   additional_variables=self.variables)
+                                                                   additional_variables=self.variables,
+                                                                   run_namespace=run_namespace,
+                                                                   level=level+1)
         self._initialise_queue_codeobj()
-        GroupCodeRunner.before_run(self, namespace)
+        CodeRunner.before_run(self, run_namespace, level=level+1)
 
-        # we insert rather than replace because GroupCodeRunner puts a CodeObject in updaters already
+        # we insert rather than replace because CodeRunner puts a CodeObject in updaters already
         if self._pushspikes_codeobj is None:
             self._pushspikes_codeobj = create_runner_codeobj(self,
                                                              '', # no code
                                                              'synapses_push_spikes',
                                                              name=self.name+'_push_spikes',
                                                              check_units=False,
-                                                             additional_variables=self.variables)
+                                                             additional_variables=self.variables,
+                                                             run_namespace=run_namespace,
+                                                             level=level+1)
 
         self._code_objects.insert(0, weakref.proxy(self._pushspikes_codeobj))
 
@@ -420,8 +422,7 @@ class Synapses(Group):
         self.equations = Equations(continuous)
 
         # Setup the namespace
-        self._given_namespace = namespace
-        self.namespace = create_namespace(namespace)
+        self.namespace = namespace
 
         self._queues = {}
         self._delays = {}
@@ -563,9 +564,9 @@ class Synapses(Group):
     def __len__(self):
         return self._N
 
-    def before_run(self, namespace):
+    def before_run(self, run_namespace=None, level=0):
         self.lastupdate = self.clock.t
-        super(Synapses, self).before_run(namespace)
+        super(Synapses, self).before_run(run_namespace, level=level+1)
 
     def _add_updater(self, code, prepost, objname=None):
         '''
@@ -848,8 +849,6 @@ class Synapses(Group):
             abstract_code += '_cond = ' + condition + '\n'
             abstract_code += '_n = ' + str(n) + '\n'
             abstract_code += '_p = ' + str(p)
-            namespace = get_local_namespace(level + 1)
-            additional_namespace = ('implicit-namespace', namespace)
             # This overwrites 'i' and 'j' in the synapses' variables dictionary
             # This is necessary because in the context of synapse creation, i
             # and j do not correspond to the sources/targets of the existing
@@ -882,7 +881,6 @@ class Synapses(Group):
                                             'synapses_create',
                                             variable_indices=variable_indices,
                                             additional_variables=variables,
-                                            additional_namespace=additional_namespace,
                                             check_units=False
                                             )
             codeobj()

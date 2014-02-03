@@ -4,6 +4,7 @@ sub-expression.
 '''
 import weakref
 import collections
+import functools
 
 import numpy as np
 
@@ -131,6 +132,13 @@ class Variable(object):
         #: Whether the variable is read-only
         self.read_only = read_only
 
+    @property
+    def dim(self):
+        '''
+        The dimensions of this variable.
+        '''
+        return self.unit.dim
+
     def get_value(self):
         '''
         Return the value associated with the variable (without units). This
@@ -257,6 +265,21 @@ class Constant(Variable):
             dtype = np.bool
         else:
             dtype = get_dtype(value)
+
+        # Use standard Python types if possible for numpy scalars (generates
+        # nicer code for C++ when using weave)
+        if getattr(value, 'shape', None) == () and hasattr(value, 'dtype'):
+            numpy_type = value.dtype
+            if np.can_cast(numpy_type, np.int_):
+                value = int(value)
+            elif np.can_cast(numpy_type, np.float_):
+                value = float(value)
+            elif np.can_cast(numpy_type, np.complex_):
+                value = complex(value)
+            elif value is np.True_:
+                value = True
+            elif value is np.False_:
+                value = False
 
         #: The constant's value
         self.value = value
@@ -610,10 +633,14 @@ class VariableView(object):
         self.group = weakref.proxy(group)
         self.unit = unit
 
-    dim = property(lambda self: self.unit.dim,
-                   doc='The dimensions of this variable.')
+    @property
+    def dim(self):
+        '''
+        The dimensions of this variable.
+        '''
+        return self.unit.dim
 
-    def get_item(self, item, level=0):
+    def get_item(self, item, level=0, run_namespace=None):
         '''
         Get the value of this variable. Called by `__getitem__`.
 
@@ -622,13 +649,18 @@ class VariableView(object):
         item : slice, `ndarray` or string
             The index for the setting operation
         level : int, optional
-            How much farther to go up in the stack to find the namespace.
+            How much farther to go up in the stack to find the implicit
+            namespace (if used, see `run_namespace`).
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
         '''
         variable = self.variable
         if isinstance(item, basestring):
             values = variable.device.get_with_expression(self.group, self.name,
                                                          variable, item,
-                                                         level=level+1)
+                                                         level=level+1,
+                                                         run_namespace=run_namespace)
         else:
             values = variable.device.get_with_index_array(self.group,
                                                           self.name, variable,
@@ -642,7 +674,7 @@ class VariableView(object):
     def __getitem__(self, item):
         return self.get_item(item, level=1)
 
-    def set_item(self, item, value, level=0):
+    def set_item(self, item, value, level=0, run_namespace=None):
         '''
         Set this variable. This function is called by `__setitem__` but there
         is also a situation where it should be called directly: if the context
@@ -656,7 +688,11 @@ class VariableView(object):
         value : `Quantity`, `ndarray` or number
             The value for the setting operation
         level : int, optional
-            How much farther to go up in the stack to find the namespace.
+            How much farther to go up in the stack to find the implicit
+            namespace (if used, see `run_namespace`).
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
         '''
         variable = self.variable
         if variable.read_only:
@@ -675,7 +711,8 @@ class VariableView(object):
                                                             variable,
                                                             item, value,
                                                             check_units=check_units,
-                                                            level=level+1)
+                                                            level=level+1,
+                                                            run_namespace=run_namespace)
         elif isinstance(item, basestring):
             try:
                 float(value)  # only checks for the exception
@@ -706,12 +743,14 @@ class VariableView(object):
                                                             item,
                                                             repr(value),
                                                             check_units=check_units,
-                                                            level=level+1)
+                                                            level=level+1,
+                                                            run_namespace=run_namespace)
         elif isinstance(value, basestring):
             variable.device.set_with_expression(self.group, self.name, variable,
                                                 item, value,
                                                 check_units=check_units,
-                                                level=level+1)
+                                                level=level+1,
+                                                run_namespace=run_namespace)
         else:  # No string expressions involved
             variable.device.set_with_index_array(self.group, self.name,
                                                  variable, item, value,
@@ -858,7 +897,9 @@ class Variables(collections.Mapping):
 
         self._variables = {}
         #: A dictionary given the index name for every array name
-        self.indices = collections.defaultdict(lambda: default_index)
+        self.indices = collections.defaultdict(functools.partial(str, default_index))
+        # Note that by using functools.partial (instead of e.g. a lambda
+        # function) above, this object remains pickable.
 
     def __getitem__(self, item):
         return self._variables[item]
