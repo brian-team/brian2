@@ -2,6 +2,7 @@
 This module defines the `Group` object, a mix-in class for everything that
 saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
+from collections import defaultdict
 import weakref
 try:
     from collections import OrderedDict
@@ -12,6 +13,7 @@ except ImportError:
 import numpy as np
 
 from brian2.core.base import BrianObject
+from brian2.core.preferences import brian_prefs
 from brian2.codegen.codeobject import create_runner_codeobj, check_code_units
 from brian2.core.variables import Variables, Constant, Variable, Subexpression
 from brian2.core.functions import Function
@@ -24,6 +26,7 @@ from brian2.devices.device import device_override
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit)
 from brian2.utils.logger import get_logger
+from brian2.devices.device import get_device
 
 __all__ = ['Group', 'CodeRunner']
 
@@ -54,6 +57,34 @@ def _conflict_warning(message, resolutions):
 
     logger.warn(message + ' ' + second_part,
                 'Group.resolve.resolution_conflict', once=True)
+
+
+def dtype_dictionary(dtype=None):
+    '''
+    Helper function to interpret the `dtype` keyword argument in `NeuronGroup`
+    etc.
+
+    Parameters
+    ----------
+    dtype : `dtype` or dict, optional
+        Either the `dtype` to be used as a default dtype for all variables
+        (instead of the `core.default_scalar_dtype` preference) or a
+        dictionary stating the `dtype` for some variables; all other variables
+        will use the preference default
+
+    Returns
+    -------
+    dtype_dict : defaultdict
+        A dictionary mapping variable names to dtypes.
+    '''
+    if dtype is None:
+        return defaultdict(lambda: brian_prefs['core.default_scalar_dtype'])
+    elif isinstance(dtype, np.dtype):
+        return defaultdict(lambda: dtype)
+    else:
+        dtype_dict = defaultdict(lambda: brian_prefs['core.default_scalar_dtype'])
+        dtype_dict.update(dtype)
+        return dtype_dict
 
 
 def _same_value(obj1, obj2):
