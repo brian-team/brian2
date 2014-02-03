@@ -1,11 +1,14 @@
 '''
 Module implementing the C++ "standalone" device.
 '''
+import numpy
 import os
 import shutil
 import subprocess
 import inspect
 from collections import defaultdict
+
+import numpy as np
 
 import numpy as np
 
@@ -41,6 +44,11 @@ def freeze(code, ns):
                 string_value = '(%r)' % value
             else:
                 string_value = '%r' % value
+            value = v.get_value()
+            if value < 0:
+                string_value = '(%r)' % value
+            else:
+                string_value = '%r' % value
             code = word_substitute(code, {k: string_value})
     return code
 
@@ -66,8 +74,8 @@ class CPPWriter(object):
             if open(fullfilename, 'r').read()==contents:
                 return
         open(fullfilename, 'w').write(contents)
-        
-        
+
+
 def invert_dict(x):
     return dict((v, k) for k, v in x.iteritems())
 
@@ -101,6 +109,7 @@ class CPPStandaloneDevice(Device):
         self.main_queue = []
         
         self.synapses = []
+        self.n_threads = 1
         
         self.clocks = set([])
         
@@ -178,6 +187,11 @@ class CPPStandaloneDevice(Device):
         # treat the array as a static array
         self.static_arrays[array_name] = arr.astype(var.dtype)
 
+    def init_with_array(self, var, arr):
+        array_name = self.get_array_name(var, access_data=False)
+        # treat the array as a static array
+        self.static_arrays[array_name] = arr.astype(var.dtype)
+
     def fill_with_array(self, var, arr):
         arr = np.asarray(arr)
         if arr.shape == ():
@@ -248,6 +262,7 @@ class CPPStandaloneDevice(Device):
                                       'variables in standalone code.')
 
 
+
     def variableview_get_subexpression_with_index_array(self, variableview, item):
         raise NotImplementedError(('Cannot evaluate subexpressions in '
                                    'standalone scripts.'))
@@ -280,7 +295,7 @@ class CPPStandaloneDevice(Device):
               with_output=True, native=True,
               additional_source_files=None, additional_header_files=None,
               main_includes=None, run_includes=None,
-              run_args=None,
+              run_args=None, n_threads=0
               ):
         '''
         Build the project
@@ -309,6 +324,10 @@ class CPPStandaloneDevice(Device):
             A list of additional header files to include in ``main.cpp``.
         run_includes : list of str
             A list of additional header files to include in ``run.cpp``.
+        n_threads : int, optional
+            Number of threads for OpenMP
+        n_threads : int, optional
+            Number of threads for OpenMP
         '''
         
         if additional_source_files is None:
@@ -322,6 +341,8 @@ class CPPStandaloneDevice(Device):
         if run_args is None:
             run_args = []
         ensure_directory(project_dir)
+        self.n_threads = n_threads
+        
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(project_dir, d))
             
@@ -365,12 +386,18 @@ class CPPStandaloneDevice(Device):
                         clocks=self.clocks,
                         static_array_specs=static_array_specs,
                         networks=networks,
+                        nb_threads=self.n_threads
                         )
         writer.write('objects.*', arr_tmp)
 
         main_lines = []
         procedures = [('', main_lines)]
         runfuncs = {}
+        if self.n_threads >= 1:
+            main_lines.append('omp_set_dynamic(0);')
+            main_lines.append('omp_set_num_threads(%d);' %self.n_threads)
+        elif self.n_threads < 0:
+            main_lines.append('omp_set_dynamic(1);')
         for func, args in self.main_queue:
             if func=='run_code_object':
                 codeobj, = args
@@ -381,6 +408,7 @@ class CPPStandaloneDevice(Device):
             elif func=='set_by_array':
                 arrayname, staticarrayname = args
                 code = '''
+                #pragma omp parallel for schedule(static)
                 for(int i=0; i<_num_{staticarrayname}; i++)
                 {{
                     {arrayname}[i] = {staticarrayname}[i];
@@ -390,6 +418,7 @@ class CPPStandaloneDevice(Device):
             elif func=='set_array_by_array':
                 arrayname, staticarrayname_index, staticarrayname_value = args
                 code = '''
+                #pragma omp parallel for schedule(static)
                 for(int i=0; i<_num_{staticarrayname_index}; i++)
                 {{
                     {arrayname}[{staticarrayname_index}[i]] = {staticarrayname_value}[i];
@@ -422,6 +451,7 @@ class CPPStandaloneDevice(Device):
         code_object_defs = defaultdict(list)
         for codeobj in self.code_objects.itervalues():
             lines = []
+            lines = []
             for k, v in codeobj.variables.iteritems():
                 if isinstance(v, AttributeVariable):
                     # We assume all attributes are implemented as property-like methods
@@ -445,6 +475,11 @@ class CPPStandaloneDevice(Device):
                             lines.append('const int _num%s = %s;' % (k, v.size))
                     except TypeError:
                         pass
+            for line in lines:
+                # Sometimes an array is referred to by to different keys in our
+                # dictionary -- make sure to never add a line twice
+                if not line in code_object_defs[codeobj.name]:
+                    code_object_defs[codeobj.name].append(line)
             for line in lines:
                 # Sometimes an array is referred to by to different keys in our
                 # dictionary -- make sure to never add a line twice
@@ -494,6 +529,7 @@ class CPPStandaloneDevice(Device):
         spikequeue_h = os.path.join(project_dir, 'brianlib', 'spikequeue.h')
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'cspikequeue.cpp'),
                      spikequeue_h)
+
         #writer.header_files.append(spikequeue_h)
         
         writer.source_files.extend(additional_source_files)
@@ -561,6 +597,7 @@ class CPPStandaloneDevice(Device):
         for clock, codeobj in code_objects:
             run_lines.append('{net.name}.add(&{clock.name}, _run_{codeobj.name});'.format(clock=clock, net=net,
                                                                                                codeobj=codeobj))
+
         run_lines.append('{net.name}.run({duration});'.format(net=net, duration=float(duration)))
         self.main_queue.append(('run_network', (net, run_lines)))
 

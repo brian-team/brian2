@@ -5,8 +5,8 @@ OBJS = ${SRCS:.cpp=.o}
 CC = @g++
 DEBUG = -g
 OPTIMISATIONS = -O3 -ffast-math
-CFLAGS = -c -Wno-write-strings $(OPTIMISATIONS) -I.
-LFLAGS = 
+CFLAGS = -c -Wno-write-strings $(OPTIMISATIONS) -I. -fopenmp -pg
+LFLAGS = -fopenmp -pg
 DEPS = make.deps
 
 all: executable

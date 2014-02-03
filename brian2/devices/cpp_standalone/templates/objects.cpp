@@ -57,7 +57,7 @@ SynapticPathway<double> brian::{{path.name}}(
 		{{dynamic_array_specs[path.variables['delay']]}},
 		{{dynamic_array_specs[path.synapse_sources]}},
 		{{path.source.dt_}},
-		{{path.source.start}}, {{path.source.stop}}
+		{{path.source.start}}, {{path.source.stop}}, {{nb_threads}}
 		);
 {% endfor %}
 {% endfor %}
@@ -71,6 +71,7 @@ void _init_arrays()
 	{% for var in zero_arrays | sort(attribute='name') %}
 	{% set varname = array_specs[var] %}
 	{{varname}} = new {{c_data_type(var.dtype)}}[{{var.size}}];
+	#pragma omp parralel for schedule(static)
 	for(int i=0; i<{{var.size}}; i++) {{varname}}[i] = 0;
 	{% endfor %}
 
@@ -78,6 +79,7 @@ void _init_arrays()
 	{% for var, start in arange_arrays %}
 	{% set varname = array_specs[var] %}
 	{{varname}} = new {{c_data_type(var.dtype)}}[{{var.size}}];
+	#pragma omp parralel for schedule(static)
 	for(int i=0; i<{{var.size}}; i++) {{varname}}[i] = {{start}} + i;
 	{% endfor %}
 
@@ -102,7 +104,7 @@ void _load_arrays()
 		std::cout << "Error opening static array {{name}}." << endl;
 	}
 	{% endfor %}
-}
+}	
 
 void _write_arrays()
 {
