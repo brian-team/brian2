@@ -105,30 +105,34 @@ External variables and functions
 --------------------------------
 Equations defining neuronal or synaptic equations can contain references to
 external parameters or functions. During the initialisation of a `NeuronGroup`
-or a `Synapses` object, this *namespace* can be provided as an argument. In
-this case, it is assumed that this namespace is exhaustive and contains all
-external identifiers (note that units and a set of standard numpy functions
-are always provided and should not be included in this namespace). This
-namespace does not necessarily need to be exhaustive at the time of the creation
-of the `NeuronGroup`/`Synapses`, entries can be added (or modified) at a later
-stage via the `namespace` attribute (e.g. ``G.namespace['tau'] = 10*ms``) -- it
-only has to be complete at the time of the run.
+or a `Synapses` object, this *namespace* can be provided as an argument. This
+is a group-specific namespace that will only be used for names in the context
+of the respective group. Note that units and a set of standard functions are
+always provided and should not be given explicitly.
+This namespace does not necessarily need to be exhaustive at the time of the
+creation of the `NeuronGroup`/`Synapses`, entries can be added (or modified)
+at a later stage via the `namespace` attribute (e.g.
+``G.namespace['tau'] = 10*ms``).
 
-If no such namespace is provided, the namespace will be filled at the point of
-the call to the `run` function. Either via an explicit namespace argument to
-the `run` function or -- if this is  not provided -- from the variables
-defined at that point in the code (more specifically, the variables from the
-*locals* and *globals* symbol table). This namespace is shared among all
-objects in the network that do not have their own explicit namespace.
+At the point of the call to the `Network.run` namespace, any group-specific
+namespace will be augmented by the "run namespace". This namespace can be
+either given explicitly as an argument to the `~Network.run` method or it will
+be taken from the locals and globals surrounding the call. A warning will be
+emitted if a name is defined in more than one namespace.
 
-To summarize: The namespace of external identifiers for an object such as a
-`NeuronGroup` or `Synapses` is:
+To summarize: an external identifier will be looked up in the context of an
+object such as `NeuronGroup` or `Synapses`. It will follow the following
+resolution hierarchy:
 
-* The object's explicit namespace if it is provided at creation time.
-* If no explicit namespace is given, the namespace argument of the run
-  function is used.
-* If neither the object, nor the run function received a namespace argument,
-  the variables from the context of the run function are used.
+1. Default unit and function names.
+2. Names defined in the explicit group-specific namespace.
+3. Names in the run namespace which is either explicitly given or the implicit
+   namespace surrounding the run call.
+
+Note that if you completely specify your namespaces at the `Group` level, you
+should probably pass an empty dictionary as the namespace argument to the
+`~Network.run` call -- this will completely switch off the "implicit namespace"
+mechanism.
 
 The following three examples show the different ways of providing external
 variable values, all having the same effect in this case::
@@ -151,27 +155,6 @@ variable values, all having the same effect in this case::
 
 External variables are free to change between runs (but not during one run),
 the value at the time of the `run` call is used in the simulation. 
-
-Resolution order
-~~~~~~~~~~~~~~~~
-For each identifier (variable or function name) in the model equations, a corresponding object will be
-determined using the resolution order specified below. If not resolution can be found, an error will be raised.
-If more than one resolution is possible, the first in the resolution order will be used but a warning will be
-raised.
-
-1. "special variables": `t`, `dt`, `xi` (and `xi_...`)
-2. state variables of the `NeuronGroup`/`Synapses` itself.
-3. variables from "referred namespaces", i.e. in the `Synapses` class, variables
-   from the pre-synaptic group (using a ``_pre`` suffix) or from the post-synaptic
-   group (using a ``_post`` suffix or no suffix).
-4. A standard set of numpy functions (with unit-aware/code-generation
-   replacements, the names in
-   `~brian2.core.namespace.get_default_numpy_namespace`).
-5. units (the names in `~brian2.core.namespace.DEFAULT_UNIT_NAMESPACE`),
-   containing all registered units plus the standard units (ms, mV, nS, etc.)
-6. Explicitly given entries in the namespace dictionary of the object,
-   explicitly given entries to the `run` function or variables from the local
-   context (see explanations in the previous section)
 
 Examples
 --------

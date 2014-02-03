@@ -260,7 +260,7 @@ class Group(BrianObject):
         context of this group. This function will first lookup the name in the
         state variables, then look for a standard function or unit of that
         name and finally look in `Group.namespace` and in `run_namespace`. If
-        neither is given, it will try to find the variable in the local
+        the latter is not given, it will try to find the variable in the local
         namespace where the original function call took place. See
         :doc:`user/equations#external-variables-and-functions`.
 
@@ -368,7 +368,7 @@ class Group(BrianObject):
         declares an explicit namespace, this namespace is used in addition to the
         standard namespace for units and functions. Additionally, the namespace in
         the `run_namespace` argument (i.e. the namespace provided to `Network.run`)
-        is used. Only if both are undefined, the implicit namespace of
+        or, if this argument is unspecified, the implicit namespace of
         surrounding variables in the stack frame where the original call was made
         is used (to determine this stack frame, the `level` argument has to be set
         correctly).
@@ -394,14 +394,18 @@ class Group(BrianObject):
         matches = []
 
         namespaces = OrderedDict()
+        # Default namespaces (units and functions)
         namespaces['units'] = _get_default_unit_namespace()
         namespaces['functions'] = get_default_numpy_namespace()
+
+        # Group-specific namespaces
         if getattr(self, 'namespace', None) is not None:
             namespaces['group-specific'] = self.namespace
+
+        # explicit or implicit run namespace
         if run_namespace is not None:
             namespaces['run'] = run_namespace
-
-        if getattr(self, 'namespace', None) is None and run_namespace is None:
+        else:
             namespaces['implicit'] = get_local_namespace(level+1)
 
         for description, namespace in namespaces.iteritems():

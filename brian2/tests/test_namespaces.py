@@ -47,6 +47,18 @@ def test_explicit_namespace():
         assert group.resolve('variable').get_value_with_unit() == 42
         assert len(l) == 0
 
+    # Value from the local namespace
+    another_variable = 23
+    with catch_logs() as l:
+        assert group.resolve('another_variable').get_value_with_unit() == 23
+        assert len(l) == 0
+
+    # Value from an explicit run namespace
+    with catch_logs() as l:
+        assert group.resolve('yet_another_var',
+                             run_namespace={'yet_another_var': 17}).get_value_with_unit() == 17
+        assert len(l) == 0
+
 
 def test_errors():
     # No explicit namespace
