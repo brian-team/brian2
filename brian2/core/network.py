@@ -253,7 +253,7 @@ class Network(Nameable):
         self.objects.sort(key=lambda obj: (when_to_int[obj.when], obj.order))
     
     @device_override('network_before_run')
-    def before_run(self, namespace, level=0):
+    def before_run(self, run_namespace=None, level=0):
         '''
         before_run(namespace)
 
@@ -284,7 +284,7 @@ class Network(Nameable):
                      "before_run")
         
         for obj in self.objects:
-            obj.before_run(namespace, level=level+2)
+            obj.before_run(run_namespace, level=level+2)
 
         logger.debug("Network {self.name} has {num} "
                      "clocks: {clocknames}".format(self=self,

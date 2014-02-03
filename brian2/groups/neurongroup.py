@@ -394,9 +394,9 @@ class NeuronGroup(Group, SpikeSource):
         for xi in self.equations.stochastic_variables:
             self.variables.add_auxiliary_variable(xi, unit=second**-0.5)
 
-    def before_run(self, namespace, level=0):
+    def before_run(self, run_namespace=None, level=0):
         # Check units
-        self.equations.check_units(self, run_namespace=namespace,
+        self.equations.check_units(self, run_namespace=run_namespace,
                                    level=level+1)
     
     def _repr_html_(self):

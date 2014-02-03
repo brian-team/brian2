@@ -640,7 +640,7 @@ class VariableView(object):
         '''
         return self.unit.dim
 
-    def get_item(self, item, level=0):
+    def get_item(self, item, level=0, run_namespace=None):
         '''
         Get the value of this variable. Called by `__getitem__`.
 
@@ -649,13 +649,18 @@ class VariableView(object):
         item : slice, `ndarray` or string
             The index for the setting operation
         level : int, optional
-            How much farther to go up in the stack to find the namespace.
+            How much farther to go up in the stack to find the implicit
+            namespace (if used, see `run_namespace`).
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
         '''
         variable = self.variable
         if isinstance(item, basestring):
             values = variable.device.get_with_expression(self.group, self.name,
                                                          variable, item,
-                                                         level=level+1)
+                                                         level=level+1,
+                                                         run_namespace=run_namespace)
         else:
             values = variable.device.get_with_index_array(self.group,
                                                           self.name, variable,
@@ -669,7 +674,7 @@ class VariableView(object):
     def __getitem__(self, item):
         return self.get_item(item, level=1)
 
-    def set_item(self, item, value, level=0):
+    def set_item(self, item, value, level=0, run_namespace=None):
         '''
         Set this variable. This function is called by `__setitem__` but there
         is also a situation where it should be called directly: if the context
@@ -683,7 +688,11 @@ class VariableView(object):
         value : `Quantity`, `ndarray` or number
             The value for the setting operation
         level : int, optional
-            How much farther to go up in the stack to find the namespace.
+            How much farther to go up in the stack to find the implicit
+            namespace (if used, see `run_namespace`).
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
         '''
         variable = self.variable
         if variable.read_only:
@@ -702,7 +711,8 @@ class VariableView(object):
                                                             variable,
                                                             item, value,
                                                             check_units=check_units,
-                                                            level=level+1)
+                                                            level=level+1,
+                                                            run_namespace=run_namespace)
         elif isinstance(item, basestring):
             try:
                 float(value)  # only checks for the exception
@@ -733,12 +743,14 @@ class VariableView(object):
                                                             item,
                                                             repr(value),
                                                             check_units=check_units,
-                                                            level=level+1)
+                                                            level=level+1,
+                                                            run_namespace=run_namespace)
         elif isinstance(value, basestring):
             variable.device.set_with_expression(self.group, self.name, variable,
                                                 item, value,
                                                 check_units=check_units,
-                                                level=level+1)
+                                                level=level+1,
+                                                run_namespace=run_namespace)
         else:  # No string expressions involved
             variable.device.set_with_index_array(self.group, self.name,
                                                  variable, item, value,

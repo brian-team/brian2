@@ -88,8 +88,7 @@ class CodeObject(Nameable):
 
 
 def check_code_units(code, group, additional_variables=None,
-                     additional_namespace=None,
-                     level=0):
+                     level=0, run_namespace=None,):
     '''
     Check statements for correct units.
 
@@ -102,10 +101,10 @@ def check_code_units(code, group, additional_variables=None,
     additional_variables : dict-like, optional
         A mapping of names to `Variable` objects, used in addition to the
         variables saved in `self.group`.
-    additional_namespace : dict-like, optional
-        An additional namespace, as provided to `Group.before_run`
     level : int, optional
         How far to go up in the stack to find the calling frame.
+    run_namespace : dict-like, optional
+        An additional namespace, as provided to `Group.before_run`
 
     Raises
     ------
@@ -125,8 +124,8 @@ def check_code_units(code, group, additional_variables=None,
     _, _, unknown = analyse_identifiers(code, all_variables)
     try:
         resolved_namespace = group.resolve_all(unknown,
-                                               run_namespace=additional_namespace,
-                                               level=level+1)
+                                               level=level+1,
+                                               run_namespace=run_namespace)
     except KeyError as ex:
         raise KeyError('Error occured when checking "%s": %s' % (code,
                                                                  str(ex)))
@@ -141,8 +140,8 @@ def create_runner_codeobj(group, code, template_name,
                           name=None, check_units=True,
                           needed_variables=None,
                           additional_variables=None,
-                          additional_namespace=None,
                           level=0,
+                          run_namespace=None,
                           template_kwds=None,):
     ''' Create a `CodeObject` for the execution of code in the context of a
     `Group`.
@@ -172,11 +171,11 @@ def create_runner_codeobj(group, code, template_name,
     additional_variables : dict-like, optional
         A mapping of names to `Variable` objects, used in addition to the
         variables saved in `group`.
-    additional_namespace : dict-like, optional
-        A mapping from names to objects, used in addition to the namespace
-        saved in `group`.
     level : int, optional
         How far to go up in the stack to find the call frame.
+    run_namespace : dict-like, optional
+        An additional namespace that is used for variable lookup (if not
+        defined, the implicit namespace of local variables is used).
     template_kwds : dict, optional
         A dictionary of additional information that is passed to the template.
     '''
@@ -189,13 +188,13 @@ def create_runner_codeobj(group, code, template_name,
             for c in code.values():
                 check_code_units(c, group,
                                  additional_variables=additional_variables,
-                                 additional_namespace=additional_namespace,
-                                 level=level+1)
+                                 level=level+1,
+                                 run_namespace=run_namespace)
         else:
             check_code_units(code, group,
                              additional_variables=additional_variables,
-                             additional_namespace=additional_namespace,
-                             level=level+1)
+                             level=level+1,
+                             run_namespace=run_namespace)
 
     codeobj_class = device.code_object_class(group.codeobj_class)
     template = getattr(codeobj_class.templater, template_name)
@@ -221,22 +220,17 @@ def create_runner_codeobj(group, code, template_name,
     # Only pass the variables that are actually used
     variables = group.resolve_all(used_known | unknown,
                                   additional_variables=additional_variables,
-                                  run_namespace=additional_namespace,
+                                  run_namespace=run_namespace,
                                   level=level+1)
 
     # Add variables that are not in the abstract code, nor specified in the
     # template but nevertheless necessary
     if needed_variables is None:
         needed_variables = []
-    variables.update(group.resolve_all(needed_variables,
-                                       additional_variables=additional_variables,
-                                       run_namespace=additional_namespace,
-                                       level=level+1))
-
     # Also add the variables that the template needs
-    variables.update(group.resolve_all(template.variables,
+    variables.update(group.resolve_all(set(needed_variables) | set(template.variables),
                                        additional_variables=additional_variables,
-                                       run_namespace=additional_namespace,
+                                       run_namespace=run_namespace,
                                        level=level+1))
 
     # always add N, the number of neurons or synapses

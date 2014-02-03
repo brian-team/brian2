@@ -67,6 +67,7 @@ def test_resolution():
     assert type(resolved) == type(dict())
     assert resolved['tau'].get_value_with_unit() == tau
     assert resolved['ms'].get_value_with_unit() == ms
+    del tau
 
     # explicit namespace
     group = SimpleGroup(namespace={'tau': 20 * ms}, variables={})

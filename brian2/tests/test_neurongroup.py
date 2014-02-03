@@ -106,6 +106,7 @@ def test_incomplete_namespace():
         tau = 10*ms
         net = Network(G)
         net.run(1*ms)
+        del tau
 
 def test_namespace_errors():
     

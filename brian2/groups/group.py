@@ -567,8 +567,8 @@ class CodeRunner(BrianObject):
         '''
         pass
 
-    def before_run(self, namespace, level=0):
-        self.update_abstract_code(run_namespace=namespace, level=level+1)
+    def before_run(self, run_namespace=None, level=0):
+        self.update_abstract_code(run_namespace=run_namespace, level=level+1)
         # If the CodeRunner has variables, add them
         if hasattr(self, 'variables'):
             additional_variables = self.variables
@@ -581,8 +581,8 @@ class CodeRunner(BrianObject):
                                              name=self.name+'_codeobject*',
                                              check_units=self.check_units,
                                              additional_variables=additional_variables,
-                                             additional_namespace=namespace,
                                              needed_variables=self.needed_variables,
+                                             run_namespace=run_namespace,
                                              level=level+1,
                                              template_kwds=self.template_kwds)
         self.code_objects[:] = [weakref.proxy(self.codeobj)]
