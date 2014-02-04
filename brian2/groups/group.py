@@ -132,7 +132,7 @@ class Group(BrianObject):
 
         self._group_attribute_access_active = True
 
-    def state(self, name, use_units, level=0):
+    def state(self, name, use_units=True, level=0):
         '''
         Return the state variable in a way that properly supports indexing in
         the context of this group
@@ -141,7 +141,7 @@ class Group(BrianObject):
         ----------
         name : str
             The name of the state variable
-        use_units : bool
+        use_units : bool, optional
             Whether to use the state variable's unit.
         level : int, optional
             How much farther to go down in the stack to find the namespace.
