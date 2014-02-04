@@ -1183,7 +1183,7 @@ class Variables(collections.Mapping):
         for name, var in variables.iteritems():
             self.add_reference(name, var, index)
 
-    def add_clock_variables(self, clock):
+    def add_clock_variables(self, clock, prefix=''):
         '''
         Convenience function to add the ``t`` and ``dt`` attributes of a
         `clock`.
@@ -1194,9 +1194,13 @@ class Variables(collections.Mapping):
             The clock that should be used for ``t`` and ``dt``. Note that the
             actual attributes referred to are ``t_`` and ``dt_``, i.e. the
             unitless values.
+        prefix : str, optional
+            A prefix for the variable names. Used for example in monitors to
+            not confuse the dynamic array of recorded times with the current
+            time in the recorded group.
         '''
-        self.add_attribute_variable('t', unit=second, obj=clock,
+        self.add_attribute_variable(prefix+'t', unit=second, obj=clock,
                                     attribute='t_', dtype=np.float64)
-        self.add_attribute_variable('dt', unit=second, obj=clock,
+        self.add_attribute_variable(prefix+'dt', unit=second, obj=clock,
                                     attribute='dt_', dtype=np.float64,
                                     constant=True)

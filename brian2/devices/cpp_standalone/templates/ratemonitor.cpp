@@ -1,16 +1,12 @@
 {% extends 'common_group.cpp' %}
 
-{% set _spikespace = variables['_spikespace'].arrayname %}
-{% set _rate = '_dynamic'+variables['_rate'].arrayname %}
-{% set _t = '_dynamic'+variables['_t'].arrayname %}
-
 {% block maincode %}
-	{# USES_VARIABLES { _rate, _t, _spikespace, t, dt, _num_source_neurons } #}
+	{# USES_VARIABLES { rate, t, _spikespace, _clock_t, _clock_dt, _num_source_neurons } #}
 
 	int _num_spikes = {{_spikespace}}[_num_{{_spikespace}}-1];
 	int _num_source_neurons = _num_{{_spikespace}}-1;
-	{{_rate}}.push_back(1.0*_num_spikes/dt/_num_source_neurons);
-	{{_t}}.push_back(t);
+	{{_dynamic_rate}}.push_back(1.0*_num_spikes/_clock_dt/_num_source_neurons);
+	{{_dynamic_t}}.push_back(_clock_t);
 {% endblock %}
 
 {% block extra_functions_cpp %}
@@ -20,9 +16,9 @@ void _write_{{codeobj_name}}()
 	outfile.open("results/{{codeobj_name}}.txt", ios::out);
 	if(outfile.is_open())
 	{
-		for(int s=0; s<{{_t}}.size(); s++)
+		for(int s=0; s<{{_dynamic_t}}.size(); s++)
 		{
-			outfile << {{_t}}[s] << ", " << {{_rate}}[s] << endl;
+			outfile << {{_dynamic_t}}[s] << ", " << {{dynamic_rate}}[s] << endl;
 		}
 		outfile.close();
 	} else

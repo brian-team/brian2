@@ -471,7 +471,7 @@ class Group(BrianObject):
                               'got %d dimensions.') % len(item))
         else:
             if isinstance(item, slice):
-                start, stop, step = item.indices(self.N)
+                start, stop, step = item.indices(len(self))
                 return np.arange(start, stop, step)
             else:
                 index_array = np.asarray(item)

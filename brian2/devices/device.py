@@ -67,6 +67,27 @@ class Device(object):
             For `DynamicArrayVariable` objects, specifying `True` here means the
             name for the underlying data is returned. If specifying `False`,
             the name of object itself is returned (e.g. to allow resizing).
+
+        Returns
+        -------
+        name : str
+            The name for `var`.
+        '''
+        raise NotImplementedError()
+
+    def get_len(self, array):
+        '''
+        Return the length of the array.
+
+        Parameters
+        ----------
+        array : `ArrayVariable`
+            The array for which the length is requested.
+
+        Returns
+        -------
+        l : int
+            The length of the array.
         '''
         raise NotImplementedError()
 
@@ -273,7 +294,7 @@ class RuntimeDevice(Device):
         self.arrays[var][:] = 0
 
     def init_with_arange(self, var, start):
-        self.arrays[var][:] = np.arange(start, stop=var.size+start)
+        self.arrays[var][:] = np.arange(start, stop=var.get_len()+start)
 
     def fill_with_array(self, var, arr):
         self.arrays[var][:] = arr

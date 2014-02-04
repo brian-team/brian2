@@ -1,14 +1,16 @@
+import numpy as np
+
 from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
-from brian2.groups.group import CodeRunner
+from brian2.groups.group import CodeRunner, Group
 
 __all__ = ['PopulationRateMonitor']
 
 
-class PopulationRateMonitor(CodeRunner):
+class PopulationRateMonitor(Group, CodeRunner):
     '''
     Record instantaneous firing rates, averaged across neurons from a
     `NeuronGroup` or other spike source.
@@ -29,6 +31,9 @@ class PopulationRateMonitor(CodeRunner):
     def __init__(self, source, when=None, name='ratemonitor*',
                  codeobj_class=None):
 
+        #: The group we are recording from
+        self.source = source
+
         # run by default on source clock at the end
         scheduler = Scheduler(when)
         if not scheduler.defined_clock:
@@ -40,51 +45,36 @@ class PopulationRateMonitor(CodeRunner):
         BrianObject.__init__(self, when=scheduler, name=name)
 
         self.variables = Variables(self)
-        self.variables.add_clock_variables(self.clock)
-        self.variables.add_dynamic_array('_rate', size=0, unit=hertz,
+        self.variables.add_reference('_spikespace',
+                                     source.variables['_spikespace'])
+        self.variables.add_clock_variables(self.clock, prefix='_clock_')
+        self.variables.add_dynamic_array('rate', size=0, unit=hertz,
                                          constant_size=False)
-        self.variables.add_dynamic_array('_t', size=0, unit=second,
+        self.variables.add_dynamic_array('t', size=0, unit=second,
                                          constant_size=False)
-        self.variables.add_constant('_num_source_neurons', unit=Unit(1),
-                                    value=len(source))
+        self.variables.add_reference('_num_source_neurons',
+                                     source.variables['N'])
+        self.variables.add_attribute_variable('N', unit=Unit(1), obj=self,
+                                              attribute='_N', dtype=np.int32)
+        self._N = 0
+        CodeRunner.__init__(self, group=self, template='ratemonitor',
+                            when=scheduler)
 
-        CodeRunner.__init__(self, source, 'ratemonitor', when=scheduler)
+        self._enable_group_attributes()
+
+    def resize(self, new_size):
+        self.variables['rate'].resize(new_size)
+        self.variables['t'].resize(new_size)
+        self._N = new_size
+
+    def __len__(self):
+        return self._N
 
     def reinit(self):
         '''
         Clears all recorded rates
         '''
         raise NotImplementedError()
-
-    @property
-    def rate(self):
-        '''
-        Array of recorded rates (in units of Hz).
-        '''
-        return Quantity(self.variables['_rate'].get_value(), dim=hertz.dim,
-                        copy=True)
-
-    @property
-    def rate_(self):
-        '''
-        Array of recorded rates (unitless).
-        '''
-        return self.variables['_rate'].get_value().copy()
-
-    @property
-    def t(self):
-        '''
-        Array of recorded time points (in units of second).
-        '''
-        return Quantity(self.variables['_t'].get_value(), dim=second.dim,
-                        copy=True)
-
-    @property
-    def t_(self):
-        '''
-        Array of recorded time points (unitless).
-        '''
-        return self.variables['_t'].get_value().copy()
 
     def __repr__(self):
         description = '<{classname}, recording {source}>'

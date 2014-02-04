@@ -167,6 +167,8 @@ def test_rate_monitor():
         net.run(10*defaultclock.dt)
         assert_allclose(rate_mon.rate, 0.5 * np.ones(10) / defaultclock.dt)
         assert_allclose(rate_mon.rate_, 0.5 *np.asarray(np.ones(10) / defaultclock.dt))
+        assert_equal(rate_mon.rate['t>0.5*ms'],
+                     rate_mon.rate[np.nonzero(rate_mon.t>0.5*ms)[0]])
 
     brian_prefs.codegen.target = language_before
 
