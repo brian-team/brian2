@@ -109,7 +109,7 @@ def get_identifiers_recursively(expr, variables):
     identifiers = get_identifiers(expr)
     for name in set(identifiers):
         if name in variables and isinstance(variables[name], Subexpression):
-            s_identifiers = get_identifiers_recursively(translate_subexpression(variables[name], variables),
+            s_identifiers = get_identifiers_recursively(translate_subexpression(variables[name], variables).expr,
                                                         variables)
             identifiers |= s_identifiers
     return identifiers
@@ -188,8 +188,6 @@ def make_statements(code, variables, dtype):
     #subexpressions = get_all_subexpressions()
     subexpressions = dict((name, val) for name, val in variables.items() if isinstance(val, Subexpression))
 
-    subexpressions = translate_subexpressions(subexpressions, variables)
-
     if DEBUG:
         print 'SUBEXPRESSIONS:', subexpressions.keys()
     statements = []
@@ -208,6 +206,8 @@ def make_statements(code, variables, dtype):
         for var in read:
             # if subexpression, and invalid
             if not valid.get(var, True): # all non-subexpressions are valid
+                subexpression = translate_subexpression(subexpressions[var],
+                                                        variables)
                 # if already defined/declared
                 if subdefined[var]:
                     op = '='
@@ -220,10 +220,10 @@ def make_statements(code, variables, dtype):
                     constant = var not in will_write
                     # check all subvariables are not written to again as well
                     if constant:
-                        ids = subexpressions[var].identifiers
+                        ids = subexpression.identifiers
                         constant = all(v not in will_write for v in ids)
                 valid[var] = True
-                statement = Statement(var, op, subexpressions[var].expr,
+                statement = Statement(var, op, subexpression.expr,
                                       variables[var].dtype, constant=constant,
                                       subexpression=True)
                 statements.append(statement)
@@ -273,23 +273,14 @@ def translate_subexpression(subexpr, variables):
                             '%s, is not available in this '
                             'context.') % (name, subexpr.name))
     new_expr = word_substitute(subexpr.expr, substitutions)
-    return new_expr
 
-
-def translate_subexpressions(subexpressions, variables):
-    new_subexpressions = {}
-    for subexpr_name, subexpr in subexpressions.iteritems():
-        new_expr = translate_subexpression(subexpr, variables)
-        new_subexpressions[subexpr_name] = Subexpression(name=subexpr.name,
-                                                         unit=subexpr.unit,
-                                                         expr=new_expr,
-                                                         owner=subexpr.owner,
-                                                         dtype=subexpr.dtype,
-                                                         device=subexpr.device,
-                                                         is_bool=subexpr.is_bool)
-
-    subexpressions.update(new_subexpressions)
-    return subexpressions
+    return Subexpression(name=subexpr.name,
+                         unit=subexpr.unit,
+                         expr=new_expr,
+                         owner=subexpr.owner,
+                         dtype=subexpr.dtype,
+                         device=subexpr.device,
+                         is_bool=subexpr.is_bool)
 
 def translate(code, variables, dtype, codeobj_class,
               variable_indices, iterate_all):

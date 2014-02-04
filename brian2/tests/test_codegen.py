@@ -57,9 +57,9 @@ def test_translate_subexpression():
                         expr='var1 + var2', owner=G1)
     # Interpreted in the context of G1, the variable names should stay the
     # same
-    assert translate_subexpression(sub, G1.variables) == 'var1 + var2'
+    assert translate_subexpression(sub, G1.variables).expr == 'var1 + var2'
     # Interpreted in the context of G2, var2 should be translated
-    assert translate_subexpression(sub, G2.variables) == 'var1 + var2_post'
+    assert translate_subexpression(sub, G2.variables).expr == 'var1 + var2_post'
     # Trying to interpret the subexpression in the context of G3 should raise
     # an error
     assert_raises(KeyError, lambda: translate_subexpression(sub, G3.variables))
