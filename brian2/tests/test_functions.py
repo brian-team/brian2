@@ -3,6 +3,7 @@ import numpy as np
 from numpy.testing import assert_equal, assert_raises, assert_allclose
 
 from brian2 import *
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.utils.logger import catch_logs
 
 # We can only test C++ if weave is availabe
@@ -12,6 +13,28 @@ try:
 except ImportError:
     # Can't test C++
     codeobj_classes = [NumpyCodeObject]
+
+
+def test_constants_sympy():
+    '''
+    Make sure that symbolic constants are understood correctly by sympy
+    '''
+    assert sympy_to_str(str_to_sympy('1.0/inf')) == '0'
+    assert sympy_to_str(str_to_sympy('sin(pi)')) == '0'
+    assert sympy_to_str(str_to_sympy('log(e)')) == '1'
+
+
+def test_constants_values():
+    '''
+    Make sure that symbolic constants use the correct values in code
+    '''
+    G = NeuronGroup(1, 'v : 1')
+    G.v = 'pi'
+    assert G.v == np.pi
+    G.v = 'e'
+    assert G.v == np.e
+    G.v = 'inf'
+    assert G.v == np.inf
 
 
 def test_math_functions():
@@ -323,6 +346,8 @@ def test_function_implementation_container():
 
 
 if __name__ == '__main__':
+    test_constants_sympy()
+    test_constants_values()
     test_math_functions()
     test_user_defined_function()
     test_simple_user_defined_function()

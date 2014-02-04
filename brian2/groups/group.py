@@ -13,11 +13,12 @@ import numpy as np
 
 from brian2.core.base import BrianObject
 from brian2.codegen.codeobject import create_runner_codeobj, check_code_units
-from brian2.core.variables import Variables, Constant
+from brian2.core.variables import Variables, Constant, Variable
 from brian2.core.functions import Function
 from brian2.core.namespace import (get_local_namespace,
-                                   get_default_numpy_namespace,
-                                   _get_default_unit_namespace)
+                                   DEFAULT_FUNCTIONS,
+                                   DEFAULT_UNITS,
+                                   DEFAULT_CONSTANTS)
 from brian2.core.scheduler import Scheduler
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit)
@@ -52,6 +53,25 @@ def _conflict_warning(message, resolutions):
 
     logger.warn(message + ' ' + second_part,
                 'Group.resolve.resolution_conflict', once=True)
+
+
+def _same_value(obj1, obj2):
+    '''
+    Helper function used during namespace resolution.
+    '''
+    if obj1 is obj2:
+        return True
+    try:
+        obj1 = obj1.get_value()
+    except (AttributeError, TypeError):
+        pass
+
+    try:
+        obj2 = obj2.get_value()
+    except (AttributeError, TypeError):
+        pass
+
+    return obj1 is obj2
 
 
 def _same_function(func1, func2):
@@ -395,10 +415,9 @@ class Group(BrianObject):
 
         namespaces = OrderedDict()
         # Default namespaces (units and functions)
-        namespaces['units'] = _get_default_unit_namespace()
-        namespaces['functions'] = get_default_numpy_namespace()
-
-        # Group-specific namespaces
+        namespaces['constants'] = DEFAULT_CONSTANTS
+        namespaces['units'] = DEFAULT_UNITS
+        namespaces['functions'] = DEFAULT_FUNCTIONS
         if getattr(self, 'namespace', None) is not None:
             namespaces['group-specific'] = self.namespace
 
@@ -421,7 +440,7 @@ class Group(BrianObject):
             first_obj = matches[0][1]
             found_mismatch = False
             for m in matches:
-                if m[1] is first_obj:
+                if _same_value(m[1], first_obj):
                     continue
                 if _same_function(m[1], first_obj):
                     continue
@@ -438,10 +457,13 @@ class Group(BrianObject):
 
             if found_mismatch and do_warn:
                 _conflict_warning(('The name "%s" refers to different objects '
-                                   'in different namespaces used for resolving. '
+                                   'in different namespaces used for resolving '
+                                   'names in the context of group "%s". '
                                    'Will use the object from the %s namespace '
                                    'with the value %r') %
-                                  (identifier, matches[0][0],
+                                  (identifier, getattr(self, 'name',
+                                                       '<unknown>'),
+                                   matches[0][0],
                                    first_obj), matches[1:])
 
         # use the first match (according to resolution order)
@@ -451,7 +473,7 @@ class Group(BrianObject):
         if callable(resolved) and not isinstance(resolved, Function):
             resolved = Function(resolved)
 
-        if not isinstance(resolved, Function):
+        if not isinstance(resolved, (Function, Variable)):
             # Wrap the value in a Constant object
             unit = get_unit(resolved)
             value = np.asarray(resolved)

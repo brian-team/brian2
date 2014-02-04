@@ -6,6 +6,8 @@ from sympy.core import mod as sympy_mod
 import numpy as np
 from numpy.random import randn, rand
 
+from brian2.units.fundamentalunits import Unit
+from brian2.core.variables import Constant
 import brian2.units.unitsafefunctions as unitsafe
 
 __all__ = ['DEFAULT_FUNCTIONS', 'Function', 'FunctionImplementation']
@@ -131,8 +133,18 @@ class FunctionImplementationContainer(collections.MutableMapping):
         return iter(self._implementations)
 
 
+class SymbolicConstant(Constant):
+    '''
+    Class for representing constants (e.g. pi) that are understood by sympy.
+    '''
+    def __init__(self, name, sympy_obj, value):
+        super(SymbolicConstant, self).__init__(name, unit=Unit(1),
+                                               value=value)
+        self.sympy_obj = sympy_obj
+
+
 ################################################################################
-# Standard functions
+# Standard functions and constants
 ################################################################################
 
 # sympy does not have a log10 function, so let's define one
@@ -144,59 +156,58 @@ class log10(sympy_Function):
         return sympy.functions.elementary.exponential.log(args, 10)
 
 
-def _get_default_functions():
+DEFAULT_FUNCTIONS = {
+    # numpy functions that have the same name in numpy and math.h
+    'cos': Function(unitsafe.cos,
+                    sympy_func=sympy.functions.elementary.trigonometric.cos),
+    'sin': Function(unitsafe.sin,
+                    sympy_func=sympy.functions.elementary.trigonometric.sin),
+    'tan': Function(unitsafe.tan,
+                    sympy_func=sympy.functions.elementary.trigonometric.tan),
+    'cosh': Function(unitsafe.cosh,
+                     sympy_func=sympy.functions.elementary.hyperbolic.cosh),
+    'sinh': Function(unitsafe.sinh,
+                     sympy_func=sympy.functions.elementary.hyperbolic.sinh),
+    'tanh': Function(unitsafe.tanh,
+                     sympy_func=sympy.functions.elementary.hyperbolic.tanh),
+    'exp': Function(unitsafe.exp,
+                    sympy_func=sympy.functions.elementary.exponential.exp),
+    'log': Function(unitsafe.log,
+                    sympy_func=sympy.functions.elementary.exponential.log),
+    'log10': Function(unitsafe.log10,
+                      sympy_func=log10),
+    'sqrt': Function(np.sqrt,
+                     sympy_func=sympy.functions.elementary.miscellaneous.sqrt,
+                     arg_units=[None], return_unit=lambda u: u**0.5),
+    'ceil': Function(np.ceil,
+                     sympy_func=sympy.functions.elementary.integers.ceiling,
+                     arg_units=[None], return_unit=lambda u: u),
+    'floor': Function(np.floor,
+                      sympy_func=sympy.functions.elementary.integers.floor,
+                      arg_units=[None], return_unit=lambda u: u),
+    # numpy functions that have a different name in numpy and math.h
+    'arccos': Function(unitsafe.arccos,
+                       sympy_func=sympy.functions.elementary.trigonometric.acos),
+    'arcsin': Function(unitsafe.arcsin,
+                       sympy_func=sympy.functions.elementary.trigonometric.asin),
+    'arctan': Function(unitsafe.arctan,
+                       sympy_func=sympy.functions.elementary.trigonometric.atan),
+    'abs': Function(np.abs,
+                    sympy_func=sympy.functions.elementary.complexes.Abs,
+                    arg_units=[None], return_unit=lambda u: u),
+    'mod': Function(np.mod,
+                    sympy_func=sympy_mod.Mod,
+                    arg_units=[None, None], return_unit=lambda u,v : u),
+    # functions that need special treatment
+    'rand': Function(pyfunc=rand, arg_units=[], return_unit=1),
+    'randn': Function(pyfunc=randn, arg_units=[], return_unit=1),
+    'clip': Function(pyfunc=np.clip, arg_units=[None, None, None],
+                     return_unit=lambda u1, u2, u3: u1,),
+    'int': Function(pyfunc=np.int_,
+                    arg_units=[1], return_unit=1)
+    }
 
-    functions = {
-                # numpy functions that have the same name in numpy and math.h
-                'cos': Function(unitsafe.cos,
-                                sympy_func=sympy.functions.elementary.trigonometric.cos),
-                'sin': Function(unitsafe.sin,
-                                sympy_func=sympy.functions.elementary.trigonometric.sin),
-                'tan': Function(unitsafe.tan,
-                                sympy_func=sympy.functions.elementary.trigonometric.tan),
-                'cosh': Function(unitsafe.cosh,
-                                 sympy_func=sympy.functions.elementary.hyperbolic.cosh),
-                'sinh': Function(unitsafe.sinh,
-                                 sympy_func=sympy.functions.elementary.hyperbolic.sinh),
-                'tanh': Function(unitsafe.tanh,
-                                 sympy_func=sympy.functions.elementary.hyperbolic.tanh),
-                'exp': Function(unitsafe.exp,
-                                sympy_func=sympy.functions.elementary.exponential.exp),
-                'log': Function(unitsafe.log,
-                                sympy_func=sympy.functions.elementary.exponential.log),
-                'log10': Function(unitsafe.log10,
-                                  sympy_func=log10),
-                'sqrt': Function(np.sqrt,
-                                 sympy_func=sympy.functions.elementary.miscellaneous.sqrt,
-                                 arg_units=[None], return_unit=lambda u: u**0.5),
-                'ceil': Function(np.ceil,
-                                 sympy_func=sympy.functions.elementary.integers.ceiling,
-                                 arg_units=[None], return_unit=lambda u: u),
-                'floor': Function(np.floor,
-                                  sympy_func=sympy.functions.elementary.integers.floor,
-                                  arg_units=[None], return_unit=lambda u: u),
-                # numpy functions that have a different name in numpy and math.h
-                'arccos': Function(unitsafe.arccos,
-                                   sympy_func=sympy.functions.elementary.trigonometric.acos),
-                'arcsin': Function(unitsafe.arcsin,
-                                   sympy_func=sympy.functions.elementary.trigonometric.asin),
-                'arctan': Function(unitsafe.arctan,
-                                   sympy_func=sympy.functions.elementary.trigonometric.atan),
-                'abs': Function(np.abs,
-                                sympy_func=sympy.functions.elementary.complexes.Abs,
-                                arg_units=[None], return_unit=lambda u: u),
-                'mod': Function(np.mod,
-                                sympy_func=sympy_mod.Mod,
-                                arg_units=[None, None], return_unit=lambda u,v : u),
-                # functions that need special treatment
-                'rand': Function(pyfunc=rand, arg_units=[], return_unit=1),
-                'randn': Function(pyfunc=randn, arg_units=[], return_unit=1),
-                'clip': Function(pyfunc=np.clip, arg_units=[None, None, None],
-                                 return_unit=lambda u1, u2, u3: u1,),
-                'int': Function(pyfunc=np.int_,
-                                arg_units=[1], return_unit=1)
-                }
 
-    return functions
-
-DEFAULT_FUNCTIONS = _get_default_functions()
+DEFAULT_CONSTANTS = {'pi': SymbolicConstant('pi', sympy.pi, value=np.pi),
+                     'e': SymbolicConstant('e', sympy.E, value=np.e),
+                     'inf': SymbolicConstant('inf', sympy.oo, value=np.inf)}

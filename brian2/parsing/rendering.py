@@ -2,7 +2,7 @@ import ast
 
 import sympy
 
-from brian2.core.functions import DEFAULT_FUNCTIONS
+from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
 
 __all__ = ['NodeRenderer',
            'NumpyNodeRenderer',
@@ -171,11 +171,11 @@ class SympyNodeRenderer(NodeRenderer):
           })
 
     def render_func(self, node):
-        for name, f in DEFAULT_FUNCTIONS.iteritems():
-            if name == node.id:
-                if f.sympy_func is not None and isinstance(f.sympy_func,
-                                                           sympy.FunctionClass):
-                    return '%s' % str(f.sympy_func)
+        if node.id in DEFAULT_FUNCTIONS:
+            f = DEFAULT_FUNCTIONS[node.id]
+            if f.sympy_func is not None and isinstance(f.sympy_func,
+                                                       sympy.FunctionClass):
+                return '%s' % str(f.sympy_func)
         # special workaround for the "int" function
         if node.id == 'int':
             return 'Function("int_")'
@@ -194,7 +194,10 @@ class SympyNodeRenderer(NodeRenderer):
             return NodeRenderer.render_Compare(self, node)
 
     def render_Name(self, node):
-        if node.id in ['t', 'dt']:
+        if node.id in DEFAULT_CONSTANTS:
+            c = DEFAULT_CONSTANTS[node.id]
+            return '%s' % str(c.sympy_obj)
+        elif node.id in ['t', 'dt']:
             return 'Symbol("%s", real=True, positive=True)' % node.id
         else:
             return 'Symbol("%s", real=True)' % node.id
@@ -227,7 +230,8 @@ class CPPNodeRenderer(NodeRenderer):
     def render_Name(self, node):
         # Replace Python's True and False with their C++ bool equivalents
         return {'True': 'true',
-                'False': 'false'}.get(node.id, node.id)
+                'False': 'false',
+                'inf': 'INFINITY'}.get(node.id, node.id)
 
     def render_Assign(self, node):
         return NodeRenderer.render_Assign(self, node)+';'
