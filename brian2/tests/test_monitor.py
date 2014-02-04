@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing.utils import assert_allclose, assert_equal, assert_raises
+from numpy.testing.utils import assert_allclose, assert_array_equal, assert_raises
 
 from brian2 import *
 
@@ -32,14 +32,14 @@ def test_spike_monitor():
         assert_allclose(mon.t[mon.i == 1], np.arange(10)*ms + 0.9*ms)
         assert_allclose(mon.t_[mon.i == 0], np.array([9.9*float(ms)]))
         assert_allclose(mon.t_[mon.i == 1], (np.arange(10) + 0.9)*float(ms))
-        assert_equal(mon.count, np.array([1, 10]))
+        assert_array_equal(mon.count, np.array([1, 10]))
 
         i, t = mon.it
         i_, t_ = mon.it_
-        assert_equal(i, mon.i)
-        assert_equal(i, i_)
-        assert_equal(t, mon.t)
-        assert_equal(t_, mon.t_)
+        assert_array_equal(i, mon.i)
+        assert_array_equal(i, i_)
+        assert_array_equal(t, mon.t)
+        assert_array_equal(t_, mon.t_)
 
     brian_prefs.codegen.target = language_before
 
@@ -87,9 +87,9 @@ def test_state_monitor():
         net.run(10*ms)
 
         # Check time recordings
-        assert_equal(nothing_mon.t, v_mon.t)
-        assert_equal(nothing_mon.t_, np.asarray(nothing_mon.t))
-        assert_equal(nothing_mon.t_, v_mon.t_)
+        assert_array_equal(nothing_mon.t, v_mon.t)
+        assert_array_equal(nothing_mon.t_, np.asarray(nothing_mon.t))
+        assert_array_equal(nothing_mon.t_, v_mon.t_)
         assert_allclose(nothing_mon.t,
                         np.arange(len(nothing_mon.t)) * defaultclock.dt)
 
@@ -98,16 +98,16 @@ def test_state_monitor():
                         np.exp(np.tile(-v_mon.t - defaultclock.dt, (2, 1)).T / (10*ms)))
         assert_allclose(v_mon.v_.T,
                         np.exp(np.tile(-v_mon.t_ - defaultclock.dt_, (2, 1)).T / float(10*ms)))
-        assert_equal(v_mon.v, multi_mon.v)
-        assert_equal(v_mon.v_, multi_mon.v_)
-        assert_equal(v_mon.v, all_mon.v)
-        assert_equal(v_mon.v[1:2], v_mon1.v)
-        assert_equal(multi_mon.v[1:2], multi_mon1.v)
+        assert_array_equal(v_mon.v, multi_mon.v)
+        assert_array_equal(v_mon.v_, multi_mon.v_)
+        assert_array_equal(v_mon.v, all_mon.v)
+        assert_array_equal(v_mon.v[1:2], v_mon1.v)
+        assert_array_equal(multi_mon.v[1:2], multi_mon1.v)
 
         # Other variables
-        assert_equal(multi_mon.rate_.T, np.tile(np.atleast_2d(G.rate_),
+        assert_array_equal(multi_mon.rate_.T, np.tile(np.atleast_2d(G.rate_),
                                              (multi_mon.rate.shape[1], 1)))
-        assert_equal(multi_mon.rate[1:2], multi_mon1.rate)
+        assert_array_equal(multi_mon.rate[1:2], multi_mon1.rate)
         assert_allclose(np.clip(multi_mon.v, 0.1, 0.9), multi_mon.f)
         assert_allclose(np.clip(multi_mon1.v, 0.1, 0.9), multi_mon1.f)
 
@@ -125,16 +125,16 @@ def test_state_monitor():
         net = Network(G, mon)
         net.run(2 * defaultclock.dt)
 
-        assert_equal(mon.v, np.array([[5, 5],
+        assert_array_equal(mon.v, np.array([[5, 5],
                                       [6, 6],
                                       [7, 7]]) * volt)
-        assert_equal(mon.v_, np.array([[5, 5],
+        assert_array_equal(mon.v_, np.array([[5, 5],
                                        [6, 6],
                                        [7, 7]]))
-        assert_equal(mon[5].v, mon.v[0])
-        assert_equal(mon[7].v, mon.v[2])
-        assert_equal(mon[[5, 7]].v, mon.v[[0, 2]])
-        assert_equal(mon[np.array([5, 7])].v, mon.v[[0, 2]])
+        assert_array_equal(mon[5].v, mon.v[0])
+        assert_array_equal(mon[7].v, mon.v[2])
+        assert_array_equal(mon[[5, 7]].v, mon.v[[0, 2]])
+        assert_array_equal(mon[np.array([5, 7])].v, mon.v[[0, 2]])
 
         assert_raises(IndexError, lambda: mon[8])
         assert_raises(TypeError, lambda: mon['string'])
@@ -167,7 +167,7 @@ def test_rate_monitor():
         net.run(10*defaultclock.dt)
         assert_allclose(rate_mon.rate, 0.5 * np.ones(10) / defaultclock.dt)
         assert_allclose(rate_mon.rate_, 0.5 *np.asarray(np.ones(10) / defaultclock.dt))
-        assert_equal(rate_mon.rate['t>0.5*ms'],
+        assert_array_equal(rate_mon.rate['t>0.5*ms'],
                      rate_mon.rate[np.nonzero(rate_mon.t>0.5*ms)[0]])
 
     brian_prefs.codegen.target = language_before

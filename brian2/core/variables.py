@@ -924,7 +924,7 @@ class Variables(collections.Mapping):
 
     def add_array(self, name, unit, size, dtype=None,
                   constant=False, is_bool=False, read_only=False,
-                  index=None):
+                  index=None, context=None):
         '''
         Add an array (initialized with zeros).
 

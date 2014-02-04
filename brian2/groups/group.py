@@ -475,9 +475,12 @@ class Group(BrianObject):
                 return np.arange(start, stop, step)
             else:
                 index_array = np.asarray(item)
-                if not np.issubdtype(index_array.dtype, np.int):
+                if index_array.dtype == np.bool:
+                    index_array = np.nonzero(index_array)[0]
+                elif not np.issubdtype(index_array.dtype, np.int):
                     raise TypeError(('Indexing is only supported for integer '
-                                     'arrays, not for type %s' % index_array.dtype))
+                                     'and boolean arrays, not for type '
+                                     '%s' % index_array.dtype))
                 if index_array.shape == ():
                     index_array = np.array([index_array])
                 return index_array

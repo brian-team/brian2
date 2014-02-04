@@ -423,7 +423,7 @@ def test_changed_dt_spikes_in_queue():
                     6, 7, 8, #dt = 1ms
                     8.1, 9.1 #dt=0.1ms
                     ] * ms
-        assert_equal(mon.t, expected)
+        assert_equal(mon.t[:], expected)
 
 
 def test_summed_variable():

@@ -4,12 +4,12 @@ from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit, Quantity
-from brian2.groups.group import CodeRunner
+from brian2.groups.group import CodeRunner, Group
 
 __all__ = ['SpikeMonitor']
 
 
-class SpikeMonitor(CodeRunner):
+class SpikeMonitor(Group, CodeRunner):
     '''
     Record spikes from a `NeuronGroup` or other spike source
     
@@ -32,6 +32,8 @@ class SpikeMonitor(CodeRunner):
     def __init__(self, source, record=True, when=None, name='spikemonitor*',
                  codeobj_class=None):
         self.record = bool(record)
+        #: The source we are recording from
+        self.source = source
 
         # run by default on source clock at the end
         scheduler = Scheduler(when)
@@ -41,7 +43,7 @@ class SpikeMonitor(CodeRunner):
             scheduler.when = 'end'
 
         self.codeobj_class = codeobj_class
-        CodeRunner.__init__(self, source, 'spikemonitor',
+        CodeRunner.__init__(self, group=self, template='spikemonitor',
                             name=name, when=scheduler)
 
         # Handle subgroups correctly
@@ -49,16 +51,29 @@ class SpikeMonitor(CodeRunner):
         stop = getattr(source, 'stop', len(source))
 
         self.variables = Variables(self)
-        self.variables.add_clock_variables(scheduler.clock)
+        self.variables.add_clock_variables(scheduler.clock, prefix='_clock_')
         self.variables.add_reference('_spikespace', source.variables['_spikespace'])
-        self.variables.add_dynamic_array('_i', size=0, unit=Unit(1),
+        self.variables.add_dynamic_array('i', size=0, unit=Unit(1),
                                          dtype=np.int32, constant_size=False)
-        self.variables.add_dynamic_array('_t', size=0, unit=Unit(1),
+        self.variables.add_dynamic_array('t', size=0, unit=second,
                                          constant_size=False)
         self.variables.add_array('_count', size=len(source), unit=Unit(1),
-                                 dtype=np.int32)
+                                 dtype=np.int32, context=source)
         self.variables.add_constant('_source_start', Unit(1), start)
         self.variables.add_constant('_source_stop', Unit(1), stop)
+        self.variables.add_attribute_variable('N', unit=Unit(1), obj=self,
+                                              attribute='_N', dtype=np.int32)
+        self._N = 0
+
+        self._enable_group_attributes()
+
+    def resize(self, new_size):
+        self.variables['i'].resize(new_size)
+        self.variables['t'].resize(new_size)
+        self._N = new_size
+
+    def __len__(self):
+        return self._N
 
     def reinit(self):
         '''
@@ -66,28 +81,11 @@ class SpikeMonitor(CodeRunner):
         '''
         raise NotImplementedError()
 
+    # TODO: Maybe there's a more elegant solution for the count attribute?
     @property
-    def i(self):
-        '''
-        Array of recorded spike indices, with corresponding times `t`.
-        '''
-        return self.variables['_i'].get_value().copy()
-    
-    @property
-    def t(self):
-        '''
-        Array of recorded spike times, with corresponding indices `i`.
-        '''
-        return Quantity(self.variables['_t'].get_value(), dim=second.dim,
-                        copy=True)
+    def count(self):
+        return self.variables['_count'].get_value().copy()
 
-    @property
-    def t_(self):
-        '''
-        Array of recorded spike times without units, with corresponding indices `i`.
-        '''
-        return self.variables['_t'].get_value().copy()
-    
     @property
     def it(self):
         '''
@@ -103,18 +101,11 @@ class SpikeMonitor(CodeRunner):
         return self.i, self.t_
 
     @property
-    def count(self):
-        '''
-        Return the total spike count for each neuron.
-        '''
-        return self.variables['_count'].get_value().copy()
-
-    @property
     def num_spikes(self):
         '''
-        Returns the number of recorded spikes
+        Returns the total number of recorded spikes
         '''
-        return sum(self.count)  
+        return self._N
 
     def __repr__(self):
         description = '<{classname}, recording {source}>'
