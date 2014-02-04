@@ -180,23 +180,22 @@ The ``__setitem__`` and ``__getitem__`` methods in `VariableView` delegate to
 be called directly under special circumstances). They analyze the arguments (is
 the index a number, a slice or a string? Is the target value an array or a string
 expression?) and delegate the actual retrieval/setting of the values to a method
-of `Device`:
+of `Group`:
 
-* Getting with a numerical (or slice) index (e.g. ``G.v[0]``): `Device.get_with_index_array`
-* Getting with a string index (e.g. ``G.v['i>3']``): `Device.get_with_expression`
+* Getting with a numerical (or slice) index (e.g. ``G.v[0]``): `Group.get_with_index_array`
+* Getting with a string index (e.g. ``G.v['i>3']``): `Group.get_with_expression`
 * Setting with a numerical (or slice) index and a numerical target value (e.g.
-  ``G.v[5:] = -70*mV``): `Device.set_with_index_array`
+  ``G.v[5:] = -70*mV``): `Group.set_with_index_array`
 * Setting with a numerical (or slice) index and a string expression value (e.g.
-  ``G.v[5:] = (-70+i)*mV``): `Device.set_with_expression`
+  ``G.v[5:] = (-70+i)*mV``): `Group.set_with_expression`
 * Setting with a string index and a string expression value (e.g.
-  ``G.v['i>5'] = (-70+i)*mV``): `Device.set_with_expression_conditional`
+  ``G.v['i>5'] = (-70+i)*mV``): `Group.set_with_expression_conditional`
 
-Of these methods, all except `~Device.set_with_index_array` and
-`~Device.get_with_index_array` are implemented in a general way using code
-generation. The remaining two are implemented specifically for different devices,
-e.g. runtime devices do not generate any code but directly access the underlying
-arrays. Note that for standalone devices, the "setter" methods do not actually
-set the values but only note them down for later code generation.
+These methods are annotated with the `device_override` decorator and can
+therefore be implemented in a different way in certain devices. The standalone
+device, for example, overrides the all the getting functions and the setting
+with index arrays. Note that for standalone devices, the "setter" methods do
+not actually set the values but only note them down for later code generation.
 
 Additional variables and indices
 --------------------------------

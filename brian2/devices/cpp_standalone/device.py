@@ -158,8 +158,8 @@ class CPPStandaloneDevice(Device):
         self.main_queue.append(('set_by_array', (array_name,
                                                  static_array_name)))
 
-    def set_with_index_array(self, group, variable_name, variable, item, value,
-                             check_units):
+    def group_set_with_index_array(self, group, variable_name, variable, item,
+                                   value, check_units):
         value = Quantity(value)
 
         # Simple case where we don't have to do any indexing
@@ -186,6 +186,15 @@ class CPPStandaloneDevice(Device):
             self.main_queue.append(('set_array_by_array', (arrayname,
                                                            staticarrayname_index,
                                                            staticarrayname_value)))
+
+    def group_get_with_index_array(self, group, variable_name, variable, item):
+        raise NotImplementedError('Cannot retrieve the values of state '
+                                  'variables in standalone code.')
+
+    def group_get_with_expression(self, group, variable_name, variable, code,
+                                  level=0, run_namespace=None):
+        raise NotImplementedError('Cannot retrieve the values of state '
+                                  'variables in standalone code.')
 
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is not None:
