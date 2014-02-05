@@ -26,7 +26,6 @@ from brian2.devices.device import device_override
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit)
 from brian2.utils.logger import get_logger
-from brian2.devices.device import get_device
 
 __all__ = ['Group', 'CodeRunner']
 
@@ -517,7 +516,7 @@ class Group(BrianObject):
                 return index_array
 
     def resolve(self, identifier, additional_variables=None,
-                run_namespace=None, level=0):
+                run_namespace=None, level=0, do_warn=True):
         '''
         Resolve an identifier (i.e. variable, constant or function name) in the
         context of this group. This function will first lookup the name in the
@@ -539,6 +538,11 @@ class Group(BrianObject):
             `Network.run` method.
         level : int, optional
             How far to go up in the stack to find the original call frame.
+        do_warn : bool, optional
+            Whether to warn about names that are defined both as an internal
+            variable (i.e. in `Group.variables`) and in some other namespace.
+            Defaults to ``True`` but can be switched off for internal variables
+            used in templates that the user might not even know about.
 
         Returns
         -------
@@ -560,6 +564,8 @@ class Group(BrianObject):
             resolved_internal = self.variables[identifier]
 
         if resolved_internal is not None:
+            if do_warn is False:
+                return resolved_internal  # no need to go further
             # We already found the identifier, but we try to resolve it in the
             # external namespace nevertheless, to report a warning if it is
             # present there as well.
@@ -587,7 +593,7 @@ class Group(BrianObject):
                                       level=level+1)
 
     def resolve_all(self, identifiers, additional_variables=None,
-                    run_namespace=None, level=0):
+                    run_namespace=None, level=0, do_warn=True):
         '''
         Resolve a list of identifiers. Calls `Group.resolve` for each
         identifier.
@@ -604,6 +610,11 @@ class Group(BrianObject):
             `Network.run` method.
         level : int, optional
             How far to go up in the stack to find the original call frame.
+        do_warn : bool, optional
+            Whether to warn about names that are defined both as an internal
+            variable (i.e. in `Group.variables`) and in some other namespace.
+            Defaults to ``True`` but can be switched off for internal variables
+            used in templates that the user might not even know about.
 
         Returns
         -------
@@ -621,7 +632,8 @@ class Group(BrianObject):
             resolved[identifier] = self.resolve(identifier,
                                                 additional_variables=additional_variables,
                                                 run_namespace=run_namespace,
-                                                level=level+1)
+                                                level=level+1,
+                                                do_warn=do_warn)
         return resolved
 
     def _resolve_external(self, identifier, run_namespace=None, level=0,
