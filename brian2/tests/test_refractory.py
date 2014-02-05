@@ -96,9 +96,20 @@ def test_refractoriness_types():
     assert_raises(TypeError, lambda: NeuronGroup(1, 'ref: 1',
                                                  refractory='ref'))
 
+def test_conditional_write():
+    '''
+    Test that the conditional_write attribute is set correctly
+    '''
+    G = NeuronGroup(1, '''dv/dt = 10*Hz : 1 (unless refractory)
+                          dw/dt = 10*Hz : 1''', refractory=2*ms)
+    print G.state_updater.abstract_code
+    assert G.variables['v'].conditional_write is G.variables['not_refractory']
+    assert G.variables['w'].conditional_write is None
+
 
 if __name__ == '__main__':
     test_add_refractoriness()
     test_refractoriness_variables()
     test_refractoriness_threshold()
     test_refractoriness_types()
+    test_conditional_write()
