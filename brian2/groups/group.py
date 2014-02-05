@@ -2,6 +2,7 @@
 This module defines the `Group` object, a mix-in class for everything that
 saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
+from collections import defaultdict
 import weakref
 try:
     from collections import OrderedDict
@@ -12,14 +13,16 @@ except ImportError:
 import numpy as np
 
 from brian2.core.base import BrianObject
+from brian2.core.preferences import brian_prefs
 from brian2.codegen.codeobject import create_runner_codeobj, check_code_units
-from brian2.core.variables import Variables, Constant, Variable
+from brian2.core.variables import Variables, Constant, Variable, Subexpression
 from brian2.core.functions import Function
 from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_FUNCTIONS,
                                    DEFAULT_UNITS,
                                    DEFAULT_CONSTANTS)
 from brian2.core.scheduler import Scheduler
+from brian2.devices.device import device_override
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit)
 from brian2.utils.logger import get_logger
@@ -53,6 +56,34 @@ def _conflict_warning(message, resolutions):
 
     logger.warn(message + ' ' + second_part,
                 'Group.resolve.resolution_conflict', once=True)
+
+
+def dtype_dictionary(dtype=None):
+    '''
+    Helper function to interpret the `dtype` keyword argument in `NeuronGroup`
+    etc.
+
+    Parameters
+    ----------
+    dtype : `dtype` or dict, optional
+        Either the `dtype` to be used as a default dtype for all variables
+        (instead of the `core.default_scalar_dtype` preference) or a
+        dictionary stating the `dtype` for some variables; all other variables
+        will use the preference default
+
+    Returns
+    -------
+    dtype_dict : defaultdict
+        A dictionary mapping variable names to dtypes.
+    '''
+    if dtype is None:
+        return defaultdict(lambda: brian_prefs['core.default_scalar_dtype'])
+    elif isinstance(dtype, np.dtype):
+        return defaultdict(lambda: dtype)
+    else:
+        dtype_dict = defaultdict(lambda: brian_prefs['core.default_scalar_dtype'])
+        dtype_dict.update(dtype)
+        return dtype_dict
 
 
 def _same_value(obj1, obj2):
@@ -237,6 +268,214 @@ class Group(BrianObject):
         else:
             object.__setattr__(self, name, val)
 
+    @device_override('group_get_with_expression')
+    def get_with_expression(self, variable_name, variable, code,
+                            level=0, run_namespace=None):
+        '''
+        Gets a variable using a string expression. Is called by
+        `VariableView.get_item` for statements such as
+        ``print G.v['g_syn > 0']``.
+
+        Parameters
+        ----------
+        variable_name : str
+            The name of the variable in its context (e.g. ``'g_post'`` for a
+            variable with name ``'g'``)
+        variable : `ArrayVariable`
+            The `ArrayVariable` object for the variable to be set
+        code : str
+            An expression that states a condition for elements that should be
+            selected. Can contain references to indices, such as ``i`` or ``j``
+            and to state variables. For example: ``'i>3 and v>0*mV'``.
+        level : int, optional
+            How much farther to go up in the stack to find the implicit
+            namespace (if used, see `run_namespace).
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
+        '''
+        # Add the recorded variable under a known name to the variables
+        # dictionary. Important to deal correctly with
+        # the type of the variable in C++
+        variables = Variables(None)
+        variables.add_auxiliary_variable('_variable', unit=variable.unit,
+                                         dtype=variable.dtype,
+                                         scalar=variable.scalar,
+                                         is_bool=variable.is_bool)
+        variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool,
+                                         is_bool=True)
+
+        abstract_code = '_variable = ' + variable_name + '\n'
+        abstract_code += '_cond = ' + code
+        check_code_units(abstract_code, self,
+                         additional_variables=variables,
+                         level=level+2,
+                         run_namespace=run_namespace)
+        codeobj = create_runner_codeobj(self,
+                                        abstract_code,
+                                        'group_variable_get_conditional',
+                                        additional_variables=variables,
+                                        level=level+2,
+                                        run_namespace=run_namespace,
+                                        )
+        return codeobj()
+
+    @device_override('group_get_with_index_array')
+    def get_with_index_array(self, variable_name, variable, item):
+        if variable.scalar:
+            if not ((isinstance(item, slice) and item == slice(None)) or item == 0 or (hasattr(item, '__len__')
+                                                                                           and len(item) == 0)):
+                raise IndexError('Variable is a scalar variable.')
+            indices = np.array([0])
+        else:
+            indices = self.calc_indices(item)
+
+        # For "normal" variables, we can directly access the underlying data
+        # and use the usual slicing syntax. For subexpressions, however, we
+        # have to evaluate code for the given indices
+        if isinstance(variable, Subexpression):
+            variables = Variables(None)
+            variables.add_auxiliary_variable('_variable', unit=variable.unit,
+                                             dtype=variable.dtype,
+                                             scalar=variable.scalar,
+                                             is_bool=variable.is_bool)
+            variables.add_array('_group_idx', unit=Unit(1),
+                                size=len(indices), dtype=np.int32)
+            variables['_group_idx'].set_value(indices)
+
+            abstract_code = '_variable = ' + variable_name + '\n'
+            codeobj = create_runner_codeobj(self,
+                                            abstract_code,
+                                            'group_variable_get',
+                                            additional_variables=variables
+            )
+            return codeobj()
+        else:
+            # We are not going via code generation so we have to take care
+            # of correct indexing (in particular for subgroups) explicitly
+            var_index = self.variables.indices[variable_name]
+            if var_index != '_idx':
+                indices = self.variables[var_index].get_value()[indices]
+            return variable.get_value()[indices]
+
+    @device_override('group_set_with_index_array')
+    def set_with_index_array(self, variable_name, variable, item, value,
+                             check_units):
+        if variable.scalar:
+            if not ((isinstance(item, slice) and item == slice(None)) or item == 0 or (hasattr(item, '__len__')
+                                                                                           and len(item) == 0)):
+                raise IndexError('Variable is a scalar variable.')
+            indices = np.array([0])
+        else:
+            indices = self.calc_indices(item)
+        # We are not going via code generation so we have to take care
+        # of correct indexing (in particular for subgroups) explicitly
+        var_index = self.variables.indices[variable_name]
+        if var_index != '_idx':
+            indices = self.variables[var_index].get_value()[indices]
+
+        if check_units:
+            fail_for_dimension_mismatch(variable.unit, value,
+                                        'Incorrect unit for setting variable %s' % variable_name)
+
+        variable.get_value()[indices] = value
+
+    @device_override('group_set_with_expression')
+    def set_with_expression(self, varname, variable, item, code,
+                            check_units=True, level=0, run_namespace=None):
+        '''
+        Sets a variable using a string expression. Is called by
+        `VariableView.set_item` for statements such as
+        ``S.var[:, :] = 'exp(-abs(i-j)/space_constant)*nS'``
+
+        Parameters
+        ----------
+        varname : str
+            The name of the variable to be set
+        variable : `ArrayVariable`
+            The `ArrayVariable` object for the variable to be set.
+        item : `ndarray`
+            The indices for the variable (in the context of this `group`).
+        code : str
+            The code that should be executed to set the variable values.
+            Can contain references to indices, such as `i` or `j`
+        check_units : bool, optional
+            Whether to check the units of the expression.
+        level : int, optional
+            How much farther to go up in the stack to find the implicit
+            namespace (if used, see `run_namespace).
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
+        '''
+        indices = self.calc_indices(item)
+        abstract_code = varname + ' = ' + code
+        variables = Variables(None)
+        variables.add_array('_group_idx', unit=Unit(1),
+                            size=len(indices), dtype=np.int32)
+        variables['_group_idx'].set_value(indices)
+
+        # TODO: Have an additional argument to avoid going through the index
+        # array for situations where iterate_all could be used
+        codeobj = create_runner_codeobj(self,
+                                 abstract_code,
+                                 'group_variable_set',
+                                 additional_variables=variables,
+                                 check_units=check_units,
+                                 level=level+2,
+                                 run_namespace=run_namespace)
+        codeobj()
+
+    @device_override('group_set_with_expression_conditional')
+    def set_with_expression_conditional(self, varname, variable, cond,
+                                        code, check_units=True, level=0,
+                                        run_namespace=None):
+        '''
+        Sets a variable using a string expression and string condition. Is
+        called by `VariableView.set_item` for statements such as
+        ``S.var['i!=j'] = 'exp(-abs(i-j)/space_constant)*nS'``
+
+        Parameters
+        ----------
+        varname : str
+            The name of the variable to be set.
+        variable : `ArrayVariable`
+            The `ArrayVariable` object for the variable to be set.
+        cond : str
+            The string condition for which the variables should be set.
+        code : str
+            The code that should be executed to set the variable values.
+        check_units : bool, optional
+            Whether to check the units of the expression.
+        level : int, optional
+            How much farther to go up in the stack to find the implicit
+            namespace (if used, see `run_namespace).
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
+        '''
+
+        abstract_code_cond = '_cond = '+cond
+        abstract_code = varname + ' = ' + code
+        variables = Variables(None)
+        variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool,
+                                         is_bool=True)
+        check_code_units(abstract_code_cond, self,
+                         additional_variables=variables,
+                         level=level+2,
+                         run_namespace=run_namespace)
+        # TODO: Have an additional argument to avoid going through the index
+        # array for situations where iterate_all could be used
+        codeobj = create_runner_codeobj(self,
+                                        {'condition': abstract_code_cond,
+                                         'statement': abstract_code},
+                                        'group_variable_set_conditional',
+                                        additional_variables=variables,
+                                        check_units=check_units,
+                                        level=level+2,
+                                        run_namespace=run_namespace)
+        codeobj()
+
     def calc_indices(self, item):
         '''
         Return flat indices to index into state variables from arbitrary
@@ -262,19 +501,22 @@ class Group(BrianObject):
                               'got %d dimensions.') % len(item))
         else:
             if isinstance(item, slice):
-                start, stop, step = item.indices(self.N)
+                start, stop, step = item.indices(len(self))
                 return np.arange(start, stop, step)
             else:
                 index_array = np.asarray(item)
-                if not np.issubdtype(index_array.dtype, np.int):
+                if index_array.dtype == np.bool:
+                    index_array = np.nonzero(index_array)[0]
+                elif not np.issubdtype(index_array.dtype, np.int):
                     raise TypeError(('Indexing is only supported for integer '
-                                     'arrays, not for type %s' % index_array.dtype))
+                                     'and boolean arrays, not for type '
+                                     '%s' % index_array.dtype))
                 if index_array.shape == ():
                     index_array = np.array([index_array])
                 return index_array
 
     def resolve(self, identifier, additional_variables=None,
-                run_namespace=None, level=0):
+                run_namespace=None, level=0, do_warn=True):
         '''
         Resolve an identifier (i.e. variable, constant or function name) in the
         context of this group. This function will first lookup the name in the
@@ -296,6 +538,11 @@ class Group(BrianObject):
             `Network.run` method.
         level : int, optional
             How far to go up in the stack to find the original call frame.
+        do_warn : bool, optional
+            Whether to warn about names that are defined both as an internal
+            variable (i.e. in `Group.variables`) and in some other namespace.
+            Defaults to ``True`` but can be switched off for internal variables
+            used in templates that the user might not even know about.
 
         Returns
         -------
@@ -317,6 +564,8 @@ class Group(BrianObject):
             resolved_internal = self.variables[identifier]
 
         if resolved_internal is not None:
+            if do_warn is False:
+                return resolved_internal  # no need to go further
             # We already found the identifier, but we try to resolve it in the
             # external namespace nevertheless, to report a warning if it is
             # present there as well.
@@ -344,7 +593,7 @@ class Group(BrianObject):
                                       level=level+1)
 
     def resolve_all(self, identifiers, additional_variables=None,
-                    run_namespace=None, level=0):
+                    run_namespace=None, level=0, do_warn=True):
         '''
         Resolve a list of identifiers. Calls `Group.resolve` for each
         identifier.
@@ -361,6 +610,11 @@ class Group(BrianObject):
             `Network.run` method.
         level : int, optional
             How far to go up in the stack to find the original call frame.
+        do_warn : bool, optional
+            Whether to warn about names that are defined both as an internal
+            variable (i.e. in `Group.variables`) and in some other namespace.
+            Defaults to ``True`` but can be switched off for internal variables
+            used in templates that the user might not even know about.
 
         Returns
         -------
@@ -378,7 +632,8 @@ class Group(BrianObject):
             resolved[identifier] = self.resolve(identifier,
                                                 additional_variables=additional_variables,
                                                 run_namespace=run_namespace,
-                                                level=level+1)
+                                                level=level+1,
+                                                do_warn=do_warn)
         return resolved
 
     def _resolve_external(self, identifier, run_namespace=None, level=0,

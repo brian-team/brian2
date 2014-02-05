@@ -115,7 +115,7 @@ class WeaveCodeObject(CodeObject):
             if isinstance(var, ArrayVariable):
                 self.namespace[self.device.get_array_name(var,
                                                             self.variables)] = value
-                self.namespace['_num'+name] = var.size
+                self.namespace['_num'+name] = var.get_len()
             else:
                 self.namespace[name] = value
 

@@ -10,14 +10,13 @@ import re
 
 import numpy as np
 
-from brian2.core.preferences import brian_prefs
 from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, STATIC_EQUATION,
                                         PARAMETER)
-from brian2.groups.group import Group, CodeRunner
+from brian2.groups.group import Group, CodeRunner, dtype_dictionary
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
 from brian2.units.fundamentalunits import (Unit, Quantity,
@@ -358,9 +357,11 @@ class Synapses(Group):
         with either the values from the ``network`` argument of the
         `Network.run` method or from the local context, if no such argument is
         given.
-    dtype : `dtype`, optional
-        The standard datatype for all state variables. Defaults to
-        `core.default_scalar_type`.
+    dtype : (`dtype`, `dict`), optional
+        The `numpy.dtype` that will be used to store the values, or a
+        dictionary specifying the type for variable names. If a value is not
+        provided for a variable (or no value is provided at all), the preference
+        setting `core.default_scalar_dtype` is used.
     codeobj_class : class, optional
         The `CodeObject` class to use to run code.
     clock : `Clock`, optional
@@ -621,13 +622,7 @@ class Synapses(Group):
         Create the variables dictionary for this `Synapses`, containing
         entries for the equation variables and some standard entries.
         '''
-        if dtype is None:
-            dtype = defaultdict(lambda: brian_prefs['core.default_scalar_dtype'])
-        elif isinstance(dtype, np.dtype):
-            dtype = defaultdict(lambda: dtype)
-        elif not hasattr(dtype, '__getitem__'):
-            raise TypeError(('Cannot use type %s as dtype '
-                             'specification') % type(dtype))
+        dtype = dtype_dictionary(dtype)
 
         self.variables = Variables(self)
 

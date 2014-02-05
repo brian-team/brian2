@@ -1,4 +1,5 @@
 {% import 'common_macros.cpp' as common with context %}
+{# USES_VARIABLES { N } #}
 
 {% macro main() %}
 	{{ common.insert_lines_commented('SUPPORT CODE', support_code_lines) }}

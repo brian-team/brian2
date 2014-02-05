@@ -14,8 +14,6 @@ int main(void)
 	_init_arrays();
 	_load_arrays();
 	srand((unsigned int)time(NULL));
-	const double dt = {{dt}};
-	double t = 0.0;
 	{% for main_line in main_lines %}
 	{{ main_line }}
 	{% endfor %}

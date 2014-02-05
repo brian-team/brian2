@@ -1,4 +1,5 @@
 {% extends 'common_group.cpp' %}
+{# USES_VARIABLES { N } #}
 
 {% block maincode %}
 	//// MAIN CODE ////////////

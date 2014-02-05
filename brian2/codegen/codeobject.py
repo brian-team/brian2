@@ -231,10 +231,8 @@ def create_runner_codeobj(group, code, template_name,
     variables.update(group.resolve_all(set(needed_variables) | set(template.variables),
                                        additional_variables=additional_variables,
                                        run_namespace=run_namespace,
-                                       level=level+1))
-
-    # always add N, the number of neurons or synapses
-    variables['N'] = all_variables['N']
+                                       level=level+1,
+                                       do_warn=False))  # no warnings for internally used variables
 
     if name is None:
         if group is not None:

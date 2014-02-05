@@ -30,7 +30,6 @@ void Network::run(double duration)
 	Clock* clock = next_clocks();
 	while(clock->running())
 	{
-		double t = clock->t();
 		for(int i=0; i<objects.size(); i++)
 		{
 			Clock *obj_clock = objects[i].first;
@@ -38,7 +37,7 @@ void Network::run(double duration)
 			if (curclocks.find(obj_clock) != curclocks.end())
 			{
                 codeobj_func func = objects[i].second;
-                func(t);
+                func();
 			}
 		}
 		for(std::set<Clock*>::iterator i=curclocks.begin(); i!=curclocks.end(); i++)
@@ -67,16 +66,16 @@ Clock* Network::next_clocks()
 	for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
 	{
 		Clock *clock = *i;
-		if(clock->t()<minclock->t())
+		if(clock->t_()<minclock->t_())
 			minclock = clock;
 	}
 	// find set of equal clocks
 	curclocks.clear();
-	double t = minclock->t();
+	double t = minclock->t_();
 	for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
 	{
 		Clock *clock = *i;
-		double s = clock->t();
+		double s = clock->t_();
 		if(s==t or fabs(s-t)<=Clock_epsilon)
 			curclocks.insert(clock);
 	}

@@ -1,8 +1,6 @@
 '''
 This model defines the `NeuronGroup`, the core of most simulations.
 '''
-from collections import defaultdict
-
 import numpy as np
 import sympy
 
@@ -11,7 +9,6 @@ from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.codeobject import check_code_units
-from brian2.core.preferences import brian_prefs
 from brian2.core.variables import Variables
 from brian2.core.spikesource import SpikeSource
 from brian2.parsing.expressions import (parse_expression_unit,
@@ -21,7 +18,7 @@ from brian2.utils.stringtools import get_identifiers
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
 
-from .group import Group, CodeRunner
+from .group import Group, CodeRunner, dtype_dictionary
 from .subgroup import Subgroup
 
 
@@ -362,13 +359,7 @@ class NeuronGroup(Group, SpikeSource):
         self.variables.add_clock_variables(self.clock)
         self.variables.add_constant('N', Unit(1), self._N)
 
-        if dtype is None:
-            dtype = defaultdict(lambda: brian_prefs['core.default_scalar_dtype'])
-        elif isinstance(dtype, np.dtype):
-            dtype = defaultdict(lambda: dtype)
-        elif not hasattr(dtype, '__getitem__'):
-            raise TypeError(('Cannot use type %s as dtype '
-                             'specification') % type(dtype))
+        dtype = dtype_dictionary(dtype)
 
         # Standard variables always present
         self.variables.add_array('_spikespace', unit=Unit(1), size=self._N+1,

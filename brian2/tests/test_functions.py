@@ -158,7 +158,8 @@ def test_simple_user_defined_function():
                         '''func = usersin(variable) : 1
                               variable : 1''',
                         codeobj_class=WeaveCodeObject)
-        mon = StateMonitor(G, 'func', record=True)
+        mon = StateMonitor(G, 'func', record=True,
+                           codeobj_class=WeaveCodeObject)
         net = Network(G, mon)
         # This looks a bit odd -- we have to get usersin into the namespace of
         # the lambda expression

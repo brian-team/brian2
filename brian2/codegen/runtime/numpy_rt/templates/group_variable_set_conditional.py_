@@ -1,4 +1,7 @@
 import numpy as np
+
+{# USES_VARIABLES { N } #}
+
 numpy_False = np.bool_(False)
 numpy_True = np.bool_(True)
 

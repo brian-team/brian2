@@ -48,9 +48,9 @@ def test_cpp_standalone(with_output=False):
     tempdir = tempfile.mkdtemp()
     build(project_dir=tempdir, compile_project=True, run_project=True,
           with_output=with_output)
-    i = numpy.fromfile(os.path.join(tempdir, 'results', 'spikemonitor_codeobject_i'),
+    i = numpy.fromfile(os.path.join(tempdir, 'results', '_dynamic_array_spikemonitor_i'),
                        dtype=numpy.int32)
-    t = numpy.fromfile(os.path.join(tempdir, 'results', 'spikemonitor_codeobject_t'),
+    t = numpy.fromfile(os.path.join(tempdir, 'results', '_dynamic_array_spikemonitor_t'),
                        dtype=numpy.float64)
     assert len(i)==17741
     assert len(t)==17741

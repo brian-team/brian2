@@ -2,7 +2,7 @@
 
 {% block maincode %}
 	//// MAIN CODE ////////////
-    {# USES_VARIABLES { _t, _i, t, _spikespace, _count,
+    {# USES_VARIABLES { t, i, _clock_t, _spikespace, _count,
                         _source_start, _source_stop} #}
 	int _num_spikes = {{_spikespace}}[_num_spikespace-1];
     if (_num_spikes > 0)
@@ -32,63 +32,24 @@
         	for(int _j=_start_idx; _j<_end_idx; _j++)
         	{
         		const int _idx = {{_spikespace}}[_j];
-        		{{_dynamic__i}}.push_back(_idx-_source_start);
-        		{{_dynamic__t}}.push_back(t);
+        		{{_dynamic_i}}.push_back(_idx-_source_start);
+        		{{_dynamic_t}}.push_back(_clock_t);
         	}
         }
     }
 {% endblock %}
 
 {% block extra_functions_cpp %}
-void _write_{{codeobj_name}}()
-{
-	ofstream outfile_t;
-	outfile_t.open("results/{{codeobj_name}}_t", ios::binary | ios::out);
-	if(outfile_t.is_open())
-	{
-		outfile_t.write(reinterpret_cast<char*>(&{{_dynamic__t}}[0]), {{_dynamic__t}}.size()*sizeof({{_dynamic__t}}[0]));
-		outfile_t.close();
-	} else
-	{
-		std::cout << "Error writing output file results/{{codeobj_name}}_t." << endl;
-	}
-	ofstream outfile_i;
-	outfile_i.open("results/{{codeobj_name}}_i", ios::binary | ios::out);
-	if(outfile_i.is_open())
-	{
-		outfile_i.write(reinterpret_cast<char*>(&{{_dynamic__i}}[0]), {{_dynamic__i}}.size()*sizeof({{_dynamic__i}}[0]));
-		outfile_i.close();
-	} else
-	{
-		std::cout << "Error writing output file results/{{codeobj_name}}_i." << endl;
-	}
-//	ofstream outfile;
-//	outfile.open("results/{{codeobj_name}}.txt", ios::out);
-//	if(outfile.is_open())
-//	{
-//		for(int s=0; s<{{_i}}.size(); s++)
-//		{
-//			outfile << {{_i}}[s] << ", " << {{_t}}[s] << endl;
-//		}
-//		outfile.close();
-//	} else
-//	{
-//		std::cout << "Error writing output file." << endl;
-//	}
-}
-
 void _debugmsg_{{codeobj_name}}()
 {
-	std::cout << "Number of spikes: " << {{_dynamic__i}}.size() << endl;
+	std::cout << "Number of spikes: " << {{_dynamic_i}}.size() << endl;
 }
 {% endblock %}
 
 {% block extra_functions_h %}
-void _write_{{codeobj_name}}();
 void _debugmsg_{{codeobj_name}}();
 {% endblock %}
 
 {% macro main_finalise() %}
-_write_{{codeobj_name}}();
 _debugmsg_{{codeobj_name}}();
 {% endmacro %}
