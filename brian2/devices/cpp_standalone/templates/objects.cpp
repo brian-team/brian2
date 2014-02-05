@@ -126,6 +126,22 @@ void _write_arrays()
 		std::cout << "Error writing output file for {{varname}}." << endl;
 	}
 	{% endfor %}
+
+	{% for var, varname in dynamic_array_2d_specs.items() %}
+	ofstream outfile_{{varname}};
+	outfile_{{varname}}.open("results/{{varname}}", ios::binary | ios::out);
+	if(outfile_{{varname}}.is_open())
+	{
+        for (int n=0; n<{{varname}}.n; n++)
+        {
+            outfile_{{varname}}.write(reinterpret_cast<char*>(&{{varname}}(n, 0)), {{varname}}.m*sizeof({{varname}}(0, 0)));
+        }
+        outfile_{{varname}}.close();
+	} else
+	{
+		std::cout << "Error writing output file for {{varname}}." << endl;
+	}
+	{% endfor %}
 }
 
 void _dealloc_arrays()

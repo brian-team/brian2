@@ -40,43 +40,6 @@
 {% endblock %}
 
 {% block extra_functions_cpp %}
-void _write_{{codeobj_name}}()
-{
-	ofstream outfile_t;
-	outfile_t.open("results/{{codeobj_name}}_t", ios::binary | ios::out);
-	if(outfile_t.is_open())
-	{
-		outfile_t.write(reinterpret_cast<char*>(&{{_dynamic_t}}[0]), {{_dynamic_t}}.size()*sizeof({{_dynamic_t}}[0]));
-		outfile_t.close();
-	} else
-	{
-		std::cout << "Error writing output file results/{{codeobj_name}}_t." << endl;
-	}
-	ofstream outfile_i;
-	outfile_i.open("results/{{codeobj_name}}_i", ios::binary | ios::out);
-	if(outfile_i.is_open())
-	{
-		outfile_i.write(reinterpret_cast<char*>(&{{_dynamic_i}}[0]), {{_dynamic_i}}.size()*sizeof({{_dynamic_i}}[0]));
-		outfile_i.close();
-	} else
-	{
-		std::cout << "Error writing output file results/{{codeobj_name}}_i." << endl;
-	}
-//	ofstream outfile;
-//	outfile.open("results/{{codeobj_name}}.txt", ios::out);
-//	if(outfile.is_open())
-//	{
-//		for(int s=0; s<{{_i}}.size(); s++)
-//		{
-//			outfile << {{_i}}[s] << ", " << {{_t}}[s] << endl;
-//		}
-//		outfile.close();
-//	} else
-//	{
-//		std::cout << "Error writing output file." << endl;
-//	}
-}
-
 void _debugmsg_{{codeobj_name}}()
 {
 	std::cout << "Number of spikes: " << {{_dynamic_i}}.size() << endl;
@@ -84,11 +47,9 @@ void _debugmsg_{{codeobj_name}}()
 {% endblock %}
 
 {% block extra_functions_h %}
-void _write_{{codeobj_name}}();
 void _debugmsg_{{codeobj_name}}();
 {% endblock %}
 
 {% macro main_finalise() %}
-_write_{{codeobj_name}}();
 _debugmsg_{{codeobj_name}}();
 {% endmacro %}

@@ -8,36 +8,3 @@
 	{{_dynamic_t}}.push_back(_clock_t);
 {% endblock %}
 
-{% block extra_functions_cpp %}
-void _write_{{codeobj_name}}()
-{
-	ofstream outfile_t;
-	outfile_t.open("results/{{codeobj_name}}_t", ios::binary | ios::out);
-	if(outfile_t.is_open())
-	{
-		outfile_t.write(reinterpret_cast<char*>(&{{_dynamic_t}}[0]), {{_dynamic_t}}.size()*sizeof({{_dynamic_t}}[0]));
-		outfile_t.close();
-	} else
-	{
-		std::cout << "Error writing output file results/{{codeobj_name}}_t." << endl;
-	}
-	ofstream outfile_rate;
-	outfile_rate.open("results/{{codeobj_name}}_rate", ios::binary | ios::out);
-	if(outfile_rate.is_open())
-	{
-		outfile_rate.write(reinterpret_cast<char*>(&{{_dynamic_rate}}[0]), {{_dynamic_rate}}.size()*sizeof({{_dynamic_rate}}[0]));
-		outfile_rate.close();
-	} else
-	{
-		std::cout << "Error writing output file results/{{codeobj_name}}_rate." << endl;
-	}
-}
-{% endblock %}
-
-{% block extra_functions_h %}
-void _write_{{codeobj_name}}();
-{% endblock %}
-
-{% macro main_finalise() %}
-_write_{{codeobj_name}}();
-{% endmacro %}
