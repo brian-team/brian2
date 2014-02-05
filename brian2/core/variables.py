@@ -763,6 +763,9 @@ class VariableView(object):
             raise NotImplementedError('Changing dtype not supported')
         return self[:]
 
+    def __len__(self):
+        return len(self[:])
+
     def __neg__(self):
         return -self[:]
 
