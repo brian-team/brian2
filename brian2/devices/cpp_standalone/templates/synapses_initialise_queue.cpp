@@ -1,7 +1,7 @@
 {% macro cpp_file() %}
 #include "code_objects/{{codeobj_name}}.h"
 {% set pathobj = owner.name %}
-void _run_{{codeobj_name}}(double t) {
+void _run_{{codeobj_name}}() {
     double* real_delays = &({{pathobj}}.delay[0]);
     int* sources = &({{pathobj}}.sources[0]);
     const unsigned int n_synapses = {{pathobj}}.sources.size();
@@ -14,7 +14,7 @@ void _run_{{codeobj_name}}(double t) {
 #ifndef _INCLUDED_{{codeobj_name}}
 #define _INCLUDED_{{codeobj_name}}
 
-void _run_{{codeobj_name}}(double t);
+void _run_{{codeobj_name}}();
 
 #endif
 {% endmacro %}

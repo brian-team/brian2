@@ -233,9 +233,6 @@ def create_runner_codeobj(group, code, template_name,
                                        run_namespace=run_namespace,
                                        level=level+1))
 
-    # always add N, the number of neurons or synapses
-    variables['N'] = all_variables['N']
-
     if name is None:
         if group is not None:
             name = '%s_%s_codeobject*' % (group.name, template_name)

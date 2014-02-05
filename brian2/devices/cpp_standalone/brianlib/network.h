@@ -6,7 +6,7 @@
 #include<set>
 #include "clocks.h"
 
-typedef void (*codeobj_func)(double);
+typedef void (*codeobj_func)();
 
 class Network
 {

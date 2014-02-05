@@ -42,7 +42,8 @@ class PopulationRateMonitor(Group, CodeRunner):
             scheduler.when = 'end'
 
         self.codeobj_class = codeobj_class
-        BrianObject.__init__(self, when=scheduler, name=name)
+        CodeRunner.__init__(self, group=self, template='ratemonitor',
+                            when=scheduler, name=name)
 
         self.variables = Variables(self)
         self.variables.add_reference('_spikespace',
@@ -57,8 +58,6 @@ class PopulationRateMonitor(Group, CodeRunner):
         self.variables.add_attribute_variable('N', unit=Unit(1), obj=self,
                                               attribute='_N', dtype=np.int32)
         self._N = 0
-        CodeRunner.__init__(self, group=self, template='ratemonitor',
-                            when=scheduler)
 
         self._enable_group_attributes()
 

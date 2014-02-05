@@ -1,5 +1,5 @@
-# ITERATE_ALL { _idx }
-
+{# ITERATE_ALL { _idx } #}
+{# USES_VARIABLES { N } #}
 _vectorisation_idx = N
 
 {% for line in code_lines %}

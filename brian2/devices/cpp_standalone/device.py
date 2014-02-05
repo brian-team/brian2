@@ -259,7 +259,7 @@ class CPPStandaloneDevice(Device):
         for func, args in self.main_queue:
             if func=='run_code_object':
                 codeobj, = args
-                main_lines.append('_run_%s(t);' % codeobj.name)
+                main_lines.append('_run_%s();' % codeobj.name)
             elif func=='run_network':
                 net, netcode = args
                 main_lines.extend(netcode)
@@ -297,25 +297,12 @@ class CPPStandaloneDevice(Device):
         code_object_defs = defaultdict(list)
         for codeobj in self.code_objects.itervalues():
             for k, v in codeobj.variables.iteritems():
-                if k=='t':
-                    pass
-                elif isinstance(v, Subexpression):
-                    pass
-                elif isinstance(v, AttributeVariable):
-                    c_type = c_data_type(v.dtype)
-                    # TODO: Handle dt in the correct way
-                    if v.attribute == 'dt_':
-                        code = ('const {c_type} {k} = '
-                                '{value};').format(c_type=c_type,
-                                                  k=k,
-                                                  value=v.get_value())
-                    else:
-                        code = ('const {c_type} {k} = '
-                                '{name}.{attribute};').format(c_type=c_type,
-                                                             k=k,
-                                                             name=v.obj.name,
-                                                             attribute=v.attribute)
-                    code_object_defs[codeobj.name].append(code)
+                if isinstance(v, AttributeVariable):
+                    # We assume all attributes are implemented as property-like methods
+                    code_object_defs[codeobj.name].append('const {c_type} {varname} = {objname}.{attrname}();'.format(c_type=c_data_type(v.dtype),
+                                                                                                                      varname=k,
+                                                                                                                      objname=v.obj.name,
+                                                                                                                      attrname=v.attribute))
                 elif isinstance(v, ArrayVariable):
                     try:
                         if isinstance(v, DynamicArrayVariable):

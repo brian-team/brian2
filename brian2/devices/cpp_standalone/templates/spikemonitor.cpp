@@ -79,7 +79,7 @@ void _write_{{codeobj_name}}()
 
 void _debugmsg_{{codeobj_name}}()
 {
-	std::cout << "Number of spikes: " << {{_dynamic__i}}.size() << endl;
+	std::cout << "Number of spikes: " << {{_dynamic_i}}.size() << endl;
 }
 {% endblock %}
 

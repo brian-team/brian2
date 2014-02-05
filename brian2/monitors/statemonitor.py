@@ -171,6 +171,11 @@ class StateMonitor(Group, CodeRunner):
                 for v in self.record_variables]
         code = '\n'.join(code)
 
+        CodeRunner.__init__(self, group=self, template='statemonitor',
+                            code=code, name=name,
+                            when=scheduler,
+                            check_units=False)
+
         # Setup variables
         self.variables = Variables(self)
 
@@ -230,14 +235,9 @@ class StateMonitor(Group, CodeRunner):
         recorded_names = ['_recorded_'+varname
                           for varname in self.record_variables]
 
-        CodeRunner.__init__(self, group=self, template='statemonitor',
-                            code=code, name=name,
-                            when=scheduler,
-                            needed_variables=recorded_names,
-                            template_kwds={'_recorded_variables':
-                                           self.recorded_variables},
-                            check_units=False)
-
+        self.needed_variables = recorded_names
+        self.template_kwds = template_kwds={'_recorded_variables':
+                                            self.recorded_variables}
         self._N = 0
         self._enable_group_attributes()
 

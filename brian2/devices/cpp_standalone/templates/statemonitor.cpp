@@ -1,11 +1,11 @@
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-    {# USES_VARIABLES { _t, _indices } #}
+    {# USES_VARIABLES { t, _clock_t, _indices } #}
 
-    {{_dynamic__t}}.push_back(t);
+    {{_dynamic_t}}.push_back(_clock_t);
 
-    const int _new_size = {{_dynamic__t}}.size();
+    const int _new_size = {{_dynamic_t}}.size();
     // Resize the dynamic arrays
     {% for var in _recorded_variables.values() %}
     {% set _recorded =  get_array_name(var, access_data=False) %}
@@ -35,7 +35,7 @@ void _write_{{codeobj_name}}()
 	outfile.open("results/{{codeobj_name}}_t", ios::binary | ios::out);
 	if(outfile.is_open())
 	{
-		outfile.write(reinterpret_cast<char*>(&{{_dynamic__t}}[0]), {{_dynamic__t}}.size()*sizeof({{_dynamic__t}}[0]));
+		outfile.write(reinterpret_cast<char*>(&{{_dynamic_t}}[0]), {{_dynamic_t}}.size()*sizeof({{_dynamic_t}}[0]));
 		outfile.close();
 	} else
 	{
@@ -46,7 +46,7 @@ void _write_{{codeobj_name}}()
 	{
 	    {% set _recorded =  get_array_name(var, access_data=False) %}
 	    const int _num_indices = {{_recorded}}.m;
-        const int _num_times = {{_dynamic__t}}.size();
+        const int _num_times = {{_dynamic_t}}.size();
         outfile.open("results/{{codeobj_name}}_{{varname}}", ios::binary | ios::out);
         if(outfile.is_open())
         {

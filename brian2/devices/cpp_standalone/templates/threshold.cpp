@@ -1,7 +1,6 @@
 {% extends 'common_group.cpp' %}
-
 {% block maincode %}
-	{# USES_VARIABLES { t, _spikespace } #}
+	{# USES_VARIABLES { t, _spikespace, N } #}
 	// not_refractory and lastspike are added as needed_variables in the
 	// Thresholder class, we cannot use the USES_VARIABLE mechanism
 	// conditionally

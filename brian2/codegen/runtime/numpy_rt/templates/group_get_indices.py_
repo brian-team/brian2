@@ -1,5 +1,5 @@
 import numpy as np
-
+{# USES_VARIABLES { N } #}
 _idx = np.arange(N)
 _vectorisation_idx = N
 
