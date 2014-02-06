@@ -22,8 +22,6 @@ class NumpyLanguage(Language):
 
     language_id = 'numpy'
 
-
-
     def translate_expression(self, expr, variables, codeobj_class):
         for varname, var in variables.iteritems():
             if isinstance(var, Function):
@@ -51,6 +49,11 @@ class NumpyLanguage(Language):
         for varname in itertools.chain(indices, read):
             var = variables[varname]
             index = variable_indices[varname]
+#            if index in iterate_all:
+#                line = '{varname} = {array_name}'
+#            else:
+#                line = '{varname} = {array_name}.take({index})'
+#            line = line.format(varname=varname, array_name=self.get_array_name(var), index=index)
             line = varname + ' = ' + self.get_array_name(var)
             if not index in iterate_all:
                 line = line + '[' + index + ']'
@@ -80,6 +83,21 @@ class NumpyLanguage(Language):
                     line = line + '[' + index_var + ']'
                 line = line + ' = ' + varname
                 lines.append(line)
+#                if index_var in iterate_all:
+#                    line = '{array_name}[:] = {varname}'
+#                else:
+#                    line = '''
+#if isinstance(_idx, slice):
+#    {array_name}[:] = {varname}
+#else:
+#    {array_name}.put({index_var}, {varname})
+#                    '''
+#                    line = '\n'.join([l for l in line.split('\n') if l.strip()])
+#                line = line.format(array_name=self.get_array_name(var), index_var=index_var, varname=varname)
+#                if index_var in iterate_all:
+#                    lines.append(line)
+#                else:
+#                    lines.extend(line.split('\n'))
 
         # Make sure we do not use the __call__ function of Function objects but
         # rather the Python function stored internally. The __call__ function
