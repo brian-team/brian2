@@ -232,10 +232,11 @@ class SpikeQueue(object):
             else:
                 stop_idx = len(self._neurons_to_synapses)
             sources = sources[start_idx:stop_idx]
+            if len(sources)==0:
+                return
             synapse_indices = self._neurons_to_synapses
             indices = np.concatenate([synapse_indices[source - start]
                                       for source in sources]).astype(np.int32)
-
             if self._homogeneous:  # homogeneous delays
                 self._insert_homogeneous(self._delays[0], indices)
             elif self._offsets is None:  # vectorise over synaptic events
