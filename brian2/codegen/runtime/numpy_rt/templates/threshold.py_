@@ -14,7 +14,6 @@ _spikes, = _cond.nonzero()
 {{_spikespace}}[:len(_spikes)] = _spikes
 {% if _uses_refractory %}
 # Set the neuron to refractory
-# TODO: commented the next line out because it doesn't work with conditional_write, but could this break some code?
-#{{not_refractory}}[_spikes] = False
+{{not_refractory}}[_spikes] = False
 {{lastspike}}[_spikes] = t
 {% endif %}

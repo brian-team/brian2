@@ -142,7 +142,9 @@ def create_runner_codeobj(group, code, template_name,
                           additional_variables=None,
                           level=0,
                           run_namespace=None,
-                          template_kwds=None,):
+                          template_kwds=None,
+                          override_conditional_write=None,
+                          ):
     ''' Create a `CodeObject` for the execution of code in the context of a
     `Group`.
 
@@ -178,10 +180,18 @@ def create_runner_codeobj(group, code, template_name,
         defined, the implicit namespace of local variables is used).
     template_kwds : dict, optional
         A dictionary of additional information that is passed to the template.
+    override_conditional_write: list of str, optional
+        A list of variable names which are used as conditions (e.g. for
+        refractoriness) which should be ignored.
     '''
     logger.debug('Creating code object for abstract code:\n' + str(code))
     from brian2.devices import get_device
     device = get_device()
+    
+    if override_conditional_write is None:
+        override_conditional_write = set([])
+    else:
+        override_conditional_write = set(override_conditional_write)
 
     if check_units:
         if isinstance(code, dict):
@@ -227,6 +237,8 @@ def create_runner_codeobj(group, code, template_name,
     # Add all the "conditional write" variables
     for var in variables.itervalues():
         cond_write_var = getattr(var, 'conditional_write', None)
+        if cond_write_var in override_conditional_write:
+            continue
         if cond_write_var is not None and cond_write_var not in variables.values():
             if cond_write_var.name in variables:
                 raise AssertionError(('Variable "%s" is needed for the '
@@ -282,4 +294,6 @@ def create_runner_codeobj(group, code, template_name,
                               template_name=template_name,
                               variable_indices=all_variable_indices,
                               template_kwds=template_kwds,
-                              codeobj_class=group.codeobj_class)
+                              codeobj_class=group.codeobj_class,
+                              override_conditional_write=override_conditional_write,
+                              )

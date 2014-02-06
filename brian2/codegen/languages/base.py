@@ -58,7 +58,7 @@ class Language(object):
 
     def translate_statement_sequence(self, statements, variables,
                                      variable_indices, iterate_all,
-                                     codeobj_class):
+                                     codeobj_class, override_conditional_write=None):
         '''
         Translate a sequence of `Statement` into the target language, taking
         care to declare variables, etc. if necessary.
@@ -108,3 +108,33 @@ class Language(object):
         # don't list arrays that are read explicitly and used as indices twice
         read -= indices
         return read, write, indices
+
+    def get_conditional_write_vars(self, variables, override_conditional_write):
+        '''
+        Helper function, returns a dict of mappings ``(varname, condition_var_name)`` indicating that
+        when ``varname`` is written to, it should only be when ``condition_var_name`` is ``True``.
+        '''
+        conditional_write_vars = {}
+        if override_conditional_write is None:
+            override_conditional_write = set([])
+        else:
+            override_conditional_write = set(override_conditional_write)
+        for varname, var in variables.items():
+            if getattr(var, 'conditional_write', None) is not None:
+                cvar = var.conditional_write
+                cname = cvar.name
+                if cname not in override_conditional_write:
+                    conditional_write_vars[varname] = cname
+        return conditional_write_vars
+
+    def arrays_helper(self, statements, variables, variable_indices, override_conditional_write):
+        '''
+        Combines the two helper functions `array_read_write` and `get_conditional_write_vars`, and updates the
+        ``read`` set.
+        '''
+        read, write, indices = self.array_read_write(statements, variables, variable_indices)
+        conditional_write_vars = self.get_conditional_write_vars(variables, override_conditional_write)
+        read = read.union(set(conditional_write_vars.values()) |
+                          set(conditional_write_vars.keys()))
+        return read, write, indices, conditional_write_vars
+    

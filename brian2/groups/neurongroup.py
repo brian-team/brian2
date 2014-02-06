@@ -148,7 +148,8 @@ class Resetter(CodeRunner):
         CodeRunner.__init__(self, group,
                             'reset',
                             when=(group.clock, 'resets'),
-                            name=group.name + '_resetter*')
+                            name=group.name + '_resetter*',
+                            override_conditional_write=['not_refractory'])
 
         # Check the abstract code for unit mismatches (only works if the
         # namespace is already complete)

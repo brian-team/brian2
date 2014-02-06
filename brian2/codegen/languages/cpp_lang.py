@@ -151,13 +151,14 @@ class CPPLanguage(Language):
 
     def translate_one_statement_sequence(self, statements, variables,
                                          variable_indices, iterate_all,
-                                         codeobj_class):
+                                         codeobj_class, override_conditional_write=None):
 
         # Note that C++ code does not care about the iterate_all argument -- it
         # always has to loop over the elements
 
-        read, write, indices = self.array_read_write(statements, variables,
-                                                     variable_indices)
+        read, write, indices, conditional_write_vars = self.arrays_helper(statements, variables, variable_indices,
+                                                                          override_conditional_write)
+
         lines = []
         # index and read arrays (index arrays first)
         for varname in itertools.chain(indices, read):
@@ -177,8 +178,15 @@ class CPPLanguage(Language):
                 line = self.c_data_type(var.dtype) + ' ' + varname + ';'
                 lines.append(line)
         # the actual code
-        lines.extend([self.translate_statement(stmt, variables, codeobj_class)
-                      for stmt in statements])
+        for stmt in statements:
+            line = self.translate_statement(stmt, variables, codeobj_class)
+            if stmt.var in conditional_write_vars:
+                subs = {}
+                condvar = conditional_write_vars[stmt.var]
+                lines.append('if(%s)' % condvar)
+                lines.append('    '+line)
+            else:
+                lines.append(line)
         # write arrays
         for varname in write:
             index_var = variable_indices[varname]
@@ -267,19 +275,22 @@ class CPPLanguage(Language):
 
     def translate_statement_sequence(self, statements, variables,
                                      variable_indices, iterate_all,
-                                     codeobj_class):
+                                     codeobj_class, override_conditional_write=None):
         if isinstance(statements, dict):
             blocks = {}
             for name, block in statements.iteritems():
-                blocks[name] = self.translate_one_statement_sequence(block,
-                                                                     variables,
-                                                                     variable_indices,
-                                                                     iterate_all,
-                                                                     codeobj_class)
+                blocks[name] = self.translate_one_statement_sequence(
+                                         block,
+                                         variables,
+                                         variable_indices,
+                                         iterate_all,
+                                         codeobj_class,
+                                         override_conditional_write=override_conditional_write)
         else:
             blocks = self.translate_one_statement_sequence(statements, variables,
                                                            variable_indices,
-                                                           iterate_all, codeobj_class)
+                                                           iterate_all, codeobj_class,
+                                                           override_conditional_write=override_conditional_write)
 
         kwds = self.determine_keywords(variables, codeobj_class)
 

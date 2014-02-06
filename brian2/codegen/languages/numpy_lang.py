@@ -39,22 +39,13 @@ class NumpyLanguage(Language):
             op = '='
         return var + ' ' + op + ' ' + self.translate_expression(expr, variables,
                                                                 codeobj_class)
-
+        
     def translate_one_statement_sequence(self, statements, variables,
                                          variable_indices, iterate_all,
-                                         codeobj_class):
-#        print variable_indices
-        read, write, indices = self.array_read_write(statements, variables, variable_indices)
-        conditional_write_vars = {}
-        for varname, var in variables.items():
-            if getattr(var, 'conditional_write', None) is not None:
-                cvar = var.conditional_write
-                cname = cvar.name
-                conditional_write_vars[varname] = cname
+                                         codeobj_class, override_conditional_write=None):
+        read, write, indices, conditional_write_vars = self.arrays_helper(statements, variables, variable_indices,
+                                                                          override_conditional_write)
         lines = []
-
-        read = read.union(set(conditional_write_vars.values()) |
-                          set(conditional_write_vars.keys()))
         # index and read arrays (index arrays first)
         for varname in itertools.chain(indices, read):
             var = variables[varname]
@@ -69,15 +60,10 @@ class NumpyLanguage(Language):
                 line = line + '[' + index + ']'
             lines.append(line)
         # the actual code
-        newstatements = []
+        created_vars = set([])
         for stmt in statements:
-            # we don't want to handle in-place operations, so if we are in a conditional write situation
-            # we replace the statement by the non-inplace version.
-            if stmt.inplace and stmt.var in conditional_write_vars:
-                newop = stmt.op.replace('=', '')
-                newexpr = '{var} {op} ({expr})'.format(var=stmt.var, expr=stmt.expr, op=newop)
-                stmt = Statement(stmt.var, '=', newexpr, stmt.dtype,
-                                 constant=stmt.constant, subexpression=stmt.subexpression)
+            if stmt.op==':=':
+                created_vars.add(stmt.var)
             line = self.translate_statement(stmt, variables, codeobj_class)
             if stmt.var in conditional_write_vars:
                 subs = {}
@@ -89,13 +75,12 @@ class NumpyLanguage(Language):
                 for varname, var in variables.items():
                     if isinstance(var, ArrayVariable):
                         subs[varname] = varname+'['+repl_string+']'
+                # all newly created vars are arrays and will need indexing
+                for varname in created_vars:
+                    subs[varname] = varname+'['+repl_string+']'
                 line = word_substitute(line, subs)
                 line = line.replace(repl_string, index)
             lines.append(line)
-            newstatements.append(stmt)
-#            print line
-#        print
-        statements = newstatements
         # write arrays
         for varname in write:
             var = variables[varname]
@@ -145,23 +130,26 @@ class NumpyLanguage(Language):
 
     def translate_statement_sequence(self, statements, variables,
                                      variable_indices, iterate_all,
-                                     codeobj_class):
+                                     codeobj_class, override_conditional_write=None):
         # For numpy, no addiional keywords are provided to the template
         kwds = {}
 
         if isinstance(statements, dict):
             blocks = {}
             for name, block in statements.iteritems():
-                blocks[name] = self.translate_one_statement_sequence(block,
-                                                                     variables,
-                                                                     variable_indices,
-                                                                     iterate_all,
-                                                                     codeobj_class)
+                blocks[name] = self.translate_one_statement_sequence(
+                                     block,
+                                     variables,
+                                     variable_indices,
+                                     iterate_all,
+                                     codeobj_class,
+                                     override_conditional_write=override_conditional_write)
             return blocks, kwds
         else:
             block = self.translate_one_statement_sequence(statements, variables,
                                                           variable_indices,
-                                                          iterate_all, codeobj_class)
+                                                          iterate_all, codeobj_class,
+                                                          override_conditional_write=override_conditional_write)
             return block, kwds
 
 ################################################################################
