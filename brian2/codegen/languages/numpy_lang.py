@@ -52,13 +52,11 @@ class NumpyLanguage(Language):
                 cname = cvar.name
                 conditional_write_vars[varname] = cname
         lines = []
+
+        read = read.union(set(conditional_write_vars.values()) |
+                          set(conditional_write_vars.keys()))
         # index and read arrays (index arrays first)
-        #for varname in itertools.chain(indices, read):
-        readvars = indices.union(read)
-        if conditional_write_vars:
-            readvars = readvars.union(set(conditional_write_vars.values()))
-            readvars = readvars.union(set(conditional_write_vars.keys()))
-        for varname in readvars:
+        for varname in itertools.chain(indices, read):
             var = variables[varname]
             index = variable_indices[varname]
 #            if index in iterate_all:
