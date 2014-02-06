@@ -1,6 +1,5 @@
 import numpy as np
 
-from brian2.core.base import BrianObject
 from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
 from brian2.units.allunits import second, hertz
@@ -19,27 +18,19 @@ class PopulationRateMonitor(Group, CodeRunner):
     ----------
     source : (`NeuronGroup`, `SpikeSource`)
         The source of spikes to record.
-    when : `Scheduler`, optional
-        When to record the spikes, by default uses the clock of the source
-        and records spikes in the slot 'end'.
     name : str, optional
         A unique name for the object, otherwise will use
         ``source.name+'_ratemonitor_0'``, etc.
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
     '''
-    def __init__(self, source, when=None, name='ratemonitor*',
+    def __init__(self, source, name='ratemonitor*',
                  codeobj_class=None):
 
         #: The group we are recording from
         self.source = source
 
-        # run by default on source clock at the end
-        scheduler = Scheduler(when)
-        if not scheduler.defined_clock:
-            scheduler.clock = source.clock
-        if not scheduler.defined_when:
-            scheduler.when = 'end'
+        scheduler = Scheduler(clock=source.clock, when='end')
 
         self.codeobj_class = codeobj_class
         CodeRunner.__init__(self, group=self, template='ratemonitor',
@@ -48,7 +39,8 @@ class PopulationRateMonitor(Group, CodeRunner):
         self.variables = Variables(self)
         self.variables.add_reference('_spikespace',
                                      source.variables['_spikespace'])
-        self.variables.add_clock_variables(self.clock, prefix='_clock_')
+        self.variables.add_reference('_clock_t', source.variables['t'])
+        self.variables.add_reference('_clock_dt', source.variables['dt'])
         self.variables.add_dynamic_array('rate', size=0, unit=hertz,
                                          constant_size=False)
         self.variables.add_dynamic_array('t', size=0, unit=second,
