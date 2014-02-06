@@ -47,11 +47,10 @@ class NumpyLanguage(Language):
         read, write, indices = self.array_read_write(statements, variables, variable_indices)
         conditional_write_vars = {}
         for varname, var in variables.items():
-            if hasattr(var, 'conditional_write') and var.conditional_write is not None:
+            if getattr(var, 'conditional_write', None) is not None:
                 cvar = var.conditional_write
                 cname = cvar.name
                 conditional_write_vars[varname] = cname
-                variables[cname] = cvar
         lines = []
         # index and read arrays (index arrays first)
         #for varname in itertools.chain(indices, read):
