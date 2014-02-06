@@ -7,6 +7,7 @@ from brian2.parsing.rendering import NumpyNodeRenderer
 from brian2.core.functions import (DEFAULT_FUNCTIONS, Function,
                                    FunctionImplementation)
 from brian2.core.variables import ArrayVariable
+from brian2.codegen.statements import Statement
 
 from .base import Language
 
@@ -42,11 +43,23 @@ class NumpyLanguage(Language):
     def translate_one_statement_sequence(self, statements, variables,
                                          variable_indices, iterate_all,
                                          codeobj_class):
-        read, write, indices = self.array_read_write(statements, variables,
-                                            variable_indices)
+#        print variable_indices
+        read, write, indices = self.array_read_write(statements, variables, variable_indices)
+        conditional_write_vars = {}
+        for varname, var in variables.items():
+            if hasattr(var, 'conditional_write') and var.conditional_write is not None:
+                cvar = var.conditional_write
+                cname = cvar.name
+                conditional_write_vars[varname] = cname
+                variables[cname] = cvar
         lines = []
         # index and read arrays (index arrays first)
-        for varname in itertools.chain(indices, read):
+        #for varname in itertools.chain(indices, read):
+        readvars = indices.union(read)
+        if conditional_write_vars:
+            readvars = readvars.union(set(conditional_write_vars.values()))
+            readvars = readvars.union(set(conditional_write_vars.keys()))
+        for varname in readvars:
             var = variables[varname]
             index = variable_indices[varname]
 #            if index in iterate_all:
@@ -59,8 +72,33 @@ class NumpyLanguage(Language):
                 line = line + '[' + index + ']'
             lines.append(line)
         # the actual code
-        lines.extend([self.translate_statement(stmt, variables, codeobj_class)
-                      for stmt in statements])
+        newstatements = []
+        for stmt in statements:
+            # we don't want to handle in-place operations, so if we are in a conditional write situation
+            # we replace the statement by the non-inplace version.
+            if stmt.inplace and stmt.var in conditional_write_vars:
+                newop = stmt.op.replace('=', '')
+                newexpr = '{var} {op} ({expr})'.format(var=stmt.var, expr=stmt.expr, op=newop)
+                stmt = Statement(stmt.var, '=', newexpr, stmt.dtype,
+                                 constant=stmt.constant, subexpression=stmt.subexpression)
+            line = self.translate_statement(stmt, variables, codeobj_class)
+            if stmt.var in conditional_write_vars:
+                subs = {}
+                index = conditional_write_vars[stmt.var]
+                # we replace all var with var[index], but actually we use this repl_string first because
+                # we don't want to end up with lines like x[not_refractory[not_refractory]] when
+                # multiple substitution passes are invoked
+                repl_string = '#$(@#&$@$*U#@)$@(#' # this string shouldn't occur anywhere I hope! :)
+                for varname, var in variables.items():
+                    if isinstance(var, ArrayVariable):
+                        subs[varname] = varname+'['+repl_string+']'
+                line = word_substitute(line, subs)
+                line = line.replace(repl_string, index)
+            lines.append(line)
+            newstatements.append(stmt)
+#            print line
+#        print
+        statements = newstatements
         # write arrays
         for varname in write:
             var = variables[varname]
