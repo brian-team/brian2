@@ -7,7 +7,6 @@ from brian2.parsing.rendering import NumpyNodeRenderer
 from brian2.core.functions import (DEFAULT_FUNCTIONS, Function,
                                    FunctionImplementation)
 from brian2.core.variables import ArrayVariable
-from brian2.codegen.statements import Statement
 
 from .base import Language
 

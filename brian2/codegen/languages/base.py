@@ -2,8 +2,7 @@
 Base class for languages, gives the methods which should be overridden to
 implement a new language.
 '''
-from brian2.core.variables import (ArrayVariable, AttributeVariable,
-                                    Subexpression)
+from brian2.core.variables import ArrayVariable
 from brian2.utils.stringtools import get_identifiers
 
 __all__ = ['Language']
@@ -137,4 +136,3 @@ class Language(object):
         read = read.union(set(conditional_write_vars.values()) |
                           set(conditional_write_vars.keys()))
         return read, write, indices, conditional_write_vars
-    

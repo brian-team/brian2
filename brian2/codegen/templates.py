@@ -4,9 +4,9 @@ Handles loading templates from a directory.
 import os
 import re
 
-from jinja2 import Template, Environment, FileSystemLoader, PackageLoader
+from jinja2 import Environment, PackageLoader
 
-from brian2.utils.stringtools import (indent, deindent, strip_empty_lines,
+from brian2.utils.stringtools import (indent, strip_empty_lines,
                                       get_identifiers)
 
 

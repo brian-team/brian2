@@ -59,6 +59,4 @@ class Statement(object):
             s += ' (in-place)'
         return s
     __repr__ = __str__
-            
-    def translate_to(self, language):
-        return language.translate_statement(self)
+
