@@ -202,11 +202,13 @@ class CPPStandaloneDevice(Device):
         return CPPStandaloneCodeObject
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
-                    variable_indices, codeobj_class=None, template_kwds=None):
+                    variable_indices, codeobj_class=None, template_kwds=None,
+                    override_conditional_write=None):
         codeobj = super(CPPStandaloneDevice, self).code_object(owner, name, abstract_code, variables,
                                                                template_name, variable_indices,
                                                                codeobj_class=codeobj_class,
                                                                template_kwds=template_kwds,
+                                                               override_conditional_write=override_conditional_write,
                                                                )
         self.code_objects[codeobj.name] = codeobj
         return codeobj

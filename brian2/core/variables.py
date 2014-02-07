@@ -440,6 +440,17 @@ class ArrayVariable(Variable):
         #: The size of this variable.
         self.size = size
 
+        #: Another variable, on which the write is conditioned (e.g. a variable
+        #: denoting the abscence of refractoriness)
+        self.conditional_write = None
+
+    def set_conditional_write(self, var):
+        if not var.is_bool:
+            raise TypeError(('A variable can only be conditionally writeable '
+                             'depending on a boolean variable, %s is not '
+                             'boolean.') % var.name)
+        self.conditional_write = var
+
     def get_value(self):
         return self.device.get_value(self)
 

@@ -60,7 +60,7 @@ class StateUpdater(CodeRunner):
             # No refractoriness
             abstract_code = ''
         elif isinstance(ref, Quantity):
-            abstract_code = 'not_refractory = 1*((t - lastspike) > %f)\n' % ref
+            abstract_code = 'not_refractory = (t - lastspike) > %f\n' % ref
         else:
             identifiers = get_identifiers(ref)
             variables = self.group.resolve_all(identifiers,
@@ -68,7 +68,7 @@ class StateUpdater(CodeRunner):
                                                level=level+1)
             unit = parse_expression_unit(str(ref), variables)
             if have_same_dimensions(unit, second):
-                abstract_code = 'not_refractory = 1*((t - lastspike) > %s)\n' % ref
+                abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
             elif have_same_dimensions(unit, Unit(1)):
                 if not is_boolean_expression(str(ref), variables):
                     raise TypeError(('Refractory expression is dimensionless '
@@ -79,7 +79,7 @@ class StateUpdater(CodeRunner):
                 # we have to be a bit careful here, we can't just use the given
                 # condition as it is, because we only want to *leave*
                 # refractoriness, based on the condition
-                abstract_code = 'not_refractory = 1*(not_refractory or not (%s))\n' % ref
+                abstract_code = 'not_refractory = not_refractory or not (%s)\n' % ref
             else:
                 raise TypeError(('Refractory expression has to evaluate to a '
                                  'timespan or a boolean value, expression'
@@ -148,7 +148,8 @@ class Resetter(CodeRunner):
         CodeRunner.__init__(self, group,
                             'reset',
                             when=(group.clock, 'resets'),
-                            name=group.name + '_resetter*')
+                            name=group.name + '_resetter*',
+                            override_conditional_write=['not_refractory'])
 
         # Check the abstract code for unit mismatches (only works if the
         # namespace is already complete)
@@ -380,6 +381,13 @@ class NeuronGroup(Group, SpikeSource):
                                                  is_bool=eq.is_bool)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
+
+        # Add the conditional-write attribute for variables with the
+        # "unless refractory" flag
+        for eq in self.equations.itervalues():
+            if eq.type == DIFFERENTIAL_EQUATION and 'unless refractory' in eq.flags:
+                not_refractory_var = self.variables['not_refractory']
+                self.variables[eq.varname].set_conditional_write(not_refractory_var)
 
         # Stochastic variables
         for xi in self.equations.stochastic_variables:

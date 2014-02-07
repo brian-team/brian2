@@ -824,10 +824,14 @@ class CodeRunner(BrianObject):
         rarely necessary, an example being a `StateMonitor` where the
         names of the variables are neither known to the template nor included
         in the abstract code statements.
+    override_conditional_write: list of str, optional
+        A list of variable names which are used as conditions (e.g. for
+        refractoriness) which should be ignored.
     '''
     def __init__(self, group, template, code='', when=None,
                  name='coderunner*', check_units=True, template_kwds=None,
-                 needed_variables=None):
+                 needed_variables=None, override_conditional_write=None,
+                 ):
         BrianObject.__init__(self, when=when, name=name)
         self.group = weakref.proxy(group)
         self.template = template
@@ -837,6 +841,7 @@ class CodeRunner(BrianObject):
             needed_variables = []
         self.needed_variables = needed_variables
         self.template_kwds = template_kwds
+        self.override_conditional_write = override_conditional_write
     
     def update_abstract_code(self, run_namespace=None, level=0):
         '''
@@ -865,5 +870,7 @@ class CodeRunner(BrianObject):
                                              needed_variables=self.needed_variables,
                                              run_namespace=run_namespace,
                                              level=level+1,
-                                             template_kwds=self.template_kwds)
+                                             template_kwds=self.template_kwds,
+                                             override_conditional_write=self.override_conditional_write,
+                                             )
         self.code_objects[:] = [weakref.proxy(self.codeobj)]

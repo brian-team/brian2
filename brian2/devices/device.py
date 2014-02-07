@@ -159,7 +159,7 @@ class Device(object):
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None,
-                    template_kwds=None):
+                    template_kwds=None, override_conditional_write=None):
         codeobj_class = self.code_object_class(codeobj_class)
         language = codeobj_class.language
 
@@ -193,7 +193,9 @@ class Device(object):
                                   dtype=brian_prefs['core.default_scalar_dtype'],
                                   codeobj_class=codeobj_class,
                                   variable_indices=variable_indices,
-                                  iterate_all=iterate_all)
+                                  iterate_all=iterate_all,
+                                  override_conditional_write=override_conditional_write,
+                                  )
         # Add the array names as keywords as well
         for varname, var in variables.iteritems():
             if isinstance(var, ArrayVariable):

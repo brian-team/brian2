@@ -283,7 +283,7 @@ def translate_subexpression(subexpr, variables):
                          is_bool=subexpr.is_bool)
 
 def translate(code, variables, dtype, codeobj_class,
-              variable_indices, iterate_all):
+              variable_indices, iterate_all, override_conditional_write=None):
     '''
     Translates an abstract code block into the target language.
 
@@ -300,4 +300,5 @@ def translate(code, variables, dtype, codeobj_class,
     language = codeobj_class.language
     return language.translate_statement_sequence(statements, variables,
                                                  variable_indices,
-                                                 iterate_all, codeobj_class)
+                                                 iterate_all, codeobj_class,
+                                                 override_conditional_write=override_conditional_write)
