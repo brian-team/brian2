@@ -254,13 +254,6 @@ class LinearStateUpdater(StateUpdateMethod):
             rhs = update
             for row_idx, varname in enumerate(varnames):
                 rhs = rhs.subs(_S[row_idx, 0], varname)
-            identifiers = get_identifiers(sympy_to_str(rhs))
-            for identifier in identifiers:
-                if identifier in variables:
-                    var = variables[identifier]
-                    if var.scalar and var.constant:
-                        float_val = var.get_value()
-                        rhs = rhs.xreplace({Symbol(identifier, real=True): Float(float_val)})
 
             # Do not overwrite the real state variables yet, the update step
             # of other state variables might still need the original values
