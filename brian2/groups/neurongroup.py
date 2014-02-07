@@ -8,6 +8,7 @@ from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         SUBEXPRESSION, PARAMETER)
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
+from brian2.codegen.translation import analyse_identifiers
 from brian2.codegen.codeobject import check_code_units
 from brian2.core.variables import Variables
 from brian2.core.spikesource import SpikeSource
@@ -17,6 +18,7 @@ from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
+
 
 from .group import Group, CodeRunner, dtype_dictionary
 from .subgroup import Subgroup
@@ -45,11 +47,11 @@ class StateUpdater(CodeRunner):
                                                                self.group.variables,
                                                                method)
 
-        # Generate the full abstract code to catch errors in the refractoriness
+        # Generate the refractory code to catch errors in the refractoriness
         # formulation. However, do not fail on KeyErrors since the
         # refractoriness might refer to variables that don't exist yet
         try:
-            self.update_abstract_code(level=1)
+            self._get_refractory_code(run_namespace=None, level=1)
         except KeyError as ex:
             logger.debug('Namespace not complete (yet), ignoring: %s ' % str(ex),
                          'StateUpdater')
@@ -91,9 +93,18 @@ class StateUpdater(CodeRunner):
         # Update the not_refractory variable for the refractory period mechanism
         self.abstract_code = self._get_refractory_code(run_namespace=run_namespace,
                                                        level=level+1)
-        
-        self.abstract_code += self.method(self.group.equations,
-                                          self.group.variables)
+
+        # Get the names used in the refractory code
+        _, used_known, unknown = analyse_identifiers(self.abstract_code, self.group.variables,
+                                                     recursive=True)
+
+        # Get all names used in the equations (and always get "dt")
+        names = self.group.equations.names
+        external_names = self.group.equations.identifiers | set(['dt'])
+
+        variables = self.group.resolve_all(used_known | unknown | names | external_names,
+                                           run_namespace=run_namespace, level=level+1)
+        self.abstract_code += self.method(self.group.equations, variables)
 
 
 class Thresholder(CodeRunner):
