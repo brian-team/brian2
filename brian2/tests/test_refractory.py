@@ -106,36 +106,40 @@ def test_conditional_write_set():
     assert G.variables['w'].conditional_write is None
 
 def test_conditional_write_behaviour():
-    # TODO: test with weave
-    H = NeuronGroup(1, 'v:1', threshold='v>-1')
-    
-    tau = 1*ms
-    eqs = '''
-    dv/dt = (2-v)/tau : 1 (unless refractory)
-    dx/dt = 0/tau : 1 (unless refractory)
-    dy/dt = 0/tau : 1
-    '''
-    reset = '''
-    v = 0
-    x -= 0.05
-    y -= 0.05
-    '''
-    G = NeuronGroup(1, eqs, threshold='v>1', reset=reset, refractory=1*ms)
-    
-    Sx = Synapses(H, G, pre='x += dt*100*Hz')
-    Sx.connect(True)
-    
-    Sy = Synapses(H, G, pre='y += dt*100*Hz')
-    Sy.connect(True)
-    
-    M = StateMonitor(G, variables=True, record=True)
-    
-    run(10*ms)
-    
-    assert G.x[0]<0.2
-    assert G.y[0]>0.2
-    assert G.v[0]<1.1
-    
+    for codeobj_class in codeobj_classes:
+        H = NeuronGroup(1, 'v:1', threshold='v>-1',
+                        codeobj_class=codeobj_class)
+
+        tau = 1*ms
+        eqs = '''
+        dv/dt = (2-v)/tau : 1 (unless refractory)
+        dx/dt = 0/tau : 1 (unless refractory)
+        dy/dt = 0/tau : 1
+        '''
+        reset = '''
+        v = 0
+        x -= 0.05
+        y -= 0.05
+        '''
+        G = NeuronGroup(1, eqs, threshold='v>1', reset=reset, refractory=1*ms,
+                        codeobj_class=codeobj_class)
+
+        Sx = Synapses(H, G, pre='x += dt*100*Hz', codeobj_class=codeobj_class)
+        Sx.connect(True)
+
+        Sy = Synapses(H, G, pre='y += dt*100*Hz', codeobj_class=codeobj_class)
+        Sy.connect(True)
+
+        M = StateMonitor(G, variables=True, record=True,
+                         codeobj_class=codeobj_class)
+
+        net = Network(H, G, Sx, Sy, M)
+        net.run(10*ms)
+
+        assert G.x[0] < 0.2
+        assert G.y[0] > 0.2
+        assert G.v[0] < 1.1
+
 
 if __name__ == '__main__':
     test_add_refractoriness()
