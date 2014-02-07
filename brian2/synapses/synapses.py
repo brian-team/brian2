@@ -695,7 +695,8 @@ class Synapses(Group):
             # reference will never overwrite the name of an existing name
             self.variables.add_reference(name, var, index='_postsynaptic_idx')
 
-    def connect(self, pre_or_cond, post=None, p=1., n=1, level=0):
+    def connect(self, pre_or_cond, post=None, p=1., n=1, namespace=None,
+                level=0):
         '''
         Add synapses. The first argument can be either a presynaptic index
         (int or array) or a condition for synapse creation in the form of a
@@ -721,6 +722,13 @@ class Synapses(Group):
         n : int, optional
             The number of synapses to create per pre/post connection pair.
             Defaults to 1.
+        namespace : dict-like, optional
+            A namespace that will be used in addition to the group-specific
+            namespaces (if defined). If not specified, the locals
+            and globals around the run function will be used.
+        level : int, optional
+            How deep to go up the stack frame to look for the locals/global
+            (see `namespace` argument).
 
         Examples
         --------
@@ -753,7 +761,7 @@ class Synapses(Group):
             i, j, n = np.broadcast_arrays(pre_or_cond, post, n)
             if i.ndim > 1:
                 raise ValueError('Can only use 1-dimensional indices')
-            self._add_synapses(i, j, n, p, level=level+1)
+            self._add_synapses(i, j, n, p, namespace=namespace, level=level+1)
         elif isinstance(pre_or_cond, (basestring, bool)):
             if pre_or_cond is False:
                 return  # nothing to do...
@@ -770,7 +778,7 @@ class Synapses(Group):
                 raise TypeError('p has to be a float or a string evaluating '
                                 'to an float, is type %s instead.' % type(n))
             self._add_synapses(None, None, n, p, condition=pre_or_cond,
-                               level=level+1)
+                               namespace=namespace, level=level+1)
         else:
             raise TypeError(('First argument has to be an index or a '
                              'string, is %s instead.') % type(pre_or_cond))
@@ -807,7 +815,7 @@ class Synapses(Group):
         self._registered_variables.remove(variable)
 
     def _add_synapses(self, sources, targets, n, p, condition=None,
-                      level=0):
+                      namespace=None, level=0):
 
         if condition is None:
             sources = np.atleast_1d(sources).astype(np.int32)
@@ -876,8 +884,9 @@ class Synapses(Group):
                                             'synapses_create',
                                             variable_indices=variable_indices,
                                             additional_variables=variables,
-                                            check_units=False
-                                            )
+                                            check_units=False,
+                                            run_namespace=namespace,
+                                            level=level+1)
             codeobj()
 
 

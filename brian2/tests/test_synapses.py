@@ -134,6 +134,19 @@ def test_connection_string_deterministic():
         S = Synapses(G, G, 'w:1', 'v+=w', connect='i == j', codeobj_class=codeobj_class)
         _compare(S, expected)
 
+        # Everything except for the upper [5, 5] quadrant
+        number = 5
+        expected = np.ones((len(G), len(G)))
+        expected[:number, :number] = 0
+        S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
+        S.connect('(i >= number) or (j >= number)')
+        _compare(S, expected)
+
+        S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
+        S.connect('(i >= explicit_number) or (j >= explicit_number)',
+                  namespace={'explicit_number': number})
+        _compare(S, expected)
+
 
 def test_connection_random():
     '''

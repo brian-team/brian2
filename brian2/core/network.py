@@ -332,11 +332,11 @@ class Network(Nameable):
         report_period : `Quantity`
             How frequently (in real time) to report progress.
         namespace : dict-like, optional
-            A namespace in which objects which do not define their own
-            namespace will be run. If no namespace is given at all, the locals
+            A namespace that will be used in addition to the group-specific
+            namespaces (if defined). If not specified, the locals
             and globals around the run function will be used.
         level : int, optional
-            How deep to go down the stack frame to look for the locals/global
+            How deep to go up the stack frame to look for the locals/global
             (see `namespace` argument). Only used by run functions that call
             this run function, e.g. `MagicNetwork.run` to adjust for the
             additional nesting.
