@@ -248,7 +248,7 @@ class NeuronGroup(Group, SpikeSource):
 
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ('unless refractory'),
-                           PARAMETER: ('constant')})
+                           PARAMETER: ('constant', 'scalar')})
 
         # add refractoriness
         if refractory is not False:
@@ -371,10 +371,15 @@ class NeuronGroup(Group, SpikeSource):
 
         for eq in self.equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
-                constant = ('constant' in eq.flags)
-                self.variables.add_array(eq.varname, size=self._N,
+                constant = 'constant' in eq.flags
+                scalar = 'scalar' in eq.flags
+                size = 1 if scalar else self._N
+                index = '0' if scalar else None
+                self.variables.add_array(eq.varname, size=size,
                                          unit=eq.unit, dtype=dtype[eq.varname],
-                                         constant=constant, is_bool=eq.is_bool)
+                                         constant=constant, is_bool=eq.is_bool,
+                                         scalar=scalar,
+                                         index=index)
             elif eq.type == STATIC_EQUATION:
                 self.variables.add_subexpression(eq.varname, unit=eq.unit,
                                                  expr=str(eq.expr),

@@ -401,7 +401,7 @@ class Synapses(Group):
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven'],
                            STATIC_EQUATION: ['summed'],
-                           PARAMETER: ['constant']})
+                           PARAMETER: ['constant', 'scalar']})
 
         # Separate the equations into event-driven and continuously updated
         # equations
@@ -656,16 +656,26 @@ class Synapses(Group):
                                   self.event_driven.itervalues()
                                   if self.event_driven is not None else []):
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
-                constant = ('constant' in eq.flags)
-                # We are dealing with dynamic arrays here, code generation
-                # shouldn't directly access the specifier.array attribute but
-                # use specifier.get_value() to get a reference to the underlying
-                # array
-                self.variables.add_dynamic_array(eq.varname, size=0,
-                                                 unit=eq.unit,
-                                                 dtype=dtype[eq.varname],
-                                                 constant=constant,
-                                                 is_bool=eq.is_bool)
+                constant = 'constant' in eq.flags
+                scalar = 'scalar' in eq.flags
+                if scalar:
+                    self.variables.add_array(eq.varname, size=1,
+                                             unit=eq.unit,
+                                             dtype=dtype[eq.varname],
+                                             constant=constant,
+                                             is_bool=eq.is_bool,
+                                             scalar=True,
+                                             index='0')
+                else:
+                    # We are dealing with dynamic arrays here, code generation
+                    # shouldn't directly access the specifier.array attribute but
+                    # use specifier.get_value() to get a reference to the underlying
+                    # array
+                    self.variables.add_dynamic_array(eq.varname, size=0,
+                                                     unit=eq.unit,
+                                                     dtype=dtype[eq.varname],
+                                                     constant=constant,
+                                                     is_bool=eq.is_bool)
             elif eq.type == STATIC_EQUATION:
                 if 'summed' in eq.flags:
                     # Give a special name to the subexpression for summed

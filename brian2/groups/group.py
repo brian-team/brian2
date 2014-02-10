@@ -26,6 +26,7 @@ from brian2.devices.device import device_override
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit)
 from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import get_identifiers
 
 __all__ = ['Group', 'CodeRunner']
 
@@ -294,6 +295,10 @@ class Group(BrianObject):
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
         '''
+        if variable.scalar:
+            raise IndexError(('Cannot access the variable %s with a '
+                              'string expression, it is a scalar '
+                              'variable.') % variable_name)
         # Add the recorded variable under a known name to the variables
         # dictionary. Important to deal correctly with
         # the type of the variable in C++
@@ -325,7 +330,8 @@ class Group(BrianObject):
         if variable.scalar:
             if not ((isinstance(item, slice) and item == slice(None)) or item == 0 or (hasattr(item, '__len__')
                                                                                            and len(item) == 0)):
-                raise IndexError('Variable is a scalar variable.')
+                raise IndexError(('Illegal index for variable %s, it is a '
+                                  'scalar variable.') % variable_name)
             indices = np.array([0])
         else:
             indices = self.calc_indices(item)
@@ -351,34 +357,70 @@ class Group(BrianObject):
             )
             return codeobj()
         else:
+            if variable.scalar:
+                return variable.get_value()[0]
+            else:
+                # We are not going via code generation so we have to take care
+                # of correct indexing (in particular for subgroups) explicitly
+                var_index = self.variables.indices[variable_name]
+                if var_index != '_idx':
+                    indices = self.variables[var_index].get_value()[indices]
+                return variable.get_value()[indices]
+
+    @device_override('group_set_with_index_array')
+    def set_with_index_array(self, variable_name, variable, item, value,
+                             check_units):
+        if check_units:
+            fail_for_dimension_mismatch(variable.unit, value,
+                                        'Incorrect unit for setting variable %s' % variable_name)
+        if variable.scalar:
+            if not ((isinstance(item, slice) and item == slice(None)) or item == 0 or (hasattr(item, '__len__')
+                                                                                           and len(item) == 0)):
+                raise IndexError(('Illegal index for variable %s, it is a '
+                                  'scalar variable.') % variable_name)
+            variable.get_value()[0] = value
+        else:
+            indices = self.calc_indices(item)
             # We are not going via code generation so we have to take care
             # of correct indexing (in particular for subgroups) explicitly
             var_index = self.variables.indices[variable_name]
             if var_index != '_idx':
                 indices = self.variables[var_index].get_value()[indices]
-            return variable.get_value()[indices]
 
-    @device_override('group_set_with_index_array')
-    def set_with_index_array(self, variable_name, variable, item, value,
-                             check_units):
-        if variable.scalar:
-            if not ((isinstance(item, slice) and item == slice(None)) or item == 0 or (hasattr(item, '__len__')
-                                                                                           and len(item) == 0)):
-                raise IndexError('Variable is a scalar variable.')
-            indices = np.array([0])
-        else:
-            indices = self.calc_indices(item)
-        # We are not going via code generation so we have to take care
-        # of correct indexing (in particular for subgroups) explicitly
-        var_index = self.variables.indices[variable_name]
-        if var_index != '_idx':
-            indices = self.variables[var_index].get_value()[indices]
+            variable.get_value()[indices] = value
 
-        if check_units:
-            fail_for_dimension_mismatch(variable.unit, value,
-                                        'Incorrect unit for setting variable %s' % variable_name)
+    def _check_expression_scalar(self, expr, varname, level=0,
+                                 run_namespace=None):
+        '''
+        Helper function to check that an expression only refers to scalar
+        variables, used when setting a scalar variable with a string expression.
 
-        variable.get_value()[indices] = value
+        Parameters
+        ----------
+        expr : str
+            The expression to check.
+        varname : str
+            The variable that is being set (only used for the error message)
+        level : int, optional
+            How far to go up in the stack to find the local namespace (if
+            `run_namespace` is not set).
+        run_namespace : dict-like, optional
+            A specific namespace provided for this expression.
+
+        Raises
+        ------
+        ValueError
+            If the expression refers to a non-scalar variable.
+        '''
+        identifiers = get_identifiers(expr)
+        referred_variables = self.resolve_all(identifiers,
+                                              run_namespace=run_namespace,
+                                              level=level+1)
+        for ref_varname, ref_var in referred_variables.iteritems():
+            if not getattr(ref_var, 'scalar', False):
+                raise ValueError(('String expression for setting scalar '
+                                  'variable %s refers to %s which is not '
+                                  'scalar.') % (varname, ref_varname))
 
     @device_override('group_set_with_expression')
     def set_with_expression(self, varname, variable, item, code,
@@ -408,6 +450,9 @@ class Group(BrianObject):
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
         '''
+        if variable.scalar:
+            self._check_expression_scalar(code, varname, level=level+2,
+                                          run_namespace=run_namespace)
         indices = self.calc_indices(item)
         abstract_code = varname + ' = ' + code
         variables = Variables(None)
@@ -418,12 +463,12 @@ class Group(BrianObject):
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
         codeobj = create_runner_codeobj(self,
-                                 abstract_code,
-                                 'group_variable_set',
-                                 additional_variables=variables,
-                                 check_units=check_units,
-                                 level=level+2,
-                                 run_namespace=run_namespace)
+                                        abstract_code,
+                                        'group_variable_set',
+                                        additional_variables=variables,
+                                        check_units=check_units,
+                                        level=level+2,
+                                        run_namespace=run_namespace)
         codeobj()
 
     @device_override('group_set_with_expression_conditional')
@@ -454,7 +499,14 @@ class Group(BrianObject):
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
         '''
-
+        if variable.scalar:
+            if cond != 'True':
+                raise IndexError(('Cannot set the variable %s with a '
+                                  'string expression, it is a scalar '
+                                  'variable.') % varname)
+            else:
+                self._check_expression_scalar(code, varname, level=level+2,
+                                              run_namespace=run_namespace)
         abstract_code_cond = '_cond = '+cond
         abstract_code = varname + ' = ' + code
         variables = Variables(None)

@@ -5,10 +5,11 @@ from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 from brian2.groups.neurongroup import NeuronGroup
 from brian2.core.network import Network
 from brian2.core.clocks import defaultclock
+from brian2.monitors.spikemonitor import SpikeMonitor
 from brian2.units.fundamentalunits import (DimensionMismatchError,
                                            have_same_dimensions)
 from brian2.units.allunits import second, volt
-from brian2.units.stdunits import ms, mV
+from brian2.units.stdunits import ms, mV, Hz
 from brian2.codegen.runtime.weave_rt import WeaveCodeObject
 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
 from brian2.utils.logger import catch_logs
@@ -408,6 +409,54 @@ def test_state_variable_access_strings():
         assert_equal(G.v[:], np.arange(10)*volt)
 
 
+def test_scalar_parameter_access():
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, '''dv/dt = freq : 1
+                               freq : Hz (scalar)
+                               number : 1 (scalar)
+                               array : 1''',
+                        codeobj_class=codeobj_class)
+        my_freq = 200*Hz
+
+        # Try setting a scalar variable in various ways
+        G.freq = 100*Hz
+        assert_equal(G.freq[:], 100*Hz)
+        G.freq = 'my_freq'
+        assert_equal(G.freq[:], 200*Hz)
+        G.number = 300
+        G.freq = 'number*Hz'
+        assert_equal(G.freq[:], 300*Hz)
+
+        # Check the three methods of accessing that work
+        assert_equal(G.freq[:], 300*Hz)
+        assert_equal(G.freq[0], 300*Hz)
+
+        # Check error messages
+        assert_raises(IndexError, lambda: G.freq[1])
+        assert_raises(IndexError, lambda: G.freq[0:1])
+        assert_raises(IndexError, lambda: G.freq['i>5'])
+
+        assert_raises(ValueError, lambda: G.freq.set_item(slice(None), [0, 1]*Hz))
+        assert_raises(ValueError, lambda: G.freq.set_item(slice(None), 'v*Hz'))
+        assert_raises(IndexError, lambda: G.freq.set_item(1, 100*Hz))
+        assert_raises(IndexError, lambda: G.freq.set_item('i>5', 100*Hz))
+
+
+def test_scalar_parameter_use():
+    for codeobj_class in codeobj_classes:
+        defaultclock.t = 0*ms
+        G = NeuronGroup(2, '''dv/dt = freq : 1
+                              freq : Hz (scalar)
+                              total_spike_count : 1 (scalar)''',
+                        threshold='v > 1',
+                        reset='v = 0; total_spike_count += 1',
+                        codeobj_class=codeobj_class)
+        G.freq = 100*Hz
+        net = Network(G)
+        net.run(50.1*ms)
+        assert G.total_spike_count[:] == len(G)*5
+
+
 def test_repr():
     G = NeuronGroup(10, '''dv/dt = -(v + Inp) / tau : volt
                            Inp = sin(2*pi*freq*t) : volt
@@ -444,5 +493,7 @@ if __name__ == '__main__':
     test_state_variables()
     test_state_variable_access()
     test_state_variable_access_strings()
+    test_scalar_parameter_access()
+    test_scalar_parameter_use()
     test_indices()
     test_repr()

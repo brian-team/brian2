@@ -106,11 +106,11 @@ class CodeGenerator(object):
         # Gather the indices stored as arrays (ignore _idx which is special)
         indices = set()
         indices |= set(variable_indices[varname] for varname in read
-                       if variable_indices[varname] != '_idx'
+                       if not variable_indices[varname] in ('_idx', '0')
                            and isinstance(variables[variable_indices[varname]],
                                           ArrayVariable))
         indices |= set(variable_indices[varname] for varname in write
-                       if variable_indices[varname] != '_idx'
+                       if not variable_indices[varname] in ('_idx', '0')
                            and isinstance(variables[variable_indices[varname]],
                                           ArrayVariable))
         # don't list arrays that are read explicitly and used as indices twice
