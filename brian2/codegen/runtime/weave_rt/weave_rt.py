@@ -21,7 +21,7 @@ from ...templates import Templater
 from ...languages.cpp_lang import CPPLanguage
 from ...targets import codegen_targets
 
-__all__ = ['WeaveCodeObject']
+__all__ = ['WeaveCodeObject', 'WeaveLanguage']
 
 # Preferences
 brian_prefs.register_preferences(
@@ -68,6 +68,12 @@ def weave_data_type(dtype):
     return num_to_c_types[dtype]
 
 
+class WeaveLanguage(CPPLanguage):
+    def __init__(self, *args, **kwds):
+        super(WeaveLanguage, self).__init__(*args, **kwds)
+        self.c_data_type = weave_data_type
+
+
 class WeaveCodeObject(CodeObject):
     '''
     Weave code object
@@ -79,7 +85,7 @@ class WeaveCodeObject(CodeObject):
     templater = Templater('brian2.codegen.runtime.weave_rt',
                           env_globals={'c_data_type': weave_data_type,
                                        'dtype': numpy.dtype})
-    language_class = CPPLanguage
+    language_class = WeaveLanguage
     class_name = 'weave'
 
     def __init__(self, owner, code, variables, name='weave_code_object*'):

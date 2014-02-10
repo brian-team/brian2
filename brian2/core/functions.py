@@ -1,4 +1,5 @@
 import collections
+import inspect
 
 import sympy
 from sympy import Function as sympy_Function
@@ -109,14 +110,17 @@ class FunctionImplementationContainer(collections.MutableMapping):
     def __getitem__(self, key):
         fallback = getattr(key, 'language_class', None)
 
-        if key in self._implementations:
-            return self._implementations[key]
-        elif fallback in self._implementations:
-            return self._implementations[fallback]
-        else:
-            raise KeyError(('No implementation available for {key}. '
-                            'Available implementations: {keys}').format(key=key,
-                                                                        keys=self._implementations.keys()))
+        for K in [key, fallback]:        
+            if K in self._implementations:
+                return self._implementations[K]
+            if hasattr(K, '__bases__'):
+                for cls in inspect.getmro(K):
+                    if cls in self._implementations:
+                        return self._implementations[cls]
+
+        raise KeyError(('No implementation available for {key}. '
+                        'Available implementations: {keys}').format(key=key,
+                                                                    keys=self._implementations.keys()))
 
     def __setitem__(self, key, value):
         self._implementations[key] = value
