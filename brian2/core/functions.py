@@ -107,9 +107,7 @@ class FunctionImplementationContainer(collections.MutableMapping):
         self._implementations = dict()
 
     def __getitem__(self, key):
-        fallback = None
-        if hasattr(key, 'language'):
-            fallback = key.language.__class__
+        fallback = getattr(key, 'language_class', None)
 
         if key in self._implementations:
             return self._implementations[key]

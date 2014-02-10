@@ -20,7 +20,7 @@ class CPPStandaloneCodeObject(CodeObject):
     '''
     templater = Templater('brian2.devices.cpp_standalone',
                           env_globals={'c_data_type': c_data_type})
-    language = CPPLanguage()
+    language_class = CPPLanguage
 
     def __call__(self, **kwds):
         return self.run()

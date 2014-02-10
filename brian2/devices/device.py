@@ -8,16 +8,11 @@ import numpy as np
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.codegen.targets import codegen_targets
 from brian2.codegen.functions import add_numpy_implementation
-from brian2.codegen.codeobject import create_runner_codeobj, check_code_units
 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
-from brian2.codegen.translation import translate
-from brian2.core.namespace import get_local_namespace
 from brian2.core.names import find_name
 from brian2.core.preferences import brian_prefs
-from brian2.core.variables import (Variables, ArrayVariable, DynamicArrayVariable,
-                                   Subexpression)
+from brian2.core.variables import ArrayVariable, DynamicArrayVariable
 from brian2.core.functions import Function
-from brian2.units.fundamentalunits import Unit, fail_for_dimension_mismatch
 from brian2.utils.logger import get_logger
 
 __all__ = ['Device', 'RuntimeDevice',
@@ -160,15 +155,20 @@ class Device(object):
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None,
                     template_kwds=None, override_conditional_write=None):
-        codeobj_class = self.code_object_class(codeobj_class)
-        language = codeobj_class.language
 
+        codeobj_class = self.code_object_class(codeobj_class)
+        template = getattr(codeobj_class.templater, template_name)
+        iterate_all = template.iterate_all
+        language = codeobj_class.language_class(variables=variables,
+                                                variable_indices=variable_indices,
+                                                iterate_all=iterate_all,
+                                                codeobj_class=codeobj_class,
+                                                override_conditional_write=override_conditional_write)
         if template_kwds is None:
             template_kwds = dict()
         else:
             template_kwds = template_kwds.copy()
 
-        template = getattr(codeobj_class.templater, template_name)
 
         # Check that all functions are available
         for varname, value in variables.iteritems():
@@ -188,14 +188,9 @@ class Device(object):
                 logger.debug('%s abstract code key %s:\n%s' % (name, k, v))
         else:
             logger.debug(name + " abstract code:\n" + abstract_code)
-        iterate_all = template.iterate_all
-        snippet, kwds = translate(abstract_code, variables,
-                                  dtype=brian_prefs['core.default_scalar_dtype'],
-                                  codeobj_class=codeobj_class,
-                                  variable_indices=variable_indices,
-                                  iterate_all=iterate_all,
-                                  override_conditional_write=override_conditional_write,
-                                  )
+
+        snippet, kwds = language.translate(abstract_code,
+                                           dtype=brian_prefs['core.default_scalar_dtype'])
         # Add the array names as keywords as well
         for varname, var in variables.iteritems():
             if isinstance(var, ArrayVariable):

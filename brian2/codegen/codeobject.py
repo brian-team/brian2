@@ -33,8 +33,8 @@ class CodeObject(Nameable):
     variables inserted into the namespace.
     '''
     
-    #: The `Language` used by this `CodeObject`
-    language = None
+    #: The `Language` class used by this `CodeObject`
+    language_class = None
     #: A short name for this type of `CodeObject`
     class_name = None
 

@@ -310,11 +310,11 @@ def test_function_implementation_container():
         language_id = 'B language'
 
     class ACodeObject(CodeObject):
-        language = ALanguage()
+        language_class = ALanguage
         class_name = 'A'
 
     class BCodeObject(CodeObject):
-        language = BLanguage()
+        language_class = BLanguage
         class_name = 'B'
 
     # Register the code generation targets

@@ -79,7 +79,7 @@ class WeaveCodeObject(CodeObject):
     templater = Templater('brian2.codegen.runtime.weave_rt',
                           env_globals={'c_data_type': weave_data_type,
                                        'dtype': numpy.dtype})
-    language = CPPLanguage(c_data_type=weave_data_type)
+    language_class = CPPLanguage
     class_name = 'weave'
 
     def __init__(self, owner, code, variables, name='weave_code_object*'):
@@ -120,8 +120,8 @@ class WeaveCodeObject(CodeObject):
                 self.namespace[name] = value
 
             if isinstance(var, DynamicArrayVariable):
-                dyn_array_name = self.language.get_array_name(var,
-                                                              access_data=False)
+                dyn_array_name = self.language_class.get_array_name(var,
+                                                                    access_data=False)
                 self.namespace[dyn_array_name] = self.device.get_value(var,
                                                                        access_data=False)
 

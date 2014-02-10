@@ -22,28 +22,26 @@ class NumpyLanguage(Language):
 
     language_id = 'numpy'
 
-    def translate_expression(self, expr, variables, codeobj_class):
-        for varname, var in variables.iteritems():
+    def translate_expression(self, expr):
+        for varname, var in self.variables.iteritems():
             if isinstance(var, Function):
-                impl_name = var.implementations[codeobj_class].name
+                impl_name = var.implementations[self.codeobj_class].name
                 if impl_name is not None:
                     expr = word_substitute(expr, {varname: impl_name})
-        return NumpyNodeRenderer().render_expr(expr, variables).strip()
+        return NumpyNodeRenderer().render_expr(expr, self.variables).strip()
 
-    def translate_statement(self, statement, variables, codeobj_class):
+    def translate_statement(self, statement):
         # TODO: optimisation, translate arithmetic to a sequence of inplace
         # operations like a=b+c -> add(b, c, a)
         var, op, expr = statement.var, statement.op, statement.expr
         if op == ':=':
             op = '='
-        return var + ' ' + op + ' ' + self.translate_expression(expr, variables,
-                                                                codeobj_class)
+        return var + ' ' + op + ' ' + self.translate_expression(expr)
         
-    def translate_one_statement_sequence(self, statements, variables,
-                                         variable_indices, iterate_all,
-                                         codeobj_class, override_conditional_write=None):
-        read, write, indices, conditional_write_vars = self.arrays_helper(statements, variables, variable_indices,
-                                                                          override_conditional_write)
+    def translate_one_statement_sequence(self, statements):
+        variables = self.variables
+        variable_indices = self.variable_indices
+        read, write, indices, conditional_write_vars = self.arrays_helper(statements)
         lines = []
         # index and read arrays (index arrays first)
         for varname in itertools.chain(indices, read):
@@ -55,7 +53,7 @@ class NumpyLanguage(Language):
 #                line = '{varname} = {array_name}.take({index})'
 #            line = line.format(varname=varname, array_name=self.get_array_name(var), index=index)
             line = varname + ' = ' + self.get_array_name(var)
-            if not index in iterate_all:
+            if not index in self.iterate_all:
                 line = line + '[' + index + ']'
             lines.append(line)
         # the actual code
@@ -63,7 +61,7 @@ class NumpyLanguage(Language):
         for stmt in statements:
             if stmt.op==':=':
                 created_vars.add(stmt.var)
-            line = self.translate_statement(stmt, variables, codeobj_class)
+            line = self.translate_statement(stmt)
             if stmt.var in conditional_write_vars:
                 subs = {}
                 index = conditional_write_vars[stmt.var]
@@ -86,7 +84,7 @@ class NumpyLanguage(Language):
             index_var = variable_indices[varname]
             # check if all operations were inplace and we're operating on the
             # whole vector, if so we don't need to write the array back
-            if not index_var in iterate_all:
+            if not index_var in self.iterate_all:
                 all_inplace = False
             else:
                 all_inplace = True
@@ -96,7 +94,7 @@ class NumpyLanguage(Language):
                         break
             if not all_inplace:
                 line = self.get_array_name(var)
-                if index_var in iterate_all:
+                if index_var in self.iterate_all:
                     line = line + '[:]'
                 else:
                     line = line + '[' + index_var + ']'
@@ -123,32 +121,21 @@ class NumpyLanguage(Language):
         # would otherwise return values with units
         for varname, var in variables.iteritems():
             if isinstance(var, Function):
-                variables[varname] = var.implementations[codeobj_class].code
+                variables[varname] = var.implementations[self.codeobj_class].code
 
         return lines
 
-    def translate_statement_sequence(self, statements, variables,
-                                     variable_indices, iterate_all,
-                                     codeobj_class, override_conditional_write=None):
+    def translate_statement_sequence(self, statements):
         # For numpy, no addiional keywords are provided to the template
         kwds = {}
 
         if isinstance(statements, dict):
             blocks = {}
             for name, block in statements.iteritems():
-                blocks[name] = self.translate_one_statement_sequence(
-                                     block,
-                                     variables,
-                                     variable_indices,
-                                     iterate_all,
-                                     codeobj_class,
-                                     override_conditional_write=override_conditional_write)
+                blocks[name] = self.translate_one_statement_sequence(block)
             return blocks, kwds
         else:
-            block = self.translate_one_statement_sequence(statements, variables,
-                                                          variable_indices,
-                                                          iterate_all, codeobj_class,
-                                                          override_conditional_write=override_conditional_write)
+            block = self.translate_one_statement_sequence(statements)
             return block, kwds
 
 ################################################################################

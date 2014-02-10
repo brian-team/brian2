@@ -174,8 +174,8 @@ def add_implementations(function, codes, namespaces=None, names=None):
                 if codegen_target.class_name == target:
                     target_obj = codegen_target
                     break
-                elif codegen_target.language.language_id == target:
-                    target_obj = codegen_target.language.__class__
+                elif codegen_target.language_class.language_id == target:
+                    target_obj = codegen_target.language_class
                     break
             if target_obj is None:
                 raise ValueError('Unknown code generation target %s' % target)

@@ -113,13 +113,14 @@ class CPPLanguage(Language):
 
     language_id = 'cpp'
 
-    def __init__(self, c_data_type=c_data_type):
-        super(CPPLanguage, self).__init__()
+    def __init__(self, *args, **kwds):
+        super(CPPLanguage, self).__init__(*args, **kwds)
         self.restrict = brian_prefs['codegen.languages.cpp.restrict_keyword'] + ' '
         self.flush_denormals = brian_prefs['codegen.languages.cpp.flush_denormals']
         self.c_data_type = c_data_type
 
-    def get_array_name(self, var, access_data=True):
+    @staticmethod
+    def get_array_name(var, access_data=True):
         # We have to do the import here to avoid circular import dependencies.
         from brian2.devices.device import get_device
         device = get_device()
@@ -128,15 +129,15 @@ class CPPLanguage(Language):
         else:
             return device.get_array_name(var, access_data=False)
 
-    def translate_expression(self, expr, variables, codeobj_class):
-        for varname, var in variables.iteritems():
+    def translate_expression(self, expr):
+        for varname, var in self.variables.iteritems():
             if isinstance(var, Function):
-                impl_name = var.implementations[codeobj_class].name
+                impl_name = var.implementations[self.codeobj_class].name
                 if impl_name is not None:
                     expr = word_substitute(expr, {varname: impl_name})
         return CPPNodeRenderer().render_expr(expr).strip()
 
-    def translate_statement(self, statement, variables, codeobj_class):
+    def translate_statement(self, statement):
         var, op, expr = statement.var, statement.op, statement.expr
         if op == ':=':
             decl = self.c_data_type(statement.dtype) + ' '
@@ -145,19 +146,13 @@ class CPPLanguage(Language):
                 decl = 'const ' + decl
         else:
             decl = ''
-        return decl + var + ' ' + op + ' ' + self.translate_expression(expr,
-                                                                       variables,
-                                                                       codeobj_class) + ';'
+        return decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
 
-    def translate_one_statement_sequence(self, statements, variables,
-                                         variable_indices, iterate_all,
-                                         codeobj_class, override_conditional_write=None):
+    def translate_one_statement_sequence(self, statements):
+        variables = self.variables
+        variable_indices = self.variable_indices
 
-        # Note that C++ code does not care about the iterate_all argument -- it
-        # always has to loop over the elements
-
-        read, write, indices, conditional_write_vars = self.arrays_helper(statements, variables, variable_indices,
-                                                                          override_conditional_write)
+        read, write, indices, conditional_write_vars = self.arrays_helper(statements)
 
         lines = []
         # index and read arrays (index arrays first)
@@ -179,7 +174,7 @@ class CPPLanguage(Language):
                 lines.append(line)
         # the actual code
         for stmt in statements:
-            line = self.translate_statement(stmt, variables, codeobj_class)
+            line = self.translate_statement(stmt)
             if stmt.var in conditional_write_vars:
                 subs = {}
                 condvar = conditional_write_vars[stmt.var]
@@ -208,7 +203,7 @@ class CPPLanguage(Language):
         else:
             return ''
 
-    def determine_keywords(self, variables, codeobj_class):
+    def determine_keywords(self):
         # set up the restricted pointers, these are used so that the compiler
         # knows there is no aliasing in the pointers, for optimisation
         lines = []
@@ -220,7 +215,7 @@ class CPPLanguage(Language):
         # Again, do the import here to avoid a circular dependency.
         from brian2.devices.device import get_device
         device = get_device()
-        for varname, var in variables.iteritems():
+        for varname, var in self.variables.iteritems():
             if isinstance(var, ArrayVariable):
                 # This is the "true" array name, not the restricted pointer.
                 array_name = device.get_array_name(var)
@@ -239,10 +234,10 @@ class CPPLanguage(Language):
         user_functions = []
         support_code = ''
         hash_defines = ''
-        for varname, variable in variables.items():
+        for varname, variable in self.variables.items():
             if isinstance(variable, Function):
                 user_functions.append((varname, variable))
-                speccode = variable.implementations[codeobj_class].code
+                speccode = variable.implementations[self.codeobj_class].code
                 if speccode is not None:
                     support_code += '\n' + deindent(speccode.get('support_code', ''))
                     hash_defines += deindent(speccode.get('hashdefine_code', ''))
@@ -251,19 +246,19 @@ class CPPLanguage(Language):
                 # function via weave if necessary (e.g. in the case of randn)
                 if not variable.pyfunc is None:
                     pyfunc_name = '_python_' + varname
-                    if pyfunc_name in variables:
+                    if pyfunc_name in self.variables:
                         logger.warn(('Namespace already contains function %s, '
                                      'not replacing it') % pyfunc_name)
                     else:
-                        variables[pyfunc_name] = variable.pyfunc
+                        self.variables[pyfunc_name] = variable.pyfunc
 
         # delete the user-defined functions from the namespace and add the
         # function namespaces (if any)
         for funcname, func in user_functions:
-            del variables[funcname]
-            func_namespace = func.implementations[codeobj_class].namespace
+            del self.variables[funcname]
+            func_namespace = func.implementations[self.codeobj_class].namespace
             if func_namespace is not None:
-                variables.update(func_namespace)
+                self.variables.update(func_namespace)
 
         keywords = {'pointers_lines': stripped_deindented_lines(pointers),
                     'support_code_lines': stripped_deindented_lines(support_code),
@@ -273,26 +268,15 @@ class CPPLanguage(Language):
         keywords.update(template_kwds)
         return keywords
 
-    def translate_statement_sequence(self, statements, variables,
-                                     variable_indices, iterate_all,
-                                     codeobj_class, override_conditional_write=None):
+    def translate_statement_sequence(self, statements):
         if isinstance(statements, dict):
             blocks = {}
             for name, block in statements.iteritems():
-                blocks[name] = self.translate_one_statement_sequence(
-                                         block,
-                                         variables,
-                                         variable_indices,
-                                         iterate_all,
-                                         codeobj_class,
-                                         override_conditional_write=override_conditional_write)
+                blocks[name] = self.translate_one_statement_sequence(block)
         else:
-            blocks = self.translate_one_statement_sequence(statements, variables,
-                                                           variable_indices,
-                                                           iterate_all, codeobj_class,
-                                                           override_conditional_write=override_conditional_write)
+            blocks = self.translate_one_statement_sequence(statements)
 
-        kwds = self.determine_keywords(variables, codeobj_class)
+        kwds = self.determine_keywords()
 
         return blocks, kwds
 
