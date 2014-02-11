@@ -10,7 +10,7 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
 from ...codeobject import CodeObject
 
 from ...templates import Templater
-from ...languages.numpy_lang import NumpyLanguage
+from ...generators.numpy_generator import NumpyCodeGenerator
 from ...targets import codegen_targets
 
 __all__ = ['NumpyCodeObject']
@@ -36,11 +36,10 @@ class NumpyCodeObject(CodeObject):
     Default for Brian because it works on all platforms.
     '''
     templater = Templater('brian2.codegen.runtime.numpy_rt')
-    language = NumpyLanguage()
+    generator_class = NumpyCodeGenerator
     class_name = 'numpy'
 
     def __init__(self, owner, code, variables, name='numpy_code_object*'):
-
         from brian2.devices.device import get_device
         self.device = get_device()
         self.namespace = {'_owner': owner,
@@ -67,13 +66,13 @@ class NumpyCodeObject(CodeObject):
                 continue
 
             if isinstance(var, ArrayVariable):
-                self.namespace[self.language.get_array_name(var)] = value
+                self.namespace[self.generator_class.get_array_name(var)] = value
             else:
                 self.namespace[name] = value
 
             if isinstance(var, DynamicArrayVariable):
-                dyn_array_name = self.language.get_array_name(var,
-                                                              access_data=False)
+                dyn_array_name = self.generator_class.get_array_name(var,
+                                                                    access_data=False)
                 self.namespace[dyn_array_name] = self.device.get_value(var,
                                                                        access_data=False)
 
@@ -87,8 +86,8 @@ class NumpyCodeObject(CodeObject):
                 self.nonconstant_values.append((name, var.get_value))
             elif (isinstance(var, DynamicArrayVariable) and
                   not var.constant_size):
-                self.nonconstant_values.append((self.language.get_array_name(var,
-                                                                             self.variables),
+                self.nonconstant_values.append((self.generator_class.get_array_name(var,
+                                                                                   self.variables),
                                                 var.get_value))
 
     def update_namespace(self):

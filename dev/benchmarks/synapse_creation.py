@@ -43,10 +43,10 @@ conditions = [('Full', 'True'),
               ('Random no-self (50%)', ('(i != j)', None, 1, 0.5)),
               ('Random no-self (10%)', ('(i != j)', None, 1, 0.1)),
               ('Random no-self (1%)', ('(i != j)', None, 1, 0.01))]
-languages = [PythonLanguage(), CPPLanguage()]
+targets = [PythonLanguage(), CPPLanguage()]
 results = {}
 max_connections = 10000000
-for language in languages:
+for language in generators:
     lang_name = language.__class__.__name__
     for pattern, condition in conditions:
         N = 1

@@ -289,7 +289,7 @@ class Group(BrianObject):
             and to state variables. For example: ``'i>3 and v>0*mV'``.
         level : int, optional
             How much farther to go up in the stack to find the implicit
-            namespace (if used, see `run_namespace).
+            namespace (if used, see `run_namespace`).
         run_namespace : dict-like, optional
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
@@ -403,7 +403,7 @@ class Group(BrianObject):
             Whether to check the units of the expression.
         level : int, optional
             How much farther to go up in the stack to find the implicit
-            namespace (if used, see `run_namespace).
+            namespace (if used, see `run_namespace`).
         run_namespace : dict-like, optional
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
@@ -449,7 +449,7 @@ class Group(BrianObject):
             Whether to check the units of the expression.
         level : int, optional
             How much farther to go up in the stack to find the implicit
-            namespace (if used, see `run_namespace).
+            namespace (if used, see `run_namespace`).
         run_namespace : dict-like, optional
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
@@ -524,7 +524,7 @@ class Group(BrianObject):
         name and finally look in `Group.namespace` and in `run_namespace`. If
         the latter is not given, it will try to find the variable in the local
         namespace where the original function call took place. See
-        :doc:`user/equations#external-variables-and-functions`.
+        :ref:`external-variables`.
 
         Parameters
         ----------

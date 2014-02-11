@@ -87,7 +87,7 @@ Abstract code to snippet
 We convert abstract code into a 'snippet', which is a small segment of
 code which is syntactically correct in the target language, although it may
 not be runnable on its own (that's handled by insertion into a 'template'
-later). This is handled by the `Language` object in ``brian2.codegen.languages``.
+later). This is handled by the `CodeGenerator` object in ``brian2.codegen.languages``.
 In the case of converting into python/numpy code this typically doesn't involve
 any changes to the code at all because the original code is in Python
 syntax. For conversion to C++, we have to do some syntactic transformations
@@ -203,8 +203,8 @@ involved in the code generation process.
 	
 	``codegen.functions``
 		Code related to including functions - built-in and user-defined - in generated code.
-	``codegen.languages``
-		Each `Language` is defined in a module here.
+	``codegen.generators``
+		Each `CodeGenerator` is defined in a module here.
 	``codegen.runtime``
 		Each runtime `CodeObject` and its templates are defined in a package here.
 ``core``

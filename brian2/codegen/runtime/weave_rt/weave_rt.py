@@ -18,10 +18,10 @@ from brian2.core.functions import DEFAULT_FUNCTIONS, FunctionImplementation
 
 from ...codeobject import CodeObject
 from ...templates import Templater
-from ...languages.cpp_lang import CPPLanguage
+from ...generators.cpp_generator import CPPCodeGenerator
 from ...targets import codegen_targets
 
-__all__ = ['WeaveCodeObject']
+__all__ = ['WeaveCodeObject', 'WeaveCodeGenerator']
 
 # Preferences
 brian_prefs.register_preferences(
@@ -68,18 +68,24 @@ def weave_data_type(dtype):
     return num_to_c_types[dtype]
 
 
+class WeaveCodeGenerator(CPPCodeGenerator):
+    def __init__(self, *args, **kwds):
+        super(WeaveCodeGenerator, self).__init__(*args, **kwds)
+        self.c_data_type = weave_data_type
+
+
 class WeaveCodeObject(CodeObject):
     '''
     Weave code object
     
-    The ``code`` should be a `~brian2.codegen.languages.templates.MultiTemplate`
+    The ``code`` should be a `~brian2.codegen.templates.MultiTemplate`
     object with two macros defined, ``main`` (for the main loop code) and
     ``support_code`` for any support code (e.g. function definitions).
     '''
     templater = Templater('brian2.codegen.runtime.weave_rt',
                           env_globals={'c_data_type': weave_data_type,
                                        'dtype': numpy.dtype})
-    language = CPPLanguage(c_data_type=weave_data_type)
+    generator_class = WeaveCodeGenerator
     class_name = 'weave'
 
     def __init__(self, owner, code, variables, name='weave_code_object*'):
@@ -120,8 +126,8 @@ class WeaveCodeObject(CodeObject):
                 self.namespace[name] = value
 
             if isinstance(var, DynamicArrayVariable):
-                dyn_array_name = self.language.get_array_name(var,
-                                                              access_data=False)
+                dyn_array_name = self.generator_class.get_array_name(var,
+                                                                    access_data=False)
                 self.namespace[dyn_array_name] = self.device.get_value(var,
                                                                        access_data=False)
 
@@ -157,14 +163,15 @@ class WeaveCodeObject(CodeObject):
     def run(self):
         if hasattr(self, 'compiled_python_pre'):
             exec self.compiled_python_pre in self.python_code_namespace
-        return weave.inline(self.code.main, self.namespace.keys(),
-                            local_dict=self.namespace,
-                            support_code=self.code.support_code,
-                            compiler=self.compiler,
-                            extra_compile_args=self.extra_compile_args,
-                            include_dirs=self.include_dirs)
+        ret_val = weave.inline(self.code.main, self.namespace.keys(),
+                               local_dict=self.namespace,
+                               support_code=self.code.support_code,
+                               compiler=self.compiler,
+                               extra_compile_args=self.extra_compile_args,
+                               include_dirs=self.include_dirs)
         if hasattr(self, 'compiled_python_post'):
             exec self.compiled_python_post in self.python_code_namespace
+        return ret_val
 
 codegen_targets.add(WeaveCodeObject)
 

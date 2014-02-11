@@ -1,4 +1,5 @@
 import collections
+import inspect
 
 import sympy
 from sympy import Function as sympy_Function
@@ -100,25 +101,26 @@ class FunctionImplementation(object):
 class FunctionImplementationContainer(collections.MutableMapping):
     '''
     Helper object to store implementations and give access in a dictionary-like
-    fashion, using `Language` implementations as a fallback for `CodeObject`
+    fashion, using `CodeGenerator` implementations as a fallback for `CodeObject`
     implementations.
     '''
     def __init__(self):
         self._implementations = dict()
 
     def __getitem__(self, key):
-        fallback = None
-        if hasattr(key, 'language'):
-            fallback = key.language.__class__
+        fallback = getattr(key, 'generator_class', None)
 
-        if key in self._implementations:
-            return self._implementations[key]
-        elif fallback in self._implementations:
-            return self._implementations[fallback]
-        else:
-            raise KeyError(('No implementation available for {key}. '
-                            'Available implementations: {keys}').format(key=key,
-                                                                        keys=self._implementations.keys()))
+        for K in [key, fallback]:        
+            if K in self._implementations:
+                return self._implementations[K]
+            if hasattr(K, '__bases__'):
+                for cls in inspect.getmro(K):
+                    if cls in self._implementations:
+                        return self._implementations[cls]
+
+        raise KeyError(('No implementation available for {key}. '
+                        'Available implementations: {keys}').format(key=key,
+                                                                    keys=self._implementations.keys()))
 
     def __setitem__(self, key, value):
         self._implementations[key] = value

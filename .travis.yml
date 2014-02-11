@@ -16,6 +16,7 @@ before_install:
 - sudo ln -s /run/shm /dev/shm
 # command to install dependencies
 install:
+  - conda update --yes conda
   - conda create -n travis_conda --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy nose sphinx ipython sympy pyparsing cython
   - source activate travis_conda
   - pip install -q coveralls --use-mirrors

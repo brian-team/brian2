@@ -9,20 +9,14 @@ import inspect
 from collections import defaultdict
 
 from brian2.core.clocks import defaultclock
-from brian2.core.magic import magic_network
 from brian2.core.network import Network
-from brian2.core.namespace import get_local_namespace
 from brian2.devices.device import Device, all_devices
-from brian2.core.preferences import brian_prefs
 from brian2.core.variables import *
 from brian2.synapses.synapses import Synapses
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
-from brian2.codegen.languages.cpp_lang import c_data_type
-from brian2.units.fundamentalunits import (Quantity, Unit, is_scalar_type,
-                                           fail_for_dimension_mismatch,
-                                           have_same_dimensions,
-                                           )
+from brian2.codegen.generators.cpp_generator import c_data_type
+from brian2.units.fundamentalunits import Quantity
 from brian2.units import second
 from brian2.utils.logger import get_logger
 

@@ -28,7 +28,7 @@ from brian2.parsing.statements import parse_statement
 from .statements import Statement
 
 
-__all__ = ['translate', 'make_statements', 'analyse_identifiers',
+__all__ = ['make_statements', 'analyse_identifiers',
            'get_identifiers_recursively']
 
 DEBUG = False
@@ -281,24 +281,3 @@ def translate_subexpression(subexpr, variables):
                          dtype=subexpr.dtype,
                          device=subexpr.device,
                          is_bool=subexpr.is_bool)
-
-def translate(code, variables, dtype, codeobj_class,
-              variable_indices, iterate_all, override_conditional_write=None):
-    '''
-    Translates an abstract code block into the target language.
-
-    TODO
-    
-    Returns a multi-line string.
-    '''
-    if isinstance(code, dict):
-        statements = {}
-        for ac_name, ac_code in code.iteritems():
-            statements[ac_name] = make_statements(ac_code, variables, dtype)
-    else:
-        statements = make_statements(code, variables, dtype)
-    language = codeobj_class.language
-    return language.translate_statement_sequence(statements, variables,
-                                                 variable_indices,
-                                                 iterate_all, codeobj_class,
-                                                 override_conditional_write=override_conditional_write)

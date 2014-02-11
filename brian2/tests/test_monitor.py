@@ -6,16 +6,16 @@ from brian2 import *
 # We can only test C++ if weave is availabe
 try:
     import scipy.weave
-    languages = ['numpy', 'weave']
+    targets = ['numpy', 'weave']
 except ImportError:
     # Can't test C++
-    languages = ['numpy']
+    targets = ['numpy']
 
 
 def test_spike_monitor():
-    language_before = brian_prefs.codegen.target
-    for language in languages:
-        brian_prefs.codegen.target = language
+    target_before = brian_prefs.codegen.target
+    for target in targets:
+        brian_prefs.codegen.target = target
         defaultclock.t = 0*second
         G = NeuronGroup(2, '''dv/dt = rate : 1
                               rate: Hz''', threshold='v>1', reset='v=0')
@@ -41,13 +41,13 @@ def test_spike_monitor():
         assert_array_equal(t, mon.t)
         assert_array_equal(t_, mon.t_)
 
-    brian_prefs.codegen.target = language_before
+    brian_prefs.codegen.target = target_before
 
 
 def test_state_monitor():
-    language_before = brian_prefs.codegen.target
-    for language in languages:
-        brian_prefs.codegen.target = language
+    target_before = brian_prefs.codegen.target
+    for target in targets:
+        brian_prefs.codegen.target = target
         defaultclock.t = 0*second
         # Check that all kinds of variables can be recorded
         G = NeuronGroup(2, '''dv/dt = -v / (10*ms) : 1
@@ -141,13 +141,13 @@ def test_state_monitor():
         assert_raises(TypeError, lambda: mon[5.0])
         assert_raises(TypeError, lambda: mon[[5.0, 6.0]])
 
-    brian_prefs.codegen.target = language_before
+    brian_prefs.codegen.target = target_before
 
 
 def test_rate_monitor():
-    language_before = brian_prefs.codegen.target
-    for language in languages:
-        brian_prefs.codegen.target = language
+    target_before = brian_prefs.codegen.target
+    for target in targets:
+        brian_prefs.codegen.target = target
         G = NeuronGroup(5, 'v : 1', threshold='v>1') # no reset
         G.v = 1.1 # All neurons spike every time step
         rate_mon = PopulationRateMonitor(G)
@@ -170,7 +170,7 @@ def test_rate_monitor():
         assert_array_equal(rate_mon.rate['t>0.5*ms'],
                      rate_mon.rate[np.nonzero(rate_mon.t>0.5*ms)[0]])
 
-    brian_prefs.codegen.target = language_before
+    brian_prefs.codegen.target = target_before
 
 if __name__ == '__main__':
     test_spike_monitor()
