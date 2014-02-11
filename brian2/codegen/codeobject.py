@@ -57,15 +57,6 @@ class CodeObject(Nameable):
         '''
         pass
 
-    def get_compile_methods(self, variables):
-        meths = []
-        for var, var in variables.items():
-            if isinstance(var, Function):
-                meths.append(functools.partial(var.on_compile,
-                                               language=self.language,
-                                               var=var))
-        return meths
-
     def compile(self):
         pass
 
