@@ -34,8 +34,8 @@ class CodeObject(Nameable):
     variables inserted into the namespace.
     '''
     
-    #: The `Language` class used by this `CodeObject`
-    language_class = None
+    #: The `CodeGenerator` class used by this `CodeObject`
+    generator_class = None
     #: A short name for this type of `CodeObject`
     class_name = None
 
@@ -74,7 +74,7 @@ class CodeObject(Nameable):
         -------
         return_value : dict
             A dictionary with the keys corresponding to the `output_variables`
-            defined during the call of `Language.code_object`.
+            defined during the call of `CodeGenerator.code_object`.
         '''
         raise NotImplementedError()
 

@@ -25,7 +25,7 @@ def make_function(codes=None, namespaces=None, discard_units=None):
     Parameters
     ----------
     codes : dict-like, optional
-        A mapping from `Language` or `CodeObject` class objects, or their
+        A mapping from `CodeGenerator` or `CodeObject` class objects, or their
         corresponding names (e.g. `'numpy'` or `'weave'`) to codes for the
         target language. What kind of code the target language expectes is
         language-specific, e.g. C++ code has to be provided as a dictionary
@@ -166,7 +166,7 @@ def add_implementations(function, codes, namespaces=None, names=None):
     if names is None:
         names = {}
     for target, code in codes.iteritems():
-        # Try to find the CodeObject or Language class, corresponding to the
+        # Try to find the CodeObject or CodeGenerator class, corresponding to the
         # given string
         if isinstance(target, basestring):
             target_obj = None
@@ -174,8 +174,8 @@ def add_implementations(function, codes, namespaces=None, names=None):
                 if codegen_target.class_name == target:
                     target_obj = codegen_target
                     break
-                elif codegen_target.language_class.language_id == target:
-                    target_obj = codegen_target.language_class
+                elif codegen_target.generator_class.generator_id == target:
+                    target_obj = codegen_target.generator_class
                     break
             if target_obj is None:
                 raise ValueError('Unknown code generation target %s' % target)

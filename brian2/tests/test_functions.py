@@ -257,11 +257,11 @@ def test_add_implementations():
     del foo.implementations[WeaveCodeObject]
     # language name
     add_implementations(foo, codes={'cpp': {}})
-    assert set(foo.implementations.keys()) == set([WeaveLanguage])
-    del foo.implementations[WeaveLanguage]
+    assert set(foo.implementations.keys()) == set([WeaveCodeGenerator])
+    del foo.implementations[WeaveCodeGenerator]
     # class object
-    add_implementations(foo, codes={CPPLanguage: {}})
-    assert set(foo.implementations.keys()) == set([CPPLanguage])
+    add_implementations(foo, codes={CPPCodeGenerator: {}})
+    assert set(foo.implementations.keys()) == set([CPPCodeGenerator])
     # unknown name
     assert_raises(ValueError, lambda: add_implementations(foo,
                                                           codes={'unknown': {}}))
@@ -303,18 +303,18 @@ def test_function_implementation_container():
     from brian2.core.functions import FunctionImplementationContainer
     import brian2.codegen.targets as targets
 
-    class ALanguage(Language):
-        language_id = 'A language'
+    class ACodeGenerator(CodeGenerator):
+        generator_id = 'A language'
 
-    class BLanguage(Language):
-        language_id = 'B language'
+    class BCodeGenerator(CodeGenerator):
+        generator_id = 'B language'
 
     class ACodeObject(CodeObject):
-        language_class = ALanguage
+        generator_class = ACodeGenerator
         class_name = 'A'
 
     class BCodeObject(CodeObject):
-        language_class = BLanguage
+        generator_class = BCodeGenerator
         class_name = 'B'
 
     # Register the code generation targets
@@ -323,9 +323,9 @@ def test_function_implementation_container():
 
     container = FunctionImplementationContainer()
 
-    # inserting into the container with a Language class
-    container[BLanguage] = 'implementation B language'
-    assert container[BLanguage] == 'implementation B language'
+    # inserting into the container with a CodeGenerator class
+    container[BCodeGenerator] = 'implementation B language'
+    assert container[BCodeGenerator] == 'implementation B language'
 
     # inserting into the container with a CodeObject class
     container[ACodeObject] = 'implementation A CodeObject'
@@ -340,7 +340,7 @@ def test_function_implementation_container():
     assert len(container) == 2
     del container[ACodeObject]
     assert len(container) == 1
-    assert set((key for key in container)) == set([BLanguage])
+    assert set((key for key in container)) == set([BCodeGenerator])
 
     # Restore the previous codegeneration targets
     targets.codegen_targets = _previous_codegen_targets

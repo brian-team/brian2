@@ -46,7 +46,7 @@ conditions = [('Full', 'True'),
 languages = [PythonLanguage(), CPPLanguage()]
 results = {}
 max_connections = 10000000
-for language in languages:
+for language in generators:
     lang_name = language.__class__.__name__
     for pattern, condition in conditions:
         N = 1

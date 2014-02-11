@@ -18,10 +18,10 @@ from brian2.core.functions import DEFAULT_FUNCTIONS, FunctionImplementation
 
 from ...codeobject import CodeObject
 from ...templates import Templater
-from ...languages.cpp_lang import CPPLanguage
+from ...generators.cpp_generator import CPPCodeGenerator
 from ...targets import codegen_targets
 
-__all__ = ['WeaveCodeObject', 'WeaveLanguage']
+__all__ = ['WeaveCodeObject', 'WeaveCodeGenerator']
 
 # Preferences
 brian_prefs.register_preferences(
@@ -68,9 +68,9 @@ def weave_data_type(dtype):
     return num_to_c_types[dtype]
 
 
-class WeaveLanguage(CPPLanguage):
+class WeaveCodeGenerator(CPPCodeGenerator):
     def __init__(self, *args, **kwds):
-        super(WeaveLanguage, self).__init__(*args, **kwds)
+        super(WeaveCodeGenerator, self).__init__(*args, **kwds)
         self.c_data_type = weave_data_type
 
 
@@ -85,7 +85,7 @@ class WeaveCodeObject(CodeObject):
     templater = Templater('brian2.codegen.runtime.weave_rt',
                           env_globals={'c_data_type': weave_data_type,
                                        'dtype': numpy.dtype})
-    language_class = WeaveLanguage
+    generator_class = WeaveCodeGenerator
     class_name = 'weave'
 
     def __init__(self, owner, code, variables, name='weave_code_object*'):
@@ -126,7 +126,7 @@ class WeaveCodeObject(CodeObject):
                 self.namespace[name] = value
 
             if isinstance(var, DynamicArrayVariable):
-                dyn_array_name = self.language_class.get_array_name(var,
+                dyn_array_name = self.generator_class.get_array_name(var,
                                                                     access_data=False)
                 self.namespace[dyn_array_name] = self.device.get_value(var,
                                                                        access_data=False)

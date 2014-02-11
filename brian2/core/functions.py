@@ -101,14 +101,14 @@ class FunctionImplementation(object):
 class FunctionImplementationContainer(collections.MutableMapping):
     '''
     Helper object to store implementations and give access in a dictionary-like
-    fashion, using `Language` implementations as a fallback for `CodeObject`
+    fashion, using `CodeGenerator` implementations as a fallback for `CodeObject`
     implementations.
     '''
     def __init__(self):
         self._implementations = dict()
 
     def __getitem__(self, key):
-        fallback = getattr(key, 'language_class', None)
+        fallback = getattr(key, 'generator_class', None)
 
         for K in [key, fallback]:        
             if K in self._implementations:

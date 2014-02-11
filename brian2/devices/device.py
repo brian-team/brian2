@@ -160,11 +160,11 @@ class Device(object):
         codeobj_class = self.code_object_class(codeobj_class)
         template = getattr(codeobj_class.templater, template_name)
         iterate_all = template.iterate_all
-        language = codeobj_class.language_class(variables=variables,
-                                                variable_indices=variable_indices,
-                                                iterate_all=iterate_all,
-                                                codeobj_class=codeobj_class,
-                                                override_conditional_write=override_conditional_write)
+        language = codeobj_class.generator_class(variables=variables,
+                                                 variable_indices=variable_indices,
+                                                 iterate_all=iterate_all,
+                                                 codeobj_class=codeobj_class,
+                                                 override_conditional_write=override_conditional_write)
         if template_kwds is None:
             template_kwds = dict()
         else:
