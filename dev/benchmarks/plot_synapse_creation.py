@@ -22,7 +22,7 @@ conditions = [('Full', True),
               ('Random no-self (50%)', '(i != j) * 0.5'),
               ('Random no-self (10%)', '(i != j) * 0.1'),
               ('Random no-self (1%)', '(i != j) * 0.01')]
-languages = ['PythonLanguage', 'CPPLanguage', 'Brian 1']
+targets = ['PythonLanguage', 'CPPLanguage', 'Brian 1']
 # nicer names for the labels
 lang_translation = {'PythonLanguage': 'Brian 2 (Python)',
                     'CPPLanguage': 'Brian 2 (C++)',
@@ -31,7 +31,7 @@ lang_translation = {'PythonLanguage': 'Brian 2 (Python)',
 # Do some plots
 for pattern, condition in conditions:
     plt.figure()
-    for lang_name in languages:
+    for lang_name in targets:
         data = [(connections, time) for ((lang, connections, p), time) in results.iteritems()
                 if lang == lang_name and p == pattern]
         data.sort(key=lambda item: item[0])

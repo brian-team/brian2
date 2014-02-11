@@ -160,11 +160,11 @@ class Device(object):
         codeobj_class = self.code_object_class(codeobj_class)
         template = getattr(codeobj_class.templater, template_name)
         iterate_all = template.iterate_all
-        language = codeobj_class.generator_class(variables=variables,
-                                                 variable_indices=variable_indices,
-                                                 iterate_all=iterate_all,
-                                                 codeobj_class=codeobj_class,
-                                                 override_conditional_write=override_conditional_write)
+        generator = codeobj_class.generator_class(variables=variables,
+                                                  variable_indices=variable_indices,
+                                                  iterate_all=iterate_all,
+                                                  codeobj_class=codeobj_class,
+                                                  override_conditional_write=override_conditional_write)
         if template_kwds is None:
             template_kwds = dict()
         else:
@@ -185,16 +185,16 @@ class Device(object):
 
         logger.debug('%s abstract code:\n%s' % (name, indent(code_representation(abstract_code))))
 
-        snippet, kwds = language.translate(abstract_code,
-                                           dtype=brian_prefs['core.default_scalar_dtype'])
+        snippet, kwds = generator.translate(abstract_code,
+                                            dtype=brian_prefs['core.default_scalar_dtype'])
         # Add the array names as keywords as well
         for varname, var in variables.iteritems():
             if isinstance(var, ArrayVariable):
-                pointer_name = language.get_array_name(var)
+                pointer_name = generator.get_array_name(var)
                 template_kwds[varname] = pointer_name
                 if hasattr(var, 'resize'):
-                    dyn_array_name = language.get_array_name(var,
-                                                             access_data=False)
+                    dyn_array_name = generator.get_array_name(var,
+                                                              access_data=False)
                     template_kwds['_dynamic_'+varname] = dyn_array_name
 
 
@@ -206,7 +206,7 @@ class Device(object):
         code = template(snippet,
                         owner=owner, variables=variables, codeobj_name=name,
                         variable_indices=variable_indices,
-                        get_array_name=language.get_array_name,
+                        get_array_name=generator.get_array_name,
                         **template_kwds)
         logger.debug('%s code:\n%s' % (name, indent(code_representation(code))))
 

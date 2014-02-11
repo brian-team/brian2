@@ -203,7 +203,7 @@ involved in the code generation process.
 	
 	``codegen.functions``
 		Code related to including functions - built-in and user-defined - in generated code.
-	``codegen.languages``
+	``codegen.generators``
 		Each `CodeGenerator` is defined in a module here.
 	``codegen.runtime``
 		Each runtime `CodeObject` and its templates are defined in a package here.

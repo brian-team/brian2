@@ -1,6 +1,3 @@
-'''
-TODO: use preferences to get arguments to Language
-'''
 import itertools
 
 import numpy
@@ -60,7 +57,7 @@ def c_data_type(dtype):
 
 # Preferences
 brian_prefs.register_preferences(
-    'codegen.languages.cpp',
+    'codegen.generators.cpp',
     'C++ codegen preferences',
     restrict_keyword = BrianPreference(
         default='__restrict__',
@@ -115,8 +112,8 @@ class CPPCodeGenerator(CodeGenerator):
 
     def __init__(self, *args, **kwds):
         super(CPPCodeGenerator, self).__init__(*args, **kwds)
-        self.restrict = brian_prefs['codegen.languages.cpp.restrict_keyword'] + ' '
-        self.flush_denormals = brian_prefs['codegen.languages.cpp.flush_denormals']
+        self.restrict = brian_prefs['codegen.generators.cpp.restrict_keyword'] + ' '
+        self.flush_denormals = brian_prefs['codegen.generators.cpp.flush_denormals']
         self.c_data_type = c_data_type
 
     @staticmethod
