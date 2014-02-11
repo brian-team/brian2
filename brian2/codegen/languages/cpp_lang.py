@@ -147,31 +147,37 @@ class CPPLanguage(Language):
         else:
             decl = ''
         return decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
-
-    def translate_one_statement_sequence(self, statements):
-        variables = self.variables
-        variable_indices = self.variable_indices
-
+    
+    def translate_to_read_arrays(self, statements):
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
-
         lines = []
         # index and read arrays (index arrays first)
         for varname in itertools.chain(indices, read):
-            index_var = variable_indices[varname]
-            var = variables[varname]
+            index_var = self.variable_indices[varname]
+            var = self.variables[varname]
             if varname not in write:
                 line = 'const '
             else:
                 line = ''
             line = line + self.c_data_type(var.dtype) + ' ' + varname + ' = '
-            line = line + self.get_array_name(var, variables) + '[' + index_var + '];'
+            line = line + self.get_array_name(var, self.variables) + '[' + index_var + '];'
             lines.append(line)
+        return lines
+
+    def translate_to_declarations(self, statements):
+        read, write, indices, conditional_write_vars = self.arrays_helper(statements)
+        lines = []
         # simply declare variables that will be written but not read
         for varname in write:
             if varname not in read:
-                var = variables[varname]
+                var = self.variables[varname]
                 line = self.c_data_type(var.dtype) + ' ' + varname + ';'
                 lines.append(line)
+        return lines
+
+    def translate_to_statements(self, statements):
+        read, write, indices, conditional_write_vars = self.arrays_helper(statements)
+        lines = []
         # the actual code
         for stmt in statements:
             line = self.translate_statement(stmt)
@@ -182,14 +188,33 @@ class CPPLanguage(Language):
                 lines.append('    '+line)
             else:
                 lines.append(line)
+        return lines
+
+    def translate_to_write_arrays(self, statements):
+        read, write, indices, conditional_write_vars = self.arrays_helper(statements)
+        lines = []
         # write arrays
         for varname in write:
-            index_var = variable_indices[varname]
-            var = variables[varname]
-            line = self.get_array_name(var, variables) + '[' + index_var + '] = ' + varname + ';'
+            index_var = self.variable_indices[varname]
+            var = self.variables[varname]
+            line = self.get_array_name(var, self.variables) + '[' + index_var + '] = ' + varname + ';'
             lines.append(line)
-        code = '\n'.join(lines)
-                
+        return lines
+
+    def translate_one_statement_sequence(self, statements):
+        # This function is refactored into four functions which perform the
+        # four necessary operations. It's done like this so that code
+        # deriving from this class can overwrite specific parts.
+        lines = []
+        # index and read arrays (index arrays first)
+        lines += self.translate_to_read_arrays(statements)
+        # simply declare variables that will be written but not read
+        lines += self.translate_to_declarations(statements)
+        # the actual code
+        lines += self.translate_to_statements(statements)
+        # write arrays
+        lines += self.translate_to_write_arrays(statements)
+        code = '\n'.join(lines)                
         return stripped_deindented_lines(code)
 
     def denormals_to_zero_code(self):
