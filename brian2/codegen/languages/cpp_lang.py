@@ -294,12 +294,9 @@ class CPPLanguage(Language):
         return keywords
 
     def translate_statement_sequence(self, statements):
-        if isinstance(statements, dict):
-            blocks = {}
-            for name, block in statements.iteritems():
-                blocks[name] = self.translate_one_statement_sequence(block)
-        else:
-            blocks = self.translate_one_statement_sequence(statements)
+        blocks = {}
+        for name, block in statements.iteritems():
+            blocks[name] = self.translate_one_statement_sequence(block)
 
         kwds = self.determine_keywords()
 

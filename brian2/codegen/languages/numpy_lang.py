@@ -127,16 +127,10 @@ class NumpyLanguage(Language):
 
     def translate_statement_sequence(self, statements):
         # For numpy, no addiional keywords are provided to the template
-        kwds = {}
-
-        if isinstance(statements, dict):
-            blocks = {}
-            for name, block in statements.iteritems():
-                blocks[name] = self.translate_one_statement_sequence(block)
-            return blocks, kwds
-        else:
-            block = self.translate_one_statement_sequence(statements)
-            return block, kwds
+        blocks = {}
+        for name, block in statements.iteritems():
+            blocks[name] = self.translate_one_statement_sequence(block)
+        return blocks, {}
 
 ################################################################################
 # Implement functions

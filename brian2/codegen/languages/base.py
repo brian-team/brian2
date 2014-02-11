@@ -76,16 +76,9 @@ class Language(object):
         Translate a sequence of `Statement` into the target language, taking
         care to declare variables, etc. if necessary.
    
-        Returns a tuple ``(code_lines, array_names, dynamic_array_names, kwds)``
-        where ``code`` is list of the lines of code in the inner loop,
-        ``array_names`` is a dictionary mapping variable names to the names of
-        the underlying array (or a pointer to this array in the case of C code),
-        ``dynamic_array_names`` is a dictionary mapping ``_object``+variable
-        names to the corresponding dynamic array objects and ``kwds`` is a
-        dictionary of values that is made available to the template. Note that
-        the content of ``array_names`` will also be added to the template
-        keywords automatically. The same goes for ``dynamic_array_names`` but
-        note that the keys in this array start all with ``_object``.
+        Returns a tuple ``(code_lines, kwds)`` where ``code_lines`` is a list
+        of the lines of code in the inner loop, and ``kwds`` is a
+        dictionary of values that is made available to the template.
         '''
         raise NotImplementedError
 
@@ -152,15 +145,8 @@ class Language(object):
     def translate(self, code, dtype):
         '''
         Translates an abstract code block into the target language.
-
-        TODO
-
-        Returns a multi-line string.
         '''
-        if isinstance(code, dict):
-            statements = {}
-            for ac_name, ac_code in code.iteritems():
-                statements[ac_name] = make_statements(ac_code, self.variables, dtype)
-        else:
-            statements = make_statements(code, self.variables, dtype)
+        statements = {}
+        for ac_name, ac_code in code.iteritems():
+            statements[ac_name] = make_statements(ac_code, self.variables, dtype)
         return self.translate_statement_sequence(statements)

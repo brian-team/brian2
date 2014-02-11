@@ -14,6 +14,7 @@ from brian2.core.preferences import brian_prefs
 from brian2.core.variables import ArrayVariable, DynamicArrayVariable
 from brian2.core.functions import Function
 from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import code_representation, indent
 
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
@@ -169,7 +170,6 @@ class Device(object):
         else:
             template_kwds = template_kwds.copy()
 
-
         # Check that all functions are available
         for varname, value in variables.iteritems():
             if isinstance(value, Function):
@@ -183,11 +183,7 @@ class Device(object):
                         raise NotImplementedError(('Cannot use function '
                                                    '%s: %s') % (varname, ex))
 
-        if isinstance(abstract_code, dict):
-            for k, v in abstract_code.items():
-                logger.debug('%s abstract code key %s:\n%s' % (name, k, v))
-        else:
-            logger.debug(name + " abstract code:\n" + abstract_code)
+        logger.debug('%s abstract code:\n%s' % (name, indent(code_representation(abstract_code))))
 
         snippet, kwds = language.translate(abstract_code,
                                            dtype=brian_prefs['core.default_scalar_dtype'])
@@ -203,7 +199,7 @@ class Device(object):
 
 
         template_kwds.update(kwds)
-        logger.debug(name + " snippet:\n" + str(snippet))
+        logger.debug('%s snippet:\n%s' % (name, indent(code_representation(snippet))))
 
         name = find_name(name)
 
@@ -212,7 +208,7 @@ class Device(object):
                         variable_indices=variable_indices,
                         get_array_name=language.get_array_name,
                         **template_kwds)
-        logger.debug(name + " code:\n" + str(code))
+        logger.debug('%s code:\n%s' % (name, indent(code_representation(code))))
 
         codeobj = codeobj_class(owner, code, variables, name=name)
         codeobj.compile()

@@ -9,6 +9,7 @@ from brian2.core.functions import Function
 from brian2.core.names import Nameable
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import indent, code_representation
 
 from .translation import analyse_identifiers
 
@@ -152,7 +153,7 @@ def create_runner_codeobj(group, code, template_name,
     ----------
     group : `Group`
         The group where the code is to be run
-    code : str
+    code : str or dict of str
         The code to be executed.
     template_name : str
         The name of the template to use for the code.
@@ -184,7 +185,12 @@ def create_runner_codeobj(group, code, template_name,
         A list of variable names which are used as conditions (e.g. for
         refractoriness) which should be ignored.
     '''
-    logger.debug('Creating code object for abstract code:\n' + str(code))
+    
+    if isinstance(code, str):
+        code = {None: code}
+    msg = 'Creating code object (group=%s, template name=%s) for abstract code:\n' % (group.name, template_name)
+    msg += indent(code_representation(code))
+    logger.debug(msg)
     from brian2.devices import get_device
     device = get_device()
     
@@ -194,14 +200,8 @@ def create_runner_codeobj(group, code, template_name,
         override_conditional_write = set(override_conditional_write)
 
     if check_units:
-        if isinstance(code, dict):
-            for c in code.values():
-                check_code_units(c, group,
-                                 additional_variables=additional_variables,
-                                 level=level+1,
-                                 run_namespace=run_namespace)
-        else:
-            check_code_units(code, group,
+        for c in code.values():
+            check_code_units(c, group,
                              additional_variables=additional_variables,
                              level=level+1,
                              run_namespace=run_namespace)
@@ -214,18 +214,14 @@ def create_runner_codeobj(group, code, template_name,
         all_variables.update(additional_variables)
 
     # Determine the identifiers that were used
-    if isinstance(code, dict):
-        used_known = set()
-        unknown = set()
-        for v in code.values():
-            _, uk, u = analyse_identifiers(v, all_variables, recursive=True)
-            used_known |= uk
-            unknown |= u
-    else:
-        _, used_known, unknown = analyse_identifiers(code, all_variables,
-                                                     recursive=True)
+    used_known = set()
+    unknown = set()
+    for v in code.values():
+        _, uk, u = analyse_identifiers(v, all_variables, recursive=True)
+        used_known |= uk
+        unknown |= u
 
-    logger.debug('Unknown identifiers in the abstract code: ' + str(unknown))
+    logger.debug('Unknown identifiers in the abstract code: ' + ', '.join(unknown))
 
     # Only pass the variables that are actually used
     variables = group.resolve_all(used_known | unknown,

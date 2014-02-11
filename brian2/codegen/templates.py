@@ -73,6 +73,8 @@ class CodeObjectTemplate(object):
             self.iterate_all.update(get_identifiers(block))
                 
     def __call__(self, code_lines, **kwds):
+        if code_lines is not None and len(code_lines)==1 and code_lines.keys()[0] is None:
+            code_lines = code_lines[None]
         kwds['code_lines'] = code_lines
         module = self.template.make_module(kwds)
         if len([k for k in module.__dict__.keys() if not k.startswith('_')]):
