@@ -99,7 +99,7 @@ def check_unit(expression, unit, variables):
     expression : str
         The expression to evaluate.
     unit : `Unit`
-        The expected unit for the `expression.
+        The expected unit for the `expression`.
     variables : dict
         Dictionary of all variables (including external constants) used in
         the `expression`.

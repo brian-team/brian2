@@ -101,6 +101,8 @@ the same variable are combined. It does not however do unit checking, checking f
 incorrect flags -- all this will be done during the instantiation of a `NeuronGroup` or `Synapses` object.
 
 
+.. _external-variables:
+
 External variables and functions
 --------------------------------
 Equations defining neuronal or synaptic equations can contain references to
