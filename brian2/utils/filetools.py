@@ -52,11 +52,14 @@ def copy_directory(source, target):
     '''
     Copies directory source to target.
     '''
+    relnames = []
     sourcebase = os.path.normpath(source)+os.path.sep
     for root, dirnames, filenames in os.walk(source):
         for filename in filenames:
             fullname = os.path.normpath(os.path.join(root, filename))
             relname = fullname.replace(sourcebase, '')
+            relnames.append(relname)
             tgtname = os.path.join(target, relname)
             ensure_directory_of_file(tgtname)
             open(tgtname, 'w').write(open(fullname).read())
+    return relnames
