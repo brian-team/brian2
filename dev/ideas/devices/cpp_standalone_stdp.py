@@ -1,7 +1,7 @@
 from brian2 import *
 
 standalone_mode = True
-plot_results = False
+plot_results = True
 duration = 1*second
 
 import matplotlib.pyplot as plt
@@ -51,14 +51,9 @@ S = Synapses(input, neurons,
              connect=True,
              )
 
-S.w='rand()*gmax'
-
+S.w = 'rand()*gmax'
+    
 net = Network(input, neurons, S)
-
-device.funky()
-
-with device.spunky() as x:
-    print 'a'
 
 net.run(duration)
 
@@ -66,7 +61,7 @@ if standalone_mode:
     if os.path.exists('output'):
         shutil.rmtree('output')
     device.build(project_dir='output', compile_project=True, run_project=True, debug=False)
-    #w = fromfile('output/results/_dynamic_array_synapses_w', dtype=float64)
+    w = fromfile('output/results/_dynamic_array_synapses_w', dtype=float64)
 else:
     print 'Simulation time:', time()-start
     w = S.w[:]

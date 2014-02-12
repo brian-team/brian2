@@ -79,7 +79,7 @@ class CPPStandaloneDevice(Device):
         '''
         Insert code directly into main.cpp
         '''
-        if slot=='main.cpp':
+        if slot=='main':
             self.main_queue.append(('insert_code', code))
         else:
             logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
@@ -209,9 +209,35 @@ class CPPStandaloneDevice(Device):
         return codeobj
 
     def build(self, project_dir='output', compile_project=True, run_project=False, debug=True,
-              with_output=True, native=True):
+              with_output=True, native=True,
+              additional_source_files=None, additional_header_files=None):
+        '''
+        Build the project
+        
+        TODO: more details
+        
+        Parameters
+        ----------
+        project_dir : str
+            The output directory to write the project to, any existing files will be overwritten.
+        compile_project : bool
+            Whether or not to attempt to compile the project using GNU make.
+        run_project : bool
+            Whether or not to attempt to run the built project if it successfully builds.
+        debug : bool
+            Whether to compile in debug mode.
+        with_output : bool
+            Whether or not to show the ``stdout`` of the built program when run.
+        native : bool
+            Whether or not to compile natively using the ``--march=native`` gcc option.
+        additional_source_files : list of str
+            A list of additional ``.cpp`` files to include in the build.
+        additional_header_files : list of str
+            A list of additional ``.h`` files to include in the build.
+        '''
+        
         ensure_directory(project_dir)
-        for d in ['code_objects', 'results', 'static_arrays']:
+        for d in ['code_objects', 'results', 'static_arrays', 'run_functions']:
             ensure_directory(os.path.join(project_dir, d))
             
         source_files = []
@@ -258,6 +284,8 @@ class CPPStandaloneDevice(Device):
         header_files.append('objects.h')
 
         main_lines = []
+        procedures = [('', main_lines)]
+        runfuncs = {}
         for func, args in self.main_queue:
             if func=='run_code_object':
                 codeobj, = args
@@ -286,6 +314,17 @@ class CPPStandaloneDevice(Device):
                 main_lines.extend(code.split('\n'))
             elif func=='insert_code':
                 main_lines.append(args)
+            elif func=='start_run_func':
+                name, include_in_parent = args
+                if include_in_parent:
+                    main_lines.append('%s();' % name)
+                main_lines = []
+                procedures.append((name, main_lines))
+            elif func=='end_run_func':
+                name, include_in_parent = args
+                name, main_lines = procedures.pop(-1)
+                runfuncs[name] = main_lines
+                name, main_lines = procedures[-1]
             else:
                 raise NotImplementedError("Unknown main queue function type "+func)
 
@@ -347,6 +386,16 @@ class CPPStandaloneDevice(Device):
         logger.debug("main: "+str(main_tmp))
         open(os.path.join(project_dir, 'main.cpp'), 'w').write(main_tmp)
         source_files.append('main.cpp')
+        
+        # Generate the run functions
+        run_tmp = CPPStandaloneCodeObject.templater.run(None, run_funcs=runfuncs,
+                                                        code_objects=self.code_objects.values())
+        logger.debug("run.cpp: "+str(run_tmp.cpp_file))
+        logger.debug("run.h: "+str(run_tmp.h_file))
+        open(os.path.join(project_dir, 'run.cpp'), 'w').write(run_tmp.cpp_file)
+        open(os.path.join(project_dir, 'run.h'), 'w').write(run_tmp.h_file)
+        source_files.append('run.cpp')
+        header_files.append('run.h')
 
         # Copy the brianlibdirectory
         brianlib_dir = os.path.join(os.path.split(inspect.getsourcefile(CPPStandaloneCodeObject))[0],
@@ -428,8 +477,30 @@ class CPPStandaloneDevice(Device):
         run_lines.append('{net.name}.run({duration});'.format(net=net, duration=float(duration)))
         self.main_queue.append(('run_network', (net, run_lines)))
 
-    def funky(self):
-        print 'yo'
+    def run_function(self, name, include_in_parent=True):
+        '''
+        Context manager to divert code into a function
+        
+        Code that happens within the scope of this context manager will go into the named function.
+        
+        Parameters
+        ----------
+        name : str
+            The name of the function to divert code into.
+        include_in_parent : bool
+            Whether or not to include a call to the newly defined function in the parent context.
+        '''
+        return RunFunctionContext(name, include_in_parent)
+
+
+class RunFunctionContext(object):
+    def __init__(self, name, include_in_parent):
+        self.name = name
+        self.include_in_parent = include_in_parent
+    def __enter__(self):
+        cpp_standalone_device.main_queue.append(('start_run_func', (self.name, self.include_in_parent)))
+    def __exit__(self, type, value, traceback):
+        cpp_standalone_device.main_queue.append(('end_run_func', (self.name, self.include_in_parent)))
 
 
 cpp_standalone_device = CPPStandaloneDevice()
