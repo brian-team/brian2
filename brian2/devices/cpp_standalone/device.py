@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import inspect
 from collections import defaultdict
+import glob
 
 from brian2.core.clocks import defaultclock
 from brian2.core.network import Network
@@ -208,10 +209,13 @@ class CPPStandaloneDevice(Device):
         return codeobj
 
     def build(self, project_dir='output', compile_project=True, run_project=False, debug=True,
-              with_output=True):
+              with_output=True, native=True):
         ensure_directory(project_dir)
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(project_dir, d))
+            
+        source_files = []
+        header_files = []
             
         logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
 
@@ -250,6 +254,8 @@ class CPPStandaloneDevice(Device):
         logger.debug("objects: "+str(arr_tmp))
         open(os.path.join(project_dir, 'objects.cpp'), 'w').write(arr_tmp.cpp_file)
         open(os.path.join(project_dir, 'objects.h'), 'w').write(arr_tmp.h_file)
+        source_files.append('objects.cpp')
+        header_files.append('objects.h')
 
         main_lines = []
         for func, args in self.main_queue:
@@ -295,21 +301,23 @@ class CPPStandaloneDevice(Device):
             for k, v in codeobj.variables.iteritems():
                 if isinstance(v, AttributeVariable):
                     # We assume all attributes are implemented as property-like methods
-                    code_object_defs[codeobj.name].append('const {c_type} {varname} = {objname}.{attrname}();'.format(c_type=c_data_type(v.dtype),
-                                                                                                                      varname=k,
-                                                                                                                      objname=v.obj.name,
-                                                                                                                      attrname=v.attribute))
+                    line = 'const {c_type} {varname} = {objname}.{attrname}();'
+                    line = line.format(c_type=c_data_type(v.dtype), varname=k, objname=v.obj.name,
+                                       attrname=v.attribute)
+                    code_object_defs[codeobj.name].append(line)
                 elif isinstance(v, ArrayVariable):
                     try:
                         if isinstance(v, DynamicArrayVariable):
                             if v.dimensions == 1:
                                 dyn_array_name = self.dynamic_arrays[v]
                                 array_name = self.arrays[v]
-                                code_object_defs[codeobj.name].append('{c_type}* const {array_name} = &{dyn_array_name}[0];'.format(c_type=c_data_type(v.dtype),
-                                                                                                                                    array_name=array_name,
-                                                                                                                                    dyn_array_name=dyn_array_name))
-                                code_object_defs[codeobj.name].append('const int _num{k} = {dyn_array_name}.size();'.format(k=k,
-                                                                                                                       dyn_array_name=dyn_array_name))
+                                line = '{c_type}* const {array_name} = &{dyn_array_name}[0];'
+                                line = line.format(c_type=c_data_type(v.dtype), array_name=array_name,
+                                                   dyn_array_name=dyn_array_name)
+                                code_object_defs[codeobj.name].append(line)
+                                line = 'const int _num{k} = {dyn_array_name}.size();'
+                                line = line.format(k=k, dyn_array_name=dyn_array_name)
+                                code_object_defs[codeobj.name].append(line)
                         else:
                             code_object_defs[codeobj.name].append('const int _num%s = %s;' % (k, v.size))
                     except TypeError:
@@ -325,6 +333,8 @@ class CPPStandaloneDevice(Device):
             
             open(os.path.join(project_dir, 'code_objects', codeobj.name+'.cpp'), 'w').write(code)
             open(os.path.join(project_dir, 'code_objects', codeobj.name+'.h'), 'w').write(codeobj.code.h_file)
+            source_files.append('code_objects/'+codeobj.name+'.cpp')
+            header_files.append('code_objects/'+codeobj.name+'.h')
                     
         # The code_objects are passed in the right order to run them because they were
         # sorted by the Network object. To support multiple clocks we'll need to be
@@ -336,24 +346,42 @@ class CPPStandaloneDevice(Device):
                                                           )
         logger.debug("main: "+str(main_tmp))
         open(os.path.join(project_dir, 'main.cpp'), 'w').write(main_tmp)
+        source_files.append('main.cpp')
 
         # Copy the brianlibdirectory
         brianlib_dir = os.path.join(os.path.split(inspect.getsourcefile(CPPStandaloneCodeObject))[0],
                                     'brianlib')
-        copy_directory(brianlib_dir, os.path.join(project_dir, 'brianlib'))
+        brianlib_files = copy_directory(brianlib_dir, os.path.join(project_dir, 'brianlib'))
+        for file in brianlib_files:
+            if file.lower().endswith('.cpp'):
+                source_files.append('brianlib/'+file)
+            elif file.lower().endswith('.h'):
+                header_files.append('brianlib/'+file)
 
         # Copy the CSpikeQueue implementation
         shutil.copy(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0],
                                     'cspikequeue.cpp'),
                     os.path.join(project_dir, 'brianlib', 'spikequeue.h'))
 
+        # Generate the makefile
+        if os.name=='nt':
+            rm_cmd = 'del'
+        else:
+            rm_cmd = 'rm'
+        makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None, source_files=' '.join(source_files),
+                                                                  header_files=' '.join(header_files),
+                                                                  rm_cmd=rm_cmd)
+        open(os.path.join(project_dir, 'makefile'), 'w').write(makefile_tmp)
+
         # build the project
         if compile_project:
             with in_directory(project_dir):
                 if debug:
-                    x = os.system('g++ -I. -g *.cpp code_objects/*.cpp brianlib/*.cpp -o main')
+                    x = os.system('make debug')
+                elif native:
+                    x = os.system('make native')
                 else:
-                    x = os.system('g++ -I. -O3 -ffast-math -march=native *.cpp code_objects/*.cpp brianlib/*.cpp -o main')
+                    x = os.system('make')
                 if x==0:
                     if run_project:
                         if not with_output:

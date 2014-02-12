@@ -1,16 +1,14 @@
-from numpy import *
 from brian2 import *
 
 standalone_mode = True
-plot_results = True
-duration = 100*second
+plot_results = False
+duration = 1*second
 
 import matplotlib.pyplot as plt
 from time import time
 import shutil, os
 
 if standalone_mode:
-    from brian2.devices.cpp_standalone import *
     set_device('cpp_standalone')
 else:
     brian_prefs['codegen.target'] = 'weave'
@@ -55,8 +53,7 @@ S = Synapses(input, neurons,
 
 S.w='rand()*gmax'
 
-
-net = Network(input, neurons, S)
+net = Network(input, neurons, S, M)
 
 net.run(duration)
 
@@ -64,7 +61,7 @@ if standalone_mode:
     if os.path.exists('output'):
         shutil.rmtree('output')
     build(project_dir='output', compile_project=True, run_project=True, debug=False)
-    w = loadtxt('output/results/_dynamic_array_synapses_w.txt')
+    w = fromfile('output/results/_dynamic_array_synapses_w', dtype=float64)
 else:
     print 'Simulation time:', time()-start
     w = S.w[:]
