@@ -58,7 +58,7 @@ class SpikeMonitor(Group, CodeRunner):
         self.variables.add_dynamic_array('t', size=0, unit=second,
                                          constant_size=False)
         self.variables.add_array('_count', size=len(source), unit=Unit(1),
-                                 dtype=np.int32, context=source)
+                                 dtype=np.int32)
         self.variables.add_constant('_source_start', Unit(1), start)
         self.variables.add_constant('_source_stop', Unit(1), stop)
         self.variables.add_attribute_variable('N', unit=Unit(1), obj=self,

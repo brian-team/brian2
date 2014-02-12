@@ -271,7 +271,7 @@ def create_runner_codeobj(group, code, template_name,
     varnames = variables.keys()
     for varname in varnames:
         var_index = all_variable_indices[varname]
-        if var_index != '_idx':
+        if not var_index in ('_idx', '0'):
             variables[var_index] = all_variables[var_index]
 
     return device.code_object(owner=group,

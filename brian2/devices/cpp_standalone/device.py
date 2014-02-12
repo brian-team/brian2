@@ -178,11 +178,17 @@ class CPPStandaloneDevice(Device):
 
     def group_set_with_index_array(self, group, variable_name, variable, item,
                                    value, check_units):
+        if isinstance(item, slice) and item == slice(None):
+            item = 'True'
         value = Quantity(value)
 
+        if value.size == 1 and item == 'True':  # set the whole array to a scalar value
+            group.set_with_expression_conditional(variable_name, variable,
+                                                  cond=item,
+                                                  code=repr(value),
+                                                  check_units=check_units)
         # Simple case where we don't have to do any indexing
-        if (isinstance(item, slice) and item == slice(None)
-            and group.variables.indices[variable_name] == '_idx'):
+        elif item == 'True' and group.variables.indices[variable_name] == '_idx':
             self.fill_with_array(variable, value)
         else:
             # We have to calculate indices. This will not work for synaptic

@@ -440,8 +440,12 @@ class ArrayVariable(Variable):
         #: The size of this variable.
         self.size = size
 
+        if scalar and size != 1:
+            raise ValueError(('Scalar variables need to have size 1, not '
+                              'size %d.') % size)
+
         #: Another variable, on which the write is conditioned (e.g. a variable
-        #: denoting the abscence of refractoriness)
+        #: denoting the absence of refractoriness)
         self.conditional_write = None
 
     def set_conditional_write(self, var):
@@ -733,26 +737,26 @@ class VariableView(object):
                 except (IndexError, TypeError):
                     # was scalar already apparently
                     pass
-            except (TypeError, ValueError) as ex:
-                if item == 'True':
-                    # Fall back to the general array-array pattern
-                    self.group.set_with_index_array(self.name,
-                                                    variable,
-                                                    slice(None), value,
-                                                    check_units=check_units)
-                    return
-                else:
+            except (TypeError, ValueError):
+                if item != 'True':
                     raise TypeError('When setting a variable based on a string '
                                     'index, the value has to be a string or a '
                                     'scalar.')
 
-            self.group.set_with_expression_conditional(self.name,
-                                                       variable,
-                                                       item,
-                                                       repr(value),
-                                                       check_units=check_units,
-                                                       level=level+1,
-                                                       run_namespace=namespace)
+            if item == 'True':
+                # We do not want to go through code generation for runtime
+                    self.group.set_with_index_array(self.name,
+                                                    variable,
+                                                    slice(None), value,
+                                                    check_units=check_units)
+            else:
+                self.group.set_with_expression_conditional(self.name,
+                                                           variable,
+                                                           item,
+                                                           repr(value),
+                                                           check_units=check_units,
+                                                           level=level+1,
+                                                           run_namespace=namespace)
         elif isinstance(value, basestring):
             self.group.set_with_expression(self.name, variable,
                                            item, value,
@@ -937,8 +941,8 @@ class Variables(collections.Mapping):
             self.indices[name] = index
 
     def add_array(self, name, unit, size, dtype=None,
-                  constant=False, is_bool=False, read_only=False,
-                  index=None, context=None):
+                  constant=False, is_bool=False, read_only=False, scalar=False,
+                  index=None):
         '''
         Add an array (initialized with zeros).
 
@@ -956,6 +960,9 @@ class Variables(collections.Mapping):
         constant : bool, optional
             Whether the variable's value is constant during a run.
             Defaults to ``False``.
+        scalar : bool, optional
+            Whether this is a scalar variable. Defaults to ``False``, if set to
+            ``True``, also implies that `size` equals 1.
         is_bool: bool, optional
             Whether this is a boolean variable (also implies it is
             dimensionless). Defaults to ``False``
@@ -971,6 +978,7 @@ class Variables(collections.Mapping):
                             device=self.device, size=size,
                             dtype=default_dtype(dtype, is_bool),
                             constant=constant, is_bool=is_bool,
+                            scalar=scalar,
                             read_only=read_only)
         self._add_variable(name, var, index)
         self.device.init_with_zeros(var)
