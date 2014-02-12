@@ -210,7 +210,8 @@ class CPPStandaloneDevice(Device):
 
     def build(self, project_dir='output', compile_project=True, run_project=False, debug=True,
               with_output=True, native=True,
-              additional_source_files=None, additional_header_files=None):
+              additional_source_files=None, additional_header_files=None,
+              main_includes=None, run_includes=None):
         '''
         Build the project
         
@@ -234,7 +235,20 @@ class CPPStandaloneDevice(Device):
             A list of additional ``.cpp`` files to include in the build.
         additional_header_files : list of str
             A list of additional ``.h`` files to include in the build.
+        main_includes : list of str
+            A list of additional header files to include in ``main.cpp``.
+        run_includes : list of str
+            A list of additional header files to include in ``run.cpp``.
         '''
+        
+        if additional_source_files is None:
+            additional_source_files = []
+        if additional_header_files is None:
+            additional_header_files = []
+        if main_includes is None:
+            main_includes = []
+        if run_includes is None:
+            run_includes = []
         
         ensure_directory(project_dir)
         for d in ['code_objects', 'results', 'static_arrays', 'run_functions']:
@@ -382,6 +396,7 @@ class CPPStandaloneDevice(Device):
                                                           main_lines=main_lines,
                                                           code_objects=self.code_objects.values(),
                                                           dt=float(defaultclock.dt),
+                                                          additional_headers=main_includes,
                                                           )
         logger.debug("main: "+str(main_tmp))
         open(os.path.join(project_dir, 'main.cpp'), 'w').write(main_tmp)
@@ -389,7 +404,9 @@ class CPPStandaloneDevice(Device):
         
         # Generate the run functions
         run_tmp = CPPStandaloneCodeObject.templater.run(None, run_funcs=runfuncs,
-                                                        code_objects=self.code_objects.values())
+                                                        code_objects=self.code_objects.values(),
+                                                        additional_headers=run_includes,
+                                                        )
         logger.debug("run.cpp: "+str(run_tmp.cpp_file))
         logger.debug("run.h: "+str(run_tmp.h_file))
         open(os.path.join(project_dir, 'run.cpp'), 'w').write(run_tmp.cpp_file)
@@ -411,6 +428,9 @@ class CPPStandaloneDevice(Device):
         shutil.copy(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0],
                                     'cspikequeue.cpp'),
                     os.path.join(project_dir, 'brianlib', 'spikequeue.h'))
+        
+        source_files.extend(additional_source_files)
+        header_files.extend(additional_header_files)
 
         # Generate the makefile
         if os.name=='nt':

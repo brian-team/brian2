@@ -7,6 +7,10 @@
 #include "code_objects/{{codeobj.name}}.h"
 {% endfor %}
 
+{% for name in additional_headers %}
+#include "{{name}}"
+{% endfor %}
+
 #include<iostream>
 
 int main(void)
