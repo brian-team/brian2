@@ -451,8 +451,8 @@ class Group(BrianObject):
             defined, the implicit namespace of local variables is used).
         '''
         if variable.scalar:
-            self._check_expression_scalar(code, varname, level=level+2,
-                                          run_namespace=run_namespace)
+            raise NotImplementedError('Setting scalar variables with string '
+                                      'expressions is not implemented yet')
         indices = self.calc_indices(item)
         abstract_code = varname + ' = ' + code
         variables = Variables(None)
@@ -500,13 +500,8 @@ class Group(BrianObject):
             defined, the implicit namespace of local variables is used).
         '''
         if variable.scalar:
-            if cond != 'True':
-                raise IndexError(('Cannot set the variable %s with a '
-                                  'string expression, it is a scalar '
-                                  'variable.') % varname)
-            else:
-                self._check_expression_scalar(code, varname, level=level+2,
-                                              run_namespace=run_namespace)
+            raise NotImplementedError('Setting scalar variables with string '
+                                      'expressions is not implemented yet')
         abstract_code_cond = '_cond = '+cond
         abstract_code = varname + ' = ' + code
         variables = Variables(None)
