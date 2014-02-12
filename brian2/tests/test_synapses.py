@@ -366,13 +366,12 @@ def test_delay_specification():
 
     # Scalar delay
     S = Synapses(G, G, 'w:1', pre='v+=w', delay=5*ms)
+    assert_equal(S.delay[:], 5*ms)
     S.connect('i==j')
     S.delay = 10*ms
     assert_equal(S.delay[:], 10*ms)
-    S.delay = '3*ms'
-    assert_equal(S.delay[:], 3*ms)
-    # TODO: Assignment with strings or arrays is currently possible, it only
-    # takes into account the first value
+    # S.delay = '3*ms'
+    # assert_equal(S.delay[:], 3*ms)
 
     # Invalid arguments
     assert_raises(DimensionMismatchError, lambda: Synapses(G, G, 'w:1',

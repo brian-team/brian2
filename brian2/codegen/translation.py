@@ -138,11 +138,13 @@ def make_statements(code, variables, dtype):
     for line in lines:
         # parse statement into "var op expr"
         var, op, expr = parse_statement(line.code)
-        if op=='=' and var not in defined:
-            op = ':='
-            defined.add(var)
-            if var not in dtypes:
-                dtypes[var] = dtype
+        if op=='=':
+            if var not in defined:
+                op = ':='
+                defined.add(var)
+                if var not in dtypes:
+                    dtypes[var] = dtype
+
         statement = Statement(var, op, expr, dtypes[var])
         line.statement = statement
         # for each line will give the variable being written to
@@ -158,6 +160,14 @@ def make_statements(code, variables, dtype):
     # all variables which are written to at some point in the code block
     # used to determine whether they should be const or not
     all_write = set(line.write for line in lines)
+
+    # Currently, we do not allow writing to scalar variables
+    for var in all_write:
+        if (var in variables) and variables[var].scalar:
+            raise NotImplementedError(('Writing to variable %s is not '
+                                       'supported yet, it is a scalar '
+                                       'variable.') % var)
+
     if DEBUG:
         print 'ALL WRITE:', all_write
         
