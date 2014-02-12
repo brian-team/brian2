@@ -27,6 +27,8 @@ void brian_end()
 {% for name, lines in run_funcs.items() | sort(attribute='name') %}
 void {{name}}()
 {
+	using namespace brian;
+
 	{% for line in lines %}
 	{{line}}
 	{% endfor %}

@@ -16,6 +16,8 @@ else:
 
 start = time()
 
+clock = Clock()
+
 N = 1000
 taum = 10 * ms
 taupre = 20 * ms
@@ -37,8 +39,8 @@ dv/dt=(ge*(Ee-vr)+El-v)/taum : volt   # the synaptic current is linearized
 dge/dt=-ge/taue : 1
 '''
 
-input = PoissonGroup(N, rates=F)
-neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v=vr')
+input = PoissonGroup(N, rates=F, clock=clock)
+neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v=vr', clock=clock)
 S = Synapses(input, neurons,
              '''w:1
                 dApre/dt=-Apre/taupre : 1 (event-driven)
@@ -49,6 +51,7 @@ S = Synapses(input, neurons,
              post='''Apost+=dApost
                      w=clip(w+Apre,0,gmax)''',
              connect=True,
+             clock=clock,
              )
 
 S.w = 'rand()*gmax'

@@ -497,7 +497,7 @@ class CPPStandaloneDevice(Device):
         # TODO: remove this horrible hack
         for clock in self.clocks:
             if clock.name=='clock':
-                clock._name = 'clock_'
+                clock._name = '_clock'
             
         # Extract all the CodeObjects
         # Note that since we ran the Network object, these CodeObjects will be sorted into the right

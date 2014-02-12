@@ -12,44 +12,44 @@
 
 //////////////// clocks ///////////////////
 {% for clock in clocks | sort(attribute='name') %}
-Clock {{clock.name}}({{clock.dt_}});
+Clock brian::{{clock.name}}({{clock.dt_}});
 {% endfor %}
 
 //////////////// networks /////////////////
 {% for net in networks | sort(attribute='name') %}
-Network {{net.name}};
+Network brian::{{net.name}};
 {% endfor %}
 
 //////////////// arrays ///////////////////
 {% for var, varname in array_specs.items() | sort %}
 {% if not var in dynamic_array_specs %}
-{{c_data_type(var.dtype)}} *{{varname}};
-const int _num_{{varname}} = {{var.size}};
+{{c_data_type(var.dtype)}} * brian::{{varname}};
+const int brian::_num_{{varname}} = {{var.size}};
 {% endif %}
 {% endfor %}
 
 //////////////// dynamic arrays 1d /////////
 {% for var, varname in dynamic_array_specs.items() | sort %}
-std::vector<{{c_data_type(var.dtype)}}> {{varname}};
+std::vector<{{c_data_type(var.dtype)}}> brian::{{varname}};
 {% endfor %}
 
 //////////////// dynamic arrays 2d /////////
 {% for var, varname in dynamic_array_2d_specs.items() | sort %}
-DynamicArray2D<{{c_data_type(var.dtype)}}> {{varname}};
+DynamicArray2D<{{c_data_type(var.dtype)}}> brian::{{varname}};
 {% endfor %}
 
 /////////////// static arrays /////////////
 {% for (name, dtype_spec, N, filename) in static_array_specs | sort %}
-{{dtype_spec}} *{{name}};
-const int _num_{{name}} = {{N}};
+{{dtype_spec}} * brian::{{name}};
+const int brian::_num_{{name}} = {{N}};
 {% endfor %}
 
 //////////////// synapses /////////////////
 {% for S in synapses | sort(attribute='name') %}
 // {{S.name}}
-Synapses<double> {{S.name}}({{S.source|length}}, {{S.target|length}});
+Synapses<double> brian::{{S.name}}({{S.source|length}}, {{S.target|length}});
 {% for path in S._pathways | sort(attribute='name') %}
-SynapticPathway<double> {{path.name}}(
+SynapticPathway<double> brian::{{path.name}}(
 		{{path.source|length}}, {{path.target|length}},
 		{{dynamic_array_specs[path.variables['delay']]}},
 		{{dynamic_array_specs[path.synapse_sources]}},
@@ -62,6 +62,8 @@ SynapticPathway<double> {{path.name}}(
 
 void _init_arrays()
 {
+	using namespace brian;
+
     // Arrays initialized to 0
 	{% for var in zero_arrays | sort %}
 	{% set varname = array_specs[var] %}
@@ -84,6 +86,8 @@ void _init_arrays()
 
 void _load_arrays()
 {
+	using namespace brian;
+
 	{% for (name, dtype_spec, N, filename) in static_array_specs | sort %}
 	ifstream f{{name}};
 	f{{name}}.open("static_arrays/{{name}}", ios::in | ios::binary);
@@ -99,6 +103,8 @@ void _load_arrays()
 
 void _write_arrays()
 {
+	using namespace brian;
+
 	{% for var, varname in array_specs.items() | sort %}
 	{% if not (var in dynamic_array_specs or var in dynamic_array_2d_specs) %}
 	ofstream outfile_{{varname}};
@@ -146,6 +152,8 @@ void _write_arrays()
 
 void _dealloc_arrays()
 {
+	using namespace brian;
+
 	{% for var, varname in array_specs.items() | sort %}
 	{% if not var in dynamic_array_specs %}
 	if({{varname}}!=0)
@@ -182,6 +190,8 @@ void _dealloc_arrays()
 #include "brianlib/dynamic_array.h"
 #include "brianlib/network.h"
 
+namespace brian {
+
 //////////////// clocks ///////////////////
 {% for clock in clocks %}
 extern Clock {{clock.name}};
@@ -192,7 +202,6 @@ extern Network magicnetwork;
 {% for net in networks %}
 extern Network {{net.name}};
 {% endfor %}
-
 
 //////////////// dynamic arrays ///////////
 {% for var, varname in dynamic_array_specs.items() | sort %}
@@ -226,6 +235,8 @@ extern Synapses<double> {{S.name}};
 extern SynapticPathway<double> {{path.name}};
 {% endfor %}
 {% endfor %}
+
+}
 
 void _init_arrays();
 void _load_arrays();

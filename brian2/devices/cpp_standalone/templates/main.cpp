@@ -19,9 +19,12 @@ int main(int argc, char **argv)
 
 	brian_start();
 
-	{% for main_line in main_lines %}
-	{{ main_line }}
-	{% endfor %}
+	{
+		using namespace brian;
+		{% for main_line in main_lines %}
+		{{ main_line }}
+		{% endfor %}
+	}
 
 	double _run_duration = (std::clock()-start)/(double)CLOCKS_PER_SEC;
 	std::cout << "Simulation time: " << _run_duration << endl;
