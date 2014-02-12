@@ -368,7 +368,8 @@ class CPPStandaloneDevice(Device):
             rm_cmd = 'del'
         else:
             rm_cmd = 'rm'
-        makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None, source_files=' '.join(source_files),
+        makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None,
+                                                                  source_files=' '.join(source_files),
                                                                   header_files=' '.join(header_files),
                                                                   rm_cmd=rm_cmd)
         open(os.path.join(project_dir, 'makefile'), 'w').write(makefile_tmp)
@@ -427,6 +428,8 @@ class CPPStandaloneDevice(Device):
         run_lines.append('{net.name}.run({duration});'.format(net=net, duration=float(duration)))
         self.main_queue.append(('run_network', (net, run_lines)))
 
+    def funky(self):
+        print 'yo'
 
 
 cpp_standalone_device = CPPStandaloneDevice()

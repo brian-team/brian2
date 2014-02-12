@@ -53,15 +53,20 @@ S = Synapses(input, neurons,
 
 S.w='rand()*gmax'
 
-net = Network(input, neurons, S, M)
+net = Network(input, neurons, S)
+
+device.funky()
+
+with device.spunky() as x:
+    print 'a'
 
 net.run(duration)
 
 if standalone_mode:
     if os.path.exists('output'):
         shutil.rmtree('output')
-    build(project_dir='output', compile_project=True, run_project=True, debug=False)
-    w = fromfile('output/results/_dynamic_array_synapses_w', dtype=float64)
+    device.build(project_dir='output', compile_project=True, run_project=True, debug=False)
+    #w = fromfile('output/results/_dynamic_array_synapses_w', dtype=float64)
 else:
     print 'Simulation time:', time()-start
     w = S.w[:]
