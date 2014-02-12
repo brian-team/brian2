@@ -61,5 +61,8 @@ def copy_directory(source, target):
             relnames.append(relname)
             tgtname = os.path.join(target, relname)
             ensure_directory_of_file(tgtname)
-            open(tgtname, 'w').write(open(fullname).read())
+            contents = open(fullname).read()
+            if os.path.exists(tgtname) and open(tgtname).read()==contents:
+                continue
+            open(tgtname, 'w').write(contents)
     return relnames

@@ -3,7 +3,7 @@
 #include "objects.h"
 #include<ctime>
 
-{% for codeobj in code_objects %}
+{% for codeobj in code_objects | sort(attribute='name') %}
 #include "code_objects/{{codeobj.name}}.h"
 {% endfor %}
 
@@ -24,7 +24,7 @@ void brian_end()
 	_dealloc_arrays();
 }
 
-{% for name, lines in run_funcs.items() %}
+{% for name, lines in run_funcs.items() | sort(attribute='name') %}
 void {{name}}()
 {
 	{% for line in lines %}
@@ -44,7 +44,7 @@ void {{name}}()
 void brian_start();
 void brian_end();
 
-{% for name, lines in run_funcs.items() %}
+{% for name, lines in run_funcs.items() | sort(attribute='name') %}
 void {{name}}();
 {% endfor %}
 

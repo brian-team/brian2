@@ -13,7 +13,7 @@
 
 #include<iostream>
 
-int main(void)
+int main(int argc, char **argv)
 {
 	std::clock_t start = std::clock();
 
@@ -23,8 +23,8 @@ int main(void)
 	{{ main_line }}
 	{% endfor %}
 
-	double duration = (std::clock()-start)/(double)CLOCKS_PER_SEC;
-	std::cout << "Simulation time: " << duration << endl;
+	double _run_duration = (std::clock()-start)/(double)CLOCKS_PER_SEC;
+	std::cout << "Simulation time: " << _run_duration << endl;
 
 	brian_end();
 

@@ -2,7 +2,7 @@ PROGRAM = main
 SRCS = {{source_files}}
 H_SRCS = {{header_files}}
 OBJS = ${SRCS:.cpp=.o}
-CC = @g++
+CC = g++
 DEBUG = -g
 OPTIMISATIONS = -O3 -ffast-math
 CFLAGS = -c -Wno-write-strings $(OPTIMISATIONS) -I.

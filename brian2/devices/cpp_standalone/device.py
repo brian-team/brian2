@@ -40,6 +40,29 @@ def freeze(code, ns):
     return code
 
 
+class CPPWriter(object):
+    def __init__(self, project_dir):
+        self.project_dir = project_dir
+        self.source_files = []
+        self.header_files = []
+        
+    def write(self, filename, contents):
+        logger.debug('Writing file %s:\n%s' % (filename, contents))
+        if filename.lower().endswith('.cpp'):
+            self.source_files.append(filename)
+        elif filename.lower().endswith('.h'):
+            self.header_files.append(filename)
+        elif filename.endswith('.*'):
+            self.write(filename[:-1]+'cpp', contents.cpp_file)
+            self.write(filename[:-1]+'h', contents.h_file)
+            return
+        fullfilename = os.path.join(self.project_dir, filename)
+        if os.path.exists(fullfilename):
+            if open(fullfilename, 'r').read()==contents:
+                return
+        open(fullfilename, 'w').write(contents)
+
+
 class CPPStandaloneDevice(Device):
     '''
     The `Device` used for C++ standalone simulations.
@@ -211,7 +234,9 @@ class CPPStandaloneDevice(Device):
     def build(self, project_dir='output', compile_project=True, run_project=False, debug=True,
               with_output=True, native=True,
               additional_source_files=None, additional_header_files=None,
-              main_includes=None, run_includes=None):
+              main_includes=None, run_includes=None,
+              run_args='',
+              ):
         '''
         Build the project
         
@@ -251,11 +276,10 @@ class CPPStandaloneDevice(Device):
             run_includes = []
         
         ensure_directory(project_dir)
-        for d in ['code_objects', 'results', 'static_arrays', 'run_functions']:
+        for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(project_dir, d))
             
-        source_files = []
-        header_files = []
+        writer = CPPWriter(project_dir)
             
         logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
 
@@ -273,7 +297,7 @@ class CPPStandaloneDevice(Device):
         # write the static arrays
         logger.debug("static arrays: "+str(sorted(self.static_arrays.keys())))
         static_array_specs = []
-        for name, arr in self.static_arrays.iteritems():
+        for name, arr in sorted(self.static_arrays.items()):
             arr.tofile(os.path.join(project_dir, 'static_arrays', name))
             static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
 
@@ -291,11 +315,7 @@ class CPPStandaloneDevice(Device):
                                                             static_array_specs=static_array_specs,
                                                             networks=networks,
                                                             )
-        logger.debug("objects: "+str(arr_tmp))
-        open(os.path.join(project_dir, 'objects.cpp'), 'w').write(arr_tmp.cpp_file)
-        open(os.path.join(project_dir, 'objects.h'), 'w').write(arr_tmp.h_file)
-        source_files.append('objects.cpp')
-        header_files.append('objects.h')
+        writer.write('objects.*', arr_tmp)
 
         main_lines = []
         procedures = [('', main_lines)]
@@ -384,10 +404,8 @@ class CPPStandaloneDevice(Device):
             code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj.name]))
             code = '#include "objects.h"\n'+code
             
-            open(os.path.join(project_dir, 'code_objects', codeobj.name+'.cpp'), 'w').write(code)
-            open(os.path.join(project_dir, 'code_objects', codeobj.name+'.h'), 'w').write(codeobj.code.h_file)
-            source_files.append('code_objects/'+codeobj.name+'.cpp')
-            header_files.append('code_objects/'+codeobj.name+'.h')
+            writer.write('code_objects/'+codeobj.name+'.cpp', code)
+            writer.write('code_objects/'+codeobj.name+'.h', codeobj.code.h_file)
                     
         # The code_objects are passed in the right order to run them because they were
         # sorted by the Network object. To support multiple clocks we'll need to be
@@ -398,21 +416,14 @@ class CPPStandaloneDevice(Device):
                                                           dt=float(defaultclock.dt),
                                                           additional_headers=main_includes,
                                                           )
-        logger.debug("main: "+str(main_tmp))
-        open(os.path.join(project_dir, 'main.cpp'), 'w').write(main_tmp)
-        source_files.append('main.cpp')
+        writer.write('main.cpp', main_tmp)
         
         # Generate the run functions
         run_tmp = CPPStandaloneCodeObject.templater.run(None, run_funcs=runfuncs,
                                                         code_objects=self.code_objects.values(),
                                                         additional_headers=run_includes,
                                                         )
-        logger.debug("run.cpp: "+str(run_tmp.cpp_file))
-        logger.debug("run.h: "+str(run_tmp.h_file))
-        open(os.path.join(project_dir, 'run.cpp'), 'w').write(run_tmp.cpp_file)
-        open(os.path.join(project_dir, 'run.h'), 'w').write(run_tmp.h_file)
-        source_files.append('run.cpp')
-        header_files.append('run.h')
+        writer.write('run.*', run_tmp)
 
         # Copy the brianlibdirectory
         brianlib_dir = os.path.join(os.path.split(inspect.getsourcefile(CPPStandaloneCodeObject))[0],
@@ -420,17 +431,18 @@ class CPPStandaloneDevice(Device):
         brianlib_files = copy_directory(brianlib_dir, os.path.join(project_dir, 'brianlib'))
         for file in brianlib_files:
             if file.lower().endswith('.cpp'):
-                source_files.append('brianlib/'+file)
+                writer.source_files.append('brianlib/'+file)
             elif file.lower().endswith('.h'):
-                header_files.append('brianlib/'+file)
+                writer.header_files.append('brianlib/'+file)
 
         # Copy the CSpikeQueue implementation
-        shutil.copy(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0],
-                                    'cspikequeue.cpp'),
-                    os.path.join(project_dir, 'brianlib', 'spikequeue.h'))
+        spikequeue_h = os.path.join(project_dir, 'brianlib', 'spikequeue.h')
+        shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'cspikequeue.cpp'),
+                     spikequeue_h)
+        #writer.header_files.append(spikequeue_h)
         
-        source_files.extend(additional_source_files)
-        header_files.extend(additional_header_files)
+        writer.source_files.extend(additional_source_files)
+        writer.header_files.extend(additional_header_files)
 
         # Generate the makefile
         if os.name=='nt':
@@ -438,10 +450,10 @@ class CPPStandaloneDevice(Device):
         else:
             rm_cmd = 'rm'
         makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None,
-                                                                  source_files=' '.join(source_files),
-                                                                  header_files=' '.join(header_files),
+                                                                  source_files=' '.join(writer.source_files),
+                                                                  header_files=' '.join(writer.header_files),
                                                                   rm_cmd=rm_cmd)
-        open(os.path.join(project_dir, 'makefile'), 'w').write(makefile_tmp)
+        writer.write('makefile', makefile_tmp)
 
         # build the project
         if compile_project:
@@ -459,9 +471,9 @@ class CPPStandaloneDevice(Device):
                         else:
                             stdout = None
                         if os.name=='nt':
-                            x = subprocess.call('main', stdout=stdout)
+                            x = subprocess.call('main %s' % run_args, stdout=stdout)
                         else:
-                            x = subprocess.call('./main', stdout=stdout)
+                            x = subprocess.call('./main %s' % run_args, stdout=stdout)
                         if x:
                             raise RuntimeError("Project run failed")
                 else:
