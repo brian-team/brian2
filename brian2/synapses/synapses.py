@@ -111,8 +111,12 @@ class SynapticPathway(CodeRunner, Group):
         may have changed to become unique. If ``None`` is provided (the
         default), ``prepost+'*'`` will be used (see `Nameable` for an
         explanation of the wildcard operator).
+    delay : `Quantity`, optional
+        A scalar delay (same delay for all synapses) for this pathway. If
+        not given, delays are expected to vary between synapses.
     '''
-    def __init__(self, synapses, code, prepost, objname=None):
+    def __init__(self, synapses, code, prepost, objname=None,
+                 delay=None):
         self.code = code
         self.prepost = prepost
         if prepost == 'pre':
@@ -153,13 +157,30 @@ class SynapticPathway(CodeRunner, Group):
         self.variables.add_reference('_spikespace',
                                      self.source.variables['_spikespace'])
         self.variables.add_reference('N', synapses.variables['N'])
-        self.variables.add_dynamic_array('delay', unit=second,
-                                         size=synapses._N, constant=True,
-                                         constant_size=True)
+        if delay is None:  # variable delays
+            self.variables.add_dynamic_array('delay', unit=second,
+                                             size=synapses._N, constant=True,
+                                             constant_size=True)
+            # Register the object with the `SynapticIndex` object so it gets
+            # automatically resized
+            synapses.register_variable(self.variables['delay'])
+        else:
+            if not isinstance(delay, Quantity):
+                raise TypeError(('Cannot set the delay for pathway "%s": '
+                                 'expected a quantity, got %s instead.') % (objname,
+                                                                            type(delay)))
+            if delay.size != 1:
+                raise TypeError(('Cannot set the delay for pathway "%s": '
+                                 'expected a scalar quantity, got a '
+                                 'quantity with shape %s instead.') % str(delay.shape))
+            fail_for_dimension_mismatch(delay, second, ('Delay has to be '
+                                                        'specified in units '
+                                                        'of seconds'))
+            self.variables.add_array('delay', unit=second, size=1,
+                                     constant=True, scalar=True)
+            self.variables['delay'].set_value(delay)
+
         self._delays = self.variables['delay']
-        # Register the object with the `SynapticIndex` object so it gets
-        # automatically resized
-        synapses.register_variable(self._delays)
 
         # Re-extract the last part of the name from the full name
         self.objname = self.name[len(synapses.name) + 1:]
@@ -425,9 +446,6 @@ class Synapses(Group):
         # Setup the namespace
         self.namespace = namespace
 
-        self._queues = {}
-        self._delays = {}
-
         # Setup variables
         self._create_variables()
 
@@ -441,6 +459,15 @@ class Synapses(Group):
                 # it gets automatically resized
                 self.register_variable(var)
 
+        if delay is None:
+            delay = {}
+
+        if isinstance(delay, Quantity):
+            delay = {'pre': delay}
+        elif not isinstance(delay, collections.Mapping):
+            raise TypeError('Delay argument has to be a quantity or a '
+                            'dictionary, is type %s instead.' % type(delay))
+
         #: List of names of all updaters, e.g. ['pre', 'post']
         self._synaptic_updaters = []
         #: List of all `SynapticPathway` objects
@@ -449,7 +476,8 @@ class Synapses(Group):
             if not argument:
                 continue
             if isinstance(argument, basestring):
-                self._add_updater(argument, prepost)
+                pathway_delay = delay.get(prepost, None)
+                self._add_updater(argument, prepost, delay=pathway_delay)
             elif isinstance(argument, collections.Mapping):
                 for key, value in argument.iteritems():
                     if not isinstance(key, basestring):
@@ -457,48 +485,21 @@ class Synapses(Group):
                                    'have to be strings, got '
                                    '{} instead.').format(prepost, type(key))
                         raise TypeError(err_msg)
-                    self._add_updater(value, prepost, objname=key)
+                    pathway_delay = delay.get(key, None)
+                    self._add_updater(value, prepost, objname=key,
+                                      delay=pathway_delay)
+
+        # Check whether any delays were specified for pathways that don't exist
+        for pathway in delay:
+            if not pathway in self._synaptic_updaters:
+                raise ValueError(('Cannot set the delay for pathway '
+                                  '"%s": unknown pathway.') % pathway)
 
         # If we have a pathway called "pre" (the most common use case), provide
         # direct access to its delay via a delay attribute (instead of having
         # to use pre.delay)
         if 'pre' in self._synaptic_updaters:
             self.variables.add_reference('delay', self.pre.variables['delay'])
-
-        if delay is not None:
-            if isinstance(delay, Quantity):
-                if not 'pre' in self._synaptic_updaters:
-                    raise ValueError(('Cannot set delay, no "pre" pathway exists.'
-                                      'Use a dictionary if you want to set the '
-                                      'delay for a pathway with a different name.'))
-                delay = {'pre': delay}
-
-            if not isinstance(delay, collections.Mapping):
-                raise TypeError('Delay argument has to be a quantity or a '
-                                'dictionary, is type %s instead.' % type(delay))
-            for pathway, pathway_delay in delay.iteritems():
-                if not pathway in self._synaptic_updaters:
-                    raise ValueError(('Cannot set the delay for pathway '
-                                      '"%s": unknown pathway.') % pathway)
-                if not isinstance(pathway_delay, Quantity):
-                    raise TypeError(('Cannot set the delay for pathway "%s": '
-                                     'expected a quantity, got %s instead.') % (pathway,
-                                                                                type(pathway_delay)))
-                if pathway_delay.size != 1:
-                    raise TypeError(('Cannot set the delay for pathway "%s": '
-                                     'expected a scalar quantity, got a '
-                                     'quantity with shape %s instead.') % str(pathway_delay.shape))
-                fail_for_dimension_mismatch(pathway_delay, second, ('Delay has to be '
-                                                                    'specified in units '
-                                                                    'of seconds'))
-                updater = getattr(self, pathway)
-                # For simplicity, store the delay as a one-element array
-                # so that for example updater._delays[:] works.
-                updater._delays.resize(1)
-                updater._delays.set_value(float(pathway_delay))
-                updater._delays.scalar = True
-                # Do not resize the scalar delay variable when adding synapses
-                self.unregister_variable(updater._delays)
 
         #: Performs numerical integration step
         self.state_updater = StateUpdater(self, method)        
@@ -569,7 +570,7 @@ class Synapses(Group):
         self.lastupdate = self.clock.t
         super(Synapses, self).before_run(run_namespace, level=level+1)
 
-    def _add_updater(self, code, prepost, objname=None):
+    def _add_updater(self, code, prepost, objname=None, delay=None):
         '''
         Add a new target updater. Users should call `add_pre` or `add_post`
         instead.
@@ -583,6 +584,9 @@ class Synapses(Group):
             Whether the code is triggered by presynaptic or postsynaptic spikes
         objname : str, optional
             A name for the object, see `SynapticPathway` for more details.
+        delay : `Quantity`, optional
+            A scalar delay (same delay for all synapses) for this pathway. If
+            not given, delays are expected to vary between synapses.
 
         Returns
         -------
@@ -604,7 +608,7 @@ class Synapses(Group):
                              ' clock attribute. Is type %r instead')
                             % (group_name, type(spike_group)))
 
-        updater = SynapticPathway(self, code, prepost, objname)
+        updater = SynapticPathway(self, code, prepost, objname, delay)
         objname = updater.objname
         if hasattr(self, objname):
             raise ValueError(('Cannot add updater with name "{name}", synapses '
