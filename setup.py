@@ -124,6 +124,7 @@ setup(name='Brian2',
                                                         'templates/*.h'],
                     'brian2.devices.cpp_standalone': ['templates/*.cpp',
                                                       'templates/*.h',
+                                                      'templates/makefile',
                                                       'brianlib/*.cpp',
                                                       'brianlib/*.h'],
                     # include C++ version of spike queue
