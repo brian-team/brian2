@@ -73,7 +73,7 @@ if standalone_mode:
 #    if os.path.exists('output'):
 #        shutil.rmtree('output')
     device.build(project_dir='output', compile_project=True, run_project=True, debug=False,
-                 run_args=str(float(duration)))
+                 run_args=[str(float(duration))])
     w = fromfile('output/results/_dynamic_array_synapses_w', dtype=float64)
 else:
     print 'Simulation time:', time()-start
