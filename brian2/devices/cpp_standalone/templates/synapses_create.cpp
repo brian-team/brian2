@@ -41,7 +41,7 @@
 
 	// now we need to resize all registered variables
 	const int newsize = {{_dynamic__synaptic_pre}}.size();
-	{% for variable in owner._registered_variables | sort %}
+	{% for variable in owner._registered_variables | sort(attribute='name') %}
 	{% set varname = get_array_name(variable, access_data=False) %}
 	{{varname}}.resize(newsize);
 	{% endfor %}
