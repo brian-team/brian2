@@ -241,7 +241,7 @@ class CPPStandaloneDevice(Device):
               with_output=True, native=True,
               additional_source_files=None, additional_header_files=None,
               main_includes=None, run_includes=None,
-              run_args='',
+              run_args=None,
               ):
         '''
         Build the project
@@ -280,7 +280,8 @@ class CPPStandaloneDevice(Device):
             main_includes = []
         if run_includes is None:
             run_includes = []
-        
+        if run_args is None:
+            run_args = []
         ensure_directory(project_dir)
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(project_dir, d))
@@ -477,9 +478,9 @@ class CPPStandaloneDevice(Device):
                         else:
                             stdout = None
                         if os.name=='nt':
-                            x = subprocess.call('main %s' % run_args, stdout=stdout)
+                            x = subprocess.call(['main'] + run_args, stdout=stdout)
                         else:
-                            x = subprocess.call('./main %s' % run_args, stdout=stdout)
+                            x = subprocess.call(['./main'] + run_args, stdout=stdout)
                         if x:
                             raise RuntimeError("Project run failed")
                 else:
