@@ -16,7 +16,7 @@ from brian2.synapses.synapses import Synapses
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.generators.cpp_generator import c_data_type
-from brian2.units.fundamentalunits import Quantity
+from brian2.units.fundamentalunits import Quantity, have_same_dimensions
 from brian2.units import second
 from brian2.utils.logger import get_logger
 
@@ -186,6 +186,9 @@ class CPPStandaloneDevice(Device):
         value = Quantity(value)
 
         if value.size == 1 and item == 'True':  # set the whole array to a scalar value
+            if have_same_dimensions(value, 1):
+                # Avoid a representation as "Quantity(...)" or "array(...)"
+                value = float(value)
             group.set_with_expression_conditional(variable_name, variable,
                                                   cond=item,
                                                   code=repr(value),
