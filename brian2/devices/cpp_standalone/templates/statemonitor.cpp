@@ -7,7 +7,7 @@
 
     const int _new_size = {{_dynamic_t}}.size();
     // Resize the dynamic arrays
-    {% for var in _recorded_variables.values() | sort %}
+    {% for varname, var in _recorded_variables | dictsort %}
     {% set _recorded =  get_array_name(var, access_data=False) %}
     {{_recorded}}.resize(_new_size, _num_indices);
     {% endfor %}
@@ -19,7 +19,7 @@
         {% block maincode_inner %}
             {{ super() }}
 
-            {% for varname, var in _recorded_variables.items() | sort %}
+            {% for varname, var in _recorded_variables | dictsort %}
             {% set _recorded =  get_array_name(var, access_data=False) %}
             {{_recorded}}(_new_size-1, _i) = _to_record_{{varname}};
             {% endfor %}

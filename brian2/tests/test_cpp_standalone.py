@@ -40,10 +40,7 @@ def test_cpp_standalone(with_output=False):
     S.w = 0.5*mV
     S.delay = '0*ms'
 
-    net = Network(G,
-                  M,
-                  S,
-                  )
+    net = Network(G, M, S)
     net.run(100*ms)
     tempdir = tempfile.mkdtemp()
     if with_output:
