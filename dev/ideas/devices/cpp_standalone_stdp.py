@@ -1,22 +1,22 @@
-from numpy import *
 from brian2 import *
 
 standalone_mode = True
 plot_results = True
-duration = 100*second
+duration = 1*second
 
 import matplotlib.pyplot as plt
 from time import time
 import shutil, os
 
 if standalone_mode:
-    from brian2.devices.cpp_standalone import *
     set_device('cpp_standalone')
 else:
     brian_prefs['codegen.target'] = 'weave'
     #brian_prefs['codegen.target'] = 'numpy'
 
 start = time()
+
+clock = Clock()
 
 N = 1000
 taum = 10 * ms
@@ -39,8 +39,8 @@ dv/dt=(ge*(Ee-vr)+El-v)/taum : volt   # the synaptic current is linearized
 dge/dt=-ge/taue : 1
 '''
 
-input = PoissonGroup(N, rates=F)
-neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v=vr')
+input = PoissonGroup(N, rates=F, clock=clock)
+neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v=vr', clock=clock)
 S = Synapses(input, neurons,
              '''w:1
                 dApre/dt=-Apre/taupre : 1 (event-driven)
@@ -51,20 +51,30 @@ S = Synapses(input, neurons,
              post='''Apost+=dApost
                      w=clip(w+Apre,0,gmax)''',
              connect=True,
+             clock=clock,
              )
 
-S.w='rand()*gmax'
+S.w = 'rand()*gmax'
+    
+net = Network(input, neurons, S, name='stdp_net')
 
+net.run(0*second)
 
-net = Network(input, neurons, S)
-
-net.run(duration)
+device.insert_device_code('main', '''
+    double duration = 1.0;
+    if(argc>1)
+    {
+        duration = atof(argv[1]);
+    }
+    stdp_net.run(duration);
+    ''')
 
 if standalone_mode:
-    if os.path.exists('output'):
-        shutil.rmtree('output')
-    build(project_dir='output', compile_project=True, run_project=True, debug=False)
-    w = loadtxt('output/results/_dynamic_array_synapses_w.txt')
+#    if os.path.exists('output'):
+#        shutil.rmtree('output')
+    device.build(project_dir='output', compile_project=True, run_project=True, debug=False,
+                 run_args=[str(float(duration))])
+    w = fromfile('output/results/_dynamic_array_synapses_w', dtype=float64)
 else:
     print 'Simulation time:', time()-start
     w = S.w[:]

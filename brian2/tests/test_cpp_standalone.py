@@ -5,7 +5,7 @@ from nose import with_setup
 import numpy
 
 from brian2 import *
-from brian2.devices.cpp_standalone import *
+from brian2.devices.cpp_standalone import cpp_standalone_device
 
 
 def restore_device():
@@ -40,22 +40,21 @@ def test_cpp_standalone(with_output=False):
     S.w = 0.5*mV
     S.delay = '0*ms'
 
-    net = Network(G,
-                  M,
-                  S,
-                  )
+    net = Network(G, M, S)
     net.run(100*ms)
     tempdir = tempfile.mkdtemp()
     if with_output:
         print tempdir
-    build(project_dir=tempdir, compile_project=True, run_project=True,
-          with_output=with_output)
+    device.build(project_dir=tempdir, compile_project=True, run_project=True,
+                 with_output=with_output)
     i = numpy.fromfile(os.path.join(tempdir, 'results', '_dynamic_array_spikemonitor_i'),
                        dtype=numpy.int32)
     t = numpy.fromfile(os.path.join(tempdir, 'results', '_dynamic_array_spikemonitor_t'),
                        dtype=numpy.float64)
-    assert len(i)==17430
-    assert len(t)==17430
+    # we do an approximate equality here because depending on minor details of how it was compiled, the results
+    # may be slightly different (if -ffast-math is on)
+    assert len(i)>=17000 and len(i)<=18000
+    assert len(t)==len(i)
     assert t[0] == 0.
     assert t[-1] == float(100*ms - defaultclock.dt)
     

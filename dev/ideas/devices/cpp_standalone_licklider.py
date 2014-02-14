@@ -6,7 +6,6 @@ from brian2 import *
 import shutil, os
 
 if standalone_mode:
-    from brian2.devices.cpp_standalone import *
     set_device('cpp_standalone')
 else:
     brian_prefs['codegen.target'] = 'weave'
@@ -52,9 +51,9 @@ net.run(500 * ms)
 if standalone_mode:
     if os.path.exists('output'):
         shutil.rmtree('output')
-    build(project_dir='output', compile_project=True, run_project=True, debug=False)
-    i = fromfile('output/results/spikemonitor_codeobject_i', dtype=int32)
-    t = fromfile('output/results/spikemonitor_codeobject_t', dtype=float64) * second
+    device.build(project_dir='output', compile_project=True, run_project=True, debug=False)
+    i = fromfile('output/results/_dynamic_array_spikemonitor_i', dtype=int32)
+    t = fromfile('output/results/_dynamic_array_spikemonitor_t', dtype=float64) * second
 else:
     i, t = spikes.it
 

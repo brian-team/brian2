@@ -19,9 +19,8 @@ from brian2.utils.stringtools import code_representation, indent
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
            'all_devices',
-           'insert_device_code',
            'device_override',
-           'build',
+           'device',
            ]
 
 logger = get_logger(__name__)
@@ -305,36 +304,60 @@ class RuntimeDevice(Device):
 
 
 runtime_device = RuntimeDevice()
-
 all_devices['runtime'] = runtime_device
 
-current_device = runtime_device
+active_device = runtime_device
+
+
+class Dummy(object):
+    '''
+    Dummy object
+    '''
+    def __getattr__(self, name):
+        return Dummy()
+    def __call__(self, *args, **kwds):
+        return Dummy()
+    def __enter__(self):
+        return Dummy()
+    def __exit__(self, type, value, traceback):
+        pass
+    def __getitem__(self, i):
+        return Dummy()
+    def __setitem__(self, i, val):
+        pass
+    
+class CurrentDeviceProxy(object):
+    '''
+    Method proxy for access to the currently active device
+    '''
+    def __getattr__(self, name):
+        if not hasattr(active_device, name):
+            logger.warn("Active device does not have an attribute '%s', ignoring this" % name)
+            attr = Dummy()
+        else:
+            attr = getattr(active_device, name)
+        return attr
+
+#: Proxy object to access methods of the current device
+device = CurrentDeviceProxy()
+
 
 def get_device():
     '''
-    Gets the current `Device` object
+    Gets the actve `Device` object
     '''
-    global current_device
-    return current_device
+    global active_device
+    return active_device
 
 def set_device(device):
     '''
-    Sets the current `Device` object
+    Sets the active `Device` object
     '''
-    global current_device
+    global active_device
     if isinstance(device, str):
         device = all_devices[device]
-    current_device = device
-    current_device.activate()
-
-
-def insert_device_code(slot, code):
-    '''
-    Inserts the given set of code into the slot defined by the device.
-    
-    The behaviour of this function is device dependent. The runtime device ignores it (useful for debugging).
-    '''
-    get_device().insert_device_code(slot, code)
+    active_device = device
+    active_device.activate()
 
 
 def device_override(name):
@@ -356,10 +379,3 @@ def device_override(name):
         return device_override_decorated_function
     
     return device_override_decorator
-
-
-def build(**kwds):
-    '''
-    Builds the project for standalone devices, does nothing for runtime. Calls `Device.build`.
-    '''
-    get_device().build(**kwds)

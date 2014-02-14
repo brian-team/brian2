@@ -16,7 +16,7 @@ from brian2.synapses.synapses import Synapses
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.generators.cpp_generator import c_data_type
-from brian2.units.fundamentalunits import Quantity
+from brian2.units.fundamentalunits import Quantity, have_same_dimensions
 from brian2.units import second
 from brian2.utils.logger import get_logger
 
@@ -37,6 +37,33 @@ def freeze(code, ns):
               v.scalar and v.constant and v.read_only):
             code = word_substitute(code, {k: repr(v.get_value())})
     return code
+
+
+class CPPWriter(object):
+    def __init__(self, project_dir):
+        self.project_dir = project_dir
+        self.source_files = []
+        self.header_files = []
+        
+    def write(self, filename, contents):
+        logger.debug('Writing file %s:\n%s' % (filename, contents))
+        if filename.lower().endswith('.cpp'):
+            self.source_files.append(filename)
+        elif filename.lower().endswith('.h'):
+            self.header_files.append(filename)
+        elif filename.endswith('.*'):
+            self.write(filename[:-1]+'cpp', contents.cpp_file)
+            self.write(filename[:-1]+'h', contents.h_file)
+            return
+        fullfilename = os.path.join(self.project_dir, filename)
+        if os.path.exists(fullfilename):
+            if open(fullfilename, 'r').read()==contents:
+                return
+        open(fullfilename, 'w').write(contents)
+        
+        
+def invert_dict(x):
+    return dict((v, k) for k, v in x.iteritems())
 
 
 class CPPStandaloneDevice(Device):
@@ -78,7 +105,7 @@ class CPPStandaloneDevice(Device):
         '''
         Insert code directly into main.cpp
         '''
-        if slot=='main.cpp':
+        if slot=='main':
             self.main_queue.append(('insert_code', code))
         else:
             logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
@@ -159,6 +186,9 @@ class CPPStandaloneDevice(Device):
         value = Quantity(value)
 
         if value.size == 1 and item == 'True':  # set the whole array to a scalar value
+            if have_same_dimensions(value, 1):
+                # Avoid a representation as "Quantity(...)" or "array(...)"
+                value = float(value)
             group.set_with_expression_conditional(variable_name, variable,
                                                   cond=item,
                                                   code=repr(value),
@@ -214,12 +244,59 @@ class CPPStandaloneDevice(Device):
         return codeobj
 
     def build(self, project_dir='output', compile_project=True, run_project=False, debug=True,
-              with_output=True):
+              with_output=True, native=True,
+              additional_source_files=None, additional_header_files=None,
+              main_includes=None, run_includes=None,
+              run_args=None,
+              ):
+        '''
+        Build the project
+        
+        TODO: more details
+        
+        Parameters
+        ----------
+        project_dir : str
+            The output directory to write the project to, any existing files will be overwritten.
+        compile_project : bool
+            Whether or not to attempt to compile the project using GNU make.
+        run_project : bool
+            Whether or not to attempt to run the built project if it successfully builds.
+        debug : bool
+            Whether to compile in debug mode.
+        with_output : bool
+            Whether or not to show the ``stdout`` of the built program when run.
+        native : bool
+            Whether or not to compile natively using the ``--march=native`` gcc option.
+        additional_source_files : list of str
+            A list of additional ``.cpp`` files to include in the build.
+        additional_header_files : list of str
+            A list of additional ``.h`` files to include in the build.
+        main_includes : list of str
+            A list of additional header files to include in ``main.cpp``.
+        run_includes : list of str
+            A list of additional header files to include in ``run.cpp``.
+        '''
+        
+        if additional_source_files is None:
+            additional_source_files = []
+        if additional_header_files is None:
+            additional_header_files = []
+        if main_includes is None:
+            main_includes = []
+        if run_includes is None:
+            run_includes = []
+        if run_args is None:
+            run_args = []
         ensure_directory(project_dir)
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(project_dir, d))
             
+        writer = CPPWriter(project_dir)
+            
         logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
+
+        self.arange_arrays.sort(key=lambda (var, start): var.name)
 
         # # Find numpy arrays in the namespaces and convert them into static
         # # arrays. Hopefully they are correctly used in the code: For example,
@@ -235,29 +312,30 @@ class CPPStandaloneDevice(Device):
         # write the static arrays
         logger.debug("static arrays: "+str(sorted(self.static_arrays.keys())))
         static_array_specs = []
-        for name, arr in self.static_arrays.iteritems():
+        for name, arr in sorted(self.static_arrays.items()):
             arr.tofile(os.path.join(project_dir, 'static_arrays', name))
             static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
 
         # Write the global objects
         networks = [net() for net in Network.__instances__() if net().name!='_fake_network']
         synapses = [S() for S in Synapses.__instances__()]
-        arr_tmp = CPPStandaloneCodeObject.templater.objects(None,
-                                                            array_specs=self.arrays,
-                                                            dynamic_array_specs=self.dynamic_arrays,
-                                                            dynamic_array_2d_specs=self.dynamic_arrays_2d,
-                                                            zero_arrays=self.zero_arrays,
-                                                            arange_arrays=self.arange_arrays,
-                                                            synapses=synapses,
-                                                            clocks=self.clocks,
-                                                            static_array_specs=static_array_specs,
-                                                            networks=networks,
-                                                            )
-        logger.debug("objects: "+str(arr_tmp))
-        open(os.path.join(project_dir, 'objects.cpp'), 'w').write(arr_tmp.cpp_file)
-        open(os.path.join(project_dir, 'objects.h'), 'w').write(arr_tmp.h_file)
+        arr_tmp = CPPStandaloneCodeObject.templater.objects(
+                        None,
+                        array_specs=self.arrays,
+                        dynamic_array_specs=self.dynamic_arrays,
+                        dynamic_array_2d_specs=self.dynamic_arrays_2d,
+                        zero_arrays=self.zero_arrays,
+                        arange_arrays=self.arange_arrays,
+                        synapses=synapses,
+                        clocks=self.clocks,
+                        static_array_specs=static_array_specs,
+                        networks=networks,
+                        )
+        writer.write('objects.*', arr_tmp)
 
         main_lines = []
+        procedures = [('', main_lines)]
+        runfuncs = {}
         for func, args in self.main_queue:
             if func=='run_code_object':
                 codeobj, = args
@@ -286,6 +364,17 @@ class CPPStandaloneDevice(Device):
                 main_lines.extend(code.split('\n'))
             elif func=='insert_code':
                 main_lines.append(args)
+            elif func=='start_run_func':
+                name, include_in_parent = args
+                if include_in_parent:
+                    main_lines.append('%s();' % name)
+                main_lines = []
+                procedures.append((name, main_lines))
+            elif func=='end_run_func':
+                name, include_in_parent = args
+                name, main_lines = procedures.pop(-1)
+                runfuncs[name] = main_lines
+                name, main_lines = procedures[-1]
             else:
                 raise NotImplementedError("Unknown main queue function type "+func)
 
@@ -301,21 +390,28 @@ class CPPStandaloneDevice(Device):
             for k, v in codeobj.variables.iteritems():
                 if isinstance(v, AttributeVariable):
                     # We assume all attributes are implemented as property-like methods
-                    code_object_defs[codeobj.name].append('const {c_type} {varname} = {objname}.{attrname}();'.format(c_type=c_data_type(v.dtype),
-                                                                                                                      varname=k,
-                                                                                                                      objname=v.obj.name,
-                                                                                                                      attrname=v.attribute))
+                    line = 'const {c_type} {varname} = {objname}.{attrname}();'
+                    line = line.format(c_type=c_data_type(v.dtype), varname=k, objname=v.obj.name,
+                                       attrname=v.attribute)
+                    code_object_defs[codeobj.name].append(line)
                 elif isinstance(v, ArrayVariable):
+                    # Do not generate code for arrays twice.
+                    if k in handled_arrays[codeobj.name]:
+                        continue
+                    else:
+                        handled_arrays[codeobj.name].add(k)
                     try:
                         if isinstance(v, DynamicArrayVariable):
                             if v.dimensions == 1:
                                 dyn_array_name = self.dynamic_arrays[v]
                                 array_name = self.arrays[v]
-                                code_object_defs[codeobj.name].append('{c_type}* const {array_name} = &{dyn_array_name}[0];'.format(c_type=c_data_type(v.dtype),
-                                                                                                                                    array_name=array_name,
-                                                                                                                                    dyn_array_name=dyn_array_name))
-                                code_object_defs[codeobj.name].append('const int _num{k} = {dyn_array_name}.size();'.format(k=k,
-                                                                                                                       dyn_array_name=dyn_array_name))
+                                line = '{c_type}* const {array_name} = &{dyn_array_name}[0];'
+                                line = line.format(c_type=c_data_type(v.dtype), array_name=array_name,
+                                                   dyn_array_name=dyn_array_name)
+                                code_object_defs[codeobj.name].append(line)
+                                line = 'const int _num{k} = {dyn_array_name}.size();'
+                                line = line.format(k=k, dyn_array_name=dyn_array_name)
+                                code_object_defs[codeobj.name].append(line)
                         else:
                             code_object_defs[codeobj.name].append('const int _num%s = %s;' % (k, v.size))
                     except TypeError:
@@ -329,8 +425,8 @@ class CPPStandaloneDevice(Device):
             code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj.name]))
             code = '#include "objects.h"\n'+code
             
-            open(os.path.join(project_dir, 'code_objects', codeobj.name+'.cpp'), 'w').write(code)
-            open(os.path.join(project_dir, 'code_objects', codeobj.name+'.h'), 'w').write(codeobj.code.h_file)
+            writer.write('code_objects/'+codeobj.name+'.cpp', code)
+            writer.write('code_objects/'+codeobj.name+'.h', codeobj.code.h_file)
                     
         # The code_objects are passed in the right order to run them because they were
         # sorted by the Network object. To support multiple clocks we'll need to be
@@ -339,27 +435,56 @@ class CPPStandaloneDevice(Device):
                                                           main_lines=main_lines,
                                                           code_objects=self.code_objects.values(),
                                                           dt=float(defaultclock.dt),
+                                                          additional_headers=main_includes,
                                                           )
-        logger.debug("main: "+str(main_tmp))
-        open(os.path.join(project_dir, 'main.cpp'), 'w').write(main_tmp)
+        writer.write('main.cpp', main_tmp)
+        
+        # Generate the run functions
+        run_tmp = CPPStandaloneCodeObject.templater.run(None, run_funcs=runfuncs,
+                                                        code_objects=self.code_objects.values(),
+                                                        additional_headers=run_includes,
+                                                        )
+        writer.write('run.*', run_tmp)
 
         # Copy the brianlibdirectory
         brianlib_dir = os.path.join(os.path.split(inspect.getsourcefile(CPPStandaloneCodeObject))[0],
                                     'brianlib')
-        copy_directory(brianlib_dir, os.path.join(project_dir, 'brianlib'))
+        brianlib_files = copy_directory(brianlib_dir, os.path.join(project_dir, 'brianlib'))
+        for file in brianlib_files:
+            if file.lower().endswith('.cpp'):
+                writer.source_files.append('brianlib/'+file)
+            elif file.lower().endswith('.h'):
+                writer.header_files.append('brianlib/'+file)
 
         # Copy the CSpikeQueue implementation
-        shutil.copy(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0],
-                                    'cspikequeue.cpp'),
-                    os.path.join(project_dir, 'brianlib', 'spikequeue.h'))
+        spikequeue_h = os.path.join(project_dir, 'brianlib', 'spikequeue.h')
+        shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'cspikequeue.cpp'),
+                     spikequeue_h)
+        #writer.header_files.append(spikequeue_h)
+        
+        writer.source_files.extend(additional_source_files)
+        writer.header_files.extend(additional_header_files)
+
+        # Generate the makefile
+        if os.name=='nt':
+            rm_cmd = 'del'
+        else:
+            rm_cmd = 'rm'
+        makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None,
+                                                                  source_files=' '.join(writer.source_files),
+                                                                  header_files=' '.join(writer.header_files),
+                                                                  rm_cmd=rm_cmd)
+        writer.write('makefile', makefile_tmp)
 
         # build the project
         if compile_project:
             with in_directory(project_dir):
                 if debug:
-                    x = os.system('g++ -I. -g *.cpp code_objects/*.cpp brianlib/*.cpp -o main')
+                    x = os.system('make debug')
+                elif native:
+                    x = os.system('make native')
                 else:
-                    x = os.system('g++ -I. -O3 -ffast-math -march=native *.cpp code_objects/*.cpp brianlib/*.cpp -o main')
+                    x = os.system('make')
                 if x==0:
                     if run_project:
                         if not with_output:
@@ -367,9 +492,9 @@ class CPPStandaloneDevice(Device):
                         else:
                             stdout = None
                         if os.name=='nt':
-                            x = subprocess.call('main', stdout=stdout)
+                            x = subprocess.call(['main'] + run_args, stdout=stdout)
                         else:
-                            x = subprocess.call('./main', stdout=stdout)
+                            x = subprocess.call(['./main'] + run_args, stdout=stdout)
                         if x:
                             raise RuntimeError("Project run failed")
                 else:
@@ -387,7 +512,7 @@ class CPPStandaloneDevice(Device):
         # TODO: remove this horrible hack
         for clock in self.clocks:
             if clock.name=='clock':
-                clock._name = 'clock_'
+                clock._name = '_clock'
             
         # Extract all the CodeObjects
         # Note that since we ran the Network object, these CodeObjects will be sorted into the right
@@ -405,6 +530,30 @@ class CPPStandaloneDevice(Device):
         run_lines.append('{net.name}.run({duration});'.format(net=net, duration=float(duration)))
         self.main_queue.append(('run_network', (net, run_lines)))
 
+    def run_function(self, name, include_in_parent=True):
+        '''
+        Context manager to divert code into a function
+        
+        Code that happens within the scope of this context manager will go into the named function.
+        
+        Parameters
+        ----------
+        name : str
+            The name of the function to divert code into.
+        include_in_parent : bool
+            Whether or not to include a call to the newly defined function in the parent context.
+        '''
+        return RunFunctionContext(name, include_in_parent)
+
+
+class RunFunctionContext(object):
+    def __init__(self, name, include_in_parent):
+        self.name = name
+        self.include_in_parent = include_in_parent
+    def __enter__(self):
+        cpp_standalone_device.main_queue.append(('start_run_func', (self.name, self.include_in_parent)))
+    def __exit__(self, type, value, traceback):
+        cpp_standalone_device.main_queue.append(('end_run_func', (self.name, self.include_in_parent)))
 
 
 cpp_standalone_device = CPPStandaloneDevice()

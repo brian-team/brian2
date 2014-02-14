@@ -20,7 +20,7 @@ run(500 * ms)
 if os.path.exists('output'):
     shutil.rmtree('output')
 
-build(project_dir='output', compile_project=True, run_project=True)
+device.build(project_dir='output', compile_project=True, run_project=True)
 
 #i = fromfile('output/results/spikemonitor_codeobject_i', dtype=int32)
 #t = fromfile('output/results/spikemonitor_codeobject_t', dtype=float64) * second

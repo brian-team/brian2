@@ -42,6 +42,7 @@
 {% block extra_functions_cpp %}
 void _debugmsg_{{codeobj_name}}()
 {
+	using namespace brian;
 	std::cout << "Number of spikes: " << {{_dynamic_i}}.size() << endl;
 }
 {% endblock %}

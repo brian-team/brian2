@@ -165,24 +165,28 @@ def add_implementations(function, codes, namespaces=None, names=None):
         namespaces = {}
     if names is None:
         names = {}
+
     for target, code in codes.iteritems():
         # Try to find the CodeObject or CodeGenerator class, corresponding to the
         # given string
         if isinstance(target, basestring):
-            target_obj = None
+            # We can have several codegen targets sharing the same string, e.g.
+            # WeaveCodeGenerator and CppCodeGenerator both use 'cpp'. If a
+            # function provides an implementation for 'cpp', register it for
+            # both.
+            target_objects = []
             for codegen_target in codegen_targets:
                 if codegen_target.class_name == target:
-                    target_obj = codegen_target
-                    break
+                    target_objects.append(codegen_target)
                 elif codegen_target.generator_class.generator_id == target:
-                    target_obj = codegen_target.generator_class
-                    break
-            if target_obj is None:
+                    target_objects.append(codegen_target.generator_class)
+            if len(target_objects) == 0:
                 raise ValueError('Unknown code generation target %s' % target)
         else:
-            target_obj = target
+            target_objects = [target]
         namespace = namespaces.get(target, None)
         name = names.get(target, None)
-        function.implementations[target_obj] = FunctionImplementation(name=name,
-                                                                      code=code,
-                                                                      namespace=namespace)
+        for target_obj in target_objects:
+            function.implementations[target_obj] = FunctionImplementation(name=name,
+                                                                          code=code,
+                                                                          namespace=namespace)

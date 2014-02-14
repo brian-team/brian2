@@ -2,6 +2,7 @@
 Module implementing the C++ "standalone" `CodeObject`
 '''
 from brian2.codegen.codeobject import CodeObject
+from brian2.codegen.targets import codegen_targets
 from brian2.codegen.templates import Templater
 from brian2.codegen.generators.cpp_generator import (CPPCodeGenerator,
                                                      c_data_type)
@@ -27,3 +28,5 @@ class CPPStandaloneCodeObject(CodeObject):
 
     def run(self):
         get_device().main_queue.append(('run_code_object', (self,)))
+
+codegen_targets.add(CPPStandaloneCodeObject)
