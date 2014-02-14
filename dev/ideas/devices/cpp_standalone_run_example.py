@@ -6,6 +6,7 @@ Prints some comparison output and plots some side-by-side comparison figures (no
 import os, re, shutil, multiprocessing, numpy, time
 import traceback
 
+from brian2.devices import device
 from pylab import *
 
 only_run_standalone = False
@@ -32,6 +33,8 @@ neuron_group_variables = ['v', 'V', 'x']
 synapse_variables = ['w']
 
 
+
+
 def dorunit((code, standalone)):
     try:  # wrap everything in try except to get a nicer stacktrace
         ns = {}
@@ -42,21 +45,21 @@ def dorunit((code, standalone)):
         for k, v in ns.iteritems():
             if isinstance(v, ns['SpikeMonitor']):
                 if standalone:
-                    i = fromfile('output/results/%s_codeobject_i' % v.name, dtype=int32)
-                    t = fromfile('output/results/%s_codeobject_t' % v.name, dtype=float64)
+                    i = fromfile('output/results/%s' % ns['device'].get_array_name(v.variables['i'], access_data=False), dtype=int32)
+                    t = fromfile('output/results/%s' % ns['device'].get_array_name(v.variables['t'], access_data=False), dtype=float64)
                 else:
                     i, t = v.it
                 rv[k] = ('SpikeMonitor', v.name, (i, t))
             if isinstance(v, ns['StateMonitor']):
                 if standalone:
-                    t = fromfile('output/results/%s_codeobject_t' % v.name, dtype=float64)
+                    t = fromfile('output/results/%s' % ns['device'].get_array_name(v.variables['t'], access_data=False), dtype=float64)
                     rec = {}
                     for var in v.record_variables:
-                        vals = fromfile('output/results/%s_codeobject_%s' % (v.name, var), dtype=float64)
+                        vals = fromfile('output/results/%s' % ns['device'].get_array_name(v.variables['_recorded_'+var], access_data=False), dtype=float64)
                         vals.shape = (t.size, -1)
                         rec[var] = vals.T
                 else:
-                    t = v.variables['_t'].get_value().copy()
+                    t = v.variables['t'].get_value().copy()
                     rec = {}
                     for var in v.record_variables:
                         rec[var] = v.variables['_recorded_'+var].get_value().T.copy()
@@ -69,7 +72,7 @@ def dorunit((code, standalone)):
                         break
                 if found:
                     if standalone:
-                        val = fromfile('output/results/%s' % v.variables[var].arrayname, dtype=float64)
+                        val = fromfile('output/results/%s' % ns['device'].get_array_name(v.variables[var]), dtype=float64)
                     else:
                         val = asarray(getattr(v, var))
                     rv[k] = ('NeuronGroup', v.name+'.'+var, val)
@@ -81,7 +84,7 @@ def dorunit((code, standalone)):
                         break
                 if found:
                     if standalone:
-                        val = fromfile('output/results/_dynamic%s' % v.variables[var].arrayname, dtype=float64)
+                        val = fromfile('output/results/%s' % ns['device'].get_array_name(v.variables[var], access_data=False), dtype=float64)
                     else:
                         val = asarray(getattr(v, var))
                     rv[k] = ('Synapses', v.name+'.'+var, val)
@@ -106,10 +109,9 @@ if __name__=='__main__':
             standalone_lines.append(line)
             runtime_lines.append(line)
         if line.strip()=='from brian2 import *':
-            standalone_lines.append('from brian2.devices.cpp_standalone import *')
             standalone_lines.append('set_device("cpp_standalone")')
         if line.startswith('run'):
-            standalone_lines.append("build(project_dir='output', compile_project=True, run_project=True, debug=False)")        
+            standalone_lines.append("device.build(project_dir='output', compile_project=True, run_project=True, debug=False)")
             break
         
     standalone_code = '\n'.join(standalone_lines)

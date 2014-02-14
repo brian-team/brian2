@@ -8,7 +8,6 @@ import shutil, os
 start = time.time()
 
 if standalone_mode:
-    from brian2.devices.cpp_standalone import *
     set_device('cpp_standalone')
 else:
     brian_prefs['codegen.target'] = 'weave'
@@ -45,7 +44,7 @@ net.run(1000*ms)
 if standalone_mode:
     if os.path.exists('output'):
         shutil.rmtree('output')
-    build(project_dir='output', compile_project=True, run_project=True)
+    device.build(project_dir='output', compile_project=True, run_project=True)
 
 if not standalone_mode and plot_results:
     import matplotlib.pyplot as plt
