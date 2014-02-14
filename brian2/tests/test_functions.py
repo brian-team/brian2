@@ -257,7 +257,7 @@ def test_add_implementations():
     del foo.implementations[WeaveCodeObject]
     # language name
     add_implementations(foo, codes={'cpp': {}})
-    assert set(foo.implementations.keys()) == set([WeaveCodeGenerator])
+    assert set(foo.implementations.keys()) == set([WeaveCodeGenerator, CPPCodeGenerator])
     del foo.implementations[WeaveCodeGenerator]
     # class object
     add_implementations(foo, codes={CPPCodeGenerator: {}})
