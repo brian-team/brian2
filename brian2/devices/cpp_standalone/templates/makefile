@@ -31,7 +31,9 @@ clean:
 make.deps: $(SRCS) $(H_SRCS)
 	$(CC) $(CFLAGS) -MM $(SRCS) > make.deps
 	
+ifneq ($(wildcard $(DEPS)), )
 include $(DEPS)
+endif
 
 %.o : %.cpp
 	$(CC) $(CFLAGS) $< -o $@
