@@ -7,7 +7,6 @@ import shutil
 import subprocess
 import inspect
 from collections import defaultdict
-import glob
 
 from brian2.core.clocks import defaultclock
 from brian2.core.network import Network
@@ -393,6 +392,11 @@ class CPPStandaloneDevice(Device):
                                        attrname=v.attribute)
                     code_object_defs[codeobj.name].append(line)
                 elif isinstance(v, ArrayVariable):
+                    # Do not generate code for arrays twice.
+                    if k in handled_arrays[codeobj.name]:
+                        continue
+                    else:
+                        handled_arrays[codeobj.name].add(k)
                     try:
                         if isinstance(v, DynamicArrayVariable):
                             if v.dimensions == 1:
