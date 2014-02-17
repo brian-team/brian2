@@ -8,6 +8,7 @@ import functools
 
 import numpy as np
 
+from brian2.core.base import weakproxy_with_fallback
 from brian2.utils.stringtools import get_identifiers
 from brian2.units.fundamentalunits import (Quantity, Unit,
                                            fail_for_dimension_mismatch,
@@ -432,7 +433,7 @@ class ArrayVariable(Variable):
                                             constant=constant, is_bool=is_bool,
                                             read_only=read_only)
         #: The `Group` to which this variable belongs.
-        self.owner = owner
+        self.owner = weakproxy_with_fallback(owner)
 
         #: The `Device` responsible for memory access.
         self.device = device
@@ -588,7 +589,7 @@ class Subexpression(Variable):
                                             is_bool=is_bool, scalar=False,
                                             constant=False, read_only=True)
         #: The `Group` to which this variable belongs
-        self.owner = owner
+        self.owner = weakproxy_with_fallback(owner)
 
         #: The `Device` responsible for memory access
         self.device = device
@@ -645,7 +646,7 @@ class VariableView(object):
     def __init__(self, name, variable, group, unit=None):
         self.name = name
         self.variable = variable
-        self.group = weakref.proxy(group)
+        self.group = weakproxy_with_fallback(group)
         self.unit = unit
 
     @property
@@ -902,7 +903,7 @@ class Variables(collections.Mapping):
 
     def __init__(self, owner, default_index='_idx'):
         #: A reference to the `Group` owning these variables
-        self.owner = owner
+        self.owner = weakproxy_with_fallback(owner)
         # The index that is used for arrays if no index is given explicitly
         self.default_index = default_index
 

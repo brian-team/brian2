@@ -11,6 +11,7 @@ from brian2.core.names import Nameable
 
 __all__ = ['BrianObject',
            'clear',
+           'weakproxy_with_fallback',
            ]
 
 logger = get_logger(__name__)
@@ -206,3 +207,12 @@ def clear(erase=False):
     Nameable.__instances__().clear()
     gc.collect()
 
+
+def weakproxy_with_fallback(obj):
+    '''
+    Attempts to create a `weakproxy` to the object, but falls back to the object if not possible.
+    '''
+    try:
+        return weakref.proxy(obj)
+    except TypeError:
+        return obj
