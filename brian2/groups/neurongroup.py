@@ -273,6 +273,8 @@ class NeuronGroup(Group, SpikeSource):
         logger.debug("Creating NeuronGroup of size {self._N}, "
                      "equations {self.equations}.".format(self=self))
 
+        if namespace is None:
+            namespace = {}
         #: The group-specific namespace
         self.namespace = namespace
 
