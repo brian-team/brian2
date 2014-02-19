@@ -195,7 +195,6 @@ def make_statements(code, variables, dtype):
     # of the variables appearing in it has changed). All subexpressions start
     # as invalid, and are invalidated whenever one of the variables appearing
     # in the RHS changes value.
-    #subexpressions = get_all_subexpressions()
     subexpressions = dict((name, val) for name, val in variables.items() if isinstance(val, Subexpression))
 
     if DEBUG:
@@ -213,6 +212,7 @@ def make_statements(code, variables, dtype):
         will_write = line.will_write
         # check that all subexpressions in expr are valid, and if not
         # add a definition/set its value, and set it to be valid
+        # TODO: should scan through in sorted order to take into account subexpression dependencies
         for var in read:
             # if subexpression, and invalid
             if not valid.get(var, True): # all non-subexpressions are valid
@@ -239,6 +239,7 @@ def make_statements(code, variables, dtype):
                 statements.append(statement)
         var, op, expr = stmt.var, stmt.op, stmt.expr
         # invalidate any subexpressions including var
+        # TODO: should invalidate dependencies recursively
         for subvar, spec in subexpressions.items():
             if var in spec.identifiers:
                 valid[subvar] = False
