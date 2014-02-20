@@ -21,10 +21,8 @@ def _compare(synapses, expected):
     # also compare the correct numbers of incoming and outgoing synapses
     incoming = conn_matrix.sum(axis=0)
     outgoing = conn_matrix.sum(axis=1)
-    for _i in xrange(len(synapses.source)):
-        assert all(synapses.N_outgoing['i==%d' % _i] == outgoing[_i]), 'N_outgoing returned an incorrect value'
-    for _j in xrange(len(synapses.target)):
-        assert all(synapses.N_incoming['j==%d' % _j] == incoming[_j]), 'N_incoming returned an incorrect value'
+    assert all(synapses.N_outgoing[:] == outgoing[synapses.i[:]]), 'N_outgoing returned an incorrect value'
+    assert all(synapses.N_incoming[:] == incoming[synapses.j[:]]), 'N_incoming returned an incorrect value'
 
 
 def test_creation():
