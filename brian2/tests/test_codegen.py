@@ -5,7 +5,9 @@ from numpy.testing import assert_raises
 
 from brian2.codegen.translation import (analyse_identifiers,
                                         get_identifiers_recursively,
-                                        translate_subexpression)
+                                        translate_subexpression,
+                                        make_statements,
+                                        )
 from brian2.core.variables import Subexpression, Variable
 from brian2.units.fundamentalunits import Unit
 
@@ -64,7 +66,34 @@ def test_translate_subexpression():
     # an error
     assert_raises(KeyError, lambda: translate_subexpression(sub, G3.variables))
 
+
+def test_nested_subexpressions():
+    '''
+    This test checks that code translation works with nested subexpressions.
+    '''
+    code = '''
+    x = a + b + c
+    c = 1
+    x = a + b + c
+    d = 1
+    x = a + b + c
+    '''
+    variables = {
+        'a': Subexpression(name='a', unit=Unit(1), dtype=np.float32, owner=FakeGroup(variables={}), device=None,
+                           expr='b*b+d'),
+        'b': Subexpression(name='b', unit=Unit(1), dtype=np.float32, owner=FakeGroup(variables={}), device=None,
+                           expr='c*c*c'),
+        'c': Variable(unit=None, name='c'),
+        'd': Variable(unit=None, name='d'),
+        }
+    stmts = make_statements(code, variables, np.float32)
+    evalorder = ''.join(stmt.var for stmt in stmts)
+    # This is the order that variables ought to be evaluated in
+    assert evalorder=='baxcbaxdax'
+    
+
 if __name__ == '__main__':
     test_analyse_identifiers()
     test_get_identifiers_recursively()
     test_translate_subexpression()
+    test_nested_subexpressions()

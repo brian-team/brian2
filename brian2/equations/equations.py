@@ -19,6 +19,7 @@ from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.units.fundamentalunits import Unit, have_same_dimensions, get_unit
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
+from brian2.utils.topsort import topsort
 
 from .codestrings import Expression
 from .unitcheck import unit_from_string, check_unit
@@ -698,28 +699,10 @@ class Equations(collections.Mapping):
                 static_deps[eq.varname] = [dep for dep in eq.identifiers if
                                            dep in self._equations and
                                            self._equations[dep].type == STATIC_EQUATION]
-
-        # Use the standard algorithm for topological sorting:
-        # http://en.wikipedia.org/wiki/Topological_sorting
-
-        # List that will contain the sorted elements
-        sorted_eqs = []
-        # set of all nodes with no incoming edges:
-        no_incoming = set([var for var, deps in static_deps.iteritems()
-                           if len(deps) == 0])
-
-        while len(no_incoming):
-            n = no_incoming.pop()
-            sorted_eqs.append(n)
-            # find variables m depending on n
-            dependent = [m for m, deps in static_deps.iteritems()
-                         if n in deps]
-            for m in dependent:
-                static_deps[m].remove(n)
-                if len(static_deps[m]) == 0:
-                    # no other dependencies
-                    no_incoming.add(m)
-        if any([len(deps) > 0 for deps in static_deps.itervalues()]):
+        
+        try:
+            sorted_eqs = topsort(static_deps)
+        except ValueError:
             raise ValueError('Cannot resolve dependencies between static '
                              'equations, dependencies contain a cycle.')
 

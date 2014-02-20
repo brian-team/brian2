@@ -23,6 +23,7 @@ from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
 from brian2.core.functions import Function
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
                                       get_identifiers, word_substitute)
+from brian2.utils.topsort import topsort
 from brian2.parsing.statements import parse_statement
 
 from .statements import Statement
@@ -195,8 +196,12 @@ def make_statements(code, variables, dtype):
     # of the variables appearing in it has changed). All subexpressions start
     # as invalid, and are invalidated whenever one of the variables appearing
     # in the RHS changes value.
-    #subexpressions = get_all_subexpressions()
     subexpressions = dict((name, val) for name, val in variables.items() if isinstance(val, Subexpression))
+    # sort subexpressions into an order so that subexpressions that don't depend
+    # on other subexpressions are first
+    subexpr_deps = dict((name, [dep for dep in subexpr.identifiers if dep in subexpressions]) for \
+                                                            name, subexpr in subexpressions.items())
+    sorted_subexpr_vars = topsort(subexpr_deps)
 
     if DEBUG:
         print 'SUBEXPRESSIONS:', subexpressions.keys()
@@ -213,7 +218,11 @@ def make_statements(code, variables, dtype):
         will_write = line.will_write
         # check that all subexpressions in expr are valid, and if not
         # add a definition/set its value, and set it to be valid
-        for var in read:
+        # scan through in sorted order so that recursive subexpression dependencies
+        # are handled in the right order
+        for var in sorted_subexpr_vars:
+            if var not in read:
+                continue
             # if subexpression, and invalid
             if not valid.get(var, True): # all non-subexpressions are valid
                 subexpression = translate_subexpression(subexpressions[var],
@@ -238,10 +247,19 @@ def make_statements(code, variables, dtype):
                                       subexpression=True)
                 statements.append(statement)
         var, op, expr = stmt.var, stmt.op, stmt.expr
-        # invalidate any subexpressions including var
-        for subvar, spec in subexpressions.items():
-            if var in spec.identifiers:
+        # invalidate any subexpressions including var, recursively
+        # we do this by having a set of variables that are invalid that we
+        # start with the changed var and increase by any subexpressions we
+        # find that have a dependency on something in the invalid set. We
+        # go through in sorted subexpression order so that the invalid set
+        # is increased in the right order
+        invalid = set([var])
+        for subvar in sorted_subexpr_vars:
+            spec = subexpressions[subvar]
+            spec_ids = set(spec.identifiers)
+            if spec_ids.intersection(invalid):
                 valid[subvar] = False
+                invalid.add(subvar)
         # constant only if we are declaring a new variable and we will not
         # write to it again
         constant = op==':=' and var not in will_write
