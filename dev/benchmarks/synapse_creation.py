@@ -14,17 +14,17 @@ repetitions = 3
 memory = joblib.Memory(cachedir='.', verbose=0)
 
 @memory.cache
-def test_connectivity(N, i, j, n, p, language):
+def test_connectivity2(N, i, j, n, p, codeobj_class):
     G = NeuronGroup(N, '')
     # Do it once without measuring the time to ignore the compilation time for
     # C code
-    S = Synapses(G, G, '', language=language)
+    S = Synapses(G, G, '', codeobj_class=codeobj_class)
     S.connect(i, j, p, n)
     connections = len(S)
     del S
     times = []
     for _ in xrange(repetitions):
-        S = Synapses(G, G, '', language=language)
+        S = Synapses(G, G, '', codeobj_class=codeobj_class)
         start = time.time()
         S.connect(i, j, p, n)
         times.append(time.time() - start)
@@ -43,22 +43,22 @@ conditions = [('Full', 'True'),
               ('Random no-self (50%)', ('(i != j)', None, 1, 0.5)),
               ('Random no-self (10%)', ('(i != j)', None, 1, 0.1)),
               ('Random no-self (1%)', ('(i != j)', None, 1, 0.01))]
-targets = [PythonLanguage(), CPPLanguage()]
+targets = [NumpyCodeObject, WeaveCodeObject]
 results = {}
-max_connections = 10000000
-for language in generators:
-    lang_name = language.__class__.__name__
+max_connections = 2500000
+for target in targets:
+    lang_name = target.class_name
     for pattern, condition in conditions:
         N = 1
         connections = took = 0
-        while connections < max_connections and took < 60.:
+        while connections < max_connections and took < 20:
             print lang_name, pattern
             if isinstance(condition, basestring):
-                took, connections = test_connectivity(N, condition, None, 1, 1.,
-                                                      language=language)
+                took, connections = test_connectivity2(N, condition, None, 1, 1.,
+                                                      codeobj_class=target)
             else:
-                took, connections = test_connectivity(N, *condition,
-                                                      language=language)
+                took, connections = test_connectivity2(N, *condition,
+                                                      codeobj_class=target)
             print N, '%.4fs (for %d connections)' % (took, connections)
             results[(lang_name, connections, pattern)] = took
             N *= 2
