@@ -1,13 +1,16 @@
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-    {# USES_VARIABLES { _synaptic_pre, _synaptic_post, rand} #}
+    {#
+    USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
+                     N_incoming, N_outgoing }
+    #}
 	srand((unsigned int)time(NULL));
-	int _buffer_size = 1024;
-	int *_prebuf = new int[_buffer_size];
-	int *_postbuf = new int[_buffer_size];
-	int *_synprebuf = new int[1];
-	int *_synpostbuf = new int[1];
+	const int _buffer_size = 1024;
+	int *const _prebuf = new int[_buffer_size];
+	int *const _postbuf = new int[_buffer_size];
+	int *const _synprebuf = new int[1];
+	int *const _synpostbuf = new int[1];
 	int _curbuf = 0;
 	for(int i=0; i<_num_all_pre; i++)
 	{
@@ -34,6 +37,8 @@
 			    }
 
 			    for (int _repetition=0; _repetition<_n; _repetition++) {
+			        {{N_outgoing}}[i] += 1;
+			        {{N_incoming}}[j] += 1;
                     _prebuf[_curbuf] = _pre_idx;
                     _postbuf[_curbuf] = _post_idx;
                     _curbuf++;

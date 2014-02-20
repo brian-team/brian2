@@ -1,4 +1,7 @@
-{# USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post } #}
+{#
+USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post,
+                 N_incoming, N_outgoing }
+#}
 # ITERATE_ALL { _idx }
 import numpy as np
 
@@ -46,5 +49,11 @@ for i in range(len({{_all_pre}})):
     {{_dynamic__synaptic_post}}.resize(_new_num_synapses)
     {{_dynamic__synaptic_pre}}[_cur_num_synapses:] = _pre_idx
     {{_dynamic__synaptic_post}}[_cur_num_synapses:] = _post_idx[_cond_nonzero]
+
+    # Update the number of total outgoing/incoming synapses per source/target
+    # neuron
+    {{N_outgoing}}[i] += _numnew
+    {{N_incoming}}[:] += np.bincount(_cond_nonzero, minlength=len({{_all_post}}))
+
     # Resize all dependent dynamic arrays (synaptic weights, delays, etc.)
     _owner._resize(_new_num_synapses)

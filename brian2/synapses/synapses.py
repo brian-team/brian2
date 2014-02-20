@@ -640,6 +640,16 @@ class Synapses(Group):
                                      index='_presynaptic_idx')
         self.variables.add_reference('j', self.target.variables['i'],
                                      index='_postsynaptic_idx')
+
+        self.variables.add_array('N_incoming', size=len(self.target),
+                                 unit=Unit(1), dtype=np.int32,
+                                 constant=True,  read_only=True,
+                                 index='_postsynaptic_idx')
+        self.variables.add_array('N_outgoing', size=len(self.source),
+                                 unit=Unit(1), dtype=np.int32,
+                                 constant=True,  read_only=True,
+                                 index='_presynaptic_idx')
+
         # We have to make a distinction here between the indices
         # and the arrays (even though they refer to the same object)
         # the synaptic propagation template would otherwise overwrite
@@ -860,6 +870,11 @@ class Synapses(Group):
                 real_targets = targets
             self.variables['_synaptic_pre'].get_value()[old_N:new_N] = real_sources
             self.variables['_synaptic_post'].get_value()[old_N:new_N] = real_targets
+
+            self.variables['N_outgoing'].get_value()[:] += np.bincount(sources,
+                                                                       minlength=len(self.source))
+            self.variables['N_incoming'].get_value()[:] += np.bincount(targets,
+                                                                       minlength=len(self.target))
         else:
             abstract_code = '_pre_idx = _all_pre \n'
             abstract_code += '_post_idx = _all_post \n'
