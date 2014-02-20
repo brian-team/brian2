@@ -196,6 +196,8 @@ def make_statements(code, variables, dtype):
     # as invalid, and are invalidated whenever one of the variables appearing
     # in the RHS changes value.
     subexpressions = dict((name, val) for name, val in variables.items() if isinstance(val, Subexpression))
+    sorted_subexpr_vars = subexpressions.keys()
+    sorted_subexpr_vars.sort()
 
     if DEBUG:
         print 'SUBEXPRESSIONS:', subexpressions.keys()

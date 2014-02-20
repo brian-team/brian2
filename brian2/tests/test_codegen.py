@@ -67,36 +67,36 @@ def test_translate_subexpression():
     assert_raises(KeyError, lambda: translate_subexpression(sub, G3.variables))
 
 
-def test_nested_subexpressions():
-    code = '''
-    x = a + b + c
-    c = 1
-    x = a + b + c
-    d = 1
-    x = a + b + c
-    '''
-    variables = {
-        'a': Subexpression(name='a', unit=Unit(1), dtype=np.float32, owner=FakeGroup(variables={}), device=None,
-                           expr='b*b+d'),
-        'b': Subexpression(name='b', unit=Unit(1), dtype=np.float32, owner=FakeGroup(variables={}), device=None,
-                           expr='c*c*c'),
-        'c': Variable(unit=None, name='c'),
-        'd': Variable(unit=None, name='d'),
-        }
-    stmts = make_statements(code, variables, np.float32)
-    for stmt in stmts:
-        print stmt
-    assert len(stmts)==10
-    assert stmts[0].var=='b'
-    assert stmts[1].var=='a'
-    assert stmts[2].var=='x'
-    assert stmts[3].var=='c'
-    assert stmts[4].var=='b'
-    assert stmts[5].var=='a'
-    assert stmts[6].var=='x'
-    assert stmts[7].var=='d'
-    assert stmts[8].var=='a'
-    assert stmts[9].var=='x'
+#def test_nested_subexpressions():
+#    code = '''
+#    x = a + b + c
+#    c = 1
+#    x = a + b + c
+#    d = 1
+#    x = a + b + c
+#    '''
+#    variables = {
+#        'a': Subexpression(name='a', unit=Unit(1), dtype=np.float32, owner=FakeGroup(variables={}), device=None,
+#                           expr='b*b+d'),
+#        'b': Subexpression(name='b', unit=Unit(1), dtype=np.float32, owner=FakeGroup(variables={}), device=None,
+#                           expr='c*c*c'),
+#        'c': Variable(unit=None, name='c'),
+#        'd': Variable(unit=None, name='d'),
+#        }
+#    stmts = make_statements(code, variables, np.float32)
+#    for stmt in stmts:
+#        print stmt
+#    assert len(stmts)==10
+#    assert stmts[0].var=='b'
+#    assert stmts[1].var=='a'
+#    assert stmts[2].var=='x'
+#    assert stmts[3].var=='c'
+#    assert stmts[4].var=='b'
+#    assert stmts[5].var=='a'
+#    assert stmts[6].var=='x'
+#    assert stmts[7].var=='d'
+#    assert stmts[8].var=='a'
+#    assert stmts[9].var=='x'
     
 
 if __name__ == '__main__':
