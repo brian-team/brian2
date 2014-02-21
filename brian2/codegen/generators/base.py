@@ -18,7 +18,7 @@ class CodeGenerator(object):
     '''
 
     # Subclasses should override this
-    generator_id = ''
+    class_name = ''
 
     def __init__(self, variables, variable_indices, iterate_all, codeobj_class,
                  override_conditional_write=None, allows_scalar_write=False):

@@ -4,7 +4,6 @@ from brian2.core.functions import Function
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units, get_unit
 from brian2.core.names import Nameable
-from brian2.codegen.functions import add_implementations
 
 __all__ = ['TimedArray']
 
@@ -90,9 +89,8 @@ class TimedArray(Function, Nameable):
                      '_%s_num_values' % self.name: len(self.values),
                      '_%s_values' % self.name: self.values}
 
-        add_implementations(self, codes={'cpp': cpp_code,
-                                         'numpy': unitless_timed_array_func},
-                            namespaces={'cpp': namespace},
-                            names={'cpp': self.name})
-
+        self.implementations.add_implementations(codes={'cpp': cpp_code,
+                                                        'numpy': unitless_timed_array_func},
+                                                 namespaces={'cpp': namespace},
+                                                 names={'cpp': self.name})
 

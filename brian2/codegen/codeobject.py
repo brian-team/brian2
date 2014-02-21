@@ -2,10 +2,8 @@
 Module providing the base `CodeObject` and related functions.
 '''
 import copy
-import functools
 import weakref
 
-from brian2.core.functions import Function
 from brian2.core.names import Nameable
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger

@@ -6,8 +6,7 @@ from brian2.utils.stringtools import (deindent, stripped_deindented_lines,
                                       word_substitute)
 from brian2.utils.logger import get_logger
 from brian2.parsing.rendering import CPPNodeRenderer
-from brian2.core.functions import (Function, FunctionImplementation,
-                                   DEFAULT_FUNCTIONS)
+from brian2.core.functions import Function, DEFAULT_FUNCTIONS
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.variables import ArrayVariable
 
@@ -108,7 +107,7 @@ class CPPCodeGenerator(CodeGenerator):
     See `TimedArray` for an example of these keys.
     '''
 
-    generator_id = 'cpp'
+    class_name = 'cpp'
 
     def __init__(self, *args, **kwds):
         super(CPPCodeGenerator, self).__init__(*args, **kwds)
@@ -311,12 +310,15 @@ class CPPCodeGenerator(CodeGenerator):
 # Functions that exist under the same name in C++
 for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
              'log10', 'sqrt', 'ceil', 'floor']:
-    DEFAULT_FUNCTIONS[func].implementations[CPPCodeGenerator] = FunctionImplementation()
+    DEFAULT_FUNCTIONS[func].implementations.add_implementation(CPPCodeGenerator,
+                                                               code=None)
 
 # Functions that need a name translation
 for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),
                        ('abs', 'fabs'), ('mod', 'fmod')]:
-    DEFAULT_FUNCTIONS[func].implementations[CPPCodeGenerator] = FunctionImplementation(func_cpp)
+    DEFAULT_FUNCTIONS[func].implementations.add_implementation(CPPCodeGenerator,
+                                                               code=None,
+                                                               name=func_cpp)
 
 # Functions that need to be implemented specifically
 randn_code = {'support_code': '''
@@ -352,8 +354,9 @@ randn_code = {'support_code': '''
          }
     }
         '''}
-DEFAULT_FUNCTIONS['randn'].implementations[CPPCodeGenerator] = FunctionImplementation('_randn',
-                                                                                 code=randn_code)
+DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CPPCodeGenerator,
+                                                              code=randn_code,
+                                                              name='_randn')
 
 rand_code = {'support_code': '''
         double _rand(int vectorisation_idx)
@@ -361,8 +364,9 @@ rand_code = {'support_code': '''
 	        return (double)rand()/RAND_MAX;
         }
         '''}
-DEFAULT_FUNCTIONS['rand'].implementations[CPPCodeGenerator] = FunctionImplementation('_rand',
-                                                                                code=rand_code)
+DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CPPCodeGenerator,
+                                                             code=rand_code,
+                                                             name='_rand')
 
 clip_code = {'support_code': '''
         double _clip(const float value, const float a_min, const float a_max)
@@ -374,8 +378,9 @@ clip_code = {'support_code': '''
 	        return value;
 	    }
         '''}
-DEFAULT_FUNCTIONS['clip'].implementations[CPPCodeGenerator] = FunctionImplementation('_clip',
-                                                                                code=clip_code)
+DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CPPCodeGenerator,
+                                                             code=clip_code,
+                                                             name='_clip')
 
 int_code = {'support_code':
         '''
@@ -384,5 +389,6 @@ int_code = {'support_code':
 	        return value ? 1 : 0;
         }
         '''}
-DEFAULT_FUNCTIONS['int'].implementations[CPPCodeGenerator] = FunctionImplementation('int_',
-                                                                               code=int_code)
+DEFAULT_FUNCTIONS['int'].implementations.add_implementation(CPPCodeGenerator,
+                                                            code=int_code,
+                                                            name='int_')

@@ -1,5 +1,3 @@
-from nose.plugins.skip import SkipTest
-import numpy as np
 from numpy.testing import assert_equal, assert_raises, assert_allclose
 
 from brian2 import *
@@ -205,8 +203,8 @@ def test_manual_user_defined_function():
     assert mon[0].func == [6] * volt
 
     # discard units
-    from brian2.codegen.functions import add_numpy_implementation
-    add_numpy_implementation(foo, orig_foo, discard_units=True)
+    foo.implementations.add_numpy_implementation(orig_foo,
+                                                 discard_units=True)
     G = NeuronGroup(1, '''
                        func = foo(x, y) : volt
                        x : volt
@@ -227,8 +225,8 @@ def test_manual_user_defined_function():
             return x + y + 3;
         }
         '''}
-        from brian2.codegen.functions import add_implementations
-        add_implementations(foo, codes={'cpp': code})
+
+        foo.implementations.add_implementations(codes={'cpp': code})
 
         G = NeuronGroup(1, '''
                            func = foo(x, y) : volt
@@ -241,30 +239,6 @@ def test_manual_user_defined_function():
         net = Network(G, mon)
         net.run(defaultclock.dt)
         assert mon[0].func == [6] * volt
-
-
-def test_add_implementations():
-    if not WeaveCodeObject in codeobj_classes:
-        raise SkipTest('No weave support')
-
-    def foo(x):
-        return x
-    foo = Function(foo, arg_units=[None], return_unit=lambda x: x)
-    from brian2.codegen.functions import add_implementations
-    # code object name
-    add_implementations(foo, codes={'weave': {}})
-    assert set(foo.implementations.keys()) == set([WeaveCodeObject])
-    del foo.implementations[WeaveCodeObject]
-    # language name
-    add_implementations(foo, codes={'cpp': {}})
-    assert set(foo.implementations.keys()) == set([WeaveCodeGenerator, CPPCodeGenerator])
-    del foo.implementations[WeaveCodeGenerator]
-    # class object
-    add_implementations(foo, codes={CPPCodeGenerator: {}})
-    assert set(foo.implementations.keys()) == set([CPPCodeGenerator])
-    # unknown name
-    assert_raises(ValueError, lambda: add_implementations(foo,
-                                                          codes={'unknown': {}}))
 
 
 def test_user_defined_function_discarding_units():
@@ -282,7 +256,6 @@ def test_user_defined_function_discarding_units():
 
 def test_user_defined_function_discarding_units_2():
     # Add a numpy implementation explicitly (as in TimedArray)
-    from brian2.codegen.functions import add_implementations
     unit = volt
     @check_units(v=volt, result=unit)
     def foo(v):
@@ -292,7 +265,7 @@ def test_user_defined_function_discarding_units_2():
     def unitless_foo(v):
         return v + 3
 
-    add_implementations(foo, codes={'numpy': unitless_foo})
+    foo.implementations.add_implementation('numpy', code=unitless_foo)
 
     assert foo(5*volt) == 8*volt
 
@@ -300,47 +273,63 @@ def test_user_defined_function_discarding_units_2():
     assert foo.implementations[NumpyCodeObject].code(5) == 8
 
 def test_function_implementation_container():
-    from brian2.core.functions import FunctionImplementationContainer
     import brian2.codegen.targets as targets
 
     class ACodeGenerator(CodeGenerator):
-        generator_id = 'A language'
+        class_name = 'A Language'
 
     class BCodeGenerator(CodeGenerator):
-        generator_id = 'B language'
+        class_name = 'B Language'
 
     class ACodeObject(CodeObject):
         generator_class = ACodeGenerator
         class_name = 'A'
 
+    class A2CodeObject(CodeObject):
+        generator_class = ACodeGenerator
+        class_name = 'A2'
+
     class BCodeObject(CodeObject):
         generator_class = BCodeGenerator
         class_name = 'B'
+
 
     # Register the code generation targets
     _previous_codegen_targets = set(targets.codegen_targets)
     targets.codegen_targets = set([ACodeObject, BCodeObject])
 
-    container = FunctionImplementationContainer()
+    @check_units(x=volt, result=volt)
+    def foo(x):
+        return x
+    f = Function(foo)
+
+    container = f.implementations
 
     # inserting into the container with a CodeGenerator class
-    container[BCodeGenerator] = 'implementation B language'
-    assert container[BCodeGenerator] == 'implementation B language'
+    container.add_implementation(BCodeGenerator, code='implementation B language')
+    assert container[BCodeGenerator].code == 'implementation B language'
 
     # inserting into the container with a CodeObject class
-    container[ACodeObject] = 'implementation A CodeObject'
-    assert container[ACodeObject] == 'implementation A CodeObject'
+    container.add_implementation(ACodeObject, code='implementation A CodeObject')
+    assert container[ACodeObject].code == 'implementation A CodeObject'
 
-    # does the fallback to the language work?
-    assert container[BCodeObject] == 'implementation B language'
+    # inserting into the container with a name of a CodeGenerator
+    container.add_implementation('A Language', 'implementation A Language')
+    assert container['A Language'].code == 'implementation A Language'
+    assert container[ACodeGenerator].code == 'implementation A Language'
+    assert container[A2CodeObject].code == 'implementation A Language'
+
+    # inserting into the container with a name of a CodeObject
+    container.add_implementation('B', 'implementation B CodeObject')
+    assert container['B'].code == 'implementation B CodeObject'
+    assert container[BCodeObject].code == 'implementation B CodeObject'
 
     assert_raises(KeyError, lambda: container['unknown'])
 
     # some basic dictionary properties
-    assert len(container) == 2
-    del container[ACodeObject]
-    assert len(container) == 1
-    assert set((key for key in container)) == set([BCodeGenerator])
+    assert len(container) == 4
+    assert set((key for key in container)) == set(['A Language', 'B',
+                                                   ACodeObject, BCodeGenerator])
 
     # Restore the previous codegeneration targets
     targets.codegen_targets = _previous_codegen_targets
