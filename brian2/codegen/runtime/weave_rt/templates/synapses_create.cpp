@@ -37,8 +37,8 @@
                 }
 
                 for (int _repetition=0; _repetition<_n; _repetition++) {
-                    {{N_outgoing}}[i] += 1;
-                    {{N_incoming}}[j] += 1;
+                    {{N_outgoing}}[_pre_idx] += 1;
+                    {{N_incoming}}[_post_idx] += 1;
                     _prebuf[_curbuf] = _pre_idx;
                     _postbuf[_curbuf] = _post_idx;
                     _curbuf++;

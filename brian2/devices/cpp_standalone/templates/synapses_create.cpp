@@ -34,8 +34,8 @@
 			    }
 
 			    for (int _repetition=0; _repetition<_n; _repetition++) {
-			        {{N_outgoing}}[i] += 1;
-			        {{N_incoming}}[j] += 1;
+			        {{N_outgoing}}[_pre_idx] += 1;
+			        {{N_incoming}}[_post_idx] += 1;
 			    	{{_dynamic__synaptic_pre}}.push_back(_pre_idx);
 			    	{{_dynamic__synaptic_post}}.push_back(_post_idx);
                     _synapse_idx++;
