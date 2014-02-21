@@ -92,14 +92,19 @@ def test_synapse_creation():
         SG2 = G2[10:]
         S = Synapses(SG1, SG2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
         S.connect(2, 2)  # Should correspond to (2, 12)
-        S.connect('i==4 and j==5') # Should correspond to (4, 15)
+        S.connect('i==2 and j==5') # Should correspond to (2, 15)
 
         # Internally, the "real" neuron indices should be used
-        assert_equal(S._synaptic_pre[:], np.array([2, 4]))
+        assert_equal(S._synaptic_pre[:], np.array([2, 2]))
         assert_equal(S._synaptic_post[:], np.array([12, 15]))
         # For the user, the subgroup-relative indices should be presented
-        assert_equal(S.i[:], np.array([2, 4]))
+        assert_equal(S.i[:], np.array([2, 2]))
         assert_equal(S.j[:], np.array([2, 5]))
+        # N_incoming and N_outgoing should also be correct
+        assert all(S.N_outgoing['i==2'] == 2)
+        assert all(S.N_outgoing['i!=2'] == 0)
+        assert all(S.N_incoming['j==2 or j==5'] == 1)
+        assert all(S.N_incoming['j!=2 and j!=5'] == 0)
 
         # connect based on pre-/postsynaptic state variables
         S = Synapses(SG1, SG2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)

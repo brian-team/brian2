@@ -640,6 +640,24 @@ class Synapses(Group):
                                      index='_presynaptic_idx')
         self.variables.add_reference('j', self.target.variables['i'],
                                      index='_postsynaptic_idx')
+
+        if '_offset' in self.target.variables:
+            target_offset = self.target.variables['_offset'].get_value()
+        else:
+            target_offset = 0
+        if '_offset' in self.source.variables:
+            source_offset = self.source.variables['_offset'].get_value()
+        else:
+            source_offset = 0
+        self.variables.add_array('N_incoming', size=len(self.target)+target_offset,
+                                 unit=Unit(1), dtype=np.int32,
+                                 constant=True,  read_only=True,
+                                 index='_postsynaptic_idx')
+        self.variables.add_array('N_outgoing', size=len(self.source)+source_offset,
+                                 unit=Unit(1), dtype=np.int32,
+                                 constant=True,  read_only=True,
+                                 index='_presynaptic_idx')
+
         # We have to make a distinction here between the indices
         # and the arrays (even though they refer to the same object)
         # the synaptic propagation template would otherwise overwrite
@@ -860,6 +878,11 @@ class Synapses(Group):
                 real_targets = targets
             self.variables['_synaptic_pre'].get_value()[old_N:new_N] = real_sources
             self.variables['_synaptic_post'].get_value()[old_N:new_N] = real_targets
+
+            self.variables['N_outgoing'].get_value()[:] += np.bincount(real_sources,
+                                                                       minlength=self.variables['N_outgoing'].size)
+            self.variables['N_incoming'].get_value()[:] += np.bincount(real_targets,
+                                                                       minlength=self.variables['N_incoming'].size)
         else:
             abstract_code = '_pre_idx = _all_pre \n'
             abstract_code += '_post_idx = _all_post \n'
@@ -874,6 +897,12 @@ class Synapses(Group):
             # Will be set in the template
             variables.add_auxiliary_variable('i', unit=Unit(1))
             variables.add_auxiliary_variable('j', unit=Unit(1))
+            # Make sure that variables have the correct type in the code
+            variables.add_auxiliary_variable('_pre_idx', unit=Unit(1), dtype=np.int32)
+            variables.add_auxiliary_variable('_post_idx', unit=Unit(1), dtype=np.int32)
+            variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool)
+            variables.add_auxiliary_variable('_n', unit=Unit(1), dtype=np.int32)
+            variables.add_auxiliary_variable('_p', unit=Unit(1))
 
             if '_sub_idx' in self.source.variables:
                 variables.add_reference('_all_pre', self.source.variables['_sub_idx'])

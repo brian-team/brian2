@@ -14,10 +14,15 @@ except ImportError:
 
 def _compare(synapses, expected):
     conn_matrix = np.zeros((len(synapses.source), len(synapses.target)))
-    for i, j in zip(synapses.i[:], synapses.j[:]):
-        conn_matrix[i, j] += 1
+    for _i, _j in zip(synapses.i[:], synapses.j[:]):
+        conn_matrix[_i, _j] += 1
 
     assert_equal(conn_matrix, expected)
+    # also compare the correct numbers of incoming and outgoing synapses
+    incoming = conn_matrix.sum(axis=0)
+    outgoing = conn_matrix.sum(axis=1)
+    assert all(synapses.N_outgoing[:] == outgoing[synapses.i[:]]), 'N_outgoing returned an incorrect value'
+    assert all(synapses.N_incoming[:] == incoming[synapses.j[:]]), 'N_incoming returned an incorrect value'
 
 
 def test_creation():
@@ -32,6 +37,31 @@ def test_creation():
         assert len(S) == 0
         S = Synapses(G, model='w:1', pre='v+=w', codeobj_class=codeobj_class)
         assert S.source.name == S.target.name == G.name
+
+
+def test_incoming_outgoing():
+    '''
+    Test the count of outgoing/incoming synapses per neuron.
+    (It will be also automatically tested for all connection patterns that
+    use the above _compare function for testing)
+    '''
+    G1 = NeuronGroup(5, 'v: 1')
+    G2 = NeuronGroup(5, 'v: 1')
+    for codeobj_class in codeobj_classes:
+        S = Synapses(G1, G2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
+        S.connect([0, 0, 0, 1, 1, 2],
+                  [0, 1, 2, 1, 2, 3])
+        # First source neuron has 3 outgoing synapses, the second 2, the third 1
+        assert all(S.N_outgoing['i==0'] == 3)
+        assert all(S.N_outgoing['i==1'] == 2)
+        assert all(S.N_outgoing['i==2'] == 1)
+        assert all(S.N_outgoing['i>2'] == 0)
+        # First target neuron receives 1 input, the second+third each 2, the fourth receives 1
+        assert all(S.N_incoming['j==0'] == 1)
+        assert all(S.N_incoming['j==1'] == 2)
+        assert all(S.N_incoming['j==2'] == 2)
+        assert all(S.N_incoming['j==3'] == 1)
+        assert all(S.N_incoming['j>3'] == 0)
 
 
 def test_connection_arrays():
@@ -557,6 +587,7 @@ def test_repr():
 
 if __name__ == '__main__':
     test_creation()
+    test_incoming_outgoing()
     test_connection_string_deterministic()
     test_connection_random()
     test_connection_multiple_synapses()
