@@ -95,11 +95,29 @@ class FunctionImplementation(object):
     namespace : dict-like, optional
         A dictionary of mappings from names to values that should be added
         to the namespace of a `CodeObject` using the function.
+    dynamic : bool, optional
+        Whether this `code`/`namespace` is dynamic, i.e. generated for each
+        new context it is used in. If set to ``True``, `code` and `namespace`
+        have to be callable with a `Group` as an argument and are expected
+        to return the final `code` and `namespace`. Defaults to ``False``.
     '''
-    def __init__(self, name=None, code=None, namespace=None):
+    def __init__(self, name=None, code=None, namespace=None, dynamic=False):
         self.name = name
-        self.code = code
-        self.namespace = namespace
+        self._code = code
+        self._namespace = namespace
+        self.dynamic = dynamic
+
+    def get_code(self, owner):
+        if self.dynamic:
+            return self._code(owner)
+        else:
+            return self._code
+
+    def get_namespace(self, owner):
+        if self.dynamic:
+            return self._namespace(owner)
+        else:
+            return self._namespace
 
 
 class FunctionImplementationContainer(collections.Mapping):
@@ -234,6 +252,22 @@ class FunctionImplementationContainer(collections.Mapping):
             self.add_implementation(target, code, namespaces.get(target, None),
                                     names.get(target, None))
 
+    def add_dynamic_implementation(self, target, code, namespace=None, name=None):
+        '''
+        Adds an "dynamic implementation" for this function. `code` and `namespace`
+        arguments are expected to be callables that will be called in
+        `Network.before_run` with the owner of the `CodeObject` as an argument.
+        This allows to generate code that depends on details of the context it
+        is run in, e.g. the ``dt`` of a clock.
+        '''
+        if not callable(code):
+            raise TypeError('code argument has to be a callable, is type %s instead' % type(code))
+        if namespace is not None and not callable(namespace):
+            raise TypeError('namespace argument has to be a callable, is type %s instead' % type(code))
+        self._implementations[target] = FunctionImplementation(name=name,
+                                                               code=code,
+                                                               namespace=namespace,
+                                                               dynamic=True)
 
     def __len__(self):
         return len(self._implementations)

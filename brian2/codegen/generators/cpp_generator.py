@@ -258,10 +258,10 @@ class CPPCodeGenerator(CodeGenerator):
         for varname, variable in self.variables.items():
             if isinstance(variable, Function):
                 user_functions.append((varname, variable))
-                speccode = variable.implementations[self.codeobj_class].code
-                if speccode is not None:
-                    support_code += '\n' + deindent(speccode.get('support_code', ''))
-                    hash_defines += deindent(speccode.get('hashdefine_code', ''))
+                funccode = variable.implementations[self.codeobj_class].get_code(self.owner)
+                if funccode is not None:
+                    support_code += '\n' + deindent(funccode.get('support_code', ''))
+                    hash_defines += deindent(funccode.get('hashdefine_code', ''))
                 # add the Python function with a leading '_python', if it
                 # exists. This allows the function to make use of the Python
                 # function via weave if necessary (e.g. in the case of randn)
@@ -277,7 +277,7 @@ class CPPCodeGenerator(CodeGenerator):
         # function namespaces (if any)
         for funcname, func in user_functions:
             del self.variables[funcname]
-            func_namespace = func.implementations[self.codeobj_class].namespace
+            func_namespace = func.implementations[self.codeobj_class].get_namespace(self.owner)
             if func_namespace is not None:
                 self.variables.update(func_namespace)
 

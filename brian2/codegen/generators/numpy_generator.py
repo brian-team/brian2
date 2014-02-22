@@ -120,7 +120,7 @@ class NumpyCodeGenerator(CodeGenerator):
         # would otherwise return values with units
         for varname, var in variables.iteritems():
             if isinstance(var, Function):
-                variables[varname] = var.implementations[self.codeobj_class].code
+                variables[varname] = var.implementations[self.codeobj_class].get_code(self.owner)
 
         return lines
 

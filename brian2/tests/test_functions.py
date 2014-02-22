@@ -251,7 +251,7 @@ def test_user_defined_function_discarding_units():
     assert foo(5*volt) == 8*volt
 
     # Test the function that is used during a run
-    assert foo.implementations[NumpyCodeObject].code(5) == 8
+    assert foo.implementations[NumpyCodeObject].get_code(None)(5) == 8
 
 
 def test_user_defined_function_discarding_units_2():
@@ -270,7 +270,7 @@ def test_user_defined_function_discarding_units_2():
     assert foo(5*volt) == 8*volt
 
     # Test the function that is used during a run
-    assert foo.implementations[NumpyCodeObject].code(5) == 8
+    assert foo.implementations[NumpyCodeObject].get_code(None)(5) == 8
 
 def test_function_implementation_container():
     import brian2.codegen.targets as targets
@@ -307,22 +307,22 @@ def test_function_implementation_container():
 
     # inserting into the container with a CodeGenerator class
     container.add_implementation(BCodeGenerator, code='implementation B language')
-    assert container[BCodeGenerator].code == 'implementation B language'
+    assert container[BCodeGenerator].get_code(None) == 'implementation B language'
 
     # inserting into the container with a CodeObject class
     container.add_implementation(ACodeObject, code='implementation A CodeObject')
-    assert container[ACodeObject].code == 'implementation A CodeObject'
+    assert container[ACodeObject].get_code(None) == 'implementation A CodeObject'
 
     # inserting into the container with a name of a CodeGenerator
     container.add_implementation('A Language', 'implementation A Language')
-    assert container['A Language'].code == 'implementation A Language'
-    assert container[ACodeGenerator].code == 'implementation A Language'
-    assert container[A2CodeObject].code == 'implementation A Language'
+    assert container['A Language'].get_code(None) == 'implementation A Language'
+    assert container[ACodeGenerator].get_code(None) == 'implementation A Language'
+    assert container[A2CodeObject].get_code(None) == 'implementation A Language'
 
     # inserting into the container with a name of a CodeObject
     container.add_implementation('B', 'implementation B CodeObject')
-    assert container['B'].code == 'implementation B CodeObject'
-    assert container[BCodeObject].code == 'implementation B CodeObject'
+    assert container['B'].get_code(None) == 'implementation B CodeObject'
+    assert container[BCodeObject].get_code(None) == 'implementation B CodeObject'
 
     assert_raises(KeyError, lambda: container['unknown'])
 

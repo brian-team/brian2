@@ -160,6 +160,7 @@ class Device(object):
         iterate_all = template.iterate_all
         generator = codeobj_class.generator_class(variables=variables,
                                                   variable_indices=variable_indices,
+                                                  owner=owner,
                                                   iterate_all=iterate_all,
                                                   codeobj_class=codeobj_class,
                                                   override_conditional_write=override_conditional_write,
