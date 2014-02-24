@@ -99,8 +99,8 @@ class CodeGenerator(object):
             if stmt.inplace:
                 ids.add(stmt.var)
             read = read.union(ids)
-            if variables[stmt.var].scalar:
-                if not self.allows_scalar_write:
+            if stmt.scalar:
+                if stmt.op != ':=' and not self.allows_scalar_write:
                     raise SyntaxError(('Writing to scalar variable %s '
                                        'not allowed in this context.' % stmt.var))
                 for name in ids:

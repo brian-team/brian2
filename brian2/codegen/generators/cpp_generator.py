@@ -182,7 +182,7 @@ class CPPCodeGenerator(CodeGenerator):
         # the actual code
         for stmt in statements:
             line = self.translate_statement(stmt)
-            if self.variables[stmt.var].scalar != scalar:
+            if stmt.scalar != scalar:
                 continue
             if stmt.var in conditional_write_vars:
                 subs = {}

@@ -61,8 +61,7 @@ class NumpyCodeGenerator(CodeGenerator):
         # the actual code
         created_vars = set([])
         for stmt in statements:
-            var = variables[stmt.var]
-            if var.scalar != scalar:
+            if stmt.scalar != scalar:
                 continue
             if stmt.op==':=':
                 created_vars.add(stmt.var)
