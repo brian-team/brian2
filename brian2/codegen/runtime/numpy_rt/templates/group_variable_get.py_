@@ -4,10 +4,9 @@
 
 {# USES_VARIABLES { _group_idx } #}
 _idx = {{_group_idx}}
+_vectorisation_idx = _idx
 
-{% for line in code_lines %}
-{{line}}
-{% endfor %}
+{{vector_code|autoindent}}
 
 # _variable is set in the abstract code, see Group._get_with_array
 _return_values = _variable[_idx]

@@ -4,10 +4,7 @@
 
 import numpy as np
 
-{% for line in code_lines %}
-{{line}}
-{% endfor %}
-
+{{vector_code|autoindent}}
 
 # We write to the array, using the name provided as a keyword argument to the
 # template

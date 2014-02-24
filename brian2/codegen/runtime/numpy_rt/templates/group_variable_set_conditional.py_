@@ -12,9 +12,7 @@ numpy_True = np.bool_(True)
 _idx = slice(None)
 _vectorisation_idx = N
 
-{% for line in code_lines['condition'] %}
-{{line}}
-{% endfor %}
+{{vector_code['condition']|autoindent}}
 
 # Phase 2: having computed _cond, the boolean array of points where
 # the setting is to be applied, we want to vectorise over idx being
@@ -28,6 +26,4 @@ elif _cond is False or _cond is numpy_False:
 else:
     _vectorisation_idx = _idx = _cond
 
-{% for line in code_lines['statement'] %}
-{{line}}
-{% endfor %}
+{{vector_code['statement']|autoindent}}

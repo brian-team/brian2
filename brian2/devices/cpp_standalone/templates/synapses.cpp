@@ -11,7 +11,7 @@
 	{
 		const int32_t _idx = (*_spiking_synapses)[_spiking_synapse_idx];
 		const int32_t _vectorisation_idx = _idx;
-		{% for line in code_lines %}
+		{% for line in vector_code %}
 		{{line}}
 		{% endfor %}
 	}

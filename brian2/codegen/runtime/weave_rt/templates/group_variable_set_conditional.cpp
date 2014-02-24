@@ -10,9 +10,9 @@
 	for(int _idx=0; _idx<N; _idx++)
 	{
 	    const int _vectorisation_idx = _idx;
-	    {{ common.insert_lines('CONDITION', code_lines['condition']) }}
+	    {{ common.insert_lines('CONDITION', vector_code['condition']) }}
 		if(_cond) {
-			{{ common.insert_lines('STATEMENT', code_lines['statement']) }}
+			{{ common.insert_lines('STATEMENT', vector_code['statement']) }}
 		}
 	}
 {% endmacro %}

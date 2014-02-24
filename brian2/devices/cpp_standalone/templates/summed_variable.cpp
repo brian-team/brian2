@@ -10,9 +10,7 @@
 
 	for(int _idx=0; _idx<_num_synaptic_post; _idx++)
 	{
-		{% for line in code_lines %}
-		{{line}}
-		{% endfor %}
+        {{vector_code|autoindent}}
 		{{_target_var_array}}[{{_synaptic_post}}[_idx]] += _synaptic_var;
 	}
 {% endblock %}

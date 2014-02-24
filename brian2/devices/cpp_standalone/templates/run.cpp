@@ -29,9 +29,7 @@ void {{name}}()
 {
 	using namespace brian;
 
-	{% for line in lines %}
-	{{line}}
-	{% endfor %}
+    {{lines|autoindent}}
 }
 
 {% endfor %}

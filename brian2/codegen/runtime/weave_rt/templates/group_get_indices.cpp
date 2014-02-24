@@ -12,7 +12,7 @@
 	for(int _idx=0; _idx<N; _idx++)
 	{
 	    const int _vectorisation_idx = _idx;
-	    {{ super() }}
+	    {{super()}}
 		if(_cond) {
 		    // _variable is set in the abstract code, see Group._get_with_code
 			_elements[_cpp_numelements++] = _idx;

@@ -3,9 +3,7 @@ import numpy as np
 _idx = np.arange(N)
 _vectorisation_idx = N
 
-{% for line in code_lines %}
-{{line}}
-{% endfor %}
+{{vector_code|autoindent}}
 
 if _cond is True:
     _cond = slice(None)

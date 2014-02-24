@@ -30,9 +30,7 @@ while len(_F):
     _i = _perm.take(_F)
     _idx = _spiking_synapses[_i]
     _vectorisation_idx = _idx
-    {% for line in code_lines %}
-    {{line}}
-    {% endfor %}
+    {{vector_code|autoindent}}
 
     _F += 1
     _F = np.extract(_flag.take(_F), _F)
@@ -40,7 +38,5 @@ while len(_F):
 # use the simple propagation algorithm
 _idx = _spiking_synapses
 _vectorisation_idx = _idx
-{% for line in code_lines %}
-{{line}}
-{% endfor %}
+{{vector_code|autoindent}}
 {% endif %}

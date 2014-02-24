@@ -20,9 +20,7 @@
             _n = {user-specified number of synapses}
             _p = {user-specified probability}
             #}
-			{% for line in code_lines %}
-			{{line}}
-			{% endfor %}
+            {{vector_code|autoindent}}
 			// Add to buffer
 			if(_cond)
 			{

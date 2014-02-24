@@ -10,8 +10,6 @@
 	{
 		const int _idx = _spikes[_index_spikes];
 		const int _vectorisation_idx = _idx;
-		{% for line in code_lines %}
-		{{line}}
-		{% endfor %}
+        {{vector_code|autoindent}}
 	}
 {% endblock %}

@@ -76,7 +76,7 @@ class CodeGenerator(object):
         Translate a sequence of `Statement` into the target language, taking
         care to declare variables, etc. if necessary.
    
-        Returns a tuple ``(code_lines, kwds)`` where ``code_lines`` is a list
+        Returns a tuple ``(vector_code, kwds)`` where ``vector_code`` is a list
         of the lines of code in the inner loop, and ``kwds`` is a
         dictionary of values that is made available to the template.
         '''

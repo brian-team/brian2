@@ -7,8 +7,6 @@
 	{
 		const int _idx = _group_idx[_idx_group_idx];
 		const int _vectorisation_idx = _idx;
-		{% for line in code_lines %}
-		{{line}}
-		{% endfor %}
+        {{vector_code|autoindent}}
 	}
 {% endblock %}

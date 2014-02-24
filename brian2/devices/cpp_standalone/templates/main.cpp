@@ -21,9 +21,7 @@ int main(int argc, char **argv)
 
 	{
 		using namespace brian;
-		{% for main_line in main_lines %}
-		{{ main_line }}
-		{% endfor %}
+        {{main_lines|autoindent}}
 	}
 
 	double _run_duration = (std::clock()-start)/(double)CLOCKS_PER_SEC;

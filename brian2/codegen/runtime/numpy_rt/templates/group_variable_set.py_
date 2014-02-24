@@ -4,6 +4,4 @@
 _idx = {{_group_idx}}
 _target_idx = slice(None)
 _vectorisation_idx = _idx
-{% for line in code_lines %}
-{{line}}
-{% endfor %}
+{{vector_code|autoindent}}
