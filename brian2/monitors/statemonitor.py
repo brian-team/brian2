@@ -6,10 +6,13 @@ import numpy as np
 from brian2.core.variables import (Variables, Subexpression, get_dtype)
 from brian2.core.scheduler import Scheduler
 from brian2.groups.group import Group, CodeRunner
+from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.units.allunits import second
 
 __all__ = ['StateMonitor']
+
+logger = get_logger(__name__)
 
 
 class StateMonitorView(object):
@@ -197,10 +200,14 @@ class StateMonitor(Group, CodeRunner):
 
         for varname in variables:
             var = source.variables[varname]
+            if var.scalar and len(self.indices) > 1:
+                logger.warn(('Variable %s is a scalar variable but it will be '
+                             'recorded once for every target.' % varname),
+                            once=True)
             index = source.variables.indices[varname]
             self.variables.add_reference(varname, var,
                                          index=index)
-            if index != '_idx' and index not in variables:
+            if not index in ('_idx', '0') and index not in variables:
                 self.variables.add_reference(index, source.variables[index])
             # For subexpressions, we also need all referred variables (if they
             # are not already present, e.g. the t as _clock_t
