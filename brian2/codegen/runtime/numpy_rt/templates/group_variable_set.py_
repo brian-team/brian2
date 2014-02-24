@@ -1,6 +1,11 @@
 {# USES_VARIABLES { _group_idx } #}
 {# ITERATE_ALL { _target_idx } #}
 
+# scalar code
+_vectorisation_idx = 1
+{{scalar_code|autoindent}}
+
+# vector code
 _idx = {{_group_idx}}
 _target_idx = slice(None)
 _vectorisation_idx = _idx

@@ -13,6 +13,10 @@ _old_num_synapses = len({{_dynamic__synaptic_pre}})
 # number of synapses during the creation process
 _cur_num_synapses = _old_num_synapses
 
+# scalar code
+_vectorisation_idx = 1
+{{scalar_code|autoindent}}
+
 for i in range(len({{_all_pre}})):
     j = np.arange(len({{_all_post}}))
     _vectorisation_idx = j

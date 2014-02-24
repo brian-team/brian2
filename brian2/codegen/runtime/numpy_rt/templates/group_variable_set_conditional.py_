@@ -9,14 +9,26 @@ numpy_True = np.bool_(True)
 # be applied, and to do this we want to vectorise over all the values,
 # but we don't want to do the iterate all protocol, so we explicitly
 # set the idx to be slice(None)
+# scalar code
+_vectorisation_idx = 1
+{{scalar_code['condition']|autoindent}}
+
+# vector code
 _idx = slice(None)
 _vectorisation_idx = N
-
 {{vector_code['condition']|autoindent}}
 
 # Phase 2: having computed _cond, the boolean array of points where
 # the setting is to be applied, we want to vectorise over idx being
 # only these values.
+
+{# Note that we don't write to scalar variables conditionally. The scalar code
+   should therefore only include the calculation of scalar expressions
+   that are used below for writing to a vector variable #}
+# scalar code
+{{scalar_code['statement']|autoindent}}
+
+# vector code
 if _cond is True or _cond is numpy_True:
     _idx = slice(None)
     _vectorisation_idx = N

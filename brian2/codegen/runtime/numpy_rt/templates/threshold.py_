@@ -4,6 +4,11 @@
 # conditionally
 {# ITERATE_ALL { _idx } #}
 
+# scalar code
+_vectorisation_idx = 1
+{{scalar_code|autoindent}}
+
+# vector code
 _vectorisation_idx = N
 
 {{vector_code|autoindent}}

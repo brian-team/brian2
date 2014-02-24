@@ -1,5 +1,11 @@
 import numpy as np
 {# USES_VARIABLES { N } #}
+
+# scalar code
+_vectorisation_idx = 1
+{{scalar_code|autoindent}}
+
+# vector code
 _idx = np.arange(N)
 _vectorisation_idx = N
 
