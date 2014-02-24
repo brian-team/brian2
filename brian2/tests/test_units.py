@@ -682,15 +682,36 @@ def test_numpy_functions_same_dimensions():
                                                q_ar.dim,
                                                get_dimensions(test_ar)))
 
+def test_numpy_functions_indices():
+    '''
+    Check numpy functions that return indices.
+    '''
+    values = [np.array([-4, 3, -2, 1, 0]), np.ones((3, 3)), np.array([17])]
+    units = [volt, second, siemens, mV, kHz]
+
+    # numpy functions
+    keep_dim_funcs = [np.argmin, np.argmax, np.argsort, np.nonzero]
+
+    for value, unit in itertools.product(values, units):
+        q_ar = value * unit
+        for func in keep_dim_funcs:
+            test_ar = func(q_ar)
+            # Compare it to the result on the same value without units
+            comparison_ar = func(value)
+            assert_equal(test_ar, comparison_ar, (('function %s returned an '
+                                                   'incorrect result when '
+                                                   'used on '
+                                                   'quantities ') %
+                                                  func.__name__))
 
 def test_numpy_functions_dimensionless():
     '''
     Test that numpy functions that should work on dimensionless quantities only
     work dimensionless arrays and return the correct result.
     '''
-    unitless_values = [3 * mV/mV, np.array([1, 2]) * mV/mV,
-                       np.ones((3, 3)) * mV/mV]
-    unit_values = [3 * mV, np.array([1, 2]) * mV,
+    unitless_values = [3, np.array([-4, 3, -1, 2]),
+                       np.ones((3, 3))]
+    unit_values = [3 * mV, np.array([-4, 3, -1, 2]) * mV,
                        np.ones((3, 3)) * mV]
     with warnings.catch_warnings():
         # ignore division by 0 warnings
@@ -893,6 +914,7 @@ if __name__ == '__main__':
     test_unitsafe_functions()    
     test_special_case_numpy_functions()    
     test_numpy_functions_same_dimensions()
+    test_numpy_functions_indices()
     test_numpy_functions_dimensionless()
     test_numpy_functions_change_dimensions()
     test_numpy_functions_typeerror()

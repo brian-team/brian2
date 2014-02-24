@@ -1467,7 +1467,7 @@ class Quantity(np.ndarray, object):
     any = wrap_function_remove_dimensions(np.ndarray.any)
     nonzero = wrap_function_remove_dimensions(np.ndarray.nonzero)
     argmax = wrap_function_remove_dimensions(np.ndarray.argmax)
-    argmin = wrap_function_remove_dimensions(np.ndarray.argmax)
+    argmin = wrap_function_remove_dimensions(np.ndarray.argmin)
     argsort = wrap_function_remove_dimensions(np.ndarray.argsort)
 
     def fill(self, values): # pylint: disable=C0111
