@@ -5,7 +5,7 @@ import numpy as np
 
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
-                                   AttributeVariable)
+                                   AttributeVariable, AuxiliaryVariable)
 
 from ...codeobject import CodeObject
 
@@ -58,6 +58,9 @@ class NumpyCodeObject(CodeObject):
         self.nonconstant_values = []
 
         for name, var in self.variables.iteritems():
+            if isinstance(var, AuxiliaryVariable):
+                continue
+
             try:
                 value = var.get_value()
             except (TypeError, AttributeError):

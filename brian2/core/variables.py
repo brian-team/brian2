@@ -322,6 +322,9 @@ class AuxiliaryVariable(Variable):
                                                 name=name, dtype=dtype,
                                                 scalar=scalar, is_bool=is_bool)
 
+    def get_value(self):
+        raise TypeError('Cannot get the value for an auxiliary variable.')
+
 
 class AttributeVariable(Variable):
     '''

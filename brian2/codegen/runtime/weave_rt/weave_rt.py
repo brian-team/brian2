@@ -12,7 +12,7 @@ except ImportError:
     weave = None
 
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
-                                   AttributeVariable)
+                                   AttributeVariable, AuxiliaryVariable)
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.functions import DEFAULT_FUNCTIONS, FunctionImplementation
 
@@ -110,7 +110,8 @@ class WeaveCodeObject(CodeObject):
         self.nonconstant_values = []
 
         for name, var in self.variables.iteritems():
-
+            if isinstance(var, AuxiliaryVariable):
+                continue
             try:
                 value = var.get_value()
             except (TypeError, AttributeError):
