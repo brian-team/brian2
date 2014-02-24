@@ -1,6 +1,7 @@
 import numpy as np
 
 {# USES_VARIABLES { N } #}
+{# ALLOWS_SCALAR_WRITE #}
 
 numpy_False = np.bool_(False)
 numpy_True = np.bool_(True)
@@ -24,8 +25,10 @@ _vectorisation_idx = N
 
 {# Note that we don't write to scalar variables conditionally. The scalar code
    should therefore only include the calculation of scalar expressions
-   that are used below for writing to a vector variable #}
+   that are used below for writing to a vector variable. The only exception is
+   the "conditional writing" with the condition True. #}
 # scalar code
+_vectorisation_idx = 1
 {{scalar_code['statement']|autoindent}}
 
 # vector code

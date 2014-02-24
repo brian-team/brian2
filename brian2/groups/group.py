@@ -450,9 +450,6 @@ class Group(BrianObject):
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
         '''
-        if variable.scalar:
-            raise NotImplementedError('Setting scalar variables with string '
-                                      'expressions is not implemented yet')
         indices = self.calc_indices(item)
         abstract_code = varname + ' = ' + code
         variables = Variables(None)
@@ -499,9 +496,9 @@ class Group(BrianObject):
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
         '''
-        if variable.scalar:
-            raise NotImplementedError('Setting scalar variables with string '
-                                      'expressions is not implemented yet')
+        if variable.scalar and cond != 'True':
+            raise SyntaxError(('Cannot conditionally set the scalar variable '
+                               '%s.') % varname)
         abstract_code_cond = '_cond = '+cond
         abstract_code = varname + ' = ' + code
         variables = Variables(None)

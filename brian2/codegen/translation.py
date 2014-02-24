@@ -152,7 +152,19 @@ def make_statements(code, variables, dtype):
         line.write = var 
         # each line will give a set of variables which are read
         line.read = get_identifiers_recursively(expr, variables)
-        
+
+    # All writes to scalar variables must happen before writes to vector
+    # variables
+    scalar_write_done = False
+    for line in lines:
+        var = variables[line.write]
+        if var.scalar and scalar_write_done:
+            raise SyntaxError(('All writes to scalar variables in a code block '
+                               'have to be made before writes to vector '
+                               'variables'))
+        elif not var.scalar:
+            scalar_write_done = True
+
     if DEBUG:
         print 'PARSED STATEMENTS:'
         for line in lines:
@@ -161,13 +173,6 @@ def make_statements(code, variables, dtype):
     # all variables which are written to at some point in the code block
     # used to determine whether they should be const or not
     all_write = set(line.write for line in lines)
-
-    # Currently, we do not allow writing to scalar variables
-    for var in all_write:
-        if (var in variables) and variables[var].scalar:
-            raise NotImplementedError(('Writing to variable %s is not '
-                                       'supported yet, it is a scalar '
-                                       'variable.') % var)
 
     if DEBUG:
         print 'ALL WRITE:', all_write

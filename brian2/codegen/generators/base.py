@@ -21,7 +21,7 @@ class CodeGenerator(object):
     generator_id = ''
 
     def __init__(self, variables, variable_indices, iterate_all, codeobj_class,
-                 override_conditional_write=None):
+                 override_conditional_write=None, allows_scalar_write=False):
         # We have to do the import here to avoid circular import dependencies.
         from brian2.devices.device import get_device
         self.device = get_device()
@@ -33,6 +33,7 @@ class CodeGenerator(object):
             self.override_conditional_write = set()
         else:
             self.override_conditional_write = set(override_conditional_write)
+        self.allows_scalar_write = allows_scalar_write
 
     @staticmethod
     def get_array_name(var, access_data=True):
@@ -98,6 +99,17 @@ class CodeGenerator(object):
             if stmt.inplace:
                 ids.add(stmt.var)
             read = read.union(ids)
+            if variables[stmt.var].scalar:
+                if not self.allows_scalar_write:
+                    raise SyntaxError(('Writing to scalar variable %s '
+                                       'not allowed in this context.' % stmt.var))
+                for name in ids:
+                    if (name in variables and isinstance(variables[name], ArrayVariable)
+                                          and not variables[name].scalar):
+                        raise SyntaxError(('Cannot write to scalar variable %s '
+                                           'with an expression referring to '
+                                           'vector variable %s') %
+                                          (stmt.var, name))
             write.add(stmt.var)
         read = set(varname for varname, var in variables.items()
                    if isinstance(var, ArrayVariable) and varname in read)

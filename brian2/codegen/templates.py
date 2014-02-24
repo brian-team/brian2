@@ -3,6 +3,7 @@ Handles loading templates from a directory.
 '''
 import os
 import re
+import collections
 
 from jinja2 import Environment, PackageLoader
 
@@ -73,14 +74,20 @@ class CodeObjectTemplate(object):
         # Same for ITERATE_ALL
         iterate_all_blocks = re.findall(r'\bITERATE_ALL\b\s*\{(.*?)\}',
                                         template_source, re.M|re.S)
+        #: Does this template allow writing to scalar variables?
+        self.allows_scalar_write = 'ALLOWS_SCALAR_WRITE' in template_source
+
         for block in specifier_blocks:
             self.variables.update(get_identifiers(block))
         for block in iterate_all_blocks:
             self.iterate_all.update(get_identifiers(block))
                 
-    def __call__(self, vector_code, **kwds):
+    def __call__(self, scalar_code, vector_code, **kwds):
+        if scalar_code is not None and len(scalar_code)==1 and scalar_code.keys()[0] is None:
+            scalar_code = scalar_code[None]
         if vector_code is not None and len(vector_code)==1 and vector_code.keys()[0] is None:
             vector_code = vector_code[None]
+        kwds['scalar_code'] = scalar_code
         kwds['vector_code'] = vector_code
         module = self.template.make_module(kwds)
         if len([k for k in module.__dict__.keys() if not k.startswith('_')]):
