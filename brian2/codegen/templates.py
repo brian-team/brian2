@@ -16,6 +16,12 @@ AUTOINDENT_START = '%%START_AUTOINDENT%%'
 AUTOINDENT_END = '%%END_AUTOINDENT%%'
 
 def autoindent(code):
+    if isinstance(code, list):
+        code = '\n'.join(code)
+    if not code.startswith('\n'):
+        code = '\n'+code
+    if not code.endswith('\n'):
+        code = code + '\n'
     return AUTOINDENT_START+code+AUTOINDENT_END
 
 def autoindent_postfilter(code):
@@ -72,10 +78,10 @@ class CodeObjectTemplate(object):
         for block in iterate_all_blocks:
             self.iterate_all.update(get_identifiers(block))
                 
-    def __call__(self, code_lines, **kwds):
-        if code_lines is not None and len(code_lines)==1 and code_lines.keys()[0] is None:
-            code_lines = code_lines[None]
-        kwds['code_lines'] = code_lines
+    def __call__(self, vector_code, **kwds):
+        if vector_code is not None and len(vector_code)==1 and vector_code.keys()[0] is None:
+            vector_code = vector_code[None]
+        kwds['vector_code'] = vector_code
         module = self.template.make_module(kwds)
         if len([k for k in module.__dict__.keys() if not k.startswith('_')]):
             return MultiTemplate(module)
