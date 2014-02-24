@@ -12,8 +12,13 @@
     {{_recorded}}.resize(_new_size, _num_indices);
     {% endfor %}
 
+    // scalar code
+	const int _vectorisation_idx = -1;
+	{{scalar_code|autoindent}}
+
     for (int _i = 0; _i < _num_indices; _i++)
     {
+        // vector code
         const int _idx = {{_indices}}[_i];
         const int _vectorisation_idx = _idx;
         {% block maincode_inner %}
