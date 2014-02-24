@@ -8,9 +8,14 @@
 	// conditionally
 
 	//// MAIN CODE ////////////
+	// scalar code
+	const int _vectorisation_idx = 1;
+	{{scalar_code|autoindent}}
+
 	long _cpp_numspikes = 0;
 	for(int _idx=0; _idx<N; _idx++)
 	{
+	    // vector code
 	    const int _vectorisation_idx = _idx;
 		{{ super() }}
 		if(_cond) {

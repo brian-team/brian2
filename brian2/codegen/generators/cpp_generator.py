@@ -145,13 +145,15 @@ class CPPCodeGenerator(CodeGenerator):
             decl = ''
         return decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
     
-    def translate_to_read_arrays(self, statements):
+    def translate_to_read_arrays(self, statements, scalar):
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
         lines = []
         # index and read arrays (index arrays first)
         for varname in itertools.chain(indices, read):
             index_var = self.variable_indices[varname]
             var = self.variables[varname]
+            if var.scalar != scalar:
+                continue
             if varname not in write:
                 line = 'const '
             else:
@@ -161,23 +163,27 @@ class CPPCodeGenerator(CodeGenerator):
             lines.append(line)
         return lines
 
-    def translate_to_declarations(self, statements):
+    def translate_to_declarations(self, statements, scalar):
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
         lines = []
         # simply declare variables that will be written but not read
         for varname in write:
             if varname not in read:
                 var = self.variables[varname]
+                if var.scalar != scalar:
+                    continue
                 line = self.c_data_type(var.dtype) + ' ' + varname + ';'
                 lines.append(line)
         return lines
 
-    def translate_to_statements(self, statements):
+    def translate_to_statements(self, statements, scalar):
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
         lines = []
         # the actual code
         for stmt in statements:
             line = self.translate_statement(stmt)
+            if self.variables[stmt.var].scalar != scalar:
+                continue
             if stmt.var in conditional_write_vars:
                 subs = {}
                 condvar = conditional_write_vars[stmt.var]
@@ -187,30 +193,32 @@ class CPPCodeGenerator(CodeGenerator):
                 lines.append(line)
         return lines
 
-    def translate_to_write_arrays(self, statements):
+    def translate_to_write_arrays(self, statements, scalar):
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
         lines = []
         # write arrays
         for varname in write:
             index_var = self.variable_indices[varname]
             var = self.variables[varname]
+            if var.scalar != scalar:
+                continue
             line = self.get_array_name(var, self.variables) + '[' + index_var + '] = ' + varname + ';'
             lines.append(line)
         return lines
 
-    def translate_one_statement_sequence(self, statements):
+    def translate_one_statement_sequence(self, statements, scalar):
         # This function is refactored into four functions which perform the
         # four necessary operations. It's done like this so that code
         # deriving from this class can overwrite specific parts.
         lines = []
         # index and read arrays (index arrays first)
-        lines += self.translate_to_read_arrays(statements)
+        lines += self.translate_to_read_arrays(statements, scalar=scalar)
         # simply declare variables that will be written but not read
-        lines += self.translate_to_declarations(statements)
+        lines += self.translate_to_declarations(statements, scalar=scalar)
         # the actual code
-        lines += self.translate_to_statements(statements)
+        lines += self.translate_to_statements(statements, scalar=scalar)
         # write arrays
-        lines += self.translate_to_write_arrays(statements)
+        lines += self.translate_to_write_arrays(statements, scalar=scalar)
         code = '\n'.join(lines)                
         return stripped_deindented_lines(code)
 
@@ -291,13 +299,17 @@ class CPPCodeGenerator(CodeGenerator):
         return keywords
 
     def translate_statement_sequence(self, statements):
-        blocks = {}
+        scalar_code = {}
+        vector_code = {}
         for name, block in statements.iteritems():
-            blocks[name] = self.translate_one_statement_sequence(block)
+            scalar_code[name] = self.translate_one_statement_sequence(block,
+                                                                      scalar=True)
+            vector_code[name] = self.translate_one_statement_sequence(block,
+                                                                      scalar=False)
 
         kwds = self.determine_keywords()
 
-        return blocks, kwds
+        return scalar_code, vector_code, kwds
 
 
 ################################################################################
