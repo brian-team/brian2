@@ -150,8 +150,8 @@ class CodeGenerator(object):
         '''
         read, write, indices = self.array_read_write(statements)
         conditional_write_vars = self.get_conditional_write_vars()
-        read = read.union(set(conditional_write_vars.values()) |
-                          set(conditional_write_vars.keys()))
+        read = read.union(set((conditional_write_vars[var] for var in write
+                               if var in conditional_write_vars)))
         return read, write, indices, conditional_write_vars
 
     def translate(self, code, dtype):

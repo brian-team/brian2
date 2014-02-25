@@ -1,5 +1,5 @@
 {% extends 'common_group.cpp' %}
-{# USES_VARIABLES { N } #}
+{# USES_VARIABLES { N, _indices } #}
 {% block maincode %}
     //// MAIN CODE ////////////
     {%set c_type = c_data_type(variables['_indices'].dtype) %}

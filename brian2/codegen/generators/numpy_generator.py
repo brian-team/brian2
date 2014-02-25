@@ -38,7 +38,7 @@ class NumpyCodeGenerator(CodeGenerator):
             op = '='
         return var + ' ' + op + ' ' + self.translate_expression(expr)
         
-    def translate_one_statement_sequence(self, statements, scalar):
+    def translate_one_statement_sequence(self, statements):
         variables = self.variables
         variable_indices = self.variable_indices
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
@@ -46,8 +46,6 @@ class NumpyCodeGenerator(CodeGenerator):
         # index and read arrays (index arrays first)
         for varname in itertools.chain(indices, read):
             var = variables[varname]
-            if var.scalar != scalar:
-                continue
             index = variable_indices[varname]
 #            if index in iterate_all:
 #                line = '{varname} = {array_name}'
@@ -61,8 +59,6 @@ class NumpyCodeGenerator(CodeGenerator):
         # the actual code
         created_vars = set([])
         for stmt in statements:
-            if stmt.scalar != scalar:
-                continue
             if stmt.op==':=':
                 created_vars.add(stmt.var)
             line = self.translate_statement(stmt)
@@ -85,8 +81,6 @@ class NumpyCodeGenerator(CodeGenerator):
         # write arrays
         for varname in write:
             var = variables[varname]
-            if var.scalar != scalar:
-                continue
             index_var = variable_indices[varname]
             # check if all operations were inplace and we're operating on the
             # whole vector, if so we don't need to write the array back
@@ -136,10 +130,10 @@ class NumpyCodeGenerator(CodeGenerator):
         scalar_code = {}
         vector_code = {}
         for name, block in statements.iteritems():
-            scalar_code[name] = self.translate_one_statement_sequence(block,
-                                                                      scalar=True)
-            vector_code[name] = self.translate_one_statement_sequence(block,
-                                                                      scalar=False)
+            scalar_statements = [stmt for stmt in block if stmt.scalar]
+            vector_statements = [stmt for stmt in block if not stmt.scalar]
+            scalar_code[name] = self.translate_one_statement_sequence(scalar_statements)
+            vector_code[name] = self.translate_one_statement_sequence(vector_statements)
         return scalar_code, vector_code, {}
 
 ################################################################################
