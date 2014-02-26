@@ -384,22 +384,16 @@ class CPPStandaloneDevice(Device):
                 main_lines.append(codeobj.code.main_finalise)
 
         # Generate data for non-constant values
-        handled_arrays = defaultdict(set)
         code_object_defs = defaultdict(list)
         for codeobj in self.code_objects.itervalues():
+            lines = []
             for k, v in codeobj.variables.iteritems():
                 if isinstance(v, AttributeVariable):
                     # We assume all attributes are implemented as property-like methods
                     line = 'const {c_type} {varname} = {objname}.{attrname}();'
-                    line = line.format(c_type=c_data_type(v.dtype), varname=k, objname=v.obj.name,
-                                       attrname=v.attribute)
-                    code_object_defs[codeobj.name].append(line)
+                    lines.append(line.format(c_type=c_data_type(v.dtype), varname=k, objname=v.obj.name,
+                                             attrname=v.attribute))
                 elif isinstance(v, ArrayVariable):
-                    # Do not generate code for arrays twice.
-                    if k in handled_arrays[codeobj.name]:
-                        continue
-                    else:
-                        handled_arrays[codeobj.name].add(k)
                     try:
                         if isinstance(v, DynamicArrayVariable):
                             if v.dimensions == 1:
@@ -408,14 +402,19 @@ class CPPStandaloneDevice(Device):
                                 line = '{c_type}* const {array_name} = &{dyn_array_name}[0];'
                                 line = line.format(c_type=c_data_type(v.dtype), array_name=array_name,
                                                    dyn_array_name=dyn_array_name)
-                                code_object_defs[codeobj.name].append(line)
+                                lines.append(line)
                                 line = 'const int _num{k} = {dyn_array_name}.size();'
                                 line = line.format(k=k, dyn_array_name=dyn_array_name)
-                                code_object_defs[codeobj.name].append(line)
+                                lines.append(line)
                         else:
-                            code_object_defs[codeobj.name].append('const int _num%s = %s;' % (k, v.size))
+                            lines.append('const int _num%s = %s;' % (k, v.size))
                     except TypeError:
                         pass
+            for line in lines:
+                # Sometimes an array is referred to by to different keys in our
+                # dictionary -- make sure to never add a line twice
+                if not line in code_object_defs[codeobj.name]:
+                    code_object_defs[codeobj.name].append(line)
 
         # Generate the code objects
         for codeobj in self.code_objects.itervalues():
