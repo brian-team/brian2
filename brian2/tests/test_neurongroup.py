@@ -432,6 +432,18 @@ def test_state_variable_access_strings():
         assert_equal(G.v[:], np.arange(10)*volt)
 
 
+def test_subexpression():
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, '''dv/dt = freq : 1
+                               freq : Hz
+                               array : 1
+                               expr = 2*freq + array*Hz : Hz''',
+                        codeobj_class=codeobj_class)
+        G.freq = '10*i*Hz'
+        G.array = 5
+        assert_equal(G.expr[:], 2*10*np.arange(10)*Hz + 5*Hz)
+
+
 def test_scalar_parameter_access():
     for codeobj_class in codeobj_classes:
         G = NeuronGroup(10, '''dv/dt = freq : 1
@@ -463,6 +475,24 @@ def test_scalar_parameter_access():
         assert_raises(IndexError, lambda: G.freq.set_item(0, 100*Hz))
         assert_raises(IndexError, lambda: G.freq.set_item(1, 100*Hz))
         assert_raises(IndexError, lambda: G.freq.set_item('i>5', 100*Hz))
+
+
+def test_scalar_subexpression():
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, '''dv/dt = freq : 1
+                               freq : Hz (scalar)
+                               number : 1 (scalar)
+                               array : 1
+                               sub = freq + number*Hz : Hz (scalar)''',
+                        codeobj_class=codeobj_class)
+        G.freq = 100*Hz
+        G.number = 50
+        assert G.sub[:] == 150*Hz
+
+    assert_raises(SyntaxError, lambda: NeuronGroup(10, '''dv/dt = freq : 1
+                                                          freq : Hz (scalar)
+                                                          array : 1
+                                                          sub = freq + array*Hz : Hz (scalar)'''))
 
 
 def test_repr():
@@ -501,6 +531,8 @@ if __name__ == '__main__':
     test_state_variables()
     test_state_variable_access()
     test_state_variable_access_strings()
+    test_subexpression()
     test_scalar_parameter_access()
+    test_scalar_subexpression()
     test_indices()
     test_repr()

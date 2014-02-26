@@ -584,12 +584,15 @@ class Subexpression(Variable):
     is_bool: bool, optional
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
+    scalar: bool, optional
+        Whether this is an expression only referring to scalar variables.
+        Defaults to ``False``
     '''
     def __init__(self, name, unit, owner, expr, device, dtype=None,
-                 is_bool=False):
+                 is_bool=False, scalar=False):
         super(Subexpression, self).__init__(unit=unit,
                                             name=name, dtype=dtype,
-                                            is_bool=is_bool, scalar=False,
+                                            is_bool=is_bool, scalar=scalar,
                                             constant=False, read_only=True)
         #: The `Group` to which this variable belongs
         self.owner = weakproxy_with_fallback(owner)
@@ -1119,7 +1122,8 @@ class Variables(collections.Mapping):
         var = Constant(name=name, unit=unit, value=value)
         self._add_variable(name, var)
 
-    def add_subexpression(self, name, unit, expr, dtype=None, is_bool=False):
+    def add_subexpression(self, name, unit, expr, dtype=None, is_bool=False,
+                          scalar=False):
         '''
         Add a named subexpression.
 
@@ -1134,12 +1138,16 @@ class Variables(collections.Mapping):
         dtype : `dtype`, optional
             The dtype used for the expression. Defaults to
             `core.default_scalar_dtype`.
-        is_bool: bool, optional
+        is_bool : bool, optional
             Whether this is a boolean variable (also implies it is
             dimensionless). Defaults to ``False``
+        scalar : bool, optional
+            Whether this is an expression only referring to scalar variables.
+            Defaults to ``False``
         '''
         var = Subexpression(name=name, unit=unit, expr=expr, owner=self.owner,
-                            dtype=dtype, device=self.device, is_bool=is_bool)
+                            dtype=dtype, device=self.device, is_bool=is_bool,
+                            scalar=scalar)
         self._add_variable(name, var)
 
     def add_auxiliary_variable(self, name, unit, dtype=None, scalar=False,

@@ -708,7 +708,8 @@ class Synapses(Group):
                     varname = eq.varname
                 self.variables.add_subexpression(varname, unit=eq.unit,
                                                  expr=str(eq.expr),
-                                                 is_bool=eq.is_bool)
+                                                 is_bool=eq.is_bool,
+                                                 scalar='scalar' in eq.flags)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
@@ -726,6 +727,17 @@ class Synapses(Group):
             # Also add all the post variables without a suffix -- note that a
             # reference will never overwrite the name of an existing name
             self.variables.add_reference(name, var, index='_postsynaptic_idx')
+
+        # Check scalar subexpressions
+        for eq in self.equations.itervalues():
+            if eq.type == STATIC_EQUATION and 'scalar' in eq.flags:
+                var = self.variables[eq.varname]
+                for identifier in var.identifiers:
+                    if identifier in self.variables:
+                        if not self.variables[identifier].scalar:
+                            raise SyntaxError(('Scalar subexpression %s refers '
+                                               'to non-scalar variable %s.')
+                                              % (eq.varname, identifier))
 
     def connect(self, pre_or_cond, post=None, p=1., n=1, namespace=None,
                 level=0):

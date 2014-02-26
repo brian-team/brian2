@@ -14,4 +14,4 @@ _vectorisation_idx = _idx
 {{vector_code|autoindent}}
 
 # _variable is set in the abstract code, see Group._get_with_array
-_return_values = _variable[_idx]
+_return_values = _variable
