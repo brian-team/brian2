@@ -8,6 +8,7 @@ User's guide
    equations
    refractoriness
    synapses
+   scheduling
    functions
    devices
    
