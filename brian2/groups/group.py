@@ -328,8 +328,7 @@ class Group(BrianObject):
     @device_override('group_get_with_index_array')
     def get_with_index_array(self, variable_name, variable, item):
         if variable.scalar:
-            if not ((isinstance(item, slice) and item == slice(None)) or item == 0 or (hasattr(item, '__len__')
-                                                                                           and len(item) == 0)):
+            if not (isinstance(item, slice) and item == slice(None)):
                 raise IndexError(('Illegal index for variable %s, it is a '
                                   'scalar variable.') % variable_name)
             indices = np.array([0])
@@ -374,8 +373,7 @@ class Group(BrianObject):
             fail_for_dimension_mismatch(variable.unit, value,
                                         'Incorrect unit for setting variable %s' % variable_name)
         if variable.scalar:
-            if not ((isinstance(item, slice) and item == slice(None)) or item == 0 or (hasattr(item, '__len__')
-                                                                                           and len(item) == 0)):
+            if not (isinstance(item, slice) and item == slice(None)):
                 raise IndexError(('Illegal index for variable %s, it is a '
                                   'scalar variable.') % variable_name)
             variable.get_value()[0] = value
@@ -497,8 +495,8 @@ class Group(BrianObject):
             defined, the implicit namespace of local variables is used).
         '''
         if variable.scalar and cond != 'True':
-            raise SyntaxError(('Cannot conditionally set the scalar variable '
-                               '%s.') % varname)
+            raise IndexError(('Cannot conditionally set the scalar variable '
+                              '%s.') % varname)
         abstract_code_cond = '_cond = '+cond
         abstract_code = varname + ' = ' + code
         variables = Variables(None)
