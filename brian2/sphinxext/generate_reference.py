@@ -99,7 +99,9 @@ def find_shortest_import(module_name, obj_name):
             result = __import__('.'.join(parts[:idx]), globals(), {},
                                 fromlist=[str(obj_name)], level=0)
             result_obj = getattr(result, obj_name, None)
-            if result_obj is not None and result_obj.__module__ == module_name:
+            if result_obj is not None and getattr(result_obj,
+                                                  '__module__',
+                                                  None) == module_name:
                 # import seems to have worked
                 return '.'.join(parts[:idx])
         except ImportError:
