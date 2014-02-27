@@ -1,7 +1,6 @@
 import types
 import collections
 import inspect
-import weakref
 
 import sympy
 from sympy import Function as sympy_Function
@@ -11,7 +10,9 @@ from numpy.random import randn, rand
 
 from brian2.core.preferences import brian_prefs
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
-                                           Quantity, get_dimensions)
+                                           Quantity, get_dimensions,
+                                           check_units)
+from brian2.units.allunits import second
 from brian2.core.variables import Constant
 import brian2.units.unitsafefunctions as unitsafe
 
@@ -75,6 +76,26 @@ class Function(object):
         #: Stores implementations for this function in a
         #: `FunctionImplementationContainer`
         self.implementations = FunctionImplementationContainer(self)
+
+    def is_locally_constant(self, dt):
+        '''
+        Return whether this function (if interpreted as a function of time)
+        should be considered constant over a timestep. This is most importantly
+        used by `TimedArray` so that linear integration can be used. In its
+        standard implementation, always returns ``False``.
+
+        Parameters
+        ----------
+        dt : float
+            The length of a timestep (without units).
+
+        Returns
+        -------
+        constant : bool
+            Whether the results of this function can be considered constant
+            over one timestep of length `dt`.
+        '''
+        return False
 
     def __call__(self, *args):
         return self.pyfunc(*args)

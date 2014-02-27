@@ -1,11 +1,11 @@
 '''
 Exact integration for linear equations.
 '''
-from sympy import Wild, Symbol, Float
+from sympy import Wild, Symbol
 import sympy as sp
 
+from brian2.core.functions import Function
 from brian2.parsing.sympytools import sympy_to_str
-from brian2.utils.stringtools import get_identifiers
 from brian2.utils.logger import get_logger
 from brian2.stateupdaters.base import StateUpdateMethod
 
@@ -228,7 +228,23 @@ class LinearStateUpdater(StateUpdateMethod):
             raise ValueError(('The coefficient matrix for the equations '
                               'contains the symbols %s, which are not '
                               'constant.') % str(non_constant))
-        
+
+        # Check the " + B" part for non-constant functions of time
+        t = Symbol('t', real=True, positive=True)
+        symbols = set.union(*(el.atoms(sp.Function) for el in constants))
+        dt_var = variables.get('dt', None)
+        if dt_var is not None:
+            for symbol in symbols:
+                if not t in set.union(*(el.atoms() for el in symbol.args)):
+                    continue  # not a function of time
+                symbol = str(symbol.func)
+                var = variables.get(symbol, None)
+                if (isinstance(var, Function) and
+                        not var.is_locally_constant(dt_var.get_value())):
+                    raise ValueError(('Function %s is not locally constant '
+                                      'over time, cannot use linear '
+                                      'integration.') % symbol)
+
         symbols = [Symbol(variable, real=True) for variable in varnames]
         solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
         b = sp.ImmutableMatrix([solution[symbol] for symbol in symbols]).transpose()
