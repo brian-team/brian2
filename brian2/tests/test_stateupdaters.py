@@ -332,13 +332,26 @@ def test_locally_constant_check():
     # The linear state update can handle additive time-dependent functions
     # (e.g. a TimedArray) but only if it can be safely assumed that the function
     # is constant over a single time check
-    ta0 = TimedArray([1]*Hz, dt=defaultclock.dt)  # ok
-    ta1 = TimedArray([1]*Hz, dt=2*defaultclock.dt)  # ok
-    ta2 = TimedArray([1]*Hz, dt=defaultclock.dt/2)  # not ok
-    ta3 = TimedArray([1]*Hz, dt=defaultclock.dt*1.5)  # not ok
+    ta0 = TimedArray(np.array([1]), dt=defaultclock.dt)  # ok
+    ta1 = TimedArray(np.array([1]), dt=2*defaultclock.dt)  # ok
+    ta2 = TimedArray(np.array([1]), dt=defaultclock.dt/2)  # not ok
+    ta3 = TimedArray(np.array([1]), dt=defaultclock.dt*1.5)  # not ok
 
     for ta_func, ok in zip([ta0, ta1, ta2, ta3], [True, True, False, False]):
-        G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + ta(t) : 1',
+        # additive
+        G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + ta(t)*Hz : 1',
+                        method='linear', namespace={'ta': ta_func})
+        net = Network(G)
+        if ok:
+            # This should work
+            net.run(0*ms)
+        else:
+            # This should not
+            with catch_logs():
+                assert_raises(ValueError, lambda: net.run(0*ms))
+
+        # multiplicative
+        G = NeuronGroup(1, 'dv/dt = -v*ta(t)/(10*ms) : 1',
                         method='linear', namespace={'ta': ta_func})
         net = Network(G)
         if ok:
@@ -355,6 +368,11 @@ def test_locally_constant_check():
     net = Network(G)
     assert_raises(ValueError, lambda: net.run(0*ms))
 
+    # Neither is "t" itself (here we'll raise the error in the beginning
+    # already since no unknown functions are involved)
+    assert_raises(ValueError, lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) + t/second**2 : 1',
+                                                  method='linear'))
+
     # But if the argument is not referring to t, all should be well
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*5*second)*Hz : 1',
                     method='linear')
@@ -369,3 +387,4 @@ if __name__ == '__main__':
     test_priority()
     test_registration()
     test_subexpressions()
+    test_locally_constant_check()
