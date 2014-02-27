@@ -104,6 +104,12 @@ class StateUpdater(CodeRunner):
 
         variables = self.group.resolve_all(used_known | unknown | names | external_names,
                                            run_namespace=run_namespace, level=level+1)
+
+        # Since we did not necessarily no all the functions at creation time,
+        # we might want to reconsider our numerical integration method
+        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
+                                                               variables,
+                                                               self.method_choice)
         self.abstract_code += self.method(self.group.equations, variables)
 
 
