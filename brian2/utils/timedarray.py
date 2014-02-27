@@ -4,8 +4,23 @@ from brian2.core.functions import Function
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units, get_unit
 from brian2.core.names import Nameable
+from brian2.utils.logger import get_logger
 
 __all__ = ['TimedArray']
+
+
+logger = get_logger(__name__)
+
+
+def _find_K(group_dt, dt):
+    dt_ratio = dt / group_dt
+    if dt_ratio > 1 and np.floor(dt_ratio) != dt_ratio:
+        logger.warn(('Group uses a dt of %s while TimedArray uses dt '
+                     'of %s') % (group_dt*second, dt*second))
+    # Find an upsampling factor that should avoid rounding issues even
+    # for multistep methods
+    K = int(2**np.ceil(np.log2(8/group_dt*dt)))
+    return K
 
 
 class TimedArray(Function, Nameable):
@@ -63,34 +78,50 @@ class TimedArray(Function, Nameable):
 
         Function.__init__(self, pyfunc=timed_array_func)
 
-        # Implementation for numpy, without units
-        def unitless_timed_array_func(t):
-            i = np.clip(np.int_(np.float_(t) / dt + 0.5), 0, len(values)-1)
-            return values[i]
-        unitless_timed_array_func._arg_units = [second]
-        unitless_timed_array_func._return_unit = unit
+        # we use dynamic implementations because we want to do upsampling
+        # in a way that avoids rounding problems with the group's dt
+        def create_numpy_implementation(owner):
+            group_dt = owner.clock.dt_
+            K = _find_K(group_dt, dt)
+            epsilon = dt / K
+            n_values = len(values)
+            def unitless_timed_array_func(t):
+                timestep = np.clip(int(round(t/epsilon)) / K, 0, n_values-1)
+                return values[timestep]
+            unitless_timed_array_func._arg_units = [second]
+            unitless_timed_array_func._return_unit = unit
 
-        # Implementation for C++
-        cpp_code = {'support_code': '''
-        inline double _timedarray_%NAME%(const double t, const double _dt, const int _num_values, const double* _values)
-        {
-            int i = (int)(t/_dt + 0.5); // rounds to nearest int for positive values
-            if(i<0)
-                i = 0;
-            if(i>=_num_values)
-                i = _num_values-1;
-            return _values[i];
-        }
-        '''.replace('%NAME%', self.name),
-                                       'hashdefine_code': '''
-        #define %NAME%(t) _timedarray_%NAME%(t, _%NAME%_dt, _%NAME%_num_values, _%NAME%_values)
-        '''.replace('%NAME%', self.name)}
-        namespace = {'_%s_dt' % self.name: self.dt,
-                     '_%s_num_values' % self.name: len(self.values),
-                     '_%s_values' % self.name: self.values}
+            return unitless_timed_array_func
 
-        self.implementations.add_implementations(codes={'cpp': cpp_code,
-                                                        'numpy': unitless_timed_array_func},
-                                                 namespaces={'cpp': namespace},
-                                                 names={'cpp': self.name})
+        self.implementations.add_dynamic_implementation('numpy',
+                                                        create_numpy_implementation)
 
+        def create_cpp_implementation(owner):
+            group_dt = owner.clock.dt_
+            K = _find_K(group_dt, dt)
+            epsilon = dt / K
+            cpp_code = {'support_code': '''
+            inline double _timedarray_%NAME%(const double t, const int _num_values, const double* _values)
+            {
+                int i = (int)(t/%EPSILON% + 0.5)/%K%; // rounds to nearest int for positive values
+                if(i<0)
+                    i = 0;
+                if(i>=_num_values)
+                    i = _num_values-1;
+                return _values[i];
+            }
+            '''.replace('%NAME%', self.name).replace('%EPSILON%', '%.12f' %epsilon).replace('%K%', str(K)),
+                                           'hashdefine_code': '''
+            #define %NAME%(t) _timedarray_%NAME%(t, _%NAME%_num_values, _%NAME%_values)
+            '''.replace('%NAME%', self.name)}
+
+            return cpp_code
+
+        def create_cpp_namespace(owner):
+            return {'_%s_num_values' % self.name: len(self.values),
+                    '_%s_values' % self.name: self.values}
+
+        self.implementations.add_dynamic_implementation('cpp',
+                                                        create_cpp_implementation,
+                                                        create_cpp_namespace,
+                                                        name=self.name)
