@@ -88,13 +88,13 @@ def test_scalar_variable():
                         codeobj_class=codeobj_class)
         # Setting should work in these ways
         G.E_L = -70*mV
-        assert G.E_L[:] == -70*mV
+        assert_allclose(G.E_L[:], -70*mV)
         G.E_L[:] = -60*mV
-        assert G.E_L[:] == -60*mV
+        assert_allclose(G.E_L[:], -60*mV)
         G.E_L = 'E_L + s2*mV - 10*mV'
-        assert G.E_L[:] == -70*mV
+        assert_allclose(G.E_L[:], -70*mV)
         G.E_L[:] = '-75*mV'
-        assert G.E_L[:] == -75*mV
+        assert_allclose(G.E_L[:], -75*mV)
         net = Network(G)
         net.run(defaultclock.dt)
 
@@ -520,6 +520,7 @@ def test_indices():
 if __name__ == '__main__':
     test_creation()
     test_variables()
+    test_scalar_variable()
     test_stochastic_variable()
     test_unit_errors()
     test_threshold_reset()
