@@ -143,8 +143,7 @@ class NumpyCodeGenerator(CodeGenerator):
 for func_name, func in [('sin', np.sin), ('cos', np.cos), ('tan', np.tan),
                         ('sinh', np.sinh), ('cosh', np.cosh), ('tanh', np.tanh),
                         ('exp', np.exp), ('log', np.log), ('log10', np.log10),
-                        ('sqrt', np.sqrt), ('ceil', np.ceil),
-                        ('floor', np.floor), ('arcsin', np.arcsin),
+                        ('sqrt', np.sqrt), ('arcsin', np.arcsin),
                         ('arccos', np.arccos), ('arctan', np.arctan),
                         ('abs', np.abs), ('mod', np.mod)]:
     DEFAULT_FUNCTIONS[func_name].implementations[NumpyCodeGenerator] = FunctionImplementation(code=func)
@@ -171,3 +170,7 @@ clip_func = lambda array, a_min, a_max: np.clip(array, a_min, a_max)
 DEFAULT_FUNCTIONS['clip'].implementations[NumpyCodeGenerator] = FunctionImplementation(code=clip_func)
 int_func = lambda value: np.int_(value)
 DEFAULT_FUNCTIONS['int'].implementations[NumpyCodeGenerator] = FunctionImplementation(code=int_func)
+ceil_func = lambda value: np.int_(np.ceil(value))
+DEFAULT_FUNCTIONS['ceil'].implementations[NumpyCodeGenerator] = FunctionImplementation(code=ceil_func)
+floor_func = lambda value: np.int_(np.floor(value))
+DEFAULT_FUNCTIONS['floor'].implementations[NumpyCodeGenerator] = FunctionImplementation(code=floor_func)
