@@ -421,7 +421,7 @@ class Synapses(Group):
 
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven'],
-                           STATIC_EQUATION: ['summed'],
+                           STATIC_EQUATION: ['summed', 'scalar'],
                            PARAMETER: ['constant', 'scalar']})
 
         # Separate the equations into event-driven and continuously updated
@@ -719,14 +719,16 @@ class Synapses(Group):
 
         # Add all the pre and post variables with _pre and _post suffixes
         for name, var in getattr(self.source, 'variables', {}).iteritems():
+            index = '0' if var.scalar else '_presynaptic_idx'
             self.variables.add_reference(name + '_pre', var,
-                                         index='_presynaptic_idx')
+                                         index=index)
         for name, var in getattr(self.target, 'variables', {}).iteritems():
+            index = '0' if var.scalar else '_postsynaptic_idx'
             self.variables.add_reference(name + '_post', var,
-                                         index='_postsynaptic_idx')
+                                         index=index)
             # Also add all the post variables without a suffix -- note that a
             # reference will never overwrite the name of an existing name
-            self.variables.add_reference(name, var, index='_postsynaptic_idx')
+            self.variables.add_reference(name, var, index=index)
 
         # Check scalar subexpressions
         for eq in self.equations.itervalues():
