@@ -494,6 +494,9 @@ def test_scalar_subexpression():
                                                           array : 1
                                                           sub = freq + array*Hz : Hz (scalar)'''))
 
+    # A scalar subexpresion cannot refer to implicitly vectorized functions
+    assert_raises(SyntaxError, lambda: NeuronGroup(10, 'sub = rand() : 1 (scalar)'))
+
 
 def test_repr():
     G = NeuronGroup(10, '''dv/dt = -(v + Inp) / tau : volt

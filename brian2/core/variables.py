@@ -2,10 +2,10 @@
 Classes used to specify the type of a function, variable or common
 sub-expression.
 '''
-import weakref
 import collections
 import functools
 
+import sympy
 import numpy as np
 
 from brian2.core.base import weakproxy_with_fallback
@@ -602,6 +602,23 @@ class Subexpression(Variable):
 
         #: The expression defining the subexpression
         self.expr = expr.strip()
+
+        if scalar:
+            from brian2.parsing.sympytools import str_to_sympy
+            # We check here if the corresponding sympy expression contains a
+            # reference to _vectorisation_idx which indicates that an implicitly
+            # vectorized function (e.g. rand() ) has been used. We do not allow
+            # this since it would lead to incorrect results when substituted into
+            # vector equations
+            sympy_expr = str_to_sympy(self.expr)
+            if sympy.Symbol('_vectorisation_idx') in sympy_expr.atoms():
+                raise SyntaxError(('The scalar subexpression %s refers to an '
+                                   'implicitly vectorized function -- this is '
+                                   'not allowed since it leads to different '
+                                   'interpretations of this subexpression '
+                                   'depending on whether it is used in a '
+                                   'scalar or vector context.') % name)
+
         #: The identifiers used in the expression
         self.identifiers = get_identifiers(expr)
 
