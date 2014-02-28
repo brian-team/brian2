@@ -302,14 +302,14 @@ def test_determination():
     # reset to state before the test
     StateUpdateMethod.stateupdaters = before
 
-def test_static_equations():
+def test_subexpressions():
     '''
     Make sure that the integration of a (non-stochastic) differential equation
-    does not depend on whether it's formulated using static equations.
+    does not depend on whether it's formulated using subexpressions.
     '''
-    # no static equation
+    # no subexpression
     eqs1 = 'dv/dt = (-v + sin(2*pi*100*Hz*t)) / (10*ms) : 1'
-    # same with static equation
+    # same with subexpression
     eqs2 = '''dv/dt = I / (10*ms) : 1
               I = -v + sin(2*pi*100*Hz*t): 1'''
     
@@ -335,4 +335,4 @@ if __name__ == '__main__':
     test_integrator_code()
     test_priority()
     test_registration()
-    test_static_equations()
+    test_subexpressions()

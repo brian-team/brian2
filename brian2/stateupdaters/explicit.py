@@ -490,7 +490,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             
             # Execute the statement by appropriately replacing the functions f
             # and g and the variable x for every equation in the model.
-            # We use the model equations where the static equations have
+            # We use the model equations where the subexpressions have
             # already been substituted into the model equations.
             for var, expr in eqs.substituted_expressions:
                 RHS = self._generate_RHS(eqs, var, eq_variables, intermediate_vars,

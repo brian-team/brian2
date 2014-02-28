@@ -14,7 +14,7 @@ from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
-                                        DIFFERENTIAL_EQUATION, STATIC_EQUATION,
+                                        DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER)
 from brian2.groups.group import Group, CodeRunner, dtype_dictionary
 from brian2.stateupdaters.base import StateUpdateMethod
@@ -421,7 +421,7 @@ class Synapses(Group):
 
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven'],
-                           STATIC_EQUATION: ['summed', 'scalar'],
+                           SUBEXPRESSION: ['summed', 'scalar'],
                            PARAMETER: ['constant', 'scalar']})
 
         # Separate the equations into event-driven and continuously updated
@@ -698,7 +698,7 @@ class Synapses(Group):
                                                      dtype=dtype[eq.varname],
                                                      constant=constant,
                                                      is_bool=eq.is_bool)
-            elif eq.type == STATIC_EQUATION:
+            elif eq.type == SUBEXPRESSION:
                 if 'summed' in eq.flags:
                     # Give a special name to the subexpression for summed
                     # variables to avoid confusion with the pre/postsynaptic
@@ -732,7 +732,7 @@ class Synapses(Group):
 
         # Check scalar subexpressions
         for eq in self.equations.itervalues():
-            if eq.type == STATIC_EQUATION and 'scalar' in eq.flags:
+            if eq.type == SUBEXPRESSION and 'scalar' in eq.flags:
                 var = self.variables[eq.varname]
                 for identifier in var.identifiers:
                     if identifier in self.variables:

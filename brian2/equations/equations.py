@@ -33,7 +33,7 @@ logger = get_logger(__name__)
 # this might get refactored into objects, for example)
 PARAMETER = 'parameter'
 DIFFERENTIAL_EQUATION = 'differential equation'
-STATIC_EQUATION = 'static equation'
+SUBEXPRESSION = 'subexpression'
 
 
 # Definitions of equation structure for parsing with pyparsing
@@ -80,7 +80,7 @@ PARAMETER_EQ = Group(IDENTIFIER + Suppress(':') + UNIT +
 # Static equation:
 # x = 2 * y : volt (flags)
 STATIC_EQ = Group(IDENTIFIER + Suppress('=') + EXPRESSION + Suppress(':') +
-                  UNIT + Optional(FLAGS)).setResultsName(STATIC_EQUATION)
+                  UNIT + Optional(FLAGS)).setResultsName(SUBEXPRESSION)
 
 # Differential equation
 # dx/dt = -x / tau : volt
@@ -254,7 +254,7 @@ class SingleEquation(object):
     
     Parameters
     ----------
-    type : {PARAMETER, DIFFERENTIAL_EQUATION, STATIC_EQUATION}
+    type : {PARAMETER, DIFFERENTIAL_EQUATION, SUBEXPRESSION}
         The type of the equation.
     varname : str
         The variable that is defined by this equation.
@@ -285,7 +285,7 @@ class SingleEquation(object):
         else:
             self.flags = flags
 
-        # will be set later in the sort_static_equations method of Equations
+        # will be set later in the sort_subexpressions method of Equations
         self.update_order = -1
 
 
@@ -297,7 +297,7 @@ class SingleEquation(object):
         if self.type == DIFFERENTIAL_EQUATION:
             return (r'\frac{\mathrm{d}' + sympy.latex(self.varname) + r'}{\mathrm{d}t} = ' +
                     sympy.latex(str_to_sympy(self.expr.code)))
-        elif self.type == STATIC_EQUATION:
+        elif self.type == SUBEXPRESSION:
             return (sympy.latex(self.varname) + ' = ' +
                     sympy.latex(str_to_sympy(self.expr.code)))
         elif self.type == PARAMETER:
@@ -464,8 +464,8 @@ class Equations(collections.Mapping):
                 else:
                     uses_xi = eq.varname
 
-        # rearrange static equations
-        self._sort_static_equations()
+        # rearrange subexpressions
+        self._sort_subexpressions()
 
     def __iter__(self):
         return iter(self._equations)
@@ -549,14 +549,14 @@ class Equations(collections.Mapping):
     def _get_substituted_expressions(self):
         '''
         Return a list of ``(varname, expr)`` tuples, containing all
-        differential equations with all the static equation variables
+        differential equations with all the subexpression variables
         substituted with the respective expressions.
         
         Returns
         -------
         expr_tuples : list of (str, `CodeString`)
             A list of ``(varname, expr)`` tuples, where ``expr`` is a
-            `CodeString` object with all static equation variables substituted
+            `CodeString` object with all subexpression variables substituted
             with the respective expression.
         '''
         subst_exprs = []
@@ -570,7 +570,7 @@ class Equations(collections.Mapping):
             new_str_expr = sympy_to_str(new_sympy_expr)
             expr = Expression(new_str_expr)
 
-            if eq.type == STATIC_EQUATION:
+            if eq.type == SUBEXPRESSION:
                 substitutions.update({sympy.Symbol(eq.varname, real=True): expr.sympy_expr})
             elif eq.type == DIFFERENTIAL_EQUATION:
                 #  a differential equation that we have to check
@@ -635,9 +635,9 @@ class Equations(collections.Mapping):
 
     eq_expressions = property(lambda self: [(varname, eq.expr) for
                                             varname, eq in self.iteritems()
-                                            if eq.type in (STATIC_EQUATION,
+                                            if eq.type in (SUBEXPRESSION,
                                                               DIFFERENTIAL_EQUATION)],
-                                  doc='A list of (variable name, expression) '
+                              doc='A list of (variable name, expression) '
                                   'tuples of all equations.')
 
     substituted_expressions = property(_get_substituted_expressions)
@@ -651,13 +651,14 @@ class Equations(collections.Mapping):
                                            if eq.type == DIFFERENTIAL_EQUATION]),
                              doc='All differential equation names.')
 
-    static_eq_names = property(lambda self: set([eq.varname for eq in self.ordered
-                                           if eq.type == STATIC_EQUATION]),
-                               doc='All static equation names.')
+    subexpr_names = property(lambda self: set([eq.varname for eq in self.ordered
+                                               if eq.type == SUBEXPRESSION]),
+                             doc='All subexpression names.')
 
     eq_names = property(lambda self: set([eq.varname for eq in self.ordered
-                                           if eq.type in (DIFFERENTIAL_EQUATION, STATIC_EQUATION)]),
-                        doc='All (static and differential) equation names.')
+                                           if eq.type in (DIFFERENTIAL_EQUATION,
+                                                          SUBEXPRESSION)]),
+                        doc='All equation names (including subexpressions).')
 
     parameter_names = property(lambda self: set([eq.varname for eq in self.ordered
                                              if eq.type == PARAMETER]),
@@ -683,22 +684,22 @@ class Equations(collections.Mapping):
 
     stochastic_type = property(fget=_get_stochastic_type)
 
-    def _sort_static_equations(self):
+    def _sort_subexpressions(self):
         '''
-        Sorts the static equations in a way that resolves their dependencies
-        upon each other. After this method has been run, the static equations
+        Sorts the subexpressions in a way that resolves their dependencies
+        upon each other. After this method has been run, the subexpressions
         returned by the ``ordered`` property are in the order in which
         they should be updated
         '''
 
-        # Get a dictionary of all the dependencies on other static equations,
+        # Get a dictionary of all the dependencies on other subexpressions,
         # i.e. ignore dependencies on parameters and differential equations
         static_deps = {}
         for eq in self._equations.itervalues():
-            if eq.type == STATIC_EQUATION:
+            if eq.type == SUBEXPRESSION:
                 static_deps[eq.varname] = [dep for dep in eq.identifiers if
                                            dep in self._equations and
-                                           self._equations[dep].type == STATIC_EQUATION]
+                                           self._equations[dep].type == SUBEXPRESSION]
         
         try:
             sorted_eqs = topsort(static_deps)
@@ -710,7 +711,7 @@ class Equations(collections.Mapping):
         for order, static_variable in enumerate(sorted_eqs):
             self._equations[static_variable].update_order = order
 
-        # Sort differential equations and parameters after static equations
+        # Sort differential equations and parameters after subexpressions
         for eq in self._equations.itervalues():
             if eq.type == DIFFERENTIAL_EQUATION:
                 eq.update_order = len(sorted_eqs)
@@ -760,7 +761,7 @@ class Equations(collections.Mapping):
             if eq.type == DIFFERENTIAL_EQUATION:
                 check_unit(str(eq.expr), self.units[var] / second,
                            all_variables)
-            elif eq.type == STATIC_EQUATION:
+            elif eq.type == SUBEXPRESSION:
                 check_unit(str(eq.expr), self.units[var],
                            all_variables)
             else:
@@ -775,7 +776,7 @@ class Equations(collections.Mapping):
         ----------
         allowed_flags : dict
              A dictionary mapping equation types (PARAMETER,
-             DIFFERENTIAL_EQUATION, STATIC_EQUATION) to a list of strings (the
+             DIFFERENTIAL_EQUATION, SUBEXPRESSION) to a list of strings (the
              allowed flags for that equation type)
         
         Notes

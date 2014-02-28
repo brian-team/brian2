@@ -12,7 +12,7 @@ Equations are defined by multiline strings.
 
 An Equation is a set of single lines in a string:
     (1) ``dx/dt = f : unit`` (differential equation)
-    (2) ``x = f : unit`` (static equation)
+    (2) ``x = f : unit`` (subexpression)
     (3) ``x : unit`` (parameter)
 
 The equations may be defined on multiple lines (no explicit line continuation with ``\`` is necessary).
@@ -65,7 +65,7 @@ There are additional constraints:
 * An event-driven variable cannot be used by any other equation that is not
   also event-driven.
 * An event-driven equation cannot depend on a differential equation that is not
-  event-driven (directly, or indirectly through static equations). It can depend
+  event-driven (directly, or indirectly through subexpressions). It can depend
   on a constant parameter. An open question is whether we should also allow it
   to depend on a parameter not defined as constant (I would say no).
 

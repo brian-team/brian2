@@ -5,7 +5,7 @@ import numpy as np
 import sympy
 
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
-                                        STATIC_EQUATION, PARAMETER)
+                                        SUBEXPRESSION, PARAMETER)
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.codeobject import check_code_units
@@ -249,7 +249,7 @@ class NeuronGroup(Group, SpikeSource):
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ('unless refractory',),
                            PARAMETER: ('constant', 'scalar'),
-                           STATIC_EQUATION: ('scalar',)})
+                           SUBEXPRESSION: ('scalar',)})
 
         # add refractoriness
         if refractory is not False:
@@ -381,7 +381,7 @@ class NeuronGroup(Group, SpikeSource):
                                          constant=constant, is_bool=eq.is_bool,
                                          scalar=scalar,
                                          index=index)
-            elif eq.type == STATIC_EQUATION:
+            elif eq.type == SUBEXPRESSION:
                 self.variables.add_subexpression(eq.varname, unit=eq.unit,
                                                  expr=str(eq.expr),
                                                  is_bool=eq.is_bool,
@@ -402,7 +402,7 @@ class NeuronGroup(Group, SpikeSource):
 
         # Check scalar subexpressions
         for eq in self.equations.itervalues():
-            if eq.type == STATIC_EQUATION and 'scalar' in eq.flags:
+            if eq.type == SUBEXPRESSION and 'scalar' in eq.flags:
                 var = self.variables[eq.varname]
                 for identifier in var.identifiers:
                     if identifier in self.variables:

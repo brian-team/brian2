@@ -57,7 +57,7 @@ def test_math_functions():
                 numpy_result = func(test_array)
                 
                 # Calculate the result in a somewhat complicated way by using a
-                # static equation in a NeuronGroup
+                # subexpression in a NeuronGroup
                 clock = Clock()
                 if func.__name__ == 'absolute':
                     # we want to use the name abs instead of absolute
@@ -87,7 +87,7 @@ def test_math_functions():
                 numpy_result = func(test_array, scalar)
                 
                 # Calculate the result in a somewhat complicated way by using a
-                # static equation in a NeuronGroup
+                # subexpression in a NeuronGroup
                 clock = Clock()
                 G = NeuronGroup(len(test_array),
                                 '''func = variable {op} scalar : 1
