@@ -194,21 +194,20 @@ class IndependentStateUpdater(StateUpdateMethod):
         return '\n'.join(code)
 
 
-def _check_for_t(expression, variables, dt_value, t_symbol,
-                 locally_constant_subtree=False):
-    if isinstance(expression, sp.Function) and not locally_constant_subtree:
-        # Because initial checks might be done when we don't have the
-        # information about all the functions yet, we treat unknown
-        # functions as locally constant for now
-        func_name = str(expression.func)
-        locally_constant_subtree = ((func_name not in variables) or
-                                    variables[func_name].is_locally_constant(dt_value))
+def _check_for_locally_constant(expression, variables, dt_value, t_symbol):
+
     for arg in expression.args:
         if arg is t_symbol:
-            if not locally_constant_subtree:
-                raise ValueError()
+            # We found "t" -- if it is not the only argument of a locally
+            # constant function we bail out
+            func_name = str(expression.func)
+            if not (func_name in variables and
+                        variables[func_name].is_locally_constant(dt_value)):
+                raise ValueError(('t is used in a context where we cannot'
+                                  'guarantee that it can be considered '
+                                  'locally constant.'))
         else:
-            _check_for_t(arg, variables, dt_value, t_symbol, locally_constant_subtree)
+            _check_for_locally_constant(arg, variables, dt_value, t_symbol)
 
 
 class LinearStateUpdater(StateUpdateMethod):    
@@ -257,7 +256,7 @@ class LinearStateUpdater(StateUpdateMethod):
             # This will raise an error if we meet the symbol "t" anywhere
             # except as an argument of a locally constant function
             for entry in itertools.chain(matrix, constants):
-                _check_for_t(entry, variables, dt_var.get_value(), t)
+                _check_for_locally_constant(entry, variables, dt_var.get_value(), t)
         symbols = [Symbol(variable, real=True) for variable in varnames]
         solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
         b = sp.ImmutableMatrix([solution[symbol] for symbol in symbols]).transpose()

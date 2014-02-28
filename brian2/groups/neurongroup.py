@@ -43,9 +43,11 @@ class StateUpdater(CodeRunner):
                             name=group.name + '_stateupdater*',
                             check_units=False)
 
-        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.variables,
-                                                               method)
+        # Don't do the check here for now since we don't have all the
+        # information about functions yet
+        # self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
+        #                                                        self.group.variables,
+        #                                                        method)
 
         # Generate the refractory code to catch errors in the refractoriness
         # formulation. However, do not fail on KeyErrors since the

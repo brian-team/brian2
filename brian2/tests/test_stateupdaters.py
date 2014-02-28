@@ -362,16 +362,23 @@ def test_locally_constant_check():
             with catch_logs():
                 assert_raises(ValueError, lambda: net.run(0*ms))
 
+    # If the argument is more than just "t", we cannot guarantee that it is
+    # actually locally constant
+    G = NeuronGroup(1, 'dv/dt = -v*ta(t/2.0)/(10*ms) : 1',
+                        method='linear', namespace={'ta': ta0})
+    net = Network(G)
+    assert_raises(ValueError, lambda: net.run(0*ms))
+
     # Arbitrary functions are not constant over a time step
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*t)*Hz : 1',
                     method='linear')
     net = Network(G)
     assert_raises(ValueError, lambda: net.run(0*ms))
 
-    # Neither is "t" itself (here we'll raise the error in the beginning
-    # already since no unknown functions are involved)
-    assert_raises(ValueError, lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) + t/second**2 : 1',
-                                                  method='linear'))
+    # Neither is "t" itself
+    G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + t/second**2 : 1', method='linear')
+    net = Network(G)
+    assert_raises(ValueError, lambda: net.run(0*ms))
 
     # But if the argument is not referring to t, all should be well
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*5*second)*Hz : 1',
