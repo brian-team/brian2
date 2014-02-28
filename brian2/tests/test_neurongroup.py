@@ -76,6 +76,29 @@ def test_stochastic_variable():
         net = Network(G)
         net.run(defaultclock.dt)
 
+def test_scalar_variable():
+    '''
+    Test the correct handling of scalar variables
+    '''
+    tau = 10*ms
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, '''E_L : volt (scalar)
+                               s2 : 1 (scalar)
+                               dv/dt = (E_L - v) / tau : volt''',
+                        codeobj_class=codeobj_class)
+        # Setting should work in these ways
+        G.E_L = -70*mV
+        assert_allclose(G.E_L[:], -70*mV)
+        G.E_L[:] = -60*mV
+        assert_allclose(G.E_L[:], -60*mV)
+        G.E_L = 'E_L + s2*mV - 10*mV'
+        assert_allclose(G.E_L[:], -70*mV)
+        G.E_L[:] = '-75*mV'
+        assert_allclose(G.E_L[:], -75*mV)
+        net = Network(G)
+        net.run(defaultclock.dt)
+
+
 def test_unit_errors():
     '''
     Test that units are checked for a complete namespace.
@@ -409,6 +432,18 @@ def test_state_variable_access_strings():
         assert_equal(G.v[:], np.arange(10)*volt)
 
 
+def test_subexpression():
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, '''dv/dt = freq : 1
+                               freq : Hz
+                               array : 1
+                               expr = 2*freq + array*Hz : Hz''',
+                        codeobj_class=codeobj_class)
+        G.freq = '10*i*Hz'
+        G.array = 5
+        assert_equal(G.expr[:], 2*10*np.arange(10)*Hz + 5*Hz)
+
+
 def test_scalar_parameter_access():
     for codeobj_class in codeobj_classes:
         G = NeuronGroup(10, '''dv/dt = freq : 1
@@ -417,23 +452,50 @@ def test_scalar_parameter_access():
                                array : 1''',
                         codeobj_class=codeobj_class)
 
-        # Try setting a scalar variable (string expressions not implemented yet)
+        # Try setting a scalar variable
         G.freq = 100*Hz
         assert_equal(G.freq[:], 100*Hz)
+        G.freq[:] = 200*Hz
+        assert_equal(G.freq[:], 200*Hz)
+        G.freq = 'freq - 50*Hz + number*Hz'
+        assert_equal(G.freq[:], 150*Hz)
+        G.freq[:] = '50*Hz'
+        assert_equal(G.freq[:], 50*Hz)
 
-        # Check the two methods of accessing that work
-        assert_equal(G.freq[:], 100*Hz)
-        assert_equal(G.freq[0], 100*Hz)
+        # Check the second method of accessing that works
+        assert_equal(np.asanyarray(G.freq), 50*Hz)
 
         # Check error messages
+        assert_raises(IndexError, lambda: G.freq[0])
         assert_raises(IndexError, lambda: G.freq[1])
         assert_raises(IndexError, lambda: G.freq[0:1])
         assert_raises(IndexError, lambda: G.freq['i>5'])
 
         assert_raises(ValueError, lambda: G.freq.set_item(slice(None), [0, 1]*Hz))
-        # assert_raises(ValueError, lambda: G.freq.set_item(slice(None), 'v*Hz'))
+        assert_raises(IndexError, lambda: G.freq.set_item(0, 100*Hz))
         assert_raises(IndexError, lambda: G.freq.set_item(1, 100*Hz))
-        # assert_raises(IndexError, lambda: G.freq.set_item('i>5', 100*Hz))
+        assert_raises(IndexError, lambda: G.freq.set_item('i>5', 100*Hz))
+
+
+def test_scalar_subexpression():
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, '''dv/dt = freq : 1
+                               freq : Hz (scalar)
+                               number : 1 (scalar)
+                               array : 1
+                               sub = freq + number*Hz : Hz (scalar)''',
+                        codeobj_class=codeobj_class)
+        G.freq = 100*Hz
+        G.number = 50
+        assert G.sub[:] == 150*Hz
+
+    assert_raises(SyntaxError, lambda: NeuronGroup(10, '''dv/dt = freq : 1
+                                                          freq : Hz (scalar)
+                                                          array : 1
+                                                          sub = freq + array*Hz : Hz (scalar)'''))
+
+    # A scalar subexpresion cannot refer to implicitly vectorized functions
+    assert_raises(SyntaxError, lambda: NeuronGroup(10, 'sub = rand() : 1 (scalar)'))
 
 
 def test_repr():
@@ -461,6 +523,7 @@ def test_indices():
 if __name__ == '__main__':
     test_creation()
     test_variables()
+    test_scalar_variable()
     test_stochastic_variable()
     test_unit_errors()
     test_threshold_reset()
@@ -472,7 +535,8 @@ if __name__ == '__main__':
     test_state_variables()
     test_state_variable_access()
     test_state_variable_access_strings()
+    test_subexpression()
     test_scalar_parameter_access()
-    test_scalar_parameter_use()
+    test_scalar_subexpression()
     test_indices()
     test_repr()

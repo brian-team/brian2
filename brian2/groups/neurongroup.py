@@ -5,7 +5,7 @@ import numpy as np
 import sympy
 
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
-                                        STATIC_EQUATION, PARAMETER)
+                                        SUBEXPRESSION, PARAMETER)
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.codeobject import check_code_units
@@ -247,8 +247,9 @@ class NeuronGroup(Group, SpikeSource):
                              'object, is "%s" instead.') % type(model))
 
         # Check flags
-        model.check_flags({DIFFERENTIAL_EQUATION: ('unless refractory'),
-                           PARAMETER: ('constant', 'scalar')})
+        model.check_flags({DIFFERENTIAL_EQUATION: ('unless refractory',),
+                           PARAMETER: ('constant', 'scalar'),
+                           SUBEXPRESSION: ('scalar',)})
 
         # add refractoriness
         if refractory is not False:
@@ -380,10 +381,11 @@ class NeuronGroup(Group, SpikeSource):
                                          constant=constant, is_bool=eq.is_bool,
                                          scalar=scalar,
                                          index=index)
-            elif eq.type == STATIC_EQUATION:
+            elif eq.type == SUBEXPRESSION:
                 self.variables.add_subexpression(eq.varname, unit=eq.unit,
                                                  expr=str(eq.expr),
-                                                 is_bool=eq.is_bool)
+                                                 is_bool=eq.is_bool,
+                                                 scalar='scalar' in eq.flags)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
@@ -397,6 +399,18 @@ class NeuronGroup(Group, SpikeSource):
         # Stochastic variables
         for xi in self.equations.stochastic_variables:
             self.variables.add_auxiliary_variable(xi, unit=second**-0.5)
+
+        # Check scalar subexpressions
+        for eq in self.equations.itervalues():
+            if eq.type == SUBEXPRESSION and 'scalar' in eq.flags:
+                var = self.variables[eq.varname]
+                for identifier in var.identifiers:
+                    if identifier in self.variables:
+                        if not self.variables[identifier].scalar:
+                            raise SyntaxError(('Scalar subexpression %s refers '
+                                               'to non-scalar variable %s.')
+                                              % (eq.varname, identifier))
+
 
     def before_run(self, run_namespace=None, level=0):
         # Check units

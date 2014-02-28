@@ -16,9 +16,7 @@ void _run_{{codeobj_name}}()
     ///// CONSTANTS ///////////
 	%CONSTANTS%
 	///// POINTERS ////////////
-	{% for line in pointers_lines %}
-	{{line}}
-	{% endfor %}
+    {{pointers_lines|autoindent}}
 
     //// MAIN CODE ////////////
 	// we do advance at the beginning rather than at the end because it saves us making

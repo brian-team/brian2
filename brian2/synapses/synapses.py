@@ -14,7 +14,7 @@ from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
-                                        DIFFERENTIAL_EQUATION, STATIC_EQUATION,
+                                        DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER)
 from brian2.groups.group import Group, CodeRunner, dtype_dictionary
 from brian2.stateupdaters.base import StateUpdateMethod
@@ -424,7 +424,7 @@ class Synapses(Group):
 
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven'],
-                           STATIC_EQUATION: ['summed'],
+                           SUBEXPRESSION: ['summed', 'scalar'],
                            PARAMETER: ['constant', 'scalar']})
 
         # Separate the equations into event-driven and continuously updated
@@ -701,7 +701,7 @@ class Synapses(Group):
                                                      dtype=dtype[eq.varname],
                                                      constant=constant,
                                                      is_bool=eq.is_bool)
-            elif eq.type == STATIC_EQUATION:
+            elif eq.type == SUBEXPRESSION:
                 if 'summed' in eq.flags:
                     # Give a special name to the subexpression for summed
                     # variables to avoid confusion with the pre/postsynaptic
@@ -711,7 +711,8 @@ class Synapses(Group):
                     varname = eq.varname
                 self.variables.add_subexpression(varname, unit=eq.unit,
                                                  expr=str(eq.expr),
-                                                 is_bool=eq.is_bool)
+                                                 is_bool=eq.is_bool,
+                                                 scalar='scalar' in eq.flags)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
@@ -721,14 +722,27 @@ class Synapses(Group):
 
         # Add all the pre and post variables with _pre and _post suffixes
         for name, var in getattr(self.source, 'variables', {}).iteritems():
+            index = '0' if var.scalar else '_presynaptic_idx'
             self.variables.add_reference(name + '_pre', var,
-                                         index='_presynaptic_idx')
+                                         index=index)
         for name, var in getattr(self.target, 'variables', {}).iteritems():
+            index = '0' if var.scalar else '_postsynaptic_idx'
             self.variables.add_reference(name + '_post', var,
-                                         index='_postsynaptic_idx')
+                                         index=index)
             # Also add all the post variables without a suffix -- note that a
             # reference will never overwrite the name of an existing name
-            self.variables.add_reference(name, var, index='_postsynaptic_idx')
+            self.variables.add_reference(name, var, index=index)
+
+        # Check scalar subexpressions
+        for eq in self.equations.itervalues():
+            if eq.type == SUBEXPRESSION and 'scalar' in eq.flags:
+                var = self.variables[eq.varname]
+                for identifier in var.identifiers:
+                    if identifier in self.variables:
+                        if not self.variables[identifier].scalar:
+                            raise SyntaxError(('Scalar subexpression %s refers '
+                                               'to non-scalar variable %s.')
+                                              % (eq.varname, identifier))
 
     def connect(self, pre_or_cond, post=None, p=1., n=1, namespace=None,
                 level=0):

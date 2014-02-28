@@ -24,7 +24,7 @@ from brian2.equations.equations import (check_identifier_basic,
                                         check_identifier_units,
                                         parse_string_equations,
                                         SingleEquation,
-                                        DIFFERENTIAL_EQUATION, STATIC_EQUATION,
+                                        DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER,
                                         EquationError)
 from brian2.equations.refractory import check_identifier_refractory
@@ -131,7 +131,7 @@ def test_parse_equations():
     assert len(eqs.keys()) == 5
     assert 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION
     assert 'ge' in eqs and eqs['ge'].type == DIFFERENTIAL_EQUATION
-    assert 'I' in eqs and eqs['I'].type == STATIC_EQUATION
+    assert 'I' in eqs and eqs['I'].type == SUBEXPRESSION
     assert 'f' in eqs and eqs['f'].type == PARAMETER
     assert 'b' in eqs and eqs['b'].type == PARAMETER
     assert not eqs['f'].is_bool and eqs['b'].is_bool
@@ -222,7 +222,7 @@ def test_construction_errors():
 
     eqs = [SingleEquation(DIFFERENTIAL_EQUATION, 'v', volt,
                           expr=Expression('-v / tau')),
-           SingleEquation(STATIC_EQUATION, 'v', volt,
+           SingleEquation(SUBEXPRESSION, 'v', volt,
                           expr=Expression('2 * t/second * volt'))
            ]
     assert_raises(EquationError, lambda: Equations(eqs))
@@ -236,7 +236,7 @@ def test_construction_errors():
                   lambda: Equations('d1a/dt = -1a / tau : volt'))
     assert_raises(ValueError, lambda: Equations('d_x/dt = -_x / tau : volt'))
 
-    # xi in a static equation
+    # xi in a subexpression
     assert_raises(EquationError,
                   lambda: Equations('''dv/dt = -(v + I) / (5 * ms) : volt
                                        I = second**-1*xi**-2*volt : volt'''))
@@ -251,10 +251,10 @@ def test_construction_errors():
     eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag']})  # allow this flag
     assert_raises(ValueError, lambda: eqs.check_flags({DIFFERENTIAL_EQUATION: []}))
     assert_raises(ValueError, lambda: eqs.check_flags({}))
-    assert_raises(ValueError, lambda: eqs.check_flags({STATIC_EQUATION: ['flag']}))
+    assert_raises(ValueError, lambda: eqs.check_flags({SUBEXPRESSION: ['flag']}))
     assert_raises(ValueError, lambda: eqs.check_flags({DIFFERENTIAL_EQUATION: ['otherflag']}))
 
-    # Circular static equations
+    # Circular subexpression
     assert_raises(ValueError, lambda: Equations('''dv/dt = -(v + w) / (10 * ms) : 1
                                                    w = 2 * x : 1
                                                    x = 3 * w : 1'''))
@@ -287,7 +287,7 @@ def test_unit_checking():
     assert_raises(DimensionMismatchError,
                   lambda: eqs.check_units(group))
     
-    # inconsistent unit for a static equation
+    # inconsistent unit for a subexpression
     eqs = Equations('''dv/dt = -v / (5 * ms) : volt
                        I = 2 * v : amp''')
     group = SimpleGroup(variables={'v': S(volt),
@@ -322,7 +322,7 @@ def test_properties():
             [eq.varname for eq in eqs.ordered] == ['f', 'I', 'v', 'freq'])
     assert eqs.names == set(['v', 'I', 'f', 'freq'])
     assert eqs.parameter_names == set(['freq'])
-    assert eqs.static_eq_names == set(['I', 'f'])
+    assert eqs.subexpr_names == set(['I', 'f'])
     units = eqs.units
     assert set(units.keys()) == set(['v', 'I', 'f', 'freq'])
     assert units['v'] == volt

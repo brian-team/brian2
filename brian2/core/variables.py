@@ -2,10 +2,10 @@
 Classes used to specify the type of a function, variable or common
 sub-expression.
 '''
-import weakref
 import collections
 import functools
 
+import sympy
 import numpy as np
 
 from brian2.core.base import weakproxy_with_fallback
@@ -322,6 +322,9 @@ class AuxiliaryVariable(Variable):
                                                 name=name, dtype=dtype,
                                                 scalar=scalar, is_bool=is_bool)
 
+    def get_value(self):
+        raise TypeError('Cannot get the value for an auxiliary variable.')
+
 
 class AttributeVariable(Variable):
     '''
@@ -581,12 +584,15 @@ class Subexpression(Variable):
     is_bool: bool, optional
         Whether this is a boolean variable (also implies it is dimensionless).
         Defaults to ``False``
+    scalar: bool, optional
+        Whether this is an expression only referring to scalar variables.
+        Defaults to ``False``
     '''
     def __init__(self, name, unit, owner, expr, device, dtype=None,
-                 is_bool=False):
+                 is_bool=False, scalar=False):
         super(Subexpression, self).__init__(unit=unit,
                                             name=name, dtype=dtype,
-                                            is_bool=is_bool, scalar=False,
+                                            is_bool=is_bool, scalar=scalar,
                                             constant=False, read_only=True)
         #: The `Group` to which this variable belongs
         self.owner = weakproxy_with_fallback(owner)
@@ -596,6 +602,23 @@ class Subexpression(Variable):
 
         #: The expression defining the subexpression
         self.expr = expr.strip()
+
+        if scalar:
+            from brian2.parsing.sympytools import str_to_sympy
+            # We check here if the corresponding sympy expression contains a
+            # reference to _vectorisation_idx which indicates that an implicitly
+            # vectorized function (e.g. rand() ) has been used. We do not allow
+            # this since it would lead to incorrect results when substituted into
+            # vector equations
+            sympy_expr = str_to_sympy(self.expr)
+            if sympy.Symbol('_vectorisation_idx') in sympy_expr.atoms():
+                raise SyntaxError(('The scalar subexpression %s refers to an '
+                                   'implicitly vectorized function -- this is '
+                                   'not allowed since it leads to different '
+                                   'interpretations of this subexpression '
+                                   'depending on whether it is used in a '
+                                   'scalar or vector context.') % name)
+
         #: The identifiers used in the expression
         self.identifiers = get_identifiers(expr)
 
@@ -1116,7 +1139,8 @@ class Variables(collections.Mapping):
         var = Constant(name=name, unit=unit, value=value)
         self._add_variable(name, var)
 
-    def add_subexpression(self, name, unit, expr, dtype=None, is_bool=False):
+    def add_subexpression(self, name, unit, expr, dtype=None, is_bool=False,
+                          scalar=False):
         '''
         Add a named subexpression.
 
@@ -1131,12 +1155,16 @@ class Variables(collections.Mapping):
         dtype : `dtype`, optional
             The dtype used for the expression. Defaults to
             `core.default_scalar_dtype`.
-        is_bool: bool, optional
+        is_bool : bool, optional
             Whether this is a boolean variable (also implies it is
             dimensionless). Defaults to ``False``
+        scalar : bool, optional
+            Whether this is an expression only referring to scalar variables.
+            Defaults to ``False``
         '''
         var = Subexpression(name=name, unit=unit, expr=expr, owner=self.owner,
-                            dtype=dtype, device=self.device, is_bool=is_bool)
+                            dtype=dtype, device=self.device, is_bool=is_bool,
+                            scalar=scalar)
         self._add_variable(name, var)
 
     def add_auxiliary_variable(self, name, unit, dtype=None, scalar=False,

@@ -328,8 +328,7 @@ class Group(BrianObject):
     @device_override('group_get_with_index_array')
     def get_with_index_array(self, variable_name, variable, item):
         if variable.scalar:
-            if not ((isinstance(item, slice) and item == slice(None)) or item == 0 or (hasattr(item, '__len__')
-                                                                                           and len(item) == 0)):
+            if not (isinstance(item, slice) and item == slice(None)):
                 raise IndexError(('Illegal index for variable %s, it is a '
                                   'scalar variable.') % variable_name)
             indices = np.array([0])
@@ -374,8 +373,7 @@ class Group(BrianObject):
             fail_for_dimension_mismatch(variable.unit, value,
                                         'Incorrect unit for setting variable %s' % variable_name)
         if variable.scalar:
-            if not ((isinstance(item, slice) and item == slice(None)) or item == 0 or (hasattr(item, '__len__')
-                                                                                           and len(item) == 0)):
+            if not (isinstance(item, slice) and item == slice(None)):
                 raise IndexError(('Illegal index for variable %s, it is a '
                                   'scalar variable.') % variable_name)
             variable.get_value()[0] = value
@@ -450,9 +448,6 @@ class Group(BrianObject):
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
         '''
-        if variable.scalar:
-            raise NotImplementedError('Setting scalar variables with string '
-                                      'expressions is not implemented yet')
         indices = self.calc_indices(item)
         abstract_code = varname + ' = ' + code
         variables = Variables(None)
@@ -499,9 +494,9 @@ class Group(BrianObject):
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
         '''
-        if variable.scalar:
-            raise NotImplementedError('Setting scalar variables with string '
-                                      'expressions is not implemented yet')
+        if variable.scalar and cond != 'True':
+            raise IndexError(('Cannot conditionally set the scalar variable '
+                              '%s.') % varname)
         abstract_code_cond = '_cond = '+cond
         abstract_code = varname + ' = ' + code
         variables = Variables(None)
@@ -802,7 +797,6 @@ class Group(BrianObject):
 
         return resolutions
 
-
     def runner(self, code, when=None, name=None):
         '''
         Returns a `CodeRunner` that runs abstract code in the groups namespace
@@ -820,16 +814,15 @@ class Group(BrianObject):
             explicitly, it will be used as given (i.e. the group name will not
             be prepended automatically).
         '''
-        if when is None:  # TODO: make this better with default values
-            when = Scheduler(clock=self.clock)
-        else:
-            raise NotImplementedError
+        when = Scheduler(when)
+        if not when.defined_clock:
+            when.clock = self.clock
 
         if name is None:
             name = self.name + '_runner*'
 
-        runner = CodeRunner(self, self.language.template_state_update,
-                            code=code, name=name, when=when)
+        runner = CodeRunner(self, 'stateupdate', code=code, name=name,
+                            when=when)
         return runner
 
 

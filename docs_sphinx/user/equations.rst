@@ -12,7 +12,7 @@ Equations are defined by multiline strings.
 
 An Equation is a set of single lines in a string:
     (1) ``dx/dt = f : unit`` (differential equation)
-    (2) ``x = f : unit`` (static equation)
+    (2) ``x = f : unit`` (subexpression)
     (3) ``x : unit`` (parameter)
 
 The equations may be defined on multiple lines (no explicit line continuation with ``\`` is necessary).
@@ -25,10 +25,10 @@ Variable names starting with an underscore and a couple of other names that have
 circumstances (e.g. names ending in ``_pre`` or ``_post``) are forbidden.
 
 For stochastic equations with several ``xi`` values it is now necessary to make clear whether they correspond to the same
-or different noise instantiations. Two make this distinction, an arbitrary suffix can be used, e.g. using ``xi_1`` several times
+or different noise instantiations. To make this distinction, an arbitrary suffix can be used, e.g. using ``xi_1`` several times
 refers to the same variable, ``xi_2`` (or ``xi_inh``, ``xi_alpha``, etc.) refers to another. An error will be raised if
 you use more than one plain ``xi``. Note that noise is always independent across neurons, you can only work around this
-restriction by defining your noise variable as a parameter and update it using a user-defined function. 
+restriction by defining your noise variable as a scalar parameter and update it using a user-defined function (e.g. a `CodeRunner`).
 
 Flags
 ~~~~~
@@ -47,14 +47,15 @@ qualifies the equations. There are several keywords:
   This can only qualify differential equations of neuron groups.
 *constant*
   this means the parameter will not be changed during a run. This allows
-  optimizations in state updaters.
-  This can only qualify parameters.
+  optimizations in state updaters. This can only qualify parameters.
+*scalar*
+  this means that a parameter or subexpression isn't neuron-/synapse-specific
+  but rather a single value for the whole `NeuronGroup` or `Synapses`. A scalar
+  subexpression can only refer to other scalar variables.
 
 Different flags may be specified as follows::
 
 	dx/dt = f : unit (flag1,flag2)
-
-However, the current flags are mutually exclusive.
 
 Event-driven equations
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -65,7 +66,7 @@ There are additional constraints:
 * An event-driven variable cannot be used by any other equation that is not
   also event-driven.
 * An event-driven equation cannot depend on a differential equation that is not
-  event-driven (directly, or indirectly through static equations). It can depend
+  event-driven (directly, or indirectly through subexpressions). It can depend
   on a constant parameter. An open question is whether we should also allow it
   to depend on a parameter not defined as constant (I would say no).
 

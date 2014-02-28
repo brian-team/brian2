@@ -21,7 +21,7 @@ class CodeGenerator(object):
     generator_id = ''
 
     def __init__(self, variables, variable_indices, iterate_all, codeobj_class,
-                 override_conditional_write=None):
+                 override_conditional_write=None, allows_scalar_write=False):
         # We have to do the import here to avoid circular import dependencies.
         from brian2.devices.device import get_device
         self.device = get_device()
@@ -33,6 +33,7 @@ class CodeGenerator(object):
             self.override_conditional_write = set()
         else:
             self.override_conditional_write = set(override_conditional_write)
+        self.allows_scalar_write = allows_scalar_write
 
     @staticmethod
     def get_array_name(var, access_data=True):
@@ -76,7 +77,7 @@ class CodeGenerator(object):
         Translate a sequence of `Statement` into the target language, taking
         care to declare variables, etc. if necessary.
    
-        Returns a tuple ``(code_lines, kwds)`` where ``code_lines`` is a list
+        Returns a tuple ``(vector_code, kwds)`` where ``vector_code`` is a list
         of the lines of code in the inner loop, and ``kwds`` is a
         dictionary of values that is made available to the template.
         '''
@@ -98,6 +99,17 @@ class CodeGenerator(object):
             if stmt.inplace:
                 ids.add(stmt.var)
             read = read.union(ids)
+            if stmt.scalar:
+                if stmt.op != ':=' and not self.allows_scalar_write:
+                    raise SyntaxError(('Writing to scalar variable %s '
+                                       'not allowed in this context.' % stmt.var))
+                for name in ids:
+                    if (name in variables and isinstance(variables[name], ArrayVariable)
+                                          and not variables[name].scalar):
+                        raise SyntaxError(('Cannot write to scalar variable %s '
+                                           'with an expression referring to '
+                                           'vector variable %s') %
+                                          (stmt.var, name))
             write.add(stmt.var)
         read = set(varname for varname, var in variables.items()
                    if isinstance(var, ArrayVariable) and varname in read)
@@ -138,8 +150,8 @@ class CodeGenerator(object):
         '''
         read, write, indices = self.array_read_write(statements)
         conditional_write_vars = self.get_conditional_write_vars()
-        read = read.union(set(conditional_write_vars.values()) |
-                          set(conditional_write_vars.keys()))
+        read = read.union(set((conditional_write_vars[var] for var in write
+                               if var in conditional_write_vars)))
         return read, write, indices, conditional_write_vars
 
     def translate(self, code, dtype):

@@ -320,7 +320,7 @@ class CPPStandaloneDevice(Device):
         networks = [net() for net in Network.__instances__() if net().name!='_fake_network']
         synapses = [S() for S in Synapses.__instances__()]
         arr_tmp = CPPStandaloneCodeObject.templater.objects(
-                        None,
+                        None, None,
                         array_specs=self.arrays,
                         dynamic_array_specs=self.dynamic_arrays,
                         dynamic_array_2d_specs=self.dynamic_arrays_2d,
@@ -430,7 +430,7 @@ class CPPStandaloneDevice(Device):
         # The code_objects are passed in the right order to run them because they were
         # sorted by the Network object. To support multiple clocks we'll need to be
         # smarter about that.
-        main_tmp = CPPStandaloneCodeObject.templater.main(None,
+        main_tmp = CPPStandaloneCodeObject.templater.main(None, None,
                                                           main_lines=main_lines,
                                                           code_objects=self.code_objects.values(),
                                                           dt=float(defaultclock.dt),
@@ -439,7 +439,7 @@ class CPPStandaloneDevice(Device):
         writer.write('main.cpp', main_tmp)
         
         # Generate the run functions
-        run_tmp = CPPStandaloneCodeObject.templater.run(None, run_funcs=runfuncs,
+        run_tmp = CPPStandaloneCodeObject.templater.run(None, None, run_funcs=runfuncs,
                                                         code_objects=self.code_objects.values(),
                                                         additional_headers=run_includes,
                                                         )
@@ -469,7 +469,7 @@ class CPPStandaloneDevice(Device):
             rm_cmd = 'del'
         else:
             rm_cmd = 'rm'
-        makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None,
+        makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None, None,
                                                                   source_files=' '.join(writer.source_files),
                                                                   header_files=' '.join(writer.header_files),
                                                                   rm_cmd=rm_cmd)

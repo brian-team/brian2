@@ -517,6 +517,64 @@ def test_summed_variable_errors():
                                             p_pre = 3*volt : volt (summed)'''))
 
 
+def test_scalar_parameter_access():
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, '''v : 1
+                               scalar : Hz (scalar)''')
+        S = Synapses(G, G, '''w : 1
+                              s : Hz (scalar)
+                              number : 1 (scalar)''',
+                     pre = 'v+=w*number', connect=True,
+                     codeobj_class=codeobj_class)
+
+        # Try setting a scalar variable
+        S.s = 100*Hz
+        assert_equal(S.s[:], 100*Hz)
+        S.s[:] = 200*Hz
+        assert_equal(S.s[:], 200*Hz)
+        S.s = 's - 50*Hz + number*Hz'
+        assert_equal(S.s[:], 150*Hz)
+        S.s[:] = '50*Hz'
+        assert_equal(S.s[:], 50*Hz)
+
+        # Set a postsynaptic scalar variable
+        S.scalar_post = 100*Hz
+        assert_equal(G.scalar[:], 100*Hz)
+        S.scalar_post[:] = 100*Hz
+        assert_equal(G.scalar[:], 100*Hz)
+
+        # Check the second method of accessing that works
+        assert_equal(np.asanyarray(S.s), 50*Hz)
+
+        # Check error messages
+        assert_raises(IndexError, lambda: S.s[0])
+        assert_raises(IndexError, lambda: S.s[1])
+        assert_raises(IndexError, lambda: S.s[0:1])
+        assert_raises(IndexError, lambda: S.s['i>5'])
+
+        assert_raises(ValueError, lambda: S.s.set_item(slice(None), [0, 1]*Hz))
+        assert_raises(IndexError, lambda: S.s.set_item(0, 100*Hz))
+        assert_raises(IndexError, lambda: S.s.set_item(1, 100*Hz))
+        assert_raises(IndexError, lambda: S.s.set_item('i>5', 100*Hz))
+
+
+def test_scalar_subexpression():
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, '''v : 1
+                               number : 1 (scalar)''',
+                        codeobj_class=codeobj_class)
+        S = Synapses(G, G, '''s : 1 (scalar)
+                              sub = number_post + s : 1 (scalar)''',
+                     pre='v+=s', connect=True)
+        S.s = 100
+        G.number = 50
+        assert S.sub[:] == 150
+
+    assert_raises(SyntaxError, lambda: Synapses(G, G, '''s : 1 (scalar)
+                                                         sub = v_post + s : 1 (scalar)''',
+                                                pre='v+=s', connect=True))
+
+
 def test_event_driven():
     for codeobj_class in codeobj_classes:
         # Fake example, where the synapse is actually not changing the state of the
@@ -599,5 +657,7 @@ if __name__ == '__main__':
     test_changed_dt_spikes_in_queue()
     test_summed_variable()
     test_summed_variable_errors()
+    test_scalar_parameter_access()
+    test_scalar_subexpression()
     test_event_driven()
     test_repr()

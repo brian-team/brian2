@@ -135,7 +135,8 @@ def make_statements(code, variables, dtype):
     # we will do inference to work out which lines are := and which are =
     defined = set(k for k, v in variables.iteritems()
                   if not isinstance(v, AuxiliaryVariable))
-
+    scalars = set(k for k,v in variables.iteritems()
+                  if getattr(v, 'scalar', False))
     for line in lines:
         # parse statement into "var op expr"
         var, op, expr = parse_statement(line.code)
@@ -145,14 +146,35 @@ def make_statements(code, variables, dtype):
                 defined.add(var)
                 if var not in dtypes:
                     dtypes[var] = dtype
+                # determine whether this is a scalar variable
+                identifiers = get_identifiers_recursively(expr, variables)
+                # In the following we assume that all unknown identifiers are
+                # scalar constants -- this should cover numerical literals and
+                # e.g. "True" or "inf".
+                is_scalar = all((name in scalars) or not (name in variables)
+                                for name in identifiers)
+                if is_scalar:
+                    scalars.add(var)
 
-        statement = Statement(var, op, expr, dtypes[var])
+        statement = Statement(var, op, expr, dtypes[var], scalar=var in scalars)
         line.statement = statement
         # for each line will give the variable being written to
         line.write = var 
         # each line will give a set of variables which are read
         line.read = get_identifiers_recursively(expr, variables)
-        
+
+    # All writes to scalar variables must happen before writes to vector
+    # variables
+    scalar_write_done = False
+    for line in lines:
+        stmt = line.statement
+        if stmt.op != ':=' and stmt.var in scalars and scalar_write_done:
+            raise SyntaxError(('All writes to scalar variables in a code block '
+                               'have to be made before writes to vector '
+                               'variables. Illegal write to %s.') % line.write)
+        elif not stmt.var in scalars:
+            scalar_write_done = True
+
     if DEBUG:
         print 'PARSED STATEMENTS:'
         for line in lines:
@@ -161,13 +183,6 @@ def make_statements(code, variables, dtype):
     # all variables which are written to at some point in the code block
     # used to determine whether they should be const or not
     all_write = set(line.write for line in lines)
-
-    # Currently, we do not allow writing to scalar variables
-    for var in all_write:
-        if (var in variables) and variables[var].scalar:
-            raise NotImplementedError(('Writing to variable %s is not '
-                                       'supported yet, it is a scalar '
-                                       'variable.') % var)
 
     if DEBUG:
         print 'ALL WRITE:', all_write
@@ -244,7 +259,7 @@ def make_statements(code, variables, dtype):
                 valid[var] = True
                 statement = Statement(var, op, subexpression.expr,
                                       variables[var].dtype, constant=constant,
-                                      subexpression=True)
+                                      subexpression=True, scalar=var in scalars)
                 statements.append(statement)
         var, op, expr = stmt.var, stmt.op, stmt.expr
         # invalidate any subexpressions including var, recursively
@@ -264,7 +279,7 @@ def make_statements(code, variables, dtype):
         # write to it again
         constant = op==':=' and var not in will_write
         statement = Statement(var, op, expr, dtypes[var],
-                              constant=constant)
+                              constant=constant, scalar=var in scalars)
         statements.append(statement)
 
     if DEBUG:

@@ -31,6 +31,22 @@ be used::
     G = NeuronGroup(10, '''dv/dt = I_leak / Cm : volt
                            I_leak = g_L*(E_L - v) : amp''')
 
+Sometimes it can also be useful to introduce scalar variables or subexpressions,
+i.e. variables that have a common value for all neurons. In contrast to
+external variables (such as ``Cm`` above), such variables can change during a
+run, e.g. by using a `CodeRunner`. This can be for example used for an external
+stimulus that changes in the course of a run::
+
+    G = NeuronGroup(10, '''shared_input : volt (scalar)
+                           dv/dt = (-v + shared_input)/tau : volt
+                           tau : second''')
+
+Note that there are several restrictions around the use of scalar variables:
+they cannot be written to in contexts where statements apply only to a subset
+of neurons (e.g. reset statements, see below). If a code block mixes statements
+writing to scalar and vector variables, then the scalar statements have to
+come first.
+
 Threshold and reset
 -------------------
 To emit spikes, neurons need a *threshold*. Threshold and reset are given
@@ -69,11 +85,15 @@ attribute of the group:
 
 .. doctest::
 
-    >>> G = NeuronGroup(10, '''dv/dt = -v/tau : volt
+    >>> G = NeuronGroup(10, '''dv/dt = (-v + shared_input)/tau : volt
+                               shared_input : volt (scalar)
     ...                        tau : second''')
     >>> G.v = -70*mV
     >>> print G.v
     <neurongroup.v: array([-70., -70., -70., -70., -70., -70., -70., -70., -70., -70.]) * mvolt>
+    >>> G.shared_input = 5*mV
+    >>> print G.shared_input
+    <neurongroup.shared_input: 5.0 * mvolt>
 
 The value of state variables can also be set using string expressions that can
 refer to units and external variables, other state variables, mathematical
@@ -86,3 +106,11 @@ functions, and a special variable ``i``, the index of the neuron:
     <neurongroup.tau: array([  5.03593449,  10.74914808,  19.01641896,  21.66813281,
             27.16243388,  31.13571924,  36.28173038,  40.04921519,
             47.28797921,  50.18913711]) * msecond>
+
+For scalar variables, such string expressions can only refer to scalar values:
+
+.. doctest::
+
+    >>> G.shared_input = 'rand()*mV + 4*mV'
+    >>> print G.shared_input
+    <neurongroup.shared_input: 4.2579690100000001 * mvolt>

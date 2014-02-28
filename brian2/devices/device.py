@@ -163,7 +163,8 @@ class Device(object):
                                                   variable_indices=variable_indices,
                                                   iterate_all=iterate_all,
                                                   codeobj_class=codeobj_class,
-                                                  override_conditional_write=override_conditional_write)
+                                                  override_conditional_write=override_conditional_write,
+                                                  allows_scalar_write=template.allows_scalar_write)
         if template_kwds is None:
             template_kwds = dict()
         else:
@@ -184,8 +185,8 @@ class Device(object):
 
         logger.debug('%s abstract code:\n%s' % (name, indent(code_representation(abstract_code))))
 
-        snippet, kwds = generator.translate(abstract_code,
-                                            dtype=brian_prefs['core.default_scalar_dtype'])
+        scalar_code, vector_code, kwds = generator.translate(abstract_code,
+                                                             dtype=brian_prefs['core.default_scalar_dtype'])
         # Add the array names as keywords as well
         for varname, var in variables.iteritems():
             if isinstance(var, ArrayVariable):
@@ -198,11 +199,12 @@ class Device(object):
 
 
         template_kwds.update(kwds)
-        logger.debug('%s snippet:\n%s' % (name, indent(code_representation(snippet))))
+        logger.debug('%s snippet (scalar):\n%s' % (name, indent(code_representation(scalar_code))))
+        logger.debug('%s snippet (vector):\n%s' % (name, indent(code_representation(vector_code))))
 
         name = find_name(name)
 
-        code = template(snippet,
+        code = template(scalar_code, vector_code,
                         owner=owner, variables=variables, codeobj_name=name,
                         variable_indices=variable_indices,
                         get_array_name=generator.get_array_name,

@@ -11,15 +11,11 @@
 
 ////// SUPPORT CODE ///////
 namespace {
-	{% for line in support_code_lines %}
-	{{line}}
-	{% endfor %}
+	{{support_code_lines|autoindent}}
 }
 
 ////// HASH DEFINES ///////
-{% for line in hashdefine_lines %}
-{{line}}
-{% endfor %}
+{{hashdefine_lines|autoindent}}
 
 void _run_{{codeobj_name}}()
 {
@@ -27,19 +23,19 @@ void _run_{{codeobj_name}}()
 	///// CONSTANTS ///////////
 	%CONSTANTS%
 	///// POINTERS ////////////
-	{% for line in pointers_lines %}
-	{{line}}
-	{% endfor %}
+	{{pointers_lines|autoindent}}
 
 	{% block maincode %}
 	//// MAIN CODE ////////////
+	// scalar code
+	const int _vectorisation_idx = -1;
+	{{scalar_code|autoindent}}
 	for(int _idx=0; _idx<N; _idx++)
 	{
+	    // vector code
 		const int _vectorisation_idx = _idx;
 		{% block maincode_inner %}
-			{% for line in code_lines %}
-			{{line}}
-			{% endfor %}
+        {{vector_code|autoindent}}
 		{% endblock %}
 	}
 	{% endblock %}

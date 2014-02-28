@@ -14,6 +14,11 @@
     double *_t_data = (double*)(((PyArrayObject*)(PyObject*){{_dynamic_t}}.attr("data"))->data);
     _t_data[_new_len - 1] = _clock_t;
 
+
+    // scalar code
+	const int _vectorisation_idx = 1;
+	{{scalar_code|autoindent}}
+
     {% for varname, var in _recorded_variables.items() %}
     {%set c_type = c_data_type(variables[varname].dtype) %}
     {
@@ -21,6 +26,7 @@
         const npy_intp* _record_strides = _record_data->strides;
         for (int _i = 0; _i < _num_indices; _i++)
         {
+            // vector code
             const int _idx = {{_indices}}[_i];
             const int _vectorisation_idx = _idx;
             {{ super() }}

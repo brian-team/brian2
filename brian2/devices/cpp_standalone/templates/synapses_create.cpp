@@ -7,10 +7,15 @@
 	                 N_incoming, N_outgoing }
 	#}
 	int _synapse_idx = {{_dynamic__synaptic_pre}}.size();
+	// scalar code
+	const int _vectorisation_idx = -1;
+	{{scalar_code|autoindent}}
+
 	for(int i=0; i<_num_all_pre; i++)
 	{
 		for(int j=0; j<_num_all_post; j++)
 		{
+		    // vector code
 		    const int _vectorisation_idx = j;
             {# The abstract code consists of the following lines (the first two lines
             are there to properly support subgroups as sources/targets):
@@ -20,9 +25,7 @@
             _n = {user-specified number of synapses}
             _p = {user-specified probability}
             #}
-			{% for line in code_lines %}
-			{{line}}
-			{% endfor %}
+            {{vector_code|autoindent}}
 			// Add to buffer
 			if(_cond)
 			{

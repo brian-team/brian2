@@ -12,6 +12,11 @@
     int *const _synprebuf = new int[1];
     int *const _synpostbuf = new int[1];
     int _curbuf = 0;
+
+    // scalar code
+	const int _vectorisation_idx = 1;
+	{{scalar_code|autoindent}}
+
     for(int i=0; i<_num_all_pre; i++)
     {
         for(int j=0; j<_num_all_post; j++)
@@ -25,6 +30,7 @@
             _n = {user-specified number of synapses}
             _p = {user-specified probability}
             #}
+            // vector code
             {{ super() }}
             // Add to buffer
             if(_cond)

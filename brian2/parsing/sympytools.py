@@ -47,6 +47,7 @@ def str_to_sympy(expr):
     exec 'from sympy import *' in namespace
     # also add the log10 function to the namespace
     namespace['log10'] = log10
+    namespace['_vectorisation_idx'] = sympy.Symbol('_vectorisation_idx')
     rendered = SympyNodeRenderer().render_expr(expr)
 
     try:

@@ -4,11 +4,14 @@
 # conditionally
 {# ITERATE_ALL { _idx } #}
 
+# scalar code
+_vectorisation_idx = 1
+{{scalar_code|autoindent}}
+
+# vector code
 _vectorisation_idx = N
 
-{% for line in code_lines %}
-{{line}}
-{% endfor %}
+{{vector_code|autoindent}}
 _spikes, = _cond.nonzero()
 {{_spikespace}}[-1] = len(_spikes)
 {{_spikespace}}[:len(_spikes)] = _spikes
