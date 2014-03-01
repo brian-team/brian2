@@ -15,7 +15,7 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,
                                    Subexpression)
 from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.core.functions import DEFAULT_FUNCTIONS, FunctionImplementation
+from brian2.core.functions import DEFAULT_FUNCTIONS
 
 from ...codeobject import CodeObject
 from ...templates import Templater
@@ -211,5 +211,6 @@ randn_code = {'support_code': '''
             return number;
         }
         ''', 'hashdefine_code': '#define _randn(_vectorisation_idx) _call_randn(_python_randn)'}
-DEFAULT_FUNCTIONS['randn'].implementations[WeaveCodeObject] = FunctionImplementation('_randn',
-                                                                                     code=randn_code)
+DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(WeaveCodeObject,
+                                                              code=randn_code,
+                                                              name='_randn')

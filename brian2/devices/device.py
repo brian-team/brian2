@@ -7,7 +7,6 @@ import numpy as np
 
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.codegen.targets import codegen_targets
-from brian2.codegen.functions import add_numpy_implementation
 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
 from brian2.core.names import find_name
 from brian2.core.preferences import brian_prefs
@@ -161,6 +160,7 @@ class Device(object):
         iterate_all = template.iterate_all
         generator = codeobj_class.generator_class(variables=variables,
                                                   variable_indices=variable_indices,
+                                                  owner=owner,
                                                   iterate_all=iterate_all,
                                                   codeobj_class=codeobj_class,
                                                   override_conditional_write=override_conditional_write,
@@ -178,7 +178,7 @@ class Device(object):
                 except KeyError as ex:
                     # if we are dealing with numpy, add the default implementation
                     if codeobj_class is NumpyCodeObject:
-                        add_numpy_implementation(value, value.pyfunc)
+                        value.implementations.add_numpy_implementation(value.pyfunc)
                     else:
                         raise NotImplementedError(('Cannot use function '
                                                    '%s: %s') % (varname, ex))

@@ -1,11 +1,12 @@
 '''
 Exact integration for linear equations.
 '''
-from sympy import Wild, Symbol, Float
+import itertools
+
+from sympy import Wild, Symbol
 import sympy as sp
 
 from brian2.parsing.sympytools import sympy_to_str
-from brian2.utils.stringtools import get_identifiers
 from brian2.utils.logger import get_logger
 from brian2.stateupdaters.base import StateUpdateMethod
 
@@ -66,7 +67,7 @@ def get_linear_system(eqs):
     return (diff_eq_names, coefficients, constants)
 
 
-def _non_constant_symbols(symbols, variables):
+def _non_constant_symbols(symbols, variables, t_symbol):
     '''
     Determine whether the given `sympy.Matrix` only refers to constant
     variables. Note that variables that are not present in the `variables`
@@ -79,7 +80,11 @@ def _non_constant_symbols(symbols, variables):
         The symbols to check, e.g. resulting from expression.atoms()
     variables : dict
         The dictionary of `Variable` objects.
-
+    t_symbol : `Symbol`
+        The symbol referring to time ``t`` -- will not be considered as
+        non-constant in this context because it will specifically checked
+        later with `_check_t` (properly taking care of functions that are
+        locally constant over a single time step).
     Returns
     -------
     non_constant : set
@@ -91,7 +96,7 @@ def _non_constant_symbols(symbols, variables):
 
     # Only check true symbols, not numbers
     symbols = set([str(symbol) for symbol in symbols
-                   if isinstance(symbol, Symbol)])
+                   if isinstance(symbol, Symbol) and not symbol == t_symbol])
 
     non_constant = set()
 
@@ -143,8 +148,7 @@ class IndependentStateUpdater(StateUpdateMethod):
         code = []
         for name, expression in diff_eqs:
             rhs = expression.sympy_expr
-            non_constant = _non_constant_symbols(rhs.atoms(),
-                                                 variables) - set([name, 't'])
+            non_constant = _non_constant_symbols(rhs.atoms(), variables, t) - set([name])
             if len(non_constant):
                 raise ValueError(('Equation for %s referred to non-constant '
                                   'variables %s') % (name, str(non_constant)))
@@ -190,6 +194,22 @@ class IndependentStateUpdater(StateUpdateMethod):
         return '\n'.join(code)
 
 
+def _check_for_locally_constant(expression, variables, dt_value, t_symbol):
+
+    for arg in expression.args:
+        if arg is t_symbol:
+            # We found "t" -- if it is not the only argument of a locally
+            # constant function we bail out
+            func_name = str(expression.func)
+            if not (func_name in variables and
+                        variables[func_name].is_locally_constant(dt_value)):
+                raise ValueError(('t is used in a context where we cannot'
+                                  'guarantee that it can be considered '
+                                  'locally constant.'))
+        else:
+            _check_for_locally_constant(arg, variables, dt_value, t_symbol)
+
+
 class LinearStateUpdater(StateUpdateMethod):    
     '''
     A state updater for linear equations. Derives a state updater step from the
@@ -222,13 +242,21 @@ class LinearStateUpdater(StateUpdateMethod):
 
         # Make sure that the matrix M is constant, i.e. it only contains
         # external variables or constant variables
+        t = Symbol('t', real=True, positive=True)
         symbols = set.union(*(el.atoms() for el in matrix))
-        non_constant = _non_constant_symbols(symbols, variables)
+        non_constant = _non_constant_symbols(symbols, variables, t)
         if len(non_constant):
             raise ValueError(('The coefficient matrix for the equations '
                               'contains the symbols %s, which are not '
                               'constant.') % str(non_constant))
-        
+
+        # Check for time dependence
+        dt_var = variables.get('dt', None)
+        if dt_var is not None:
+            # This will raise an error if we meet the symbol "t" anywhere
+            # except as an argument of a locally constant function
+            for entry in itertools.chain(matrix, constants):
+                _check_for_locally_constant(entry, variables, dt_var.get_value(), t)
         symbols = [Symbol(variable, real=True) for variable in varnames]
         solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
         b = sp.ImmutableMatrix([solution[symbol] for symbol in symbols]).transpose()
@@ -254,13 +282,6 @@ class LinearStateUpdater(StateUpdateMethod):
             rhs = update
             for row_idx, varname in enumerate(varnames):
                 rhs = rhs.subs(_S[row_idx, 0], varname)
-            identifiers = get_identifiers(sympy_to_str(rhs))
-            for identifier in identifiers:
-                if identifier in variables:
-                    var = variables[identifier]
-                    if var.scalar and var.constant:
-                        float_val = var.get_value()
-                        rhs = rhs.xreplace({Symbol(identifier, real=True): Float(float_val)})
 
             # Do not overwrite the real state variables yet, the update step
             # of other state variables might still need the original values

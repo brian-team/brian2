@@ -18,10 +18,11 @@ class CodeGenerator(object):
     '''
 
     # Subclasses should override this
-    generator_id = ''
+    class_name = ''
 
-    def __init__(self, variables, variable_indices, iterate_all, codeobj_class,
-                 override_conditional_write=None, allows_scalar_write=False):
+    def __init__(self, variables, variable_indices, owner, iterate_all,
+                 codeobj_class, override_conditional_write=None,
+                 allows_scalar_write=False):
         # We have to do the import here to avoid circular import dependencies.
         from brian2.devices.device import get_device
         self.device = get_device()
@@ -29,6 +30,7 @@ class CodeGenerator(object):
         self.variable_indices = variable_indices
         self.iterate_all = iterate_all
         self.codeobj_class = codeobj_class
+        self.owner = owner
         if override_conditional_write is None:
             self.override_conditional_write = set()
         else:
@@ -77,9 +79,11 @@ class CodeGenerator(object):
         Translate a sequence of `Statement` into the target language, taking
         care to declare variables, etc. if necessary.
    
-        Returns a tuple ``(vector_code, kwds)`` where ``vector_code`` is a list
-        of the lines of code in the inner loop, and ``kwds`` is a
-        dictionary of values that is made available to the template.
+        Returns a tuple ``(scalar_code, vector_code, kwds)`` where
+        ``scalar_code`` is a list of the lines of code executed before the inner
+        loop, ``vector_code`` is a list of the lines of code in the inner
+        loop, and ``kwds`` is a dictionary of values that is made available to
+        the template.
         '''
         raise NotImplementedError
 

@@ -1,3 +1,4 @@
+import types
 import collections
 import inspect
 
@@ -7,11 +8,15 @@ from sympy.core import mod as sympy_mod
 import numpy as np
 from numpy.random import randn, rand
 
-from brian2.units.fundamentalunits import Unit
+from brian2.core.preferences import brian_prefs
+from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
+                                           Quantity, get_dimensions,
+                                           check_units)
+from brian2.units.allunits import second
 from brian2.core.variables import Constant
 import brian2.units.unitsafefunctions as unitsafe
 
-__all__ = ['DEFAULT_FUNCTIONS', 'Function', 'FunctionImplementation']
+__all__ = ['DEFAULT_FUNCTIONS', 'Function', 'make_function']
 
 
 class Function(object):
@@ -70,7 +75,27 @@ class Function(object):
 
         #: Stores implementations for this function in a
         #: `FunctionImplementationContainer`
-        self.implementations = FunctionImplementationContainer()
+        self.implementations = FunctionImplementationContainer(self)
+
+    def is_locally_constant(self, dt):
+        '''
+        Return whether this function (if interpreted as a function of time)
+        should be considered constant over a timestep. This is most importantly
+        used by `TimedArray` so that linear integration can be used. In its
+        standard implementation, always returns ``False``.
+
+        Parameters
+        ----------
+        dt : float
+            The length of a timestep (without units).
+
+        Returns
+        -------
+        constant : bool
+            Whether the results of this function can be considered constant
+            over one timestep of length `dt`.
+        '''
+        return False
 
     def __call__(self, *args):
         return self.pyfunc(*args)
@@ -91,42 +116,179 @@ class FunctionImplementation(object):
     namespace : dict-like, optional
         A dictionary of mappings from names to values that should be added
         to the namespace of a `CodeObject` using the function.
+    dynamic : bool, optional
+        Whether this `code`/`namespace` is dynamic, i.e. generated for each
+        new context it is used in. If set to ``True``, `code` and `namespace`
+        have to be callable with a `Group` as an argument and are expected
+        to return the final `code` and `namespace`. Defaults to ``False``.
     '''
-    def __init__(self, name=None, code=None, namespace=None):
+    def __init__(self, name=None, code=None, namespace=None, dynamic=False):
         self.name = name
-        self.code = code
-        self.namespace = namespace
+        self._code = code
+        self._namespace = namespace
+        self.dynamic = dynamic
+
+    def get_code(self, owner):
+        if self.dynamic:
+            return self._code(owner)
+        else:
+            return self._code
+
+    def get_namespace(self, owner):
+        if self.dynamic:
+            return self._namespace(owner)
+        else:
+            return self._namespace
 
 
-class FunctionImplementationContainer(collections.MutableMapping):
+class FunctionImplementationContainer(collections.Mapping):
     '''
     Helper object to store implementations and give access in a dictionary-like
     fashion, using `CodeGenerator` implementations as a fallback for `CodeObject`
     implementations.
     '''
-    def __init__(self):
+    def __init__(self, function):
+        self._function = function
         self._implementations = dict()
 
     def __getitem__(self, key):
+        '''
+        Find an implementation for this function that can be used by the
+        `CodeObject` given as `key`. Will find implementations registered
+        for `key` itself (or one of its parents), or for the `CodeGenerator`
+        class that `key` uses (or one of its parents). In all cases,
+        implementations registered for the corresponding names qualify as well.
+
+        Parameters
+        ----------
+        key : `CodeObject`
+            The `CodeObject` that will use the `Function`
+
+        Returns
+        -------
+        implementation : `FunctionImplementation`
+            An implementation suitable for `key`.
+        '''
         fallback = getattr(key, 'generator_class', None)
 
         for K in [key, fallback]:        
             if K in self._implementations:
                 return self._implementations[K]
+            else:
+                name = getattr(K, 'class_name', None)
+                if name in self._implementations:
+                    return self._implementations[name]
             if hasattr(K, '__bases__'):
                 for cls in inspect.getmro(K):
                     if cls in self._implementations:
                         return self._implementations[cls]
+                    name = getattr(cls, 'class_name', None)
+                    if name in self._implementations:
+                        return self._implementations[name]
 
         raise KeyError(('No implementation available for {key}. '
                         'Available implementations: {keys}').format(key=key,
                                                                     keys=self._implementations.keys()))
 
-    def __setitem__(self, key, value):
-        self._implementations[key] = value
+    def add_numpy_implementation(self, wrapped_func, discard_units=None):
+        '''
+        Add a numpy implementation to a `Function`.
 
-    def __delitem__(self, key):
-        del self._implementations[key]
+        Parameters
+        ----------
+        function : `Function`
+            The function description for which an implementation should be added.
+        wrapped_func : callable
+            The original function (that will be used for the numpy implementation)
+        discard_units : bool, optional
+            See `make_function`.
+        '''
+        # do the import here to avoid cyclical imports
+        from brian2.codegen.runtime.numpy_rt.numpy_rt import NumpyCodeObject
+
+        if discard_units is None:
+            discard_units = brian_prefs['codegen.runtime.numpy.discard_units']
+
+        # Get the original function inside the check_units decorator
+        if hasattr(wrapped_func,  '_orig_func'):
+            orig_func = wrapped_func._orig_func
+        else:
+            orig_func = wrapped_func
+
+        if discard_units:
+            new_globals = dict(orig_func.func_globals)
+            # strip away units in the function by changing its namespace
+            for key, value in new_globals.iteritems():
+                if isinstance(value, Quantity):
+                    new_globals[key] = np.asarray(value)
+            unitless_func = types.FunctionType(orig_func.func_code, new_globals,
+                                               orig_func.func_name,
+                                               orig_func.func_defaults,
+                                               orig_func.func_closure)
+            self._implementations[NumpyCodeObject] = FunctionImplementation(name=None,
+                                                                            code=unitless_func)
+        else:
+            def wrapper_function(*args):
+                if not len(args) == len(self._function._arg_units):
+                    raise ValueError(('Function %s got %d arguments, '
+                                      'expected %d') % (self._function.name, len(args),
+                                                        len(self._function._arg_units)))
+                new_args = [Quantity.with_dimensions(arg, get_dimensions(arg_unit))
+                            for arg, arg_unit in zip(args, self._function._arg_units)]
+                result = orig_func(*new_args)
+                fail_for_dimension_mismatch(result, self._function._return_unit)
+                return np.asarray(result)
+
+            self._implementations[NumpyCodeObject] = FunctionImplementation(name=None,
+                                                                            code=wrapper_function)
+
+    def add_implementation(self, target, code, namespace=None, name=None):
+        self._implementations[target] = FunctionImplementation(name=name,
+                                                               code=code,
+                                                               namespace=namespace)
+
+    def add_implementations(self, codes, namespaces=None, names=None):
+        '''
+        Add implementations to a `Function`.
+
+        Parameters
+        ----------
+        function : `Function`
+            The function description for which implementations should be added.
+        codes : dict-like
+            See `make_function`
+        namespace : dict-like, optional
+            See `make_function`
+        names : dict-like, optional
+            The name of the function in the given target language, if it should
+            be renamed. Has to use the same keys as the `codes` and `namespaces`
+            dictionary.
+        '''
+        if namespaces is None:
+            namespaces = {}
+        if names is None:
+            names = {}
+
+        for target, code in codes.iteritems():
+            self.add_implementation(target, code, namespaces.get(target, None),
+                                    names.get(target, None))
+
+    def add_dynamic_implementation(self, target, code, namespace=None, name=None):
+        '''
+        Adds an "dynamic implementation" for this function. `code` and `namespace`
+        arguments are expected to be callables that will be called in
+        `Network.before_run` with the owner of the `CodeObject` as an argument.
+        This allows to generate code that depends on details of the context it
+        is run in, e.g. the ``dt`` of a clock.
+        '''
+        if not callable(code):
+            raise TypeError('code argument has to be a callable, is type %s instead' % type(code))
+        if namespace is not None and not callable(namespace):
+            raise TypeError('namespace argument has to be a callable, is type %s instead' % type(code))
+        self._implementations[target] = FunctionImplementation(name=name,
+                                                               code=code,
+                                                               namespace=namespace,
+                                                               dynamic=True)
 
     def __len__(self):
         return len(self._implementations)
@@ -134,6 +296,80 @@ class FunctionImplementationContainer(collections.MutableMapping):
     def __iter__(self):
         return iter(self._implementations)
 
+
+def make_function(codes=None, namespaces=None, discard_units=None):
+    '''
+    A simple decorator to extend user-written Python functions to work with code
+    generation in other languages.
+
+    Parameters
+    ----------
+    codes : dict-like, optional
+        A mapping from `CodeGenerator` or `CodeObject` class objects, or their
+        corresponding names (e.g. `'numpy'` or `'weave'`) to codes for the
+        target language. What kind of code the target language expectes is
+        language-specific, e.g. C++ code has to be provided as a dictionary
+        of code blocks.
+    namespaces : dict-like, optional
+        If provided, has to use the same keys as the `codes` argument and map
+        it to a namespace dictionary (i.e. a mapping of names to values) that
+        should be added to a `CodeObject` namespace when using this function.
+    discard_units: bool, optional
+        Numpy functions can internally make use of the unit system. However,
+        during a simulation run, state variables are passed around as unitless
+        values for efficiency. If `discard_units` is set to ``False``, input
+        arguments will have units added to them so that the function can still
+        use units internally (the units will be stripped away from the return
+        value as well). Alternatively, if `discard_units` is set to ``True``,
+        the function will receive unitless values as its input. The namespace
+        of the function will be altered to make references to units (e.g.
+        ``ms``) refer to the corresponding floating point values so that no
+        unit mismatch errors are raised. Note that this system cannot work in
+        all cases, e.g. it does not work with functions that internally imports
+        values (e.g. does ``from brian2 import ms``) or access values with
+        units indirectly (e.g. uses ``brian2.ms`` instead of ``ms``). If no
+        value is given, defaults to the preference setting
+        `codegen.runtime.numpy.discard_units`.
+
+    Notes
+    -----
+    While it is in principle possible to provide a numpy implementation
+    as an argument for this decorator, this is normally not necessary -- the
+    numpy implementation should be provided in the decorated function.
+
+    Examples
+    --------
+    Sample usage::
+
+        @make_function(codes={
+            'cpp':{
+                'support_code':"""
+                    #include<math.h>
+                    inline double usersin(double x)
+                    {
+                        return sin(x);
+                    }
+                    """,
+                'hashdefine_code':'',
+                },
+            })
+        def usersin(x):
+            return sin(x)
+    '''
+    if codes is None:
+        codes = {}
+
+    def do_make_user_function(func):
+        function = Function(func)
+
+        if discard_units:  # Add a numpy implementation that discards units
+            function.implementations.add_numpy_implementation(wrapped_func=func,
+                                                              discard_units=discard_units)
+
+        function.implementations.add_implementations(codes=codes,
+                                                     namespaces=namespaces)
+        return function
+    return do_make_user_function
 
 class SymbolicConstant(Constant):
     '''

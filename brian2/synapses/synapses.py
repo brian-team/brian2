@@ -446,7 +446,9 @@ class Synapses(Group):
 
         self.equations = Equations(continuous)
 
-        # Setup the namespace
+        if namespace is None:
+            namespace = {}
+        #: The group-specific namespace
         self.namespace = namespace
 
         # Setup variables

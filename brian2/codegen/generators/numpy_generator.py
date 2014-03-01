@@ -4,8 +4,7 @@ import numpy as np
 
 from brian2.utils.stringtools import word_substitute
 from brian2.parsing.rendering import NumpyNodeRenderer
-from brian2.core.functions import (DEFAULT_FUNCTIONS, Function,
-                                   FunctionImplementation)
+from brian2.core.functions import DEFAULT_FUNCTIONS, Function
 from brian2.core.variables import ArrayVariable
 
 from .base import CodeGenerator
@@ -20,7 +19,7 @@ class NumpyCodeGenerator(CodeGenerator):
     Essentially Python but vectorised.
     '''
 
-    generator_id = 'numpy'
+    class_name = 'numpy'
 
     def translate_expression(self, expr):
         for varname, var in self.variables.iteritems():
@@ -121,7 +120,7 @@ class NumpyCodeGenerator(CodeGenerator):
         # would otherwise return values with units
         for varname, var in variables.iteritems():
             if isinstance(var, Function):
-                variables[varname] = var.implementations[self.codeobj_class].code
+                variables[varname] = var.implementations[self.codeobj_class].get_code(self.owner)
 
         return lines
 
@@ -146,7 +145,8 @@ for func_name, func in [('sin', np.sin), ('cos', np.cos), ('tan', np.tan),
                         ('sqrt', np.sqrt), ('arcsin', np.arcsin),
                         ('arccos', np.arccos), ('arctan', np.arctan),
                         ('abs', np.abs), ('mod', np.mod)]:
-    DEFAULT_FUNCTIONS[func_name].implementations[NumpyCodeGenerator] = FunctionImplementation(code=func)
+    DEFAULT_FUNCTIONS[func_name].implementations.add_implementation(NumpyCodeGenerator,
+                                                                    code=func)
 
 # Functions that are implemented in a somewhat special way
 def randn_func(vectorisation_idx):
@@ -164,13 +164,19 @@ def rand_func(vectorisation_idx):
         N = len(vectorisation_idx)
 
     return np.random.rand(N)
-DEFAULT_FUNCTIONS['randn'].implementations[NumpyCodeGenerator] = FunctionImplementation(code=randn_func)
-DEFAULT_FUNCTIONS['rand'].implementations[NumpyCodeGenerator] = FunctionImplementation(code=rand_func)
+DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(NumpyCodeGenerator,
+                                                              code=randn_func)
+DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(NumpyCodeGenerator,
+                                                             code=rand_func)
 clip_func = lambda array, a_min, a_max: np.clip(array, a_min, a_max)
-DEFAULT_FUNCTIONS['clip'].implementations[NumpyCodeGenerator] = FunctionImplementation(code=clip_func)
+DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(NumpyCodeGenerator,
+                                                             code=clip_func)
 int_func = lambda value: np.int_(value)
-DEFAULT_FUNCTIONS['int'].implementations[NumpyCodeGenerator] = FunctionImplementation(code=int_func)
+DEFAULT_FUNCTIONS['int'].implementations.add_implementation(NumpyCodeGenerator,
+                                                            code=int_func)
 ceil_func = lambda value: np.int_(np.ceil(value))
-DEFAULT_FUNCTIONS['ceil'].implementations[NumpyCodeGenerator] = FunctionImplementation(code=ceil_func)
+DEFAULT_FUNCTIONS['ceil'].implementations.add_implementation(NumpyCodeGenerator,
+                                                            code=ceil_func)
 floor_func = lambda value: np.int_(np.floor(value))
-DEFAULT_FUNCTIONS['floor'].implementations[NumpyCodeGenerator] = FunctionImplementation(code=floor_func)
+DEFAULT_FUNCTIONS['floor'].implementations.add_implementation(NumpyCodeGenerator,
+                                                            code=floor_func)

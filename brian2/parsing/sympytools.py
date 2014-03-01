@@ -118,3 +118,42 @@ def sympy_to_str(sympy_expr):
     sympy_expr = sympy_expr.xreplace(replacements)
     
     return PRINTER.doprint(sympy_expr)
+
+
+def replace_constants(sympy_expr, variables=None):
+    '''
+    Replace constant values in a sympy expression with their numerical value.
+
+    Parameters
+    ----------
+    sympy_expr : `sympy.Expr`
+        The expression
+    variables : dict-like, optional
+        Dictionary of `Variable` objects
+
+    Returns
+    -------
+    new_expr : `sympy.Expr`
+        Expressions with all constants replaced
+    '''
+    if variables is None:
+        return sympy_expr
+
+    symbols = set([symbol for symbol in sympy_expr.atoms()
+                   if isinstance(symbol, sympy.Symbol)])
+    for symbol in symbols:
+        symbol_str = str(symbol)
+        if symbol_str in variables:
+            var = variables[symbol_str]
+            if (getattr(var, 'scalar', False) and
+                    getattr(var, 'constant', False)):
+                # TODO: We should handle variables of other data types better
+                float_val = var.get_value()
+                sympy_expr = sympy_expr.xreplace({symbol: sympy.Float(float_val)})
+    try:
+        # unfortunately, simplifying does sometimes not work
+        sympy_expr = sympy_expr.simplify()
+    except AttributeError:
+        pass
+
+    return sympy_expr

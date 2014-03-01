@@ -14,7 +14,6 @@ from brian2.units.allunits import (metre, meter, second, amp, kelvin, mole,
                                    celsius, lumen, lux, becquerel, gray,
                                    sievert, katal, kgram, kgramme)
 
-from brian2.codegen.translation import analyse_identifiers
 from brian2.parsing.expressions import parse_expression_unit
 from brian2.parsing.statements import parse_statement
 from brian2.core.variables import Variable
@@ -139,6 +138,8 @@ def check_units_statements(code, variables):
     DimensionMismatchError
         If an unit mismatch occurs during the evaluation.
     '''
+    # Avoid a circular import
+    from brian2.codegen.translation import analyse_identifiers
     known = set(variables.keys())
     newly_defined, _, unknown = analyse_identifiers(code, known)
     
