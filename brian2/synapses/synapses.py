@@ -427,17 +427,26 @@ class Synapses(Group):
                            SUBEXPRESSION: ['summed', 'scalar'],
                            PARAMETER: ['constant', 'scalar']})
 
-        # Separate the equations into event-driven and continuously updated
-        # equations
+        # Add the lastupdate variable, needed for event-driven updates
+        if 'lastupdate' in model._equations:
+            raise SyntaxError('lastupdate is a reserved name.')
+        model._equations['lastupdate'] = SingleEquation(PARAMETER,
+                                                        'lastupdate',
+                                                        second)
+        self._create_variables(model)
+
+        # Separate the equations into event-driven equations,
+        # continuously updated equations and summed variable updates
         event_driven = []
         continuous = []
+        summed_updates = []
         for single_equation in model.itervalues():
             if 'event-driven' in single_equation.flags:
                 event_driven.append(single_equation)
+            elif 'summed' in single_equation.flags:
+                summed_updates.append(single_equation)
             else:
                 continuous.append(single_equation)
-        # Add the lastupdate variable, used by event-driven equations
-        continuous.append(SingleEquation(PARAMETER, 'lastupdate', second))
 
         if len(event_driven):
             self.event_driven = Equations(event_driven)
@@ -450,9 +459,6 @@ class Synapses(Group):
             namespace = {}
         #: The group-specific namespace
         self.namespace = namespace
-
-        # Setup variables
-        self._create_variables()
 
         #: Set of `Variable` objects that should be resized when the
         #: number of synapses changes
@@ -507,8 +513,12 @@ class Synapses(Group):
             self.variables.add_reference('delay', self.pre.variables['delay'])
 
         #: Performs numerical integration step
-        self.state_updater = StateUpdater(self, method)        
-        self.contained_objects.append(self.state_updater)
+        self.state_updater = None
+
+        # We only need a state update if we have differential equations
+        if len(self.equations.diff_eq_names):
+            self.state_updater = StateUpdater(self, method)
+            self.contained_objects.append(self.state_updater)
 
         #: "Summed variable" mechanism -- sum over all synapses of a
         #: pre-/postsynaptic target
@@ -518,44 +528,43 @@ class Synapses(Group):
         # connected a NeuronGroup to itself since then all variables are
         # accessible as var_pre and var_post.
         summed_targets = set()
-        for single_equation in self.equations.itervalues():
-            if 'summed' in single_equation.flags:
-                varname = single_equation.varname
-                if not (varname.endswith('_pre') or varname.endswith('_post')):
-                    raise ValueError(('The summed variable "%s" does not end '
-                                      'in "_pre" or "_post".') % varname)
-                if not varname in self.variables:
-                    raise ValueError(('The summed variable "%s" does not refer'
-                                      'do any known variable in the '
-                                      'target group.') % varname)
-                if varname.endswith('_pre'):
-                    summed_target = self.source
-                    orig_varname = varname[:-4]
-                else:
-                    summed_target = self.target
-                    orig_varname = varname[:-5]
+        for single_equation in summed_updates:
+            varname = single_equation.varname
+            if not (varname.endswith('_pre') or varname.endswith('_post')):
+                raise ValueError(('The summed variable "%s" does not end '
+                                  'in "_pre" or "_post".') % varname)
+            if not varname in self.variables:
+                raise ValueError(('The summed variable "%s" does not refer'
+                                  'do any known variable in the '
+                                  'target group.') % varname)
+            if varname.endswith('_pre'):
+                summed_target = self.source
+                orig_varname = varname[:-4]
+            else:
+                summed_target = self.target
+                orig_varname = varname[:-5]
 
-                target_eq = getattr(summed_target, 'equations', {}).get(orig_varname, None)
-                if target_eq is None or target_eq.type != PARAMETER:
-                    raise ValueError(('The summed variable "%s" needs a '
-                                      'corresponding parameter "%s" in the '
-                                      'target group.') % (varname,
-                                                          orig_varname))
+            target_eq = getattr(summed_target, 'equations', {}).get(orig_varname, None)
+            if target_eq is None or target_eq.type != PARAMETER:
+                raise ValueError(('The summed variable "%s" needs a '
+                                  'corresponding parameter "%s" in the '
+                                  'target group.') % (varname,
+                                                      orig_varname))
 
-                fail_for_dimension_mismatch(self.variables['_summed_'+varname].unit,
-                                            self.variables[varname].unit,
-                                            ('Summed variables need to have '
-                                             'the same units in Synapses '
-                                             'and the target group'))
-                if self.variables[varname] in summed_targets:
-                    raise ValueError(('The target variable "%s" is already '
-                                      'updated by another summed '
-                                      'variable') % orig_varname)
-                summed_targets.add(self.variables[varname])
-                updater = SummedVariableUpdater(single_equation.expr,
-                                                varname, self, summed_target)
-                self.summed_updaters[varname] = updater
-                self.contained_objects.append(updater)
+            fail_for_dimension_mismatch(self.variables['_summed_'+varname].unit,
+                                        self.variables[varname].unit,
+                                        ('Summed variables need to have '
+                                         'the same units in Synapses '
+                                         'and the target group'))
+            if self.variables[varname] in summed_targets:
+                raise ValueError(('The target variable "%s" is already '
+                                  'updated by another summed '
+                                  'variable') % orig_varname)
+            summed_targets.add(self.variables[varname])
+            updater = SummedVariableUpdater(single_equation.expr,
+                                            varname, self, summed_target)
+            self.summed_updaters[varname] = updater
+            self.contained_objects.append(updater)
 
         # Do an initial connect, if requested
         if not isinstance(connect, (bool, basestring)):
@@ -626,7 +635,7 @@ class Synapses(Group):
         self.contained_objects.append(updater)
         return objname
 
-    def _create_variables(self, dtype=None):
+    def _create_variables(self, equations, dtype=None):
         '''
         Create the variables dictionary for this `Synapses`, containing
         entries for the equation variables and some standard entries.
@@ -679,9 +688,7 @@ class Synapses(Group):
         self.variables.add_attribute_variable('N', Unit(1), self, '_N',
                                               constant=True)
 
-        for eq in itertools.chain(self.equations.itervalues(),
-                                  self.event_driven.itervalues()
-                                  if self.event_driven is not None else []):
+        for eq in equations.itervalues():
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = 'constant' in eq.flags
                 scalar = 'scalar' in eq.flags
@@ -719,7 +726,7 @@ class Synapses(Group):
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
         # Stochastic variables
-        for xi in self.equations.stochastic_variables:
+        for xi in equations.stochastic_variables:
             self.variables.add_auxiliary_variable(xi, unit=second**-0.5)
 
         # Add all the pre and post variables with _pre and _post suffixes
@@ -736,7 +743,7 @@ class Synapses(Group):
             self.variables.add_reference(name, var, index=index)
 
         # Check scalar subexpressions
-        for eq in self.equations.itervalues():
+        for eq in equations.itervalues():
             if eq.type == SUBEXPRESSION and 'scalar' in eq.flags:
                 var = self.variables[eq.varname]
                 for identifier in var.identifiers:

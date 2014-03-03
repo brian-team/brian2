@@ -215,9 +215,16 @@ class StateMonitor(Group, CodeRunner):
                 for subexpr_varname in var.identifiers:
                     if subexpr_varname in source.variables:
                         source_var = source.variables[subexpr_varname]
+                        index = source.variables.indices[subexpr_varname]
+                        if index != '_idx' and index not in variables:
+                            self.variables.add_reference(index,
+                                                         source.variables[index])
                         if not source_var in self.variables.values():
                             source_index = source.variables.indices[subexpr_varname]
-                            self.variables.add_reference(subexpr_varname,
+                            # `translate_subexpression` will later replace
+                            # the name used in the original subexpression with
+                            # _source_varname
+                            self.variables.add_reference('_source_'+subexpr_varname,
                                                          source_var,
                                                          index=source_index)
             self.variables.add_dynamic_array('_recorded_' + varname,
