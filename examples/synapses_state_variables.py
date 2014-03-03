@@ -7,7 +7,6 @@ from brian2 import *
 #brian_prefs.codegen.target = 'weave'
 
 G = NeuronGroup(100, 'v:volt')
-N = len(G)
 G.v = '(sin(2*pi*i/N) - 70 + 0.25*randn()) * mV'
 S = Synapses(G, G, 'w:volt', pre='v+=w')
 S.connect('True')
