@@ -115,8 +115,9 @@ def sympy_to_str(sympy_expr):
                              name, c in DEFAULT_CONSTANTS.iteritems()
                              if str(c.sympy_obj) != name))
 
-    sympy_expr = sympy_expr.xreplace(replacements)
-    
+    for sympy_symbol, our_symbol in replacements.iteritems():
+        sympy_expr = sympy_expr.replace(sympy_symbol, our_symbol)
+
     return PRINTER.doprint(sympy_expr)
 
 
