@@ -11,12 +11,12 @@
 	const int _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
 
-	for(int i=0; i<_num_all_pre; i++)
+	for(int _i=0; _i<_num_all_pre; _i++)
 	{
-		for(int j=0; j<_num_all_post; j++)
+		for(int _j=0; _j<_num_all_post; _j++)
 		{
 		    // vector code
-		    const int _vectorisation_idx = j;
+		    const int _vectorisation_idx = _j;
             {# The abstract code consists of the following lines (the first two lines
             are there to properly support subgroups as sources/targets):
              _pre_idx = _all_pre

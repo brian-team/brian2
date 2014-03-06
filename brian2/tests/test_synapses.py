@@ -380,6 +380,21 @@ def test_indices():
     assert_equal(S.indices['j >=5'], S.indices[:, 5:])
 
 
+def test_subexpression_references():
+    '''
+    Assure that subexpressions in targeted groups are handled correctly.
+    '''
+    G = NeuronGroup(10, '''v : 1
+                           v2 = 2*v : 1''')
+    G.v = np.arange(10)
+    S = Synapses(G, G, '''w : 1
+                          u = v2_post + 1 : 1
+                          v = v2_pre + 1 : 1''')
+    S.connect('i==(10-1-j)')
+    assert_equal(S.u[:], np.arange(10)[::-1]*2+1)
+    assert_equal(S.v[:], np.arange(10)*2+1)
+
+
 def test_delay_specification():
     # By default delays are state variables (i.e. arrays), but if they are
     # specified in the initializer, they are scalars.
@@ -652,6 +667,7 @@ if __name__ == '__main__':
     test_state_variable_assignment()
     test_state_variable_indexing()
     test_indices()
+    test_subexpression_references()
     test_delay_specification()
     test_transmission()
     test_changed_dt_spikes_in_queue()

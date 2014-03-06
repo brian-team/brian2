@@ -921,8 +921,8 @@ class Synapses(Group):
             # synapses but to all the possible sources/targets
             variables = Variables(None)
             # Will be set in the template
-            variables.add_auxiliary_variable('i', unit=Unit(1))
-            variables.add_auxiliary_variable('j', unit=Unit(1))
+            variables.add_auxiliary_variable('_i', unit=Unit(1))
+            variables.add_auxiliary_variable('_j', unit=Unit(1))
             # Make sure that variables have the correct type in the code
             variables.add_auxiliary_variable('_pre_idx', unit=Unit(1), dtype=np.int32)
             variables.add_auxiliary_variable('_post_idx', unit=Unit(1), dtype=np.int32)
@@ -946,8 +946,8 @@ class Synapses(Group):
                     variable_indices[varname] = '_all_pre'
                 elif self.variables.indices[varname] == '_postsynaptic_idx':
                     variable_indices[varname] = '_all_post'
-            variable_indices['_all_pre'] = 'i'
-            variable_indices['_all_post'] = 'j'
+            variable_indices['_all_pre'] = '_i'
+            variable_indices['_all_post'] = '_j'
             codeobj = create_runner_codeobj(self,
                                             abstract_code,
                                             'synapses_create',

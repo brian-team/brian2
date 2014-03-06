@@ -9,7 +9,7 @@ import sympy
 import numpy as np
 
 from brian2.core.base import weakproxy_with_fallback
-from brian2.utils.stringtools import get_identifiers
+from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.units.fundamentalunits import (Quantity, Unit,
                                            fail_for_dimension_mismatch,
                                            have_same_dimensions)
@@ -1194,6 +1194,35 @@ class Variables(collections.Mapping):
                                 scalar=scalar, is_bool=is_bool)
         self._add_variable(name, var)
 
+
+    def add_referred_subexpression(self, name, subexpr, index):
+        identifiers = subexpr.identifiers
+        substitutions = {}
+        for identifier in identifiers:
+            if not identifier in subexpr.owner.variables:
+                # external variable --> nothing to do
+                continue
+            subexpr_var = subexpr.owner.variables[identifier]
+            if hasattr(subexpr_var, 'owner'):
+                new_name = '_%s_%s_%s' % (name,
+                                          subexpr.owner.name,
+                                          identifier)
+            else:
+                new_name = '_%s_%s' % (name, identifier)
+            substitutions[identifier] = new_name
+            self.indices[new_name] = index
+            if isinstance(subexpr_var, Subexpression):
+                self.add_referred_subexpression(new_name, subexpr_var, index)
+            else:
+                self.add_reference(new_name, subexpr_var, index)
+        new_expr = word_substitute(subexpr.expr, substitutions)
+        new_subexpr = Subexpression(name, subexpr.unit, self.owner, new_expr,
+                                    device=subexpr.device,
+                                    dtype=subexpr.dtype,
+                                    is_bool=subexpr.is_bool,
+                                    scalar=subexpr.scalar)
+        self._variables[name] = new_subexpr
+
     def add_reference(self, name, var, index=None):
         '''
         Add a reference to a variable defined somewhere else (possibly under
@@ -1215,7 +1244,10 @@ class Variables(collections.Mapping):
             index = self.default_index
         # We don't overwrite existing names with references
         if not name in self._variables:
-            self._variables[name] = var
+            if isinstance(var, Subexpression):
+                self.add_referred_subexpression(name, var, index)
+            else:
+                self._variables[name] = var
             self.indices[name] = index
 
     def add_references(self, variables, index=None):

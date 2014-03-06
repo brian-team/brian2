@@ -22,7 +22,7 @@ void _run_{{codeobj_name}}()
 	// we do advance at the beginning rather than at the end because it saves us making
 	// a copy of the current spiking synapses
 	{{owner.name}}.queue->advance();
-	{{owner.name}}.queue->push({{_spikespace}}, {{_spikespace}}[{{owner.source|length}}]);
+	{{owner.name}}.queue->push({{_spikespace}}, {{_spikespace}}[_num_spikespace-1]);
 	{{owner.name}}.queue->peek();
 }
 {% endmacro %}
