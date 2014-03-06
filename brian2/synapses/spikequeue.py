@@ -120,16 +120,14 @@ class SpikeQueue(object):
         self._delays = delays
 
         # Prepare the data structure used in propagation
-        self._neurons_to_synapses =  []
-
-        max_events = 0
-        synapse_sources = synapse_sources[:]
-        for source in xrange(self._source_end - self._source_start):
-            indices = np.flatnonzero(synapse_sources == (source +
-                                                         self._source_start))
-            size = len(indices)
-            self._neurons_to_synapses.append(indices)
-            max_events = max(max_events, size)
+        synapse_sources = synapse_sources[:]        
+        nsource = self._source_end - self._source_start
+        ss = np.ravel(synapse_sources)
+        I = np.argsort(ss)
+        ss_sorted = ss[I]
+        splitinds = np.searchsorted(ss_sorted, np.arange(self._source_start, self. _source_end+1))
+        self._neurons_to_synapses = [I[splitinds[j]:splitinds[j+1]] for j in xrange(len(splitinds)-1)]
+        max_events = max(map(len, self._neurons_to_synapses))
 
         n_steps = max_delays + 1
         
