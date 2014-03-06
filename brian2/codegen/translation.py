@@ -110,7 +110,7 @@ def get_identifiers_recursively(expr, variables):
     identifiers = get_identifiers(expr)
     for name in set(identifiers):
         if name in variables and isinstance(variables[name], Subexpression):
-            s_identifiers = get_identifiers_recursively(translate_subexpression(variables[name], variables).expr,
+            s_identifiers = get_identifiers_recursively(variables[name].expr,
                                                         variables)
             identifiers |= s_identifiers
     return identifiers
@@ -240,8 +240,7 @@ def make_statements(code, variables, dtype):
                 continue
             # if subexpression, and invalid
             if not valid.get(var, True): # all non-subexpressions are valid
-                subexpression = translate_subexpression(subexpressions[var],
-                                                        variables)
+                subexpression = subexpressions[var]
                 # if already defined/declared
                 if subdefined[var]:
                     op = '='
@@ -289,38 +288,3 @@ def make_statements(code, variables, dtype):
 
     return statements
 
-
-def translate_subexpression(subexpr, variables):
-    substitutions = {}
-    for name in get_identifiers(subexpr.expr):
-        if name not in subexpr.owner.variables:
-            # Seems to be a name referring to an external variable,
-            # nothing to do
-            continue
-        subexpr_var = subexpr.owner.variables[name]
-        if name in variables and variables[name] is subexpr_var:
-            # Variable is available under the same name, nothing to do
-            continue
-
-        # The variable is not available under the same name, but maybe
-        # under a different name (e.g. x_post instead of x)
-        found_variable = False
-        for varname, variable in variables.iteritems():
-            if variable is subexpr_var:
-                # We found it
-                substitutions[name] = varname
-                found_variable = True
-                break
-        if not found_variable:
-            raise KeyError(('Variable %s, referred to by the subexpression '
-                            '%s, is not available in this '
-                            'context.') % (name, subexpr.name))
-    new_expr = word_substitute(subexpr.expr, substitutions)
-
-    return Subexpression(name=subexpr.name,
-                         unit=subexpr.unit,
-                         expr=new_expr,
-                         owner=subexpr.owner,
-                         dtype=subexpr.dtype,
-                         device=subexpr.device,
-                         is_bool=subexpr.is_bool)

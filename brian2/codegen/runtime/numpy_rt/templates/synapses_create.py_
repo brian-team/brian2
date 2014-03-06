@@ -17,9 +17,9 @@ _cur_num_synapses = _old_num_synapses
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}
 
-for i in range(len({{_all_pre}})):
-    j = np.arange(len({{_all_post}}))
-    _vectorisation_idx = j
+for _i in range(len({{_all_pre}})):
+    _j = np.arange(len({{_all_post}}))
+    _vectorisation_idx = _j
     {# The abstract code consists of the following lines (the first two lines
     are there to properly support subgroups as sources/targets):
      _pre_idx = _all_pre
@@ -37,7 +37,7 @@ for i in range(len({{_all_pre}})):
         _cond_nonzero, = np.logical_and(_cond,
                                        np.random.rand(len(_vectorisation_idx)) < _p).nonzero()
     elif _cond is True or _cond is numpy_True:
-        _cond_nonzero = j
+        _cond_nonzero = _j
     else:
         _cond_nonzero, = _cond.nonzero()
 
