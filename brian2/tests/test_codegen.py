@@ -49,23 +49,6 @@ def test_get_identifiers_recursively():
     assert identifiers == set(['x', '_x', 'y', 'z', 'sub1', 'sub2'])
 
 
-# def test_translate_subexpression():
-#     var1, var2 = object(), object()
-#     G1 = FakeGroup(variables={'var1': var1, 'var2': var2})
-#     G2 = FakeGroup(variables={'var1': var1, 'var2_post': var2})
-#     G3 = FakeGroup(variables={'var1': var1})
-#     sub = Subexpression(name='sub', unit=Unit(1), dtype=None, device=None,
-#                         expr='var1 + var2', owner=G1)
-#     # Interpreted in the context of G1, the variable names should stay the
-#     # same
-#     assert translate_subexpression(sub, G1.variables).expr == 'var1 + var2'
-#     # Interpreted in the context of G2, var2 should be translated
-#     assert translate_subexpression(sub, G2.variables).expr == 'var1 + var2_post'
-#     # Trying to interpret the subexpression in the context of G3 should raise
-#     # an error
-#     assert_raises(KeyError, lambda: translate_subexpression(sub, G3.variables))
-
-
 def test_nested_subexpressions():
     '''
     This test checks that code translation works with nested subexpressions.
@@ -94,5 +77,4 @@ def test_nested_subexpressions():
 if __name__ == '__main__':
     test_analyse_identifiers()
     test_get_identifiers_recursively()
-    test_translate_subexpression()
     test_nested_subexpressions()
