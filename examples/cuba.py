@@ -1,7 +1,7 @@
 from brian2 import *
 import time
 
-BrianLogger.log_level_debug()
+# BrianLogger.log_level_debug()
 
 taum = 20 * ms
 taue = 5 * ms
