@@ -50,7 +50,7 @@ def namespace_to_variable(name, group):
 
 # TODO: add some tests with e.g. 1.0%2.0 etc. once this is implemented in C++
 TEST_EXPRESSIONS = '''
-    a+b+c*d+e-f+g-(b+d)-(a-c)
+    a+b+c*d-f+g-(b+d)-(a-c)
     a**b**2
     a**(b**2)
     (a**b)**2
