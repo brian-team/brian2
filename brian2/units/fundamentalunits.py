@@ -134,9 +134,14 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
         # zero is treated as the neutral element, e.g. in the Python sum
         # builtin) or comparisons like 3 * mV == 0 to return False instead of
         # failing # with a DimensionMismatchError. Note that 3*mV == 0*second
-        # or 3*mV == 0*mV/mV is not allowed, though.
+        # is not allowed, though.
         if ((not isinstance(obj1, Quantity) and np.all(obj1 == 0)) or
             (not isinstance(obj2, Quantity) and np.all(obj2 == 0))):
+            return
+
+        # We do another check here, this should allow Brian1 units to pass as
+        # having the same dimensions as a Brian2 unit
+        if dim1 == dim2:
             return
 
         if error_message is None:
