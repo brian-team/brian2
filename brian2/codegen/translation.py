@@ -151,7 +151,7 @@ def make_statements(code, variables, dtype):
                 # In the following we assume that all unknown identifiers are
                 # scalar constants -- this should cover numerical literals and
                 # e.g. "True" or "inf".
-                is_scalar = all((name in scalars) or not (name in variables)
+                is_scalar = all((name in scalars) or not (name in defined)
                                 for name in identifiers)
                 if is_scalar:
                     scalars.add(var)
