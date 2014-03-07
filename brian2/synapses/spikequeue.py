@@ -121,9 +121,9 @@ class SpikeQueue(object):
 
         # Prepare the data structure used in propagation
         synapse_sources = synapse_sources[:]        
-        nsource = self._source_end - self._source_start
         ss = np.ravel(synapse_sources)
-        I = np.argsort(ss)
+        # mergesort to retain relative order, keeps the output lists in sorted order
+        I = np.argsort(ss, kind='mergesort')
         ss_sorted = ss[I]
         splitinds = np.searchsorted(ss_sorted, np.arange(self._source_start, self. _source_end+1))
         self._neurons_to_synapses = [I[splitinds[j]:splitinds[j+1]] for j in xrange(len(splitinds)-1)]
