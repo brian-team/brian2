@@ -331,7 +331,7 @@ class Group(BrianObject):
             if not (isinstance(item, slice) and item == slice(None)):
                 raise IndexError(('Illegal index for variable %s, it is a '
                                   'scalar variable.') % variable_name)
-            indices = np.array([0])
+            indices = np.array(0)
         else:
             indices = self.calc_indices(item)
 
@@ -344,6 +344,11 @@ class Group(BrianObject):
                                              dtype=variable.dtype,
                                              scalar=variable.scalar,
                                              is_bool=variable.is_bool)
+            if indices.shape ==  ():
+                single_index = True
+                indices = np.array([indices])
+            else:
+                single_index = False
             variables.add_array('_group_idx', unit=Unit(1),
                                 size=len(indices), dtype=np.int32)
             variables['_group_idx'].set_value(indices)
@@ -354,7 +359,11 @@ class Group(BrianObject):
                                             'group_variable_get',
                                             additional_variables=variables
             )
-            return codeobj()
+            result = codeobj()
+            if single_index and not variable.scalar:
+                return result[0]
+            else:
+                return result
         else:
             if variable.scalar:
                 return variable.get_value()[0]
@@ -553,8 +562,6 @@ class Group(BrianObject):
                     raise TypeError(('Indexing is only supported for integer '
                                      'and boolean arrays, not for type '
                                      '%s' % index_array.dtype))
-                if index_array.shape == ():
-                    index_array = np.array([index_array])
                 return index_array
 
     def resolve(self, identifier, additional_variables=None,
