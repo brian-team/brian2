@@ -33,7 +33,7 @@ the imports is therefore::
     import brian2.numpy_ as np
     import brian2.only as br2
 
-Note that it is save to use e.g. ``np.sin`` and ``numpy.sin`` after a
+Note that it is safe to use e.g. ``np.sin`` and ``numpy.sin`` after a
 ``from brian2 import *``.
 
 .. _matplotlib: http://matplotlib.org/
