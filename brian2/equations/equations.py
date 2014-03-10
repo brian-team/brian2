@@ -169,7 +169,7 @@ def check_identifier_units(identifier):
     '''
     if identifier in DEFAULT_UNITS:
         raise ValueError('"%s" is the name of a unit, cannot be used as a '
-                         'variable name.')
+                         'variable name.' % identifier)
 
 def check_identifier_functions(identifier):
     '''
@@ -177,7 +177,7 @@ def check_identifier_functions(identifier):
     '''
     if identifier in DEFAULT_FUNCTIONS:
         raise ValueError('"%s" is the name of a function, cannot be used as a '
-                         'variable name.')
+                         'variable name.' % identifier)
 
 def check_identifier_constants(identifier):
     '''
@@ -185,7 +185,7 @@ def check_identifier_constants(identifier):
     '''
     if identifier in DEFAULT_CONSTANTS:
         raise ValueError('"%s" is the name of a constant, cannot be used as a '
-                         'variable name.')
+                         'variable name.' % identifier)
 
 
 def parse_string_equations(eqns):
