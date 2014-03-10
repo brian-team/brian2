@@ -52,7 +52,7 @@ and postsynaptic groups in the case of synapses) or correct flags (because they
 differ between `NeuronGroup` and `Synapses`, for example).
 
 Variables and namespaces
--------------------------
+------------------------
 Objects referring to variables and functions, in particular `NeuronGroup`
 and `Synapses` provide the context for resolving names in code strings. This
 is done via the `Group.resolve` method that returns a `Variable` or `Function`
