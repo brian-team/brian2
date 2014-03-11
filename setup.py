@@ -116,7 +116,7 @@ Documentation for Brian2 can be found at http://brian2.readthedocs.org
 '''
 
 setup(name='Brian2',
-      version='2.0a7',
+      version='2.0a8',
       packages=find_packages(),
       package_data={# include template files
                     'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
