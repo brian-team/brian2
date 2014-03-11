@@ -27,7 +27,7 @@ def simulate(method, dt):
     mon = StateMonitor(G, 'X', record=True)
     net = Network(G, mon)
     net.run(runtime)
-    return mon.t_, mon.X.flatten()
+    return mon.t_[:], mon.X.flatten()
 
 
 def exact_solution(t, dt):
