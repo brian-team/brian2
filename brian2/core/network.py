@@ -318,7 +318,6 @@ class Network(Nameable):
         
         Parameters
         ----------
-        
         duration : `Quantity`
             The amount of simulation time to run for.
         report : {None, 'stdout', 'stderr', 'graphical', function}, optional
@@ -340,9 +339,9 @@ class Network(Nameable):
             (see `namespace` argument). Only used by run functions that call
             this run function, e.g. `MagicNetwork.run` to adjust for the
             additional nesting.
+
         Notes
         -----
-        
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''

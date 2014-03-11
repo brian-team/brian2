@@ -12,37 +12,35 @@ C++ standalone
 
 To use the C++ standalone mode, make the following changes to your script:
 
-1. Replace ``from brian2 import *`` with::
+1. At the beginning of the script, i.e. after the import statements, add::
 
-	from brian2 import *
-	from brian2.devices.cpp_standalone import *
-	set_device('cpp_standalone')
-	
+    set_device('cpp_standalone')
+
 2. After ``run(duration)`` in your script, add::
 
-	build(project_dir='output', compile_project=True, run_project=True, debug=False)
-	
-The ``build`` function has several arguments to specify the output directory, whether or not to compile and run
+    device.build(project_dir='output', compile_project=True, run_project=True, debug=False)
+
+The `~CPPStandaloneDevice.build` function has several arguments to specify the output directory, whether or not to compile and run
 the project after creating it (using ``gcc``) and whether or not to compile it with debugging support or not.
 
 Not all features of Brian will work with C++ standalone, in particular Python based network operations and
-some array based syntaxes such as ``S.w[0, :] = ...`` will not work. If possible, rewrite these using string
+some array based syntax such as ``S.w[0, :] = ...`` will not work. If possible, rewrite these using string
 based syntax and they should work. Also note that since the Python code actually runs as normal, code that does
 something like this may not behave as you would like::
 
-	results = []
-	for val in vals:
-		# set up a network
-		run()
-		results.append(result)
-		
-The current C++ standalone code generation only works for a fixed number of ``run`` statements, not with loops.
+    results = []
+    for val in vals:
+        # set up a network
+        run()
+        results.append(result)
+
+The current C++ standalone code generation only works for a fixed number of `~Network.run` statements, not with loops.
 If you need to do loops or other features not supported automatically, you can do so by inspecting the generated
 C++ source code and modifying it, or by inserting code directly into the main loop as follows::
 
-	insert_device_code('main.cpp', '''
-	cout << "Testing direct insertion of code." << endl;
-	''')
+    device.insert_device_code('main.cpp', '''
+    cout << "Testing direct insertion of code." << endl;
+    ''')
 
 The results of a simulation are saved in the ``results`` subdirectory of the generated project directory. The
 files have odd but clear names (this will be improved in later releases). The format of the saved data is as follows:
@@ -50,12 +48,13 @@ files have odd but clear names (this will be improved in later releases). The fo
 * Arrays are saved as flat binary files which can be loaded with ``numpy.fromfile('filename', dtype=float)``.
 * A `SpikeMonitor` ``M`` can be loaded as follows::
 
-    i = fromfile('output/results/%s_codeobject_i' % M.name, dtype=int32)
-    t = fromfile('output/results/%s_codeobject_t' % M.name, dtype=float64)
+    i = fromfile('output/results/_dynamic_array_%s_i' % M.name, dtype=int32)
+    t = fromfile('output/results/_dynamic_array_%s_t' % M.name, dtype=float64)
 
 * A `StateMonitor` ``M`` recording variable ``var`` can be loaded as follows::
 
-    t = fromfile('output/results/%s_codeobject_t' % M.name, dtype=float64)
-    vals = fromfile('output/results/%s_codeobject_%s' % (M.name, var), dtype=float64)
+    t = fromfile('output/results/_dynamic_array_%s_t' % M.name, dtype=float64)
+    vals = fromfile('output/results/_dynamic_array_%s__recorded_%s' % (M.name, var), dtype=float64)
     vals.shape = (t.size, -1)
     vals = vals.T
+
