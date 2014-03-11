@@ -12,7 +12,7 @@ use_setuptools()
 import pkg_resources
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
-from distutils.errors import CompileError
+from distutils.errors import CompileError, DistutilsPlatformError
 
 try:
     from Cython.Build import cythonize
@@ -87,7 +87,7 @@ class optional_build_ext(build_ext):
                 ext.include_dirs.append(numpy_incl)
         try:
             build_ext.build_extension(self, ext)
-        except CompileError as ex:
+        except (CompileError, DistutilsPlatformError) as ex:
             if FAIL_ON_ERROR:
                 raise ex
             else:
