@@ -27,6 +27,7 @@ from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit)
 from brian2.utils.logger import get_logger
+from brian2.utils.proxy import Proxy
 from brian2.utils.stringtools import get_identifiers
 
 __all__ = ['Group', 'CodeRunner']
@@ -171,7 +172,7 @@ class IndexWrapper(object):
     `synapses.calc_indices((10, slice(None))`.
     '''
     def __init__(self, group):
-        self.group = weakref.proxy(group)
+        self.group = Proxy(group)
 
     def __getitem__(self, item):
         if isinstance(item, basestring):

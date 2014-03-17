@@ -11,9 +11,9 @@ import numpy as np
 from brian2.core.base import weakproxy_with_fallback
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.units.fundamentalunits import (Quantity, Unit,
-                                           fail_for_dimension_mismatch,
                                            have_same_dimensions)
 from brian2.units.allunits import second
+from brian2.utils.proxy import Proxy
 
 from .preferences import brian_prefs
 
@@ -627,7 +627,7 @@ class VariableView(object):
     def __init__(self, name, variable, group, unit=None):
         self.name = name
         self.variable = variable
-        self.group = weakproxy_with_fallback(group)
+        self.group = Proxy(group)
         self.unit = unit
 
     @property

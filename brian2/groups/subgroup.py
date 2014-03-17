@@ -1,10 +1,9 @@
-import weakref
-
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
 from brian2.groups.group import Group
 from brian2.units.fundamentalunits import Unit
+from brian2.utils.proxy import Proxy
 
 __all__ = ['Subgroup']
 
@@ -35,7 +34,7 @@ class Subgroup(Group, SpikeSource):
     TODO: Group state variable access
     '''
     def __init__(self, source, start, stop, name=None):
-        self.source = weakref.proxy(source)
+        self.source = Proxy(source)
         if name is None:
             name = source.name + '_subgroup*'
         # We want to update the spikes attribute after it has been updated
