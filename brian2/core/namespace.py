@@ -52,11 +52,6 @@ def get_local_namespace(level):
                  hasattr(v, '_arg_units') and
                  hasattr(v, '_return_unit'))) and
                 not k.startswith('_')):
-            # If possible, add a weak reference
-            try:
-                v = weakref.proxy(v)
-            except TypeError:
-                pass
             namespace[k] = v
     del frame
     return namespace
