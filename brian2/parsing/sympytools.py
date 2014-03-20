@@ -115,6 +115,9 @@ def sympy_to_str(sympy_expr):
                              name, c in DEFAULT_CONSTANTS.iteritems()
                              if str(c.sympy_obj) != name))
 
+    # Replace _vectorisation_idx by an empty symbol
+    replacements[sympy.Symbol('_vectorisation_idx')] = sympy.Symbol('')
+
     for sympy_symbol, our_symbol in replacements.iteritems():
         sympy_expr = sympy_expr.replace(sympy_symbol, our_symbol)
 

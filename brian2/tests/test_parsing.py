@@ -398,8 +398,22 @@ def test_substitute_abstract_code_functions():
         exec subcode in ns2
         for k in ['z', 'w', 'h', 'p']:
             assert ns1[k]==ns2[k]
-    
-    
+
+def test_sympytools():
+    # sympy_to_str(str_to_sympy(x)) should equal x
+
+    # Note that the test below is quite fragile since sympy might rearrange the
+    # order of symbols
+    expressions = ['randn()',  # argumentless function
+                   'x + sin(2.0*pi*freq*t)', # expression with a constant
+                   'c * userfun(t + x)'
+                  ] # non-sympy function
+
+    for expr in expressions:
+        expr2 = sympy_to_str(str_to_sympy(expr))
+        assert expr.replace(' ', '') == expr2.replace(' ', ''), '%s != %s' % (expr, expr2)
+
+
 if __name__=='__main__':
     test_parse_expressions_python()
     test_parse_expressions_numpy()
@@ -412,4 +426,4 @@ if __name__=='__main__':
     test_abstract_code_from_function()
     test_extract_abstract_code_functions()
     test_substitute_abstract_code_functions()
-    
+    test_sympytools()
