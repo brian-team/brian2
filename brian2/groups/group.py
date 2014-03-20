@@ -146,19 +146,9 @@ def _same_function(func1, func2):
     namespace, while the ``randn`` symbol in the numpy namespace used for the
     code objects refers to a `RandnFunction` specifier.
     '''
-    # use the function itself if it doesn't have a pyfunc attribute and try
-    # to create a weak proxy to make a comparison to other weak proxys return
-    # true
+    # use the function itself if it doesn't have a pyfunc attribute
     func1 = getattr(func1, 'pyfunc', func1)
-    try:
-        func1 = weakref.proxy(func1)
-    except TypeError:
-        pass  # already a weakref proxy
     func2 = getattr(func2, 'pyfunc', func2)
-    try:
-        func2 = weakref.proxy(func2)
-    except TypeError:
-        pass
 
     return func1 is func2
 
