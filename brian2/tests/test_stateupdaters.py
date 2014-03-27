@@ -50,6 +50,46 @@ def test_str_repr():
         assert len(repr(integrator))
 
 
+def test_temporary_variables():
+    '''
+    Make sure that the code does the distinction between temporary variables
+    in the state updater description and external variables used in the
+    equations.
+    '''
+    # Use a variable name that is used in the state updater description
+    k_2 = 5
+    eqs = Equations('dv/dt = -(v + k_2)/(10*ms) : 1')
+    converted = rk4(eqs)
+
+    # Use a non-problematic name
+    k_var = 5
+    eqs = Equations('dv/dt = -(v + k_var)/(10*ms) : 1')
+    converted2 = rk4(eqs)
+
+    # Make sure that the two formulations result in the same code
+    assert converted == converted2.replace('k_var', 'k_2')
+
+
+def test_temporary_variables2():
+    '''
+    Make sure that the code does the distinction between temporary variables
+    in the state updater description and external variables used in the
+    equations.
+    '''
+    tau = 10*ms
+    # Use a variable name that is used in the state updater description
+    k = 5
+    eqs = Equations('dv/dt = -v/tau + k*xi*tau**-0.5: 1')
+    converted = milstein(eqs)
+
+    # Use a non-problematic name
+    k_var = 5
+    eqs = Equations('dv/dt = -v/tau + k_var*xi*tau**-0.5: 1')
+    converted2 = milstein(eqs)
+
+    # Make sure that the two formulations result in the same code
+    assert converted == converted2.replace('k_var', 'k')
+
 def test_integrator_code():
     '''
     Check whether the returned abstract code is as expected.
@@ -390,6 +430,8 @@ if __name__ == '__main__':
     test_determination()
     test_explicit_stateupdater_parsing()
     test_str_repr()
+    test_temporary_variables()
+    test_temporary_variables2()
     test_integrator_code()
     test_priority()
     test_registration()
