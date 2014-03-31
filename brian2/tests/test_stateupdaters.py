@@ -122,6 +122,30 @@ def test_integrator_code():
             assert code_var == code_v
 
 
+def test_integrator_code2():
+    '''
+    Test integration for a simple model with several state variables.
+    '''
+    eqs = Equations('''
+    dv/dt=(ge+gi-v)/tau : volt
+    dge/dt=-ge/taue : volt
+    dgi/dt=-gi/taui : volt
+    ''')
+    euler_integration = euler(eqs)
+    lines = sorted(euler_integration.split('\n'))
+    # Do a very basic check that the right variables are used in every line
+    for varname, line in zip(['_ge', '_gi', '_v', 'ge', 'gi', 'v'], lines):
+        assert line.startswith(varname + ' = '), 'line "%s" does not start with %s' % (line, varname)
+    for variables, line in zip([['dt', 'ge', 'taue'],
+                                ['dt', 'gi', 'taui'],
+                                ['dt', 'ge', 'gi', 'v', 'tau'],
+                                ['_ge'], ['_gi'], ['_v']],
+                               lines):
+        rhs = line.split('=')[1]
+        for variable in variables:
+            assert variable in rhs, '%s not in RHS: "%s"' % (variable, rhs)
+
+
 def test_priority():
     updater = ExplicitStateUpdater('x_new = x + dt * f(x, t)')
     # Equations that work for the state updater
@@ -433,6 +457,7 @@ if __name__ == '__main__':
     test_temporary_variables()
     test_temporary_variables2()
     test_integrator_code()
+    test_integrator_code2()
     test_priority()
     test_registration()
     test_subexpressions()
