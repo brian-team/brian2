@@ -50,6 +50,46 @@ def test_str_repr():
         assert len(repr(integrator))
 
 
+def test_temporary_variables():
+    '''
+    Make sure that the code does the distinction between temporary variables
+    in the state updater description and external variables used in the
+    equations.
+    '''
+    # Use a variable name that is used in the state updater description
+    k_2 = 5
+    eqs = Equations('dv/dt = -(v + k_2)/(10*ms) : 1')
+    converted = rk4(eqs)
+
+    # Use a non-problematic name
+    k_var = 5
+    eqs = Equations('dv/dt = -(v + k_var)/(10*ms) : 1')
+    converted2 = rk4(eqs)
+
+    # Make sure that the two formulations result in the same code
+    assert converted == converted2.replace('k_var', 'k_2')
+
+
+def test_temporary_variables2():
+    '''
+    Make sure that the code does the distinction between temporary variables
+    in the state updater description and external variables used in the
+    equations.
+    '''
+    tau = 10*ms
+    # Use a variable name that is used in the state updater description
+    k = 5
+    eqs = Equations('dv/dt = -v/tau + k*xi*tau**-0.5: 1')
+    converted = milstein(eqs)
+
+    # Use a non-problematic name
+    k_var = 5
+    eqs = Equations('dv/dt = -v/tau + k_var*xi*tau**-0.5: 1')
+    converted2 = milstein(eqs)
+
+    # Make sure that the two formulations result in the same code
+    assert converted == converted2.replace('k_var', 'k')
+
 def test_integrator_code():
     '''
     Check whether the returned abstract code is as expected.
@@ -80,6 +120,30 @@ def test_integrator_code():
             code_var = re.sub(r'\b(\w*)_{varname}\b'.format(varname=varname),
                               r'\1_v', code_var)
             assert code_var == code_v
+
+
+def test_integrator_code2():
+    '''
+    Test integration for a simple model with several state variables.
+    '''
+    eqs = Equations('''
+    dv/dt=(ge+gi-v)/tau : volt
+    dge/dt=-ge/taue : volt
+    dgi/dt=-gi/taui : volt
+    ''')
+    euler_integration = euler(eqs)
+    lines = sorted(euler_integration.split('\n'))
+    # Do a very basic check that the right variables are used in every line
+    for varname, line in zip(['_ge', '_gi', '_v', 'ge', 'gi', 'v'], lines):
+        assert line.startswith(varname + ' = '), 'line "%s" does not start with %s' % (line, varname)
+    for variables, line in zip([['dt', 'ge', 'taue'],
+                                ['dt', 'gi', 'taui'],
+                                ['dt', 'ge', 'gi', 'v', 'tau'],
+                                ['_ge'], ['_gi'], ['_v']],
+                               lines):
+        rhs = line.split('=')[1]
+        for variable in variables:
+            assert variable in rhs, '%s not in RHS: "%s"' % (variable, rhs)
 
 
 def test_priority():
@@ -390,7 +454,10 @@ if __name__ == '__main__':
     test_determination()
     test_explicit_stateupdater_parsing()
     test_str_repr()
+    test_temporary_variables()
+    test_temporary_variables2()
     test_integrator_code()
+    test_integrator_code2()
     test_priority()
     test_registration()
     test_subexpressions()
