@@ -218,7 +218,7 @@ class NeuronGroup(Group, SpikeSource):
         The `numpy.dtype` that will be used to store the values, or a
         dictionary specifying the type for variable names. If a value is not
         provided for a variable (or no value is provided at all), the preference
-        setting `core.default_scalar_dtype` is used.
+        setting `core.default_float_dtype` is used.
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
     clock : Clock, optional

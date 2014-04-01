@@ -186,7 +186,7 @@ class Device(object):
         logger.debug('%s abstract code:\n%s' % (name, indent(code_representation(abstract_code))))
 
         scalar_code, vector_code, kwds = generator.translate(abstract_code,
-                                                             dtype=brian_prefs['core.default_scalar_dtype'])
+                                                             dtype=brian_prefs['core.default_float_dtype'])
         # Add the array names as keywords as well
         for varname, var in variables.iteritems():
             if isinstance(var, ArrayVariable):

@@ -90,7 +90,7 @@ class Variable(object):
         #: The dtype used for storing the variable.
         self.dtype = dtype
         if dtype is None:
-            self.dtype = brian_prefs.core.default_scalar_dtype
+            self.dtype = brian_prefs.core.default_float_dtype
 
         if self.is_boolean:
             if not have_same_dimensions(unit, 1):
@@ -284,7 +284,7 @@ class AuxiliaryVariable(Variable):
         The unit of the variable.
     dtype : `dtype`, optional
         The dtype used for storing the variable. If none is given, defaults
-        to `core.default_scalar_dtype`.
+        to `core.default_float_dtype`.
     scalar : bool, optional
         Whether the variable is a scalar value (``True``) or vector-valued, e.g.
         defined for every neuron (``False``). Defaults to ``False``.
@@ -323,7 +323,7 @@ class AttributeVariable(Variable):
         to be an attribute of `obj`.
     dtype : `dtype`, optional
         The dtype used for storing the variable. If none is given, defaults
-        to `core.default_scalar_dtype`.
+        to `core.default_float_dtype`.
     constant : bool, optional
         Whether the attribute's value is constant during a run. Defaults to
         ``False``.
@@ -382,7 +382,7 @@ class ArrayVariable(Variable):
         The device responsible for the memory access.
     dtype : `dtype`, optional
         The dtype used for storing the variable. If none is given, defaults
-        to `core.default_scalar_dtype`.
+        to `core.default_float_dtype`.
     constant : bool, optional
         Whether the variable's value is constant during a run.
         Defaults to ``False``.
@@ -466,7 +466,7 @@ class DynamicArrayVariable(ArrayVariable):
         The device responsible for the memory access.
     dtype : `dtype`, optional
         The dtype used for storing the variable. If none is given, defaults
-        to `core.default_scalar_dtype`.
+        to `core.default_float_dtype`.
     constant : bool, optional
         Whether the variable's value is constant during a run.
         Defaults to ``False``.
@@ -542,7 +542,7 @@ class Subexpression(Variable):
         The device responsible for the memory access.
     dtype : `dtype`, optional
         The dtype used for the expression. Defaults to
-        `core.default_scalar_dtype`.
+        `core.default_float_dtype`.
     scalar: bool, optional
         Whether this is an expression only referring to scalar variables.
         Defaults to ``False``
@@ -938,7 +938,7 @@ class Variables(collections.Mapping):
             The size of the array.
         dtype : `dtype`, optional
             The dtype used for storing the variable. If none is given, defaults
-            to `core.default_scalar_dtype`.
+            to `core.default_float_dtype`.
         constant : bool, optional
             Whether the variable's value is constant during a run.
             Defaults to ``False``.
@@ -978,7 +978,7 @@ class Variables(collections.Mapping):
             The size of the array.
         dtype : `dtype`, optional
             The dtype used for storing the variable. If none is given, defaults
-            to `core.default_scalar_dtype`.
+            to `core.default_float_dtype`.
         constant : bool, optional
             Whether the variable's value is constant during a run.
             Defaults to ``False``.
@@ -1101,7 +1101,7 @@ class Variables(collections.Mapping):
             The subexpression itself.
         dtype : `dtype`, optional
             The dtype used for the expression. Defaults to
-            `core.default_scalar_dtype`.
+            `core.default_float_dtype`.
         scalar : bool, optional
             Whether this is an expression only referring to scalar variables.
             Defaults to ``False``
@@ -1124,7 +1124,7 @@ class Variables(collections.Mapping):
             The unit of the variable.
         dtype : `dtype`, optional
             The dtype used for storing the variable. If none is given, defaults
-            to `core.default_scalar_dtype`.
+            to `core.default_float_dtype`.
         scalar : bool, optional
             Whether the variable is a scalar value (``True``) or vector-valued,
             e.g. defined for every neuron (``False``). Defaults to ``False``.

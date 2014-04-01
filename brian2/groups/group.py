@@ -68,7 +68,7 @@ def dtype_dictionary(dtype=None):
     ----------
     dtype : `dtype` or dict, optional
         Either the `dtype` to be used as a default dtype for all variables
-        (instead of the `core.default_scalar_dtype` preference) or a
+        (instead of the `core.default_float_dtype` preference) or a
         dictionary stating the `dtype` for some variables; all other variables
         will use the preference default
 
@@ -78,11 +78,11 @@ def dtype_dictionary(dtype=None):
         A dictionary mapping variable names to dtypes.
     '''
     if dtype is None:
-        return defaultdict(lambda: brian_prefs['core.default_scalar_dtype'])
+        return defaultdict(lambda: brian_prefs['core.default_float_dtype'])
     elif isinstance(dtype, np.dtype):
         return defaultdict(lambda: dtype)
     else:
-        dtype_dict = defaultdict(lambda: brian_prefs['core.default_scalar_dtype'])
+        dtype_dict = defaultdict(lambda: brian_prefs['core.default_float_dtype'])
         dtype_dict.update(dtype)
         return dtype_dict
 
