@@ -149,8 +149,7 @@ class IndexWrapper(object):
             variables.add_auxiliary_variable('_indices', unit=Unit(1),
                                              dtype=np.int32)
             variables.add_auxiliary_variable('_cond', unit=Unit(1),
-                                             dtype=np.bool,
-                                             is_bool=True)
+                                             dtype=np.bool)
 
             abstract_code = '_cond = ' + item
             check_code_units(abstract_code, self.group,
@@ -305,10 +304,8 @@ class Group(BrianObject):
         variables = Variables(None)
         variables.add_auxiliary_variable('_variable', unit=variable.unit,
                                          dtype=variable.dtype,
-                                         scalar=variable.scalar,
-                                         is_bool=variable.is_bool)
-        variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool,
-                                         is_bool=True)
+                                         scalar=variable.scalar)
+        variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool)
 
         abstract_code = '_variable = ' + variable_name + '\n'
         abstract_code += '_cond = ' + code
@@ -342,8 +339,7 @@ class Group(BrianObject):
             variables = Variables(None)
             variables.add_auxiliary_variable('_variable', unit=variable.unit,
                                              dtype=variable.dtype,
-                                             scalar=variable.scalar,
-                                             is_bool=variable.is_bool)
+                                             scalar=variable.scalar)
             if indices.shape ==  ():
                 single_index = True
                 indices = np.array([indices])
@@ -509,8 +505,7 @@ class Group(BrianObject):
         abstract_code_cond = '_cond = '+cond
         abstract_code = varname + ' = ' + code
         variables = Variables(None)
-        variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool,
-                                         is_bool=True)
+        variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool)
         check_code_units(abstract_code_cond, self,
                          additional_variables=variables,
                          level=level+2,

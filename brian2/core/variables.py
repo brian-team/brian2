@@ -48,30 +48,6 @@ def get_dtype(obj):
     else:
         return np.obj2sctype(type(obj))
 
-
-def default_dtype(dtype, is_bool=False):
-    '''
-    Helper function to return the default dtype.
-
-    Parameters
-    ----------
-    dtype : `dtype` or ``None``
-        The dtype to use (or `None` to use the default)
-    is_bool : bool
-        If `is_bool` is ``True``, ``bool`` is used as the dtype.
-
-    Returns
-    -------
-    final_dtype : `dtype`
-    '''
-    if is_bool:
-        return np.bool
-    elif dtype is None:
-        return brian_prefs.core.default_scalar_dtype
-    else:
-        return dtype
-
-
 class Variable(object):
     '''
     An object providing information about model variables (including implicit
@@ -89,16 +65,13 @@ class Variable(object):
         The unit of the variable.
     dtype : `dtype`, optional
         The dtype used for storing the variable. Defaults to the preference
-        `core.default_scalar.dtype` (or ``bool``, if `is_bool` is ``True``).
+        `core.default_scalar.dtype`.
     scalar : bool, optional
         Whether the variable is a scalar value (``True``) or vector-valued, e.g.
         defined for every neuron (``False``). Defaults to ``False``.
     constant: bool, optional
         Whether the value of this variable can change during a run. Defaults
         to ``False``.
-    is_bool: bool, optional
-        Whether this is a boolean variable (also implies it is dimensionless).
-        Defaults to ``False``.
     read_only : bool, optional
         Whether this is a read-only variable, i.e. a variable that is set
         internally and cannot be changed by the user (this is used for example
@@ -106,7 +79,7 @@ class Variable(object):
         to ``False``.
     '''
     def __init__(self, name, unit, dtype=None, scalar=False,
-                 constant=False, is_bool=False, read_only=False):
+                 constant=False, read_only=False):
         
         #: The variable's unit.
         self.unit = unit
@@ -115,12 +88,11 @@ class Variable(object):
         self.name = name
 
         #: The dtype used for storing the variable.
-        self.dtype = default_dtype(dtype, is_bool)
+        self.dtype = dtype
+        if dtype is None:
+            self.dtype = brian_prefs.core.default_scalar_dtype
 
-        #: Whether this variable is a boolean
-        self.is_bool = is_bool
-
-        if is_bool:
+        if self.is_bool:
             if not have_same_dimensions(unit, 1):
                 raise ValueError('Boolean variables can only be dimensionless')
 
@@ -132,6 +104,10 @@ class Variable(object):
 
         #: Whether the variable is read-only
         self.read_only = read_only
+
+    @property
+    def is_bool(self):
+        return np.issubdtype(np.bool, self.dtype)
 
     @property
     def dim(self):
@@ -223,13 +199,12 @@ class Variable(object):
     def __repr__(self):
         description = ('<{classname}(unit={unit}, '
                        ' dtype={dtype}, scalar={scalar}, constant={constant},'
-                       ' is_bool={is_bool}, read_only={read_only})>')
+                       ' read_only={read_only})>')
         return description.format(classname=self.__class__.__name__,
                                   unit=repr(self.unit),
                                   dtype=repr(self.dtype),
                                   scalar=repr(self.scalar),
                                   constant=repr(self.constant),
-                                  is_bool=repr(self.is_bool),
                                   read_only=repr(self.read_only))
 
 
@@ -287,7 +262,7 @@ class Constant(Variable):
 
         super(Constant, self).__init__(unit=unit, name=name,
                                        dtype=dtype, scalar=True, constant=True,
-                                       read_only=True, is_bool=is_bool)
+                                       read_only=True)
 
     def get_value(self):
         return self.value
@@ -313,14 +288,11 @@ class AuxiliaryVariable(Variable):
     scalar : bool, optional
         Whether the variable is a scalar value (``True``) or vector-valued, e.g.
         defined for every neuron (``False``). Defaults to ``False``.
-    is_bool: bool, optional
-        Whether this is a boolean variable (also implies it is dimensionless).
-        Defaults to ``False``.
     '''
-    def __init__(self, name, unit, dtype=None, scalar=False, is_bool=False):
+    def __init__(self, name, unit, dtype=None, scalar=False):
         super(AuxiliaryVariable, self).__init__(unit=unit,
                                                 name=name, dtype=dtype,
-                                                scalar=scalar, is_bool=is_bool)
+                                                scalar=scalar)
 
     def get_value(self):
         raise TypeError('Cannot get the value for an auxiliary variable.')
@@ -358,17 +330,14 @@ class AttributeVariable(Variable):
     scalar : bool, optional
         Whether the variable is a scalar value (``True``) or vector-valued, e.g.
         defined for every neuron (``False``). Defaults to ``True``.
-    is_bool: bool, optional
-        Whether this is a boolean variable (also implies it is dimensionless).
-        Defaults to ``False``.
     '''
     def __init__(self, name, unit, obj, attribute, dtype, constant=False,
-                 scalar=True, is_bool=False):
+                 scalar=True):
         super(AttributeVariable, self).__init__(unit=unit,
                                                 name=name, dtype=dtype,
                                                 constant=constant,
                                                 scalar=scalar,
-                                                is_bool=is_bool, read_only=True)
+                                                read_only=True)
 
         #: The object storing the `attribute`
         self.obj = obj
@@ -421,19 +390,16 @@ class ArrayVariable(Variable):
         Whether this array is a 1-element array that should be treated like a
         scalar (e.g. for a single delay value across synapses). Defaults to
         ``False``.
-    is_bool: bool, optional
-        Whether this is a boolean variable (also implies it is dimensionless).
-        Defaults to ``False``
     read_only : bool, optional
         Whether this is a read-only variable, i.e. a variable that is set
         internally and cannot be changed by the user. Defaults
         to ``False``.
     '''
     def __init__(self, name, unit, owner, size, device, dtype=None,
-                 constant=False, scalar=False, is_bool=False, read_only=False):
+                 constant=False, scalar=False, read_only=False):
         super(ArrayVariable, self).__init__(unit=unit, name=name,
                                             dtype=dtype, scalar=scalar,
-                                            constant=constant, is_bool=is_bool,
+                                            constant=constant,
                                             read_only=read_only)
         #: The `Group` to which this variable belongs.
         self.owner = weakproxy_with_fallback(owner)
@@ -511,9 +477,6 @@ class DynamicArrayVariable(ArrayVariable):
         Whether this array is a 1-element array that should be treated like a
         scalar (e.g. for a single delay value across synapses). Defaults to
         ``False``.
-    is_bool: bool, optional
-        Whether this is a boolean variable (also implies it is dimensionless).
-        Defaults to ``False``
     read_only : bool, optional
         Whether this is a read-only variable, i.e. a variable that is set
         internally and cannot be changed by the user. Defaults
@@ -522,7 +485,7 @@ class DynamicArrayVariable(ArrayVariable):
 
     def __init__(self, name, unit, owner, size, device, dtype=None,
                  constant=False, constant_size=True,
-                 scalar=False, is_bool=False, read_only=False):
+                 scalar=False, read_only=False):
 
         if isinstance(size, int):
             dimensions = 1
@@ -544,7 +507,6 @@ class DynamicArrayVariable(ArrayVariable):
                                                    constant=constant,
                                                    dtype=dtype,
                                                    scalar=scalar,
-                                                   is_bool=is_bool,
                                                    read_only=read_only)
     def resize(self, new_size):
         '''
@@ -581,18 +543,15 @@ class Subexpression(Variable):
     dtype : `dtype`, optional
         The dtype used for the expression. Defaults to
         `core.default_scalar_dtype`.
-    is_bool: bool, optional
-        Whether this is a boolean variable (also implies it is dimensionless).
-        Defaults to ``False``
     scalar: bool, optional
         Whether this is an expression only referring to scalar variables.
         Defaults to ``False``
     '''
     def __init__(self, name, unit, owner, expr, device, dtype=None,
-                 is_bool=False, scalar=False):
+                 scalar=False):
         super(Subexpression, self).__init__(unit=unit,
                                             name=name, dtype=dtype,
-                                            is_bool=is_bool, scalar=scalar,
+                                            scalar=scalar,
                                             constant=False, read_only=True)
         #: The `Group` to which this variable belongs
         self.owner = weakproxy_with_fallback(owner)
@@ -634,14 +593,13 @@ class Subexpression(Variable):
 
     def __repr__(self):
         description = ('<{classname}(name={name}, unit={unit}, dtype={dtype}, '
-                       'expr={expr}, owner=<{owner}>, is_bool={is_bool})>')
+                       'expr={expr}, owner=<{owner}>)>')
         return description.format(classname=self.__class__.__name__,
                                   name=repr(self.name),
                                   unit=repr(self.unit),
                                   dtype=repr(self.dtype),
                                   expr=repr(self.expr),
-                                  owner=self.owner.name,
-                                  is_bool=repr(self.is_bool))
+                                  owner=self.owner.name)
 
 
 # ------------------------------------------------------------------------------
@@ -965,7 +923,7 @@ class Variables(collections.Mapping):
             self.indices[name] = index
 
     def add_array(self, name, unit, size, dtype=None,
-                  constant=False, is_bool=False, read_only=False, scalar=False,
+                  constant=False, read_only=False, scalar=False,
                   index=None):
         '''
         Add an array (initialized with zeros).
@@ -987,9 +945,6 @@ class Variables(collections.Mapping):
         scalar : bool, optional
             Whether this is a scalar variable. Defaults to ``False``, if set to
             ``True``, also implies that `size` equals 1.
-        is_bool: bool, optional
-            Whether this is a boolean variable (also implies it is
-            dimensionless). Defaults to ``False``
         read_only : bool, optional
             Whether this is a read-only variable, i.e. a variable that is set
             internally and cannot be changed by the user. Defaults
@@ -1000,15 +955,15 @@ class Variables(collections.Mapping):
         '''
         var = ArrayVariable(name=name, unit=unit, owner=self.owner,
                             device=self.device, size=size,
-                            dtype=default_dtype(dtype, is_bool),
-                            constant=constant, is_bool=is_bool,
+                            dtype=dtype,
+                            constant=constant,
                             scalar=scalar,
                             read_only=read_only)
         self._add_variable(name, var, index)
         self.device.init_with_zeros(var)
 
     def add_dynamic_array(self, name, unit, size, dtype=None, constant=False,
-                          constant_size=True, is_bool=False, read_only=False,
+                          constant_size=True, read_only=False,
                           index=None):
         '''
         Add a dynamic array.
@@ -1030,9 +985,6 @@ class Variables(collections.Mapping):
         constant_size : bool, optional
             Whether the size of the variable is constant during a run.
             Defaults to ``True``.
-        is_bool: bool, optional
-            Whether this is a boolean variable (also implies it is
-            dimensionless). Defaults to ``False``
         read_only : bool, optional
             Whether this is a read-only variable, i.e. a variable that is set
             internally and cannot be changed by the user. Defaults
@@ -1043,9 +995,9 @@ class Variables(collections.Mapping):
         '''
         var = DynamicArrayVariable(name=name, unit=unit, owner=self.owner,
                                    device=self.device,
-                                   size=size, dtype=default_dtype(dtype, is_bool),
+                                   size=size, dtype=dtype,
                                    constant=constant, constant_size=constant_size,
-                                   is_bool=is_bool, read_only=read_only)
+                                   read_only=read_only)
         self._add_variable(name, var, index)
 
     def add_arange(self, name, size, start=0, dtype=np.int32, constant=True,
@@ -1076,12 +1028,12 @@ class Variables(collections.Mapping):
             `Variables.default_index`.
         '''
         self.add_array(name=name, unit=Unit(1), size=size, dtype=dtype,
-                       constant=constant, is_bool=False, read_only=read_only,
+                       constant=constant, read_only=read_only,
                        index=index)
         self.device.init_with_arange(self._variables[name], start)
 
     def add_attribute_variable(self, name, unit, obj, attribute, dtype=None,
-                               constant=False, scalar=True, is_bool=False):
+                               constant=False, scalar=True):
         '''
         Add a variable stored as an attribute of an object.
 
@@ -1105,9 +1057,6 @@ class Variables(collections.Mapping):
         scalar : bool, optional
             Whether the variable is a scalar value (``True``) or vector-valued, e.g.
             defined for every neuron (``False``). Defaults to ``True``.
-        is_bool: bool, optional
-            Whether this is a boolean variable (also implies it is dimensionless).
-            Defaults to ``False``.
         '''
         if dtype is None:
             value = getattr(obj, attribute, None)
@@ -1118,8 +1067,7 @@ class Variables(collections.Mapping):
 
         var = AttributeVariable(name=name, unit=unit, obj=obj,
                                 attribute=attribute, dtype=dtype,
-                                constant=constant, scalar=scalar,
-                                is_bool=is_bool)
+                                constant=constant, scalar=scalar)
         self._add_variable(name, var)
 
     def add_constant(self, name, unit, value):
@@ -1139,8 +1087,7 @@ class Variables(collections.Mapping):
         var = Constant(name=name, unit=unit, value=value)
         self._add_variable(name, var)
 
-    def add_subexpression(self, name, unit, expr, dtype=None, is_bool=False,
-                          scalar=False):
+    def add_subexpression(self, name, unit, expr, dtype=None, scalar=False):
         '''
         Add a named subexpression.
 
@@ -1155,20 +1102,15 @@ class Variables(collections.Mapping):
         dtype : `dtype`, optional
             The dtype used for the expression. Defaults to
             `core.default_scalar_dtype`.
-        is_bool : bool, optional
-            Whether this is a boolean variable (also implies it is
-            dimensionless). Defaults to ``False``
         scalar : bool, optional
             Whether this is an expression only referring to scalar variables.
             Defaults to ``False``
         '''
         var = Subexpression(name=name, unit=unit, expr=expr, owner=self.owner,
-                            dtype=dtype, device=self.device, is_bool=is_bool,
-                            scalar=scalar)
+                            dtype=dtype, device=self.device, scalar=scalar)
         self._add_variable(name, var)
 
-    def add_auxiliary_variable(self, name, unit, dtype=None, scalar=False,
-                               is_bool=False):
+    def add_auxiliary_variable(self, name, unit, dtype=None, scalar=False):
         '''
         Add an auxiliary variable (most likely one that is added automatically
         to abstract code, e.g. ``_cond`` for a threshold condition),
@@ -1186,12 +1128,9 @@ class Variables(collections.Mapping):
         scalar : bool, optional
             Whether the variable is a scalar value (``True``) or vector-valued,
             e.g. defined for every neuron (``False``). Defaults to ``False``.
-        is_bool: bool, optional
-            Whether this is a boolean variable (also implies it is
-            dimensionless). Defaults to ``False``.
         '''
         var = AuxiliaryVariable(name=name, unit=unit, dtype=dtype,
-                                scalar=scalar, is_bool=is_bool)
+                                scalar=scalar)
         self._add_variable(name, var)
 
 
@@ -1219,7 +1158,6 @@ class Variables(collections.Mapping):
         new_subexpr = Subexpression(name, subexpr.unit, self.owner, new_expr,
                                     device=subexpr.device,
                                     dtype=subexpr.dtype,
-                                    is_bool=subexpr.is_bool,
                                     scalar=subexpr.scalar)
         self._variables[name] = new_subexpr
 

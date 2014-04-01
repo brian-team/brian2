@@ -16,16 +16,16 @@ from brian2 import Unit, Equations, Expression, sin
 from brian2.units.fundamentalunits import (DIMENSIONLESS, get_dimensions,
                                            have_same_dimensions,
                                            DimensionMismatchError)
-from brian2.equations.unitcheck import unit_from_string
 from brian2.core.namespace import DEFAULT_UNITS
 from brian2.equations.equations import (check_identifier_basic,
                                         check_identifier_reserved,
                                         check_identifier_functions,
                                         check_identifier_units,
                                         parse_string_equations,
+                                        unit_and_type_from_string,
                                         SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
-                                        PARAMETER,
+                                        PARAMETER, FLOAT, BOOLEAN,
                                         EquationError)
 from brian2.equations.refractory import check_identifier_refractory
 from brian2.groups.group import Group
@@ -49,17 +49,18 @@ def test_utility_functions():
     for unit in unit_namespace.itervalues():
         assert isinstance(unit, Unit)
 
-    assert unit_from_string('second') == second
-    assert unit_from_string('1') == Unit(1, DIMENSIONLESS)
-    assert unit_from_string('volt') == volt
-    assert unit_from_string('second ** -1') == Hz
-    assert unit_from_string('farad / metre**2') == farad / metre ** 2
-    assert_raises(ValueError, lambda: unit_from_string('metr / second'))
-    assert_raises(ValueError, lambda: unit_from_string('metre **'))
-    assert_raises(ValueError, lambda: unit_from_string('5'))
-    assert_raises(ValueError, lambda: unit_from_string('2 / second'))
+    assert unit_and_type_from_string('second') == (second, FLOAT)
+    assert unit_and_type_from_string('1') == (Unit(1, DIMENSIONLESS), FLOAT)
+    assert unit_and_type_from_string('volt') == (volt, FLOAT)
+    assert unit_and_type_from_string('second ** -1') == (Hz, FLOAT)
+    assert unit_and_type_from_string('farad / metre**2') == (farad / metre ** 2, FLOAT)
+    assert unit_and_type_from_string('bool') == (Unit(1, DIMENSIONLESS), BOOLEAN)
+    assert_raises(ValueError, lambda: unit_and_type_from_string('metr / second'))
+    assert_raises(ValueError, lambda: unit_and_type_from_string('metre **'))
+    assert_raises(ValueError, lambda: unit_and_type_from_string('5'))
+    assert_raises(ValueError, lambda: unit_and_type_from_string('2 / second'))
     # Only the use of base units is allowed
-    assert_raises(ValueError, lambda: unit_from_string('farad / cm**2'))
+    assert_raises(ValueError, lambda: unit_and_type_from_string('farad / cm**2'))
 
 
 def test_identifier_checks():
@@ -134,7 +135,7 @@ def test_parse_equations():
     assert 'I' in eqs and eqs['I'].type == SUBEXPRESSION
     assert 'f' in eqs and eqs['f'].type == PARAMETER
     assert 'b' in eqs and eqs['b'].type == PARAMETER
-    assert not eqs['f'].is_bool and eqs['b'].is_bool
+    assert eqs['f'].var_type == FLOAT and eqs['b'].var_type == BOOLEAN
     assert get_dimensions(eqs['v'].unit) == volt.dim
     assert get_dimensions(eqs['ge'].unit) == volt.dim
     assert get_dimensions(eqs['I'].unit) == volt.dim

@@ -232,16 +232,14 @@ class StateMonitor(Group, CodeRunner):
                                              unit=var.unit,
                                              dtype=var.dtype,
                                              constant=False,
-                                             constant_size=False,
-                                             is_bool=var.is_bool)
+                                             constant_size=False)
 
         for varname in self.record_variables:
             var = self.source.variables[varname]
             self.variables.add_auxiliary_variable('_to_record_' + varname,
                                                   unit=var.unit,
                                                   dtype=var.dtype,
-                                                  scalar=var.scalar,
-                                                  is_bool=var.is_bool)
+                                                  scalar=var.scalar)
 
         self.recorded_variables = dict([(varname,
                                          self.variables['_recorded_'+varname])

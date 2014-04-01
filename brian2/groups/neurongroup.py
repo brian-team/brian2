@@ -5,7 +5,7 @@ import numpy as np
 import sympy
 
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
-                                        SUBEXPRESSION, PARAMETER)
+                                        SUBEXPRESSION, PARAMETER, BOOLEAN)
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.translation import analyse_identifiers
@@ -382,7 +382,7 @@ class NeuronGroup(Group, SpikeSource):
         self.variables.add_clock_variables(self.clock)
         self.variables.add_constant('N', Unit(1), self._N)
 
-        dtype = dtype_dictionary(dtype)
+        dtypes = dtype_dictionary(dtype)
 
         # Standard variables always present
         self.variables.add_array('_spikespace', unit=Unit(1), size=self._N+1,
@@ -392,20 +392,24 @@ class NeuronGroup(Group, SpikeSource):
                                   read_only=True)
 
         for eq in self.equations.itervalues():
+            if eq.var_type == BOOLEAN:
+                dtype = np.bool
+            else:
+                dtype = dtypes[eq.varname]
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = 'constant' in eq.flags
                 scalar = 'scalar' in eq.flags
                 size = 1 if scalar else self._N
                 index = '0' if scalar else None
                 self.variables.add_array(eq.varname, size=size,
-                                         unit=eq.unit, dtype=dtype[eq.varname],
-                                         constant=constant, is_bool=eq.is_bool,
+                                         unit=eq.unit, dtype=dtype,
+                                         constant=constant,
                                          scalar=scalar,
                                          index=index)
             elif eq.type == SUBEXPRESSION:
                 self.variables.add_subexpression(eq.varname, unit=eq.unit,
                                                  expr=str(eq.expr),
-                                                 is_bool=eq.is_bool,
+                                                 dtype=dtype,
                                                  scalar='scalar' in eq.flags)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)

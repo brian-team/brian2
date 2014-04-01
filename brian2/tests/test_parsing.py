@@ -38,15 +38,6 @@ class SimpleGroup(Group):
         self.variables = variables
         self.namespace = namespace
 
-# FIXME: This shouldn't be only used for testing
-def namespace_to_variable(name, group):
-    value = group.resolve(name)
-    if isinstance(value, Function):
-        return value
-    else:
-        unit = get_unit(value)
-        array_value = np.asarray(value)
-        return Constant(name, unit=unit, value=array_value)
 
 # TODO: add some tests with e.g. 1.0%2.0 etc. once this is implemented in C++
 TEST_EXPRESSIONS = '''
@@ -245,10 +236,10 @@ def test_is_boolean_expression():
     
     
 def test_parse_expression_unit():
-    Var = namedtuple('Var', ['unit'])
-    variables = {'a': Var(unit=volt*amp),
-                 'b': Var(unit=volt),
-                 'c': Var(unit=amp)}
+    Var = namedtuple('Var', ['unit', 'dtype'])
+    variables = {'a': Var(unit=volt*amp, dtype=np.float64),
+                 'b': Var(unit=volt, dtype=np.float64),
+                 'c': Var(unit=amp, dtype=np.float64)}
     group = SimpleGroup(namespace={}, variables=variables)
     EE = [
         (volt*amp, 'a+b*c'),
@@ -280,7 +271,7 @@ def test_parse_expression_unit():
             if name in variables:
                 all_variables[name] = variables[name]
             else:
-                all_variables[name] = namespace_to_variable(name, group)
+                all_variables[name] = group.resolve(name)
 
         if expect is DimensionMismatchError:
             assert_raises(DimensionMismatchError, parse_expression_unit, expr,
@@ -299,7 +290,7 @@ def test_parse_expression_unit():
             if name in variables:
                 all_variables[name] = variables[name]
             else:
-                all_variables[name] = namespace_to_variable(name, group)
+                all_variables[name] = group.resolve(name)
         assert_raises(SyntaxError, parse_expression_unit, expr, all_variables)
 
 

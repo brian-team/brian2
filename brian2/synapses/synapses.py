@@ -5,7 +5,6 @@ Module providing the `Synapses` class and related helper classes/functions.
 import collections
 from collections import defaultdict
 import weakref
-import itertools
 import re
 
 import numpy as np
@@ -15,7 +14,7 @@ from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
-                                        PARAMETER)
+                                        PARAMETER, BOOLEAN)
 from brian2.groups.group import Group, CodeRunner, dtype_dictionary
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
@@ -640,7 +639,7 @@ class Synapses(Group):
         Create the variables dictionary for this `Synapses`, containing
         entries for the equation variables and some standard entries.
         '''
-        dtype = dtype_dictionary(dtype)
+        dtypes = dtype_dictionary(dtype)
 
         self.variables = Variables(self)
 
@@ -689,15 +688,18 @@ class Synapses(Group):
                                               constant=True)
 
         for eq in equations.itervalues():
+            if eq.var_type == BOOLEAN:
+                dtype = np.bool
+            else:
+                dtype = dtypes[eq.varname]
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = 'constant' in eq.flags
                 scalar = 'scalar' in eq.flags
                 if scalar:
                     self.variables.add_array(eq.varname, size=1,
                                              unit=eq.unit,
-                                             dtype=dtype[eq.varname],
+                                             dtype=dtype,
                                              constant=constant,
-                                             is_bool=eq.is_bool,
                                              scalar=True,
                                              index='0')
                 else:
@@ -707,9 +709,8 @@ class Synapses(Group):
                     # array
                     self.variables.add_dynamic_array(eq.varname, size=0,
                                                      unit=eq.unit,
-                                                     dtype=dtype[eq.varname],
-                                                     constant=constant,
-                                                     is_bool=eq.is_bool)
+                                                     dtype=dtype,
+                                                     constant=constant)
             elif eq.type == SUBEXPRESSION:
                 if 'summed' in eq.flags:
                     # Give a special name to the subexpression for summed
@@ -720,8 +721,8 @@ class Synapses(Group):
                     varname = eq.varname
                 self.variables.add_subexpression(varname, unit=eq.unit,
                                                  expr=str(eq.expr),
-                                                 is_bool=eq.is_bool,
-                                                 scalar='scalar' in eq.flags)
+                                                 scalar='scalar' in eq.flags,
+                                                 dtype=dtype)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
