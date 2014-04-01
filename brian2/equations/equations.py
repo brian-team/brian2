@@ -240,7 +240,7 @@ def unit_and_type_from_string(unit_string):
         return Unit(1, dim=DIMENSIONLESS), FLOAT
 
     # Another special case: boolean variable
-    if unit_string == 'bool':
+    if unit_string == 'boolean':
         return Unit(1, dim=DIMENSIONLESS), BOOLEAN
 
     # Check first whether the expression evaluates at all, using only base units

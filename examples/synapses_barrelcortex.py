@@ -46,7 +46,7 @@ Ap, Ad = Ap*EPSC, Ad*EPSC
 layer4 = NeuronGroup(N4*Nbarrels,
                      '''
                      rate = int(is_active)*clip(cos(direction - selectivity), 0, inf)*Fmax: Hz
-                     is_active = abs((barrel_x + 0.5 - bar_x) * cos(direction) + (barrel_y + 0.5 - bar_y) * sin(direction)) < 0.5: bool
+                     is_active = abs((barrel_x + 0.5 - bar_x) * cos(direction) + (barrel_y + 0.5 - bar_y) * sin(direction)) < 0.5: boolean
                      barrel_x : 1 # The x index of the barrel
                      barrel_y : 1 # The y index of the barrel
                      selectivity : 1

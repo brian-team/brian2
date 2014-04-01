@@ -92,7 +92,7 @@ class Variable(object):
         if dtype is None:
             self.dtype = brian_prefs.core.default_scalar_dtype
 
-        if self.is_bool:
+        if self.is_boolean:
             if not have_same_dimensions(unit, 1):
                 raise ValueError('Boolean variables can only be dimensionless')
 
@@ -106,7 +106,7 @@ class Variable(object):
         self.read_only = read_only
 
     @property
-    def is_bool(self):
+    def is_boolean(self):
         return np.issubdtype(np.bool, self.dtype)
 
     @property
@@ -419,7 +419,7 @@ class ArrayVariable(Variable):
         self.conditional_write = None
 
     def set_conditional_write(self, var):
-        if not var.is_bool:
+        if not var.is_boolean:
             raise TypeError(('A variable can only be conditionally writeable '
                              'depending on a boolean variable, %s is not '
                              'boolean.') % var.name)

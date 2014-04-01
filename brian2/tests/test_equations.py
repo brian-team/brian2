@@ -54,7 +54,7 @@ def test_utility_functions():
     assert unit_and_type_from_string('volt') == (volt, FLOAT)
     assert unit_and_type_from_string('second ** -1') == (Hz, FLOAT)
     assert unit_and_type_from_string('farad / metre**2') == (farad / metre ** 2, FLOAT)
-    assert unit_and_type_from_string('bool') == (Unit(1, DIMENSIONLESS), BOOLEAN)
+    assert unit_and_type_from_string('boolean') == (Unit(1, DIMENSIONLESS), BOOLEAN)
     assert_raises(ValueError, lambda: unit_and_type_from_string('metr / second'))
     assert_raises(ValueError, lambda: unit_and_type_from_string('metre **'))
     assert_raises(ValueError, lambda: unit_and_type_from_string('5'))
@@ -127,7 +127,7 @@ def test_parse_equations():
                                     dge/dt = -ge / tau_ge : volt
                                     I = sin(2 * pi * f * t) : volt
                                     f : Hz (constant)
-                                    b : bool
+                                    b : boolean
                                  ''')
     assert len(eqs.keys()) == 5
     assert 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION

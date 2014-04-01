@@ -185,7 +185,7 @@ def test_abstract_code_dependencies():
 
 def test_is_boolean_expression():
     # dummy "Variable" class
-    Var = namedtuple("Var", ['is_bool'])
+    Var = namedtuple("Var", ['is_boolean'])
 
     # dummy function object
     class Func(object):
@@ -198,8 +198,8 @@ def test_is_boolean_expression():
     c = Constant('c', unit=Unit(1), value=5)
     f = Func(returns_bool=True)
     g = Func(returns_bool=False)
-    s1 = Var(is_bool=True)
-    s2 = Var(is_bool=False)
+    s1 = Var(is_boolean=True)
+    s2 = Var(is_boolean=False)
 
     variables = {'a': a, 'b': b, 'c': c, 'f': f, 'g': g, 's1': s1, 's2': s2}
 
