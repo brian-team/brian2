@@ -168,7 +168,8 @@ class MagicNetwork(Network):
         '''
         self._update_magic_objects()
         super(MagicNetwork, self).reinit()
-        
+        self.objects[:] = []
+
     def __str__(self):
         return 'MagicNetwork()'
     __repr__ = __str__
