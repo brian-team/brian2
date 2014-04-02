@@ -19,6 +19,8 @@ The equations may be defined on multiple lines (no explicit line continuation wi
 Comments using ``#`` may also be included. Subunits are not allowed, i.e., one must write ``volt``, not ``mV``. This is
 to make it clear that the values are internally always saved in the basic units, so no confusion can arise when getting
 the values out of a `NeuronGroup` and discarding the units. Compound units are of course allowed as well (e.g. ``farad/meter**2``).
+There are also three special "units" that can be used: ``1`` denotes a dimensionless floating point variable,
+``boolean`` and ``integer`` denote dimensionless variables of the respective kind.
 
 Aliases are no longer available in Brian 2. Some special variables are defined: `t`, `dt` (time) and `xi` (white noise).
 Variable names starting with an underscore and a couple of other names that have special meanings under certain
