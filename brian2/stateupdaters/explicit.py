@@ -249,7 +249,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 if symbol.name == 'dt':
                     unique_symbols.append(symbol)
                 else:
-                    unique_symbols.append(sympy.Symbol('__' + symbol.name))
+                    unique_symbols.append(_symbol('__' + symbol.name))
             for symbol, unique_symbol in zip(symbols, unique_symbols):
                 expression = expression.subs(symbol, unique_symbol)
 

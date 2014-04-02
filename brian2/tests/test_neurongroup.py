@@ -78,6 +78,20 @@ def test_stochastic_variable():
         net = Network(G)
         net.run(defaultclock.dt)
 
+
+def test_stochastic_variable_multiplicative():
+    '''
+    Test that a NeuronGroup with multiplicative noise can be simulated. Only
+    makes sure no error occurs.
+    '''
+    for codeobj_class in codeobj_classes:
+        mu = 0.5/second # drift
+        sigma = 0.1/second #diffusion
+        G = NeuronGroup(1, 'dX/dt = (mu - 0.5*second*sigma**2)*X + X*sigma*xi*second**.5: 1',
+                        codeobj_class=codeobj_class)
+        net = Network(G)
+        net.run(defaultclock.dt)
+
 def test_scalar_variable():
     '''
     Test the correct handling of scalar variables
@@ -568,6 +582,7 @@ if __name__ == '__main__':
     test_variables()
     test_scalar_variable()
     test_stochastic_variable()
+    test_stochastic_variable_multiplicative()
     test_unit_errors()
     test_threshold_reset()
     test_unit_errors_threshold_reset()
