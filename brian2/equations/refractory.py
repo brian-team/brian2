@@ -6,7 +6,7 @@ from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
 
 from .equations import (Equations, SingleEquation, DIFFERENTIAL_EQUATION,
-                        PARAMETER, Expression)
+                        PARAMETER, Expression, BOOLEAN)
 
 __all__ = ['add_refractoriness']
 
@@ -67,7 +67,7 @@ def add_refractoriness(eqs):
     
     # add new parameters
     new_equations.append(SingleEquation(PARAMETER, 'not_refractory', Unit(1),
-                                        is_bool=True))
+                                        var_type=BOOLEAN))
     new_equations.append(SingleEquation(PARAMETER, 'lastspike', second))
 
     return Equations(new_equations)

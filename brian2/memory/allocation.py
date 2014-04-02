@@ -18,7 +18,7 @@ def allocate_array(shape, dtype=None):
         The shape of the array.
     dtype : dtype, optional
         The numpy datatype of the array. If not specified, use the
-        `core.default_scalar_dtype` preference. 
+        `core.default_float_dtype` preference.
         
     Returns
     -------
@@ -26,7 +26,7 @@ def allocate_array(shape, dtype=None):
         The allocated array (initialised to zero).
     '''
     if dtype is None:
-        dtype = brian_prefs['core.default_scalar_dtype']
+        dtype = brian_prefs['core.default_float_dtype']
     arr = zeros(shape, dtype=dtype)
     return arr
 

@@ -2,10 +2,12 @@ import sympy
 import numpy as np
 from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 
-from brian2.groups.neurongroup import NeuronGroup
 from brian2.core.network import Network
+from brian2.core.preferences import brian_prefs
 from brian2.core.clocks import defaultclock
-from brian2.monitors.spikemonitor import SpikeMonitor
+from brian2.equations.equations import Equations
+from brian2.groups.group import get_dtype
+from brian2.groups.neurongroup import NeuronGroup
 from brian2.units.fundamentalunits import (DimensionMismatchError,
                                            have_same_dimensions)
 from brian2.units.allunits import second, volt
@@ -520,6 +522,47 @@ def test_indices():
     assert_equal(G.indices['v >= 5'], np.nonzero(G.v >= 5)[0])
 
 
+def test_get_dtype():
+    '''
+    Check the utility function get_dtype
+    '''
+    eqs = Equations('''dv/dt = -v / (10*ms) : volt
+                       x : 1
+                       b : boolean
+                       n : integer''')
+
+    # Test standard dtypes
+    assert get_dtype(eqs['v']) == brian_prefs['core.default_float_dtype']
+    assert get_dtype(eqs['x']) == brian_prefs['core.default_float_dtype']
+    assert get_dtype(eqs['n']) == brian_prefs['core.default_integer_dtype']
+    assert get_dtype(eqs['b']) == np.bool
+
+    # Test a changed default (float) dtype
+    assert get_dtype(eqs['v'], np.float128) == np.float128, get_dtype(eqs['v'], np.float128)
+    assert get_dtype(eqs['x'], np.float128) == np.float128
+    # integer and boolean variables should be unaffected
+    assert get_dtype(eqs['n']) == brian_prefs['core.default_integer_dtype']
+    assert get_dtype(eqs['b']) == np.bool
+
+    # Explicitly provide a dtype for some variables
+    dtypes = {'v': np.float128, 'x': np.float64, 'n': np.int64}
+    for varname in dtypes:
+        assert get_dtype(eqs[varname], dtypes) == dtypes[varname]
+
+    # Not setting some dtypes should use the standard dtypes
+    dtypes = {'n': np.int64}
+    assert get_dtype(eqs['n'], dtypes) == np.int64
+    assert get_dtype(eqs['v'], dtypes) == brian_prefs['core.default_float_dtype']
+
+    # Test that incorrect types raise an error
+    # incorrect general dtype
+    assert_raises(TypeError, lambda: get_dtype(eqs['v'], np.int32))
+    # incorrect specific types
+    assert_raises(TypeError, lambda: get_dtype(eqs['v'], {'v': np.int32}))
+    assert_raises(TypeError, lambda: get_dtype(eqs['n'], {'n': np.float32}))
+    assert_raises(TypeError, lambda: get_dtype(eqs['b'], {'b': np.int32}))
+
+
 if __name__ == '__main__':
     test_creation()
     test_variables()
@@ -540,3 +583,4 @@ if __name__ == '__main__':
     test_scalar_subexpression()
     test_indices()
     test_repr()
+    test_get_dtype()

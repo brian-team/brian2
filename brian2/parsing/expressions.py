@@ -46,7 +46,7 @@ def is_boolean_expression(expr, variables):
       on whether the function description has the ``_returns_bool`` attribute
       set.
     * The node is a variable name, we return ``True`` or ``False`` depending
-      on whether ``is_bool`` attribute is set or if the name is ``True`` or
+      on whether ``is_boolean`` attribute is set or if the name is ``True`` or
       ``False``.
     * The node is a comparison, we return ``True``.
     * The node is a unary operation, we return ``True`` if the operation is
@@ -68,7 +68,7 @@ def is_boolean_expression(expr, variables):
     elif expr.__class__ is ast.Name:
         name = expr.id
         if name in variables:
-            return variables[name].is_bool
+            return variables[name].is_boolean
         else:
             return name == 'True' or name == 'False'
     elif expr.__class__ is ast.Call:

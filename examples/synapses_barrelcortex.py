@@ -46,9 +46,9 @@ Ap, Ad = Ap*EPSC, Ad*EPSC
 layer4 = NeuronGroup(N4*Nbarrels,
                      '''
                      rate = int(is_active)*clip(cos(direction - selectivity), 0, inf)*Fmax: Hz
-                     is_active = abs((barrel_x + 0.5 - bar_x) * cos(direction) + (barrel_y + 0.5 - bar_y) * sin(direction)) < 0.5: bool
-                     barrel_x : 1 # The x index of the barrel
-                     barrel_y : 1 # The y index of the barrel
+                     is_active = abs((barrel_x + 0.5 - bar_x) * cos(direction) + (barrel_y + 0.5 - bar_y) * sin(direction)) < 0.5: boolean
+                     barrel_x : integer # The x index of the barrel
+                     barrel_y : integer # The y index of the barrel
                      selectivity : 1
                      # Stimulus parameters (same for all neurons)
                      bar_x = cos(direction)*(t - stim_start_time)/(5*ms) + stim_start_x : 1 (scalar)
@@ -60,8 +60,6 @@ layer4 = NeuronGroup(N4*Nbarrels,
                      ''',
                      threshold='rand() < rate*dt',
                      method='euler',
-                     dtype={'barrel_x': int,
-                            'barrel_y': int},
                      name='layer4')
 layer4.barrel_x = '(i / N4) % barrelarraysize + 0.5'
 layer4.barrel_y = 'i / (barrelarraysize*N4) + 0.5'
@@ -87,7 +85,7 @@ dv/dt=(ge+gi+El-v)/taum : volt
 dge/dt=-ge/taue : volt
 dgi/dt=-gi/taui : volt
 dvt/dt=(Vt-vt)/tauvt : volt # adaptation
-barrel_idx : 1
+barrel_idx : integer
 x : 1  # in "barrel width" units
 y : 1  # in "barrel width" units
 '''
@@ -96,7 +94,6 @@ layer23 = NeuronGroup(Nbarrels*(N23exc+N23inh),
                       threshold='v>vt',
                       reset='v=El;vt+=vt_inc',
                       refractory=2*ms,
-                      dtype={'barrel_idx': int},
                       method='euler',
                       name='layer23'
                       )

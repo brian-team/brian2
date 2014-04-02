@@ -16,13 +16,19 @@ from brian2.core.namespace import (DEFAULT_FUNCTIONS,
 from brian2.core.variables import Constant
 from brian2.core.functions import Function
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
-from brian2.units.fundamentalunits import Unit, have_same_dimensions, get_unit
-from brian2.units.allunits import second
+from brian2.units.fundamentalunits import (Unit, Quantity, have_same_dimensions,
+                                           get_unit, DIMENSIONLESS)
+from brian2.units.allunits import (metre, meter, second, amp, kelvin, mole,
+                                   candle, kilogram, radian, steradian, hertz,
+                                   newton, pascal, joule, watt, coulomb, volt,
+                                   farad, ohm, siemens, weber, tesla, henry,
+                                   celsius, lumen, lux, becquerel, gray,
+                                   sievert, katal, kgram, kgramme)
 from brian2.utils.logger import get_logger
 from brian2.utils.topsort import topsort
 
 from .codestrings import Expression
-from .unitcheck import unit_from_string, check_unit
+from .unitcheck import check_unit
 
 
 __all__ = ['Equations']
@@ -35,6 +41,13 @@ PARAMETER = 'parameter'
 DIFFERENTIAL_EQUATION = 'differential equation'
 SUBEXPRESSION = 'subexpression'
 
+# variable types (FLOAT is the only one that is possible for variables that
+# have dimensions). These types will be later translated into dtypes, either
+# using the default values from the preferences, or explicitly given dtypes in
+# the construction of the `NeuronGroup`, `Synapses`, etc. object
+FLOAT = 'float'
+INTEGER = 'integer'
+BOOLEAN = 'boolean'
 
 # Definitions of equation structure for parsing with pyparsing
 # TODO: Maybe move them somewhere else to not pollute the namespace here?
@@ -188,6 +201,77 @@ def check_identifier_constants(identifier):
                          'variable name.' % identifier)
 
 
+def unit_and_type_from_string(unit_string):
+    '''
+    Returns the unit that results from evaluating a string like
+    "siemens / metre ** 2", allowing for the special string "1" to signify
+    dimensionless units, the string "boolean" for a boolean and "integer" for
+    an integer variable.
+
+    Parameters
+    ----------
+    unit_string : str
+        The string that should evaluate to a unit
+
+    Returns
+    -------
+    u, type : (Unit, {FLOAT, INTEGER or BOOL})
+        The resulting unit and the type of the variable.
+
+    Raises
+    ------
+    ValueError
+        If the string cannot be evaluated to a unit.
+    '''
+
+    # We avoid using DEFAULT_NUMPY_NAMESPACE here as importing core.namespace
+    # would introduce a circular dependency between it and the equations
+    # package
+    base_units = [metre, meter, second, amp, kelvin, mole, candle, kilogram,
+                  radian, steradian, hertz, newton, pascal, joule, watt,
+                  coulomb, volt, farad, ohm, siemens, weber, tesla, henry,
+                  celsius, lumen, lux, becquerel, gray, sievert, katal, kgram,
+                  kgramme]
+    namespace = dict((repr(unit), unit) for unit in base_units)
+    namespace['Hz'] = hertz  # Also allow Hz instead of hertz
+    unit_string = unit_string.strip()
+
+    # Special case: dimensionless unit
+    if unit_string == '1':
+        return Unit(1, dim=DIMENSIONLESS), FLOAT
+
+    # Another special case: boolean variable
+    if unit_string == 'boolean':
+        return Unit(1, dim=DIMENSIONLESS), BOOLEAN
+
+    # Yet another special case: integer variable
+    if unit_string == 'integer':
+        return Unit(1, dim=DIMENSIONLESS), INTEGER
+
+    # Check first whether the expression evaluates at all, using only base units
+    try:
+        evaluated_unit = eval(unit_string, namespace)
+    except Exception as ex:
+        raise ValueError(('"%s" does not evaluate to a unit when only using '
+                          'base units (e.g. volt but not mV): %s') %
+                         (unit_string, ex))
+
+    # Check whether the result is a unit
+    if not isinstance(evaluated_unit, Unit):
+        if isinstance(evaluated_unit, Quantity):
+            raise ValueError(('"%s" does not evaluate to a unit but to a '
+                              'quantity -- make sure to only use units, e.g. '
+                              '"siemens/metre**2" and not "1 * siemens/metre**2"') %
+                             unit_string)
+        else:
+            raise ValueError(('"%s" does not evaluate to a unit, the result '
+                             'has type %s instead.' % (unit_string,
+                                                       type(evaluated_unit))))
+
+    # No error has been raised, all good
+    return evaluated_unit, FLOAT
+
+
 def parse_string_equations(eqns):
     """
     Parse a string defining equations.
@@ -218,12 +302,8 @@ def parse_string_equations(eqns):
         identifier = eq_content['identifier']
 
         # Convert unit string to Unit object
-        unit = unit_from_string(eq_content['unit'])
-        is_bool = unit is True
-        if is_bool:
-            unit = Unit(1)
-            if eq_type == DIFFERENTIAL_EQUATION:
-                raise EquationError('Differential equations cannot be boolean')
+        unit, var_type = unit_and_type_from_string(eq_content['unit'])
+
         expression = eq_content.get('expression', None)
         if not expression is None:
             # Replace multiple whitespaces (arising from joining multiline
@@ -232,7 +312,7 @@ def parse_string_equations(eqns):
             expression = Expression(p.sub(' ', expression))
         flags = list(eq_content.get('flags', []))
 
-        equation = SingleEquation(eq_type, identifier, unit, is_bool=is_bool,
+        equation = SingleEquation(eq_type, identifier, unit, var_type=var_type,
                                   expr=expression, flags=flags)
 
         if identifier in equations:
@@ -260,9 +340,8 @@ class SingleEquation(object):
         The variable that is defined by this equation.
     unit : Unit
         The unit of the variable
-    is_bool : bool, optional
-        Whether this variable is a boolean variable (implies it is
-        dimensionless as well). Defaults to ``False``.
+    var_type : {FLOAT, BOOLEAN}
+        The type of the variable (floating point value or boolean).
     expr : `Expression`, optional
         The expression defining the variable (or ``None`` for parameters).        
     flags: list of str, optional
@@ -271,14 +350,21 @@ class SingleEquation(object):
         context.
     
     '''
-    def __init__(self, type, varname, unit, is_bool=False, expr=None,
+    def __init__(self, type, varname, unit, var_type=FLOAT, expr=None,
                  flags=None):
         self.type = type
         self.varname = varname
         self.unit = unit
-        self.is_bool = is_bool
-        if is_bool and not have_same_dimensions(unit, 1):
-            raise ValueError('Boolean variables are necessarily dimensionless.')
+        self.var_type = var_type
+        if not have_same_dimensions(unit, 1):
+            if var_type == BOOLEAN:
+                raise TypeError('Boolean variables are necessarily dimensionless.')
+            elif var_type == INTEGER:
+                raise TypeError('Integer variables are necessarily dimensionless.')
+
+        if type == DIFFERENTIAL_EQUATION:
+            if var_type != FLOAT:
+                raise TypeError('Differential equations can only define floating point variables')
         self.expr = expr
         if flags is None:
             self.flags = []
@@ -744,15 +830,7 @@ class Equations(collections.Mapping):
         resolved_namespace = group.resolve_all(external,
                                                run_namespace=run_namespace,
                                                level=level+1)
-
-        for name, item in resolved_namespace.iteritems():
-            if isinstance(item, Function):
-                all_variables[name] = item
-            else:
-                unit = get_unit(item)
-                array_value = np.asarray(item)
-                all_variables[name] = Constant(name, unit=unit, value=array_value)
-
+        all_variables.update(resolved_namespace)
         for var, eq in self._equations.iteritems():
             if eq.type == PARAMETER:
                 # no need to check units for parameters

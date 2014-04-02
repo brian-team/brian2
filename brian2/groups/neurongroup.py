@@ -5,7 +5,7 @@ import numpy as np
 import sympy
 
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
-                                        SUBEXPRESSION, PARAMETER)
+                                        SUBEXPRESSION, PARAMETER, BOOLEAN)
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.translation import analyse_identifiers
@@ -20,7 +20,7 @@ from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
 
 
-from .group import Group, CodeRunner, dtype_dictionary
+from .group import Group, CodeRunner, get_dtype
 from .subgroup import Subgroup
 
 
@@ -218,7 +218,7 @@ class NeuronGroup(Group, SpikeSource):
         The `numpy.dtype` that will be used to store the values, or a
         dictionary specifying the type for variable names. If a value is not
         provided for a variable (or no value is provided at all), the preference
-        setting `core.default_scalar_dtype` is used.
+        setting `core.default_float_dtype` is used.
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
     clock : Clock, optional
@@ -373,7 +373,7 @@ class NeuronGroup(Group, SpikeSource):
 
         return Subgroup(self, start, stop)
 
-    def _create_variables(self, dtype=None):
+    def _create_variables(self, user_dtype=None):
         '''
         Create the variables dictionary for this `NeuronGroup`, containing
         entries for the equation variables and some standard entries.
@@ -381,8 +381,6 @@ class NeuronGroup(Group, SpikeSource):
         self.variables = Variables(self)
         self.variables.add_clock_variables(self.clock)
         self.variables.add_constant('N', Unit(1), self._N)
-
-        dtype = dtype_dictionary(dtype)
 
         # Standard variables always present
         self.variables.add_array('_spikespace', unit=Unit(1), size=self._N+1,
@@ -392,20 +390,22 @@ class NeuronGroup(Group, SpikeSource):
                                   read_only=True)
 
         for eq in self.equations.itervalues():
+            dtype = get_dtype(eq, user_dtype)
+
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = 'constant' in eq.flags
                 scalar = 'scalar' in eq.flags
                 size = 1 if scalar else self._N
                 index = '0' if scalar else None
                 self.variables.add_array(eq.varname, size=size,
-                                         unit=eq.unit, dtype=dtype[eq.varname],
-                                         constant=constant, is_bool=eq.is_bool,
+                                         unit=eq.unit, dtype=dtype,
+                                         constant=constant,
                                          scalar=scalar,
                                          index=index)
             elif eq.type == SUBEXPRESSION:
                 self.variables.add_subexpression(eq.varname, unit=eq.unit,
                                                  expr=str(eq.expr),
-                                                 is_bool=eq.is_bool,
+                                                 dtype=dtype,
                                                  scalar='scalar' in eq.flags)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)

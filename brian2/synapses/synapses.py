@@ -5,7 +5,6 @@ Module providing the `Synapses` class and related helper classes/functions.
 import collections
 from collections import defaultdict
 import weakref
-import itertools
 import re
 
 import numpy as np
@@ -16,7 +15,7 @@ from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER)
-from brian2.groups.group import Group, CodeRunner, dtype_dictionary
+from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
 from brian2.units.fundamentalunits import (Unit, Quantity,
@@ -385,7 +384,7 @@ class Synapses(Group):
         The `numpy.dtype` that will be used to store the values, or a
         dictionary specifying the type for variable names. If a value is not
         provided for a variable (or no value is provided at all), the preference
-        setting `core.default_scalar_dtype` is used.
+        setting `core.default_float_dtype` is used.
     codeobj_class : class, optional
         The `CodeObject` class to use to run code.
     clock : `Clock`, optional
@@ -635,13 +634,11 @@ class Synapses(Group):
         self.contained_objects.append(updater)
         return objname
 
-    def _create_variables(self, equations, dtype=None):
+    def _create_variables(self, equations, user_dtype=None):
         '''
         Create the variables dictionary for this `Synapses`, containing
         entries for the equation variables and some standard entries.
         '''
-        dtype = dtype_dictionary(dtype)
-
         self.variables = Variables(self)
 
         # Standard variables always present
@@ -689,15 +686,15 @@ class Synapses(Group):
                                               constant=True)
 
         for eq in equations.itervalues():
+            dtype = get_dtype(eq, user_dtype)
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = 'constant' in eq.flags
                 scalar = 'scalar' in eq.flags
                 if scalar:
                     self.variables.add_array(eq.varname, size=1,
                                              unit=eq.unit,
-                                             dtype=dtype[eq.varname],
+                                             dtype=dtype,
                                              constant=constant,
-                                             is_bool=eq.is_bool,
                                              scalar=True,
                                              index='0')
                 else:
@@ -707,9 +704,8 @@ class Synapses(Group):
                     # array
                     self.variables.add_dynamic_array(eq.varname, size=0,
                                                      unit=eq.unit,
-                                                     dtype=dtype[eq.varname],
-                                                     constant=constant,
-                                                     is_bool=eq.is_bool)
+                                                     dtype=dtype,
+                                                     constant=constant)
             elif eq.type == SUBEXPRESSION:
                 if 'summed' in eq.flags:
                     # Give a special name to the subexpression for summed
@@ -720,8 +716,8 @@ class Synapses(Group):
                     varname = eq.varname
                 self.variables.add_subexpression(varname, unit=eq.unit,
                                                  expr=str(eq.expr),
-                                                 is_bool=eq.is_bool,
-                                                 scalar='scalar' in eq.flags)
+                                                 scalar='scalar' in eq.flags,
+                                                 dtype=dtype)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 

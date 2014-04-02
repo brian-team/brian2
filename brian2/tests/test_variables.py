@@ -13,7 +13,7 @@ from brian2.units.allunits import second
 def test_construction_errors():
     # Boolean variable that isn't dimensionless
     assert_raises(ValueError, lambda: Variable(name='name', unit=second,
-                                               is_bool=True))
+                                               dtype=np.bool))
 
     # Dynamic array variable that is constant but not constant in size
     assert_raises(ValueError, lambda: DynamicArrayVariable(name='name',

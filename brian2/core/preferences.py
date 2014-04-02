@@ -133,8 +133,8 @@ class BrianGlobalPreferences(MutableMapping):
     set a preference, you can either use a dictionary-based or an
     attribute-based interface::
     
-        brian_prefs['core.default_scalar_dtype'] = float32
-        brian_prefs.core.default_scalar_dtype = float32
+        brian_prefs['core.default_float_dtype'] = float32
+        brian_prefs.core.default_float_dtype = float32
         
     Preferences can be read from files, see `load_preferences` and
     `read_preference_file`. Note that `load_preferences` is called
