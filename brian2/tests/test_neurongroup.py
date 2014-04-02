@@ -552,14 +552,14 @@ def test_get_dtype():
     assert get_dtype(eqs['b']) == np.bool
 
     # Test a changed default (float) dtype
-    assert get_dtype(eqs['v'], np.float128) == np.float128, get_dtype(eqs['v'], np.float128)
-    assert get_dtype(eqs['x'], np.float128) == np.float128
+    assert get_dtype(eqs['v'], np.float32) == np.float32, get_dtype(eqs['v'], np.float32)
+    assert get_dtype(eqs['x'], np.float32) == np.float32
     # integer and boolean variables should be unaffected
     assert get_dtype(eqs['n']) == brian_prefs['core.default_integer_dtype']
     assert get_dtype(eqs['b']) == np.bool
 
     # Explicitly provide a dtype for some variables
-    dtypes = {'v': np.float128, 'x': np.float64, 'n': np.int64}
+    dtypes = {'v': np.float32, 'x': np.float64, 'n': np.int64}
     for varname in dtypes:
         assert get_dtype(eqs[varname], dtypes) == dtypes[varname]
 
