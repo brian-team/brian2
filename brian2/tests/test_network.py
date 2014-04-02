@@ -1,9 +1,16 @@
-from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
-                    run, stop, NetworkOperation, network_operation,
-                    restore_initial_state, MagicError, magic_network, clear)
 import copy
+
+import numpy as np
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
+
+from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
+                    run, stop, NetworkOperation, network_operation,
+                    restore_initial_state, MagicError, magic_network, clear,
+                    NeuronGroup, StateMonitor)
+from brian2.utils.proxy import Proxy
+
+
 
 
 @with_setup(teardown=restore_initial_state)
@@ -318,6 +325,46 @@ def test_network_access():
     assert_raises(TypeError, lambda: net.__delitem__(slice(1, 3)))
     assert_raises(KeyError, lambda: net.__delitem__('counter'))
 
+@with_setup(teardown=restore_initial_state)
+def test_proxy():
+    '''
+    Make sure that `Proxy` objects do not make objects get included in `MagicNetwork`.
+    '''
+    updates[:] = []
+    x = NameLister(name='x')
+    y = NameLister(name='y')
+    p = Proxy(y)
+    del y
+    run(defaultclock.dt)
+    # Object y should not have been run
+    assert updates == ['x']
+    # Proxy should still work
+    assert p.name == 'y'
+
+
+@with_setup(teardown=restore_initial_state)
+def test_loop_with_proxies():
+    '''
+    Somewhat realistic test with a loop of magic networks and proxy objects
+    '''
+    updates[:] = []
+    def run_simulation():
+        G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
+                        reset='v=0', threshold='v>1')
+        G.v = np.linspace(0, 1, 10)
+        run(1*ms)
+        # We return potentially problematic references to a VariableView
+        return G.v
+
+    # First run
+    v = run_simulation()
+    print v
+    assert v[0] == 0 and 0 < v[-1] < 1
+
+    # Second run
+    v = run_simulation()
+    assert v[0] == 0 and 0 < v[-1] < 1
+
 
 if __name__=='__main__':
     for t in [test_empty_network,
@@ -334,7 +381,9 @@ if __name__=='__main__':
               test_network_remove,
               test_network_copy,
               test_invalid_magic_network,
-              test_network_access
+              test_network_access,
+              test_proxy,
+              test_loop_with_proxies
               ]:
         t()
         restore_initial_state()
