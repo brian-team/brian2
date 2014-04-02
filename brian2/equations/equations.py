@@ -205,7 +205,8 @@ def unit_and_type_from_string(unit_string):
     '''
     Returns the unit that results from evaluating a string like
     "siemens / metre ** 2", allowing for the special string "1" to signify
-    dimensionless units and the string "bool" to mark a boolean variable.
+    dimensionless units, the string "boolean" for a boolean and "integer" for
+    an integer variable.
 
     Parameters
     ----------
@@ -214,7 +215,7 @@ def unit_and_type_from_string(unit_string):
 
     Returns
     -------
-    u, type : (Unit, {FLOAT or BOOL})
+    u, type : (Unit, {FLOAT, INTEGER or BOOL})
         The resulting unit and the type of the variable.
 
     Raises
@@ -242,6 +243,10 @@ def unit_and_type_from_string(unit_string):
     # Another special case: boolean variable
     if unit_string == 'boolean':
         return Unit(1, dim=DIMENSIONLESS), BOOLEAN
+
+    # Yet another special case: integer variable
+    if unit_string == 'integer':
+        return Unit(1, dim=DIMENSIONLESS), INTEGER
 
     # Check first whether the expression evaluates at all, using only base units
     try:
@@ -298,10 +303,7 @@ def parse_string_equations(eqns):
 
         # Convert unit string to Unit object
         unit, var_type = unit_and_type_from_string(eq_content['unit'])
-        if var_type == BOOLEAN:
-            unit = Unit(1)
-            if eq_type == DIFFERENTIAL_EQUATION:
-                raise EquationError('Differential equations cannot be boolean')
+
         expression = eq_content.get('expression', None)
         if not expression is None:
             # Replace multiple whitespaces (arising from joining multiline
@@ -354,8 +356,15 @@ class SingleEquation(object):
         self.varname = varname
         self.unit = unit
         self.var_type = var_type
-        if var_type == 'BOOLEAN' and not have_same_dimensions(unit, 1):
-            raise ValueError('Boolean variables are necessarily dimensionless.')
+        if not have_same_dimensions(unit, 1):
+            if var_type == BOOLEAN:
+                raise TypeError('Boolean variables are necessarily dimensionless.')
+            elif var_type == INTEGER:
+                raise TypeError('Integer variables are necessarily dimensionless.')
+
+        if type == DIFFERENTIAL_EQUATION:
+            if var_type != FLOAT:
+                raise TypeError('Differential equations can only define floating point variables')
         self.expr = expr
         if flags is None:
             self.flags = []

@@ -2,7 +2,7 @@
 This module defines the `Group` object, a mix-in class for everything that
 saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
-from collections import defaultdict
+import collections
 import weakref
 try:
     from collections import OrderedDict
@@ -23,6 +23,7 @@ from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_CONSTANTS)
 from brian2.core.scheduler import Scheduler
 from brian2.devices.device import device_override
+from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit)
 from brian2.utils.logger import get_logger
@@ -59,32 +60,61 @@ def _conflict_warning(message, resolutions):
                 'Group.resolve.resolution_conflict', once=True)
 
 
-def dtype_dictionary(dtype=None):
+def get_dtype(equation, dtype=None):
     '''
     Helper function to interpret the `dtype` keyword argument in `NeuronGroup`
     etc.
 
     Parameters
     ----------
+    equation : `SingleEquation`
+        The equation for which a dtype should be returned
     dtype : `dtype` or dict, optional
-        Either the `dtype` to be used as a default dtype for all variables
+        Either the `dtype` to be used as a default dtype for all float variables
         (instead of the `core.default_float_dtype` preference) or a
         dictionary stating the `dtype` for some variables; all other variables
         will use the preference default
 
     Returns
     -------
-    dtype_dict : defaultdict
-        A dictionary mapping variable names to dtypes.
+    d : `dtype`
+        The dtype for the variable defined in `equation`
     '''
-    if dtype is None:
-        return defaultdict(lambda: brian_prefs['core.default_float_dtype'])
-    elif isinstance(dtype, np.dtype):
-        return defaultdict(lambda: dtype)
+    # Check explicitly provided dtype for compatibility with the variable type
+    if isinstance(dtype, collections.Mapping):
+        if equation.varname in dtype:
+            BASIC_TYPES = {BOOLEAN: 'b',
+                           INTEGER: 'iu',
+                           FLOAT: 'f'}
+            provided_dtype = np.dtype(dtype[equation.varname])
+            if not provided_dtype.kind in BASIC_TYPES[equation.var_type]:
+                raise TypeError(('Error determining dtype for variable %s: %s '
+                                 'is not a correct type for %s variables') % (equation.varname,
+                                                              provided_dtype.name,
+                                                              equation.var_type))
+            else:
+                return dtype[equation.varname]
+        else:  # continue as if no dtype had been specified at all
+            dtype = None
+
+    # Use default dtypes (or a provided standard dtype for floats)
+    if equation.var_type == BOOLEAN:
+        return np.bool
+    elif equation.var_type == INTEGER:
+        return brian_prefs['core.default_integer_dtype']
+    elif equation.var_type == FLOAT:
+        if dtype is not None:
+            dtype = np.dtype(dtype)
+            if not dtype.kind == 'f':
+                raise TypeError(('%s is not a valid floating point '
+                                 'dtype') % dtype)
+            return dtype
+        else:
+            return brian_prefs['core.default_float_dtype']
     else:
-        dtype_dict = defaultdict(lambda: brian_prefs['core.default_float_dtype'])
-        dtype_dict.update(dtype)
-        return dtype_dict
+        raise ValueError(('Do not know how to determine a dtype for '
+                          'variable %s of type %s' ) % (equation.varname,
+                                                        equation.var_type))
 
 
 def _same_value(obj1, obj2):

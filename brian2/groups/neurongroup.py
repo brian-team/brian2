@@ -20,7 +20,7 @@ from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
 
 
-from .group import Group, CodeRunner, dtype_dictionary
+from .group import Group, CodeRunner, get_dtype
 from .subgroup import Subgroup
 
 
@@ -373,7 +373,7 @@ class NeuronGroup(Group, SpikeSource):
 
         return Subgroup(self, start, stop)
 
-    def _create_variables(self, dtype=None):
+    def _create_variables(self, user_dtype=None):
         '''
         Create the variables dictionary for this `NeuronGroup`, containing
         entries for the equation variables and some standard entries.
@@ -381,8 +381,6 @@ class NeuronGroup(Group, SpikeSource):
         self.variables = Variables(self)
         self.variables.add_clock_variables(self.clock)
         self.variables.add_constant('N', Unit(1), self._N)
-
-        dtypes = dtype_dictionary(dtype)
 
         # Standard variables always present
         self.variables.add_array('_spikespace', unit=Unit(1), size=self._N+1,
@@ -392,10 +390,8 @@ class NeuronGroup(Group, SpikeSource):
                                   read_only=True)
 
         for eq in self.equations.itervalues():
-            if eq.var_type == BOOLEAN:
-                dtype = np.bool
-            else:
-                dtype = dtypes[eq.varname]
+            dtype = get_dtype(eq, user_dtype)
+
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = 'constant' in eq.flags
                 scalar = 'scalar' in eq.flags

@@ -14,8 +14,8 @@ from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
-                                        PARAMETER, BOOLEAN)
-from brian2.groups.group import Group, CodeRunner, dtype_dictionary
+                                        PARAMETER)
+from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
 from brian2.units.fundamentalunits import (Unit, Quantity,
@@ -634,13 +634,11 @@ class Synapses(Group):
         self.contained_objects.append(updater)
         return objname
 
-    def _create_variables(self, equations, dtype=None):
+    def _create_variables(self, equations, user_dtype=None):
         '''
         Create the variables dictionary for this `Synapses`, containing
         entries for the equation variables and some standard entries.
         '''
-        dtypes = dtype_dictionary(dtype)
-
         self.variables = Variables(self)
 
         # Standard variables always present
@@ -688,10 +686,7 @@ class Synapses(Group):
                                               constant=True)
 
         for eq in equations.itervalues():
-            if eq.var_type == BOOLEAN:
-                dtype = np.bool
-            else:
-                dtype = dtypes[eq.varname]
+            dtype = get_dtype(eq, user_dtype)
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = 'constant' in eq.flags
                 scalar = 'scalar' in eq.flags
