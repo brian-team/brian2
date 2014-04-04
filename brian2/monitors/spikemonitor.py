@@ -29,6 +29,7 @@ class SpikeMonitor(Group, CodeRunner):
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
     '''
+    add_to_magic_network = True
     def __init__(self, source, record=True, when=None, name='spikemonitor*',
                  codeobj_class=None):
         self.record = bool(record)

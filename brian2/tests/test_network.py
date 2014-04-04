@@ -7,10 +7,8 @@ from nose import with_setup
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
                     restore_initial_state, MagicError, magic_network, clear,
-                    NeuronGroup, StateMonitor)
+                    NeuronGroup)
 from brian2.utils.proxy import Proxy
-
-
 
 
 @with_setup(teardown=restore_initial_state)
@@ -20,6 +18,7 @@ def test_empty_network():
     net.run(1*second)
 
 class Counter(BrianObject):
+    add_to_magic_network = True
     def __init__(self, **kwds):
         super(Counter, self).__init__(**kwds)
         self.count = 0
@@ -52,6 +51,7 @@ def test_network_two_objects():
 
 updates = []
 class NameLister(BrianObject):
+    add_to_magic_network = True
     def __init__(self, **kwds):
         super(NameLister, self).__init__(**kwds)
 
@@ -80,6 +80,7 @@ def test_network_different_when():
     assert_equal(''.join(updates), 'xyxyxy')
 
 class Preparer(BrianObject):
+    add_to_magic_network = True
     def __init__(self, **kwds):
         super(Preparer, self).__init__(**kwds)
         self.did_reinit = False
@@ -120,6 +121,7 @@ def test_magic_network():
     assert_equal(y.count, 100)
 
 class Stopper(BrianObject):
+    add_to_magic_network = True
     def __init__(self, stoptime, stopfunc, **kwds):
         super(Stopper, self).__init__(**kwds)
         self.stoptime = stoptime
@@ -266,6 +268,7 @@ def test_network_copy():
     assert_equal(x.count, 20)
 
 class NoninvalidatingCounter(Counter):
+    add_to_magic_network = True
     invalidates_magic_network = False
 
 @with_setup(teardown=restore_initial_state)
@@ -358,7 +361,6 @@ def test_loop_with_proxies():
 
     # First run
     v = run_simulation()
-    print v
     assert v[0] == 0 and 0 < v[-1] < 1
 
     # Second run

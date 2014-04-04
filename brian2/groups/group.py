@@ -162,7 +162,7 @@ class IndexWrapper(object):
     `synapses.calc_indices((10, slice(None))`.
     '''
     def __init__(self, group):
-        self.group = Proxy(group)
+        self.group = weakref.proxy(group)
 
     def __getitem__(self, item):
         if isinstance(item, basestring):

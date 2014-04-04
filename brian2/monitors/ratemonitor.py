@@ -24,6 +24,8 @@ class PopulationRateMonitor(Group, CodeRunner):
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
     '''
+    add_to_magic_network = True
+
     def __init__(self, source, name='ratemonitor*',
                  codeobj_class=None):
 
