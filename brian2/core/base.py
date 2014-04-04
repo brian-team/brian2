@@ -67,7 +67,14 @@ class BrianObject(Nameable):
 
     #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is created or removed
     invalidates_magic_network = True
-    
+
+    #: Whether or not the object should be added to a `MagicNetwork`. Note that
+    #: all objects in `BrianObject.contained_objects` are automatically added
+    #: when the parent object is added, therefore e.g. `NeuronGroup` should set
+    #: `add_to_magic_network` to ``True``, but it should not be set for all the
+    #: dependent objects such as `StateUpdater`
+    add_to_magic_network = False
+
     def before_run(self, run_namespace=None, level=0):
         '''
         Optional method to prepare the object before a run.

@@ -21,6 +21,7 @@ class NetworkOperation(BrianObject):
     
     network_operation, Network, BrianObject
     """
+    add_to_magic_network = True
     def __init__(self, function, when=None):
         BrianObject.__init__(self, when=when, name='networkoperation*')
         

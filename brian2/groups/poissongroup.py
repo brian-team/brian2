@@ -28,6 +28,8 @@ class PoissonGroup(Group, SpikeSource):
         Unique name, or use poissongroup, poissongroup_1, etc.
 
     '''
+    add_to_magic_network = True
+
     @check_units(rates=Hz)
     def __init__(self, N, rates, clock=None, name='poissongroup*',
                  codeobj_class=None):

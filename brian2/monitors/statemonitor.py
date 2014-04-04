@@ -132,6 +132,7 @@ class StateMonitor(Group, CodeRunner):
         show()
 
     '''
+    add_to_magic_network = True
     def __init__(self, source, variables, record=None, when=None,
                  name='statemonitor*', codeobj_class=None):
         self.source = weakref.proxy(source)

@@ -14,6 +14,30 @@ __all__ = ['MagicNetwork', 'magic_network',
 logger = get_logger(__name__)
 
 
+def _get_contained_objects(obj):
+    '''
+    Helper function to recursively get all contained objects.
+
+    Parameters
+    ----------
+    obj : `BrianObject`
+        An object that (potentially) contains other objects, e.g. a
+        `NeuronGroup` contains a `StateUpdater`, etc.
+
+    Returns
+    -------
+    l : list of `BrianObject`
+        A list of all the objects contained in `obj`
+    '''
+    l = []
+    contained_objects = getattr(obj, 'contained_objects', [])
+    l.extend(contained_objects)
+    for contained_obj in contained_objects:
+        l.extend(_get_contained_objects(contained_obj))
+
+    return l
+
+
 class MagicError(Exception):
     '''
     Error that is raised when something goes wrong in `MagicNetwork`
@@ -119,9 +143,20 @@ class MagicNetwork(Network):
         raise MagicError("Cannot directly modify MagicNetwork")
     
     def _update_magic_objects(self):
+        # Go through all the objects and ignore those that are only referred to
+        # by Proxy objects (e.g. because a Monitor holds a reference to them)
+        valid_refs = set()
+        all_objects = set()
+        for obj in BrianObject.__instances__():
+            obj = obj()
+            if obj is None:
+                continue
+            all_objects.add(obj)
+            if obj.invalidates_magic_network:
+                valid_refs.add(weakref.ref(obj))
+
         # check whether we should restart time, continue time, or raise an
         # error
-        valid_refs = set(r for r in BrianObject.__instances__() if r().invalidates_magic_network)
         inter = valid_refs.intersection(self._previous_refs)
 
         if len(inter)==0:
@@ -133,15 +168,18 @@ class MagicNetwork(Network):
         else:
             raise MagicError("Brian cannot guess what you intend to do here, see docs for MagicNetwork for details")
         self._previous_refs = valid_refs
-        self.objects[:] = [weakref.proxy(obj()) for obj in BrianObject.__instances__()]
+        self.objects[:] = list(all_objects)
         logger.debug("Updated MagicNetwork to include {numobjs} objects "
                      "with names {names}".format(
                         numobjs=len(self.objects),
                         names=', '.join(obj.name for obj in self.objects)))
 
-    def before_run(self, run_namespace, level=0):
+    def before_run(self, run_namespace=None, level=0):
         self._update_magic_objects()
         Network.before_run(self, run_namespace, level=level+1)
+
+    def after_run(self):
+        self.objects[:] = []
 
     def reinit(self):
         '''

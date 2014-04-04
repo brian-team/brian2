@@ -1,10 +1,13 @@
-from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
-                    run, stop, NetworkOperation, network_operation,
-                    restore_initial_state, MagicError, magic_network, clear)
 import copy
+
+import numpy as np
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
 
+from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
+                    run, stop, NetworkOperation, network_operation,
+                    restore_initial_state, MagicError, magic_network, clear,
+                    NeuronGroup, StateMonitor)
 
 @with_setup(teardown=restore_initial_state)
 def test_empty_network():
@@ -13,6 +16,7 @@ def test_empty_network():
     net.run(1*second)
 
 class Counter(BrianObject):
+    add_to_magic_network = True
     def __init__(self, **kwds):
         super(Counter, self).__init__(**kwds)
         self.count = 0
@@ -45,6 +49,7 @@ def test_network_two_objects():
 
 updates = []
 class NameLister(BrianObject):
+    add_to_magic_network = True
     def __init__(self, **kwds):
         super(NameLister, self).__init__(**kwds)
 
@@ -73,6 +78,7 @@ def test_network_different_when():
     assert_equal(''.join(updates), 'xyxyxy')
 
 class Preparer(BrianObject):
+    add_to_magic_network = True
     def __init__(self, **kwds):
         super(Preparer, self).__init__(**kwds)
         self.did_reinit = False
@@ -113,6 +119,7 @@ def test_magic_network():
     assert_equal(y.count, 100)
 
 class Stopper(BrianObject):
+    add_to_magic_network = True
     def __init__(self, stoptime, stopfunc, **kwds):
         super(Stopper, self).__init__(**kwds)
         self.stoptime = stoptime
@@ -259,6 +266,7 @@ def test_network_copy():
     assert_equal(x.count, 20)
 
 class NoninvalidatingCounter(Counter):
+    add_to_magic_network = True
     invalidates_magic_network = False
 
 @with_setup(teardown=restore_initial_state)
@@ -319,6 +327,30 @@ def test_network_access():
     assert_raises(KeyError, lambda: net.__delitem__('counter'))
 
 
+@with_setup(teardown=restore_initial_state)
+def test_loop():
+    '''
+    Somewhat realistic test with a loop of magic networks and proxy objects
+    '''
+    updates[:] = []
+    def run_simulation():
+        G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
+                        reset='v=0', threshold='v>1')
+        G.v = np.linspace(0, 1, 10)
+        run(1*ms)
+        # We return potentially problematic references to a VariableView
+        return G.v
+
+    # First run
+    v = run_simulation()
+    print v
+    assert v[0] == 0 and 0 < v[-1] < 1
+
+    # Second run
+    v = run_simulation()
+    assert v[0] == 0 and 0 < v[-1] < 1
+
+
 if __name__=='__main__':
     for t in [test_empty_network,
               test_network_single_object,
@@ -334,7 +366,8 @@ if __name__=='__main__':
               test_network_remove,
               test_network_copy,
               test_invalid_magic_network,
-              test_network_access
+              test_network_access,
+              test_loop
               ]:
         t()
         restore_initial_state()
