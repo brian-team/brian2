@@ -1,7 +1,8 @@
-import sys
-import brian2
+from collections import defaultdict
+import weakref
 
 __all__ = ['Proxy', 'get_proxy_count']
+
 
 # Modified from http://code.activestate.com/recipes/496741-object-proxying/
 class Proxy(object):
@@ -33,7 +34,7 @@ class Proxy(object):
     _special_names = [
         '__abs__', '__add__', '__and__', '__call__', '__cmp__', '__coerce__', 
         '__contains__', '__delitem__', '__delslice__', '__div__', '__divmod__', 
-        '__eq__', '__float__', '__floordiv__', '__ge__', '__getitem__', 
+        '__eq__', '__float__', '__floordiv__', '__ge__', '__getitem__',
         '__getslice__', '__gt__', '__hash__', '__hex__', '__iadd__', '__iand__',
         '__idiv__', '__idivmod__', '__ifloordiv__', '__ilshift__', '__imod__', 
         '__imul__', '__int__', '__invert__', '__ior__', '__ipow__', '__irshift__', 
@@ -74,20 +75,20 @@ class Proxy(object):
             cache = cls.__dict__["_class_proxy_cache"]
         except KeyError:
             cls._class_proxy_cache = cache = {}
-            cls._instance_count = {}
+            cls._instance_count = defaultdict(list)
         try:
             theclass = cache[obj.__class__]
         except KeyError:
             cache[obj.__class__] = theclass = cls._create_class_proxy(obj.__class__)
-        if id(obj) not in cls._instance_count:
-            cls._instance_count[id(obj)] = 0
-        cls._instance_count[id(obj)] += 1
         ins = object.__new__(theclass)
         theclass.__init__(ins, obj, *args, **kwargs)
+        cls._instance_count[id(obj)].append(weakref.ref(ins))
         return ins
 
 
 def get_proxy_count(obj):
     if not hasattr(Proxy, '_instance_count'):
         return 0
-    return Proxy._instance_count.get(id(obj), 0)
+    ref_list = Proxy._instance_count.get(id(obj), [])
+    ref_list[:] = [element for element in ref_list if element() is not None]
+    return len(ref_list)

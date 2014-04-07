@@ -8,6 +8,7 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
                     restore_initial_state, MagicError, magic_network, clear,
                     NeuronGroup)
+from brian2.utils.logger import catch_logs
 from brian2.utils.proxy import Proxy
 
 
@@ -360,12 +361,20 @@ def test_loop_with_proxies():
         return G.v
 
     # First run
-    v = run_simulation()
-    assert v[0] == 0 and 0 < v[-1] < 1
+    with catch_logs('DEBUG') as l:
+        v = run_simulation()
+        assert v[0] == 0 and 0 < v[-1] < 1
+        # Extract the relevant debug messages
+        messages = [m for _, source, m in l if source == 'brian2.core.network.before_run']
+        assert '4 objects' in messages[0] # NeuronGroup, StateUpdater, Thresholder, Resetter
 
     # Second run
-    v = run_simulation()
-    assert v[0] == 0 and 0 < v[-1] < 1
+    with catch_logs('DEBUG') as l:
+        v = run_simulation()
+        assert v[0] == 0 and 0 < v[-1] < 1
+        # Extract the relevant debug messages
+        messages = [m for _, source, m in l if source == 'brian2.core.network.before_run']
+        assert '4 objects' in messages[0] # NeuronGroup, StateUpdater, Thresholder, Resetter
 
 
 if __name__=='__main__':
