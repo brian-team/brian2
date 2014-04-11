@@ -356,25 +356,19 @@ def test_loop_with_proxies():
         G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
                         reset='v=0', threshold='v>1')
         G.v = np.linspace(0, 1, 10)
-        run(1*ms)
+        objects = run(1*ms, return_objects=True)
         # We return potentially problematic references to a VariableView
-        return G.v
+        return G.v, objects
 
     # First run
-    with catch_logs('DEBUG') as l:
-        v = run_simulation()
-        assert v[0] == 0 and 0 < v[-1] < 1
-        # Extract the relevant debug messages
-        messages = [m for _, source, m in l if source == 'brian2.core.network.before_run']
-        assert '4 objects' in messages[0] # NeuronGroup, StateUpdater, Thresholder, Resetter
+    v, objects = run_simulation()
+    assert v[0] == 0 and 0 < v[-1] < 1
+    assert len(objects) == 4
 
     # Second run
-    with catch_logs('DEBUG') as l:
-        v = run_simulation()
-        assert v[0] == 0 and 0 < v[-1] < 1
-        # Extract the relevant debug messages
-        messages = [m for _, source, m in l if source == 'brian2.core.network.before_run']
-        assert '4 objects' in messages[0] # NeuronGroup, StateUpdater, Thresholder, Resetter
+    v, objects = run_simulation()
+    assert v[0] == 0 and 0 < v[-1] < 1
+    assert len(objects) == 4
 
 
 if __name__=='__main__':

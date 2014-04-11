@@ -207,7 +207,7 @@ magic_network = MagicNetwork()
 
 @check_units(duration=second, report_period=second)
 def run(duration, report=None, report_period=60*second, namespace=None,
-        level=0):
+        level=0, return_objects=False):
     '''
     run(duration, report=None, report_period=60*second, namespace=None)
     
@@ -251,21 +251,31 @@ def run(duration, report=None, report_period=60*second, namespace=None,
         circumstances, e.g. when calling the run function as part of a
         function call or lambda expression. This is used in tests, e.g.:
         ``assert_raises(MagicError, lambda: run(1*ms, level=3))``.
+    return_objects : bool, optional
+        If set to ``True``, return a list of weak reference proxies, referring
+        to all the `BrianObject`s simulated during the run. Useful for
+        debugging. Defaults to ``False``
+
+    Returns
+    -------
+    objects : list
+        A list of weak reference proxies, referring to the `BrianObject`s
+        that were simulated during the run. Only returned if `return_objects`
+        is set to ``True``.
 
     See Also
     --------
-    
     Network.run, MagicNetwork, reinit, stop, clear
     
     Raises
     ------
-    
     MagicError
         Error raised when it was not possible for Brian to safely guess the
         intended use. See `MagicNetwork` for more details.
     '''
-    magic_network.run(duration, report=report, report_period=report_period,
-                      namespace=namespace, level=2+level)
+    return magic_network.run(duration, report=report, report_period=report_period,
+                             namespace=namespace, level=2+level,
+                             return_objects=return_objects)
 run.__module__ = __name__
 
 def reinit():
