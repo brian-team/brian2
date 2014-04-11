@@ -137,6 +137,12 @@ class Network(Nameable):
 
         raise KeyError('No object with name "%s" found' % key)
 
+    def __contains__(self, item):
+        for obj in self.objects:
+            if obj.name == item:
+                return True
+        return False
+
     def __len__(self):
         return len(self.objects)
 
@@ -251,7 +257,15 @@ class Network(Nameable):
         '''
         when_to_int = dict((when, i) for i, when in enumerate(self.schedule))
         self.objects.sort(key=lambda obj: (when_to_int[obj.when], obj.order))
-    
+
+    def check_dependencies(self):
+        for obj in self.objects:
+            for dependency in obj._dependencies:
+                if not dependency in self:
+                    raise ValueError(('"%s" has been included in the network '
+                                      'but not "%s" on which it '
+                                      'depends.') % (obj.name, dependency))
+
     @device_override('network_before_run')
     def before_run(self, run_namespace=None, level=0):
         '''
@@ -282,7 +296,9 @@ class Network(Nameable):
                         numobj=len(self.objects),
                         objnames=', '.join(obj.name for obj in self.objects)),
                      "before_run")
-        
+
+        self.check_dependencies()
+
         for obj in self.objects:
             obj.before_run(run_namespace, level=level+2)
 
@@ -406,7 +422,7 @@ class Network(Nameable):
             print 'Took ', current-start, 's in total.'
 
         if return_objects:
-            objects = [weakref.proxy(obj) for obj in self.objects]
+            objects = [weakref.proxy(obj) for obj in self.objects if obj.active]
         else:
             objects = None
 

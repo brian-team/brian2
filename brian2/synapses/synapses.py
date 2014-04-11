@@ -409,11 +409,13 @@ class Synapses(Group):
         self.codeobj_class = codeobj_class
 
         self.source = Proxy(source)
+        self.add_dependency(self.source)
         if target is None:
             self.target = self.source
         else:
             self.target = Proxy(target)
-            
+            self.add_dependency(self.target)
+
         ##### Prepare and validate equations
         if model is None:
             model = ''

@@ -50,6 +50,8 @@ class SpikeMonitor(Group, CodeRunner):
         CodeRunner.__init__(self, group=self, template='spikemonitor',
                             name=name, when=scheduler)
 
+        self.add_dependency(source)
+
         # Handle subgroups correctly
         start = getattr(source, 'start', 0)
         stop = getattr(source, 'stop', len(source))

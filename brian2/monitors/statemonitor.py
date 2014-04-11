@@ -137,6 +137,7 @@ class StateMonitor(Group, CodeRunner):
     def __init__(self, source, variables, record=None, when=None,
                  name='statemonitor*', codeobj_class=None):
         self.source = Proxy(source)
+
         self.codeobj_class = codeobj_class
 
         # run by default on source clock at the end
@@ -180,6 +181,8 @@ class StateMonitor(Group, CodeRunner):
                             code=code, name=name,
                             when=scheduler,
                             check_units=False)
+
+        self.add_dependency(source)
 
         # Setup variables
         self.variables = Variables(self)

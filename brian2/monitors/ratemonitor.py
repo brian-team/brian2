@@ -40,6 +40,8 @@ class PopulationRateMonitor(Group, CodeRunner):
         CodeRunner.__init__(self, group=self, template='ratemonitor',
                             when=scheduler, name=name)
 
+        self.add_dependency(source)
+
         self.variables = Variables(self)
         self.variables.add_reference('_spikespace',
                                      source.variables['_spikespace'])

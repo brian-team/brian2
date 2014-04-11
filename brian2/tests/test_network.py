@@ -7,10 +7,9 @@ from nose import with_setup
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
                     restore_initial_state, MagicError, magic_network, clear,
-                    NeuronGroup)
-from brian2.utils.logger import catch_logs
+                    NeuronGroup, StateMonitor, SpikeMonitor, PopulationRateMonitor)
 from brian2.utils.proxy import Proxy
-
+from brian2.utils.logger import catch_logs
 
 @with_setup(teardown=restore_initial_state)
 def test_empty_network():
@@ -371,8 +370,37 @@ def test_loop_with_proxies():
     assert len(objects) == 4
 
 
+@with_setup(teardown=restore_initial_state)
+def test_loop_with_proxies_2():
+    '''
+    Somewhat realistic test with a loop of magic networks and proxy objects
+    '''
+    updates[:] = []
+    def run_simulation():
+        G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
+                        reset='v=0', threshold='v>1')
+        G.v = np.linspace(0, 1, 10)
+        v_mon = StateMonitor(G, 'v', record=True)
+        spike_mon = SpikeMonitor(G)
+        r_mon = PopulationRateMonitor(G)
+        objects = run(1*ms, return_objects=True)
+        # We return potentially problematic references to monitors
+        return v_mon, spike_mon, r_mon, objects
+
+    # First run
+    v_mon, spike_mon, r_mon, objects = run_simulation()
+    assert len(objects) == 7
+
+    # Second run (we should get a warning for each monitor
+    with catch_logs() as l:
+        v_mon, spike_mon, r_mon, objects = run_simulation()
+        assert len(objects) == 7
+        assert (len(l) == 3 and
+                all([w[1] == 'brian2.core.magic.dependency_warning' for w in l]))
+
 if __name__=='__main__':
-    for t in [test_empty_network,
+    for t in [
+              test_empty_network,
               test_network_single_object,
               test_network_two_objects,
               test_network_different_clocks,
@@ -388,7 +416,8 @@ if __name__=='__main__':
               test_invalid_magic_network,
               test_network_access,
               test_proxy,
-              test_loop_with_proxies
+              test_loop_with_proxies,
+              test_loop_with_proxies_2
               ]:
         t()
         restore_initial_state()

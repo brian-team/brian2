@@ -181,6 +181,21 @@ class MagicNetwork(Network):
                         numobjs=len(self.objects),
                         names=', '.join(obj.name for obj in self.objects)))
 
+    def check_dependencies(self):
+        for obj in self.objects:
+            if not obj.active:
+                continue  # object is already inactive, no need to check it
+            for dependency in obj._dependencies:
+                if not dependency in self:
+                    logger.warn(('"%s" has been included in the network but '
+                                 'not "%s" on which it depends. Setting "%s" '
+                                 'to inactive.') % (obj.name,
+                                                    dependency,
+                                                    obj.name),
+                                name_suffix='dependency_warning')
+                    obj.active = False
+                    break
+
     def before_run(self, run_namespace=None, level=0):
         self._update_magic_objects()
         Network.before_run(self, run_namespace, level=level+1)
