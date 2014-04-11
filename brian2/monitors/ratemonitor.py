@@ -1,3 +1,5 @@
+import weakref
+
 import numpy as np
 
 from brian2.core.scheduler import Scheduler
@@ -24,19 +26,21 @@ class PopulationRateMonitor(Group, CodeRunner):
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
     '''
+    invalidates_magic_network = False
     add_to_magic_network = True
-
     def __init__(self, source, name='ratemonitor*',
                  codeobj_class=None):
 
         #: The group we are recording from
-        self.source = source
+        self.source = weakref.proxy(source)
 
         scheduler = Scheduler(clock=source.clock, when='end')
 
         self.codeobj_class = codeobj_class
         CodeRunner.__init__(self, group=self, template='ratemonitor',
                             when=scheduler, name=name)
+
+        self.add_dependency(source)
 
         self.variables = Variables(self)
         self.variables.add_reference('_spikespace',

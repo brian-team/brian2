@@ -7,7 +7,9 @@ from nose import with_setup
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
                     restore_initial_state, MagicError, magic_network, clear,
-                    NeuronGroup, StateMonitor)
+                    NeuronGroup, StateMonitor, SpikeMonitor,
+                    PopulationRateMonitor)
+from brian2.utils.logger import catch_logs
 
 @with_setup(teardown=restore_initial_state)
 def test_empty_network():
@@ -351,6 +353,33 @@ def test_loop():
     assert v[0] == 0 and 0 < v[-1] < 1
 
 
+@with_setup(teardown=restore_initial_state)
+def test_loop2():
+    '''
+    Somewhat realistic test with a loop of magic networks and proxy objects
+    '''
+    updates[:] = []
+    import objgraph
+    def run_simulation():
+        G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
+                        reset='v=0', threshold='v>1')
+        G.v = np.linspace(0, 1, 10)
+        v_mon = StateMonitor(G, 'v', record=True)
+        spike_mon = SpikeMonitor(G)
+        r_mon = PopulationRateMonitor(G)
+        run(1*ms)
+        # We return potentially problematic references to monitors
+        return v_mon, spike_mon, r_mon
+
+    # First run
+    v_mon, spike_mon, r_mon = run_simulation()
+
+    # Second run (we should get a warning for each monitor
+    with catch_logs() as l:
+        v_mon, spike_mon, r_mon = run_simulation()
+        assert (len(l) == 3 and
+                all([w[1] == 'brian2.core.magic.dependency_warning' for w in l]))
+
 if __name__=='__main__':
     for t in [test_empty_network,
               test_network_single_object,
@@ -367,7 +396,8 @@ if __name__=='__main__':
               test_network_copy,
               test_invalid_magic_network,
               test_network_access,
-              test_loop
+              test_loop,
+              test_loop2
               ]:
         t()
         restore_initial_state()

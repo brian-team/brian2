@@ -132,6 +132,7 @@ class StateMonitor(Group, CodeRunner):
         show()
 
     '''
+    invalidates_magic_network = False
     add_to_magic_network = True
     def __init__(self, source, variables, record=None, when=None,
                  name='statemonitor*', codeobj_class=None):
@@ -179,6 +180,8 @@ class StateMonitor(Group, CodeRunner):
                             code=code, name=name,
                             when=scheduler,
                             check_units=False)
+
+        self.add_dependency(source)
 
         # Setup variables
         self.variables = Variables(self)

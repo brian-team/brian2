@@ -55,7 +55,8 @@ class BrianObject(Nameable):
 #        #: The `Clock` determining when the object should be updated.
 #        self.clock = clock
         self._clock = clock
-        
+
+        self._dependencies = set()
         self._contained_objects = []
         self._code_objects = []
         
@@ -74,6 +75,22 @@ class BrianObject(Nameable):
     #: `add_to_magic_network` to ``True``, but it should not be set for all the
     #: dependent objects such as `StateUpdater`
     add_to_magic_network = False
+
+    def add_dependency(self, obj):
+        '''
+        Add an object to the list of dependencies. Takes care of handling
+        subgroups correctly (i.e., adds its parent object).
+
+        Parameters
+        ----------
+        obj : `BrianObject`
+            The object that this object depends on.
+        '''
+        from brian2.groups.subgroup import Subgroup
+        if isinstance(obj, Subgroup):
+            self._dependencies.add(obj.source.id)
+        else:
+            self._dependencies.add(obj.id)
 
     def before_run(self, run_namespace=None, level=0):
         '''

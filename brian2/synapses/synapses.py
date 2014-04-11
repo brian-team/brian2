@@ -407,10 +407,12 @@ class Synapses(Group):
         self.codeobj_class = codeobj_class
 
         self.source = weakref.proxy(source)
+        self.add_dependency(source)
         if target is None:
             self.target = self.source
         else:
             self.target = weakref.proxy(target)
+            self.add_dependency(target)
             
         ##### Prepare and validate equations
         if model is None:

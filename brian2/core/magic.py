@@ -143,17 +143,19 @@ class MagicNetwork(Network):
         raise MagicError("Cannot directly modify MagicNetwork")
     
     def _update_magic_objects(self):
-        # Go through all the objects and ignore those that are only referred to
-        # by Proxy objects (e.g. because a Monitor holds a reference to them)
         valid_refs = set()
         all_objects = set()
         for obj in BrianObject.__instances__():
             obj = obj()
             if obj is None:
                 continue
-            all_objects.add(obj)
+            if obj.add_to_magic_network:
+                all_objects.add(obj)
+                for contained in _get_contained_objects(obj):
+                    all_objects.add(contained)
             if obj.invalidates_magic_network:
                 valid_refs.add(weakref.ref(obj))
+            del obj
 
         # check whether we should restart time, continue time, or raise an
         # error
@@ -173,6 +175,21 @@ class MagicNetwork(Network):
                      "with names {names}".format(
                         numobjs=len(self.objects),
                         names=', '.join(obj.name for obj in self.objects)))
+
+    def check_dependencies(self):
+        all_ids = set([obj.id for obj in self.objects])
+        for obj in self.objects:
+            if not obj.active:
+                continue  # object is already inactive, no need to check it
+            for dependency in obj._dependencies:
+                if not dependency in all_ids:
+                    logger.warn(('"%s" has been included in the network but '
+                                 'not the object on which it depends.'
+                                 'Setting "%s" to inactive.') % (obj.name,
+                                                                 obj.name),
+                                name_suffix='dependency_warning')
+                    obj.active = False
+                    break
 
     def before_run(self, run_namespace=None, level=0):
         self._update_magic_objects()
