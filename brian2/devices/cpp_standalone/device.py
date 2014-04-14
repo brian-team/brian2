@@ -35,7 +35,12 @@ def freeze(code, ns):
             code = word_substitute(code, {k: str(v)})
         elif (isinstance(v, Variable) and not isinstance(v, AttributeVariable) and
               v.scalar and v.constant and v.read_only):
-            code = word_substitute(code, {k: repr(v.get_value())})
+            value = v.get_value()
+            if value < 0:
+                string_value = '(%r)' % value
+            else:
+                string_value = '%r' % value
+            code = word_substitute(code, {k: string_value})
     return code
 
 
