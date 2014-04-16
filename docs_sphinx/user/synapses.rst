@@ -139,7 +139,6 @@ result is copied to the variable ``gtot``. Another example is gap junctions::
                                       Igap : 1''')
     S=Synapses(neurons,model='''w:1 # gap junction conductance
                                 Igap_post = w*(v_pre-v_post): 1 (summed)''')
-    neurons.Igap=S.Igap
 
 Here, ``Igap`` is the total gap junction current received by the postsynaptic neuron.
 
