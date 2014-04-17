@@ -99,18 +99,18 @@ class TimedArray(Function, Nameable):
         def create_cpp_implementation(owner):
             group_dt = owner.clock.dt_
             K = _find_K(group_dt, dt)
-            epsilon = dt / K
             cpp_code = {'support_code': '''
             inline double _timedarray_%NAME%(const double t, const int _num_values, const double* _values)
             {
-                int i = (int)(t/%EPSILON% + 0.5)/%K%; // rounds to nearest int for positive values
+                const double epsilon = %DT% / %K%;
+                int i = (int)((t/epsilon + 0.5)/%K%); // rounds to nearest int for positive values
                 if(i<0)
                     i = 0;
                 if(i>=_num_values)
                     i = _num_values-1;
                 return _values[i];
             }
-            '''.replace('%NAME%', self.name).replace('%EPSILON%', '%.12f' %epsilon).replace('%K%', str(K)),
+            '''.replace('%NAME%', self.name).replace('%DT%', '%.18f' % dt).replace('%K%', str(K)),
                                            'hashdefine_code': '''
             #define %NAME%(t) _timedarray_%NAME%(t, _%NAME%_num_values, _%NAME%_values)
             '''.replace('%NAME%', self.name)}

@@ -44,7 +44,25 @@ def test_timedarray_with_units():
         net.run(11*ms)
         assert_equal(mon[0].value, np.clip(np.arange(len(mon[0].t)), 0, 9)*amp + 2*nA)
 
+def test_long_timedarray():
+    '''
+    Use a very long timedarray (with a big dt), where the upsampling can lead
+    to integer overflow.
+    '''
+    ta = TimedArray(np.arange(16385)*1.0, dt=1*second)
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(1, 'value = ta(t) : 1', codeobj_class=codeobj_class)
+        mon = StateMonitor(G, 'value', record=True, codeobj_class=codeobj_class)
+        net = Network(G, mon)
+        # We'll start the simulation close to the critical boundary
+        net.t = 16384*second - 5*ms
+        net.run(10*ms)
+        assert all(mon[0].value[mon.t < 16384*second] == 16383)
+        assert all(mon[0].value[mon.t >= 16384*second] == 16384)
+
+
 if __name__ == '__main__':
     test_timedarray_direct_use()
     test_timedarray_no_units()
     test_timedarray_with_units()
+    test_long_timedarray()
