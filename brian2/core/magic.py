@@ -178,7 +178,8 @@ class MagicNetwork(Network):
         logger.debug("Updated MagicNetwork to include {numobjs} objects "
                      "with names {names}".format(
                         numobjs=len(self.objects),
-                        names=', '.join(obj.name for obj in self.objects)))
+                        names=', '.join(obj.name for obj in self.objects)),
+                     name_suffix='magic_objects')
 
     def check_dependencies(self):
         for obj in self.objects:
@@ -186,12 +187,12 @@ class MagicNetwork(Network):
                 continue  # object is already inactive, no need to check it
             for dependency in obj._dependencies:
                 if not dependency in self:
-                    logger.warn(('"%s" has been included in the network but '
+                    logger.info(('"%s" has been included in the network but '
                                  'not "%s" on which it depends. Setting "%s" '
                                  'to inactive.') % (obj.name,
                                                     dependency,
                                                     obj.name),
-                                name_suffix='dependency_warning')
+                                name_suffix='missing_dependency')
                     obj.active = False
                     break
 
@@ -221,7 +222,7 @@ magic_network = MagicNetwork()
 
 @check_units(duration=second, report_period=second)
 def run(duration, report=None, report_period=60*second, namespace=None,
-        level=0, return_objects=False):
+        level=0):
     '''
     run(duration, report=None, report_period=60*second, namespace=None)
     
@@ -265,17 +266,6 @@ def run(duration, report=None, report_period=60*second, namespace=None,
         circumstances, e.g. when calling the run function as part of a
         function call or lambda expression. This is used in tests, e.g.:
         ``assert_raises(MagicError, lambda: run(1*ms, level=3))``.
-    return_objects : bool, optional
-        If set to ``True``, return a list of weak reference proxies, referring
-        to all the `BrianObject`s simulated during the run. Useful for
-        debugging. Defaults to ``False``
-
-    Returns
-    -------
-    objects : list
-        A list of weak reference proxies, referring to the `BrianObject`s
-        that were simulated during the run. Only returned if `return_objects`
-        is set to ``True``.
 
     See Also
     --------
@@ -288,8 +278,7 @@ def run(duration, report=None, report_period=60*second, namespace=None,
         intended use. See `MagicNetwork` for more details.
     '''
     return magic_network.run(duration, report=report, report_period=report_period,
-                             namespace=namespace, level=2+level,
-                             return_objects=return_objects)
+                             namespace=namespace, level=2+level)
 run.__module__ = __name__
 
 def reinit():

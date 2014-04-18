@@ -159,6 +159,12 @@ class Network(Nameable):
             else:
                 try:
                     for o in obj:
+                        if o is obj:
+                            # This prevents infinite recursion for some corner
+                            # cases, e.g. when a string was provided (a string
+                            # is iterable, and each element is yet another
+                            # iterable string)
+                            raise TypeError()
                         self.add(o)
                 except TypeError:
                     raise TypeError("Can only add objects of type BrianObject, "
@@ -308,7 +314,7 @@ class Network(Nameable):
     @device_override('network_run')
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=60*second,
-            namespace=None, level=0, return_objects=False):
+            namespace=None, level=0):
         '''
         run(duration, report=None, report_period=60*second, namespace=None, level=0)
         
@@ -337,19 +343,6 @@ class Network(Nameable):
             (see `namespace` argument). Only used by run functions that call
             this run function, e.g. `MagicNetwork.run` to adjust for the
             additional nesting.
-        return_objects : bool, optional
-            If set to ``True``, return a list of weak reference proxies,
-            referring to all the `BrianObject`s simulated during the run.
-            Useful for debugging a `MagicNetwork` (for all other networks, this
-            information is redundant with `Network.objects`. Defaults to
-            ``False``
-
-        Returns
-        -------
-        objects : list
-            A list of weak reference proxies, referring to the `BrianObject`s
-            that were simulated during the run. Only returned if
-            `return_objects` is set to ``True``.
 
         Notes
         -----
@@ -403,14 +396,7 @@ class Network(Nameable):
         if report is not None:
             print 'Took ', current-start, 's in total.'
 
-        if return_objects:
-            objects = [weakref.proxy(obj) for obj in self.objects if obj.active]
-        else:
-            objects = None
-
         self.after_run()
-
-        return objects
         
     @device_override('network_stop')
     def stop(self):

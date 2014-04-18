@@ -1,4 +1,5 @@
 import copy
+import logging
 
 import numpy as np
 from numpy.testing import assert_equal, assert_raises
@@ -6,10 +7,22 @@ from nose import with_setup
 
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
-                    restore_initial_state, MagicError, magic_network, clear,
-                    NeuronGroup, StateMonitor, SpikeMonitor, PopulationRateMonitor)
+                    restore_initial_state, MagicError, clear, Synapses,
+                    NeuronGroup, StateMonitor, SpikeMonitor,
+                    PopulationRateMonitor, MagicNetwork, magic_network)
 from brian2.utils.proxy import Proxy
-from brian2.utils.logger import catch_logs
+from brian2.utils.logger import catch_logs, BrianLogger
+
+def test_incorrect_network_use():
+    '''Test some wrong uses of `Network` and `MagicNetwork`'''
+    assert_raises(TypeError, lambda: Network('not a BrianObject'))
+    net = Network()
+    assert_raises(TypeError, lambda: net.add('not a BrianObject'))
+    assert_raises(ValueError, lambda: MagicNetwork())
+    G = NeuronGroup(10, 'v:1')
+    assert_raises(MagicError, lambda: magic_network.add(G))
+    assert_raises(MagicError, lambda: magic_network.remove(G))
+
 
 @with_setup(teardown=restore_initial_state)
 def test_empty_network():
@@ -328,6 +341,31 @@ def test_network_access():
     assert_raises(TypeError, lambda: net.__delitem__(slice(1, 3)))
     assert_raises(KeyError, lambda: net.__delitem__('counter'))
 
+
+@with_setup(teardown=restore_initial_state)
+def test_dependency_check():
+    def create_net():
+        G = NeuronGroup(10, 'v: 1')
+        dependent_objects = [
+                             StateMonitor(G, 'v', record=True),
+                             SpikeMonitor(G),
+                             PopulationRateMonitor(G),
+                             Synapses(G, G, pre='v+=1', connect=True)
+                             ]
+        return dependent_objects
+
+    dependent_objects = create_net()
+    # Trying to simulate the monitors/synapses without the group should fail
+    for obj in dependent_objects:
+        assert_raises(ValueError, lambda: Network(obj).run(0*ms))
+
+    # simulation with a magic network should work, but all objects should be
+    # inactive
+    assert all(obj.active for obj in dependent_objects)
+    run(0*ms)
+    assert all(not obj.active for obj in dependent_objects)
+
+
 @with_setup(teardown=restore_initial_state)
 def test_proxy():
     '''
@@ -355,19 +393,29 @@ def test_loop_with_proxies():
         G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
                         reset='v=0', threshold='v>1')
         G.v = np.linspace(0, 1, 10)
-        objects = run(1*ms, return_objects=True)
+        run(1*ms)
         # We return potentially problematic references to a VariableView
-        return G.v, objects
+        return G.v
 
     # First run
-    v, objects = run_simulation()
-    assert v[0] == 0 and 0 < v[-1] < 1
-    assert len(objects) == 4
+    with catch_logs(log_level=logging.DEBUG) as l:
+        v = run_simulation()
+        assert v[0] == 0 and 0 < v[-1] < 1
+        # Check the debug messages for the number of included objects
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '4 objects' in magic_objects
+
 
     # Second run
-    v, objects = run_simulation()
-    assert v[0] == 0 and 0 < v[-1] < 1
-    assert len(objects) == 4
+    with catch_logs(log_level=logging.DEBUG) as l:
+        v = run_simulation()
+        assert v[0] == 0 and 0 < v[-1] < 1
+        # Check the debug messages for the number of included objects
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '4 objects' in magic_objects
+
 
 
 @with_setup(teardown=restore_initial_state)
@@ -383,41 +431,59 @@ def test_loop_with_proxies_2():
         v_mon = StateMonitor(G, 'v', record=True)
         spike_mon = SpikeMonitor(G)
         r_mon = PopulationRateMonitor(G)
-        objects = run(1*ms, return_objects=True)
+        run(1*ms)
         # We return potentially problematic references to monitors
-        return v_mon, spike_mon, r_mon, objects
+        return v_mon, spike_mon, r_mon
 
     # First run
-    v_mon, spike_mon, r_mon, objects = run_simulation()
-    assert len(objects) == 7
+    with catch_logs(log_level=logging.DEBUG) as l:
+        v_mon, spike_mon, r_mon = run_simulation()
+        # Check the debug messages for the number of included objects
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '7 objects' in magic_objects
+    # all monitors should be active
+    assert v_mon.active and spike_mon.active and r_mon.active
 
-    # Second run (we should get a warning for each monitor
-    with catch_logs() as l:
-        v_mon, spike_mon, r_mon, objects = run_simulation()
-        assert len(objects) == 7
-        assert (len(l) == 3 and
-                all([w[1] == 'brian2.core.magic.dependency_warning' for w in l]))
+    # Second run (we should get an information for each monitor)
+    with catch_logs(log_level=logging.DEBUG) as l:
+        run_simulation()
+        missing_dependencies = len([msg for msg in l
+                                    if msg[1] == 'brian2.core.magic.missing_dependency'])
+        assert missing_dependencies == 3
+        # Check the debug messages for the number of included objects -- note
+        # that this still includes the monitors from the previous run. These
+        # will be set to inactive and not simulated, though.
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '10 objects' in magic_objects
+
+        # The monitors from the previous run should be all inactive now
+        assert not (v_mon.active or spike_mon.active or r_mon.active)
+
 
 if __name__=='__main__':
     for t in [
-              test_empty_network,
-              test_network_single_object,
-              test_network_two_objects,
-              test_network_different_clocks,
-              test_network_different_when,
-              test_network_reinit_pre_post_run,
-              test_magic_network,
-              test_network_stop,
-              test_network_operations,
-              test_network_active_flag,
-              test_network_t,
-              test_network_remove,
-              test_network_copy,
-              test_invalid_magic_network,
-              test_network_access,
-              test_proxy,
-              test_loop_with_proxies,
-              test_loop_with_proxies_2
+              # test_incorrect_network_use,
+              # test_empty_network,
+              # test_network_single_object,
+              # test_network_two_objects,
+              # test_network_different_clocks,
+              # test_network_different_when,
+              # test_network_reinit_pre_post_run,
+              # test_magic_network,
+              # test_network_stop,
+              # test_network_operations,
+              # test_network_active_flag,
+              # test_network_t,
+              # test_network_remove,
+              # test_network_copy,
+              # test_invalid_magic_network,
+              # test_network_access,
+              test_dependency_check,
+              # test_proxy,
+              # test_loop_with_proxies,
+              # test_loop_with_proxies_2
               ]:
         t()
         restore_initial_state()
