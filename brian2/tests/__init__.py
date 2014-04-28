@@ -1,3 +1,5 @@
+import sys
+import functools
 import os
 
 
@@ -13,6 +15,24 @@ def run():
     dirname = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     print 'Running tests in "%s"' % dirname
     return nose.run(argv=['', dirname, '--with-doctest', '--nologcapture', '--exe'])
+
+
+def expected_python3_failure(test):
+    import nose
+    if sys.version_info[0] == 2:
+        return test  # Nothing to do
+
+    @functools.wraps(test)
+    def inner(*args, **kwargs):
+        try:
+            test(*args, **kwargs)
+        except Exception:
+            raise nose.SkipTest('This test is known to not work under Python 3')
+        else:
+            raise AssertionError('This test was expected to fail under '
+                                 'Python 3, but it passed!')
+    return inner
+
 
 if __name__=='__main__':
     run()
