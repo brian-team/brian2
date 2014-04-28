@@ -12,6 +12,7 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     PopulationRateMonitor, MagicNetwork, magic_network)
 from brian2.utils.proxy import Proxy
 from brian2.utils.logger import catch_logs, BrianLogger
+from brian2.tests import expected_python3_failure
 
 def test_incorrect_network_use():
     '''Test some wrong uses of `Network` and `MagicNetwork`'''
@@ -79,7 +80,9 @@ def test_network_different_clocks():
     x = NameLister(name='x', when=(clock1, 0))
     y = NameLister(name='y', when=(clock3, 1))
     net = Network(x, y)
+    print 'time before run', net.t
     net.run(10*ms)
+    print 'time after run', net.t
     assert_equal(''.join(updates), 'xyxxxyxxxyxxxy')
 
 @with_setup(teardown=restore_initial_state)
@@ -343,6 +346,7 @@ def test_network_access():
 
 
 @with_setup(teardown=restore_initial_state)
+@expected_python3_failure
 def test_dependency_check():
     def create_net():
         G = NeuronGroup(10, 'v: 1')
@@ -367,6 +371,7 @@ def test_dependency_check():
 
 
 @with_setup(teardown=restore_initial_state)
+@expected_python3_failure
 def test_proxy():
     '''
     Make sure that `Proxy` objects do not make objects get included in `MagicNetwork`.
@@ -384,6 +389,7 @@ def test_proxy():
 
 
 @with_setup(teardown=restore_initial_state)
+@expected_python3_failure
 def test_loop_with_proxies():
     '''
     Somewhat realistic test with a loop of magic networks and proxy objects
@@ -419,6 +425,7 @@ def test_loop_with_proxies():
 
 
 @with_setup(teardown=restore_initial_state)
+@expected_python3_failure
 def test_loop_with_proxies_2():
     '''
     Somewhat realistic test with a loop of magic networks and proxy objects
@@ -464,26 +471,26 @@ def test_loop_with_proxies_2():
 
 if __name__=='__main__':
     for t in [
-              # test_incorrect_network_use,
-              # test_empty_network,
-              # test_network_single_object,
-              # test_network_two_objects,
-              # test_network_different_clocks,
-              # test_network_different_when,
-              # test_network_reinit_pre_post_run,
-              # test_magic_network,
-              # test_network_stop,
-              # test_network_operations,
-              # test_network_active_flag,
-              # test_network_t,
-              # test_network_remove,
-              # test_network_copy,
-              # test_invalid_magic_network,
-              # test_network_access,
+              test_incorrect_network_use,
+              test_empty_network,
+              test_network_single_object,
+              test_network_two_objects,
+              test_network_different_clocks,
+              test_network_different_when,
+              test_network_reinit_pre_post_run,
+              test_magic_network,
+              test_network_stop,
+              test_network_operations,
+              test_network_active_flag,
+              test_network_t,
+              test_network_remove,
+              test_network_copy,
+              test_invalid_magic_network,
+              test_network_access,
               test_dependency_check,
-              # test_proxy,
-              # test_loop_with_proxies,
-              # test_loop_with_proxies_2
+              test_proxy,
+              test_loop_with_proxies,
+              test_loop_with_proxies_2
               ]:
         t()
         restore_initial_state()

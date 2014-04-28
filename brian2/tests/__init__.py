@@ -1,7 +1,7 @@
 import sys
-import functools
 import os
 
+from numpy.testing.noseclasses import KnownFailure
 
 def run():
     '''
@@ -11,23 +11,26 @@ def run():
         import nose
     except ImportError:
         raise ImportError('Running the test suite requires the "nose" package.')
-    
+
     dirname = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     print 'Running tests in "%s"' % dirname
-    return nose.run(argv=['', dirname, '--with-doctest', '--nologcapture', '--exe'])
+    return nose.run(argv=['', dirname, '--with-doctest',
+                          '--nologcapture', '--exe', '--failure-detail'],
+                    addplugins=[KnownFailure()])
 
 
 def expected_python3_failure(test):
-    import nose
+    import nose.tools
+    from numpy.testing.noseclasses import KnownFailureTest
     if sys.version_info[0] == 2:
         return test  # Nothing to do
 
-    @functools.wraps(test)
+    @nose.tools.make_decorator(test)
     def inner(*args, **kwargs):
         try:
             test(*args, **kwargs)
         except Exception:
-            raise nose.SkipTest('This test is known to not work under Python 3')
+            raise KnownFailureTest('This test is known to not work under Python 3')
         else:
             raise AssertionError('This test was expected to fail under '
                                  'Python 3, but it passed!')
