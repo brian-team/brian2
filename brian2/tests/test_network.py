@@ -1,5 +1,6 @@
 import copy
 import logging
+import weakref
 
 import numpy as np
 from numpy.testing import assert_equal, assert_raises
@@ -80,9 +81,7 @@ def test_network_different_clocks():
     x = NameLister(name='x', when=(clock1, 0))
     y = NameLister(name='y', when=(clock3, 1))
     net = Network(x, y)
-    print 'time before run', net.t
     net.run(10*ms)
-    print 'time after run', net.t
     assert_equal(''.join(updates), 'xyxxxyxxxyxxxy')
 
 @with_setup(teardown=restore_initial_state)
@@ -324,6 +323,43 @@ def test_invalid_magic_network():
 
 
 @with_setup(teardown=restore_initial_state)
+def test_magic_weak_reference():
+    '''Test that holding a weak reference to an object does not make it get '''
+
+    G1 = NeuronGroup(1, 'v:1')
+
+    # this object should not be included
+    G2 = weakref.ref(NeuronGroup(1, 'v:1'))
+
+    with catch_logs(log_level=logging.DEBUG) as l:
+        run(1*ms)
+
+        # Check the debug messages for the number of included objects
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '2 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
+
+
+@with_setup(teardown=restore_initial_state)
+def test_magic_unused_object():
+    '''Test that creating unused objects does not affect the magic system.'''
+    def create_group():
+        # Produce two objects but return only one
+        G1 = NeuronGroup(1, 'v:1')  # no Thresholder or Resetter
+        G2 = NeuronGroup(1, 'v:1')
+        return G1
+
+    G = create_group()
+    with catch_logs(log_level=logging.DEBUG) as l:
+        run(1*ms)
+
+        # Check the debug messages for the number of included objects
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '2 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
+
+
+@with_setup(teardown=restore_initial_state)
 def test_network_access():
     x = Counter(name='counter')
     net = Network(x)
@@ -485,6 +521,8 @@ if __name__=='__main__':
               test_network_t,
               test_network_remove,
               test_network_copy,
+              test_magic_weak_reference,
+              test_magic_unused_object,
               test_invalid_magic_network,
               test_network_access,
               test_dependency_check,
