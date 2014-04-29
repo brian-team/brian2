@@ -382,7 +382,6 @@ def test_network_access():
 
 
 @with_setup(teardown=restore_initial_state)
-@expected_python3_failure
 def test_dependency_check():
     def create_net():
         G = NeuronGroup(10, 'v: 1')
@@ -407,7 +406,6 @@ def test_dependency_check():
 
 
 @with_setup(teardown=restore_initial_state)
-@expected_python3_failure
 def test_proxy():
     '''
     Make sure that `Proxy` objects do not make objects get included in `MagicNetwork`.
@@ -425,7 +423,6 @@ def test_proxy():
 
 
 @with_setup(teardown=restore_initial_state)
-@expected_python3_failure
 def test_loop_with_proxies():
     '''
     Somewhat realistic test with a loop of magic networks and proxy objects
@@ -461,7 +458,6 @@ def test_loop_with_proxies():
 
 
 @with_setup(teardown=restore_initial_state)
-@expected_python3_failure
 def test_loop_with_proxies_2():
     '''
     Somewhat realistic test with a loop of magic networks and proxy objects

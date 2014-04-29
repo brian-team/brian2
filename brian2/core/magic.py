@@ -150,11 +150,23 @@ class MagicNetwork(Network):
         # by Proxy objects (e.g. because a Monitor holds a reference to them)
         valid_refs = set()
         all_objects = set()
+        print ''
         for obj in BrianObject.__instances__():
             proxycount = get_proxy_count(obj)
             # subtract 1 from refcount for refcount arg
             # subtract 1 from refcount for refcount in this loop
             refcount = sys.getrefcount(obj)-3
+            import gc, types
+            print 'referrers for', obj
+            for referrer in gc.get_referrers(obj):
+                if isinstance(referrer, types.FrameType):
+                    print ('\t(%s, %s, %s)' % (referrer.f_code.co_filename,
+                                              referrer.f_code.co_name,
+                                              referrer.f_lineno))
+                else:
+                    print '\t%s: %s' % (type(referrer), repr(referrer))
+                del referrer
+
             if refcount != proxycount:
                 if obj.add_to_magic_network:
                     all_objects.add(obj)
