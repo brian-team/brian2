@@ -345,7 +345,7 @@ def test_magic_unused_object():
     def create_group():
         # Produce two objects but return only one
         G1 = NeuronGroup(1, 'v:1')  # no Thresholder or Resetter
-        G2 = NeuronGroup(1, 'v:1')
+        G2 = NeuronGroup(1, 'v:1') # This object should be garbage collected
         return G1
 
     G = create_group()

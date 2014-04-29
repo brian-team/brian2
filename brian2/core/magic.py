@@ -274,8 +274,10 @@ def run(duration, report=None, report_period=60*second, namespace=None,
         Error raised when it was not possible for Brian to safely guess the
         intended use. See `MagicNetwork` for more details.
     '''
-    magic_network.run(duration, report=report, report_period=report_period,
-                      namespace=namespace, level=2+level)
+    import gc
+    gc.collect()
+    return magic_network.run(duration, report=report, report_period=report_period,
+                             namespace=namespace, level=2+level)
 run.__module__ = __name__
 
 def reinit():
