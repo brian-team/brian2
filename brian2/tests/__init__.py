@@ -15,7 +15,7 @@ def run():
     dirname = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     print 'Running tests in "%s"' % dirname
     return nose.run(argv=['', dirname, '--with-doctest',
-                          '--nologcapture', '--exe', '--failure-detail'],
+                          '--nologcapture', '--exe'],
                     addplugins=[KnownFailure()])
 
 

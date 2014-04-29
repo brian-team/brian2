@@ -167,12 +167,14 @@ class MagicNetwork(Network):
         # by Proxy objects (e.g. because a Monitor holds a reference to them)
         valid_refs = set()
         all_objects = set()
+        print ''
         for obj in BrianObject.__instances__():
             proxycount = get_proxy_count(obj)
             # subtract 1 from refcount for get_refcount arg
             # subtract 1 from refcount for obj reference in this loop
             # subtract 1 from refcount for reference in WeakSet iterator
             refcount = get_refcount(obj)-3
+            print obj, 'refcount:', refcount, 'proxycount:', proxycount
             if refcount != proxycount:
                 if obj.add_to_magic_network:
                     all_objects.add(obj)
