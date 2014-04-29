@@ -1,4 +1,6 @@
-import sys
+import inspect
+import gc
+import types
 import weakref
 
 from brian2.units.fundamentalunits import check_units
@@ -14,6 +16,21 @@ __all__ = ['MagicNetwork', 'magic_network',
            ]
 
 logger = get_logger(__name__)
+
+
+def get_refcount(obj):
+    f_locals = set()
+    refcount = 0
+    for frame_tuple in inspect.stack():
+        f_locals.add(id(frame_tuple[0].f_locals))
+        del frame_tuple
+
+    for referrer in gc.get_referrers(obj):
+        if not id(referrer) in f_locals:
+            refcount += 1
+        del referrer
+
+    return refcount
 
 
 def _get_contained_objects(obj):
@@ -150,23 +167,12 @@ class MagicNetwork(Network):
         # by Proxy objects (e.g. because a Monitor holds a reference to them)
         valid_refs = set()
         all_objects = set()
-        print ''
         for obj in BrianObject.__instances__():
             proxycount = get_proxy_count(obj)
-            # subtract 1 from refcount for refcount arg
-            # subtract 1 from refcount for refcount in this loop
-            refcount = sys.getrefcount(obj)-3
-            import gc, types
-            print 'referrers for', obj
-            for referrer in gc.get_referrers(obj):
-                if isinstance(referrer, types.FrameType):
-                    print ('\t(%s, %s, %s)' % (referrer.f_code.co_filename,
-                                              referrer.f_code.co_name,
-                                              referrer.f_lineno))
-                else:
-                    print '\t%s: %s' % (type(referrer), repr(referrer))
-                del referrer
-
+            # subtract 1 from refcount for get_refcount arg
+            # subtract 1 from refcount for obj reference in this loop
+            # subtract 1 from refcount for reference in WeakSet iterator
+            refcount = get_refcount(obj)-3
             if refcount != proxycount:
                 if obj.add_to_magic_network:
                     all_objects.add(obj)
