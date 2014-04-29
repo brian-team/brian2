@@ -8,7 +8,6 @@ from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second 
 from brian2.core.preferences import brian_prefs
-from brian2.core.namespace import get_local_namespace
 from brian2.devices.device import device_override
 
 __all__ = ['Network']
@@ -172,6 +171,11 @@ class Network(Nameable):
             else:
                 try:
                     for o in obj:
+                        # The following "if" looks silly but avoids an infinite
+                        # recursion if a string is provided as an argument
+                        # (which might occur during testing)
+                        if o is obj:
+                            raise TypeError()
                         self.add(o)
                 except TypeError:
                     raise TypeError("Can only add objects of type BrianObject, "
@@ -259,12 +263,13 @@ class Network(Nameable):
         self.objects.sort(key=lambda obj: (when_to_int[obj.when], obj.order))
 
     def check_dependencies(self):
+        all_ids = [obj.id for obj in self.objects]
         for obj in self.objects:
             for dependency in obj._dependencies:
-                if not dependency in self:
+                if not dependency in all_ids:
                     raise ValueError(('"%s" has been included in the network '
-                                      'but not "%s" on which it '
-                                      'depends.') % (obj.name, dependency))
+                                      'but not the object on which it '
+                                      'depends.') % obj.name)
 
     @device_override('network_before_run')
     def before_run(self, run_namespace=None, level=0):
