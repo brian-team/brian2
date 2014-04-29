@@ -322,8 +322,8 @@ class CPPStandaloneDevice(Device):
             static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
 
         # Write the global objects
-        networks = [net() for net in Network.__instances__() if net().name!='_fake_network']
-        synapses = [S() for S in Synapses.__instances__()]
+        networks = [net for net in Network.__instances__() if net.name!='_fake_network']
+        synapses = set(Synapses.__instances__())
         arr_tmp = CPPStandaloneCodeObject.templater.objects(
                         None, None,
                         array_specs=self.arrays,

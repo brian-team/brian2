@@ -14,8 +14,8 @@ def find_name(name):
     else:
         wildcard = False
     instances = set(Nameable.__instances__())
-    allnames = set(obj().name for obj in instances
-                   if hasattr(obj(), 'name'))
+    allnames = set(obj.name for obj in instances
+                   if hasattr(obj, 'name'))
 
     # Try the name without any additions first:
     if name not in allnames:

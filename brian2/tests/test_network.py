@@ -419,7 +419,7 @@ def test_proxy():
     del y
     run(defaultclock.dt)
     # Object y should not have been run
-    assert updates == ['x']
+    assert updates == ['x'], updates
     # Proxy should still work
     assert p.name == 'y'
 

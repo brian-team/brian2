@@ -222,7 +222,6 @@ def clear(erase=False):
     if erase:
         instances = set(BrianObject.__instances__())
         for obj in instances:
-            obj = obj()
             if obj is None:
                 continue
             for k, v in obj.__dict__.iteritems():

@@ -33,6 +33,8 @@ def _get_contained_objects(obj):
     '''
     l = []
     contained_objects = getattr(obj, 'contained_objects', [])
+    if contained_objects is None:  # can happen for testing code
+        contained_objects = []
     l.extend(contained_objects)
     for contained_obj in contained_objects:
         l.extend(_get_contained_objects(contained_obj))
@@ -149,17 +151,17 @@ class MagicNetwork(Network):
         valid_refs = set()
         all_objects = set()
         for obj in BrianObject.__instances__():
-            obj = obj()
             proxycount = get_proxy_count(obj)
             # subtract 1 from refcount for refcount arg
             # subtract 1 from refcount for refcount in this loop
-            refcount = sys.getrefcount(obj)-2
+            refcount = sys.getrefcount(obj)-3
             if refcount != proxycount:
-                 if obj.add_to_magic_network:
+                if obj.add_to_magic_network:
                     all_objects.add(obj)
                     all_objects.update(_get_contained_objects(obj))
                     if obj.invalidates_magic_network:
                         valid_refs.add(weakref.ref(obj))
+        del obj
 
         # check whether we should restart time, continue time, or raise an
         # error
@@ -277,8 +279,6 @@ def run(duration, report=None, report_period=60*second, namespace=None,
         Error raised when it was not possible for Brian to safely guess the
         intended use. See `MagicNetwork` for more details.
     '''
-    import gc
-    gc.collect()
     return magic_network.run(duration, report=report, report_period=report_period,
                              namespace=namespace, level=2+level)
 run.__module__ = __name__
