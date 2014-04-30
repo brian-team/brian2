@@ -21,11 +21,13 @@ logger = get_logger(__name__)
 def get_refcount(obj):
     f_locals = set()
     refcount = 0
+    print '\ndetermining referrers for', obj
     for frame_tuple in inspect.stack():
         f_locals.add(id(frame_tuple[0].f_locals))
         del frame_tuple
 
     for referrer in gc.get_referrers(obj):
+        print '\t', referrer
         if not id(referrer) in f_locals:
             refcount += 1
         del referrer
