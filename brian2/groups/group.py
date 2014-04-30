@@ -27,6 +27,7 @@ from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit)
 from brian2.utils.logger import get_logger
+from brian2.utils.proxy import Proxy
 from brian2.utils.stringtools import get_identifiers
 
 __all__ = ['Group', 'CodeRunner']
@@ -146,19 +147,9 @@ def _same_function(func1, func2):
     namespace, while the ``randn`` symbol in the numpy namespace used for the
     code objects refers to a `RandnFunction` specifier.
     '''
-    # use the function itself if it doesn't have a pyfunc attribute and try
-    # to create a weak proxy to make a comparison to other weak proxys return
-    # true
+    # use the function itself if it doesn't have a pyfunc attribute
     func1 = getattr(func1, 'pyfunc', func1)
-    try:
-        func1 = weakref.proxy(func1)
-    except TypeError:
-        pass  # already a weakref proxy
     func2 = getattr(func2, 'pyfunc', func2)
-    try:
-        func2 = weakref.proxy(func2)
-    except TypeError:
-        pass
 
     return func1 is func2
 

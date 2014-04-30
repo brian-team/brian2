@@ -2,6 +2,7 @@
 Module containing the `Device` base class as well as the `RuntimeDevice`
 implementation and some helper functions to access/set devices.
 '''
+from weakref import WeakKeyDictionary
 
 import numpy as np
 
@@ -240,8 +241,9 @@ class RuntimeDevice(Device):
     def __init__(self):
         super(Device, self).__init__()
         #: Mapping from `Variable` objects to numpy arrays (or `DynamicArray`
-        #: objects)
-        self.arrays = {}
+        #: objects). Arrays in this dictionary will disappear as soon as the
+        #: last reference to the `Variable` object used as a key is gone
+        self.arrays = WeakKeyDictionary()
         
     def get_array_name(self, var, access_data=True):
         # if no owner is set, this is a temporary object (e.g. the array

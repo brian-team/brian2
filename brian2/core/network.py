@@ -8,7 +8,6 @@ from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second 
 from brian2.core.preferences import brian_prefs
-from brian2.core.namespace import get_local_namespace
 from brian2.devices.device import device_override
 
 __all__ = ['Network']
@@ -37,11 +36,6 @@ class Network(Nameable):
         `~Network.add`.
     name : str, optional
         An explicit name, if not specified gives an automatically generated name
-    weak_references : bool, optional
-        Whether to only store weak references to the objects (defaults to
-        ``False``), i.e. other references to the objects need to exist to keep
-        them alive. This is used by the magic system, otherwise it would keep
-        all objects alive all the time.
 
     Notes
     -----
@@ -85,19 +79,16 @@ class Network(Nameable):
 
     def __init__(self, *objs, **kwds):
         #: The list of objects in the Network, should not normally be modified
-        #: directly
-        #:
-        #: Stores references or `weakref.proxy` references to the objects
-        #: (depending on `weak_references`)
+        #: directly.
+        #: Note that in a `MagicNetwork`, this attribute only contains the
+        #: objects during a run: it is filled in `before_run` and emptied in
+        #: `after_run`
         self.objects = []
         
         name = kwds.pop('name', 'network*')
 
-        #: Whether the network only stores weak references to the objects
-        self.weak_references = kwds.pop('weak_references', False)
         if kwds:
-            raise TypeError("Only keyword arguments to Network are name "
-                            "and weak_references")
+            raise TypeError("Only keyword argument to Network is 'name'.")
 
         Nameable.__init__(self, name=name)
 
@@ -137,6 +128,12 @@ class Network(Nameable):
 
         raise KeyError('No object with name "%s" found' % key)
 
+    def __contains__(self, item):
+        for obj in self.objects:
+            if obj.name == item:
+                return True
+        return False
+
     def __len__(self):
         return len(self.objects)
 
@@ -157,15 +154,17 @@ class Network(Nameable):
         """
         for obj in objs:
             if isinstance(obj, BrianObject):
-                if self.weak_references and not isinstance(obj,
-                                                           (weakref.ProxyType,
-                                                            weakref.CallableProxyType)):
-                    obj = weakref.proxy(obj)
                 self.objects.append(obj)
                 self.add(obj.contained_objects)
             else:
                 try:
                     for o in obj:
+                        if o is obj:
+                            # This prevents infinite recursion for some corner
+                            # cases, e.g. when a string was provided (a string
+                            # is iterable, and each element is yet another
+                            # iterable string)
+                            raise TypeError()
                         self.add(o)
                 except TypeError:
                     raise TypeError("Can only add objects of type BrianObject, "
@@ -185,11 +184,6 @@ class Network(Nameable):
         '''
         for obj in objs:
             if isinstance(obj, BrianObject):
-                if self.weak_references and not isinstance(obj,
-                                                           (weakref.ProxyType,
-                                                            weakref.CallableProxyType)):
-                    obj = weakref.proxy(obj)
-                # note that weakref.proxy(obj) is weakref.proxy(obj) is True
                 self.objects.remove(obj)
                 self.remove(obj.contained_objects)
             else:
@@ -251,7 +245,15 @@ class Network(Nameable):
         '''
         when_to_int = dict((when, i) for i, when in enumerate(self.schedule))
         self.objects.sort(key=lambda obj: (when_to_int[obj.when], obj.order))
-    
+
+    def check_dependencies(self):
+        for obj in self.objects:
+            for dependency in obj._dependencies:
+                if not dependency in self:
+                    raise ValueError(('"%s" has been included in the network '
+                                      'but not "%s" on which it '
+                                      'depends.') % (obj.name, dependency))
+
     @device_override('network_before_run')
     def before_run(self, run_namespace=None, level=0):
         '''
@@ -282,7 +284,9 @@ class Network(Nameable):
                         numobj=len(self.objects),
                         objnames=', '.join(obj.name for obj in self.objects)),
                      "before_run")
-        
+
+        self.check_dependencies()
+
         for obj in self.objects:
             obj.before_run(run_namespace, level=level+2)
 
@@ -391,6 +395,7 @@ class Network(Nameable):
 
         if report is not None:
             print 'Took ', current-start, 's in total.'
+
         self.after_run()
         
     @device_override('network_stop')

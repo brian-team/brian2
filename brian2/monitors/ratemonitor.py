@@ -5,6 +5,7 @@ from brian2.core.variables import Variables
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.groups.group import CodeRunner, Group
+from brian2.utils.proxy import Proxy
 
 __all__ = ['PopulationRateMonitor']
 
@@ -24,17 +25,22 @@ class PopulationRateMonitor(Group, CodeRunner):
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
     '''
+    invalidates_magic_network = False
+    add_to_magic_network = True
+
     def __init__(self, source, name='ratemonitor*',
                  codeobj_class=None):
 
         #: The group we are recording from
-        self.source = source
+        self.source = Proxy(source)
 
         scheduler = Scheduler(clock=source.clock, when='end')
 
         self.codeobj_class = codeobj_class
         CodeRunner.__init__(self, group=self, template='ratemonitor',
                             when=scheduler, name=name)
+
+        self.add_dependency(source)
 
         self.variables = Variables(self)
         self.variables.add_reference('_spikespace',

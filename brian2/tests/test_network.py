@@ -1,9 +1,29 @@
-from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
-                    run, stop, NetworkOperation, network_operation,
-                    restore_initial_state, MagicError, magic_network, clear)
 import copy
+import logging
+import weakref
+
+import numpy as np
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
+
+from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
+                    run, stop, NetworkOperation, network_operation,
+                    restore_initial_state, MagicError, clear, Synapses,
+                    NeuronGroup, StateMonitor, SpikeMonitor,
+                    PopulationRateMonitor, MagicNetwork, magic_network)
+from brian2.utils.proxy import Proxy
+from brian2.utils.logger import catch_logs, BrianLogger
+from brian2.tests import expected_python3_failure
+
+def test_incorrect_network_use():
+    '''Test some wrong uses of `Network` and `MagicNetwork`'''
+    assert_raises(TypeError, lambda: Network('not a BrianObject'))
+    net = Network()
+    assert_raises(TypeError, lambda: net.add('not a BrianObject'))
+    assert_raises(ValueError, lambda: MagicNetwork())
+    G = NeuronGroup(10, 'v:1')
+    assert_raises(MagicError, lambda: magic_network.add(G))
+    assert_raises(MagicError, lambda: magic_network.remove(G))
 
 
 @with_setup(teardown=restore_initial_state)
@@ -13,6 +33,7 @@ def test_empty_network():
     net.run(1*second)
 
 class Counter(BrianObject):
+    add_to_magic_network = True
     def __init__(self, **kwds):
         super(Counter, self).__init__(**kwds)
         self.count = 0
@@ -45,6 +66,7 @@ def test_network_two_objects():
 
 updates = []
 class NameLister(BrianObject):
+    add_to_magic_network = True
     def __init__(self, **kwds):
         super(NameLister, self).__init__(**kwds)
 
@@ -73,6 +95,7 @@ def test_network_different_when():
     assert_equal(''.join(updates), 'xyxyxy')
 
 class Preparer(BrianObject):
+    add_to_magic_network = True
     def __init__(self, **kwds):
         super(Preparer, self).__init__(**kwds)
         self.did_reinit = False
@@ -113,6 +136,7 @@ def test_magic_network():
     assert_equal(y.count, 100)
 
 class Stopper(BrianObject):
+    add_to_magic_network = True
     def __init__(self, stoptime, stopfunc, **kwds):
         super(Stopper, self).__init__(**kwds)
         self.stoptime = stoptime
@@ -259,6 +283,7 @@ def test_network_copy():
     assert_equal(x.count, 20)
 
 class NoninvalidatingCounter(Counter):
+    add_to_magic_network = True
     invalidates_magic_network = False
 
 @with_setup(teardown=restore_initial_state)
@@ -298,6 +323,43 @@ def test_invalid_magic_network():
 
 
 @with_setup(teardown=restore_initial_state)
+def test_magic_weak_reference():
+    '''Test that holding a weak reference to an object does not make it get '''
+
+    G1 = NeuronGroup(1, 'v:1')
+
+    # this object should not be included
+    G2 = weakref.ref(NeuronGroup(1, 'v:1'))
+
+    with catch_logs(log_level=logging.DEBUG) as l:
+        run(1*ms)
+
+        # Check the debug messages for the number of included objects
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '2 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
+
+
+@with_setup(teardown=restore_initial_state)
+def test_magic_unused_object():
+    '''Test that creating unused objects does not affect the magic system.'''
+    def create_group():
+        # Produce two objects but return only one
+        G1 = NeuronGroup(1, 'v:1')  # no Thresholder or Resetter
+        G2 = NeuronGroup(1, 'v:1') # This object should be garbage collected
+        return G1
+
+    G = create_group()
+    with catch_logs(log_level=logging.DEBUG) as l:
+        run(1*ms)
+
+        # Check the debug messages for the number of included objects
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '2 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
+
+
+@with_setup(teardown=restore_initial_state)
 def test_network_access():
     x = Counter(name='counter')
     net = Network(x)
@@ -319,8 +381,130 @@ def test_network_access():
     assert_raises(KeyError, lambda: net.__delitem__('counter'))
 
 
+@with_setup(teardown=restore_initial_state)
+def test_dependency_check():
+    def create_net():
+        G = NeuronGroup(10, 'v: 1')
+        dependent_objects = [
+                             StateMonitor(G, 'v', record=True),
+                             SpikeMonitor(G),
+                             PopulationRateMonitor(G),
+                             Synapses(G, G, pre='v+=1', connect=True)
+                             ]
+        return dependent_objects
+
+    dependent_objects = create_net()
+    # Trying to simulate the monitors/synapses without the group should fail
+    for obj in dependent_objects:
+        assert_raises(ValueError, lambda: Network(obj).run(0*ms))
+
+    # simulation with a magic network should work, but all objects should be
+    # inactive
+    assert all(obj.active for obj in dependent_objects)
+    run(0*ms)
+    assert all(not obj.active for obj in dependent_objects)
+
+
+@with_setup(teardown=restore_initial_state)
+def test_proxy():
+    '''
+    Make sure that `Proxy` objects do not make objects get included in `MagicNetwork`.
+    '''
+    updates[:] = []
+    x = NameLister(name='x')
+    y = NameLister(name='y')
+    p = Proxy(y)
+    del y
+    run(defaultclock.dt)
+    # Object y should not have been run
+    assert updates == ['x'], updates
+    # Proxy should still work
+    assert p.name == 'y'
+
+
+@with_setup(teardown=restore_initial_state)
+def test_loop_with_proxies():
+    '''
+    Somewhat realistic test with a loop of magic networks and proxy objects
+    '''
+    updates[:] = []
+    def run_simulation():
+        G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
+                        reset='v=0', threshold='v>1')
+        G.v = np.linspace(0, 1, 10)
+        run(1*ms)
+        # We return potentially problematic references to a VariableView
+        return G.v
+
+    # First run
+    with catch_logs(log_level=logging.DEBUG) as l:
+        v = run_simulation()
+        assert v[0] == 0 and 0 < v[-1] < 1
+        # Check the debug messages for the number of included objects
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '4 objects' in magic_objects
+
+
+    # Second run
+    with catch_logs(log_level=logging.DEBUG) as l:
+        v = run_simulation()
+        assert v[0] == 0 and 0 < v[-1] < 1
+        # Check the debug messages for the number of included objects
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '4 objects' in magic_objects
+
+
+
+@with_setup(teardown=restore_initial_state)
+def test_loop_with_proxies_2():
+    '''
+    Somewhat realistic test with a loop of magic networks and proxy objects
+    '''
+    updates[:] = []
+    def run_simulation():
+        G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
+                        reset='v=0', threshold='v>1')
+        G.v = np.linspace(0, 1, 10)
+        v_mon = StateMonitor(G, 'v', record=True)
+        spike_mon = SpikeMonitor(G)
+        r_mon = PopulationRateMonitor(G)
+        run(1*ms)
+        # We return potentially problematic references to monitors
+        return v_mon, spike_mon, r_mon
+
+    # First run
+    with catch_logs(log_level=logging.DEBUG) as l:
+        v_mon, spike_mon, r_mon = run_simulation()
+        # Check the debug messages for the number of included objects
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '7 objects' in magic_objects
+    # all monitors should be active
+    assert v_mon.active and spike_mon.active and r_mon.active
+
+    # Second run (we should get an information for each monitor)
+    with catch_logs(log_level=logging.DEBUG) as l:
+        run_simulation()
+        missing_dependencies = len([msg for msg in l
+                                    if msg[1] == 'brian2.core.magic.missing_dependency'])
+        assert missing_dependencies == 3
+        # Check the debug messages for the number of included objects -- note
+        # that this still includes the monitors from the previous run. These
+        # will be set to inactive and not simulated, though.
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '10 objects' in magic_objects
+
+        # The monitors from the previous run should be all inactive now
+        assert not (v_mon.active or spike_mon.active or r_mon.active)
+
+
 if __name__=='__main__':
-    for t in [test_empty_network,
+    for t in [
+              test_incorrect_network_use,
+              test_empty_network,
               test_network_single_object,
               test_network_two_objects,
               test_network_different_clocks,
@@ -333,8 +517,14 @@ if __name__=='__main__':
               test_network_t,
               test_network_remove,
               test_network_copy,
+              test_magic_weak_reference,
+              test_magic_unused_object,
               test_invalid_magic_network,
-              test_network_access
+              test_network_access,
+              test_dependency_check,
+              test_proxy,
+              test_loop_with_proxies,
+              test_loop_with_proxies_2
               ]:
         t()
         restore_initial_state()

@@ -6,6 +6,7 @@ import collections
 from collections import defaultdict
 import weakref
 import re
+import weakref
 
 import numpy as np
 
@@ -22,6 +23,7 @@ from brian2.units.fundamentalunits import (Unit, Quantity,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
+from brian2.utils.proxy import Proxy
 from brian2.core.spikesource import SpikeSource
 
 
@@ -396,6 +398,7 @@ class Synapses(Group):
         The name for this object. If none is given, a unique name of the form
         ``synapses``, ``synapses_1``, etc. will be automatically chosen.
     '''
+    add_to_magic_network = True
     def __init__(self, source, target=None, model=None, pre=None, post=None,
                  connect=False, delay=None, namespace=None, dtype=None,
                  codeobj_class=None,
@@ -405,12 +408,14 @@ class Synapses(Group):
         
         self.codeobj_class = codeobj_class
 
-        self.source = weakref.proxy(source)
+        self.source = Proxy(source)
+        self.add_dependency(self.source)
         if target is None:
             self.target = self.source
         else:
-            self.target = weakref.proxy(target)
-            
+            self.target = Proxy(target)
+            self.add_dependency(self.target)
+
         ##### Prepare and validate equations
         if model is None:
             model = ''

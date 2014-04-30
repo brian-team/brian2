@@ -1,3 +1,6 @@
+import inspect
+import gc
+import types
 import weakref
 
 from brian2.units.fundamentalunits import check_units
@@ -5,6 +8,7 @@ from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.core.network import Network
 from brian2.core.base import BrianObject
+from brian2.utils.proxy import get_proxy_count
 
 __all__ = ['MagicNetwork', 'magic_network',
            'MagicError',
@@ -12,6 +16,49 @@ __all__ = ['MagicNetwork', 'magic_network',
            ]
 
 logger = get_logger(__name__)
+
+
+def get_refcount(obj):
+    f_locals = set()
+    refcount = 0
+    print '\ndetermining referrers for', obj
+    for frame_tuple in inspect.stack():
+        f_locals.add(id(frame_tuple[0].f_locals))
+        del frame_tuple
+
+    for referrer in gc.get_referrers(obj):
+        print '\t', referrer
+        if not id(referrer) in f_locals:
+            refcount += 1
+        del referrer
+
+    return refcount
+
+
+def _get_contained_objects(obj):
+    '''
+    Helper function to recursively get all contained objects.
+
+    Parameters
+    ----------
+    obj : `BrianObject`
+        An object that (potentially) contains other objects, e.g. a
+        `NeuronGroup` contains a `StateUpdater`, etc.
+
+    Returns
+    -------
+    l : list of `BrianObject`
+        A list of all the objects contained in `obj`
+    '''
+    l = []
+    contained_objects = getattr(obj, 'contained_objects', [])
+    if contained_objects is None:  # can happen for testing code
+        contained_objects = []
+    l.extend(contained_objects)
+    for contained_obj in contained_objects:
+        l.extend(_get_contained_objects(contained_obj))
+
+    return l
 
 
 class MagicError(Exception):
@@ -101,8 +148,7 @@ class MagicNetwork(Network):
             raise ValueError("There can be only one MagicNetwork.")
         MagicNetwork._already_created = True
         
-        super(MagicNetwork, self).__init__(name='magicnetwork*',
-                                           weak_references=True)
+        super(MagicNetwork, self).__init__(name='magicnetwork*')
         
         self._previous_refs = set()
         
@@ -117,11 +163,30 @@ class MagicNetwork(Network):
         You cannot remove objects directly from `MagicNetwork`
         '''
         raise MagicError("Cannot directly modify MagicNetwork")
-    
+
     def _update_magic_objects(self):
+        # Go through all the objects and ignore those that are only referred to
+        # by Proxy objects (e.g. because a Monitor holds a reference to them)
+        valid_refs = set()
+        all_objects = set()
+        print ''
+        for obj in BrianObject.__instances__():
+            proxycount = get_proxy_count(obj)
+            # subtract 1 from refcount for get_refcount arg
+            # subtract 1 from refcount for obj reference in this loop
+            # subtract 1 from refcount for reference in WeakSet iterator
+            refcount = get_refcount(obj)-3
+            print obj, 'refcount:', refcount, 'proxycount:', proxycount
+            if refcount != proxycount:
+                if obj.add_to_magic_network:
+                    all_objects.add(obj)
+                    all_objects.update(_get_contained_objects(obj))
+                    if obj.invalidates_magic_network:
+                        valid_refs.add(weakref.ref(obj))
+        del obj
+
         # check whether we should restart time, continue time, or raise an
         # error
-        valid_refs = set(r for r in BrianObject.__instances__() if r().invalidates_magic_network)
         inter = valid_refs.intersection(self._previous_refs)
 
         if len(inter)==0:
@@ -133,15 +198,34 @@ class MagicNetwork(Network):
         else:
             raise MagicError("Brian cannot guess what you intend to do here, see docs for MagicNetwork for details")
         self._previous_refs = valid_refs
-        self.objects[:] = [weakref.proxy(obj()) for obj in BrianObject.__instances__()]
+        self.objects[:] = list(all_objects)
         logger.debug("Updated MagicNetwork to include {numobjs} objects "
                      "with names {names}".format(
                         numobjs=len(self.objects),
-                        names=', '.join(obj.name for obj in self.objects)))
+                        names=', '.join(obj.name for obj in self.objects)),
+                     name_suffix='magic_objects')
 
-    def before_run(self, run_namespace, level=0):
+    def check_dependencies(self):
+        for obj in self.objects:
+            if not obj.active:
+                continue  # object is already inactive, no need to check it
+            for dependency in obj._dependencies:
+                if not dependency in self:
+                    logger.info(('"%s" has been included in the network but '
+                                 'not "%s" on which it depends. Setting "%s" '
+                                 'to inactive.') % (obj.name,
+                                                    dependency,
+                                                    obj.name),
+                                name_suffix='missing_dependency')
+                    obj.active = False
+                    break
+
+    def before_run(self, run_namespace=None, level=0):
         self._update_magic_objects()
         Network.before_run(self, run_namespace, level=level+1)
+
+    def after_run(self):
+        self.objects[:] = []
 
     def reinit(self):
         '''
@@ -149,7 +233,8 @@ class MagicNetwork(Network):
         '''
         self._update_magic_objects()
         super(MagicNetwork, self).reinit()
-        
+        self.objects[:] = []
+
     def __str__(self):
         return 'MagicNetwork()'
     __repr__ = __str__
@@ -208,18 +293,16 @@ def run(duration, report=None, report_period=60*second, namespace=None,
 
     See Also
     --------
-    
     Network.run, MagicNetwork, reinit, stop, clear
     
     Raises
     ------
-    
     MagicError
         Error raised when it was not possible for Brian to safely guess the
         intended use. See `MagicNetwork` for more details.
     '''
-    magic_network.run(duration, report=report, report_period=report_period,
-                      namespace=namespace, level=2+level)
+    return magic_network.run(duration, report=report, report_period=report_period,
+                             namespace=namespace, level=2+level)
 run.__module__ = __name__
 
 def reinit():

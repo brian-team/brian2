@@ -1,4 +1,3 @@
-import weakref
 import collections
 
 import numpy as np
@@ -9,6 +8,7 @@ from brian2.groups.group import Group, CodeRunner
 from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.units.allunits import second
+from brian2.utils.proxy import Proxy
 
 __all__ = ['StateMonitor']
 
@@ -132,9 +132,12 @@ class StateMonitor(Group, CodeRunner):
         show()
 
     '''
+    invalidates_magic_network = False
+    add_to_magic_network = True
     def __init__(self, source, variables, record=None, when=None,
                  name='statemonitor*', codeobj_class=None):
-        self.source = weakref.proxy(source)
+        self.source = Proxy(source)
+
         self.codeobj_class = codeobj_class
 
         # run by default on source clock at the end
@@ -178,6 +181,8 @@ class StateMonitor(Group, CodeRunner):
                             code=code, name=name,
                             when=scheduler,
                             check_units=False)
+
+        self.add_dependency(source)
 
         # Setup variables
         self.variables = Variables(self)
