@@ -17,8 +17,8 @@ __all__ = ['SpikeGeneratorGroup']
 
 class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     @check_units(N=1, indices=1, times=second)
-    def __init__(self, N, indices, times, when=None, name='spikegeneratorgroup*',
-                 codeobj_class=None):
+    def __init__(self, N, indices, times, when=None,
+                 name='spikegeneratorgroup*', codeobj_class=None):
         '''
         A group emitting spikes at given times.
 
@@ -80,7 +80,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         CodeRunner.__init__(self, self,
                             'spikegenerator',
                             when=when,
-                            name=self.name+'_thresholder*')
+                            name=None)
 
     @property
     def spikes(self):
