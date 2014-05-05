@@ -1,0 +1,10 @@
+{# USES_VARIABLES { _spikespace, t, dt, neuron_index, spike_time } #}
+import numpy as np
+
+# TODO: We don't deal with more than one spike per neuron yet
+# Spikes since the preceding time step
+_indices = {{neuron_index}}[np.logical_and({{spike_time}}>(t-dt), {{spike_time}}<=t)]
+
+_n_spikes = len(_indices)
+{{_spikespace}}[:_n_spikes] = _indices
+{{_spikespace}}[-1] = _n_spikes
