@@ -333,17 +333,21 @@ def _synapse_numbers(pre_neurons, post_neurons):
 class SynapticIndexing(object):
 
     def __init__(self, synapses):
+        self.synapses = weakref.proxy(synapses)
         self.synaptic_pre = synapses.variables['_synaptic_pre']
         self.synaptic_post = synapses.variables['_synaptic_post']
         self.source_start = synapses.source.start
         self.target_start = synapses.target.start
 
-    def calc_indices(self, index):
+    def calc_indices(self, index, var_index='_idx'):
         '''
         Returns synaptic indices for `index`, which can be a tuple of indices
         (including arrays and slices), a single index or a string.
 
         '''
+        if not var_index in ['_idx', '_presynaptic_idx', '_postsynaptic_idx']:
+            raise AssertionError('Do not know how to deal with index %s' % var_index)
+
         if (not isinstance(index, (tuple, basestring)) and
                 isinstance(index, (int, np.ndarray, slice,
                                    collections.Sequence))):

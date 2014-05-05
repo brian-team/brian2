@@ -983,7 +983,7 @@ class VariableView(object):
                                   'scalar variable.') % self.name)
             indices = np.array(0)
         else:
-            indices = self.indexing.calc_indices(item)
+            indices = self.indexing.calc_indices(item, self.var_index)
 
         if variable.scalar:
             return variable.get_value()[0]
@@ -1048,7 +1048,7 @@ class VariableView(object):
                                   'scalar variable.') % self.name)
             variable.get_value()[0] = value
         else:
-            indices = self.indexing.calc_indices(item)
+            indices = self.indexing.calc_indices(item, self.var_index)
             # We are not going via code generation so we have to take care
             # of correct indexing (in particular for subgroups) explicitly
             if self.var_index != '_idx':
