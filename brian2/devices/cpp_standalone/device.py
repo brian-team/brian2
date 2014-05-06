@@ -205,7 +205,7 @@ class CPPStandaloneDevice(Device):
             # We have to calculate indices. This will not work for synaptic
             # variables
             try:
-                indices = group.calc_indices(item)
+                indices = group._indexing.calc_indices(item)
             except NotImplementedError:
                 raise NotImplementedError(('Cannot set variable "%s" this way in '
                                            'standalone, try using string '

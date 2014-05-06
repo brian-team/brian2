@@ -153,6 +153,55 @@ def _same_function(func1, func2):
     return func1 is func2
 
 
+class Indexing(object):
+    '''
+    Object responsible for calculating flat index arrays from arbitrary group-
+    specific indices. Stores strong references to the necessary variables so
+    that basic indexing (i.e. slicing, integer arrays/values, ...) works even
+    when the respective `Group` no longer exists. Note that this object does
+    not handle string indexing.
+    '''
+    def __init__(self, group):
+        self.N = group.variables['N']
+
+    def calc_indices(self, item):
+        '''
+        Return flat indices to index into state variables from arbitrary
+        group specific indices. In the default implementation, raises an error
+        for multidimensional indices and transforms slices into arrays.
+
+        Parameters
+        ----------
+        item : slice, array, int
+            The indices to translate.
+
+        Returns
+        -------
+        indices : `numpy.ndarray`
+            The flat indices corresponding to the indices given in `item`.
+
+        See Also
+        --------
+        SynapticIndexing
+        '''
+        if isinstance(item, tuple):
+            raise IndexError(('Can only interpret 1-d indices, '
+                              'got %d dimensions.') % len(item))
+        else:
+            if isinstance(item, slice):
+                start, stop, step = item.indices(self.N.get_value())
+                return np.arange(start, stop, step)
+            else:
+                index_array = np.asarray(item)
+                if index_array.dtype == np.bool:
+                    index_array = np.nonzero(index_array)[0]
+                elif not np.issubdtype(index_array.dtype, np.int):
+                    raise TypeError(('Indexing is only supported for integer '
+                                     'and boolean arrays, not for type '
+                                     '%s' % index_array.dtype))
+                return index_array
+
+
 class IndexWrapper(object):
     '''
     Convenience class to allow access to the indices via indexing syntax. This
@@ -162,6 +211,7 @@ class IndexWrapper(object):
     '''
     def __init__(self, group):
         self.group = weakref.proxy(group)
+        self.indices = group._indexing
 
     def __getitem__(self, item):
         if isinstance(item, basestring):
@@ -183,7 +233,7 @@ class IndexWrapper(object):
                                             )
             return codeobj()
         else:
-            return self.group.calc_indices(item)
+            return self.indices.calc_indices(item)
 
 
 class Group(BrianObject):
@@ -193,11 +243,16 @@ class Group(BrianObject):
     # TODO: Overwrite the __dir__ method to return the state variables
     # (should make autocompletion work)
     '''
+    #: The class to convert group-specific indexing into 1d indices
+    indexing_class = Indexing
+
     def _enable_group_attributes(self):
         if not hasattr(self, 'variables'):
             raise ValueError('Classes derived from Group need variables attribute.')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
+        if not hasattr(self, 'indexing'):
+            self._indexing = self.indexing_class(self)
         if not hasattr(self, 'indices'):
             self.indices = IndexWrapper(self)
 
@@ -350,7 +405,7 @@ class Group(BrianObject):
                                   'scalar variable.') % variable_name)
             indices = np.array(0)
         else:
-            indices = self.calc_indices(item)
+            indices = self._indexing.calc_indices(item)
 
         # For "normal" variables, we can directly access the underlying data
         # and use the usual slicing syntax. For subexpressions, however, we
@@ -403,7 +458,7 @@ class Group(BrianObject):
                                   'scalar variable.') % variable_name)
             variable.get_value()[0] = value
         else:
-            indices = self.calc_indices(item)
+            indices = self._indexing.calc_indices(item)
             # We are not going via code generation so we have to take care
             # of correct indexing (in particular for subgroups) explicitly
             var_index = self.variables.indices[variable_name]
@@ -473,7 +528,7 @@ class Group(BrianObject):
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
         '''
-        indices = self.calc_indices(item)
+        indices = self._indexing.calc_indices(item)
         abstract_code = varname + ' = ' + code
         variables = Variables(None)
         variables.add_array('_group_idx', unit=Unit(1),
@@ -541,43 +596,6 @@ class Group(BrianObject):
                                         level=level+2,
                                         run_namespace=run_namespace)
         codeobj()
-
-    def calc_indices(self, item):
-        '''
-        Return flat indices to index into state variables from arbitrary
-        group specific indices. In the default implementation, raises an error
-        for multidimensional indices and transforms slices into arrays.
-
-        Parameters
-        ----------
-        item : slice, array, int
-            The indices to translate.
-
-        Returns
-        -------
-        indices : `numpy.ndarray`
-            The flat indices corresponding to the indices given in `item`.
-
-        See Also
-        --------
-        Synapses.calc_indices
-        '''
-        if isinstance(item, tuple):
-            raise IndexError(('Can only interpret 1-d indices, '
-                              'got %d dimensions.') % len(item))
-        else:
-            if isinstance(item, slice):
-                start, stop, step = item.indices(len(self))
-                return np.arange(start, stop, step)
-            else:
-                index_array = np.asarray(item)
-                if index_array.dtype == np.bool:
-                    index_array = np.nonzero(index_array)[0]
-                elif not np.issubdtype(index_array.dtype, np.int):
-                    raise TypeError(('Indexing is only supported for integer '
-                                     'and boolean arrays, not for type '
-                                     '%s' % index_array.dtype))
-                return index_array
 
     def resolve(self, identifier, additional_variables=None,
                 run_namespace=None, level=0, do_warn=True):

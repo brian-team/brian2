@@ -77,7 +77,7 @@ def test_state_monitor():
         all_mon = StateMonitor(G, True, record=True)
 
         # record from a Synapses object (all synapses connecting to neuron 1)
-        indices = S.calc_indices((slice(None), 1))
+        indices = S.indices[:, 1]
         synapse_mon = StateMonitor(S, 'w', record=indices)
 
         net = Network(G, S, nothing_mon,
