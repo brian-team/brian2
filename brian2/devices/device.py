@@ -19,7 +19,6 @@ from brian2.utils.stringtools import code_representation, indent
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
            'all_devices',
-           'device_override',
            'device',
            ]
 
@@ -363,23 +362,3 @@ def set_device(device):
     active_device = device
     active_device.activate()
 
-
-def device_override(name):
-    '''
-    Decorates a function/method to allow it to be overridden by the current `Device`.
-    
-    The ``name`` is the function name in the `Device` to use as an override if it exists.
-    '''
-    def device_override_decorator(func):
-        def device_override_decorated_function(*args, **kwds):
-            curdev = get_device()
-            if hasattr(curdev, name):
-                return getattr(curdev, name)(*args, **kwds)
-            else:
-                return func(*args, **kwds)
-        
-        device_override_decorated_function.__doc__ = func.__doc__
-        
-        return device_override_decorated_function
-    
-    return device_override_decorator

@@ -398,9 +398,13 @@ def test_dependency_check():
         assert_raises(ValueError, lambda: Network(obj).run(0*ms))
 
     # simulation with a magic network should work, but all objects should be
-    # inactive
+    # inactive and we should get a warning for each object
     assert all(obj.active for obj in dependent_objects)
-    run(0*ms)
+    with catch_logs() as l:
+        run(0*ms)
+        dependency_warnings = [msg[2] for msg in l
+                               if msg[1] == 'brian2.core.magic.dependency_warning']
+        assert len(dependency_warnings) == 4
     assert all(not obj.active for obj in dependent_objects)
 
 

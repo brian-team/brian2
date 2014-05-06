@@ -1,4 +1,3 @@
-import weakref
 import time
 
 from brian2.utils.logger import get_logger
@@ -8,7 +7,8 @@ from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second 
 from brian2.core.preferences import brian_prefs
-from brian2.devices.device import device_override
+
+from .base import device_override
 
 __all__ = ['Network']
 

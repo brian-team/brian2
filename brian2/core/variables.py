@@ -8,7 +8,7 @@ import functools
 import sympy
 import numpy as np
 
-from brian2.core.base import weakproxy_with_fallback
+from brian2.core.base import weakproxy_with_fallback, device_override
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.units.fundamentalunits import (Quantity, Unit,
                                            fail_for_dimension_mismatch,
@@ -623,11 +623,17 @@ class VariableView(object):
         The unit to be used for the variable, should be `None` when a variable
          is accessed without units (e.g. when accessing ``G.var_``).
     '''
-
     def __init__(self, name, variable, group, unit=None):
         self.name = name
         self.variable = variable
+        self.var_index = group.variables.indices[name]
+        if not self.var_index in ('_idx', '0'):
+            self.var_index_variable = group.variables[self.var_index]
+
         self.group = weakproxy_with_fallback(group)
+        # We keep a strong reference to the `Indexing` object so that basic
+        # indexing is still possible, even if the group no longer exists
+        self.indexing = self.group._indexing
         self.unit = unit
 
     @property
@@ -652,15 +658,12 @@ class VariableView(object):
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
         '''
-        variable = self.variable
         if isinstance(item, basestring):
-            values = self.group.get_with_expression(self.name,
-                                                    variable, item,
-                                                    level=level+1,
-                                                    run_namespace=namespace)
+            values = self.get_with_expression(item,
+                                              level=level+1,
+                                              run_namespace=namespace)
         else:
-            values = self.group.get_with_index_array(self.name, variable,
-                                                     item)
+            values = self.get_with_index_array(item)
 
         if self.unit is None:
             return values
@@ -702,12 +705,10 @@ class VariableView(object):
         # Both index and values are strings, use a single code object do deal
         # with this situation
         if isinstance(value, basestring) and isinstance(item, basestring):
-            self.group.set_with_expression_conditional(self.name,
-                                                       variable,
-                                                       item, value,
-                                                       check_units=check_units,
-                                                       level=level+1,
-                                                       run_namespace=namespace)
+            self.set_with_expression_conditional(item, value,
+                                                 check_units=check_units,
+                                                 level=level+1,
+                                                 run_namespace=namespace)
         elif isinstance(item, basestring):
             try:
                 float(value)  # only checks for the exception
@@ -727,34 +728,243 @@ class VariableView(object):
 
             if item == 'True':
                 # We do not want to go through code generation for runtime
-                    self.group.set_with_index_array(self.name,
-                                                    variable,
-                                                    slice(None), value,
-                                                    check_units=check_units)
+                    self.set_with_index_array(slice(None), value,
+                                              check_units=check_units)
             else:
-                self.group.set_with_expression_conditional(self.name,
-                                                           variable,
-                                                           item,
-                                                           repr(value),
-                                                           check_units=check_units,
-                                                           level=level+1,
-                                                           run_namespace=namespace)
+                self.set_with_expression_conditional(item,
+                                                     repr(value),
+                                                     check_units=check_units,
+                                                     level=level+1,
+                                                     run_namespace=namespace)
         elif isinstance(value, basestring):
-            self.group.set_with_expression(self.name, variable,
-                                           item, value,
-                                           check_units=check_units,
-                                           level=level+1,
-                                           run_namespace=namespace)
+            self.set_with_expression(item, value,
+                                     check_units=check_units,
+                                     level=level+1,
+                                     run_namespace=namespace)
         else:  # No string expressions involved
-            self.group.set_with_index_array(self.name,
-                                            variable, item, value,
-                                            check_units=check_units)
+            self.set_with_index_array(item, value,
+                                      check_units=check_units)
 
     def __setitem__(self, item, value):
         self.set_item(item, value, level=1)
 
-    # Allow some basic calculations directly on the ArrayView object
+    @device_override('variableview_set_with_expression')
+    def set_with_expression(self, item, code, check_units=True, level=0,
+                            run_namespace=None):
+        '''
+        Sets a variable using a string expression. Is called by
+        `VariableView.set_item` for statements such as
+        ``S.var[:, :] = 'exp(-abs(i-j)/space_constant)*nS'``
 
+        Parameters
+        ----------
+        item : `ndarray`
+            The indices for the variable (in the context of this `group`).
+        code : str
+            The code that should be executed to set the variable values.
+            Can contain references to indices, such as `i` or `j`
+        check_units : bool, optional
+            Whether to check the units of the expression.
+        level : int, optional
+            How much farther to go up in the stack to find the implicit
+            namespace (if used, see `run_namespace`).
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
+        '''
+        indices = self.indexing.calc_indices(item)
+        abstract_code = self.name + ' = ' + code
+        variables = Variables(None)
+        variables.add_array('_group_idx', unit=Unit(1),
+                            size=len(indices), dtype=np.int32)
+        variables['_group_idx'].set_value(indices)
+
+        # TODO: Have an additional argument to avoid going through the index
+        # array for situations where iterate_all could be used
+        from brian2.codegen.codeobject import create_runner_codeobj
+        codeobj = create_runner_codeobj(self.group,
+                                        abstract_code,
+                                        'group_variable_set',
+                                        additional_variables=variables,
+                                        check_units=check_units,
+                                        level=level+2,
+                                        run_namespace=run_namespace)
+        codeobj()
+
+    @device_override('variableview_set_with_expression_conditional')
+    def set_with_expression_conditional(self, cond,
+                                        code, check_units=True, level=0,
+                                        run_namespace=None):
+        '''
+        Sets a variable using a string expression and string condition. Is
+        called by `VariableView.set_item` for statements such as
+        ``S.var['i!=j'] = 'exp(-abs(i-j)/space_constant)*nS'``
+
+        Parameters
+        ----------
+        cond : str
+            The string condition for which the variables should be set.
+        code : str
+            The code that should be executed to set the variable values.
+        check_units : bool, optional
+            Whether to check the units of the expression.
+        level : int, optional
+            How much farther to go up in the stack to find the implicit
+            namespace (if used, see `run_namespace`).
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
+        '''
+        variable = self.variable
+        if variable.scalar and cond != 'True':
+            raise IndexError(('Cannot conditionally set the scalar variable '
+                              '%s.') % self.name)
+        abstract_code_cond = '_cond = '+cond
+        abstract_code = self.name + ' = ' + code
+        variables = Variables(None)
+        variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool)
+        from brian2.codegen.codeobject import (create_runner_codeobj,
+                                               check_code_units)
+        check_code_units(abstract_code_cond, self.group,
+                         additional_variables=variables,
+                         level=level+2,
+                         run_namespace=run_namespace)
+        # TODO: Have an additional argument to avoid going through the index
+        # array for situations where iterate_all could be used
+        codeobj = create_runner_codeobj(self.group,
+                                        {'condition': abstract_code_cond,
+                                         'statement': abstract_code},
+                                        'group_variable_set_conditional',
+                                        additional_variables=variables,
+                                        check_units=check_units,
+                                        level=level+2,
+                                        run_namespace=run_namespace)
+        codeobj()
+
+    @device_override('variableview_get_with_expression')
+    def get_with_expression(self, code, level=0, run_namespace=None):
+        '''
+        Gets a variable using a string expression. Is called by
+        `VariableView.get_item` for statements such as
+        ``print G.v['g_syn > 0']``.
+
+        Parameters
+        ----------
+        code : str
+            An expression that states a condition for elements that should be
+            selected. Can contain references to indices, such as ``i`` or ``j``
+            and to state variables. For example: ``'i>3 and v>0*mV'``.
+        level : int, optional
+            How much farther to go up in the stack to find the implicit
+            namespace (if used, see `run_namespace`).
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
+        '''
+        variable = self.variable
+        if variable.scalar:
+            raise IndexError(('Cannot access the variable %s with a '
+                              'string expression, it is a scalar '
+                              'variable.') % self.name)
+        # Add the recorded variable under a known name to the variables
+        # dictionary. Important to deal correctly with
+        # the type of the variable in C++
+        variables = Variables(None)
+        variables.add_auxiliary_variable('_variable', unit=variable.unit,
+                                         dtype=variable.dtype,
+                                         scalar=variable.scalar)
+        variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool)
+
+        abstract_code = '_variable = ' + self.name + '\n'
+        abstract_code += '_cond = ' + code
+        from brian2.codegen.codeobject import (create_runner_codeobj,
+                                               check_code_units)
+        check_code_units(abstract_code, self.group,
+                         additional_variables=variables,
+                         level=level+2,
+                         run_namespace=run_namespace)
+        codeobj = create_runner_codeobj(self.group,
+                                        abstract_code,
+                                        'group_variable_get_conditional',
+                                        additional_variables=variables,
+                                        level=level+2,
+                                        run_namespace=run_namespace,
+                                        )
+        return codeobj()
+
+    @device_override('variableview_get_with_index_array')
+    def get_with_index_array(self, item):
+        variable = self.variable
+        if variable.scalar:
+            if not (isinstance(item, slice) and item == slice(None)):
+                raise IndexError(('Illegal index for variable %s, it is a '
+                                  'scalar variable.') % self.name)
+            indices = np.array(0)
+        else:
+            indices = self.indexing.calc_indices(item)
+
+        # For "normal" variables, we can directly access the underlying data
+        # and use the usual slicing syntax. For subexpressions, however, we
+        # have to evaluate code for the given indices
+        if isinstance(variable, Subexpression):
+            variables = Variables(None)
+            variables.add_auxiliary_variable('_variable',
+                                             unit=variable.unit,
+                                             dtype=variable.dtype,
+                                             scalar=variable.scalar)
+            if indices.shape ==  ():
+                single_index = True
+                indices = np.array([indices])
+            else:
+                single_index = False
+            variables.add_array('_group_idx', unit=Unit(1),
+                                size=len(indices), dtype=np.int32)
+            variables['_group_idx'].set_value(indices)
+
+            abstract_code = '_variable = ' + self.name + '\n'
+            from brian2.codegen.codeobject import create_runner_codeobj
+            codeobj = create_runner_codeobj(self.group,
+                                            abstract_code,
+                                            'group_variable_get',
+                                            additional_variables=variables
+            )
+            result = codeobj()
+            if single_index and not variable.scalar:
+                return result[0]
+            else:
+                return result
+        else:
+            if variable.scalar:
+                return variable.get_value()[0]
+            else:
+                # We are not going via code generation so we have to take care
+                # of correct indexing (in particular for subgroups) explicitly
+
+                if self.var_index != '_idx':
+                    indices = self.var_index_variable.get_value()[indices]
+                return variable.get_value()[indices]
+
+    @device_override('variableview_set_with_index_array')
+    def set_with_index_array(self, item, value, check_units):
+        variable = self.variable
+        if check_units:
+            fail_for_dimension_mismatch(variable.unit, value,
+                                        'Incorrect unit for setting variable %s' % self.name)
+        if variable.scalar:
+            if not (isinstance(item, slice) and item == slice(None)):
+                raise IndexError(('Illegal index for variable %s, it is a '
+                                  'scalar variable.') % self.name)
+            variable.get_value()[0] = value
+        else:
+            indices = self.indexing.calc_indices(item)
+            # We are not going via code generation so we have to take care
+            # of correct indexing (in particular for subgroups) explicitly
+            if self.var_index != '_idx':
+                indices = self.var_index_variable.get_value()[indices]
+
+            variable.get_value()[indices] = value
+
+    # Allow some basic calculations directly on the ArrayView object
     def __array__(self, dtype=None):
         if dtype is not None and dtype != self.variable.dtype:
             raise NotImplementedError('Changing dtype not supported')

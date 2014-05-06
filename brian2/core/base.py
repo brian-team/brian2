@@ -240,3 +240,24 @@ def weakproxy_with_fallback(obj):
         return weakref.proxy(obj)
     except TypeError:
         return obj
+
+def device_override(name):
+    '''
+    Decorates a function/method to allow it to be overridden by the current `Device`.
+
+    The ``name`` is the function name in the `Device` to use as an override if it exists.
+    '''
+    def device_override_decorator(func):
+        def device_override_decorated_function(*args, **kwds):
+            from brian2.devices.device import get_device
+            curdev = get_device()
+            if hasattr(curdev, name):
+                return getattr(curdev, name)(*args, **kwds)
+            else:
+                return func(*args, **kwds)
+
+        device_override_decorated_function.__doc__ = func.__doc__
+
+        return device_override_decorated_function
+
+    return device_override_decorator
