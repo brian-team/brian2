@@ -195,7 +195,7 @@ class Network(Nameable):
                                     "objects from Network")
 
     @device_override('network_reinit')
-    def reinit(self):
+    def reinit(self, level=0):
         '''
         reinit()
 
@@ -204,7 +204,7 @@ class Network(Nameable):
         Calls `BrianObject.reinit` on each object.
         '''
         for obj in self.objects:
-            obj.reinit()
+            obj.reinit(level=level+2)
     
     def _get_schedule(self):
         if not hasattr(self, '_schedule'):

@@ -99,7 +99,7 @@ class Preparer(BrianObject):
         self.did_reinit = False
         self.did_pre_run = False
         self.did_post_run = False
-    def reinit(self):
+    def reinit(self, level=0):
         self.did_reinit = True
     def before_run(self, namespace=None, level=0):
         self.did_pre_run = True
@@ -313,11 +313,6 @@ def test_invalid_magic_network():
     assert_equal(y.count, 10) 
     del x
     assert_raises(MagicError, lambda: run(1*ms, level=3))
-    clear()
-    z = Counter()
-    run(1*ms)
-    assert_equal(z.count, 10)
-    assert_equal(magic_network.t, 1*ms)
 
 
 @with_setup(teardown=restore_initial_state)
@@ -397,21 +392,23 @@ def test_dependency_check():
     for obj in dependent_objects:
         assert_raises(ValueError, lambda: Network(obj).run(0*ms))
 
-    # simulation with a magic network should work, but all objects should be
-    # inactive and we should get a warning for each object
+    # simulation with a magic network should work when we have an explicit
+    # reference to one of the objects, but the object should be inactive and
+    # we should get a warning
     assert all(obj.active for obj in dependent_objects)
-    with catch_logs() as l:
-        run(0*ms)
-        dependency_warnings = [msg[2] for msg in l
-                               if msg[1] == 'brian2.core.magic.dependency_warning']
-        assert len(dependency_warnings) == 4
-    assert all(not obj.active for obj in dependent_objects)
+    for obj in dependent_objects:  # obj is our explicit reference
+        with catch_logs() as l:
+            run(0*ms)
+            dependency_warnings = [msg[2] for msg in l
+                                   if msg[1] == 'brian2.core.magic.dependency_warning']
+            assert len(dependency_warnings) == 1
+        assert not obj.active
 
 
 @with_setup(teardown=restore_initial_state)
 def test_loop():
     '''
-    Somewhat realistic test with a loop of magic networks and proxy objects
+    Somewhat realistic test with a loop of magic networks
     '''
     updates[:] = []
     def run_simulation():
@@ -442,33 +439,6 @@ def test_loop():
         assert '4 objects' in magic_objects
 
 
-@with_setup(teardown=restore_initial_state)
-def test_loop2():
-    '''
-    Somewhat realistic test with a loop of magic networks and proxy objects
-    '''
-    updates[:] = []
-    def run_simulation():
-        G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
-                        reset='v=0', threshold='v>1')
-        G.v = np.linspace(0, 1, 10)
-        v_mon = StateMonitor(G, 'v', record=True)
-        spike_mon = SpikeMonitor(G)
-        r_mon = PopulationRateMonitor(G)
-        run(1*ms)
-        # We return potentially problematic references to monitors
-        return v_mon, spike_mon, r_mon
-
-    # First run
-    v_mon, spike_mon, r_mon = run_simulation()
-
-    # Second run (we should get a warning for each monitor
-    with catch_logs() as l:
-        v_mon, spike_mon, r_mon = run_simulation()
-        assert (len(l) == 3 and
-                all([w[1] == 'brian2.core.magic.dependency_warning' for w in l]))
-
-
 if __name__=='__main__':
     for t in [test_incorrect_network_use,
               test_empty_network,
@@ -489,7 +459,6 @@ if __name__=='__main__':
               test_invalid_magic_network,
               test_network_access,
               test_loop,
-              test_loop2
               ]:
         t()
         restore_initial_state()

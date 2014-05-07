@@ -1,4 +1,6 @@
 import weakref
+import inspect
+import itertools
 
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second
@@ -36,6 +38,36 @@ def _get_contained_objects(obj):
         l.extend(_get_contained_objects(contained_obj))
 
     return l
+
+
+def get_objects_in_namespace(level):
+    '''
+    Get all the objects in the current namespace that derive from `BrianObject`.
+    Used to determine the objects for the `MagicNetwork`.
+
+    Parameters
+    ----------
+    level : int, optional
+        How far to go back to get the locals/globals. Each function/method
+        call should add ``1`` to this argument, functions/method with a
+        decorator have to add ``2``.
+
+    Returns
+    -------
+    objects : set
+        A set with weak references to the `BrianObject`s in the namespace.
+    '''
+    # Get the locals and globals from the stack frame
+    objects = set()
+    frame = inspect.stack()[level + 1][0]
+    for k, v in itertools.chain(frame.f_globals.iteritems(),
+                                frame.f_locals.iteritems()):
+        # We are only interested in numbers and functions, not in
+        # everything else (classes, modules, etc.)
+        if isinstance(v, BrianObject):
+            objects.add(weakref.ref(v))
+    del frame
+    return objects
 
 
 class MagicError(Exception):
@@ -115,7 +147,7 @@ class MagicNetwork(Network):
     See Also
     --------
     
-    Network, run, reinit, stop, clear
+    Network, run, reinit, stop
     '''
     
     _already_created = False
@@ -141,13 +173,11 @@ class MagicNetwork(Network):
         '''
         raise MagicError("Cannot directly modify MagicNetwork")
     
-    def _update_magic_objects(self):
+    def _update_magic_objects(self, level):
         valid_refs = set()
         all_objects = set()
-        for obj in BrianObject.__instances__():
+        for obj in get_objects_in_namespace(level=level+1):
             obj = obj()
-            if obj is None:
-                continue
             if obj.add_to_magic_network:
                 all_objects.add(obj)
                 for contained in _get_contained_objects(obj):
@@ -192,17 +222,17 @@ class MagicNetwork(Network):
                     break
 
     def before_run(self, run_namespace=None, level=0):
-        self._update_magic_objects()
+        self._update_magic_objects(level=level+1)
         Network.before_run(self, run_namespace, level=level+1)
 
     def after_run(self):
         self.objects[:] = []
 
-    def reinit(self):
+    def reinit(self, level):
         '''
         See `Network.reinit`.
         '''
-        self._update_magic_objects()
+        self._update_magic_objects(level=level+1)
         super(MagicNetwork, self).reinit()
         self.objects[:] = []
 
