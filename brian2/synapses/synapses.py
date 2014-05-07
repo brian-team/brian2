@@ -129,7 +129,7 @@ class SynapticPathway(CodeRunner, Group):
         else:
             raise ValueError('prepost argument has to be either "pre" or '
                              '"post"')
-        self.synapses = synapses
+        self.synapses = weakref.proxy(synapses)
 
         if objname is None:
             objname = prepost + '*'
