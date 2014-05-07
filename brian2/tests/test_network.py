@@ -290,7 +290,11 @@ def test_invalid_magic_network():
     run(1*ms)
     assert_equal(x.count, 10)
     y = Counter()
-    assert_raises(MagicError, lambda: run(1*ms, level=3))
+    try:
+        run(1*ms)
+        raise AssertionError('Expected a MagicError')
+    except MagicError:
+        pass  # this is expected
     del x, y
     x = Counter()
     run(1*ms)
@@ -312,7 +316,11 @@ def test_invalid_magic_network():
     assert_equal(x.count, 10)
     assert_equal(y.count, 10) 
     del x
-    assert_raises(MagicError, lambda: run(1*ms, level=3))
+    try:
+        run(1*ms)
+        raise AssertionError('Expected a MagicError')
+    except MagicError:
+        pass  # this is expected
 
 
 @with_setup(teardown=restore_initial_state)
