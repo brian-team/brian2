@@ -1,3 +1,4 @@
+import gc
 import time
 
 from brian2.utils.logger import get_logger
@@ -351,7 +352,9 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
-        
+        # A garbage collection here can be useful to free memory if we have
+        # multiple runs
+        gc.collect()
         self.before_run(namespace, level=level+3)
 
         if len(self.objects)==0:
