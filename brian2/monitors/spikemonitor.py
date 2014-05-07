@@ -1,5 +1,3 @@
-import weakref
-
 import numpy as np
 
 from brian2.core.scheduler import Scheduler
@@ -37,7 +35,7 @@ class SpikeMonitor(Group, CodeRunner):
                  codeobj_class=None):
         self.record = bool(record)
         #: The source we are recording from
-        self.source = weakref.proxy(source)
+        self.source =source
 
         # run by default on source clock at the end
         scheduler = Scheduler(when)

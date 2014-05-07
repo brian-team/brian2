@@ -1,5 +1,3 @@
-import weakref
-
 import numpy as np
 
 from brian2.core.scheduler import Scheduler
@@ -32,7 +30,7 @@ class PopulationRateMonitor(Group, CodeRunner):
                  codeobj_class=None):
 
         #: The group we are recording from
-        self.source = weakref.proxy(source)
+        self.source = source
 
         scheduler = Scheduler(clock=source.clock, when='end')
 

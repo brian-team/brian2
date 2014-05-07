@@ -1,4 +1,3 @@
-import weakref
 import collections
 
 import numpy as np
@@ -136,7 +135,7 @@ class StateMonitor(Group, CodeRunner):
     add_to_magic_network = True
     def __init__(self, source, variables, record=None, when=None,
                  name='statemonitor*', codeobj_class=None):
-        self.source = weakref.proxy(source)
+        self.source = source
         self.codeobj_class = codeobj_class
 
         # run by default on source clock at the end
