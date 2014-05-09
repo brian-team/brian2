@@ -15,13 +15,27 @@ from brian2.utils.logger import catch_logs
 
 def test_incorrect_network_use():
     '''Test some wrong uses of `Network` and `MagicNetwork`'''
+    assert_raises(TypeError, lambda: Network(name='mynet',
+                                             anotherkwd='does not exist'))
     assert_raises(TypeError, lambda: Network('not a BrianObject'))
     net = Network()
     assert_raises(TypeError, lambda: net.add('not a BrianObject'))
     assert_raises(ValueError, lambda: MagicNetwork())
     G = NeuronGroup(10, 'v:1')
+    net.add(G)
+    assert_raises(TypeError, lambda: net.remove(object()))
     assert_raises(MagicError, lambda: magic_network.add(G))
     assert_raises(MagicError, lambda: magic_network.remove(G))
+
+
+def test_network_contains():
+    '''
+    Test `Network.__contains__`.
+    '''
+    G = NeuronGroup(1, 'v:1', name='mygroup')
+    net = Network(G)
+    assert 'mygroup' in net
+    assert 'neurongroup' not in net
 
 
 @with_setup(teardown=restore_initial_state)
@@ -132,6 +146,9 @@ def test_magic_network():
     run(10*ms)
     assert_equal(x.count, 100)
     assert_equal(y.count, 100)
+
+    assert len(repr(magic_network))  # very basic test...
+    assert len(str(magic_network))  # very basic test...
 
 class Stopper(BrianObject):
     add_to_magic_network = True
@@ -366,6 +383,8 @@ def test_network_access():
     x = Counter(name='counter')
     net = Network(x)
     assert len(net) == 1
+    assert len(repr(net))  # very basic test...
+    assert len(str(net))  # very basic test...
 
     # accessing objects
     assert net['counter'] is x
@@ -449,6 +468,7 @@ def test_loop():
 
 if __name__=='__main__':
     for t in [test_incorrect_network_use,
+              test_network_contains,
               test_empty_network,
               test_network_single_object,
               test_network_two_objects,

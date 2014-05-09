@@ -12,6 +12,17 @@ except ImportError:
     codeobj_classes = [NumpyCodeObject]
 
 
+def test_str_repr():
+    '''
+    Test the string representation of a subgroup.
+    '''
+    G = NeuronGroup(10, 'v:1')
+    SG = G[5:8]
+    # very basic test, only make sure no error is raised
+    assert len(str(SG))
+    assert len(repr(SG))
+
+
 def test_state_variables():
     '''
     Test the setting and accessing of state variables in subgroups.
@@ -292,6 +303,7 @@ def test_no_reference_4():
 
 
 if __name__ == '__main__':
+    test_str_repr()
     test_state_variables()
     test_state_variables_string_indices()
     test_state_monitor()
