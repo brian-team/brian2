@@ -16,24 +16,35 @@ __all__ = ['SpikeGeneratorGroup']
 
 
 class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
+    '''
+    A group emitting spikes at given times.
+
+    Parameters
+    ----------
+    N : int
+        The number of "neurons" in this group
+    indices : array of integers
+        The indices of the spiking cells
+    times : `Quantity`
+        The spike times for the cells given in `indices`. Has to have the
+        same length as `indices`.
+    when : `Scheduler`
+        When to update this group
+
+    Notes
+    -----
+    * In a time step, `SpikeGeneratorGroup` emits all spikes that happened
+      at :math:`t-dt < t_{spike} \leq t`. This might lead to unexpected
+      or missing spikes if you change the timestep dt between runs.
+    * `SpikeGeneratorGroup` does not currently raise any warning if a neuron
+      spikes more that once during a timestep, but other code (e.g. for
+      synaptic propagation) might assume that neurons only spike once per
+      timestep and will therefore not work properly.
+    '''
+
     @check_units(N=1, indices=1, times=second)
     def __init__(self, N, indices, times, when=None,
                  name='spikegeneratorgroup*', codeobj_class=None):
-        '''
-        A group emitting spikes at given times.
-
-        Parameters
-        ----------
-        N : int
-            The number of "neurons" in this group
-        indices : array of integers
-            The indices of the spiking cells
-        times : `Quantity`
-            The spike times for the cells given in `indices`. Has to have the
-            same length as `indices`.
-        when : `Scheduler`
-            When to update this group
-        '''
         if when is None:
             when = Scheduler(when='thresholds')
         Group.__init__(self, when=when, name=name)
