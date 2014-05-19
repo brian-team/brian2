@@ -169,6 +169,7 @@ class WeaveCodeObject(CodeObject):
                                local_dict=self.namespace,
                                support_code=self.code.support_code,
                                compiler=self.compiler,
+                               headers=['<algorithm>'],
                                extra_compile_args=self.extra_compile_args,
                                include_dirs=self.include_dirs)
         if hasattr(self, 'compiled_python_post'):
