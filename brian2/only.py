@@ -19,6 +19,7 @@ from brian2.core.names import *
 from brian2.core.spikesource import *
 
 # The following packages only depend on something in the above set
+from brian2.core.variables import linked_var
 from brian2.core.functions import *
 from brian2.core.preferences import *
 from brian2.core.clocks import *

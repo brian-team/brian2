@@ -10,14 +10,16 @@ from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.translation import analyse_identifiers
 from brian2.codegen.codeobject import check_code_units
-from brian2.core.variables import Variables
+from brian2.core.variables import Variables, LinkedVariable
 from brian2.core.spikesource import SpikeSource
 from brian2.parsing.expressions import (parse_expression_unit,
                                         is_boolean_expression)
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 from brian2.units.allunits import second
-from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
+from brian2.units.fundamentalunits import (Quantity, Unit,
+                                           have_same_dimensions,
+                                           DimensionMismatchError)
 
 
 from .group import Group, CodeRunner, get_dtype
@@ -269,7 +271,7 @@ class NeuronGroup(Group, SpikeSource):
 
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ('unless refractory',),
-                           PARAMETER: ('constant', 'scalar'),
+                           PARAMETER: ('constant', 'scalar', 'linked'),
                            SUBEXPRESSION: ('scalar',)})
 
         # add refractoriness
@@ -279,7 +281,7 @@ class NeuronGroup(Group, SpikeSource):
         uses_refractoriness = len(model) and any(['unless refractory' in eq.flags
                                                   for eq in model.itervalues()
                                                   if eq.type == DIFFERENTIAL_EQUATION])
-
+        self._linked_variables = set()
         logger.debug("Creating NeuronGroup of size {self._N}, "
                      "equations {self.equations}.".format(self=self))
 
@@ -363,6 +365,47 @@ class NeuronGroup(Group, SpikeSource):
         spikespace = self.variables['_spikespace'].get_value()
         return spikespace[:spikespace[-1]]
 
+    def state(self, name, use_units=True, level=0):
+        try:
+            return Group.state(self, name, use_units=use_units, level=level+1)
+        except KeyError as ex:
+            if name in self._linked_variables:
+                raise TypeError(('Link target for variable %s has not been '
+                                 'set.') % name)
+            else:
+                raise ex
+
+    def __setattr__(self, key, value):
+        # attribute access is switched off until this attribute is created by
+        # _enable_group_attributes
+        if not hasattr(self, '_group_attribute_access_active') or key in self.__dict__:
+            object.__setattr__(self, key, value)
+        elif key in self._linked_variables:
+            if not isinstance(value, LinkedVariable):
+                raise ValueError(('Cannot set a linked variable directly, link '
+                                  'it to another variable using "linked_var".'))
+            linked_var = value.variable
+            eq = self.equations[key]
+            if eq.unit != linked_var.unit:
+                raise DimensionMismatchError(('Unit of variable %s does not '
+                                              'match its link target %s') % (key,
+                                                                             linked_var.name))
+            if not linked_var.scalar and len(self) != len(linked_var):
+                raise ValueError(('Cannot link variable %s to %s, the size of '
+                                  'the target group does not match '
+                                  '(%d != %d)') % (key,
+                                                   linked_var.name,
+                                                   len(self),
+                                                   len(linked_var)))
+            self.variables.add_reference(key, value.variable)
+        else:
+            if isinstance(value, LinkedVariable):
+                raise TypeError(('Cannot link variable %s, it has to be marked '
+                                 'as a linked variable with "(linked)" in the '
+                                 'model equations.'))
+            else:
+                Group.__setattr__(self, key, value, level=1)
+
     def __getitem__(self, item):
         if not isinstance(item, slice):
             raise TypeError('Subgroups can only be constructed using slicing syntax')
@@ -395,15 +438,22 @@ class NeuronGroup(Group, SpikeSource):
             dtype = get_dtype(eq, user_dtype)
 
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
-                constant = 'constant' in eq.flags
-                scalar = 'scalar' in eq.flags
-                size = 1 if scalar else self._N
-                index = '0' if scalar else None
-                self.variables.add_array(eq.varname, size=size,
-                                         unit=eq.unit, dtype=dtype,
-                                         constant=constant,
-                                         scalar=scalar,
-                                         index=index)
+                if 'linked' in eq.flags:
+                    # 'linked' cannot be combined with other flags
+                    if not len(eq.flags) == 1:
+                        raise SyntaxError(('The "linked" flag cannot be '
+                                           'combined with other flags'))
+                    self._linked_variables.add(eq.varname)
+                else:
+                    constant = 'constant' in eq.flags
+                    scalar = 'scalar' in eq.flags
+                    size = 1 if scalar else self._N
+                    index = '0' if scalar else None
+                    self.variables.add_array(eq.varname, size=size,
+                                             unit=eq.unit, dtype=dtype,
+                                             constant=constant,
+                                             scalar=scalar,
+                                             index=index)
             elif eq.type == SUBEXPRESSION:
                 self.variables.add_subexpression(eq.varname, unit=eq.unit,
                                                  expr=str(eq.expr),

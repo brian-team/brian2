@@ -25,7 +25,9 @@ __all__ = ['Variable',
            'Subexpression',
            'AuxiliaryVariable',
            'VariableView',
-           'Variables'
+           'Variables',
+           'LinkedVariable',
+           'linked_var'
            ]
 
 
@@ -605,6 +607,48 @@ class Subexpression(Variable):
 # ------------------------------------------------------------------------------
 # Classes providing views on variables and storing variables information
 # ------------------------------------------------------------------------------
+class LinkedVariable(object):
+    '''
+    A simple helper class to make linking variables explicit. Users should use
+    `linked_var` instead.
+    '''
+    def __init__(self, variable):
+        self.variable = variable
+
+
+def linked_var(group_or_variable, name=None):
+    '''
+    Represents a link target for setting a linked variable.
+
+    Parameters
+    ----------
+    group_or_variable : `NeuronGroup` or `VariableView`
+        Either a reference to the target `NeuronGroup` (e.g. ``G``) or a direct
+        reference to a `VariableView` object (e.g. ``G.v``). In case only the
+        group is specified, `name` has to be specified as well.
+    name : str, optional
+        The name of the target variable, necessary if `group_or_variable` is a
+        `NeuronGroup`.
+
+    Examples
+    --------
+    >>> from brian2 import *
+    >>> G1 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : volt')
+    >>> G2 = NeuronGroup(10, 'v : volt (linked)')
+    >>> G2.v = linked_var(G1, 'v')
+    >>> G2.v = linked_var(G1.v)  # equivalent
+    '''
+    if isinstance(group_or_variable, VariableView):
+        if name is not None:
+            raise ValueError(('Cannot give a variable and a variable name at '
+                              'the same time.'))
+        return LinkedVariable(group_or_variable.variable)
+    elif name is None:
+        raise ValueError('Need to provide a variable name')
+    else:
+        return LinkedVariable(group_or_variable.variables[name])
+
+
 class VariableView(object):
     '''
     A view on a variable that allows to treat it as an numpy array while

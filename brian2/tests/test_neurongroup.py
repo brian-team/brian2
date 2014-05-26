@@ -2,12 +2,14 @@ import sympy
 import numpy as np
 from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 
+from brian2.core.variables import linked_var
 from brian2.core.network import Network
 from brian2.core.preferences import brian_prefs
 from brian2.core.clocks import defaultclock
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
+from brian2.monitors.statemonitor import StateMonitor
 from brian2.units.fundamentalunits import (DimensionMismatchError,
                                            have_same_dimensions)
 from brian2.units.allunits import second, volt
@@ -113,6 +115,43 @@ def test_scalar_variable():
         assert_allclose(G.E_L[:], -75*mV)
         net = Network(G)
         net.run(defaultclock.dt)
+
+
+def test_linked_variable_correct():
+    '''
+    Test correct uses of linked variables.
+    '''
+    tau = 10*ms
+    G1 = NeuronGroup(10, 'dv/dt = -v / tau : volt')
+    G1.v = np.linspace(0*mV, 20*mV, 10)
+    G2 = NeuronGroup(10, 'v : volt (linked)')
+    G2.v = linked_var(G1.v)
+    mon1 = StateMonitor(G1, 'v', record=True)
+    mon2 = StateMonitor(G2, 'v', record=True)
+    net = Network(G1, G2, mon1, mon2)
+    net.run(10*ms)
+    assert_equal(mon1.v[:, :], mon2.v[:, :])
+
+
+def test_linked_variable_incorrect():
+    '''
+    Test incorrect uses of linked variables.
+    '''
+    G1 = NeuronGroup(10, '''x : volt
+                            y : 1''')
+    G2 = NeuronGroup(20, '''x: volt''')
+    G3 = NeuronGroup(10, '''l : volt (linked)
+                            not_linked : volt''')
+
+    # incorrect unit
+    assert_raises(DimensionMismatchError, lambda: setattr(G3, 'l', linked_var(G1.y)))
+    # incorrect group size
+    assert_raises(ValueError, lambda: setattr(G3, 'l', linked_var(G2.x)))
+    # incorrect use of linked_var
+    assert_raises(ValueError, lambda: setattr(G3, 'l', linked_var(G1.x, 'x')))
+    assert_raises(ValueError, lambda: setattr(G3, 'l', linked_var(G1)))
+    # Not a linked variable
+    assert_raises(TypeError, lambda: setattr(G3, 'not_linked', linked_var(G1.x)))
 
 
 def test_unit_errors():
@@ -596,6 +635,8 @@ if __name__ == '__main__':
     test_creation()
     test_variables()
     test_scalar_variable()
+    test_linked_variable_correct()
+    test_linked_variable_incorrect()
     test_stochastic_variable()
     test_stochastic_variable_multiplicative()
     test_unit_errors()
