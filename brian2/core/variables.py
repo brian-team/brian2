@@ -631,6 +631,7 @@ class VariableView(object):
             self.var_index_variable = group.variables[self.var_index]
 
         self.group = weakproxy_with_fallback(group)
+        self.group_name = group.name
         # We keep a strong reference to the `Indexing` object so that basic
         # indexing is still possible, even if the group no longer exists
         self.indexing = self.group._indexing
@@ -659,6 +660,17 @@ class VariableView(object):
             defined, the implicit namespace of local variables is used).
         '''
         if isinstance(item, basestring):
+            # Check whether the group still exists to give a more meaningful
+            # error message if it does not
+            try:
+                self.group.name
+            except ReferenceError:
+                raise ReferenceError(('Cannot use string expressions, the '
+                                      'group "%s", providing the context for '
+                                      'the expression, no longer exists. '
+                                      'Consider holding an explicit reference '
+                                      'to it to keep it '
+                                      'alive.') % self.group_name)
             values = self.get_with_expression(item,
                                               level=level+1,
                                               run_namespace=namespace)
@@ -1073,7 +1085,7 @@ class VariableView(object):
         varname = self.name
         if self.unit is None:
             varname += '_'
-        return '<%s.%s: %r>' % (self.group.name, varname,
+        return '<%s.%s: %r>' % (self.group_name, varname,
                                  self[:])
 
 

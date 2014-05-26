@@ -206,7 +206,7 @@ class IndexWrapper(object):
     Convenience class to allow access to the indices via indexing syntax. This
     allows for example to get all indices for synapses originating from neuron
     10 by writing `synapses.indices[10, :]` instead of
-    `synapses.calc_indices((10, slice(None))`.
+    `synapses._indexing.calc_indices((10, slice(None))`.
     '''
     def __init__(self, group):
         self.group = weakref.proxy(group)
