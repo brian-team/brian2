@@ -62,9 +62,11 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.start = 0
         self.stop = N
 
-        sort_indices = np.argsort(times)
-        times = times[sort_indices]
-        indices = indices[sort_indices]
+        # sort times and indices first by time, then by indices
+        rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
+        rec.sort()
+        times = np.ascontiguousarray(rec.t)
+        indices = np.ascontiguousarray(rec.i)
 
         self.variables = Variables(self)
 
@@ -73,20 +75,17 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.variables.add_constant('N', unit=Unit(1), value=N)
         self.variables.add_arange('i', N)
         self.variables.add_arange('spike_number', len(indices))
-        self.variables.add_array('neuron_index', size=len(indices),
-                                 unit=Unit(1), dtype=np.int32,
-                                 index='spike_number')
-        self.variables.add_array('spike_time', size=len(times), unit=second,
-                                 index='spike_number')
+        self.variables.add_array('neuron_index', values=indices,
+                                 size=len(indices), unit=Unit(1),
+                                 dtype=np.int32, index='spike_number',
+                                 read_only=True)
+        self.variables.add_array('spike_time', values=times, size=len(times),
+                                 unit=second, index='spike_number',
+                                 read_only=True)
         self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
                                  dtype=np.int32)
-
         # Activate name attribute access
         self._enable_group_attributes()
-
-        # Set the arrays
-        self.neuron_index.set_item(slice(None), indices)
-        self.spike_time.set_item(slice(None), times)
 
         CodeRunner.__init__(self, self,
                             'spikegenerator',
