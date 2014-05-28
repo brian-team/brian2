@@ -172,6 +172,11 @@ class CPPStandaloneDevice(Device):
     def init_with_arange(self, var, start):
         self.arange_arrays.append((var, start))
 
+    def init_with_array(self, var, arr):
+        array_name = self.get_array_name(var, access_data=False)
+        # treat the array as a static array
+        self.static_arrays[array_name] = arr.astype(var.dtype)
+
     def fill_with_array(self, var, arr):
         arr = numpy.asarray(arr)
         if arr.shape == ():
@@ -222,11 +227,11 @@ class CPPStandaloneDevice(Device):
                                                            staticarrayname_index,
                                                            staticarrayname_value)))
 
-    def variableview_get_with_index_array(self, item):
+    def variableview_get_with_index_array(self, variableview, item):
         raise NotImplementedError('Cannot retrieve the values of state '
                                   'variables in standalone code.')
 
-    def variableview_get_with_expression(self, code, level=0,
+    def variableview_get_with_expression(self, variableview, code, level=0,
                                          run_namespace=None):
         raise NotImplementedError('Cannot retrieve the values of state '
                                   'variables in standalone code.')
