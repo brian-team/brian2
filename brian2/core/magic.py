@@ -10,7 +10,7 @@ from brian2.core.base import BrianObject
 
 __all__ = ['MagicNetwork', 'magic_network',
            'MagicError',
-           'run', 'reinit', 'stop',
+           'run', 'reinit', 'stop', 'collect',
            ]
 
 logger = get_logger(__name__)
@@ -55,7 +55,7 @@ def get_objects_in_namespace(level):
     Returns
     -------
     objects : set
-        A set with weak references to the `BrianObject`s in the namespace.
+        A set with weak references to the `BrianObject`\ s in the namespace.
     '''
     # Get the locals and globals from the stack frame
     objects = set()
@@ -95,8 +95,8 @@ class MagicNetwork(Network):
     Notes
     -----
     
-    All Brian objects that have not been removed by the `clear` function will
-    be included in the network. This class is designed to work in the following
+    All Brian objects that are visible at the point of the `run` call will be
+    included in the network. This class is designed to work in the following
     two major use cases:
     
     1. You create a collection of Brian objects, and call `run` to run the
@@ -123,16 +123,8 @@ class MagicNetwork(Network):
     of the previous run and no error is raised. If the set of objects is
     different but has some overlap, an error is raised. So, for example,
     creating a new `NeuronGroup` and calling `run` will raise an error. The
-    reason for this raising an error is that (a) Brian cannot guess the
+    reason for this raising an error is that Brian cannot guess the
     intent of the user, and doesn't know whether to reset time to 0 or not.
-    (b) Occasionally, this indicates a problem that references to previously
-    existing Brian objects - from a previous iteration of a loop for example -
-    still exist. Normally, the user will not want these to be included in the
-    run, and they still exist either because Python garbage collection wasn't
-    able to remove all the references, or because the user is storing some
-    objects to retain their data. In this case, Brian has no way to know
-    which objects should or shouldn't be included in the run and so raises an
-    error. In this case, you should use a `Network` object explicitly.
     
     There is a slight subtlety to the rules above: adding or removing some
     types of Brian object will not cause an error to be raised. All Brian
@@ -147,7 +139,7 @@ class MagicNetwork(Network):
     See Also
     --------
     
-    Network, run, reinit, stop
+    Network, run, collect, reinit, stop
     '''
     
     _already_created = False
@@ -172,34 +164,31 @@ class MagicNetwork(Network):
         You cannot remove objects directly from `MagicNetwork`
         '''
         raise MagicError("Cannot directly modify MagicNetwork")
-    
+
     def _update_magic_objects(self, level):
+        objects = collect(level+1)
+        contained_objects = set()
         valid_refs = set()
-        all_objects = set()
-        for obj in get_objects_in_namespace(level=level+1):
-            obj = obj()
-            if obj.add_to_magic_network:
-                all_objects.add(obj)
-                for contained in _get_contained_objects(obj):
-                    all_objects.add(contained)
+        for obj in objects:
             if obj.invalidates_magic_network:
                 valid_refs.add(weakref.ref(obj))
-            del obj
-
+            for contained in _get_contained_objects(obj):
+                contained_objects.add(contained)
         # check whether we should restart time, continue time, or raise an
         # error
         inter = valid_refs.intersection(self._previous_refs)
-
-        if len(inter)==0:
+        if len(inter) == 0:
             # reset time
-            self.t = 0*second
-        elif len(self._previous_refs)==len(valid_refs):
+            self.t = 0 * second
+        elif len(self._previous_refs) == len(valid_refs):
             # continue time
             pass
         else:
-            raise MagicError("Brian cannot guess what you intend to do here, see docs for MagicNetwork for details")
+            raise MagicError(
+                "Brian cannot guess what you intend to do here, see docs for MagicNetwork for details")
         self._previous_refs = valid_refs
-        self.objects[:] = list(all_objects)
+
+        self.objects[:] = objects | contained_objects
         logger.debug("Updated MagicNetwork to include {numobjs} objects "
                      "with names {names}".format(
                         numobjs=len(self.objects),
@@ -245,15 +234,40 @@ class MagicNetwork(Network):
 magic_network = MagicNetwork()
 
 
+def collect(level=0):
+    '''
+    Return the list of `BrianObject`\ s that will be simulated if `run` is
+    called.
+
+    Parameters
+    ----------
+    level : int, optional
+        How much further up to go in the stack to find the objects. Needs
+        only to be specified if `collect` is called as part of a function
+        and should be increased by 1 for every level of nesting. Defaults to 0.
+
+    Returns
+    -------
+    objects : set of `BrianObject`
+        The objects that will be simulated.
+    '''
+    all_objects = set()
+    for obj in get_objects_in_namespace(level=level+1):
+        obj = obj()
+        if obj.add_to_magic_network:
+            all_objects.add(obj)
+    return all_objects
+
+
 @check_units(duration=second, report_period=second)
 def run(duration, report=None, report_period=60*second, namespace=None,
         level=0):
     '''
-    run(duration, report=None, report_period=60*second, namespace=None)
+    run(duration, report=None, report_period=60*second, namespace=None, level=0)
     
-    Runs a simulation with all Brian objects for the given duration.
-    Objects can be reinitialised using `reinit` and
-    the simulation can be stopped by calling the global `stop` function.
+    Runs a simulation with all "visible" Brian objects for the given duration.
+    Calls `collect` to gather all the objects, the simulation can
+    be stopped by calling the global `stop` function.
     
     In order to avoid bugs, this function will occasionally raise
     `MagicError` when the intent of the user is not clear. See the notes to
@@ -295,7 +309,7 @@ def run(duration, report=None, report_period=60*second, namespace=None,
     See Also
     --------
     
-    Network.run, MagicNetwork, reinit, stop, clear
+    Network.run, MagicNetwork, collect, reinit, stop, clear
     
     Raises
     ------
