@@ -369,7 +369,7 @@ def test_magic_unused_object():
         return G1
 
     G = create_group()
-    with catch_logs(log_level=logging.DEBUG) as l:
+    with catch_logs(log_level=logging.INFO) as l:
         run(1*ms)
 
         # Check the debug messages for the number of included objects
@@ -447,7 +447,7 @@ def test_loop():
         return G.v
 
     # First run
-    with catch_logs(log_level=logging.DEBUG) as l:
+    with catch_logs(log_level=logging.INFO) as l:
         v = run_simulation()
         assert v[0] == 0 and 0 < v[-1] < 1
         # Check the debug messages for the number of included objects
@@ -457,7 +457,7 @@ def test_loop():
 
 
     # Second run
-    with catch_logs(log_level=logging.DEBUG) as l:
+    with catch_logs(log_level=logging.INFO) as l:
         v = run_simulation()
         assert v[0] == 0 and 0 < v[-1] < 1
         # Check the debug messages for the number of included objects
