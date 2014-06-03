@@ -64,7 +64,7 @@ class TimedArray(Function, Nameable):
             name = '_timedarray*'
         Nameable.__init__(self, name)
         unit = get_unit(values)
-        values = np.asarray(values)
+        values = np.asarray(values, dtype=np.double)
         self.values = values
         dt = float(dt)
         self.dt = dt
