@@ -53,7 +53,10 @@ class NumpyCodeGenerator(CodeGenerator):
 #            line = line.format(varname=varname, array_name=self.get_array_name(var), index=index)
             line = varname + ' = ' + self.get_array_name(var)
             if not index in self.iterate_all:
-                line = line + '[' + index + ']'
+                line += '[' + index + ']'
+            elif varname in write:
+                # avoid potential issues with aliased variables, see github #259
+                line += '.copy()'
             lines.append(line)
         # the actual code
         created_vars = set([])
