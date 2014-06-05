@@ -577,6 +577,21 @@ def test_get_dtype():
     assert_raises(TypeError, lambda: get_dtype(eqs['b'], {'b': np.int32}))
 
 
+def test_aliasing_in_statements():
+    '''
+    Test an issue around variables aliasing other variables (#259)
+    '''
+    runner_code = '''x_1 = x_0
+                     x_0 = -1'''
+    g = NeuronGroup(1, model='''x_0 : 1
+                                x_1 : 1 ''', codeobj_class=NumpyCodeObject)
+    custom_code_obj = g.runner(runner_code)
+    net = Network(g, custom_code_obj)
+    net.run(defaultclock.dt)
+    assert_equal(g.x_0_[:], np.array([-1]))
+    assert_equal(g.x_1_[:], np.array([0]))
+
+
 if __name__ == '__main__':
     test_creation()
     test_variables()
@@ -599,3 +614,4 @@ if __name__ == '__main__':
     test_indices()
     test_repr()
     test_get_dtype()
+    test_aliasing_in_statements()
