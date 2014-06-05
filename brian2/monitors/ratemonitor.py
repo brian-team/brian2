@@ -24,6 +24,8 @@ class PopulationRateMonitor(Group, CodeRunner):
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
     '''
+    invalidates_magic_network = False
+    add_to_magic_network = True
     def __init__(self, source, name='ratemonitor*',
                  codeobj_class=None):
 
@@ -35,6 +37,8 @@ class PopulationRateMonitor(Group, CodeRunner):
         self.codeobj_class = codeobj_class
         CodeRunner.__init__(self, group=self, template='ratemonitor',
                             when=scheduler, name=name)
+
+        self.add_dependency(source)
 
         self.variables = Variables(self)
         self.variables.add_reference('_spikespace',

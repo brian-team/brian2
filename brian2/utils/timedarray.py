@@ -54,7 +54,8 @@ class TimedArray(Function, Nameable):
     >>> G = NeuronGroup(1, 'v = ta(t) : volt')
     >>> mon = StateMonitor(G, 'v', record=True)
     >>> net = Network(G, mon)
-    >>> net.run(1*ms)
+    >>> net.run(1*ms)  # doctest: +ELLIPSIS
+    ...
     >>> print(mon[0].v)
     [ 1.  2.  3.  4.  4.  4.  4.  4.  4.  4.] mV
     '''
@@ -64,7 +65,7 @@ class TimedArray(Function, Nameable):
             name = '_timedarray*'
         Nameable.__init__(self, name)
         unit = get_unit(values)
-        values = np.asarray(values)
+        values = np.asarray(values, dtype=np.double)
         self.values = values
         dt = float(dt)
         self.dt = dt

@@ -1,9 +1,41 @@
-from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
-                    run, stop, NetworkOperation, network_operation,
-                    restore_initial_state, MagicError, magic_network, clear)
+import weakref
 import copy
+import logging
+
+import numpy as np
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
+
+from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
+                    run, stop, NetworkOperation, network_operation,
+                    restore_initial_state, MagicError, clear, Synapses,
+                    NeuronGroup, StateMonitor, SpikeMonitor,
+                    PopulationRateMonitor, MagicNetwork, magic_network)
+from brian2.utils.logger import catch_logs
+
+def test_incorrect_network_use():
+    '''Test some wrong uses of `Network` and `MagicNetwork`'''
+    assert_raises(TypeError, lambda: Network(name='mynet',
+                                             anotherkwd='does not exist'))
+    assert_raises(TypeError, lambda: Network('not a BrianObject'))
+    net = Network()
+    assert_raises(TypeError, lambda: net.add('not a BrianObject'))
+    assert_raises(ValueError, lambda: MagicNetwork())
+    G = NeuronGroup(10, 'v:1')
+    net.add(G)
+    assert_raises(TypeError, lambda: net.remove(object()))
+    assert_raises(MagicError, lambda: magic_network.add(G))
+    assert_raises(MagicError, lambda: magic_network.remove(G))
+
+
+def test_network_contains():
+    '''
+    Test `Network.__contains__`.
+    '''
+    G = NeuronGroup(1, 'v:1', name='mygroup')
+    net = Network(G)
+    assert 'mygroup' in net
+    assert 'neurongroup' not in net
 
 
 @with_setup(teardown=restore_initial_state)
@@ -13,6 +45,7 @@ def test_empty_network():
     net.run(1*second)
 
 class Counter(BrianObject):
+    add_to_magic_network = True
     def __init__(self, **kwds):
         super(Counter, self).__init__(**kwds)
         self.count = 0
@@ -45,6 +78,7 @@ def test_network_two_objects():
 
 updates = []
 class NameLister(BrianObject):
+    add_to_magic_network = True
     def __init__(self, **kwds):
         super(NameLister, self).__init__(**kwds)
 
@@ -73,12 +107,13 @@ def test_network_different_when():
     assert_equal(''.join(updates), 'xyxyxy')
 
 class Preparer(BrianObject):
+    add_to_magic_network = True
     def __init__(self, **kwds):
         super(Preparer, self).__init__(**kwds)
         self.did_reinit = False
         self.did_pre_run = False
         self.did_post_run = False
-    def reinit(self):
+    def reinit(self, level=0):
         self.did_reinit = True
     def before_run(self, namespace=None, level=0):
         self.did_pre_run = True
@@ -112,7 +147,11 @@ def test_magic_network():
     assert_equal(x.count, 100)
     assert_equal(y.count, 100)
 
+    assert len(repr(magic_network))  # very basic test...
+    assert len(str(magic_network))  # very basic test...
+
 class Stopper(BrianObject):
+    add_to_magic_network = True
     def __init__(self, stoptime, stopfunc, **kwds):
         super(Stopper, self).__init__(**kwds)
         self.stoptime = stoptime
@@ -259,6 +298,7 @@ def test_network_copy():
     assert_equal(x.count, 20)
 
 class NoninvalidatingCounter(Counter):
+    add_to_magic_network = True
     invalidates_magic_network = False
 
 @with_setup(teardown=restore_initial_state)
@@ -267,7 +307,11 @@ def test_invalid_magic_network():
     run(1*ms)
     assert_equal(x.count, 10)
     y = Counter()
-    assert_raises(MagicError, lambda: run(1*ms, level=3))
+    try:
+        run(1*ms)
+        raise AssertionError('Expected a MagicError')
+    except MagicError:
+        pass  # this is expected
     del x, y
     x = Counter()
     run(1*ms)
@@ -289,12 +333,49 @@ def test_invalid_magic_network():
     assert_equal(x.count, 10)
     assert_equal(y.count, 10) 
     del x
-    assert_raises(MagicError, lambda: run(1*ms, level=3))
-    clear()
-    z = Counter()
-    run(1*ms)
-    assert_equal(z.count, 10)
-    assert_equal(magic_network.t, 1*ms)
+    try:
+        run(1*ms)
+        raise AssertionError('Expected a MagicError')
+    except MagicError:
+        pass  # this is expected
+
+
+@with_setup(teardown=restore_initial_state)
+def test_magic_weak_reference():
+    '''
+    Test that holding a weak reference to an object does not make it get
+    simulated.'''
+
+    G1 = NeuronGroup(1, 'v:1')
+
+    # this object should not be included
+    G2 = weakref.ref(NeuronGroup(1, 'v:1'))
+
+    with catch_logs(log_level=logging.DEBUG) as l:
+        run(1*ms)
+        # Check the debug messages for the number of included objects
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '2 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
+
+
+@with_setup(teardown=restore_initial_state)
+def test_magic_unused_object():
+    '''Test that creating unused objects does not affect the magic system.'''
+    def create_group():
+        # Produce two objects but return only one
+        G1 = NeuronGroup(1, 'v:1')  # no Thresholder or Resetter
+        G2 = NeuronGroup(1, 'v:1') # This object should be garbage collected
+        return G1
+
+    G = create_group()
+    with catch_logs(log_level=logging.INFO) as l:
+        run(1*ms)
+
+        # Check the debug messages for the number of included objects
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '2 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
 
 
 @with_setup(teardown=restore_initial_state)
@@ -302,6 +383,8 @@ def test_network_access():
     x = Counter(name='counter')
     net = Network(x)
     assert len(net) == 1
+    assert len(repr(net))  # very basic test...
+    assert len(str(net))  # very basic test...
 
     # accessing objects
     assert net['counter'] is x
@@ -319,8 +402,74 @@ def test_network_access():
     assert_raises(KeyError, lambda: net.__delitem__('counter'))
 
 
+@with_setup(teardown=restore_initial_state)
+def test_dependency_check():
+    def create_net():
+        G = NeuronGroup(10, 'v: 1')
+        dependent_objects = [
+                             StateMonitor(G, 'v', record=True),
+                             SpikeMonitor(G),
+                             PopulationRateMonitor(G),
+                             Synapses(G, G, pre='v+=1', connect=True)
+                             ]
+        return dependent_objects
+
+    dependent_objects = create_net()
+    # Trying to simulate the monitors/synapses without the group should fail
+    for obj in dependent_objects:
+        assert_raises(ValueError, lambda: Network(obj).run(0*ms))
+
+    # simulation with a magic network should work when we have an explicit
+    # reference to one of the objects, but the object should be inactive and
+    # we should get a warning
+    assert all(obj.active for obj in dependent_objects)
+    for obj in dependent_objects:  # obj is our explicit reference
+        with catch_logs() as l:
+            run(0*ms)
+            dependency_warnings = [msg[2] for msg in l
+                                   if msg[1] == 'brian2.core.magic.dependency_warning']
+            assert len(dependency_warnings) == 1
+        assert not obj.active
+
+
+@with_setup(teardown=restore_initial_state)
+def test_loop():
+    '''
+    Somewhat realistic test with a loop of magic networks
+    '''
+    updates[:] = []
+    def run_simulation():
+        G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
+                        reset='v=0', threshold='v>1')
+        G.v = np.linspace(0, 1, 10)
+        run(1*ms)
+        # We return potentially problematic references to a VariableView
+        return G.v
+
+    # First run
+    with catch_logs(log_level=logging.INFO) as l:
+        v = run_simulation()
+        assert v[0] == 0 and 0 < v[-1] < 1
+        # Check the debug messages for the number of included objects
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '4 objects' in magic_objects
+
+
+    # Second run
+    with catch_logs(log_level=logging.INFO) as l:
+        v = run_simulation()
+        assert v[0] == 0 and 0 < v[-1] < 1
+        # Check the debug messages for the number of included objects
+        magic_objects = [msg[2] for msg in l
+                         if msg[1] == 'brian2.core.magic.magic_objects'][0]
+        assert '4 objects' in magic_objects
+
+
 if __name__=='__main__':
-    for t in [test_empty_network,
+    for t in [test_incorrect_network_use,
+              test_network_contains,
+              test_empty_network,
               test_network_single_object,
               test_network_two_objects,
               test_network_different_clocks,
@@ -333,8 +482,11 @@ if __name__=='__main__':
               test_network_t,
               test_network_remove,
               test_network_copy,
+              test_magic_weak_reference,
+              test_magic_unused_object,
               test_invalid_magic_network,
-              test_network_access
+              test_network_access,
+              test_loop,
               ]:
         t()
         restore_initial_state()

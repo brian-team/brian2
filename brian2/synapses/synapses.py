@@ -129,7 +129,7 @@ class SynapticPathway(CodeRunner, Group):
         else:
             raise ValueError('prepost argument has to be either "pre" or '
                              '"post"')
-        self.synapses = synapses
+        self.synapses = weakref.proxy(synapses)
 
         if objname is None:
             objname = prepost + '*'
@@ -331,6 +331,57 @@ def _synapse_numbers(pre_neurons, post_neurons):
     return synapse_numbers
 
 
+class SynapticIndexing(object):
+
+    def __init__(self, synapses):
+        self.synaptic_pre = synapses.variables['_synaptic_pre']
+        self.synaptic_post = synapses.variables['_synaptic_post']
+        self.source_start = synapses.source.start
+        self.target_start = synapses.target.start
+
+    def calc_indices(self, index):
+        '''
+        Returns synaptic indices for `index`, which can be a tuple of indices
+        (including arrays and slices), a single index or a string.
+
+        '''
+        if (not isinstance(index, (tuple, basestring)) and
+                isinstance(index, (int, np.ndarray, slice,
+                                   collections.Sequence))):
+            index = (index, slice(None), slice(None))
+        if isinstance(index, tuple):
+            if len(index) == 2:  # two indices (pre- and postsynaptic cell)
+                index = (index[0], index[1], slice(None))
+            elif len(index) > 3:
+                raise IndexError('Need 1, 2 or 3 indices, got %d.' % len(index))
+
+            I, J, K = index
+
+            pre_synapses = find_synapses(I, self.synaptic_pre.get_value() - self.source_start)
+            post_synapses = find_synapses(J, self.synaptic_post.get_value() - self.target_start)
+            matching_synapses = np.intersect1d(pre_synapses, post_synapses,
+                                               assume_unique=True)
+
+            if isinstance(K, slice) and K == slice(None):
+                return matching_synapses
+            elif isinstance(K, (int, slice)):
+                test_k = slice_to_test(K)
+            else:
+                raise NotImplementedError(('Indexing synapses with arrays not'
+                                           'implemented yet'))
+
+            # We want to access the raw arrays here, not go through the Variable
+            pre_neurons = self.synaptic_pre.get_value()[pre_synapses]
+            post_neurons = self.synaptic_post.get_value()[post_synapses]
+            synapse_numbers = _synapse_numbers(pre_neurons,
+                                               post_neurons)
+            return np.intersect1d(matching_synapses,
+                                  np.flatnonzero(test_k(synapse_numbers)),
+                                  assume_unique=True)
+        else:
+            raise IndexError('Unsupported index type {itype}'.format(itype=type(index)))
+
+
 class Synapses(Group):
     '''
     Class representing synaptic connections. Creating a new `Synapses` object
@@ -396,6 +447,8 @@ class Synapses(Group):
         The name for this object. If none is given, a unique name of the form
         ``synapses``, ``synapses_1``, etc. will be automatically chosen.
     '''
+    indexing_class = SynapticIndexing
+    add_to_magic_network = True
     def __init__(self, source, target=None, model=None, pre=None, post=None,
                  connect=False, delay=None, namespace=None, dtype=None,
                  codeobj_class=None,
@@ -405,11 +458,13 @@ class Synapses(Group):
         
         self.codeobj_class = codeobj_class
 
-        self.source = weakref.proxy(source)
+        self.source = source
+        self.add_dependency(source)
         if target is None:
             self.target = self.source
         else:
-            self.target = weakref.proxy(target)
+            self.target = target
+            self.add_dependency(target)
             
         ##### Prepare and validate equations
         if model is None:
@@ -953,47 +1008,4 @@ class Synapses(Group):
                                             run_namespace=namespace,
                                             level=level+1)
             codeobj()
-
-
-    def calc_indices(self, index):
-        '''
-        Returns synaptic indices for `index`, which can be a tuple of indices
-        (including arrays and slices), a single index or a string.
-
-        '''
-        if (not isinstance(index, (tuple, basestring)) and
-                isinstance(index, (int, np.ndarray, slice,
-                                   collections.Sequence))):
-            index = (index, slice(None), slice(None))
-        if isinstance(index, tuple):
-            if len(index) == 2:  # two indices (pre- and postsynaptic cell)
-                index = (index[0], index[1], slice(None))
-            elif len(index) > 3:
-                raise IndexError('Need 1, 2 or 3 indices, got %d.' % len(index))
-
-            I, J, K = index
-
-            pre_synapses = find_synapses(I, self.variables['_synaptic_pre'].get_value() - self.source.start)
-            post_synapses = find_synapses(J, self.variables['_synaptic_post'].get_value() - self.target.start)
-            matching_synapses = np.intersect1d(pre_synapses, post_synapses,
-                                               assume_unique=True)
-
-            if isinstance(K, slice) and K == slice(None):
-                return matching_synapses
-            elif isinstance(K, (int, slice)):
-                test_k = slice_to_test(K)
-            else:
-                raise NotImplementedError(('Indexing synapses with arrays not'
-                                           'implemented yet'))
-
-            # We want to access the raw arrays here, not go through the Variable
-            pre_neurons = self.variables['_synaptic_pre'].get_value()[pre_synapses]
-            post_neurons = self.variables['_synaptic_post'].get_value()[post_synapses]
-            synapse_numbers = _synapse_numbers(pre_neurons,
-                                               post_neurons)
-            return np.intersect1d(matching_synapses,
-                                  np.flatnonzero(test_k(synapse_numbers)),
-                                  assume_unique=True)
-        else:
-            raise IndexError('Unsupported index type {itype}'.format(itype=type(index)))
 

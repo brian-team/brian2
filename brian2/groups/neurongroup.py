@@ -234,6 +234,8 @@ class NeuronGroup(Group, SpikeSource):
     attribute is set to 0 initially, but this can be modified using the
     attributes `state_updater`, `thresholder` and `resetter`.    
     '''
+    add_to_magic_network = True
+
     def __init__(self, N, model, method=None,
                  threshold=None,
                  reset=None,

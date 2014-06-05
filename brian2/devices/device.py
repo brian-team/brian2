@@ -2,6 +2,7 @@
 Module containing the `Device` base class as well as the `RuntimeDevice`
 implementation and some helper functions to access/set devices.
 '''
+from weakref import WeakKeyDictionary
 
 import numpy as np
 
@@ -18,7 +19,6 @@ from brian2.utils.stringtools import code_representation, indent
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
            'all_devices',
-           'device_override',
            'device',
            ]
 
@@ -240,8 +240,9 @@ class RuntimeDevice(Device):
     def __init__(self):
         super(Device, self).__init__()
         #: Mapping from `Variable` objects to numpy arrays (or `DynamicArray`
-        #: objects)
-        self.arrays = {}
+        #: objects). Arrays in this dictionary will disappear as soon as the
+        #: last reference to the `Variable` object used as a key is gone
+        self.arrays = WeakKeyDictionary()
         
     def get_array_name(self, var, access_data=True):
         # if no owner is set, this is a temporary object (e.g. the array
@@ -361,23 +362,3 @@ def set_device(device):
     active_device = device
     active_device.activate()
 
-
-def device_override(name):
-    '''
-    Decorates a function/method to allow it to be overridden by the current `Device`.
-    
-    The ``name`` is the function name in the `Device` to use as an override if it exists.
-    '''
-    def device_override_decorator(func):
-        def device_override_decorated_function(*args, **kwds):
-            curdev = get_device()
-            if hasattr(curdev, name):
-                return getattr(curdev, name)(*args, **kwds)
-            else:
-                return func(*args, **kwds)
-        
-        device_override_decorated_function.__doc__ = func.__doc__
-        
-        return device_override_decorated_function
-    
-    return device_override_decorator

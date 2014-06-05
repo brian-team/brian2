@@ -1,3 +1,5 @@
+import uuid
+
 from brian2.utils.logger import get_logger
 from brian2.core.tracking import Trackable
 import re
@@ -54,6 +56,7 @@ class Nameable(Trackable):
         If the name is already taken.
     '''    
     def __init__(self, name):
+        self._id = uuid.uuid4()
         if not isinstance(name, basestring):
             raise TypeError(('"name" argument has to be a string, is type '
                              '{type} instead').format(type=repr(type(name))))
@@ -71,6 +74,16 @@ class Nameable(Trackable):
                         variable name, i.e. starting with a letter
                         character and followed by alphanumeric characters and
                         ``_``.
+                        ''')
+
+    id = property(fget=lambda self:self._id,
+                    doc='''
+                        A unique id for this object.
+
+                        In contrast to names, which may be reused, the id stays
+                        unique. This is used in the dependency checking to not
+                        have to deal with the chore of comparing weak
+                        references, weak proxies and strong references.
                         ''')
 
     

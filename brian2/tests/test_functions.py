@@ -144,7 +144,7 @@ def test_simple_user_defined_function():
                               variable : 1''',
                     codeobj_class=NumpyCodeObject)
     G.variable = test_array
-    mon = StateMonitor(G, 'func', record=True)
+    mon = StateMonitor(G, 'func', record=True, codeobj_class=NumpyCodeObject)
     net = Network(G, mon)
     net.run(defaultclock.dt)
 
@@ -196,7 +196,7 @@ def test_manual_user_defined_function():
                        y : volt''')
     G.x = 1*volt
     G.y = 2*volt
-    mon = StateMonitor(G, 'func', record=True)
+    mon = StateMonitor(G, 'func', record=True, codeobj_class=NumpyCodeObject)
     net = Network(G, mon)
     net.run(defaultclock.dt)
 
@@ -211,7 +211,7 @@ def test_manual_user_defined_function():
                        y : volt''')
     G.x = 1*volt
     G.y = 2*volt
-    mon = StateMonitor(G, 'func', record=True)
+    mon = StateMonitor(G, 'func', record=True, codeobj_class=NumpyCodeObject)
     net = Network(G, mon)
     net.run(defaultclock.dt)
 

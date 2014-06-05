@@ -1,4 +1,6 @@
 import weakref
+import inspect
+import itertools
 
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second
@@ -8,10 +10,64 @@ from brian2.core.base import BrianObject
 
 __all__ = ['MagicNetwork', 'magic_network',
            'MagicError',
-           'run', 'reinit', 'stop',
+           'run', 'reinit', 'stop', 'collect',
            ]
 
 logger = get_logger(__name__)
+
+
+def _get_contained_objects(obj):
+    '''
+    Helper function to recursively get all contained objects.
+
+    Parameters
+    ----------
+    obj : `BrianObject`
+        An object that (potentially) contains other objects, e.g. a
+        `NeuronGroup` contains a `StateUpdater`, etc.
+
+    Returns
+    -------
+    l : list of `BrianObject`
+        A list of all the objects contained in `obj`
+    '''
+    l = []
+    contained_objects = getattr(obj, 'contained_objects', [])
+    l.extend(contained_objects)
+    for contained_obj in contained_objects:
+        l.extend(_get_contained_objects(contained_obj))
+
+    return l
+
+
+def get_objects_in_namespace(level):
+    '''
+    Get all the objects in the current namespace that derive from `BrianObject`.
+    Used to determine the objects for the `MagicNetwork`.
+
+    Parameters
+    ----------
+    level : int, optional
+        How far to go back to get the locals/globals. Each function/method
+        call should add ``1`` to this argument, functions/method with a
+        decorator have to add ``2``.
+
+    Returns
+    -------
+    objects : set
+        A set with weak references to the `BrianObject`\ s in the namespace.
+    '''
+    # Get the locals and globals from the stack frame
+    objects = set()
+    frame = inspect.stack()[level + 1][0]
+    for k, v in itertools.chain(frame.f_globals.iteritems(),
+                                frame.f_locals.iteritems()):
+        # We are only interested in numbers and functions, not in
+        # everything else (classes, modules, etc.)
+        if isinstance(v, BrianObject):
+            objects.add(weakref.ref(v))
+    del frame
+    return objects
 
 
 class MagicError(Exception):
@@ -39,8 +95,8 @@ class MagicNetwork(Network):
     Notes
     -----
     
-    All Brian objects that have not been removed by the `clear` function will
-    be included in the network. This class is designed to work in the following
+    All Brian objects that are visible at the point of the `run` call will be
+    included in the network. This class is designed to work in the following
     two major use cases:
     
     1. You create a collection of Brian objects, and call `run` to run the
@@ -67,16 +123,8 @@ class MagicNetwork(Network):
     of the previous run and no error is raised. If the set of objects is
     different but has some overlap, an error is raised. So, for example,
     creating a new `NeuronGroup` and calling `run` will raise an error. The
-    reason for this raising an error is that (a) Brian cannot guess the
+    reason for this raising an error is that Brian cannot guess the
     intent of the user, and doesn't know whether to reset time to 0 or not.
-    (b) Occasionally, this indicates a problem that references to previously
-    existing Brian objects - from a previous iteration of a loop for example -
-    still exist. Normally, the user will not want these to be included in the
-    run, and they still exist either because Python garbage collection wasn't
-    able to remove all the references, or because the user is storing some
-    objects to retain their data. In this case, Brian has no way to know
-    which objects should or shouldn't be included in the run and so raises an
-    error. In this case, you should use a `Network` object explicitly.
     
     There is a slight subtlety to the rules above: adding or removing some
     types of Brian object will not cause an error to be raised. All Brian
@@ -91,7 +139,7 @@ class MagicNetwork(Network):
     See Also
     --------
     
-    Network, run, reinit, stop, clear
+    Network, run, collect, reinit, stop
     '''
     
     _already_created = False
@@ -101,8 +149,7 @@ class MagicNetwork(Network):
             raise ValueError("There can be only one MagicNetwork.")
         MagicNetwork._already_created = True
         
-        super(MagicNetwork, self).__init__(name='magicnetwork*',
-                                           weak_references=True)
+        super(MagicNetwork, self).__init__(name='magicnetwork*')
         
         self._previous_refs = set()
         
@@ -117,39 +164,67 @@ class MagicNetwork(Network):
         You cannot remove objects directly from `MagicNetwork`
         '''
         raise MagicError("Cannot directly modify MagicNetwork")
-    
-    def _update_magic_objects(self):
+
+    def _update_magic_objects(self, level):
+        objects = collect(level+1)
+        contained_objects = set()
+        valid_refs = set()
+        for obj in objects:
+            if obj.invalidates_magic_network:
+                valid_refs.add(weakref.ref(obj))
+            for contained in _get_contained_objects(obj):
+                contained_objects.add(contained)
         # check whether we should restart time, continue time, or raise an
         # error
-        valid_refs = set(r for r in BrianObject.__instances__() if r().invalidates_magic_network)
         inter = valid_refs.intersection(self._previous_refs)
-
-        if len(inter)==0:
+        if len(inter) == 0:
             # reset time
-            self.t = 0*second
-        elif len(self._previous_refs)==len(valid_refs):
+            self.t = 0 * second
+        elif len(self._previous_refs) == len(valid_refs):
             # continue time
             pass
         else:
-            raise MagicError("Brian cannot guess what you intend to do here, see docs for MagicNetwork for details")
+            raise MagicError(
+                "Brian cannot guess what you intend to do here, see docs for MagicNetwork for details")
         self._previous_refs = valid_refs
-        self.objects[:] = [weakref.proxy(obj()) for obj in BrianObject.__instances__()]
-        logger.debug("Updated MagicNetwork to include {numobjs} objects "
-                     "with names {names}".format(
-                        numobjs=len(self.objects),
-                        names=', '.join(obj.name for obj in self.objects)))
 
-    def before_run(self, run_namespace, level=0):
-        self._update_magic_objects()
+        self.objects[:] = objects | contained_objects
+        logger.info("Updated MagicNetwork to include {numobjs} objects "
+                    "with names {names}".format(
+                        numobjs=len(self.objects),
+                        names=', '.join(obj.name for obj in self.objects)),
+                    name_suffix='magic_objects')
+
+    def check_dependencies(self):
+        all_ids = set([obj.id for obj in self.objects])
+        for obj in self.objects:
+            if not obj.active:
+                continue  # object is already inactive, no need to check it
+            for dependency in obj._dependencies:
+                if not dependency in all_ids:
+                    logger.warn(('"%s" has been included in the network but '
+                                 'not the object on which it depends.'
+                                 'Setting "%s" to inactive.') % (obj.name,
+                                                                 obj.name),
+                                name_suffix='dependency_warning')
+                    obj.active = False
+                    break
+
+    def before_run(self, run_namespace=None, level=0):
+        self._update_magic_objects(level=level+1)
         Network.before_run(self, run_namespace, level=level+1)
 
-    def reinit(self):
+    def after_run(self):
+        self.objects[:] = []
+
+    def reinit(self, level):
         '''
         See `Network.reinit`.
         '''
-        self._update_magic_objects()
+        self._update_magic_objects(level=level+1)
         super(MagicNetwork, self).reinit()
-        
+        self.objects[:] = []
+
     def __str__(self):
         return 'MagicNetwork()'
     __repr__ = __str__
@@ -159,15 +234,40 @@ class MagicNetwork(Network):
 magic_network = MagicNetwork()
 
 
+def collect(level=0):
+    '''
+    Return the list of `BrianObject`\ s that will be simulated if `run` is
+    called.
+
+    Parameters
+    ----------
+    level : int, optional
+        How much further up to go in the stack to find the objects. Needs
+        only to be specified if `collect` is called as part of a function
+        and should be increased by 1 for every level of nesting. Defaults to 0.
+
+    Returns
+    -------
+    objects : set of `BrianObject`
+        The objects that will be simulated.
+    '''
+    all_objects = set()
+    for obj in get_objects_in_namespace(level=level+1):
+        obj = obj()
+        if obj.add_to_magic_network:
+            all_objects.add(obj)
+    return all_objects
+
+
 @check_units(duration=second, report_period=second)
 def run(duration, report=None, report_period=60*second, namespace=None,
         level=0):
     '''
-    run(duration, report=None, report_period=60*second, namespace=None)
+    run(duration, report=None, report_period=60*second, namespace=None, level=0)
     
-    Runs a simulation with all Brian objects for the given duration.
-    Objects can be reinitialised using `reinit` and
-    the simulation can be stopped by calling the global `stop` function.
+    Runs a simulation with all "visible" Brian objects for the given duration.
+    Calls `collect` to gather all the objects, the simulation can
+    be stopped by calling the global `stop` function.
     
     In order to avoid bugs, this function will occasionally raise
     `MagicError` when the intent of the user is not clear. See the notes to
@@ -209,7 +309,7 @@ def run(duration, report=None, report_period=60*second, namespace=None,
     See Also
     --------
     
-    Network.run, MagicNetwork, reinit, stop, clear
+    Network.run, MagicNetwork, collect, reinit, stop, clear
     
     Raises
     ------
@@ -218,8 +318,8 @@ def run(duration, report=None, report_period=60*second, namespace=None,
         Error raised when it was not possible for Brian to safely guess the
         intended use. See `MagicNetwork` for more details.
     '''
-    magic_network.run(duration, report=report, report_period=report_period,
-                      namespace=namespace, level=2+level)
+    return magic_network.run(duration, report=report, report_period=report_period,
+                             namespace=namespace, level=2+level)
 run.__module__ = __name__
 
 def reinit():

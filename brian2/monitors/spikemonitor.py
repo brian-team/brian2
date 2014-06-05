@@ -29,11 +29,13 @@ class SpikeMonitor(Group, CodeRunner):
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
     '''
+    invalidates_magic_network = False
+    add_to_magic_network = True
     def __init__(self, source, record=True, when=None, name='spikemonitor*',
                  codeobj_class=None):
         self.record = bool(record)
         #: The source we are recording from
-        self.source = source
+        self.source =source
 
         # run by default on source clock at the end
         scheduler = Scheduler(when)
@@ -45,6 +47,8 @@ class SpikeMonitor(Group, CodeRunner):
         self.codeobj_class = codeobj_class
         CodeRunner.__init__(self, group=self, template='spikemonitor',
                             name=name, when=scheduler)
+
+        self.add_dependency(source)
 
         # Handle subgroups correctly
         start = getattr(source, 'start', 0)

@@ -49,7 +49,7 @@ def test_long_timedarray():
     Use a very long timedarray (with a big dt), where the upsampling can lead
     to integer overflow.
     '''
-    ta = TimedArray(np.arange(16385)*1.0, dt=1*second)
+    ta = TimedArray(np.arange(16385), dt=1*second)
     for codeobj_class in codeobj_classes:
         G = NeuronGroup(1, 'value = ta(t) : 1', codeobj_class=codeobj_class)
         mon = StateMonitor(G, 'value', record=True, codeobj_class=codeobj_class)

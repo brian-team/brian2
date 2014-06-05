@@ -184,8 +184,8 @@ class CPPStandaloneDevice(Device):
         self.main_queue.append(('set_by_array', (array_name,
                                                  static_array_name)))
 
-    def group_set_with_index_array(self, group, variable_name, variable, item,
-                                   value, check_units):
+    def variableview_set_with_index_array(self, variableview, item,
+                                          value, check_units):
         if isinstance(item, slice) and item == slice(None):
             item = 'True'
         value = Quantity(value)
@@ -194,26 +194,26 @@ class CPPStandaloneDevice(Device):
             if have_same_dimensions(value, 1):
                 # Avoid a representation as "Quantity(...)" or "array(...)"
                 value = float(value)
-            group.set_with_expression_conditional(variable_name, variable,
-                                                  cond=item,
-                                                  code=repr(value),
-                                                  check_units=check_units)
+            variableview.set_with_expression_conditional(cond=item,
+                                                         code=repr(value),
+                                                         check_units=check_units)
         # Simple case where we don't have to do any indexing
-        elif item == 'True' and group.variables.indices[variable_name] == '_idx':
-            self.fill_with_array(variable, value)
+        elif item == 'True' and variableview.var_index == '_idx':
+            self.fill_with_array(variableview.variable, value)
         else:
             # We have to calculate indices. This will not work for synaptic
             # variables
             try:
-                indices = group.calc_indices(item)
+                indices = variableview._indexing.calc_indices(item)
             except NotImplementedError:
                 raise NotImplementedError(('Cannot set variable "%s" this way in '
                                            'standalone, try using string '
-                                           'expressions.') % variable_name)
+                                           'expressions.') % variableview.name)
             # Using the std::vector instead of a pointer to the underlying
             # data for dynamic arrays is fast enough here and it saves us some
             # additional work to set up the pointer
-            arrayname = self.get_array_name(variable, access_data=False)
+            arrayname = self.get_array_name(variableview.variable,
+                                            access_data=False)
             staticarrayname_index = self.static_array('_index_'+arrayname,
                                                       indices)
             staticarrayname_value = self.static_array('_value_'+arrayname,
@@ -222,12 +222,12 @@ class CPPStandaloneDevice(Device):
                                                            staticarrayname_index,
                                                            staticarrayname_value)))
 
-    def group_get_with_index_array(self, group, variable_name, variable, item):
+    def variableview_get_with_index_array(self, item):
         raise NotImplementedError('Cannot retrieve the values of state '
                                   'variables in standalone code.')
 
-    def group_get_with_expression(self, group, variable_name, variable, code,
-                                  level=0, run_namespace=None):
+    def variableview_get_with_expression(self, code, level=0,
+                                         run_namespace=None):
         raise NotImplementedError('Cannot retrieve the values of state '
                                   'variables in standalone code.')
 

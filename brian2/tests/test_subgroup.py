@@ -12,6 +12,17 @@ except ImportError:
     codeobj_classes = [NumpyCodeObject]
 
 
+def test_str_repr():
+    '''
+    Test the string representation of a subgroup.
+    '''
+    G = NeuronGroup(10, 'v:1')
+    SG = G[5:8]
+    # very basic test, only make sure no error is raised
+    assert len(str(SG))
+    assert len(repr(SG))
+
+
 def test_state_variables():
     '''
     Test the setting and accessing of state variables in subgroups.
@@ -235,7 +246,64 @@ def test_wrong_indexing():
     assert_raises(IndexError, lambda: G[::2])
     assert_raises(IndexError, lambda: G[3:2])
 
+def test_no_reference_1():
+    '''
+    Using subgroups without keeping an explicit reference. Basic access.
+    '''
+    G = NeuronGroup(10, 'v:1')
+    G.v = np.arange(10)
+    assert_equal(G[:5].v[:], G.v[:5])
+
+def test_no_reference_2():
+    '''
+    Using subgroups without keeping an explicit reference. Monitors
+    '''
+    G = NeuronGroup(2, 'v:1', threshold='v>1', reset='v=0')
+    G.v = [0, 1.1]
+    state_mon = StateMonitor(G[:1], 'v', record=True)
+    spike_mon = SpikeMonitor(G[1:])
+    rate_mon = PopulationRateMonitor(G[:2])
+    net = Network(G, state_mon, spike_mon, rate_mon)
+    net.run(2*defaultclock.dt)
+    assert_equal(state_mon[0].v[:], np.zeros(2))
+    assert_equal(spike_mon.i[:], np.array([0]))
+    assert_equal(spike_mon.t[:], np.array([0])*second)
+    assert_equal(rate_mon.rate[:], np.array([0.5, 0])/defaultclock.dt)
+
+
+def test_no_reference_3():
+    '''
+    Using subgroups without keeping an explicit reference. Monitors
+    '''
+    G = NeuronGroup(2, 'v:1', threshold='v>1', reset='v=0')
+    G.v = [1.1, 0]
+    S = Synapses(G[:1], G[1:], pre='v+=1', connect=True)
+    net = Network(G, S)
+    net.run(defaultclock.dt)
+    assert_equal(G.v[:], np.array([0, 1]))
+
+
+def test_no_reference_4():
+    '''
+    Using subgroups without keeping an explicit reference. Synapses
+    '''
+    for codeobj_class in codeobj_classes:
+        G1 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0',
+                         codeobj_class=codeobj_class)
+        G1.v[1::2] = 1.1 # odd numbers should spike
+        G2 = NeuronGroup(20, 'v:1', codeobj_class=codeobj_class)
+        S = Synapses(G1[1:6], G2[10:], pre='v+=1', codeobj_class=codeobj_class)
+        S.connect('i==j')
+        net = Network(G1, G2, S)
+        net.run(defaultclock.dt)
+        expected = np.zeros(len(G2))
+        # Neurons 1, 3, 5 spiked and are connected to 10, 12, 14
+        expected[[10, 12, 14]] = 1
+        assert_equal(np.asarray(G2.v).flatten(), expected)
+
+
 if __name__ == '__main__':
+    test_str_repr()
     test_state_variables()
     test_state_variables_string_indices()
     test_state_monitor()
@@ -245,3 +313,7 @@ if __name__ == '__main__':
     test_synaptic_propagation()
     test_spike_monitor()
     test_wrong_indexing()
+    test_no_reference_1()
+    test_no_reference_2()
+    test_no_reference_3()
+    test_no_reference_4()
