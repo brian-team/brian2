@@ -390,14 +390,18 @@ class NeuronGroup(Group, SpikeSource):
                 raise DimensionMismatchError(('Unit of variable %s does not '
                                               'match its link target %s') % (key,
                                                                              linked_var.name))
-            if not linked_var.scalar and len(self) != len(linked_var):
+            if not (linked_var.scalar or len(linked_var) == 1) and len(self) != len(linked_var):
                 raise ValueError(('Cannot link variable %s to %s, the size of '
                                   'the target group does not match '
                                   '(%d != %d)') % (key,
                                                    linked_var.name,
                                                    len(self),
                                                    len(linked_var)))
-            self.variables.add_reference(key, value.variable)
+            if len(linked_var) == 1:
+                index = '0'
+            else:
+                index = None
+            self.variables.add_reference(key, value.variable, index=index)
         else:
             if isinstance(value, LinkedVariable):
                 raise TypeError(('Cannot link variable %s, it has to be marked '

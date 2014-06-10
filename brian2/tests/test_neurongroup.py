@@ -154,6 +154,23 @@ def test_linked_variable_incorrect():
     assert_raises(TypeError, lambda: setattr(G3, 'not_linked', linked_var(G1.x)))
 
 
+def test_linked_variable_scalar():
+    '''
+    Test linked variable from a size 1 group.
+    '''
+    G1 = NeuronGroup(1, 'dx/dt = -x / (10*ms) : 1')
+    G2 = NeuronGroup(10, '''dy/dt = (-y + x) / (20*ms) : 1
+                            x : 1 (linked)''')
+    G1.x = 1
+    G2.y = np.linspace(0, 1, 10)
+    G2.x = linked_var(G1.x)
+    mon = StateMonitor(G2, 'y', record=True)
+    net = Network(G1, G2, mon)
+    net.run(10*ms)
+    # We don't test anything for now, except that it runs without raising an
+    # error
+
+
 def test_unit_errors():
     '''
     Test that units are checked for a complete namespace.
@@ -637,6 +654,7 @@ if __name__ == '__main__':
     test_scalar_variable()
     test_linked_variable_correct()
     test_linked_variable_incorrect()
+    test_linked_variable_scalar()
     test_stochastic_variable()
     test_stochastic_variable_multiplicative()
     test_unit_errors()
