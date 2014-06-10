@@ -397,11 +397,49 @@ class NeuronGroup(Group, SpikeSource):
                                                    linked_var.name,
                                                    len(self),
                                                    len(linked_var)))
-            if len(linked_var) == 1:
+            if value.index is not None:
+                if isinstance(value.index, basestring):
+                    index = value.index
+                else:
+                    try:
+                        index_array = np.asarray(value.index)
+                        if not np.issubsctype(index_array.dtype, np.int):
+                            raise TypeError()
+                    except TypeError:
+                        raise TypeError(('The index for a linked variable has '
+                                         'to be either a string or an integer '
+                                         'array'))
+                    size = len(index_array)
+                    if not index_array.ndim == 1 or size != len(self):
+                        raise TypeError(('Index array for linked variable %s '
+                                         'has to be a one-dimensional array of '
+                                         'length %d, but has shape '
+                                         '%s') % (key,
+                                                  len(self),
+                                                  str(index_array.shape)))
+                    if min(index_array) < 0 or max(index_array) >= len(linked_var):
+                        raise ValueError('Index array for linked variable %s '
+                                         'contains values outside of the valid '
+                                         'range [0, %d[' % (key,
+                                                            len(linked_var)))
+                    self.variables.add_array('_%s_indices' % key, unit=Unit(1),
+                                             size=size, dtype=index_array.dtype,
+                                             constant=True, read_only=True,
+                                             values=index_array)
+                    index = '_%s_indices' % key
+            elif len(linked_var) == 1:
                 index = '0'
             else:
                 index = None
             self.variables.add_reference(key, value.variable, index=index)
+            log_msg = ('Setting {target}.{targetvar} as a link to '
+                       '{source}.{sourcevar}').format(target=self.name,
+                                                      targetvar=key,
+                                                      source=value.variable.owner.name,
+                                                      sourcevar=value.variable.name)
+            if index is not None:
+                log_msg += '(using "{index}" as index variable)'.format(index=index)
+            logger.debug(log_msg)
         else:
             if isinstance(value, LinkedVariable):
                 raise TypeError(('Cannot link variable %s, it has to be marked '

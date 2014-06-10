@@ -612,11 +612,12 @@ class LinkedVariable(object):
     A simple helper class to make linking variables explicit. Users should use
     `linked_var` instead.
     '''
-    def __init__(self, variable):
+    def __init__(self, variable, index=None):
         self.variable = variable
+        self.index = index
 
 
-def linked_var(group_or_variable, name=None):
+def linked_var(group_or_variable, name=None, index=None):
     '''
     Represents a link target for setting a linked variable.
 
@@ -629,6 +630,8 @@ def linked_var(group_or_variable, name=None):
     name : str, optional
         The name of the target variable, necessary if `group_or_variable` is a
         `NeuronGroup`.
+    name : str, optional
+        The name of another variable, used to index the linked variable.
 
     Examples
     --------
@@ -642,11 +645,11 @@ def linked_var(group_or_variable, name=None):
         if name is not None:
             raise ValueError(('Cannot give a variable and a variable name at '
                               'the same time.'))
-        return LinkedVariable(group_or_variable.variable)
+        return LinkedVariable(group_or_variable.variable, index=index)
     elif name is None:
         raise ValueError('Need to provide a variable name')
     else:
-        return LinkedVariable(group_or_variable.variables[name])
+        return LinkedVariable(group_or_variable.variables[name], index=index)
 
 
 class VariableView(object):
@@ -996,7 +999,7 @@ class VariableView(object):
                 # We are not going via code generation so we have to take care
                 # of correct indexing (in particular for subgroups) explicitly
 
-                if self.var_index != '_idx':
+                if not self.var_index in ('_idx', '0'):
                     indices = self.var_index_variable.get_value()[indices]
                 return variable.get_value()[indices]
 

@@ -170,6 +170,58 @@ def test_linked_variable_scalar():
     # We don't test anything for now, except that it runs without raising an
     # error
 
+def test_linked_variable_indexed():
+    '''
+    Test linking a variable with a specified index
+    '''
+    G = NeuronGroup(10, '''x : 1
+                           index : integer
+                           y : 1 (linked)''')
+
+    G.x = np.arange(10)*0.1
+    G.index = np.arange(10)[::-1]
+    G.y = linked_var(G.x, index='index')
+    # G.y should refer to an inverted version of G.x
+    assert_equal(G.y[:], np.arange(10)[::-1]*0.1)
+
+
+def test_linked_variable_indexed2():
+    '''
+    Test linking a variable with an index specified as an array
+    '''
+    G = NeuronGroup(10, '''x : 1
+                           y : 1 (linked)''')
+
+    G.x = np.arange(10)*0.1
+    G.y = linked_var(G.x, index=np.arange(10)[::-1])
+    # G.y should refer to an inverted version of G.x
+    assert_equal(G.y[:], np.arange(10)[::-1]*0.1)
+
+
+def test_linked_variable_indexed_incorrect():
+    '''
+    Test errors when providing incorrect index arrays
+    '''
+    G = NeuronGroup(10, '''x : 1
+                           y : 1 (linked)''')
+
+    G.x = np.arange(10)*0.1
+    assert_raises(TypeError,
+                  lambda: setattr(G, 'y',
+                                  linked_var(G.x, index=np.arange(10)*1.0)))
+    assert_raises(TypeError,
+                  lambda: setattr(G, 'y',
+                                  linked_var(G.x, index=np.arange(10).reshape(5, 2))))
+    assert_raises(TypeError,
+                  lambda: setattr(G, 'y',
+                                  linked_var(G.x, index=np.arange(5))))
+    assert_raises(ValueError,
+                  lambda: setattr(G, 'y',
+                                  linked_var(G.x, index=np.arange(10)-1)))
+    assert_raises(ValueError,
+                  lambda: setattr(G, 'y',
+                                  linked_var(G.x, index=np.arange(10)+1)))
+
 
 def test_unit_errors():
     '''
@@ -655,6 +707,9 @@ if __name__ == '__main__':
     test_linked_variable_correct()
     test_linked_variable_incorrect()
     test_linked_variable_scalar()
+    test_linked_variable_indexed()
+    test_linked_variable_indexed2()
+    test_linked_variable_indexed_incorrect()
     test_stochastic_variable()
     test_stochastic_variable_multiplicative()
     test_unit_errors()
