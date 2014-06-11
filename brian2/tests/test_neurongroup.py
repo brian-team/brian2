@@ -198,6 +198,17 @@ def test_linked_variable_indexed2():
     assert_equal(G.y[:], np.arange(10)[::-1]*0.1)
 
 
+def test_linked_variable_repeat():
+    '''
+    Test a "repeat"-like connection between two groups of different size
+    '''
+    G1 = NeuronGroup(5, 'w : 1')
+    G2 = NeuronGroup(10, 'v : 1 (linked)')
+    G2.v = linked_var(G1.w, index=np.arange(5).repeat(2))
+    G1.w = np.arange(5) * 0.1
+    assert_equal(G2.v[:], np.arange(5).repeat(2) * 0.1)
+
+
 def test_linked_variable_indexed_incorrect():
     '''
     Test errors when providing incorrect index arrays
@@ -709,6 +720,7 @@ if __name__ == '__main__':
     test_linked_variable_scalar()
     test_linked_variable_indexed()
     test_linked_variable_indexed2()
+    test_linked_variable_repeat()
     test_linked_variable_indexed_incorrect()
     test_stochastic_variable()
     test_stochastic_variable_multiplicative()
