@@ -209,6 +209,75 @@ def test_linked_variable_repeat():
     assert_equal(G2.v[:], np.arange(5).repeat(2) * 0.1)
 
 
+def test_linked_double_linked1():
+    '''
+    Linked to a linked variable, without indices
+    '''
+    G1 = NeuronGroup(10, 'x : 1')
+    G2 = NeuronGroup(10, 'y : 1 (linked)')
+    G2.y = linked_var(G1.x)
+    G3 = NeuronGroup(10, 'z: 1 (linked)')
+    G3.z = linked_var(G2.y)
+
+    G1.x = np.arange(10)
+    assert_equal(G3.z[:], np.arange(10))
+
+
+def test_linked_double_linked2():
+    '''
+    Linked to a linked variable, first without indices, second with indices
+    '''
+
+    G1 = NeuronGroup(5, 'x : 1')
+    G2 = NeuronGroup(5, 'y : 1 (linked)')
+    G2.y = linked_var(G1.x)
+    G3 = NeuronGroup(10, 'z: 1 (linked)')
+    G3.z = linked_var(G2.y, index=np.arange(5).repeat(2))
+
+    G1.x = np.arange(5)*0.1
+    assert_equal(G3.z[:], np.arange(5).repeat(2)*0.1)
+
+
+
+def test_linked_double_linked3():
+    '''
+    Linked to a linked variable, first wit indices, second without indices
+    '''
+    G1 = NeuronGroup(5, 'x : 1')
+    G2 = NeuronGroup(10, 'y : 1 (linked)')
+    G2.y = linked_var(G1.x, index=np.arange(5).repeat(2))
+    G3 = NeuronGroup(10, 'z: 1 (linked)')
+    G3.z = linked_var(G2.y)
+
+    G1.x = np.arange(5)*0.1
+    assert_equal(G3.z[:], np.arange(5).repeat(2)*0.1)
+
+
+def test_linked_double_linked4():
+    '''
+    Linked to a linked variable, both use indices (should raise an error)
+    '''
+    G1 = NeuronGroup(5, 'x : 1')
+    G2 = NeuronGroup(10, 'y : 1 (linked)')
+    G2.y = linked_var(G1.x, index=np.arange(5).repeat(2))
+    G3 = NeuronGroup(10, 'z: 1 (linked)')
+    assert_raises(TypeError, lambda: setattr(G3, 'z'),
+                  linked_var(G2.y, index=np.arange(10)[::-1]))
+
+
+def test_linked_subgroup():
+    '''
+    Test linking a variable from a subgroup
+    '''
+    G1 = NeuronGroup(10, 'x : 1')
+    G1.x = np.arange(10) * 0.1
+    G2 = G1[3:8]
+    G3 = NeuronGroup(5, 'y:1 (linked)')
+    G3.y = linked_var(G2.x)
+
+    assert_equal(G3.y[:], (np.arange(5)+3)*0.1)
+
+
 def test_linked_variable_indexed_incorrect():
     '''
     Test errors when providing incorrect index arrays
@@ -721,6 +790,11 @@ if __name__ == '__main__':
     test_linked_variable_indexed()
     test_linked_variable_indexed2()
     test_linked_variable_repeat()
+    test_linked_double_linked1()
+    test_linked_double_linked2()
+    test_linked_double_linked3()
+    test_linked_double_linked4()
+    test_linked_subgroup()
     test_linked_variable_indexed_incorrect()
     test_stochastic_variable()
     test_stochastic_variable_multiplicative()

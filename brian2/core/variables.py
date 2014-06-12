@@ -611,8 +611,24 @@ class LinkedVariable(object):
     '''
     A simple helper class to make linking variables explicit. Users should use
     `linked_var` instead.
+
+    Parameters
+    ----------
+    group : `Group`
+        The group through which the `variable` is accessed (not necessarily the
+        same as ``variable.owner``.
+    name : str
+        The name of `variable` in `group` (not necessarily the same as
+         ``variable.name``).
+    variable : `Variable`
+        The variable that should be linked.
+    index : str or `ndarray`, optional
+        An indexing array (or the name of a state variable), providing a mapping
+        from the entries in the link source to the link target.
     '''
-    def __init__(self, variable, index=None):
+    def __init__(self, group, name, variable, index=None):
+        self.group = group
+        self.name = name
         self.variable = variable
         self.index = index
 
@@ -645,11 +661,15 @@ def linked_var(group_or_variable, name=None, index=None):
         if name is not None:
             raise ValueError(('Cannot give a variable and a variable name at '
                               'the same time.'))
-        return LinkedVariable(group_or_variable.variable, index=index)
+        return LinkedVariable(group_or_variable.group,
+                              group_or_variable.name,
+                              group_or_variable.variable, index=index)
     elif name is None:
         raise ValueError('Need to provide a variable name')
     else:
-        return LinkedVariable(group_or_variable.variables[name], index=index)
+        return LinkedVariable(group_or_variable,
+                              name,
+                              group_or_variable.variables[name], index=index)
 
 
 class VariableView(object):
@@ -660,7 +680,7 @@ class VariableView(object):
     Parameters
     ----------
     name : str
-        The name of the variable
+        The name of the variable (not necessarily the same as ``variable.name``).
     variable : `Variable`
         The variable description.
     group : `Group`

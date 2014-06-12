@@ -392,6 +392,15 @@ class NeuronGroup(Group, SpikeSource):
                                                                              linked_var.name))
 
             if value.index is not None:
+                if value.group.variables.indices[value.name] != '_idx':
+                    raise ValueError(('Cannot link to variable %s in group %s '
+                                      'with indices, the variable is already '
+                                      'indexed there. Consider directly linking '
+                                      'to %s in %s with the appropriate '
+                                      'indexing.') % (value.name,
+                                                      value.group.name,
+                                                      value.variable.name,
+                                                      value.variable.owner.name))
                 if isinstance(value.index, basestring):
                     index = value.index
                 else:
@@ -424,7 +433,19 @@ class NeuronGroup(Group, SpikeSource):
             elif len(linked_var) == 1:
                 index = '0'
             else:
-                if len(self) != len(linked_var):
+                index = value.group.variables.indices[value.name]
+                if index == '_idx':
+                    target_length = len(linked_var)
+                else:
+                    target_length = len(value.group.variables[index])
+                    # we need a name for the index that does not clash with
+                    # other names and a reference to the index
+                    new_index = '_' + value.name + '_index_' + index
+                    self.variables.add_reference(new_index,
+                                                 value.group.variables[index])
+                    index = new_index
+
+                if len(self) != target_length:
                     raise ValueError(('Cannot link variable %s to %s, the size of '
                                       'the target group does not match '
                                       '(%d != %d). You can provide an indexing '
@@ -432,8 +453,8 @@ class NeuronGroup(Group, SpikeSource):
                                       'groups with different sizes') % (key,
                                                        linked_var.name,
                                                        len(self),
-                                                       len(linked_var)))
-                index = None
+                                                       target_length))
+
             self.variables.add_reference(key, value.variable, index=index)
             log_msg = ('Setting {target}.{targetvar} as a link to '
                        '{source}.{sourcevar}').format(target=self.name,
@@ -447,7 +468,7 @@ class NeuronGroup(Group, SpikeSource):
             if isinstance(value, LinkedVariable):
                 raise TypeError(('Cannot link variable %s, it has to be marked '
                                  'as a linked variable with "(linked)" in the '
-                                 'model equations.'))
+                                 'model equations.') % key)
             else:
                 Group.__setattr__(self, key, value, level=1)
 
