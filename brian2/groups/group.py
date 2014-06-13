@@ -686,6 +686,8 @@ class CodeRunner(BrianObject):
         A list of variable names which are used as conditions (e.g. for
         refractoriness) which should be ignored.
     '''
+    add_to_magic_network = True
+    invalidates_magic_network = True
     def __init__(self, group, template, code='', when=None,
                  name='coderunner*', check_units=True, template_kwds=None,
                  needed_variables=None, override_conditional_write=None,

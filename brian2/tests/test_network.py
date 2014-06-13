@@ -10,7 +10,8 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
                     restore_initial_state, MagicError, clear, Synapses,
                     NeuronGroup, StateMonitor, SpikeMonitor,
-                    PopulationRateMonitor, MagicNetwork, magic_network)
+                    PopulationRateMonitor, MagicNetwork, magic_network,
+                    PoissonGroup, Hz, collect)
 from brian2.utils.logger import catch_logs
 
 def test_incorrect_network_use():
@@ -466,6 +467,25 @@ def test_loop():
         assert '4 objects' in magic_objects
 
 
+def test_magic_collect():
+    '''
+    Make sure all expected objects are collected in a magic network
+    '''
+    P = PoissonGroup(10, rates=100*Hz)
+    G = NeuronGroup(10, 'v:1')
+    S = Synapses(G, G, '')
+    G_runner = G.runner('')
+    S_runner = S.runner('')
+
+    state_mon = StateMonitor(G, 'v', record=True)
+    spike_mon = SpikeMonitor(G)
+    rate_mon = PopulationRateMonitor(G)
+
+    objects = collect()
+
+    assert len(objects) == 8, ('expected %d objects, got %d' % (8, len(objects)))
+
+
 if __name__=='__main__':
     for t in [test_incorrect_network_use,
               test_network_contains,
@@ -487,6 +507,7 @@ if __name__=='__main__':
               test_invalid_magic_network,
               test_network_access,
               test_loop,
+              test_magic_collect
               ]:
         t()
         restore_initial_state()
