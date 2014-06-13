@@ -742,7 +742,10 @@ class VariableView(object):
                                               level=level+1,
                                               run_namespace=namespace)
         else:
-            values = self.get_with_index_array(item)
+            if isinstance(self.variable, Subexpression):
+                values = self.get_subexpression_with_index_array(item)
+            else:
+                values = self.get_with_index_array(item)
 
         if self.unit is None:
             return values
@@ -982,46 +985,56 @@ class VariableView(object):
         else:
             indices = self.indexing.calc_indices(item)
 
+        if variable.scalar:
+            return variable.get_value()[0]
+        else:
+            # We are not going via code generation so we have to take care
+            # of correct indexing (in particular for subgroups) explicitly
+
+            if not self.var_index in ('_idx', '0'):
+                indices = self.var_index_variable.get_value()[indices]
+            return variable.get_value()[indices]
+
+    @device_override('variableview_get_subexpression_with_index_array')
+    def get_subexpression_with_index_array(self, item):
+        variable = self.variable
+        if variable.scalar:
+            if not (isinstance(item, slice) and item == slice(None)):
+                raise IndexError(('Illegal index for variable %s, it is a '
+                                  'scalar variable.') % self.name)
+            indices = np.array(0)
+        else:
+            indices = self.indexing.calc_indices(item)
+
         # For "normal" variables, we can directly access the underlying data
         # and use the usual slicing syntax. For subexpressions, however, we
         # have to evaluate code for the given indices
-        if isinstance(variable, Subexpression):
-            variables = Variables(None)
-            variables.add_auxiliary_variable('_variable',
-                                             unit=variable.unit,
-                                             dtype=variable.dtype,
-                                             scalar=variable.scalar)
-            if indices.shape ==  ():
-                single_index = True
-                indices = np.array([indices])
-            else:
-                single_index = False
-            variables.add_array('_group_idx', unit=Unit(1),
-                                size=len(indices), dtype=np.int32)
-            variables['_group_idx'].set_value(indices)
-
-            abstract_code = '_variable = ' + self.name + '\n'
-            from brian2.codegen.codeobject import create_runner_codeobj
-            codeobj = create_runner_codeobj(self.group,
-                                            abstract_code,
-                                            'group_variable_get',
-                                            additional_variables=variables
-            )
-            result = codeobj()
-            if single_index and not variable.scalar:
-                return result[0]
-            else:
-                return result
+        variables = Variables(None)
+        variables.add_auxiliary_variable('_variable',
+                                         unit=variable.unit,
+                                         dtype=variable.dtype,
+                                         scalar=variable.scalar)
+        if indices.shape ==  ():
+            single_index = True
+            indices = np.array([indices])
         else:
-            if variable.scalar:
-                return variable.get_value()[0]
-            else:
-                # We are not going via code generation so we have to take care
-                # of correct indexing (in particular for subgroups) explicitly
+            single_index = False
+        variables.add_array('_group_idx', unit=Unit(1),
+                            size=len(indices), dtype=np.int32)
+        variables['_group_idx'].set_value(indices)
 
-                if not self.var_index in ('_idx', '0'):
-                    indices = self.var_index_variable.get_value()[indices]
-                return variable.get_value()[indices]
+        abstract_code = '_variable = ' + self.name + '\n'
+        from brian2.codegen.codeobject import create_runner_codeobj
+        codeobj = create_runner_codeobj(self.group,
+                                        abstract_code,
+                                        'group_variable_get',
+                                        additional_variables=variables
+        )
+        result = codeobj()
+        if single_index and not variable.scalar:
+            return result[0]
+        else:
+            return result
 
     @device_override('variableview_set_with_index_array')
     def set_with_index_array(self, item, value, check_units):
