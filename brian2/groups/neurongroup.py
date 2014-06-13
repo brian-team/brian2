@@ -392,44 +392,37 @@ class NeuronGroup(Group, SpikeSource):
                                                                              linked_var.name))
 
             if value.index is not None:
-                if value.group.variables.indices[value.name] != '_idx':
-                    raise ValueError(('Cannot link to variable %s in group %s '
-                                      'with indices, the variable is already '
-                                      'indexed there. Consider directly linking '
-                                      'to %s in %s with the appropriate '
-                                      'indexing.') % (value.name,
-                                                      value.group.name,
-                                                      value.variable.name,
-                                                      value.variable.owner.name))
-                if isinstance(value.index, basestring):
-                    index = value.index
-                else:
-                    try:
-                        index_array = np.asarray(value.index)
-                        if not np.issubsctype(index_array.dtype, np.int):
-                            raise TypeError()
-                    except TypeError:
-                        raise TypeError(('The index for a linked variable has '
-                                         'to be either a string or an integer '
-                                         'array'))
-                    size = len(index_array)
-                    if not index_array.ndim == 1 or size != len(self):
-                        raise TypeError(('Index array for linked variable %s '
-                                         'has to be a one-dimensional array of '
-                                         'length %d, but has shape '
-                                         '%s') % (key,
-                                                  len(self),
-                                                  str(index_array.shape)))
-                    if min(index_array) < 0 or max(index_array) >= len(linked_var):
-                        raise ValueError('Index array for linked variable %s '
-                                         'contains values outside of the valid '
-                                         'range [0, %d[' % (key,
-                                                            len(linked_var)))
-                    self.variables.add_array('_%s_indices' % key, unit=Unit(1),
-                                             size=size, dtype=index_array.dtype,
-                                             constant=True, read_only=True,
-                                             values=index_array)
-                    index = '_%s_indices' % key
+                try:
+                    index_array = np.asarray(value.index)
+                    if not np.issubsctype(index_array.dtype, np.int):
+                        raise TypeError()
+                except TypeError:
+                    raise TypeError(('The index for a linked variable has '
+                                     'to be an integer array'))
+                size = len(index_array)
+                source_index = value.group.variables.indices[value.name]
+                if source_index != '_idx':
+                    # we are indexing into an already indexed variable,
+                    # calculate the indexing into the target variable
+                    index_array = value.group.variables[source_index].get_value()[index_array]
+
+                if not index_array.ndim == 1 or size != len(self):
+                    raise TypeError(('Index array for linked variable %s '
+                                     'has to be a one-dimensional array of '
+                                     'length %d, but has shape '
+                                     '%s') % (key,
+                                              len(self),
+                                              str(index_array.shape)))
+                if min(index_array) < 0 or max(index_array) >= len(linked_var):
+                    raise ValueError('Index array for linked variable %s '
+                                     'contains values outside of the valid '
+                                     'range [0, %d[' % (key,
+                                                        len(linked_var)))
+                self.variables.add_array('_%s_indices' % key, unit=Unit(1),
+                                         size=size, dtype=index_array.dtype,
+                                         constant=True, read_only=True,
+                                         values=index_array)
+                index = '_%s_indices' % key
             elif len(linked_var) == 1:
                 index = '0'
             else:
