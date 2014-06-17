@@ -9,6 +9,7 @@ from brian2.core.clocks import defaultclock
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
+from brian2.synapses.synapses import Synapses
 from brian2.monitors.statemonitor import StateMonitor
 from brian2.units.fundamentalunits import (DimensionMismatchError,
                                            have_same_dimensions)
@@ -304,6 +305,16 @@ def test_linked_variable_indexed_incorrect():
                                   linked_var(G.x, index=np.arange(10)+1)))
 
 
+def test_linked_synapses():
+    '''
+    Test linking to a synaptic variable (should raise an error).
+    '''
+    G = NeuronGroup(10, '')
+    S = Synapses(G, G, 'w:1', connect=True)
+    G2 = NeuronGroup(100, 'x : 1 (linked)')
+    assert_raises(NotImplementedError, lambda: setattr(G2, 'x', linked_var(S, 'w')))
+    
+    
 def test_unit_errors():
     '''
     Test that units are checked for a complete namespace.
@@ -797,6 +808,7 @@ if __name__ == '__main__':
     test_linked_subgroup()
     test_linked_subgroup2()
     test_linked_variable_indexed_incorrect()
+    test_linked_synapses()
     test_stochastic_variable()
     test_stochastic_variable_multiplicative()
     test_unit_errors()
