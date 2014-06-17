@@ -45,7 +45,8 @@ def test_get_identifiers_recursively():
                                        owner=FakeGroup(variables={}),
                                        device=None),
                  'x': Variable(unit=None, name='x')}
-    identifiers = get_identifiers_recursively('_x = sub1 + x', variables)
+    identifiers = get_identifiers_recursively(['_x = sub1 + x'],
+                                              variables)
     assert identifiers == set(['x', '_x', 'y', 'z', 'sub1', 'sub2'])
 
 

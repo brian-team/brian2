@@ -92,25 +92,41 @@ def analyse_identifiers(code, variables, recursive=False):
     known |= STANDARD_IDENTIFIERS
     stmts = make_statements(code, variables, np.float64)
     defined = set(stmt.var for stmt in stmts if stmt.op==':=')
-    if recursive:
+    if len(stmts) == 0:
+        allids = set()
+    elif recursive:
         if not isinstance(variables, collections.Mapping):
             raise TypeError('Have to specify a variables dictionary.')
-        allids = get_identifiers_recursively(code, variables)
+        allids = get_identifiers_recursively([stmt.expr for stmt in stmts],
+                                             variables) | set([stmt.var
+                                                               for stmt in stmts])
     else:
-        allids = get_identifiers(code)
+        allids = set.union(*[get_identifiers(stmt.expr)
+                             for stmt in stmts]) | set([stmt.var for stmt in stmts])
     dependent = allids.difference(defined, known)
     used_known = allids.intersection(known) - STANDARD_IDENTIFIERS
     return defined, used_known, dependent
 
 
-def get_identifiers_recursively(expr, variables):
+def get_identifiers_recursively(expressions, variables):
     '''
-    Gets all the identifiers in a code, recursing down into subexpressions.
+    Gets all the identifiers in a list of expressions, recursing down into
+    subexpressions.
+
+    Parameters
+    ----------
+    expressions : list of str
+        List of expressions to check.
+    variables : dict-like
+        Dictionary of `Variable` objects
     '''
-    identifiers = get_identifiers(expr)
+    if len(expressions):
+        identifiers = set.union(*[get_identifiers(expr) for expr in expressions])
+    else:
+        identifiers = set()
     for name in set(identifiers):
         if name in variables and isinstance(variables[name], Subexpression):
-            s_identifiers = get_identifiers_recursively(variables[name].expr,
+            s_identifiers = get_identifiers_recursively([variables[name].expr],
                                                         variables)
             identifiers |= s_identifiers
     return identifiers
@@ -139,7 +155,7 @@ def make_statements(code, variables, dtype):
                   if getattr(v, 'scalar', False))
     for line in lines:
         # parse statement into "var op expr"
-        var, op, expr = parse_statement(line.code)
+        var, op, expr, comment = parse_statement(line.code)
         if op=='=':
             if var not in defined:
                 op = ':='
@@ -147,7 +163,7 @@ def make_statements(code, variables, dtype):
                 if var not in dtypes:
                     dtypes[var] = dtype
                 # determine whether this is a scalar variable
-                identifiers = get_identifiers_recursively(expr, variables)
+                identifiers = get_identifiers_recursively([expr], variables)
                 # In the following we assume that all unknown identifiers are
                 # scalar constants -- this should cover numerical literals and
                 # e.g. "True" or "inf".
@@ -156,12 +172,12 @@ def make_statements(code, variables, dtype):
                 if is_scalar:
                     scalars.add(var)
 
-        statement = Statement(var, op, expr, dtypes[var], scalar=var in scalars)
+        statement = Statement(var, op, expr, comment, dtype=dtypes[var], scalar=var in scalars)
         line.statement = statement
         # for each line will give the variable being written to
         line.write = var 
         # each line will give a set of variables which are read
-        line.read = get_identifiers_recursively(expr, variables)
+        line.read = get_identifiers_recursively([expr], variables)
 
     # All writes to scalar variables must happen before writes to vector
     # variables
@@ -256,11 +272,12 @@ def make_statements(code, variables, dtype):
                         ids = subexpression.identifiers
                         constant = all(v not in will_write for v in ids)
                 valid[var] = True
-                statement = Statement(var, op, subexpression.expr,
-                                      variables[var].dtype, constant=constant,
+                statement = Statement(var, op, subexpression.expr, comment='',
+                                      dtype=variables[var].dtype,
+                                      constant=constant,
                                       subexpression=True, scalar=var in scalars)
                 statements.append(statement)
-        var, op, expr = stmt.var, stmt.op, stmt.expr
+        var, op, expr, comment = stmt.var, stmt.op, stmt.expr, stmt.comment
         # invalidate any subexpressions including var, recursively
         # we do this by having a set of variables that are invalid that we
         # start with the changed var and increase by any subexpressions we
@@ -277,7 +294,7 @@ def make_statements(code, variables, dtype):
         # constant only if we are declaring a new variable and we will not
         # write to it again
         constant = op==':=' and var not in will_write
-        statement = Statement(var, op, expr, dtypes[var],
+        statement = Statement(var, op, expr, comment, dtype=dtypes[var],
                               constant=constant, scalar=var in scalars)
         statements.append(statement)
 

@@ -134,7 +134,8 @@ class CPPCodeGenerator(CodeGenerator):
         return CPPNodeRenderer().render_expr(expr).strip()
 
     def translate_statement(self, statement):
-        var, op, expr = statement.var, statement.op, statement.expr
+        var, op, expr, comment = (statement.var, statement.op,
+                                  statement.expr, statement.comment)
         if op == ':=':
             decl = self.c_data_type(statement.dtype) + ' '
             op = '='
@@ -142,7 +143,10 @@ class CPPCodeGenerator(CodeGenerator):
                 decl = 'const ' + decl
         else:
             decl = ''
-        return decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
+        code = decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
+        if len(comment):
+            code += ' // ' + comment
+        return code
     
     def translate_to_read_arrays(self, statements):
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)

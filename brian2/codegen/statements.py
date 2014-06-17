@@ -38,11 +38,12 @@ class Statement(object):
     ``inplace``
         True or False depending if the operation is in-place or not.
     '''
-    def __init__(self, var, op, expr, dtype,
+    def __init__(self, var, op, expr, comment, dtype,
                  constant=False, subexpression=False, scalar=False):
         self.var = var.strip()
         self.op = op.strip()
         self.expr = expr
+        self.comment = comment
         self.dtype = dtype
         self.constant = constant
         self.subexpression = subexpression
@@ -62,6 +63,8 @@ class Statement(object):
             s += ' (subexpression)'
         if self.inplace:
             s += ' (in-place)'
+        if len(self.comment):
+            s += ' # ' + self.comment
         return s
     __repr__ = __str__
 

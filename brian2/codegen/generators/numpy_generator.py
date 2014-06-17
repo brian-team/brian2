@@ -32,10 +32,14 @@ class NumpyCodeGenerator(CodeGenerator):
     def translate_statement(self, statement):
         # TODO: optimisation, translate arithmetic to a sequence of inplace
         # operations like a=b+c -> add(b, c, a)
-        var, op, expr = statement.var, statement.op, statement.expr
+        var, op, expr, comment = (statement.var, statement.op,
+                                  statement.expr, statement.comment)
         if op == ':=':
             op = '='
-        return var + ' ' + op + ' ' + self.translate_expression(expr)
+        code = var + ' ' + op + ' ' + self.translate_expression(expr)
+        if len(comment):
+            code += ' # ' + comment
+        return code
         
     def translate_one_statement_sequence(self, statements):
         variables = self.variables
