@@ -1445,7 +1445,7 @@ class Variables(collections.Mapping):
         self._add_variable(name, var)
 
 
-    def add_referred_subexpression(self, name, subexpr, index):
+    def add_referred_subexpression(self, name, group, subexpr, index):
         identifiers = subexpr.identifiers
         substitutions = {}
         for identifier in identifiers:
@@ -1461,10 +1461,18 @@ class Variables(collections.Mapping):
                 new_name = '_%s_%s' % (name, identifier)
             substitutions[identifier] = new_name
             self.indices[new_name] = index
+
             if isinstance(subexpr_var, Subexpression):
-                self.add_referred_subexpression(new_name, subexpr_var, index)
+                self.add_referred_subexpression(new_name,
+                                                group,
+                                                subexpr_var,
+                                                index)
             else:
-                self.add_reference(new_name, subexpr_var, index)
+                self.add_reference(new_name,
+                                   group,
+                                   identifier,
+                                   index)
+
         new_expr = word_substitute(subexpr.expr, substitutions)
         new_subexpr = Subexpression(name, subexpr.unit, self.owner, new_expr,
                                     device=subexpr.device,
@@ -1472,7 +1480,7 @@ class Variables(collections.Mapping):
                                     scalar=subexpr.scalar)
         self._variables[name] = new_subexpr
 
-    def add_reference(self, name, var, index=None):
+    def add_reference(self, name, group, varname=None, index=None):
         '''
         Add a reference to a variable defined somewhere else (possibly under
         a different name). This is for example used in `Subgroup` and
@@ -1483,37 +1491,44 @@ class Variables(collections.Mapping):
         name : str
             The name of the variable (in this group, possibly a different name
             from `var.name`).
-        var : `Variable`
-            The variable to refer to.
+        group : `Group`
+            The group from which `var` is referenced
+        varname : str, optional
+            The variable to refer to. If not given, defaults to `name`.
         index : str, optional
             The index that should be used for this variable (defaults to
             `Variables.default_index`).
         '''
         if index is None:
             index = self.default_index
+        if varname is None:
+            varname = name
         # We don't overwrite existing names with references
         if not name in self._variables:
+            var = group.variables[varname]
             if isinstance(var, Subexpression):
-                self.add_referred_subexpression(name, var, index)
+                self.add_referred_subexpression(name, group, var, index)
             else:
                 self._variables[name] = var
             self.indices[name] = index
 
-    def add_references(self, variables, index=None):
+    def add_references(self, group, varnames, index=None):
         '''
         Add all `Variable` objects from a name to `Variable` mapping with the
         same name as in the original mapping.
 
         Parameters
         ----------
-        variables : mapping from str to `Variable` (normally a `Variables` object)
+        group : `Group`
+            The group from which the `variables` are referenced
+        varnames : iterable of str
             The variables that should be referred to in the current group
         index : str, optional
             The index to use for all the variables (defaults to
             `Variables.default_index`)
         '''
-        for name, var in variables.iteritems():
-            self.add_reference(name, var, index)
+        for name in varnames:
+            self.add_reference(name, group, name, index)
 
     def add_clock_variables(self, clock, prefix=''):
         '''

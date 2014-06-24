@@ -56,7 +56,7 @@ class SpikeMonitor(Group, CodeRunner):
 
         self.variables = Variables(self)
         self.variables.add_clock_variables(scheduler.clock, prefix='_clock_')
-        self.variables.add_reference('_spikespace', source.variables['_spikespace'])
+        self.variables.add_reference('_spikespace', source)
         self.variables.add_dynamic_array('i', size=0, unit=Unit(1),
                                          dtype=np.int32, constant_size=False)
         self.variables.add_dynamic_array('t', size=0, unit=second,

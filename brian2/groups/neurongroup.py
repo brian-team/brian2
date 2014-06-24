@@ -442,7 +442,8 @@ class NeuronGroup(Group, SpikeSource):
                     # other names and a reference to the index
                     new_index = '_' + value.name + '_index_' + index
                     self.variables.add_reference(new_index,
-                                                 value.group.variables[index])
+                                                 value.group,
+                                                 index)
                     index = new_index
 
                 if len(self) != target_length:
@@ -455,7 +456,10 @@ class NeuronGroup(Group, SpikeSource):
                                                        len(self),
                                                        target_length))
 
-            self.variables.add_reference(key, value.variable, index=index)
+            self.variables.add_reference(key,
+                                         value.group,
+                                         value.name,
+                                         index=index)
             log_msg = ('Setting {target}.{targetvar} as a link to '
                        '{source}.{sourcevar}').format(target=self.name,
                                                       targetvar=key,
