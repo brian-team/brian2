@@ -1462,16 +1462,28 @@ class Variables(collections.Mapping):
             substitutions[identifier] = new_name
             self.indices[new_name] = index
 
+            subexpr_var_index = group.variables.indices[identifier]
+            if subexpr_var_index in (group.variables.default_index, '0'):
+                subexpr_var_index = index
+            elif index != self.default_index:
+                raise ValueError(('Cannot link to subexpression %s: it refers'
+                                  'to the variable %s which is index with the '
+                                  'non-standard index %s.') % (name,
+                                                               identifier,
+                                                               subexpr_var_index))
+            else:
+                self.add_reference(subexpr_var_index, group)
+
             if isinstance(subexpr_var, Subexpression):
                 self.add_referred_subexpression(new_name,
                                                 group,
                                                 subexpr_var,
-                                                index)
+                                                subexpr_var_index)
             else:
                 self.add_reference(new_name,
                                    group,
                                    identifier,
-                                   index)
+                                   subexpr_var_index)
 
         new_expr = word_substitute(subexpr.expr, substitutions)
         new_subexpr = Subexpression(name, subexpr.unit, self.owner, new_expr,

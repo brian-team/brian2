@@ -280,6 +280,28 @@ def test_linked_subgroup2():
     assert_equal(G3.y[:], (np.arange(5)+3).repeat(2)*0.1)
 
 
+def test_linked_subexpression():
+    '''
+    Test a subexpression referring to a linked variable.
+    '''
+    G = NeuronGroup(2, 'dv/dt = 100*Hz : 1',
+                    threshold='v>1', reset='v=0')
+    G.v = [0, .5]
+    G2 = NeuronGroup(10, '''I = clip(x, 0, inf) : 1
+                            x : 1 (linked) ''')
+
+    G2.x = linked_var(G.v, index=np.array([0, 1]).repeat(5))
+    mon = StateMonitor(G2, 'I', record=True)
+
+    net = Network(G, G2, mon)
+    net.run(5*ms)
+
+    # Due to the linking, the first 5 and the second 5 recorded I vectors should
+    # be identical
+    assert all((all(mon[i].I == mon[0].I) for i in xrange(5)))
+    assert all((all(mon[i+5].I == mon[5].I) for i in xrange(5)))
+
+
 def test_linked_variable_indexed_incorrect():
     '''
     Test errors when providing incorrect index arrays
@@ -807,6 +829,7 @@ if __name__ == '__main__':
     test_linked_double_linked4()
     test_linked_subgroup()
     test_linked_subgroup2()
+    test_linked_subexpression()
     test_linked_variable_indexed_incorrect()
     test_linked_synapses()
     test_stochastic_variable()
