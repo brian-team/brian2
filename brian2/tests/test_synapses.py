@@ -269,55 +269,57 @@ def test_state_variable_assignment():
     '''
     Assign values to state variables in various ways
     '''
-    G = NeuronGroup(10, 'v: volt')
-    G.v = 'i*mV'
-    S = Synapses(G, G, 'w:volt')
-    S.connect(True)
 
-    # with unit checking
-    assignment_expected = [
-        (5*mV, np.ones(100)*5*mV),
-        (7*mV, np.ones(100)*7*mV),
-        (S.i[:] * mV, S.i[:]*np.ones(100)*mV),
-        ('5*mV', np.ones(100)*5*mV),
-        ('i*mV', np.ones(100)*S.i[:]*mV),
-        ('i*mV +j*mV', S.i[:]*mV + S.j[:]*mV),
-        # reference to pre- and postsynaptic state variables
-        ('v_pre', S.i[:]*mV),
-        ('v_post', S.j[:]*mV),
-        #('i*mV + j*mV + k*mV', S.i[:]*mV + S.j[:]*mV + S.k[:]*mV) #not supported yet
-    ]
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, 'v: volt')
+        G.v = 'i*mV'
+        S = Synapses(G, G, 'w:volt', codeobj_class=codeobj_class)
+        S.connect(True)
 
-    for assignment, expected in assignment_expected:
-        S.w = 0*volt
-        S.w = assignment
-        assert_equal(S.w[:], expected,
-                     'Assigning %r gave incorrect result' % assignment)
-        S.w = 0*volt
-        S.w[:] = assignment
-        assert_equal(S.w[:], expected,
-                     'Assigning %r gave incorrect result' % assignment)
+        # with unit checking
+        assignment_expected = [
+            (5*mV, np.ones(100)*5*mV),
+            (7*mV, np.ones(100)*7*mV),
+            (S.i[:] * mV, S.i[:]*np.ones(100)*mV),
+            ('5*mV', np.ones(100)*5*mV),
+            ('i*mV', np.ones(100)*S.i[:]*mV),
+            ('i*mV +j*mV', S.i[:]*mV + S.j[:]*mV),
+            # reference to pre- and postsynaptic state variables
+            ('v_pre', S.i[:]*mV),
+            ('v_post', S.j[:]*mV),
+            #('i*mV + j*mV + k*mV', S.i[:]*mV + S.j[:]*mV + S.k[:]*mV) #not supported yet
+        ]
 
-    # without unit checking
-    assignment_expected = [
-        (5, np.ones(100)*5*volt),
-        (7, np.ones(100)*7*volt),
-        (S.i[:], S.i[:]*np.ones(100)*volt),
-        ('5', np.ones(100)*5*volt),
-        ('i', np.ones(100)*S.i[:]*volt),
-        ('i +j', S.i[:]*volt + S.j[:]*volt),
-        #('i + j + k', S.i[:]*volt + S.j[:]*volt + S.k[:]*volt) #not supported yet
-    ]
+        for assignment, expected in assignment_expected:
+            S.w = 0*volt
+            S.w = assignment
+            assert_allclose(S.w[:], expected,
+                            err_msg='Assigning %r gave incorrect result' % assignment)
+            S.w = 0*volt
+            S.w[:] = assignment
+            assert_allclose(S.w[:], expected,
+                            err_msg='Assigning %r gave incorrect result' % assignment)
 
-    for assignment, expected in assignment_expected:
-        S.w = 0*volt
-        S.w_ = assignment
-        assert_equal(S.w[:], expected,
-                     'Assigning %r gave incorrect result' % assignment)
-        S.w = 0*volt
-        S.w_[:] = assignment
-        assert_equal(S.w[:], expected,
-                     'Assigning %r gave incorrect result' % assignment)
+        # without unit checking
+        assignment_expected = [
+            (5, np.ones(100)*5*volt),
+            (7, np.ones(100)*7*volt),
+            (S.i[:], S.i[:]*np.ones(100)*volt),
+            ('5', np.ones(100)*5*volt),
+            ('i', np.ones(100)*S.i[:]*volt),
+            ('i +j', S.i[:]*volt + S.j[:]*volt),
+            #('i + j + k', S.i[:]*volt + S.j[:]*volt + S.k[:]*volt) #not supported yet
+        ]
+
+        for assignment, expected in assignment_expected:
+            S.w = 0*volt
+            S.w_ = assignment
+            assert_allclose(S.w[:], expected,
+                            err_msg='Assigning %r gave incorrect result' % assignment)
+            S.w = 0*volt
+            S.w_[:] = assignment
+            assert_allclose(S.w[:], expected,
+                            err_msg='Assigning %r gave incorrect result' % assignment)
 
 
 def test_state_variable_indexing():
