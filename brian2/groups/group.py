@@ -314,7 +314,7 @@ class Group(BrianObject):
         except KeyError:
             raise AttributeError('No attribute with name ' + name)
 
-    def __setattr__(self, name, val):
+    def __setattr__(self, name, val, level=0):
         # attribute access is switched off until this attribute is created by
         # _enable_group_attributes
         if not hasattr(self, '_group_attribute_access_active') or name in self.__dict__:
@@ -329,7 +329,7 @@ class Group(BrianObject):
             # Make the call X.var = ... equivalent to X.var[:] = ...
             var.get_addressable_value_with_unit(name, self).set_item(slice(None),
                                                                      val,
-                                                                     level=1)
+                                                                     level=level+1)
         elif len(name) and name[-1]=='_' and name[:-1] in self.variables:
             # no unit checking
             var = self.variables[name[:-1]]
@@ -338,7 +338,7 @@ class Group(BrianObject):
             # Make the call X.var = ... equivalent to X.var[:] = ...
             var.get_addressable_value(name[:-1], self).set_item(slice(None),
                                                                 val,
-                                                                level=1)
+                                                                level=level+1)
         else:
             object.__setattr__(self, name, val)
 
@@ -686,6 +686,8 @@ class CodeRunner(BrianObject):
         A list of variable names which are used as conditions (e.g. for
         refractoriness) which should be ignored.
     '''
+    add_to_magic_network = True
+    invalidates_magic_network = True
     def __init__(self, group, template, code='', when=None,
                  name='coderunner*', check_units=True, template_kwds=None,
                  needed_variables=None, override_conditional_write=None,

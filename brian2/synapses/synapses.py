@@ -153,9 +153,8 @@ class SynapticPathway(CodeRunner, Group):
                                               attribute='spiking_synapses',
                                               constant=False,
                                               scalar=False)
-        self.variables.add_reference('_spikespace',
-                                     self.source.variables['_spikespace'])
-        self.variables.add_reference('N', synapses.variables['N'])
+        self.variables.add_reference('_spikespace', self.source)
+        self.variables.add_reference('N', synapses)
         if delay is None:  # variable delays
             self.variables.add_dynamic_array('delay', unit=second,
                                              size=synapses._N, constant=True,
@@ -564,7 +563,7 @@ class Synapses(Group):
         # direct access to its delay via a delay attribute (instead of having
         # to use pre.delay)
         if 'pre' in self._synaptic_updaters:
-            self.variables.add_reference('delay', self.pre.variables['delay'])
+            self.variables.add_reference('delay', self.pre)
 
         #: Performs numerical integration step
         self.state_updater = None
@@ -702,9 +701,9 @@ class Synapses(Group):
         self.variables.add_dynamic_array('_synaptic_post', size=0, unit=Unit(1),
                                          dtype=np.int32, constant_size=True)
 
-        self.variables.add_reference('i', self.source.variables['i'],
+        self.variables.add_reference('i', self.source, 'i',
                                      index='_presynaptic_idx')
-        self.variables.add_reference('j', self.target.variables['i'],
+        self.variables.add_reference('j', self.target, 'i',
                                      index='_postsynaptic_idx')
 
         if '_offset' in self.target.variables:
@@ -731,9 +730,11 @@ class Synapses(Group):
         # postsynaptic index, leading to errors for the next
         # propagation.
         self.variables.add_reference('_presynaptic_idx',
-                                     self.variables['_synaptic_pre'])
+                                     self,
+                                     '_synaptic_pre')
         self.variables.add_reference('_postsynaptic_idx',
-                                     self.variables['_synaptic_post'])
+                                     self,
+                                     '_synaptic_post')
 
         # Add the standard variables
         self.variables.add_clock_variables(self.clock)
@@ -781,17 +782,19 @@ class Synapses(Group):
             self.variables.add_auxiliary_variable(xi, unit=second**-0.5)
 
         # Add all the pre and post variables with _pre and _post suffixes
-        for name, var in getattr(self.source, 'variables', {}).iteritems():
+        for name in getattr(self.source, 'variables', {}).iterkeys():
+            var = self.source.variables[name]
             index = '0' if var.scalar else '_presynaptic_idx'
-            self.variables.add_reference(name + '_pre', var,
+            self.variables.add_reference(name + '_pre', self.source, name,
                                          index=index)
-        for name, var in getattr(self.target, 'variables', {}).iteritems():
+        for name in getattr(self.target, 'variables', {}).iterkeys():
+            var = self.target.variables[name]
             index = '0' if var.scalar else '_postsynaptic_idx'
-            self.variables.add_reference(name + '_post', var,
+            self.variables.add_reference(name + '_post', self.target, name,
                                          index=index)
             # Also add all the post variables without a suffix -- note that a
             # reference will never overwrite the name of an existing name
-            self.variables.add_reference(name, var, index=index)
+            self.variables.add_reference(name, self.target, name, index=index)
 
         # Check scalar subexpressions
         for eq in equations.itervalues():
@@ -982,14 +985,14 @@ class Synapses(Group):
             variables.add_auxiliary_variable('_p', unit=Unit(1))
 
             if '_sub_idx' in self.source.variables:
-                variables.add_reference('_all_pre', self.source.variables['_sub_idx'])
+                variables.add_reference('_all_pre', self.source, '_sub_idx')
             else:
-                variables.add_reference('_all_pre', self.source.variables['i'])
+                variables.add_reference('_all_pre', self.source, 'i')
 
             if '_sub_idx' in self.target.variables:
-                variables.add_reference('_all_post', self.target.variables['_sub_idx'])
+                variables.add_reference('_all_post', self.target, '_sub_idx')
             else:
-                variables.add_reference('_all_post', self.target.variables['i'])
+                variables.add_reference('_all_post', self.target, 'i')
 
             variable_indices = defaultdict(lambda: '_idx')
             for varname in self.variables:

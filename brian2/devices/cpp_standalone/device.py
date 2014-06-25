@@ -1,12 +1,13 @@
 '''
 Module implementing the C++ "standalone" device.
 '''
-import numpy
 import os
 import shutil
 import subprocess
 import inspect
 from collections import defaultdict
+
+import numpy as np
 
 from brian2.core.clocks import defaultclock
 from brian2.core.network import Network
@@ -89,9 +90,9 @@ class CPPStandaloneDevice(Device):
         self.dynamic_arrays_2d = {}
         #: List of all arrays to be filled with zeros
         self.zero_arrays = []
-        #: List of all arrays to be filled with numbers (tuple with
-        #: `ArrayVariable` object and start value)
-        self.arange_arrays = []
+        #: Dictionary of all arrays to be filled with numbers (mapping
+        #: `ArrayVariable` objects to start value)
+        self.arange_arrays = {}
 
         #: Dict of all static saved arrays
         self.static_arrays = {}
@@ -170,12 +171,17 @@ class CPPStandaloneDevice(Device):
         self.zero_arrays.append(var)
 
     def init_with_arange(self, var, start):
-        self.arange_arrays.append((var, start))
+        self.arange_arrays[var] = start
+
+    def init_with_array(self, var, arr):
+        array_name = self.get_array_name(var, access_data=False)
+        # treat the array as a static array
+        self.static_arrays[array_name] = arr.astype(var.dtype)
 
     def fill_with_array(self, var, arr):
-        arr = numpy.asarray(arr)
+        arr = np.asarray(arr)
         if arr.shape == ():
-            arr = numpy.repeat(arr, var.size)
+            arr = np.repeat(arr, var.size)
         # Using the std::vector instead of a pointer to the underlying
         # data for dynamic arrays is fast enough here and it saves us some
         # additional work to set up the pointer
@@ -222,14 +228,36 @@ class CPPStandaloneDevice(Device):
                                                            staticarrayname_index,
                                                            staticarrayname_value)))
 
-    def variableview_get_with_index_array(self, item):
-        raise NotImplementedError('Cannot retrieve the values of state '
-                                  'variables in standalone code.')
+    def get_value(self, var, access_data=True):
+        # Usually, we cannot retrieve the values of state variables in
+        # standalone scripts since their values might depend on the evaluation
+        # of expressions at runtime. For constant, read-only arrays that have
+        # been explicitly initialized (static arrays) or aranges (e.g. the
+        # neuronal indices)
+        if var.constant and var.read_only:
+            array_name = self.get_array_name(var, access_data=False)
+            if array_name in self.static_arrays:
+                return self.static_arrays[array_name]
+            elif var in self.arange_arrays:
+                return np.arange(0, var.size) + self.arange_arrays[var]
+            else:
+                raise AssertionError(('Variable %s is constant and read-only '
+                                      ' but uninitialized'))
+        else:
+            raise NotImplementedError('Cannot retrieve the values of state '
+                                      'variables in standalone code.')
 
-    def variableview_get_with_expression(self, code, level=0,
+
+    def variableview_get_subexpression_with_index_array(self, variableview, item):
+        raise NotImplementedError(('Cannot evaluate subexpressions in '
+                                   'standalone scripts.'))
+
+
+    def variableview_get_with_expression(self, variableview, code, level=0,
                                          run_namespace=None):
         raise NotImplementedError('Cannot retrieve the values of state '
-                                  'variables in standalone code.')
+                                  'variables with string expressions in '
+                                  'standalone scripts.')
 
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is not None:
@@ -301,9 +329,11 @@ class CPPStandaloneDevice(Device):
             
         logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
 
-        self.arange_arrays.sort(key=lambda (var, start): var.name)
+        arange_arrays = sorted([(var, start)
+                                for var, start in self.arange_arrays.iteritems()],
+                               key=lambda (var, start): var.name)
 
-        # # Find numpy arrays in the namespaces and convert them into static
+        # # Find np arrays in the namespaces and convert them into static
         # # arrays. Hopefully they are correctly used in the code: For example,
         # # this works for the namespaces for functions with C++ (e.g. TimedArray
         # # treats it as a C array) but does not work in places that are
@@ -311,7 +341,7 @@ class CPPStandaloneDevice(Device):
         # # shouldn't be used there anyway.
         for code_object in self.code_objects.itervalues():
             for name, value in code_object.variables.iteritems():
-                if isinstance(value, numpy.ndarray):
+                if isinstance(value, np.ndarray):
                     self.static_arrays[name] = value
 
         # write the static arrays
@@ -330,7 +360,7 @@ class CPPStandaloneDevice(Device):
                         dynamic_array_specs=self.dynamic_arrays,
                         dynamic_array_2d_specs=self.dynamic_arrays_2d,
                         zero_arrays=self.zero_arrays,
-                        arange_arrays=self.arange_arrays,
+                        arange_arrays=arange_arrays,
                         synapses=synapses,
                         clocks=self.clocks,
                         static_array_specs=static_array_specs,

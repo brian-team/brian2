@@ -2,12 +2,15 @@ import sympy
 import numpy as np
 from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 
+from brian2.core.variables import linked_var
 from brian2.core.network import Network
 from brian2.core.preferences import brian_prefs
 from brian2.core.clocks import defaultclock
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
+from brian2.synapses.synapses import Synapses
+from brian2.monitors.statemonitor import StateMonitor
 from brian2.units.fundamentalunits import (DimensionMismatchError,
                                            have_same_dimensions)
 from brian2.units.allunits import second, volt
@@ -115,6 +118,225 @@ def test_scalar_variable():
         net.run(defaultclock.dt)
 
 
+def test_linked_variable_correct():
+    '''
+    Test correct uses of linked variables.
+    '''
+    tau = 10*ms
+    G1 = NeuronGroup(10, 'dv/dt = -v / tau : volt')
+    G1.v = np.linspace(0*mV, 20*mV, 10)
+    G2 = NeuronGroup(10, 'v : volt (linked)')
+    G2.v = linked_var(G1.v)
+    mon1 = StateMonitor(G1, 'v', record=True)
+    mon2 = StateMonitor(G2, 'v', record=True)
+    net = Network(G1, G2, mon1, mon2)
+    net.run(10*ms)
+    assert_equal(mon1.v[:, :], mon2.v[:, :])
+
+
+def test_linked_variable_incorrect():
+    '''
+    Test incorrect uses of linked variables.
+    '''
+    G1 = NeuronGroup(10, '''x : volt
+                            y : 1''')
+    G2 = NeuronGroup(20, '''x: volt''')
+    G3 = NeuronGroup(10, '''l : volt (linked)
+                            not_linked : volt''')
+
+    # incorrect unit
+    assert_raises(DimensionMismatchError, lambda: setattr(G3, 'l', linked_var(G1.y)))
+    # incorrect group size
+    assert_raises(ValueError, lambda: setattr(G3, 'l', linked_var(G2.x)))
+    # incorrect use of linked_var
+    assert_raises(ValueError, lambda: setattr(G3, 'l', linked_var(G1.x, 'x')))
+    assert_raises(ValueError, lambda: setattr(G3, 'l', linked_var(G1)))
+    # Not a linked variable
+    assert_raises(TypeError, lambda: setattr(G3, 'not_linked', linked_var(G1.x)))
+
+
+def test_linked_variable_scalar():
+    '''
+    Test linked variable from a size 1 group.
+    '''
+    G1 = NeuronGroup(1, 'dx/dt = -x / (10*ms) : 1')
+    G2 = NeuronGroup(10, '''dy/dt = (-y + x) / (20*ms) : 1
+                            x : 1 (linked)''')
+    G1.x = 1
+    G2.y = np.linspace(0, 1, 10)
+    G2.x = linked_var(G1.x)
+    mon = StateMonitor(G2, 'y', record=True)
+    net = Network(G1, G2, mon)
+    net.run(10*ms)
+    # We don't test anything for now, except that it runs without raising an
+    # error
+
+
+def test_linked_variable_indexed():
+    '''
+    Test linking a variable with an index specified as an array
+    '''
+    G = NeuronGroup(10, '''x : 1
+                           y : 1 (linked)''')
+
+    G.x = np.arange(10)*0.1
+    G.y = linked_var(G.x, index=np.arange(10)[::-1])
+    # G.y should refer to an inverted version of G.x
+    assert_equal(G.y[:], np.arange(10)[::-1]*0.1)
+
+
+def test_linked_variable_repeat():
+    '''
+    Test a "repeat"-like connection between two groups of different size
+    '''
+    G1 = NeuronGroup(5, 'w : 1')
+    G2 = NeuronGroup(10, 'v : 1 (linked)')
+    G2.v = linked_var(G1.w, index=np.arange(5).repeat(2))
+    G1.w = np.arange(5) * 0.1
+    assert_equal(G2.v[:], np.arange(5).repeat(2) * 0.1)
+
+
+def test_linked_double_linked1():
+    '''
+    Linked to a linked variable, without indices
+    '''
+    G1 = NeuronGroup(10, 'x : 1')
+    G2 = NeuronGroup(10, 'y : 1 (linked)')
+    G2.y = linked_var(G1.x)
+    G3 = NeuronGroup(10, 'z: 1 (linked)')
+    G3.z = linked_var(G2.y)
+
+    G1.x = np.arange(10)
+    assert_equal(G3.z[:], np.arange(10))
+
+
+def test_linked_double_linked2():
+    '''
+    Linked to a linked variable, first without indices, second with indices
+    '''
+
+    G1 = NeuronGroup(5, 'x : 1')
+    G2 = NeuronGroup(5, 'y : 1 (linked)')
+    G2.y = linked_var(G1.x)
+    G3 = NeuronGroup(10, 'z: 1 (linked)')
+    G3.z = linked_var(G2.y, index=np.arange(5).repeat(2))
+
+    G1.x = np.arange(5)*0.1
+    assert_equal(G3.z[:], np.arange(5).repeat(2)*0.1)
+
+
+
+def test_linked_double_linked3():
+    '''
+    Linked to a linked variable, first wit indices, second without indices
+    '''
+    G1 = NeuronGroup(5, 'x : 1')
+    G2 = NeuronGroup(10, 'y : 1 (linked)')
+    G2.y = linked_var(G1.x, index=np.arange(5).repeat(2))
+    G3 = NeuronGroup(10, 'z: 1 (linked)')
+    G3.z = linked_var(G2.y)
+
+    G1.x = np.arange(5)*0.1
+    assert_equal(G3.z[:], np.arange(5).repeat(2)*0.1)
+
+
+def test_linked_double_linked4():
+    '''
+    Linked to a linked variable, both use indices
+    '''
+    G1 = NeuronGroup(5, 'x : 1')
+    G2 = NeuronGroup(10, 'y : 1 (linked)')
+    G2.y = linked_var(G1.x, index=np.arange(5).repeat(2))
+    G3 = NeuronGroup(10, 'z: 1 (linked)')
+    G3.z = linked_var(G2.y, index=np.arange(10)[::-1])
+
+    G1.x = np.arange(5)*0.1
+    assert_equal(G3.z[:], np.arange(5).repeat(2)[::-1]*0.1)
+
+
+def test_linked_subgroup():
+    '''
+    Test linking a variable from a subgroup
+    '''
+    G1 = NeuronGroup(10, 'x : 1')
+    G1.x = np.arange(10) * 0.1
+    G2 = G1[3:8]
+    G3 = NeuronGroup(5, 'y:1 (linked)')
+    G3.y = linked_var(G2.x)
+
+    assert_equal(G3.y[:], (np.arange(5)+3)*0.1)
+
+
+def test_linked_subgroup2():
+    '''
+    Test linking a variable from a subgroup with indexing
+    '''
+    G1 = NeuronGroup(10, 'x : 1')
+    G1.x = np.arange(10) * 0.1
+    G2 = G1[3:8]
+    G3 = NeuronGroup(10, 'y:1 (linked)')
+    G3.y = linked_var(G2.x, index=np.arange(5).repeat(2))
+
+    assert_equal(G3.y[:], (np.arange(5)+3).repeat(2)*0.1)
+
+
+def test_linked_subexpression():
+    '''
+    Test a subexpression referring to a linked variable.
+    '''
+    G = NeuronGroup(2, 'dv/dt = 100*Hz : 1',
+                    threshold='v>1', reset='v=0')
+    G.v = [0, .5]
+    G2 = NeuronGroup(10, '''I = clip(x, 0, inf) : 1
+                            x : 1 (linked) ''')
+
+    G2.x = linked_var(G.v, index=np.array([0, 1]).repeat(5))
+    mon = StateMonitor(G2, 'I', record=True)
+
+    net = Network(G, G2, mon)
+    net.run(5*ms)
+
+    # Due to the linking, the first 5 and the second 5 recorded I vectors should
+    # be identical
+    assert all((all(mon[i].I == mon[0].I) for i in xrange(5)))
+    assert all((all(mon[i+5].I == mon[5].I) for i in xrange(5)))
+
+
+def test_linked_variable_indexed_incorrect():
+    '''
+    Test errors when providing incorrect index arrays
+    '''
+    G = NeuronGroup(10, '''x : 1
+                           y : 1 (linked)''')
+
+    G.x = np.arange(10)*0.1
+    assert_raises(TypeError,
+                  lambda: setattr(G, 'y',
+                                  linked_var(G.x, index=np.arange(10)*1.0)))
+    assert_raises(TypeError,
+                  lambda: setattr(G, 'y',
+                                  linked_var(G.x, index=np.arange(10).reshape(5, 2))))
+    assert_raises(TypeError,
+                  lambda: setattr(G, 'y',
+                                  linked_var(G.x, index=np.arange(5))))
+    assert_raises(ValueError,
+                  lambda: setattr(G, 'y',
+                                  linked_var(G.x, index=np.arange(10)-1)))
+    assert_raises(ValueError,
+                  lambda: setattr(G, 'y',
+                                  linked_var(G.x, index=np.arange(10)+1)))
+
+
+def test_linked_synapses():
+    '''
+    Test linking to a synaptic variable (should raise an error).
+    '''
+    G = NeuronGroup(10, '')
+    S = Synapses(G, G, 'w:1', connect=True)
+    G2 = NeuronGroup(100, 'x : 1 (linked)')
+    assert_raises(NotImplementedError, lambda: setattr(G2, 'x', linked_var(S, 'w')))
+    
+    
 def test_unit_errors():
     '''
     Test that units are checked for a complete namespace.
@@ -596,6 +818,20 @@ if __name__ == '__main__':
     test_creation()
     test_variables()
     test_scalar_variable()
+    test_linked_variable_correct()
+    test_linked_variable_incorrect()
+    test_linked_variable_scalar()
+    test_linked_variable_indexed()
+    test_linked_variable_repeat()
+    test_linked_double_linked1()
+    test_linked_double_linked2()
+    test_linked_double_linked3()
+    test_linked_double_linked4()
+    test_linked_subgroup()
+    test_linked_subgroup2()
+    test_linked_subexpression()
+    test_linked_variable_indexed_incorrect()
+    test_linked_synapses()
     test_stochastic_variable()
     test_stochastic_variable_multiplicative()
     test_unit_errors()

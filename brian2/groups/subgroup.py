@@ -55,13 +55,13 @@ class Subgroup(Group, SpikeSource):
 
         # overwrite the meaning of N and i
         self.variables.add_constant('_offset', unit=Unit(1), value=self.start)
-        self.variables.add_reference('_source_i', source.variables['i'])
+        self.variables.add_reference('_source_i', source, 'i')
         self.variables.add_subexpression('i', unit=Unit(1),
                                          dtype=source.variables['i'].dtype,
                                          expr='_source_i - _offset')
         self.variables.add_constant('N', unit=Unit(1), value=self._N)
         # add references for all variables in the original group
-        self.variables.add_references(source.variables)
+        self.variables.add_references(source, source.variables.keys())
 
         # Only the variable _sub_idx itself is stored in the subgroup
         # and needs the normal index for this group

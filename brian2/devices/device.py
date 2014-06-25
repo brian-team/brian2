@@ -294,6 +294,9 @@ class RuntimeDevice(Device):
     def fill_with_array(self, var, arr):
         self.arrays[var][:] = arr
 
+    def init_with_array(self, var, arr):
+        self.arrays[var][:] = arr
+
     def spike_queue(self, source_start, source_end):
         # Use the C++ version of the SpikeQueue when available
         try:

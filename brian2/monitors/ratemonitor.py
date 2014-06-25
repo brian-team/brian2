@@ -41,16 +41,14 @@ class PopulationRateMonitor(Group, CodeRunner):
         self.add_dependency(source)
 
         self.variables = Variables(self)
-        self.variables.add_reference('_spikespace',
-                                     source.variables['_spikespace'])
-        self.variables.add_reference('_clock_t', source.variables['t'])
-        self.variables.add_reference('_clock_dt', source.variables['dt'])
+        self.variables.add_reference('_spikespace', source)
+        self.variables.add_reference('_clock_t', source, 't')
+        self.variables.add_reference('_clock_dt', source, 'dt')
         self.variables.add_dynamic_array('rate', size=0, unit=hertz,
                                          constant_size=False)
         self.variables.add_dynamic_array('t', size=0, unit=second,
                                          constant_size=False)
-        self.variables.add_reference('_num_source_neurons',
-                                     source.variables['N'])
+        self.variables.add_reference('_num_source_neurons', source, 'N')
         self.variables.add_attribute_variable('N', unit=Unit(1), obj=self,
                                               attribute='_N', dtype=np.int32)
         self._N = 0

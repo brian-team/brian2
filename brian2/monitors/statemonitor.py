@@ -188,7 +188,7 @@ class StateMonitor(Group, CodeRunner):
         self.variables.add_dynamic_array('t', size=0, unit=second,
                                          constant=False, constant_size=False)
         if scheduler.clock is source.clock:
-            self.variables.add_reference('_clock_t', source.variables['t'])
+            self.variables.add_reference('_clock_t', source, 't')
         else:
             self.variables.add_attribute_variable('_clock_t', unit=second,
                                                   obj=scheduler.clock,
@@ -208,10 +208,9 @@ class StateMonitor(Group, CodeRunner):
                              'recorded once for every target.' % varname),
                             once=True)
             index = source.variables.indices[varname]
-            self.variables.add_reference(varname, var,
-                                         index=index)
+            self.variables.add_reference(varname, source, varname, index=index)
             if not index in ('_idx', '0') and index not in variables:
-                self.variables.add_reference(index, source.variables[index])
+                self.variables.add_reference(index, source)
             self.variables.add_dynamic_array('_recorded_' + varname,
                                              size=(0, len(self.indices)),
                                              unit=var.unit,

@@ -40,8 +40,11 @@ DynamicArray2D<{{c_data_type(var.dtype)}}> brian::{{varname}};
 
 /////////////// static arrays /////////////
 {% for (name, dtype_spec, N, filename) in static_array_specs | sort %}
+{# arrays that are initialized from static data are already declared #}
+{% if not name in array_specs.values() %}
 {{dtype_spec}} * brian::{{name}};
 const int brian::_num_{{name}} = {{N}};
+{% endif %}
 {% endfor %}
 
 //////////////// synapses /////////////////
@@ -223,8 +226,11 @@ extern DynamicArray2D<{{c_data_type(var.dtype)}}> {{varname}};
 
 /////////////// static arrays /////////////
 {% for (name, dtype_spec, N, filename) in static_array_specs | sort %}
+{# arrays that are initialized from static data are already declared #}
+{% if not name in array_specs.values() %}
 extern {{dtype_spec}} *{{name}};
 extern const int _num_{{name}};
+{% endif %}
 {% endfor %}
 
 //////////////// synapses /////////////////
