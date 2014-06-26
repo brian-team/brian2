@@ -3,6 +3,10 @@ This is only a temporary bridge for using Brian 1 hears with Brian 2.
 
 This will be removed as soon as brian2hears is working.
 
+NOTES:
+- Slicing sounds with Brian 2 units doesn't work, you need to either use Brian 1 units or replace calls to
+  ``sound[:20*ms]`` with ``sound.slice(None, 20*ms)``, etc. 
+
 TODO: FilterbankGroup
 
 Not working examples:
@@ -47,7 +51,6 @@ def modify_arg(arg):
         else:
             arg = array(arg)
     elif isinstance(arg, slice):
-        print 'handling slice', arg
         arg = slice(modify_arg(arg.start), modify_arg(arg.stop), modify_arg(arg.step))
     return arg
 
@@ -65,7 +68,7 @@ def wrap_units(f):
             newkwds[k] = modify_arg(v)
         rv = f(*newargs, **newkwds)
         if rv.__class__==b1h.Sound:
-            rv.__class__ = Sound2
+            rv.__class__ = BridgeSound
         return rv
     return new_f
 
@@ -85,10 +88,16 @@ def wrap_units_class(_C):
         del _v
     return new_class
 
-Sound2 = wrap_units_class(b1h.Sound)
+WrappedSound = wrap_units_class(b1h.Sound)
+class BridgeSound(WrappedSound):
+    def slice(self, *args):
+        return self.__getitem__(slice(*args))
+Sound = BridgeSound
 
 __all__ = [k for k in b1h.__dict__.keys() if not k.startswith('_')]
 for k in __all__:
+    if k=='Sound':
+        continue
     curobj = getattr(b1h, k)
     if callable(curobj):
         if isclass(curobj):
