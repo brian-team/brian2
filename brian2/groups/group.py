@@ -161,9 +161,13 @@ class Indexing(object):
     not handle string indexing.
     '''
     def __init__(self, group):
+        self.group = weakref.proxy(group)
         self.N = group.variables['N']
+        self.index_variables = dict([(varname, group.variables[varname])
+                                     for varname in set(group.variables.indices.values())
+                                     if not varname in ('_idx', '0')])
 
-    def calc_indices(self, item):
+    def calc_indices(self, item, var_index='_idx'):
         '''
         Return flat indices to index into state variables from arbitrary
         group specific indices. In the default implementation, raises an error
@@ -188,7 +192,15 @@ class Indexing(object):
                               'got %d dimensions.') % len(item))
         else:
             if isinstance(item, slice):
-                start, stop, step = item.indices(self.N.get_value())
+                if var_index == '_idx':
+                    start, stop, step = item.indices(self.N.get_value())
+                else:
+                    # For linked variables, the index might not have been there
+                    # yet at the time of the creation of the indexing object
+                    if var_index in self.index_variables:
+                        start, stop, step = item.indices(self.index_variables[var_index].size)
+                    else:
+                        start, stop, step = item.indices(self.group.variables[var_index].size)
                 return np.arange(start, stop, step)
             else:
                 index_array = np.asarray(item)

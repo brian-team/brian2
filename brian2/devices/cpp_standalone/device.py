@@ -204,13 +204,14 @@ class CPPStandaloneDevice(Device):
                                                          code=repr(value),
                                                          check_units=check_units)
         # Simple case where we don't have to do any indexing
-        elif item == 'True' and variableview.var_index == '_idx':
+        elif (item == 'True'and
+              variableview.variable.size == variableview.indexing.index_variables[variableview.var_index].size):
             self.fill_with_array(variableview.variable, value)
         else:
             # We have to calculate indices. This will not work for synaptic
             # variables
             try:
-                indices = variableview._indexing.calc_indices(item)
+                indices = variableview.indexing.calc_indices(item)
             except NotImplementedError:
                 raise NotImplementedError(('Cannot set variable "%s" this way in '
                                            'standalone, try using string '
