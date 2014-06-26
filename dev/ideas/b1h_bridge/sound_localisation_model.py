@@ -1,3 +1,5 @@
+# WORKS WITH SYNTAX CHANGES
+
 #!/usr/bin/env python
 '''
 Example demonstrating the use of many features of Brian hears, including
@@ -53,22 +55,22 @@ gfb = Gammatone(Repeat(hrtfset_fb, cfN),
 cochlea = FunctionFilterbank(gfb, lambda x:15*clip(x, 0, Inf)**(1.0/3.0))
 # Leaky integrate and fire neuron model
 eqs = '''
-dV/dt = (I-V)/(1*ms)+0.1*xi/(0.5*ms)**.5 : 1
+dV/dt = (I-V)/(1*ms)+0.1*xi/(0.5*ms)**.5 : 1 (unless refractory)
 I : 1
 '''
-G = FilterbankGroup(cochlea, 'I', eqs, reset=0, threshold=1, refractory=5*ms)
+G = FilterbankGroup(cochlea, 'I', eqs, reset='V=0', threshold='V>1', refractory=5*ms)
 # The coincidence detector (cd) neurons
-cd = NeuronGroup(num_indices*cfN, eqs, reset=0, threshold=1, clock=G.clock)
+cd = NeuronGroup(num_indices*cfN, eqs, reset='V=0', threshold='V>1', refractory=0*ms, clock=G.clock)
 # Each CD neuron receives precisely two inputs, one from the left ear and
 # one from the right, for each location and each cochlear frequency
-C = Connection(G, cd, 'V')
+C = Synapses(G, cd, pre='V += 0.5')
 for i in xrange(num_indices*cfN):
-    C[i, i] = 0.5                 # from right ear
-    C[i+num_indices*cfN, i] = 0.5 # from left ear
+    C.connect(i, i)                   # from right ear
+    C.connect(i+num_indices*cfN, i)   # from left ear
 # We want to just count the number of CD spikes
-counter = SpikeCounter(cd)
+counter = SpikeMonitor(cd, record=False)
 # Run the simulation, giving a report on how long it will take as we run
-run(sound.duration, report='stderr')
+run(float(sound.duration)*second, report='stderr')
 # We take the array of counts, and reshape them into a 2D array which we sum
 # across frequencies to get the spike count of each location-specific assembly
 count = counter.count

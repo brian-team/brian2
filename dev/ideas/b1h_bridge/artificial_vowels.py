@@ -41,8 +41,8 @@ v2 = generate_vowel('ar').ramp()
 v3 = generate_vowel('oo').ramp()
 v4 = generate_vowel('er').ramp()
 
-for s in [v1, v2, v3, v4]:
-    s.play(normalise=True, sleep=True)
+#for s in [v1, v2, v3, v4]:
+#    s.play(normalise=True, sleep=True)
 
 s1 = Sound((v1, v2))
 #s1.play(normalise=True, sleep=True)
@@ -50,11 +50,11 @@ s1 = Sound((v1, v2))
 s2 = Sound((v3, v4))
 #s2.play(normalise=True, sleep=True)
 
-v1.save('mono_sound.wav')
-s1.save('stereo_sound.wav')
+#v1.save('mono_sound.wav')
+#s1.save('stereo_sound.wav')
 
 subplot(211)
-plot(v1.times/ms, v1)
+plot(array(v1.times/ms), v1)
 subplot(212)
 v1.spectrogram()
 show()

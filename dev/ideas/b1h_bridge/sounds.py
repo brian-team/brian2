@@ -1,10 +1,6 @@
 # HALF WORKS
 # You need to replace sound[:20*ms] with sound.slice(None, 20*ms)
 
-# The reason is that somehow, classes derived from numpy.ndarray do not use the correct method resolution order
-# for __getitem__ and __getslice__, and the fact that ms is derived from ndarray in Brian 2 causes it to fuck
-# up - the same behaviour can be reproduced very simply, see the example below.
-
 #!/usr/bin/env python
 '''
 Example of basic use and manipulation of sounds with Brian hears.
