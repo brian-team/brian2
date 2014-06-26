@@ -33,7 +33,7 @@ class CodeString(object):
         self.code = code
 
         # : Set of identifiers in the code string
-        self.identifiers = set(get_identifiers(code))
+        self.identifiers = get_identifiers(code)
 
     def __str__(self):
         return self.code

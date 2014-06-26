@@ -98,7 +98,7 @@ class CodeGenerator(object):
         read = set()
         write = set()
         for stmt in statements:
-            ids = set(get_identifiers(stmt.expr))
+            ids = get_identifiers(stmt.expr)
             # if the operation is inplace this counts as a read.
             if stmt.inplace:
                 ids.add(stmt.var)
