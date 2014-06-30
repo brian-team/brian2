@@ -1058,9 +1058,7 @@ class VariableView(object):
 
     # Allow some basic calculations directly on the ArrayView object
     def __array__(self, dtype=None):
-        if dtype is not None and dtype != self.variable.dtype:
-            raise NotImplementedError('Changing dtype not supported')
-        return self[:]
+        return np.asanyarray(self[:], dtype=dtype)
 
     def __len__(self):
         return len(self[:])
