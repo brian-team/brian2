@@ -265,7 +265,7 @@ class CPPCodeGenerator(CodeGenerator):
                 funccode = variable.implementations[self.codeobj_class].get_code(self.owner)
                 if funccode is not None:
                     support_code += '\n' + deindent(funccode.get('support_code', ''))
-                    hash_defines += deindent(funccode.get('hashdefine_code', ''))
+                    hash_defines += '\n' + deindent(funccode.get('hashdefine_code', ''))
                 # add the Python function with a leading '_python', if it
                 # exists. This allows the function to make use of the Python
                 # function via weave if necessary (e.g. in the case of randn)
