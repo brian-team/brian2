@@ -2,7 +2,7 @@
 USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post,
                  N_incoming, N_outgoing }
 #}
-# ITERATE_ALL { _idx }
+{# ITERATE_ALL { _idx } #}
 import numpy as np
 
 numpy_False = np.bool_(False)
