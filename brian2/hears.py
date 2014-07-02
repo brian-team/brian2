@@ -55,7 +55,7 @@ def modify_arg(arg):
     '''
     if isinstance(arg, Quantity):
         if len(arg.shape)==0:
-            arg = b1.Quantity.with_dimensions(arg, arg.dim._dims)
+            arg = b1.Quantity.with_dimensions(float(arg), arg.dim._dims)
         else:
             arg = asarray(arg)
     elif isinstance(arg, slice):
@@ -78,9 +78,22 @@ def wrap_units(f):
         if rv.__class__==b1h.Sound:
             rv.__class__ = BridgeSound
         elif isinstance(rv, b1.Quantity):
-            rv = Quantity.with_dimensions(rv, rv.dim._dims)
+            rv = Quantity.with_dimensions(float(rv), rv.dim._dims)
         return rv
     return new_f
+
+def wrap_units_property(p):
+    fget = p.fget
+    fset = p.fset
+    fdel = p.fdel
+    if fget is not None:
+        fget = wrap_units(fget)
+    if fset is not None:
+        fset = wrap_units(fset)
+    if fdel is not None:
+        fdel = wrap_units(fdel)
+    new_p = property(fget, fset, fdel)
+    return new_p
 
 def wrap_units_class(_C):
     '''
@@ -95,7 +108,8 @@ def wrap_units_class(_C):
                 _v = wrap_units(_v)
                 exec '%s = _v' % _k
             elif isinstance(_v, property):
-                pass # TODO: handle properties
+                _v = wrap_units_property(_v)
+                exec '%s = _v' % _k
         del _k
         del _v
     return new_class

@@ -31,7 +31,7 @@ num_indices = hrtfset.num_indices
 # Choose a random location for the sound to come from
 index = randint(hrtfset.num_indices)
 # A sound to test the model with
-sound = Sound.whitenoise(500*ms)
+sound = whitenoise(500*ms)
 # This is the specific HRTF for the chosen location
 hrtf = hrtfset.hrtf[index]
 # We apply the chosen HRTF to the sound, the output has 2 channels
@@ -70,7 +70,8 @@ for i in xrange(num_indices*cfN):
 # We want to just count the number of CD spikes
 counter = SpikeMonitor(cd, record=False)
 # Run the simulation, giving a report on how long it will take as we run
-run(float(sound.duration)*second, report='stderr')
+run(sound.duration, report='stderr')
+#run(float(sound.duration)*second, report='stderr')
 # We take the array of counts, and reshape them into a 2D array which we sum
 # across frequencies to get the spike count of each location-specific assembly
 count = counter.count
