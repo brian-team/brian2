@@ -27,13 +27,19 @@ from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Quantity
 from brian2.units import second
 
-from numpy import array, ndarray
+from numpy import asarray, array, ndarray
 from inspect import isclass, ismethod
 
 logger = get_logger(__name__)
 
 logger.warn("You are using the temporary bridge between Brian 2 and Brian Hears from Brian 1, this will be removed "
             "in a later version.")
+
+def convert_unit_b1_to_b2(val):
+    return Quantity.with_dimensions(float(val), arg.dim._dims)
+
+def convert_unit_b2_to_b1(val):
+    return b1.Quantity.with_dimensions(float(val), arg.dim._dims)
 
 
 def modify_arg(arg):
@@ -51,7 +57,7 @@ def modify_arg(arg):
         if len(arg.shape)==0:
             arg = b1.Quantity.with_dimensions(arg, arg.dim._dims)
         else:
-            arg = array(arg)
+            arg = asarray(arg)
     elif isinstance(arg, slice):
         arg = slice(modify_arg(arg.start), modify_arg(arg.stop), modify_arg(arg.step))
     return arg
@@ -158,3 +164,7 @@ for k in __all__:
         else:
             curobj = wrap_units(curobj)
     exec '%s = curobj' % k
+
+__all__.extend(['convert_unit_b1_to_b2',
+                'convert_unit_b2_to_b1',
+                ])
