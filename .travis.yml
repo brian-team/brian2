@@ -20,6 +20,7 @@ install:
   - conda create -n travis_conda --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy nose sphinx ipython sympy pyparsing cython
   - source activate travis_conda
   - pip install -q coveralls --use-mirrors
+  - pip install -q brian
   - python setup.py install --with-cython --fail-on-error
   # Make sure that weave uses Anaconda's header files
   - mkdir ~/.brian;echo -e "[codegen.runtime.weave]\ninclude_dirs = ['/home/travis/anaconda/envs/travis_conda/include']\n" > ~/.brian/user_preferences
