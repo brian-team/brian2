@@ -94,6 +94,9 @@ Miscellaneous changes
 * New refractoriness system (see :doc:`../user/refractoriness`)
 * More powerful string expressions that can also be used as indices for state
   variables (see e.g. :doc:`../user/synapses`)
+* "Brian Hears" is being rewritten, but there is a bridge to the version
+  included in Brian 1 until the new version is written (see
+  :doc:`../user/brian1hears_bridge`)
 
 Changes in the internal processing
 ----------------------------------

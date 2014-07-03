@@ -12,4 +12,4 @@ User's guide
    scheduling
    functions
    devices
-   
+   brian1hears_bridge
