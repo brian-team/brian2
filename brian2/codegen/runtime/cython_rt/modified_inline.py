@@ -49,7 +49,15 @@ def modified_cython_inline(
             del kwds[name]
     arg_names = kwds.keys()
     arg_names.sort()
-    arg_sigs = tuple([(get_type(kwds[arg], ctx), arg) for arg in arg_names])
+    arg_sigs = []
+    for arg in arg_names:
+        try:
+            t = get_type(kwds[arg], ctx)
+        except AttributeError:
+            t = 'object'
+        arg_sigs.append((t, arg))
+    arg_sigs = tuple(arg_sigs)
+    #arg_sigs = tuple([(get_type(kwds[arg], ctx), arg) for arg in arg_names])
     key = orig_code, arg_sigs, sys.version_info, sys.executable, Cython.__version__
     module_name = "_cython_inline_" + hashlib.md5(str(key).encode('utf-8')).hexdigest()
     
@@ -123,6 +131,6 @@ def __invoke(%(params)s):
         module = imp.load_dynamic(module_name, module_path)
 
     arg_list = [kwds[arg] for arg in arg_names]
-    return module, arg_list
+    #return module, arg_list
     #return lambda: module.__invoke(*arg_list)
-    #return module.__invoke(*arg_list)
+    return module.__invoke(*arg_list)

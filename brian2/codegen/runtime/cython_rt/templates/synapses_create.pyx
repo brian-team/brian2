@@ -1,0 +1,69 @@
+# TODO: rewrite for Cython
+{#
+USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post,
+                 N_incoming, N_outgoing }
+#}
+# ITERATE_ALL { _idx }
+
+cdef int _idx
+cdef int _vectorisation_idx
+
+import numpy as np
+
+numpy_False = np.bool_(False)
+numpy_True = np.bool_(True)
+
+# number of synapses in the beginning
+_old_num_synapses = len({{_dynamic__synaptic_pre}})
+# number of synapses during the creation process
+_cur_num_synapses = _old_num_synapses
+
+# scalar code
+_vectorisation_idx = 1
+{{scalar_code|autoindent}}
+
+for _i in range(len({{_all_pre}})):
+    _j = np.arange(len({{_all_post}}))
+    _vectorisation_idx = _j
+    {# The abstract code consists of the following lines (the first two lines
+    are there to properly support subgroups as sources/targets):
+     _pre_idx = _all_pre
+     _post_idx = _all_post
+     _cond = {user-specified condition}
+    _n = {user-specified number of synapses}
+    _p = {user-specified probability}
+    #}
+    {{vector_code|autoindent}}
+
+    if _cond is False or _cond is numpy_False:
+        continue
+
+    if not np.isscalar(_p) or _p != 1:
+        _cond_nonzero, = np.logical_and(_cond,
+                                       np.random.rand(len(_vectorisation_idx)) < _p).nonzero()
+    elif _cond is True or _cond is numpy_True:
+        _cond_nonzero = _j
+    else:
+        _cond_nonzero, = _cond.nonzero()
+
+    if not np.isscalar(_n):
+        # The "n" expression involved j
+        _cond_nonzero = _cond_nonzero.repeat(_n[_cond_nonzero])
+    elif _n != 1:
+        # We have a j-independent number
+        _cond_nonzero = _cond_nonzero.repeat(_n)
+
+    _numnew = len(_cond_nonzero)
+    _new_num_synapses = _cur_num_synapses + _numnew
+    {{_dynamic__synaptic_pre}}.resize(_new_num_synapses)
+    {{_dynamic__synaptic_post}}.resize(_new_num_synapses)
+    {{_dynamic__synaptic_pre}}[_cur_num_synapses:] = _pre_idx
+    {{_dynamic__synaptic_post}}[_cur_num_synapses:] = _post_idx[_cond_nonzero]
+    _cur_num_synapses += _numnew
+
+# Update the number of total outgoing/incoming synapses per source/target neuron
+{{N_outgoing}}[:] += np.bincount({{_dynamic__synaptic_pre}}[_old_num_synapses:], minlength=len({{N_outgoing}}))
+{{N_incoming}}[:] += np.bincount({{_dynamic__synaptic_post}}[_old_num_synapses:], minlength=len({{N_incoming}}))
+
+# Resize all dependent dynamic arrays (synaptic weights, delays, etc.)
+_owner._resize(_cur_num_synapses)

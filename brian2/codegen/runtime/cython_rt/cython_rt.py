@@ -31,8 +31,10 @@ class CythonCodeObject(NumpyCodeObject):
         CodeObject.compile(self)
 
     def run(self):
-        #return modified_cython_inline(self.code, locals=self.namespace)
-        return cython.inline(self.code, locals=self.namespace, globals={})
+#        cyfunc, args = modified_cython_inline(self.code, locals=self.namespace, globals={})
+#        cyfunc.__invoke(*args)
+        return modified_cython_inline(self.code, locals=self.namespace, globals={})
+        #return cython.inline(self.code, locals=self.namespace, globals={})
         # output variables should land in the variable name _return_values
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']
