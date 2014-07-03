@@ -1,3 +1,7 @@
+import os
+import tempfile
+
+from nose import with_setup
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 import numpy as np
 
@@ -98,6 +102,7 @@ def test_connection_arrays():
         assert_raises(TypeError, lambda: S.connect([1, 2], 'string'))
         assert_raises(TypeError, lambda: S.connect([1, 2], [1, 2], n='i'))
         assert_raises(TypeError, lambda: S.connect([1, 2]))
+        assert_raises(ValueError, lambda: S.connect([1, 2, 3], [1, 2]))
         assert_raises(ValueError, lambda: S.connect(np.ones((3, 3), dtype=np.int32),
                                                     np.ones((3, 1), dtype=np.int32)))
         assert_raises(ValueError, lambda: S.connect('i==j',
@@ -107,6 +112,42 @@ def test_connection_arrays():
         assert_raises(TypeError, lambda: S.connect('i==j',
                                                    p=object()))
         assert_raises(TypeError, lambda: S.connect(object()))
+
+from brian2.devices.cpp_standalone import cpp_standalone_device
+
+
+def restore_device():
+    cpp_standalone_device.reinit()
+    set_device('runtime')
+    restore_initial_state()
+
+@with_setup(teardown=restore_device)
+def test_connection_array_standalone():
+    Synapses.__instances__().clear()  #FIXME
+    set_device('cpp_standalone')
+    G1 = SpikeGeneratorGroup(4, np.array([0, 1, 2, 3]),
+                             [0, 1, 2, 3]*defaultclock.dt)
+    G2 = NeuronGroup(8, 'v:1')
+    S = Synapses(G1, G2, '', pre='v+=1')
+    S.connect([0, 1, 2, 3], [0, 2, 4, 6])
+    mon = StateMonitor(G2, 'v', record=True, name='mon')
+    net = Network(G1, G2, S, mon)
+    net.run(5*defaultclock.dt)
+    tempdir = tempfile.mkdtemp()
+    device.build(project_dir=tempdir, compile_project=True, run_project=True,
+                 with_output=False)
+    mon_v = np.fromfile(os.path.join(tempdir, 'results',
+                                     '_dynamic_array_mon__recorded_v'),
+                        dtype=np.float64)
+    expected = np.array([[1, 1, 1, 1, 1],
+                         [0, 0, 0, 0, 0],
+                         [0, 1, 1, 1, 1],
+                         [0, 0, 0, 0, 0],
+                         [0, 0, 1, 1, 1],
+                         [0, 0, 0, 0, 0],
+                         [0, 0, 0, 1, 1],
+                         [0, 0, 0, 0, 0]], dtype=np.float64)
+    assert_equal(mon_v.reshape(5, -1).T, expected)
 
 
 def test_connection_string_deterministic():
@@ -666,6 +707,9 @@ if __name__ == '__main__':
     test_connection_string_deterministic()
     test_connection_random()
     test_connection_multiple_synapses()
+    test_connection_arrays()
+    test_connection_array_standalone()
+    restore_device()
     test_state_variable_assignment()
     test_state_variable_indexing()
     test_indices()
