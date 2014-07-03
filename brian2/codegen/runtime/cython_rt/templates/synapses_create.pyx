@@ -1,6 +1,6 @@
 # TODO: rewrite for Cython
 {#
-USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post,
+USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, rand,
                  N_incoming, N_outgoing }
 #}
 # ITERATE_ALL { _idx }
@@ -8,62 +8,70 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post,
 cdef int _idx
 cdef int _vectorisation_idx
 
-import numpy as np
+import numpy as _np
 
-numpy_False = np.bool_(False)
-numpy_True = np.bool_(True)
+_buffer_size = 1024
+_prebuf = _np.zeros(_buffer_size, dtype=int)
+_postbuf = _np.zeros(_buffer_size, dtype=int)
+_synprebuf = _np.zeros(1, dtype=int)
+_synpostbuf = _np.zeros(1, dtype=int)
+_curbuf = 0
 
-# number of synapses in the beginning
-_old_num_synapses = len({{_dynamic__synaptic_pre}})
-# number of synapses during the creation process
-_cur_num_synapses = _old_num_synapses
+def _flush_buffer(buf, dynarr, N):
+    _curlen = dynarr.shape[0]
+    _newlen = _curlen+N
+    # Resize the array
+    dynarr.resize(_newlen)
+    # Get the potentially newly created underlying data arrays
+    data = dynarr.data
+    for i in range(N):
+        data[_curlen+i] = buf[i]
 
 # scalar code
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}
 
-for _i in range(len({{_all_pre}})):
-    _j = np.arange(len({{_all_post}}))
-    _vectorisation_idx = _j
-    {# The abstract code consists of the following lines (the first two lines
-    are there to properly support subgroups as sources/targets):
-     _pre_idx = _all_pre
-     _post_idx = _all_post
-     _cond = {user-specified condition}
-    _n = {user-specified number of synapses}
-    _p = {user-specified probability}
-    #}
-    {{vector_code|autoindent}}
+_num{{_all_pre}} = len({{_all_pre}})
+_num{{_all_post}} = len({{_all_post}})
 
-    if _cond is False or _cond is numpy_False:
-        continue
+for _i in range(_num{{_all_pre}}):
+    for _j in range(_num{{_all_post}}):
+        _vectorisation_idx = _j
 
-    if not np.isscalar(_p) or _p != 1:
-        _cond_nonzero, = np.logical_and(_cond,
-                                       np.random.rand(len(_vectorisation_idx)) < _p).nonzero()
-    elif _cond is True or _cond is numpy_True:
-        _cond_nonzero = _j
-    else:
-        _cond_nonzero, = _cond.nonzero()
+        {# The abstract code consists of the following lines (the first two lines
+        are there to properly support subgroups as sources/targets):
+        _pre_idx = _all_pre
+        _post_idx = _all_post
+        _cond = {user-specified condition}
+        _n = {user-specified number of synapses}
+        _p = {user-specified probability}
+        #}
+        
+        # vector code
+        {{vector_code|autoindent}}
+        
+        # add to buffer
+        if _cond:
+            if _p!=1.0:
+                #if _rand(_vectorisation_idx)>=_p:
+                if rand(1)>=_p:
+                    continue
+                for _repetition in range(_n):
+                    {{N_outgoing}}[_pre_idx] += 1
+                    {{N_incoming}}[_post_idx] += 1
+                    _prebuf[_curbuf] = _pre_idx
+                    _postbuf[_curbuf] = _post_idx
+                    _curbuf += 1
+                    # Flush buffer
+                    if _curbuf==_buffer_size:
+                        _flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf)
+                        _flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf)
+                        _curbuf = 0
+                    
+    # Final buffer flush
+    _flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf)
+    _flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf)
 
-    if not np.isscalar(_n):
-        # The "n" expression involved j
-        _cond_nonzero = _cond_nonzero.repeat(_n[_cond_nonzero])
-    elif _n != 1:
-        # We have a j-independent number
-        _cond_nonzero = _cond_nonzero.repeat(_n)
-
-    _numnew = len(_cond_nonzero)
-    _new_num_synapses = _cur_num_synapses + _numnew
-    {{_dynamic__synaptic_pre}}.resize(_new_num_synapses)
-    {{_dynamic__synaptic_post}}.resize(_new_num_synapses)
-    {{_dynamic__synaptic_pre}}[_cur_num_synapses:] = _pre_idx
-    {{_dynamic__synaptic_post}}[_cur_num_synapses:] = _post_idx[_cond_nonzero]
-    _cur_num_synapses += _numnew
-
-# Update the number of total outgoing/incoming synapses per source/target neuron
-{{N_outgoing}}[:] += np.bincount({{_dynamic__synaptic_pre}}[_old_num_synapses:], minlength=len({{N_outgoing}}))
-{{N_incoming}}[:] += np.bincount({{_dynamic__synaptic_post}}[_old_num_synapses:], minlength=len({{N_incoming}}))
-
-# Resize all dependent dynamic arrays (synaptic weights, delays, etc.)
-_owner._resize(_cur_num_synapses)
+    newsize = len({{_dynamic__synaptic_pre}})
+    # now we need to resize all registered variables (via Python)
+    _owner._resize(newsize)
