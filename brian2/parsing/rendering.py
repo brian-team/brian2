@@ -65,6 +65,9 @@ class NodeRenderer(object):
     def render_func(self, node):
         return self.render_Name(node)
 
+    def render_NameConstant(self, node):
+        return str(node.value)
+
     def render_Name(self, node):
         return node.id
     
@@ -234,6 +237,11 @@ class CPPNodeRenderer(NodeRenderer):
                                      self.render_node(node.right))
         else:
             return NodeRenderer.render_BinOp(self, node)
+
+    def render_NameConstant(self, node):
+        # In Python 3.4, None, True and False go here
+        return {True: 'true',
+                False: 'false'}.get(node.value, node.value)
 
     def render_Name(self, node):
         # Replace Python's True and False with their C++ bool equivalents

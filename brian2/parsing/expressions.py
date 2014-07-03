@@ -65,6 +65,12 @@ def is_boolean_expression(expr, variables):
             return True
         else:
             raise SyntaxError("Expression ought to be boolean but is not (e.g. 'x<y and 3')")
+    elif expr.__class__ is getattr(ast, 'NameConstant', None):
+        value = expr.value
+        if value is True or value is False:
+            return True
+        else:
+            raise ValueError('Do not know how to deal with value %s' % value)
     elif expr.__class__ is ast.Name:
         name = expr.id
         if name in variables:
@@ -126,6 +132,12 @@ def _get_value_from_expression(expr, variables):
             return 1.0 if name == 'True' else 0.0
         else:
             raise ValueError('Unknown identifier %s' % name)
+    elif expr.__class__ is getattr(ast, 'NameConstant', None):
+        value = expr.value
+        if value is True or value is False:
+            return 1.0 if value else 0.0
+        else:
+            raise ValueError('Do not know how to deal with value %s' % value)
     elif expr.__class__ is ast.Num:
         return expr.n
     elif expr.__class__ is ast.BoolOp:
@@ -196,6 +208,13 @@ def parse_expression_unit(expr, variables):
     if isinstance(expr, basestring):
         mod = ast.parse(expr, mode='eval')
         expr = mod.body
+    if expr.__class__ is getattr(ast, 'NameConstant', None):
+        # new class for True, False, None in Python 3.4
+        value = expr.value
+        if value is True or value is False:
+            return Unit(1)
+        else:
+            raise ValueError('Do not know how to handle value %s' % value)
     if expr.__class__ is ast.Name:
         name = expr.id
         if name in variables:
