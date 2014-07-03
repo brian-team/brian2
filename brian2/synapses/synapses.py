@@ -934,10 +934,13 @@ class Synapses(Group):
                       namespace=None, level=0):
 
         if condition is None:
+            variables = Variables(self)
+
             sources = np.atleast_1d(sources).astype(np.int32)
             targets = np.atleast_1d(targets).astype(np.int32)
             n = np.atleast_1d(n)
             p = np.atleast_1d(p)
+
             if not len(p) == 1 or p != 1:
                 use_connections = np.random.rand(len(sources)) < p
                 sources = sources[use_connections]
@@ -945,28 +948,34 @@ class Synapses(Group):
                 n = n[use_connections]
             sources = sources.repeat(n)
             targets = targets.repeat(n)
-            new_synapses = len(sources)
 
-            old_N = len(self)
-            new_N = old_N + new_synapses
-            self._resize(new_N)
-
-            # Deal with subgroups
-            if '_sub_idx' in self.source.variables:
-                real_sources = self.source.variables['_sub_idx'].get_value()[sources]
+            variables.add_array('sources', Unit(1), len(sources), dtype=np.int32,
+                                values=sources)
+            variables.add_array('targets', Unit(1), len(targets), dtype=np.int32,
+                                values=targets)
+            # These definitions are important to get the types right in C++
+            variables.add_auxiliary_variable('_real_sources', Unit(1), dtype=np.int32)
+            variables.add_auxiliary_variable('_real_targets', Unit(1), dtype=np.int32)
+            abstract_code = ''
+            if '_offset' in self.source.variables:
+                variables.add_reference('_source_offset', self.source, '_offset')
+                abstract_code += '_real_sources = sources + _source_offset\n'
             else:
-                real_sources = sources
-            if '_sub_idx' in self.target.variables:
-                real_targets = self.target.variables['_sub_idx'].get_value()[targets]
+                abstract_code += '_real_sources = sources\n'
+            if '_offset' in self.target.variables:
+                variables.add_reference('_target_offset', self.target, '_offset')
+                abstract_code += '_real_targets = targets + _target_offset\n'
             else:
-                real_targets = targets
-            self.variables['_synaptic_pre'].get_value()[old_N:new_N] = real_sources
-            self.variables['_synaptic_post'].get_value()[old_N:new_N] = real_targets
+                abstract_code += '_real_targets = targets'
 
-            self.variables['N_outgoing'].get_value()[:] += np.bincount(real_sources,
-                                                                       minlength=self.variables['N_outgoing'].size)
-            self.variables['N_incoming'].get_value()[:] += np.bincount(real_targets,
-                                                                       minlength=self.variables['N_incoming'].size)
+            codeobj = create_runner_codeobj(self,
+                                            abstract_code,
+                                            'synapses_create_array',
+                                            additional_variables=variables,
+                                            check_units=False,
+                                            run_namespace=namespace,
+                                            level=level+1)
+            codeobj()
         else:
             abstract_code = '_pre_idx = _all_pre \n'
             abstract_code += '_post_idx = _all_post \n'
