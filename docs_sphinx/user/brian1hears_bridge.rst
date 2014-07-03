@@ -1,7 +1,9 @@
 Brian 1 Hears bridge
 ====================
 
-The "Brian Hears" library is being rewritten for Brian 2 in a more flexible way to allow it to work on multiple devices.
+.. currentmodule:: brian2.hears
+
+The "`Brian Hears`_" library is being rewritten for Brian 2 in a more flexible way to allow it to work on multiple devices.
 Until this work is complete, it is possible to run the version of Brian Hears from Brian 1.x using the "bridge". To
 make this work, you must have a copy of Brian 1 installed (preferably the latest version), and import Brian Hears
 using::
@@ -36,3 +38,5 @@ to do ``sound.slice(0*ms, 20*ms)``.
 In addition, some functions may not work correctly with Brian 2 units. In most circumstances, Brian 2 units can be
 used interchangeably with Brian 1 units in the bridge, but in some cases it may be necessary to convert units from
 one format to another, and to do that you can use the functions `convert_unit_b1_to_b2` and `convert_unit_b2_to_b1`.
+
+.. _`Brian Hears`: http://brian.readthedocs.org/en/latest/hears.html
