@@ -22,7 +22,12 @@ def run():
     stored_prefs = brian_prefs.as_file
     brian_prefs.read_preference_file(StringIO(brian_prefs.defaults_as_file))
     try:
-        return nose.run(argv=['', dirname, '--with-doctest', '--nologcapture', '--exe'])
+        # explicitly ignore the brian2.hears file for testing, otherwise the
+        # doctest search will import it, failing on Python 3
+        return nose.run(argv=['', dirname, '-I', '^hears\.py$',
+                                           '-I', '^\.',
+                                           '-I', '^_',
+                              '--with-doctest', '--nologcapture', '--exe'])
     finally:
         # Restore the user preferences
         brian_prefs.read_preference_file(StringIO(stored_prefs))
