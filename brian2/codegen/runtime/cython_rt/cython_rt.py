@@ -12,13 +12,14 @@ from ...templates import Templater
 from ...generators.cython_generator import CythonCodeGenerator
 from ...targets import codegen_targets
 from .modified_inline import modified_cython_inline
+from .extension_manager import cython_extension_manager
 
 __all__ = ['CythonCodeObject']
 
 
 class CythonCodeObject(NumpyCodeObject):
     '''
-'''
+    '''
     templater = Templater('brian2.codegen.runtime.cython_rt',
                           env_globals={})
     generator_class = CythonCodeGenerator
@@ -28,15 +29,21 @@ class CythonCodeObject(NumpyCodeObject):
         super(CythonCodeObject, self).__init__(owner, code, variables, name=name)
 
     def compile(self):
-        CodeObject.compile(self)
-
+        self.compiled_code = cython_extension_manager.create_extension(self.code)
+        
     def run(self):
-#        cyfunc, args = modified_cython_inline(self.code, locals=self.namespace, globals={})
-#        cyfunc.__invoke(*args)
-        return modified_cython_inline(self.code, locals=self.namespace, globals={})
-        #return cython.inline(self.code, locals=self.namespace, globals={})
-        # output variables should land in the variable name _return_values
-        if '_return_values' in self.namespace:
-            return self.namespace['_return_values']
+        self.compiled_code.main(self.namespace)
+
+#    def compile(self):
+#        CodeObject.compile(self)
+#
+#    def run(self):
+##        cyfunc, args = modified_cython_inline(self.code, locals=self.namespace, globals={})
+##        cyfunc.__invoke(*args)
+#        return modified_cython_inline(self.code, locals=self.namespace, globals={})
+#        #return cython.inline(self.code, locals=self.namespace, globals={})
+#        # output variables should land in the variable name _return_values
+#        if '_return_values' in self.namespace:
+#            return self.namespace['_return_values']
 
 codegen_targets.add(CythonCodeObject)

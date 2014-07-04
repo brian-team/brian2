@@ -4,10 +4,13 @@ import numpy as np
 
 from brian2.utils.stringtools import word_substitute
 from brian2.parsing.rendering import NumpyNodeRenderer
-from brian2.core.functions import DEFAULT_FUNCTIONS, Function
-from brian2.core.variables import ArrayVariable
+from brian2.core.functions import DEFAULT_FUNCTIONS, Function, SymbolicConstant
+from brian2.core.variables import ArrayVariable, Constant, AttributeVariable
 
 from .base import CodeGenerator
+from .cpp_generator import c_data_type
+
+from Cython.Build.Inline import unsafe_type
 
 __all__ = ['CythonCodeGenerator']
 
@@ -83,7 +86,49 @@ class CythonCodeGenerator(CodeGenerator):
         return lines
 
     def translate_statement_sequence(self, statements):
-        # For numpy, no addiional keywords are provided to the template
+        from brian2.devices.device import get_device
+        device = get_device()
+        # load variables from namespace
+        load_namespace = []
+        handled_pointers = set()
+        for varname, var in self.variables.iteritems():
+            if isinstance(var, ArrayVariable):
+                # This is the "true" array name, not the restricted pointer.
+                array_name = device.get_array_name(var)
+                pointer_name = self.get_array_name(var)
+                if pointer_name in handled_pointers:
+                    continue
+                if getattr(var, 'dimensions', 1) > 1:
+                    continue  # multidimensional (dynamic) arrays have to be treated differently
+                newlines = [
+                    "cdef _numpy.ndarray[_numpy.{dtype_str}_t, ndim=1, mode='c'] _buf_{array_name} = _numpy.ascontiguousarray(_namespace['{array_name}'], dtype=_numpy.{dtype_str})",
+                    "cdef {dtype} * {array_name} = <{dtype} *> _buf_{array_name}.data"
+                    ]
+                for line in newlines:
+                    line = line.format(dtype=c_data_type(var.dtype), pointer_name=pointer_name, array_name=array_name,
+                                       varname=varname, dtype_str=var.dtype.__name__,
+                                       )
+                    load_namespace.append(line)
+                handled_pointers.add(pointer_name)
+            elif isinstance(var, (Constant, SymbolicConstant)):
+                dtype_name = unsafe_type(var.value)
+                line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(#dtype=c_data_type(var.dtype),
+                                                                                 dtype=dtype_name, varname=varname)
+                load_namespace.append(line)
+            elif isinstance(var, AttributeVariable):
+                dtype_name = unsafe_type(getattr(var.obj, var.attribute))
+                line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(#dtype=c_data_type(var.dtype),
+                                                                                 dtype=dtype_name, varname=varname)
+                load_namespace.append(line)
+#            elif isinstance(var, Function):
+#                pass
+            else:
+                print var
+                for k, v in var.__dict__.iteritems():
+                    print '   ', k, v
+                load_namespace.append('%s = _namespace["%s"]' % (varname, varname))
+        load_namespace = '\n'.join(load_namespace)
+        # main scalar/vector code
         scalar_code = {}
         vector_code = {}
         for name, block in statements.iteritems():
@@ -91,7 +136,7 @@ class CythonCodeGenerator(CodeGenerator):
             vector_statements = [stmt for stmt in block if not stmt.scalar]
             scalar_code[name] = self.translate_one_statement_sequence(scalar_statements)
             vector_code[name] = self.translate_one_statement_sequence(vector_statements)
-        return scalar_code, vector_code, {}
+        return scalar_code, vector_code, {'load_namespace': load_namespace}
 
 ###############################################################################
 # Implement functions
@@ -122,6 +167,7 @@ def rand_func(vectorisation_idx):
         N = len(vectorisation_idx)
 
     return np.random.rand(N)
+
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CythonCodeGenerator,
                                                               code=randn_func)
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CythonCodeGenerator,

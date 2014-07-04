@@ -24,6 +24,9 @@ from Cython.Compiler.Errors import CompileError
 from Cython.Build.Dependencies import cythonize
 
 
+__all__ = ['cython_extension_manager']
+
+
 class CythonExtensionManager(object):
     def __init__(self):
         self._code_cache = {}
@@ -141,6 +144,8 @@ class CythonExtensionManager(object):
         build_extension = build_ext(dist)
         build_extension.finalize_options()
         return build_extension
+
+cython_extension_manager = CythonExtensionManager()
 
                                 
 if __name__=='__main__':
