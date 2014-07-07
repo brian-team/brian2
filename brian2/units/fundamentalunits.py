@@ -1462,7 +1462,28 @@ class Quantity(np.ndarray, object):
     mean = wrap_function_keep_dimensions(np.ndarray.mean)
     min = wrap_function_keep_dimensions(np.ndarray.min)
     ptp = wrap_function_keep_dimensions(np.ndarray.ptp)
-    ravel = wrap_function_keep_dimensions(np.ndarray.ravel)
+
+    # To work around an issue in matplotlib 1.3.1 (see
+    # https://github.com/matplotlib/matplotlib/pull/2591), we make `ravel`
+    # return a unitless array and emit a warning explaining the issue.
+
+    def ravel(self):
+        # Note that we don't use Brian's logging system here as we don't want
+        # the unit system to depend on other parts of Brian
+        warn(('As a workaround for a bug in matplotlib 1.3.1, calling '
+              '"ravel()" on a quantity will return unit-less values. If you '
+              'get this warning during plotting, consider removing the units '
+              'before plotting, e.g. by dividing by the unit. If you are '
+              'explicitly calling "ravel()", consider using "flatten()" '
+              'instead. The "ravel()" function will go back to returning a '
+              'quantity after the matplotlib 1.4 release.'))
+        return np.ravel(np.asarray(self))
+
+    ravel._arg_units = [None]
+    ravel._return_unit = 1
+    ravel.__name__ = np.ravel.__name__
+    ravel.__doc__ = np.ravel.__doc__
+
     round = wrap_function_keep_dimensions(np.ndarray.round)
     std = wrap_function_keep_dimensions(np.ndarray.std)
     sum = wrap_function_keep_dimensions(np.ndarray.sum)
