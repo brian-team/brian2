@@ -103,7 +103,7 @@ abstract code. The following code switches input on for a randomly chosen single
 neuron every 50ms::
 
     G = NeuronGroup(10, '''dv/dt = (-v + active*I)/(10*ms) : 1
-                           I = sin(2*pi*100*Hz*t) : 1 (scalar) #single input
+                           I = sin(2*pi*100*Hz*t) : 1 (shared) #single input
                            active : 1  # will be set in the network function''')
     @network_operation(when=Clock(dt=50*ms))
     def update_active():

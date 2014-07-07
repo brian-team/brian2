@@ -271,8 +271,8 @@ class NeuronGroup(Group, SpikeSource):
 
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ('unless refractory',),
-                           PARAMETER: ('constant', 'scalar', 'linked'),
-                           SUBEXPRESSION: ('scalar',)})
+                           PARAMETER: ('constant', 'shared', 'linked'),
+                           SUBEXPRESSION: ('shared',)})
 
         # add refractoriness
         if refractory is not False:
@@ -516,19 +516,19 @@ class NeuronGroup(Group, SpikeSource):
                     self._linked_variables.add(eq.varname)
                 else:
                     constant = 'constant' in eq.flags
-                    scalar = 'scalar' in eq.flags
-                    size = 1 if scalar else self._N
-                    index = '0' if scalar else None
+                    shared = 'shared' in eq.flags
+                    size = 1 if shared else self._N
+                    index = '0' if shared else None
                     self.variables.add_array(eq.varname, size=size,
                                              unit=eq.unit, dtype=dtype,
                                              constant=constant,
-                                             scalar=scalar,
+                                             scalar=shared,
                                              index=index)
             elif eq.type == SUBEXPRESSION:
                 self.variables.add_subexpression(eq.varname, unit=eq.unit,
                                                  expr=str(eq.expr),
                                                  dtype=dtype,
-                                                 scalar='scalar' in eq.flags)
+                                                 scalar='shared' in eq.flags)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
@@ -545,13 +545,13 @@ class NeuronGroup(Group, SpikeSource):
 
         # Check scalar subexpressions
         for eq in self.equations.itervalues():
-            if eq.type == SUBEXPRESSION and 'scalar' in eq.flags:
+            if eq.type == SUBEXPRESSION and 'shared' in eq.flags:
                 var = self.variables[eq.varname]
                 for identifier in var.identifiers:
                     if identifier in self.variables:
                         if not self.variables[identifier].scalar:
-                            raise SyntaxError(('Scalar subexpression %s refers '
-                                               'to non-scalar variable %s.')
+                            raise SyntaxError(('Shared subexpression %s refers '
+                                               'to non-shared variable %s.')
                                               % (eq.varname, identifier))
 
 

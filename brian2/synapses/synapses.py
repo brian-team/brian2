@@ -481,8 +481,8 @@ class Synapses(Group):
 
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven'],
-                           SUBEXPRESSION: ['summed', 'scalar'],
-                           PARAMETER: ['constant', 'scalar']})
+                           SUBEXPRESSION: ['summed', 'shared'],
+                           PARAMETER: ['constant', 'shared']})
 
         # Add the lastupdate variable, needed for event-driven updates
         if 'lastupdate' in model._equations:
@@ -749,8 +749,8 @@ class Synapses(Group):
             dtype = get_dtype(eq, user_dtype)
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = 'constant' in eq.flags
-                scalar = 'scalar' in eq.flags
-                if scalar:
+                shared = 'shared' in eq.flags
+                if shared:
                     self.variables.add_array(eq.varname, size=1,
                                              unit=eq.unit,
                                              dtype=dtype,
@@ -776,7 +776,7 @@ class Synapses(Group):
                     varname = eq.varname
                 self.variables.add_subexpression(varname, unit=eq.unit,
                                                  expr=str(eq.expr),
-                                                 scalar='scalar' in eq.flags,
+                                                 scalar='shared' in eq.flags,
                                                  dtype=dtype)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
@@ -802,13 +802,13 @@ class Synapses(Group):
 
         # Check scalar subexpressions
         for eq in equations.itervalues():
-            if eq.type == SUBEXPRESSION and 'scalar' in eq.flags:
+            if eq.type == SUBEXPRESSION and 'shared' in eq.flags:
                 var = self.variables[eq.varname]
                 for identifier in var.identifiers:
                     if identifier in self.variables:
                         if not self.variables[identifier].scalar:
-                            raise SyntaxError(('Scalar subexpression %s refers '
-                                               'to non-scalar variable %s.')
+                            raise SyntaxError(('Shared subexpression %s refers '
+                                               'to non-shared variable %s.')
                                               % (eq.varname, identifier))
 
     def connect(self, pre_or_cond, post=None, p=1., n=1, namespace=None,
