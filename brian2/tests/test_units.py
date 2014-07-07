@@ -25,6 +25,18 @@ from brian2.units.allunits import *
 from brian2.units.stdunits import ms, mV, kHz, nS, cm
 
 
+# To work around an issue in matplotlib 1.3.1 (see
+# https://github.com/matplotlib/matplotlib/pull/2591), we make `ravel`
+# return a unitless array and emit a warning explaining the issue.
+use_matplotlib_units_fix = False
+try:
+    import matplotlib
+    if matplotlib.__version__ == '1.3.1':
+        use_matplotlib_units_fix = True
+except ImportError:
+    pass
+
+
 def assert_quantity(q, values, unit):
     assert isinstance(q, Quantity) or (isinstance(q, np.ndarray) and have_same_dimensions(unit, 1))
     assert_equal(np.asarray(q), values)
@@ -603,7 +615,10 @@ def test_special_case_numpy_functions():
                  np.asarray(quadratic_matrix).prod(axis=0))
         
     # Check for correct units
-    assert have_same_dimensions(quadratic_matrix, ravel(quadratic_matrix))
+    if use_matplotlib_units_fix:
+        assert have_same_dimensions(1, ravel(quadratic_matrix))
+    else:
+        assert have_same_dimensions(quadratic_matrix, ravel(quadratic_matrix))
     assert have_same_dimensions(quadratic_matrix, trace(quadratic_matrix))
     assert have_same_dimensions(quadratic_matrix, diagonal(quadratic_matrix))
     assert have_same_dimensions(quadratic_matrix[0] ** 2,
