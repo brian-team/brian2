@@ -101,8 +101,8 @@ def test_scalar_variable():
     '''
     tau = 10*ms
     for codeobj_class in codeobj_classes:
-        G = NeuronGroup(10, '''E_L : volt (scalar)
-                               s2 : 1 (scalar)
+        G = NeuronGroup(10, '''E_L : volt (shared)
+                               s2 : 1 (shared)
                                dv/dt = (E_L - v) / tau : volt''',
                         codeobj_class=codeobj_class)
         # Setting should work in these ways
@@ -685,8 +685,8 @@ def test_subexpression():
 def test_scalar_parameter_access():
     for codeobj_class in codeobj_classes:
         G = NeuronGroup(10, '''dv/dt = freq : 1
-                               freq : Hz (scalar)
-                               number : 1 (scalar)
+                               freq : Hz (shared)
+                               number : 1 (shared)
                                array : 1''',
                         codeobj_class=codeobj_class)
 
@@ -718,22 +718,22 @@ def test_scalar_parameter_access():
 def test_scalar_subexpression():
     for codeobj_class in codeobj_classes:
         G = NeuronGroup(10, '''dv/dt = freq : 1
-                               freq : Hz (scalar)
-                               number : 1 (scalar)
+                               freq : Hz (shared)
+                               number : 1 (shared)
                                array : 1
-                               sub = freq + number*Hz : Hz (scalar)''',
+                               sub = freq + number*Hz : Hz (shared)''',
                         codeobj_class=codeobj_class)
         G.freq = 100*Hz
         G.number = 50
         assert G.sub[:] == 150*Hz
 
     assert_raises(SyntaxError, lambda: NeuronGroup(10, '''dv/dt = freq : 1
-                                                          freq : Hz (scalar)
+                                                          freq : Hz (shared)
                                                           array : 1
-                                                          sub = freq + array*Hz : Hz (scalar)'''))
+                                                          sub = freq + array*Hz : Hz (shared)'''))
 
     # A scalar subexpresion cannot refer to implicitly vectorized functions
-    assert_raises(SyntaxError, lambda: NeuronGroup(10, 'sub = rand() : 1 (scalar)'))
+    assert_raises(SyntaxError, lambda: NeuronGroup(10, 'sub = rand() : 1 (shared)'))
 
 
 def test_repr():

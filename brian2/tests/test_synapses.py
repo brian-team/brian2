@@ -580,10 +580,10 @@ def test_summed_variable_errors():
 def test_scalar_parameter_access():
     for codeobj_class in codeobj_classes:
         G = NeuronGroup(10, '''v : 1
-                               scalar : Hz (scalar)''')
+                               scalar : Hz (shared)''')
         S = Synapses(G, G, '''w : 1
-                              s : Hz (scalar)
-                              number : 1 (scalar)''',
+                              s : Hz (shared)
+                              number : 1 (shared)''',
                      pre = 'v+=w*number', connect=True,
                      codeobj_class=codeobj_class)
 
@@ -621,17 +621,17 @@ def test_scalar_parameter_access():
 def test_scalar_subexpression():
     for codeobj_class in codeobj_classes:
         G = NeuronGroup(10, '''v : 1
-                               number : 1 (scalar)''',
+                               number : 1 (shared)''',
                         codeobj_class=codeobj_class)
-        S = Synapses(G, G, '''s : 1 (scalar)
-                              sub = number_post + s : 1 (scalar)''',
+        S = Synapses(G, G, '''s : 1 (shared)
+                              sub = number_post + s : 1 (shared)''',
                      pre='v+=s', connect=True)
         S.s = 100
         G.number = 50
         assert S.sub[:] == 150
 
-    assert_raises(SyntaxError, lambda: Synapses(G, G, '''s : 1 (scalar)
-                                                         sub = v_post + s : 1 (scalar)''',
+    assert_raises(SyntaxError, lambda: Synapses(G, G, '''s : 1 (shared)
+                                                         sub = v_post + s : 1 (shared)''',
                                                 pre='v+=s', connect=True))
 
 

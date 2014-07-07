@@ -204,7 +204,7 @@ class StateMonitor(Group, CodeRunner):
         for varname in variables:
             var = source.variables[varname]
             if var.scalar and len(self.indices) > 1:
-                logger.warn(('Variable %s is a scalar variable but it will be '
+                logger.warn(('Variable %s is a shared variable but it will be '
                              'recorded once for every target.' % varname),
                             once=True)
             index = source.variables.indices[varname]

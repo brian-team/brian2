@@ -30,7 +30,7 @@ For stochastic equations with several ``xi`` values it is now necessary to make 
 or different noise instantiations. To make this distinction, an arbitrary suffix can be used, e.g. using ``xi_1`` several times
 refers to the same variable, ``xi_2`` (or ``xi_inh``, ``xi_alpha``, etc.) refers to another. An error will be raised if
 you use more than one plain ``xi``. Note that noise is always independent across neurons, you can only work around this
-restriction by defining your noise variable as a scalar parameter and update it using a user-defined function (e.g. a `CodeRunner`).
+restriction by defining your noise variable as a shared parameter and update it using a user-defined function (e.g. a `CodeRunner`).
 
 Flags
 ~~~~~
@@ -50,10 +50,10 @@ qualifies the equations. There are several keywords:
 *constant*
   this means the parameter will not be changed during a run. This allows
   optimizations in state updaters. This can only qualify parameters.
-*scalar*
+*shared*
   this means that a parameter or subexpression isn't neuron-/synapse-specific
-  but rather a single value for the whole `NeuronGroup` or `Synapses`. A scalar
-  subexpression can only refer to other scalar variables.
+  but rather a single value for the whole `NeuronGroup` or `Synapses`. A shared
+  subexpression can only refer to other shared variables.
 
 Different flags may be specified as follows::
 
