@@ -47,16 +47,12 @@ def test_cpp_standalone(with_output=False):
         print tempdir
     device.build(project_dir=tempdir, compile_project=True, run_project=True,
                  with_output=with_output)
-    i = numpy.fromfile(os.path.join(tempdir, 'results', '_dynamic_array_spikemonitor_i'),
-                       dtype=numpy.int32)
-    t = numpy.fromfile(os.path.join(tempdir, 'results', '_dynamic_array_spikemonitor_t'),
-                       dtype=numpy.float64)
     # we do an approximate equality here because depending on minor details of how it was compiled, the results
     # may be slightly different (if -ffast-math is on)
-    assert len(i)>=17000 and len(i)<=18000
-    assert len(t)==len(i)
-    assert t[0] == 0.
-    assert t[-1] == float(100*ms - defaultclock.dt)
+    assert len(M.i)>=17000 and len(M.i)<=18000
+    assert len(M.t) == len(M.i)
+    assert M.t[0] == 0.
+    assert M.t[-1] == 100*ms - defaultclock.dt
     
 if __name__=='__main__':
     # Print the debug output when testing this file only but not when running

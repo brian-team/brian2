@@ -138,9 +138,6 @@ def test_connection_array_standalone():
     tempdir = tempfile.mkdtemp()
     device.build(project_dir=tempdir, compile_project=True, run_project=True,
                  with_output=False)
-    mon_v = np.fromfile(os.path.join(tempdir, 'results',
-                                     '_dynamic_array_mon__recorded_v'),
-                        dtype=np.float64)
     expected = np.array([[1, 1, 1, 1, 1],
                          [0, 0, 0, 0, 0],
                          [0, 1, 1, 1, 1],
@@ -149,7 +146,7 @@ def test_connection_array_standalone():
                          [0, 0, 0, 0, 0],
                          [0, 0, 0, 1, 1],
                          [0, 0, 0, 0, 0]], dtype=np.float64)
-    assert_equal(mon_v.reshape(5, -1).T, expected)
+    assert_equal(mon.v, expected)
 
 
 def test_connection_string_deterministic():
