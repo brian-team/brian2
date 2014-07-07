@@ -217,7 +217,7 @@ class MagicNetwork(Network):
     def after_run(self):
         self.objects[:] = []
 
-    def reinit(self, level):
+    def reinit(self, level=0):
         '''
         See `Network.reinit`.
         '''
