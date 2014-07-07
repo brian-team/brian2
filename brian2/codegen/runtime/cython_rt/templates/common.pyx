@@ -4,7 +4,10 @@
 
 import numpy as _numpy
 cimport numpy as _numpy
-from libc.math cimport sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, abs#, arcsin, arccos, arctan
+from libc.math cimport sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, abs, asin, acos, atan, fabs, fmod
+
+# support code
+{{ support_code | autoindent }}
 
 def main(_namespace):
     cdef int _idx
@@ -13,6 +16,3 @@ def main(_namespace):
     {% block maincode %}
     {{ vector_code | autoindent }}
     {% endblock %}
-
-# support code
-{{ support_code_lines }}

@@ -24,13 +24,12 @@ class CythonCodeGenerator(CodeGenerator):
 
     def translate_expression(self, expr):
         # numpy version
-#        for varname, var in self.variables.iteritems():
-#            if isinstance(var, Function):
-#                impl_name = var.implementations[self.codeobj_class].name
-#                if impl_name is not None:
-#                    expr = word_substitute(expr, {varname: impl_name})
-#        return NumpyNodeRenderer().render_expr(expr, self.variables).strip()
-        return expr.strip()
+        for varname, var in self.variables.iteritems():
+            if isinstance(var, Function):
+                impl_name = var.implementations[self.codeobj_class].name
+                if impl_name is not None:
+                    expr = word_substitute(expr, {varname: impl_name})
+        return NumpyNodeRenderer().render_expr(expr, self.variables).strip()
 
     def translate_statement(self, statement):
         # TODO: optimisation, translate arithmetic to a sequence of inplace
@@ -74,14 +73,6 @@ class CythonCodeGenerator(CodeGenerator):
             var = self.variables[varname]
             line = self.get_array_name(var, self.variables) + '[' + index_var + '] = ' + varname
             lines.append(line)
-            
-        # TODO: this was in numpy, do we want it for cython too?
-        # Make sure we do not use the __call__ function of Function objects but
-        # rather the Python function stored internally. The __call__ function
-        # would otherwise return values with units
-        for varname, var in variables.iteritems():
-            if isinstance(var, Function):
-                variables[varname] = var.implementations[self.codeobj_class].get_code(self.owner)
 
         return lines
 
@@ -90,6 +81,7 @@ class CythonCodeGenerator(CodeGenerator):
         device = get_device()
         # load variables from namespace
         load_namespace = []
+        support_code = []
         handled_pointers = set()
         for varname, var in self.variables.iteritems():
             if isinstance(var, ArrayVariable):
@@ -120,14 +112,26 @@ class CythonCodeGenerator(CodeGenerator):
                 line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(#dtype=c_data_type(var.dtype),
                                                                                  dtype=dtype_name, varname=varname)
                 load_namespace.append(line)
-#            elif isinstance(var, Function):
-#                pass
-            else:
-                print var
-                for k, v in var.__dict__.iteritems():
-                    print '   ', k, v
-                load_namespace.append('%s = _namespace["%s"]' % (varname, varname))
+            elif isinstance(var, Function):
+                func_impl = var.implementations[self.codeobj_class].get_code(self.owner)
+                # Implementation can be None if the function is already
+                # available in Cython (possibly under a different name)
+                if func_impl is not None:
+                    if isinstance(func_impl, basestring):
+                        # Function is provided as Cython code
+                        support_code.append(func_impl)
+                    elif callable(func_impl):
+                        self.variables[varname] = func_impl
+                        line = '%s = _namespace["%s"]' % (varname, varname)
+                        load_namespace.append(line)
+                    else:
+                        raise TypeError(('Provided function implementation '
+                                         'for function %s is neither a string '
+                                         'nor callable') % varname)
+
+
         load_namespace = '\n'.join(load_namespace)
+        support_code = '\n'.join(support_code)
         # main scalar/vector code
         scalar_code = {}
         vector_code = {}
@@ -136,45 +140,37 @@ class CythonCodeGenerator(CodeGenerator):
             vector_statements = [stmt for stmt in block if not stmt.scalar]
             scalar_code[name] = self.translate_one_statement_sequence(scalar_statements)
             vector_code[name] = self.translate_one_statement_sequence(vector_statements)
-        return scalar_code, vector_code, {'load_namespace': load_namespace}
+
+        return scalar_code, vector_code, {'load_namespace': load_namespace,
+                                          'support_code': support_code}
 
 ###############################################################################
 # Implement functions
 ################################################################################
-# Functions that exist under the same name in numpy
-for func_name, func in [('sin', np.sin), ('cos', np.cos), ('tan', np.tan),
-                        ('sinh', np.sinh), ('cosh', np.cosh), ('tanh', np.tanh),
-                        ('exp', np.exp), ('log', np.log), ('log10', np.log10),
-                        ('sqrt', np.sqrt), ('arcsin', np.arcsin),
-                        ('arccos', np.arccos), ('arctan', np.arctan),
-                        ('abs', np.abs), ('mod', np.mod)]:
-    DEFAULT_FUNCTIONS[func_name].implementations.add_implementation(CythonCodeGenerator,
-                                                                    code=func)
+# Functions that exist under the same name in C++
+for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
+             'log10', 'sqrt', 'ceil', 'floor']:
+    DEFAULT_FUNCTIONS[func].implementations.add_implementation(CythonCodeGenerator,
+                                                               code=None)
 
-# Functions that are implemented in a somewhat special way
-def randn_func(vectorisation_idx):
-    try:
-        N = int(vectorisation_idx)
-    except (TypeError, ValueError):
-        N = len(vectorisation_idx)
+# Functions that need a name translation
+for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),
+                       ('abs', 'fabs'), ('mod', 'fmod')]:
+    DEFAULT_FUNCTIONS[func].implementations.add_implementation(CythonCodeGenerator,
+                                                               code=None,
+                                                               name=func_cpp)
 
-    return np.random.randn(N)
-
-def rand_func(vectorisation_idx):
-    try:
-        N = int(vectorisation_idx)
-    except (TypeError, ValueError):
-        N = len(vectorisation_idx)
-
-    return np.random.rand(N)
-
-DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CythonCodeGenerator,
-                                                              code=randn_func)
-DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CythonCodeGenerator,
-                                                             code=rand_func)
-clip_func = lambda array, a_min, a_max: np.clip(array, a_min, a_max)
+clip_code = '''
+def clip(float value, float a_min, float a_max):
+    if value < a_min:
+        return a_min
+    elif value > a_max:
+        return a_max
+    else:
+        return value
+'''
 DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CythonCodeGenerator,
-                                                             code=clip_func)
+                                                             code=clip_code)
 int_func = lambda value: np.int32(value)
 DEFAULT_FUNCTIONS['int'].implementations.add_implementation(CythonCodeGenerator,
                                                             code=int_func)
