@@ -51,12 +51,12 @@ layer4 = NeuronGroup(N4*Nbarrels,
                      barrel_y : integer # The y index of the barrel
                      selectivity : 1
                      # Stimulus parameters (same for all neurons)
-                     bar_x = cos(direction)*(t - stim_start_time)/(5*ms) + stim_start_x : 1 (scalar)
-                     bar_y = sin(direction)*(t - stim_start_time)/(5*ms) + stim_start_y : 1 (scalar)
-                     direction : 1 (scalar) # direction of the current stimulus
-                     stim_start_time : second (scalar) # start time of the current stimulus
-                     stim_start_x : 1 (scalar) # start position of the stimulus
-                     stim_start_y : 1 (scalar) # start position of the stimulus
+                     bar_x = cos(direction)*(t - stim_start_time)/(5*ms) + stim_start_x : 1 (shared)
+                     bar_y = sin(direction)*(t - stim_start_time)/(5*ms) + stim_start_y : 1 (shared)
+                     direction : 1 (shared) # direction of the current stimulus
+                     stim_start_time : second (shared) # start time of the current stimulus
+                     stim_start_x : 1 (shared) # start position of the stimulus
+                     stim_start_y : 1 (shared) # start position of the stimulus
                      ''',
                      threshold='rand() < rate*dt',
                      method='euler',
