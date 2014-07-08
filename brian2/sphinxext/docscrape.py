@@ -496,10 +496,10 @@ class ClassDoc(NumpyDocString):
         if self._cls is None:
             return [] 
         methods = [name for name, func in getattr(self._cls, '__dict__').iteritems()
-                  if ((not name.startswith('_')
-                       or name in self.extra_public_methods)
-                      and (callable(func) or
-                           inspect.ismethoddescriptor(func)))]
+                   if ((not name.startswith('_')
+                        or name in self.extra_public_methods)
+                       and ((callable(func) and not isinstance(func, type)) or
+                            inspect.ismethoddescriptor(func)))]
         return methods
 
     @property
@@ -508,10 +508,10 @@ class ClassDoc(NumpyDocString):
             return []
         analyzer = ModuleAnalyzer.for_module(self._cls.__module__)
         instance_members = set([attr_name for (class_name, attr_name) in
-                            analyzer.find_attr_docs().keys()
-                            if class_name == self._cls.__name__])
+                                analyzer.find_attr_docs().keys()
+                                if class_name == self._cls.__name__])
         class_members = set([name for name, func in getattr(self._cls, '__dict__').iteritems()
-                         if not name.startswith('_') and (func is None or
-                                                          inspect.isdatadescriptor(func))])
+                             if not name.startswith('_') and (func is None or
+                                                              inspect.isdatadescriptor(func))])
 
         return instance_members | class_members

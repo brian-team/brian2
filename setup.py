@@ -2,43 +2,101 @@
 '''
 Brian2 setup script
 '''
+import sys
+import os
+
 # This will automatically download setuptools if it is not already installed
 from ez_setup import use_setuptools
 use_setuptools()
 
-from setuptools import setup, find_packages
+import pkg_resources
+from setuptools import setup, find_packages, Extension
+from setuptools.command.build_ext import build_ext
+from distutils.errors import CompileError, DistutilsPlatformError
 
-# # Disable the preference file generation for now: doing this during install
-# # is a bit fragile, it fails if dependencies are installed at the same time,
-# # they are not yet available at this point
-# # This should rather be done during the creation of the source distribution
-# def generate_preferences(directory):
-#     '''
-#     Generate a file in the brian2 installation dictionary containing all the
-#     preferences with their default values and documentation. This file can be
-#     used as a starting point for setting user- or project-specific preferences.
-#     '''
-#     sys.path.insert(0, directory)
-#     from brian2.core.preferences import brian_prefs
-#     # We generate the file directly in the install directory
-#     try:
-#         with open(os.path.join(directory,
-#                                'brian2', 'default_preferences'), 'wt') as f:
-#             defaults = brian_prefs.defaults_as_file
-#             f.write(defaults)
-#     except IOError as ex:
-#         warnings.warn(('Could not write the default preferences to a '
-#                        'file: %s' % str(ex)))
-#
-#
-# class install(_install):
-#     def run(self):
-#         # Make sure we first run the build (including running 2to3 for Python3)
-#         # and then import from the build directory
-#         _install.run(self)
-#
-#         self.execute(generate_preferences, (self.install_lib, ),
-#                      msg='Generating default preferences file')
+try:
+    from Cython.Build import cythonize
+    cython_available = True
+except ImportError:
+    cython_available = False
+
+
+def has_option(name):
+    try:
+        sys.argv.remove('--%s' % name)
+        return True
+    except ValueError:
+        pass
+    # allow passing all cmd line options also as environment variables
+    env_val = os.getenv(name.upper().replace('-', '_'), 'false').lower()
+    if env_val == "true":
+        return True
+    return False
+
+
+WITH_CYTHON = has_option('with-cython')
+FAIL_ON_ERROR = has_option('fail-on-error')
+
+pyx_fname = os.path.join('brian2', 'synapses', 'cythonspikequeue.pyx')
+cpp_fname = os.path.join('brian2', 'synapses', 'cythonspikequeue.cpp')
+
+if WITH_CYTHON or not os.path.exists(cpp_fname):
+    fname = pyx_fname
+    if not cython_available:
+        if FAIL_ON_ERROR:
+            raise RuntimeError('Compilation with Cython requested/necesary but '
+                               'Cython is not available.')
+        else:
+            sys.stderr.write('Compilation with Cython requested/necesary but '
+                             'Cython is not available.\n')
+            fname = None
+    if not os.path.exists(pyx_fname):
+        if FAIL_ON_ERROR:
+            raise RuntimeError(('Compilation with Cython requested/necessary but '
+                                'Cython source file %s does not exist') % pyx_fname)
+        else:
+            sys.stderr.write(('Compilation with Cython requested/necessary but '
+                                'Cython source file %s does not exist\n') % pyx_fname)
+            fname = None
+else:
+    fname = cpp_fname
+
+if fname is not None:
+    extensions = [Extension("brian2.synapses.cythonspikequeue",
+                            [fname],
+                            include_dirs=[])]  # numpy include dir will be added later
+    if fname == pyx_fname:
+        extensions = cythonize(extensions)
+else:
+    extensions = []
+
+
+class optional_build_ext(build_ext):
+    '''
+    This class allows the building of C extensions to fail and still continue
+    with the building process. This ensures that installation never fails, even
+    on systems without a C compiler, for example.
+    If brian is installed in an environment where building C extensions
+    *should* work, use the "--fail-on-error" option or set the environment
+    variable FAIL_ON_ERROR to true.
+    '''
+    def build_extension(self, ext):
+        import numpy
+        numpy_incl = numpy.get_include()
+        if hasattr(ext, 'include_dirs') and not numpy_incl in ext.include_dirs:
+                ext.include_dirs.append(numpy_incl)
+        try:
+            build_ext.build_extension(self, ext)
+        except (CompileError, DistutilsPlatformError) as ex:
+            if FAIL_ON_ERROR:
+                raise ex
+            else:
+                error_msg = ('Building %s failed (see error message(s) '
+                             'above) -- pure Python version will be used '
+                             'instead.') % ext.name
+                sys.stderr.write('*' * len(error_msg) + '\n' +
+                                 error_msg + '\n' +
+                                 '*' * len(error_msg) + '\n')
 
 long_description = '''
 Brian2 is a simulator for spiking neural networks available on almost all platforms.
@@ -58,25 +116,35 @@ Documentation for Brian2 can be found at http://brian2.readthedocs.org
 '''
 
 setup(name='Brian2',
-      version='2.0a4',
+      version='2.0a8',
       packages=find_packages(),
-      # include template files
-      package_data={'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
+      package_data={# include template files
+                    'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
                     'brian2.codegen.runtime.weave_rt': ['templates/*.cpp',
                                                         'templates/*.h'],
                     'brian2.devices.cpp_standalone': ['templates/*.cpp',
-                                                      'templates/*.h']
+                                                      'templates/*.h',
+                                                      'templates/makefile',
+                                                      'brianlib/*.cpp',
+                                                      'brianlib/*.h'],
+                    # include C++ version of spike queue
+                    'brian2.synapses': ['*.cpp'],
+                    # include default_preferences file
+                    'brian2': ['default_preferences']
                     },
       install_requires=['numpy>=1.4.1',
                         'scipy>=0.7.0',
-                        'sympy>=0.7.2',
+                        'sympy>=0.7.3',
                         'pyparsing',
-                        'jinja2>=2.7'
+                        'jinja2>=2.7',
                        ],
+      setup_requires=['numpy>=1.4.1'],
+      cmdclass={'build_ext': optional_build_ext},
       provides=['brian2'],
       extras_require={'test': ['nosetests>=1.0'],
                       'docs': ['sphinx>=1.0.1', 'sphinxcontrib-issuetracker']},
       use_2to3=True,
+      ext_modules=extensions,
       url='http://www.briansimulator.org/',
       description='A clock-driven simulator for spiking neural networks',
       long_description=long_description,

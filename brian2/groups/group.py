@@ -2,27 +2,249 @@
 This module defines the `Group` object, a mix-in class for everything that
 saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
+import collections
 import weakref
-import copy
-from collections import defaultdict
+try:
+    from collections import OrderedDict
+except ImportError:
+    # OrderedDict was added in Python 2.7, use backport for Python 2.6
+    from brian2.utils.ordereddict import OrderedDict
 
 import numpy as np
 
 from brian2.core.base import BrianObject
-from brian2.core.variables import (ArrayVariable, StochasticVariable,
-                                   AttributeVariable, AuxiliaryVariable)
-from brian2.core.namespace import get_local_namespace
-from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit)
-from brian2.units.allunits import second
-from brian2.codegen.translation import analyse_identifiers
-from brian2.equations.unitcheck import check_units_statements
+from brian2.core.preferences import brian_prefs
+from brian2.core.variables import Variables, Constant, Variable, Subexpression
+from brian2.core.functions import Function
+from brian2.core.namespace import (get_local_namespace,
+                                   DEFAULT_FUNCTIONS,
+                                   DEFAULT_UNITS,
+                                   DEFAULT_CONSTANTS)
+from brian2.core.scheduler import Scheduler
+from brian2.codegen.codeobject import create_runner_codeobj, check_code_units
+from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT
+from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
+                                           get_unit)
 from brian2.utils.logger import get_logger
-from brian2.devices.device import get_device
+from brian2.utils.stringtools import get_identifiers
 
-
-__all__ = ['Group', 'GroupCodeRunner']
+__all__ = ['Group', 'CodeRunner']
 
 logger = get_logger(__name__)
+
+
+def _conflict_warning(message, resolutions):
+    '''
+    A little helper functions to generate warnings for logging. Specific
+    to the `Namespace.resolve` method and should only be used by it.
+
+    Parameters
+    ----------
+    message : str
+        The first part of the warning message.
+    resolutions : list of str
+        A list of (namespace, object) tuples.
+    '''
+    if len(resolutions) == 0:
+        # nothing to warn about
+        return
+    elif len(resolutions) == 1:
+        second_part = ('but also refers to a variable in the %s namespace:'
+                       ' %r') % (resolutions[0][0], resolutions[0][1])
+    else:
+        second_part = ('but also refers to a variable in the following '
+                       'namespaces: %s') % (', '.join([r[0] for r in resolutions]))
+
+    logger.warn(message + ' ' + second_part,
+                'Group.resolve.resolution_conflict', once=True)
+
+
+def get_dtype(equation, dtype=None):
+    '''
+    Helper function to interpret the `dtype` keyword argument in `NeuronGroup`
+    etc.
+
+    Parameters
+    ----------
+    equation : `SingleEquation`
+        The equation for which a dtype should be returned
+    dtype : `dtype` or dict, optional
+        Either the `dtype` to be used as a default dtype for all float variables
+        (instead of the `core.default_float_dtype` preference) or a
+        dictionary stating the `dtype` for some variables; all other variables
+        will use the preference default
+
+    Returns
+    -------
+    d : `dtype`
+        The dtype for the variable defined in `equation`
+    '''
+    # Check explicitly provided dtype for compatibility with the variable type
+    if isinstance(dtype, collections.Mapping):
+        if equation.varname in dtype:
+            BASIC_TYPES = {BOOLEAN: 'b',
+                           INTEGER: 'iu',
+                           FLOAT: 'f'}
+            provided_dtype = np.dtype(dtype[equation.varname])
+            if not provided_dtype.kind in BASIC_TYPES[equation.var_type]:
+                raise TypeError(('Error determining dtype for variable %s: %s '
+                                 'is not a correct type for %s variables') % (equation.varname,
+                                                              provided_dtype.name,
+                                                              equation.var_type))
+            else:
+                return dtype[equation.varname]
+        else:  # continue as if no dtype had been specified at all
+            dtype = None
+
+    # Use default dtypes (or a provided standard dtype for floats)
+    if equation.var_type == BOOLEAN:
+        return np.bool
+    elif equation.var_type == INTEGER:
+        return brian_prefs['core.default_integer_dtype']
+    elif equation.var_type == FLOAT:
+        if dtype is not None:
+            dtype = np.dtype(dtype)
+            if not dtype.kind == 'f':
+                raise TypeError(('%s is not a valid floating point '
+                                 'dtype') % dtype)
+            return dtype
+        else:
+            return brian_prefs['core.default_float_dtype']
+    else:
+        raise ValueError(('Do not know how to determine a dtype for '
+                          'variable %s of type %s' ) % (equation.varname,
+                                                        equation.var_type))
+
+
+def _same_value(obj1, obj2):
+    '''
+    Helper function used during namespace resolution.
+    '''
+    if obj1 is obj2:
+        return True
+    try:
+        obj1 = obj1.get_value()
+    except (AttributeError, TypeError):
+        pass
+
+    try:
+        obj2 = obj2.get_value()
+    except (AttributeError, TypeError):
+        pass
+
+    return obj1 is obj2
+
+
+def _same_function(func1, func2):
+    '''
+    Helper function, used during namespace resolution for comparing whether to
+    functions are the same. This takes care of treating a function and a
+    `Function` variables whose `Function.pyfunc` attribute matches as the
+    same. This prevents the user from getting spurious warnings when having
+    for example a numpy function such as :np:func:`~random.randn` in the local
+    namespace, while the ``randn`` symbol in the numpy namespace used for the
+    code objects refers to a `RandnFunction` specifier.
+    '''
+    # use the function itself if it doesn't have a pyfunc attribute
+    func1 = getattr(func1, 'pyfunc', func1)
+    func2 = getattr(func2, 'pyfunc', func2)
+
+    return func1 is func2
+
+
+class Indexing(object):
+    '''
+    Object responsible for calculating flat index arrays from arbitrary group-
+    specific indices. Stores strong references to the necessary variables so
+    that basic indexing (i.e. slicing, integer arrays/values, ...) works even
+    when the respective `Group` no longer exists. Note that this object does
+    not handle string indexing.
+    '''
+    def __init__(self, group):
+        self.group = weakref.proxy(group)
+        self.N = group.variables['N']
+        self.index_variables = dict([(varname, group.variables[varname])
+                                     for varname in set(group.variables.indices.values())
+                                     if not varname in ('_idx', '0')])
+
+    def calc_indices(self, item, var_index='_idx'):
+        '''
+        Return flat indices to index into state variables from arbitrary
+        group specific indices. In the default implementation, raises an error
+        for multidimensional indices and transforms slices into arrays.
+
+        Parameters
+        ----------
+        item : slice, array, int
+            The indices to translate.
+
+        Returns
+        -------
+        indices : `numpy.ndarray`
+            The flat indices corresponding to the indices given in `item`.
+
+        See Also
+        --------
+        SynapticIndexing
+        '''
+        if isinstance(item, tuple):
+            raise IndexError(('Can only interpret 1-d indices, '
+                              'got %d dimensions.') % len(item))
+        else:
+            if isinstance(item, slice):
+                if var_index == '_idx':
+                    start, stop, step = item.indices(self.N.get_value())
+                else:
+                    # For linked variables, the index might not have been there
+                    # yet at the time of the creation of the indexing object
+                    if var_index in self.index_variables:
+                        start, stop, step = item.indices(self.index_variables[var_index].size)
+                    else:
+                        start, stop, step = item.indices(self.group.variables[var_index].size)
+                return np.arange(start, stop, step)
+            else:
+                index_array = np.asarray(item)
+                if index_array.dtype == np.bool:
+                    index_array = np.nonzero(index_array)[0]
+                elif not np.issubdtype(index_array.dtype, np.int):
+                    raise TypeError(('Indexing is only supported for integer '
+                                     'and boolean arrays, not for type '
+                                     '%s' % index_array.dtype))
+                return index_array
+
+
+class IndexWrapper(object):
+    '''
+    Convenience class to allow access to the indices via indexing syntax. This
+    allows for example to get all indices for synapses originating from neuron
+    10 by writing `synapses.indices[10, :]` instead of
+    `synapses._indexing.calc_indices((10, slice(None))`.
+    '''
+    def __init__(self, group):
+        self.group = weakref.proxy(group)
+        self.indices = group._indexing
+
+    def __getitem__(self, item):
+        if isinstance(item, basestring):
+            variables = Variables(None)
+            variables.add_auxiliary_variable('_indices', unit=Unit(1),
+                                             dtype=np.int32)
+            variables.add_auxiliary_variable('_cond', unit=Unit(1),
+                                             dtype=np.bool)
+
+            abstract_code = '_cond = ' + item
+            check_code_units(abstract_code, self.group,
+                             additional_variables=variables,
+                             level=1)
+            codeobj = create_runner_codeobj(self.group,
+                                            abstract_code,
+                                            'group_get_indices',
+                                            additional_variables=variables,
+                                            level=1
+                                            )
+            return codeobj()
+        else:
+            return self.indices.calc_indices(item)
 
 
 class Group(BrianObject):
@@ -32,49 +254,49 @@ class Group(BrianObject):
     # TODO: Overwrite the __dir__ method to return the state variables
     # (should make autocompletion work)
     '''
+    #: The class to convert group-specific indexing into 1d indices
+    indexing_class = Indexing
+
     def _enable_group_attributes(self):
         if not hasattr(self, 'variables'):
             raise ValueError('Classes derived from Group need variables attribute.')
-        if not hasattr(self, 'variable_indices'):
-            self.variable_indices = defaultdict(lambda: '_idx')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
+        if not hasattr(self, 'indexing'):
+            self._indexing = self.indexing_class(self)
+        if not hasattr(self, 'indices'):
+            self.indices = IndexWrapper(self)
+
         self._group_attribute_access_active = True
 
-    def _create_variables(self):
+    def state(self, name, use_units=True, level=0):
         '''
-        Create standard set of variables every `Group` has, consisting of its
-        clock's ``t`` and ``dt`` and the group's ``N``.
-        '''
-        return {'t': AttributeVariable(second, self.clock, 't_',
-                                       constant=False, read_only=True),
-                'dt': AttributeVariable(second, self.clock, 'dt_',
-                                        constant=True, read_only=True),
-                'N': AttributeVariable(Unit(1), self, '_N',
-                                       constant=True, read_only=True)
-                }
+        Return the state variable in a way that properly supports indexing in
+        the context of this group
 
-    def state_(self, name):
-        '''
-        Gets the unitless array.
+        Parameters
+        ----------
+        name : str
+            The name of the state variable
+        use_units : bool, optional
+            Whether to use the state variable's unit.
+        level : int, optional
+            How much farther to go down in the stack to find the namespace.
+        Returns
+        -------
+        var : `VariableView` or scalar value
+            The state variable's value that can be indexed (for non-scalar
+            values).
         '''
         try:
             var = self.variables[name]
         except KeyError:
             raise KeyError("State variable "+name+" not found.")
 
-        return var.get_addressable_value(name=name, group=self)
-        
-    def state(self, name):
-        '''
-        Gets the array with units.
-        '''
-        try:
-            var = self.variables[name]
-        except KeyError:
-            raise KeyError("State variable "+name+" not found.")
-
-        return var.get_addressable_value_with_unit(name=name, group=self)
+        if use_units:
+            return var.get_addressable_value_with_unit(name=name, group=self)
+        else:
+            return var.get_addressable_value(name=name, group=self)
 
     def __getattr__(self, name):
         # We do this because __setattr__ and __getattr__ are not active until
@@ -92,17 +314,19 @@ class Group(BrianObject):
         # because this is what is used during simulations
         # We do not specifically check for len(name) here, we simply assume
         # that __getattr__ is not called with an empty string (which wouldn't
-        # be possibly using the normal dot syntax, anyway)
+        # be possible using the normal dot syntax, anyway)
         try:
             if name[-1] == '_':
-                origname = name[:-1]
-                return self.state_(origname)
+                name = name[:-1]
+                use_units = False
             else:
-                return self.state(name)
+                use_units = True
+            return self.state(name, use_units)
+
         except KeyError:
             raise AttributeError('No attribute with name ' + name)
 
-    def __setattr__(self, name, val):
+    def __setattr__(self, name, val, level=0):
         # attribute access is switched off until this attribute is created by
         # _enable_group_attributes
         if not hasattr(self, '_group_attribute_access_active') or name in self.__dict__:
@@ -115,365 +339,324 @@ class Group(BrianObject):
             if var.read_only:
                 raise TypeError('Variable %s is read-only.' % name)
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value_with_unit(name, self, level=1)[slice(None)] = val
+            var.get_addressable_value_with_unit(name, self).set_item(slice(None),
+                                                                     val,
+                                                                     level=level+1)
         elif len(name) and name[-1]=='_' and name[:-1] in self.variables:
             # no unit checking
             var = self.variables[name[:-1]]
             if var.read_only:
                 raise TypeError('Variable %s is read-only.' % name[:-1])
             # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value(name, self, level=1)[slice(None)] = val
+            var.get_addressable_value(name[:-1], self).set_item(slice(None),
+                                                                val,
+                                                                level=level+1)
         else:
             object.__setattr__(self, name, val)
 
-    def calc_indices(self, item):
+    def _check_expression_scalar(self, expr, varname, level=0,
+                                 run_namespace=None):
         '''
-        Return flat indices from to index into state variables from arbitrary
-        group specific indices. In the default implementation, raises an error
-        for multidimensional indices and transforms slices into arrays.
+        Helper function to check that an expression only refers to scalar
+        variables, used when setting a scalar variable with a string expression.
 
         Parameters
         ----------
-        item : slice, array, int
-            The indices to translate.
+        expr : str
+            The expression to check.
+        varname : str
+            The variable that is being set (only used for the error message)
+        level : int, optional
+            How far to go up in the stack to find the local namespace (if
+            `run_namespace` is not set).
+        run_namespace : dict-like, optional
+            A specific namespace provided for this expression.
+
+        Raises
+        ------
+        ValueError
+            If the expression refers to a non-scalar variable.
+        '''
+        identifiers = get_identifiers(expr)
+        referred_variables = self.resolve_all(identifiers,
+                                              run_namespace=run_namespace,
+                                              level=level+1)
+        for ref_varname, ref_var in referred_variables.iteritems():
+            if not getattr(ref_var, 'scalar', False):
+                raise ValueError(('String expression for setting scalar '
+                                  'variable %s refers to %s which is not '
+                                  'scalar.') % (varname, ref_varname))
+
+    def resolve(self, identifier, additional_variables=None,
+                run_namespace=None, level=0, do_warn=True):
+        '''
+        Resolve an identifier (i.e. variable, constant or function name) in the
+        context of this group. This function will first lookup the name in the
+        state variables, then look for a standard function or unit of that
+        name and finally look in `Group.namespace` and in `run_namespace`. If
+        the latter is not given, it will try to find the variable in the local
+        namespace where the original function call took place. See
+        :ref:`external-variables`.
+
+        Parameters
+        ----------
+        identifiers : str
+            The name to look up.
+        additional_variables : dict-like, optional
+            An additional mapping of names to `Variable` objects that will be
+            checked before `Group.variables`.
+        run_namespace : dict-like, optional
+            An additional namespace, provided as an argument to the
+            `Network.run` method.
+        level : int, optional
+            How far to go up in the stack to find the original call frame.
+        do_warn : bool, optional
+            Whether to warn about names that are defined both as an internal
+            variable (i.e. in `Group.variables`) and in some other namespace.
+            Defaults to ``True`` but can be switched off for internal variables
+            used in templates that the user might not even know about.
 
         Returns
         -------
-        indices : `numpy.ndarray`
-            The flat indices corresponding to the indices given in `item`.
-        '''
-        if isinstance(item, tuple):
-            raise IndexError(('Can only interpret 1-d indices, '
-                              'got %d dimensions.') % len(item))
-        else:
-            if isinstance(item, slice):
-                start, stop, step = item.indices(self.N)
-                return np.arange(start, stop, step)
-            else:
-                index_array = np.asarray(item)
-                if not np.issubdtype(index_array.dtype, np.int):
-                    raise TypeError('Indexing is only supported for integer arrays')
-                return index_array
+        obj : `Variable` or `Function`
+            Returns a `Variable` object describing the variable or a `Function`
+            object for a function. External variables are represented as
+            `Constant` objects
 
-    def _get_with_code(self, variable_name, variable, code, level=0):
+        Raises
+        ------
+        KeyError
+            If the `identifier` could not be resolved
         '''
-        Gets a variable using a string expression. Is called by
-        `VariableView.__getitem__` for statements such as
-        ``print G.v['g_syn > 0']``
+        resolved_internal = None
+
+        if identifier in (additional_variables or {}):
+            resolved_internal = additional_variables[identifier]
+        elif identifier in getattr(self, 'variables', {}):
+            resolved_internal = self.variables[identifier]
+
+        if resolved_internal is not None:
+            if do_warn is False:
+                return resolved_internal  # no need to go further
+            # We already found the identifier, but we try to resolve it in the
+            # external namespace nevertheless, to report a warning if it is
+            # present there as well.
+            try:
+                self._resolve_external(identifier,
+                                       run_namespace=run_namespace,
+                                       level=level+1,
+                                       do_warn=False)
+                # If we arrive here without a KeyError then the name is present
+                # in the external namespace as well
+                message = ('Variable {var} is present in the namespace but is '
+                           'also an internal variable of {name}, the internal '
+                           'variable will be used.'.format(var=identifier,
+                                                           name=self.name))
+                logger.warn(message, 'Group.resolve.resolution_conflict',
+                            once=True)
+            except KeyError:
+                pass  # Nothing to warn about
+
+            return resolved_internal
+
+        # We did not find the name internally, try to resolve it in the external
+        # namespace
+        return self._resolve_external(identifier, run_namespace=run_namespace,
+                                      level=level+1)
+
+    def resolve_all(self, identifiers, additional_variables=None,
+                    run_namespace=None, level=0, do_warn=True):
+        '''
+        Resolve a list of identifiers. Calls `Group.resolve` for each
+        identifier.
 
         Parameters
         ----------
-        variable_name : str
-            The name of the variable in its context (e.g. `'g_post'` for a
-            variable with name `'g'`)
-        variable : `ArrayVariable`
-            The `ArrayVariable` object for the variable to be set
-        code : str
-            The code that should be executed to set the variable values.
-            Can contain references to indices, such as `i` or `j`
+        identifiers : iterable of str
+            The names to look up.
+        additional_variables : dict-like, optional
+            An additional mapping of names to `Variable` objects that will be
+            checked before `Group.variables`.
+        run_namespace : dict-like, optional
+            An additional namespace, provided as an argument to the
+            `Network.run` method.
         level : int, optional
-            How much farther to go down in the stack to find the namespace.
-            Necessary so that both `X.var = ` and `X.var[:] = ` have access
-            to the surrounding namespace.
-        '''
-        # interpret the string expression
-        namespace = get_local_namespace(level+1)
-        additional_namespace = ('implicit-namespace', namespace)
-        # Add the recorded variable under a known name to the variables
-        # dictionary. Important to deal correctly with
-        # the type of the variable in C++
-        variables = {'_variable': AuxiliaryVariable(variable.unit,
-                                                    dtype=variable.dtype,
-                                                    scalar=variable.scalar,
-                                                    is_bool=variable.is_bool),
-                     '_cond': AuxiliaryVariable(Unit(1), is_bool=True)}
+            How far to go up in the stack to find the original call frame.
+        do_warn : bool, optional
+            Whether to warn about names that are defined both as an internal
+            variable (i.e. in `Group.variables`) and in some other namespace.
+            Defaults to ``True`` but can be switched off for internal variables
+            used in templates that the user might not even know about.
 
-        abstract_code = '_variable = ' + variable_name + '\n'
-        abstract_code += '_cond = ' + code
-        check_code_units(abstract_code, self,
-                         additional_namespace=additional_namespace)
-        codeobj = create_runner_codeobj(self,
-                                        abstract_code,
-                                        'state_variable_indexing',
-                                        additional_variables=variables,
-                                        additional_namespace=additional_namespace,
-                                        )
-        return codeobj()
+        Returns
+        -------
+        variables : dict of `Variable` or `Function`
+            A mapping from name to `Variable`/`Function` object for each of the
+            names given in `identifiers`
 
-    def _set_with_code(self, variable, group_indices, code, check_units=True,
-                       level=0):
+        Raises
+        ------
+        KeyError
+            If one of the names in `identifier` cannot be resolved
         '''
-        Sets a variable using a string expression. Is called by
-        `VariableView.__setitem__` for statements such as
-        `S.var[:, :] = 'exp(-abs(i-j)/space_constant)*nS'`
+        resolved = {}
+        for identifier in identifiers:
+            resolved[identifier] = self.resolve(identifier,
+                                                additional_variables=additional_variables,
+                                                run_namespace=run_namespace,
+                                                level=level+1,
+                                                do_warn=do_warn)
+        return resolved
+
+    def _resolve_external(self, identifier, run_namespace=None, level=0,
+                          do_warn=True):
+        '''
+        Resolve an external identifier in the context of a `Group`. If the `Group`
+        declares an explicit namespace, this namespace is used in addition to the
+        standard namespace for units and functions. Additionally, the namespace in
+        the `run_namespace` argument (i.e. the namespace provided to `Network.run`)
+        or, if this argument is unspecified, the implicit namespace of
+        surrounding variables in the stack frame where the original call was made
+        is used (to determine this stack frame, the `level` argument has to be set
+        correctly).
 
         Parameters
         ----------
-        variable : `ArrayVariable`
-            The `ArrayVariable` object for the variable to be set
-        group_indices : ndarray of int
-            The indices of the elements that are to be set.
-        code : str
-            The code that should be executed to set the variable values.
-            Can contain references to indices, such as `i` or `j`
-        check_units : bool, optional
-            Whether to check the units of the expression.
+        identifier : str
+            The name to resolve.
+        group : `Group`
+            The group that potentially defines an explicit namespace for looking up
+            external names.
+        run_namespace : dict, optional
+            A namespace (mapping from strings to objects), as provided as an
+            argument to the `Network.run` function.
         level : int, optional
-            How much farther to go down in the stack to find the namespace.
-            Necessary so that both `X.var = ` and `X.var[:] = ` have access
-            to the surrounding namespace.
+            How far to go up in the stack to find the calling frame.
+        do_warn : int, optional
+            Whether to display a warning if an identifier resolves to different
+            objects in different namespaces. Defaults to ``True``.
         '''
-        abstract_code = variable.name + ' = ' + code
-        namespace = get_local_namespace(level + 1)
-        additional_namespace = ('implicit-namespace', namespace)
-        additional_variables = {'_group_idx': ArrayVariable('_group_idx',
-                                                            Unit(1),
-                                                            value=group_indices.astype(np.int32),
-                                                            group_name=self.name)}
-        # TODO: Have an additional argument to avoid going through the index
-        # array for situations where iterate_all could be used
-        codeobj = create_runner_codeobj(self,
-                                 abstract_code,
-                                 'group_variable_set',
-                                 additional_variables=additional_variables,
-                                 additional_namespace=additional_namespace,
-                                 check_units=check_units)
-        codeobj()
+        # We save tuples of (namespace description, referred object) to
+        # give meaningful warnings in case of duplicate definitions
+        matches = []
 
-    def _set_with_code_conditional(self, variable, cond, code, check_units=True,
-                                   level=0):
+        namespaces = OrderedDict()
+        # Default namespaces (units and functions)
+        namespaces['constants'] = DEFAULT_CONSTANTS
+        namespaces['units'] = DEFAULT_UNITS
+        namespaces['functions'] = DEFAULT_FUNCTIONS
+        if getattr(self, 'namespace', None) is not None:
+            namespaces['group-specific'] = self.namespace
+
+        # explicit or implicit run namespace
+        if run_namespace is not None:
+            namespaces['run'] = run_namespace
+        else:
+            namespaces['implicit'] = get_local_namespace(level+1)
+
+        for description, namespace in namespaces.iteritems():
+            if identifier in namespace:
+                matches.append((description, namespace[identifier]))
+
+        if len(matches) == 0:
+            # No match at all
+            raise KeyError(('The identifier "%s" could not be resolved.') %
+                           (identifier))
+        elif len(matches) > 1:
+            # Possibly, all matches refer to the same object
+            first_obj = matches[0][1]
+            found_mismatch = False
+            for m in matches:
+                if _same_value(m[1], first_obj):
+                    continue
+                if _same_function(m[1], first_obj):
+                    continue
+                try:
+                    proxy = weakref.proxy(first_obj)
+                    if m[1] is proxy:
+                        continue
+                except TypeError:
+                    pass
+
+                # Found a mismatch
+                found_mismatch = True
+                break
+
+            if found_mismatch and do_warn:
+                _conflict_warning(('The name "%s" refers to different objects '
+                                   'in different namespaces used for resolving '
+                                   'names in the context of group "%s". '
+                                   'Will use the object from the %s namespace '
+                                   'with the value %r') %
+                                  (identifier, getattr(self, 'name',
+                                                       '<unknown>'),
+                                   matches[0][0],
+                                   first_obj), matches[1:])
+
+        # use the first match (according to resolution order)
+        resolved = matches[0][1]
+
+        # Replace pure Python functions by a Functions object
+        if callable(resolved) and not isinstance(resolved, Function):
+            resolved = Function(resolved)
+
+        if not isinstance(resolved, (Function, Variable)):
+            # Wrap the value in a Constant object
+            unit = get_unit(resolved)
+            value = np.asarray(resolved)
+            if value.shape != ():
+                raise KeyError('Variable %s was found in the namespace, but is'
+                               ' not a scalar value' % identifier)
+            resolved = Constant(identifier, unit=unit, value=value)
+
+        return resolved
+
+    def _resolve_all_external(self, identifiers, run_namespace=None, level=0):
         '''
-        Sets a variable using a string expression and string condition. Is
-        called by `VariableView.__setitem__` for statements such as
-        `S.var['i!=j'] = 'exp(-abs(i-j)/space_constant)*nS'`
+        Parameters
+        ----------
+        do_warn : int, optional
+            Whether to display a warning if an identifier resolves to different
+            objects in different namespaces. Defaults to ``True``.
+        '''
+        resolutions = {}
+        for identifier in identifiers:
+            resolved = self.resolve(identifier, run_namespace=run_namespace,
+                                    level=level+1)
+            resolutions[identifier] = resolved
+
+        return resolutions
+
+    def runner(self, code, when=None, name=None):
+        '''
+        Returns a `CodeRunner` that runs abstract code in the groups namespace
 
         Parameters
         ----------
-        variable : `ArrayVariable`
-            The `ArrayVariable` object for the variable to be set.
-        cond : str
-            The string condition for which the variables should be set.
         code : str
-            The code that should be executed to set the variable values.
-        check_units : bool, optional
-            Whether to check the units of the expression.
-        level : int, optional
-            How much farther to go down in the stack to find the namespace.
-            Necessary so that both `X.var = ` and `X.var[:] = ` have access
-            to the surrounding namespace.
+            The abstract code to run.
+        when : `Scheduler`, optional
+            When to run, by default in the 'start' slot with the same clock as
+            the group.
+        name : str, optional
+            A unique name, if non is given the name of the group appended with
+            'runner', 'runner_1', etc. will be used. If a name is given
+            explicitly, it will be used as given (i.e. the group name will not
+            be prepended automatically).
         '''
+        when = Scheduler(when)
+        if not when.defined_clock:
+            when.clock = self.clock
 
-        abstract_code_cond = '_cond = '+cond
-        abstract_code = variable.name + ' = ' + code
-        namespace = get_local_namespace(level + 1)
-        additional_namespace = ('implicit-namespace', namespace)
-        check_code_units(abstract_code_cond, self,
-                         additional_namespace=additional_namespace)
-        # TODO: Have an additional argument to avoid going through the index
-        # array for situations where iterate_all could be used
-        codeobj = create_runner_codeobj(self,
-                                 {'condition': abstract_code_cond, 'statement': abstract_code},
-                                 'group_variable_set_conditional',
-                                 additional_namespace=additional_namespace,
-                                 check_units=check_units)
-        codeobj()
+        if name is None:
+            name = self.name + '_runner*'
+
+        runner = CodeRunner(self, 'stateupdate', code=code, name=name,
+                            when=when)
+        return runner
 
 
-def check_code_units(code, group, additional_variables=None,
-                     additional_namespace=None,
-                     ignore_keyerrors=False):
-    '''
-    Check statements for correct units.
-
-    Parameters
-    ----------
-    code : str
-        The series of statements to check
-    group : `Group`
-        The context for the code execution
-    additional_variables : dict-like, optional
-        A mapping of names to `Variable` objects, used in addition to the
-        variables saved in `self.group`.
-    additional_namespace : dict-like, optional
-        An additional namespace, as provided to `Group.before_run`
-    ignore_keyerrors : boolean, optional
-        Whether to silently ignore unresolvable identifiers. Should be set
-        to ``False`` (the default) if the namespace is expected to be
-        complete (e.g. in `Group.before_run`) but to ``True`` when the check
-        is done during object initialisation where the namespace is not
-        necessarily complete yet.
-
-    Raises
-    ------
-    DimensionMismatchError
-        If `code` has unit mismatches
-    '''
-    all_variables = dict(group.variables)
-    if additional_variables is not None:
-        all_variables.update(additional_variables)
-
-    # Resolve the namespace, resulting in a dictionary containing only the
-    # external variables that are needed by the code -- keep the units for
-    # the unit checks
-    # Note that here we do not need to recursively descend into
-    # subexpressions. For unit checking, we only need to know the units of
-    # the subexpressions not what variables they refer to
-    _, _, unknown = analyse_identifiers(code, all_variables)
-    try:
-        resolved_namespace = group.namespace.resolve_all(unknown,
-                                                         additional_namespace,
-                                                         strip_units=False)
-    except KeyError as ex:
-        if ignore_keyerrors:
-            logger.debug('Namespace not complete (yet), ignoring: %s ' % str(ex),
-                         'check_code_units')
-            return
-        else:
-            raise KeyError('Error occured when checking "%s": %s' % (code,
-                                                                     str(ex)))
-
-    check_units_statements(code, resolved_namespace, all_variables)
-
-
-def create_runner_codeobj(group, code, template_name,
-                          variable_indices=None,
-                          name=None, check_units=True,
-                          needed_variables=None,
-                          additional_variables=None,
-                          additional_namespace=None,
-                          template_kwds=None):
-    ''' Create a `CodeObject` for the execution of code in the context of a
-    `Group`.
-
-    Parameters
-    ----------
-    group : `Group`
-        The group where the code is to be run
-    code : str
-        The code to be executed.
-    template_name : str
-        The name of the template to use for the code.
-    variable_indices : dict-like, optional
-        A mapping from `Variable` objects to index names (strings).  If none is
-        given, uses the corresponding attribute of `group`.
-    name : str, optional
-        A name for this code object, will use ``group + '_codeobject*'`` if
-        none is given.
-    check_units : bool, optional
-        Whether to check units in the statement. Defaults to ``True``.
-    needed_variables: list of str, optional
-        A list of variables that are neither present in the abstract code, nor
-        in the ``USES_VARIABLES`` statement in the template. This is only
-        rarely necessary, an exception being a `StateMonitor` where the
-        names of the variables are neither known to the template nor included
-        in the abstract code statements.
-    additional_variables : dict-like, optional
-        A mapping of names to `Variable` objects, used in addition to the
-        variables saved in `group`.
-    additional_namespace : dict-like, optional
-        A mapping from names to objects, used in addition to the namespace
-        saved in `group`.
-    template_kwds : dict, optional
-        A dictionary of additional information that is passed to the template.
-    '''
-    logger.debug('Creating code object for abstract code:\n' + str(code))
-
-    if check_units:
-        if isinstance(code, dict):
-            for c in code.values():
-                check_code_units(c, group,
-                                 additional_variables=additional_variables,
-                                 additional_namespace=additional_namespace)
-        else:
-            check_code_units(code, group,
-                             additional_variables=additional_variables,
-                             additional_namespace=additional_namespace)
-
-    codeobj_class = get_device().code_object_class(group.codeobj_class)
-    template = getattr(codeobj_class.templater, template_name)
-
-    all_variables = dict(group.variables)
-    if additional_variables is not None:
-        all_variables.update(additional_variables)
-        
-    # Determine the identifiers that were used
-    if isinstance(code, dict):
-        used_known = set()
-        unknown = set()
-        for v in code.values():
-            _, uk, u = analyse_identifiers(v, all_variables, recursive=True)
-            used_known |= uk
-            unknown |= u
-    else:
-        _, used_known, unknown = analyse_identifiers(code, all_variables,
-                                                     recursive=True)
-
-    logger.debug('Unknown identifiers in the abstract code: ' + str(unknown))
-
-    # Only pass the variables that are actually used
-    variables = {}
-    for var in used_known:
-        if not isinstance(all_variables[var], StochasticVariable):
-            variables[var] = all_variables[var]
-
-    resolved_namespace = group.namespace.resolve_all(unknown,
-                                                     additional_namespace)
-
-    # Add variables that are not in the abstract code, nor specified in the
-    # template but nevertheless necessary
-    if needed_variables is None:
-        needed_variables = []
-    for var in needed_variables:
-        variables[var] = all_variables[var]
-
-    # Also add the variables that the template needs
-    for var in template.variables:
-        try:
-            variables[var] = all_variables[var]
-        except KeyError as ex:
-            # We abuse template.variables here to also store names of things
-            # from the namespace (e.g. rand) that are needed
-            # TODO: Improve all of this namespace/specifier handling
-            if group is not None:
-                # Try to find the name in the group's namespace
-                resolved_namespace[var] = group.namespace.resolve(var,
-                                                                  additional_namespace)
-            else:
-                raise ex
-
-    # always add N, the number of neurons or synapses
-    variables['N'] = all_variables['N']
-
-    if name is None:
-        if group is not None:
-            name = '%s_%s_codeobject*' % (group.name, template_name) 
-        else:
-            name = '%s_codeobject*' % template_name
-
-    all_variable_indices = copy.copy(group.variable_indices)
-    if variable_indices is not None:
-        all_variable_indices.update(variable_indices)
-
-    # Add the indices needed by the variables
-    varnames = variables.keys()
-    for varname in varnames:
-        var_index = all_variable_indices[varname]
-        if var_index != '_idx':
-            variables[var_index] = all_variables[var_index]
-
-    return get_device().code_object(
-                             group,
-                             name,
-                             code,
-                             resolved_namespace,
-                             variables,
-                             template_name,
-                             variable_indices=all_variable_indices,
-                             template_kwds=template_kwds,
-                             codeobj_class=group.codeobj_class)
-
-
-class GroupCodeRunner(BrianObject):
+class CodeRunner(BrianObject):
     '''
     A "runner" that runs a `CodeObject` every timestep and keeps a reference to
     the `Group`. Used in `NeuronGroup` for `Thresholder`, `Resetter` and
@@ -505,42 +688,61 @@ class GroupCodeRunner(BrianObject):
         values)
     template_kwds : dict, optional
         A dictionary of additional information that is passed to the template.
+    needed_variables: list of str, optional
+        A list of variables that are neither present in the abstract code, nor
+        in the ``USES_VARIABLES`` statement in the template. This is only
+        rarely necessary, an example being a `StateMonitor` where the
+        names of the variables are neither known to the template nor included
+        in the abstract code statements.
+    override_conditional_write: list of str, optional
+        A list of variable names which are used as conditions (e.g. for
+        refractoriness) which should be ignored.
     '''
-    def __init__(self, group, template, code=None, when=None,
-                 name='coderunner*', check_units=True, template_kwds=None):
+    add_to_magic_network = True
+    invalidates_magic_network = True
+    def __init__(self, group, template, code='', when=None,
+                 name='coderunner*', check_units=True, template_kwds=None,
+                 needed_variables=None, override_conditional_write=None,
+                 ):
         BrianObject.__init__(self, when=when, name=name)
         self.group = weakref.proxy(group)
         self.template = template
         self.abstract_code = code
         self.check_units = check_units
+        if needed_variables is None:
+            needed_variables = []
+        self.needed_variables = needed_variables
         self.template_kwds = template_kwds
+        self.override_conditional_write = override_conditional_write
     
-    def update_abstract_code(self):
+    def update_abstract_code(self, run_namespace=None, level=0):
         '''
         Update the abstract code for the code object. Will be called in
-        `before_run` and should update the `GroupCodeRunner.abstract_code`
+        `before_run` and should update the `CodeRunner.abstract_code`
         attribute.
         
         Does nothing by default.
         '''
         pass
 
-    def before_run(self, namespace):
-        self.update_abstract_code()
-        # If the GroupCodeRunner has variables, add them
+    def before_run(self, run_namespace=None, level=0):
+        self.update_abstract_code(run_namespace=run_namespace, level=level+1)
+        # If the CodeRunner has variables, add them
         if hasattr(self, 'variables'):
             additional_variables = self.variables
         else:
             additional_variables = None
-        if self.check_units:
-            check_code_units(self.abstract_code, self.group,
-                             additional_variables, namespace)
-        self.codeobj = create_runner_codeobj(self.group, self.abstract_code,
-                                             self.template,
+
+        self.codeobj = create_runner_codeobj(group=self.group,
+                                             code=self.abstract_code,
+                                             template_name=self.template,
                                              name=self.name+'_codeobject*',
                                              check_units=self.check_units,
                                              additional_variables=additional_variables,
-                                             additional_namespace=namespace,
-                                             template_kwds=self.template_kwds)
+                                             needed_variables=self.needed_variables,
+                                             run_namespace=run_namespace,
+                                             level=level+1,
+                                             template_kwds=self.template_kwds,
+                                             override_conditional_write=self.override_conditional_write,
+                                             )
         self.code_objects[:] = [weakref.proxy(self.codeobj)]
-        self.updaters[:] = [self.codeobj.get_updater()]

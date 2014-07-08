@@ -173,8 +173,6 @@ class DynamicArray1D(DynamicArray):
     '''
     def resize(self, newshape):
         shape, = self.shape # we work with int shapes only
-        if newshape<=shape:
-            return
         datashape, = self._data.shape
         if newshape>datashape:
             newdatashape = max(newshape, int(shape*self.factor)+1)

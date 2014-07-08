@@ -1,6 +1,9 @@
+import uuid
+import re
+
 from brian2.utils.logger import get_logger
 from brian2.core.tracking import Trackable
-import re
+
 
 __all__ = ['Nameable']
 
@@ -46,7 +49,11 @@ class Nameable(Trackable):
     name : str
         An name for the object, possibly ending in ``*`` to specify that
         variants of this name should be tried if the name (without the asterisk)
-        is already taken.
+        is already taken. If (and only if) the name for this object has already
+        been set, it is also possible to call the initialiser with ``None`` for
+        the `name` argument. This situation can arise when a class derives from
+        multiple classes that derive themselves from `Nameable` (e.g. `Group`
+        and `CodeRunner`) and their initialisers are called explicitely.
         
     Raises
     ------
@@ -54,6 +61,11 @@ class Nameable(Trackable):
         If the name is already taken.
     '''    
     def __init__(self, name):
+        if getattr(self, '_name', None) is not None and name is None:
+            # name has already been specified previously
+            return
+
+        self._id = uuid.uuid4()
         if not isinstance(name, basestring):
             raise TypeError(('"name" argument has to be a string, is type '
                              '{type} instead').format(type=repr(type(name))))
@@ -71,6 +83,16 @@ class Nameable(Trackable):
                         variable name, i.e. starting with a letter
                         character and followed by alphanumeric characters and
                         ``_``.
+                        ''')
+
+    id = property(fget=lambda self:self._id,
+                    doc='''
+                        A unique id for this object.
+
+                        In contrast to names, which may be reused, the id stays
+                        unique. This is used in the dependency checking to not
+                        have to deal with the chore of comparing weak
+                        references, weak proxies and strong references.
                         ''')
 
     

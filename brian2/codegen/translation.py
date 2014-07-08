@@ -17,17 +17,19 @@ The input information needed:
 import re
 import collections
 
-from numpy import float64
+import numpy as np
 
 from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
+from brian2.core.functions import Function
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
                                       get_identifiers, word_substitute)
+from brian2.utils.topsort import topsort
 from brian2.parsing.statements import parse_statement
 
 from .statements import Statement
 
 
-__all__ = ['translate', 'make_statements', 'analyse_identifiers',
+__all__ = ['make_statements', 'analyse_identifiers',
            'get_identifiers_recursively']
 
 DEBUG = False
@@ -83,30 +85,48 @@ def analyse_identifiers(code, variables, recursive=False):
                     if not isinstance(k, AuxiliaryVariable))
     else:
         known = set(variables)
-        variables = dict((k, Variable(unit=None)) for k in known)
+        variables = dict((k, Variable(unit=None, name=k,
+                                      dtype=np.float64))
+                         for k in known)
 
     known |= STANDARD_IDENTIFIERS
-    stmts = make_statements(code, variables, float64)
+    stmts = make_statements(code, variables, np.float64)
     defined = set(stmt.var for stmt in stmts if stmt.op==':=')
-    if recursive:
+    if len(stmts) == 0:
+        allids = set()
+    elif recursive:
         if not isinstance(variables, collections.Mapping):
             raise TypeError('Have to specify a variables dictionary.')
-        allids = get_identifiers_recursively(code, variables)
+        allids = get_identifiers_recursively([stmt.expr for stmt in stmts],
+                                             variables) | set([stmt.var
+                                                               for stmt in stmts])
     else:
-        allids = get_identifiers(code)
+        allids = set.union(*[get_identifiers(stmt.expr)
+                             for stmt in stmts]) | set([stmt.var for stmt in stmts])
     dependent = allids.difference(defined, known)
     used_known = allids.intersection(known) - STANDARD_IDENTIFIERS
     return defined, used_known, dependent
 
 
-def get_identifiers_recursively(expr, variables):
+def get_identifiers_recursively(expressions, variables):
     '''
-    Gets all the identifiers in a code, recursing down into subexpressions.
+    Gets all the identifiers in a list of expressions, recursing down into
+    subexpressions.
+
+    Parameters
+    ----------
+    expressions : list of str
+        List of expressions to check.
+    variables : dict-like
+        Dictionary of `Variable` objects
     '''
-    identifiers = get_identifiers(expr)
+    if len(expressions):
+        identifiers = set.union(*[get_identifiers(expr) for expr in expressions])
+    else:
+        identifiers = set()
     for name in set(identifiers):
         if name in variables and isinstance(variables[name], Subexpression):
-            s_identifiers = get_identifiers_recursively(translate_subexpression(variables[name], variables),
+            s_identifiers = get_identifiers_recursively([variables[name].expr],
                                                         variables)
             identifiers |= s_identifiers
     return identifiers
@@ -126,26 +146,51 @@ def make_statements(code, variables, dtype):
     if DEBUG:
         print 'INPUT CODE:'
         print code
-    dtypes = dict((name, var.dtype) for name, var in variables.iteritems())
+    dtypes = dict((name, var.dtype) for name, var in variables.iteritems()
+                  if not isinstance(var, Function))
     # we will do inference to work out which lines are := and which are =
     defined = set(k for k, v in variables.iteritems()
                   if not isinstance(v, AuxiliaryVariable))
-
+    scalars = set(k for k,v in variables.iteritems()
+                  if getattr(v, 'scalar', False))
     for line in lines:
         # parse statement into "var op expr"
-        var, op, expr = parse_statement(line.code)
-        if op=='=' and var not in defined:
-            op = ':='
-            defined.add(var)
-            if var not in dtypes:
-                dtypes[var] = dtype
-        statement = Statement(var, op, expr, dtypes[var])
+        var, op, expr, comment = parse_statement(line.code)
+        if op=='=':
+            if var not in defined:
+                op = ':='
+                defined.add(var)
+                if var not in dtypes:
+                    dtypes[var] = dtype
+                # determine whether this is a scalar variable
+                identifiers = get_identifiers_recursively([expr], variables)
+                # In the following we assume that all unknown identifiers are
+                # scalar constants -- this should cover numerical literals and
+                # e.g. "True" or "inf".
+                is_scalar = all((name in scalars) or not (name in defined)
+                                for name in identifiers)
+                if is_scalar:
+                    scalars.add(var)
+
+        statement = Statement(var, op, expr, comment, dtype=dtypes[var], scalar=var in scalars)
         line.statement = statement
         # for each line will give the variable being written to
         line.write = var 
         # each line will give a set of variables which are read
-        line.read = get_identifiers_recursively(expr, variables)
-        
+        line.read = get_identifiers_recursively([expr], variables)
+
+    # All writes to scalar variables must happen before writes to vector
+    # variables
+    scalar_write_done = False
+    for line in lines:
+        stmt = line.statement
+        if stmt.op != ':=' and stmt.var in scalars and scalar_write_done:
+            raise SyntaxError(('All writes to scalar variables in a code block '
+                               'have to be made before writes to vector '
+                               'variables. Illegal write to %s.') % line.write)
+        elif not stmt.var in scalars:
+            scalar_write_done = True
+
     if DEBUG:
         print 'PARSED STATEMENTS:'
         for line in lines:
@@ -154,6 +199,7 @@ def make_statements(code, variables, dtype):
     # all variables which are written to at some point in the code block
     # used to determine whether they should be const or not
     all_write = set(line.write for line in lines)
+
     if DEBUG:
         print 'ALL WRITE:', all_write
         
@@ -181,10 +227,12 @@ def make_statements(code, variables, dtype):
     # of the variables appearing in it has changed). All subexpressions start
     # as invalid, and are invalidated whenever one of the variables appearing
     # in the RHS changes value.
-    #subexpressions = get_all_subexpressions()
     subexpressions = dict((name, val) for name, val in variables.items() if isinstance(val, Subexpression))
-
-    subexpressions = translate_subexpressions(subexpressions, variables)
+    # sort subexpressions into an order so that subexpressions that don't depend
+    # on other subexpressions are first
+    subexpr_deps = dict((name, [dep for dep in subexpr.identifiers if dep in subexpressions]) for \
+                                                            name, subexpr in subexpressions.items())
+    sorted_subexpr_vars = topsort(subexpr_deps)
 
     if DEBUG:
         print 'SUBEXPRESSIONS:', subexpressions.keys()
@@ -201,9 +249,14 @@ def make_statements(code, variables, dtype):
         will_write = line.will_write
         # check that all subexpressions in expr are valid, and if not
         # add a definition/set its value, and set it to be valid
-        for var in read:
+        # scan through in sorted order so that recursive subexpression dependencies
+        # are handled in the right order
+        for var in sorted_subexpr_vars:
+            if var not in read:
+                continue
             # if subexpression, and invalid
             if not valid.get(var, True): # all non-subexpressions are valid
+                subexpression = subexpressions[var]
                 # if already defined/declared
                 if subdefined[var]:
                     op = '='
@@ -216,23 +269,33 @@ def make_statements(code, variables, dtype):
                     constant = var not in will_write
                     # check all subvariables are not written to again as well
                     if constant:
-                        ids = subexpressions[var].identifiers
+                        ids = subexpression.identifiers
                         constant = all(v not in will_write for v in ids)
                 valid[var] = True
-                statement = Statement(var, op, subexpressions[var].expr,
-                                      variables[var].dtype, constant=constant,
-                                      subexpression=True)
+                statement = Statement(var, op, subexpression.expr, comment='',
+                                      dtype=variables[var].dtype,
+                                      constant=constant,
+                                      subexpression=True, scalar=var in scalars)
                 statements.append(statement)
-        var, op, expr = stmt.var, stmt.op, stmt.expr
-        # invalidate any subexpressions including var
-        for subvar, spec in subexpressions.items():
-            if var in spec.identifiers:
+        var, op, expr, comment = stmt.var, stmt.op, stmt.expr, stmt.comment
+        # invalidate any subexpressions including var, recursively
+        # we do this by having a set of variables that are invalid that we
+        # start with the changed var and increase by any subexpressions we
+        # find that have a dependency on something in the invalid set. We
+        # go through in sorted subexpression order so that the invalid set
+        # is increased in the right order
+        invalid = set([var])
+        for subvar in sorted_subexpr_vars:
+            spec = subexpressions[subvar]
+            spec_ids = set(spec.identifiers)
+            if spec_ids.intersection(invalid):
                 valid[subvar] = False
+                invalid.add(subvar)
         # constant only if we are declaring a new variable and we will not
         # write to it again
         constant = op==':=' and var not in will_write
-        statement = Statement(var, op, expr, dtypes[var],
-                              constant=constant)
+        statement = Statement(var, op, expr, comment, dtype=dtypes[var],
+                              constant=constant, scalar=var in scalars)
         statements.append(statement)
 
     if DEBUG:
@@ -242,66 +305,3 @@ def make_statements(code, variables, dtype):
 
     return statements
 
-
-def translate_subexpression(subexpr, variables):
-    substitutions = {}
-    for name in get_identifiers(subexpr.expr):
-        if name not in subexpr.group.variables:
-            # Seems to be a name referring to an external variable,
-            # nothing to do
-            continue
-        subexpr_var = subexpr.group.variables[name]
-        if name in variables and variables[name] is subexpr_var:
-            # Variable is available under the same name, nothing to do
-            continue
-
-        # The variable is not available under the same name, but maybe
-        # under a different name (e.g. x_post instead of x)
-        found_variable = False
-        for varname, variable in variables.iteritems():
-            if variable is subexpr_var:
-                # We found it
-                substitutions[name] = varname
-                found_variable = True
-                break
-        if not found_variable:
-            raise KeyError(('Variable %s, referred to by the subexpression '
-                            '%s, is not available in this '
-                            'context.') % (name, subexpr.name))
-    new_expr = word_substitute(subexpr.expr, substitutions)
-    return new_expr
-
-
-def translate_subexpressions(subexpressions, variables):
-    new_subexpressions = {}
-    for subexpr_name, subexpr in subexpressions.iteritems():
-        new_expr = translate_subexpression(subexpr, variables)
-        new_subexpressions[subexpr_name] = Subexpression(subexpr.name,
-                                                         subexpr.unit,
-                                                         expr=new_expr,
-                                                         group=subexpr.group,
-                                                         dtype=subexpr.dtype,
-                                                         is_bool=subexpr.is_bool)
-
-    subexpressions.update(new_subexpressions)
-    return subexpressions
-
-def translate(code, variables, namespace, dtype, codeobj_class,
-              variable_indices, iterate_all):
-    '''
-    Translates an abstract code block into the target language.
-
-    TODO
-    
-    Returns a multi-line string.
-    '''
-    if isinstance(code, dict):
-        statements = {}
-        for ac_name, ac_code in code.iteritems():
-            statements[ac_name] = make_statements(ac_code, variables, dtype)
-    else:
-        statements = make_statements(code, variables, dtype)
-    language = codeobj_class.language
-    return language.translate_statement_sequence(statements, variables,
-                                                 namespace, variable_indices,
-                                                 iterate_all, codeobj_class)

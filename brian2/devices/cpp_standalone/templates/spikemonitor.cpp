@@ -1,59 +1,27 @@
-////////////////////////////////////////////////////////////////////////////
-//// MAIN CODE /////////////////////////////////////////////////////////////
+{% extends 'common_group.cpp' %}
 
-{% macro cpp_file() %}
-
-#include "{{codeobj_name}}.h"
-#include<math.h>
-#include<stdint.h>
-#include "brianlib/common_math.h"
-
-////// SUPPORT CODE ///////
-namespace {
-	{% for line in support_code_lines %}
-	{{line}}
-	{% endfor %}
-}
-
-////// HASH DEFINES ///////
-{% for line in hashdefine_lines %}
-{{line}}
-{% endfor %}
-
-{% if variables is defined %}
-{% set _spikespace = variables['_spikespace'].arrayname %}
-{% set _i = '_dynamic'+variables['_i'].arrayname %}
-{% set _t = '_dynamic'+variables['_t'].arrayname %}
-{% endif %}
-
-void _run_{{codeobj_name}}(double t)
-{
-	///// CONSTANTS ///////////
-	%CONSTANTS%
-	///// POINTERS ////////////
-	{% for line in pointers_lines %}
-	{{line}}
-	{% endfor %}
-
+{% block maincode %}
 	//// MAIN CODE ////////////
-	int _num_spikes = {{_spikespace}}[_num_{{_spikespace}}-1];
+    {# USES_VARIABLES { t, i, _clock_t, _spikespace, _count,
+                        _source_start, _source_stop} #}
+	int _num_spikes = {{_spikespace}}[_num_spikespace-1];
     if (_num_spikes > 0)
     {
         int _start_idx = 0;
         int _end_idx = - 1;
-        for(int _i=0; _i<_num_spikes; _i++)
+        for(int _j=0; _j<_num_spikes; _j++)
         {
-            const int _idx = {{_spikespace}}[_i];
+            const int _idx = {{_spikespace}}[_j];
             if (_idx >= _source_start) {
-                _start_idx = _i;
+                _start_idx = _j;
                 break;
             }
         }
-        for(int _i=_start_idx; _i<_num_spikes; _i++)
+        for(int _j=_start_idx; _j<_num_spikes; _j++)
         {
-            const int _idx = {{_spikespace}}[_i];
+            const int _idx = {{_spikespace}}[_j];
             if (_idx >= _source_stop) {
-                _end_idx = _i;
+                _end_idx = _j;
                 break;
             }
         }
@@ -61,27 +29,28 @@ void _run_{{codeobj_name}}(double t)
             _end_idx =_num_spikes;
         _num_spikes = _end_idx - _start_idx;
         if (_num_spikes > 0) {
-        	for(int _i=_start_idx; _i<_end_idx; _i++)
+        	for(int _j=_start_idx; _j<_end_idx; _j++)
         	{
-        		const int _idx = {{_spikespace}}[_i];
-        		{{_i}}.push_back(_idx-_source_start);
-        		{{_t}}.push_back(t);
+        		const int _idx = {{_spikespace}}[_j];
+        		{{_dynamic_i}}.push_back(_idx-_source_start);
+        		{{_dynamic_t}}.push_back(_clock_t);
         	}
         }
     }
+{% endblock %}
+
+{% block extra_functions_cpp %}
+void _debugmsg_{{codeobj_name}}()
+{
+	using namespace brian;
+	std::cout << "Number of spikes: " << {{_dynamic_i}}.size() << endl;
 }
-{% endmacro %}
+{% endblock %}
 
-////////////////////////////////////////////////////////////////////////////
-//// HEADER FILE ///////////////////////////////////////////////////////////
+{% block extra_functions_h %}
+void _debugmsg_{{codeobj_name}}();
+{% endblock %}
 
-{% macro h_file() %}
-#ifndef _INCLUDED_{{codeobj_name}}
-#define _INCLUDED_{{codeobj_name}}
-
-#include "arrays.h"
-
-void _run_{{codeobj_name}}(double t);
-
-#endif
+{% macro main_finalise() %}
+_debugmsg_{{codeobj_name}}();
 {% endmacro %}

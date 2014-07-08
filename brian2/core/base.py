@@ -11,7 +11,7 @@ from brian2.core.names import Nameable
 
 __all__ = ['BrianObject',
            'clear',
-           'Updater',
+           'weakproxy_with_fallback',
            ]
 
 logger = get_logger(__name__)
@@ -55,10 +55,10 @@ class BrianObject(Nameable):
 #        #: The `Clock` determining when the object should be updated.
 #        self.clock = clock
         self._clock = clock
-        
+
+        self._dependencies = set()
         self._contained_objects = []
         self._code_objects = []
-        self._updaters = []
         
         self._active = True
         
@@ -68,25 +68,35 @@ class BrianObject(Nameable):
 
     #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is created or removed
     invalidates_magic_network = True
-    
-    def before_run(self, namespace):
+
+    #: Whether or not the object should be added to a `MagicNetwork`. Note that
+    #: all objects in `BrianObject.contained_objects` are automatically added
+    #: when the parent object is added, therefore e.g. `NeuronGroup` should set
+    #: `add_to_magic_network` to ``True``, but it should not be set for all the
+    #: dependent objects such as `StateUpdater`
+    add_to_magic_network = False
+
+    def add_dependency(self, obj):
         '''
-        Optional method to prepare the object before a run. Receives the 
-        `namespace` in which the object should be run (either the locals/globals
-        or an explicitly defined namespace). This namespace has to be passed
-        as an ``additional_namespace`` argument to calls of
-        `CompoundNamespace.resolve` or `CompoundNamespace.resolve_all`. 
-        
-        Called by `Network.before_run` before the main simulation loop is started.
-        Objects such as `NeuronGroup` will generate internal objects such as
-        state updaters in this method, taking into account changes in the
-        namespace or in constant parameter values.
-        
+        Add an object to the list of dependencies. Takes care of handling
+        subgroups correctly (i.e., adds its parent object).
+
         Parameters
         ----------
-        namespace : (str, dict-like)
-            A (name, namespace) tuple with a description and the namespace in
-            which the `BrianObject` should be executed.
+        obj : `BrianObject`
+            The object that this object depends on.
+        '''
+        from brian2.groups.subgroup import Subgroup
+        if isinstance(obj, Subgroup):
+            self._dependencies.add(obj.source.id)
+        else:
+            self._dependencies.add(obj.id)
+
+    def before_run(self, run_namespace=None, level=0):
+        '''
+        Optional method to prepare the object before a run.
+
+        TODO
         '''
         pass
     
@@ -97,8 +107,12 @@ class BrianObject(Nameable):
         Called by `Network.after_run` after the main simulation loop terminated.
         '''
         pass
-    
-    def reinit(self):
+
+    def run(self):
+        for codeobj in self._code_objects:
+            codeobj()
+
+    def reinit(self, level=0):
         '''
         Reinitialise the object, called by `Network.reinit`.
         '''
@@ -172,37 +186,37 @@ class BrianObject(Nameable):
     # This is a repeat from Nameable.name, but we want to get the documentation
     # here again
     name = Nameable.name
-    
-    
+
+
 def clear(erase=False):
     '''
     Stops all Brian objects from being automatically detected
 
     Stops objects from being tracked by `run` and `reinit`.
     Use this if you are seeing `MagicError` on repeated runs.
-    
+
     Parameters
     ----------
-    
+
     erase : bool, optional
         If set to ``True``, all data attributes of all Brian objects
         will be set to ``None``. This
         can help solve problems with circular references stopping objects
         from being garbage collected, and is a quick way to ensure that all
         memory associated to Brian objects is deleted.
-        
+
     Notes
     -----
-    
+
     Removes the objects from ``BrianObject.__instances__()`` and
     ``Nameable.__instances__()``.
     Will also set the
     `BrianObject.active` flag to ``False`` for already existing `Network`
     objects. Calls a garbage collection on completion.
-    
+
     See ALso
     --------
-    
+
     run, reinit, MagicError
     '''
     if erase:
@@ -218,15 +232,32 @@ def clear(erase=False):
     gc.collect()
 
 
-class Updater(Nameable):
+def weakproxy_with_fallback(obj):
     '''
-    Used to implement runtime behaviour of a `BrianObject`.
-    
-    Defines a `run` method that is called by `Network`.
+    Attempts to create a `weakproxy` to the object, but falls back to the object if not possible.
     '''
-    def __init__(self, owner):
-        self.owner = weakref.proxy(owner)
-        Nameable.__init__(self, owner.name+'_updater*')
-        
-    def run(self):
-        raise NotImplementedError
+    try:
+        return weakref.proxy(obj)
+    except TypeError:
+        return obj
+
+def device_override(name):
+    '''
+    Decorates a function/method to allow it to be overridden by the current `Device`.
+
+    The ``name`` is the function name in the `Device` to use as an override if it exists.
+    '''
+    def device_override_decorator(func):
+        def device_override_decorated_function(*args, **kwds):
+            from brian2.devices.device import get_device
+            curdev = get_device()
+            if hasattr(curdev, name):
+                return getattr(curdev, name)(*args, **kwds)
+            else:
+                return func(*args, **kwds)
+
+        device_override_decorated_function.__doc__ = func.__doc__
+
+        return device_override_decorated_function
+
+    return device_override_decorator

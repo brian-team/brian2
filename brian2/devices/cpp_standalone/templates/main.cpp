@@ -1,25 +1,33 @@
-#include "arrays.h"
+#include<stdlib.h>
+#include "objects.h"
 #include<ctime>
+#include "run.h"
 
 {% for codeobj in code_objects %}
-#include "{{codeobj.name}}.h"
+#include "code_objects/{{codeobj.name}}.h"
+{% endfor %}
+
+{% for name in additional_headers %}
+#include "{{name}}"
 {% endfor %}
 
 #include<iostream>
-using namespace std;
 
-int main(void)
+int main(int argc, char **argv)
 {
-	clock_t start = clock();
-	_init_arrays();
-	const double dt = {{dt}};
-	double t = 0.0;
-	{% for main_line in main_lines %}
-	{{ main_line }}
-	{% endfor %}
-	cout << "Num spikes: " << _dynamic_array_spikemonitor__i.size() << endl;
-	double duration = (clock()-start)/(double)CLOCKS_PER_SEC;
-	cout << "Time: " << duration << endl;
-	_dealloc_arrays();
+	std::clock_t start = std::clock();
+
+	brian_start();
+
+	{
+		using namespace brian;
+        {{main_lines|autoindent}}
+	}
+
+	double _run_duration = (std::clock()-start)/(double)CLOCKS_PER_SEC;
+	std::cout << "Simulation time: " << _run_duration << endl;
+
+	brian_end();
+
 	return 0;
 }

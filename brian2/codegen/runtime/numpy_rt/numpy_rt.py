@@ -5,12 +5,13 @@ import numpy as np
 
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
-                                   AttributeVariable)
+                                   AttributeVariable, AuxiliaryVariable,
+                                   Subexpression)
 
 from ...codeobject import CodeObject
 
 from ...templates import Templater
-from ...languages.numpy_lang import NumpyLanguage
+from ...generators.numpy_generator import NumpyCodeGenerator
 from ...targets import codegen_targets
 
 __all__ = ['NumpyCodeObject']
@@ -36,14 +37,17 @@ class NumpyCodeObject(CodeObject):
     Default for Brian because it works on all platforms.
     '''
     templater = Templater('brian2.codegen.runtime.numpy_rt')
-    language = NumpyLanguage()
+    generator_class = NumpyCodeGenerator
     class_name = 'numpy'
 
-    def __init__(self, owner, code, namespace, variables, name='numpy_code_object*'):
-        # TODO: This should maybe go somewhere else
-        namespace['logical_not'] = np.logical_not
-        CodeObject.__init__(self, owner, code, namespace, variables, name=name)
-        namespace['_owner'] = self.owner
+    def __init__(self, owner, code, variables, name='numpy_code_object*'):
+        from brian2.devices.device import get_device
+        self.device = get_device()
+        self.namespace = {'_owner': owner,
+                          # TODO: This should maybe go somewhere else
+                          'logical_not': np.logical_not}
+        CodeObject.__init__(self, owner, code, variables, name=name)
+        self.variables_to_namespace()
 
     def variables_to_namespace(self):
         # Variables can refer to values that are either constant (e.g. dt)
@@ -55,18 +59,26 @@ class NumpyCodeObject(CodeObject):
         self.nonconstant_values = []
 
         for name, var in self.variables.iteritems():
-            try:
-                value = var.get_value()
-            except TypeError:  # A dummy Variable without value or a Subexpression
+            if isinstance(var, (AuxiliaryVariable, Subexpression)):
                 continue
 
-            self.namespace[name] = value
+            try:
+                value = var.get_value()
+            except (TypeError, AttributeError):
+                # A dummy Variable without value or a function
+                self.namespace[name] = var
+                continue
 
             if isinstance(var, ArrayVariable):
-                self.namespace[var.arrayname] = value
+                self.namespace[self.generator_class.get_array_name(var)] = value
+            else:
+                self.namespace[name] = value
 
             if isinstance(var, DynamicArrayVariable):
-                self.namespace[var.name+'_object'] = var.get_object()
+                dyn_array_name = self.generator_class.get_array_name(var,
+                                                                    access_data=False)
+                self.namespace[dyn_array_name] = self.device.get_value(var,
+                                                                       access_data=False)
 
             # There are two kinds of objects that we have to inject into the
             # namespace with their current value at each time step:
@@ -78,7 +90,8 @@ class NumpyCodeObject(CodeObject):
                 self.nonconstant_values.append((name, var.get_value))
             elif (isinstance(var, DynamicArrayVariable) and
                   not var.constant_size):
-                self.nonconstant_values.append((var.arrayname,
+                self.nonconstant_values.append((self.generator_class.get_array_name(var,
+                                                                                   self.variables),
                                                 var.get_value))
 
     def update_namespace(self):

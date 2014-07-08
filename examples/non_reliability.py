@@ -7,7 +7,6 @@ Here: a constant current is injected in all trials.
 
 R. Brette
 '''
-from pylab import *
 from brian2 import *
 
 #brian_prefs.codegen.target = 'weave'

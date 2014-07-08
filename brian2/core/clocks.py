@@ -4,7 +4,7 @@ Clocks for the simulator.
 
 __docformat__ = "restructuredtext en"
 
-from numpy import ceil 
+import numpy as np
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
@@ -41,11 +41,14 @@ class Clock(Nameable):
     
     @check_units(dt=second)
     def __init__(self, dt=0.1*msecond, name='clock*'):
-        self._dt = float(dt)
-        self.i = 0  #: The time step of the simulation as an integer.
-        self.i_end = 0  #: The time step the simulation will end as an integer
+        self._force_reinit(dt=dt)
         Nameable.__init__(self, name=name)
         logger.debug("Created clock {self.name} with dt={self._dt}".format(self=self))
+        
+    def _force_reinit(self, dt=0.1*msecond):
+        self._dt = float(dt)
+        self.i = np.uint64(0)  #: The time step of the simulation as an integer.
+        self.i_end = np.uint64(0)  #: The time step the simulation will end as an integer
 
     def reinit(self):
         '''
@@ -67,14 +70,14 @@ class Clock(Nameable):
 
     @check_units(t=second)
     def _set_t(self, t):
-        self.i = int(float(t) / self.dt_)
+        self.i = np.uint64(float(t) / self.dt_)
 
     def _set_t_(self, t):
-        self.i = int(t/self.dt_)
+        self.i = np.uint64(t/self.dt_)
 
     @check_units(end=second)
     def _set_t_end(self, end):
-        self.i_end = int(float(end) / self.dt_)
+        self.i_end = np.uint64(float(end) / self.dt_)
         
     def _get_dt_(self):
         return self._dt
@@ -97,7 +100,7 @@ class Clock(Nameable):
     t = property(fget=lambda self: self.i*self.dt_*second,
                  fset=_set_t,
                  doc='The simulation time in seconds')
-    t_ = property(fget=lambda self: self.i*self.dt_,
+    t_ = property(fget=lambda self: float(self.i*self.dt_),
                   fset=_set_t_,
                   doc='The simulation time as a float (in seconds)')
     t_end = property(fget=lambda self: self.i_end*self.dt_*second,
@@ -117,18 +120,18 @@ class Clock(Nameable):
         '''
         start = float(start)
         end = float(end)
-        i_start = int(round(start/self.dt_))
+        i_start = np.uint64(np.round(start/self.dt_))
         t_start = i_start*self.dt_
-        if t_start==start or abs(t_start-start)<=self.epsilon*abs(t_start):
+        if t_start==start or np.abs(t_start-start)<=self.epsilon*np.abs(t_start):
             self.i = i_start
         else:
-            self.i = int(ceil(start/self.dt_))
-        i_end = int(round(end/self.dt_))
+            self.i = np.uint64(np.ceil(start/self.dt_))
+        i_end = np.uint64(np.round(end/self.dt_))
         t_end = i_end*self.dt_
-        if t_end==end or abs(t_end-end)<=self.epsilon*abs(t_end):
+        if t_end==end or np.abs(t_end-end)<=self.epsilon*np.abs(t_end):
             self.i_end = i_end
         else:
-            self.i_end = int(ceil(end/self.dt_))
+            self.i_end = np.uint64(np.ceil(end/self.dt_))
 
     @property
     def running(self):

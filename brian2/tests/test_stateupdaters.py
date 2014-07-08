@@ -50,6 +50,46 @@ def test_str_repr():
         assert len(repr(integrator))
 
 
+def test_temporary_variables():
+    '''
+    Make sure that the code does the distinction between temporary variables
+    in the state updater description and external variables used in the
+    equations.
+    '''
+    # Use a variable name that is used in the state updater description
+    k_2 = 5
+    eqs = Equations('dv/dt = -(v + k_2)/(10*ms) : 1')
+    converted = rk4(eqs)
+
+    # Use a non-problematic name
+    k_var = 5
+    eqs = Equations('dv/dt = -(v + k_var)/(10*ms) : 1')
+    converted2 = rk4(eqs)
+
+    # Make sure that the two formulations result in the same code
+    assert converted == converted2.replace('k_var', 'k_2')
+
+
+def test_temporary_variables2():
+    '''
+    Make sure that the code does the distinction between temporary variables
+    in the state updater description and external variables used in the
+    equations.
+    '''
+    tau = 10*ms
+    # Use a variable name that is used in the state updater description
+    k = 5
+    eqs = Equations('dv/dt = -v/tau + k*xi*tau**-0.5: 1')
+    converted = milstein(eqs)
+
+    # Use a non-problematic name
+    k_var = 5
+    eqs = Equations('dv/dt = -v/tau + k_var*xi*tau**-0.5: 1')
+    converted2 = milstein(eqs)
+
+    # Make sure that the two formulations result in the same code
+    assert converted == converted2.replace('k_var', 'k')
+
 def test_integrator_code():
     '''
     Check whether the returned abstract code is as expected.
@@ -82,6 +122,30 @@ def test_integrator_code():
             assert code_var == code_v
 
 
+def test_integrator_code2():
+    '''
+    Test integration for a simple model with several state variables.
+    '''
+    eqs = Equations('''
+    dv/dt=(ge+gi-v)/tau : volt
+    dge/dt=-ge/taue : volt
+    dgi/dt=-gi/taui : volt
+    ''')
+    euler_integration = euler(eqs)
+    lines = sorted(euler_integration.split('\n'))
+    # Do a very basic check that the right variables are used in every line
+    for varname, line in zip(['_ge', '_gi', '_v', 'ge', 'gi', 'v'], lines):
+        assert line.startswith(varname + ' = '), 'line "%s" does not start with %s' % (line, varname)
+    for variables, line in zip([['dt', 'ge', 'taue'],
+                                ['dt', 'gi', 'taui'],
+                                ['dt', 'ge', 'gi', 'v', 'tau'],
+                                ['_ge'], ['_gi'], ['_v']],
+                               lines):
+        rhs = line.split('=')[1]
+        for variable in variables:
+            assert variable in rhs, '%s not in RHS: "%s"' % (variable, rhs)
+
+
 def test_priority():
     updater = ExplicitStateUpdater('x_new = x + dt * f(x, t)')
     # Equations that work for the state updater
@@ -89,16 +153,24 @@ def test_priority():
     # Fake clock class
     MyClock = namedtuple('MyClock', ['t_', 'dt_'])
     clock = MyClock(t_=0, dt_=0.0001)
-    variables = {'v': ArrayVariable('v', Unit(1), None, constant=False),
-                  't': AttributeVariable(second, clock, 't_', constant=False),
-                  'dt': AttributeVariable(second, clock, 'dt_', constant=True)}
+    variables = {'v': ArrayVariable(name='name', unit=Unit(1), size=10,
+                                    owner=None, device=None, dtype=np.float64,
+                                    constant=False),
+                  't': AttributeVariable(name='t', unit=second, obj=clock,
+                                         attribute='t_', constant=False,
+                                         dtype=np.float64),
+                  'dt': AttributeVariable(name='dt', unit=second, obj=clock,
+                                          attribute='dt_', constant=True,
+                                          dtype=np.float64)}
     assert updater.can_integrate(eqs, variables)
 
     # Non-constant parameter in the coefficient, linear integration does not
     # work
     eqs = Equations('''dv/dt = -param * v / (10*ms) : 1
                        param : 1''')
-    variables['param'] = ArrayVariable('param', Unit(1), None, constant=False)
+    variables['param'] = ArrayVariable(name='name', unit=Unit(1), owner=None,
+                                       size=10, dtype=np.float64,
+                                       constant=False, device=None)
     assert updater.can_integrate(eqs, variables)
     can_integrate = {linear: False, euler: True, rk2: True, rk4: True, 
                      milstein: True}
@@ -110,7 +182,9 @@ def test_priority():
     # work
     eqs = Equations('''dv/dt = -param * v / (10*ms) : 1
                        param : 1 (constant)''')
-    variables['param'] = ArrayVariable('param', Unit(1), None, constant=True)
+    variables['param'] = ArrayVariable(name='name', unit=Unit(1), owner=None,
+                                       size=10, dtype=np.float64,
+                                       device=None, constant=True)
     assert updater.can_integrate(eqs, variables)
     can_integrate = {linear: True, euler: True, rk2: True, rk4: True, 
                      milstein: True}
@@ -188,17 +262,18 @@ def test_determination():
     
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     # Just make sure that state updaters know about the two state variables
-    variables = {'v': Variable(unit=None), 'w': Variable(unit=None)}
+    variables = {'v': Variable(name='v', unit=None),
+                 'w': Variable(name='w', unit=None)}
     
     # all methods should work for these equations.
     # First, specify them explicitly (using the object)
-    for integrator in (linear, independent, euler, exponential_euler,
+    for integrator in (linear, euler, exponential_euler, #TODO: Removed "independent" here due to the issue in sympy 0.7.4
                        rk2, rk4, milstein):
         with catch_logs() as logs:
             returned = determine_stateupdater(eqs, variables,
                                               method=integrator)
-            assert returned is integrator
-            assert len(logs) == 0
+            assert returned is integrator, 'Expected state updater %s, got %s' % (integrator, returned)
+            assert len(logs) == 0, 'Got %d unexpected warnings: %s' % (len(logs), str([l[2] for l in logs]))
     
     # Equation with multiplicative noise, only milstein should work without
     # a warning
@@ -207,16 +282,16 @@ def test_determination():
         with catch_logs() as logs:
             returned = determine_stateupdater(eqs, variables,
                                               method=integrator)
-            assert returned is integrator
+            assert returned is integrator, 'Expected state updater %s, got %s' % (integrator, returned)
             # We should get a warning here
-            assert len(logs) == 1
+            assert len(logs) == 1, 'Got %d warnings but expected 1: %s' % (len(logs), str([l[2] for l in logs]))
             
     with catch_logs() as logs:
         returned = determine_stateupdater(eqs, variables,
                                           method=milstein)
-        assert returned is milstein
+        assert returned is milstein, 'Expected state updater milstein, got %s' % (integrator, returned)
         # No warning here
-        assert len(logs) == 0
+        assert len(logs) == 0, 'Got %d unexpected warnings: %s' % (len(logs), str([l[2] for l in logs]))
     
     
     # Arbitrary functions (converting equations into abstract code) should
@@ -233,7 +308,7 @@ def test_determination():
     # Specification with names
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     for name, integrator in [('linear', linear), ('euler', euler),
-                             ('independent', independent),
+                             #('independent', independent), #TODO: Removed "independent" here due to the issue in sympy 0.7.4
                              ('exponential_euler', exponential_euler),
                              ('rk2', rk2), ('rk4', rk4),
                              ('milstein', milstein)]:
@@ -291,14 +366,14 @@ def test_determination():
     # reset to state before the test
     StateUpdateMethod.stateupdaters = before
 
-def test_static_equations():
+def test_subexpressions():
     '''
     Make sure that the integration of a (non-stochastic) differential equation
-    does not depend on whether it's formulated using static equations.
+    does not depend on whether it's formulated using subexpressions.
     '''
-    # no static equation
+    # no subexpression
     eqs1 = 'dv/dt = (-v + sin(2*pi*100*Hz*t)) / (10*ms) : 1'
-    # same with static equation
+    # same with subexpression
     eqs2 = '''dv/dt = I / (10*ms) : 1
               I = -v + sin(2*pi*100*Hz*t): 1'''
     
@@ -317,11 +392,73 @@ def test_static_equations():
         assert_equal(mon1.v, mon2.v, 'Results for method %s differed!' % method)
 
 
+def test_locally_constant_check():
+    # The linear state update can handle additive time-dependent functions
+    # (e.g. a TimedArray) but only if it can be safely assumed that the function
+    # is constant over a single time check
+    ta0 = TimedArray(np.array([1]), dt=defaultclock.dt)  # ok
+    ta1 = TimedArray(np.array([1]), dt=2*defaultclock.dt)  # ok
+    ta2 = TimedArray(np.array([1]), dt=defaultclock.dt/2)  # not ok
+    ta3 = TimedArray(np.array([1]), dt=defaultclock.dt*1.5)  # not ok
+
+    for ta_func, ok in zip([ta0, ta1, ta2, ta3], [True, True, False, False]):
+        # additive
+        G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + ta(t)*Hz : 1',
+                        method='linear', namespace={'ta': ta_func})
+        net = Network(G)
+        if ok:
+            # This should work
+            net.run(0*ms)
+        else:
+            # This should not
+            with catch_logs():
+                assert_raises(ValueError, lambda: net.run(0*ms))
+
+        # multiplicative
+        G = NeuronGroup(1, 'dv/dt = -v*ta(t)/(10*ms) : 1',
+                        method='linear', namespace={'ta': ta_func})
+        net = Network(G)
+        if ok:
+            # This should work
+            net.run(0*ms)
+        else:
+            # This should not
+            with catch_logs():
+                assert_raises(ValueError, lambda: net.run(0*ms))
+
+    # If the argument is more than just "t", we cannot guarantee that it is
+    # actually locally constant
+    G = NeuronGroup(1, 'dv/dt = -v*ta(t/2.0)/(10*ms) : 1',
+                        method='linear', namespace={'ta': ta0})
+    net = Network(G)
+    assert_raises(ValueError, lambda: net.run(0*ms))
+
+    # Arbitrary functions are not constant over a time step
+    G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*t)*Hz : 1',
+                    method='linear')
+    net = Network(G)
+    assert_raises(ValueError, lambda: net.run(0*ms))
+
+    # Neither is "t" itself
+    G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + t/second**2 : 1', method='linear')
+    net = Network(G)
+    assert_raises(ValueError, lambda: net.run(0*ms))
+
+    # But if the argument is not referring to t, all should be well
+    G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*5*second)*Hz : 1',
+                    method='linear')
+    net = Network(G)
+    net.run(0*ms)
+
 if __name__ == '__main__':
     test_determination()
     test_explicit_stateupdater_parsing()
     test_str_repr()
+    test_temporary_variables()
+    test_temporary_variables2()
     test_integrator_code()
+    test_integrator_code2()
     test_priority()
     test_registration()
-    test_static_equations()
+    test_subexpressions()
+    test_locally_constant_check()

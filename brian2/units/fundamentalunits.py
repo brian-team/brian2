@@ -134,9 +134,14 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
         # zero is treated as the neutral element, e.g. in the Python sum
         # builtin) or comparisons like 3 * mV == 0 to return False instead of
         # failing # with a DimensionMismatchError. Note that 3*mV == 0*second
-        # or 3*mV == 0*mV/mV is not allowed, though.
+        # is not allowed, though.
         if ((not isinstance(obj1, Quantity) and np.all(obj1 == 0)) or
             (not isinstance(obj2, Quantity) and np.all(obj2 == 0))):
+            return
+
+        # We do another check here, this should allow Brian1 units to pass as
+        # having the same dimensions as a Brian2 unit
+        if dim1 == dim2:
             return
 
         if error_message is None:
@@ -563,7 +568,7 @@ def get_dimensions(obj):
         isinstance(obj, np.ndarray) and not isinstance(obj, Quantity)):
         return DIMENSIONLESS 
     try:
-        return obj.dimensions
+        return obj.dim
     except AttributeError:
         raise TypeError('Object of type %s does not have dimensions' %
                         type(obj))
@@ -839,14 +844,20 @@ class Quantity(np.ndarray, object):
                                              'information between array and '
                                              'dim keyword',
                                              arr.dim, dim)
-        elif not isinstance(arr, np.ndarray):
+        elif hasattr(arr, 'unit'):
+            subarr.dim = arr.unit.dim
+            if not (dim is None) and not (dim is subarr.dim):
+                raise DimensionMismatchError('Conflicting dimension '
+                                             'information between array and '
+                                             'dim keyword',
+                                             arr.dim, dim)
+        elif not isinstance(arr, (np.ndarray, np.number, numbers.Number)):
             # check whether it is an iterable containing Quantity objects
             try:
                 is_quantity = [isinstance(x, Quantity) for x in _flatten(arr)]
             except TypeError:
                 # Not iterable
                 is_quantity = [False]
-
             if len(is_quantity) == 0:
                 # Empty list
                 dim = DIMENSIONLESS
@@ -1451,7 +1462,37 @@ class Quantity(np.ndarray, object):
     mean = wrap_function_keep_dimensions(np.ndarray.mean)
     min = wrap_function_keep_dimensions(np.ndarray.min)
     ptp = wrap_function_keep_dimensions(np.ndarray.ptp)
-    ravel = wrap_function_keep_dimensions(np.ndarray.ravel)
+
+    # To work around an issue in matplotlib 1.3.1 (see
+    # https://github.com/matplotlib/matplotlib/pull/2591), we make `ravel`
+    # return a unitless array and emit a warning explaining the issue.
+    use_matplotlib_units_fix = False
+    try:
+        import matplotlib
+        if matplotlib.__version__ == '1.3.1':
+            use_matplotlib_units_fix = True
+    except ImportError:
+        pass
+
+    if use_matplotlib_units_fix:
+        def ravel(self, *args, **kwds):
+            # Note that we don't use Brian's logging system here as we don't want
+            # the unit system to depend on other parts of Brian
+            warn(('As a workaround for a bug in matplotlib 1.3.1, calling '
+                  '"ravel()" on a quantity will return unit-less values. If you '
+                  'get this warning during plotting, consider removing the units '
+                  'before plotting, e.g. by dividing by the unit. If you are '
+                  'explicitly calling "ravel()", consider using "flatten()" '
+                  'instead.'))
+            return np.asarray(self).ravel(*args, **kwds)
+
+        ravel._arg_units = [None]
+        ravel._return_unit = 1
+        ravel.__name__ = np.ndarray.ravel.__name__
+        ravel.__doc__ = np.ndarray.ravel.__doc__
+    else:
+        ravel = wrap_function_keep_dimensions(np.ndarray.ravel)
+
     round = wrap_function_keep_dimensions(np.ndarray.round)
     std = wrap_function_keep_dimensions(np.ndarray.std)
     sum = wrap_function_keep_dimensions(np.ndarray.sum)
@@ -1461,7 +1502,7 @@ class Quantity(np.ndarray, object):
     any = wrap_function_remove_dimensions(np.ndarray.any)
     nonzero = wrap_function_remove_dimensions(np.ndarray.nonzero)
     argmax = wrap_function_remove_dimensions(np.ndarray.argmax)
-    argmin = wrap_function_remove_dimensions(np.ndarray.argmax)
+    argmin = wrap_function_remove_dimensions(np.ndarray.argmin)
     argsort = wrap_function_remove_dimensions(np.ndarray.argsort)
 
     def fill(self, values): # pylint: disable=C0111

@@ -1,9 +1,6 @@
 Code generation
 ~~~~~~~~~~~~~~~
 
-.. warning:: The information in these pages is slightly out of date now. This documentation will be updated for the
-             beta release of Brian 2.
-
 The following is an outline of how the Brian 2 code generation system works,
 with indicators as to which packages to look at and which bits of code to read
 for a clearer understanding.
@@ -16,16 +13,17 @@ a single `NeuronGroup` object:
 
 - Allocate memory for the state variables.
 
-- Create a namespace object.
-
 - Create `Thresholder`, `Resetter` and `StateUpdater` objects.
 
-  - Collect `Variable` objects from the group and code template.
+  - Determine all the variable and function names used in the respective
+    abstract code blocks and templates
 
-  - Resolve the namespace, i.e. for hierarchical namespace choose just one
-    value for each variable name.
+  - Determine the abstract namespace, i.e. determine a `Variable` or `Function`
+    object for each name.
 
-  - Create a `CodeObject`.
+  - Create a `CodeObject` based on the abstract code, template and abstract
+    namespace. This will generate code in the target language and the namespace
+    in which the code will be executed.
 
 - At runtime, each object calls `CodeObject.__call__` to execute the code.
 
@@ -87,7 +85,7 @@ Abstract code to snippet
 We convert abstract code into a 'snippet', which is a small segment of
 code which is syntactically correct in the target language, although it may
 not be runnable on its own (that's handled by insertion into a 'template'
-later). This is handled by the `Language` object in ``brian2.codegen.languages``.
+later). This is handled by the `CodeGenerator` object in ``brian2.codegen.generators``.
 In the case of converting into python/numpy code this typically doesn't involve
 any changes to the code at all because the original code is in Python
 syntax. For conversion to C++, we have to do some syntactic transformations
@@ -163,15 +161,16 @@ Namespaces
 ----------
 
 In general, a namespace is simply a mapping/dict from names to values. In Brian
-we use the term 'namespace' in two ways. The high level `CompoundNamespace`
-object in ``brian2.core.namespace`` allows the definition of a nested
-hierarchy of named namespaces. The final namespace that code is executed in is a
-simple Python dictionary mapping names to values. Before that final namespace
-is generated, it goes through the process of 'namespace resolution'.
-
-Namespace resolution means creating a simple name to value mapping from a nested
-hierarchy, i.e. selecting which value to use in the case of multiple possibilities,
-and removing the units. See :doc:`equations_namespaces` for more details.
+we use the term 'namespace' in two ways: the high level "abstract namespace"
+maps names to objects based on the `Variables` or `Function` class. In the above
+example, ``v`` maps to an `ArrayVariable` object, ``tau`` to a `Constant`
+object, etc. This namespace has all the information that is needed for checking
+the consistency of units, to determine which variables are boolean or scalar,
+etc. During the `CodeObject` creation, this abstract namespace is converted into
+the final namespace in which the code will be executed. In this namespace, ``v``
+maps to the numpy array storing the state variable values (without units) and
+``tau`` maps to a concrete value (again, without units).
+See :doc:`equations_namespaces` for more details.
 
 Variable
 ----------
@@ -203,19 +202,18 @@ involved in the code generation process.
 	
 	``codegen.functions``
 		Code related to including functions - built-in and user-defined - in generated code.
-	``codegen.languages``
-		Each `Language` is defined in a module here.
+	``codegen.generators``
+		Each `CodeGenerator` is defined in a module here.
 	``codegen.runtime``
 		Each runtime `CodeObject` and its templates are defined in a package here.
 ``core``
-	``core.namespace``
-		The `CompoundNamespace` and namespace resolution are defined here.
 	``core.variables``
 		The `Variable` types are defined here.
 ``equations``
 	Everything related to `Equations`. 
 ``groups``
-	All `NeuronGroup` related stuff is in here.
+	All `Group` related stuff is in here. The `Group.resolve` methods are
+	responsible for determining the abstract namespace.
 ``parsing``
 	Various tools using Python's ``ast`` module to parse user-specified code. Includes syntax
 	translation to various languages in ``parsing.rendering``.

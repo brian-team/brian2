@@ -3,9 +3,7 @@
 {% macro main() %}
 	{{ common.insert_group_preamble() }}
 	{% block maincode %}
-		{% for line in code_lines %}
-		{{line}}
-		{% endfor %}
+    {{vector_code|autoindent}}
 	{% endblock %}
 {% endmacro %}
 

@@ -8,4 +8,8 @@ User's guide
    equations
    refractoriness
    synapses
+   input
+   scheduling
    functions
+   devices
+   brian1hears_bridge

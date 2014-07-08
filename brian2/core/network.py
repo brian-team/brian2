@@ -1,4 +1,4 @@
-import weakref
+import gc
 import time
 
 from brian2.utils.logger import get_logger
@@ -8,7 +8,8 @@ from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second 
 from brian2.core.preferences import brian_prefs
-from brian2.core.namespace import get_local_namespace
+
+from .base import device_override
 
 __all__ = ['Network']
 
@@ -36,11 +37,6 @@ class Network(Nameable):
         `~Network.add`.
     name : str, optional
         An explicit name, if not specified gives an automatically generated name
-    weak_references : bool, optional
-        Whether to only store weak references to the objects (defaults to
-        ``False``), i.e. other references to the objects need to exist to keep
-        them alive. This is used by the magic system, otherwise it would keep
-        all objects alive all the time.
 
     Notes
     -----
@@ -84,19 +80,16 @@ class Network(Nameable):
 
     def __init__(self, *objs, **kwds):
         #: The list of objects in the Network, should not normally be modified
-        #: directly
-        #:
-        #: Stores references or `weakref.proxy` references to the objects
-        #: (depending on `weak_references`)
+        #: directly.
+        #: Note that in a `MagicNetwork`, this attribute only contains the
+        #: objects during a run: it is filled in `before_run` and emptied in
+        #: `after_run`
         self.objects = []
         
         name = kwds.pop('name', 'network*')
 
-        #: Whether the network only stores weak references to the objects
-        self.weak_references = kwds.pop('weak_references', False)
         if kwds:
-            raise TypeError("Only keyword arguments to Network are name "
-                            "and weak_references")
+            raise TypeError("Only keyword argument to Network is 'name'.")
 
         Nameable.__init__(self, name=name)
 
@@ -136,6 +129,12 @@ class Network(Nameable):
 
         raise KeyError('No object with name "%s" found' % key)
 
+    def __contains__(self, item):
+        for obj in self.objects:
+            if obj.name == item:
+                return True
+        return False
+
     def __len__(self):
         return len(self.objects)
 
@@ -156,15 +155,16 @@ class Network(Nameable):
         """
         for obj in objs:
             if isinstance(obj, BrianObject):
-                if self.weak_references and not isinstance(obj,
-                                                           (weakref.ProxyType,
-                                                            weakref.CallableProxyType)):
-                    obj = weakref.proxy(obj)
                 self.objects.append(obj)
                 self.add(obj.contained_objects)
             else:
                 try:
                     for o in obj:
+                        # The following "if" looks silly but avoids an infinite
+                        # recursion if a string is provided as an argument
+                        # (which might occur during testing)
+                        if o is obj:
+                            raise TypeError()
                         self.add(o)
                 except TypeError:
                     raise TypeError("Can only add objects of type BrianObject, "
@@ -184,11 +184,6 @@ class Network(Nameable):
         '''
         for obj in objs:
             if isinstance(obj, BrianObject):
-                if self.weak_references and not isinstance(obj,
-                                                           (weakref.ProxyType,
-                                                            weakref.CallableProxyType)):
-                    obj = weakref.proxy(obj)
-                # note that weakref.proxy(obj) is weakref.proxy(obj) is True
                 self.objects.remove(obj)
                 self.remove(obj.contained_objects)
             else:
@@ -200,14 +195,17 @@ class Network(Nameable):
                                     "BrianObject, or containers of such "
                                     "objects from Network")
 
-    def reinit(self):
+    @device_override('network_reinit')
+    def reinit(self, level=0):
         '''
+        reinit()
+
         Reinitialises all contained objects.
         
         Calls `BrianObject.reinit` on each object.
         '''
         for obj in self.objects:
-            obj.reinit()
+            obj.reinit(level=level+2)
     
     def _get_schedule(self):
         if not hasattr(self, '_schedule'):
@@ -247,13 +245,31 @@ class Network(Nameable):
         '''
         when_to_int = dict((when, i) for i, when in enumerate(self.schedule))
         self.objects.sort(key=lambda obj: (when_to_int[obj.when], obj.order))
-    
-    def before_run(self, namespace):
+
+    def check_dependencies(self):
+        all_ids = [obj.id for obj in self.objects]
+        for obj in self.objects:
+            for dependency in obj._dependencies:
+                if not dependency in all_ids:
+                    raise ValueError(('"%s" has been included in the network '
+                                      'but not the object on which it '
+                                      'depends.') % obj.name)
+
+    @device_override('network_before_run')
+    def before_run(self, run_namespace=None, level=0):
         '''
+        before_run(namespace)
+
         Prepares the `Network` for a run.
         
         Objects in the `Network` are sorted into the correct running order, and
         their `BrianObject.before_run` methods are called.
+
+        Parameters
+        ----------
+        namespace : dict-like, optional
+            A namespace in which objects which do not define their own
+            namespace will be run.
         '''                
         brian_prefs.check_all_validated()
 
@@ -269,9 +285,12 @@ class Network(Nameable):
                         numobj=len(self.objects),
                         objnames=', '.join(obj.name for obj in self.objects)),
                      "before_run")
-        
+
+        self.check_dependencies()
+
         for obj in self.objects:
-            obj.before_run(namespace)
+            if obj.active:
+                obj.before_run(run_namespace, level=level+2)
 
         logger.debug("Network {self.name} has {num} "
                      "clocks: {clocknames}".format(self=self,
@@ -279,9 +298,14 @@ class Network(Nameable):
                         clocknames=', '.join(obj.name for obj in self._clocks)),
                      "before_run")
     
+    @device_override('network_after_run')
     def after_run(self):
+        '''
+        after_run()
+        '''
         for obj in self.objects:
-            obj.after_run()
+            if obj.active:
+                obj.after_run()
         
     def _nextclocks(self):
         minclock = min(self._clocks, key=lambda c: c.t_)
@@ -290,17 +314,17 @@ class Network(Nameable):
                          abs(clock.t_ - minclock.t_)<Clock.epsilon))
         return minclock, curclocks
     
+    @device_override('network_run')
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=60*second,
             namespace=None, level=0):
         '''
-        run(duration, report=None, report_period=60*second)
+        run(duration, report=None, report_period=60*second, namespace=None, level=0)
         
         Runs the simulation for the given duration.
         
         Parameters
         ----------
-        
         duration : `Quantity`
             The amount of simulation time to run for.
         report : {None, 'stdout', 'stderr', 'graphical', function}, optional
@@ -314,26 +338,24 @@ class Network(Nameable):
         report_period : `Quantity`
             How frequently (in real time) to report progress.
         namespace : dict-like, optional
-            A namespace in which objects which do not define their own
-            namespace will be run. If not namespace is given, the locals and
-            globals around the run function will be used. 
+            A namespace that will be used in addition to the group-specific
+            namespaces (if defined). If not specified, the locals
+            and globals around the run function will be used.
         level : int, optional
-            How deep to go down the stack frame to look for the locals/global
+            How deep to go up the stack frame to look for the locals/global
             (see `namespace` argument). Only used by run functions that call
             this run function, e.g. `MagicNetwork.run` to adjust for the
             additional nesting.
+
         Notes
         -----
-        
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
-        
-        if namespace is not None:
-            self.before_run(('explicit-run-namespace', namespace))
-        else:
-            namespace = get_local_namespace(2 + level)
-            self.before_run(('implicit-run-namespace', namespace))
+        # A garbage collection here can be useful to free memory if we have
+        # multiple runs
+        gc.collect()
+        self.before_run(namespace, level=level+3)
 
         if len(self.objects)==0:
             return # TODO: raise an error? warning?
@@ -364,8 +386,7 @@ class Network(Nameable):
                 # update the objects with this clock
             for obj in self.objects:
                 if obj.clock in curclocks and obj.active:
-                    for updater in obj.updaters:
-                        updater.run()
+                    obj.run()
             # tick the clock forward one time step
             for c in curclocks:
                 c.tick()
@@ -381,8 +402,11 @@ class Network(Nameable):
             print 'Took ', current-start, 's in total.'
         self.after_run()
         
+    @device_override('network_stop')
     def stop(self):
         '''
+        stop()
+
         Stops the network from running, this is reset the next time `Network.run` is called.
         '''
         self._stopped = True

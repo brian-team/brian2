@@ -1,15 +1,12 @@
 import numpy as np
 
-from brian2.core.namespace import create_namespace
 from brian2.core.spikesource import SpikeSource
-from brian2.core.variables import ArrayVariable
-from brian2.devices.device import get_device
-from brian2.equations import Equations
-from brian2.units.fundamentalunits import check_units
+from brian2.core.variables import Variables
+from brian2.units.fundamentalunits import check_units, Unit
 from brian2.units.stdunits import Hz
 
 from .group import Group
-from .neurongroup import Thresholder, StateUpdater
+from .neurongroup import Thresholder
 
 __all__ = ['PoissonGroup']
 
@@ -23,18 +20,16 @@ class PoissonGroup(Group, SpikeSource):
     N : int
         Number of neurons
     rates : `Quantity`, str
-        Single rate or array of rates of length N
+        Single rate, array of rates of length N, or a string expression
         evaluating to a rate
     clock : Clock, optional
         The update clock to be used, or defaultclock if not specified.
     name : str, optional
         Unique name, or use poissongroup, poissongroup_1, etc.
 
-    Notes
-    -----
-
-    TODO: make rates not have to be a value/array, use code generation for str
     '''
+    add_to_magic_network = True
+
     @check_units(rates=Hz)
     def __init__(self, N, rates, clock=None, name='poissongroup*',
                  codeobj_class=None):
@@ -45,11 +40,6 @@ class PoissonGroup(Group, SpikeSource):
 
         self._N = N = int(N)
 
-        #: The array holding the rates
-        self._rates = np.asarray(rates)
-        if self._rates.ndim == 0:
-            self._rates = np.repeat(self._rates, N)
-
         # TODO: In principle, it would be nice to support Poisson groups with
         # refactoriness, but we can't currently, since the refractoriness
         # information is reset in the state updater which we are not using
@@ -57,39 +47,34 @@ class PoissonGroup(Group, SpikeSource):
         # users write their own NeuronGroup (with threshold rand() < rates*dt)
         # for more complex use cases.
 
-        self.variables = Group._create_variables(self)
-        self.variables.update({'i': get_device().arange(self, 'i', N,
-                                                        constant=True,
-                                                        read_only=True),
-                               'rates': ArrayVariable('rates', Hz, self._rates,
-                                                      group_name=self.name),
-                               '_spikespace': get_device().array(self,
-                                                                 '_spikespace',
-                                                                 N+1,
-                                                                 1,
-                                                                 dtype=np.int32),
-                               'not_refractory': get_device().array(self,
-                                                                    '_not_refractory',
-                                                                    N, 1,
-                                                                    dtype=np.bool),
-                               'lastspike': get_device().array(self,
-                                                               '_lastspike',
-                                                               N, 1)})
+        self.variables = Variables(self)
+        # standard variables
+        self.variables.add_clock_variables(self.clock)
+        self.variables.add_constant('N', unit=Unit(1), value=self._N)
+        self.variables.add_arange('i', self._N, constant=True, read_only=True)
+        self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
+                                 dtype=np.int32)
+
+        # The firing rates
+        self.variables.add_array('rates', size=N, unit=Hz)
+
         self.start = 0
         self.stop = N
-        self.namespace = create_namespace(None)
 
-        self.threshold = 'rand() < rates * dt'
+        self._refractory = False
+
+        #
+        self._enable_group_attributes()
+        # To avoid a warning about the local variable rates, we set the real
+        # threshold condition only after creating the object
+        self.threshold = 'False'
         self.thresholder = Thresholder(self)
+        self.threshold = 'rand() < rates * dt'
         self.contained_objects.append(self.thresholder)
 
-        # This is quite inefficient, we need a state updater to reset
-        # not_refractory after every time step
-        self.equations = Equations([])
-        self._refractory = False
-        self.state_updater = StateUpdater(self, method='independent')
-        self.contained_objects.append(self.state_updater)
-        self._enable_group_attributes()
+        # Here we want to use the local namespace, but at the level where the
+        # constructor was called
+        self.rates.set_item(slice(None), rates, level=2)
 
     @property
     def spikes(self):
@@ -99,14 +84,14 @@ class PoissonGroup(Group, SpikeSource):
         # Note that we have to directly access the ArrayVariable object here
         # instead of using the Group mechanism by accessing self._spikespace
         # Using the latter would cut _spikespace to the length of the group
-        return self.variables['_spikespace'][:self.variables['_spikespace'][-1]]
+        spikespace = self.variables['_spikespace'].get_value()
+        return spikespace[:spikespace[-1]]
 
     def __len__(self):
         return self.N
 
     def __repr__(self):
-        description = '{classname}({N}, rates={rates})'
+        description = '{classname}({N}, rates=<...>)'
         return description.format(classname=self.__class__.__name__,
-                                  N=self.N,
-                                  rates=repr(self._rates))
+                                  N=self.N)
 

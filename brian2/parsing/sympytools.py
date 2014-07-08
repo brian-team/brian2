@@ -4,7 +4,7 @@ Utility functions for parsing expressions and statements.
 import sympy
 from sympy.printing.str import StrPrinter
 
-from brian2.core.functions import DEFAULT_FUNCTIONS, log10
+from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS, log10
 from brian2.parsing.rendering import SympyNodeRenderer
 
 
@@ -47,6 +47,7 @@ def str_to_sympy(expr):
     exec 'from sympy import *' in namespace
     # also add the log10 function to the namespace
     namespace['log10'] = log10
+    namespace['_vectorisation_idx'] = sympy.Symbol('_vectorisation_idx')
     rendered = SympyNodeRenderer().render_expr(expr)
 
     try:
@@ -61,7 +62,7 @@ def str_to_sympy(expr):
 class CustomSympyPrinter(StrPrinter):
     '''
     Printer that overrides the printing of some basic sympy objects. E.g.
-    print "a & b" instead of "And(a, b)".
+    print "a and b" instead of "And(a, b)".
     '''
 
     def _print_And(self, expr):
@@ -74,6 +75,13 @@ class CustomSympyPrinter(StrPrinter):
         if len(expr.args) != 1:
             raise AssertionError('"Not" with %d arguments?' % len(expr.args))
         return 'not (%s)' % self.doprint(expr.args[0])
+
+    def _print_Function(self, expr):
+        # Special workaround for the int function
+        if expr.func.__name__ == 'int_':
+            return "int(%s)" % self.stringify(expr.args, ", ")
+        else:
+            return expr.func.__name__ + "(%s)" % self.stringify(expr.args, ", ")
 
 PRINTER = CustomSympyPrinter()
 
@@ -102,9 +110,54 @@ def sympy_to_str(sympy_expr):
                         if f.sympy_func is not None and isinstance(f.sympy_func,
                                                                    sympy.FunctionClass)
                         and str(f.sympy_func) != name)
+    # replace constants with our names as well
+    replacements.update(dict((c.sympy_obj, sympy.Symbol(name)) for
+                             name, c in DEFAULT_CONSTANTS.iteritems()
+                             if str(c.sympy_obj) != name))
 
-    sympy_expr = sympy_expr.subs(replacements)
-    
+    # Replace _vectorisation_idx by an empty symbol
+    replacements[sympy.Symbol('_vectorisation_idx')] = sympy.Symbol('')
+
+    for sympy_symbol, our_symbol in replacements.iteritems():
+        sympy_expr = sympy_expr.replace(sympy_symbol, our_symbol)
+
     return PRINTER.doprint(sympy_expr)
 
-    
+
+def replace_constants(sympy_expr, variables=None):
+    '''
+    Replace constant values in a sympy expression with their numerical value.
+
+    Parameters
+    ----------
+    sympy_expr : `sympy.Expr`
+        The expression
+    variables : dict-like, optional
+        Dictionary of `Variable` objects
+
+    Returns
+    -------
+    new_expr : `sympy.Expr`
+        Expressions with all constants replaced
+    '''
+    if variables is None:
+        return sympy_expr
+
+    symbols = set([symbol for symbol in sympy_expr.atoms()
+                   if isinstance(symbol, sympy.Symbol)])
+    for symbol in symbols:
+        symbol_str = str(symbol)
+        if symbol_str in variables:
+            var = variables[symbol_str]
+            if (getattr(var, 'scalar', False) and
+                    getattr(var, 'constant', False)):
+                # TODO: We should handle variables of other data types better
+                float_val = var.get_value()
+                sympy_expr = sympy_expr.xreplace({symbol: sympy.Float(float_val)})
+    try:
+        # unfortunately, simplifying does sometimes not work
+        sympy_expr = sympy_expr.simplify()
+    except AttributeError:
+        pass
+
+    return sympy_expr

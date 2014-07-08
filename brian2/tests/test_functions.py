@@ -1,8 +1,7 @@
-from nose.plugins.skip import SkipTest
-import numpy as np
-from numpy.testing import assert_equal, assert_raises
+from numpy.testing import assert_equal, assert_raises, assert_allclose
 
 from brian2 import *
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.utils.logger import catch_logs
 
 # We can only test C++ if weave is availabe
@@ -12,6 +11,28 @@ try:
 except ImportError:
     # Can't test C++
     codeobj_classes = [NumpyCodeObject]
+
+
+def test_constants_sympy():
+    '''
+    Make sure that symbolic constants are understood correctly by sympy
+    '''
+    assert sympy_to_str(str_to_sympy('1.0/inf')) == '0'
+    assert sympy_to_str(str_to_sympy('sin(pi)')) == '0'
+    assert sympy_to_str(str_to_sympy('log(e)')) == '1'
+
+
+def test_constants_values():
+    '''
+    Make sure that symbolic constants use the correct values in code
+    '''
+    G = NeuronGroup(1, 'v : 1')
+    G.v = 'pi'
+    assert G.v == np.pi
+    G.v = 'e'
+    assert G.v == np.e
+    G.v = 'inf'
+    assert G.v == np.inf
 
 
 def test_math_functions():
@@ -34,7 +55,7 @@ def test_math_functions():
                 numpy_result = func(test_array)
                 
                 # Calculate the result in a somewhat complicated way by using a
-                # static equation in a NeuronGroup
+                # subexpression in a NeuronGroup
                 clock = Clock()
                 if func.__name__ == 'absolute':
                     # we want to use the name abs instead of absolute
@@ -51,8 +72,8 @@ def test_math_functions():
                 net = Network(G, mon)
                 net.run(clock.dt)
                 
-                assert_equal(numpy_result, mon.func_.flatten(),
-                             'Function %s did not return the correct values' % func.__name__)
+                assert_allclose(numpy_result, mon.func_.flatten(),
+                                err_msg='Function %s did not return the correct values' % func.__name__)
             
             # Functions/operators
             scalar = 3
@@ -64,7 +85,7 @@ def test_math_functions():
                 numpy_result = func(test_array, scalar)
                 
                 # Calculate the result in a somewhat complicated way by using a
-                # static equation in a NeuronGroup
+                # subexpression in a NeuronGroup
                 clock = Clock()
                 G = NeuronGroup(len(test_array),
                                 '''func = variable {op} scalar : 1
@@ -76,8 +97,8 @@ def test_math_functions():
                 net = Network(G, mon)
                 net.run(clock.dt)
                 
-                assert_equal(numpy_result, mon.func_.flatten(),
-                             'Function %s did not return the correct values' % func.__name__)
+                assert_allclose(numpy_result, mon.func_.flatten(),
+                                err_msg='Function %s did not return the correct values' % func.__name__)
 
 
 def test_user_defined_function():
@@ -123,7 +144,7 @@ def test_simple_user_defined_function():
                               variable : 1''',
                     codeobj_class=NumpyCodeObject)
     G.variable = test_array
-    mon = StateMonitor(G, 'func', record=True)
+    mon = StateMonitor(G, 'func', record=True, codeobj_class=NumpyCodeObject)
     net = Network(G, mon)
     net.run(defaultclock.dt)
 
@@ -135,7 +156,8 @@ def test_simple_user_defined_function():
                         '''func = usersin(variable) : 1
                               variable : 1''',
                         codeobj_class=WeaveCodeObject)
-        mon = StateMonitor(G, 'func', record=True)
+        mon = StateMonitor(G, 'func', record=True,
+                           codeobj_class=WeaveCodeObject)
         net = Network(G, mon)
         # This looks a bit odd -- we have to get usersin into the namespace of
         # the lambda expression
@@ -174,22 +196,22 @@ def test_manual_user_defined_function():
                        y : volt''')
     G.x = 1*volt
     G.y = 2*volt
-    mon = StateMonitor(G, 'func', record=True)
+    mon = StateMonitor(G, 'func', record=True, codeobj_class=NumpyCodeObject)
     net = Network(G, mon)
     net.run(defaultclock.dt)
 
     assert mon[0].func == [6] * volt
 
     # discard units
-    from brian2.codegen.functions import add_numpy_implementation
-    add_numpy_implementation(foo, orig_foo, discard_units=True)
+    foo.implementations.add_numpy_implementation(orig_foo,
+                                                 discard_units=True)
     G = NeuronGroup(1, '''
                        func = foo(x, y) : volt
                        x : volt
                        y : volt''')
     G.x = 1*volt
     G.y = 2*volt
-    mon = StateMonitor(G, 'func', record=True)
+    mon = StateMonitor(G, 'func', record=True, codeobj_class=NumpyCodeObject)
     net = Network(G, mon)
     net.run(defaultclock.dt)
 
@@ -203,8 +225,8 @@ def test_manual_user_defined_function():
             return x + y + 3;
         }
         '''}
-        from brian2.codegen.functions import add_implementations
-        add_implementations(foo, codes={'cpp': code})
+
+        foo.implementations.add_implementations(codes={'cpp': code})
 
         G = NeuronGroup(1, '''
                            func = foo(x, y) : volt
@@ -219,30 +241,6 @@ def test_manual_user_defined_function():
         assert mon[0].func == [6] * volt
 
 
-def test_add_implementations():
-    if not WeaveCodeObject in codeobj_classes:
-        raise SkipTest('No weave support')
-
-    def foo(x):
-        return x
-    foo = Function(foo, arg_units=[None], return_unit=lambda x: x)
-    from brian2.codegen.functions import add_implementations
-    # code object name
-    add_implementations(foo, codes={'weave': {}})
-    assert set(foo.implementations.keys()) == set([WeaveCodeObject])
-    del foo.implementations[WeaveCodeObject]
-    # language name
-    add_implementations(foo, codes={'cpp': {}})
-    assert set(foo.implementations.keys()) == set([CPPLanguage])
-    del foo.implementations[CPPLanguage]
-    # class object
-    add_implementations(foo, codes={CPPLanguage: {}})
-    assert set(foo.implementations.keys()) == set([CPPLanguage])
-    # unknown name
-    assert_raises(ValueError, lambda: add_implementations(foo,
-                                                          codes={'unknown': {}}))
-
-
 def test_user_defined_function_discarding_units():
     # A function with units that should discard units also inside the function
     @make_function(discard_units=True)
@@ -253,61 +251,97 @@ def test_user_defined_function_discarding_units():
     assert foo(5*volt) == 8*volt
 
     # Test the function that is used during a run
-    from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
-    assert foo.implementations[NumpyCodeObject].code(5) == 8
+    assert foo.implementations[NumpyCodeObject].get_code(None)(5) == 8
 
+
+def test_user_defined_function_discarding_units_2():
+    # Add a numpy implementation explicitly (as in TimedArray)
+    unit = volt
+    @check_units(v=volt, result=unit)
+    def foo(v):
+        return v + 3*unit  # this normally raises an error for unitless v
+
+    foo = Function(pyfunc=foo)
+    def unitless_foo(v):
+        return v + 3
+
+    foo.implementations.add_implementation('numpy', code=unitless_foo)
+
+    assert foo(5*volt) == 8*volt
+
+    # Test the function that is used during a run
+    assert foo.implementations[NumpyCodeObject].get_code(None)(5) == 8
 
 def test_function_implementation_container():
-    from brian2.core.functions import FunctionImplementationContainer
     import brian2.codegen.targets as targets
 
-    class ALanguage(Language):
-        language_id = 'A language'
+    class ACodeGenerator(CodeGenerator):
+        class_name = 'A Language'
 
-    class BLanguage(Language):
-        language_id = 'B language'
+    class BCodeGenerator(CodeGenerator):
+        class_name = 'B Language'
 
     class ACodeObject(CodeObject):
-        language = ALanguage()
+        generator_class = ACodeGenerator
         class_name = 'A'
 
+    class A2CodeObject(CodeObject):
+        generator_class = ACodeGenerator
+        class_name = 'A2'
+
     class BCodeObject(CodeObject):
-        language = BLanguage()
+        generator_class = BCodeGenerator
         class_name = 'B'
+
 
     # Register the code generation targets
     _previous_codegen_targets = set(targets.codegen_targets)
     targets.codegen_targets = set([ACodeObject, BCodeObject])
 
-    container = FunctionImplementationContainer()
+    @check_units(x=volt, result=volt)
+    def foo(x):
+        return x
+    f = Function(foo)
 
-    # inserting into the container with a Language class
-    container[BLanguage] = 'implementation B language'
-    assert container[BLanguage] == 'implementation B language'
+    container = f.implementations
+
+    # inserting into the container with a CodeGenerator class
+    container.add_implementation(BCodeGenerator, code='implementation B language')
+    assert container[BCodeGenerator].get_code(None) == 'implementation B language'
 
     # inserting into the container with a CodeObject class
-    container[ACodeObject] = 'implementation A CodeObject'
-    assert container[ACodeObject] == 'implementation A CodeObject'
+    container.add_implementation(ACodeObject, code='implementation A CodeObject')
+    assert container[ACodeObject].get_code(None) == 'implementation A CodeObject'
 
-    # does the fallback to the language work?
-    assert container[BCodeObject] == 'implementation B language'
+    # inserting into the container with a name of a CodeGenerator
+    container.add_implementation('A Language', 'implementation A Language')
+    assert container['A Language'].get_code(None) == 'implementation A Language'
+    assert container[ACodeGenerator].get_code(None) == 'implementation A Language'
+    assert container[A2CodeObject].get_code(None) == 'implementation A Language'
+
+    # inserting into the container with a name of a CodeObject
+    container.add_implementation('B', 'implementation B CodeObject')
+    assert container['B'].get_code(None) == 'implementation B CodeObject'
+    assert container[BCodeObject].get_code(None) == 'implementation B CodeObject'
 
     assert_raises(KeyError, lambda: container['unknown'])
 
     # some basic dictionary properties
-    assert len(container) == 2
-    del container[ACodeObject]
-    assert len(container) == 1
-    assert set((key for key in container)) == set([BLanguage])
+    assert len(container) == 4
+    assert set((key for key in container)) == set(['A Language', 'B',
+                                                   ACodeObject, BCodeGenerator])
 
     # Restore the previous codegeneration targets
     targets.codegen_targets = _previous_codegen_targets
 
 
 if __name__ == '__main__':
+    test_constants_sympy()
+    test_constants_values()
     test_math_functions()
     test_user_defined_function()
     test_simple_user_defined_function()
     test_manual_user_defined_function()
     test_user_defined_function_discarding_units()
+    test_user_defined_function_discarding_units_2()
     test_function_implementation_container()

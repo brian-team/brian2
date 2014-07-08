@@ -5,19 +5,31 @@ import collections
 import keyword
 import re
 import string
-
+import numpy as np
 import sympy
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 
+from brian2.core.namespace import (DEFAULT_FUNCTIONS,
+                                   DEFAULT_CONSTANTS,
+                                   DEFAULT_UNITS)
+from brian2.core.variables import Constant
+from brian2.core.functions import Function
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
-from brian2.units.fundamentalunits import Unit, have_same_dimensions
-from brian2.units.allunits import second
+from brian2.units.fundamentalunits import (Unit, Quantity, have_same_dimensions,
+                                           get_unit, DIMENSIONLESS)
+from brian2.units.allunits import (metre, meter, second, amp, kelvin, mole,
+                                   candle, kilogram, radian, steradian, hertz,
+                                   newton, pascal, joule, watt, coulomb, volt,
+                                   farad, ohm, siemens, weber, tesla, henry,
+                                   celsius, lumen, lux, becquerel, gray,
+                                   sievert, katal, kgram, kgramme)
 from brian2.utils.logger import get_logger
+from brian2.utils.topsort import topsort
 
 from .codestrings import Expression
-from .unitcheck import unit_from_string
-from brian2.equations.unitcheck import check_unit
+from .unitcheck import check_unit
+
 
 __all__ = ['Equations']
 
@@ -27,8 +39,15 @@ logger = get_logger(__name__)
 # this might get refactored into objects, for example)
 PARAMETER = 'parameter'
 DIFFERENTIAL_EQUATION = 'differential equation'
-STATIC_EQUATION = 'static equation'
+SUBEXPRESSION = 'subexpression'
 
+# variable types (FLOAT is the only one that is possible for variables that
+# have dimensions). These types will be later translated into dtypes, either
+# using the default values from the preferences, or explicitly given dtypes in
+# the construction of the `NeuronGroup`, `Synapses`, etc. object
+FLOAT = 'float'
+INTEGER = 'integer'
+BOOLEAN = 'boolean'
 
 # Definitions of equation structure for parsing with pyparsing
 # TODO: Maybe move them somewhere else to not pollute the namespace here?
@@ -74,7 +93,7 @@ PARAMETER_EQ = Group(IDENTIFIER + Suppress(':') + UNIT +
 # Static equation:
 # x = 2 * y : volt (flags)
 STATIC_EQ = Group(IDENTIFIER + Suppress('=') + EXPRESSION + Suppress(':') +
-                  UNIT + Optional(FLAGS)).setResultsName(STATIC_EQUATION)
+                  UNIT + Optional(FLAGS)).setResultsName(SUBEXPRESSION)
 
 # Differential equation
 # dx/dt = -x / tau : volt
@@ -157,6 +176,102 @@ def check_identifier_reserved(identifier):
                          ' be used as a variable name.') % identifier)
 
 
+def check_identifier_units(identifier):
+    '''
+    Make sure that identifier names do not clash with unit names.
+    '''
+    if identifier in DEFAULT_UNITS:
+        raise ValueError('"%s" is the name of a unit, cannot be used as a '
+                         'variable name.' % identifier)
+
+def check_identifier_functions(identifier):
+    '''
+    Make sure that identifier names do not clash with function names.
+    '''
+    if identifier in DEFAULT_FUNCTIONS:
+        raise ValueError('"%s" is the name of a function, cannot be used as a '
+                         'variable name.' % identifier)
+
+def check_identifier_constants(identifier):
+    '''
+    Make sure that identifier names do not clash with function names.
+    '''
+    if identifier in DEFAULT_CONSTANTS:
+        raise ValueError('"%s" is the name of a constant, cannot be used as a '
+                         'variable name.' % identifier)
+
+
+def unit_and_type_from_string(unit_string):
+    '''
+    Returns the unit that results from evaluating a string like
+    "siemens / metre ** 2", allowing for the special string "1" to signify
+    dimensionless units, the string "boolean" for a boolean and "integer" for
+    an integer variable.
+
+    Parameters
+    ----------
+    unit_string : str
+        The string that should evaluate to a unit
+
+    Returns
+    -------
+    u, type : (Unit, {FLOAT, INTEGER or BOOL})
+        The resulting unit and the type of the variable.
+
+    Raises
+    ------
+    ValueError
+        If the string cannot be evaluated to a unit.
+    '''
+
+    # We avoid using DEFAULT_NUMPY_NAMESPACE here as importing core.namespace
+    # would introduce a circular dependency between it and the equations
+    # package
+    base_units = [metre, meter, second, amp, kelvin, mole, candle, kilogram,
+                  radian, steradian, hertz, newton, pascal, joule, watt,
+                  coulomb, volt, farad, ohm, siemens, weber, tesla, henry,
+                  celsius, lumen, lux, becquerel, gray, sievert, katal, kgram,
+                  kgramme]
+    namespace = dict((repr(unit), unit) for unit in base_units)
+    namespace['Hz'] = hertz  # Also allow Hz instead of hertz
+    unit_string = unit_string.strip()
+
+    # Special case: dimensionless unit
+    if unit_string == '1':
+        return Unit(1, dim=DIMENSIONLESS), FLOAT
+
+    # Another special case: boolean variable
+    if unit_string == 'boolean':
+        return Unit(1, dim=DIMENSIONLESS), BOOLEAN
+
+    # Yet another special case: integer variable
+    if unit_string == 'integer':
+        return Unit(1, dim=DIMENSIONLESS), INTEGER
+
+    # Check first whether the expression evaluates at all, using only base units
+    try:
+        evaluated_unit = eval(unit_string, namespace)
+    except Exception as ex:
+        raise ValueError(('"%s" does not evaluate to a unit when only using '
+                          'base units (e.g. volt but not mV): %s') %
+                         (unit_string, ex))
+
+    # Check whether the result is a unit
+    if not isinstance(evaluated_unit, Unit):
+        if isinstance(evaluated_unit, Quantity):
+            raise ValueError(('"%s" does not evaluate to a unit but to a '
+                              'quantity -- make sure to only use units, e.g. '
+                              '"siemens/metre**2" and not "1 * siemens/metre**2"') %
+                             unit_string)
+        else:
+            raise ValueError(('"%s" does not evaluate to a unit, the result '
+                             'has type %s instead.' % (unit_string,
+                                                       type(evaluated_unit))))
+
+    # No error has been raised, all good
+    return evaluated_unit, FLOAT
+
+
 def parse_string_equations(eqns):
     """
     Parse a string defining equations.
@@ -187,12 +302,8 @@ def parse_string_equations(eqns):
         identifier = eq_content['identifier']
 
         # Convert unit string to Unit object
-        unit = unit_from_string(eq_content['unit'])
-        is_bool = unit is True
-        if is_bool:
-            unit = Unit(1)
-            if eq_type == DIFFERENTIAL_EQUATION:
-                raise EquationError('Differential equations cannot be boolean')
+        unit, var_type = unit_and_type_from_string(eq_content['unit'])
+
         expression = eq_content.get('expression', None)
         if not expression is None:
             # Replace multiple whitespaces (arising from joining multiline
@@ -201,7 +312,7 @@ def parse_string_equations(eqns):
             expression = Expression(p.sub(' ', expression))
         flags = list(eq_content.get('flags', []))
 
-        equation = SingleEquation(eq_type, identifier, unit, is_bool=is_bool,
+        equation = SingleEquation(eq_type, identifier, unit, var_type=var_type,
                                   expr=expression, flags=flags)
 
         if identifier in equations:
@@ -223,15 +334,14 @@ class SingleEquation(object):
     
     Parameters
     ----------
-    type : {PARAMETER, DIFFERENTIAL_EQUATION, STATIC_EQUATION}
+    type : {PARAMETER, DIFFERENTIAL_EQUATION, SUBEXPRESSION}
         The type of the equation.
     varname : str
         The variable that is defined by this equation.
     unit : Unit
         The unit of the variable
-    is_bool : bool, optional
-        Whether this variable is a boolean variable (implies it is
-        dimensionless as well). Defaults to ``False``.
+    var_type : {FLOAT, BOOLEAN}
+        The type of the variable (floating point value or boolean).
     expr : `Expression`, optional
         The expression defining the variable (or ``None`` for parameters).        
     flags: list of str, optional
@@ -240,21 +350,28 @@ class SingleEquation(object):
         context.
     
     '''
-    def __init__(self, type, varname, unit, is_bool=False, expr=None,
+    def __init__(self, type, varname, unit, var_type=FLOAT, expr=None,
                  flags=None):
         self.type = type
         self.varname = varname
         self.unit = unit
-        self.is_bool = is_bool
-        if is_bool and not have_same_dimensions(unit, 1):
-            raise ValueError('Boolean variables are necessarily dimensionless.')
+        self.var_type = var_type
+        if not have_same_dimensions(unit, 1):
+            if var_type == BOOLEAN:
+                raise TypeError('Boolean variables are necessarily dimensionless.')
+            elif var_type == INTEGER:
+                raise TypeError('Integer variables are necessarily dimensionless.')
+
+        if type == DIFFERENTIAL_EQUATION:
+            if var_type != FLOAT:
+                raise TypeError('Differential equations can only define floating point variables')
         self.expr = expr
         if flags is None:
             self.flags = []
         else:
             self.flags = flags
 
-        # will be set later in the sort_static_equations method of Equations
+        # will be set later in the sort_subexpressions method of Equations
         self.update_order = -1
 
 
@@ -266,7 +383,7 @@ class SingleEquation(object):
         if self.type == DIFFERENTIAL_EQUATION:
             return (r'\frac{\mathrm{d}' + sympy.latex(self.varname) + r'}{\mathrm{d}t} = ' +
                     sympy.latex(str_to_sympy(self.expr.code)))
-        elif self.type == STATIC_EQUATION:
+        elif self.type == SUBEXPRESSION:
             return (sympy.latex(self.varname) + ' = ' +
                     sympy.latex(str_to_sympy(self.expr.code)))
         elif self.type == PARAMETER:
@@ -433,8 +550,8 @@ class Equations(collections.Mapping):
                 else:
                     uses_xi = eq.varname
 
-        # rearrange static equations
-        self._sort_static_equations()
+        # rearrange subexpressions
+        self._sort_subexpressions()
 
     def __iter__(self):
         return iter(self._equations)
@@ -458,7 +575,9 @@ class Equations(collections.Mapping):
     #: `Equations.register_identifier_check` and will be automatically
     #: used when checking identifiers
     identifier_checks = set([check_identifier_basic,
-                             check_identifier_reserved])
+                             check_identifier_reserved,
+                             check_identifier_functions,
+                             check_identifier_units])
 
     @staticmethod
     def register_identifier_check(func):
@@ -516,14 +635,14 @@ class Equations(collections.Mapping):
     def _get_substituted_expressions(self):
         '''
         Return a list of ``(varname, expr)`` tuples, containing all
-        differential equations with all the static equation variables
+        differential equations with all the subexpression variables
         substituted with the respective expressions.
         
         Returns
         -------
         expr_tuples : list of (str, `CodeString`)
             A list of ``(varname, expr)`` tuples, where ``expr`` is a
-            `CodeString` object with all static equation variables substituted
+            `CodeString` object with all subexpression variables substituted
             with the respective expression.
         '''
         subst_exprs = []
@@ -537,7 +656,7 @@ class Equations(collections.Mapping):
             new_str_expr = sympy_to_str(new_sympy_expr)
             expr = Expression(new_str_expr)
 
-            if eq.type == STATIC_EQUATION:
+            if eq.type == SUBEXPRESSION:
                 substitutions.update({sympy.Symbol(eq.varname, real=True): expr.sympy_expr})
             elif eq.type == DIFFERENTIAL_EQUATION:
                 #  a differential equation that we have to check
@@ -602,9 +721,9 @@ class Equations(collections.Mapping):
 
     eq_expressions = property(lambda self: [(varname, eq.expr) for
                                             varname, eq in self.iteritems()
-                                            if eq.type in (STATIC_EQUATION,
+                                            if eq.type in (SUBEXPRESSION,
                                                               DIFFERENTIAL_EQUATION)],
-                                  doc='A list of (variable name, expression) '
+                              doc='A list of (variable name, expression) '
                                   'tuples of all equations.')
 
     substituted_expressions = property(_get_substituted_expressions)
@@ -618,13 +737,14 @@ class Equations(collections.Mapping):
                                            if eq.type == DIFFERENTIAL_EQUATION]),
                              doc='All differential equation names.')
 
-    static_eq_names = property(lambda self: set([eq.varname for eq in self.ordered
-                                           if eq.type == STATIC_EQUATION]),
-                               doc='All static equation names.')
+    subexpr_names = property(lambda self: set([eq.varname for eq in self.ordered
+                                               if eq.type == SUBEXPRESSION]),
+                             doc='All subexpression names.')
 
     eq_names = property(lambda self: set([eq.varname for eq in self.ordered
-                                           if eq.type in (DIFFERENTIAL_EQUATION, STATIC_EQUATION)]),
-                        doc='All (static and differential) equation names.')
+                                           if eq.type in (DIFFERENTIAL_EQUATION,
+                                                          SUBEXPRESSION)]),
+                        doc='All equation names (including subexpressions).')
 
     parameter_names = property(lambda self: set([eq.varname for eq in self.ordered
                                              if eq.type == PARAMETER]),
@@ -650,44 +770,26 @@ class Equations(collections.Mapping):
 
     stochastic_type = property(fget=_get_stochastic_type)
 
-    def _sort_static_equations(self):
+    def _sort_subexpressions(self):
         '''
-        Sorts the static equations in a way that resolves their dependencies
-        upon each other. After this method has been run, the static equations
+        Sorts the subexpressions in a way that resolves their dependencies
+        upon each other. After this method has been run, the subexpressions
         returned by the ``ordered`` property are in the order in which
         they should be updated
         '''
 
-        # Get a dictionary of all the dependencies on other static equations,
+        # Get a dictionary of all the dependencies on other subexpressions,
         # i.e. ignore dependencies on parameters and differential equations
         static_deps = {}
         for eq in self._equations.itervalues():
-            if eq.type == STATIC_EQUATION:
+            if eq.type == SUBEXPRESSION:
                 static_deps[eq.varname] = [dep for dep in eq.identifiers if
                                            dep in self._equations and
-                                           self._equations[dep].type == STATIC_EQUATION]
-
-        # Use the standard algorithm for topological sorting:
-        # http://en.wikipedia.org/wiki/Topological_sorting
-
-        # List that will contain the sorted elements
-        sorted_eqs = []
-        # set of all nodes with no incoming edges:
-        no_incoming = set([var for var, deps in static_deps.iteritems()
-                           if len(deps) == 0])
-
-        while len(no_incoming):
-            n = no_incoming.pop()
-            sorted_eqs.append(n)
-            # find variables m depending on n
-            dependent = [m for m, deps in static_deps.iteritems()
-                         if n in deps]
-            for m in dependent:
-                static_deps[m].remove(n)
-                if len(static_deps[m]) == 0:
-                    # no other dependencies
-                    no_incoming.add(m)
-        if any([len(deps) > 0 for deps in static_deps.itervalues()]):
+                                           self._equations[dep].type == SUBEXPRESSION]
+        
+        try:
+            sorted_eqs = topsort(static_deps)
+        except ValueError:
             raise ValueError('Cannot resolve dependencies between static '
                              'equations, dependencies contain a cycle.')
 
@@ -695,44 +797,40 @@ class Equations(collections.Mapping):
         for order, static_variable in enumerate(sorted_eqs):
             self._equations[static_variable].update_order = order
 
-        # Sort differential equations and parameters after static equations
+        # Sort differential equations and parameters after subexpressions
         for eq in self._equations.itervalues():
             if eq.type == DIFFERENTIAL_EQUATION:
                 eq.update_order = len(sorted_eqs)
             elif eq.type == PARAMETER:
                 eq.update_order = len(sorted_eqs) + 1
 
-    def check_units(self, namespace, variables, additional_namespace=None):
+    def check_units(self, group, run_namespace=None, level=0):
         '''
         Check all the units for consistency.
         
         Parameters
         ----------
-        namespace : `CompoundNamespace`
-            The namespace for resolving external identifiers, should be
-            provided by the `NeuronGroup` or `Synapses`.
-        variables : dict of `Variable` objects
-            The variables of the state variables and internal variables
-            (e.g. t and dt)
-        additional_namespace = (str, dict-like)
-            A namespace tuple (name and dictionary), describing the additional
-            namespace provided by the run function in case the `namespace`
-            was not explicitly defined at the creation of the `NeuronGroup`
-            or `Synapses` object.
-        
+        group : `Group`
+            The group providing the context
+        run_namespace : dict, optional
+            A namespace provided to the `Network.run` function.
+        level : int, optional
+            How much further to go up in the stack to find the calling frame
+
         Raises
         ------
         DimensionMismatchError
             In case of any inconsistencies.
         '''
+        all_variables = dict(group.variables)
         external = frozenset().union(*[expr.identifiers
                                      for _, expr in self.eq_expressions])
-        external -= set(variables.keys())
+        external -= set(all_variables.keys())
 
-        resolved_namespace = namespace.resolve_all(external,
-                                                   additional_namespace,
-                                                   strip_units=False) 
-
+        resolved_namespace = group.resolve_all(external,
+                                               run_namespace=run_namespace,
+                                               level=level+1)
+        all_variables.update(resolved_namespace)
         for var, eq in self._equations.iteritems():
             if eq.type == PARAMETER:
                 # no need to check units for parameters
@@ -740,10 +838,10 @@ class Equations(collections.Mapping):
 
             if eq.type == DIFFERENTIAL_EQUATION:
                 check_unit(str(eq.expr), self.units[var] / second,
-                           resolved_namespace, variables)
-            elif eq.type == STATIC_EQUATION:
+                           all_variables)
+            elif eq.type == SUBEXPRESSION:
                 check_unit(str(eq.expr), self.units[var],
-                           resolved_namespace, variables)
+                           all_variables)
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.type)
 
@@ -756,7 +854,7 @@ class Equations(collections.Mapping):
         ----------
         allowed_flags : dict
              A dictionary mapping equation types (PARAMETER,
-             DIFFERENTIAL_EQUATION, STATIC_EQUATION) to a list of strings (the
+             DIFFERENTIAL_EQUATION, SUBEXPRESSION) to a list of strings (the
              allowed flags for that equation type)
         
         Notes

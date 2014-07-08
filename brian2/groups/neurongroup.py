@@ -1,147 +1,186 @@
 '''
 This model defines the `NeuronGroup`, the core of most simulations.
 '''
-from collections import defaultdict
-
 import numpy as np
 import sympy
 
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
-                                        STATIC_EQUATION, PARAMETER)
+                                        SUBEXPRESSION, PARAMETER, BOOLEAN)
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
-from brian2.devices.device import get_device
-from brian2.core.preferences import brian_prefs
-from brian2.core.namespace import create_namespace
-from brian2.core.variables import (StochasticVariable, Subexpression)
+from brian2.codegen.translation import analyse_identifiers
+from brian2.codegen.codeobject import check_code_units
+from brian2.core.variables import Variables, LinkedVariable, DynamicArrayVariable
 from brian2.core.spikesource import SpikeSource
-from brian2.core.scheduler import Scheduler
 from brian2.parsing.expressions import (parse_expression_unit,
                                         is_boolean_expression)
 from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import get_identifiers
 from brian2.units.allunits import second
-from brian2.units.fundamentalunits import Quantity, Unit, have_same_dimensions
+from brian2.units.fundamentalunits import (Quantity, Unit,
+                                           have_same_dimensions,
+                                           DimensionMismatchError)
 
-from .group import Group, GroupCodeRunner, check_code_units
+
+from .group import Group, CodeRunner, get_dtype
 from .subgroup import Subgroup
+
 
 __all__ = ['NeuronGroup']
 
 logger = get_logger(__name__)
 
 
-def get_refractory_code(group):
-    ref = group._refractory
-    if ref is None:
-        # No refractoriness
-        abstract_code = ''
-    elif isinstance(ref, Quantity):
-        abstract_code = 'not_refractory = 1*((t - lastspike) > %f)\n' % ref
-    else:
-        namespace = group.namespace
-        unit = parse_expression_unit(str(ref), namespace, group.variables)
-        if have_same_dimensions(unit, second):
-            abstract_code = 'not_refractory = 1*((t - lastspike) > %s)\n' % ref
-        elif have_same_dimensions(unit, Unit(1)):
-            if not is_boolean_expression(str(ref), namespace,
-                                         group.variables):
-                raise TypeError(('Refractory expression is dimensionless '
-                                 'but not a boolean value. It needs to '
-                                 'either evaluate to a timespan or to a '
-                                 'boolean value.'))
-            # boolean condition
-            # we have to be a bit careful here, we can't just use the given
-            # condition as it is, because we only want to *leave*
-            # refractoriness, based on the condition
-            abstract_code = 'not_refractory = 1*(not_refractory or not (%s))\n' % ref
-        else:
-            raise TypeError(('Refractory expression has to evaluate to a '
-                             'timespan or a boolean value, expression'
-                             '"%s" has units %s instead') % (ref, unit))
-    return abstract_code
-
-
-class StateUpdater(GroupCodeRunner):
+class StateUpdater(CodeRunner):
     '''
-    The `GroupCodeRunner` that updates the state variables of a `NeuronGroup`
+    The `CodeRunner` that updates the state variables of a `NeuronGroup`
     at every timestep.
     '''
     def __init__(self, group, method):
         self.method_choice = method
         
-        GroupCodeRunner.__init__(self, group,
-                                       'stateupdate',
-                                       when=(group.clock, 'groups'),
-                                       name=group.name + '_stateupdater*',
-                                       check_units=False)
+        CodeRunner.__init__(self, group,
+                            'stateupdate',
+                            when=(group.clock, 'groups'),
+                            name=group.name + '_stateupdater*',
+                            check_units=False)
 
-        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.variables,
-                                                               method)
+        # Don't do the check here for now since we don't have all the
+        # information about functions yet
+        # self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
+        #                                                        self.group.variables,
+        #                                                        method)
 
-        # Generate the full abstract code to catch errors in the refractoriness
+        # Generate the refractory code to catch errors in the refractoriness
         # formulation. However, do not fail on KeyErrors since the
         # refractoriness might refer to variables that don't exist yet
         try:
-            self.update_abstract_code()
+            self._get_refractory_code(run_namespace=None, level=1)
         except KeyError as ex:
             logger.debug('Namespace not complete (yet), ignoring: %s ' % str(ex),
                          'StateUpdater')
 
-    def update_abstract_code(self):
+    def _get_refractory_code(self, run_namespace, level=0):
+        ref = self.group._refractory
+        if ref is False:
+            # No refractoriness
+            abstract_code = ''
+        elif isinstance(ref, Quantity):
+            abstract_code = 'not_refractory = (t - lastspike) > %f\n' % ref
+        else:
+            identifiers = get_identifiers(ref)
+            variables = self.group.resolve_all(identifiers,
+                                               run_namespace=run_namespace,
+                                               level=level+1)
+            unit = parse_expression_unit(str(ref), variables)
+            if have_same_dimensions(unit, second):
+                abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
+            elif have_same_dimensions(unit, Unit(1)):
+                if not is_boolean_expression(str(ref), variables):
+                    raise TypeError(('Refractory expression is dimensionless '
+                                     'but not a boolean value. It needs to '
+                                     'either evaluate to a timespan or to a '
+                                     'boolean value.'))
+                # boolean condition
+                # we have to be a bit careful here, we can't just use the given
+                # condition as it is, because we only want to *leave*
+                # refractoriness, based on the condition
+                abstract_code = 'not_refractory = not_refractory or not (%s)\n' % ref
+            else:
+                raise TypeError(('Refractory expression has to evaluate to a '
+                                 'timespan or a boolean value, expression'
+                                 '"%s" has units %s instead') % (ref, unit))
+        return abstract_code
+
+    def update_abstract_code(self, run_namespace=None, level=0):
 
         # Update the not_refractory variable for the refractory period mechanism
-        self.abstract_code = get_refractory_code(self.group)
-        
-        self.abstract_code += self.method(self.group.equations,
-                                          self.group.variables)
+        self.abstract_code = self._get_refractory_code(run_namespace=run_namespace,
+                                                       level=level+1)
+
+        # Get the names used in the refractory code
+        _, used_known, unknown = analyse_identifiers(self.abstract_code, self.group.variables,
+                                                     recursive=True)
+
+        # Get all names used in the equations (and always get "dt")
+        names = self.group.equations.names
+        external_names = self.group.equations.identifiers | set(['dt'])
+
+        variables = self.group.resolve_all(used_known | unknown | names | external_names,
+                                           run_namespace=run_namespace, level=level+1)
+
+        # Since we did not necessarily no all the functions at creation time,
+        # we might want to reconsider our numerical integration method
+        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
+                                                               variables,
+                                                               self.method_choice)
+        self.abstract_code += self.method(self.group.equations, variables)
 
 
-class Thresholder(GroupCodeRunner):
+class Thresholder(CodeRunner):
     '''
-    The `GroupCodeRunner` that applies the threshold condition to the state
+    The `CodeRunner` that applies the threshold condition to the state
     variables of a `NeuronGroup` at every timestep and sets its ``spikes``
     and ``refractory_until`` attributes.
     '''
     def __init__(self, group):
-        # For C++ code, we need these names explicitly, since not_refractory
-        # and lastspike might also be used in the threshold condition -- the
-        # names will then refer to single (constant) values and cannot be used
-        # for assigning new values
-        template_kwds = {'_array_not_refractory': group.variables['not_refractory'].arrayname,
-                         '_array_lastspike': group.variables['lastspike'].arrayname}
-        GroupCodeRunner.__init__(self, group,
-                                 'threshold',
-                                 when=(group.clock, 'thresholds'),
-                                 name=group.name+'_thresholder*',
-                                 template_kwds=template_kwds)
+        if group._refractory is False:
+            template_kwds = {'_uses_refractory': False}
+            needed_variables = []
+        else:
+            template_kwds = {'_uses_refractory': True}
+            needed_variables=['t', 'not_refractory', 'lastspike']
+        CodeRunner.__init__(self, group,
+                            'threshold',
+                            when=(group.clock, 'thresholds'),
+                            name=group.name+'_thresholder*',
+                            needed_variables=needed_variables,
+                            template_kwds=template_kwds)
 
         # Check the abstract code for unit mismatches (only works if the
         # namespace is already complete)
-        self.update_abstract_code()
-        check_code_units(self.abstract_code, self.group, ignore_keyerrors=True)
+        try:
+            self.update_abstract_code(level=1)
+            check_code_units(self.abstract_code, self.group)
+        except KeyError:
+            pass
 
-    def update_abstract_code(self):
-        self.abstract_code = '_cond = (%s) and not_refractory' % self.group.threshold
+    def update_abstract_code(self, run_namespace=None, level=0):
+        code = self.group.threshold
+        identifiers = get_identifiers(code)
+        variables = self.group.resolve_all(identifiers,
+                                           run_namespace=run_namespace,
+                                           level=level+1)
+        if not is_boolean_expression(self.group.threshold, variables):
+            raise TypeError(('Threshold condition "%s" is not a boolean '
+                             'expression') % self.group.threshold)
+        if self.group._refractory is False:
+            self.abstract_code = '_cond = %s' % self.group.threshold
+        else:
+            self.abstract_code = '_cond = (%s) and not_refractory' % self.group.threshold
         
 
-class Resetter(GroupCodeRunner):
+class Resetter(CodeRunner):
     '''
-    The `GroupCodeRunner` that applies the reset statement(s) to the state
+    The `CodeRunner` that applies the reset statement(s) to the state
     variables of neurons that have spiked in this timestep.
     '''
     def __init__(self, group):
-        GroupCodeRunner.__init__(self, group,
-                                 'reset',
-                                 when=(group.clock, 'resets'),
-                                 name=group.name + '_resetter*')
+        CodeRunner.__init__(self, group,
+                            'reset',
+                            when=(group.clock, 'resets'),
+                            name=group.name + '_resetter*',
+                            override_conditional_write=['not_refractory'])
 
         # Check the abstract code for unit mismatches (only works if the
         # namespace is already complete)
-        self.update_abstract_code()
-        check_code_units(self.abstract_code, self.group, ignore_keyerrors=True)
+        try:
+            self.update_abstract_code(level=1)
+            check_code_units(self.abstract_code, self.group)
+        except KeyError:
+            pass
 
-    def update_abstract_code(self):
+    def update_abstract_code(self, run_namespace=None, level=0):
         self.abstract_code = self.group.reset
 
 
@@ -181,7 +220,7 @@ class NeuronGroup(Group, SpikeSource):
         The `numpy.dtype` that will be used to store the values, or a
         dictionary specifying the type for variable names. If a value is not
         provided for a variable (or no value is provided at all), the preference
-        setting `core.default_scalar_dtype` is used.
+        setting `core.default_float_dtype` is used.
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
     clock : Clock, optional
@@ -197,6 +236,8 @@ class NeuronGroup(Group, SpikeSource):
     attribute is set to 0 initially, but this can be modified using the
     attributes `state_updater`, `thresholder` and `resetter`.    
     '''
+    add_to_magic_network = True
+
     def __init__(self, N, model, method=None,
                  threshold=None,
                  reset=None,
@@ -229,24 +270,28 @@ class NeuronGroup(Group, SpikeSource):
                              'object, is "%s" instead.') % type(model))
 
         # Check flags
-        model.check_flags({DIFFERENTIAL_EQUATION: ('unless refractory'),
-                           PARAMETER: ('constant')})
+        model.check_flags({DIFFERENTIAL_EQUATION: ('unless refractory',),
+                           PARAMETER: ('constant', 'shared', 'linked'),
+                           SUBEXPRESSION: ('shared',)})
 
         # add refractoriness
-        model = add_refractoriness(model)
+        if refractory is not False:
+            model = add_refractoriness(model)
         self.equations = model
         uses_refractoriness = len(model) and any(['unless refractory' in eq.flags
                                                   for eq in model.itervalues()
                                                   if eq.type == DIFFERENTIAL_EQUATION])
-
+        self._linked_variables = set()
         logger.debug("Creating NeuronGroup of size {self._N}, "
                      "equations {self.equations}.".format(self=self))
 
-        # Setup the namespace
-        self.namespace = create_namespace(namespace)
+        if namespace is None:
+            namespace = {}
+        #: The group-specific namespace
+        self.namespace = namespace
 
         # Setup variables
-        self.variables = self._create_variables(dtype)
+        self._create_variables(dtype)
 
         # All of the following will be created in before_run
         
@@ -294,12 +339,14 @@ class NeuronGroup(Group, SpikeSource):
         if self.resetter is not None:
             self.contained_objects.append(self.resetter)
 
+        if refractory is not False:
+            # Set the refractoriness information
+            self.variables['lastspike'].set_value(-np.inf*second)
+            self.variables['not_refractory'].set_value(True)
+
         # Activate name attribute access
         self._enable_group_attributes()
 
-        # Set the refractoriness information
-        self.lastspike = -np.inf*second
-        self.not_refractory = True
 
     def __len__(self):
         '''
@@ -315,7 +362,119 @@ class NeuronGroup(Group, SpikeSource):
         # Note that we have to directly access the ArrayVariable object here
         # instead of using the Group mechanism by accessing self._spikespace
         # Using the latter would cut _spikespace to the length of the group
-        return self.variables['_spikespace'][:self.variables['_spikespace'][-1]]
+        spikespace = self.variables['_spikespace'].get_value()
+        return spikespace[:spikespace[-1]]
+
+    def state(self, name, use_units=True, level=0):
+        try:
+            return Group.state(self, name, use_units=use_units, level=level+1)
+        except KeyError as ex:
+            if name in self._linked_variables:
+                raise TypeError(('Link target for variable %s has not been '
+                                 'set.') % name)
+            else:
+                raise ex
+
+    def __setattr__(self, key, value):
+        # attribute access is switched off until this attribute is created by
+        # _enable_group_attributes
+        if not hasattr(self, '_group_attribute_access_active') or key in self.__dict__:
+            object.__setattr__(self, key, value)
+        elif key in self._linked_variables:
+            if not isinstance(value, LinkedVariable):
+                raise ValueError(('Cannot set a linked variable directly, link '
+                                  'it to another variable using "linked_var".'))
+            linked_var = value.variable
+            
+            if isinstance(linked_var, DynamicArrayVariable):
+                raise NotImplementedError(('Linking to variable %s is not '
+                                           'supported, can only link to '
+                                           'state variables of fixed '
+                                           'size.') % linked_var.name)
+            
+            eq = self.equations[key]
+            if eq.unit != linked_var.unit:
+                raise DimensionMismatchError(('Unit of variable %s does not '
+                                              'match its link target %s') % (key,
+                                                                             linked_var.name))
+
+            if value.index is not None:
+                try:
+                    index_array = np.asarray(value.index)
+                    if not np.issubsctype(index_array.dtype, np.int):
+                        raise TypeError()
+                except TypeError:
+                    raise TypeError(('The index for a linked variable has '
+                                     'to be an integer array'))
+                size = len(index_array)
+                source_index = value.group.variables.indices[value.name]
+                if source_index != '_idx':
+                    # we are indexing into an already indexed variable,
+                    # calculate the indexing into the target variable
+                    index_array = value.group.variables[source_index].get_value()[index_array]
+
+                if not index_array.ndim == 1 or size != len(self):
+                    raise TypeError(('Index array for linked variable %s '
+                                     'has to be a one-dimensional array of '
+                                     'length %d, but has shape '
+                                     '%s') % (key,
+                                              len(self),
+                                              str(index_array.shape)))
+                if min(index_array) < 0 or max(index_array) >= len(linked_var):
+                    raise ValueError('Index array for linked variable %s '
+                                     'contains values outside of the valid '
+                                     'range [0, %d[' % (key,
+                                                        len(linked_var)))
+                self.variables.add_array('_%s_indices' % key, unit=Unit(1),
+                                         size=size, dtype=index_array.dtype,
+                                         constant=True, read_only=True,
+                                         values=index_array)
+                index = '_%s_indices' % key
+            elif len(linked_var) == 1:
+                index = '0'
+            else:
+                index = value.group.variables.indices[value.name]
+                if index == '_idx':
+                    target_length = len(linked_var)
+                else:
+                    target_length = len(value.group.variables[index])
+                    # we need a name for the index that does not clash with
+                    # other names and a reference to the index
+                    new_index = '_' + value.name + '_index_' + index
+                    self.variables.add_reference(new_index,
+                                                 value.group,
+                                                 index)
+                    index = new_index
+
+                if len(self) != target_length:
+                    raise ValueError(('Cannot link variable %s to %s, the size of '
+                                      'the target group does not match '
+                                      '(%d != %d). You can provide an indexing '
+                                      'scheme with the "index" keyword to link '
+                                      'groups with different sizes') % (key,
+                                                       linked_var.name,
+                                                       len(self),
+                                                       target_length))
+
+            self.variables.add_reference(key,
+                                         value.group,
+                                         value.name,
+                                         index=index)
+            log_msg = ('Setting {target}.{targetvar} as a link to '
+                       '{source}.{sourcevar}').format(target=self.name,
+                                                      targetvar=key,
+                                                      source=value.variable.owner.name,
+                                                      sourcevar=value.variable.name)
+            if index is not None:
+                log_msg += '(using "{index}" as index variable)'.format(index=index)
+            logger.debug(log_msg)
+        else:
+            if isinstance(value, LinkedVariable):
+                raise TypeError(('Cannot link variable %s, it has to be marked '
+                                 'as a linked variable with "(linked)" in the '
+                                 'model equations.') % key)
+            else:
+                Group.__setattr__(self, key, value, level=1)
 
     def __getitem__(self, item):
         if not isinstance(item, slice):
@@ -329,98 +488,77 @@ class NeuronGroup(Group, SpikeSource):
 
         return Subgroup(self, start, stop)
 
-    def runner(self, code, when=None, name=None):
-        '''
-        Returns a `CodeRunner` that runs abstract code in the groups namespace
-        
-        Parameters
-        ----------
-        code : str
-            The abstract code to run.
-        when : `Scheduler`, optional
-            When to run, by default in the 'start' slot with the same clock as
-            the group.
-        name : str, optional
-            A unique name, if non is given the name of the group appended with
-            'runner', 'runner_1', etc. will be used. If a name is given
-            explicitly, it will be used as given (i.e. the group name will not
-            be prepended automatically).
-        '''
-        if when is None:  # TODO: make this better with default values
-            when = Scheduler(clock=self.clock)
-        else:
-            raise NotImplementedError
-
-        if name is None:
-            name = self.name + '_runner*'
-
-        runner = GroupCodeRunner(self, self.language.template_state_update,
-                                 code=code, name=name, when=when)
-        return runner
-
-    def _create_variables(self, dtype=None):
+    def _create_variables(self, user_dtype=None):
         '''
         Create the variables dictionary for this `NeuronGroup`, containing
         entries for the equation variables and some standard entries.
         '''
-        device = get_device()
-        # Get the standard variables for all groups
-        s = Group._create_variables(self)
-
-        if dtype is None:
-            dtype = defaultdict(lambda: brian_prefs['core.default_scalar_dtype'])
-        elif isinstance(dtype, np.dtype):
-            dtype = defaultdict(lambda: dtype)
-        elif not hasattr(dtype, '__getitem__'):
-            raise TypeError(('Cannot use type %s as dtype '
-                             'specification') % type(dtype))
+        self.variables = Variables(self)
+        self.variables.add_clock_variables(self.clock)
+        self.variables.add_constant('N', Unit(1), self._N)
 
         # Standard variables always present
-        s['_spikespace'] = device.array(self, '_spikespace', self._N+1,
-                                        Unit(1), dtype=np.int32,
-                                        constant=False)
+        self.variables.add_array('_spikespace', unit=Unit(1), size=self._N+1,
+                                 dtype=np.int32, constant=False)
         # Add the special variable "i" which can be used to refer to the neuron index
-        s['i'] = device.arange(self, 'i', self._N, constant=True,
-                               read_only=True)
+        self.variables.add_arange('i', size=self._N, constant=True,
+                                  read_only=True)
+
         for eq in self.equations.itervalues():
+            dtype = get_dtype(eq, user_dtype)
+
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
-                constant = ('constant' in eq.flags)
-                s[eq.varname] = device.array(self, eq.varname, self._N, eq.unit,
-                                             dtype=dtype[eq.varname],
+                if 'linked' in eq.flags:
+                    # 'linked' cannot be combined with other flags
+                    if not len(eq.flags) == 1:
+                        raise SyntaxError(('The "linked" flag cannot be '
+                                           'combined with other flags'))
+                    self._linked_variables.add(eq.varname)
+                else:
+                    constant = 'constant' in eq.flags
+                    shared = 'shared' in eq.flags
+                    size = 1 if shared else self._N
+                    index = '0' if shared else None
+                    self.variables.add_array(eq.varname, size=size,
+                                             unit=eq.unit, dtype=dtype,
                                              constant=constant,
-                                             is_bool=eq.is_bool)
-        
-            elif eq.type == STATIC_EQUATION:
-                s[eq.varname] = Subexpression(eq.varname,
-                                              eq.unit,
-                                              dtype=brian_prefs['core.default_scalar_dtype'],
-                                              expr=str(eq.expr),
-                                              group=self,
-                                              is_bool=eq.is_bool)
+                                             scalar=shared,
+                                             index=index)
+            elif eq.type == SUBEXPRESSION:
+                self.variables.add_subexpression(eq.varname, unit=eq.unit,
+                                                 expr=str(eq.expr),
+                                                 dtype=dtype,
+                                                 scalar='shared' in eq.flags)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
+        # Add the conditional-write attribute for variables with the
+        # "unless refractory" flag
+        for eq in self.equations.itervalues():
+            if eq.type == DIFFERENTIAL_EQUATION and 'unless refractory' in eq.flags:
+                not_refractory_var = self.variables['not_refractory']
+                self.variables[eq.varname].set_conditional_write(not_refractory_var)
+
         # Stochastic variables
         for xi in self.equations.stochastic_variables:
-            s.update({xi: StochasticVariable()})
+            self.variables.add_auxiliary_variable(xi, unit=second**-0.5)
 
-        return s
+        # Check scalar subexpressions
+        for eq in self.equations.itervalues():
+            if eq.type == SUBEXPRESSION and 'shared' in eq.flags:
+                var = self.variables[eq.varname]
+                for identifier in var.identifiers:
+                    if identifier in self.variables:
+                        if not self.variables[identifier].scalar:
+                            raise SyntaxError(('Shared subexpression %s refers '
+                                               'to non-shared variable %s.')
+                                              % (eq.varname, identifier))
 
-    def before_run(self, namespace):
-    
-        # Update the namespace information in the variables in case the
-        # namespace was not specified explicitly defined at creation time
-        # Note that values in the explicit namespace might still change
-        # between runs, but the Subexpression stores a reference to 
-        # self.namespace so these changes are taken into account automatically
-        if not self.namespace.is_explicit:
-            for var in self.variables.itervalues():
-                if isinstance(var, Subexpression):
-                    var.additional_namespace = namespace
 
+    def before_run(self, run_namespace=None, level=0):
         # Check units
-        self.equations.check_units(self.namespace, self.variables,
-                                   namespace)
+        self.equations.check_units(self, run_namespace=run_namespace,
+                                   level=level+1)
     
     def _repr_html_(self):
         text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self._N)]

@@ -4,7 +4,7 @@ TODO: modify this so to just generate snippets
 from numpy import *
 from brian2 import *
 from brian2.utils.stringtools import *
-from brian2.codegen.languages.cpp_lang import *
+from brian2.codegen.generators.cpp_lang import *
 
 ##### Define the model
 tau = 10*ms

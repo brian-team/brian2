@@ -1,18 +1,17 @@
-import weakref
 import collections
 
 import numpy as np
 
-from brian2.core.variables import (AttributeVariable, ArrayVariable,
-                                   AuxiliaryVariable)
-from brian2.core.base import BrianObject
+from brian2.core.variables import (Variables, Subexpression, get_dtype)
 from brian2.core.scheduler import Scheduler
-from brian2.devices.device import get_device
+from brian2.groups.group import Group, CodeRunner
+from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.units.allunits import second
-from brian2.groups.group import create_runner_codeobj
 
 __all__ = ['StateMonitor']
+
+logger = get_logger(__name__)
 
 
 class StateMonitorView(object):
@@ -36,10 +35,9 @@ class StateMonitorView(object):
 
         mon = self.monitor
         if item == 't':
-            return Quantity(mon.variables['_t'].get_value(), dim=second.dim,
-                            copy=True)
+            return mon.t
         elif item == 't_':
-            return mon._t.data.copy()
+            return mon.t_
         elif item in mon.record_variables:
             unit = mon.variables[item].unit
             return Quantity(mon.variables['_recorded_'+item].get_value().T[self.indices],
@@ -54,22 +52,22 @@ class StateMonitorView(object):
         Convert the neuron indices to indices into the stored values. For example, if neurons [0, 5, 10] have been
         recorded, [5, 10] is converted to [1, 2].
         '''
-        if isinstance(item, int):
-            item = self.monitor.source.calc_indices(item)
+        dtype = get_dtype(item)
+        # scalar value
+        if np.issubdtype(dtype, np.int) and not isinstance(item, np.ndarray):
             indices = np.nonzero(self.monitor.indices == item)[0]
             if len(indices) == 0:
-                raise IndexError('Neuron number %d has not been recorded' % item)
+                raise IndexError('Index number %d has not been recorded' % item)
             return indices[0]
 
         if self.monitor.record_all:
             return item
         indices = []
         for index in item:
-            index = self.monitor.source.calc_indices(index)
             if index in self.monitor.indices:
                 indices.append(np.nonzero(self.monitor.indices == index)[0][0])
             else:
-                raise IndexError('Neuron number %d has not been recorded' % index)
+                raise IndexError('Index number %d has not been recorded' % index)
         return np.array(indices)
 
     def __repr__(self):
@@ -79,7 +77,7 @@ class StateMonitorView(object):
                                   monitor=self.monitor.name)
 
 
-class StateMonitor(BrianObject):
+class StateMonitor(Group, CodeRunner):
     '''
     Record values of state variables during a run
     
@@ -133,9 +131,11 @@ class StateMonitor(BrianObject):
         show()
 
     '''
+    invalidates_magic_network = False
+    add_to_magic_network = True
     def __init__(self, source, variables, record=None, when=None,
                  name='statemonitor*', codeobj_class=None):
-        self.source = weakref.proxy(source)
+        self.source = source
         self.codeobj_class = codeobj_class
 
         # run by default on source clock at the end
@@ -144,8 +144,6 @@ class StateMonitor(BrianObject):
             scheduler.clock = source.clock
         if not scheduler.defined_when:
             scheduler.when = 'end'
-
-        BrianObject.__init__(self, when=scheduler, name=name)
 
         # variables should always be a list of strings
         if variables is True:
@@ -159,68 +157,102 @@ class StateMonitor(BrianObject):
         self.record_all = False
         if record is True:
             self.record_all = True
-            record = source.calc_indices(slice(None))
+            record = np.arange(len(source), dtype=np.int32)
         elif record is None or record is False:
             record = np.array([], dtype=np.int32)
         elif isinstance(record, int):
-            record = np.array([source.calc_indices(record)], dtype=np.int32)
+            record = np.array([record], dtype=np.int32)
         else:
-            record = np.array(source.calc_indices(record), dtype=np.int32)
+            record = np.asarray(record, dtype=np.int32)
             
         #: The array of recorded indices
         self.indices = record
-        
-        # Setup variables
-        device = get_device()
-        self.variables = {}
-        for varname in variables:
-            var = source.variables[varname]
-            self.variables[varname] = var
-            self.variables['_recorded_'+varname] = device.dynamic_array(self,
-                                                                        '_recorded_'+varname,
-                                                                        (0, len(self.indices)),
-                                                                        var.unit,
-                                                                        dtype=var.dtype,
-                                                                        constant=False)
+        self.n_indices = len(record)
 
-        self.variables['_t'] = device.dynamic_array_1d(self, '_t', 0, Unit(1),
-                                                       constant=False)
-        self.variables['_clock_t'] = AttributeVariable(second, self.clock, 't_')
-        self.variables['_indices'] = ArrayVariable('_indices', Unit(1),
-                                                   self.indices,
-                                                   constant=True)
-
-        self._group_attribute_access_active = True
-
-    def reinit(self):
-        raise NotImplementedError()
-    
-    def before_run(self, namespace):
         # Some dummy code so that code generation takes care of the indexing
         # and subexpressions
         code = ['_to_record_%s = %s' % (v, v)
                 for v in self.record_variables]
         code = '\n'.join(code)
-        source_variables = self.source.variables
-        self.variables.update(dict([('_to_record_%s' % v,
-                                     AuxiliaryVariable(source_variables[v].unit,
-                                                       dtype=source_variables[v].dtype))
-                                    for v in self.record_variables]))
-        recorded_names = ['_recorded_' + name for name in self.record_variables]
-        self.codeobj = create_runner_codeobj(self.source,
-                                             code,
-                                             'statemonitor',
-                                             name=self.name+'_codeobject*',
-                                             needed_variables=recorded_names,
-                                             additional_variables=self.variables,
-                                             additional_namespace=namespace,
-                                             template_kwds={'_variable_names':
-                                                            self.record_variables},
-                                             check_units=False)
-        self.updaters[:] = [self.codeobj.get_updater()]
+
+        CodeRunner.__init__(self, group=self, template='statemonitor',
+                            code=code, name=name,
+                            when=scheduler,
+                            check_units=False)
+
+        self.add_dependency(source)
+
+        # Setup variables
+        self.variables = Variables(self)
+
+        self.variables.add_dynamic_array('t', size=0, unit=second,
+                                         constant=False, constant_size=False)
+        if scheduler.clock is source.clock:
+            self.variables.add_reference('_clock_t', source, 't')
+        else:
+            self.variables.add_attribute_variable('_clock_t', unit=second,
+                                                  obj=scheduler.clock,
+                                                  attribute='t_')
+        self.variables.add_attribute_variable('N', unit=Unit(1),
+                                              dtype=np.int32,
+                                              obj=self, attribute='_N')
+        self.variables.add_array('_indices', size=len(self.indices),
+                                 unit=Unit(1), dtype=self.indices.dtype,
+                                 constant=True, read_only=True)
+        self.variables['_indices'].set_value(self.indices)
+
+        for varname in variables:
+            var = source.variables[varname]
+            if var.scalar and len(self.indices) > 1:
+                logger.warn(('Variable %s is a shared variable but it will be '
+                             'recorded once for every target.' % varname),
+                            once=True)
+            index = source.variables.indices[varname]
+            self.variables.add_reference(varname, source, varname, index=index)
+            if not index in ('_idx', '0') and index not in variables:
+                self.variables.add_reference(index, source)
+            self.variables.add_dynamic_array('_recorded_' + varname,
+                                             size=(0, len(self.indices)),
+                                             unit=var.unit,
+                                             dtype=var.dtype,
+                                             constant=False,
+                                             constant_size=False)
+
+        for varname in self.record_variables:
+            var = self.source.variables[varname]
+            self.variables.add_auxiliary_variable('_to_record_' + varname,
+                                                  unit=var.unit,
+                                                  dtype=var.dtype,
+                                                  scalar=var.scalar)
+
+        self.recorded_variables = dict([(varname,
+                                         self.variables['_recorded_'+varname])
+                                        for varname in self.record_variables])
+        recorded_names = ['_recorded_'+varname
+                          for varname in self.record_variables]
+
+        self.needed_variables = recorded_names
+        self.template_kwds = template_kwds={'_recorded_variables':
+                                            self.recorded_variables}
+        self._N = 0
+        self._enable_group_attributes()
+
+    def __len__(self):
+        return self._N
+
+    def resize(self, new_size):
+        self.variables['t'].resize(new_size)
+
+        for var in self.recorded_variables.values():
+            var.resize((new_size, self.n_indices))
+        self._N = new_size
+
+    def reinit(self):
+        raise NotImplementedError()
 
     def __getitem__(self, item):
-        if isinstance(item, (int, np.ndarray)):
+        dtype = get_dtype(item)
+        if np.issubdtype(dtype, np.int):
             return StateMonitorView(self, item)
         elif isinstance(item, collections.Sequence):
             index_array = np.array(item)
@@ -243,21 +275,14 @@ class StateMonitor(BrianObject):
             raise AttributeError
         if not hasattr(self, '_group_attribute_access_active'):
             raise AttributeError
-
-        # TODO: Decide about the interface
-        if item == 't':
-            return Quantity(self.variables['_t'].get_value(),
-                            dim=second.dim, copy=True)
-        elif item == 't_':
-            return self.variables['_t'].get_value().copy()
-        elif item in self.record_variables:
+        if item in self.record_variables:
             unit = self.variables[item].unit
             return Quantity(self.variables['_recorded_'+item].get_value().T,
                             dim=unit.dim, copy=True)
         elif item.endswith('_') and item[:-1] in self.record_variables:
             return self.variables['_recorded_'+item[:-1]].get_value().T
         else:
-            raise AttributeError('Unknown attribute %s' % item)
+            return Group.__getattr__(self, item)
 
     def __repr__(self):
         description = '<{classname}, recording {variables} from {source}>'

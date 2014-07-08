@@ -1,3 +1,7 @@
+import os
+import tempfile
+
+from nose import with_setup
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 import numpy as np
 
@@ -14,10 +18,15 @@ except ImportError:
 
 def _compare(synapses, expected):
     conn_matrix = np.zeros((len(synapses.source), len(synapses.target)))
-    for i, j in zip(synapses.i[:], synapses.j[:]):
-        conn_matrix[i, j] += 1
+    for _i, _j in zip(synapses.i[:], synapses.j[:]):
+        conn_matrix[_i, _j] += 1
 
     assert_equal(conn_matrix, expected)
+    # also compare the correct numbers of incoming and outgoing synapses
+    incoming = conn_matrix.sum(axis=0)
+    outgoing = conn_matrix.sum(axis=1)
+    assert all(synapses.N_outgoing[:] == outgoing[synapses.i[:]]), 'N_outgoing returned an incorrect value'
+    assert all(synapses.N_incoming[:] == incoming[synapses.j[:]]), 'N_incoming returned an incorrect value'
 
 
 def test_creation():
@@ -32,6 +41,31 @@ def test_creation():
         assert len(S) == 0
         S = Synapses(G, model='w:1', pre='v+=w', codeobj_class=codeobj_class)
         assert S.source.name == S.target.name == G.name
+
+
+def test_incoming_outgoing():
+    '''
+    Test the count of outgoing/incoming synapses per neuron.
+    (It will be also automatically tested for all connection patterns that
+    use the above _compare function for testing)
+    '''
+    G1 = NeuronGroup(5, 'v: 1')
+    G2 = NeuronGroup(5, 'v: 1')
+    for codeobj_class in codeobj_classes:
+        S = Synapses(G1, G2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
+        S.connect([0, 0, 0, 1, 1, 2],
+                  [0, 1, 2, 1, 2, 3])
+        # First source neuron has 3 outgoing synapses, the second 2, the third 1
+        assert all(S.N_outgoing['i==0'] == 3)
+        assert all(S.N_outgoing['i==1'] == 2)
+        assert all(S.N_outgoing['i==2'] == 1)
+        assert all(S.N_outgoing['i>2'] == 0)
+        # First target neuron receives 1 input, the second+third each 2, the fourth receives 1
+        assert all(S.N_incoming['j==0'] == 1)
+        assert all(S.N_incoming['j==1'] == 2)
+        assert all(S.N_incoming['j==2'] == 2)
+        assert all(S.N_incoming['j==3'] == 1)
+        assert all(S.N_incoming['j>3'] == 0)
 
 
 def test_connection_arrays():
@@ -68,6 +102,7 @@ def test_connection_arrays():
         assert_raises(TypeError, lambda: S.connect([1, 2], 'string'))
         assert_raises(TypeError, lambda: S.connect([1, 2], [1, 2], n='i'))
         assert_raises(TypeError, lambda: S.connect([1, 2]))
+        assert_raises(ValueError, lambda: S.connect([1, 2, 3], [1, 2]))
         assert_raises(ValueError, lambda: S.connect(np.ones((3, 3), dtype=np.int32),
                                                     np.ones((3, 1), dtype=np.int32)))
         assert_raises(ValueError, lambda: S.connect('i==j',
@@ -77,6 +112,44 @@ def test_connection_arrays():
         assert_raises(TypeError, lambda: S.connect('i==j',
                                                    p=object()))
         assert_raises(TypeError, lambda: S.connect(object()))
+
+from brian2.devices.cpp_standalone import cpp_standalone_device
+
+
+def restore_device():
+    cpp_standalone_device.reinit()
+    set_device('runtime')
+    restore_initial_state()
+
+@with_setup(teardown=restore_device)
+def test_connection_array_standalone():
+    Synapses.__instances__().clear()  #FIXME
+    set_device('cpp_standalone')
+    # use a clock with 1s timesteps to avoid rounding issues
+    clock = Clock(dt=1*second)
+    G1 = SpikeGeneratorGroup(4, np.array([0, 1, 2, 3]),
+                             [0, 1, 2, 3]*second, when=clock)
+    G2 = NeuronGroup(8, 'v:1')
+    S = Synapses(G1, G2, '', pre='v+=1', clock=clock)
+    S.connect([0, 1, 2, 3], [0, 2, 4, 6])
+    mon = StateMonitor(G2, 'v', record=True, name='mon', when=clock)
+    net = Network(G1, G2, S, mon)
+    net.run(5*second)
+    tempdir = tempfile.mkdtemp()
+    device.build(project_dir=tempdir, compile_project=True, run_project=True,
+                 with_output=False)
+    mon_v = np.fromfile(os.path.join(tempdir, 'results',
+                                     '_dynamic_array_mon__recorded_v'),
+                        dtype=np.float64)
+    expected = np.array([[1, 1, 1, 1, 1],
+                         [0, 0, 0, 0, 0],
+                         [0, 1, 1, 1, 1],
+                         [0, 0, 0, 0, 0],
+                         [0, 0, 1, 1, 1],
+                         [0, 0, 0, 0, 0],
+                         [0, 0, 0, 1, 1],
+                         [0, 0, 0, 0, 0]], dtype=np.float64)
+    assert_equal(mon_v.reshape(5, -1).T, expected)
 
 
 def test_connection_string_deterministic():
@@ -132,6 +205,19 @@ def test_connection_string_deterministic():
         _compare(S, expected)
 
         S = Synapses(G, G, 'w:1', 'v+=w', connect='i == j', codeobj_class=codeobj_class)
+        _compare(S, expected)
+
+        # Everything except for the upper [5, 5] quadrant
+        number = 5
+        expected = np.ones((len(G), len(G)))
+        expected[:number, :number] = 0
+        S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
+        S.connect('(i >= number) or (j >= number)')
+        _compare(S, expected)
+
+        S = Synapses(G, G, 'w:1', 'v+=w', codeobj_class=codeobj_class)
+        S.connect('(i >= explicit_number) or (j >= explicit_number)',
+                  namespace={'explicit_number': number})
         _compare(S, expected)
 
 
@@ -226,55 +312,57 @@ def test_state_variable_assignment():
     '''
     Assign values to state variables in various ways
     '''
-    G = NeuronGroup(10, 'v: volt')
-    G.v = 'i*mV'
-    S = Synapses(G, G, 'w:volt')
-    S.connect(True)
 
-    # with unit checking
-    assignment_expected = [
-        (5*mV, np.ones(100)*5*mV),
-        (7*mV, np.ones(100)*7*mV),
-        (S.i[:] * mV, S.i[:]*np.ones(100)*mV),
-        ('5*mV', np.ones(100)*5*mV),
-        ('i*mV', np.ones(100)*S.i[:]*mV),
-        ('i*mV +j*mV', S.i[:]*mV + S.j[:]*mV),
-        # reference to pre- and postsynaptic state variables
-        ('v_pre', S.i[:]*mV),
-        ('v_post', S.j[:]*mV),
-        #('i*mV + j*mV + k*mV', S.i[:]*mV + S.j[:]*mV + S.k[:]*mV) #not supported yet
-    ]
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, 'v: volt')
+        G.v = 'i*mV'
+        S = Synapses(G, G, 'w:volt', codeobj_class=codeobj_class)
+        S.connect(True)
 
-    for assignment, expected in assignment_expected:
-        S.w = 0*volt
-        S.w = assignment
-        assert_equal(S.w[:], expected,
-                     'Assigning %r gave incorrect result' % assignment)
-        S.w = 0*volt
-        S.w[:] = assignment
-        assert_equal(S.w[:], expected,
-                     'Assigning %r gave incorrect result' % assignment)
+        # with unit checking
+        assignment_expected = [
+            (5*mV, np.ones(100)*5*mV),
+            (7*mV, np.ones(100)*7*mV),
+            (S.i[:] * mV, S.i[:]*np.ones(100)*mV),
+            ('5*mV', np.ones(100)*5*mV),
+            ('i*mV', np.ones(100)*S.i[:]*mV),
+            ('i*mV +j*mV', S.i[:]*mV + S.j[:]*mV),
+            # reference to pre- and postsynaptic state variables
+            ('v_pre', S.i[:]*mV),
+            ('v_post', S.j[:]*mV),
+            #('i*mV + j*mV + k*mV', S.i[:]*mV + S.j[:]*mV + S.k[:]*mV) #not supported yet
+        ]
 
-    # without unit checking
-    assignment_expected = [
-        (5, np.ones(100)*5*volt),
-        (7, np.ones(100)*7*volt),
-        (S.i[:], S.i[:]*np.ones(100)*volt),
-        ('5', np.ones(100)*5*volt),
-        ('i', np.ones(100)*S.i[:]*volt),
-        ('i +j', S.i[:]*volt + S.j[:]*volt),
-        #('i + j + k', S.i[:]*volt + S.j[:]*volt + S.k[:]*volt) #not supported yet
-    ]
+        for assignment, expected in assignment_expected:
+            S.w = 0*volt
+            S.w = assignment
+            assert_allclose(S.w[:], expected,
+                            err_msg='Assigning %r gave incorrect result' % assignment)
+            S.w = 0*volt
+            S.w[:] = assignment
+            assert_allclose(S.w[:], expected,
+                            err_msg='Assigning %r gave incorrect result' % assignment)
 
-    for assignment, expected in assignment_expected:
-        S.w = 0*volt
-        S.w_ = assignment
-        assert_equal(S.w[:], expected,
-                     'Assigning %r gave incorrect result' % assignment)
-        S.w = 0*volt
-        S.w_[:] = assignment
-        assert_equal(S.w[:], expected,
-                     'Assigning %r gave incorrect result' % assignment)
+        # without unit checking
+        assignment_expected = [
+            (5, np.ones(100)*5*volt),
+            (7, np.ones(100)*7*volt),
+            (S.i[:], S.i[:]*np.ones(100)*volt),
+            ('5', np.ones(100)*5*volt),
+            ('i', np.ones(100)*S.i[:]*volt),
+            ('i +j', S.i[:]*volt + S.j[:]*volt),
+            #('i + j + k', S.i[:]*volt + S.j[:]*volt + S.k[:]*volt) #not supported yet
+        ]
+
+        for assignment, expected in assignment_expected:
+            S.w = 0*volt
+            S.w_ = assignment
+            assert_allclose(S.w[:], expected,
+                            err_msg='Assigning %r gave incorrect result' % assignment)
+            S.w = 0*volt
+            S.w_[:] = assignment
+            assert_allclose(S.w[:], expected,
+                            err_msg='Assigning %r gave incorrect result' % assignment)
 
 
 def test_state_variable_indexing():
@@ -326,6 +414,32 @@ def test_state_variable_indexing():
     assert_raises(IndexError, lambda: S.w.__getitem__(object()))
 
 
+def test_indices():
+    G = NeuronGroup(10, 'v : 1')
+    S = Synapses(G, G, '', connect=True)
+    G.v = 'i'
+
+    assert_equal(S.indices[:], np.arange(10*10))
+    assert len(S.indices[5, :]) == 10
+    assert_equal(S.indices['v_pre >=5'], S.indices[5:, :])
+    assert_equal(S.indices['j >=5'], S.indices[:, 5:])
+
+
+def test_subexpression_references():
+    '''
+    Assure that subexpressions in targeted groups are handled correctly.
+    '''
+    G = NeuronGroup(10, '''v : 1
+                           v2 = 2*v : 1''')
+    G.v = np.arange(10)
+    S = Synapses(G, G, '''w : 1
+                          u = v2_post + 1 : 1
+                          v = v2_pre + 1 : 1''')
+    S.connect('i==(10-1-j)')
+    assert_equal(S.u[:], np.arange(10)[::-1]*2+1)
+    assert_equal(S.v[:], np.arange(10)*2+1)
+
+
 def test_delay_specification():
     # By default delays are state variables (i.e. arrays), but if they are
     # specified in the initializer, they are scalars.
@@ -342,13 +456,12 @@ def test_delay_specification():
 
     # Scalar delay
     S = Synapses(G, G, 'w:1', pre='v+=w', delay=5*ms)
+    assert_equal(S.delay[:], 5*ms)
     S.connect('i==j')
     S.delay = 10*ms
     assert_equal(S.delay[:], 10*ms)
-    S.delay = '3*ms'
-    assert_equal(S.delay[:], 3*ms)
-    # TODO: Assignment with strings or arrays is currently possible, it only
-    # takes into account the first value
+    # S.delay = '3*ms'
+    # assert_equal(S.delay[:], 3*ms)
 
     # Invalid arguments
     assert_raises(DimensionMismatchError, lambda: Synapses(G, G, 'w:1',
@@ -389,27 +502,30 @@ def test_transmission():
 
 
 def test_changed_dt_spikes_in_queue():
-    defaultclock.dt = .5*ms
-    G1 = NeuronGroup(1, 'v:1', threshold='v>1', reset='v=0')
-    G1.v = 1.1
-    G2 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
-    S = Synapses(G1, G2, pre='v+=1.1')
-    S.connect(True)
-    S.delay = 'j*ms'
-    mon = SpikeMonitor(G2)
-    net = Network(G1, G2, S, mon)
-    net.run(5*ms)
-    defaultclock.dt = 1*ms
-    net.run(3*ms)
-    defaultclock.dt = 0.1*ms
-    net.run(2*ms)
-    # Spikes should have delays of 0, 1, 2, ... ms and always
-    # trigger a spike one dt later
-    expected = [0.5, 1.5, 2.5, 3.5, 4.5, # dt=0.5ms
-                6, 7, 8, #dt = 1ms
-                8.1, 9.1 #dt=0.1ms
-                ] * ms
-    assert_equal(mon.t, expected)
+    for codeobj_class in codeobj_classes:
+        defaultclock.dt = .5*ms
+        G1 = NeuronGroup(1, 'v:1', threshold='v>1', reset='v=0',
+                         codeobj_class=codeobj_class)
+        G1.v = 1.1
+        G2 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0',
+                         codeobj_class=codeobj_class)
+        S = Synapses(G1, G2, pre='v+=1.1', codeobj_class=codeobj_class)
+        S.connect(True)
+        S.delay = 'j*ms'
+        mon = SpikeMonitor(G2)
+        net = Network(G1, G2, S, mon)
+        net.run(5*ms)
+        defaultclock.dt = 1*ms
+        net.run(3*ms)
+        defaultclock.dt = 0.1*ms
+        net.run(2*ms)
+        # Spikes should have delays of 0, 1, 2, ... ms and always
+        # trigger a spike one dt later
+        expected = [0.5, 1.5, 2.5, 3.5, 4.5, # dt=0.5ms
+                    6, 7, 8, #dt = 1ms
+                    8.1, 9.1 #dt=0.1ms
+                    ] * ms
+        assert_equal(mon.t[:], expected)
 
 
 def test_summed_variable():
@@ -459,6 +575,64 @@ def test_summed_variable_errors():
     assert_raises(ValueError,
                   lambda: Synapses(G, G, '''p_post = 3*volt : volt (summed)
                                             p_pre = 3*volt : volt (summed)'''))
+
+
+def test_scalar_parameter_access():
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, '''v : 1
+                               scalar : Hz (shared)''')
+        S = Synapses(G, G, '''w : 1
+                              s : Hz (shared)
+                              number : 1 (shared)''',
+                     pre = 'v+=w*number', connect=True,
+                     codeobj_class=codeobj_class)
+
+        # Try setting a scalar variable
+        S.s = 100*Hz
+        assert_equal(S.s[:], 100*Hz)
+        S.s[:] = 200*Hz
+        assert_equal(S.s[:], 200*Hz)
+        S.s = 's - 50*Hz + number*Hz'
+        assert_equal(S.s[:], 150*Hz)
+        S.s[:] = '50*Hz'
+        assert_equal(S.s[:], 50*Hz)
+
+        # Set a postsynaptic scalar variable
+        S.scalar_post = 100*Hz
+        assert_equal(G.scalar[:], 100*Hz)
+        S.scalar_post[:] = 100*Hz
+        assert_equal(G.scalar[:], 100*Hz)
+
+        # Check the second method of accessing that works
+        assert_equal(np.asanyarray(S.s), 50*Hz)
+
+        # Check error messages
+        assert_raises(IndexError, lambda: S.s[0])
+        assert_raises(IndexError, lambda: S.s[1])
+        assert_raises(IndexError, lambda: S.s[0:1])
+        assert_raises(IndexError, lambda: S.s['i>5'])
+
+        assert_raises(ValueError, lambda: S.s.set_item(slice(None), [0, 1]*Hz))
+        assert_raises(IndexError, lambda: S.s.set_item(0, 100*Hz))
+        assert_raises(IndexError, lambda: S.s.set_item(1, 100*Hz))
+        assert_raises(IndexError, lambda: S.s.set_item('i>5', 100*Hz))
+
+
+def test_scalar_subexpression():
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, '''v : 1
+                               number : 1 (shared)''',
+                        codeobj_class=codeobj_class)
+        S = Synapses(G, G, '''s : 1 (shared)
+                              sub = number_post + s : 1 (shared)''',
+                     pre='v+=s', connect=True)
+        S.s = 100
+        G.number = 50
+        assert S.sub[:] == 150
+
+    assert_raises(SyntaxError, lambda: Synapses(G, G, '''s : 1 (shared)
+                                                         sub = v_post + s : 1 (shared)''',
+                                                pre='v+=s', connect=True))
 
 
 def test_event_driven():
@@ -531,15 +705,23 @@ def test_repr():
 
 if __name__ == '__main__':
     test_creation()
+    test_incoming_outgoing()
     test_connection_string_deterministic()
     test_connection_random()
     test_connection_multiple_synapses()
+    test_connection_arrays()
+    test_connection_array_standalone()
+    restore_device()
     test_state_variable_assignment()
     test_state_variable_indexing()
+    test_indices()
+    test_subexpression_references()
     test_delay_specification()
     test_transmission()
     test_changed_dt_spikes_in_queue()
     test_summed_variable()
     test_summed_variable_errors()
+    test_scalar_parameter_access()
+    test_scalar_subexpression()
     test_event_driven()
     test_repr()

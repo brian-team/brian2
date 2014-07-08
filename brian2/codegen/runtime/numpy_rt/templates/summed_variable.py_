@@ -1,14 +1,18 @@
-# USES_VARIABLES { _post_synaptic }
-# ITERATE_ALL { _idx }
+{# USES_VARIABLES { _synaptic_post, N } #}
+{# ITERATE_ALL { _idx } #}
+{% set _target_var_array = get_array_name(_target_var) %}
 
 import numpy as np
 
-{% for line in code_lines %}
-{{line}}
-{% endfor %}
+# scalar code
+_vectorisation_idx = 1
 
+# vector code
+_vectorisation_idx = N
+{{vector_code|autoindent}}
 
 # We write to the array, using the name provided as a keyword argument to the
 # template
-{{_target_var_array}}[:] = np.array([np.sum(_synaptic_var[_post_syns.data])
-                          for _post_syns in _post_synaptic])
+{{_target_var_array}}[:] = np.bincount({{_synaptic_post}},
+                                 minlength=len({{_target_var_array}}),
+                                 weights=_synaptic_var)

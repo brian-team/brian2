@@ -1,6 +1,13 @@
-# USES_VARIABLES { _spikespace }
-_idx = _spikespace[:_spikespace[-1]]
+{# USES_VARIABLES { _spikespace } #}
+
+{# Note that we don't write to scalar variables conditionally. The scalar code
+   should therefore only include the calculation of scalar expressions
+   that are used below for writing to a vector variable #}
+# scalar code
+_vectorisation_idx = 1
+{{scalar_code|autoindent}}
+
+# vector code
+_idx = {{_spikespace}}[:{{_spikespace}}[-1]]
 _vectorisation_idx = _idx
-{% for line in code_lines %}
-{{line}}
-{% endfor %}
+{{vector_code|autoindent}}

@@ -2,7 +2,7 @@ import ast
 
 import sympy
 
-from brian2.core.functions import DEFAULT_FUNCTIONS
+from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
 
 __all__ = ['NodeRenderer',
            'NumpyNodeRenderer',
@@ -65,6 +65,9 @@ class NodeRenderer(object):
     def render_func(self, node):
         return self.render_Name(node)
 
+    def render_NameConstant(self, node):
+        return str(node.value)
+
     def render_Name(self, node):
         return node.id
     
@@ -88,32 +91,34 @@ class NodeRenderer(object):
             return '%s(%s)' % (self.render_func(node.func),
                            ', '.join(self.render_node(arg) for arg in node.args))
 
+    def render_element_parentheses(self, node):
+        '''
+        Render an element with parentheses around it or leave them away for
+        numbers, names and function calls.
+        '''
+        if node.__class__.__name__ == 'Name':
+            return self.render_Name(node)
+        elif node.__class__.__name__ == 'Num' and node.n >= 0:
+            return self.render_Num(node)
+        elif node.__class__.__name__ == 'Call':
+            return self.render_Call(node)
+        else:
+            return '(%s)' % self.render_node(node)
+
     def render_BinOp_parentheses(self, left, right, op):
-        # This function checks whether or not you can ommit parentheses assuming Python
-        # precedence relations, hopefully this is the same in C++ and Java, but we'll need
-        # to check it
-        exprs = ['%s %s %s', '(%s) %s %s', '%s %s (%s)', '(%s) %s (%s)']
-        nr = NodeRenderer()
-        L = nr.render_node(left)
-        R = nr.render_node(right)
-        O = NodeRenderer.expression_ops[op.__class__.__name__]
-        refexpr = '(%s) %s (%s)' % (L, O, R)
-        refexprdump = ast.dump(ast.parse(refexpr))
-        for expr in exprs:
-            e = expr % (L, O, R)
-            if ast.dump(ast.parse(e))==refexprdump:
-                return expr % (self.render_node(left),
-                               self.expression_ops[op.__class__.__name__],
-                               self.render_node(right),
-                               )
+        # Use a simplified checking whether it is possible to omit parentheses:
+        # only omit parentheses for numbers, variable names or function calls.
+        # This means we still put needless parentheses because we ignore
+        # precedence rules, e.g. we write "3 + (4 * 5)" but at least we do
+        # not do "(3) + ((4) + (5))"
+        return '%s %s %s' % (self.render_element_parentheses(left),
+                             self.expression_ops[op.__class__.__name__],
+                             self.render_element_parentheses(right))
 
     def render_BinOp(self, node):
         return self.render_BinOp_parentheses(node.left, node.right, node.op)
 
     def render_BoolOp(self, node):
-        # TODO: for the moment we always parenthesise boolean ops because precedence
-        # might be different in different languages and it's safer - also because it's
-        # a bit more complicated to write the parenthesis rule
         op = node.op
         left = node.values[0]
         remaining = node.values[1:]
@@ -122,7 +127,7 @@ class NodeRenderer(object):
             remaining = remaining[1:]
             s = self.render_BinOp_parentheses(left, right, op)
         op = self.expression_ops[node.op.__class__.__name__]
-        return (' '+op+' ').join('(%s)' % self.render_node(v) for v in node.values)
+        return (' '+op+' ').join('%s' % self.render_element_parentheses(v) for v in node.values)
 
     def render_Compare(self, node):
         if len(node.comparators)>1:
@@ -130,8 +135,8 @@ class NodeRenderer(object):
         return self.render_BinOp_parentheses(node.left, node.comparators[0], node.ops[0])
         
     def render_UnaryOp(self, node):
-        return '%s(%s)' % (self.expression_ops[node.op.__class__.__name__],
-                           self.render_node(node.operand))
+        return '%s%s' % (self.expression_ops[node.op.__class__.__name__],
+                         self.render_element_parentheses(node.operand))
                 
     def render_Assign(self, node):
         if len(node.targets)>1:
@@ -150,11 +155,17 @@ class NumpyNodeRenderer(NodeRenderer):
     expression_ops = NodeRenderer.expression_ops.copy()
     expression_ops.update({
           # Unary ops
-          'Not': 'logical_not',
+          # We'll handle "not" explicitly below
           # Bool ops
           'And': '*',
           'Or': '+',
           })
+
+    def render_UnaryOp(self, node):
+        if node.op.__class__.__name__ == 'Not':
+            return 'logical_not(%s)' % self.render_node(node.operand)
+        else:
+            return NodeRenderer.render_UnaryOp(self, node)
     
 
 class SympyNodeRenderer(NodeRenderer):
@@ -171,12 +182,16 @@ class SympyNodeRenderer(NodeRenderer):
           })
 
     def render_func(self, node):
-        for name, f in DEFAULT_FUNCTIONS.iteritems():
-            if name == node.id:
-                if f.sympy_func is not None and isinstance(f.sympy_func,
-                                                           sympy.FunctionClass):
-                    return '%s' % str(f.sympy_func)
-        return 'Function("%s")' % node.id
+        if node.id in DEFAULT_FUNCTIONS:
+            f = DEFAULT_FUNCTIONS[node.id]
+            if f.sympy_func is not None and isinstance(f.sympy_func,
+                                                       sympy.FunctionClass):
+                return '%s' % str(f.sympy_func)
+        # special workaround for the "int" function
+        if node.id == 'int':
+            return 'Function("int_")'
+        else:
+            return 'Function("%s")' % node.id
 
     def render_Compare(self, node):
         if len(node.comparators)>1:
@@ -190,7 +205,10 @@ class SympyNodeRenderer(NodeRenderer):
             return NodeRenderer.render_Compare(self, node)
 
     def render_Name(self, node):
-        if node.id in ['t', 'dt']:
+        if node.id in DEFAULT_CONSTANTS:
+            c = DEFAULT_CONSTANTS[node.id]
+            return '%s' % str(c.sympy_obj)
+        elif node.id in ['t', 'dt']:
             return 'Symbol("%s", real=True, positive=True)' % node.id
         else:
             return 'Symbol("%s", real=True)' % node.id
@@ -220,10 +238,16 @@ class CPPNodeRenderer(NodeRenderer):
         else:
             return NodeRenderer.render_BinOp(self, node)
 
+    def render_NameConstant(self, node):
+        # In Python 3.4, None, True and False go here
+        return {True: 'true',
+                False: 'false'}.get(node.value, node.value)
+
     def render_Name(self, node):
         # Replace Python's True and False with their C++ bool equivalents
         return {'True': 'true',
-                'False': 'false'}.get(node.id, node.id)
+                'False': 'false',
+                'inf': 'INFINITY'}.get(node.id, node.id)
 
     def render_Assign(self, node):
         return NodeRenderer.render_Assign(self, node)+';'

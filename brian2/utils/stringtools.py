@@ -10,6 +10,8 @@ __all__ = ['indent',
            'get_identifiers',
            'strip_empty_lines',
            'stripped_deindented_lines',
+           'strip_empty_leading_and_trailing_lines',
+           'code_representation',
            ]
 
 def indent(text, numtabs=1, spacespertab=4, tab=None):
@@ -169,6 +171,15 @@ def strip_empty_lines(s):
     '''
     return '\n'.join(line for line in s.split('\n') if line.strip())
 
+def strip_empty_leading_and_trailing_lines(s):
+    '''
+    Removes all empty leading and trailing lines in the multi-line string `s`.
+    '''
+    lines = s.split('\n')
+    while lines and not lines[0].strip():  del lines[0]
+    while lines and not lines[-1].strip(): del lines[-1]
+    return '\n'.join(lines)
+
 def stripped_deindented_lines(code):
     '''
     Returns a list of the lines in a multi-line string, deindented.
@@ -177,3 +188,34 @@ def stripped_deindented_lines(code):
     code = strip_empty_lines(code)
     lines = code.split('\n')
     return lines
+
+def code_representation(code):
+    '''
+    Returns a string representation for several different formats of code
+    
+    Formats covered include:
+    - A single string
+    - A list of statements/strings
+    - A dict of strings
+    - A dict of lists of statements/strings
+    '''
+    if not isinstance(code, (basestring, list, tuple, dict)):
+        code = str(code)
+    if isinstance(code, basestring):
+        return strip_empty_leading_and_trailing_lines(code)
+    if not isinstance(code, dict):
+        code = {None: code}
+    else:
+        code = code.copy()
+    for k, v in code.items():
+        if isinstance(v, (list, tuple)):
+            v = '\n'.join([str(line) for line in v])
+            code[k] = v
+    if len(code)==1 and code.keys()[0] is None:
+        return strip_empty_leading_and_trailing_lines(code.values()[0])
+    output = []
+    for k, v in code.iteritems():
+        msg = 'Key %s:\n' % k
+        msg += indent(str(v))
+        output.append(msg)
+    return strip_empty_leading_and_trailing_lines('\n'.join(output))

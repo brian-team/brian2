@@ -32,7 +32,7 @@ model parameter. The refractory expression can then refer to this parameter::
                                 refractory : second''', threshold='...',
                     reset='...', refractory='refractory')
     # Set the refractory period for each cell
-    # G.refractory = ...
+    G.refractory = ...
 
 This state variable can also be a dynamic variable itself. For example, it can
 serve as an adaptation mechanism by increasing it after every spike and letting
@@ -70,13 +70,21 @@ time ``t`` and the time of the last spike ``lastspike``. Specifying
 Defining model behaviour during refractoriness
 ----------------------------------------------
 
-The refractoriness definition as described above does not have any effect by
-itself: It is also necessary to define what changes during refractoriness.
-There are at least two common implementations of refractoriness: One or several
-state variables are clamped at their resting value during refractoriness, or
-the state variables continue to evolve but threshold crossings are ignored.
+The refractoriness definition as described above does only have a single
+effect by itself: threshold crossings during the refractory period are ignored
+(this is simply implemented by adding ``and not_refractory`` to the threshold
+condition).
 
-To model the first kind of behaviour (clamped variables), variables that should
+In the following model, the variable ``v`` continues to update during the
+refractory period but it does not elicit a spike if it crosses the threshold::
+
+    G = NeuronGroup(N, 'dv/dt = -v / tau : 1',
+                    threshold='v > 1', reset='v=0',
+                    refractory=2*ms)
+
+There is also a second implementation of refractoriness that is
+supported by Brian, one or several state variables can be clamped during the
+refractory period. To model this kind of behaviour, variables that should
 stop being updated during refractoriness can be marked with the
 ``(unless refractory)`` flag::
 
@@ -85,16 +93,15 @@ stop being updated during refractoriness can be marked with the
                     threshold='v > 1', reset='v=0; w+=0.1', refractory=2*ms)
 
 In the above model, the ``v`` variable is clamped at 0 for 2ms after a spike but
-the adaptation variable ``w`` continues to update during this time.
+the adaptation variable ``w`` continues to update during this time. Internally,
+this is implemented by adding ``* int(not_refractory)`` to the right-hand side
+of the respective differential equation, i.e. during refractoriness it is
+multiplied with zero. The same technique can also be used to model more complex
+behaviour during refractoriness. For example, the following code updates the
+``w`` variable with a different time constant during refractoriness::
 
-The second behaviour (ignore threshold crossings) is already implemented
-automatically -- the threshold condition can only evaluate to ``True`` if
-the ``not_refractory`` variable is ``True``. This is achieved by automatically
-appending ``and not_refractory`` to the threshold condition.
-In the following model, the variable ``v`` continues to update during the
-refractory period but it does not elicit a spike if it crosses the threshold::
+    G = NeuronGroup(N, '''dv/dt = -(v + w)/ tau_v : 1 (unless refractory)
+                          dw/dt = (-w / tau_active)*int(not_refractory) + (-w / tau_ref)*(1 - int(not_refractory)) : 1''',
+                    threshold='v > 1', reset='v=0; w+=0.1', refractory=2*ms)
 
-    G = NeuronGroup(N, 'dv/dt = -v / tau : 1',
-                    threshold='v > 1', reset='v=0',
-                    refractory=2*ms)
 

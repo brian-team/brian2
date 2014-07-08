@@ -1,6 +1,6 @@
+setuptools>=1.1.6
 numpy>=1.4.1
 pyparsing==1.5.7
 sympy
 sphinxcontrib-issuetracker
-
 

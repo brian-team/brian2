@@ -28,8 +28,8 @@
 	{{ insert_lines('POINTERS', pointers_lines) }}
 {% endmacro %}
 
-{% macro insert_code_lines() %}
-	{{ insert_lines('MAIN CODE LINES', code_lines) }}
+{% macro insert_vector_code() %}
+	{{ insert_lines('MAIN CODE LINES', vector_code) }}
 {% endmacro %}
 
 {% macro insert_group_preamble() %}
@@ -40,7 +40,5 @@
 {% endmacro %}
 
 {% macro support_code() %}
-	{% for line in support_code_lines %}
-	{{line}}
-	{% endfor %}
+	{{support_code_lines|autoindent}}
 {% endmacro %}

@@ -12,16 +12,17 @@ except ImportError:
     weave = None
 
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
-                                   AttributeVariable)
+                                   AttributeVariable, AuxiliaryVariable,
+                                   Subexpression)
 from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.core.functions import DEFAULT_FUNCTIONS, FunctionImplementation
+from brian2.core.functions import DEFAULT_FUNCTIONS
 
 from ...codeobject import CodeObject
 from ...templates import Templater
-from ...languages.cpp_lang import CPPLanguage
+from ...generators.cpp_generator import CPPCodeGenerator
 from ...targets import codegen_targets
 
-__all__ = ['WeaveCodeObject']
+__all__ = ['WeaveCodeObject', 'WeaveCodeGenerator']
 
 # Preferences
 brian_prefs.register_preferences(
@@ -32,14 +33,20 @@ brian_prefs.register_preferences(
         validator=lambda pref: pref=='gcc',
         docs='''
         Compiler to use for weave.
-        ''',
+        '''
         ),
     extra_compile_args = BrianPreference(
-        default=['-w', '-O3', '-ffast-math'],
+        default=['-w', '-O3'],
         docs='''
         Extra compile arguments to pass to compiler
-        ''',
+        '''
         ),
+    include_dirs = BrianPreference(
+        default=[],
+        docs='''
+        Include directories to use.
+        '''
+        )
     )
 
 
@@ -54,31 +61,44 @@ def weave_data_type(dtype):
         dtype = numpy.array([1]).dtype.type
     if dtype is float:
         dtype = numpy.array([1.]).dtype.type
-        
-    dtype = numpy.empty(0, dtype=dtype).dtype.char
+    try:
+        dtype = numpy.empty(0, dtype=dtype).dtype.char
+    except TypeError:
+        raise TypeError('Illegal dtype %r' % dtype)
         
     return num_to_c_types[dtype]
+
+
+class WeaveCodeGenerator(CPPCodeGenerator):
+    def __init__(self, *args, **kwds):
+        super(WeaveCodeGenerator, self).__init__(*args, **kwds)
+        self.c_data_type = weave_data_type
 
 
 class WeaveCodeObject(CodeObject):
     '''
     Weave code object
     
-    The ``code`` should be a `~brian2.codegen.languages.templates.MultiTemplate`
+    The ``code`` should be a `~brian2.codegen.templates.MultiTemplate`
     object with two macros defined, ``main`` (for the main loop code) and
     ``support_code`` for any support code (e.g. function definitions).
     '''
     templater = Templater('brian2.codegen.runtime.weave_rt',
                           env_globals={'c_data_type': weave_data_type,
                                        'dtype': numpy.dtype})
-    language = CPPLanguage(c_data_type=weave_data_type)
+    generator_class = WeaveCodeGenerator
     class_name = 'weave'
 
-    def __init__(self, owner, code, namespace, variables, name='weave_code_object*'):
-        super(WeaveCodeObject, self).__init__(owner, code, namespace, variables, name=name)
+    def __init__(self, owner, code, variables, name='weave_code_object*'):
+        from brian2.devices.device import get_device
+        self.device = get_device()
+        self.namespace = {'_owner': owner}
+        super(WeaveCodeObject, self).__init__(owner, code, variables, name=name)
         self.compiler = brian_prefs['codegen.runtime.weave.compiler']
         self.extra_compile_args = brian_prefs['codegen.runtime.weave.extra_compile_args']
+        self.include_dirs = brian_prefs['codegen.runtime.weave.include_dirs']
         self.python_code_namespace = {'_owner': owner}
+        self.variables_to_namespace()
 
     def variables_to_namespace(self):
 
@@ -91,20 +111,27 @@ class WeaveCodeObject(CodeObject):
         self.nonconstant_values = []
 
         for name, var in self.variables.iteritems():
-
+            if isinstance(var, (AuxiliaryVariable, Subexpression)):
+                continue
             try:
                 value = var.get_value()
-            except TypeError:  # A dummy Variable without value or a Subexpression
+            except (TypeError, AttributeError):
+                # A dummy Variable without value or a function
+                self.namespace[name] = var
                 continue
 
-            self.namespace[name] = value
-
             if isinstance(var, ArrayVariable):
-                self.namespace[var.arrayname] = value
+                self.namespace[self.device.get_array_name(var,
+                                                            self.variables)] = value
                 self.namespace['_num'+name] = var.get_len()
+            else:
+                self.namespace[name] = value
 
             if isinstance(var, DynamicArrayVariable):
-                self.namespace[var.name+'_object'] = var.get_object()
+                dyn_array_name = self.generator_class.get_array_name(var,
+                                                                    access_data=False)
+                self.namespace[dyn_array_name] = self.device.get_value(var,
+                                                                       access_data=False)
 
             # There are two kinds of objects that we have to inject into the
             # namespace with their current value at each time step:
@@ -118,7 +145,8 @@ class WeaveCodeObject(CodeObject):
                     self.nonconstant_values.append(('_num'+name, var.get_len))
             elif (isinstance(var, DynamicArrayVariable) and
                   not var.constant_size):
-                self.nonconstant_values.append((var.arrayname,
+                self.nonconstant_values.append((self.device.get_array_name(var,
+                                                                           self.variables),
                                                 var.get_value))
                 self.nonconstant_values.append(('_num'+name, var.get_len))
 
@@ -137,13 +165,16 @@ class WeaveCodeObject(CodeObject):
     def run(self):
         if hasattr(self, 'compiled_python_pre'):
             exec self.compiled_python_pre in self.python_code_namespace
-        return weave.inline(self.code.main, self.namespace.keys(),
-                            local_dict=self.namespace,
-                            support_code=self.code.support_code,
-                            compiler=self.compiler,
-                            extra_compile_args=self.extra_compile_args)
+        ret_val = weave.inline(self.code.main, self.namespace.keys(),
+                               local_dict=self.namespace,
+                               support_code=self.code.support_code,
+                               compiler=self.compiler,
+                               headers=['<algorithm>'],
+                               extra_compile_args=self.extra_compile_args,
+                               include_dirs=self.include_dirs)
         if hasattr(self, 'compiled_python_post'):
             exec self.compiled_python_post in self.python_code_namespace
+        return ret_val
 
 codegen_targets.add(WeaveCodeObject)
 
@@ -153,7 +184,7 @@ codegen_targets.add(WeaveCodeObject)
 randn_code = {'support_code': '''
         #define BUFFER_SIZE 1024
         // A randn() function that returns a single random number. Internally
-        // it asks numpy's randn function for N (e.g. the number of neurons)
+        // it asks numpy's randn function for BUFFER_SIZE
         // random numbers at a time and then returns one number from this
         // buffer.
         // It needs a reference to the numpy_randn object (the original numpy
@@ -181,5 +212,42 @@ randn_code = {'support_code': '''
             return number;
         }
         ''', 'hashdefine_code': '#define _randn(_vectorisation_idx) _call_randn(_python_randn)'}
-DEFAULT_FUNCTIONS['randn'].implementations[WeaveCodeObject] = FunctionImplementation('_randn',
-                                                                                     code=randn_code)
+DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(WeaveCodeObject,
+                                                              code=randn_code,
+                                                              name='_randn')
+
+# Also use numpy for rand
+rand_code = {'support_code': '''
+        #define BUFFER_SIZE 1024
+        // A rand() function that returns a single random number. Internally
+        // it asks numpy's rand function for BUFFER_SIZE
+        // random numbers at a time and then returns one number from this
+        // buffer.
+        // It needs a reference to the numpy_rand object (the original numpy
+        // function), because this is otherwise only available in
+        // compiled_function (where is is automatically handled by weave).
+        //
+        double _call_rand(py::object& numpy_rand) {
+            static PyArrayObject *rand_buffer = NULL;
+            static double *buf_pointer = NULL;
+            static npy_int curbuffer = 0;
+            if(curbuffer==0)
+            {
+                if(rand_buffer) Py_DECREF(rand_buffer);
+                py::tuple args(1);
+                args[0] = BUFFER_SIZE;
+                rand_buffer = (PyArrayObject *)PyArray_FromAny(numpy_rand.call(args), NULL, 1, 1, 0, NULL);
+                buf_pointer = (double*)PyArray_GETPTR1(rand_buffer, 0);
+            }
+            double number = buf_pointer[curbuffer];
+            curbuffer = curbuffer+1;
+            if (curbuffer == BUFFER_SIZE)
+                // This seems to be safer then using (curbuffer + 1) % BUFFER_SIZE, we might run into
+                // an integer overflow for big networks, otherwise.
+                curbuffer = 0;
+            return number;
+        }
+        ''', 'hashdefine_code': '#define _rand(_vectorisation_idx) _call_rand(_python_rand)'}
+DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(WeaveCodeObject,
+                                                             code=rand_code,
+                                                             name='_rand')

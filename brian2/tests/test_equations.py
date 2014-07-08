@@ -1,4 +1,5 @@
 # encoding: utf8
+from collections import namedtuple
 import sys
 from StringIO import StringIO
 
@@ -15,23 +16,29 @@ from brian2 import Unit, Equations, Expression, sin
 from brian2.units.fundamentalunits import (DIMENSIONLESS, get_dimensions,
                                            have_same_dimensions,
                                            DimensionMismatchError)
-from brian2.equations.unitcheck import unit_from_string
-from brian2.core.namespace import (DEFAULT_UNIT_NAMESPACE, create_namespace,
-                                   check_identifier_functions,
-                                   check_identifier_units)
+from brian2.core.namespace import DEFAULT_UNITS
 from brian2.equations.equations import (check_identifier_basic,
                                         check_identifier_reserved,
+                                        check_identifier_functions,
+                                        check_identifier_units,
                                         parse_string_equations,
+                                        unit_and_type_from_string,
                                         SingleEquation,
-                                        DIFFERENTIAL_EQUATION, STATIC_EQUATION,
-                                        PARAMETER,
+                                        DIFFERENTIAL_EQUATION, SUBEXPRESSION,
+                                        PARAMETER, FLOAT, BOOLEAN, INTEGER,
                                         EquationError)
 from brian2.equations.refractory import check_identifier_refractory
+from brian2.groups.group import Group
 
 
+# a simple Group for testing
+class SimpleGroup(Group):
+    def __init__(self, variables, namespace=None):
+        self.variables = variables
+        self.namespace = namespace
 
 def test_utility_functions():
-    unit_namespace = DEFAULT_UNIT_NAMESPACE
+    unit_namespace = DEFAULT_UNITS
 
     # Some simple tests whether the namespace returned by
     # get_default_namespace() makes sense
@@ -42,17 +49,19 @@ def test_utility_functions():
     for unit in unit_namespace.itervalues():
         assert isinstance(unit, Unit)
 
-    assert unit_from_string('second') == second
-    assert unit_from_string('1') == Unit(1, DIMENSIONLESS)
-    assert unit_from_string('volt') == volt
-    assert unit_from_string('second ** -1') == Hz
-    assert unit_from_string('farad / metre**2') == farad / metre ** 2
-    assert_raises(ValueError, lambda: unit_from_string('metr / second'))
-    assert_raises(ValueError, lambda: unit_from_string('metre **'))
-    assert_raises(ValueError, lambda: unit_from_string('5'))
-    assert_raises(ValueError, lambda: unit_from_string('2 / second'))
+    assert unit_and_type_from_string('second') == (second, FLOAT)
+    assert unit_and_type_from_string('1') == (Unit(1, DIMENSIONLESS), FLOAT)
+    assert unit_and_type_from_string('volt') == (volt, FLOAT)
+    assert unit_and_type_from_string('second ** -1') == (Hz, FLOAT)
+    assert unit_and_type_from_string('farad / metre**2') == (farad / metre ** 2, FLOAT)
+    assert unit_and_type_from_string('boolean') == (Unit(1, DIMENSIONLESS), BOOLEAN)
+    assert unit_and_type_from_string('integer') == (Unit(1, DIMENSIONLESS), INTEGER)
+    assert_raises(ValueError, lambda: unit_and_type_from_string('metr / second'))
+    assert_raises(ValueError, lambda: unit_and_type_from_string('metre **'))
+    assert_raises(ValueError, lambda: unit_and_type_from_string('5'))
+    assert_raises(ValueError, lambda: unit_and_type_from_string('2 / second'))
     # Only the use of base units is allowed
-    assert_raises(ValueError, lambda: unit_from_string('farad / cm**2'))
+    assert_raises(ValueError, lambda: unit_and_type_from_string('farad / cm**2'))
 
 
 def test_identifier_checks():
@@ -119,15 +128,19 @@ def test_parse_equations():
                                     dge/dt = -ge / tau_ge : volt
                                     I = sin(2 * pi * f * t) : volt
                                     f : Hz (constant)
-                                    b : bool
+                                    b : boolean
+                                    n : integer
                                  ''')
-    assert len(eqs.keys()) == 5
+    assert len(eqs.keys()) == 6
     assert 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION
     assert 'ge' in eqs and eqs['ge'].type == DIFFERENTIAL_EQUATION
-    assert 'I' in eqs and eqs['I'].type == STATIC_EQUATION
+    assert 'I' in eqs and eqs['I'].type == SUBEXPRESSION
     assert 'f' in eqs and eqs['f'].type == PARAMETER
     assert 'b' in eqs and eqs['b'].type == PARAMETER
-    assert not eqs['f'].is_bool and eqs['b'].is_bool
+    assert 'n' in eqs and eqs['n'].type == PARAMETER
+    assert eqs['f'].var_type == FLOAT
+    assert eqs['b'].var_type == BOOLEAN
+    assert eqs['n'].var_type == INTEGER
     assert get_dimensions(eqs['v'].unit) == volt.dim
     assert get_dimensions(eqs['ge'].unit) == volt.dim
     assert get_dimensions(eqs['I'].unit) == volt.dim
@@ -215,7 +228,7 @@ def test_construction_errors():
 
     eqs = [SingleEquation(DIFFERENTIAL_EQUATION, 'v', volt,
                           expr=Expression('-v / tau')),
-           SingleEquation(STATIC_EQUATION, 'v', volt,
+           SingleEquation(SUBEXPRESSION, 'v', volt,
                           expr=Expression('2 * t/second * volt'))
            ]
     assert_raises(EquationError, lambda: Equations(eqs))
@@ -229,7 +242,7 @@ def test_construction_errors():
                   lambda: Equations('d1a/dt = -1a / tau : volt'))
     assert_raises(ValueError, lambda: Equations('d_x/dt = -_x / tau : volt'))
 
-    # xi in a static equation
+    # xi in a subexpression
     assert_raises(EquationError,
                   lambda: Equations('''dv/dt = -(v + I) / (5 * ms) : volt
                                        I = second**-1*xi**-2*volt : volt'''))
@@ -244,49 +257,54 @@ def test_construction_errors():
     eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag']})  # allow this flag
     assert_raises(ValueError, lambda: eqs.check_flags({DIFFERENTIAL_EQUATION: []}))
     assert_raises(ValueError, lambda: eqs.check_flags({}))
-    assert_raises(ValueError, lambda: eqs.check_flags({STATIC_EQUATION: ['flag']}))
+    assert_raises(ValueError, lambda: eqs.check_flags({SUBEXPRESSION: ['flag']}))
     assert_raises(ValueError, lambda: eqs.check_flags({DIFFERENTIAL_EQUATION: ['otherflag']}))
 
-    # Circular static equations
+    # Circular subexpression
     assert_raises(ValueError, lambda: Equations('''dv/dt = -(v + w) / (10 * ms) : 1
                                                    w = 2 * x : 1
                                                    x = 3 * w : 1'''))
+
+    # Boolean/integer differential equations
+    assert_raises(TypeError, lambda: Equations('dv/dt = -v / (10*ms) : boolean'))
+    assert_raises(TypeError, lambda: Equations('dv/dt = -v / (10*ms) : integer'))
+
 
 def test_unit_checking():
     # dummy Variable class
     class S(object):
         def __init__(self, unit):
             self.unit = unit
-    
-    # Let's create a namespace with a user-defined namespace that we can
-    # updater later on 
-    namespace = create_namespace({})
+
     # inconsistent unit for a differential equation
     eqs = Equations('dv/dt = -v : volt')
+    group = SimpleGroup({'v': S(volt)})
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(namespace, {'v': S(volt)}))
+                  lambda: eqs.check_units(group))
 
     eqs = Equations('dv/dt = -v / tau: volt')
-    namespace['tau'] = 5*mV
+    group = SimpleGroup(namespace={'tau': 5*mV}, variables={'v': S(volt)})
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(namespace, {'v': S(volt)}))
-    namespace['I'] = 3*second
+                  lambda: eqs.check_units(group))
+    group = SimpleGroup(namespace={'I': 3*second}, variables={'v': S(volt)})
     eqs = Equations('dv/dt = -(v + I) / (5 * ms): volt')
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(namespace, {'v': S(volt)}))
+                  lambda: eqs.check_units(group))
 
     eqs = Equations('''dv/dt = -(v + I) / (5 * ms): volt
                        I : second''')
+    group = SimpleGroup(variables={'v': S(volt),
+                                   'I': S(second)}, namespace={})
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(namespace, {'v': S(volt),
-                                                      'I': S(second)}))
+                  lambda: eqs.check_units(group))
     
-    # inconsistent unit for a static equation
+    # inconsistent unit for a subexpression
     eqs = Equations('''dv/dt = -v / (5 * ms) : volt
                        I = 2 * v : amp''')
+    group = SimpleGroup(variables={'v': S(volt),
+                                   'I': S(second)}, namespace={})
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(namespace, {'v': S(volt),
-                                                      'I': S(amp)}))
+                  lambda: eqs.check_units(group))
     
 
 def test_properties():
@@ -315,7 +333,7 @@ def test_properties():
             [eq.varname for eq in eqs.ordered] == ['f', 'I', 'v', 'freq'])
     assert eqs.names == set(['v', 'I', 'f', 'freq'])
     assert eqs.parameter_names == set(['freq'])
-    assert eqs.static_eq_names == set(['I', 'f'])
+    assert eqs.subexpr_names == set(['I', 'f'])
     units = eqs.units
     assert set(units.keys()) == set(['v', 'I', 'f', 'freq'])
     assert units['v'] == volt

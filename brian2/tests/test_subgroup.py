@@ -12,6 +12,17 @@ except ImportError:
     codeobj_classes = [NumpyCodeObject]
 
 
+def test_str_repr():
+    '''
+    Test the string representation of a subgroup.
+    '''
+    G = NeuronGroup(10, 'v:1')
+    SG = G[5:8]
+    # very basic test, only make sure no error is raised
+    assert len(str(SG))
+    assert len(repr(SG))
+
+
 def test_state_variables():
     '''
     Test the setting and accessing of state variables in subgroups.
@@ -92,14 +103,19 @@ def test_synapse_creation():
         SG2 = G2[10:]
         S = Synapses(SG1, SG2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
         S.connect(2, 2)  # Should correspond to (2, 12)
-        S.connect('i==4 and j==5') # Should correspond to (4, 15)
+        S.connect('i==2 and j==5') # Should correspond to (2, 15)
 
         # Internally, the "real" neuron indices should be used
-        assert_equal(S._synaptic_pre[:], np.array([2, 4]))
+        assert_equal(S._synaptic_pre[:], np.array([2, 2]))
         assert_equal(S._synaptic_post[:], np.array([12, 15]))
         # For the user, the subgroup-relative indices should be presented
-        assert_equal(S.i[:], np.array([2, 4]))
+        assert_equal(S.i[:], np.array([2, 2]))
         assert_equal(S.j[:], np.array([2, 5]))
+        # N_incoming and N_outgoing should also be correct
+        assert all(S.N_outgoing['i==2'] == 2)
+        assert all(S.N_outgoing['i!=2'] == 0)
+        assert all(S.N_incoming['j==2 or j==5'] == 1)
+        assert all(S.N_incoming['j!=2 and j!=5'] == 0)
 
         # connect based on pre-/postsynaptic state variables
         S = Synapses(SG1, SG2, 'w:1', pre='v+=w', codeobj_class=codeobj_class)
@@ -138,6 +154,44 @@ def test_synapse_access():
         assert_equal(S.w[:], S.j[:] + 10)
         S.w = 'v_post + v_pre'
         assert_equal(S.w[:], S.j[:] + 10 + S.i[:])
+
+
+def test_subexpression_references():
+    '''
+    Assure that subexpressions in targeted groups are handled correctly.
+    '''
+    G = NeuronGroup(10, '''v : 1
+                           v2 = 2*v : 1''')
+    G.v = np.arange(10)
+    SG1 = G[:5]
+    SG2 = G[5:]
+
+    S1 = Synapses(SG1, SG2, '''w : 1
+                          u = v2_post + 1 : 1
+                          v = v2_pre + 1 : 1''')
+    S1.connect('i==(5-1-j)')
+    assert_equal(S1.i[:], np.arange(5))
+    assert_equal(S1.j[:], np.arange(5)[::-1])
+    assert_equal(S1.u[:], np.arange(10)[:-6:-1]*2+1)
+    assert_equal(S1.v[:], np.arange(5)*2+1)
+
+    S2 = Synapses(G, SG2, '''w : 1
+                             u = v2_post + 1 : 1
+                             v = v2_pre + 1 : 1''')
+    S2.connect('i==(5-1-j)')
+    assert_equal(S2.i[:], np.arange(5))
+    assert_equal(S2.j[:], np.arange(5)[::-1])
+    assert_equal(S2.u[:], np.arange(10)[:-6:-1]*2+1)
+    assert_equal(S2.v[:], np.arange(5)*2+1)
+
+    S3 = Synapses(SG1, G, '''w : 1
+                             u = v2_post + 1 : 1
+                             v = v2_pre + 1 : 1''')
+    S3.connect('i==(10-1-j)')
+    assert_equal(S3.i[:], np.arange(5))
+    assert_equal(S3.j[:], np.arange(10)[:-6:-1])
+    assert_equal(S3.u[:], np.arange(10)[:-6:-1]*2+1)
+    assert_equal(S3.v[:], np.arange(5)*2+1)
 
 
 def test_synaptic_propagation():
@@ -192,12 +246,74 @@ def test_wrong_indexing():
     assert_raises(IndexError, lambda: G[::2])
     assert_raises(IndexError, lambda: G[3:2])
 
+def test_no_reference_1():
+    '''
+    Using subgroups without keeping an explicit reference. Basic access.
+    '''
+    G = NeuronGroup(10, 'v:1')
+    G.v = np.arange(10)
+    assert_equal(G[:5].v[:], G.v[:5])
+
+def test_no_reference_2():
+    '''
+    Using subgroups without keeping an explicit reference. Monitors
+    '''
+    G = NeuronGroup(2, 'v:1', threshold='v>1', reset='v=0')
+    G.v = [0, 1.1]
+    state_mon = StateMonitor(G[:1], 'v', record=True)
+    spike_mon = SpikeMonitor(G[1:])
+    rate_mon = PopulationRateMonitor(G[:2])
+    net = Network(G, state_mon, spike_mon, rate_mon)
+    net.run(2*defaultclock.dt)
+    assert_equal(state_mon[0].v[:], np.zeros(2))
+    assert_equal(spike_mon.i[:], np.array([0]))
+    assert_equal(spike_mon.t[:], np.array([0])*second)
+    assert_equal(rate_mon.rate[:], np.array([0.5, 0])/defaultclock.dt)
+
+
+def test_no_reference_3():
+    '''
+    Using subgroups without keeping an explicit reference. Monitors
+    '''
+    G = NeuronGroup(2, 'v:1', threshold='v>1', reset='v=0')
+    G.v = [1.1, 0]
+    S = Synapses(G[:1], G[1:], pre='v+=1', connect=True)
+    net = Network(G, S)
+    net.run(defaultclock.dt)
+    assert_equal(G.v[:], np.array([0, 1]))
+
+
+def test_no_reference_4():
+    '''
+    Using subgroups without keeping an explicit reference. Synapses
+    '''
+    for codeobj_class in codeobj_classes:
+        G1 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0',
+                         codeobj_class=codeobj_class)
+        G1.v[1::2] = 1.1 # odd numbers should spike
+        G2 = NeuronGroup(20, 'v:1', codeobj_class=codeobj_class)
+        S = Synapses(G1[1:6], G2[10:], pre='v+=1', codeobj_class=codeobj_class)
+        S.connect('i==j')
+        net = Network(G1, G2, S)
+        net.run(defaultclock.dt)
+        expected = np.zeros(len(G2))
+        # Neurons 1, 3, 5 spiked and are connected to 10, 12, 14
+        expected[[10, 12, 14]] = 1
+        assert_equal(np.asarray(G2.v).flatten(), expected)
+
+
 if __name__ == '__main__':
+    test_str_repr()
     test_state_variables()
     test_state_variables_string_indices()
     test_state_monitor()
     test_synapse_creation()
     test_synapse_access()
+    test_subexpression_references()
     test_synaptic_propagation()
     test_spike_monitor()
     test_wrong_indexing()
+    test_no_reference_1()
+    test_no_reference_2()
+    test_no_reference_3()
+    test_no_reference_4()

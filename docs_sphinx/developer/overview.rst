@@ -52,51 +52,21 @@ and postsynaptic groups in the case of synapses) or correct flags (because they
 differ between `NeuronGroup` and `Synapses`, for example).
 
 Variables and namespaces
--------------------------
+------------------------
 Objects referring to variables and functions, in particular `NeuronGroup`
-and `Synapses` have two dictionary-like attributes: ``namespace``
-and ``variables``. The *namespace* is related to everything external to the
-model itself, i.e. variables and functions defined outside of the model
-equations. It by default consists of a set of standard units and functions 
-and optionally of an explicitly given namespace. If no namespace is given
-explicitly, the namespace used for running code will be filled at the time of 
-a run with either the namespace provided to the run function or the
-locals/globals surrounding the run call. *Variables* on the other hand,
-define everything *internal* to the model, the objects in this dictionary
-inherit from `Variable` and -- in addition to specifying things like the units
--- act as proxy objects, connecting for example state variable names to the
-numpy arrays where the values are actually stored.
+and `Synapses` provide the context for resolving names in code strings. This
+is done via the `Group.resolve` method that returns a `Variable` or `Function`
+object for a name. All internal names (state variables defined in the group and
+also all variables referenced by this group, e.g. the pre- and postsynaptic
+state variables in a `Synapses` object) are stored in the ``variables``
+attribute which can be used as a dictionary but is actually a `Variables`
+object. Note that `Variable` objects only exist once for every variable, e.g.
+the `Synapses` class contains references to the `Variable` objects of the
+pre- and postsynaptic classes, not new objects
 
-This indirection will be useful when dealing with memory on devices. The
-variables also offer an explicit and simple way to implement linked variables
-or the access to pre- and postsynaptic variables in `Synapses`: To link the
-symbol ``v_post`` to the postsynaptic membrane potentials, the specifier
-dictionary just has to contain a reference to the respective `Variable` object
-of the target group under the key ``v_post``.
-
-Another parent class of `NeuronGroup` is `Group`, which also relies on the
-`Variable` objects and exposes access to the state variables as attributes.
-
-`Variable` objects only exist once for every variable, e.g. the `Synapses`
-class contains references to the `Variable` objects of the pre- and postsynaptic
-classes.
-
-Indices
--------
-
-To handle arrays in generated code correctly, information about *indexing* has
-to be stored as well. Every `Group` has two attributes responsible for that:
-``indices``, a mapping from index names to index objects and ``variable_indices``,
-a mapping from variable names to index names. An index object needs to have
-a length and be indexable -- e.g. it could be a numpy array.
-
-For simple classes such as `NeuronGroup` that only have a single index for all
-variables (``'_idx'``), nothing needs to be done. ``Group`` automatically
-creates an ``indices`` attribute mapping ``'_idx'`` to the ``item_mapping``
-and a ``variable_indices`` attribute that maps everything to ``'_idx'``.
-
-TODO: Explain ``item_mapping``
-
+Groups can also specify a group-specific, explicit namespace that is
+stored in their ``namespace`` attribute, used for resolving external names.
+For more details on the resolution of names, see :doc:`equations_namespaces`.
 
 State Updaters
 --------------
