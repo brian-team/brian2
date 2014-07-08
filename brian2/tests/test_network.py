@@ -474,8 +474,8 @@ def test_magic_collect():
     P = PoissonGroup(10, rates=100*Hz)
     G = NeuronGroup(10, 'v:1')
     S = Synapses(G, G, '')
-    G_runner = G.runner('')
-    S_runner = S.runner('')
+    G_runner = G.custom_operation('')
+    S_runner = S.custom_operation('')
 
     state_mon = StateMonitor(G, 'v', record=True)
     spike_mon = SpikeMonitor(G)
