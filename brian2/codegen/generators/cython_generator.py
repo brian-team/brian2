@@ -10,7 +10,7 @@ from brian2.core.variables import ArrayVariable, Constant, AttributeVariable
 from .base import CodeGenerator
 from .cpp_generator import c_data_type
 
-from Cython.Build.Inline import unsafe_type
+from Cython.Build.Inline import unsafe_type, safe_type
 
 __all__ = ['CythonCodeGenerator']
 
@@ -78,6 +78,7 @@ class CythonCodeGenerator(CodeGenerator):
 
     def translate_statement_sequence(self, statements):
         from brian2.devices.device import get_device
+        from brian2.codegen.runtime.weave_rt.weave_rt import weave_data_type
         device = get_device()
         # load variables from namespace
         load_namespace = []
@@ -97,7 +98,8 @@ class CythonCodeGenerator(CodeGenerator):
                     "cdef {dtype} * {array_name} = <{dtype} *> _buf_{array_name}.data"
                     ]
                 for line in newlines:
-                    line = line.format(dtype=c_data_type(var.dtype), pointer_name=pointer_name, array_name=array_name,
+                    line = line.format(dtype=weave_data_type(var.dtype),
+                                       pointer_name=pointer_name, array_name=array_name,
                                        varname=varname, dtype_str=var.dtype.__name__,
                                        )
                     load_namespace.append(line)
@@ -128,6 +130,12 @@ class CythonCodeGenerator(CodeGenerator):
                         raise TypeError(('Provided function implementation '
                                          'for function %s is neither a string '
                                          'nor callable') % varname)
+            else:
+                # fallback to Python object
+#                print var
+#                for k, v in var.__dict__.iteritems():
+#                    print '   ', k, v
+                load_namespace.append('%s = _namespace["%s"]' % (varname, varname))
 
 
         load_namespace = '\n'.join(load_namespace)
@@ -180,3 +188,18 @@ DEFAULT_FUNCTIONS['ceil'].implementations.add_implementation(CythonCodeGenerator
 floor_func = lambda value: np.int32(np.floor(value))
 DEFAULT_FUNCTIONS['floor'].implementations.add_implementation(CythonCodeGenerator,
                                                             code=floor_func)
+
+
+
+# TEMPORARY: Random number generation - NOT efficient
+def randn_func(vectorisation_idx):
+    return np.random.randn()
+
+def rand_func(vectorisation_idx):
+    return np.random.rand()
+
+DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CythonCodeGenerator,
+                                                              code=randn_func)
+
+DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CythonCodeGenerator,
+                                                             code=rand_func)
