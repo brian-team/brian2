@@ -109,7 +109,6 @@ class CPPStandaloneDevice(Device):
         self.main_queue = []
         
         self.synapses = []
-        self.n_threads = 1
         
         self.clocks = set([])
         
@@ -295,7 +294,7 @@ class CPPStandaloneDevice(Device):
               with_output=True, native=True,
               additional_source_files=None, additional_header_files=None,
               main_includes=None, run_includes=None,
-              run_args=None, n_threads=0
+              run_args=None, n_threads=1
               ):
         '''
         Build the project
@@ -341,7 +340,6 @@ class CPPStandaloneDevice(Device):
         if run_args is None:
             run_args = []
         ensure_directory(project_dir)
-        self.n_threads = n_threads
         
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(project_dir, d))
@@ -386,17 +384,17 @@ class CPPStandaloneDevice(Device):
                         clocks=self.clocks,
                         static_array_specs=static_array_specs,
                         networks=networks,
-                        nb_threads=self.n_threads
+                        nb_threads=n_threads
                         )
         writer.write('objects.*', arr_tmp)
 
         main_lines = []
         procedures = [('', main_lines)]
         runfuncs = {}
-        if self.n_threads >= 1:
+        if n_threads >= 1:
             main_lines.append('omp_set_dynamic(0);')
-            main_lines.append('omp_set_num_threads(%d);' %self.n_threads)
-        elif self.n_threads < 0:
+            main_lines.append('omp_set_num_threads(%d);' % n_threads)
+        elif n_threads < 0:
             main_lines.append('omp_set_dynamic(1);')
         for func, args in self.main_queue:
             if func=='run_code_object':
