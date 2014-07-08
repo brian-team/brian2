@@ -17,6 +17,8 @@ def main(_namespace):
     cdef int _idx
     cdef int _vectorisation_idx
     {{ load_namespace | autoindent }}
+    if '_owner' in _namespace:
+        _owner = _namespace['_owner']
     {% block maincode %}
     {{ vector_code | autoindent }}
     {% endblock %}

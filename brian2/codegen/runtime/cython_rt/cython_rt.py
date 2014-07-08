@@ -32,7 +32,6 @@ class CythonCodeObject(NumpyCodeObject):
         self.compiled_code = cython_extension_manager.create_extension(self.code)
         
     def run(self):
-        print self.namespace.keys()
         self.compiled_code.main(self.namespace)
 
     # the following are copied from WeaveCodeObject
@@ -83,8 +82,7 @@ class CythonCodeObject(NumpyCodeObject):
             elif (isinstance(var, DynamicArrayVariable) and
                   not var.constant_size):
                 #print name, self.device.get_array_name(var, self.variable), self.generator_class.get_array_name(var, self.variables)
-                self.nonconstant_values.append((self.device.get_array_name(var,
-                                                                           self.variables),
+                self.nonconstant_values.append((self.device.get_array_name(var, False),
                                                 var.get_value))
                 self.nonconstant_values.append(('_num'+name, var.get_len))
 

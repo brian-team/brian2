@@ -5,7 +5,7 @@ import numpy as np
 from brian2.utils.stringtools import word_substitute
 from brian2.parsing.rendering import NumpyNodeRenderer
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function, SymbolicConstant
-from brian2.core.variables import ArrayVariable, Constant, AttributeVariable, DynamicArrayVariable
+from brian2.core.variables import ArrayVariable, Constant, AttributeVariable, DynamicArrayVariable, AuxiliaryVariable
 
 from .base import CodeGenerator
 from .cpp_generator import c_data_type
@@ -86,7 +86,8 @@ class CythonCodeGenerator(CodeGenerator):
         handled_pointers = set()
         for varname, var in self.variables.iteritems():
             if isinstance(var, DynamicArrayVariable):
-                load_namespace.append('%s = _namespace["%s"]' % (self.get_array_name(var, False), varname))
+                load_namespace.append('%s = _namespace["%s"]' % (self.get_array_name(var, False),
+                                                                 self.get_array_name(var, False)))
             elif isinstance(var, ArrayVariable):
                 # This is the "true" array name, not the restricted pointer.
                 array_name = device.get_array_name(var)
@@ -131,11 +132,13 @@ class CythonCodeGenerator(CodeGenerator):
                         raise TypeError(('Provided function implementation '
                                          'for function %s is neither a string '
                                          'nor callable') % varname)
+            elif isinstance(var, AuxiliaryVariable):
+                pass
             else:
                 # fallback to Python object
-#                print var
-#                for k, v in var.__dict__.iteritems():
-#                    print '   ', k, v
+                print var
+                for k, v in var.__dict__.iteritems():
+                    print '   ', k, v
                 load_namespace.append('%s = _namespace["%s"]' % (varname, varname))
 
 

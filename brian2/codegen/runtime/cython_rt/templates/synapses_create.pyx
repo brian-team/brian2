@@ -14,7 +14,7 @@ _prebuf = _numpy.zeros(_buffer_size, dtype=int)
 _postbuf = _numpy.zeros(_buffer_size, dtype=int)
 _synprebuf = _numpy.zeros(1, dtype=int)
 _synpostbuf = _numpy.zeros(1, dtype=int)
-_curbuf = 0
+cdef int _curbuf = 0
 
 def _flush_buffer(buf, dynarr, N):
     _curlen = dynarr.shape[0]
@@ -31,14 +31,12 @@ def _flush_buffer(buf, dynarr, N):
 ######################## MAIN CODE ##############################
 
 {% block maincode %}
+
+    global _curbuf
     
     # scalar code
     _vectorisation_idx = 1
     {{scalar_code|autoindent}}
-    
-    # TODO: update cython runtime to avoid this
-#    _num{{_all_pre}} = len({{_all_pre}})
-#    _num{{_all_post}} = len({{_all_post}})
     
     for _i in range(_num{{_all_pre}}):
         for _j in range(_num{{_all_post}}):
@@ -59,7 +57,7 @@ def _flush_buffer(buf, dynarr, N):
             # add to buffer
             if _cond:
                 if _p!=1.0:
-                    if _rand(_vectorisation_idx)>=_p:
+                    if rand(_vectorisation_idx)>=_p:
                     #if rand(1)>=_p:
                         continue
                     for _repetition in range(_n):
