@@ -74,13 +74,13 @@ stim_start_x = barrelarraysize / 2.0 - cos(direction)*stimradius
 stim_start_y = barrelarraysize / 2.0 - sin(direction)*stimradius
 stim_start_time = t
 '''
-stim_updater = layer4.runner(runner_code,
-                             when=Scheduler(clock=Clock(dt=60*ms), when='start'))
-
+stim_updater = layer4.custom_operation(runner_code,
+                                       when=Scheduler(clock=Clock(dt=60*ms),
+                                                      when='start'))
 
 # Layer 2/3
 # Model: IF with adaptive threshold
-eqs='''
+eqs = '''
 dv/dt=(ge+gi+El-v)/taum : volt
 dge/dt=-ge/taue : volt
 dgi/dt=-gi/taui : volt
