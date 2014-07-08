@@ -255,7 +255,7 @@ class CPPStandaloneDevice(Device):
                                                               access_data=False)
                 fname = os.path.join(self.project_dir, 'results',
                                      array_name)
-                with open(fname, 'r') as f:
+                with open(fname, 'rb') as f:
                     data = np.fromfile(f, dtype=dtype)
                 # This is a bit of an heuristic, but our 2d dynamic arrays are
                 # only expanding in one dimension, we assume here that the
