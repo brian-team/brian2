@@ -5,10 +5,9 @@ update=1.8 s
 post_update=1.18s
 apply=0.39s (here diffusion is negligible)
 '''
-from pylab import *
 from brian2 import *
 
-brian_prefs.codegen.target = 'weave' # couldn't this be simpler?
+#brian_prefs.codegen.target = 'weave' # couldn't this be simpler?
 #BrianLogger.log_level_debug()
 
 # Morphology
@@ -39,7 +38,7 @@ neuron.I=0*amp/meter**2
 run(50*ms,report='text')
 
 subplot(211)
-plot(mon.t/ms,mon.v/mV)
+plot(mon.t/ms,mon.v.T/mV)
 subplot(212)
-plot(mon.t/ms,mon.w)
+plot(mon.t/ms,mon.w.T)
 show()

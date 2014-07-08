@@ -9,7 +9,8 @@ TODO:
 '''
 from scipy import rand
 from numpy import *
-from brian2 import meter,um
+from brian2.units.allunits import meter
+from brian2.units.stdunits import um
 import warnings
 from pylab import figure
 import copy
