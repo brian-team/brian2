@@ -2,7 +2,8 @@ import cython
 import numpy
 
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
-                                   AttributeVariable)
+                                   AttributeVariable, AuxiliaryVariable,
+                                   Subexpression)
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.functions import DEFAULT_FUNCTIONS, FunctionImplementation, Function
 
@@ -31,7 +32,66 @@ class CythonCodeObject(NumpyCodeObject):
         self.compiled_code = cython_extension_manager.create_extension(self.code)
         
     def run(self):
+        print self.namespace.keys()
         self.compiled_code.main(self.namespace)
+
+    # the following are copied from WeaveCodeObject
+
+    def variables_to_namespace(self):
+
+        # Variables can refer to values that are either constant (e.g. dt)
+        # or change every timestep (e.g. t). We add the values of the
+        # constant variables here and add the names of non-constant variables
+        # to a list
+
+        # A list containing tuples of name and a function giving the value
+        self.nonconstant_values = []
+
+        for name, var in self.variables.iteritems():
+            if isinstance(var, (AuxiliaryVariable, Subexpression)):
+                continue
+            try:
+                value = var.get_value()
+            except (TypeError, AttributeError):
+                # A dummy Variable without value or a function
+                self.namespace[name] = var
+                continue
+
+            if isinstance(var, ArrayVariable):
+                self.namespace[self.device.get_array_name(var,
+                                                            self.variables)] = value
+                self.namespace['_num'+name] = var.get_len()
+            else:
+                self.namespace[name] = value
+
+            if isinstance(var, DynamicArrayVariable):
+                dyn_array_name = self.generator_class.get_array_name(var,
+                                                                    access_data=False)
+                self.namespace[dyn_array_name] = self.device.get_value(var,
+                                                                       access_data=False)
+
+            # There are two kinds of objects that we have to inject into the
+            # namespace with their current value at each time step:
+            # * non-constant AttributeValue (this might be removed since it only
+            #   applies to "t" currently)
+            # * Dynamic arrays that change in size during runs (i.e. not
+            #   synapses but e.g. the structures used in monitors)
+            if isinstance(var, AttributeVariable) and not var.constant:
+                self.nonconstant_values.append((name, var.get_value))
+                if not var.scalar:
+                    self.nonconstant_values.append(('_num'+name, var.get_len))
+            elif (isinstance(var, DynamicArrayVariable) and
+                  not var.constant_size):
+                #print name, self.device.get_array_name(var, self.variable), self.generator_class.get_array_name(var, self.variables)
+                self.nonconstant_values.append((self.device.get_array_name(var,
+                                                                           self.variables),
+                                                var.get_value))
+                self.nonconstant_values.append(('_num'+name, var.get_len))
+
+    def update_namespace(self):
+        # update the values of the non-constant values in the namespace
+        for name, func in self.nonconstant_values:
+            self.namespace[name] = func()
 
 
 codegen_targets.add(CythonCodeObject)

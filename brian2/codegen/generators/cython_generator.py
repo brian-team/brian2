@@ -5,7 +5,7 @@ import numpy as np
 from brian2.utils.stringtools import word_substitute
 from brian2.parsing.rendering import NumpyNodeRenderer
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function, SymbolicConstant
-from brian2.core.variables import ArrayVariable, Constant, AttributeVariable
+from brian2.core.variables import ArrayVariable, Constant, AttributeVariable, DynamicArrayVariable
 
 from .base import CodeGenerator
 from .cpp_generator import c_data_type
@@ -85,7 +85,9 @@ class CythonCodeGenerator(CodeGenerator):
         support_code = []
         handled_pointers = set()
         for varname, var in self.variables.iteritems():
-            if isinstance(var, ArrayVariable):
+            if isinstance(var, DynamicArrayVariable):
+                load_namespace.append('%s = _namespace["%s"]' % (self.get_array_name(var, False), varname))
+            elif isinstance(var, ArrayVariable):
                 # This is the "true" array name, not the restricted pointer.
                 array_name = device.get_array_name(var)
                 pointer_name = self.get_array_name(var)
@@ -95,7 +97,8 @@ class CythonCodeGenerator(CodeGenerator):
                     continue  # multidimensional (dynamic) arrays have to be treated differently
                 newlines = [
                     "cdef _numpy.ndarray[_numpy.{dtype_str}_t, ndim=1, mode='c'] _buf_{array_name} = _numpy.ascontiguousarray(_namespace['{array_name}'], dtype=_numpy.{dtype_str})",
-                    "cdef {dtype} * {array_name} = <{dtype} *> _buf_{array_name}.data"
+                    "cdef {dtype} * {array_name} = <{dtype} *> _buf_{array_name}.data",
+                    "cdef int _num{array_name} = len(_namespace['{array_name}'])",
                     ]
                 for line in newlines:
                     line = line.format(dtype=weave_data_type(var.dtype),
@@ -106,13 +109,11 @@ class CythonCodeGenerator(CodeGenerator):
                 handled_pointers.add(pointer_name)
             elif isinstance(var, (Constant, SymbolicConstant)):
                 dtype_name = unsafe_type(var.value)
-                line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(#dtype=c_data_type(var.dtype),
-                                                                                 dtype=dtype_name, varname=varname)
+                line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
                 load_namespace.append(line)
             elif isinstance(var, AttributeVariable):
                 dtype_name = unsafe_type(getattr(var.obj, var.attribute))
-                line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(#dtype=c_data_type(var.dtype),
-                                                                                 dtype=dtype_name, varname=varname)
+                line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
                 load_namespace.append(line)
             elif isinstance(var, Function):
                 func_impl = var.implementations[self.codeobj_class].get_code(self.owner)
