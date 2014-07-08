@@ -5,6 +5,7 @@
 import numpy as _numpy
 cimport numpy as _numpy
 from libc.math cimport sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, abs, asin, acos, atan, fabs, fmod
+from libcpp cimport bool
 
 # support code
 {{ support_code | autoindent }}

@@ -9,14 +9,36 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, rand,
 
 {% block template_support_code %}
 
-_buffer_size = 1024
+#cdef const int _buffer_size = 1024
+#cdef enum:
+#    _buffer_size = 1024
+#    
+#cdef int* _prebuf = new int [_buffer_size]
+#cdef int* _postbuf = new int [_buffer_size]
+#cdef int _prebuf[_buffer_size]
+#cdef int _postbuf[_buffer_size]
+#cdef int _synprebuf[1]
+#cdef int _synpostbuf[1]
+
+cdef int _buffer_size = 1024
+#cdef _numpy.ndarray[int, ndim=1, mode='c'] _prebuf = _numpy.zeros(_buffer_size, dtype=int)
+#cdef _numpy.ndarray[int, ndim=1, mode='c'] _postbuf = _numpy.zeros(_buffer_size, dtype=int)
+#cdef _numpy.ndarray[int, ndim=1, mode='c'] _synprebuf = _numpy.zeros(1, dtype=int)
+#cdef _numpy.ndarray[int, ndim=1, mode='c'] _synpostbuf = _numpy.zeros(1, dtype=int)
+
 _prebuf = _numpy.zeros(_buffer_size, dtype=int)
 _postbuf = _numpy.zeros(_buffer_size, dtype=int)
-_synprebuf = _numpy.zeros(1, dtype=int)
-_synpostbuf = _numpy.zeros(1, dtype=int)
+#_synprebuf = _numpy.zeros(1, dtype=int)
+#_synpostbuf = _numpy.zeros(1, dtype=int)
 cdef int _curbuf = 0
 
-def _flush_buffer(buf, dynarr, N):
+#cdef void _allocbuf():
+#    if _prebuf==0:
+#        _prebuf = new int [_buffer_size]
+#        _postbuf = new int [_buffer_size]
+
+cdef void _flush_buffer(buf, dynarr, N):
+#    _allocbuf()
     _curlen = dynarr.shape[0]
     _newlen = _curlen+N
     # Resize the array

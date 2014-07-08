@@ -97,7 +97,7 @@ class CythonCodeGenerator(CodeGenerator):
                 if getattr(var, 'dimensions', 1) > 1:
                     continue  # multidimensional (dynamic) arrays have to be treated differently
                 newlines = [
-                    "cdef _numpy.ndarray[_numpy.{dtype_str}_t, ndim=1, mode='c'] _buf_{array_name} = _numpy.ascontiguousarray(_namespace['{array_name}'], dtype=_numpy.{dtype_str})",
+                    "cdef _numpy.ndarray[{dtype_str_t}, ndim=1, mode='c'] _buf_{array_name} = _numpy.ascontiguousarray(_namespace['{array_name}'], dtype=_numpy.{dtype_str})",
                     "cdef {dtype} * {array_name} = <{dtype} *> _buf_{array_name}.data",
                     "cdef int _num{array_name} = len(_namespace['{array_name}'])",
                     ]
@@ -105,6 +105,7 @@ class CythonCodeGenerator(CodeGenerator):
                     line = line.format(dtype=weave_data_type(var.dtype),
                                        pointer_name=pointer_name, array_name=array_name,
                                        varname=varname, dtype_str=var.dtype.__name__,
+                                       dtype_str_t=('_numpy.'+var.dtype.__name__+'_t' if var.dtype.__name__!='bool' else '_numpy.uint8_t'),
                                        )
                     load_namespace.append(line)
                 handled_pointers.add(pointer_name)
