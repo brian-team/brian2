@@ -1,3 +1,4 @@
+import sys
 import gc
 import time
 
@@ -16,6 +17,39 @@ __all__ = ['Network']
 
 logger = get_logger(__name__)
 
+
+class TextReport(object):
+    '''
+    Helper object to report simulation progress in `Network.run`.
+
+    Parameters
+    ----------
+    stream : file
+        The stream to write to, commonly `sys.stdout` or `sys.stderr`.
+    '''
+    def __init__(self, stream):
+        self.stream = stream
+
+    def __call__(self, elapsed, completed, duration):
+        if completed == 0.0:
+            self.stream.write(('Starting simulation for duration '
+                               '%s\n') % duration)
+        else:
+            report_msg = ('{t} ({percent}%) simulated in '
+                          '{real_t}').format(t=completed*duration,
+                                             percent=int(completed*100.),
+                                             real_t=elapsed)
+            if completed < 1.0:
+                remaining = int(round((1-completed)/completed*float(elapsed)))
+                remaining_msg = (', estimated {remaining} s '
+                                 'remaining.\n').format(remaining=remaining)
+            else:
+                remaining_msg = '\n'
+
+            self.stream.write(report_msg + remaining_msg)
+
+        # Flush the stream, this is useful if stream is a file
+        self.stream.flush()
 
 class Network(Nameable):
     '''
@@ -313,10 +347,10 @@ class Network(Nameable):
                         (clock.t_ == minclock.t_ or
                          abs(clock.t_ - minclock.t_)<Clock.epsilon))
         return minclock, curclocks
-    
+
     @device_override('network_run')
     @check_units(duration=second, report_period=second)
-    def run(self, duration, report=None, report_period=60*second,
+    def run(self, duration, report=None, report_period=10*second,
             namespace=None, level=0):
         '''
         run(duration, report=None, report_period=60*second, namespace=None, level=0)
@@ -327,14 +361,17 @@ class Network(Nameable):
         ----------
         duration : `Quantity`
             The amount of simulation time to run for.
-        report : {None, 'stdout', 'stderr', 'graphical', function}, optional
-            How to report the progress of the simulation. If None, do not
-            report progress. If stdout or stderr is specified, print the
-            progress to stdout or stderr. If graphical, Tkinter is used to
-            show a graphical progress bar. Alternatively, you can specify
-            a callback ``function(elapsed, complete)`` which will be passed
-            the amount of time elapsed (in seconds) and the fraction complete
-            from 0 to 1.
+        report : {None, 'text', 'stdout', 'stderr', function}, optional
+            How to report the progress of the simulation. If ``None``, do not
+            report progress. If ``'text'`` or ``'stdout'`` is specified, print
+            the progress to stdout. If ``'stderr'`` is specified, print the
+            progress to stderr. Alternatively, you can specify a callback
+            ``callable(elapsed, complete, duration)`` which will be passed
+            the amount of time elapsed as a `Quantity`, the
+            fraction complete from 0.0 to 1.0 and the total duration of the
+            simulation (in biological time).
+            The function will always be called at the beginning and the end
+            (i.e. for fractions 0.0 and 1.0), regardless of the `report_period`.
         report_period : `Quantity`
             How frequently (in real time) to report progress.
         namespace : dict-like, optional
@@ -360,6 +397,7 @@ class Network(Nameable):
         if len(self.objects)==0:
             return # TODO: raise an error? warning?
 
+        t_start = self.t
         t_end = self.t+duration
         for clock in self._clocks:
             clock.set_interval(self.t, t_end)
@@ -369,8 +407,24 @@ class Network(Nameable):
         # Find the first clock to be updated (see note below)
         clock, curclocks = self._nextclocks()
         if report is not None:
+            report_period = float(report_period)
             start = current = time.time()
-            next_report_time = start + 10
+            next_report_time = start + report_period
+            if report == 'text' or report == 'stdout':
+                report_callback = TextReport(sys.stdout)
+            elif report == 'stderr':
+                report_callback = TextReport(sys.stderr)
+            elif isinstance(report, basestring):
+                raise ValueError(('Do not know how to handle report argument '
+                                  '"%s".' % report))
+            elif callable(report):
+                report_callback = report
+            else:
+                raise ValueError(('Do not know how to handle report argument, '
+                                  'it has to be one of "text", "stdout", '
+                                  '"stderr", or a callable function/object, but'
+                                  'is of type %s') % type(report))
+            report_callback(0*second, 0.0, duration)
 
         while clock.running and not self._stopped and not Network._globally_stopped:
             # update the network time to this clocks time
@@ -378,11 +432,10 @@ class Network(Nameable):
             if report is not None:
                 current = time.time()
                 if current > next_report_time:
-                    report_msg = '{t} simulated ({percent}%), estimated {remaining} s remaining.'
-                    remaining = int(round((current - start)/self.t*(duration-self.t)))
-                    print report_msg.format(t=self.t, percent=int(round(100*self.t/duration)),
-                                            remaining=remaining)
-                    next_report_time = current + 10
+                    report_callback((current-start)*second,
+                                    (self.t_ - float(t_start))/float(t_end),
+                                    duration)
+                    next_report_time = current + report_period
                 # update the objects with this clock
             for obj in self.objects:
                 if obj.clock in curclocks and obj.active:
@@ -399,7 +452,7 @@ class Network(Nameable):
         self.t = t_end
 
         if report is not None:
-            print 'Took ', current-start, 's in total.'
+            report_callback((current-start)*second, 1.0, duration)
         self.after_run()
         
     @device_override('network_stop')
