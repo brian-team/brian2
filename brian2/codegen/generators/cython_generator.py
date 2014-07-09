@@ -15,6 +15,10 @@ from Cython.Build.Inline import unsafe_type, safe_type
 __all__ = ['CythonCodeGenerator']
 
 
+def cython_data_type(dtype):
+    pass
+
+
 class CythonCodeGenerator(CodeGenerator):
     '''
     Cython code generator
