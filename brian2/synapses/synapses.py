@@ -789,16 +789,33 @@ class Synapses(Group):
         for name in getattr(self.source, 'variables', {}).iterkeys():
             var = self.source.variables[name]
             index = '0' if var.scalar else '_presynaptic_idx'
-            self.variables.add_reference(name + '_pre', self.source, name,
-                                         index=index)
+            try:
+                self.variables.add_reference(name + '_pre', self.source, name,
+                                             index=index)
+            except TypeError:
+                logger.debug(('Cannot include a reference to {var} in '
+                              '{synapses}, {var} uses a non-standard indexing '
+                              'in the pre-synaptic group '
+                              '{source}.').format(var=name,
+                                                  synapses=self.name,
+                                                  source=self.source.name))
         for name in getattr(self.target, 'variables', {}).iterkeys():
             var = self.target.variables[name]
             index = '0' if var.scalar else '_postsynaptic_idx'
-            self.variables.add_reference(name + '_post', self.target, name,
-                                         index=index)
-            # Also add all the post variables without a suffix -- note that a
-            # reference will never overwrite the name of an existing name
-            self.variables.add_reference(name, self.target, name, index=index)
+            try:
+                self.variables.add_reference(name + '_post', self.target, name,
+                                             index=index)
+                # Also add all the post variables without a suffix -- note that
+                # a reference will never overwrite the name of an existing name
+                self.variables.add_reference(name, self.target, name,
+                                             index=index)
+            except TypeError:
+                logger.debug(('Cannot include a reference to {var} in '
+                              '{synapses}, {var} uses a non-standard indexing '
+                              'in the post-synaptic group '
+                              '{target}.').format(var=name,
+                                                  synapses=self.name,
+                                                  target=self.target.name))
 
         # Check scalar subexpressions
         for eq in equations.itervalues():

@@ -1464,11 +1464,11 @@ class Variables(collections.Mapping):
             if subexpr_var_index in (group.variables.default_index, '0'):
                 subexpr_var_index = index
             elif index != self.default_index:
-                raise ValueError(('Cannot link to subexpression %s: it refers'
-                                  'to the variable %s which is index with the '
-                                  'non-standard index %s.') % (name,
-                                                               identifier,
-                                                               subexpr_var_index))
+                raise TypeError(('Cannot link to subexpression %s: it refers '
+                                 'to the variable %s which is index with the '
+                                 'non-standard index %s.') % (name,
+                                                              identifier,
+                                                              subexpr_var_index))
             else:
                 self.add_reference(subexpr_var_index, group)
 
@@ -1513,6 +1513,17 @@ class Variables(collections.Mapping):
             index = self.default_index
         if varname is None:
             varname = name
+
+        if self.owner is not None and index in self.owner.variables:
+            if (not self.owner.variables[index].read_only and
+                    group.variables.indices[varname] != group.variables.default_index):
+                raise TypeError(('Cannot link variable %s to %s in group %s -- '
+                                 'need to precalculate direct indices but '
+                                 'index %s can change') % (name,
+                                                           varname,
+                                                           group.name,
+                                                           index))
+
         # We don't overwrite existing names with references
         if not name in self._variables:
             var = group.variables[varname]

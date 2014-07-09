@@ -228,7 +228,7 @@ def test_linked_double_linked2():
 
 def test_linked_double_linked3():
     '''
-    Linked to a linked variable, first wit indices, second without indices
+    Linked to a linked variable, first with indices, second without indices
     '''
     G1 = NeuronGroup(5, 'x : 1')
     G2 = NeuronGroup(10, 'y : 1 (linked)')
@@ -252,6 +252,25 @@ def test_linked_double_linked4():
 
     G1.x = np.arange(5)*0.1
     assert_equal(G3.z[:], np.arange(5).repeat(2)[::-1]*0.1)
+
+
+def test_linked_triple_linked():
+    '''
+    Link to a linked variable that links to a linked variable, all use indices
+    '''
+    G1 = NeuronGroup(2, 'a : 1')
+
+    G2 = NeuronGroup(4, 'b : 1 (linked)')
+    G2.b = linked_var(G1.a, index=np.arange(2).repeat(2))
+
+    G3 = NeuronGroup(4, 'c: 1 (linked)')
+    G3.c = linked_var(G2.b, index=np.arange(4)[::-1])
+
+    G4 = NeuronGroup(8, 'd: 1 (linked)')
+    G4.d = linked_var(G3.c, index=np.arange(4).repeat(2))
+
+    G1.a = np.arange(2)*0.1
+    assert_equal(G4.d[:], np.arange(2).repeat(2)[::-1].repeat(2)*0.1)
 
 
 def test_linked_subgroup():
@@ -300,6 +319,29 @@ def test_linked_subexpression():
     # be identical
     assert all((all(mon[i].I == mon[0].I) for i in xrange(5)))
     assert all((all(mon[i+5].I == mon[5].I) for i in xrange(5)))
+
+
+def test_linked_subexpression_synapse():
+    '''
+    Test a complicated setup (not unlikely when using brian hears)
+    '''
+    G = NeuronGroup(2, 'dv/dt = 100*Hz : 1',
+                    threshold='v>1', reset='v=0')
+    G.v = [0, .5]
+    G2 = NeuronGroup(10, '''I = clip(x, 0, inf) : 1
+                            x : 1 (linked) ''')
+
+    # This will not be able to include references to `I` as `I_pre` etc., since
+    # the indirect indexing would have to change depending on the synapses
+    G2.x = linked_var(G.v, index=np.array([0, 1]).repeat(5))
+    S = Synapses(G2, G2, '')
+    S.connect('i==j')
+    assert 'I' not in S.variables
+    assert 'I_pre' not in S.variables
+    assert 'I_post' not in S.variables
+    assert 'x' not in S.variables
+    assert 'x_pre' not in S.variables
+    assert 'x_post' not in S.variables
 
 
 def test_linked_variable_indexed_incorrect():
@@ -827,9 +869,11 @@ if __name__ == '__main__':
     test_linked_double_linked2()
     test_linked_double_linked3()
     test_linked_double_linked4()
+    test_linked_triple_linked()
     test_linked_subgroup()
     test_linked_subgroup2()
     test_linked_subexpression()
+    test_linked_subexpression_synapse()
     test_linked_variable_indexed_incorrect()
     test_linked_synapses()
     test_stochastic_variable()
