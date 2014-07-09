@@ -35,6 +35,6 @@ s_mon = SpikeMonitor(P)
 run(.1 * second)
 duration = time.time() - start_time
 
-print duration
+print duration, len(s_mon)
 plt.plot(s_mon.t/ms, s_mon.i, '.')
 plt.show()

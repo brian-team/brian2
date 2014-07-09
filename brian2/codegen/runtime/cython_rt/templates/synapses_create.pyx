@@ -71,12 +71,12 @@ cdef void _flush_buffer(buf, dynarr, N):
                             _flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf)
                             _curbuf = 0
                         
-        # Final buffer flush
-        _flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf)
-        _flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf)
-    
-        newsize = len({{_dynamic__synaptic_pre}})
-        # now we need to resize all registered variables (via Python)
-        _owner._resize(newsize)
+    # Final buffer flush
+    _flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf)
+    _flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf)
 
+    newsize = len({{_dynamic__synaptic_pre}})
+    # now we need to resize all registered variables (via Python)
+    _owner._resize(newsize)
+    
 {% endblock %}
