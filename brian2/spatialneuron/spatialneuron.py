@@ -151,7 +151,8 @@ class SpatialStateUpdater(CodeRunner,Group):
             self._isprepared=True
         CodeRunner.before_run(self, run_namespace, level=level+1)
         
-    def after_update(self,return_value):
+    def after_update(self):
+        # *** Apparently this is never called !!! ***
         # Solve the linear system connecting branches
         self.P[:]=0
         self.B[:]=0
@@ -195,6 +196,12 @@ class SpatialStateUpdater(CodeRunner,Group):
         self.B=zeros(n) # vector RHS
         self.V=zeros(n) # solution = voltages at nodes
 
+        self.variables['ab_star'].set_value(self.ab_star.flatten())
+        self.variables['ab_plus'].set_value(self.ab_plus.flatten())
+        self.variables['ab_minus'].set_value(self.ab_minus.flatten())
+        self.variables['b_plus'].set_value(self.b_plus)
+        self.variables['b_minus'].set_value(self.b_minus)
+
     def cut_branches(self,morphology):
         '''
         Recursively cut the branches by setting zero axial resistances.
@@ -220,7 +227,6 @@ class SpatialStateUpdater(CodeRunner,Group):
         '''
         Recursively sets the boundary conditions in the linear systems.
         '''
-        #ab_star = self.variables['ab_star'].get_value()
         first=morphology._origin # first compartment
         last=first+len(morphology.x)-1 # last compartment
         # Inverse axial resistances at the ends: r0 and rn
@@ -248,8 +254,11 @@ class SpatialStateUpdater(CodeRunner,Group):
         last=first+len(morphology.x)-1 # last compartment
         i=morphology.index+1
         i_parent=morphology.parent+1
-        self.group.v_[first:last+1]=self.v_star[first:last+1]+self.V[i_parent]*self.u_minus[first:last+1]\
-                                                             +self.V[i]*self.u_plus[first:last+1]
+        v_star=self.variables['v_star'].get_value()
+        u_minus=self.variables['u_minus'].get_value()
+        u_plus=self.variables['u_plus'].get_value()
+        self.group.v_[first:last+1]=v_star[first:last+1]+self.V[i_parent]*u_minus[first:last+1]\
+                                                             +self.V[i]*u_plus[first:last+1]
         # Recursive call
         for kid in (morphology.children):
             self.linear_combination(kid)
@@ -263,19 +272,22 @@ class SpatialStateUpdater(CodeRunner,Group):
         last=first+len(morphology.x)-1 # last compartment
         i=morphology.index+1
         i_parent=morphology.parent+1
+        v_star=self.variables['v_star'].get_value()
+        u_minus=self.variables['u_minus'].get_value()
+        u_plus=self.variables['u_plus'].get_value()
         # Towards parent
         if i==1: # first branch, sealed end
-            self.P[0,0]=self.u_minus[first]-1
-            self.P[0,1]=self.u_plus[first]
-            self.B[0]=-self.v_star[first]
+            self.P[0,0]=u_minus[first]-1
+            self.P[0,1]=u_plus[first]
+            self.B[0]=-v_star[first]
         else:
-            self.P[i_parent,i_parent]+=(1-self.u_minus[first])*morphology.invr0
-            self.P[i_parent,i]-=self.u_plus[first]*morphology.invr0
-            self.B[i_parent]+=self.v_star[first]*morphology.invr0
+            self.P[i_parent,i_parent]+=(1-u_minus[first])*morphology.invr0
+            self.P[i_parent,i]-=u_plus[first]*morphology.invr0
+            self.B[i_parent]+=v_star[first]*morphology.invr0
         # Towards children
-        self.P[i,i]=(1-self.u_plus[last])*morphology.invrn
-        self.P[i,i_parent]=-self.u_minus[last]*morphology.invrn
-        self.B[i]=self.v_star[last]*morphology.invrn
+        self.P[i,i]=(1-u_plus[last])*morphology.invrn
+        self.P[i,i_parent]=-u_minus[last]*morphology.invrn
+        self.B[i]=v_star[last]*morphology.invrn
         # Recursive call
         for kid in (morphology.children):
             self.fill_matrix(kid)

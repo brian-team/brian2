@@ -23,13 +23,13 @@ I : amp/meter**2
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
-neuron.v=EL
+neuron.v=EL+10*mV
 neuron.w=1
 neuron.I=0*amp/cm**2
 
 # Monitors
-mon=StateMonitor(neuron,('v','w'),record=range(0,len(neuron)/2,20))
-run(1000*ms,report='text')
+mon=StateMonitor(neuron,('v','w'),record=[0,len(neuron)/2])
+run(100*ms,report='text')
 
 run(1*ms)
 neuron.I[len(neuron)/2]=0.2*nA/neuron.area[len(neuron)/2] # injecting in the middle
