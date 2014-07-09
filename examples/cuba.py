@@ -2,6 +2,7 @@ from brian2 import *
 import time
 
 # BrianLogger.log_level_debug()
+#brian_prefs.codegen.target = 'weave'
 
 taum = 20 * ms
 taue = 5 * ms
@@ -16,7 +17,7 @@ dge/dt = -ge/taue : volt (unless refractory)
 dgi/dt = -gi/taui : volt (unless refractory)
 '''
 
-P = NeuronGroup(4000, eqs, threshold='v>Vt', reset='v=Vr', refractory=5 * ms)
+P = NeuronGroup(4000, eqs, threshold='v>Vt', reset='v=Vr', refractory=5*ms)
 P.v = Vr
 P.ge = 0 * mV
 P.gi = 0 * mV
@@ -31,7 +32,7 @@ P.v = Vr + rand(len(P)) * (Vt - Vr)
 
 start_time = time.time()
 s_mon = SpikeMonitor(P)
-run(1 * second)
+run(.1 * second)
 duration = time.time() - start_time
 
 print duration

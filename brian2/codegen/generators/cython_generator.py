@@ -85,10 +85,12 @@ class CythonCodeGenerator(CodeGenerator):
         support_code = []
         handled_pointers = set()
         for varname, var in self.variables.iteritems():
+#            print varname, var.__class__
             if isinstance(var, DynamicArrayVariable):
                 load_namespace.append('%s = _namespace["%s"]' % (self.get_array_name(var, False),
                                                                  self.get_array_name(var, False)))
-            elif isinstance(var, ArrayVariable):
+            
+            if isinstance(var, ArrayVariable):
                 # This is the "true" array name, not the restricted pointer.
                 array_name = device.get_array_name(var)
                 pointer_name = self.get_array_name(var)
@@ -105,7 +107,7 @@ class CythonCodeGenerator(CodeGenerator):
                     line = line.format(dtype=weave_data_type(var.dtype),
                                        pointer_name=pointer_name, array_name=array_name,
                                        varname=varname, dtype_str=var.dtype.__name__,
-                                       dtype_str_t=('_numpy.'+var.dtype.__name__+'_t' if var.dtype.__name__!='bool' else '_numpy.uint8_t'),
+                                       dtype_str_t=('_numpy.'+var.dtype.__name__+'_t' if var.dtype.__name__!='bool' else '_numpy.uint8_t, cast=True'),
                                        )
                     load_namespace.append(line)
                 handled_pointers.add(pointer_name)
@@ -114,9 +116,14 @@ class CythonCodeGenerator(CodeGenerator):
                 line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
                 load_namespace.append(line)
             elif isinstance(var, AttributeVariable):
-                dtype_name = unsafe_type(getattr(var.obj, var.attribute))
+                val = getattr(var.obj, var.attribute)
+                dtype_name = unsafe_type(val)
+                dtype_name = dtype_name.replace('numpy.', '_numpy.')
                 line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
                 load_namespace.append(line)
+                if isinstance(val, np.ndarray):
+                    line = "cdef int _num{varname} = len(_namespace['{varname}'])".format(varname=varname)
+                    load_namespace.append(line)
             elif isinstance(var, Function):
                 func_impl = var.implementations[self.codeobj_class].get_code(self.owner)
                 # Implementation can be None if the function is already

@@ -146,7 +146,7 @@ class SynapticPathway(CodeRunner, Group):
         self.spikes_start = self.source.start
         self.spikes_stop = self.source.stop
 
-        self.spiking_synapses = []
+        self.spiking_synapses = np.array([], dtype=int)
         self.variables = Variables(self)
         self.variables.add_attribute_variable('_spiking_synapses', unit=Unit(1),
                                               obj=self,
