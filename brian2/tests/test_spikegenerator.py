@@ -89,13 +89,10 @@ def test_spikegenerator_standalone():
     tempdir = tempfile.mkdtemp()
     device.build(project_dir=tempdir, compile_project=True, run_project=True,
                  with_output=False)
-    i = numpy.fromfile(os.path.join(tempdir, 'results', '_dynamic_array_spikemonitor_i'),
-                       dtype=numpy.int32)
-    t = numpy.fromfile(os.path.join(tempdir, 'results', '_dynamic_array_spikemonitor_t'),
-                       dtype=numpy.float64)
     for idx in xrange(5):
         generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
-        recorded_spikes = sorted([(idx, time*second) for time in t[i==idx]])
+        recorded_spikes = sorted([(idx, time)
+                                  for time in s_mon.t[s_mon.i==idx]])
         assert generator_spikes == recorded_spikes
 
 

@@ -94,6 +94,9 @@ class CPPStandaloneDevice(Device):
         #: `ArrayVariable` objects to start value)
         self.arange_arrays = {}
 
+        #: Whether the simulation has been run
+        self.has_been_run = False
+
         #: Dict of all static saved arrays
         self.static_arrays = {}
 
@@ -233,7 +236,7 @@ class CPPStandaloneDevice(Device):
         # standalone scripts since their values might depend on the evaluation
         # of expressions at runtime. For constant, read-only arrays that have
         # been explicitly initialized (static arrays) or aranges (e.g. the
-        # neuronal indices)
+        # neuronal indices) we can, however
         if var.constant and var.read_only:
             array_name = self.get_array_name(var, access_data=False)
             if array_name in self.static_arrays:
@@ -244,8 +247,36 @@ class CPPStandaloneDevice(Device):
                 raise AssertionError(('Variable %s is constant and read-only '
                                       ' but uninitialized'))
         else:
+            # After the network has been run, we can retrieve the values from
+            # disk
+            if self.has_been_run:
+                dtype = var.dtype
+                array_name = array_name = self.get_array_name(var,
+                                                              access_data=False)
+                fname = os.path.join(self.project_dir, 'results',
+                                     array_name)
+                with open(fname, 'rb') as f:
+                    data = np.fromfile(f, dtype=dtype)
+                # This is a bit of an heuristic, but our 2d dynamic arrays are
+                # only expanding in one dimension, we assume here that the
+                # other dimension has size 0 at the beginning
+                if isinstance(var.size, tuple) and len(var.size) == 2:
+                    if var.size[0] * var.size[1] == len(data):
+                        return data.reshape(var.size)
+                    elif var.size[0] == 0:
+                        return data.reshape((-1, var.size[1]))
+                    elif var.size[0] == 0:
+                        return data.reshape((var.size[1], -1))
+                    else:
+                        raise IndexError(('Do not now how to deal with 2d '
+                                          'array of size %s, the array on disk '
+                                          'has length %d') % (str(var.size),
+                                                              len(data)))
+
+                return data
             raise NotImplementedError('Cannot retrieve the values of state '
-                                      'variables in standalone code.')
+                                      'variables in standalone code before the '
+                                      'simulation has been run.')
 
 
     def variableview_get_subexpression_with_index_array(self, variableview, item):
@@ -321,6 +352,7 @@ class CPPStandaloneDevice(Device):
             run_includes = []
         if run_args is None:
             run_args = []
+        self.project_dir = project_dir
         ensure_directory(project_dir)
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(project_dir, d))
@@ -531,6 +563,7 @@ class CPPStandaloneDevice(Device):
                             x = subprocess.call(['./main'] + run_args, stdout=stdout)
                         if x:
                             raise RuntimeError("Project run failed")
+                        self.has_been_run = True
                 else:
                     raise RuntimeError("Project compilation failed")
 
