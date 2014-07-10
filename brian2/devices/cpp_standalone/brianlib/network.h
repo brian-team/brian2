@@ -20,7 +20,7 @@ public:
 	Network();
 	void clear();
 	void add(Clock *clock, codeobj_func func);
-	void run(double duration);
+	void run(const double duration, void (*report_func)(const double, const double, const double), const double report_period);
 };
 
 #endif
