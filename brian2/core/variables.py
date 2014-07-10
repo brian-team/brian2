@@ -1458,11 +1458,12 @@ class Variables(collections.Mapping):
             else:
                 new_name = '_%s_%s' % (name, identifier)
             substitutions[identifier] = new_name
-            self.indices[new_name] = index
 
             subexpr_var_index = group.variables.indices[identifier]
-            if subexpr_var_index in (group.variables.default_index, '0'):
+            if subexpr_var_index == group.variables.default_index:
                 subexpr_var_index = index
+            elif subexpr_var_index == '0':
+                pass  # nothing to do for a shared variable
             elif index != self.default_index:
                 raise TypeError(('Cannot link to subexpression %s: it refers '
                                  'to the variable %s which is index with the '
@@ -1471,6 +1472,8 @@ class Variables(collections.Mapping):
                                                               subexpr_var_index))
             else:
                 self.add_reference(subexpr_var_index, group)
+
+            self.indices[new_name] = subexpr_var_index
 
             if isinstance(subexpr_var, Subexpression):
                 self.add_referred_subexpression(new_name,

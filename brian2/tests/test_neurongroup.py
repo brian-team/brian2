@@ -118,6 +118,24 @@ def test_scalar_variable():
         net.run(defaultclock.dt)
 
 
+def test_referred_scalar_variable():
+    '''
+    Test the correct handling of referred scalar variables in subexpressions
+    '''
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, '''out = sin(2*pi*t*freq) + x: 1
+                               x : 1
+                               freq : Hz (shared)''',
+                        codeobj_class=codeobj_class)
+        G.freq = 1*Hz
+        G.x = np.arange(10)
+        G2 = NeuronGroup(10, '', codeobj_class=codeobj_class)
+        G2.variables.add_reference('out', G)
+        net = Network(G, G2)
+        net.run(.25*second)
+        assert_allclose(G2.out[:], np.arange(10)+1)
+
+
 def test_linked_variable_correct():
     '''
     Test correct uses of linked variables.
@@ -860,6 +878,7 @@ if __name__ == '__main__':
     test_creation()
     test_variables()
     test_scalar_variable()
+    test_referred_scalar_variable()
     test_linked_variable_correct()
     test_linked_variable_incorrect()
     test_linked_variable_scalar()
