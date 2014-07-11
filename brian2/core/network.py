@@ -420,10 +420,10 @@ class Network(Nameable):
             elif callable(report):
                 report_callback = report
             else:
-                raise ValueError(('Do not know how to handle report argument, '
-                                  'it has to be one of "text", "stdout", '
-                                  '"stderr", or a callable function/object, but'
-                                  'is of type %s') % type(report))
+                raise TypeError(('Do not know how to handle report argument, '
+                                 'it has to be one of "text", "stdout", '
+                                 '"stderr", or a callable function/object, '
+                                 'but it is of type %s') % type(report))
             report_callback(0*second, 0.0, duration)
 
         while clock.running and not self._stopped and not Network._globally_stopped:
