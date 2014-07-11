@@ -102,7 +102,7 @@ class CPPStandaloneDevice(Device):
 
         self.code_objects = {}
         self.main_queue = []
-        
+        self.report_func = ''
         self.synapses = []
         
         self.clocks = set([])
@@ -500,6 +500,7 @@ class CPPStandaloneDevice(Device):
         main_tmp = CPPStandaloneCodeObject.templater.main(None, None,
                                                           main_lines=main_lines,
                                                           code_objects=self.code_objects.values(),
+                                                          report_func=self.report_func,
                                                           dt=float(defaultclock.dt),
                                                           additional_headers=main_includes,
                                                           )
@@ -567,7 +568,7 @@ class CPPStandaloneDevice(Device):
                 else:
                     raise RuntimeError("Project compilation failed")
 
-    def network_run(self, net, duration, report=None, report_period=60*second,
+    def network_run(self, net, duration, report=None, report_period=10*second,
                     namespace=None, level=0):
 
         # We have to use +2 for the level argument here, since this function is
@@ -588,13 +589,59 @@ class CPPStandaloneDevice(Device):
         for obj in net.objects:
             for codeobj in obj._code_objects:
                 code_objects.append((obj.clock, codeobj))
-        
+
+        # Code for a progress reporting function
+        standard_code = '''
+        void report_progress(const double elapsed, const double completed, const double duration)
+        {
+            if (completed == 0.0)
+            {
+                %STREAMNAME% << "Starting simulation for duration " << duration << " s";
+            } else
+            {
+                %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed << " s";
+                if (completed < 1.0)
+                {
+                    const int remaining = (int)((1-completed)/completed*elapsed+0.5);
+                    %STREAMNAME% << ", estimated " << remaining << " s remaining.";
+                }
+            }
+
+            %STREAMNAME% << std::endl << std::flush;
+        }
+        '''
+        if report is None:
+            self.report_func = ''
+        elif report == 'text' or report == 'stdout':
+            self.report_func = standard_code.replace('%STREAMNAME%', 'std::cout')
+        elif report == 'stderr':
+            self.report_func = standard_code.replace('%STREAMNAME%', 'std::cerr')
+        elif isinstance(report, basestring):
+            self.report_func = '''
+            void report_progress(const double elapsed, const double completed, const double duration)
+            {
+            %REPORT%
+            }
+            '''.replace('%REPORT%', report)
+        else:
+            raise TypeError(('report argument has to be either "text", '
+                             '"stdout", "stderr", or the code for a report '
+                             'function'))
+
+        if report is not None:
+            report_call = 'report_progress'
+        else:
+            report_call = 'NULL'
+
         # Generate the updaters
         run_lines = ['{net.name}.clear();'.format(net=net)]
         for clock, codeobj in code_objects:
             run_lines.append('{net.name}.add(&{clock.name}, _run_{codeobj.name});'.format(clock=clock, net=net,
                                                                                                codeobj=codeobj))
-        run_lines.append('{net.name}.run({duration});'.format(net=net, duration=float(duration)))
+        run_lines.append('{net.name}.run({duration}, {report_call}, {report_period});'.format(net=net,
+                                                                                              duration=float(duration),
+                                                                                              report_call=report_call,
+                                                                                              report_period=float(report_period)))
         self.main_queue.append(('run_network', (net, run_lines)))
 
     def run_function(self, name, include_in_parent=True):

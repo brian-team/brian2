@@ -260,10 +260,10 @@ def collect(level=0):
 
 
 @check_units(duration=second, report_period=second)
-def run(duration, report=None, report_period=60*second, namespace=None,
+def run(duration, report=None, report_period=10*second, namespace=None,
         level=0):
     '''
-    run(duration, report=None, report_period=60*second, namespace=None, level=0)
+    run(duration, report=None, report_period=10*second, namespace=None, level=0)
     
     Runs a simulation with all "visible" Brian objects for the given duration.
     Calls `collect` to gather all the objects, the simulation can

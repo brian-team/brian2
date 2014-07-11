@@ -136,9 +136,6 @@ def test_network_reinit_pre_post_run():
     net.reinit()
     assert_equal(x.did_reinit, True)
 
-    # Make sure that running with "report" works
-    net.run(1*ms, report='stdout')
-
 @with_setup(teardown=restore_initial_state)
 def test_magic_network():
     # test that magic network functions correctly
@@ -485,6 +482,82 @@ def test_magic_collect():
 
     assert len(objects) == 8, ('expected %d objects, got %d' % (8, len(objects)))
 
+from contextlib import contextmanager
+from StringIO import StringIO
+import sys
+
+@contextmanager
+def captured_output():
+    new_out, new_err = StringIO(), StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    try:
+        sys.stdout, sys.stderr = new_out, new_err
+        yield sys.stdout, sys.stderr
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+
+def test_progress_report():
+    '''
+    Very basic test of progress reporting
+    '''
+    G = NeuronGroup(1, '')
+    net = Network(G)
+
+    # No output
+    with captured_output() as (out, err):
+        net.run(1*ms, report=None)
+    # There should be at least two lines of output
+    out, err = out.getvalue(), err.getvalue()
+    assert len(out) == 0 and len(err) == 0
+
+    with captured_output() as (out, err):
+        net.run(1*ms)
+    # There should be at least two lines of output
+    out, err = out.getvalue(), err.getvalue()
+    assert len(out) == 0 and len(err) == 0
+
+    # Progress should go to stdout
+    with captured_output() as (out, err):
+        net.run(1*ms, report='text')
+    # There should be at least two lines of output
+    out, err = out.getvalue(), err.getvalue()
+    assert len(out.split('\n')) >= 2 and len(err) == 0
+
+    with captured_output() as (out, err):
+        net.run(1*ms, report='stdout')
+    # There should be at least two lines of output
+    out, err = out.getvalue(), err.getvalue()
+    assert len(out.split('\n')) >= 2 and len(err) == 0
+
+    # Progress should go to stderr
+    with captured_output() as (out, err):
+        net.run(1*ms, report='stderr')
+    # There should be at least two lines of output
+    out, err = out.getvalue(), err.getvalue()
+    assert len(err.split('\n')) >= 2 and len(out) == 0
+
+    # Custom function
+    calls = []
+    def capture_progress(elapsed, complete, duration):
+        calls.append((elapsed, complete, duration))
+    with captured_output() as (out, err):
+        net.run(1*ms, report=capture_progress)
+    out, err = out.getvalue(), err.getvalue()
+
+    assert len(err) == 0 and len(out) == 0
+    # There should be at least a call for the start and the end
+    assert len(calls) >= 2 and calls[0][1] == 0.0 and calls[-1][1] == 1.0
+
+
+def test_progress_report_incorrect():
+    '''
+    Test wrong use of the report option
+    '''
+    G = NeuronGroup(1, '')
+    net = Network(G)
+    assert_raises(ValueError, lambda: net.run(1*ms, report='unknown'))
+    assert_raises(TypeError, lambda: net.run(1*ms, report=object()))
+
 
 if __name__=='__main__':
     for t in [test_incorrect_network_use,
@@ -507,7 +580,9 @@ if __name__=='__main__':
               test_invalid_magic_network,
               test_network_access,
               test_loop,
-              test_magic_collect
+              test_magic_collect,
+              test_progress_report,
+              test_progress_report_incorrect
               ]:
         t()
         restore_initial_state()
