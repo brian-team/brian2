@@ -7,7 +7,7 @@ apply=0.39s (here diffusion is negligible)
 '''
 from brian2 import *
 
-#brian_prefs.codegen.target = 'weave' # couldn't this be simpler?
+brian_prefs.codegen.target = 'weave' # couldn't this be simpler?
 #BrianLogger.log_level_debug()
 
 # Morphology
@@ -28,7 +28,7 @@ neuron.w=1
 neuron.I=0*amp/cm**2
 
 # Monitors
-mon=StateMonitor(neuron,('v','w'),record=[0,len(neuron)/2])
+mon=StateMonitor(neuron,('v','w'),record=range(0,len(neuron)/2,20))
 run(100*ms,report='text')
 
 run(1*ms)

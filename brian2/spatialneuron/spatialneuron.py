@@ -151,8 +151,8 @@ class SpatialStateUpdater(CodeRunner,Group):
             self._isprepared=True
         CodeRunner.before_run(self, run_namespace, level=level+1)
         
-    def after_update(self):
-        # *** Apparently this is never called !!! ***
+    def run(self):
+        CodeRunner.run(self)
         # Solve the linear system connecting branches
         self.P[:]=0
         self.B[:]=0
