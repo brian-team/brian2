@@ -10,7 +10,8 @@ from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.translation import analyse_identifiers
 from brian2.codegen.codeobject import check_code_units
-from brian2.core.variables import Variables, LinkedVariable, DynamicArrayVariable
+from brian2.core.variables import (Variables, LinkedVariable,
+                                   DynamicArrayVariable, Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.parsing.expressions import (parse_expression_unit,
                                         is_boolean_expression)
@@ -391,7 +392,10 @@ class NeuronGroup(Group, SpikeSource):
                                            'supported, can only link to '
                                            'state variables of fixed '
                                            'size.') % linked_var.name)
-            
+            if isinstance(linked_var, Subexpression):
+                raise NotImplementedError(('Linking to subexpression %s is not '
+                                           'supported.') % linked_var.name)
+
             eq = self.equations[key]
             if eq.unit != linked_var.unit:
                 raise DimensionMismatchError(('Unit of variable %s does not '
