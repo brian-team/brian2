@@ -26,8 +26,8 @@ gK = 36 * msiemens / cm ** 2
 
 # Typical equations
 eqs=''' # The same equations for the whole neuron, but possibly different parameter values
-Im=gl*(El-v)+gNa*m**3*h*(ENa-v)+gK*n**4*(EK-v)+I : amp/meter**2 # distributed transmembrane current
-I:amp/meter**2 # applied current
+Im=gl*(El-v)+gNa*m**3*h*(ENa-v)+gK*n**4*(EK-v)+I/area : amp/meter**2 # distributed transmembrane current
+I:amp # applied current
 dm/dt=alpham*(1-m)-betam*m : 1
 dn/dt=alphan*(1-n)-betan*n : 1
 dh/dt=alphah*(1-h)-betah*h : 1
@@ -45,7 +45,7 @@ neuron.v=0*mV
 neuron.h=1
 neuron.m=0
 neuron.n=.5
-neuron.I=0*amp/cm**2
+neuron.I=0#*amp/cm**2
 neuron.gNa=gNa0
 neuron[5*cm:10*cm].gNa=0*siemens/cm**2
 M=StateMonitor(neuron,'v',record=True)
@@ -54,9 +54,9 @@ M=StateMonitor(neuron,'v',record=True)
 #exit()
 
 run(50*ms,report='text')
-neuron.I[0]=1 * uA/neuron.area[0] # current injection at one end
+neuron.I[0]=1 * uA#/neuron.area[0] # current injection at one end
 run(3*ms)
-neuron.I=0*amp/cm**2
+neuron.I=0*amp#/cm**2
 run(50*ms,report='text')
 
 for i in range(10):
