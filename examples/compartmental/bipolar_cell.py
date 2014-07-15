@@ -32,14 +32,14 @@ mon_R=StateMonitor(neuron.R,'v',record=25)
 run(1*ms)
 neuron.L.I[25]=0.2*nA/neuron.L.area[25] # injecting in the left dendrite
 run(5*ms)
-neuron.I=0*amp
+neuron.I=0*amp/meter**2
 run(50*ms,report='text')
 
 subplot(211)
-plot(mon_L.t/ms,mon_soma[0]/mV,'k')
-plot(mon_L.t/ms,mon_L[25]/mV,'r')
-plot(mon_L.t/ms,mon_R[25]/mV,'b')
+plot(mon_L.t/ms,mon_soma[0].v/mV,'k')
+plot(mon_L.t/ms,mon_L[25].v/mV,'r')
+plot(mon_L.t/ms,mon_R[25].v/mV,'b')
 subplot(212)
 for i in [0,5,10,15,20,25,30,35,40,45]:
-    plot(mon_L.t/ms,mon_L.v[:,i]/mV)
+    plot(mon_L.t/ms,mon_L.v[i,:]/mV)
 show()

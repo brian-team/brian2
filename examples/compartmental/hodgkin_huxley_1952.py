@@ -57,5 +57,5 @@ neuron.I=0*amp/cm**2
 run(50*ms,report='text')
 
 for i in range(10):
-    plot(M.t/ms,M.v[:,i*10]/mV) # this is really slow!
+    plot(M.t/ms,M.v.T[:,i*10]/mV) # this is really slow!
 show()

@@ -7,7 +7,7 @@ apply=0.39s (here diffusion is negligible)
 '''
 from brian2 import *
 
-brian_prefs.codegen.target = 'weave' # couldn't this be simpler?
+#brian_prefs.codegen.target = 'weave' # couldn't this be simpler?
 #BrianLogger.log_level_debug()
 
 # Morphology

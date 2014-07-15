@@ -98,13 +98,31 @@ class SpatialNeuron(NeuronGroup):
 
         # Insert morphology
         self.morphology = morphology
-        self.morphology.compress(diameter=self.diameter, length=self.length, x=self.x, y=self.y, z=self.z, area=self.area)
+        self.morphology.compress(diameter=self.variables['diameter'].get_value(), length=self.variables['length'].get_value(),
+                                 x=self.variables['x'].get_value(), y=self.variables['y'].get_value(),
+                                 z=self.variables['z'].get_value(), area=self.variables['area'].get_value())
 
         #: Performs numerical integration step
         self.diffusion_state_updater = SpatialStateUpdater(self, method)
 
         # Creation of contained_objects that do the work
         self.contained_objects.extend([self.diffusion_state_updater])
+
+    def __getattr__(self, x):
+        if (x != 'morphology') and ((x in self.morphology._namedkid) or all([c in 'LR123456789' for c in x])): # subtree
+            morpho = self.morphology[x]
+            N = self[morpho._origin:morpho._origin + len(morpho)]
+            N.morphology = morpho
+            return N
+        else:
+            return NeuronGroup.__getattr__(self, x)
+
+'''
+class SpatialSubgroup(Subgroup):
+    def __init__(self,source, start, stop, name=None):
+        Subgroup.__init__(self.source,start,stop,name)
+        also do getslice
+'''
 
 class SpatialStateUpdater(CodeRunner,Group):
     '''
