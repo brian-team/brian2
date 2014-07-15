@@ -117,6 +117,12 @@ class SpatialNeuron(NeuronGroup):
         else:
             return NeuronGroup.__getattr__(self, x)
 
+    def segment(self,start,stop):
+        return self[slice(start,stop)]
+
+    def point(self,x):
+        return self[x]
+
 '''
 class SpatialSubgroup(Subgroup):
     def __init__(self,source, start, stop, name=None):
