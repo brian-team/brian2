@@ -193,8 +193,8 @@ class Morphology(object):
             return morpho
         elif isinstance(x, slice): # neuron[10*um:20*um]
             morpho = self.branch()
-            start, stop = x.start, x.stop
-            l = cumsum(morpho.length) # coordinate on the branch
+            start, stop = float(x.start), float(x.stop)
+            l = cumsum(array(morpho.length)) # coordinate on the branch
             i = searchsorted(l, start)
             j = searchsorted(l, stop)
             morpho.diameter = morpho.diameter[i:j]
@@ -208,8 +208,8 @@ class Morphology(object):
             return morpho
         elif isinstance(x, float): # neuron[10*um]
             morpho = self.branch()
-            l = cumsum(morpho.length) # coordinate on the branch
-            i = searchsorted(l, x)
+            l = cumsum(array(morpho.length)) # coordinate on the branch
+            i = searchsorted(l, float(x))
             j = i + 1
             morpho.diameter = morpho.diameter[i:j]
             morpho.length = morpho.length[i:j]

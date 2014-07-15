@@ -8,27 +8,19 @@ TODO:
 * clean up
 * point processes
 '''
-from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
-                                        SUBEXPRESSION, PARAMETER)
-from brian2.stateupdaters.base import StateUpdateMethod
-from brian2.core.preferences import brian_prefs
+from brian2.equations.equations import Equations, PARAMETER
 from brian2.groups.group import Group, CodeRunner
-from brian2.groups.neurongroup import StateUpdater
-from brian2.core.base import BrianObject
 from brian2.units.allunits import ohm,siemens
 from brian2.units.fundamentalunits import Unit
 from brian2.units.stdunits import uF,cm
 from brian2.parsing.sympytools import sympy_to_str
 from brian2.utils.logger import get_logger
-from brian2.core.variables import (AttributeVariable, ArrayVariable,
-                                   Subexpression)
-from brian2.core.variables import Variables, LinkedVariable, DynamicArrayVariable
-from scipy.linalg import solve_banded
+from brian2.core.variables import Variables
 from brian2.groups.neurongroup import NeuronGroup
+from brian2.groups.subgroup import Subgroup
 import sympy as sp
-from numpy import zeros, ones, pi
+from numpy import zeros, pi
 from numpy.linalg import solve
-import numpy as np
 
 __all__ = ['SpatialNeuron']
 
@@ -37,8 +29,6 @@ logger = get_logger(__name__)
 class SpatialNeuron(NeuronGroup):
     def __init__(self, morphology=None, model=None, clock=None, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
                  name='spatialneuron*', dtype=None, namespace=None, method=None):
-
-        #self.N = len(morphology) # number of compartments
 
         ##### Prepare and validate equations
         if isinstance(model, basestring):
@@ -87,7 +77,7 @@ class SpatialNeuron(NeuronGroup):
         y : meter (constant)
         z : meter (constant)
         area : meter**2 (constant)
-        Cm : farad/meter**2 (constant)
+        Cm : farad/meter**2 (constant) # This could be shared (optionally)
         """)
 
         NeuronGroup.__init__(self,len(morphology),model=model + eqs_constants,method=method,clock=clock,
@@ -109,25 +99,62 @@ class SpatialNeuron(NeuronGroup):
         self.contained_objects.extend([self.diffusion_state_updater])
 
     def __getattr__(self, x):
-        if (x != 'morphology') and ((x in self.morphology._namedkid) or all([c in 'LR123456789' for c in x])): # subtree
+        if (x != 'morphology') and (x!='name') and ((x in self.morphology._namedkid) or all([c in 'LR123456789' for c in x])): # subtree
             morpho = self.morphology[x]
-            N = self[morpho._origin:morpho._origin + len(morpho)]
-            N.morphology = morpho
-            return N
+            return SpatialSubgroup(self,morpho._origin,morpho._origin + len(morpho),morphology=morpho)
         else:
             return NeuronGroup.__getattr__(self, x)
 
-    def segment(self,start,stop):
-        return self[slice(start,stop)]
+    def __getitem__(self,x):
+        '''
+        We allow standard subgrouping: self[i:j]
+        as well as subgrouping with distances, e.g. self[10*um:20*um]
+        (Maybe only distances should be allowed)
+        '''
+        if not isinstance(x, slice):
+            raise TypeError('Subgroups can only be constructed using slicing syntax')
+        start,stop,step=x.start,x.stop,x.step
+        if step is None:
+            step=1
+        if step != 1:
+            raise IndexError('Subgroups have to be contiguous')
 
-    def point(self,x):
-        return self[x]
+        if type(start) == type(1*cm): # e.g. 10*um:20*um
+            # Convert to integers
+            morpho = self.morphology[x]
+            start=morpho._origin
+            stop=morpho._origin + len(morpho)
+
+        if start >= stop:
+            raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
+                             (start, stop))
+
+        return Subgroup(self, start, stop)
+
+
+# Option 1: make it a SpatialNeuron
+# but I don't want it to be run
+class SpatialSubgroup(Subgroup,SpatialNeuron):
+    add_to_magic_network = False # correct?
+
+    def __init__(self,source, start, stop, morphology, name=None):
+        Subgroup.__init__(self,source,start,stop,name)
+        Group.__setattr__(self,'morphology',morphology) # to avoid infinite recursion
 
 '''
+# Option 2: just duplicate a few methods
+# but it's not enough (we need setattr etc)
+# also doesn't work (needs copy-paste)
 class SpatialSubgroup(Subgroup):
-    def __init__(self,source, start, stop, name=None):
-        Subgroup.__init__(self.source,start,stop,name)
-        also do getslice
+    def __init__(self,source, start, stop, morphology, name=None):
+        Subgroup.__init__(self,source,start,stop,name)
+        self.morphology=morphology
+
+    def __getattr__(self, x):
+        return SpatialNeuron.__getattr__(self,x)
+
+    def __getitem__(self,x):
+        return SpatialNeuron.__getitem__(self,x)
 '''
 
 class SpatialStateUpdater(CodeRunner,Group):
