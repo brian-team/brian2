@@ -1,7 +1,5 @@
 '''
 A pseudo MSO neuron, with two dendrites and one axon (fake geometry).
-
-This doesn't work yet, because we do not have subgrouping.
 '''
 from pylab import *
 from brian2 import *

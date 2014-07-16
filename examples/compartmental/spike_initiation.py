@@ -1,5 +1,7 @@
 '''
 Ball and stick with Na and K channels
+
+Can't subgroup subgroups!
 '''
 from brian2 import *
 

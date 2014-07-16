@@ -1,9 +1,5 @@
 '''
 An infinite cable.
-
-update=1.8 s
-post_update=1.18s
-apply=0.39s (here diffusion is negligible)
 '''
 from brian2 import *
 

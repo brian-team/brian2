@@ -92,7 +92,7 @@ class SpatialNeuron(NeuronGroup):
                                  x=self.variables['x'].get_value(), y=self.variables['y'].get_value(),
                                  z=self.variables['z'].get_value(), area=self.variables['area'].get_value())
 
-        #: Performs numerical integration step
+        # Performs numerical integration step
         self.diffusion_state_updater = SpatialStateUpdater(self, method)
 
         # Creation of contained_objects that do the work
@@ -107,7 +107,7 @@ class SpatialNeuron(NeuronGroup):
 
     def __getitem__(self,x):
         '''
-        We allow standard subgrouping: self[i:j]
+        We allow standard subgrouping with compartment indexes: self[i:j]
         as well as subgrouping with distances, e.g. self[10*um:20*um]
         (Maybe only distances should be allowed)
         '''
@@ -120,7 +120,7 @@ class SpatialNeuron(NeuronGroup):
             raise IndexError('Subgroups have to be contiguous')
 
         if type(start) == type(1*cm): # e.g. 10*um:20*um
-            # Convert to integers
+            # Convert to integers (compartment numbers)
             morpho = self.morphology[x]
             start=morpho._origin
             stop=morpho._origin + len(morpho)
@@ -132,8 +132,6 @@ class SpatialNeuron(NeuronGroup):
         return Subgroup(self, start, stop)
 
 
-# Option 1: make it a SpatialNeuron
-# but I don't want it to be run
 class SpatialSubgroup(Subgroup,SpatialNeuron):
     add_to_magic_network = False # correct?
 
@@ -141,21 +139,6 @@ class SpatialSubgroup(Subgroup,SpatialNeuron):
         Subgroup.__init__(self,source,start,stop,name)
         Group.__setattr__(self,'morphology',morphology) # to avoid infinite recursion
 
-'''
-# Option 2: just duplicate a few methods
-# but it's not enough (we need setattr etc)
-# also doesn't work (needs copy-paste)
-class SpatialSubgroup(Subgroup):
-    def __init__(self,source, start, stop, morphology, name=None):
-        Subgroup.__init__(self,source,start,stop,name)
-        self.morphology=morphology
-
-    def __getattr__(self, x):
-        return SpatialNeuron.__getattr__(self,x)
-
-    def __getitem__(self,x):
-        return SpatialNeuron.__getitem__(self,x)
-'''
 
 class SpatialStateUpdater(CodeRunner,Group):
     '''

@@ -35,7 +35,15 @@ class Subgroup(Group, SpikeSource):
     TODO: Group state variable access
     '''
     def __init__(self, source, start, stop, name=None):
-        self.source = weakref.proxy(source)
+        # First check if the source is itself a Subgroup
+        # If so, then make this a Subgroup of the original Group
+        if isinstance(source,Subgroup):
+            source = source.source
+            start = start+source.start
+            stop = stop+source.start
+            self.source=source
+        else:
+            self.source = weakref.proxy(source)
         if name is None:
             name = source.name + '_subgroup*'
         # We want to update the spikes attribute after it has been updated

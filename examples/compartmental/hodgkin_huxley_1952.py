@@ -1,16 +1,9 @@
 '''
 Hodgkin-Huxley equations (1952)
+Takes about 6.5 s with weave for 1 biological second (just run time).
 
 Conduction velocity is about 12.5 m/s (is it right?)
-
-update=5.1s
-apply=3.6s - this is probably mostly nonlinear state updates
-post_update=1.26 s
-
-So there seems to be little space for optimization left (for this morphology)
-Except perhaps using tables and such for exponential functions (or fastexp? could be in a #define).
 '''
-from pylab import *
 from brian2 import *
 
 brian_prefs.codegen.target = 'weave' # couldn't this be simpler?
@@ -50,13 +43,10 @@ neuron.gNa=gNa0
 neuron[5*cm:10*cm].gNa=0*siemens/cm**2
 M=StateMonitor(neuron,'v',record=True)
 
-#run(1*second,report='text')
-#exit()
-
 run(50*ms,report='text')
-neuron.I[0]=1 * uA#/neuron.area[0] # current injection at one end
+neuron.I[0]=1 * uA # current injection at one end
 run(3*ms)
-neuron.I=0*amp#/cm**2
+neuron.I=0*amp
 run(50*ms,report='text')
 
 for i in range(10):
