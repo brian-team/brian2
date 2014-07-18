@@ -1,7 +1,8 @@
 '''
 Module providing `WeaveCodeObject`.
 '''
-
+import os
+import sys
 import numpy
 
 try:
@@ -44,7 +45,9 @@ brian_prefs.register_preferences(
     include_dirs = BrianPreference(
         default=[],
         docs='''
-        Include directories to use.
+        Include directories to use. Note that ``$prefix/include`` will be
+        appended to the end automatically, where ``$prefix`` is Python's
+        site-specific directory prefix as returned by `sys.prefix`.
         '''
         )
     )
@@ -96,7 +99,8 @@ class WeaveCodeObject(CodeObject):
         super(WeaveCodeObject, self).__init__(owner, code, variables, name=name)
         self.compiler = brian_prefs['codegen.runtime.weave.compiler']
         self.extra_compile_args = brian_prefs['codegen.runtime.weave.extra_compile_args']
-        self.include_dirs = brian_prefs['codegen.runtime.weave.include_dirs']
+        self.include_dirs = list(brian_prefs['codegen.runtime.weave.include_dirs'])
+        self.include_dirs += [os.path.join(sys.prefix, 'include')]
         self.python_code_namespace = {'_owner': owner}
         self.variables_to_namespace()
 
