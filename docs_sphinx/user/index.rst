@@ -13,3 +13,4 @@ User's guide
    functions
    devices
    brian1hears_bridge
+   multicpt

@@ -376,6 +376,8 @@ class Cylinder(Morphology):
             y = length * sin(theta) * sin(phi)
             z = length * cos(theta)
         else:
+            if length is not None:
+                raise AttributeError,"Length and x-y-z coordinates cannot be simultaneously specified"
             length = (sum(array((x, y, z)) ** 2)) ** .5
         scale = arange(1, n + 1) * 1. / n
         self.x, self.y, self.z = x * scale, y * scale, z * scale

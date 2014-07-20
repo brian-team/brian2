@@ -14,13 +14,13 @@ morpho.R=Cylinder(diameter=1*um,length=150*um,n=50)
 gL=1e-4*siemens/cm**2
 EL=-70*mV
 eqs='''
-Im=gL*(EL-v)+I : amp/meter**2
-I : amp/meter**2
+Im=gL*(EL-v)+I/area : amp/meter**2
+I : amp
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
 neuron.v=EL
-neuron.I=0*amp/cm**2
+neuron.I=0*amp
 
 # Monitors
 mon_soma=StateMonitor(neuron,'v',record=[0])
@@ -28,9 +28,9 @@ mon_L=StateMonitor(neuron.L,'v',record=True)
 mon_R=StateMonitor(neuron.R,'v',record=25)
 
 run(1*ms)
-neuron.L.I[25]=0.2*nA/neuron.L.area[25] # injecting in the left dendrite
+neuron.L.I[25]=0.2*nA # injecting in the left dendrite
 run(5*ms)
-neuron.I=0*amp/meter**2
+neuron.I=0*amp
 run(50*ms,report='text')
 
 subplot(211)
