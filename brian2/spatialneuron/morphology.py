@@ -2,7 +2,6 @@
 Neuronal morphology module for Brian 2.
 
 TODO:
-* Maybe str: should give a text representation of the tree
 * set_length etc.: should be recursive
 * check_consistency: check that lengths, area and coordinates are consistent (and fix)
 * rescale: change number of compartments

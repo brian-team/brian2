@@ -31,24 +31,6 @@ In this case, length must not be specified, as it is calculated from the coordin
 These coordinates are mostly helpful for visualization. If they are not specified, 3D direction is chosen at
 random.
 
-A `Morphology` object stores the ``diameter``, ``x``, ``y``, ``z``, ``length`` and ``area`` of all its compartments as
-arrays. For example, ``morpho.length`` is an array containing the length of each of its compartments. When creating
-a cylinder, the length of each compartment is obtained by dividing the total length provided at creation by the
-number of compartments. The area is calculated automatically. The number of compartments can be obtained with
-``len(morpho)``.
-
-More complex processes can be created manually by directly specifying the diameter and length of
-each compartment::
-
-    morpho.axon = Morphology(n=5)
-    morpho.axon.diameter = ones(5) * 1 * um
-    morpho.axon.length = [1 * um, 2 * um, 1 * um, 3 * um, 1 * um]
-    morpho.axon.set_coordinates()
-    morpho.axon.set_area()
-
-Note the last two statements: ``set_coordinates()`` creates x-y-z coordinates and is required for plotting;
-``set_area()`` calculates the area of each compartment and is required for using the morphology in simulations.
-
 A tree is created by attaching `Morphology` objects together::
 
     morpho = Soma(diameter = 30*um)
@@ -90,7 +72,32 @@ retrieve only the primary branch of this subtree, use the ``branch()`` method::
 
     mainbranch = morpho.L.branch()
 
-Finally, the morphology can be displayed as a 3D plot::
+The number of compartments in the entire tree can be obtained with
+``len(morpho)``. Finally, the morphology can be displayed as a 3D plot::
 
     morpho.plot()
 
+Complex morphologies
+~~~~~~~~~~~~~~~~~~~~
+Neuronal morphologies can be created by assembling cylinders and spheres, but also more complex processes with
+variable diameter. This can be done by directly setting the attributes of a `Morphology` object.
+A `Morphology` object stores the ``diameter``, ``x``, ``y``, ``z``, ``length`` and ``area`` of all the
+compartments of the main branch (i.e., not children) as arrays. For example, ``morpho.length`` is
+an array containing the length of each of its compartments. When creating
+a cylinder, the length of each compartment is obtained by dividing the total length provided at creation by the
+number of compartments. The area is calculated automatically.
+Complex processes can be created manually by directly specifying the diameter and length of
+each compartment::
+
+    morpho.axon = Morphology(n=5)
+    morpho.axon.diameter = ones(5) * 1 * um
+    morpho.axon.length = [1 * um, 2 * um, 1 * um, 3 * um, 1 * um]
+    morpho.axon.set_coordinates()
+    morpho.axon.set_area()
+
+Note the last two statements: ``set_coordinates()`` creates x-y-z coordinates and is required for plotting;
+``set_area()`` calculates the area of each compartment (considered as a cylinder)
+and is required for using the morphology in simulations.
+Alternatively the coordinates can be specified, instead of the lengths of compartments, and then
+``set_length()`` must be called. Note that these methods only apply to the main branch of the morphology,
+not the children (subtrees).
