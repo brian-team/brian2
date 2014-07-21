@@ -101,3 +101,42 @@ and is required for using the morphology in simulations.
 Alternatively the coordinates can be specified, instead of the lengths of compartments, and then
 ``set_length()`` must be called. Note that these methods only apply to the main branch of the morphology,
 not the children (subtrees).
+
+Creating a spatially extended neuron
+------------------------------------
+
+A `SpatialNeuron` is a spatially extended neuron. It is created by specifying the morphology as a
+`Morphology` object, the equations for transmembrane currents, and optionally the specific membrane capacitance
+`Cm` and intracellular resistivity `Ri`::
+
+    gL=1e-4*siemens/cm**2
+    EL=-70*mV
+    eqs='''
+    Im=gL*(EL-v)+I/area : amp/meter**2
+    I : amp
+    '''
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
+    neuron.v=EL+10*mV
+
+Several state variables are created automatically: all the variables of the morphology object are linked to
+state variables of the neuron (``diameter``, ``x``, ``y``, ``z``, ``length`` and ``area``). Additionally,
+a state variable ``Cm`` is created. It is initialized with the value given at construction, but it can be modified
+on a compartment per compartment basis (which is useful to model myelinated axons).
+Finally the membrane potential is stored in state variable ``v``.
+
+The key state variable, which must be specified at construction, is ``Im``. It is the total transmembrane current,
+expressed in units of current per area. This is a mandatory line in the definition of the model. The rest of the
+string description may include other state variables (differential equations or subexpressions)
+or parameters, exactly as in `NeuronGroup`. At every timestep, Brian integrates the state variables, calculates the
+transmembrane current at every point on the neuronal morphology, and updates `v` using the transmembrane current and
+the diffusion current, which is calculated based on the morphology and the intracellular resistivity.
+Note that the transmembrane current is a surfacic current, not the total current in the compartement.
+This choice means that the model equations are independent of the number of compartments chosen for the simulation.
+Thus, to inject a current `I` at a particular point (e.g. through an electrode), this current must be divided by
+the area of the compartment when inserted in the transmembrane current equation. An example is shown in the equations
+above. A current can then be injected in the first compartment of the neuron (generally the soma) as follows::
+
+    neuron.I[0]=1*nA
+
+State variables of the `SpatialNeuron` include all the compartments of that neuron (including subtrees).
+Therefore, the statement ``neuron.v=EL+10*mV`` sets the membrane potential of the entire neuron at -60 mV.

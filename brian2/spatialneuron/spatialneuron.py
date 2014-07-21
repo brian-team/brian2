@@ -2,7 +2,7 @@
 Compartmental models
 
 TODO:
-* subgroups (neuron.axon etc)
+* How to access only the main branch of the morphology?
 * access with metric indexes
 * faster (C?)
 * clean up
