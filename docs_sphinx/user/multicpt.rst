@@ -89,7 +89,7 @@ number of compartments. The area is calculated automatically.
 Complex processes can be created manually by directly specifying the diameter and length of
 each compartment::
 
-    morpho.axon = Morphology(n=5)
+    morpho.axon = Morphology(n = 5)
     morpho.axon.diameter = ones(5) * 1 * um
     morpho.axon.length = [1 * um, 2 * um, 1 * um, 3 * um, 1 * um]
     morpho.axon.set_coordinates()
@@ -116,13 +116,16 @@ A `SpatialNeuron` is a spatially extended neuron. It is created by specifying th
     I : amp
     '''
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
-    neuron.v=EL+10*mV
+    neuron.v = EL+10*mV
 
 Several state variables are created automatically: all the variables of the morphology object are linked to
 state variables of the neuron (``diameter``, ``x``, ``y``, ``z``, ``length`` and ``area``). Additionally,
 a state variable ``Cm`` is created. It is initialized with the value given at construction, but it can be modified
 on a compartment per compartment basis (which is useful to model myelinated axons).
 Finally the membrane potential is stored in state variable ``v``.
+The integration method can be specified as for a `NeuronGroup` with the ``method`` keyword.
+In general, for models with nonlinear conductances, the exponential Euler method should be used:
+``method = "exponential_euler"``.
 
 The key state variable, which must be specified at construction, is ``Im``. It is the total transmembrane current,
 expressed in units of current per area. This is a mandatory line in the definition of the model. The rest of the
@@ -140,3 +143,12 @@ above. A current can then be injected in the first compartment of the neuron (ge
 
 State variables of the `SpatialNeuron` include all the compartments of that neuron (including subtrees).
 Therefore, the statement ``neuron.v=EL+10*mV`` sets the membrane potential of the entire neuron at -60 mV.
+
+Subtrees can be accessed in the same way as in `Morphology` objects::
+
+    neuron.axon.gNa = 10*gL
+
+A part of a branch can be accessed as follows::
+
+    initial_segment = neuron.axon[10*um:50*um]
+
