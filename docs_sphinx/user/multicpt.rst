@@ -147,8 +147,45 @@ Therefore, the statement ``neuron.v=EL+10*mV`` sets the membrane potential of th
 Subtrees can be accessed in the same way as in `Morphology` objects::
 
     neuron.axon.gNa = 10*gL
+    neuron['axon'].gNa = 10*gL
 
 A part of a branch can be accessed as follows::
 
     initial_segment = neuron.axon[10*um:50*um]
 
+Synaptic inputs
+---------------
+There are two methods to have synapses on `SpatialNeuron`.
+The first one to insert synaptic equations directly in the neuron equations::
+
+    eqs='''
+    Im = gL*(EL-v)+gs*(Es-v)/area : amp/meter**2
+    dgs/dt = -gs/taus : siemens
+    '''
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
+
+Note that, as for electrode stimulation, the synaptic current ``gs*(Es-v)`` must be divided by
+compartment's area. Then we use a `Synapses` object to connect a spike source to the neuron::
+
+    S = Synapses(stimulation,neuron,pre = 'gs += w')
+    S.connect(0,50)
+    S.connect(1,100)
+
+This creates two synapses, on compartments 50 and 100.
+In this method, there is a single value for the synaptic conductance in any compartment.
+This means that it will fail if there are several synapses onto the same compartment and synaptic equations
+are nonlinear.
+The second method, which works in such cases, is to have synaptic equations in the
+`Synapses` object::
+
+    eqs='''
+    Im = gL*(EL-v)+gs*(Es-v)/area : amp/meter**2
+    gs : siemens
+    '''
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
+    S = Synapses(stimulation,neuron,model='''dg/dt = -g/taus : siemens
+                                             gs_post = g : siemens (summed)''',pre = 'g += w')
+
+Here each synapse (instead of each compartment) has an associated value `g`, and all values of
+`g` for each compartment (i.e., all synapses targeting that compartment) are collected
+into the compartmental variable `gs`.
