@@ -570,6 +570,16 @@ def test_state_variables():
         G.v = -70*mV
         assert_raises(DimensionMismatchError, lambda: G.__setattr__('v', -70))
         G.v_ = float(-70*mV)
+        assert_allclose(G.v[:], -70*mV)
+        G.v = -70*mV + np.arange(10)*mV
+        assert_allclose(G.v[:], -70*mV + np.arange(10)*mV)
+        G.v = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] * volt
+        assert_allclose(G.v[:], np.arange(10) * volt)
+        # incorrect size
+        assert_raises(ValueError, lambda: G.__setattr__('v', [0, 1]*volt))
+        assert_raises(ValueError, lambda: G.__setattr__('v', np.arange(11)*volt))
+
+        G.v = -70*mV
         # Numpy methods should be able to deal with state variables
         # (discarding units)
         assert_allclose(np.mean(G.v), float(-70*mV))
