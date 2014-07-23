@@ -845,6 +845,9 @@ def test_check_units():
     #Try correct units
     a_function(3 * mV, 5 * second)
     a_function(5 * volt, 'something')
+    a_function([1, 2, 3]*volt, None)
+    # lists that can be converted should also work
+    a_function([1*volt, 2*volt, 3*volt], None)
     # Strings and None are also allowed to pass
     a_function('a string', None)
     a_function(None, None)
@@ -852,6 +855,8 @@ def test_check_units():
     # Try incorrect units
     assert_raises(DimensionMismatchError, lambda: a_function(5 * second, None))
     assert_raises(DimensionMismatchError, lambda: a_function(5, None))
+    assert_raises(TypeError, lambda: a_function(object(), None))
+    assert_raises(TypeError, lambda: a_function([1, 2*volt, 3], None))
 
     @check_units(result=second)
     def b_function(return_second):

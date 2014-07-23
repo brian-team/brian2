@@ -1054,6 +1054,13 @@ class VariableView(object):
             if self.var_index != '_idx':
                 indices = self.var_index_variable.get_value()[indices]
 
+            q = Quantity(value, copy=False)
+            if len(q.shape):
+                if not len(q.shape) == 1 or len(q) != 1 and len(q) != len(indices):
+                    raise ValueError(('Provided values do not match the size '
+                                      'of the indices, '
+                                      '%d != %d.') % (len(q),
+                                                      len(indices)))
             variable.get_value()[indices] = value
 
     # Allow some basic calculations directly on the ArrayView object
