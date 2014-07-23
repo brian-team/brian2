@@ -2,6 +2,8 @@ import sys
 import gc
 import time
 
+import numpy as np
+
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.core.base import BrianObject
@@ -16,6 +18,43 @@ __all__ = ['Network']
 
 
 logger = get_logger(__name__)
+
+
+def _format_time(time_in_s):
+    '''
+    Helper function to format time in seconds, minutes, hours, days, depending
+    on the magnitude.
+
+    Examples
+    --------
+    >>> from brian2.core.network import _format_time
+    >>> _format_time(12345)
+    '3h 25m 45s'
+    >>> _format_time(123)
+    '2m 3s'
+    >>> _format_time(12.5)
+    '12s'
+    >>> _format_time(.5)
+    '< 1s'
+
+    '''
+    divisors = [24*60*60, 60*60, 60, 1]
+    letters = ['d', 'h', 'm', 's']
+    remaining = time_in_s
+    text = ''
+    for divisor, letter in zip(divisors, letters):
+        time_to_represent = int(remaining / divisor)
+        remaining -= time_to_represent * divisor
+        if time_to_represent > 0 or len(text):
+            if len(text):
+                text += ' '
+            text += '%d%s' % (time_to_represent, letter)
+
+    # less than one second
+    if len(text) == 0:
+        text = '< 1s'
+
+    return text
 
 
 class TextReport(object):
@@ -38,11 +77,11 @@ class TextReport(object):
             report_msg = ('{t} ({percent}%) simulated in '
                           '{real_t}').format(t=completed*duration,
                                              percent=int(completed*100.),
-                                             real_t=elapsed)
+                                             real_t=_format_time(float(elapsed)))
             if completed < 1.0:
                 remaining = int(round((1-completed)/completed*float(elapsed)))
-                remaining_msg = (', estimated {remaining} s '
-                                 'remaining.\n').format(remaining=remaining)
+                remaining_msg = (', estimated {remaining} '
+                                 'remaining.\n').format(remaining=_format_time(remaining))
             else:
                 remaining_msg = '\n'
 
