@@ -37,11 +37,13 @@ class StateUpdater(CodeRunner):
     The `CodeRunner` that updates the state variables of a `Synapses`
     at every timestep.
     '''
-    def __init__(self, group, method):
+    def __init__(self, group, method, dt, order):
         self.method_choice = method
         CodeRunner.__init__(self, group,
                             'stateupdate',
-                            when=(group.clock, 'groups'),
+                            dt=dt,
+                            when='groups',
+                            order=order,
                             name=group.name + '_stateupdater',
                             check_units=False)
 
@@ -83,7 +85,9 @@ class SummedVariableUpdater(CodeRunner):
                             needed_variables=[target_varname],
                             # We want to update the sumned variable before
                             # the target group gets updated
-                            when=(target.clock, 'groups', -1),
+                            dt=None if target.dt is None else target.dt*second,
+                            when='groups',
+                            order=target.order-1,
                             name=synapses.name + '_summed_variable_' + target_varname,
                             template_kwds=template_kwds)
 
@@ -137,7 +141,9 @@ class SynapticPathway(CodeRunner, Group):
         CodeRunner.__init__(self, synapses,
                             'synapses',
                             code=code,
-                            when=(self.source.clock, 'synapses'),
+                            dt=None if synapses.dt is None else synapses.dt*second,
+                            when='synapses',
+                            order=0,
                             name=synapses.name + '_' + objname,
                             template_kwds={'pathway': self})
 
@@ -182,9 +188,6 @@ class SynapticPathway(CodeRunner, Group):
 
         # Re-extract the last part of the name from the full name
         self.objname = self.name[len(synapses.name) + 1:]
-
-        #: The simulation dt (necessary for the delays)
-        self.dt = self.synapses.clock.dt_
 
         #: The `SpikeQueue`
         self.queue = None
@@ -455,9 +458,9 @@ class Synapses(Group):
     def __init__(self, source, target=None, model=None, pre=None, post=None,
                  connect=False, delay=None, namespace=None, dtype=None,
                  codeobj_class=None,
-                 clock=None, method=None, name='synapses*'):
+                 dt=None, order=0, method=None, name='synapses*'):
         self._N = 0
-        Group.__init__(self, when=clock, name=name)
+        Group.__init__(self, dt=dt, when='start', order=order, name=name)
         
         self.codeobj_class = codeobj_class
 
@@ -574,7 +577,7 @@ class Synapses(Group):
 
         # We only need a state update if we have differential equations
         if len(self.equations.diff_eq_names):
-            self.state_updater = StateUpdater(self, method)
+            self.state_updater = StateUpdater(self, method, dt=dt, order=order)
             self.contained_objects.append(self.state_updater)
 
         #: "Summed variable" mechanism -- sum over all synapses of a
@@ -639,6 +642,7 @@ class Synapses(Group):
 
     def before_run(self, run_namespace=None, level=0):
         self.lastupdate = self.clock.t
+        self.variables.update_clock_variables(self.clock)
         super(Synapses, self).before_run(run_namespace, level=level+1)
 
     def _add_updater(self, code, prepost, objname=None, delay=None):
@@ -741,7 +745,6 @@ class Synapses(Group):
                                      '_synaptic_post')
 
         # Add the standard variables
-        self.variables.add_clock_variables(self.clock)
         self.variables.add_attribute_variable('N', Unit(1), self, '_N',
                                               constant=True)
 

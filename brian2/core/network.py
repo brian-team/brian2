@@ -307,7 +307,19 @@ class Network(Nameable):
         names in the default schedule:
         ``['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']``.
         ''')
-    
+
+    def _determine_clocks(self):
+        clocks = dict()
+        for obj in self.objects:
+            dt = obj.dt
+            if dt is None:
+                dt = brian_prefs['core.default_dt']
+            if dt not in clocks:
+                clocks[dt] = Clock(dt=dt)
+            obj._clock = clocks[dt]
+
+        self._clocks = clocks.values()
+
     def _sort_objects(self):
         '''
         Sorts the objects in the order defined by the schedule.
@@ -346,7 +358,7 @@ class Network(Nameable):
         '''                
         brian_prefs.check_all_validated()
 
-        self._clocks = set(obj.clock for obj in self.objects)
+        self._determine_clocks()
         
         self._stopped = False
         Network._globally_stopped = False
@@ -477,7 +489,7 @@ class Network(Nameable):
                     next_report_time = current + report_period
                 # update the objects with this clock
             for obj in self.objects:
-                if obj.clock in curclocks and obj.active:
+                if obj._clock in curclocks and obj.active:
                     obj.run()
             # tick the clock forward one time step
             for c in curclocks:
@@ -488,7 +500,10 @@ class Network(Nameable):
             # same t value in which case we update all of them
             clock, curclocks = self._nextclocks()
 
-        self.t = t_end
+        if self._stopped or Network._globally_stopped:
+            self.t = clock.t
+        else:
+            self.t = t_end
 
         if report is not None:
             report_callback((current-start)*second, 1.0, duration)

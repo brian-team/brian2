@@ -6,8 +6,9 @@ import gc
 import weakref
 
 from brian2.utils.logger import get_logger
-from brian2.core.scheduler import Scheduler
 from brian2.core.names import Nameable
+from brian2.units.allunits import second
+from brian2.units.fundamentalunits import check_units
 
 __all__ = ['BrianObject',
            'clear',
@@ -38,23 +39,22 @@ class BrianObject(Nameable):
         
     The set of all `BrianObject` objects is stored in ``BrianObject.__instances__()``.
     '''
-    def __init__(self, when=None, name='brianobject*'):
-        scheduler = Scheduler(when)
-        when = scheduler.when
-        order = scheduler.order
-        clock = scheduler.clock
+    @check_units(dt=second)
+    def __init__(self, dt=None, when='start', order=0, name='brianobject*'):
         
         Nameable.__init__(self, name)
-     
-        # : The ID string determining when the object should be updated in `Network.run`.
+
+        #: The clock used for simulating this object, will be set in `Network._determine_clocks`
+        self._clock = None
+
+        #: The simulation time step for this object
+        self.dt = None if dt is None else float(dt)
+
+        #: The ID string determining when the object should be updated in `Network.run`.
         self.when = when
         
         #: The order in which objects with the same clock and ``when`` should be updated
         self.order = order
-        
-#        #: The `Clock` determining when the object should be updated.
-#        self.clock = clock
-        self._clock = clock
 
         self._dependencies = set()
         self._contained_objects = []
@@ -63,7 +63,7 @@ class BrianObject(Nameable):
         self._active = True
         
         logger.debug("Created BrianObject with name {self.name}, "
-                     "clock name {self.clock.name}, "
+                     "dt {self.dt}, "
                      "when={self.when}, order={self.order}".format(self=self))
 
     #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is created or removed
@@ -176,11 +176,11 @@ class BrianObject(Nameable):
                         ''')
 
     def __repr__(self):
-        description = ('{classname}(when={scheduler}, name={name})')
+        description = ('{classname}(dt={dt}, when={when}, order={order}, name={name})')
         return description.format(classname=self.__class__.__name__,
-                                  scheduler=repr(Scheduler(when=self.when,
-                                                           clock=self.clock,
-                                                           order=self.order)),
+                                  when=self.when,
+                                  dt=self.dt,
+                                  order=self.order,
                                   name=repr(self.name))
 
     # This is a repeat from Nameable.name, but we want to get the documentation

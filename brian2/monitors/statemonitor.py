@@ -4,7 +4,6 @@ import numbers
 import numpy as np
 
 from brian2.core.variables import (Variables, Subexpression, get_dtype)
-from brian2.core.scheduler import Scheduler
 from brian2.groups.group import Group, CodeRunner
 from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Unit, Quantity
@@ -134,18 +133,14 @@ class StateMonitor(Group, CodeRunner):
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
-    def __init__(self, source, variables, record=None, when=None,
-                 name='statemonitor*', codeobj_class=None):
+    def __init__(self, source, variables, record=None, dt=None, when='end',
+                 order=0, name='statemonitor*', codeobj_class=None):
         self.source = source
         self.codeobj_class = codeobj_class
 
         # run by default on source clock at the end
-        scheduler = Scheduler(when)
-        if not scheduler.defined_clock:
-            scheduler.clock = source.clock
-        if not scheduler.defined_when:
-            scheduler.when = 'end'
-
+        if dt is None:
+            dt = source.dt
         # variables should always be a list of strings
         if variables is True:
             variables = source.equations.names
@@ -178,7 +173,9 @@ class StateMonitor(Group, CodeRunner):
 
         CodeRunner.__init__(self, group=self, template='statemonitor',
                             code=code, name=name,
-                            when=scheduler,
+                            dt=dt,
+                            when=when,
+                            order=order,
                             check_units=False)
 
         self.add_dependency(source)
@@ -188,12 +185,6 @@ class StateMonitor(Group, CodeRunner):
 
         self.variables.add_dynamic_array('t', size=0, unit=second,
                                          constant=False, constant_size=False)
-        if scheduler.clock is source.clock:
-            self.variables.add_reference('_clock_t', source, 't')
-        else:
-            self.variables.add_attribute_variable('_clock_t', unit=second,
-                                                  obj=scheduler.clock,
-                                                  attribute='t_')
         self.variables.add_attribute_variable('N', unit=Unit(1),
                                               dtype=np.int32,
                                               obj=self, attribute='_N')
@@ -243,6 +234,12 @@ class StateMonitor(Group, CodeRunner):
 
     def __len__(self):
         return self._N
+
+    def before_run(self, run_namespace=None, level=0):
+        self.variables.update_clock_variables(self.source.clock,
+                                              prefix='_clock_')
+        super(StateMonitor, self).before_run(run_namespace=run_namespace,
+                                             level=level+1)
 
     def resize(self, new_size):
         self.variables['t'].resize(new_size)

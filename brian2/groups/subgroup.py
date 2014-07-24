@@ -1,9 +1,9 @@
 from brian2.core.base import weakproxy_with_fallback
 from brian2.core.spikesource import SpikeSource
-from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
 from brian2.groups.group import Group
 from brian2.units.fundamentalunits import Unit
+from brian2.units.allunits import second
 
 __all__ = ['Subgroup']
 
@@ -48,9 +48,10 @@ class Subgroup(Group, SpikeSource):
         # by the parent, we do this in slot 'thresholds' with an order
         # one higher than the parent order to ensure it takes place after the
         # parent threshold operation
-        schedule = Scheduler(clock=source.clock, when='thresholds',
-                             order=source.order+1)
-        Group.__init__(self, when=schedule, name=name)
+        Group.__init__(self,
+                       dt=None if source.dt is None else source.dt*second,
+                       when='thresholds',
+                       order=source.order+1, name=name)
         self._N = stop-start
         self.start = start
         self.stop = stop
@@ -105,7 +106,7 @@ class Subgroup(Group, SpikeSource):
 
     def __len__(self):
         return self._N
-        
+
     def __repr__(self):
         description = '<{classname} {name} of {source} from {start} to {end}>'
         return description.format(classname=self.__class__.__name__,

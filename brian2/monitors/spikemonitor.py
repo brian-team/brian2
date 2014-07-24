@@ -1,6 +1,5 @@
 import numpy as np
 
-from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit, Quantity
@@ -31,22 +30,19 @@ class SpikeMonitor(Group, CodeRunner):
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
-    def __init__(self, source, record=True, when=None, name='spikemonitor*',
-                 codeobj_class=None):
+    def __init__(self, source, record=True, dt=None, when='end', order=0,
+                 name='spikemonitor*', codeobj_class=None):
         self.record = bool(record)
         #: The source we are recording from
         self.source =source
 
         # run by default on source clock at the end
-        scheduler = Scheduler(when)
-        if not scheduler.defined_clock:
-            scheduler.clock = source.clock
-        if not scheduler.defined_when:
-            scheduler.when = 'end'
+        if dt is None:
+            dt = source.dt
 
         self.codeobj_class = codeobj_class
-        CodeRunner.__init__(self, group=self, template='spikemonitor',
-                            name=name, when=scheduler)
+        CodeRunner.__init__(self, group=self, code='', template='spikemonitor',
+                            name=name, dt=dt, when=when, order=order)
 
         self.add_dependency(source)
 
@@ -55,7 +51,6 @@ class SpikeMonitor(Group, CodeRunner):
         stop = getattr(source, 'stop', len(source))
 
         self.variables = Variables(self)
-        self.variables.add_clock_variables(scheduler.clock, prefix='_clock_')
         self.variables.add_reference('_spikespace', source)
         self.variables.add_dynamic_array('i', size=0, unit=Unit(1),
                                          dtype=np.int32, constant_size=False)
@@ -80,6 +75,12 @@ class SpikeMonitor(Group, CodeRunner):
 
     def __len__(self):
         return self._N
+
+    def before_run(self, run_namespace=None, level=0):
+        self.variables.update_clock_variables(self.source.clock,
+                                              prefix='_clock_')
+        super(SpikeMonitor, self).before_run(run_namespace=run_namespace,
+                                             level=level+1)
 
     def reinit(self):
         '''

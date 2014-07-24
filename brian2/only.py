@@ -22,7 +22,6 @@ from brian2.core.variables import linked_var
 from brian2.core.functions import *
 from brian2.core.preferences import *
 from brian2.core.clocks import *
-from brian2.core.scheduler import *
 from brian2.equations import *
 
 # The base class only depends on the above sets
@@ -56,9 +55,6 @@ def restore_initial_state():
     Resets ``defaultclock.dt = 0.1*ms``, ``defaultclock.t = 0*ms``, `clear` all
     objects and `BrianGlobalPreferences._restore` preferences.
     '''
-    if hasattr(defaultclock, '_dt'):
-        del defaultclock._dt
-    defaultclock._force_reinit()
     clear(erase=True)
     brian_prefs._restore()
 

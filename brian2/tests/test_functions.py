@@ -56,7 +56,6 @@ def test_math_functions():
                 
                 # Calculate the result in a somewhat complicated way by using a
                 # subexpression in a NeuronGroup
-                clock = Clock()
                 if func.__name__ == 'absolute':
                     # we want to use the name abs instead of absolute
                     func_name = 'abs'
@@ -65,7 +64,6 @@ def test_math_functions():
                 G = NeuronGroup(len(test_array),
                                 '''func = {func}(variable) : 1
                                    variable : 1'''.format(func=func_name),
-                                   clock=clock,
                                    codeobj_class=codeobj_class)
                 G.variable = test_array
                 mon = StateMonitor(G, 'func', record=True)
@@ -117,6 +115,7 @@ def test_user_defined_function():
     def usersin(x):
         return np.sin(x)
 
+    default_dt = brian_prefs.core.default_dt
     test_array = np.array([0, 1, 2, 3])
     for codeobj_class in codeobj_classes:
         G = NeuronGroup(len(test_array),
@@ -126,7 +125,7 @@ def test_user_defined_function():
         G.variable = test_array
         mon = StateMonitor(G, 'func', record=True)
         net = Network(G, mon)
-        net.run(defaultclock.dt)
+        net.run(default_dt)
 
         assert_equal(np.sin(test_array), mon.func_.flatten())
 
@@ -195,6 +194,7 @@ def test_simple_user_defined_function():
     def usersin(x):
         return np.sin(x)
 
+    default_dt = brian_prefs.core.default_dt
     test_array = np.array([0, 1, 2, 3])
     G = NeuronGroup(len(test_array),
                     '''func = usersin(variable) : 1
@@ -203,7 +203,7 @@ def test_simple_user_defined_function():
     G.variable = test_array
     mon = StateMonitor(G, 'func', record=True, codeobj_class=NumpyCodeObject)
     net = Network(G, mon)
-    net.run(defaultclock.dt)
+    net.run(default_dt)
 
     assert_equal(np.sin(test_array), mon.func_.flatten())
 
@@ -223,6 +223,8 @@ def test_simple_user_defined_function():
 
 
 def test_manual_user_defined_function():
+    default_dt = brian_prefs.core.default_dt
+
     # User defined function without any decorators
     def foo(x, y):
         return x + y + 3*volt
@@ -255,7 +257,7 @@ def test_manual_user_defined_function():
     G.y = 2*volt
     mon = StateMonitor(G, 'func', record=True, codeobj_class=NumpyCodeObject)
     net = Network(G, mon)
-    net.run(defaultclock.dt)
+    net.run(default_dt)
 
     assert mon[0].func == [6] * volt
 
@@ -270,7 +272,7 @@ def test_manual_user_defined_function():
     G.y = 2*volt
     mon = StateMonitor(G, 'func', record=True, codeobj_class=NumpyCodeObject)
     net = Network(G, mon)
-    net.run(defaultclock.dt)
+    net.run(default_dt)
 
     assert mon[0].func == [6] * volt
 
@@ -294,7 +296,7 @@ def test_manual_user_defined_function():
         G.y = 2*volt
         mon = StateMonitor(G, 'func', record=True)
         net = Network(G, mon)
-        net.run(defaultclock.dt)
+        net.run(default_dt)
         assert mon[0].func == [6] * volt
 
 

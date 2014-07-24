@@ -379,9 +379,9 @@ def test_subexpressions():
     
     methods = ['euler', 'exponential_euler', 'rk2', 'rk4']
     for method in methods:
-        G1 = NeuronGroup(1, eqs1, clock=Clock(), method=method)
+        G1 = NeuronGroup(1, eqs1, method=method)
         G1.v = 1
-        G2 = NeuronGroup(1, eqs2, clock=Clock(), method=method)
+        G2 = NeuronGroup(1, eqs2, method=method)
         G2.v = 1
         mon1 = StateMonitor(G1, 'v', record=True)
         mon2 = StateMonitor(G2, 'v', record=True)
@@ -393,13 +393,14 @@ def test_subexpressions():
 
 
 def test_locally_constant_check():
+    default_dt = brian_prefs.core.default_dt
     # The linear state update can handle additive time-dependent functions
     # (e.g. a TimedArray) but only if it can be safely assumed that the function
     # is constant over a single time check
-    ta0 = TimedArray(np.array([1]), dt=defaultclock.dt)  # ok
-    ta1 = TimedArray(np.array([1]), dt=2*defaultclock.dt)  # ok
-    ta2 = TimedArray(np.array([1]), dt=defaultclock.dt/2)  # not ok
-    ta3 = TimedArray(np.array([1]), dt=defaultclock.dt*1.5)  # not ok
+    ta0 = TimedArray(np.array([1]), dt=default_dt)  # ok
+    ta1 = TimedArray(np.array([1]), dt=2*default_dt)  # ok
+    ta2 = TimedArray(np.array([1]), dt=default_dt/2)  # not ok
+    ta3 = TimedArray(np.array([1]), dt=default_dt*1.5)  # not ok
 
     for ta_func, ok in zip([ta0, ta1, ta2, ta3], [True, True, False, False]):
         # additive

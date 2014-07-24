@@ -49,7 +49,6 @@ class PoissonGroup(Group, SpikeSource):
 
         self.variables = Variables(self)
         # standard variables
-        self.variables.add_clock_variables(self.clock)
         self.variables.add_constant('N', unit=Unit(1), value=self._N)
         self.variables.add_arange('i', self._N, constant=True, read_only=True)
         self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
@@ -86,6 +85,9 @@ class PoissonGroup(Group, SpikeSource):
         # Using the latter would cut _spikespace to the length of the group
         spikespace = self.variables['_spikespace'].get_value()
         return spikespace[:spikespace[-1]]
+
+    def before_run(self, run_namespace=None, level=0):
+        self.variables.update_clock_variables(self.clock)
 
     def __len__(self):
         return self.N

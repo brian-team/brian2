@@ -82,7 +82,7 @@ class SpatialNeuron(NeuronGroup):
     def __init__(self, morphology=None, model=None, threshold=None,
                  refractory=False, reset=None,
                  threshold_location=None,
-                 clock=None, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
+                 dt=None, order=0, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
                  name='spatialneuron*', dtype=None, namespace=None,
                  method=None):
 
@@ -186,7 +186,7 @@ class SpatialNeuron(NeuronGroup):
         NeuronGroup.__init__(self, len(morphology), model=model + eqs_constants,
                              threshold=threshold, refractory=refractory,
                              reset=reset,
-                             method=method, clock=clock,
+                             method=method, dt=dt, order=order,
                              namespace=namespace, dtype=dtype, name=name)
 
         self.Cm = Cm
@@ -205,7 +205,8 @@ class SpatialNeuron(NeuronGroup):
             distance=self.variables['distance'].get_value())
 
         # Performs numerical integration step
-        self.diffusion_state_updater = SpatialStateUpdater(self, method)
+        self.diffusion_state_updater = SpatialStateUpdater(self, method,
+                                                           dt=dt, order=order)
 
         # Creation of contained_objects that do the work
         self.contained_objects.extend([self.diffusion_state_updater])
@@ -307,19 +308,19 @@ class SpatialStateUpdater(CodeRunner, Group):
     TODO: all internal variables (u_minus etc) could be inserted in the SpatialNeuron.
     '''
 
-    def __init__(self, group, method):
+    def __init__(self, group, method, dt=None, order=0):
         # group is the neuron (a group of compartments) 
         self.method_choice = method
         self._isprepared = False
         CodeRunner.__init__(self, group,
                             'spatialstateupdate',
-                            when=(group.clock, 'groups', 1),
+                            code='''_gtot = gtot__private
+                                    _I0 = I0__private''',
+                            dt=dt,
+                            when='groups',
+                            order=order,
                             name=group.name + '_spatialstateupdater*',
                             check_units=False)
-        self.abstract_code = '''
-        _gtot = gtot__private
-        _I0 = I0__private
-        '''
         N = len(self.group)
         self.ab_star = zeros((3, N))
         self.ab_plus = zeros((3, N))

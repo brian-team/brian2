@@ -10,7 +10,6 @@ from brian2.devices.cpp_standalone import cpp_standalone_device
 
 
 def restore_device():
-    #Network.__instances__().clear()  #TODO
     cpp_standalone_device.reinit()
     set_device('runtime')
     restore_initial_state()
@@ -18,6 +17,7 @@ def restore_device():
 
 @with_setup(teardown=restore_device)
 def test_cpp_standalone(with_output=False):
+    Synapses.__instances__().clear()  # TODO: Shouldn't clear do this?
     set_device('cpp_standalone')
     ##### Define the model
     tau = 1*ms
@@ -53,7 +53,7 @@ def test_cpp_standalone(with_output=False):
     assert len(M.i)>=17000 and len(M.i)<=18000
     assert len(M.t) == len(M.i)
     assert M.t[0] == 0.
-    assert M.t[-1] == 100*ms - defaultclock.dt
+    assert M.t[-1] == 100*ms - brian_prefs.core.default_dt
 
 @with_setup(teardown=restore_device)
 def test_multiple_connects(with_output=False):

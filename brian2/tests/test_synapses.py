@@ -126,13 +126,12 @@ def test_connection_array_standalone():
     Synapses.__instances__().clear()  #FIXME
     set_device('cpp_standalone')
     # use a clock with 1s timesteps to avoid rounding issues
-    clock = Clock(dt=1*second)
     G1 = SpikeGeneratorGroup(4, np.array([0, 1, 2, 3]),
-                             [0, 1, 2, 3]*second, when=clock)
+                             [0, 1, 2, 3]*second, dt=1*second)
     G2 = NeuronGroup(8, 'v:1')
-    S = Synapses(G1, G2, '', pre='v+=1', clock=clock)
+    S = Synapses(G1, G2, '', pre='v+=1', dt=1*second)
     S.connect([0, 1, 2, 3], [0, 2, 4, 6])
-    mon = StateMonitor(G2, 'v', record=True, name='mon', when=clock)
+    mon = StateMonitor(G2, 'v', record=True, name='mon', dt=1*second)
     net = Network(G1, G2, S, mon)
     net.run(5*second)
     tempdir = tempfile.mkdtemp()
@@ -471,6 +470,7 @@ def test_delay_specification():
                                                delay={'post': 5*ms}))
 
 def test_transmission():
+    default_dt = brian_prefs.core.default_dt
     delays = [[0, 0] * ms, [1, 1] * ms, [1, 2] * ms]
     for codeobj_class, delay in zip(codeobj_classes, delays):
         # Make sure that the Synapses class actually propagates spikes :)
@@ -488,14 +488,14 @@ def test_transmission():
                      codeobj_class=codeobj_class)
         S.delay = delay
         net = Network(S, source, target, source_mon, target_mon)
-        net.run(100*ms+defaultclock.dt+max(delay))
+        net.run(100*ms+default_dt+max(delay))
 
         # All spikes should trigger spikes in the receiving neurons with
         # the respective delay ( + one dt)
         assert_allclose(source_mon.t[source_mon.i==0],
-                        target_mon.t[target_mon.i==0] - defaultclock.dt - delay[0])
+                        target_mon.t[target_mon.i==0] - default_dt - delay[0])
         assert_allclose(source_mon.t[source_mon.i==1],
-                        target_mon.t[target_mon.i==1] - defaultclock.dt - delay[1])
+                        target_mon.t[target_mon.i==1] - default_dt - delay[1])
 
 
 def test_clocks():
@@ -517,7 +517,7 @@ def test_clocks():
 
 def test_changed_dt_spikes_in_queue():
     for codeobj_class in codeobj_classes:
-        defaultclock.dt = .5*ms
+        brian_prefs.core.default_dt = .5*ms
         G1 = NeuronGroup(1, 'v:1', threshold='v>1', reset='v=0',
                          codeobj_class=codeobj_class)
         G1.v = 1.1
@@ -529,9 +529,9 @@ def test_changed_dt_spikes_in_queue():
         mon = SpikeMonitor(G2)
         net = Network(G1, G2, S, mon)
         net.run(5*ms)
-        defaultclock.dt = 1*ms
+        brian_prefs.core.default_dt = 1*ms
         net.run(3*ms)
-        defaultclock.dt = 0.1*ms
+        brian_prefs.core.default_dt = 0.1*ms
         net.run(2*ms)
         # Spikes should have delays of 0, 1, 2, ... ms and always
         # trigger a spike one dt later

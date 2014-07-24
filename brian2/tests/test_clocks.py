@@ -29,18 +29,7 @@ def test_clocks():
     clock.reinit()
     assert_equal(clock.t, 0*ms)
 
-    clock = Clock()
-    assert_equal(clock.dt, 0.1*ms)
-    clock.dt = 1*ms
-    assert_equal(clock.dt, 1*ms)
-
-@with_setup(teardown=restore_initial_state)
-def test_defaultclock():        
-    defaultclock.dt = 1*ms
-    assert_equal(defaultclock.dt, 1*ms)
-    assert defaultclock.name=='defaultclock'
 
 if __name__=='__main__':
     test_clocks()
     restore_initial_state()
-    test_defaultclock()

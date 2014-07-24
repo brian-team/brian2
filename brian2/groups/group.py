@@ -20,7 +20,6 @@ from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_FUNCTIONS,
                                    DEFAULT_UNITS,
                                    DEFAULT_CONSTANTS)
-from brian2.core.scheduler import Scheduler
 from brian2.codegen.codeobject import create_runner_codeobj, check_code_units
 from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
@@ -627,7 +626,7 @@ class Group(BrianObject):
 
         return resolutions
 
-    def custom_operation(self, code, when=None, name=None):
+    def custom_operation(self, code, dt=None, when='start', order=0, name=None):
         '''
         Returns a `CodeRunner` that runs abstract code in the group's namespace.
 
@@ -644,15 +643,11 @@ class Group(BrianObject):
             name is given explicitly, it will be used as given (i.e. the group
             name will not be prepended automatically).
         '''
-        when = Scheduler(when)
-        if not when.defined_clock:
-            when.clock = self.clock
-
         if name is None:
             name = self.name + '_custom_operation*'
 
         runner = CodeRunner(self, 'stateupdate', code=code, name=name,
-                            when=when)
+                            dt=dt, when=when, order=order)
         return runner
 
 
@@ -700,11 +695,11 @@ class CodeRunner(BrianObject):
     '''
     add_to_magic_network = True
     invalidates_magic_network = True
-    def __init__(self, group, template, code='', when=None,
+    def __init__(self, group, template, code, dt, when, order=0,
                  name='coderunner*', check_units=True, template_kwds=None,
                  needed_variables=None, override_conditional_write=None,
                  ):
-        BrianObject.__init__(self, when=when, name=name)
+        BrianObject.__init__(self, dt=dt, when=when, order=order, name=name)
         self.group = weakref.proxy(group)
         self.template = template
         self.abstract_code = code

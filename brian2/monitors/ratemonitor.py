@@ -1,6 +1,5 @@
 import numpy as np
 
-from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
@@ -32,11 +31,9 @@ class PopulationRateMonitor(Group, CodeRunner):
         #: The group we are recording from
         self.source = source
 
-        scheduler = Scheduler(clock=source.clock, when='end')
-
         self.codeobj_class = codeobj_class
-        CodeRunner.__init__(self, group=self, template='ratemonitor',
-                            when=scheduler, name=name)
+        CodeRunner.__init__(self, group=self, code='', template='ratemonitor',
+                            dt=source.dt, when='end', order=0, name=name)
 
         self.add_dependency(source)
 
@@ -47,8 +44,6 @@ class PopulationRateMonitor(Group, CodeRunner):
         self.variables.add_constant('_source_start', Unit(1), start)
         self.variables.add_constant('_source_stop', Unit(1), stop)
         self.variables.add_reference('_spikespace', source)
-        self.variables.add_reference('_clock_t', source, 't')
-        self.variables.add_reference('_clock_dt', source, 'dt')
         self.variables.add_dynamic_array('rate', size=0, unit=hertz,
                                          constant_size=False)
         self.variables.add_dynamic_array('t', size=0, unit=second,
@@ -62,6 +57,12 @@ class PopulationRateMonitor(Group, CodeRunner):
     @property
     def _N(self):
         return len(self.variables['t'].get_value())
+
+    def before_run(self, run_namespace=None, level=0):
+        self.variables.update_clock_variables(self.source.clock,
+                                              prefix='_clock_')
+        super(PopulationRateMonitor, self).before_run(run_namespace=run_namespace,
+                                                      level=level+1)
 
     def resize(self, new_size):
         self.variables['rate'].resize(new_size)

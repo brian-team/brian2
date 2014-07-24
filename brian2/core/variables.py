@@ -1617,7 +1617,7 @@ class Variables(collections.Mapping):
         for name in varnames:
             self.add_reference(name, group, name, index)
 
-    def add_clock_variables(self, clock, prefix=''):
+    def update_clock_variables(self, clock, prefix=''):
         '''
         Convenience function to add the ``t`` and ``dt`` attributes of a
         `clock`.
@@ -1633,8 +1633,15 @@ class Variables(collections.Mapping):
             not confuse the dynamic array of recorded times with the current
             time in the recorded group.
         '''
-        self.add_attribute_variable(prefix+'t', unit=second, obj=clock,
-                                    attribute='t_', dtype=np.float64)
-        self.add_attribute_variable(prefix+'dt', unit=second, obj=clock,
-                                    attribute='dt_', dtype=np.float64,
-                                    constant=True)
+        for name in ['t', 'dt']:
+            if prefix+name in self._variables:
+                var = self._variables[prefix+name]
+                if not isinstance(var, AttributeVariable):
+                    raise AssertionError(('%s is present in the variables '
+                                          'dictionary but of '
+                                          'type %s') % (prefix+name,
+                                                        type(var)))
+                var.obj = clock # replace the clock object
+            else:
+                self.add_attribute_variable(prefix+name, unit=second, obj=clock,
+                                            attribute=name+'_', dtype=np.float64)

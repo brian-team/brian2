@@ -4,7 +4,6 @@ Module defining `SpikeGeneratorGroup`.
 import numpy as np
 
 from brian2.core.spikesource import SpikeSource
-from brian2.core.scheduler import Scheduler
 from brian2.units.fundamentalunits import check_units, Unit
 from brian2.units.allunits import second
 from brian2.core.variables import Variables
@@ -43,11 +42,10 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     '''
 
     @check_units(N=1, indices=1, times=second)
-    def __init__(self, N, indices, times, when=None,
+    def __init__(self, N, indices, times, dt=None, when='thresholds', order=0,
                  name='spikegeneratorgroup*', codeobj_class=None):
-        if when is None:
-            when = Scheduler(when='thresholds')
-        Group.__init__(self, when=when, name=name)
+
+        Group.__init__(self, dt=dt, when=when, order=order, name=name)
 
         self.codeobj_class = codeobj_class
 
@@ -71,7 +69,6 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.variables = Variables(self)
 
         # standard variables
-        self.variables.add_clock_variables(self.clock)
         self.variables.add_constant('N', unit=Unit(1), value=N)
         self.variables.add_arange('i', N)
         self.variables.add_arange('spike_number', len(indices))
@@ -88,8 +85,11 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self._enable_group_attributes()
 
         CodeRunner.__init__(self, self,
-                            'spikegenerator',
+                            code='',
+                            template='spikegenerator',
+                            dt=dt,
                             when=when,
+                            order=order,
                             name=None)
 
     @property
@@ -105,6 +105,11 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
     def __len__(self):
         return self.N
+
+    def before_run(self, run_namespace=None, level=0):
+        self.variables.update_clock_variables(self.clock)
+        super(SpikeGeneratorGroup, self).before_run(run_namespace=run_namespace,
+                                                    level=level+1)
 
     def __repr__(self):
         return ('{cls}({N}, indices=<length {l} array>, '

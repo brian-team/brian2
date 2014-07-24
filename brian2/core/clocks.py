@@ -11,22 +11,19 @@ from brian2.core.names import Nameable
 from brian2.units.fundamentalunits import check_units, Quantity
 from brian2.units.allunits import second, msecond
 
-__all__ = ['Clock', 'defaultclock']
+__all__ = ['Clock']
 
 logger = get_logger(__name__)
 
 
 class Clock(Nameable):
     '''
-    Clock(dt=0.1*ms, name=None)
-    
     An object that holds the simulation time and the time step.
     
     Parameters
     ----------
-    dt : `Quantity`, optional
-        The time step of the simulation, will be set to ``0.1*ms`` if
-        unspecified.
+    dt : float
+        The time step of the simulation as a float
     name : str, optional
         An explicit name, if not specified gives an automatically generated name
 
@@ -38,9 +35,8 @@ class Clock(Nameable):
     ``abs(t1-t2)<epsilon*abs(t1)``, a standard test for equality of floating
     point values. The value of ``epsilon`` is ``1e-14``.
     '''
-    
-    @check_units(dt=second)
-    def __init__(self, dt=0.1*msecond, name='clock*'):
+
+    def __init__(self, dt, name='clock*'):
         self._force_reinit(dt=dt)
         Nameable.__init__(self, name=name)
         logger.debug("Created clock {self.name} with dt={self._dt}".format(self=self))
@@ -141,5 +137,3 @@ class Clock(Nameable):
         return self.i<self.i_end
 
     epsilon = 1e-14
-    
-defaultclock = Clock(name='defaultclock')

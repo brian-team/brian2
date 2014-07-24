@@ -13,10 +13,11 @@ except ImportError:
 
 
 def test_single_rates():
+    default_dt = brian_prefs.core.default_dt
     for codeobj_class in codeobj_classes:
         # Specifying single rates
         P0 = PoissonGroup(10, 0*Hz, codeobj_class=codeobj_class)
-        Pfull = PoissonGroup(10, 1. / defaultclock.dt,
+        Pfull = PoissonGroup(10, 1. / default_dt,
                              codeobj_class=codeobj_class)
 
         # Basic properties
@@ -25,32 +26,34 @@ def test_single_rates():
         spikes_P0 = SpikeMonitor(P0)
         spikes_Pfull = SpikeMonitor(Pfull)
         net = Network(P0, Pfull, spikes_P0, spikes_Pfull)
-        net.run(2*defaultclock.dt)
+        net.run(2*default_dt)
         assert_equal(spikes_P0.count, np.zeros(len(P0)))
         assert_equal(spikes_Pfull.count, 2 * np.ones(len(P0)))
 
 
 def test_rate_arrays():
+    default_dt = brian_prefs.core.default_dt
     for codeobj_class in codeobj_classes:
-        P = PoissonGroup(2, np.array([0, 1./defaultclock.dt])*Hz,
+        P = PoissonGroup(2, np.array([0, 1./default_dt])*Hz,
                          codeobj_class=codeobj_class)
         spikes = SpikeMonitor(P)
         net = Network(P, spikes)
-        net.run(2*defaultclock.dt)
+        net.run(2*default_dt)
 
         assert_equal(spikes.count, np.array([0, 2]))
 
 
 def test_propagation():
+    default_dt = brian_prefs.core.default_dt
     for codeobj_class in codeobj_classes:
         # Using a PoissonGroup as a source for Synapses should work as expected
-        P = PoissonGroup(2, np.array([0, 1./defaultclock.dt])*Hz,
+        P = PoissonGroup(2, np.array([0, 1./default_dt])*Hz,
                          codeobj_class=codeobj_class)
         G = NeuronGroup(2, 'v:1')
         S = Synapses(P, G, pre='v+=1', connect='i==j')
         net = Network(P, S, G)
         net.run(0*ms)
-        net.run(2*defaultclock.dt)
+        net.run(2*default_dt)
 
         assert_equal(G.v[:], np.array([0., 2.]))
 

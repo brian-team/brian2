@@ -84,7 +84,7 @@ def test_state_monitor():
         mon_all = StateMonitor(SG, 'v', record=True)
         mon_0 = StateMonitor(SG, 'v', record=0)
         net = Network(G, SG, mon_all, mon_0)
-        net.run(defaultclock.dt)
+        net.run(brian_prefs.core.default_dt)
 
         assert_equal(mon_0[0].v, mon_all[0].v)
         assert_equal(mon_0[0].v, np.array([5]) * volt)
@@ -254,7 +254,7 @@ def test_synaptic_propagation():
         S = Synapses(SG1, SG2, pre='v+=1', codeobj_class=codeobj_class)
         S.connect('i==j')
         net = Network(G1, G2, S)
-        net.run(defaultclock.dt)
+        net.run(brian_prefs.core.default_dt)
         expected = np.zeros(len(G2))
         # Neurons 1, 3, 5 spiked and are connected to 10, 12, 14
         expected[[10, 12, 14]] = 1
@@ -272,7 +272,7 @@ def test_spike_monitor():
         s_mon = SpikeMonitor(G, codeobj_class=codeobj_class)
         sub_s_mon = SpikeMonitor(SG, codeobj_class=codeobj_class)
         net = Network(G, s_mon, sub_s_mon)
-        net.run(defaultclock.dt)
+        net.run(brian_prefs.core.default_dt)
         assert_equal(s_mon.i, np.array([0, 2, 5]))
         assert_equal(s_mon.t_, np.zeros(3))
         assert_equal(sub_s_mon.i, np.array([2]))
@@ -313,11 +313,11 @@ def test_no_reference_2():
     spike_mon = SpikeMonitor(G[1:])
     rate_mon = PopulationRateMonitor(G[:2])
     net = Network(G, state_mon, spike_mon, rate_mon)
-    net.run(2*defaultclock.dt)
+    net.run(2*brian_prefs.core.default_dt)
     assert_equal(state_mon[0].v[:], np.zeros(2))
     assert_equal(spike_mon.i[:], np.array([0]))
     assert_equal(spike_mon.t[:], np.array([0])*second)
-    assert_equal(rate_mon.rate[:], np.array([0.5, 0])/defaultclock.dt)
+    assert_equal(rate_mon.rate[:], np.array([0.5, 0])/brian_prefs.core.default_dt)
 
 
 def test_no_reference_3():
@@ -328,7 +328,7 @@ def test_no_reference_3():
     G.v = [1.1, 0]
     S = Synapses(G[:1], G[1:], pre='v+=1', connect=True)
     net = Network(G, S)
-    net.run(defaultclock.dt)
+    net.run(brian_prefs.core.default_dt)
     assert_equal(G.v[:], np.array([0, 1]))
 
 
@@ -344,7 +344,7 @@ def test_no_reference_4():
         S = Synapses(G1[1:6], G2[10:], pre='v+=1', codeobj_class=codeobj_class)
         S.connect('i==j')
         net = Network(G1, G2, S)
-        net.run(defaultclock.dt)
+        net.run(brian_prefs.core.default_dt)
         expected = np.zeros(len(G2))
         # Neurons 1, 3, 5 spiked and are connected to 10, 12, 14
         expected[[10, 12, 14]] = 1

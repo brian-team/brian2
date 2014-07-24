@@ -5,7 +5,6 @@ from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 from brian2.core.variables import linked_var
 from brian2.core.network import Network
 from brian2.core.preferences import brian_prefs
-from brian2.core.clocks import defaultclock
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
@@ -79,7 +78,7 @@ def test_stochastic_variable():
         G = NeuronGroup(1, 'dv/dt = -v/tau + xi*tau**-0.5: 1',
                         codeobj_class=codeobj_class)
         net = Network(G)
-        net.run(defaultclock.dt)
+        net.run(brian_prefs.core.default_dt)
 
 
 def test_stochastic_variable_multiplicative():
@@ -93,7 +92,7 @@ def test_stochastic_variable_multiplicative():
         G = NeuronGroup(1, 'dX/dt = (mu - 0.5*second*sigma**2)*X + X*sigma*xi*second**.5: 1',
                         codeobj_class=codeobj_class)
         net = Network(G)
-        net.run(defaultclock.dt)
+        net.run(brian_prefs.core.default_dt)
 
 def test_scalar_variable():
     '''
@@ -115,7 +114,7 @@ def test_scalar_variable():
         G.E_L[:] = '-75*mV'
         assert_allclose(G.E_L[:], -75*mV)
         net = Network(G)
-        net.run(defaultclock.dt)
+        net.run(brian_prefs.core.default_dt)
 
 
 def test_referred_scalar_variable():
@@ -481,7 +480,7 @@ def test_threshold_reset():
                         threshold='v > 1', reset='v=0.5', codeobj_class=codeobj_class)
         G.v = np.array([0, 1, 2])
         net = Network(G)
-        net.run(defaultclock.dt)
+        net.run(brian_prefs.core.default_dt)
         assert_equal(G.v[:], np.array([0, 1, 0.5]))
 
 def test_unit_errors_threshold_reset():
@@ -883,7 +882,7 @@ def test_aliasing_in_statements():
                                 x_1 : 1 ''', codeobj_class=NumpyCodeObject)
     custom_code_obj = g.custom_operation(runner_code)
     net = Network(g, custom_code_obj)
-    net.run(defaultclock.dt)
+    net.run(brian_prefs.core.default_dt)
     assert_equal(g.x_0_[:], np.array([-1]))
     assert_equal(g.x_1_[:], np.array([0]))
 
