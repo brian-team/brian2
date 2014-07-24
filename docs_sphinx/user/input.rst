@@ -11,7 +11,7 @@ For generating spikes according to a Poisson point process, `PoissonGroup` can
 be used. It takes a rate or an array of rates (one rate per neuron) as an
 argument and can be connected to a `NeuronGroup` via the usual `Synapses`
 mechanism. At the moment, using ``PoissonGroup(N, rates)`` is equivalent to
-``NeuronGroup(N, 'rates : Hz', threshold='rand()*dt<rates')`` and setting the
+``NeuronGroup(N, 'rates : Hz', threshold='rand()<rates*dt')`` and setting the
 group's ``rates`` attribute. The explicit creation of such a `NeuronGroup` might
 be useful if the rates for the neurons are not constant in time, since it allows
 using the techniques mentioned below (formulating rates as equations or
