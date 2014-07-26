@@ -81,7 +81,7 @@ class BrianDataType(object):
             raise NotImplementedError
         
         # doesn't handle Constant correctly
-        #self.data_type = get_var_dtype(var)
+        self.data_type = get_var_dtype(var)
     
     def __str__(self):
         s = '%s(%s)' % (self.array_type, self.data_type)
