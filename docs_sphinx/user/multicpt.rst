@@ -171,8 +171,14 @@ compartment's area. Then we use a `Synapses` object to connect a spike source to
     S.connect(0,50)
     S.connect(1,100)
 
-This creates two synapses, on compartments 50 and 100.
-In this method, there is a single value for the synaptic conductance in any compartment.
+This creates two synapses, on compartments 50 and 100. One can specify the compartment number
+with its spatial position as follows::
+
+    S.connect(0,morpho.compartment(25*um))
+    S.connect(1,morpho.axon.compartment(30*um))
+
+In this method for creating synapses,
+there is a single value for the synaptic conductance in any compartment.
 This means that it will fail if there are several synapses onto the same compartment and synaptic equations
 are nonlinear.
 The second method, which works in such cases, is to have synaptic equations in the
@@ -189,3 +195,34 @@ The second method, which works in such cases, is to have synaptic equations in t
 Here each synapse (instead of each compartment) has an associated value `g`, and all values of
 `g` for each compartment (i.e., all synapses targeting that compartment) are collected
 into the compartmental variable `gs`.
+
+Detecting spikes
+----------------
+To detect and record spikes, we must specify a threshold condition, essentially in the same
+way as for a `NeuronGroup`::
+
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold = "v > 0*mV", refractory = "v > -10*mV")
+
+Here spikes are detected when the membrane potential ``v`` reaches 0 mV. Because there is generally
+no explicit reset in this type of model (although it is possible to specify one), ``v`` remains above
+0 mV for some time. To avoid detecting spikes during this entire time, we specify a refractory period.
+In this case no spike is detected as long as ``v`` is greater than -10 mV. Another possibility could be::
+
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold = "m > 0.5", refractory = "m > 0.4")
+
+where ``m`` is the state variable for sodium channel activation (assuming this has been defined in the
+model). Here a spike is detected when half of the sodium channels are open.
+
+With the syntax above, spikes are detected in all compartments of the neuron. To detect them in a single
+compartment, use the ``threshold_location`` keyword::
+
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold = "m > 0.5", threshold_location = 30,
+                           refractory = "m > 0.4")
+
+In this case, spikes are only detecting in compartment number 30. Reset then applies locally to
+that compartment (if a reset statement is defined).
+Again the location of the threshold can be specified with spatial position::
+
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold = "m > 0.5",
+                           threshold_location = morpho.axon.compartment(30*um),
+                           refractory = "m > 0.4")

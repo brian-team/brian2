@@ -33,7 +33,15 @@ class Morphology(object):
             self.loadswc(filename)
         elif n is not None: # Creates a branch with n compartments
             # The problem here is that these parameters should have some self-consistency
-            self.x, self.y, self.z, self.diameter, self.length, self.area = [zeros(n) for _ in range(6)]
+            self.x, self.y, self.z, self.diameter, self.length, self.area, self.distance = [zeros(n) for _ in range(7)]
+
+    def set_distance(self):
+        '''
+        Sets the distance to the soma (or more generally start point of the morphology)
+
+        TODO: recursive
+        '''
+        self.distance = cumsum(self.length)
 
     def set_length(self):
         '''
@@ -136,6 +144,7 @@ class Morphology(object):
         self.diameter, self.length, self.area, self.x, self.y, self.z = array(self.diameter), array(self.length), \
             array(self.area), array(self.x), array(self.y), array(self.z)
         self.type = segment[n]['T'] # normally same type for all compartments in the branch
+        self.set_distance()
         # Create children (list)
         self.children = [Morphology().create_from_segments(segment, origin=c) for c in segment[n]['children']]
         # Create dictionary of names (enumerates children from number 1)
@@ -166,6 +175,32 @@ class Morphology(object):
         morpho._namedkid = {}
         return morpho
 
+    def compartment(self, x, local = False):
+        '''
+        Returns compartment index. Example:
+        i = morpho.index(10*um)
+
+        If local is True, the compartment index is relative to the current branch,
+        otherwise it is an absolute index.
+        '''
+        # Note: distance gives the distance to soma of the end of the compartment
+        i = searchsorted(array(self.distance - self.distance[0] + self.length[0]), float(x))
+        if i>=len(self.x):
+            i=len(self.x)-1
+        if hasattr(self, '_origin') and not local:
+            i+=self._origin
+        return i
+
+    def compartments(self, x, y, local = False):
+        '''
+        Returns compartment indices. Example:
+        cpt_list = morpho.indices(10*um,30*um)
+
+        If local is True, the compartment index is relative to the current branch,
+        otherwise it is an absolute index.
+        '''
+        return arange(self.compartment(x, local),self.compartment(y, local))
+
     def __getitem__(self, x):
         """
         Returns the subtree named x.
@@ -176,6 +211,7 @@ class Morphology(object):
         
         TODO:
         neuron[:] returns the full branch.
+        Factor with compartment().
         """
         if type(x) == type(0): # int: returns one compartment
             morpho = self.branch()
@@ -247,6 +283,7 @@ class Morphology(object):
             kid.x += self.x[-1]
             kid.y += self.y[-1]
             kid.z += self.z[-1]
+            kid.distance += self.distance[-1]
             if kid not in self.children:
                 self.children.append(kid)
                 self._namedkid[str(len(self.children))] = kid # numbered child
@@ -298,7 +335,7 @@ class Morphology(object):
         """
         return len(self.x) + sum(len(child) for child in self.children)
 
-    def compress(self, diameter=None, length=None, area=None, x=None, y=None, z=None, origin=0):
+    def compress(self, diameter=None, length=None, area=None, x=None, y=None, z=None, distance=None, origin=0):
         """
         Compresses the tree by changing the compartment vectors to views on
         a matrix (or vectors). The morphology cannot be changed anymore but
@@ -315,6 +352,7 @@ class Morphology(object):
         x[:n] = self.x
         y[:n] = self.y
         z[:n] = self.z
+        distance[:n] = self.distance
         # Attributes are now views on these vectors
         self.diameter = diameter[:n]
         self.length = length[:n]
@@ -322,8 +360,10 @@ class Morphology(object):
         self.x = x[:n]
         self.y = y[:n]
         self.z = z[:n]
+        self.distance = distance[:n]
         for kid in self.children:
-            kid.compress(diameter=diameter[n:], length=length[n:], area=area[n:], x=x[n:], y=y[n:], z=z[n:], origin=origin+n)
+            kid.compress(diameter=diameter[n:], length=length[n:], area=area[n:], x=x[n:], y=y[n:], z=z[n:],
+                         distance=distance[n:], origin=origin+n)
             n += len(kid)
         self.iscompressed = True
 
@@ -367,7 +407,7 @@ class Cylinder(Morphology):
         length is optional (and ignored) if x,y,z is specified
         If x,y,z unspecified: random direction
         """
-        Morphology.__init__(self)
+        Morphology.__init__(self, n = n)
         if x is None:
             theta = rand()*2 * pi
             phi = rand()*2 * pi
@@ -384,6 +424,7 @@ class Cylinder(Morphology):
         self.diameter = ones(n) * diameter
         self.area = ones(n) * pi * diameter * length / n
         self.type = type
+        self.set_distance()
 
 
 class Soma(Morphology): # or Sphere?
@@ -391,11 +432,9 @@ class Soma(Morphology): # or Sphere?
     A spherical soma.
     """
     def __init__(self, diameter=None):
-        Morphology.__init__(self)
+        Morphology.__init__(self, n = 1)
         self.diameter = ones(1) * diameter
         self.area = ones(1) * pi * diameter ** 2
-        self.length = zeros(1)
-        self.x, self.y, self.z = zeros(1), zeros(1), zeros(1)
         self.type = 'soma'
 
 if __name__ == '__main__':

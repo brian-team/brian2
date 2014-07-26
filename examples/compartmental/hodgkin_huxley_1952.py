@@ -47,8 +47,11 @@ run(50*ms,report='text')
 neuron.I[0]=1 * uA # current injection at one end
 run(3*ms)
 neuron.I=0*amp
-run(50*ms,report='text')
+run(100*ms,report='text')
 
-for i in range(10):
-    plot(M.t/ms,M.v.T[:,i*100]/mV)
+#for i in range(10):
+#    plot(M.t/ms,M.v.T[:,i*100]/mV)
+for i in range(200):
+    plot(arange(0,len(neuron)),i*30+M.v[:,i*5]/mV, 'k')
+
 show()

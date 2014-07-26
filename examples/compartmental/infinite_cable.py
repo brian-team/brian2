@@ -28,7 +28,7 @@ mon=StateMonitor(neuron,('v','w'),record=range(0,len(neuron)/2,20))
 run(100*ms,report='text')
 
 run(1*ms)
-neuron.I[len(neuron)/2]=0.2*nA # injecting in the middle
+neuron.I[morpho.compartment(1.5*mm)]=0.2*nA # injecting in the middle
 run(1*ms)
 neuron.I=0*amp
 run(50*ms,report='text')

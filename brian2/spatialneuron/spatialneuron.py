@@ -27,7 +27,9 @@ __all__ = ['SpatialNeuron']
 logger = get_logger(__name__)
 
 class SpatialNeuron(NeuronGroup):
-    def __init__(self, morphology=None, model=None, clock=None, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
+    def __init__(self, morphology=None, model=None, threshold = None, refractory = False, reset = None,
+                 threshold_location = None,
+                 clock=None, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
                  name='spatialneuron*', dtype=None, namespace=None, method=None):
 
         ##### Prepare and validate equations
@@ -36,6 +38,10 @@ class SpatialNeuron(NeuronGroup):
         if not isinstance(model, Equations):
             raise TypeError(('model has to be a string or an Equations '
                              'object, is "%s" instead.') % type(model))
+
+        if threshold_location is not None:
+            # Assuming it is a tuple (threshold string, compartment index)
+            threshold = '(' + threshold + ') and (i == ' + str(threshold_location)+')'
 
         # Check flags
         model.check_flags({PARAMETER: ('constant')})
@@ -76,11 +82,14 @@ class SpatialNeuron(NeuronGroup):
         x : meter (constant)
         y : meter (constant)
         z : meter (constant)
+        distance : meter (constant)
         area : meter**2 (constant)
-        Cm : farad/meter**2 (constant) # This could be shared (optionally)
+        Cm : farad/meter**2 (constant)
         """)
 
-        NeuronGroup.__init__(self,len(morphology),model=model + eqs_constants,method=method,clock=clock,
+        NeuronGroup.__init__(self,len(morphology),model=model + eqs_constants,
+                             threshold = threshold, refractory = refractory, reset = reset,
+                             method=method,clock=clock,
                              namespace=namespace,dtype=dtype,name=name)
 
         self.Cm = Cm
@@ -90,7 +99,8 @@ class SpatialNeuron(NeuronGroup):
         self.morphology = morphology
         self.morphology.compress(diameter=self.variables['diameter'].get_value(), length=self.variables['length'].get_value(),
                                  x=self.variables['x'].get_value(), y=self.variables['y'].get_value(),
-                                 z=self.variables['z'].get_value(), area=self.variables['area'].get_value())
+                                 z=self.variables['z'].get_value(), area=self.variables['area'].get_value(),
+                                 distance=self.variables['distance'].get_value())
 
         # Performs numerical integration step
         self.diffusion_state_updater = SpatialStateUpdater(self, method)
