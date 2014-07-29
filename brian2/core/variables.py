@@ -50,6 +50,37 @@ def get_dtype(obj):
     else:
         return np.obj2sctype(type(obj))
 
+
+def get_dtype_str(val):
+    '''
+    Returns canonical string representation of the dtype of a value or dtype
+    
+    Returns
+    -------
+    
+    dtype_str : str
+        The numpy dtype name
+    '''
+    if isinstance(val, np.dtype):
+        return val.name
+    if isinstance(val, type):
+        return get_dtype_str(val())
+
+    is_bool = (val is True or
+               val is False or
+               val is np.True_ or
+               val is np.False_)
+    if is_bool:
+        return 'bool'
+    if hasattr(val, 'dtype'):
+        return get_dtype_str(val.dtype)
+    # TODO: how to handle this?
+    if isinstance(val, (int, float, complex)):
+        return get_dtype_str(np.array(val).dtype)
+    
+    return 'unknown[%s, %s]' % (str(val), val.__class__.__name__)
+
+
 class Variable(object):
     '''
     An object providing information about model variables (including implicit
@@ -81,7 +112,7 @@ class Variable(object):
         to ``False``.
     '''
     def __init__(self, name, unit, dtype=None, scalar=False,
-                 constant=False, read_only=False):
+                 constant=False, read_only=False, dynamic=False):
         
         #: The variable's unit.
         self.unit = unit
@@ -106,6 +137,9 @@ class Variable(object):
 
         #: Whether the variable is read-only
         self.read_only = read_only
+        
+        #: Whether the variable is dynamically sized (only for non-scalars)
+        self.dynamic = dynamic
 
     @property
     def is_boolean(self):
@@ -117,6 +151,13 @@ class Variable(object):
         The dimensions of this variable.
         '''
         return self.unit.dim
+    
+    @property
+    def dtype_str(self):
+        '''
+        String representation of the numpy dtype
+        '''
+        return get_dtype_str(self)
 
     def get_value(self):
         '''
@@ -398,11 +439,12 @@ class ArrayVariable(Variable):
         to ``False``.
     '''
     def __init__(self, name, unit, owner, size, device, dtype=None,
-                 constant=False, scalar=False, read_only=False):
+                 constant=False, scalar=False, read_only=False, dynamic=False):
         super(ArrayVariable, self).__init__(unit=unit, name=name,
                                             dtype=dtype, scalar=scalar,
                                             constant=constant,
-                                            read_only=read_only)
+                                            read_only=read_only,
+                                            dynamic=dynamic)
         #: The `Group` to which this variable belongs.
         self.owner = weakproxy_with_fallback(owner)
 
@@ -509,6 +551,7 @@ class DynamicArrayVariable(ArrayVariable):
                                                    constant=constant,
                                                    dtype=dtype,
                                                    scalar=scalar,
+                                                   dynamic=True,
                                                    read_only=read_only)
     def resize(self, new_size):
         '''
