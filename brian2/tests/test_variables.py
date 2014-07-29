@@ -48,7 +48,7 @@ def test_str_repr():
 def test_dtype_str():
     FakeGroup = namedtuple('G', ['name'])
     group = FakeGroup(name='groupname')
-    for d in ['int32', 'int64', 'float32', 'float64', 'bool']:
+    for d in ['int32', 'int64', 'float32', 'float64', 'bool', 'int', 'float']:
         nd = np.dtype(d)
         for var in [Constant(name='name', unit=1,
                              value=np.zeros(1, dtype=nd)[0]),
@@ -61,7 +61,7 @@ def test_dtype_str():
                                          size=0, device=None, unit=1),
                     Subexpression(name='sub', expr='a+b', owner=group, unit=1,
                                   device=None, dtype=nd)]:
-            assert var.dtype_str==d
+            assert var.dtype_str.startswith(d)
 
 
 if __name__ == '__main__':
