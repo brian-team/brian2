@@ -481,8 +481,8 @@ class Synapses(Group):
 
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven'],
-                           SUBEXPRESSION: ['summed', 'scalar'],
-                           PARAMETER: ['constant', 'scalar']})
+                           SUBEXPRESSION: ['summed', 'shared'],
+                           PARAMETER: ['constant', 'shared']})
 
         # Add the lastupdate variable, needed for event-driven updates
         if 'lastupdate' in model._equations:
@@ -749,8 +749,8 @@ class Synapses(Group):
             dtype = get_dtype(eq, user_dtype)
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 constant = 'constant' in eq.flags
-                scalar = 'scalar' in eq.flags
-                if scalar:
+                shared = 'shared' in eq.flags
+                if shared:
                     self.variables.add_array(eq.varname, size=1,
                                              unit=eq.unit,
                                              dtype=dtype,
@@ -776,7 +776,7 @@ class Synapses(Group):
                     varname = eq.varname
                 self.variables.add_subexpression(varname, unit=eq.unit,
                                                  expr=str(eq.expr),
-                                                 scalar='scalar' in eq.flags,
+                                                 scalar='shared' in eq.flags,
                                                  dtype=dtype)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
@@ -789,26 +789,43 @@ class Synapses(Group):
         for name in getattr(self.source, 'variables', {}).iterkeys():
             var = self.source.variables[name]
             index = '0' if var.scalar else '_presynaptic_idx'
-            self.variables.add_reference(name + '_pre', self.source, name,
-                                         index=index)
+            try:
+                self.variables.add_reference(name + '_pre', self.source, name,
+                                             index=index)
+            except TypeError:
+                logger.debug(('Cannot include a reference to {var} in '
+                              '{synapses}, {var} uses a non-standard indexing '
+                              'in the pre-synaptic group '
+                              '{source}.').format(var=name,
+                                                  synapses=self.name,
+                                                  source=self.source.name))
         for name in getattr(self.target, 'variables', {}).iterkeys():
             var = self.target.variables[name]
             index = '0' if var.scalar else '_postsynaptic_idx'
-            self.variables.add_reference(name + '_post', self.target, name,
-                                         index=index)
-            # Also add all the post variables without a suffix -- note that a
-            # reference will never overwrite the name of an existing name
-            self.variables.add_reference(name, self.target, name, index=index)
+            try:
+                self.variables.add_reference(name + '_post', self.target, name,
+                                             index=index)
+                # Also add all the post variables without a suffix -- note that
+                # a reference will never overwrite the name of an existing name
+                self.variables.add_reference(name, self.target, name,
+                                             index=index)
+            except TypeError:
+                logger.debug(('Cannot include a reference to {var} in '
+                              '{synapses}, {var} uses a non-standard indexing '
+                              'in the post-synaptic group '
+                              '{target}.').format(var=name,
+                                                  synapses=self.name,
+                                                  target=self.target.name))
 
         # Check scalar subexpressions
         for eq in equations.itervalues():
-            if eq.type == SUBEXPRESSION and 'scalar' in eq.flags:
+            if eq.type == SUBEXPRESSION and 'shared' in eq.flags:
                 var = self.variables[eq.varname]
                 for identifier in var.identifiers:
                     if identifier in self.variables:
                         if not self.variables[identifier].scalar:
-                            raise SyntaxError(('Scalar subexpression %s refers '
-                                               'to non-scalar variable %s.')
+                            raise SyntaxError(('Shared subexpression %s refers '
+                                               'to non-shared variable %s.')
                                               % (eq.varname, identifier))
 
     def connect(self, pre_or_cond, post=None, p=1., n=1, namespace=None,
@@ -934,10 +951,13 @@ class Synapses(Group):
                       namespace=None, level=0):
 
         if condition is None:
+            variables = Variables(self)
+
             sources = np.atleast_1d(sources).astype(np.int32)
             targets = np.atleast_1d(targets).astype(np.int32)
             n = np.atleast_1d(n)
             p = np.atleast_1d(p)
+
             if not len(p) == 1 or p != 1:
                 use_connections = np.random.rand(len(sources)) < p
                 sources = sources[use_connections]
@@ -945,28 +965,34 @@ class Synapses(Group):
                 n = n[use_connections]
             sources = sources.repeat(n)
             targets = targets.repeat(n)
-            new_synapses = len(sources)
 
-            old_N = len(self)
-            new_N = old_N + new_synapses
-            self._resize(new_N)
-
-            # Deal with subgroups
-            if '_sub_idx' in self.source.variables:
-                real_sources = self.source.variables['_sub_idx'].get_value()[sources]
+            variables.add_array('sources', Unit(1), len(sources), dtype=np.int32,
+                                values=sources)
+            variables.add_array('targets', Unit(1), len(targets), dtype=np.int32,
+                                values=targets)
+            # These definitions are important to get the types right in C++
+            variables.add_auxiliary_variable('_real_sources', Unit(1), dtype=np.int32)
+            variables.add_auxiliary_variable('_real_targets', Unit(1), dtype=np.int32)
+            abstract_code = ''
+            if '_offset' in self.source.variables:
+                variables.add_reference('_source_offset', self.source, '_offset')
+                abstract_code += '_real_sources = sources + _source_offset\n'
             else:
-                real_sources = sources
-            if '_sub_idx' in self.target.variables:
-                real_targets = self.target.variables['_sub_idx'].get_value()[targets]
+                abstract_code += '_real_sources = sources\n'
+            if '_offset' in self.target.variables:
+                variables.add_reference('_target_offset', self.target, '_offset')
+                abstract_code += '_real_targets = targets + _target_offset\n'
             else:
-                real_targets = targets
-            self.variables['_synaptic_pre'].get_value()[old_N:new_N] = real_sources
-            self.variables['_synaptic_post'].get_value()[old_N:new_N] = real_targets
+                abstract_code += '_real_targets = targets'
 
-            self.variables['N_outgoing'].get_value()[:] += np.bincount(real_sources,
-                                                                       minlength=self.variables['N_outgoing'].size)
-            self.variables['N_incoming'].get_value()[:] += np.bincount(real_targets,
-                                                                       minlength=self.variables['N_incoming'].size)
+            codeobj = create_runner_codeobj(self,
+                                            abstract_code,
+                                            'synapses_create_array',
+                                            additional_variables=variables,
+                                            check_units=False,
+                                            run_namespace=namespace,
+                                            level=level+1)
+            codeobj()
         else:
             abstract_code = '_pre_idx = _all_pre \n'
             abstract_code += '_post_idx = _all_post \n'

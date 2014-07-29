@@ -31,20 +31,20 @@ be used::
     G = NeuronGroup(10, '''dv/dt = I_leak / Cm : volt
                            I_leak = g_L*(E_L - v) : amp''')
 
-Sometimes it can also be useful to introduce scalar variables or subexpressions,
+Sometimes it can also be useful to introduce shared variables or subexpressions,
 i.e. variables that have a common value for all neurons. In contrast to
 external variables (such as ``Cm`` above), such variables can change during a
 run, e.g. by using a `CodeRunner`. This can be for example used for an external
 stimulus that changes in the course of a run::
 
-    G = NeuronGroup(10, '''shared_input : volt (scalar)
+    G = NeuronGroup(10, '''shared_input : volt (shared)
                            dv/dt = (-v + shared_input)/tau : volt
                            tau : second''')
 
-Note that there are several restrictions around the use of scalar variables:
+Note that there are several restrictions around the use of shared variables:
 they cannot be written to in contexts where statements apply only to a subset
 of neurons (e.g. reset statements, see below). If a code block mixes statements
-writing to scalar and vector variables, then the scalar statements have to
+writing to shared and vector variables, then the shared statements have to
 come first.
 
 Threshold and reset
@@ -86,7 +86,7 @@ attribute of the group:
 .. doctest::
 
     >>> G = NeuronGroup(10, '''dv/dt = (-v + shared_input)/tau : volt
-                               shared_input : volt (scalar)
+                               shared_input : volt (shared)
     ...                        tau : second''')
     >>> G.v = -70*mV
     >>> print G.v
@@ -107,7 +107,7 @@ functions, and a special variable ``i``, the index of the neuron:
             27.16243388,  31.13571924,  36.28173038,  40.04921519,
             47.28797921,  50.18913711]) * msecond>
 
-For scalar variables, such string expressions can only refer to scalar values:
+For shared variables, such string expressions can only refer to shared values:
 
 .. doctest::
 

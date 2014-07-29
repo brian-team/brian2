@@ -45,6 +45,27 @@ def test_str_repr():
         assert len(repr(var)) and var.__class__.__name__ in repr(var)
 
 
+def test_dtype_str():
+    FakeGroup = namedtuple('G', ['name'])
+    group = FakeGroup(name='groupname')
+    for d in ['int32', 'int64', 'float32', 'float64', 'bool', 'int', 'float']:
+        nd = np.dtype(d)
+        for var in [Constant(name='name', unit=1,
+                             value=np.zeros(1, dtype=nd)[0]),
+                    AuxiliaryVariable(name='name', dtype=nd, unit=1),
+                    AttributeVariable(name='name', obj=group, unit=1,
+                                      attribute='name', dtype=nd),
+                    ArrayVariable(name='name', owner=None, size=10, unit=1,
+                                  device=None, dtype=nd),
+                    DynamicArrayVariable(name='name', owner=None, dtype=nd,
+                                         size=0, device=None, unit=1),
+                    Subexpression(name='sub', expr='a+b', owner=group, unit=1,
+                                  device=None, dtype=nd)]:
+            assert var.dtype_str.startswith(d)
+
+
 if __name__ == '__main__':
     test_construction_errors()
     test_str_repr()
+    test_dtype_str()
+    

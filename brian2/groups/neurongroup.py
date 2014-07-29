@@ -10,7 +10,8 @@ from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.translation import analyse_identifiers
 from brian2.codegen.codeobject import check_code_units
-from brian2.core.variables import Variables, LinkedVariable, DynamicArrayVariable
+from brian2.core.variables import (Variables, LinkedVariable,
+                                   DynamicArrayVariable, Subexpression)
 from brian2.core.spikesource import SpikeSource
 from brian2.parsing.expressions import (parse_expression_unit,
                                         is_boolean_expression)
@@ -29,6 +30,23 @@ from .subgroup import Subgroup
 __all__ = ['NeuronGroup']
 
 logger = get_logger(__name__)
+
+
+def _guess_membrane_potential(equations):
+    '''
+    Little helper function to guess which variable represents the membrane
+    potential. This follows the same logic as in Brian1 but is only used to
+    give a suggestion in the error message when a Brian1-style syntax is used
+    for threshold or reset.
+    '''
+    if len(equations) == 1:
+        return equations.keys()[0]
+    for name, eq in equations.iteritems():
+        if name in ['V', 'v', 'Vm', 'vm']:
+            return name
+
+    # nothing found
+    return None
 
 
 class StateUpdater(CodeRunner):
@@ -147,6 +165,18 @@ class Thresholder(CodeRunner):
 
     def update_abstract_code(self, run_namespace=None, level=0):
         code = self.group.threshold
+        # Raise a useful error message when the user used a Brian1 syntax
+        if not isinstance(code, basestring):
+            if isinstance(code, Quantity):
+                t = 'a quantity'
+            else:
+                t = '%s' % type(code)
+            error_msg = 'Threshold condition has to be a string, not %s.' % t
+            vm_var = _guess_membrane_potential(self.group.equations)
+            if vm_var is not None:
+                error_msg += " Probably you intended to use '%s > ...'?" % vm_var
+            raise TypeError(error_msg)
+
         identifiers = get_identifiers(code)
         variables = self.group.resolve_all(identifiers,
                                            run_namespace=run_namespace,
@@ -181,7 +211,20 @@ class Resetter(CodeRunner):
             pass
 
     def update_abstract_code(self, run_namespace=None, level=0):
-        self.abstract_code = self.group.reset
+        code = self.group.reset
+        # Raise a useful error message when the user used a Brian1 syntax
+        if not isinstance(code, basestring):
+            if isinstance(code, Quantity):
+                t = 'a quantity'
+            else:
+                t = '%s' % type(code)
+            error_msg = 'Reset statement has to be a string, not %s.' % t
+            vm_var = _guess_membrane_potential(self.group.equations)
+            if vm_var is not None:
+                error_msg += " Probably you intended to use '%s = ...'?" % vm_var
+            raise TypeError(error_msg)
+
+        self.abstract_code = code
 
 
 class NeuronGroup(Group, SpikeSource):
@@ -271,8 +314,8 @@ class NeuronGroup(Group, SpikeSource):
 
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ('unless refractory',),
-                           PARAMETER: ('constant', 'scalar', 'linked'),
-                           SUBEXPRESSION: ('scalar',)})
+                           PARAMETER: ('constant', 'shared', 'linked'),
+                           SUBEXPRESSION: ('shared',)})
 
         # add refractoriness
         if refractory is not False:
@@ -391,7 +434,10 @@ class NeuronGroup(Group, SpikeSource):
                                            'supported, can only link to '
                                            'state variables of fixed '
                                            'size.') % linked_var.name)
-            
+            if isinstance(linked_var, Subexpression):
+                raise NotImplementedError(('Linking to subexpression %s is not '
+                                           'supported.') % linked_var.name)
+
             eq = self.equations[key]
             if eq.unit != linked_var.unit:
                 raise DimensionMismatchError(('Unit of variable %s does not '
@@ -516,19 +562,19 @@ class NeuronGroup(Group, SpikeSource):
                     self._linked_variables.add(eq.varname)
                 else:
                     constant = 'constant' in eq.flags
-                    scalar = 'scalar' in eq.flags
-                    size = 1 if scalar else self._N
-                    index = '0' if scalar else None
+                    shared = 'shared' in eq.flags
+                    size = 1 if shared else self._N
+                    index = '0' if shared else None
                     self.variables.add_array(eq.varname, size=size,
                                              unit=eq.unit, dtype=dtype,
                                              constant=constant,
-                                             scalar=scalar,
+                                             scalar=shared,
                                              index=index)
             elif eq.type == SUBEXPRESSION:
                 self.variables.add_subexpression(eq.varname, unit=eq.unit,
                                                  expr=str(eq.expr),
                                                  dtype=dtype,
-                                                 scalar='scalar' in eq.flags)
+                                                 scalar='shared' in eq.flags)
             else:
                 raise AssertionError('Unknown type of equation: ' + eq.eq_type)
 
@@ -545,13 +591,13 @@ class NeuronGroup(Group, SpikeSource):
 
         # Check scalar subexpressions
         for eq in self.equations.itervalues():
-            if eq.type == SUBEXPRESSION and 'scalar' in eq.flags:
+            if eq.type == SUBEXPRESSION and 'shared' in eq.flags:
                 var = self.variables[eq.varname]
                 for identifier in var.identifiers:
                     if identifier in self.variables:
                         if not self.variables[identifier].scalar:
-                            raise SyntaxError(('Scalar subexpression %s refers '
-                                               'to non-scalar variable %s.')
+                            raise SyntaxError(('Shared subexpression %s refers '
+                                               'to non-shared variable %s.')
                                               % (eq.varname, identifier))
 
 

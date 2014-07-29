@@ -11,7 +11,7 @@ For generating spikes according to a Poisson point process, `PoissonGroup` can
 be used. It takes a rate or an array of rates (one rate per neuron) as an
 argument and can be connected to a `NeuronGroup` via the usual `Synapses`
 mechanism. At the moment, using ``PoissonGroup(N, rates)`` is equivalent to
-``NeuronGroup(N, 'rates : Hz', threshold='rand()*dt<rates')`` and setting the
+``NeuronGroup(N, 'rates : Hz', threshold='rand()<rates*dt')`` and setting the
 group's ``rates`` attribute. The explicit creation of such a `NeuronGroup` might
 be useful if the rates for the neurons are not constant in time, since it allows
 using the techniques mentioned below (formulating rates as equations or
@@ -73,19 +73,20 @@ Abstract code statements
 ------------------------
 An alternative to specifying a stimulus in advance is to run a series of
 abstract code statements at certain points during a simulation. This can be
-achieved with a `CodeRunner`, one can think of these statements as equivalent
-to reset statements but executed unconditionally (i.e. for all neurons) and
-possibly on a different clock as the rest of the group. The following code
-changes the stimulus strength of half of the neurons (randomly chosen) to a new
-random value every 50ms. Note that the statement uses logical expressions to
-have the values only updated for the chosen subset of neurons (where the
-newly introduced auxiliary variable ``change`` equals 1)::
+achieved with a *custom operation*, one can think of these statements as
+equivalent to reset statements but executed unconditionally (i.e. for all
+neurons) and possibly on a different clock as the rest of the group. The
+following code changes the stimulus strength of half of the neurons (randomly
+chosen) to a new random value every 50ms. Note that the statement uses logical
+expressions to have the values only updated for the chosen subset of neurons
+(where the newly introduced auxiliary variable ``change`` equals 1)::
 
   G = NeuronGroup(100, '''dv/dt = (-v + I)/(10*ms) : 1
                           I : 1  # one stimulus per neuron''')
-  stim_updater = G.runner('''change = int(rand() < 0.5)
-                             I = change*(rand()*2) + (1-change)*I''',
-                          when=Scheduler(clock=Clock(dt=50*ms), when='start'))
+  stim_updater = G.custom_operation('''change = int(rand() < 0.5)
+                                       I = change*(rand()*2) + (1-change)*I''',
+                                    when=Scheduler(clock=Clock(dt=50*ms),
+                                                   when='start'))
 
 
 Arbitrary Python code (network operations)
@@ -103,7 +104,7 @@ abstract code. The following code switches input on for a randomly chosen single
 neuron every 50ms::
 
     G = NeuronGroup(10, '''dv/dt = (-v + active*I)/(10*ms) : 1
-                           I = sin(2*pi*100*Hz*t) : 1 (scalar) #single input
+                           I = sin(2*pi*100*Hz*t) : 1 (shared) #single input
                            active : 1  # will be set in the network function''')
     @network_operation(when=Clock(dt=50*ms))
     def update_active():

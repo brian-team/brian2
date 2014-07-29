@@ -50,6 +50,37 @@ def get_dtype(obj):
     else:
         return np.obj2sctype(type(obj))
 
+
+def get_dtype_str(val):
+    '''
+    Returns canonical string representation of the dtype of a value or dtype
+    
+    Returns
+    -------
+    
+    dtype_str : str
+        The numpy dtype name
+    '''
+    if isinstance(val, np.dtype):
+        return val.name
+    if isinstance(val, type):
+        return get_dtype_str(val())
+
+    is_bool = (val is True or
+               val is False or
+               val is np.True_ or
+               val is np.False_)
+    if is_bool:
+        return 'bool'
+    if hasattr(val, 'dtype'):
+        return get_dtype_str(val.dtype)
+    # TODO: how to handle this?
+    if isinstance(val, (int, float, complex)):
+        return get_dtype_str(np.array(val).dtype)
+    
+    return 'unknown[%s, %s]' % (str(val), val.__class__.__name__)
+
+
 class Variable(object):
     '''
     An object providing information about model variables (including implicit
@@ -81,7 +112,7 @@ class Variable(object):
         to ``False``.
     '''
     def __init__(self, name, unit, dtype=None, scalar=False,
-                 constant=False, read_only=False):
+                 constant=False, read_only=False, dynamic=False):
         
         #: The variable's unit.
         self.unit = unit
@@ -106,6 +137,9 @@ class Variable(object):
 
         #: Whether the variable is read-only
         self.read_only = read_only
+        
+        #: Whether the variable is dynamically sized (only for non-scalars)
+        self.dynamic = dynamic
 
     @property
     def is_boolean(self):
@@ -117,6 +151,13 @@ class Variable(object):
         The dimensions of this variable.
         '''
         return self.unit.dim
+    
+    @property
+    def dtype_str(self):
+        '''
+        String representation of the numpy dtype
+        '''
+        return get_dtype_str(self)
 
     def get_value(self):
         '''
@@ -398,11 +439,12 @@ class ArrayVariable(Variable):
         to ``False``.
     '''
     def __init__(self, name, unit, owner, size, device, dtype=None,
-                 constant=False, scalar=False, read_only=False):
+                 constant=False, scalar=False, read_only=False, dynamic=False):
         super(ArrayVariable, self).__init__(unit=unit, name=name,
                                             dtype=dtype, scalar=scalar,
                                             constant=constant,
-                                            read_only=read_only)
+                                            read_only=read_only,
+                                            dynamic=dynamic)
         #: The `Group` to which this variable belongs.
         self.owner = weakproxy_with_fallback(owner)
 
@@ -509,6 +551,7 @@ class DynamicArrayVariable(ArrayVariable):
                                                    constant=constant,
                                                    dtype=dtype,
                                                    scalar=scalar,
+                                                   dynamic=True,
                                                    read_only=read_only)
     def resize(self, new_size):
         '''
@@ -1054,6 +1097,13 @@ class VariableView(object):
             if self.var_index != '_idx':
                 indices = self.var_index_variable.get_value()[indices]
 
+            q = Quantity(value, copy=False)
+            if len(q.shape):
+                if not len(q.shape) == 1 or len(q) != 1 and len(q) != len(indices):
+                    raise ValueError(('Provided values do not match the size '
+                                      'of the indices, '
+                                      '%d != %d.') % (len(q),
+                                                      len(indices)))
             variable.get_value()[indices] = value
 
     # Allow some basic calculations directly on the ArrayView object
@@ -1458,19 +1508,22 @@ class Variables(collections.Mapping):
             else:
                 new_name = '_%s_%s' % (name, identifier)
             substitutions[identifier] = new_name
-            self.indices[new_name] = index
 
             subexpr_var_index = group.variables.indices[identifier]
-            if subexpr_var_index in (group.variables.default_index, '0'):
+            if subexpr_var_index == group.variables.default_index:
                 subexpr_var_index = index
+            elif subexpr_var_index == '0':
+                pass  # nothing to do for a shared variable
             elif index != self.default_index:
-                raise ValueError(('Cannot link to subexpression %s: it refers'
-                                  'to the variable %s which is index with the '
-                                  'non-standard index %s.') % (name,
-                                                               identifier,
-                                                               subexpr_var_index))
+                raise TypeError(('Cannot link to subexpression %s: it refers '
+                                 'to the variable %s which is index with the '
+                                 'non-standard index %s.') % (name,
+                                                              identifier,
+                                                              subexpr_var_index))
             else:
                 self.add_reference(subexpr_var_index, group)
+
+            self.indices[new_name] = subexpr_var_index
 
             if isinstance(subexpr_var, Subexpression):
                 self.add_referred_subexpression(new_name,
@@ -1513,6 +1566,17 @@ class Variables(collections.Mapping):
             index = self.default_index
         if varname is None:
             varname = name
+
+        if self.owner is not None and index in self.owner.variables:
+            if (not self.owner.variables[index].read_only and
+                    group.variables.indices[varname] != group.variables.default_index):
+                raise TypeError(('Cannot link variable %s to %s in group %s -- '
+                                 'need to precalculate direct indices but '
+                                 'index %s can change') % (name,
+                                                           varname,
+                                                           group.name,
+                                                           index))
+
         # We don't overwrite existing names with references
         if not name in self._variables:
             var = group.variables[varname]

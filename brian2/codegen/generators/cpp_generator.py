@@ -169,7 +169,7 @@ class CPPCodeGenerator(CodeGenerator):
         lines = []
         # simply declare variables that will be written but not read
         for varname in write:
-            if varname not in read:
+            if varname not in read and varname not in indices:
                 var = self.variables[varname]
                 line = self.c_data_type(var.dtype) + ' ' + varname + ';'
                 lines.append(line)

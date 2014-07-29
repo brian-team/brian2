@@ -24,13 +24,13 @@ ready for use:
   ``tanh``, ``arcsin``, ``arccos``, ``arctan``
 * General utility functions: ``clip``, ``floor``, ``ceil``
 
-Brian also provides a special purpose function ``int_``, which can be used to
+Brian also provides a special purpose function ``int``, which can be used to
 convert a boolean expression or variable into an integer value of 0 or 1. This
 is useful to have a conditional evaluation as part of an equation or statement.
 This sometimes allows to circumvent the lack of an ``if`` statement. For
 example, the following reset statement resets the variable `v` to either `v_r1`
 or `v_r2`, depending on the value of `w`:
-``'v = v_r1 * int_(w <= 0.5) + v_r2 * int_(w > 0.5)'``
+``'v = v_r1 * int(w <= 0.5) + v_r2 * int(w > 0.5)'``
 
 User-provided functions
 -----------------------
