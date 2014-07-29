@@ -33,11 +33,13 @@ S = Synapses(stimulation,neuron,pre = 'gs += w')
 # Here we need a method that gives indices (compartment numbers) or spatial indexing
 S.connect(0,morpho.L.compartment(100*um))
 S.connect(1,morpho.R.compartment(100*um))
+# S.connect(0,morpho.L[100*um]) ?
 
 # Monitors
 mon_soma=StateMonitor(neuron,'v',record=[0])
 mon_L=StateMonitor(neuron.L,'v',record=True)
 mon_R=StateMonitor(neuron.R,'v',record=morpho.R.compartment(100*um, local = True))
+# record = morpho.R[100*um] ?
 
 run(50*ms,report='text')
 
