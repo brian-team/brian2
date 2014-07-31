@@ -236,7 +236,7 @@ class StateMonitor(Group, CodeRunner):
         return self._N
 
     def before_run(self, run_namespace=None, level=0):
-        self.variables.update_clock_variables(self.source.clock,
+        self.variables.update_clock_variables(self.clock,
                                               prefix='_clock_')
         super(StateMonitor, self).before_run(run_namespace=run_namespace,
                                              level=level+1)

@@ -59,7 +59,7 @@ class PopulationRateMonitor(Group, CodeRunner):
         return len(self.variables['t'].get_value())
 
     def before_run(self, run_namespace=None, level=0):
-        self.variables.update_clock_variables(self.source.clock,
+        self.variables.update_clock_variables(self.clock,
                                               prefix='_clock_')
         super(PopulationRateMonitor, self).before_run(run_namespace=run_namespace,
                                                       level=level+1)
