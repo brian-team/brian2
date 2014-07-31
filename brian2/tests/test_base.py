@@ -20,9 +20,7 @@ def test_base():
     x.contained_objects.append(y)
     assert_equal(len(x.contained_objects), 1)
     assert x.contained_objects[0] is y
-    
-    assert x.clock is defaultclock
-    
+
     assert_equal(x.active, True)
     assert_equal(y.active, True)
     y.active = False

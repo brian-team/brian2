@@ -40,6 +40,7 @@ def test_math_functions():
     Test that math functions give the same result, regardless of whether used
     directly or in generated Python or C++ code.
     '''
+    default_dt = brian_prefs.core.default_dt
     test_array = np.array([-1, -0.5, 0, 0.5, 1])
 
     with catch_logs() as _:  # Let's suppress warnings about illegal values        
@@ -68,7 +69,7 @@ def test_math_functions():
                 G.variable = test_array
                 mon = StateMonitor(G, 'func', record=True)
                 net = Network(G, mon)
-                net.run(clock.dt)
+                net.run(default_dt)
                 
                 assert_allclose(numpy_result, mon.func_.flatten(),
                                 err_msg='Function %s did not return the correct values' % func.__name__)
@@ -84,16 +85,14 @@ def test_math_functions():
                 
                 # Calculate the result in a somewhat complicated way by using a
                 # subexpression in a NeuronGroup
-                clock = Clock()
                 G = NeuronGroup(len(test_array),
                                 '''func = variable {op} scalar : 1
                                    variable : 1'''.format(op=operator),
-                                   clock=clock,
                                    codeobj_class=codeobj_class)
                 G.variable = test_array
                 mon = StateMonitor(G, 'func', record=True)
                 net = Network(G, mon)
-                net.run(clock.dt)
+                net.run(default_dt)
                 
                 assert_allclose(numpy_result, mon.func_.flatten(),
                                 err_msg='Function %s did not return the correct values' % func.__name__)

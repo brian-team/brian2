@@ -31,10 +31,10 @@ class PoissonGroup(Group, SpikeSource):
     add_to_magic_network = True
 
     @check_units(rates=Hz)
-    def __init__(self, N, rates, clock=None, name='poissongroup*',
-                 codeobj_class=None):
+    def __init__(self, N, rates, dt=None, when='thresholds', order=0,
+                 name='poissongroup*', codeobj_class=None):
 
-        Group.__init__(self, when=clock, name=name)
+        Group.__init__(self, dt=dt, when=when, order=order, name=name)
 
         self.codeobj_class = codeobj_class
 
