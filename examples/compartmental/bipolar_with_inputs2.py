@@ -31,14 +31,14 @@ stimulation.x = [0,0.5] # Asynchronous
 w = 20*nS
 S = Synapses(stimulation,neuron,pre = 'gs += w')
 # Here we need a method that gives indices (compartment numbers) or spatial indexing
-S.connect(0,morpho.L.compartment(100*um))
+#S.connect(0,morpho.L.compartment(100*um))
+S.connect(0,morpho.L[100*um].indices())
 S.connect(1,morpho.R.compartment(100*um))
-# S.connect(0,morpho.L[100*um]) ?
 
 # Monitors
 mon_soma=StateMonitor(neuron,'v',record=[0])
 mon_L=StateMonitor(neuron.L,'v',record=True)
-mon_R=StateMonitor(neuron.R,'v',record=morpho.R.compartment(100*um, local = True))
+mon_R=StateMonitor(neuron,'v',record=morpho.R[100*um].indices())
 # record = morpho.R[100*um] ?
 
 run(50*ms,report='text')
@@ -46,7 +46,7 @@ run(50*ms,report='text')
 subplot(211)
 plot(mon_L.t/ms,mon_soma[0].v/mV,'k')
 plot(mon_L.t/ms,mon_L[morpho.L.compartment(100*um, local = True)].v/mV,'r')
-plot(mon_L.t/ms,mon_R[morpho.R.compartment(100*um, local = True)].v/mV,'b')
+plot(mon_L.t/ms,mon_R[morpho.R[100*um].indices()[0]].v/mV,'b')
 subplot(212)
 for i in [0,5,10,15,20,25,30,35,40,45]:
     plot(mon_L.t/ms,mon_L.v[i,:]/mV)

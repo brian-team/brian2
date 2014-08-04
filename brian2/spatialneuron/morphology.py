@@ -201,6 +201,16 @@ class Morphology(object):
         '''
         return arange(self.compartment(x, local),self.compartment(y, local))
 
+    def indices(self):
+        '''
+        Returns compartment indices for the main branch, relative to the original
+        morphology.
+        '''
+        if hasattr(self, '_origin'):
+            return arange(self._origin,self._origin+len(self.x))
+        else:
+            return arange(0,len(self.x))
+
     def __getitem__(self, x):
         """
         Returns the subtree named x.
@@ -241,10 +251,9 @@ class Morphology(object):
             if hasattr(morpho, '_origin'):
                 morpho._origin += i
             return morpho
-        elif isinstance(x, float): # neuron[10*um]
+        elif type(x) == type(1*um): # neuron[10*um]
             morpho = self.branch()
-            l = cumsum(array(morpho.length)) # coordinate on the branch
-            i = searchsorted(l, float(x))
+            i = self.compartment(x, local=True)
             j = i + 1
             morpho.diameter = morpho.diameter[i:j]
             morpho.length = morpho.length[i:j]

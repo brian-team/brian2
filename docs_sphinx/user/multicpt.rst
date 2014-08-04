@@ -224,5 +224,5 @@ that compartment (if a reset statement is defined).
 Again the location of the threshold can be specified with spatial position::
 
     neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold = "m > 0.5",
-                           threshold_location = morpho.axon.compartment(30*um),
+                           threshold_location = morpho.axon[30*um],
                            refractory = "m > 0.4")

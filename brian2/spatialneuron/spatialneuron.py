@@ -40,11 +40,17 @@ class SpatialNeuron(NeuronGroup):
                              'object, is "%s" instead.') % type(model))
 
         if threshold_location is not None:
-            # Assuming it is a tuple (threshold string, compartment index)
+            if hasattr(threshold_location,'indices'): # assuming this is a method
+                threshold_location = threshold_location.indices()
+                if len(threshold_location) == 1: # for now, only a single compartment allowed
+                    threshold_location = threshold_location[0]
+                else:
+                    raise AttributeError,"Threshold can only be applied on a single location"
             threshold = '(' + threshold + ') and (i == ' + str(threshold_location)+')'
 
         # Check flags
-        model.check_flags({PARAMETER: ('constant')})
+        # TODO: add point process / point current
+        model.check_flags({PARAMETER: ('constant', 'shared')})
 
         model += Equations('''
         v:volt # membrane potential
@@ -75,7 +81,10 @@ class SpatialNeuron(NeuronGroup):
         I0_str="I0__private="+sympy_to_str(b)+": amp/meter**2"
         model+=Equations(gtot_str+"\n"+I0_str)
 
-        # Equations for morphology (isn't it a duplicate??)
+        # Equations for morphology
+        # TODO: check whether Cm and Ri are already in the equations
+        #       yes: should be shared instead of constant
+        #       no: should be constant (check)
         eqs_constants = Equations("""
         diameter : meter (constant)
         length : meter (constant)
@@ -93,7 +102,7 @@ class SpatialNeuron(NeuronGroup):
                              namespace=namespace,dtype=dtype,name=name)
 
         self.Cm = Cm
-        self.Ri = Ri # this could also be a state variable
+        self.Ri = Ri # TODO: this should also be a state variable (possibly shared)
 
         # Insert morphology
         self.morphology = morphology
