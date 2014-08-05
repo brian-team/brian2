@@ -16,7 +16,8 @@ EL = -70*mV
 Es = 0*mV
 taus = 1*ms
 eqs='''
-Im = gL*(EL-v)+gs*(Es-v)/area : amp/meter**2
+Im = gL*(EL-v) + Is/area : amp/meter**2
+Is = gs*(Es-v) : amp
 dgs/dt = -gs/taus : siemens
 '''
 

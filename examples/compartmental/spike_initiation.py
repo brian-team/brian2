@@ -23,14 +23,14 @@ EK=-90*mV
 vk = -20*mV
 kk = 8*mV
 eqs='''
-Im=gL*(EL-v)+I/area+gNa*m*h*(ENa-v)+gK*n*(EK-v) : amp/meter**2
+Im=gL*(EL-v)+gNa*m*h*(ENa-v)+gK*n*(EK-v) : amp/meter**2
 dm/dt=(minf-m)/(0.3*ms) : 1 # simplified Na channel
 dh/dt=(hinf-h)/(3*ms) : 1 # inactivation
 dn/dt=(ninf-n)/(5*ms) : 1 # K+
 minf=1/(1+exp((va-v)/ka)) : 1
 hinf=1/(1+exp((v-vi)/ki)) : 1
 ninf=1/(1+exp((vk-v)/kk)) : 1
-I : amp
+I : amp (point current)
 gNa : siemens/meter**2
 gK : siemens/meter**2
 '''

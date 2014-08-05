@@ -8,16 +8,17 @@ TODO:
 * clean up
 * point processes
 '''
-from brian2.equations.equations import Equations, PARAMETER
+from brian2.equations.equations import Equations, PARAMETER, SUBEXPRESSION, DIFFERENTIAL_EQUATION
 from brian2.groups.group import Group, CodeRunner
-from brian2.units.allunits import ohm,siemens
-from brian2.units.fundamentalunits import Unit
+from brian2.units.allunits import ohm,siemens,amp
+from brian2.units.fundamentalunits import Unit,fail_for_dimension_mismatch
 from brian2.units.stdunits import uF,cm
 from brian2.parsing.sympytools import sympy_to_str
 from brian2.utils.logger import get_logger
 from brian2.core.variables import Variables
 from brian2.groups.neurongroup import NeuronGroup
 from brian2.groups.subgroup import Subgroup
+from brian2.equations.codestrings import Expression
 import sympy as sp
 from numpy import zeros, pi
 from numpy.linalg import solve
@@ -49,8 +50,9 @@ class SpatialNeuron(NeuronGroup):
             threshold = '(' + threshold + ') and (i == ' + str(threshold_location)+')'
 
         # Check flags
-        # TODO: add point process / point current
-        model.check_flags({PARAMETER: ('constant', 'shared')})
+        model.check_flags({DIFFERENTIAL_EQUATION: ('point current',),
+                           PARAMETER: ('constant', 'shared', 'linked', 'point current'),
+                           SUBEXPRESSION: ('shared', 'point current')})
 
         model += Equations('''
         v:volt # membrane potential
@@ -61,14 +63,28 @@ class SpatialNeuron(NeuronGroup):
             membrane_eq=model['Im'] # the membrane equation
         else:
             raise TypeError,"The transmembrane current Im must be defined"
+
+        # Insert point currents in the membrane equation
+        for eq in model.itervalues():
+            if 'point current' in eq.flags:
+                fail_for_dimension_mismatch(eq.unit,amp,"Point current "+eq.varname+" should be in amp")
+                eq.flags.remove('point current')
+                membrane_eq.expr=Expression(str(membrane_eq.expr.code)+'+'+eq.varname+'/area')
+
         # Check conditional linearity
         # Match to _A*v+_B
         var = sp.Symbol('v', real=True)        
         wildcard = sp.Wild('_A', exclude=[var])
         constant_wildcard = sp.Wild('_B', exclude=[var])
         pattern = wildcard*var + constant_wildcard   
+        # Expand substituted expressions in the membrane equation
+        membrane_eq.type = DIFFERENTIAL_EQUATION
+        for var,expr in model._get_substituted_expressions(): # this returns substituted expressions for diff eqs
+            if var == 'Im':
+                Im_expr = expr
+        membrane_eq.type = SUBEXPRESSION
         # Factor out the variable
-        s_expr = sp.collect(membrane_eq.expr.sympy_expr.expand(), var)
+        s_expr = sp.collect(Im_expr.sympy_expr.expand(), var)
         matches = s_expr.match(pattern)
         
         if matches is None:
@@ -94,6 +110,7 @@ class SpatialNeuron(NeuronGroup):
         distance : meter (constant)
         area : meter**2 (constant)
         Cm : farad/meter**2 (constant)
+        Ri : ohm*meter (constant, shared)
         """)
 
         NeuronGroup.__init__(self,len(morphology),model=model + eqs_constants,
@@ -102,7 +119,7 @@ class SpatialNeuron(NeuronGroup):
                              namespace=namespace,dtype=dtype,name=name)
 
         self.Cm = Cm
-        self.Ri = Ri # TODO: this should also be a state variable (possibly shared)
+        self.Ri = Ri
 
         # Insert morphology
         self.morphology = morphology
