@@ -43,7 +43,7 @@ class SpatialNeuron(NeuronGroup):
             # Assuming it is a tuple (threshold string, compartment index)
             threshold = '(' + threshold + ') and (i == ' + str(threshold_location)+')'
 
-        # Check flags
+        # Check flags (why?)
         model.check_flags({PARAMETER: ('constant')})
 
         model += Equations('''
@@ -85,6 +85,7 @@ class SpatialNeuron(NeuronGroup):
         distance : meter (constant)
         area : meter**2 (constant)
         Cm : farad/meter**2 (constant)
+        Ri : ohm*meter (constant, shared)
         """)
 
         NeuronGroup.__init__(self,len(morphology),model=model + eqs_constants,
@@ -93,7 +94,7 @@ class SpatialNeuron(NeuronGroup):
                              namespace=namespace,dtype=dtype,name=name)
 
         self.Cm = Cm
-        self.Ri = Ri # this could also be a state variable
+        self.Ri = Ri
 
         # Insert morphology
         self.morphology = morphology
