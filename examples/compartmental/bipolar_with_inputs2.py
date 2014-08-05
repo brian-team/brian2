@@ -16,8 +16,8 @@ EL = -70*mV
 Es = 0*mV
 taus = 1*ms
 eqs='''
-Im = gL*(EL-v) + Is/area : amp/meter**2
-Is = gs*(Es-v) : amp
+Im = gL*(EL-v) : amp/meter**2
+Is = gs*(Es-v) : amp (point current)
 dgs/dt = -gs/taus : siemens
 '''
 

@@ -112,8 +112,8 @@ A `SpatialNeuron` is a spatially extended neuron. It is created by specifying th
     gL=1e-4*siemens/cm**2
     EL=-70*mV
     eqs='''
-    Im=gL*(EL-v)+I/area : amp/meter**2
-    I : amp
+    Im=gL*(EL-v) : amp/meter**2
+    I : amp (point current)
     '''
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
     neuron.v = EL+10*mV
@@ -135,9 +135,12 @@ transmembrane current at every point on the neuronal morphology, and updates `v`
 the diffusion current, which is calculated based on the morphology and the intracellular resistivity.
 Note that the transmembrane current is a surfacic current, not the total current in the compartement.
 This choice means that the model equations are independent of the number of compartments chosen for the simulation.
-Thus, to inject a current `I` at a particular point (e.g. through an electrode), this current must be divided by
-the area of the compartment when inserted in the transmembrane current equation. An example is shown in the equations
-above. A current can then be injected in the first compartment of the neuron (generally the soma) as follows::
+
+To inject a current `I` at a particular point (e.g. through an electrode or a synapse), this current must be divided by
+the area of the compartment when inserted in the transmembrane current equation. This is done automatically when
+the flag ``point current`` is specified, as in the example above. This flag can apply only to subexpressions or
+parameters with amp units. Internally, the expression of the transmembrane current ``Im`` is simply augmented with
+``+I/area``. A current can then be injected in the first compartment of the neuron (generally the soma) as follows::
 
     neuron.I[0]=1*nA
 
@@ -159,13 +162,14 @@ There are two methods to have synapses on `SpatialNeuron`.
 The first one to insert synaptic equations directly in the neuron equations::
 
     eqs='''
-    Im = gL*(EL-v)+gs*(Es-v)/area : amp/meter**2
+    Im = gL*(EL-v) : amp/meter**2
+    Is = gs*(Es-v) : amp (point current)
     dgs/dt = -gs/taus : siemens
     '''
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
 
-Note that, as for electrode stimulation, the synaptic current ``gs*(Es-v)`` must be divided by
-compartment's area. Then we use a `Synapses` object to connect a spike source to the neuron::
+Note that, as for electrode stimulation, the synaptic current must be defined as a point current.
+Then we use a `Synapses` object to connect a spike source to the neuron::
 
     S = Synapses(stimulation,neuron,pre = 'gs += w')
     S.connect(0,50)
@@ -185,7 +189,8 @@ The second method, which works in such cases, is to have synaptic equations in t
 `Synapses` object::
 
     eqs='''
-    Im = gL*(EL-v)+gs*(Es-v)/area : amp/meter**2
+    Im = gL*(EL-v) : amp/meter**2
+    Is = gs*(Es-v) : amp (point current)
     gs : siemens
     '''
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
