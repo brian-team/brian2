@@ -19,8 +19,8 @@ gK = 36 * msiemens / cm ** 2
 
 # Typical equations
 eqs=''' # The same equations for the whole neuron, but possibly different parameter values
-Im=gl*(El-v)+gNa*m**3*h*(ENa-v)+gK*n**4*(EK-v)+I/area : amp/meter**2 # distributed transmembrane current
-I:amp # applied current
+Im=gl*(El-v)+gNa*m**3*h*(ENa-v)+gK*n**4*(EK-v) : amp/meter**2 # distributed transmembrane current
+I:amp (point current) # applied current
 dm/dt=alpham*(1-m)-betam*m : 1
 dn/dt=alphan*(1-n)-betan*n : 1
 dh/dt=alphah*(1-h)-betah*h : 1

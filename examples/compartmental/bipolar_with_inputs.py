@@ -14,7 +14,8 @@ gL = 1e-4*siemens/cm**2
 EL = -70*mV
 Es = 0*mV
 eqs='''
-Im = gL*(EL-v)+gs*(Es-v)/area : amp/meter**2
+Im = gL*(EL-v) : amp/meter**2
+Is = gs*(Es-v) : amp (point current)
 gs : siemens
 '''
 

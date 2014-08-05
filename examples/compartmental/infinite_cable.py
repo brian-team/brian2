@@ -13,9 +13,9 @@ morpho=Cylinder(diameter=1*um,length=3*mm,n=500)
 gL=1e-4*siemens/cm**2
 EL=-70*mV
 eqs='''
-Im=gL*(EL-v)+I/area : amp/meter**2
+Im=gL*(EL-v) : amp/meter**2
 dw/dt=-w/(20*ms) : 1
-I : amp
+I : amp (point current)
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
