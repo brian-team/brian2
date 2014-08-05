@@ -137,7 +137,7 @@ class SynapticPathway(CodeRunner, Group):
         CodeRunner.__init__(self, synapses,
                             'synapses',
                             code=code,
-                            when=(synapses.clock, 'synapses'),
+                            when=(self.source.clock, 'synapses'),
                             name=synapses.name + '_' + objname,
                             template_kwds={'pathway': self})
 
