@@ -2174,13 +2174,29 @@ def check_units(**au):
             newkeyset = kwds.copy()
             arg_names = f.func_code.co_varnames[0:f.func_code.co_argcount]
             for (n, v) in zip(arg_names, args[0:f.func_code.co_argcount]):
+                if (not isinstance(v, (Quantity, basestring))
+                        and v is not None
+                        and n in au):
+                    try:
+                        # allow e.g. to pass a Python list of values
+                        v = Quantity(v)
+                    except TypeError:
+                        if have_same_dimensions(au[n], 1):
+                            raise TypeError(('Argument %s is not a unitless '
+                                             'value/array.') % n)
+                        else:
+                            raise TypeError(('Argument %s is not a quantity, '
+                                             'expected a quantity with dimensions '
+                                             '%s') % (n, au[n]))
                 newkeyset[n] = v
+
             for k in newkeyset.iterkeys():
                 # string variables are allowed to pass, the presumption is they
                 # name another variable. None is also allowed, useful for
                 # default parameters
                 if (k in au.keys() and not isinstance(newkeyset[k], str) and
                                        not newkeyset[k] is None):
+
                     if not have_same_dimensions(newkeyset[k], au[k]):
                         error_message = ('Function "' + f.__name__ +
                                          '" variable "' + k +

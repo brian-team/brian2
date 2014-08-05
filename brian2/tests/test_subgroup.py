@@ -302,6 +302,18 @@ def test_no_reference_4():
         assert_equal(np.asarray(G2.v).flatten(), expected)
 
 
+def test_recursive_subgroup():
+    '''
+    Create a subgroup of a subgroup
+    '''
+    G = NeuronGroup(10, 'v : 1')
+    G.v = 'i'
+    SG = G[3:8]
+    SG2 = SG[2:4]
+    assert_equal(SG2.v[:], np.array([5, 6]))
+    assert_equal(SG2.v[:], SG.v[2:4])
+    assert SG2.source.name == G.name
+
 if __name__ == '__main__':
     test_str_repr()
     test_state_variables()
@@ -317,3 +329,4 @@ if __name__ == '__main__':
     test_no_reference_2()
     test_no_reference_3()
     test_no_reference_4()
+    test_recursive_subgroup()

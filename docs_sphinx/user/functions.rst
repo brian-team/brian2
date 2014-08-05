@@ -24,13 +24,13 @@ ready for use:
   ``tanh``, ``arcsin``, ``arccos``, ``arctan``
 * General utility functions: ``clip``, ``floor``, ``ceil``
 
-Brian also provides a special purpose function ``int_``, which can be used to
+Brian also provides a special purpose function ``int``, which can be used to
 convert a boolean expression or variable into an integer value of 0 or 1. This
 is useful to have a conditional evaluation as part of an equation or statement.
 This sometimes allows to circumvent the lack of an ``if`` statement. For
 example, the following reset statement resets the variable `v` to either `v_r1`
 or `v_r2`, depending on the value of `w`:
-``'v = v_r1 * int_(w <= 0.5) + v_r2 * int_(w > 0.5)'``
+``'v = v_r1 * int(w <= 0.5) + v_r2 * int(w > 0.5)'``
 
 User-provided functions
 -----------------------
@@ -92,21 +92,21 @@ Other code generation targets
 To make a function available for other code generation targets (e.g. C++),
 implementations for these targets have to be added. This can be achieved using
 the `make_function` decorator. The form of the code (e.g. a simple string or
-a dictionary of strings) necessary is target-dependent. An implementation for
+a dictionary of strings) necessary is target-dependent, however the decorators
+`make_cpp_function` and `make_weave_function` can be used to provide C++
+implementations (the first should be used for generic C++ implementations, and
+the latter if weave-specific code is necessary). An implementation for
 the C++ target could look like this::
 
-    @make_function(codes={'cpp':
-                         {'support_code':'''
-                         double piecewise_linear(I) {
-                            if (I < 1e-9)
-                                return 0;
-                            if (I > 3e-9)
-                                return 100;
-                            return (I/1e-9 - 1) * 50;
-                         }
-                         '''
-                         }
-                         })
+    @make_cpp_function('''
+         double piecewise_linear(I) {
+            if (I < 1e-9)
+                return 0;
+            if (I > 3e-9)
+                return 100;
+            return (I/1e-9 - 1) * 50;
+         }
+         ''')
     @check_units(I=amp, result=Hz)
     def piecewise_linear(I):
         return np.clip((I-1*nA) * 50*Hz/nA, 0*Hz, 100*Hz)

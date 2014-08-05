@@ -42,19 +42,5 @@ C++ source code and modifying it, or by inserting code directly into the main lo
     cout << "Testing direct insertion of code." << endl;
     ''')
 
-The results of a simulation are saved in the ``results`` subdirectory of the generated project directory. The
-files have odd but clear names (this will be improved in later releases). The format of the saved data is as follows:
-
-* Arrays are saved as flat binary files which can be loaded with ``numpy.fromfile('filename', dtype=float)``.
-* A `SpikeMonitor` ``M`` can be loaded as follows::
-
-    i = fromfile('output/results/_dynamic_array_%s_i' % M.name, dtype=int32)
-    t = fromfile('output/results/_dynamic_array_%s_t' % M.name, dtype=float64)
-
-* A `StateMonitor` ``M`` recording variable ``var`` can be loaded as follows::
-
-    t = fromfile('output/results/_dynamic_array_%s_t' % M.name, dtype=float64)
-    vals = fromfile('output/results/_dynamic_array_%s__recorded_%s' % (M.name, var), dtype=float64)
-    vals.shape = (t.size, -1)
-    vals = vals.T
-
+After a simulation has been run (using the ``run_project`` keyword in the `Device.build` call), state variables and
+monitored variables can be accessed using standard syntax, with a few exceptions (e.g. string expressions for indexing).

@@ -214,7 +214,7 @@ def clear(erase=False):
     `BrianObject.active` flag to ``False`` for already existing `Network`
     objects. Calls a garbage collection on completion.
 
-    See ALso
+    See Also
     --------
 
     run, reinit, MagicError

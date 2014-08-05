@@ -1,5 +1,4 @@
-import weakref
-
+from brian2.core.base import weakproxy_with_fallback
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
@@ -31,11 +30,10 @@ class Subgroup(Group, SpikeSource):
     * You need to keep a reference to it
     * It makes a copy of the spikes, and there is no direct support for
       subgroups in `Connection` (or rather `Synapses`)
-    
-    TODO: Group state variable access
+
     '''
     def __init__(self, source, start, stop, name=None):
-        self.source = weakref.proxy(source)
+        self.source = weakproxy_with_fallback(source)
         if name is None:
             name = source.name + '_subgroup*'
         # We want to update the spikes attribute after it has been updated
@@ -80,6 +78,17 @@ class Subgroup(Group, SpikeSource):
 
     spikes = property(lambda self: self.source.spikes)
 
+    def __getitem__(self, item):
+        if not isinstance(item, slice):
+            raise TypeError('Subgroups can only be constructed using slicing syntax')
+        start, stop, step = item.indices(self._N)
+        if step != 1:
+            raise IndexError('Subgroups have to be contiguous')
+        if start >= stop:
+            raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
+                             (start, stop))
+        return Subgroup(self.source, self.start + start, self.start + stop)
+    
     def __len__(self):
         return self._N
         

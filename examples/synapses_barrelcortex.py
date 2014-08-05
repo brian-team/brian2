@@ -74,13 +74,13 @@ stim_start_x = barrelarraysize / 2.0 - cos(direction)*stimradius
 stim_start_y = barrelarraysize / 2.0 - sin(direction)*stimradius
 stim_start_time = t
 '''
-stim_updater = layer4.runner(runner_code,
-                             when=Scheduler(clock=Clock(dt=60*ms), when='start'))
-
+stim_updater = layer4.custom_operation(runner_code,
+                                       when=Scheduler(clock=Clock(dt=60*ms),
+                                                      when='start'))
 
 # Layer 2/3
 # Model: IF with adaptive threshold
-eqs='''
+eqs = '''
 dv/dt=(ge+gi+El-v)/taum : volt
 dge/dt=-ge/taue : volt
 dgi/dt=-gi/taui : volt
@@ -164,44 +164,20 @@ if not standalone:
 run(5*second, report='text')
 device.build(project_dir='barrelcortex', compile_project=True, run_project=True)
 
-if standalone:
-    # This will disappear soon!
-    feedforward_j = np.fromfile('barrelcortex/results/_dynamic_array_feedforward__synaptic_post',
-                                dtype=np.int32)
-    presynaptic_idx = np.fromfile('barrelcortex/results/_dynamic_array_feedforward__synaptic_pre',
-                                dtype=np.int32)
-    layer4_selectivity = np.fromfile('barrelcortex/results/_array_layer4_selectivity',
-                                     dtype=np.float64)
-    feedforward_selectivity_pre = layer4_selectivity[presynaptic_idx]
-    layer23_N_incoming = np.fromfile('barrelcortex/results/_array_feedforward_N_incoming',
-                                     dtype=np.int32)
-    feedforward_N_incoming = layer23_N_incoming[feedforward_j]
-    feedforward_w = np.fromfile('barrelcortex/results/_dynamic_array_feedforward_w',
-                                dtype=np.float64)
-    layer23_x = np.fromfile('barrelcortex/results/_array_layer23_x', dtype=np.float64)
-    layer23_y = np.fromfile('barrelcortex/results/_array_layer23_y', dtype=np.float64)
-else:
-    feedforward_j = feedforward.j[:]
-    feedforward_selectivity_pre = feedforward.selectivity_pre[:]
-    feedforward_N_incoming = feedforward.N_incoming[:]
-    feedforward_w = feedforward.w_[:]
-    layer23_x = layer23.x[:]
-    layer23_y = layer23.y[:]
-
 # Calculate the preferred direction of each cell in layer23 by doing a
 # vector average of the selectivity of the projecting layer4 cells, weighted
 # by the synaptic weight.
-_r = bincount(feedforward_j,
-              weights=feedforward_w * cos(feedforward_selectivity_pre)/feedforward_N_incoming,
+_r = bincount(feedforward.j,
+              weights=feedforward.w * cos(feedforward.selectivity_pre)/feedforward.N_incoming,
               minlength=len(layer23exc))
-_i = bincount(feedforward_j,
-              weights=feedforward_w * sin(feedforward_selectivity_pre)/feedforward_N_incoming,
+_i = bincount(feedforward.j,
+              weights=feedforward.w * sin(feedforward.selectivity_pre)/feedforward.N_incoming,
               minlength=len(layer23exc))
 selectivity_exc = (arctan2(_r, _i) % (2*pi))*180./pi
 
 
-plt.scatter(layer23_x[:Nbarrels*N23exc],
-            layer23_y[:Nbarrels*N23exc],
+plt.scatter(layer23.x[:Nbarrels*N23exc],
+            layer23.y[:Nbarrels*N23exc],
             c=selectivity_exc[:Nbarrels*N23exc],
             edgecolors='none', marker='s', cmap='hsv')
 plt.vlines(np.arange(barrelarraysize), 0, barrelarraysize, 'k')

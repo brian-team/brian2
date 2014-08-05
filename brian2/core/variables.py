@@ -1054,6 +1054,13 @@ class VariableView(object):
             if self.var_index != '_idx':
                 indices = self.var_index_variable.get_value()[indices]
 
+            q = Quantity(value, copy=False)
+            if len(q.shape):
+                if not len(q.shape) == 1 or len(q) != 1 and len(q) != len(indices):
+                    raise ValueError(('Provided values do not match the size '
+                                      'of the indices, '
+                                      '%d != %d.') % (len(q),
+                                                      len(indices)))
             variable.get_value()[indices] = value
 
     # Allow some basic calculations directly on the ArrayView object
@@ -1458,19 +1465,22 @@ class Variables(collections.Mapping):
             else:
                 new_name = '_%s_%s' % (name, identifier)
             substitutions[identifier] = new_name
-            self.indices[new_name] = index
 
             subexpr_var_index = group.variables.indices[identifier]
-            if subexpr_var_index in (group.variables.default_index, '0'):
+            if subexpr_var_index == group.variables.default_index:
                 subexpr_var_index = index
+            elif subexpr_var_index == '0':
+                pass  # nothing to do for a shared variable
             elif index != self.default_index:
-                raise ValueError(('Cannot link to subexpression %s: it refers'
-                                  'to the variable %s which is index with the '
-                                  'non-standard index %s.') % (name,
-                                                               identifier,
-                                                               subexpr_var_index))
+                raise TypeError(('Cannot link to subexpression %s: it refers '
+                                 'to the variable %s which is index with the '
+                                 'non-standard index %s.') % (name,
+                                                              identifier,
+                                                              subexpr_var_index))
             else:
                 self.add_reference(subexpr_var_index, group)
+
+            self.indices[new_name] = subexpr_var_index
 
             if isinstance(subexpr_var, Subexpression):
                 self.add_referred_subexpression(new_name,
@@ -1513,6 +1523,17 @@ class Variables(collections.Mapping):
             index = self.default_index
         if varname is None:
             varname = name
+
+        if self.owner is not None and index in self.owner.variables:
+            if (not self.owner.variables[index].read_only and
+                    group.variables.indices[varname] != group.variables.default_index):
+                raise TypeError(('Cannot link variable %s to %s in group %s -- '
+                                 'need to precalculate direct indices but '
+                                 'index %s can change') % (name,
+                                                           varname,
+                                                           group.name,
+                                                           index))
+
         # We don't overwrite existing names with references
         if not name in self._variables:
             var = group.variables[varname]

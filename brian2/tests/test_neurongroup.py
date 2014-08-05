@@ -118,6 +118,24 @@ def test_scalar_variable():
         net.run(defaultclock.dt)
 
 
+def test_referred_scalar_variable():
+    '''
+    Test the correct handling of referred scalar variables in subexpressions
+    '''
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, '''out = sin(2*pi*t*freq) + x: 1
+                               x : 1
+                               freq : Hz (shared)''',
+                        codeobj_class=codeobj_class)
+        G.freq = 1*Hz
+        G.x = np.arange(10)
+        G2 = NeuronGroup(10, '', codeobj_class=codeobj_class)
+        G2.variables.add_reference('out', G)
+        net = Network(G, G2)
+        net.run(.25*second)
+        assert_allclose(G2.out[:], np.arange(10)+1)
+
+
 def test_linked_variable_correct():
     '''
     Test correct uses of linked variables.
@@ -228,7 +246,7 @@ def test_linked_double_linked2():
 
 def test_linked_double_linked3():
     '''
-    Linked to a linked variable, first wit indices, second without indices
+    Linked to a linked variable, first with indices, second without indices
     '''
     G1 = NeuronGroup(5, 'x : 1')
     G2 = NeuronGroup(10, 'y : 1 (linked)')
@@ -252,6 +270,25 @@ def test_linked_double_linked4():
 
     G1.x = np.arange(5)*0.1
     assert_equal(G3.z[:], np.arange(5).repeat(2)[::-1]*0.1)
+
+
+def test_linked_triple_linked():
+    '''
+    Link to a linked variable that links to a linked variable, all use indices
+    '''
+    G1 = NeuronGroup(2, 'a : 1')
+
+    G2 = NeuronGroup(4, 'b : 1 (linked)')
+    G2.b = linked_var(G1.a, index=np.arange(2).repeat(2))
+
+    G3 = NeuronGroup(4, 'c: 1 (linked)')
+    G3.c = linked_var(G2.b, index=np.arange(4)[::-1])
+
+    G4 = NeuronGroup(8, 'd: 1 (linked)')
+    G4.d = linked_var(G3.c, index=np.arange(4).repeat(2))
+
+    G1.a = np.arange(2)*0.1
+    assert_equal(G4.d[:], np.arange(2).repeat(2)[::-1].repeat(2)*0.1)
 
 
 def test_linked_subgroup():
@@ -300,6 +337,29 @@ def test_linked_subexpression():
     # be identical
     assert all((all(mon[i].I == mon[0].I) for i in xrange(5)))
     assert all((all(mon[i+5].I == mon[5].I) for i in xrange(5)))
+
+
+def test_linked_subexpression_synapse():
+    '''
+    Test a complicated setup (not unlikely when using brian hears)
+    '''
+    G = NeuronGroup(2, 'dv/dt = 100*Hz : 1',
+                    threshold='v>1', reset='v=0')
+    G.v = [0, .5]
+    G2 = NeuronGroup(10, '''I = clip(x, 0, inf) : 1
+                            x : 1 (linked) ''')
+
+    # This will not be able to include references to `I` as `I_pre` etc., since
+    # the indirect indexing would have to change depending on the synapses
+    G2.x = linked_var(G.v, index=np.array([0, 1]).repeat(5))
+    S = Synapses(G2, G2, '')
+    S.connect('i==j')
+    assert 'I' not in S.variables
+    assert 'I_pre' not in S.variables
+    assert 'I_post' not in S.variables
+    assert 'x' not in S.variables
+    assert 'x_pre' not in S.variables
+    assert 'x_post' not in S.variables
 
 
 def test_linked_variable_indexed_incorrect():
@@ -510,6 +570,16 @@ def test_state_variables():
         G.v = -70*mV
         assert_raises(DimensionMismatchError, lambda: G.__setattr__('v', -70))
         G.v_ = float(-70*mV)
+        assert_allclose(G.v[:], -70*mV)
+        G.v = -70*mV + np.arange(10)*mV
+        assert_allclose(G.v[:], -70*mV + np.arange(10)*mV)
+        G.v = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] * volt
+        assert_allclose(G.v[:], np.arange(10) * volt)
+        # incorrect size
+        assert_raises(ValueError, lambda: G.__setattr__('v', [0, 1]*volt))
+        assert_raises(ValueError, lambda: G.__setattr__('v', np.arange(11)*volt))
+
+        G.v = -70*mV
         # Numpy methods should be able to deal with state variables
         # (discarding units)
         assert_allclose(np.mean(G.v), float(-70*mV))
@@ -807,7 +877,7 @@ def test_aliasing_in_statements():
                      x_0 = -1'''
     g = NeuronGroup(1, model='''x_0 : 1
                                 x_1 : 1 ''', codeobj_class=NumpyCodeObject)
-    custom_code_obj = g.runner(runner_code)
+    custom_code_obj = g.custom_operation(runner_code)
     net = Network(g, custom_code_obj)
     net.run(defaultclock.dt)
     assert_equal(g.x_0_[:], np.array([-1]))
@@ -818,6 +888,7 @@ if __name__ == '__main__':
     test_creation()
     test_variables()
     test_scalar_variable()
+    test_referred_scalar_variable()
     test_linked_variable_correct()
     test_linked_variable_incorrect()
     test_linked_variable_scalar()
@@ -827,9 +898,11 @@ if __name__ == '__main__':
     test_linked_double_linked2()
     test_linked_double_linked3()
     test_linked_double_linked4()
+    test_linked_triple_linked()
     test_linked_subgroup()
     test_linked_subgroup2()
     test_linked_subexpression()
+    test_linked_subexpression_synapse()
     test_linked_variable_indexed_incorrect()
     test_linked_synapses()
     test_stochastic_variable()

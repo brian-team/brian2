@@ -43,6 +43,10 @@ from .unitsafefunctions import __all__ as unitsafefunctions_all
 from .fundamentalunits import *
 from .fundamentalunits import __all__ as fundamentalunits_all
 
+from .stdunits import *
+from .stdunits import __all__ as stdunits_all
+
+
 __all__ = ['pamp', 'namp', 'uamp', 'mamp', 'amp',
            'kamp', 'Mamp', 'Gamp', 'Tamp',
            'kilogram',
@@ -79,3 +83,4 @@ __all__ = ['pamp', 'namp', 'uamp', 'mamp', 'amp',
            ]
 __all__.extend(unitsafefunctions_all)
 __all__.extend(fundamentalunits_all)
+__all__.extend(stdunits_all)
