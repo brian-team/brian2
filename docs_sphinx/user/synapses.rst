@@ -174,13 +174,14 @@ The code is a boolean statement that should return True when a synapse must be c
 where ``i`` is the presynaptic neuron index and ``j`` is the postsynaptic neuron index
 (special variables).
 Here the first statement creates one-to-one connections, the second statement creates connections
-with a ring structure (``N`` is the number of neurons, assumed to defined elsewhere by the user).
+with a ring structure (``N`` is the number of neurons, assumed to defined elsewhere by the user
+as an external variable).
 This way of creating synapses is generally preferred.
 
 The string expressions can also refer to pre- or postsynaptic variables. This
 can be useful for example for spatial connectivity: assuming that the pre- and
 postsynaptic groups have parameters ``x`` and ``y``, storing their location, the
-folloing statement connects all cells in a 250 um radius::
+following statement connects all cells in a 250 um radius::
 
     S.connect('sqrt((x_pre-x_post)**2 + (y_pre-y_post)**2) < 250*umeter')
 
@@ -214,7 +215,7 @@ interpreted in the following way:
 
 Accessing synaptic variables
 ----------------------------
-Synaptic variables can be accessed in a similar way as `NeuronGroup` variables. They can indexed
+Synaptic variables can be accessed in a similar way as `NeuronGroup` variables. They can be indexed
 with two indexes, corresponding to the indexes of pre and postsynaptic neurons, and optionally with a third
 index in the case of multiple synapses.
 Here are a few examples::
@@ -234,10 +235,10 @@ There is a special synaptic variable that is automatically created: ``delay``. I
 from the presynaptic neuron to the synapse, i.e., the presynaptic delay. This
 is just a convenience syntax for accessing the delay stored in the presynaptic
 pathway: ``pre.delay``. When there is a  postsynaptic code (keyword ``post``),
-this delay can be accessed as ``post.delay``.
+the delay of the postsynaptic pathway can be accessed as ``post.delay``.
 
 The delay variable(s) can be set and accessed in the same way as other synaptic
-varaibles.
+variables.
 
 Multiple pathways
 -----------------

@@ -17,7 +17,7 @@ be useful if the rates for the neurons are not constant in time, since it allows
 using the techniques mentioned below (formulating rates as equations or
 referring to a timed array). In the future, the implementation of `PoissonGroup`
 will change to a more efficient spike generation mechanism, based on the
-calculation of inter-spike intervals. Note that, as can seen in its equivalent
+calculation of inter-spike intervals. Note that, as can be seen in its equivalent
 `NeuronGroup` formulation, a `PoissonGroup` does not work for high rates where
 more than one spike might fall into a single timestep. Use several units with
 lower rates in this case (e.g. use ``PoissonGroup(10, 1000*Hz)`` instead of
@@ -92,15 +92,15 @@ Arbitrary Python code (network operations)
 ------------------------------------------
 If none of the above techniques is general enough to fulfill the requirements
 of a simulation, Brian allows to write a `NetworkOperation`, an arbitrary
-Python function that is executed every timestep (possible on a different clock
+Python function that is executed every time step (possible on a different clock
 than the rest of the simulation). This function can do arbitrary operations,
 use conditional statements etc. and it will be executed as it is (i.e. as pure
-Python code even if weave codegeneration is active). Note that one cannot use
+Python code even if weave code generation is active). Note that one cannot use
 network operations in combination with the C++ standalone mode. Network
 operations are particularly useful when some condition or calculation depends
 on operations across neurons, which is currently not possible to express in
 abstract code. The following code switches input on for a randomly chosen single
-neuron every 50ms::
+neuron every 50 ms::
 
     G = NeuronGroup(10, '''dv/dt = (-v + active*I)/(10*ms) : 1
                            I = sin(2*pi*100*Hz*t) : 1 (shared) #single input
