@@ -93,6 +93,16 @@ def test_state_monitor():
         assert_raises(IndexError, lambda: mon_all[5])
 
 
+def test_shared_variable():
+    '''Make sure that shared variables work with subgroups'''
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, 'v : volt (shared)',
+                        codeobj_class=codeobj_class)
+        G.v = 1*volt
+        SG = G[5:]
+        assert SG.v == 1*volt
+
+
 def test_synapse_creation():
     for codeobj_class in codeobj_classes:
         G1 = NeuronGroup(10, 'v:1', codeobj_class=codeobj_class)
@@ -319,6 +329,7 @@ if __name__ == '__main__':
     test_state_variables()
     test_state_variables_string_indices()
     test_state_monitor()
+    test_shared_variable()
     test_synapse_creation()
     test_synapse_access()
     test_subexpression_references()

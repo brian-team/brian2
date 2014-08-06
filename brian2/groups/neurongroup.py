@@ -454,7 +454,7 @@ class NeuronGroup(Group, SpikeSource):
                                      'to be an integer array'))
                 size = len(index_array)
                 source_index = value.group.variables.indices[value.name]
-                if source_index != '_idx':
+                if source_index not in ('_idx', '0'):
                     # we are indexing into an already indexed variable,
                     # calculate the indexing into the target variable
                     index_array = value.group.variables[source_index].get_value()[index_array]
