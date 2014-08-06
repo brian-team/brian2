@@ -4,6 +4,7 @@ sub-expression.
 '''
 import collections
 import functools
+import numbers
 
 import sympy
 import numpy as np
@@ -74,8 +75,7 @@ def get_dtype_str(val):
         return 'bool'
     if hasattr(val, 'dtype'):
         return get_dtype_str(val.dtype)
-    # TODO: how to handle this?
-    if isinstance(val, (int, float, complex)):
+    if isinstance(val, numbers.Number):
         return get_dtype_str(np.array(val).dtype)
     
     return 'unknown[%s, %s]' % (str(val), val.__class__.__name__)
