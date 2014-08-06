@@ -9,7 +9,6 @@
     {
         // For subgroups, we do not want to record all spikes
         // We assume that spikes are ordered
-        // TODO: Will this assumption ever be violated?
         int _start_idx = 0;
         int _end_idx = - 1;
         for(int _j=0; _j<_num_spikes; _j++)
