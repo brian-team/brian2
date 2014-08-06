@@ -2,7 +2,6 @@
 Neuronal morphology module for Brian 2.
 
 TODO:
-* set_length etc.: should be recursive
 * check_consistency: check that lengths, area and coordinates are consistent (and fix)
 * rescale: change number of compartments
 '''
@@ -38,10 +37,10 @@ class Morphology(object):
     def set_distance(self):
         '''
         Sets the distance to the soma (or more generally start point of the morphology)
-
-        TODO: recursive
         '''
         self.distance = cumsum(self.length)
+        for kid in self.children:
+            kid.set_distance()
 
     def set_length(self):
         '''
@@ -51,12 +50,16 @@ class Morphology(object):
         y = hstack((0 * um, self.y))
         z = hstack((0 * um, self.z))
         self.length = sum((x[1:] - x[:-1]) ** 2 + (y[1:] - y[:-1]) ** 2 + (z[1:] - z[:-1]) ** 2) ** .5
+        for kid in self.children:
+            kid.set_length()
 
     def set_area(self):
         '''
         Sets the area of compartments according to diameter and length (assuming cylinders)
         '''
         self.area = pi * self.diameter * self.length
+        for kid in self.children:
+            kid.set_area()
 
     def set_coordinates(self):
         '''
@@ -68,6 +71,8 @@ class Morphology(object):
         self.x = l * sin(theta) * cos(phi)
         self.y = l * sin(theta) * sin(phi)
         self.z = l * cos(theta)
+        for kid in self.children:
+            kid.set_coordinates()
 
     def loadswc(self, filename):
         '''

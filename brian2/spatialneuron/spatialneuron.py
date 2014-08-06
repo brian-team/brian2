@@ -6,7 +6,6 @@ TODO:
 * access with metric indexes
 * faster (C?)
 * clean up
-* point processes
 '''
 from brian2.equations.equations import Equations, PARAMETER, SUBEXPRESSION, DIFFERENTIAL_EQUATION
 from brian2.groups.group import Group, CodeRunner
@@ -169,7 +168,7 @@ class SpatialNeuron(NeuronGroup):
 
 
 class SpatialSubgroup(Subgroup,SpatialNeuron):
-    add_to_magic_network = False # correct?
+    add_to_magic_network = False
 
     def __init__(self,source, start, stop, morphology, name=None):
         Subgroup.__init__(self,source,start,stop,name)
