@@ -78,7 +78,7 @@ class Subgroup(Group, SpikeSource):
 
         for key, value in self.source.variables.indices.iteritems():
             if value not in ('_idx', '0'):
-                raise ValueError(('Do not how to deal with variable %s using '
+                raise ValueError(('Do not know how to deal with variable %s using '
                                   'index %s in a subgroup') % (key, value))
 
         self.namespace = self.source.namespace

@@ -26,8 +26,6 @@ mon_soma=StateMonitor(neuron,'v',record=[0])
 mon_L=StateMonitor(neuron.L,'v',record=True)
 mon_R=StateMonitor(neuron,'v',record=morpho.R[75*um].indices())
 
-print neuron.I
-
 run(1*ms)
 neuron.I[morpho.L.compartment(50*um)]=0.2*nA # injecting in the left dendrite
 run(5*ms)

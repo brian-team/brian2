@@ -147,10 +147,20 @@ parameters with amp units. Internally, the expression of the transmembrane curre
 State variables of the `SpatialNeuron` include all the compartments of that neuron (including subtrees).
 Therefore, the statement ``neuron.v=EL+10*mV`` sets the membrane potential of the entire neuron at -60 mV.
 
-Subtrees can be accessed in the same way as in `Morphology` objects::
+Subtrees can be accessed by attribute (in the same way as in `Morphology` objects)::
 
     neuron.axon.gNa = 10*gL
-    neuron['axon'].gNa = 10*gL
+
+Note that the state variables correspond to the entire subtree, not just the main branch.
+That is, if the axon had branches, then the above statement would change ``gNa`` on the main branch
+and all the subbranches. To access the main branch only, use the attribute ``main``::
+
+    neuron.axon.main.gNa = 10*gL
+
+A typical use case is when one wants to change parameter values at the soma only. For example, inserting
+an electrode current at the soma is done as follows::
+
+    neuron.main.I = 1*nA
 
 A part of a branch can be accessed as follows::
 

@@ -2,7 +2,6 @@
 Neuronal morphology module for Brian 2.
 
 TODO:
-* check_consistency: check that lengths, area and coordinates are consistent (and fix)
 * rescale: change number of compartments
 '''
 from scipy import rand

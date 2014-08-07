@@ -1,7 +1,5 @@
 '''
 Ball and stick with Na and K channels
-
-Can't subgroup subgroups!
 '''
 from brian2 import *
 
@@ -45,7 +43,7 @@ neuron.axon[30*um:60*um].gK=700*gL
 mon=StateMonitor(neuron,'v',record=True)
 
 run(1*ms)
-neuron.I[0]=0.15*nA
+neuron.main.I=0.15*nA
 run(50*ms)
 neuron.I=0*amp
 run(95*ms,report='text')

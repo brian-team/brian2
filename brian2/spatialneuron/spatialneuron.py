@@ -2,7 +2,6 @@
 Compartmental models
 
 TODO:
-* How to access only the main branch of the morphology?
 * access with metric indexes
 * faster (C?)
 * clean up
@@ -39,6 +38,7 @@ class SpatialNeuron(NeuronGroup):
             raise TypeError(('model has to be a string or an Equations '
                              'object, is "%s" instead.') % type(model))
 
+        # Insert the threshold mechanism at the specified location
         if threshold_location is not None:
             if hasattr(threshold_location,'indices'): # assuming this is a method
                 threshold_location = threshold_location.indices()
@@ -48,16 +48,17 @@ class SpatialNeuron(NeuronGroup):
                     raise AttributeError,"Threshold can only be applied on a single location"
             threshold = '(' + threshold + ') and (i == ' + str(threshold_location)+')'
 
-        # Check flags
+        # Check flags (we have point currents)
         model.check_flags({DIFFERENTIAL_EQUATION: ('point current',),
                            PARAMETER: ('constant', 'shared', 'linked', 'point current'),
                            SUBEXPRESSION: ('shared', 'point current')})
 
+        # Add the membrane potential
         model += Equations('''
         v:volt # membrane potential
         ''')
 
-        # Process model equations (Im) to extract total conductance and the remaining current
+        # Extract membrane equation
         if 'Im' in model:
             membrane_eq=model['Im'] # the membrane equation
         else:
@@ -70,18 +71,21 @@ class SpatialNeuron(NeuronGroup):
                 eq.flags.remove('point current')
                 membrane_eq.expr=Expression(str(membrane_eq.expr.code)+'+'+eq.varname+'/area')
 
-        # Check conditional linearity
+        ###### Process model equations (Im) to extract total conductance and the remaining current
+        # Check conditional linearity with respect to v
         # Match to _A*v+_B
         var = sp.Symbol('v', real=True)        
         wildcard = sp.Wild('_A', exclude=[var])
         constant_wildcard = sp.Wild('_B', exclude=[var])
         pattern = wildcard*var + constant_wildcard   
-        # Expand substituted expressions in the membrane equation
+
+        # Expand expressions in the membrane equation
         membrane_eq.type = DIFFERENTIAL_EQUATION
         for var,expr in model._get_substituted_expressions(): # this returns substituted expressions for diff eqs
             if var == 'Im':
                 Im_expr = expr
         membrane_eq.type = SUBEXPRESSION
+
         # Factor out the variable
         s_expr = sp.collect(Im_expr.sympy_expr.expand(), var)
         matches = s_expr.match(pattern)
@@ -98,8 +102,8 @@ class SpatialNeuron(NeuronGroup):
 
         # Equations for morphology
         # TODO: check whether Cm and Ri are already in the equations
-        #       yes: should be shared instead of constant
-        #       no: should be constant (check)
+        #       no: should be shared instead of constant
+        #       yes: should be constant (check)
         eqs_constants = Equations("""
         diameter : meter (constant)
         length : meter (constant)
@@ -122,6 +126,7 @@ class SpatialNeuron(NeuronGroup):
 
         # Insert morphology
         self.morphology = morphology
+        # Link morphology variables to neuron's state variables
         self.morphology.compress(diameter=self.variables['diameter'].get_value(), length=self.variables['length'].get_value(),
                                  x=self.variables['x'].get_value(), y=self.variables['y'].get_value(),
                                  z=self.variables['z'].get_value(), area=self.variables['area'].get_value(),
@@ -134,45 +139,71 @@ class SpatialNeuron(NeuronGroup):
         self.contained_objects.extend([self.diffusion_state_updater])
 
     def __getattr__(self, x):
-        if (x != 'morphology') and (x!='name') and ((x in self.morphology._namedkid) or all([c in 'LR123456789' for c in x])): # subtree
-            morpho = self.morphology[x]
-            return SpatialSubgroup(self,morpho._origin,morpho._origin + len(morpho),morphology=morpho)
-        else:
-            return NeuronGroup.__getattr__(self, x)
+        '''
+        Subtrees are accessed by attribute, e.g. neuron.axon.
+        '''
+        return spatialneuron_attribute(self,x)
 
     def __getitem__(self,x):
-        '''
-        We allow standard subgrouping with compartment indexes: self[i:j]
-        as well as subgrouping with distances, e.g. self[10*um:20*um]
-        (Maybe only distances should be allowed)
-        '''
-        if not isinstance(x, slice):
-            raise TypeError('Subgroups can only be constructed using slicing syntax')
-        start,stop,step=x.start,x.stop,x.step
-        if step is None:
-            step=1
-        if step != 1:
-            raise IndexError('Subgroups have to be contiguous')
-
-        if type(start) == type(1*cm): # e.g. 10*um:20*um
-            # Convert to integers (compartment numbers)
-            morpho = self.morphology[x]
-            start=morpho._origin
-            stop=morpho._origin + len(morpho)
-
-        if start >= stop:
-            raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
-                             (start, stop))
-
-        return Subgroup(self, start, stop)
+        return spatialneuron_segment(self,x)
 
 
-class SpatialSubgroup(Subgroup,SpatialNeuron):
-    add_to_magic_network = False
+def spatialneuron_attribute(neuron,x):
+    '''
+    Selects a subtree from SpatialNeuron neuron and returns a SpatialSubGroup.
+    If it does not exist, returns the Group attribute.
+    '''
+    if x == 'main': # Main segment, without the subtrees
+        origin = neuron.morphology._origin
+        return Subgroup(neuron,origin,origin + len(neuron.morphology.x))
+    elif (x != 'morphology') and ((x in neuron.morphology._namedkid) or all([c in 'LR123456789' for c in x])): # subtree
+        morpho = neuron.morphology[x]
+        return SpatialSubgroup(neuron,morpho._origin,morpho._origin + len(morpho),morphology=morpho)
+    else:
+        return Group.__getattr__(neuron, x)
 
+
+def spatialneuron_segment(neuron,x):
+    '''
+    Selects a segment from SpatialNeuron neuron, where x is a slice of either compartment
+    indexes or distances.
+    Note a: segment is not a SpatialNeuron, only a Group.
+    '''
+    if not isinstance(x, slice):
+        raise TypeError('Subgroups can only be constructed using slicing syntax')
+    start,stop,step=x.start,x.stop,x.step
+    if step is None:
+        step=1
+    if step != 1:
+        raise IndexError('Subgroups have to be contiguous')
+
+    if type(start) == type(1*cm): # e.g. 10*um:20*um
+        # Convert to integers (compartment numbers)
+        morpho = neuron.morphology[x]
+        start=morpho._origin
+        stop=morpho._origin + len(morpho)
+
+    if start >= stop:
+        raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
+                         (start, stop))
+
+    return Subgroup(neuron, start, stop)
+
+
+class SpatialSubgroup(Subgroup):
+    '''
+    A subgroup of a SpatialNeuron.
+    '''
     def __init__(self,source, start, stop, morphology, name=None):
         Subgroup.__init__(self,source,start,stop,name)
-        Group.__setattr__(self,'morphology',morphology) # to avoid infinite recursion
+        #Group.__setattr__(self,'morphology',morphology) # to avoid infinite recursion
+        self.morphology = morphology
+
+    def __getattr__(self, x):
+        return spatialneuron_attribute(self,x)
+
+    def __getitem__(self,x):
+        return spatialneuron_segment(self,x)
 
 
 class SpatialStateUpdater(CodeRunner,Group):

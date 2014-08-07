@@ -14,7 +14,6 @@ Im=gL*(EL-v) : amp/meter**2
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
-neuron.v=2*EL
-neuron.R.v=EL # not clear why this raises an error
+neuron.v = arange(0,13)*volt
 
-print neuron.v,neuron.L.v,neuron.LL.v
+print neuron.v,neuron.L.v,neuron.LL.v,neuron.L.main.v
