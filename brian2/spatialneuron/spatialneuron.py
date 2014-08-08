@@ -96,8 +96,14 @@ class SpatialNeuron(NeuronGroup):
                         matches[constant_wildcard].simplify())
         
         # Extracts the total conductance from Im, and the remaining current
-        gtot_str="gtot__private="+sympy_to_str(-a)+": siemens/meter**2"
-        I0_str="I0__private="+sympy_to_str(b)+": amp/meter**2"
+        minusa_str, b_str = sympy_to_str(-a), sympy_to_str(b)
+        # Add correct units if necessary
+        if minusa_str=='0':
+            minusa_str+='*siemens/meter**2'
+        if b_str=='0':
+            b_str+='*amp/meter**2'
+        gtot_str="gtot__private="+minusa_str+": siemens/meter**2"
+        I0_str="I0__private="+b_str+": amp/meter**2"
         model+=Equations(gtot_str+"\n"+I0_str)
 
         # Equations for morphology

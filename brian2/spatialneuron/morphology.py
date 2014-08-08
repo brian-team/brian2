@@ -191,8 +191,12 @@ class Morphology(object):
         i = searchsorted(array(self.distance - self.distance[0] + self.length[0]), float(x))
         if i>=len(self.x):
             i=len(self.x)-1
-        if hasattr(self, '_origin') and not local:
-            i+=self._origin
+        if not local:
+            if hasattr(self, '_origin'):
+                i+=self._origin
+            else:
+                raise AttributeError,\
+                    "Absolute compartment indexes do not exist until the morphology is compressed (by SpatialNeuron)"
         return i
 
     def compartments(self, x, y, local = False):
@@ -213,7 +217,8 @@ class Morphology(object):
         if hasattr(self, '_origin'):
             return arange(self._origin,self._origin+len(self.x))
         else:
-            return arange(0,len(self.x))
+            raise AttributeError,\
+                "Absolute compartment indexes do not exist until the morphology is compressed (by SpatialNeuron)"
 
     def __getitem__(self, x):
         """
