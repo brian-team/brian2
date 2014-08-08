@@ -68,9 +68,9 @@ Finally there is a special shorter syntax for quickly creating trees, using ``L`
 
 These instructions create a dendritic tree with two main branches, 3 subbranches on the first branch and
 2 on the second branch. After these instructions are executed, ``morpho.L`` contains the entire subtree. To
-retrieve only the primary branch of this subtree, use the ``branch()`` method::
+retrieve only the primary branch of this subtree, use the ``main` attribute::
 
-    mainbranch = morpho.L.branch()
+    mainbranch = morpho.L.main
 
 The number of compartments in the entire tree can be obtained with
 ``len(morpho)``. Finally, the morphology can be displayed as a 3D plot::

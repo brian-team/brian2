@@ -170,7 +170,7 @@ class Morphology(object):
             self._namedkid['R'] = self._namedkid['2']
         return self
 
-    def branch(self):
+    def _branch(self):
         '''
         Returns the current branch without the children.
         '''
@@ -228,46 +228,21 @@ class Morphology(object):
         Factor with compartment().
         """
         if type(x) == type(0): # int: returns one compartment
-            morpho = self.branch()
+            morpho = self._branch()
             i = x
             j = i + 1
-            morpho.diameter = morpho.diameter[i:j]
-            morpho.length = morpho.length[i:j]
-            morpho.area = morpho.area[i:j]
-            morpho.x = morpho.x[i:j]
-            morpho.y = morpho.y[i:j]
-            morpho.z = morpho.z[i:j]
-            if hasattr(morpho, '_origin'):
-                morpho._origin += i
-            return morpho
         elif isinstance(x, slice): # neuron[10*um:20*um]
-            morpho = self.branch()
+            morpho = self._branch()
             start, stop = float(x.start), float(x.stop)
             l = cumsum(array(morpho.length)) # coordinate on the branch
             i = searchsorted(l, start)
             j = searchsorted(l, stop)
-            morpho.diameter = morpho.diameter[i:j]
-            morpho.length = morpho.length[i:j]
-            morpho.area = morpho.area[i:j]
-            morpho.x = morpho.x[i:j]
-            morpho.y = morpho.y[i:j]
-            morpho.z = morpho.z[i:j]
-            if hasattr(morpho, '_origin'):
-                morpho._origin += i
-            return morpho
         elif type(x) == type(1*um): # neuron[10*um]
-            morpho = self.branch()
+            morpho = self._branch()
             i = self.compartment(x, local=True)
             j = i + 1
-            morpho.diameter = morpho.diameter[i:j]
-            morpho.length = morpho.length[i:j]
-            morpho.area = morpho.area[i:j]
-            morpho.x = morpho.x[i:j]
-            morpho.y = morpho.y[i:j]
-            morpho.z = morpho.z[i:j]
-            if hasattr(morpho, '_origin'):
-                morpho._origin += i
-            return morpho
+        elif x == 'main':
+            return self._branch()
         else:
             x = str(x) # convert int to string
             if (len(x) > 1) and all([c in 'LR123456789' for c in x]): # binary string of the form LLLRLR or 1213 (or mixed)
@@ -276,6 +251,18 @@ class Morphology(object):
                 return self._namedkid[x]
             else:
                 raise AttributeError, "The subtree " + x + " does not exist"
+
+        # Return the sub-morphology
+        morpho.diameter = morpho.diameter[i:j]
+        morpho.length = morpho.length[i:j]
+        morpho.area = morpho.area[i:j]
+        morpho.x = morpho.x[i:j]
+        morpho.y = morpho.y[i:j]
+        morpho.z = morpho.z[i:j]
+        morpho.distance = morpho.distance[i:j]
+        if hasattr(morpho, '_origin'):
+            morpho._origin += i
+        return morpho
 
     def __setitem__(self, x, kid):
         """
@@ -291,6 +278,8 @@ class Morphology(object):
             self._namedkid[x[0]][x[1:]] = kid
         elif x in self._namedkid:
             raise AttributeError, "The subtree " + x + " already exists"
+        elif x == 'main':
+            raise AttributeError, "The main branch cannot be changed"
         else:
             # Update coordinates
             kid.x += self.x[-1]
