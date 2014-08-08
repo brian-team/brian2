@@ -9,9 +9,9 @@ from numpy import *
 from brian2.units.allunits import meter
 from brian2.units.stdunits import um
 import warnings
-from pylab import figure
 import copy
 try:
+    from pylab import figure
     from mpl_toolkits.mplot3d import Axes3D
 except:
     warnings.warn('Pylab 0.99.1 is required for 3D plots')
