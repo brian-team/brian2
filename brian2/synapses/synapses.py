@@ -249,9 +249,8 @@ class SynapticPathway(CodeRunner, Group):
             self.queue = get_device().spike_queue(self.source.start, self.source.stop)
 
         # Update the dt (might have changed between runs)
-        self.dt = self.synapses.clock.dt_
 
-        self.queue.prepare(self._delays.get_value(), self.dt,
+        self.queue.prepare(self._delays.get_value(), self.synapses.clock.dt_,
                            self.synapse_sources.get_value())
 
     def push_spikes(self):
