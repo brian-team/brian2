@@ -314,6 +314,7 @@ class Network(Nameable):
             dt = obj.dt
             if dt is None:
                 dt = brian_prefs['core.default_dt']
+            dt = float(dt)
             if dt not in clocks:
                 clocks[dt] = Clock(dt=dt)
             obj._clock = clocks[dt]
