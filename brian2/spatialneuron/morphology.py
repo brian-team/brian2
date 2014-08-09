@@ -41,7 +41,7 @@ class Morphology(object):
             self.loadswc(filename)
         elif n is not None: # Creates a branch with n compartments
             # The problem here is that these parameters should have some self-consistency
-            self.x, self.y, self.z, self.diameter, self.length, self.area, self.distance = [zeros(n) for _ in range(7)]
+            self.x, self.y, self.z, self.diameter, self.length, self.area, self.distance = [zeros(n)*meter for _ in range(7)]
 
     def set_distance(self):
         '''
@@ -357,6 +357,7 @@ class Morphology(object):
         Compresses the tree by changing the compartment vectors to views on
         a matrix (or vectors). The morphology cannot be changed anymore but
         all other functions should work normally.
+        Units are discarded in the process.
         
         origin : offset in the base matrix
         """
@@ -452,7 +453,7 @@ class Cylinder(Morphology):
         else:
             if length is not None:
                 raise AttributeError,"Length and x-y-z coordinates cannot be simultaneously specified"
-            length = (sum(array((x, y, z)) ** 2)) ** .5
+            length = (sum(array((x, y, z)) ** 2)) ** .5 # * meter (not sure)
         scale = arange(1, n + 1) * 1. / n
         self.x, self.y, self.z = x * scale, y * scale, z * scale
         self.length = ones(n) * length / n

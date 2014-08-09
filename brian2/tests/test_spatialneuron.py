@@ -39,12 +39,50 @@ def test_construction():
     assert_allclose(neuron.L.main.length,morpho.L.length)
 
 
-def test_passive():
+def test_infinitecable():
     '''
-    Test simulations of neurons with passive conductances
+    Test simulation of an infinite cable vs. theory (Green function)
     '''
-    pass
+    defaultclock.dt = 0.001*ms
+
+    # Morphology
+    diameter = 1*um
+    Cm = 1 * uF / cm ** 2
+    Ri = 100 * ohm * cm
+    N = 500
+    morpho=Cylinder(diameter=diameter,length=3*mm,n=N)
+
+    # Passive channels
+    gL=1e-4*siemens/cm**2
+    eqs='''
+    Im=-gL*v : amp/meter**2
+    I : amp (point current)
+    '''
+
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
+
+    taum = Cm/gL # membrane time constant
+    rm = 1/(gL * pi * diameter) # membrane resistance per unit length
+    ra = (4 * Ri)/(pi * diameter**2) # axial resistance per unit length
+    la = sqrt(rm/ra) # space length
+
+    # Monitors
+    mon=StateMonitor(neuron,'v',record=N/2-20)
+
+    neuron.I[len(neuron)/2]=1*nA # injecting in the middle
+    run(0.02*ms)
+    neuron.I=0*amp
+    run(3*ms,report='text')
+
+    t = mon.t
+    v = mon[N/2-20].v
+    # Theory (incorrect near cable ends)
+    x = 20*morpho.length[0] * meter
+    theory = 1./(la*Cm*pi*diameter)*sqrt(taum/(4*pi*(t+defaultclock.dt)))*\
+                 exp(-(t+defaultclock.dt)/taum-taum/(4*(t+defaultclock.dt))*(x/la)**2)
+    theory = theory*1*nA*0.02*ms
+    assert_allclose(v[t>0.5*ms],theory[t>0.5*ms],rtol=0.01) # 1% error tolerance
 
 if __name__ == '__main__':
     test_construction()
-    test_passive()
+    test_infinitecable()
