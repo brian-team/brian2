@@ -1,8 +1,6 @@
 '''
-Neuronal morphology module for Brian 2.
-
-TODO:
-* rescale: change number of compartments
+Neuronal morphology module.
+This module defines classes to load and build neuronal morphologies.
 '''
 from scipy import rand
 from numpy import *
@@ -22,6 +20,18 @@ __all__ = ['Morphology', 'Cylinder', 'Soma']
 class Morphology(object):
     '''
     Neuronal morphology (=tree of branches).
+
+    The data structure is a tree where each node is a segment consisting
+    of a number of connected compartments, each one defined by its geometrical properties
+    (length, area, diameter, position).
+
+    Parameters
+    ----------
+    filename: str, optional
+        The name of a swc file defining the morphology.
+        If not specified, makes a segment (if n is specified) or an empty morphology.
+    n : int, optional
+        Number of compartments.
     '''
     def __init__(self, filename=None, n=None):
         self.children = []
@@ -229,7 +239,7 @@ class Morphology(object):
         neuron[5] returns compartment number 5.
         
         TODO:
-        neuron[:] returns the full branch.
+        neuron[:] should return the full branch.
         Factor with compartment().
         """
         if type(x) == type(0): # int: returns one compartment
@@ -404,6 +414,24 @@ class Morphology(object):
 class Cylinder(Morphology):
     """
     A cylinder.
+
+    Parameters
+    ----------
+    length : `Quantity`, optional
+        The total length in `meter`. If unspecified, inferred from `x`, `y`, `z`.
+    diameter : `Quantity`
+        The diameter in `meter`.
+    n : int, optional
+        Number of compartments (default 1).
+    type : str, optional
+        Type of segment, `soma`, 'axon' or 'dendrite'.
+    x : `Quantity`, optional
+        x position of end point in `meter` units.
+        If not specified, inferred from `length` with a random direction.
+    y : `Quantity`, optional
+        x position of end point in `meter` units.
+    z : `Quantity`, optional
+        x position of end point in `meter` units.
     """
     def __init__(self, length=None, diameter=None, n=1, type=None, x=None, y=None, z=None):
         """
@@ -437,6 +465,11 @@ class Cylinder(Morphology):
 class Soma(Morphology): # or Sphere?
     """
     A spherical soma.
+
+    Parameters
+    ----------
+    diameter : `Quantity`, optional
+        Diameter of the sphere.
     """
     def __init__(self, diameter=None):
         Morphology.__init__(self, n = 1)

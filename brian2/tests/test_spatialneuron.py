@@ -26,6 +26,25 @@ def test_construction():
     assert_allclose(neuron.LL.v,EL)
     neuron.LL[2*um:3.1*um].v = 0*mV
     assert_allclose(neuron.LL.v,[EL,0,0,EL,EL])
+    assert_allclose(neuron.Cm,1 * uF / cm ** 2)
+
+    # Test morphological variables
+    assert_allclose(neuron.main.x,morpho.x)
+    assert_allclose(neuron.L.main.x,morpho.L.x)
+    assert_allclose(neuron.LL.main.x,morpho.LL.x)
+    assert_allclose(neuron.right.main.x,morpho.right.x)
+    assert_allclose(neuron.L.main.distance,morpho.L.distance)
+    assert_allclose(neuron.L.main.diameter,morpho.L.diameter)
+    assert_allclose(neuron.L.main.area,morpho.L.area)
+    assert_allclose(neuron.L.main.length,morpho.L.length)
+
+
+def test_passive():
+    '''
+    Test simulations of neurons with passive conductances
+    '''
+    pass
 
 if __name__ == '__main__':
     test_construction()
+    test_passive()

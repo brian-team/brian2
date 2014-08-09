@@ -1,10 +1,6 @@
 '''
-Compartmental models
-
-TODO:
-* access with metric indexes
-* faster (C?)
-* clean up
+Compartmental models.
+This module defines the SpatialNeuron class, which defines multicompartmental models.
 '''
 from brian2.equations.equations import Equations, PARAMETER, SUBEXPRESSION, DIFFERENTIAL_EQUATION
 from brian2.groups.group import Group, CodeRunner
@@ -26,6 +22,59 @@ __all__ = ['SpatialNeuron']
 logger = get_logger(__name__)
 
 class SpatialNeuron(NeuronGroup):
+    '''
+    A single neuron with a morphology and possibly many compartments.
+
+    Parameters
+    ----------
+    morphology : `Morphology`
+        The morphology of the neuron.
+    model : (str, `Equations`)
+        The equations defining the group.
+    method : (str, function), optional
+        The numerical integration method. Either a string with the name of a
+        registered method (e.g. "euler") or a function that receives an
+        `Equations` object and returns the corresponding abstract code. If no
+        method is specified, a suitable method will be chosen automatically.
+    threshold : str, optional
+        The condition which produces spikes. Should be a single line boolean
+        expression.
+    threshold_location : (int, `Morphology`), optional
+        Compartment where the threshold condition applies, specified as an
+        integer (compartment index) or a `Morphology` object corresponding to
+        the compartment (e.g. ``morpho.axon[10*um]``).
+        If unspecified, the threshold condition applies at all compartments.
+    Cm : `Quantity`, optional
+        Specific capacitance in uF/cm**2 (default 0.9). It can be accessed and
+        modified later as a state variable. In particular, its value can differ
+        in different compartments.
+    Ri : `Quantity`, optional
+        Intracellular resistivity in ohm.cm (default 150). It can be accessed
+        as a shared state variable, but modified only before the first run.
+        It is uniform across the neuron.
+    reset : str, optional
+        The (possibly multi-line) string with the code to execute on reset.
+    refractory : {str, `Quantity`}, optional
+        Either the length of the refractory period (e.g. ``2*ms``), a string
+        expression that evaluates to the length of the refractory period
+        after each spike (e.g. ``'(1 + rand())*ms'``), or a string expression
+        evaluating to a boolean value, given the condition under which the
+        neuron stays refractory after a spike (e.g. ``'v > -20*mV'``)
+    namespace: dict, optional
+        A dictionary mapping variable/function names to the respective objects.
+        If no `namespace` is given, the "implicit" namespace, consisting of
+        the local and global namespace surrounding the creation of the class,
+        is used.
+    dtype : (`dtype`, `dict`), optional
+        The `numpy.dtype` that will be used to store the values, or a
+        dictionary specifying the type for variable names. If a value is not
+        provided for a variable (or no value is provided at all), the preference
+        setting `core.default_float_dtype` is used.
+    clock : Clock, optional
+        The update clock to be used, or defaultclock if not specified.
+    name : str, optional
+        A unique name for the group, otherwise use ``spatialneuron_0``, etc.
+    '''
     def __init__(self, morphology=None, model=None, threshold = None, refractory = False, reset = None,
                  threshold_location = None,
                  clock=None, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
@@ -148,68 +197,84 @@ class SpatialNeuron(NeuronGroup):
         '''
         Subtrees are accessed by attribute, e.g. neuron.axon.
         '''
-        return spatialneuron_attribute(self,x)
+        return self.spatialneuron_attribute(self,x)
 
     def __getitem__(self,x):
-        return spatialneuron_segment(self,x)
+        '''
+        Selects a segment, where x is a slice of either compartment
+        indexes or distances.
+        Note a: segment is not a SpatialNeuron, only a Group.
+        '''
+        return self.spatialneuron_segment(self,x)
 
+    @staticmethod
+    def spatialneuron_attribute(neuron,x):
+        '''
+        Selects a subtree from `SpatialNeuron` neuron and returns a `SpatialSubGroup`.
+        If it does not exist, returns the `Group` attribute.
+        '''
+        if x == 'main': # Main segment, without the subtrees
+            origin = neuron.morphology._origin
+            return Subgroup(neuron,origin,origin + len(neuron.morphology.x))
+        elif (x != 'morphology') and ((x in neuron.morphology._namedkid) or all([c in 'LR123456789' for c in x])): # subtree
+            morpho = neuron.morphology[x]
+            return SpatialSubgroup(neuron,morpho._origin,morpho._origin + len(morpho),morphology=morpho)
+        else:
+            return Group.__getattr__(neuron, x)
 
-def spatialneuron_attribute(neuron,x):
-    '''
-    Selects a subtree from SpatialNeuron neuron and returns a SpatialSubGroup.
-    If it does not exist, returns the Group attribute.
-    '''
-    if x == 'main': # Main segment, without the subtrees
-        origin = neuron.morphology._origin
-        return Subgroup(neuron,origin,origin + len(neuron.morphology.x))
-    elif (x != 'morphology') and ((x in neuron.morphology._namedkid) or all([c in 'LR123456789' for c in x])): # subtree
-        morpho = neuron.morphology[x]
-        return SpatialSubgroup(neuron,morpho._origin,morpho._origin + len(morpho),morphology=morpho)
-    else:
-        return Group.__getattr__(neuron, x)
+    @staticmethod
+    def spatialneuron_segment(neuron,x):
+        '''
+        Selects a segment from `SpatialNeuron` neuron, where x is a slice of either compartment
+        indexes or distances.
+        Note a: segment is not a `SpatialNeuron`, only a `Group`.
+        '''
+        if not isinstance(x, slice):
+            raise TypeError('Subgroups can only be constructed using slicing syntax')
+        start,stop,step=x.start,x.stop,x.step
+        if step is None:
+            step=1
+        if step != 1:
+            raise IndexError('Subgroups have to be contiguous')
 
+        if type(start) == type(1*cm): # e.g. 10*um:20*um
+            # Convert to integers (compartment numbers)
+            morpho = neuron.morphology[x]
+            start=morpho._origin
+            stop=morpho._origin + len(morpho)
 
-def spatialneuron_segment(neuron,x):
-    '''
-    Selects a segment from SpatialNeuron neuron, where x is a slice of either compartment
-    indexes or distances.
-    Note a: segment is not a SpatialNeuron, only a Group.
-    '''
-    if not isinstance(x, slice):
-        raise TypeError('Subgroups can only be constructed using slicing syntax')
-    start,stop,step=x.start,x.stop,x.step
-    if step is None:
-        step=1
-    if step != 1:
-        raise IndexError('Subgroups have to be contiguous')
+        if start >= stop:
+            raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
+                             (start, stop))
 
-    if type(start) == type(1*cm): # e.g. 10*um:20*um
-        # Convert to integers (compartment numbers)
-        morpho = neuron.morphology[x]
-        start=morpho._origin
-        stop=morpho._origin + len(morpho)
-
-    if start >= stop:
-        raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
-                         (start, stop))
-
-    return Subgroup(neuron, start, stop)
+        return Subgroup(neuron, start, stop)
 
 
 class SpatialSubgroup(Subgroup):
     '''
-    A subgroup of a SpatialNeuron.
+    A subgroup of a `SpatialNeuron`.
+
+    Parameters
+    ----------
+    source : int
+        First compartment.
+    stop : int
+        Ending compartment, not included (as in slices).
+    morphology : `Morphology`
+        Morphology corresponding to the subgroup (not the full
+        morphology).
+    name : str, optional
+        Name of the subgroup.
     '''
     def __init__(self,source, start, stop, morphology, name=None):
         Subgroup.__init__(self,source,start,stop,name)
-        #Group.__setattr__(self,'morphology',morphology) # to avoid infinite recursion
         self.morphology = morphology
 
     def __getattr__(self, x):
-        return spatialneuron_attribute(self,x)
+        return SpatialNeuron.spatialneuron_attribute(self,x)
 
     def __getitem__(self,x):
-        return spatialneuron_segment(self,x)
+        return SpatialNeuron.spatialneuron_segment(self,x)
 
 
 class SpatialStateUpdater(CodeRunner,Group):
