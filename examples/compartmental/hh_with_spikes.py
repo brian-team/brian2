@@ -1,16 +1,13 @@
 '''
 Hodgkin-Huxley equations (1952)
-Takes about 6.5 s with weave for 1 biological second (just run time).
-
-Conduction velocity is about 12.5 m/s (is it right?)
-
-Additionally: we record spikes.
+Spikes are recorded along the axon, and then velocity is calculated.
 '''
 from brian2 import *
+from scipy import stats
 
 brian_prefs.codegen.target = 'weave' # couldn't this be simpler?
 
-defaultclock.dt = 0.05 * ms
+defaultclock.dt = 0.01 * ms
 
 morpho=Cylinder(length=10*cm, diameter=2*238*um, n=1000, type='axon')
 
@@ -38,16 +35,15 @@ gNa : siemens/meter**2
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold = "m > 0.5",
-                       threshold_location = morpho[5*cm], refractory = "m > 0.4",
+                       refractory = "m > 0.4",
                        Cm=1 * uF / cm ** 2, Ri=35.4 * ohm * cm, method="exponential_euler")
 # threshold_location = morpho[5*cm] ?
 neuron.v=0*mV
 neuron.h=1
 neuron.m=0
 neuron.n=.5
-neuron.I=0#*amp/cm**2
+neuron.I=0*amp
 neuron.gNa=gNa0
-#neuron[5*cm:10*cm].gNa=0*siemens/cm**2
 M=StateMonitor(neuron,'v',record=True)
 spikes=SpikeMonitor(neuron)
 
@@ -57,9 +53,14 @@ run(3*ms)
 neuron.I=0*amp
 run(50*ms,report='text')
 
+# Calculation of velocity
+slope, intercept, r_value, p_value, std_err = stats.linregress(spikes.t/second, neuron.distance[spikes.i]/meter)
+print "Velocity = ",slope,"m/s"
+
 subplot(211)
 for i in range(10):
     plot(M.t/ms,M.v.T[:,i*100]/mV)
 subplot(212)
-plot(spikes.t/second, spikes.i, ',k')
+plot(spikes.t/second, spikes.i, '.k')
+plot(spikes.t/second, (intercept+slope*(spikes.t/second))/(neuron.length[0]/meter),'r')
 show()
