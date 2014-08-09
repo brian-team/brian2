@@ -169,6 +169,7 @@ class SpatialNeuron(NeuronGroup):
         area : meter**2 (constant)
         Cm : farad/meter**2 (constant)
         Ri : ohm*meter (constant, shared)
+        space_constant=(diameter/(4*Ri*gtot__private))**.5 : meter # Not so sure about the name
         """)
 
         NeuronGroup.__init__(self,len(morphology),model=model + eqs_constants,
