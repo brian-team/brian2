@@ -751,6 +751,10 @@ def test_subexpression():
         G.array = 5
         assert_equal(G.expr[:], 2*10*np.arange(10)*Hz + 5*Hz)
 
+def test_subexpression_with_constant():
+        g = 2
+        G = NeuronGroup(1, '''I = 1*g : 1''')
+        assert_equal(G.I[:], np.array([2]))
 
 def test_scalar_parameter_access():
     for codeobj_class in codeobj_classes:
@@ -918,6 +922,7 @@ if __name__ == '__main__':
     test_state_variable_access()
     test_state_variable_access_strings()
     test_subexpression()
+    test_subexpression_with_constant()
     test_scalar_parameter_access()
     test_scalar_subexpression()
     test_indices()

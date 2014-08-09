@@ -786,7 +786,9 @@ class VariableView(object):
                                               run_namespace=namespace)
         else:
             if isinstance(self.variable, Subexpression):
-                values = self.get_subexpression_with_index_array(item)
+                values = self.get_subexpression_with_index_array(item,
+                                                                 level=level+1,
+                                                                 run_namespace=namespace)
             else:
                 values = self.get_with_index_array(item)
 
@@ -1039,7 +1041,7 @@ class VariableView(object):
             return variable.get_value()[indices]
 
     @device_override('variableview_get_subexpression_with_index_array')
-    def get_subexpression_with_index_array(self, item):
+    def get_subexpression_with_index_array(self, item, level=0, run_namespace=None):
         variable = self.variable
         if variable.scalar:
             if not (isinstance(item, slice) and item == slice(None)):
@@ -1071,7 +1073,9 @@ class VariableView(object):
         codeobj = create_runner_codeobj(self.group,
                                         abstract_code,
                                         'group_variable_get',
-                                        additional_variables=variables
+                                        additional_variables=variables,
+                                        level=level+2,
+                                        run_namespace=run_namespace
         )
         result = codeobj()
         if single_index and not variable.scalar:

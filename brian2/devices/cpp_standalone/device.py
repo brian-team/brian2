@@ -303,7 +303,9 @@ class CPPStandaloneDevice(Device):
                                       'simulation has been run.')
 
 
-    def variableview_get_subexpression_with_index_array(self, variableview, item):
+    def variableview_get_subexpression_with_index_array(self, variableview,
+                                                        item, level=0,
+                                                        run_namespace=None):
         raise NotImplementedError(('Cannot evaluate subexpressions in '
                                    'standalone scripts.'))
 
