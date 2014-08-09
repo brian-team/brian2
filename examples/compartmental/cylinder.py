@@ -34,7 +34,13 @@ la = sqrt(rm/ra) # space length
 print "Characteristic length",la
 
 neuron.I[0]=0.02*nA # injecting at the left end
-run(50*ms,report='text')
+run(100*ms,report='text')
 
 plot(neuron.distance/um,neuron.v/mV,'k')
+# Theory
+x = neuron.distance
+ra = la*4*Ri/(pi*diameter**2)
+theory = EL+ra*neuron.I[0]*cosh((length-x)/la)/sinh(length/la)
+plot(x/um, theory/mV,'r')
+
 show()

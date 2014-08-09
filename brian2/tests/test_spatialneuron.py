@@ -41,7 +41,7 @@ def test_construction():
 
 def test_infinitecable():
     '''
-    Test simulation of an infinite cable vs. theory (Green function)
+    Test simulation of an infinite cable vs. theory for current pulse (Green function)
     '''
     defaultclock.dt = 0.001*ms
 
@@ -69,10 +69,12 @@ def test_infinitecable():
     # Monitors
     mon=StateMonitor(neuron,'v',record=N/2-20)
 
+    net = Network(neuron, mon)
+
     neuron.I[len(neuron)/2]=1*nA # injecting in the middle
-    run(0.02*ms)
+    net.run(0.02*ms)
     neuron.I=0*amp
-    run(3*ms,report='text')
+    net.run(3*ms,report='text')
 
     t = mon.t
     v = mon[N/2-20].v
@@ -81,8 +83,50 @@ def test_infinitecable():
     theory = 1./(la*Cm*pi*diameter)*sqrt(taum/(4*pi*(t+defaultclock.dt)))*\
                  exp(-(t+defaultclock.dt)/taum-taum/(4*(t+defaultclock.dt))*(x/la)**2)
     theory = theory*1*nA*0.02*ms
-    assert_allclose(v[t>0.5*ms],theory[t>0.5*ms],rtol=0.01) # 1% error tolerance
+    assert_allclose(v[t>0.5*ms],theory[t>0.5*ms],rtol=0.01) # 1% error tolerance (not exact because not infinite cable)
+
+
+def test_finitecable():
+    '''
+    Test simulation of short cylinder vs. theory for constant current
+    '''
+    defaultclock.dt = 0.01*ms
+
+    # Morphology
+    diameter = 1*um
+    length = 300*um
+    Cm = 1 * uF / cm ** 2
+    Ri = 150 * ohm * cm
+    N = 200
+    morpho=Cylinder(diameter=diameter,length=length,n=N)
+
+    # Passive channels
+    gL=1e-4*siemens/cm**2
+    EL=-70*mV
+    eqs='''
+    Im=gL*(EL-v) : amp/meter**2
+    I : amp (point current)
+    '''
+
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
+    neuron.v = EL
+
+    rm = 1/(gL * pi * diameter) # membrane resistance per unit length
+    ra = (4 * Ri)/(pi * diameter**2) # axial resistance per unit length
+    la = sqrt(rm/ra) # space length
+
+    neuron.I[0]=0.02*nA # injecting at the left end
+    net = Network(neuron)
+    net.run(100*ms,report='text')
+
+    # Theory
+    x = neuron.distance
+    v = neuron.v
+    ra = la*4*Ri/(pi*diameter**2)
+    theory = EL+ra*neuron.I[0]*cosh((length-x)/la)/sinh(length/la)
+    assert_allclose(v-EL, theory-EL, rtol=0.01)
 
 if __name__ == '__main__':
     test_construction()
     test_infinitecable()
+    test_finitecable()
