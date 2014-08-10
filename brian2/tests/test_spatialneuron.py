@@ -88,7 +88,7 @@ def test_infinitecable():
 
 def test_finitecable():
     '''
-    Test simulation of short cylinder vs. theory for constant current
+    Test simulation of short cylinder vs. theory for constant current.
     '''
     defaultclock.dt = 0.01*ms
 

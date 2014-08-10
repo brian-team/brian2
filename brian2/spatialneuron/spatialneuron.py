@@ -280,8 +280,10 @@ class SpatialSubgroup(Subgroup):
 
 class SpatialStateUpdater(CodeRunner,Group):
     '''
-    The `CodeRunner` that updates the state variables of a `SpatialGroup`
+    The `CodeRunner` that updates the state variables of a `SpatialNeuron`
     at every timestep.
+
+    TODO: all internal variables (u_minus etc) could be inserted in the SpatialNeuron.
     '''
     def __init__(self, group, method):
         # group is the neuron (a group of compartments) 
@@ -329,7 +331,7 @@ class SpatialStateUpdater(CodeRunner,Group):
         self.P[:]=0
         self.B[:]=0
         self.fill_matrix(self.group.morphology)
-        self.V = solve(self.P,self.B)
+        self.V = solve(self.P,self.B) ## This code could be generated at initialization
         # Calculate solutions by linear combination
         self.linear_combination(self.group.morphology)
         
@@ -417,7 +419,10 @@ class SpatialStateUpdater(CodeRunner,Group):
         # Recursive call
         for kid in (morphology.children):
             self.boundary_conditions(kid)
-        
+
+    #### The two methods below should be written in C
+    #### In each one there is a static function, plus a call for each segment
+    #### Code for the latter could be generated at initialization
     def linear_combination(self,morphology):
         '''
         Calculates solutions by linear combination
