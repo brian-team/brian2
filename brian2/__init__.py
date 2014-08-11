@@ -31,7 +31,14 @@ if len(missing):
 try:
     from pylab import *
 except ImportError:
-    from scipy import *
+    # Do the non-matplotlib pylab imports manually
+    from numpy import *
+    from numpy.fft import *
+    from numpy.random import *
+    from numpy.linalg import *
+    import numpy.ma as ma
+    # don't let numpy's datetime hide stdlib
+    import datetime
 
 # Make sure that Brian's unit-aware functions are used, even when directly
 # using names prefixed with numpy or np
