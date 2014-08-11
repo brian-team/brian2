@@ -175,9 +175,6 @@ def test_rall():
     neuron.I[0]=0.02*nA # injecting at the left end
     run(100*ms)
 
-    plot(neuron.main.distance/um,neuron.main.v/mV,'k')
-    plot(neuron.L.distance/um,neuron.L.v/mV,'k')
-    plot(neuron.R.distance/um,neuron.R.v/mV,'k')
     # Theory
     x = neuron.main.distance
     ra = la*4*Ri/(pi*diameter**2)
@@ -198,4 +195,5 @@ def test_rall():
 if __name__ == '__main__':
     test_construction()
     test_infinitecable()
+    test_finitecable()
     test_rall()
