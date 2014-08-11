@@ -8,13 +8,13 @@
 	std::vector<double> _local_sum;
 	_local_sum.resize(N_post, 0.0);
 
-	#pragma omp for schedule(static)
+	{{ openmp_pragma('static') }}
 	for (int _target_idx=0; _target_idx<N_post; _target_idx++)
 	{
 	    {{_target_var_array}}[_target_idx] = 0.0;
 	}
 
-	#pragma omp for schedule(static)
+	{{ openmp_pragma('static') }}
 	for(int _idx=0; _idx<_num_synaptic_post; _idx++)
 	{
 		{% for line in code_lines %}
@@ -25,7 +25,7 @@
 
 	for (int _target_idx=0; _target_idx<N_post; _target_idx++)
 	{
-		#pragma omp atomic
+		{{ openmp_pragma('atomic') }}
 	    {{_target_var_array}}[_target_idx] += _local_sum[_target_idx];	
 	}
 

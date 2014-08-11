@@ -29,7 +29,7 @@ void _run_{{codeobj_name}}()
 	// scalar code
 	const int _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
-	#pragma omp for schedule(static)
+	{{openmp_pragma('static')}} 
 	for(int _idx=0; _idx<N; _idx++)
 	{
 	    // vector code

@@ -3,10 +3,10 @@
 #include<stdint.h>
 #include<vector>
 #include "objects.h"
-#include "brianlib/synapses.h"
+#include "synapses_classes.h"
 #include "brianlib/clocks.h"
 #include "brianlib/dynamic_array.h"
-#include "brianlib/network.h"
+#include "network.h"
 #include<iostream>
 #include<fstream>
 
@@ -57,8 +57,7 @@ SynapticPathway<double> brian::{{path.name}}(
 		{{dynamic_array_specs[path.variables['delay']]}},
 		{{dynamic_array_specs[path.synapse_sources]}},
 		{{path.source.dt_}},
-		{{path.source.start}}, {{path.source.stop}}, {{nb_threads}}
-		);
+		{{path.source.start}}, {{path.source.stop}});
 {% endfor %}
 {% endfor %}
 
@@ -71,7 +70,7 @@ void _init_arrays()
 	{% for var in zero_arrays | sort(attribute='name') %}
 	{% set varname = array_specs[var] %}
 	{{varname}} = new {{c_data_type(var.dtype)}}[{{var.size}}];
-	#pragma omp parralel for schedule(static)
+	{{ openmp_pragma('parallel-static') }}
 	for(int i=0; i<{{var.size}}; i++) {{varname}}[i] = 0;
 	{% endfor %}
 
@@ -79,7 +78,7 @@ void _init_arrays()
 	{% for var, start in arange_arrays %}
 	{% set varname = array_specs[var] %}
 	{{varname}} = new {{c_data_type(var.dtype)}}[{{var.size}}];
-	#pragma omp parralel for schedule(static)
+	{{ openmp_pragma('parallel-static') }}
 	for(int i=0; i<{{var.size}}; i++) {{varname}}[i] = {{start}} + i;
 	{% endfor %}
 
@@ -190,10 +189,11 @@ void _dealloc_arrays()
 
 #include<vector>
 #include<stdint.h>
-#include "brianlib/synapses.h"
+#include "synapses_classes.h"
 #include "brianlib/clocks.h"
 #include "brianlib/dynamic_array.h"
-#include "brianlib/network.h"
+#include "network.h"
+{{ openmp_pragma('include') }}
 
 namespace brian {
 

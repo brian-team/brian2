@@ -12,9 +12,10 @@ n_threads  = int(sys.argv[-1])
 
 if standalone == 1:
     set_device('cpp_standalone')
+    brian_prefs.codegen.cpp_standalone.openmp_threads = n_threads
 
 start      = time.time()
-n_cells    = 10000
+n_cells    = 20000
 n_exc      = int(0.8*n_cells)
 p_conn     = 0.1
 taum       = 20 * ms
@@ -55,6 +56,6 @@ spike_mon = SpikeMonitor(P)
 
 net = Network(P, Se, Si, spike_mon, name='stdp_net')
 
-net.run(1 * second)
+net.run(5 * second)
 if standalone == 1:
-    device.build(project_dir='data_cuba_%d' %n_threads, compile_project=True, run_project=True, debug=False, n_threads=n_threads)
+    device.build(project_dir='data_cuba_%d' %n_threads, compile_project=True, run_project=True, debug=False)

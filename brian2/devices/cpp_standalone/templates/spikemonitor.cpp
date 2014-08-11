@@ -6,7 +6,7 @@
                         _source_start, _source_stop} #}
 	int32_t _num_spikes = {{_spikespace}}[_num_spikespace-1];
     
-    #pragma omp single
+    {{ openmp_pragma('single') }}
     {
         if (_num_spikes > 0)
         {

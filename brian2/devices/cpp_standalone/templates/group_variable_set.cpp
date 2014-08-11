@@ -7,7 +7,7 @@
     const int _vectorisation_idx = -1;
     {{scalar_code|autoindent}}
 
-    #pragma omp parallel for schedule(static)
+    {{ openmp_pragma('parallel_static') }}
 	for(int _idx_group_idx=0; _idx_group_idx<_num_group_idx; _idx_group_idx++)
 	{
 	    // vector code

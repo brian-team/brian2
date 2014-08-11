@@ -38,6 +38,7 @@ void _run_{{codeobj_name}}()
 	{{scalar_code['condition']|autoindent}}
 	{{scalar_code['statement']|autoindent}}
 
+	{{ openmp_pragma('static') }}
 	for(int _idx=0; _idx<N; _idx++)
 	{
 	    // vector code

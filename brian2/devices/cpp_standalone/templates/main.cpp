@@ -2,7 +2,7 @@
 #include "objects.h"
 #include <ctime>
 #include <time.h>
-#include <omp.h>
+{{ openmp_pragma('include') }}
 #include "run.h"
 
 {% for codeobj in code_objects %}
@@ -26,6 +26,8 @@ int main(int argc, char **argv)
 
 	{
 		using namespace brian;
+
+		{{ openmp_pragma('set_num_threads') }}
         {{main_lines|autoindent}}
 	}
 

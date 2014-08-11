@@ -17,6 +17,7 @@ from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices
 from brian2.core.variables import *
 from brian2.synapses.synapses import Synapses
+from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.generators.cpp_generator import c_data_type
@@ -31,6 +32,18 @@ __all__ = []
 
 logger = get_logger(__name__)
 
+
+# Preferences
+brian_prefs.register_preferences(
+    'codegen.cpp_standalone',
+    'C++ standalone preferences ',
+    openmp_threads = BrianPreference(
+        default=1,
+        docs='''
+        TO EDIT
+        ''',
+        )
+    )
 
 def freeze(code, ns):
     # this is a bit of a hack, it should be passed to the template somehow
@@ -294,8 +307,7 @@ class CPPStandaloneDevice(Device):
               with_output=True, native=True,
               additional_source_files=None, additional_header_files=None,
               main_includes=None, run_includes=None,
-              run_args=None, n_threads=1
-              ):
+              run_args=None):
         '''
         Build the project
         
@@ -345,7 +357,10 @@ class CPPStandaloneDevice(Device):
             ensure_directory(os.path.join(project_dir, d))
             
         writer = CPPWriter(project_dir)
-            
+        
+        # Get the number of threads if specified in an openmp context
+        nb_threads = brian_prefs.codegen.cpp_standalone.openmp_threads    
+
         logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
 
         arange_arrays = sorted([(var, start)
@@ -383,19 +398,12 @@ class CPPStandaloneDevice(Device):
                         synapses=synapses,
                         clocks=self.clocks,
                         static_array_specs=static_array_specs,
-                        networks=networks,
-                        nb_threads=n_threads
-                        )
+                        networks=networks)
         writer.write('objects.*', arr_tmp)
 
         main_lines = []
         procedures = [('', main_lines)]
-        runfuncs = {}
-        if n_threads >= 1:
-            main_lines.append('omp_set_dynamic(0);')
-            main_lines.append('omp_set_num_threads(%d);' % n_threads)
-        elif n_threads < 0:
-            main_lines.append('omp_set_dynamic(1);')
+        runfuncs   = {}
         for func, args in self.main_queue:
             if func=='run_code_object':
                 codeobj, = args
@@ -406,7 +414,6 @@ class CPPStandaloneDevice(Device):
             elif func=='set_by_array':
                 arrayname, staticarrayname = args
                 code = '''
-                #pragma omp parallel for schedule(static)
                 for(int i=0; i<_num_{staticarrayname}; i++)
                 {{
                     {arrayname}[i] = {staticarrayname}[i];
@@ -416,7 +423,6 @@ class CPPStandaloneDevice(Device):
             elif func=='set_array_by_array':
                 arrayname, staticarrayname_index, staticarrayname_value = args
                 code = '''
-                #pragma omp parallel for schedule(static)
                 for(int i=0; i<_num_{staticarrayname_index}; i++)
                 {{
                     {arrayname}[{staticarrayname_index}[i]] = {staticarrayname_value}[i];
@@ -505,6 +511,12 @@ class CPPStandaloneDevice(Device):
                                                           additional_headers=main_includes,
                                                           )
         writer.write('main.cpp', main_tmp)
+
+        main_tmp = CPPStandaloneCodeObject.templater.network(None, None)
+        writer.write('network.*', main_tmp)
+
+        main_tmp = CPPStandaloneCodeObject.templater.synapses_classes(None, None)
+        writer.write('synapses_classes.*', main_tmp)
         
         # Generate the run functions
         run_tmp = CPPStandaloneCodeObject.templater.run(None, None, run_funcs=runfuncs,

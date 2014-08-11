@@ -2,7 +2,7 @@ import sys, os, numpy, time, pylab
 
 filename = 'example_standalone_bis.py'
 datapath = 'data_example_bis'
-threads  = [1, 2, 4]
+threads  = [0, 1, 2, 4]
 results  = {}
 results['duration'] = []
 

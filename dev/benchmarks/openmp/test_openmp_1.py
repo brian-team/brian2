@@ -2,7 +2,7 @@ import sys, os, numpy, time, pylab
 
 filename = 'CUBA_standalone.py'
 datapath = 'data_cuba'
-threads  = [1, 2, 4, 6]
+threads  = [0, 1, 2, 4]
 results  = {}
 results['duration'] = []
 

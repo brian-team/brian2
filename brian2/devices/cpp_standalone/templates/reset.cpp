@@ -10,7 +10,7 @@
 	const int _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
     
-	#pragma omp for schedule(static)
+	{{ openmp_pragma('static') }}
 	for(int _index_spikes=0; _index_spikes<_num_spikes; _index_spikes++)
 	{
 	    // vector code

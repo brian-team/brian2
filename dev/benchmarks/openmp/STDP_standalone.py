@@ -14,6 +14,7 @@ n_threads  = int(sys.argv[-1])
 
 if standalone == 1:
     set_device('cpp_standalone')
+    brian_prefs.codegen.cpp_standalone.openmp_threads = n_threads
 
 start   = time.time()
 N       = 1000
@@ -38,7 +39,7 @@ dge/dt=-ge/taue : 1
 '''
 
 input   = PoissonGroup(N, rates=F)
-neurons = NeuronGroup(100, eqs_neurons, threshold='v>vt', reset='v=vr')
+neurons = NeuronGroup(500, eqs_neurons, threshold='v>vt', reset='v=vr')
 S = Synapses(input, neurons,
              '''w:1
                 dApre/dt=-Apre/taupre : 1 (event-driven)    
@@ -61,5 +62,5 @@ net = Network(input, neurons, S, state_mon, spike_mon_1, spike_mon_2, name='stdp
 net.run(10 * second)
 
 if standalone == 1:
-    device.build(project_dir='data_stdp_%d' %n_threads, compile_project=True, run_project=True, debug=False, n_threads=n_threads)
+    device.build(project_dir='data_stdp_%d' %n_threads, compile_project=True, run_project=True, debug=False)
 

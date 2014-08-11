@@ -10,9 +10,7 @@
 	const int _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
 
-	{{_spikespace}}[N] = 0;
-
-	#pragma omp single
+	{{ openmp_pragma('single') }}
 	{
 		{{_spikespace}}[N] = 0;
 

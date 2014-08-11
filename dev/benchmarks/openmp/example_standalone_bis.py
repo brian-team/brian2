@@ -12,6 +12,7 @@ n_threads  = int(sys.argv[-1])
 
 if standalone == 1:
     set_device('cpp_standalone')
+    brian_prefs.codegen.cpp_standalone.openmp_threads = n_threads
 
 start      = time.time()
 n_cells    = 1000
@@ -64,6 +65,6 @@ spike_mon = SpikeMonitor(P)
 state_mon = StateMonitor(S, 'w', record=range(10), when=Clock(dt=0.1*second))
 v_mon     = StateMonitor(P, 'v', record=range(10))
 
-run(1 * second)
+run(5 * second)
 if standalone == 1:
-    device.build(project_dir='data_example_bis_%d' %n_threads, compile_project=True, run_project=True, debug=False, n_threads=n_threads)
+    device.build(project_dir='data_example_bis_%d' %n_threads, compile_project=True, run_project=True, debug=False)
