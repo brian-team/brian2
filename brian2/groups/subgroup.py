@@ -30,10 +30,18 @@ class Subgroup(Group, SpikeSource):
     * You need to keep a reference to it
     * It makes a copy of the spikes, and there is no direct support for
       subgroups in `Connection` (or rather `Synapses`)
-
     '''
     def __init__(self, source, start, stop, name=None):
-        self.source = weakproxy_with_fallback(source)
+        # First check if the source is itself a Subgroup
+        # If so, then make this a Subgroup of the original Group
+        if isinstance(source, Subgroup):
+            source = source.source
+            start = start + source.start
+            stop = stop + source.start
+            self.source = source
+        else:
+            self.source = weakproxy_with_fallback(source)
+
         if name is None:
             name = source.name + '_subgroup*'
         # We want to update the spikes attribute after it has been updated
@@ -89,7 +97,7 @@ class Subgroup(Group, SpikeSource):
             raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
                              (start, stop))
         return Subgroup(self.source, self.start + start, self.start + stop)
-    
+
     def __len__(self):
         return self._N
         
