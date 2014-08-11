@@ -71,13 +71,13 @@ def test_infinitecable():
 
     net = Network(neuron, mon)
 
-    neuron.I[len(neuron)/2]=1*nA # injecting in the middle
+    neuron.I[len(neuron)//2]=1*nA # injecting in the middle
     net.run(0.02*ms)
     neuron.I=0*amp
     net.run(3*ms)
 
     t = mon.t
-    v = mon[N/2-20].v
+    v = mon[N//2-20].v
     # Theory (incorrect near cable ends)
     x = 20*morpho.length[0] * meter
     theory = 1./(la*Cm*pi*diameter)*sqrt(taum/(4*pi*(t+defaultclock.dt)))*\
