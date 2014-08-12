@@ -61,11 +61,6 @@ def test_infinitecable():
 
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
 
-    taum = Cm/gL # membrane time constant
-    rm = 1/(gL * pi * diameter) # membrane resistance per unit length
-    ra = (4 * Ri)/(pi * diameter**2) # axial resistance per unit length
-    la = sqrt(rm/ra) # space length
-
     # Monitors
     mon=StateMonitor(neuron,'v',record=N/2-20)
 
@@ -80,6 +75,8 @@ def test_infinitecable():
     v = mon[N//2-20].v
     # Theory (incorrect near cable ends)
     x = 20*morpho.length[0] * meter
+    la = neuron.space_constant[0]
+    taum = Cm/gL # membrane time constant
     theory = 1./(la*Cm*pi*diameter)*sqrt(taum/(4*pi*(t+defaultclock.dt)))*\
                  exp(-(t+defaultclock.dt)/taum-taum/(4*(t+defaultclock.dt))*(x/la)**2)
     theory = theory*1*nA*0.02*ms
@@ -111,10 +108,6 @@ def test_finitecable():
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
     neuron.v = EL
 
-    rm = 1/(gL * pi * diameter) # membrane resistance per unit length
-    ra = (4 * Ri)/(pi * diameter**2) # axial resistance per unit length
-    la = sqrt(rm/ra) # space length
-
     neuron.I[0]=0.02*nA # injecting at the left end
     net = Network(neuron)
     net.run(100*ms)
@@ -122,6 +115,7 @@ def test_finitecable():
     # Theory
     x = neuron.distance
     v = neuron.v
+    la = neuron.space_constant[0]
     ra = la*4*Ri/(pi*diameter**2)
     theory = EL+ra*neuron.I[0]*cosh((length-x)/la)/sinh(length/la)
     assert_allclose(v-EL, theory-EL, rtol=0.01)
@@ -168,9 +162,8 @@ def test_rall():
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
     neuron.v = EL
 
-    rm = 1/(gL * pi * diameter) # membrane resistance per unit length
-    ra = (4 * Ri)/(pi * diameter**2) # axial resistance per unit length
-    la = sqrt(rm/ra) # space length
+    # Check space constant calculation
+    assert_allclose(la, neuron.space_constant[0])
 
     neuron.I[0]=0.02*nA # injecting at the left end
     run(100*ms)

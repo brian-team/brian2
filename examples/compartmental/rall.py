@@ -45,7 +45,6 @@ neuron.v = EL
 rm = 1/(gL * pi * diameter) # membrane resistance per unit length
 ra = (4 * Ri)/(pi * diameter**2) # axial resistance per unit length
 la = sqrt(rm/ra) # space length
-print "Characteristic length",la
 
 neuron.I[0]=0.02*nA # injecting at the left end
 run(100*ms,report='text')

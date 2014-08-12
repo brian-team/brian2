@@ -182,6 +182,7 @@ class SpatialNeuron(NeuronGroup):
         Ri : ohm*meter (constant, shared)
         space_constant = (diameter/(4*Ri*gtot__private))**.5 : meter # Not so sure about the name
         """)
+        # Possibilities for the name: characteristic_length, electrotonic_length, length_constant, space_constant
 
         NeuronGroup.__init__(self, len(morphology), model=model + eqs_constants,
                              threshold=threshold, refractory=refractory,
