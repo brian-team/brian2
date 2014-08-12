@@ -5,7 +5,7 @@ from brian2 import *
 
 defaultclock.dt = 0.001*ms
 
-#brian_prefs.codegen.target = 'weave' # couldn't this be simpler?
+#brian_prefs.codegen.target = 'weave'
 
 # Morphology
 diameter = 1*um
@@ -27,9 +27,7 @@ neuron.v = EL
 
 taum = Cm/gL # membrane time constant
 print "Time constant",taum
-rm = 1/(gL * pi * diameter) # membrane resistance per unit length
-ra = (4 * Ri)/(pi * diameter**2) # axial resistance per unit length
-la = sqrt(rm/ra) # space length
+la = neuron.space_constant[0]
 print "Characteristic length",la
 
 # Monitors

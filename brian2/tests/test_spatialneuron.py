@@ -164,6 +164,8 @@ def test_rall():
 
     # Check space constant calculation
     assert_allclose(la, neuron.space_constant[0])
+    assert_allclose(l1, neuron.L.space_constant[0])
+    assert_allclose(l2, neuron.R.space_constant[0])
 
     neuron.I[0]=0.02*nA # injecting at the left end
     run(100*ms)
