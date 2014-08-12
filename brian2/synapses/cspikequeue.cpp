@@ -18,6 +18,7 @@ public:
 	unsigned int *delays;
 	int source_start;
 	int source_end;
+    unsigned int openmp_padding;
     vector< vector<int> > synapses;
 
 	CSpikeQueue(int _source_start, int _source_end)
@@ -27,6 +28,7 @@ public:
 		offset = 0;
 		dt = 0.0;
 		delays = NULL;
+        openmp_padding = 0;
 	};
 
     void prepare(scalar *real_delays, int *sources, unsigned int n_synapses,
@@ -60,7 +62,7 @@ public:
         for (unsigned int i=0; i<n_synapses; i++)
         {
             delays[i] =  (int)(real_delays[i] / _dt + 0.5); //round to nearest int
-            synapses[sources[i] - source_start].push_back(i);
+            synapses[sources[i] - source_start].push_back(i + openmp_padding);
         }
 
         dt = _dt;
@@ -97,7 +99,7 @@ public:
 			for(unsigned int idx_indices=0; idx_indices<cur_indices.size(); idx_indices++)
 			{
 				const int synaptic_index = cur_indices[idx_indices];
-				const unsigned int delay = delays[synaptic_index];
+				const unsigned int delay = delays[synaptic_index - openmp_padding];
 				// make sure there is enough space and resize if not
 				ensure_delay(delay);
 				// insert the index into the correct queue

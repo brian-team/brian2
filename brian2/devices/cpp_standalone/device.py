@@ -1,6 +1,7 @@
 '''
 Module implementing the C++ "standalone" device.
 '''
+import numpy
 import os
 import shutil
 import subprocess
@@ -9,11 +10,14 @@ from collections import defaultdict
 
 import numpy as np
 
+import numpy as np
+
 from brian2.core.clocks import defaultclock
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices
 from brian2.core.variables import *
 from brian2.synapses.synapses import Synapses
+from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.generators.cpp_generator import c_data_type
@@ -29,6 +33,18 @@ __all__ = []
 logger = get_logger(__name__)
 
 
+# Preferences
+brian_prefs.register_preferences(
+    'codegen.cpp_standalone',
+    'C++ standalone preferences ',
+    openmp_threads = BrianPreference(
+        default=1,
+        docs='''
+        TO EDIT
+        ''',
+        )
+    )
+
 def freeze(code, ns):
     # this is a bit of a hack, it should be passed to the template somehow
     for k, v in ns.items():
@@ -36,6 +52,11 @@ def freeze(code, ns):
             code = word_substitute(code, {k: str(v)})
         elif (isinstance(v, Variable) and not isinstance(v, AttributeVariable) and
               v.scalar and v.constant and v.read_only):
+            value = v.get_value()
+            if value < 0:
+                string_value = '(%r)' % value
+            else:
+                string_value = '%r' % value
             value = v.get_value()
             if value < 0:
                 string_value = '(%r)' % value
@@ -205,6 +226,11 @@ class CPPStandaloneDevice(Device):
         # treat the array as a static array
         self.static_arrays[array_name] = arr.astype(var.dtype)
 
+    def init_with_array(self, var, arr):
+        array_name = self.get_array_name(var, access_data=False)
+        # treat the array as a static array
+        self.static_arrays[array_name] = arr.astype(var.dtype)
+
     def fill_with_array(self, var, arr):
         arr = np.asarray(arr)
         if arr.shape == ():
@@ -302,7 +328,6 @@ class CPPStandaloneDevice(Device):
                                       'variables in standalone code before the '
                                       'simulation has been run.')
 
-
     def variableview_get_subexpression_with_index_array(self, variableview,
                                                         item, level=0,
                                                         run_namespace=None):
@@ -337,8 +362,7 @@ class CPPStandaloneDevice(Device):
               with_output=True, native=True,
               additional_source_files=None, additional_header_files=None,
               main_includes=None, run_includes=None,
-              run_args=None,
-              ):
+              run_args=None):
         '''
         Build the project
         
@@ -366,6 +390,10 @@ class CPPStandaloneDevice(Device):
             A list of additional header files to include in ``main.cpp``.
         run_includes : list of str
             A list of additional header files to include in ``run.cpp``.
+        n_threads : int, optional
+            Number of threads for OpenMP
+        n_threads : int, optional
+            Number of threads for OpenMP
         '''
         
         if additional_source_files is None:
@@ -380,11 +408,18 @@ class CPPStandaloneDevice(Device):
             run_args = []
         self.project_dir = project_dir
         ensure_directory(project_dir)
+        
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(project_dir, d))
             
         writer = CPPWriter(project_dir)
-            
+        
+        # Get the number of threads if specified in an openmp context
+        nb_threads = brian_prefs.codegen.cpp_standalone.openmp_threads   
+        # If the number is negative, we need to throw an error
+        if (nb_threads < 0):
+            raise ValueError('The number of OpenMP threads can not be negative !') 
+
         logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
 
         arange_arrays = sorted([(var, start)
@@ -422,13 +457,12 @@ class CPPStandaloneDevice(Device):
                         synapses=synapses,
                         clocks=self.clocks,
                         static_array_specs=static_array_specs,
-                        networks=networks,
-                        )
+                        networks=networks)
         writer.write('objects.*', arr_tmp)
 
         main_lines = []
         procedures = [('', main_lines)]
-        runfuncs = {}
+        runfuncs   = {}
         for func, args in self.main_queue:
             if func=='run_code_object':
                 codeobj, = args
@@ -480,6 +514,7 @@ class CPPStandaloneDevice(Device):
         code_object_defs = defaultdict(list)
         for codeobj in self.code_objects.itervalues():
             lines = []
+            lines = []
             for k, v in codeobj.variables.iteritems():
                 if isinstance(v, AttributeVariable):
                     # We assume all attributes are implemented as property-like methods
@@ -508,6 +543,11 @@ class CPPStandaloneDevice(Device):
                 # dictionary -- make sure to never add a line twice
                 if not line in code_object_defs[codeobj.name]:
                     code_object_defs[codeobj.name].append(line)
+            for line in lines:
+                # Sometimes an array is referred to by to different keys in our
+                # dictionary -- make sure to never add a line twice
+                if not line in code_object_defs[codeobj.name]:
+                    code_object_defs[codeobj.name].append(line)
 
         # Generate the code objects
         for codeobj in self.code_objects.itervalues():
@@ -531,6 +571,12 @@ class CPPStandaloneDevice(Device):
                                                           additional_headers=main_includes,
                                                           )
         writer.write('main.cpp', main_tmp)
+
+        main_tmp = CPPStandaloneCodeObject.templater.network(None, None)
+        writer.write('network.*', main_tmp)
+
+        main_tmp = CPPStandaloneCodeObject.templater.synapses_classes(None, None)
+        writer.write('synapses_classes.*', main_tmp)
         
         # Generate the run functions
         run_tmp = CPPStandaloneCodeObject.templater.run(None, None, run_funcs=runfuncs,
@@ -553,6 +599,7 @@ class CPPStandaloneDevice(Device):
         spikequeue_h = os.path.join(project_dir, 'brianlib', 'spikequeue.h')
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'cspikequeue.cpp'),
                      spikequeue_h)
+
         #writer.header_files.append(spikequeue_h)
         
         writer.source_files.extend(additional_source_files)
@@ -664,6 +711,7 @@ class CPPStandaloneDevice(Device):
         for clock, codeobj in code_objects:
             run_lines.append('{net.name}.add(&{clock.name}, _run_{codeobj.name});'.format(clock=clock, net=net,
                                                                                                codeobj=codeobj))
+
         run_lines.append('{net.name}.run({duration}, {report_call}, {report_period});'.format(net=net,
                                                                                               duration=float(duration),
                                                                                               report_call=report_call,

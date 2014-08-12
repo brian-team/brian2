@@ -1,5 +1,8 @@
-#include<stdlib.h>
+#include <stdlib.h>
 #include "objects.h"
+#include <ctime>
+#include <time.h>
+{{ openmp_pragma('include') }}
 #include "run.h"
 
 {% for codeobj in code_objects %}
@@ -16,10 +19,13 @@
 
 int main(int argc, char **argv)
 {
+
 	brian_start();
 
 	{
 		using namespace brian;
+
+		{{ openmp_pragma('set_num_threads') }}
         {{main_lines|autoindent}}
 	}
 
