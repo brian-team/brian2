@@ -740,7 +740,16 @@ class VariableView(object):
         if not self.var_index in ('_idx', '0'):
             self.var_index_variable = group.variables[self.var_index]
 
-        self.group = weakproxy_with_fallback(group)
+        if isinstance(variable, Subexpression):
+            # For subexpressions, we *always* have to go via codegen to get
+            # their value -- since we cannot do this without the group, we
+            # hold a strong reference
+            self.group = group
+        else:
+            # For state variable arrays, we can do most access without the full
+            # group, using the indexing reference below. We therefore only keep
+            # a weak reference to the group.
+            self.group = weakproxy_with_fallback(group)
         self.group_name = group.name
         # We keep a strong reference to the `Indexing` object so that basic
         # indexing is still possible, even if the group no longer exists
