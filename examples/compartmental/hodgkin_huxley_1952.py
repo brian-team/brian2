@@ -1,12 +1,9 @@
 '''
 Hodgkin-Huxley equations (1952)
-Takes about 6.5 s with weave for 1 biological second (just run time).
-
-Conduction velocity is about 12.5 m/s (is it right?)
 '''
 from brian2 import *
 
-brian_prefs.codegen.target = 'weave' # couldn't this be simpler?
+brian_prefs.codegen.target = 'weave'
 
 morpho=Cylinder(length=10*cm, diameter=2*238*um, n=1000, type='axon')
 
