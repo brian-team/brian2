@@ -12,7 +12,6 @@ Usage: ``from brian2.only import *``
 # The units and utils package does not depend on any other Brian package and
 # should be imported first
 from brian2.units import *
-from brian2.units.stdunits import *
 from brian2.utils import *
 from brian2.core.tracking import *
 from brian2.core.names import *

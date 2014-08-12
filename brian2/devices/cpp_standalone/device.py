@@ -66,8 +66,8 @@ class CPPWriter(object):
             if open(fullfilename, 'r').read()==contents:
                 return
         open(fullfilename, 'w').write(contents)
-        
-        
+
+
 def invert_dict(x):
     return dict((v, k) for k, v in x.iteritems())
 
@@ -94,12 +94,15 @@ class CPPStandaloneDevice(Device):
         #: `ArrayVariable` objects to start value)
         self.arange_arrays = {}
 
+        #: Whether the simulation has been run
+        self.has_been_run = False
+
         #: Dict of all static saved arrays
         self.static_arrays = {}
 
         self.code_objects = {}
         self.main_queue = []
-        
+        self.report_func = ''
         self.synapses = []
         
         self.clocks = set([])
@@ -155,17 +158,41 @@ class CPPStandaloneDevice(Device):
         # Note that a dynamic array variable is added to both the arrays and
         # the _dynamic_array dictionary
         if isinstance(var, DynamicArrayVariable):
-            name = '_dynamic_array_%s_%s' % (var.owner.name, var.name)
+            # The code below is slightly more complicated than just looking
+            # for a unique name as above for static_array, the name has
+            # potentially to be unique for more than one dictionary, with
+            # different prefixes. This is because dynamic arrays are added to
+            # a ``dynamic_arrays`` dictionary (with a `_dynamic` prefix) and to
+            # the general ``arrays`` dictionary. We want to make sure that we
+            # use the same name in the two dictionaries, not for example
+            # ``_dynamic_array_source_name_2`` and ``_array_source_name_1``
+            # (this would work fine, but it would make the code harder to read).
+            orig_dynamic_name = dynamic_name = '_dynamic_array_%s_%s' % (var.owner.name, var.name)
+            orig_array_name = array_name = '_array_%s_%s' % (var.owner.name, var.name)
+            suffix = 0
+
             if var.dimensions == 1:
-                self.dynamic_arrays[var] = name
+                dynamic_dict = self.dynamic_arrays
             elif var.dimensions == 2:
-                self.dynamic_arrays_2d[var] = name
+                dynamic_dict = self.dynamic_arrays_2d
             else:
                 raise AssertionError(('Did not expect a dynamic array with %d '
                                       'dimensions.') % var.dimensions)
+            while (dynamic_name in dynamic_dict.values() or
+                   array_name in self.arrays.values()):
+                suffix += 1
+                dynamic_name = orig_dynamic_name + '_%d' % suffix
+                array_name = orig_array_name + '_%d' % suffix
+            dynamic_dict[var] = dynamic_name
+            self.arrays[var] = array_name
+        else:
+            orig_array_name = array_name = '_array_%s_%s' % (var.owner.name, var.name)
+            suffix = 0
+            while (array_name in self.arrays.values()):
+                suffix += 1
+                array_name = orig_array_name + '_%d' % suffix
+            self.arrays[var] = array_name
 
-        name = '_array_%s_%s' % (var.owner.name, var.name)
-        self.arrays[var] = name
 
     def init_with_zeros(self, var):
         self.zero_arrays.append(var)
@@ -233,7 +260,7 @@ class CPPStandaloneDevice(Device):
         # standalone scripts since their values might depend on the evaluation
         # of expressions at runtime. For constant, read-only arrays that have
         # been explicitly initialized (static arrays) or aranges (e.g. the
-        # neuronal indices)
+        # neuronal indices) we can, however
         if var.constant and var.read_only:
             array_name = self.get_array_name(var, access_data=False)
             if array_name in self.static_arrays:
@@ -244,11 +271,41 @@ class CPPStandaloneDevice(Device):
                 raise AssertionError(('Variable %s is constant and read-only '
                                       ' but uninitialized'))
         else:
+            # After the network has been run, we can retrieve the values from
+            # disk
+            if self.has_been_run:
+                dtype = var.dtype
+                array_name = array_name = self.get_array_name(var,
+                                                              access_data=False)
+                fname = os.path.join(self.project_dir, 'results',
+                                     array_name)
+                with open(fname, 'rb') as f:
+                    data = np.fromfile(f, dtype=dtype)
+                # This is a bit of an heuristic, but our 2d dynamic arrays are
+                # only expanding in one dimension, we assume here that the
+                # other dimension has size 0 at the beginning
+                if isinstance(var.size, tuple) and len(var.size) == 2:
+                    if var.size[0] * var.size[1] == len(data):
+                        return data.reshape(var.size)
+                    elif var.size[0] == 0:
+                        return data.reshape((-1, var.size[1]))
+                    elif var.size[0] == 0:
+                        return data.reshape((var.size[1], -1))
+                    else:
+                        raise IndexError(('Do not now how to deal with 2d '
+                                          'array of size %s, the array on disk '
+                                          'has length %d') % (str(var.size),
+                                                              len(data)))
+
+                return data
             raise NotImplementedError('Cannot retrieve the values of state '
-                                      'variables in standalone code.')
+                                      'variables in standalone code before the '
+                                      'simulation has been run.')
 
 
-    def variableview_get_subexpression_with_index_array(self, variableview, item):
+    def variableview_get_subexpression_with_index_array(self, variableview,
+                                                        item, level=0,
+                                                        run_namespace=None):
         raise NotImplementedError(('Cannot evaluate subexpressions in '
                                    'standalone scripts.'))
 
@@ -321,6 +378,7 @@ class CPPStandaloneDevice(Device):
             run_includes = []
         if run_args is None:
             run_args = []
+        self.project_dir = project_dir
         ensure_directory(project_dir)
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(project_dir, d))
@@ -468,6 +526,7 @@ class CPPStandaloneDevice(Device):
         main_tmp = CPPStandaloneCodeObject.templater.main(None, None,
                                                           main_lines=main_lines,
                                                           code_objects=self.code_objects.values(),
+                                                          report_func=self.report_func,
                                                           dt=float(defaultclock.dt),
                                                           additional_headers=main_includes,
                                                           )
@@ -531,10 +590,11 @@ class CPPStandaloneDevice(Device):
                             x = subprocess.call(['./main'] + run_args, stdout=stdout)
                         if x:
                             raise RuntimeError("Project run failed")
+                        self.has_been_run = True
                 else:
                     raise RuntimeError("Project compilation failed")
 
-    def network_run(self, net, duration, report=None, report_period=60*second,
+    def network_run(self, net, duration, report=None, report_period=10*second,
                     namespace=None, level=0):
 
         # We have to use +2 for the level argument here, since this function is
@@ -555,13 +615,59 @@ class CPPStandaloneDevice(Device):
         for obj in net.objects:
             for codeobj in obj._code_objects:
                 code_objects.append((obj.clock, codeobj))
-        
+
+        # Code for a progress reporting function
+        standard_code = '''
+        void report_progress(const double elapsed, const double completed, const double duration)
+        {
+            if (completed == 0.0)
+            {
+                %STREAMNAME% << "Starting simulation for duration " << duration << " s";
+            } else
+            {
+                %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed << " s";
+                if (completed < 1.0)
+                {
+                    const int remaining = (int)((1-completed)/completed*elapsed+0.5);
+                    %STREAMNAME% << ", estimated " << remaining << " s remaining.";
+                }
+            }
+
+            %STREAMNAME% << std::endl << std::flush;
+        }
+        '''
+        if report is None:
+            self.report_func = ''
+        elif report == 'text' or report == 'stdout':
+            self.report_func = standard_code.replace('%STREAMNAME%', 'std::cout')
+        elif report == 'stderr':
+            self.report_func = standard_code.replace('%STREAMNAME%', 'std::cerr')
+        elif isinstance(report, basestring):
+            self.report_func = '''
+            void report_progress(const double elapsed, const double completed, const double duration)
+            {
+            %REPORT%
+            }
+            '''.replace('%REPORT%', report)
+        else:
+            raise TypeError(('report argument has to be either "text", '
+                             '"stdout", "stderr", or the code for a report '
+                             'function'))
+
+        if report is not None:
+            report_call = 'report_progress'
+        else:
+            report_call = 'NULL'
+
         # Generate the updaters
         run_lines = ['{net.name}.clear();'.format(net=net)]
         for clock, codeobj in code_objects:
             run_lines.append('{net.name}.add(&{clock.name}, _run_{codeobj.name});'.format(clock=clock, net=net,
                                                                                                codeobj=codeobj))
-        run_lines.append('{net.name}.run({duration});'.format(net=net, duration=float(duration)))
+        run_lines.append('{net.name}.run({duration}, {report_call}, {report_period});'.format(net=net,
+                                                                                              duration=float(duration),
+                                                                                              report_call=report_call,
+                                                                                              report_period=float(report_period)))
         self.main_queue.append(('run_network', (net, run_lines)))
 
     def run_function(self, name, include_in_parent=True):

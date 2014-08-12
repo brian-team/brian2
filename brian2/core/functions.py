@@ -307,7 +307,7 @@ def make_function(codes=None, namespaces=None, discard_units=None):
     codes : dict-like, optional
         A mapping from `CodeGenerator` or `CodeObject` class objects, or their
         corresponding names (e.g. `'numpy'` or `'weave'`) to codes for the
-        target language. What kind of code the target language expectes is
+        target language. What kind of code the target language expects is
         language-specific, e.g. C++ code has to be provided as a dictionary
         of code blocks.
     namespaces : dict-like, optional
@@ -355,6 +355,11 @@ def make_function(codes=None, namespaces=None, discard_units=None):
             })
         def usersin(x):
             return sin(x)
+            
+    See also
+    --------
+    
+    make_cpp_function, make_weave_function
     '''
     if codes is None:
         codes = {}

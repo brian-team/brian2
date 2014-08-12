@@ -138,9 +138,6 @@ def test_connection_array_standalone():
     tempdir = tempfile.mkdtemp()
     device.build(project_dir=tempdir, compile_project=True, run_project=True,
                  with_output=False)
-    mon_v = np.fromfile(os.path.join(tempdir, 'results',
-                                     '_dynamic_array_mon__recorded_v'),
-                        dtype=np.float64)
     expected = np.array([[1, 1, 1, 1, 1],
                          [0, 0, 0, 0, 0],
                          [0, 1, 1, 1, 1],
@@ -149,7 +146,7 @@ def test_connection_array_standalone():
                          [0, 0, 0, 0, 0],
                          [0, 0, 0, 1, 1],
                          [0, 0, 0, 0, 0]], dtype=np.float64)
-    assert_equal(mon_v.reshape(5, -1).T, expected)
+    assert_equal(mon.v, expected)
 
 
 def test_connection_string_deterministic():
@@ -501,6 +498,23 @@ def test_transmission():
                         target_mon.t[target_mon.i==1] - defaultclock.dt - delay[1])
 
 
+def test_clocks():
+    '''
+    Make sure that a `Synapse` object uses the correct clocks.
+    '''
+    source_clock = Clock(dt=0.05*ms)
+    target_clock = Clock(dt=0.1*ms)
+    synapse_clock = Clock(dt=0.2*ms)
+    source = NeuronGroup(1, 'v:1', clock=source_clock)
+    target = NeuronGroup(1, 'v:1', clock=target_clock)
+    synapse = Synapses(source, target, 'w:1', pre='v+=1', post='v+=1',
+                       clock=synapse_clock, connect=True)
+
+    assert synapse.pre.clock is source_clock
+    assert synapse.post.clock is target_clock
+    assert synapse.clock is synapse_clock
+
+
 def test_changed_dt_spikes_in_queue():
     for codeobj_class in codeobj_classes:
         defaultclock.dt = .5*ms
@@ -718,6 +732,7 @@ if __name__ == '__main__':
     test_subexpression_references()
     test_delay_specification()
     test_transmission()
+    test_clocks()
     test_changed_dt_spikes_in_queue()
     test_summed_variable()
     test_summed_variable_errors()

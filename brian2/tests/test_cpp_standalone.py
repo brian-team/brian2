@@ -9,6 +9,7 @@ from brian2.devices.cpp_standalone import cpp_standalone_device
 
 
 def restore_device():
+    #Network.__instances__().clear()  #TODO
     cpp_standalone_device.reinit()
     set_device('runtime')
     restore_initial_state()
@@ -16,7 +17,6 @@ def restore_device():
 
 @with_setup(teardown=restore_device)
 def test_cpp_standalone(with_output=False):
-    Synapses.__instances__().clear()  # TODO: Shouldn't clear do this?
     set_device('cpp_standalone')
     ##### Define the model
     tau = 1*ms
@@ -47,18 +47,34 @@ def test_cpp_standalone(with_output=False):
         print tempdir
     device.build(project_dir=tempdir, compile_project=True, run_project=True,
                  with_output=with_output)
-    i = numpy.fromfile(os.path.join(tempdir, 'results', '_dynamic_array_spikemonitor_i'),
-                       dtype=numpy.int32)
-    t = numpy.fromfile(os.path.join(tempdir, 'results', '_dynamic_array_spikemonitor_t'),
-                       dtype=numpy.float64)
     # we do an approximate equality here because depending on minor details of how it was compiled, the results
     # may be slightly different (if -ffast-math is on)
-    assert len(i)>=17000 and len(i)<=18000
-    assert len(t)==len(i)
-    assert t[0] == 0.
-    assert t[-1] == float(100*ms - defaultclock.dt)
-    
+    assert len(M.i)>=17000 and len(M.i)<=18000
+    assert len(M.t) == len(M.i)
+    assert M.t[0] == 0.
+    assert M.t[-1] == 100*ms - defaultclock.dt
+
+@with_setup(teardown=restore_device)
+def test_multiple_connects(with_output=False):
+    set_device('cpp_standalone')
+    G = NeuronGroup(10, 'v:1')
+    S = Synapses(G, G, 'w:1')
+    S.connect([0], [0])
+    S.connect([1], [1])
+    tempdir = tempfile.mkdtemp()
+    if with_output:
+        print tempdir
+    device.build(project_dir=tempdir, compile_project=True, run_project=True,
+                 with_output=True)
+    assert len(S) == 2 and len(S.w[:]) == 2
+
+
 if __name__=='__main__':
     # Print the debug output when testing this file only but not when running
     # via nose test
-    test_cpp_standalone(with_output=True)
+    for t in [
+             test_cpp_standalone,
+             test_multiple_connects
+             ]:
+        t(with_output=True)
+        restore_device()

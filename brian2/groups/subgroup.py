@@ -1,5 +1,4 @@
-import weakref
-
+from brian2.core.base import weakproxy_with_fallback
 from brian2.core.spikesource import SpikeSource
 from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
@@ -31,19 +30,18 @@ class Subgroup(Group, SpikeSource):
     * You need to keep a reference to it
     * It makes a copy of the spikes, and there is no direct support for
       subgroups in `Connection` (or rather `Synapses`)
-    
-    TODO: Group state variable access
     '''
     def __init__(self, source, start, stop, name=None):
         # First check if the source is itself a Subgroup
         # If so, then make this a Subgroup of the original Group
-        if isinstance(source,Subgroup):
+        if isinstance(source, Subgroup):
             source = source.source
-            start = start+source.start
-            stop = stop+source.start
-            self.source=source
+            start = start + source.start
+            stop = stop + source.start
+            self.source = source
         else:
-            self.source = weakref.proxy(source)
+            self.source = weakproxy_with_fallback(source)
+
         if name is None:
             name = source.name + '_subgroup*'
         # We want to update the spikes attribute after it has been updated
@@ -78,8 +76,9 @@ class Subgroup(Group, SpikeSource):
 
         for key, value in self.source.variables.indices.iteritems():
             if value not in ('_idx', '0'):
-                raise ValueError(('Do not know how to deal with variable %s using '
-                                  'index %s in a subgroup') % (key, value))
+                raise ValueError(('Do not know how to deal with variable %s '
+                                  'using  index %s in a subgroup') % (key,
+                                                                      value))
 
         self.namespace = self.source.namespace
         self.codeobj_class = self.source.codeobj_class
@@ -87,6 +86,17 @@ class Subgroup(Group, SpikeSource):
         self._enable_group_attributes()
 
     spikes = property(lambda self: self.source.spikes)
+
+    def __getitem__(self, item):
+        if not isinstance(item, slice):
+            raise TypeError('Subgroups can only be constructed using slicing syntax')
+        start, stop, step = item.indices(self._N)
+        if step != 1:
+            raise IndexError('Subgroups have to be contiguous')
+        if start >= stop:
+            raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
+                             (start, stop))
+        return Subgroup(self.source, self.start + start, self.start + stop)
 
     def __len__(self):
         return self._N

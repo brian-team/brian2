@@ -1,7 +1,8 @@
 '''
 Module providing `WeaveCodeObject`.
 '''
-
+import os
+import sys
 import numpy
 
 try:
@@ -15,14 +16,15 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,
                                    Subexpression)
 from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.core.functions import DEFAULT_FUNCTIONS
+from brian2.core.functions import DEFAULT_FUNCTIONS, make_function
 
 from ...codeobject import CodeObject
 from ...templates import Templater
 from ...generators.cpp_generator import CPPCodeGenerator
 from ...targets import codegen_targets
 
-__all__ = ['WeaveCodeObject', 'WeaveCodeGenerator']
+__all__ = ['WeaveCodeObject', 'WeaveCodeGenerator',
+           'make_weave_function']
 
 # Preferences
 brian_prefs.register_preferences(
@@ -44,10 +46,59 @@ brian_prefs.register_preferences(
     include_dirs = BrianPreference(
         default=[],
         docs='''
-        Include directories to use.
+        Include directories to use. Note that ``$prefix/include`` will be
+        appended to the end automatically, where ``$prefix`` is Python's
+        site-specific directory prefix as returned by `sys.prefix`.
         '''
         )
     )
+
+
+def make_weave_function(code, namespace=None, discard_units=None):
+    '''
+    Decorator to provide a Weave-specific implementation of a function.
+    
+    Parameters
+    ----------
+    code : str
+        The weave implementation of the function. The name of the C++ function
+        definition should match the name of the Python decorated function.
+    namespace : dict
+        Dictionary of values that should be accessible to the function.
+    discard_units : bool, optional
+        See documentation for `make_function`
+        
+    Notes
+    -----
+    
+    For more details, see `make_function`.
+    
+    Examples
+    --------
+    Sample usage::
+
+        @make_cpp_function("""
+            #include<math.h>
+            inline double usersin(double x)
+            {
+                return sin(x);
+            }
+            """)
+        def usersin(x):
+            return sin(x)
+
+    See also
+    --------
+    
+    make_function, make_cpp_function
+    '''
+    codes = {'weave':{'support_code':code}}
+    if namespace is not None:
+        namespaces = {'weave': namespace}
+    else:
+        namespaces = None
+    return make_function(codes=codes, namespaces=namespaces,
+                         discard_units=discard_units)
 
 
 def weave_data_type(dtype):
@@ -96,7 +147,8 @@ class WeaveCodeObject(CodeObject):
         super(WeaveCodeObject, self).__init__(owner, code, variables, name=name)
         self.compiler = brian_prefs['codegen.runtime.weave.compiler']
         self.extra_compile_args = brian_prefs['codegen.runtime.weave.extra_compile_args']
-        self.include_dirs = brian_prefs['codegen.runtime.weave.include_dirs']
+        self.include_dirs = list(brian_prefs['codegen.runtime.weave.include_dirs'])
+        self.include_dirs += [os.path.join(sys.prefix, 'include')]
         self.python_code_namespace = {'_owner': owner}
         self.variables_to_namespace()
 

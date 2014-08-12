@@ -131,6 +131,33 @@ def test_user_defined_function():
         assert_equal(np.sin(test_array), mon.func_.flatten())
 
 
+def test_cpp_weave_user_defined_function_convenience_wrappers():
+    for mf in [make_cpp_function, make_weave_function]:
+        @mf("""
+            inline double usersin(double x)
+            {
+                return sin(x);
+            }
+            """)
+        @check_units(x=1, result=1)
+        def usersin(x):
+            return np.sin(x)
+    
+        test_array = np.array([0, 1, 2, 3])
+        for codeobj_class in codeobj_classes:
+            G = NeuronGroup(len(test_array),
+                            '''func = usersin(variable) : 1
+                                      variable : 1''',
+                            codeobj_class=codeobj_class)
+            G.variable = test_array
+            mon = StateMonitor(G, 'func', record=True)
+            net = Network(G, mon)
+            net.run(defaultclock.dt)
+    
+            assert_equal(np.sin(test_array), mon.func_.flatten())
+
+
+
 def test_simple_user_defined_function():
     # Make sure that it's possible to use a Python function directly, without
     # additional wrapping
@@ -340,6 +367,7 @@ if __name__ == '__main__':
     test_constants_values()
     test_math_functions()
     test_user_defined_function()
+    test_cpp_weave_user_defined_function_convenience_wrappers()
     test_simple_user_defined_function()
     test_manual_user_defined_function()
     test_user_defined_function_discarding_units()

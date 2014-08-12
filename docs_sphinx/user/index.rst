@@ -9,7 +9,7 @@ User's guide
    refractoriness
    synapses
    input
-   scheduling
+   running
    functions
    devices
    brian1hears_bridge

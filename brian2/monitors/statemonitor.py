@@ -36,9 +36,9 @@ class StateMonitorView(object):
 
         mon = self.monitor
         if item == 't':
-            return mon.t
+            return Quantity(mon.variables['t'].get_value(), dim=second.dim)
         elif item == 't_':
-            return mon.t_
+            return mon.variables['t'].get_value()
         elif item in mon.record_variables:
             unit = mon.variables[item].unit
             return Quantity(mon.variables['_recorded_'+item].get_value().T[self.indices],
@@ -235,8 +235,11 @@ class StateMonitor(Group, CodeRunner):
         self.needed_variables = recorded_names
         self.template_kwds = template_kwds={'_recorded_variables':
                                             self.recorded_variables}
-        self._N = 0
         self._enable_group_attributes()
+
+    @property
+    def _N(self):
+        return self.variables['t'].get_value().shape[0]
 
     def __len__(self):
         return self._N
@@ -246,7 +249,6 @@ class StateMonitor(Group, CodeRunner):
 
         for var in self.recorded_variables.values():
             var.resize((new_size, self.n_indices))
-        self._N = new_size
 
     def reinit(self):
         raise NotImplementedError()

@@ -627,29 +627,29 @@ class Group(BrianObject):
 
         return resolutions
 
-    def runner(self, code, when=None, name=None):
+    def custom_operation(self, code, when=None, name=None):
         '''
-        Returns a `CodeRunner` that runs abstract code in the groups namespace
+        Returns a `CodeRunner` that runs abstract code in the group's namespace.
 
         Parameters
         ----------
         code : str
             The abstract code to run.
         when : `Scheduler`, optional
-            When to run, by default in the 'start' slot with the same clock as
-            the group.
+            When to run, by default in the 'stateupdate' slot with the same
+            clock as the group.
         name : str, optional
             A unique name, if non is given the name of the group appended with
-            'runner', 'runner_1', etc. will be used. If a name is given
-            explicitly, it will be used as given (i.e. the group name will not
-            be prepended automatically).
+            'custom_operation', 'custom_operation_1', etc. will be used. If a
+            name is given explicitly, it will be used as given (i.e. the group
+            name will not be prepended automatically).
         '''
         when = Scheduler(when)
         if not when.defined_clock:
             when.clock = self.clock
 
         if name is None:
-            name = self.name + '_runner*'
+            name = self.name + '_custom_operation*'
 
         runner = CodeRunner(self, 'stateupdate', code=code, name=name,
                             when=when)
@@ -658,9 +658,9 @@ class Group(BrianObject):
 
 class CodeRunner(BrianObject):
     '''
-    A "runner" that runs a `CodeObject` every timestep and keeps a reference to
-    the `Group`. Used in `NeuronGroup` for `Thresholder`, `Resetter` and
-    `StateUpdater`.
+    A "code runner" that runs a `CodeObject` every timestep and keeps a
+    reference to the `Group`. Used in `NeuronGroup` for `Thresholder`,
+    `Resetter` and `StateUpdater`.
     
     On creation, we try to run the before_run method with an empty additional
     namespace (see `Network.before_run`). If the namespace is already complete

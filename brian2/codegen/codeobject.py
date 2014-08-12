@@ -112,17 +112,29 @@ def check_code_units(code, group, additional_variables=None,
     # subexpressions. For unit checking, we only need to know the units of
     # the subexpressions not what variables they refer to
     _, _, unknown = analyse_identifiers(code, all_variables)
-    try:
-        resolved_namespace = group.resolve_all(unknown,
-                                               level=level+1,
-                                               run_namespace=run_namespace)
-    except KeyError as ex:
-        raise KeyError('Error occured when checking "%s": %s' % (code,
-                                                                 str(ex)))
+
+    resolved_namespace = group.resolve_all(unknown,
+                                           level=level+1,
+                                           run_namespace=run_namespace)
 
     all_variables.update(resolved_namespace)
 
     check_units_statements(code, all_variables)
+
+
+def _error_msg(code, name):
+    '''
+    Little helper function for error messages.
+    '''
+    error_msg = 'Error generating code for code object %s ' % name
+    code_lines = [l for l in code.split('\n') if len(l.strip())]
+    # If the abstract code is only one line, display it in full
+    if len(code_lines) <= 1:
+        error_msg += 'from this abstract code: "%s"\n' % code_lines[0]
+    else:
+        error_msg += ('from %d lines of abstract code, first line is: '
+                      '"%s"\n') % (len(code_lines), code_lines[0])
+    return error_msg
 
 
 def create_runner_codeobj(group, code, template_name,
@@ -174,7 +186,13 @@ def create_runner_codeobj(group, code, template_name,
         A list of variable names which are used as conditions (e.g. for
         refractoriness) which should be ignored.
     '''
-    
+
+    if name is None:
+        if group is not None:
+            name = '%s_%s_codeobject*' % (group.name, template_name)
+        else:
+            name = '%s_codeobject*' % template_name
+
     if isinstance(code, str):
         code = {None: code}
     msg = 'Creating code object (group=%s, template name=%s) for abstract code:\n' % (group.name, template_name)
@@ -190,10 +208,15 @@ def create_runner_codeobj(group, code, template_name,
 
     if check_units:
         for c in code.values():
-            check_code_units(c, group,
-                             additional_variables=additional_variables,
-                             level=level+1,
-                             run_namespace=run_namespace)
+            # This is the first time that the code is parsed, catch errors
+            try:
+                check_code_units(c, group,
+                                 additional_variables=additional_variables,
+                                 level=level+1,
+                                 run_namespace=run_namespace)
+            except (SyntaxError, KeyError, ValueError) as ex:
+                error_msg = _error_msg(c, name)
+                raise ValueError(error_msg + ex.message)
 
     codeobj_class = device.code_object_class(group.codeobj_class)
     template = getattr(codeobj_class.templater, template_name)
@@ -245,12 +268,6 @@ def create_runner_codeobj(group, code, template_name,
                                        run_namespace=run_namespace,
                                        level=level+1,
                                        do_warn=False))  # no warnings for internally used variables
-
-    if name is None:
-        if group is not None:
-            name = '%s_%s_codeobject*' % (group.name, template_name)
-        else:
-            name = '%s_codeobject*' % template_name
 
     all_variable_indices = copy.copy(group.variables.indices)
     if additional_variables is not None:

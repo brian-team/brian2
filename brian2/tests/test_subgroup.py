@@ -93,6 +93,16 @@ def test_state_monitor():
         assert_raises(IndexError, lambda: mon_all[5])
 
 
+def test_shared_variable():
+    '''Make sure that shared variables work with subgroups'''
+    for codeobj_class in codeobj_classes:
+        G = NeuronGroup(10, 'v : volt (shared)',
+                        codeobj_class=codeobj_class)
+        G.v = 1*volt
+        SG = G[5:]
+        assert SG.v == 1*volt
+
+
 def test_synapse_creation():
     for codeobj_class in codeobj_classes:
         G1 = NeuronGroup(10, 'v:1', codeobj_class=codeobj_class)
@@ -302,11 +312,24 @@ def test_no_reference_4():
         assert_equal(np.asarray(G2.v).flatten(), expected)
 
 
+def test_recursive_subgroup():
+    '''
+    Create a subgroup of a subgroup
+    '''
+    G = NeuronGroup(10, 'v : 1')
+    G.v = 'i'
+    SG = G[3:8]
+    SG2 = SG[2:4]
+    assert_equal(SG2.v[:], np.array([5, 6]))
+    assert_equal(SG2.v[:], SG.v[2:4])
+    assert SG2.source.name == G.name
+
 if __name__ == '__main__':
     test_str_repr()
     test_state_variables()
     test_state_variables_string_indices()
     test_state_monitor()
+    test_shared_variable()
     test_synapse_creation()
     test_synapse_access()
     test_subexpression_references()
@@ -317,3 +340,4 @@ if __name__ == '__main__':
     test_no_reference_2()
     test_no_reference_3()
     test_no_reference_4()
+    test_recursive_subgroup()
