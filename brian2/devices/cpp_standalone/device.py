@@ -38,9 +38,11 @@ brian_prefs.register_preferences(
     'codegen.cpp_standalone',
     'C++ standalone preferences ',
     openmp_threads = BrianPreference(
-        default=1,
+        default=0,
         docs='''
-        TO EDIT
+        The number of threads to use if OpenMP is turned on. By default, this value is set to 0 and the C++ code
+        is generated without any reference to OpenMP. If greater than 0, then the corresponding number of threads
+        are used to launch the simulation.
         ''',
         )
     )

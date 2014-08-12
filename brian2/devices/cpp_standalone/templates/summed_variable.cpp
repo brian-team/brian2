@@ -14,12 +14,16 @@
 	    {{_target_var_array}}[_target_idx] = 0.0;
 	}
 
+	// scalar code
+	const int _vectorisation_idx = -1;
+	{{scalar_code|autoindent}}
+
 	{{ openmp_pragma('static') }}
 	for(int _idx=0; _idx<_num_synaptic_post; _idx++)
 	{
-		{% for line in code_lines %}
-		{{line}}
-		{% endfor %}
+		// vector code
+	    const int _vectorisation_idx = _idx;
+        {{vector_code|autoindent}}
 		_local_sum[{{_synaptic_post}}[_idx]] += _synaptic_var;
 	}
 
