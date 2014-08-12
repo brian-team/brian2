@@ -28,9 +28,4 @@
 		{{ openmp_pragma('atomic') }}
 	    {{_target_var_array}}[_target_idx] += _local_sum[_target_idx];	
 	}
-
-
-
-
-
 {% endblock %}
