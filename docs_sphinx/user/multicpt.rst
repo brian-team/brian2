@@ -68,7 +68,7 @@ Finally there is a special shorter syntax for quickly creating trees, using ``L`
 
 These instructions create a dendritic tree with two main branches, 3 subbranches on the first branch and
 2 on the second branch. After these instructions are executed, ``morpho.L`` contains the entire subtree. To
-retrieve only the primary branch of this subtree, use the ``main` attribute::
+retrieve only the primary branch of this subtree, use the ``main`` attribute::
 
     mainbranch = morpho.L.main
 
@@ -91,7 +91,7 @@ each compartment::
 
     morpho.axon = Morphology(n = 5)
     morpho.axon.diameter = ones(5) * 1 * um
-    morpho.axon.length = [1 * um, 2 * um, 1 * um, 3 * um, 1 * um]
+    morpho.axon.length = [1, 2, 1, 3, 1] * um
     morpho.axon.set_coordinates()
     morpho.axon.set_area()
 
@@ -107,7 +107,7 @@ Creating a spatially extended neuron
 
 A `SpatialNeuron` is a spatially extended neuron. It is created by specifying the morphology as a
 `Morphology` object, the equations for transmembrane currents, and optionally the specific membrane capacitance
-`Cm` and intracellular resistivity `Ri`::
+``Cm`` and intracellular resistivity ``Ri``::
 
     gL=1e-4*siemens/cm**2
     EL=-70*mV
@@ -131,7 +131,7 @@ The key state variable, which must be specified at construction, is ``Im``. It i
 expressed in units of current per area. This is a mandatory line in the definition of the model. The rest of the
 string description may include other state variables (differential equations or subexpressions)
 or parameters, exactly as in `NeuronGroup`. At every timestep, Brian integrates the state variables, calculates the
-transmembrane current at every point on the neuronal morphology, and updates `v` using the transmembrane current and
+transmembrane current at every point on the neuronal morphology, and updates ``v`` using the transmembrane current and
 the diffusion current, which is calculated based on the morphology and the intracellular resistivity.
 Note that the transmembrane current is a surfacic current, not the total current in the compartement.
 This choice means that the model equations are independent of the number of compartments chosen for the simulation.
@@ -207,9 +207,9 @@ The second method, which works in such cases, is to have synaptic equations in t
     S = Synapses(stimulation,neuron,model='''dg/dt = -g/taus : siemens
                                              gs_post = g : siemens (summed)''',pre = 'g += w')
 
-Here each synapse (instead of each compartment) has an associated value `g`, and all values of
-`g` for each compartment (i.e., all synapses targeting that compartment) are collected
-into the compartmental variable `gs`.
+Here each synapse (instead of each compartment) has an associated value ``g``, and all values of
+``g`` for each compartment (i.e., all synapses targeting that compartment) are collected
+into the compartmental variable ``gs``.
 
 Detecting spikes
 ----------------
