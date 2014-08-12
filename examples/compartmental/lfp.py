@@ -54,6 +54,7 @@ S = Synapses(neuron,lfp,model='''w : ohm*meter**2 (constant) # Weight in the LFP
 S.w = 'area_pre/(4*pi*sigma)/((x_pre-x_post)**2+(y_pre-y_post)**2+(z_pre-z_post)**2)**.5'
 ##### Missing here: capacitive current (should be C*dv/dt - Im rather than Im)
 ##### Expose it somehow?
+### Also add coordinates of electrodes
 
 run(50*ms,report='text')
 neuron.I[0]=1 * uA # current injection at one end
