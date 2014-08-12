@@ -307,7 +307,7 @@ class Group(BrianObject):
         # called yet.
         if name=='_group_attribute_access_active':
             raise AttributeError
-        if not hasattr(self, '_group_attribute_access_active'):
+        if not '_group_attribute_access_active' in self.__dict__:
             raise AttributeError
         
         # We want to make sure that accessing variables without units is fast

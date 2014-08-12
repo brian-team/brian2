@@ -1,4 +1,5 @@
 import collections
+import numbers
 
 import numpy as np
 
@@ -160,7 +161,7 @@ class StateMonitor(Group, CodeRunner):
             record = np.arange(len(source), dtype=np.int32)
         elif record is None or record is False:
             record = np.array([], dtype=np.int32)
-        elif isinstance(record, int):
+        elif isinstance(record, numbers.Number):
             record = np.array([record], dtype=np.int32)
         else:
             record = np.asarray(record, dtype=np.int32)
