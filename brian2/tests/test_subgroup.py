@@ -204,6 +204,45 @@ def test_subexpression_references():
     assert_equal(S3.v[:], np.arange(5)*2+1)
 
 
+def test_subexpression_no_references():
+    '''
+    Assure that subexpressions  are handled correctly, even
+    when the subgroups are created on-the-fly.
+    '''
+    G = NeuronGroup(10, '''v : 1
+                           v2 = 2*v : 1''')
+    G.v = np.arange(10)
+
+    assert_equal(G[5:].v2, np.arange(5, 10)*2)
+
+    S1 = Synapses(G[:5], G[5:], '''w : 1
+                          u = v2_post + 1 : 1
+                          v = v2_pre + 1 : 1''')
+    S1.connect('i==(5-1-j)')
+    assert_equal(S1.i[:], np.arange(5))
+    assert_equal(S1.j[:], np.arange(5)[::-1])
+    assert_equal(S1.u[:], np.arange(10)[:-6:-1]*2+1)
+    assert_equal(S1.v[:], np.arange(5)*2+1)
+
+    S2 = Synapses(G, G[5:], '''w : 1
+                             u = v2_post + 1 : 1
+                             v = v2_pre + 1 : 1''')
+    S2.connect('i==(5-1-j)')
+    assert_equal(S2.i[:], np.arange(5))
+    assert_equal(S2.j[:], np.arange(5)[::-1])
+    assert_equal(S2.u[:], np.arange(10)[:-6:-1]*2+1)
+    assert_equal(S2.v[:], np.arange(5)*2+1)
+
+    S3 = Synapses(G[:5], G, '''w : 1
+                             u = v2_post + 1 : 1
+                             v = v2_pre + 1 : 1''')
+    S3.connect('i==(10-1-j)')
+    assert_equal(S3.i[:], np.arange(5))
+    assert_equal(S3.j[:], np.arange(10)[:-6:-1])
+    assert_equal(S3.u[:], np.arange(10)[:-6:-1]*2+1)
+    assert_equal(S3.v[:], np.arange(5)*2+1)
+
+
 def test_synaptic_propagation():
     for codeobj_class in codeobj_classes:
         G1 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0',
@@ -333,6 +372,7 @@ if __name__ == '__main__':
     test_synapse_creation()
     test_synapse_access()
     test_subexpression_references()
+    test_subexpression_no_references()
     test_synaptic_propagation()
     test_spike_monitor()
     test_wrong_indexing()
