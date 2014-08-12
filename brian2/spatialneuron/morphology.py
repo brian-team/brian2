@@ -31,9 +31,9 @@ class Morphology(object):
 
     Parameters
     ----------
-    filename: str, optional
+    filename : str, optional
         The name of a swc file defining the morphology.
-        If not specified, makes a segment (if n is specified) or an empty morphology.
+        If not specified, makes a segment (if `n` is specified) or an empty morphology.
     n : int, optional
         Number of compartments.
     '''
@@ -106,15 +106,16 @@ class Morphology(object):
         The format of an SWC file is fairly simple. It is a text file consisting of a header with various fields beginning with a # character, and a series of three dimensional points containing an index, radius, type, and connectivity information. The lines in the text file representing points have the following layout. 
         n T x y z R P
         n is an integer label that identifies the current point and increments by one from one line to the next.
-        T is an integer representing the type of neuronal segment, such as soma, axon, apical dendrite, etc. The standard accepted integer values are given below.
-            * 0 = undefined
-            * 1 = soma
-            * 2 = axon
-            * 3 = dendrite
-            * 4 = apical dendrite
-            * 5 = fork point
-            * 6 = end point
-            * 7 = custom
+        T is an integer representing the type of neuronal segment, such as soma, axon, apical dendrite, etc. The standard accepted integer values are given below:
+        * 0 = undefined
+        * 1 = soma
+        * 2 = axon
+        * 3 = dendrite
+        * 4 = apical dendrite
+        * 5 = fork point
+        * 6 = end point
+        * 7 = custom
+
         x, y, z gives the cartesian coordinates of each node.
         R is the radius at that node.
         P indicates the parent (the integer label) of the current point or -1 to indicate an origin (soma). 
@@ -156,21 +157,20 @@ class Morphology(object):
         # We assume that the first segment is the root
         self.create_from_segments(segment)
 
-    def create_from_segments(self, segment, origin=0):
+    def create_from_segments(self, segments, origin=0):
         """
         Recursively create the morphology from a list of segments.
-        Each segment has attributes: x,y,z,diameter,area,length (vectors)
+        Each segments has attributes: x,y,z,diameter,area,length (vectors)
         and children (list).
         It also creates a dictionary of names (_namedkid).
         """
         n = origin
-        if segment[origin][
-            'T'] != 'soma':  # if it's a soma, only one compartment
-            while (len(segment[n]['children']) == 1) and (
-                segment[n]['T'] != 'soma'):  # Go to the end of the branch
+        if segments[origin]['T'] != 'soma':  # if it's a soma, only one compartment
+            while (len(segments[n]['children']) == 1) and (
+                segments[n]['T'] != 'soma'):  # Go to the end of the branch
                 n += 1
         # End of branch
-        branch = segment[origin:n + 1]
+        branch = segments[origin:n + 1]
         # Set attributes
         self.diameter, self.length, self.area, self.x, self.y, self.z = \
             zip(*[(seg['diameter'], seg['length'], seg['area'], seg['x'],
@@ -179,12 +179,12 @@ class Morphology(object):
          self.x, self.y, self.z) = (array(self.diameter), array(self.length),
                                     array(self.area), array(self.x),
                                     array(self.y), array(self.z))
-        self.type = segment[n]['T']  # normally same type for all compartments
+        self.type = segments[n]['T']  # normally same type for all compartments
                                      # in the branch
         self.set_distance()
         # Create children (list)
-        self.children = [Morphology().create_from_segments(segment, origin=c)
-                         for c in segment[n]['children']]
+        self.children = [Morphology().create_from_segments(segments, origin=c)
+                         for c in segments[n]['children']]
         # Create dictionary of names (enumerates children from number 1)
         for i, child in enumerate(self.children):
             self._namedkid[str(i + 1)] = child
@@ -218,9 +218,9 @@ class Morphology(object):
     def compartment(self, x, local=False):
         '''
         Returns compartment index. Example:
-        i = morpho.index(10*um)
+        ``i = morpho.index(10*um)``
 
-        If local is True, the compartment index is relative to the current
+        If `local` is ``True``, the compartment index is relative to the current
         branch, otherwise it is an absolute index.
         '''
         # Note: distance gives the distance to soma of the end of the compartment
@@ -241,9 +241,9 @@ class Morphology(object):
     def compartments(self, x, y, local=False):
         '''
         Returns compartment indices. Example:
-        cpt_list = morpho.indices(10*um,30*um)
+        ``cpt_list = morpho.indices(10*um, 30*um)``
 
-        If local is True, the compartment index is relative to the current
+        If `local` is ``True``, the compartment index is relative to the current
         branch, otherwise it is an absolute index.
         '''
         return arange(self.compartment(x, local), self.compartment(y, local))
@@ -263,10 +263,10 @@ class Morphology(object):
     def __getitem__(self, x):
         """
         Returns the subtree named x.
-        Ex.: neuron['axon'] or neuron['11213']
-        neuron[10*um:20*um] returns the subbranch from 10 um to 20 um.
-        neuron[10*um] returns one compartment.
-        neuron[5] returns compartment number 5.
+        Ex.: ```neuron['axon']``` or ```neuron['11213']```
+        ```neuron[10*um:20*um]``` returns the subbranch from 10 um to 20 um.
+        ```neuron[10*um]``` returns one compartment.
+        ```neuron[5]``` returns compartment number 5.
         
         TODO:
         neuron[:] should return the full branch.
@@ -313,7 +313,7 @@ class Morphology(object):
     def __setitem__(self, x, kid):
         """
         Inserts the subtree and name it x.
-        Ex.: neuron['axon'] or neuron['11213']
+        Ex.: ``neuron['axon']`` or ``neuron['11213']``
         If the tree already exists with another name, then it creates a synonym
         for this tree.
         The coordinates of the subtree are relative before function call,
@@ -340,7 +340,7 @@ class Morphology(object):
 
     def __delitem__(self, x):
         """
-        Removes the subtree x.
+        Removes the subtree `x`.
         """
         x = str(x)  # convert int to string
         if (len(x) > 1) and all([c in 'LR123456789' for c in x]):
@@ -359,8 +359,8 @@ class Morphology(object):
 
     def __getattr__(self, x):
         """
-        Returns the subtree named x.
-        Ex.: axon=neuron.axon
+        Returns the subtree named `x`.
+        Ex.: ``axon=neuron.axon``
         """
         if x.startswith('_'):
             return super(object, self).__getattr__(x)
@@ -369,10 +369,10 @@ class Morphology(object):
 
     def __setattr__(self, x, kid):
         """
-        Attach a subtree and named it x. If the subtree is None then the
-        subtree x is deleted.
-        Ex.: neuron.axon=Soma(diameter=10*um)
-        Ex.: neuron.axon=None
+        Attach a subtree and name it `x`. If the subtree is ``None`` then the
+        subtree `x` is deleted.
+        Ex.: ``neuron.axon = Soma(diameter=10*um)``
+        Ex.: ``neuron.axon = None``
         """
         if isinstance(kid, Morphology):
             if kid is None:
@@ -426,8 +426,14 @@ class Morphology(object):
     def plot(self, axes=None, simple=True, origin=None):
         """
         Plots the morphology in 3D. Units are um.
-        axes : the figure axes (new figure if not given)
-        simple : if True, the diameter of branches is ignored
+
+        Parameters
+        ----------
+        axes : `Axes3D`
+            the figure axes (new figure if not given)
+        simple : bool, optional
+            if ``True``, the diameter of branches is ignored
+            (defaults to ``True``)
         """
         if axes is None:  # new figure
             fig = figure()

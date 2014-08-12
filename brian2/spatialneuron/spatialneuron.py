@@ -63,7 +63,7 @@ class SpatialNeuron(NeuronGroup):
         after each spike (e.g. ``'(1 + rand())*ms'``), or a string expression
         evaluating to a boolean value, given the condition under which the
         neuron stays refractory after a spike (e.g. ``'v > -20*mV'``)
-    namespace: dict, optional
+    namespace : dict, optional
         A dictionary mapping variable/function names to the respective objects.
         If no `namespace` is given, the "implicit" namespace, consisting of
         the local and global namespace surrounding the creation of the class,
@@ -227,7 +227,7 @@ class SpatialNeuron(NeuronGroup):
     @staticmethod
     def spatialneuron_attribute(neuron, x):
         '''
-        Selects a subtree from `SpatialNeuron` neuron and returns a `SpatialSubGroup`.
+        Selects a subtree from `SpatialNeuron` neuron and returns a `SpatialSubgroup`.
         If it does not exist, returns the `Group` attribute.
         '''
         if x == 'main':  # Main segment, without the subtrees
