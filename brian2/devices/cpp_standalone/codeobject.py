@@ -44,6 +44,8 @@ def openmp_pragma(pragma_type):
         return '#pragma omp for schedule(static)'
     elif pragma_type == 'single':
         return '#pragma omp single' 
+    elif pragma_type == 'critical':
+        return '#pragma omp critical' 
     elif pragma_type == 'atomic':
         return '#pragma omp atomic'
     elif pragma_type == 'once':

@@ -25,7 +25,7 @@ from brian2.units.fundamentalunits import Quantity, have_same_dimensions
 from brian2.units import second
 from brian2.utils.logger import get_logger
 
-from .codeobject import CPPStandaloneCodeObject
+from .codeobject import CPPStandaloneCodeObject, openmp_pragma
 
 
 __all__ = []
@@ -475,21 +475,23 @@ class CPPStandaloneDevice(Device):
             elif func=='set_by_array':
                 arrayname, staticarrayname = args
                 code = '''
+                {pragma}
                 for(int i=0; i<_num_{staticarrayname}; i++)
                 {{
                     {arrayname}[i] = {staticarrayname}[i];
                 }}
-                '''.format(arrayname=arrayname, staticarrayname=staticarrayname)
+                '''.format(arrayname=arrayname, staticarrayname=staticarrayname, pragma=openmp_pragma('static'))
                 main_lines.extend(code.split('\n'))
             elif func=='set_array_by_array':
                 arrayname, staticarrayname_index, staticarrayname_value = args
                 code = '''
+                {pragma}
                 for(int i=0; i<_num_{staticarrayname_index}; i++)
                 {{
                     {arrayname}[{staticarrayname_index}[i]] = {staticarrayname_value}[i];
                 }}
                 '''.format(arrayname=arrayname, staticarrayname_index=staticarrayname_index,
-                           staticarrayname_value=staticarrayname_value)
+                           staticarrayname_value=staticarrayname_value, pragma=openmp_pragma('static'))
                 main_lines.extend(code.split('\n'))
             elif func=='insert_code':
                 main_lines.append(args)
