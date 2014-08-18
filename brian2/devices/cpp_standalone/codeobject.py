@@ -52,6 +52,10 @@ def openmp_pragma(pragma_type):
         return '#pragma once'
     elif pragma_type == 'parallel-static':
         return '#pragma omp parallel for schedule(static)'
+    elif pragma_type == 'static-ordered':
+        return '#pragma omp for schedule(static) ordered'    
+    elif pragma_type == 'ordered':
+        return '#pragma omp ordered'
     elif pragma_type == 'include':
         return '#include <omp.h>'
     elif pragma_type == 'parallel':
