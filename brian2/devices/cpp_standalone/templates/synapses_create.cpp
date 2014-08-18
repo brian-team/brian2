@@ -8,9 +8,6 @@
     const int _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
 	
-    std::vector<int32_t> _local_pre;
-	std::vector<int32_t> _local_post;
-
     for(int _i=0; _i<_num_all_pre; _i++)
 	{
 		for(int _j=0; _j<_num_all_post; _j++)

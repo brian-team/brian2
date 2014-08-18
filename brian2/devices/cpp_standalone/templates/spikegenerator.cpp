@@ -11,10 +11,18 @@
     const unsigned int _stop_idx = std::upper_bound({{spike_time}},
                                                     {{spike_time}} + _numspike_time,
                                                     t) - {{spike_time}};
+    
+    long _nb_spikes = _stop_idx - _start_idx;
+    long _padding   = {{ openmp_pragma('get_thread_num') }}*(_nb_spikes/{{ openmp_pragma('get_num_threads') }});
+    long     _count = 0;
 
-	for(int _idx=_start_idx; _idx<_stop_idx; _idx++)
-	{
-        {{_spikespace}}[_cpp_numspikes++] = {{neuron_index}}[_idx];
-	}
-	{{_spikespace}}[N] = _cpp_numspikes;
+    {{ openmp_pragma('static') }}
+    for(int _idx=_start_idx; _idx<_stop_idx; _idx++)
+    {
+        {{_spikespace}}[_padding + _count] = {{neuron_index}}[_idx];
+        _count++;
+    }
+
+    {{_spikespace}}[N] = _nb_spikes;
+
 {% endblock %}

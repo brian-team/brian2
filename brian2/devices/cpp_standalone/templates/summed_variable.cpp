@@ -27,7 +27,6 @@
 		_local_sum[{{_synaptic_post}}[_idx]] += _synaptic_var;
 	}
 
-	{{ openmp_pragma('static') }}
 	for (int _target_idx=0; _target_idx<N_post; _target_idx++)
 	{
 		{{ openmp_pragma('atomic') }}
