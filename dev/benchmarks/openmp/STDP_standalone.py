@@ -59,7 +59,7 @@ start_time   = time.time()
 
 net = Network(input, neurons, S, state_mon, spike_mon_1, spike_mon_2, name='stdp_net')
 
-net.run(10 * second)
+net.run(5 * second, report='text')
 
 if standalone == 1:
     device.build(project_dir='data_stdp_%d' %n_threads, compile_project=True, run_project=True, debug=False)

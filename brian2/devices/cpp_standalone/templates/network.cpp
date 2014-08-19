@@ -33,13 +33,8 @@ void Network::run(const double duration, void (*report_func)(const double, const
 	compute_clocks();
 	// set interval for all clocks
 
-	{{ openmp_pragma('single') }}
-	{
-		for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
-		{
-			(*i)->set_interval(t, t_end);
-		}
-	}
+	for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
+		(*i)->set_interval(t, t_end);
 
 	start = std::clock();
 	if (report_func)
@@ -55,7 +50,7 @@ void Network::run(const double duration, void (*report_func)(const double, const
 		{
 			for(int i=0; i<objects.size(); i++)
 			{
-				{{ openmp_pragma('single') }}
+				{{ openmp_pragma('single-nowait') }}
 				{
 					if (report_func)
 		            {
@@ -80,13 +75,11 @@ void Network::run(const double duration, void (*report_func)(const double, const
 			{{ openmp_pragma('single') }}
 			{
 				for(std::set<Clock*>::iterator i=curclocks.begin(); i!=curclocks.end(); i++)
-				{
 					(*i)->tick();
-				}
 			}
 			clock = next_clocks();
 		}
-		{{ openmp_pragma('single') }}
+		{{ openmp_pragma('single-nowait') }}
 		{
 			if (report_func)
 			{

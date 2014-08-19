@@ -67,6 +67,6 @@ spike_mon = SpikeMonitor(P)
 state_mon = StateMonitor(S, 'w', record=range(10), when=Clock(dt=0.1*second))
 v_mon     = StateMonitor(P, 'v', record=range(10))
 
-run(1 * second)
+run(5 * second, report='text')
 if standalone == 1:
     device.build(project_dir='data_example_%d' %n_threads, compile_project=True, run_project=True, debug=False)

@@ -9,7 +9,7 @@
     // We assume that spikes are ordered
     int _start_idx = 0;
     int _end_idx = - 1;
-    {{ openmp_pragma('single') }}
+    {{ openmp_pragma('single-nowait') }}
     {
         for(int _j=0; _j<_num_spikes; _j++)
         {

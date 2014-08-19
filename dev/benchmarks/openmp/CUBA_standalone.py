@@ -56,6 +56,6 @@ spike_mon = SpikeMonitor(P)
 
 net = Network(P, Se, Si, spike_mon, name='stdp_net')
 
-net.run(5 * second)
+net.run(10 * second, report='text')
 if standalone == 1:
     device.build(project_dir='data_cuba_%d' %n_threads, compile_project=True, run_project=True, debug=False)
