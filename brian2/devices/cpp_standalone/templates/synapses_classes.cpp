@@ -53,13 +53,17 @@ public:
 
 	vector<DTYPE_int>* peek()
     {
-    	{{ openmp_pragma('single') }}
-    	{
-    		all_peek.clear();
-    		for (int _idx=0; _idx < _nb_threads; _idx++)
-    			all_peek.insert(all_peek.end(), queue[_idx]->peek()->begin(), queue[_idx]->peek()->end());
+    	{{ openmp_pragma('static-ordered') }}
+		for(int _thread=0; _thread < {{ openmp_pragma('get_num_threads') }}; _thread++)
+		{
+			{{ openmp_pragma('ordered') }}
+			{
+    			if (_thread == 0)
+					all_peek.clear();
+				all_peek.insert(all_peek.end(), queue[_thread]->peek()->begin(), queue[_thread]->peek()->end());
+    		}
     	}
-        
+   
     	return &all_peek;
     }
 

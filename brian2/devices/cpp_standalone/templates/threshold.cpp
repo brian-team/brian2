@@ -10,8 +10,8 @@
 	const int _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
 
-	int _padding   = {{ openmp_pragma('get_thread_num') }}*(N/{{ openmp_pragma('get_num_threads') }});
-    int     _count = 0;
+	const int _padding = {{ openmp_pragma('get_thread_num') }}*(N/{{ openmp_pragma('get_num_threads') }});
+    int         _count = 0;
 	
 	{{ openmp_pragma('static') }}		
 	for(int _idx=0; _idx<N; _idx++)

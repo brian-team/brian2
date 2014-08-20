@@ -12,9 +12,9 @@
                                                     {{spike_time}} + _numspike_time,
                                                     t) - {{spike_time}};
     
-    long _nb_spikes = _stop_idx - _start_idx;
-    long _padding   = {{ openmp_pragma('get_thread_num') }}*(_nb_spikes/{{ openmp_pragma('get_num_threads') }});
-    long     _count = 0;
+    const long _nb_spikes = _stop_idx - _start_idx;
+    const long _padding   = {{ openmp_pragma('get_thread_num') }}*(_nb_spikes/{{ openmp_pragma('get_num_threads') }});
+    long           _count = 0;
 
     {{ openmp_pragma('static') }}
     for(int _idx=_start_idx; _idx<_stop_idx; _idx++)
