@@ -150,7 +150,7 @@ def test_cpp_weave_user_defined_function_convenience_wrappers():
             G.variable = test_array
             mon = StateMonitor(G, 'func', record=True)
             net = Network(G, mon)
-            net.run(defaultclock.dt)
+            net.run(brian_prefs.core.default_dt)
     
             assert_equal(np.sin(test_array), mon.func_.flatten())
 

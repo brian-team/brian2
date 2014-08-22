@@ -174,8 +174,8 @@ def test_rate_monitor():
 
 def test_rate_monitor_subgroups():
     target_before = brian_prefs.codegen.target
-    old_dt = defaultclock.dt
-    defaultclock.dt = 0.01*ms
+    old_dt = brian_prefs.core.default_dt
+    brian_prefs.core.default_dt = 0.01*ms
     for target in targets:
         brian_prefs.codegen.target = target
         G = NeuronGroup(4, '''dv/dt = rate : 1
@@ -192,7 +192,7 @@ def test_rate_monitor_subgroups():
         assert_allclose(mean(G.rate[2:]), mean(rate_2.rate[:]))
 
     brian_prefs.codegen.target = target_before
-    defaultclock.dt = old_dt
+    brian_prefs.core.default_dt = old_dt
 
 
 if __name__ == '__main__':

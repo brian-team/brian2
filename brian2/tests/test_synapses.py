@@ -502,17 +502,17 @@ def test_clocks():
     '''
     Make sure that a `Synapse` object uses the correct clocks.
     '''
-    source_clock = Clock(dt=0.05*ms)
-    target_clock = Clock(dt=0.1*ms)
-    synapse_clock = Clock(dt=0.2*ms)
-    source = NeuronGroup(1, 'v:1', clock=source_clock)
-    target = NeuronGroup(1, 'v:1', clock=target_clock)
+    source_dt = 0.05*ms
+    target_dt = 0.1*ms
+    synapse_dt = 0.2*ms
+    source = NeuronGroup(1, 'v:1', dt=source_dt)
+    target = NeuronGroup(1, 'v:1', dt=target_dt)
     synapse = Synapses(source, target, 'w:1', pre='v+=1', post='v+=1',
-                       clock=synapse_clock, connect=True)
+                       dt=synapse_dt, connect=True)
 
-    assert synapse.pre.clock is source_clock
-    assert synapse.post.clock is target_clock
-    assert synapse.clock is synapse_clock
+    assert synapse.pre.dt == float(source_dt)
+    assert synapse.post.dt == float(target_dt)
+    assert synapse.dt == float(synapse_dt)
 
 
 def test_changed_dt_spikes_in_queue():

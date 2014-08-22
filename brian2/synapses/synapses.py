@@ -141,7 +141,7 @@ class SynapticPathway(CodeRunner, Group):
         CodeRunner.__init__(self, synapses,
                             'synapses',
                             code=code,
-                            dt=None if synapses.dt is None else synapses.dt*second,
+                            dt=None if self.source.dt is None else self.source.dt*second,
                             when='synapses',
                             order=0,
                             name=synapses.name + '_' + objname,
