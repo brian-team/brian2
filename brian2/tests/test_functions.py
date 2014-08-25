@@ -157,6 +157,36 @@ def test_cpp_weave_user_defined_function_convenience_wrappers():
             assert_equal(np.sin(test_array), mon.func_.flatten())
 
 
+def test_user_defined_function_units():
+    '''
+    Test the preparation of functions for use in code with check_units.
+    '''
+    def nothing_specified(x, y, z):
+        return x*(y+z)
+
+    no_result_unit = check_units(x=1, y=second, z=second)(nothing_specified)
+    one_arg_missing = check_units(x=1, z=second, result=second)(nothing_specified)
+    all_specified = check_units(x=1, y=second, z=second, result=second)(nothing_specified)
+
+    G = NeuronGroup(1, '''a : 1
+                          b : second
+                          c : second''', codeobj_class=NumpyCodeObject,
+                    namespace={'nothing_specified': nothing_specified,
+                               'no_result_unit': no_result_unit,
+                               'one_arg_missing': one_arg_missing,
+                               'all_specified': all_specified})
+    G.c = 'all_specified(a, b, t)'
+    assert_raises(ValueError,
+                  lambda: setattr(G, 'c', 'one_arg_missing(a, b, t)'))
+    assert_raises(ValueError,
+                  lambda: setattr(G, 'c', 'no_result_unit(a, b, t)'))
+    assert_raises(ValueError,
+                  lambda: setattr(G, 'c', 'nothing_specified(a, b, t)'))
+    assert_raises(DimensionMismatchError,
+                  lambda: setattr(G, 'a', 'all_specified(a, b, t)'))
+    assert_raises(DimensionMismatchError,
+                  lambda: setattr(G, 'a', 'all_specified(b, a, t)'))
+
 
 def test_simple_user_defined_function():
     # Make sure that it's possible to use a Python function directly, without
@@ -367,6 +397,7 @@ if __name__ == '__main__':
     test_constants_values()
     test_math_functions()
     test_user_defined_function()
+    test_user_defined_function_units()
     test_cpp_weave_user_defined_function_convenience_wrappers()
     test_simple_user_defined_function()
     test_manual_user_defined_function()
