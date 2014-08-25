@@ -216,7 +216,7 @@ def create_runner_codeobj(group, code, template_name,
                                  run_namespace=run_namespace)
             except (SyntaxError, KeyError, ValueError) as ex:
                 error_msg = _error_msg(c, name)
-                raise ValueError(error_msg + ex.message)
+                raise ValueError(error_msg + str(ex))
 
     codeobj_class = device.code_object_class(group.codeobj_class)
     template = getattr(codeobj_class.templater, template_name)
