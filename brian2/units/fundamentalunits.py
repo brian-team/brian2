@@ -2218,7 +2218,24 @@ def check_units(**au):
         new_f.__name__ = f.__name__
         # store the information in the function, necessary when using the
         # function in expressions or equations
-        new_f._arg_units = [unit for name, unit in au.iteritems() if name != 'result']
-        new_f._return_unit = au.get('result', None)
+        arg_units = []
+        all_specified = True
+        for name in f.func_code.co_varnames[:f.func_code.co_argcount]:
+            unit = au.get(name, None)
+            if unit is None:
+                all_specified = False
+                break
+            else:
+                arg_units.append(unit)
+        if all_specified:
+            new_f._arg_units = arg_units
+        else:
+            new_f._arg_units = None
+        return_unit = au.get('result', None)
+        if return_unit is None:
+            new_f._return_unit = None
+        else:
+            new_f._return_unit = return_unit
+
         return new_f
     return do_check_units
