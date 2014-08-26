@@ -6,11 +6,12 @@ Adapted from Song, Miller and Abbott (2000) and Song and Abbott (2001)
 This example is modified from ``synapses_STDP.py`` and writes a standalone C++ project in the directory
 ``STDP_standalone``.
 '''
-import sys, time
+import sys, time, os
 from brian2 import *
 
 standalone = int(sys.argv[-2])
 n_threads  = int(sys.argv[-1])
+path       = 'data_stdp_%d' %n_threads
 
 if standalone == 1:
     set_device('cpp_standalone')
@@ -59,8 +60,27 @@ start_time   = time.time()
 
 net = Network(input, neurons, S, state_mon, spike_mon_1, spike_mon_2, name='stdp_net')
 
+if standalone == 1:
+    device.insert_device_code('main', 'std::clock_t start = std::clock();')
+
 net.run(5 * second, report='text')
 
 if standalone == 1:
-    device.build(project_dir='data_stdp_%d' %n_threads, compile_project=True, run_project=True, debug=False)
+    device.insert_device_code('main', '''
+        std::ofstream myfile ("speed.txt");
+        if (myfile.is_open())
+        {
+            double value = (double) (std::clock() - start)/(%d * CLOCKS_PER_SEC); 
+            myfile << value << std::endl;
+            myfile.close();
+        }
+        ''' %(max(1, n_threads)))
+
+try:
+    os.removedirs(path)
+except Exception:
+    pass
+
+if standalone == 1:
+    device.build(project_dir=path, compile_project=True, run_project=True, debug=False)
 

@@ -4,11 +4,12 @@
 CUBA example with delays.
 """
 
-import sys, time
+import sys, time, os
 from brian2 import *
 
 standalone = int(sys.argv[-2])
 n_threads  = int(sys.argv[-1])
+path       = 'data_cuba_%d' %n_threads
 
 if standalone == 1:
     set_device('cpp_standalone')
@@ -56,6 +57,26 @@ spike_mon = SpikeMonitor(P)
 
 net = Network(P, Se, Si, spike_mon, name='stdp_net')
 
-net.run(10 * second, report='text')
 if standalone == 1:
-    device.build(project_dir='data_cuba_%d' %n_threads, compile_project=True, run_project=True, debug=False)
+    device.insert_device_code('main', 'std::clock_t start = std::clock();')
+
+net.run(10 * second, report='text')
+
+if standalone == 1:
+    device.insert_device_code('main', '''
+        std::ofstream myfile ("speed.txt");
+        if (myfile.is_open())
+        {
+            double value = (double) (std::clock() - start)/(%d * CLOCKS_PER_SEC); 
+            myfile << value << std::endl;
+            myfile.close();
+        }
+        ''' %(max(1, n_threads)))
+
+try:
+    os.removedirs(path)
+except Exception:
+    pass
+
+if standalone == 1:
+    device.build(project_dir=path, compile_project=True, run_project=True, debug=False)

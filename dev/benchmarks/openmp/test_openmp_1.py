@@ -2,14 +2,15 @@ import sys, os, numpy, time, pylab
 
 filename = 'CUBA_standalone.py'
 datapath = 'data_cuba'
-threads  = [0, 1, 2, 4]
+threads  = [0, 1, 2, 4, 6]
 results  = {}
 results['duration'] = []
 
 for t in threads:
     start = time.time()
     os.system('python %s 1 %d' %(filename, t))
-    results['duration'] += [time.time()-start]
+    file = open('%s_%d/speed.txt' %(datapath, t), 'r')
+    results['duration'] += [float(file.read())]
 
 
 for t in threads:

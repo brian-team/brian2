@@ -13,7 +13,8 @@
 #include "{{name}}"
 {% endfor %}
 
-#include<iostream>
+#include <iostream>
+#include <fstream>
 
 {{report_func|autoindent}}
 
