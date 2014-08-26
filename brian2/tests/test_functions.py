@@ -173,6 +173,8 @@ def test_user_defined_function_units():
                                'no_result_unit': no_result_unit,
                                'one_arg_missing': one_arg_missing,
                                'all_specified': all_specified})
+    net = Network(G)
+    net.run(0*ms)  # make sure we have a clock and therefore a t
     G.c = 'all_specified(a, b, t)'
     assert_raises(ValueError,
                   lambda: setattr(G, 'c', 'one_arg_missing(a, b, t)'))
