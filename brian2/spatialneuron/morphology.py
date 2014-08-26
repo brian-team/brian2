@@ -9,6 +9,7 @@ from brian2.numpy_ import *
 from brian2.units.allunits import meter
 from brian2.utils.logger import get_logger
 from brian2.units.stdunits import um
+from brian2.units.fundamentalunits import check_units
 
 logger = get_logger(__name__)
 
@@ -215,6 +216,7 @@ class Morphology(object):
         morpho._namedkid = {}
         return morpho
 
+    @check_units(x=meter)
     def compartment(self, x, local=False):
         '''
         Returns compartment index. Example:
@@ -238,6 +240,7 @@ class Morphology(object):
                                       'compressed (by SpatialNeuron)'))
         return i
 
+    @check_units(x=meter, y=meter)
     def compartments(self, x, y, local=False):
         '''
         Returns compartment indices. Example:
@@ -480,6 +483,7 @@ class Cylinder(Morphology):
         x position of end point in `meter` units.
     """
 
+    @check_units(length=meter, diameter=meter, n=1, x=meter, y=meter, z=meter)
     def __init__(self, length=None, diameter=None, n=1, type=None, x=None,
                  y=None, z=None):
         """
@@ -521,6 +525,7 @@ class Soma(Morphology):  # or Sphere?
         Diameter of the sphere.
     """
 
+    @check_units(diameter=meter)
     def __init__(self, diameter=None):
         Morphology.__init__(self, n=1)
         self.diameter = ones(1) * diameter

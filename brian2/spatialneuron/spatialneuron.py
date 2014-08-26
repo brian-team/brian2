@@ -1,6 +1,9 @@
 '''
 Compartmental models.
 This module defines the SpatialNeuron class, which defines multicompartmental models.
+
+TODO:
+* Put ab_star etc in state variables
 '''
 import sympy as sp
 from numpy import zeros, pi
@@ -269,6 +272,7 @@ class SpatialNeuron(NeuronGroup):
             raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
                              (start, stop))
 
+        # Returns a Subgroup, not a SpatialSubgroup, because it has no children
         return Subgroup(neuron, start, stop)
 
 
