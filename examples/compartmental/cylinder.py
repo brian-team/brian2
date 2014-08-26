@@ -5,7 +5,7 @@ from brian2 import *
 
 defaultclock.dt = 0.01*ms
 
-brian_prefs.codegen.target = 'weave'
+#brian_prefs.codegen.target = 'weave'
 
 # Morphology
 diameter = 1*um
