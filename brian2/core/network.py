@@ -314,10 +314,13 @@ class Network(Nameable):
         
         Objects are sorted first by their ``when`` attribute, and secondly
         by the ``order`` attribute. The order of the ``when`` attribute is
-        defined by the ``schedule``.
+        defined by the ``schedule``. Final ties are resolved using the objects'
+        names, leading to an arbitrary but deterministic sorting.
         '''
         when_to_int = dict((when, i) for i, when in enumerate(self.schedule))
-        self.objects.sort(key=lambda obj: (when_to_int[obj.when], obj.order))
+        self.objects.sort(key=lambda obj: (when_to_int[obj.when],
+                                           obj.order,
+                                           obj.name))
 
     def check_dependencies(self):
         all_ids = [obj.id for obj in self.objects]
