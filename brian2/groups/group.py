@@ -257,16 +257,14 @@ class Group(BrianObject):
     # TODO: Overwrite the __dir__ method to return the state variables
     # (should make autocompletion work)
     '''
-    #: The class to convert group-specific indexing into 1d indices
-    indexing_class = Indexing
 
     def _enable_group_attributes(self):
         if not hasattr(self, 'variables'):
             raise ValueError('Classes derived from Group need variables attribute.')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
-        if not hasattr(self, 'indexing'):
-            self._indexing = self.indexing_class(self)
+        if not hasattr(self, '_indexing'):
+            self._indexing = Indexing(self)
         if not hasattr(self, 'indices'):
             self.indices = IndexWrapper(self)
         if not hasattr(self, '_stored_states'):

@@ -470,7 +470,7 @@ class Synapses(Group):
         The name for this object. If none is given, a unique name of the form
         ``synapses``, ``synapses_1``, etc. will be automatically chosen.
     '''
-    indexing_class = SynapticIndexing
+
     add_to_magic_network = True
     def __init__(self, source, target=None, model=None, pre=None, post=None,
                  connect=False, delay=None, namespace=None, dtype=None,
@@ -649,6 +649,9 @@ class Synapses(Group):
         if not isinstance(connect, (bool, basestring)):
             raise TypeError(('"connect" keyword has to be a boolean value or a '
                              'string, is type %s instead.' % type(connect)))
+
+        # Support 2d indexing
+        self._indexing = SynapticIndexing(self)
 
         # Activate name attribute access
         self._enable_group_attributes()
