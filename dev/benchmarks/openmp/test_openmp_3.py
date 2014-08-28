@@ -81,6 +81,9 @@ pylab.plot(threads, results['duration'])
 pylab.xlabel('# threads')
 pylab.ylabel('Time [s]')
 
-pylab.savefig('STDP_openmp.png')
+pylab.tight_layout()
+
+
+pylab.savefig('net1_openmp.png')
 
 pylab.show()
