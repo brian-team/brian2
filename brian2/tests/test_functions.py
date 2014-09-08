@@ -40,7 +40,7 @@ def test_math_functions():
     Test that math functions give the same result, regardless of whether used
     directly or in generated Python or C++ code.
     '''
-    default_dt = brian_prefs.core.default_dt
+    default_dt = defaultclock.dt
     test_array = np.array([-1, -0.5, 0, 0.5, 1])
 
     with catch_logs() as _:  # Let's suppress warnings about illegal values        
@@ -114,7 +114,7 @@ def test_user_defined_function():
     def usersin(x):
         return np.sin(x)
 
-    default_dt = brian_prefs.core.default_dt
+    default_dt = defaultclock.dt
     test_array = np.array([0, 1, 2, 3])
     for codeobj_class in codeobj_classes:
         G = NeuronGroup(len(test_array),
@@ -150,7 +150,7 @@ def test_cpp_weave_user_defined_function_convenience_wrappers():
             G.variable = test_array
             mon = StateMonitor(G, 'func', record=True)
             net = Network(G, mon)
-            net.run(brian_prefs.core.default_dt)
+            net.run(defaultclock.dt)
     
             assert_equal(np.sin(test_array), mon.func_.flatten())
 
@@ -195,7 +195,7 @@ def test_simple_user_defined_function():
     def usersin(x):
         return np.sin(x)
 
-    default_dt = brian_prefs.core.default_dt
+    default_dt = defaultclock.dt
     test_array = np.array([0, 1, 2, 3])
     G = NeuronGroup(len(test_array),
                     '''func = usersin(variable) : 1
@@ -224,7 +224,7 @@ def test_simple_user_defined_function():
 
 
 def test_manual_user_defined_function():
-    default_dt = brian_prefs.core.default_dt
+    default_dt = defaultclock.dt
 
     # User defined function without any decorators
     def foo(x, y):

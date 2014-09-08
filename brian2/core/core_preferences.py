@@ -25,11 +25,5 @@ brian_prefs.register_preferences('core', 'Core Brian preferences',
         Default dtype for all arrays of integer scalars'
         ''',
         representor=dtype_repr,
-        ),
-    default_dt=BrianPreference(
-        default=0.1*ms,
-        docs='''
-        Default time step'
-        '''
         )
     )

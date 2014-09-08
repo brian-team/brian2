@@ -53,7 +53,7 @@ def test_cpp_standalone(with_output=False):
     assert len(M.i)>=17000 and len(M.i)<=18000
     assert len(M.t) == len(M.i)
     assert M.t[0] == 0.
-    assert M.t[-1] == 100*ms - brian_prefs.core.default_dt
+    assert M.t[-1] == 100*ms - defaultclock.dt
 
 @with_setup(teardown=restore_device)
 def test_multiple_connects(with_output=False):

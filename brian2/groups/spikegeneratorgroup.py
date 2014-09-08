@@ -81,13 +81,15 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                  read_only=True)
         self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
                                  dtype=np.int32)
+        self.variables.create_clock_variables(self._clock)
+
         # Activate name attribute access
         self._enable_group_attributes()
 
         CodeRunner.__init__(self, self,
                             code='',
                             template='spikegenerator',
-                            dt=dt,
+                            clock=self._clock,
                             when=when,
                             order=order,
                             name=None)
@@ -105,11 +107,6 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
     def __len__(self):
         return self.N
-
-    def before_run(self, run_namespace=None, level=0):
-        self.variables.update_clock_variables(self.clock)
-        super(SpikeGeneratorGroup, self).before_run(run_namespace=run_namespace,
-                                                    level=level+1)
 
     def __repr__(self):
         return ('{cls}({N}, indices=<length {l} array>, '

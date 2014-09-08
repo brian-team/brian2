@@ -10,7 +10,7 @@ from collections import defaultdict
 import numpy as np
 
 from brian2.core.network import Network
-from brian2.core.preferences import brian_prefs
+from brian2.core.clocks import defaultclock
 from brian2.devices.device import Device, all_devices
 from brian2.core.variables import *
 from brian2.synapses.synapses import Synapses
@@ -524,7 +524,7 @@ class CPPStandaloneDevice(Device):
                                                           main_lines=main_lines,
                                                           code_objects=self.code_objects.values(),
                                                           report_func=self.report_func,
-                                                          dt=float(brian_prefs.core.default_dt),
+                                                          dt=float(defaultclock.dt),
                                                           additional_headers=main_includes,
                                                           )
         writer.write('main.cpp', main_tmp)

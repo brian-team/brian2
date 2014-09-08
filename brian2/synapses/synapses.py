@@ -85,7 +85,7 @@ class SummedVariableUpdater(CodeRunner):
                             needed_variables=[target_varname],
                             # We want to update the sumned variable before
                             # the target group gets updated
-                            dt=None if target.dt is None else target.dt*second,
+                            clock=target._clock,
                             when='groups',
                             order=target.order-1,
                             name=synapses.name + '_summed_variable_' + target_varname,
@@ -141,7 +141,7 @@ class SynapticPathway(CodeRunner, Group):
         CodeRunner.__init__(self, synapses,
                             'synapses',
                             code=code,
-                            dt=None if self.source.dt is None else self.source.dt*second,
+                            clock=self.source.clock,
                             when='synapses',
                             order=0,
                             name=synapses.name + '_' + objname,
@@ -640,8 +640,7 @@ class Synapses(Group):
         return len(self.variables['_synaptic_pre'].get_value())
 
     def before_run(self, run_namespace=None, level=0):
-        self.lastupdate = self.clock.t
-        self.variables.update_clock_variables(self.clock)
+        self.lastupdate = self._clock.t
         super(Synapses, self).before_run(run_namespace, level=level+1)
 
     def _add_updater(self, code, prepost, objname=None, delay=None):
@@ -712,7 +711,8 @@ class Synapses(Group):
                                      index='_presynaptic_idx')
         self.variables.add_reference('j', self.target, 'i',
                                      index='_postsynaptic_idx')
-
+        self.variables.create_clock_variables(self._clock,
+                                              prefix='_clock_')
         if '_offset' in self.target.variables:
             target_offset = self.target.variables['_offset'].get_value()
         else:

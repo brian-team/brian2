@@ -35,7 +35,7 @@ class NetworkOperation(BrianObject):
 
     def run(self):
         if self._has_arg:
-            self.function(self.clock.t)
+            self.function(self._clock.t)
         else:
             self.function()
 

@@ -7,6 +7,7 @@ import weakref
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
+from brian2.core.clocks import Clock, defaultclock
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units
 
@@ -27,9 +28,7 @@ class BrianObject(Nameable):
     
     Parameters
     ----------
-    when : `Scheduler`, optional
-        Defines when the object is updated in the main `Network.run`
-        loop.
+    TODO
     name : str, optional
         A unique name for the object - one will be assigned automatically if
         not provided (of the form ``brianobject_1``, etc.).
@@ -40,15 +39,20 @@ class BrianObject(Nameable):
     The set of all `BrianObject` objects is stored in ``BrianObject.__instances__()``.
     '''
     @check_units(dt=second)
-    def __init__(self, dt=None, when='start', order=0, name='brianobject*'):
-        
+    def __init__(self, dt=None, clock=None, when='start', order=0, name='brianobject*'):
+
+        if dt is not None and clock is not None:
+            raise ValueError('Can only specify either a dt or a clock, not both.')
+
         Nameable.__init__(self, name)
 
-        #: The clock used for simulating this object, will be set in `Network._determine_clocks`
-        self._clock = None
-
-        #: The simulation time step for this object
-        self.dt = None if dt is None else float(dt)
+        #: The clock used for simulating this object
+        self._clock = clock
+        if clock is None:
+            if dt is not None:
+                self._clock = Clock(dt=dt, name=self.name+'_clock*')
+            else:
+                self._clock = defaultclock
 
         #: The ID string determining when the object should be updated in `Network.run`.
         self.when = when
@@ -63,7 +67,7 @@ class BrianObject(Nameable):
         self._active = True
         
         logger.debug("Created BrianObject with name {self.name}, "
-                     "dt {self.dt}, "
+                     "clock={self._clock}, "
                      "when={self.when}, order={self.order}".format(self=self))
 
     #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is created or removed
@@ -176,10 +180,10 @@ class BrianObject(Nameable):
                         ''')
 
     def __repr__(self):
-        description = ('{classname}(dt={dt}, when={when}, order={order}, name={name})')
+        description = ('{classname}(clock={clock}, when={when}, order={order}, name={name})')
         return description.format(classname=self.__class__.__name__,
                                   when=self.when,
-                                  dt=self.dt,
+                                  clock=self._clock,
                                   order=self.order,
                                   name=repr(self.name))
 

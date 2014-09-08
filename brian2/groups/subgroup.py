@@ -49,7 +49,7 @@ class Subgroup(Group, SpikeSource):
         # one higher than the parent order to ensure it takes place after the
         # parent threshold operation
         Group.__init__(self,
-                       dt=None if source.dt is None else source.dt*second,
+                       clock=source._clock,
                        when='thresholds',
                        order=source.order+1, name=name)
         self._N = stop-start

@@ -1617,7 +1617,7 @@ class Variables(collections.Mapping):
         for name in varnames:
             self.add_reference(name, group, name, index)
 
-    def update_clock_variables(self, clock, prefix=''):
+    def create_clock_variables(self, clock, prefix=''):
         '''
         Convenience function to add the ``t`` and ``dt`` attributes of a
         `clock`.

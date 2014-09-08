@@ -393,7 +393,7 @@ def test_subexpressions():
 
 
 def test_locally_constant_check():
-    default_dt = brian_prefs.core.default_dt
+    default_dt = defaultclock.dt
     # The linear state update can handle additive time-dependent functions
     # (e.g. a TimedArray) but only if it can be safely assumed that the function
     # is constant over a single time check

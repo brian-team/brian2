@@ -33,7 +33,7 @@ class PopulationRateMonitor(Group, CodeRunner):
 
         self.codeobj_class = codeobj_class
         CodeRunner.__init__(self, group=self, code='', template='ratemonitor',
-                            dt=source.dt, when='end', order=0, name=name)
+                            clock=source.clock, when='end', order=0, name=name)
 
         self.add_dependency(source)
 
@@ -51,18 +51,13 @@ class PopulationRateMonitor(Group, CodeRunner):
         self.variables.add_reference('_num_source_neurons', source, 'N')
         self.variables.add_attribute_variable('N', unit=Unit(1), obj=self,
                                               attribute='_N', dtype=np.int32)
-
+        self.variables.create_clock_variables(self._clock,
+                                              prefix='_clock_')
         self._enable_group_attributes()
 
     @property
     def _N(self):
         return len(self.variables['t'].get_value())
-
-    def before_run(self, run_namespace=None, level=0):
-        self.variables.update_clock_variables(self.clock,
-                                              prefix='_clock_')
-        super(PopulationRateMonitor, self).before_run(run_namespace=run_namespace,
-                                                      level=level+1)
 
     def resize(self, new_size):
         self.variables['rate'].resize(new_size)

@@ -646,8 +646,12 @@ class Group(BrianObject):
         if name is None:
             name = self.name + '_custom_operation*'
 
+        if dt is None:
+            clock = self._clock
+        else:
+            clock = None
         runner = CodeRunner(self, 'stateupdate', code=code, name=name,
-                            dt=dt, when=when, order=order)
+                            dt=dt, clock=clock, when=when, order=order)
         return runner
 
 
@@ -671,8 +675,7 @@ class CodeRunner(BrianObject):
         The abstract code that should be executed every time step. The
         `update_abstract_code` method might generate this code dynamically
         before every run instead.
-    when : `Scheduler`, optional
-        At which point in the schedule this object should be executed.
+    TODO
     name : str, optional 
         The name for this object.
     check_units : bool, optional
@@ -695,11 +698,13 @@ class CodeRunner(BrianObject):
     '''
     add_to_magic_network = True
     invalidates_magic_network = True
-    def __init__(self, group, template, code, dt, when, order=0,
-                 name='coderunner*', check_units=True, template_kwds=None,
-                 needed_variables=None, override_conditional_write=None,
+    def __init__(self, group, template, code, clock=None, dt=None, when='end',
+                 order=0, name='coderunner*', check_units=True,
+                 template_kwds=None, needed_variables=None,
+                 override_conditional_write=None,
                  ):
-        BrianObject.__init__(self, dt=dt, when=when, order=order, name=name)
+        BrianObject.__init__(self, clock=clock, dt=dt, when=when, order=order,
+                             name=name)
         self.group = weakref.proxy(group)
         self.template = template
         self.abstract_code = code

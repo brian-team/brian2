@@ -59,7 +59,7 @@ class StateUpdater(CodeRunner):
         CodeRunner.__init__(self, group,
                             'stateupdate',
                             code='',  # will be set in update_abstract_code
-                            dt=None if group.dt is None else group.dt*second,
+                            clock=group.clock,
                             when='groups',
                             order=group.order,
                             name=group.name + '_stateupdater*',
@@ -153,7 +153,7 @@ class Thresholder(CodeRunner):
         CodeRunner.__init__(self, group,
                             'threshold',
                             code='',  # will be set in update_abstract_code
-                            dt=group.dt,
+                            clock=group.clock,
                             when='thresholds',
                             order=group.order,
                             name=group.name+'_thresholder*',
@@ -204,7 +204,7 @@ class Resetter(CodeRunner):
         CodeRunner.__init__(self, group,
                             'reset',
                             code='',  # will be set in update_abstract_code
-                            dt=group.dt,
+                            clock=group.clock,
                             when='resets',
                             order=group.order,
                             name=group.name + '_resetter*',
@@ -558,6 +558,8 @@ class NeuronGroup(Group, SpikeSource):
         # Add the special variable "i" which can be used to refer to the neuron index
         self.variables.add_arange('i', size=self._N, constant=True,
                                   read_only=True)
+        # Add the clock variables
+        self.variables.create_clock_variables(self._clock)
 
         for eq in self.equations.itervalues():
             dtype = get_dtype(eq, user_dtype)
@@ -611,10 +613,6 @@ class NeuronGroup(Group, SpikeSource):
 
 
     def before_run(self, run_namespace=None, level=0):
-        # Update the clock variables (we might have been assigned a new clock
-        # object
-        self.variables.update_clock_variables(self._clock)
-
         # Check units
         self.equations.check_units(self, run_namespace=run_namespace,
                                    level=level+1)

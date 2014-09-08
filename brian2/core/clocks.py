@@ -11,7 +11,7 @@ from brian2.core.names import Nameable
 from brian2.units.fundamentalunits import check_units, Quantity
 from brian2.units.allunits import second, msecond
 
-__all__ = ['Clock']
+__all__ = ['Clock', 'defaultclock']
 
 logger = get_logger(__name__)
 
@@ -41,7 +41,7 @@ class Clock(Nameable):
         Nameable.__init__(self, name=name)
         logger.debug("Created clock {self.name} with dt={self._dt}".format(self=self))
         
-    def _force_reinit(self, dt=0.1*msecond):
+    def _force_reinit(self, dt):
         self._dt = float(dt)
         self.i = np.uint64(0)  #: The time step of the simulation as an integer.
         self.i_end = np.uint64(0)  #: The time step the simulation will end as an integer
@@ -137,3 +137,5 @@ class Clock(Nameable):
         return self.i<self.i_end
 
     epsilon = 1e-14
+
+defaultclock = Clock(dt=0.1*msecond, name='defaultclock')

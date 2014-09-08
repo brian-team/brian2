@@ -30,19 +30,16 @@ class SpikeMonitor(Group, CodeRunner):
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
-    def __init__(self, source, record=True, dt=None, when='end', order=0,
+    def __init__(self, source, record=True, when='end', order=0,
                  name='spikemonitor*', codeobj_class=None):
         self.record = bool(record)
         #: The source we are recording from
         self.source =source
 
-        # run by default on source clock at the end
-        if dt is None:
-            dt = source.dt
-
         self.codeobj_class = codeobj_class
         CodeRunner.__init__(self, group=self, code='', template='spikemonitor',
-                            name=name, dt=dt, when=when, order=order)
+                            name=name, clock=source.clock, when=when,
+                            order=order)
 
         self.add_dependency(source)
 
@@ -62,7 +59,8 @@ class SpikeMonitor(Group, CodeRunner):
         self.variables.add_constant('_source_stop', Unit(1), stop)
         self.variables.add_attribute_variable('N', unit=Unit(1), obj=self,
                                               attribute='_N', dtype=np.int32)
-
+        self.variables.create_clock_variables(self._clock,
+                                              prefix='_clock_')
         self._enable_group_attributes()
 
     @property
@@ -75,12 +73,6 @@ class SpikeMonitor(Group, CodeRunner):
 
     def __len__(self):
         return self._N
-
-    def before_run(self, run_namespace=None, level=0):
-        self.variables.update_clock_variables(self.clock,
-                                              prefix='_clock_')
-        super(SpikeMonitor, self).before_run(run_namespace=run_namespace,
-                                             level=level+1)
 
     def reinit(self):
         '''

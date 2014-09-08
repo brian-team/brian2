@@ -53,6 +53,7 @@ class PoissonGroup(Group, SpikeSource):
         self.variables.add_arange('i', self._N, constant=True, read_only=True)
         self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
                                  dtype=np.int32)
+        self.variables.create_clock_variables(self._clock)
 
         # The firing rates
         self.variables.add_array('rates', size=N, unit=Hz)
@@ -75,6 +76,7 @@ class PoissonGroup(Group, SpikeSource):
         # constructor was called
         self.rates.set_item(slice(None), rates, level=2)
 
+
     @property
     def spikes(self):
         '''
@@ -85,9 +87,6 @@ class PoissonGroup(Group, SpikeSource):
         # Using the latter would cut _spikespace to the length of the group
         spikespace = self.variables['_spikespace'].get_value()
         return spikespace[:spikespace[-1]]
-
-    def before_run(self, run_namespace=None, level=0):
-        self.variables.update_clock_variables(self.clock)
 
     def __len__(self):
         return self.N

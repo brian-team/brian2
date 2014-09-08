@@ -140,7 +140,9 @@ class StateMonitor(Group, CodeRunner):
 
         # run by default on source clock at the end
         if dt is None:
-            dt = source.dt
+            clock = source.clock
+        else:
+            clock = None
         # variables should always be a list of strings
         if variables is True:
             variables = source.equations.names
@@ -173,6 +175,7 @@ class StateMonitor(Group, CodeRunner):
 
         CodeRunner.__init__(self, group=self, template='statemonitor',
                             code=code, name=name,
+                            clock=clock,
                             dt=dt,
                             when=when,
                             order=order,
@@ -192,7 +195,8 @@ class StateMonitor(Group, CodeRunner):
                                  unit=Unit(1), dtype=self.indices.dtype,
                                  constant=True, read_only=True)
         self.variables['_indices'].set_value(self.indices)
-
+        self.variables.create_clock_variables(self._clock,
+                                              prefix='_clock_')
         for varname in variables:
             var = source.variables[varname]
             if var.scalar and len(self.indices) > 1:
@@ -234,12 +238,6 @@ class StateMonitor(Group, CodeRunner):
 
     def __len__(self):
         return self._N
-
-    def before_run(self, run_namespace=None, level=0):
-        self.variables.update_clock_variables(self.clock,
-                                              prefix='_clock_')
-        super(StateMonitor, self).before_run(run_namespace=run_namespace,
-                                             level=level+1)
 
     def resize(self, new_size):
         self.variables['t'].resize(new_size)

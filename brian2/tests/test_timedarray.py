@@ -26,7 +26,7 @@ def test_timedarray_direct_use():
 
 
 def test_timedarray_no_units():
-    ta = TimedArray(np.arange(10), brian_prefs.core.default_dt)
+    ta = TimedArray(np.arange(10), defaultclock.dt)
     for codeobj_class in codeobj_classes:
         G = NeuronGroup(1, 'value = ta(t) + 1: 1', codeobj_class=codeobj_class)
         mon = StateMonitor(G, 'value', record=True)
@@ -36,7 +36,7 @@ def test_timedarray_no_units():
 
 
 def test_timedarray_with_units():
-    ta = TimedArray(np.arange(10)*amp, brian_prefs.core.default_dt)
+    ta = TimedArray(np.arange(10)*amp, dt=defaultclock.dt)
     for codeobj_class in codeobj_classes:
         G = NeuronGroup(1, 'value = ta(t) + 2*nA: amp', codeobj_class=codeobj_class)
         mon = StateMonitor(G, 'value', record=True)

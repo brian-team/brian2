@@ -308,19 +308,6 @@ class Network(Nameable):
         ``['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']``.
         ''')
 
-    def _determine_clocks(self):
-        clocks = dict()
-        for obj in self.objects:
-            dt = obj.dt
-            if dt is None:
-                dt = brian_prefs['core.default_dt']
-            dt = float(dt)
-            if dt not in clocks:
-                clocks[dt] = Clock(dt=dt)
-            obj._clock = clocks[dt]
-
-        self._clocks = clocks.values()
-
     def _sort_objects(self):
         '''
         Sorts the objects in the order defined by the schedule.
@@ -362,7 +349,7 @@ class Network(Nameable):
         '''                
         brian_prefs.check_all_validated()
 
-        self._determine_clocks()
+        self._clocks = [obj.clock for obj in self.objects]
         
         self._stopped = False
         Network._globally_stopped = False
