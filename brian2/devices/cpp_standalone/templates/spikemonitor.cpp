@@ -34,6 +34,7 @@
         		const int _idx = {{_spikespace}}[_j];
         		{{_dynamic_i}}.push_back(_idx-_source_start);
         		{{_dynamic_t}}.push_back(_clock_t);
+        		{{_count}}[_idx-_source_start]++;
         	}
         }
     }
