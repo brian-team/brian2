@@ -261,22 +261,19 @@ class CPPStandaloneDevice(Device):
         # of expressions at runtime. For constant, read-only arrays that have
         # been explicitly initialized (static arrays) or aranges (e.g. the
         # neuronal indices) we can, however
-        if var.constant and var.read_only:
-            array_name = self.get_array_name(var, access_data=False)
+        array_name = self.get_array_name(var, access_data=False)
+        if (var.constant and var.read_only and
+                (array_name in self.static_arrays or
+                 var in self.arange_arrays)):
             if array_name in self.static_arrays:
                 return self.static_arrays[array_name]
             elif var in self.arange_arrays:
                 return np.arange(0, var.size) + self.arange_arrays[var]
-            else:
-                raise AssertionError(('Variable %s is constant and read-only '
-                                      ' but uninitialized'))
         else:
             # After the network has been run, we can retrieve the values from
             # disk
             if self.has_been_run:
                 dtype = var.dtype
-                array_name = array_name = self.get_array_name(var,
-                                                              access_data=False)
                 fname = os.path.join(self.project_dir, 'results',
                                      array_name)
                 with open(fname, 'rb') as f:
