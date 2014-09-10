@@ -179,7 +179,7 @@ class MagicNetwork(Network):
         inter = valid_refs.intersection(self._previous_refs)
         if len(inter) == 0:
             # reset time
-            self.t = 0 * second
+            self.t_ = 0.0
         elif len(self._previous_refs) == len(valid_refs):
             # continue time
             pass

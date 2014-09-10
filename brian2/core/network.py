@@ -173,7 +173,6 @@ class Network(Nameable):
         self.t_ = 0.0   
      
     t = property(fget=lambda self: self.t_*second,
-                 fset=lambda self, val: setattr(self, 't_', float(val)),
                  doc='''
                      Current simulation time in seconds (`Quantity`)
                      ''')
@@ -492,9 +491,9 @@ class Network(Nameable):
             clock, curclocks = self._nextclocks()
 
         if self._stopped or Network._globally_stopped:
-            self.t = clock.t
+            self.t_ = clock.t_
         else:
-            self.t = t_end
+            self.t_ = float(t_end)
 
         if report is not None:
             report_callback((current-start)*second, 1.0, duration)

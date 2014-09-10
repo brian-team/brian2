@@ -55,7 +55,7 @@ def test_long_timedarray():
         mon = StateMonitor(G, 'value', record=True, codeobj_class=codeobj_class)
         net = Network(G, mon)
         # We'll start the simulation close to the critical boundary
-        net.t = 16384*second - 5*ms
+        net.t_ = float(16384*second - 5*ms)
         net.run(10*ms)
         assert all(mon[0].value[mon.t < 16384*second] == 16383)
         assert all(mon[0].value[mon.t >= 16384*second] == 16384)
