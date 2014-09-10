@@ -5,7 +5,9 @@ import numpy as np
 from brian2.utils.stringtools import word_substitute
 from brian2.parsing.rendering import NumpyNodeRenderer
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function, SymbolicConstant
-from brian2.core.variables import ArrayVariable, Constant, AttributeVariable, DynamicArrayVariable, AuxiliaryVariable
+from brian2.core.variables import (ArrayVariable, Constant, AttributeVariable,
+                                   DynamicArrayVariable, AuxiliaryVariable,
+                                   get_dtype_str, Variable)
 
 from .base import CodeGenerator
 from .cpp_generator import c_data_type
@@ -16,7 +18,10 @@ __all__ = ['CythonCodeGenerator']
 
 
 def cython_data_type(dtype):
-    pass
+    d = get_dtype_str(dtype)
+    if d=='bool':
+        d = 'uint8'
+    return d
 
 
 class CythonCodeGenerator(CodeGenerator):
@@ -89,45 +94,47 @@ class CythonCodeGenerator(CodeGenerator):
         support_code = []
         handled_pointers = set()
         for varname, var in self.variables.iteritems():
-#            print varname, var.__class__
-            if isinstance(var, DynamicArrayVariable):
-                load_namespace.append('%s = _namespace["%s"]' % (self.get_array_name(var, False),
-                                                                 self.get_array_name(var, False)))
-            
-            if isinstance(var, ArrayVariable):
-                # This is the "true" array name, not the restricted pointer.
-                array_name = device.get_array_name(var)
-                pointer_name = self.get_array_name(var)
-                if pointer_name in handled_pointers:
-                    continue
-                if getattr(var, 'dimensions', 1) > 1:
-                    continue  # multidimensional (dynamic) arrays have to be treated differently
-                newlines = [
-                    "cdef _numpy.ndarray[{dtype_str_t}, ndim=1, mode='c'] _buf_{array_name} = _numpy.ascontiguousarray(_namespace['{array_name}'], dtype=_numpy.{dtype_str})",
-                    "cdef {dtype} * {array_name} = <{dtype} *> _buf_{array_name}.data",
-                    "cdef int _num{array_name} = len(_namespace['{array_name}'])",
-                    ]
-                for line in newlines:
-                    line = line.format(dtype=weave_data_type(var.dtype),
-                                       pointer_name=pointer_name, array_name=array_name,
-                                       varname=varname, dtype_str=var.dtype.__name__,
-                                       dtype_str_t=('_numpy.'+var.dtype.__name__+'_t' if var.dtype.__name__!='bool' else '_numpy.uint8_t, cast=True'),
-                                       )
+            if isinstance(var, Variable):
+                if var.dynamic:                
+                    load_namespace.append('%s = _namespace["%s"]' % (self.get_array_name(var, False),
+                                                                     self.get_array_name(var, False)))
+                
+                if not var.scalar:
+                    # This is the "true" array name, not the restricted pointer.
+                    array_name = device.get_array_name(var)
+                    pointer_name = self.get_array_name(var)
+                    if pointer_name in handled_pointers:
+                        continue
+                    if getattr(var, 'dimensions', 1) > 1:
+                        continue  # multidimensional (dynamic) arrays have to be treated differently
+                    newlines = [
+                        "cdef _numpy.ndarray[{dtype_str_t}, ndim=1, mode='c'] _buf_{array_name} = _numpy.ascontiguousarray(_namespace['{array_name}'], dtype=_numpy.{dtype_str})",
+                        "cdef {dtype} * {array_name} = <{dtype} *> _buf_{array_name}.data",
+                        "cdef int _num{array_name} = len(_namespace['{array_name}'])",
+                        ]
+                    for line in newlines:
+                        line = line.format(dtype=weave_data_type(var.dtype),
+                                           pointer_name=pointer_name, array_name=array_name,
+                                           varname=varname, dtype_str=var.dtype.__name__,
+                                           dtype_str_t=('_numpy.'+var.dtype.__name__+'_t' if var.dtype.__name__!='bool' else '_numpy.uint8_t, cast=True'),
+                                           )
+                        load_namespace.append(line)
+                    handled_pointers.add(pointer_name)
+                elif isinstance(var, AttributeVariable):
+                    val = getattr(var.obj, var.attribute)
+                    dtype_name = unsafe_type(val)
+                    dtype_name = dtype_name.replace('numpy.', '_numpy.')
+                    line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
                     load_namespace.append(line)
-                handled_pointers.add(pointer_name)
-            elif isinstance(var, (Constant, SymbolicConstant)):
-                dtype_name = unsafe_type(var.value)
-                line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
-                load_namespace.append(line)
-            elif isinstance(var, AttributeVariable):
-                val = getattr(var.obj, var.attribute)
-                dtype_name = unsafe_type(val)
-                dtype_name = dtype_name.replace('numpy.', '_numpy.')
-                line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
-                load_namespace.append(line)
-                if isinstance(val, np.ndarray):
-                    line = "cdef int _num{varname} = len(_namespace['{varname}'])".format(varname=varname)
+                    if isinstance(val, np.ndarray):
+                        line = "cdef int _num{varname} = len(_namespace['{varname}'])".format(varname=varname)
+                        load_namespace.append(line)
+                elif var.constant:
+                    dtype_name = unsafe_type(var.value)
+                    line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
                     load_namespace.append(line)
+                elif isinstance(var, AuxiliaryVariable):
+                    pass
             elif isinstance(var, Function):
                 func_impl = var.implementations[self.codeobj_class].get_code(self.owner)
                 # Implementation can be None if the function is already
@@ -144,14 +151,77 @@ class CythonCodeGenerator(CodeGenerator):
                         raise TypeError(('Provided function implementation '
                                          'for function %s is neither a string '
                                          'nor callable') % varname)
-            elif isinstance(var, AuxiliaryVariable):
-                pass
             else:
                 # fallback to Python object
                 print var
                 for k, v in var.__dict__.iteritems():
                     print '   ', k, v
                 load_namespace.append('%s = _namespace["%s"]' % (varname, varname))
+                
+                
+##            print varname, var.__class__
+#            if isinstance(var, DynamicArrayVariable):
+#                load_namespace.append('%s = _namespace["%s"]' % (self.get_array_name(var, False),
+#                                                                 self.get_array_name(var, False)))
+#            
+#            if isinstance(var, ArrayVariable):
+#                # This is the "true" array name, not the restricted pointer.
+#                array_name = device.get_array_name(var)
+#                pointer_name = self.get_array_name(var)
+#                if pointer_name in handled_pointers:
+#                    continue
+#                if getattr(var, 'dimensions', 1) > 1:
+#                    continue  # multidimensional (dynamic) arrays have to be treated differently
+#                newlines = [
+#                    "cdef _numpy.ndarray[{dtype_str_t}, ndim=1, mode='c'] _buf_{array_name} = _numpy.ascontiguousarray(_namespace['{array_name}'], dtype=_numpy.{dtype_str})",
+#                    "cdef {dtype} * {array_name} = <{dtype} *> _buf_{array_name}.data",
+#                    "cdef int _num{array_name} = len(_namespace['{array_name}'])",
+#                    ]
+#                for line in newlines:
+#                    line = line.format(dtype=weave_data_type(var.dtype),
+#                                       pointer_name=pointer_name, array_name=array_name,
+#                                       varname=varname, dtype_str=var.dtype.__name__,
+#                                       dtype_str_t=('_numpy.'+var.dtype.__name__+'_t' if var.dtype.__name__!='bool' else '_numpy.uint8_t, cast=True'),
+#                                       )
+#                    load_namespace.append(line)
+#                handled_pointers.add(pointer_name)
+#            elif isinstance(var, (Constant, SymbolicConstant)):
+#                dtype_name = unsafe_type(var.value)
+#                line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
+#                load_namespace.append(line)
+#            elif isinstance(var, AttributeVariable):
+#                val = getattr(var.obj, var.attribute)
+#                dtype_name = unsafe_type(val)
+#                dtype_name = dtype_name.replace('numpy.', '_numpy.')
+#                line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
+#                load_namespace.append(line)
+#                if isinstance(val, np.ndarray):
+#                    line = "cdef int _num{varname} = len(_namespace['{varname}'])".format(varname=varname)
+#                    load_namespace.append(line)
+#            elif isinstance(var, Function):
+#                func_impl = var.implementations[self.codeobj_class].get_code(self.owner)
+#                # Implementation can be None if the function is already
+#                # available in Cython (possibly under a different name)
+#                if func_impl is not None:
+#                    if isinstance(func_impl, basestring):
+#                        # Function is provided as Cython code
+#                        support_code.append(func_impl)
+#                    elif callable(func_impl):
+#                        self.variables[varname] = func_impl
+#                        line = '%s = _namespace["%s"]' % (varname, varname)
+#                        load_namespace.append(line)
+#                    else:
+#                        raise TypeError(('Provided function implementation '
+#                                         'for function %s is neither a string '
+#                                         'nor callable') % varname)
+#            elif isinstance(var, AuxiliaryVariable):
+#                pass
+#            else:
+#                # fallback to Python object
+#                print var
+#                for k, v in var.__dict__.iteritems():
+#                    print '   ', k, v
+#                load_namespace.append('%s = _namespace["%s"]' % (varname, varname))
 
 
         load_namespace = '\n'.join(load_namespace)
