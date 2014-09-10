@@ -60,11 +60,16 @@ class Subgroup(Group, SpikeSource):
         self.variables = Variables(self, default_index='_sub_idx')
 
         # overwrite the meaning of N and i
-        self.variables.add_constant('_offset', unit=Unit(1), value=self.start)
-        self.variables.add_reference('_source_i', source, 'i')
-        self.variables.add_subexpression('i', unit=Unit(1),
-                                         dtype=source.variables['i'].dtype,
-                                         expr='_source_i - _offset')
+        if self.start > 0:
+            self.variables.add_constant('_offset', unit=Unit(1), value=self.start)
+            self.variables.add_reference('_source_i', source, 'i')
+            self.variables.add_subexpression('i', unit=Unit(1),
+                                             dtype=source.variables['i'].dtype,
+                                             expr='_source_i - _offset')
+        else:
+            # no need to calculate anything if this is a subgroup starting at 0
+            self.variables.add_reference('i', source)
+
         self.variables.add_constant('N', unit=Unit(1), value=self._N)
         # add references for all variables in the original group
         self.variables.add_references(source, source.variables.keys())
