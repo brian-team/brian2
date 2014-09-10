@@ -35,5 +35,5 @@ run(1 * second)
 duration = time.time() - start_time
 
 print duration
-plt.plot(s_mon.t/ms, s_mon.i, '.')
-plt.show()
+plot(s_mon.t/ms, s_mon.i, '.')
+show()
