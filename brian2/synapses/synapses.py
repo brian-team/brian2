@@ -457,9 +457,10 @@ class Synapses(Group):
     def __init__(self, source, target=None, model=None, pre=None, post=None,
                  connect=False, delay=None, namespace=None, dtype=None,
                  codeobj_class=None,
-                 dt=None, order=0, method=None, name='synapses*'):
+                 dt=None, clock=None, order=0, method=None, name='synapses*'):
         self._N = 0
-        Group.__init__(self, dt=dt, when='start', order=order, name=name)
+        Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
+                       name=name)
         
         self.codeobj_class = codeobj_class
 

@@ -42,10 +42,11 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     '''
 
     @check_units(N=1, indices=1, times=second)
-    def __init__(self, N, indices, times, dt=None, when='thresholds', order=0,
-                 name='spikegeneratorgroup*', codeobj_class=None):
+    def __init__(self, N, indices, times, dt=None, clock=None,
+                 when='thresholds', order=0, name='spikegeneratorgroup*',
+                 codeobj_class=None):
 
-        Group.__init__(self, dt=dt, when=when, order=order, name=name)
+        Group.__init__(self, dt=dt, clock=clock, when=when, order=order, name=name)
 
         self.codeobj_class = codeobj_class
 

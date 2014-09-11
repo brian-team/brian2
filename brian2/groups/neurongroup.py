@@ -296,10 +296,12 @@ class NeuronGroup(Group, SpikeSource):
                  namespace=None,
                  dtype=None,
                  dt=None,
+                 clock=None,
                  order=0,
                  name='neurongroup*',
                  codeobj_class=None):
-        Group.__init__(self, dt=dt, when='start', order=order, name=name)
+        Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
+                       name=name)
 
         self.codeobj_class = codeobj_class
 

@@ -133,16 +133,15 @@ class StateMonitor(Group, CodeRunner):
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
-    def __init__(self, source, variables, record=None, dt=None, when='end',
-                 order=0, name='statemonitor*', codeobj_class=None):
+    def __init__(self, source, variables, record=None, dt=None, clock=None,
+                 when='end', order=0, name='statemonitor*', codeobj_class=None):
         self.source = source
         self.codeobj_class = codeobj_class
 
         # run by default on source clock at the end
-        if dt is None:
+        if dt is None and clock is None:
             clock = source.clock
-        else:
-            clock = None
+
         # variables should always be a list of strings
         if variables is True:
             variables = source.equations.names
