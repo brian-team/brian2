@@ -12,7 +12,33 @@ def test_clocks():
     clock._i = 5
     assert_equal(clock.t, 5*ms)
 
+@with_setup(teardown=restore_initial_state)
+def test_clock_dt_change():
+    clock = Clock(dt=1*ms)
+    # at time 0s, all dt changes should be allowed
+    clock.dt = 0.75*ms
+    clock.dt = 2.5*ms
+    clock.dt = 1*ms
+    clock.tick()
+
+    # now, only changes that are still representable as an integer of the
+    # current time 1s are allowed
+    clock.dt = 0.5*ms
+    clock.dt = 0.1*ms
+    assert_raises(ValueError, lambda: setattr(clock, 'dt', .3*ms))
+    assert_raises(ValueError, lambda: setattr(clock, 'dt', 2*ms))
+
+
+@with_setup(teardown=restore_initial_state)
+def test_defaultclock():        
+    defaultclock.dt = 1*ms
+    assert_equal(defaultclock.dt, 1*ms)
+    assert defaultclock.name=='defaultclock'
 
 if __name__=='__main__':
     test_clocks()
     restore_initial_state()
+    test_clock_dt_change()
+    restore_initial_state()
+    test_defaultclock()
+

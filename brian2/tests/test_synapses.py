@@ -519,6 +519,7 @@ def test_clocks():
 
 def test_changed_dt_spikes_in_queue():
     for codeobj_class in codeobj_classes:
+        defaultclock.reinit()
         defaultclock.dt = .5*ms
         G1 = NeuronGroup(1, 'v:1', threshold='v>1', reset='v=0',
                          codeobj_class=codeobj_class)

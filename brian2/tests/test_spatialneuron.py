@@ -43,7 +43,8 @@ def test_infinitecable():
     '''
     Test simulation of an infinite cable vs. theory for current pulse (Green function)
     '''
-    dt = 0.001*ms
+    defaultclock.reinit()
+    defaultclock.dt = 0.001*ms
 
     # Morphology
     diameter = 1*um
@@ -59,7 +60,7 @@ def test_infinitecable():
     I : amp (point current)
     '''
 
-    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri, dt=dt)
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
 
     taum = Cm/gL # membrane time constant
     rm = 1/(gL * pi * diameter) # membrane resistance per unit length
@@ -67,7 +68,7 @@ def test_infinitecable():
     la = sqrt(rm/ra) # space length
 
     # Monitors
-    mon=StateMonitor(neuron,'v',record=N/2-20, dt=dt)
+    mon=StateMonitor(neuron,'v',record=N/2-20)
 
     net = Network(neuron, mon)
 
@@ -80,8 +81,8 @@ def test_infinitecable():
     v = mon[N//2-20].v
     # Theory (incorrect near cable ends)
     x = 20*morpho.length[0] * meter
-    theory = 1./(la*Cm*pi*diameter)*sqrt(taum/(4*pi*(t+dt)))*\
-                 exp(-(t+dt)/taum-taum/(4*(t+dt))*(x/la)**2)
+    theory = 1./(la*Cm*pi*diameter)*sqrt(taum/(4*pi*(t+defaultclock.dt)))*\
+                 exp(-(t+defaultclock.dt)/taum-taum/(4*(t+defaultclock.dt))*(x/la)**2)
     theory = theory*1*nA*0.02*ms
     assert_allclose(v[t>0.5*ms],theory[t>0.5*ms],rtol=0.01) # 1% error tolerance (not exact because not infinite cable)
 
@@ -90,7 +91,8 @@ def test_finitecable():
     '''
     Test simulation of short cylinder vs. theory for constant current.
     '''
-    dt = 0.01*ms
+    defaultclock.reinit()
+    defaultclock.dt = 0.01*ms
 
     # Morphology
     diameter = 1*um
@@ -108,7 +110,7 @@ def test_finitecable():
     I : amp (point current)
     '''
 
-    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri, dt=dt)
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
     neuron.v = EL
 
     rm = 1/(gL * pi * diameter) # membrane resistance per unit length
@@ -131,7 +133,8 @@ def test_rall():
     '''
     Test simulation of a cylinder plus two branches, with diameters according to Rall's formula
     '''
-    dt = 0.01*ms
+    defaultclock.reinit()
+    defaultclock.dt = 0.01*ms
 
     # Passive channels
     gL=1e-4*siemens/cm**2
@@ -165,7 +168,7 @@ def test_rall():
     I : amp (point current)
     '''
 
-    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri, dt=dt)
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
     neuron.v = EL
 
     rm = 1/(gL * pi * diameter) # membrane resistance per unit length

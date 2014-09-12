@@ -176,6 +176,7 @@ def test_rate_monitor():
 def test_rate_monitor_subgroups():
     target_before = brian_prefs.codegen.target
     old_dt = defaultclock.dt
+    defaultclock.reinit()
     defaultclock.dt = 0.01*ms
     for target in targets:
         brian_prefs.codegen.target = target

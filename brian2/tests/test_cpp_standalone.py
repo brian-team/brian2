@@ -17,6 +17,7 @@ def restore_device():
 
 @with_setup(teardown=restore_device)
 def test_cpp_standalone(with_output=False):
+    defaultclock.reinit()
     Synapses.__instances__().clear()  # TODO: Shouldn't clear do this?
     set_device('cpp_standalone')
     ##### Define the model

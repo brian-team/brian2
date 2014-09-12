@@ -48,8 +48,9 @@ class Clock(Nameable):
 
     def reinit(self):
         '''
-        Reinitialises the clock time to zero.
+        Reinitialises the clock time to zero and dt to 0.1ms
         '''
+        self._dt = float(0.1*msecond)
         self._i = 0
 
     def __str__(self):
@@ -72,7 +73,18 @@ class Clock(Nameable):
         return self._dt
             
     def _set_dt_(self, dt_):
+        # Only allow a new dt which allows to correctly set the new time step
+        old_t = self.t_
+        new_i = np.uint64(self.t_ / dt_)
+        new_t = new_i * dt_
+        if abs(new_t - old_t) > self.epsilon:
+            raise ValueError(('Cannot set dt from {old} to {new}, the current'
+                              'time {t} is not a multiple of '
+                              '{new}').format(old=self.dt,
+                                              new=dt_*second,
+                                              t=self.t))
         self._dt = dt_
+        self._i = new_i
         logger.debug("Set dt for clock {self.name} to {self.dt}".format(self=self))
     
     @check_units(dt=second)
