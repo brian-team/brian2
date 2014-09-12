@@ -6,7 +6,7 @@ import numpy as np
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
 
-from brian2 import (Clock, Network, ms, second, BrianObject,
+from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
                     restore_initial_state, MagicError, clear, Synapses,
                     NeuronGroup, StateMonitor, SpikeMonitor,
@@ -165,12 +165,15 @@ def test_network_stop():
     x = Stopper(10, net.stop)
     net.add(x)
     net.run(10*ms)
-    assert_equal(net.t, 1*ms)
+    assert_equal(defaultclock.t, 1*ms)
+    
+    del net
+    defaultclock.reinit()
     
     x = Stopper(10, stop)
     net = Network(x)
     net.run(10*ms)
-    assert_equal(net.t, 1*ms)
+    assert_equal(defaultclock.t, 1*ms)
 
 @with_setup(teardown=restore_initial_state)
 def test_network_operations():

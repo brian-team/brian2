@@ -16,6 +16,7 @@ def test_spike_monitor():
     target_before = brian_prefs.codegen.target
     for target in targets:
         brian_prefs.codegen.target = target
+        defaultclock.reinit()
         G = NeuronGroup(2, '''dv/dt = rate : 1
                               rate: Hz''', threshold='v>1', reset='v=0')
         # We don't use 100 and 1000Hz, because then the membrane potential would
@@ -45,9 +46,9 @@ def test_spike_monitor():
 
 def test_state_monitor():
     target_before = brian_prefs.codegen.target
-    default_dt = defaultclock.dt
     for target in targets:
         brian_prefs.codegen.target = target
+        defaultclock.reinit()
         # Check that all kinds of variables can be recorded
         G = NeuronGroup(2, '''dv/dt = -v / (10*ms) : 1
                               f = clip(v, 0.1, 0.9) : 1
@@ -90,13 +91,13 @@ def test_state_monitor():
         assert_array_equal(nothing_mon.t_, np.asarray(nothing_mon.t))
         assert_array_equal(nothing_mon.t_, v_mon.t_)
         assert_allclose(nothing_mon.t,
-                        np.arange(len(nothing_mon.t)) * default_dt)
+                        np.arange(len(nothing_mon.t)) * defaultclock.dt)
 
         # Check v recording
         assert_allclose(v_mon.v.T,
-                        np.exp(np.tile(-v_mon.t - default_dt, (2, 1)).T / (10*ms)))
+                        np.exp(np.tile(-v_mon.t - defaultclock.dt, (2, 1)).T / (10*ms)))
         assert_allclose(v_mon.v_.T,
-                        np.exp(np.tile(-v_mon.t_ - float(default_dt), (2, 1)).T / float(10*ms)))
+                        np.exp(np.tile(-v_mon.t_ - defaultclock.dt_, (2, 1)).T / float(10*ms)))
         assert_array_equal(v_mon.v, multi_mon.v)
         assert_array_equal(v_mon.v_, multi_mon.v_)
         assert_array_equal(v_mon.v, all_mon.v)
@@ -122,7 +123,7 @@ def test_state_monitor():
         mon = StateMonitor(G, 'v', record=[5, 6, 7])
 
         net = Network(G, mon)
-        net.run(2 * default_dt)
+        net.run(2 * defaultclock.dt)
 
         assert_array_equal(mon.v, np.array([[5, 5],
                                       [6, 6],
@@ -145,27 +146,27 @@ def test_state_monitor():
 
 def test_rate_monitor():
     target_before = brian_prefs.codegen.target
-    default_dt = defaultclock.dt
     for target in targets:
         brian_prefs.codegen.target = target
         G = NeuronGroup(5, 'v : 1', threshold='v>1') # no reset
         G.v = 1.1 # All neurons spike every time step
         rate_mon = PopulationRateMonitor(G)
         net = Network(G, rate_mon)
-        net.run(10*default_dt)
+        net.run(10*defaultclock.dt)
 
-        assert_allclose(rate_mon.t, np.arange(10) * default_dt)
-        assert_allclose(rate_mon.t_, np.arange(10) * float(default_dt))
-        assert_allclose(rate_mon.rate, np.ones(10) / default_dt)
-        assert_allclose(rate_mon.rate_, np.asarray(np.ones(10) / default_dt))
+        assert_allclose(rate_mon.t, np.arange(10) * defaultclock.dt)
+        assert_allclose(rate_mon.t_, np.arange(10) * float(defaultclock.dt))
+        assert_allclose(rate_mon.rate, np.ones(10) / defaultclock.dt)
+        assert_allclose(rate_mon.rate_, np.asarray(np.ones(10) / defaultclock.dt))
 
+        defaultclock.reinit()
         G = NeuronGroup(10, 'v : 1', threshold='v>1') # no reset
         G.v[:5] = 1.1 # Half of the neurons fire every time step
         rate_mon = PopulationRateMonitor(G)
         net = Network(G, rate_mon)
-        net.run(10*default_dt)
-        assert_allclose(rate_mon.rate, 0.5 * np.ones(10) / default_dt)
-        assert_allclose(rate_mon.rate_, 0.5 *np.asarray(np.ones(10) / default_dt))
+        net.run(10*defaultclock.dt)
+        assert_allclose(rate_mon.rate, 0.5 * np.ones(10) / defaultclock.dt)
+        assert_allclose(rate_mon.rate_, 0.5 *np.asarray(np.ones(10) / defaultclock.dt))
         assert_array_equal(rate_mon.rate['t>0.5*ms'],
                      rate_mon.rate[np.nonzero(rate_mon.t>0.5*ms)[0]])
 

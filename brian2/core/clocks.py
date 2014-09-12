@@ -43,14 +43,14 @@ class Clock(Nameable):
         
     def _force_reinit(self, dt):
         self._dt = float(dt)
-        self.i = np.uint64(0)  #: The time step of the simulation as an integer.
-        self.i_end = np.uint64(0)  #: The time step the simulation will end as an integer
+        self._i = np.uint64(0)  #: The time step of the simulation as an integer.
+        self._i_end = np.uint64(0)  #: The time step the simulation will end as an integer
 
     def reinit(self):
         '''
         Reinitialises the clock time to zero.
         '''
-        self.i = 0
+        self._i = 0
 
     def __str__(self):
         return 'Clock ' + self.name + ': t = ' + str(self.t) + ', dt = ' + str(self.dt)
@@ -62,18 +62,11 @@ class Clock(Nameable):
         '''
         Advances the clock by one time step.
         '''
-        self.i += 1
-
-    @check_units(t=second)
-    def _set_t(self, t):
-        self.i = np.uint64(float(t) / self.dt_)
-
-    def _set_t_(self, t):
-        self.i = np.uint64(t/self.dt_)
+        self._i += 1
 
     @check_units(end=second)
     def _set_t_end(self, end):
-        self.i_end = np.uint64(float(end) / self.dt_)
+        self._i_end = np.uint64(float(end) / self.dt_)
         
     def _get_dt_(self):
         return self._dt
@@ -93,14 +86,11 @@ class Clock(Nameable):
     
     dt_ = property(fget=_get_dt_, fset=_set_dt_,
                    doc='''The time step of the simulation as a float (in seconds)''')
-    t = property(fget=lambda self: self.i*self.dt_*second,
-                 fset=_set_t,
+    t = property(fget=lambda self: self._i*self.dt_*second,
                  doc='The simulation time in seconds')
-    t_ = property(fget=lambda self: float(self.i*self.dt_),
-                  fset=_set_t_,
+    t_ = property(fget=lambda self: float(self._i*self.dt_),
                   doc='The simulation time as a float (in seconds)')
-    t_end = property(fget=lambda self: self.i_end*self.dt_*second,
-                     fset=_set_t_end,
+    t_end = property(fget=lambda self: self._i_end*self.dt_*second,
                      doc='The time the simulation will end (in seconds)')
 
     @check_units(start=second, end=second)
@@ -119,22 +109,22 @@ class Clock(Nameable):
         i_start = np.uint64(np.round(start/self.dt_))
         t_start = i_start*self.dt_
         if t_start==start or np.abs(t_start-start)<=self.epsilon*np.abs(t_start):
-            self.i = i_start
+            self._i = i_start
         else:
-            self.i = np.uint64(np.ceil(start/self.dt_))
+            self._i = np.uint64(np.ceil(start/self.dt_))
         i_end = np.uint64(np.round(end/self.dt_))
         t_end = i_end*self.dt_
         if t_end==end or np.abs(t_end-end)<=self.epsilon*np.abs(t_end):
-            self.i_end = i_end
+            self._i_end = i_end
         else:
-            self.i_end = np.uint64(np.ceil(end/self.dt_))
+            self._i_end = np.uint64(np.ceil(end/self.dt_))
 
     @property
     def running(self):
         '''
         A ``bool`` to indicate whether the current simulation is running.
         '''
-        return self.i<self.i_end
+        return self._i < self._i_end
 
     epsilon = 1e-14
 
