@@ -10,7 +10,7 @@ from brian2.core.base import BrianObject
 
 __all__ = ['MagicNetwork', 'magic_network',
            'MagicError',
-           'run', 'reinit', 'stop', 'collect',
+           'run', 'reinit', 'stop', 'collect', 'store', 'restore'
            ]
 
 logger = get_logger(__name__)
@@ -225,6 +225,22 @@ class MagicNetwork(Network):
         super(MagicNetwork, self).reinit()
         self.objects[:] = []
 
+    def store(self, name='default', level=0):
+        '''
+        See `Network.store`.
+        '''
+        self._update_magic_objects(level=level+1)
+        super(MagicNetwork, self).store(name=name)
+        self.objects[:] = []
+
+    def restore(self, name='default', level=0):
+        '''
+        See `Network.store`.
+        '''
+        self._update_magic_objects(level=level+1)
+        super(MagicNetwork, self).restore(name=name)
+        self.objects[:] = []
+
     def __str__(self):
         return 'MagicNetwork()'
     __repr__ = __str__
@@ -342,6 +358,13 @@ def reinit():
         intended use. See `MagicNetwork` for more details.
     '''
     magic_network.reinit()
+
+def store(name='default'):
+    magic_network.store(name=name, level=1)
+
+
+def restore(name='default'):
+    magic_network.restore(name=name, level=1)
 
 
 def stop():

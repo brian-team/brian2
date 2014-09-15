@@ -35,6 +35,14 @@ cdef class SpikeQueue:
     def __dealloc__(self):
         del self.thisptr
 
+    def store(self, name='default'):
+        raise NotImplementedError(('Store/restore not yet implemented for the '
+                                   'C++ version of the spike queue.'))
+
+    def restore(self, name='default'):
+        raise NotImplementedError(('Store/restore not yet implemented for the '
+                                   'C++ version of the spike queue.'))
+
     def prepare(self, np.ndarray[double, ndim=1, mode='c'] real_delays,
                 double dt,
                 np.ndarray[int32_t, ndim=1, mode='c'] sources):

@@ -14,7 +14,8 @@ import numpy as np
 
 from brian2.core.base import BrianObject
 from brian2.core.preferences import brian_prefs
-from brian2.core.variables import Variables, Constant, Variable, Subexpression
+from brian2.core.variables import (Variables, Constant, Variable,
+                                   ArrayVariable, DynamicArrayVariable)
 from brian2.core.functions import Function
 from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_FUNCTIONS,
@@ -24,6 +25,7 @@ from brian2.codegen.codeobject import create_runner_codeobj, check_code_units
 from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit)
+from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 
@@ -265,7 +267,10 @@ class Group(BrianObject):
             self._indexing = self.indexing_class(self)
         if not hasattr(self, 'indices'):
             self.indices = IndexWrapper(self)
-
+        if not hasattr(self, '_stored_states'):
+            self._stored_states = {}
+        if not hasattr(self, '_stored_clocks'):
+            self._stored_clocks = {}
         self._group_attribute_access_active = True
 
     def state(self, name, use_units=True, level=0):
@@ -352,6 +357,33 @@ class Group(BrianObject):
                                                                 level=level+1)
         else:
             object.__setattr__(self, name, val)
+
+    def store(self, name='default'):
+        logger.debug('Storing state at for object %s' % self.name)
+        state = {}
+        for var in self.variables.itervalues():
+            if isinstance(var, ArrayVariable):
+                state[var] = (var.get_value().copy(), var.size)
+        self._stored_states[name] = state
+        self._stored_clocks[name] = (self.clock.t_, self.clock.dt_)
+        for obj in self._contained_objects:
+            if hasattr(obj, 'store'):
+                obj.store(name)
+
+    def restore(self, name='default'):
+        logger.debug('Restoring state at for object %s' % self.name)
+        if not name in self._stored_states:
+            raise ValueError(('No state with name "%s" to restore -- '
+                              'did you call store()?') % name)
+        for var, (values, size) in self._stored_states[name].iteritems():
+            if isinstance(var, DynamicArrayVariable):
+                var.resize(size)
+            var.set_value(values)
+        t, dt = self._stored_clocks[name]
+        self.clock._force_reinit(dt=dt*second, t=t*second)
+        for obj in self._contained_objects:
+            if hasattr(obj, 'restore'):
+                obj.restore(name)
 
     def _check_expression_scalar(self, expr, varname, level=0,
                                  run_namespace=None):
@@ -658,6 +690,7 @@ class Group(BrianObject):
         runner = CodeRunner(self, 'stateupdate', code=code, name=name,
                             dt=dt, clock=clock, when=when, order=order)
         return runner
+
 
 
 class CodeRunner(BrianObject):

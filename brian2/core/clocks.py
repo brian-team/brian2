@@ -41,10 +41,10 @@ class Clock(Nameable):
         Nameable.__init__(self, name=name)
         logger.debug("Created clock {self.name} with dt={self._dt}".format(self=self))
         
-    def _force_reinit(self, dt):
+    def _force_reinit(self, dt, t=0*second):
         self._dt = float(dt)
-        self._i = np.uint64(0)  #: The time step of the simulation as an integer.
-        self._i_end = np.uint64(0)  #: The time step the simulation will end as an integer
+        self._i = np.uint64(float(t)/float(dt))  #: The time step of the simulation as an integer.
+        self._i_end = np.uint64(self._i)  #: The time step the simulation will end as an integer
 
     def reinit(self):
         '''

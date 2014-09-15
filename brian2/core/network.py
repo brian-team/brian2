@@ -170,7 +170,10 @@ class Network(Nameable):
             self.add(obj)
             
         #: Current time as a float
-        self.t_ = 0.0   
+        self.t_ = 0.0
+
+        #: Stored time for the store/restore mechanism
+        self._stored_t = {}
      
     t = property(fget=lambda self: self.t_*second,
                  doc='''
@@ -278,7 +281,19 @@ class Network(Nameable):
         '''
         for obj in self.objects:
             obj.reinit(level=level+2)
-    
+
+    def store(self, name='default'):
+        self._stored_t[name] = self.t_
+        for obj in self.objects:
+            if hasattr(obj, 'store'):
+                obj.store(name=name)
+
+    def restore(self, name='default'):
+        for obj in self.objects:
+            if hasattr(obj, 'restore'):
+                obj.restore(name=name)
+        self.t_ = self._stored_t[name]
+
     def _get_schedule(self):
         if not hasattr(self, '_schedule'):
             self._schedule = ['start',

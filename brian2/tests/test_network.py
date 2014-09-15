@@ -11,7 +11,7 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     restore_initial_state, MagicError, clear, Synapses,
                     NeuronGroup, StateMonitor, SpikeMonitor,
                     PopulationRateMonitor, MagicNetwork, magic_network,
-                    PoissonGroup, Hz, collect)
+                    PoissonGroup, Hz, collect, store, restore)
 from brian2.utils.logger import catch_logs
 
 def test_incorrect_network_use():
@@ -537,6 +537,77 @@ def test_progress_report_incorrect():
     assert_raises(TypeError, lambda: net.run(1*ms, report=object()))
 
 
+def test_store_restore():
+    source = NeuronGroup(10, '''dv/dt = rates : 1
+                                rates : Hz''', threshold='v>1', reset='v=0')
+    source.rates = 'i*100*Hz'
+    target = NeuronGroup(10, 'v:1')
+    synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='i==j')
+    synapses.w = 'i*1.0'
+    synapses.delay = 'i*ms'
+    state_mon = StateMonitor(target, 'v', record=True)
+    spike_mon = SpikeMonitor(source)
+    net = Network(source, target, synapses, state_mon, spike_mon)
+    net.store()  # default time slot
+    net.run(10*ms)
+    net.store('second')
+    net.run(10*ms)
+    v_values = state_mon.v[:, :]
+    spike_indices, spike_times = spike_mon.it_
+
+    net.restore() # Go back to beginning
+    assert defaultclock.t == 0*ms
+    assert net.t == 0*ms
+    net.run(20*ms)
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+
+    # Go back to middle
+    net.restore('second')
+    assert defaultclock.t == 10*ms
+    assert net.t == 10*ms
+    net.run(10*ms)
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+
+@with_setup(teardown=restore_initial_state)
+def test_store_restore_magic():
+    defaultclock.reinit()
+    source = NeuronGroup(10, '''dv/dt = rates : 1
+                                rates : Hz''', threshold='v>1', reset='v=0')
+    source.rates = 'i*100*Hz'
+    target = NeuronGroup(10, 'v:1')
+    synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='i==j')
+    synapses.w = 'i*1.0'
+    synapses.delay = 'i*ms'
+    state_mon = StateMonitor(target, 'v', record=True)
+    spike_mon = SpikeMonitor(source)
+    store()  # default time slot
+    run(10*ms)
+    store('second')
+    run(10*ms)
+    v_values = state_mon.v[:, :]
+    spike_indices, spike_times = spike_mon.it_
+
+    restore() # Go back to beginning
+    assert defaultclock.t == 0*ms
+    assert magic_network.t == 0*ms
+    run(20*ms)
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+
+    # Go back to middle
+    restore('second')
+    assert defaultclock.t == 10*ms
+    assert magic_network.t == 10*ms
+    run(10*ms)
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+
 if __name__=='__main__':
     for t in [test_incorrect_network_use,
               test_network_contains,
@@ -560,7 +631,9 @@ if __name__=='__main__':
               test_loop,
               test_magic_collect,
               test_progress_report,
-              test_progress_report_incorrect
+              test_progress_report_incorrect,
+              test_store_restore,
+              test_store_restore_magic
               ]:
         t()
         restore_initial_state()
