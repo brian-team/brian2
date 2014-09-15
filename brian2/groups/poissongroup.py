@@ -22,8 +22,18 @@ class PoissonGroup(Group, SpikeSource):
     rates : `Quantity`, str
         Single rate, array of rates of length N, or a string expression
         evaluating to a rate
-    clock : Clock, optional
-        The update clock to be used, or defaultclock if not specified.
+    dt : `Quantity`, optional
+        The time step to be used for the simulation. Cannot be combined with
+        the `clock` argument.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the `defaultclock` will be used.
+    when : str, optional
+            When to run within a time step, defaults to the ``'thresholds'``
+            slot.
+    order : int, optional
+        The priority of of this group for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
     name : str, optional
         Unique name, or use poissongroup, poissongroup_1, etc.
 

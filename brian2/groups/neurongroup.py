@@ -274,8 +274,15 @@ class NeuronGroup(Group, SpikeSource):
         setting `core.default_float_dtype` is used.
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
-    clock : Clock, optional
-        The update clock to be used, or defaultclock if not specified.
+    dt : `Quantity`, optional
+        The time step to be used for the simulation. Cannot be combined with
+        the `clock` argument.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the `defaultclock` will be used.
+    order : int, optional
+        The priority of of this group for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
     name : str, optional
         A unique name for the group, otherwise use ``neurongroup_0``, etc.
         
@@ -283,9 +290,10 @@ class NeuronGroup(Group, SpikeSource):
     -----
     `NeuronGroup` contains a `StateUpdater`, `Thresholder` and `Resetter`, and
     these are run at the 'groups', 'thresholds' and 'resets' slots (i.e. the
-    values of `Scheduler.when` take these values). The `Scheduler.order`
-    attribute is set to 0 initially, but this can be modified using the
-    attributes `state_updater`, `thresholder` and `resetter`.    
+    values of their `when` attribute take these values). The `order`
+    attribute will be passed down to the contained objects but can be set
+    individually by setting the `order` attribute of the `state_updater`,
+    `thresholder` and `resetter` attributes, respectively.
     '''
     add_to_magic_network = True
 

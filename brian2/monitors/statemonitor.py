@@ -104,9 +104,18 @@ class StateMonitor(Group, CodeRunner):
         Which indices to record, nothing is recorded for ``None`` or ``False``,
         everything is recorded for ``True`` (warning: may use a great deal of
         memory), or a specified subset of indices.
-    when : `Scheduler`, optional
-        When to record the spikes, by default uses the clock of the source
-        and records spikes in the slot 'end'.
+    dt : `Quantity`, optional
+        The time step to be used for the monitor. Cannot be combined with
+        the `clock` argument.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the clock of the `source` will be used.
+    when : str, optional
+        At which point during a time step the values should be recorded.
+        Defaults to ``'end'``.
+    order : int, optional
+        The priority of of this group for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
     name : str, optional
         A unique name for the object, otherwise will use
         ``source.name+'statemonitor_0'``, etc.
@@ -130,6 +139,14 @@ class StateMonitor(Group, CodeRunner):
         plot(M.t, M.V.T)
         show()
 
+    Notes
+    -----
+
+    Since this monitor by default records in the ``'end'`` time slot, recordings
+    of the membrane potential in integrate-and-fire models may look unexpected:
+    the recording is done *after* application of the reset statement, i.e the
+    recorded membrane potential trace will never be above threshold. Set the
+    `when` keyword to a different value if this is not what you want.
     '''
     invalidates_magic_network = False
     add_to_magic_network = True

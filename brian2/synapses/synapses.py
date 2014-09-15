@@ -37,11 +37,11 @@ class StateUpdater(CodeRunner):
     The `CodeRunner` that updates the state variables of a `Synapses`
     at every timestep.
     '''
-    def __init__(self, group, method, dt, order):
+    def __init__(self, group, method, clock, order):
         self.method_choice = method
         CodeRunner.__init__(self, group,
                             'stateupdate',
-                            dt=dt,
+                            clock=clock,
                             when='groups',
                             order=order,
                             name=group.name + '_stateupdater',
@@ -85,7 +85,7 @@ class SummedVariableUpdater(CodeRunner):
                             needed_variables=[target_varname],
                             # We want to update the sumned variable before
                             # the target group gets updated
-                            clock=target._clock,
+                            clock=target.clock,
                             when='groups',
                             order=target.order-1,
                             name=synapses.name + '_summed_variable_' + target_varname,
@@ -443,8 +443,15 @@ class Synapses(Group):
         setting `core.default_float_dtype` is used.
     codeobj_class : class, optional
         The `CodeObject` class to use to run code.
+    dt : `Quantity`, optional
+        The time step to be used for the simulation. Cannot be combined with
+        the `clock` argument.
     clock : `Clock`, optional
-        The clock to use.
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the `defaultclock` will be used.
+    order : int, optional
+        The priority of of this group for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
     method : {str, `StateUpdateMethod`}, optional
         The numerical integration method to use. If none is given, an
         appropriate one is automatically determined.
@@ -577,7 +584,8 @@ class Synapses(Group):
 
         # We only need a state update if we have differential equations
         if len(self.equations.diff_eq_names):
-            self.state_updater = StateUpdater(self, method, dt=dt, order=order)
+            self.state_updater = StateUpdater(self, method, clock=self.clock,
+                                              order=order)
             self.contained_objects.append(self.state_updater)
 
         #: "Summed variable" mechanism -- sum over all synapses of a

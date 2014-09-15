@@ -27,18 +27,28 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     times : `Quantity`
         The spike times for the cells given in `indices`. Has to have the
         same length as `indices`.
-    when : `Scheduler`
-        When to update this group
+    dt : `Quantity`, optional
+        The time step to be used for the simulation. Cannot be combined with
+        the `clock` argument.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the `defaultclock` will be used.
+    when : str, optional
+            When to run within a time step, defaults to the ``'thresholds'``
+            slot.
+    order : int, optional
+        The priority of of this group for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
 
     Notes
     -----
     * In a time step, `SpikeGeneratorGroup` emits all spikes that happened
       at :math:`t-dt < t_{spike} \leq t`. This might lead to unexpected
-      or missing spikes if you change the timestep dt between runs.
+      or missing spikes if you change the time step dt between runs.
     * `SpikeGeneratorGroup` does not currently raise any warning if a neuron
-      spikes more that once during a timestep, but other code (e.g. for
+      spikes more that once during a time step, but other code (e.g. for
       synaptic propagation) might assume that neurons only spike once per
-      timestep and will therefore not work properly.
+      time step and will therefore not work properly.
     '''
 
     @check_units(N=1, indices=1, times=second)

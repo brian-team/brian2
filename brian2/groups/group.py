@@ -626,7 +626,8 @@ class Group(BrianObject):
 
         return resolutions
 
-    def custom_operation(self, code, dt=None, when='start', order=0, name=None):
+    def custom_operation(self, code, dt=None, clock=None, when='start',
+                         order=0, name=None):
         '''
         Returns a `CodeRunner` that runs abstract code in the group's namespace.
 
@@ -634,9 +635,14 @@ class Group(BrianObject):
         ----------
         code : str
             The abstract code to run.
-        when : `Scheduler`, optional
-            When to run, by default in the 'stateupdate' slot with the same
-            clock as the group.
+        dt : `Quantity`, optional
+            The time step to use for this custom operation. Cannot be combined
+            with the `clock` argument.
+        clock : `Clock`, optional
+            The update clock to use for this operation. If neither a clock nor
+            the `dt` argument is specified, defaults to the clock of the group.
+        when : str, optional
+            When to run within a time step, defaults to the ``'start'`` slot.
         name : str, optional
             A unique name, if non is given the name of the group appended with
             'custom_operation', 'custom_operation_1', etc. will be used. If a
@@ -646,10 +652,9 @@ class Group(BrianObject):
         if name is None:
             name = self.name + '_custom_operation*'
 
-        if dt is None:
+        if dt is None and clock is None:
             clock = self._clock
-        else:
-            clock = None
+
         runner = CodeRunner(self, 'stateupdate', code=code, name=name,
                             dt=dt, clock=clock, when=when, order=order)
         return runner

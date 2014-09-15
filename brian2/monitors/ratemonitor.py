@@ -22,6 +22,12 @@ class PopulationRateMonitor(Group, CodeRunner):
         ``source.name+'_ratemonitor_0'``, etc.
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
+
+    Notes
+    -----
+    Currently, this monitor can only monitor the instantaneous firing rates at
+    each time step of the source clock. Any binning/smoothing of the firing
+    rates has to be done manually afterwards.
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
