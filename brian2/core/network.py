@@ -282,12 +282,14 @@ class Network(Nameable):
         for obj in self.objects:
             obj.reinit(level=level+2)
 
+    @device_override('network_store')
     def store(self, name='default'):
         self._stored_t[name] = self.t_
         for obj in self.objects:
             if hasattr(obj, 'store'):
                 obj.store(name=name)
 
+    @device_override('network_restore')
     def restore(self, name='default'):
         for obj in self.objects:
             if hasattr(obj, 'restore'):

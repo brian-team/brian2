@@ -667,6 +667,14 @@ class CPPStandaloneDevice(Device):
                                                                                               report_period=float(report_period)))
         self.main_queue.append(('run_network', (net, run_lines)))
 
+    def network_store(self, net, name='default'):
+        raise NotImplementedError(('The store/restore mechanism is not '
+                                   'supported in the C++ standalone'))
+
+    def network_restore(self, net, name='default'):
+        raise NotImplementedError(('The store/restore mechanism is not '
+                                   'supported in the C++ standalone'))
+
     def run_function(self, name, include_in_parent=True):
         '''
         Context manager to divert code into a function
