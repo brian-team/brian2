@@ -2,6 +2,7 @@
 # distutils: sources = brian2/synapses/cspikequeue.cpp
 
 from libcpp.vector cimport vector
+from libcpp.string cimport string
 
 from cython.operator import dereference
 from cython.operator cimport dereference
@@ -22,6 +23,8 @@ cdef extern from "cspikequeue.cpp":
         CSpikeQueue(int, int) except +
         void prepare(T*, int32_t*, int, double)
         void push(int32_t *, int)
+        void store(const string)
+        void restore(const string)
         vector[int32_t]* peek()
         void advance()
 
@@ -35,9 +38,11 @@ cdef class SpikeQueue:
     def __dealloc__(self):
         del self.thisptr
 
-    def store(self, name='default'):
-        raise NotImplementedError(('Store/restore not yet implemented for the '
-                                   'C++ version of the spike queue.'))
+    def store(self, str name='default'):
+        self.thisptr.store(<string>name)
+
+    def restore(self, str name='default'):
+        self.thisptr.restore(<string>name)
 
     def restore(self, name='default'):
         raise NotImplementedError(('Store/restore not yet implemented for the '
