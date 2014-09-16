@@ -358,6 +358,67 @@ class Group(BrianObject):
         else:
             object.__setattr__(self, name, val)
 
+    def get_states(self, vars=None, units=True, format='dict', level=0):
+        '''
+        Return a copy of the current state variable values.
+
+        Parameters
+        ----------
+        vars : list of str, optional
+            The names of the variables to extract. If not specified, extract
+            all state variables (except for internal variables, i.e. names that
+            start with ``'_'``).
+        units : bool, optional
+            Whether to include the physical units in the return value. Defaults
+            to ``True``.
+        format : str, optional
+            The output format. Defaults to ``'dict'``.
+        level : int, optional
+            How much higher to go up the stack to resolve external variables.
+            Only relevant if extracting subexpressions that refer to external
+            variables.
+
+        Returns
+        -------
+        values
+            The variables specified in ``vars``, in the specified ``format``.
+
+        '''
+        # For the moment, 'dict' is the only supported format -- later this will
+        # be made into an extensible system, see github issue #306
+        if format != 'dict':
+            raise NotImplementedError("Format '%s' is not supported" % format)
+        if vars is None:
+            vars = [name for name in self.variables.iterkeys()
+                    if not name.startswith('_')]
+        data = {}
+        for var in vars:
+            data[var] = np.array(self.state(var, use_units=units, level=level+1))
+        return data
+
+    def set_states(self, values, units=True, format='dict', level=0):
+        '''
+        Set the state variables.
+
+        Parameters
+        ----------
+        values : depends on ``format``
+            The values according to ``format``.
+        units : bool, optional
+            Whether the ``values`` include physical units. Defaults to ``True``.
+        format : str, optional
+            The format of ``values``. Defaults to ``'dict'``
+        level : int, optional
+            How much higher to go up the stack to resolve external variables.
+            Only relevant when using string expressions to set values.
+        '''
+        # For the moment, 'dict' is the only supported format -- later this will
+        # be made into an extensible system, see github issue #306
+        if format != 'dict':
+            raise NotImplementedError("Format '%s' is not supported" % format)
+        for key, value in values.iteritems():
+            self.state(key, use_units=units, level=level+1)[:] = value
+
     def _store(self, name='default'):
         logger.debug('Storing state at for object %s' % self.name)
         state = {}
