@@ -968,6 +968,9 @@ class Quantity(np.ndarray, object):
         result.dim = dim
         return result
 
+    def __deepcopy__(self, memo):
+        return Quantity(self, copy=True)
+
 #==============================================================================
 # Quantity-specific functions (not existing in ndarray)
 #==============================================================================

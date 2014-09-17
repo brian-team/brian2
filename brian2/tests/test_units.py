@@ -916,6 +916,16 @@ def test_fail_for_dimension_mismatch():
     assert_raises(DimensionMismatchError, lambda: fail_for_dimension_mismatch(6 * volt, 5 * second))    
 
 
+def test_deepcopy():
+    d = {'x': 1*second}
+    from copy import deepcopy
+    d_copy = deepcopy(d)
+    assert d_copy['x'] == 1*second
+    d_copy['x'] += 1*second
+    assert d_copy['x'] == 2*second
+    assert d['x'] == 1*second
+
+
 if __name__ == '__main__':
     test_construction()
     test_get_dimensions()
@@ -944,3 +954,4 @@ if __name__ == '__main__':
     test_get_unit()
     test_switching_off_unit_checks()
     test_fail_for_dimension_mismatch()
+    test_deepcopy()
