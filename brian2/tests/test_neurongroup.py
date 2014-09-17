@@ -753,8 +753,49 @@ def test_subexpression():
 
 def test_subexpression_with_constant():
         g = 2
-        G = NeuronGroup(1, '''I = 1*g : 1''')
+        G = NeuronGroup(1, '''x : 1
+                              I = x*g : 1''')
+        G.x = 1
         assert_equal(G.I[:], np.array([2]))
+        # Subexpressions that refer to external variables are tricky, see github
+        # issue #313 for details
+
+        # Comparisons
+        assert G.I == 2
+        assert G.I >= 1
+        assert G.I > 1
+        assert G.I < 3
+        assert G.I <= 3
+        assert G.I != 3
+
+        # arithmetic operations
+        assert G.I + 1 == 3
+        assert 1 + G.I == 3
+        assert G.I * 1 == 2
+        assert 1 * G.I == 2
+        assert G.I - 1 == 1
+        assert 3 - G.I == 1
+        assert G.I / 1 == 2
+        assert G.I // 1 == 2.0
+        assert 1.0 / G.I == 0.5
+        assert 1 // G.I == 0
+        assert +G.I == 2
+        assert -G.I == -2
+
+        # other operations
+        assert len(G.I) == 1
+
+        # These will not work
+        assert_raises(ValueError, lambda: np.array(G.I))
+        assert_raises(ValueError, lambda: np.mean(G.I))
+        # But these should
+        assert_equal(np.array(G.I[:]), G.I[:])
+        assert np.mean(G.I[:]) == 2
+
+        # This will work but display a text, advising to use G.I[:] instead of
+        # G.I
+        assert(len(str(G.I)))
+        assert(len(repr(G.I)))
 
 def test_scalar_parameter_access():
     for codeobj_class in codeobj_classes:
