@@ -39,14 +39,12 @@ cdef class SpikeQueue:
         del self.thisptr
 
     def store(self, str name='default'):
-        self.thisptr.store(<string>name)
+        cdef string s = name.encode('UTF-8')
+        self.thisptr.store(s)
 
     def restore(self, str name='default'):
-        self.thisptr.restore(<string>name)
-
-    def restore(self, name='default'):
-        raise NotImplementedError(('Store/restore not yet implemented for the '
-                                   'C++ version of the spike queue.'))
+        cdef string s = name.encode('UTF-8')
+        self.thisptr.restore(s)
 
     def prepare(self, np.ndarray[double, ndim=1, mode='c'] real_delays,
                 double dt,
