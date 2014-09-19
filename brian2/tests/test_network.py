@@ -261,18 +261,6 @@ def test_network_remove():
     assert_equal(x.count, 10)
     assert_equal(y.count, 0)
 
-@with_setup(teardown=restore_initial_state)
-def test_network_copy():
-    x = Counter()
-    net = Network(x)
-    net2 = Network()
-    for obj in net.objects:
-        net2.add(obj)
-    net2.run(1*ms)
-    assert_equal(x.count, 10)
-    net.run(1*ms)
-    assert_equal(x.count, 20)
-
 class NoninvalidatingCounter(Counter):
     add_to_magic_network = True
     invalidates_magic_network = False
@@ -308,13 +296,24 @@ def test_invalid_magic_network():
     run(1*ms)
     assert_equal(x.count, 10)
     assert_equal(y.count, 10) 
-    del x
+
+@with_setup(teardown=restore_initial_state)
+def test_multiple_networks_invalid():
+    x = Counter()
+    net = Network(x)
+    net.run(1*ms)
     try:
         run(1*ms)
-        raise AssertionError('Expected a MagicError')
-    except MagicError:
+        raise AssertionError('Expected a RuntimeError')
+    except RuntimeError:
         pass  # this is expected
 
+    net2 = Network(x)
+    try:
+        net2.run(1*ms)
+        raise AssertionError('Expected a RuntimeError')
+    except RuntimeError:
+        pass  # this is expected
 
 @with_setup(teardown=restore_initial_state)
 def test_magic_weak_reference():
@@ -608,6 +607,7 @@ def test_store_restore_magic():
     assert_equal(spike_indices, spike_mon.i[:])
     assert_equal(spike_times, spike_mon.t_[:])
 
+
 if __name__=='__main__':
     for t in [test_incorrect_network_use,
               test_network_contains,
@@ -623,10 +623,10 @@ if __name__=='__main__':
               test_network_active_flag,
               test_network_t,
               test_network_remove,
-              test_network_copy,
               test_magic_weak_reference,
               test_magic_unused_object,
               test_invalid_magic_network,
+              test_multiple_networks_invalid,
               test_network_access,
               test_loop,
               test_magic_collect,

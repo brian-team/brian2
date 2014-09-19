@@ -116,25 +116,7 @@ class MagicNetwork(Network):
     When it is not possible to safely guess which case you are in, it raises
     `MagicError`. The rules for this guessing system are explained below.
     
-    The rule is essentially this: if you are running a network consisting of
-    entirely new objects compared to the previous run, then time will be reset
-    to 0 and no error is raised. If you are running a network consisting only
-    of objects that existed on the previous run, time continues from the end
-    of the previous run and no error is raised. If the set of objects is
-    different but has some overlap, an error is raised. So, for example,
-    creating a new `NeuronGroup` and calling `run` will raise an error. The
-    reason for this raising an error is that Brian cannot guess the
-    intent of the user, and doesn't know whether to reset time to 0 or not.
-    
-    There is a slight subtlety to the rules above: adding or removing some
-    types of Brian object will not cause an error to be raised. All Brian
-    objects have a `~BrianObject.invalidates_magic_network` attribute - if this
-    flag is set to ``False`` then adding it will not cause an error to be
-    raised. You can check this attribute on each object, but the basic rule is
-    that the flag will be set to ``True`` for "stand-alone" Brian objects which
-    can be run on their own, e.g. `NeuronGroup` and ``False`` for objects which
-    require the existence of another object such as `Synapses` or
-    `SpikeMonitor`.
+    TODO
     
     See Also
     --------
@@ -168,27 +150,44 @@ class MagicNetwork(Network):
     def _update_magic_objects(self, level):
         objects = collect(level+1)
         contained_objects = set()
-        valid_refs = set()
         for obj in objects:
-            if obj.invalidates_magic_network:
-                valid_refs.add(weakref.ref(obj))
             for contained in _get_contained_objects(obj):
                 contained_objects.add(contained)
+        objects |= contained_objects
+
         # check whether we should restart time, continue time, or raise an
         # error
-        inter = valid_refs.intersection(self._previous_refs)
-        if len(inter) == 0:
+        some_known = False
+        some_new = False
+        for obj in objects:
+            if obj._network == self.id:
+                some_known = True  # we are continuing a previous run
+            elif obj._network is None and obj.invalidates_magic_network:
+                some_new = True
+            # Note that the inclusion of objects that have been run as part of
+            # other objects will lead to an error in `Network.before_run`, we
+            # do not have to deal with this case here.
+
+        if some_known and some_new:
+            raise MagicError(('The magic network contains a mix of objects '
+                              'that has been run before and new objects, Brian '
+                              'does not know whether you want to start a new '
+                              'simulation or continue an old one. Consider '
+                              'explicitly creating a Network object. Also note '
+                              'that you can find out which objects will be '
+                              'included in a magic network with the '
+                              'collect() function.'))
+        elif some_new:  # all objects are new, start a new simulation
             # reset time
             self.t_ = 0.0
-        elif len(self._previous_refs) == len(valid_refs):
-            # continue time
-            pass
-        else:
-            raise MagicError(
-                "Brian cannot guess what you intend to do here, see docs for MagicNetwork for details")
-        self._previous_refs = valid_refs
+            # reset id -- think of this as a new Network
+            self.assign_id()
 
-        self.objects[:] = objects | contained_objects
+        for obj in objects:
+            if obj._network is None:
+                obj._network = self.id
+
+        self.objects[:] = objects
         logger.info("Updated MagicNetwork to include {numobjs} objects "
                     "with names {names}".format(
                         numobjs=len(self.objects),

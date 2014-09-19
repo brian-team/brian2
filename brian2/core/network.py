@@ -384,6 +384,17 @@ class Network(Nameable):
             if obj.active:
                 obj.before_run(run_namespace, level=level+2)
 
+        # Check that no object has been run as part of another network before
+        for obj in self.objects:
+            if obj._network is None:
+                obj._network = self.id
+            elif obj._network != self.id:
+                raise RuntimeError(('%s has already been run in the '
+                                    'context of another network. Use '
+                                    'add/remove to change the objects '
+                                    'in a simulated network instead of '
+                                    'creating a new one.') % obj.name)
+
         logger.debug("Network {self.name} has {num} "
                      "clocks: {clocknames}".format(self=self,
                         num=len(self._clocks),

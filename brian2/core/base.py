@@ -54,6 +54,10 @@ class BrianObject(Nameable):
             else:
                 self._clock = defaultclock
 
+        #: Used to remember the `Network` in which this object has been included
+        #: before, to raise an error if it is included in a new `Network`
+        self._network = None
+
         #: The ID string determining when the object should be updated in `Network.run`.
         self.when = when
         
