@@ -8,7 +8,7 @@ from nose import with_setup
 
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
-                    restore_initial_state, MagicError, clear, Synapses,
+                    restore_initial_state, MagicError, Synapses,
                     NeuronGroup, StateMonitor, SpikeMonitor,
                     PopulationRateMonitor, MagicNetwork, magic_network,
                     PoissonGroup, Hz, collect, store, restore)
@@ -119,20 +119,6 @@ class Preparer(BrianObject):
     def after_run(self):
         self.did_post_run = True        
 
-@with_setup(teardown=restore_initial_state)
-def test_network_reinit_pre_post_run():
-    # Check that reinit and before_run and after_run work
-    x = Preparer()
-    net = Network(x)
-    assert_equal(x.did_reinit, False)
-    assert_equal(x.did_pre_run, False)
-    assert_equal(x.did_post_run, False)
-    net.run(1*ms)
-    assert_equal(x.did_reinit, False)
-    assert_equal(x.did_pre_run, True)
-    assert_equal(x.did_post_run, True)
-    net.reinit()
-    assert_equal(x.did_reinit, True)
 
 @with_setup(teardown=restore_initial_state)
 def test_magic_network():
@@ -166,9 +152,6 @@ def test_network_stop():
     net.add(x)
     net.run(10*ms)
     assert_equal(defaultclock.t, 1*ms)
-    
-    del net
-    defaultclock.reinit()
     
     x = Stopper(10, stop)
     net = Network(x)
@@ -573,7 +556,6 @@ def test_store_restore():
 
 @with_setup(teardown=restore_initial_state)
 def test_store_restore_magic():
-    defaultclock.reinit()
     source = NeuronGroup(10, '''dv/dt = rates : 1
                                 rates : Hz''', threshold='v>1', reset='v=0')
     source.rates = 'i*100*Hz'
@@ -591,32 +573,32 @@ def test_store_restore_magic():
     spike_indices, spike_times = spike_mon.it_
 
     restore() # Go back to beginning
-    assert defaultclock.t == 0*ms
     assert magic_network.t == 0*ms
     run(20*ms)
+    assert defaultclock.t == 20*ms
     assert_equal(v_values, state_mon.v[:, :])
     assert_equal(spike_indices, spike_mon.i[:])
     assert_equal(spike_times, spike_mon.t_[:])
 
     # Go back to middle
     restore('second')
-    assert defaultclock.t == 10*ms
     assert magic_network.t == 10*ms
     run(10*ms)
+    assert defaultclock.t == 20*ms
     assert_equal(v_values, state_mon.v[:, :])
     assert_equal(spike_indices, spike_mon.i[:])
     assert_equal(spike_times, spike_mon.t_[:])
 
 
 if __name__=='__main__':
-    for t in [test_incorrect_network_use,
+    for t in [
+              test_incorrect_network_use,
               test_network_contains,
               test_empty_network,
               test_network_single_object,
               test_network_two_objects,
               test_network_different_clocks,
               test_network_different_when,
-              test_network_reinit_pre_post_run,
               test_magic_network,
               test_network_stop,
               test_network_operations,

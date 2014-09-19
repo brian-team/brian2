@@ -407,8 +407,12 @@ class CPPStandaloneDevice(Device):
             static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
 
         # Write the global objects
-        networks = [net() for net in Network.__instances__() if net().name!='_fake_network']
-        synapses = [S() for S in Synapses.__instances__()]
+        networks = [net() for net in Network.__instances__()
+                    if net().name!='_fake_network']
+        synapses = []
+        for net in networks:
+            synapses.extend(s for s in net.objects if isinstance(s, Synapses))
+
         arr_tmp = CPPStandaloneCodeObject.templater.objects(
                         None, None,
                         array_specs=self.arrays,
@@ -593,7 +597,7 @@ class CPPStandaloneDevice(Device):
 
     def network_run(self, net, duration, report=None, report_period=10*second,
                     namespace=None, level=0):
-
+        net._clocks = [obj.clock for obj in net.objects]
         # We have to use +2 for the level argument here, since this function is
         # called through the device_override mechanism
         net.before_run(namespace, level=level+2)

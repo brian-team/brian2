@@ -16,7 +16,6 @@ def test_spike_monitor():
     target_before = brian_prefs.codegen.target
     for target in targets:
         brian_prefs.codegen.target = target
-        defaultclock.reinit()
         G = NeuronGroup(2, '''dv/dt = rate : 1
                               rate: Hz''', threshold='v>1', reset='v=0')
         # We don't use 100 and 1000Hz, because then the membrane potential would
@@ -48,7 +47,6 @@ def test_state_monitor():
     target_before = brian_prefs.codegen.target
     for target in targets:
         brian_prefs.codegen.target = target
-        defaultclock.reinit()
         # Check that all kinds of variables can be recorded
         G = NeuronGroup(2, '''dv/dt = -v / (10*ms) : 1
                               f = clip(v, 0.1, 0.9) : 1
@@ -159,7 +157,6 @@ def test_rate_monitor():
         assert_allclose(rate_mon.rate, np.ones(10) / defaultclock.dt)
         assert_allclose(rate_mon.rate_, np.asarray(np.ones(10) / defaultclock.dt))
 
-        defaultclock.reinit()
         G = NeuronGroup(10, 'v : 1', threshold='v>1') # no reset
         G.v[:5] = 1.1 # Half of the neurons fire every time step
         rate_mon = PopulationRateMonitor(G)
@@ -176,7 +173,6 @@ def test_rate_monitor():
 def test_rate_monitor_subgroups():
     target_before = brian_prefs.codegen.target
     old_dt = defaultclock.dt
-    defaultclock.reinit()
     defaultclock.dt = 0.01*ms
     for target in targets:
         brian_prefs.codegen.target = target

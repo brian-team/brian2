@@ -43,7 +43,6 @@ def test_infinitecable():
     '''
     Test simulation of an infinite cable vs. theory for current pulse (Green function)
     '''
-    defaultclock.reinit()
     defaultclock.dt = 0.001*ms
 
     # Morphology
@@ -91,7 +90,6 @@ def test_finitecable():
     '''
     Test simulation of short cylinder vs. theory for constant current.
     '''
-    defaultclock.reinit()
     defaultclock.dt = 0.01*ms
 
     # Morphology
@@ -133,7 +131,6 @@ def test_rall():
     '''
     Test simulation of a cylinder plus two branches, with diameters according to Rall's formula
     '''
-    defaultclock.reinit()
     defaultclock.dt = 0.01*ms
 
     # Passive channels

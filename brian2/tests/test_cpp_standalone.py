@@ -17,8 +17,6 @@ def restore_device():
 
 @with_setup(teardown=restore_device)
 def test_cpp_standalone(with_output=False):
-    defaultclock.reinit()
-    Synapses.__instances__().clear()  # TODO: Shouldn't clear do this?
     set_device('cpp_standalone')
     ##### Define the model
     tau = 1*ms
@@ -66,6 +64,7 @@ def test_multiple_connects(with_output=False):
     tempdir = tempfile.mkdtemp()
     if with_output:
         print tempdir
+    run(0*ms)
     device.build(project_dir=tempdir, compile_project=True, run_project=True,
                  with_output=True)
     assert len(S) == 2 and len(S.w[:]) == 2

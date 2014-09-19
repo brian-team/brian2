@@ -270,18 +270,6 @@ class Network(Nameable):
                                     "BrianObject, or containers of such "
                                     "objects from Network")
 
-    @device_override('network_reinit')
-    def reinit(self, level=0):
-        '''
-        reinit()
-
-        Reinitialises all contained objects.
-        
-        Calls `BrianObject.reinit` on each object.
-        '''
-        for obj in self.objects:
-            obj.reinit(level=level+2)
-
     @device_override('network_store')
     def store(self, name='default'):
         self._stored_t[name] = self.t_
@@ -364,8 +352,6 @@ class Network(Nameable):
             namespace will be run.
         '''                
         brian_prefs.check_all_validated()
-
-        self._clocks = [obj.clock for obj in self.objects]
         
         self._stopped = False
         Network._globally_stopped = False
@@ -461,18 +447,17 @@ class Network(Nameable):
         # A garbage collection here can be useful to free memory if we have
         # multiple runs
         gc.collect()
-        self.before_run(namespace, level=level+3)
 
         if len(self.objects)==0:
             return # TODO: raise an error? warning?
 
+        self._clocks = [obj.clock for obj in self.objects]
         t_start = self.t
         t_end = self.t+duration
         for clock in self._clocks:
             clock.set_interval(self.t, t_end)
-            
-        # TODO: progress reporting stuff
-        
+
+        self.before_run(namespace, level=level+3)
         # Find the first clock to be updated (see note below)
         clock, curclocks = self._nextclocks()
         if report is not None:

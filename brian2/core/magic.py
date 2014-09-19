@@ -5,8 +5,9 @@ import itertools
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
-from brian2.core.network import Network
-from brian2.core.base import BrianObject
+
+from .network import Network
+from .base import BrianObject, device_override
 
 __all__ = ['MagicNetwork', 'magic_network',
            'MagicError',
@@ -209,20 +210,14 @@ class MagicNetwork(Network):
                     obj.active = False
                     break
 
-    def before_run(self, run_namespace=None, level=0):
-        self._update_magic_objects(level=level+1)
-        Network.before_run(self, run_namespace, level=level+1)
-
     def after_run(self):
         self.objects[:] = []
 
-    def reinit(self, level=0):
-        '''
-        See `Network.reinit`.
-        '''
+    def run(self, duration, report=None, report_period=10*second,
+            namespace=None, level=0):
         self._update_magic_objects(level=level+1)
-        super(MagicNetwork, self).reinit()
-        self.objects[:] = []
+        Network.run(self, duration, report=report, report_period=report_period,
+                    namespace=namespace, level=level+1)
 
     def store(self, name='default', level=0):
         '''

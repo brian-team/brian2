@@ -12,7 +12,6 @@ from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units
 
 __all__ = ['BrianObject',
-           'clear',
            'weakproxy_with_fallback',
            ]
 
@@ -120,12 +119,6 @@ class BrianObject(Nameable):
         for codeobj in self._code_objects:
             codeobj()
 
-    def reinit(self, level=0):
-        '''
-        Reinitialise the object, called by `Network.reinit`.
-        '''
-        pass
-
     contained_objects = property(fget=lambda self:self._contained_objects,
                                  doc='''
          The list of objects contained within the `BrianObject`.
@@ -194,50 +187,6 @@ class BrianObject(Nameable):
     # This is a repeat from Nameable.name, but we want to get the documentation
     # here again
     name = Nameable.name
-
-
-def clear(erase=False):
-    '''
-    Stops all Brian objects from being automatically detected
-
-    Stops objects from being tracked by `run` and `reinit`.
-    Use this if you are seeing `MagicError` on repeated runs.
-
-    Parameters
-    ----------
-
-    erase : bool, optional
-        If set to ``True``, all data attributes of all Brian objects
-        will be set to ``None``. This
-        can help solve problems with circular references stopping objects
-        from being garbage collected, and is a quick way to ensure that all
-        memory associated to Brian objects is deleted.
-
-    Notes
-    -----
-
-    Removes the objects from ``BrianObject.__instances__()`` and
-    ``Nameable.__instances__()``.
-    Will also set the
-    `BrianObject.active` flag to ``False`` for already existing `Network`
-    objects. Calls a garbage collection on completion.
-
-    See Also
-    --------
-
-    run, reinit, MagicError
-    '''
-    if erase:
-        instances = set(BrianObject.__instances__())
-        for obj in instances:
-            obj = obj()
-            if obj is None:
-                continue
-            for k, v in obj.__dict__.iteritems():
-                object.__setattr__(obj, k, None)
-    BrianObject.__instances__().clear()
-    Nameable.__instances__().clear()
-    gc.collect()
 
 
 def weakproxy_with_fallback(obj):

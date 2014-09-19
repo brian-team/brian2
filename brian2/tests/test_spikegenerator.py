@@ -78,7 +78,6 @@ def test_spikegenerator_standalone():
     '''
     Basic test for `SpikeGeneratorGroup` in standalone.
     '''
-    clear()
     set_device('cpp_standalone')
     indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
     times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms

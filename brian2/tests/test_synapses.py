@@ -123,7 +123,6 @@ def restore_device():
 
 @with_setup(teardown=restore_device)
 def test_connection_array_standalone():
-    Synapses.__instances__().clear()  #FIXME
     set_device('cpp_standalone')
     # use a clock with 1s timesteps to avoid rounding issues
     G1 = SpikeGeneratorGroup(4, np.array([0, 1, 2, 3]),
@@ -519,7 +518,6 @@ def test_clocks():
 
 def test_changed_dt_spikes_in_queue():
     for codeobj_class in codeobj_classes:
-        defaultclock.reinit()
         defaultclock.dt = .5*ms
         G1 = NeuronGroup(1, 'v:1', threshold='v>1', reset='v=0',
                          codeobj_class=codeobj_class)

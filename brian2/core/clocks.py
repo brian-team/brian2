@@ -37,24 +37,42 @@ class Clock(Nameable):
     '''
 
     def __init__(self, dt, name='clock*'):
-        self._force_reinit(dt=dt)
+        self._i = 0
+        self._dt = float(dt)
+        self._dt_changed = False
         Nameable.__init__(self, name=name)
         logger.debug("Created clock {self.name} with dt={self._dt}".format(self=self))
-        
-    def _force_reinit(self, dt, t=0*second):
-        self._dt = float(dt)
-        self._i = np.uint64(float(t)/float(dt))  #: The time step of the simulation as an integer.
-        self._i_end = np.uint64(self._i)  #: The time step the simulation will end as an integer
 
-    def reinit(self):
-        '''
-        Reinitialises the clock time to zero and dt to 0.1ms
-        '''
-        self._dt = float(0.1*msecond)
-        self._i = 0
+    @check_units(dt=second, t=second)
+    def _set_t_dt(self, dt, t=0*second):
+        dt, t = float(dt), float(t)
+        if self._dt_changed or dt != self.dt_:
+            self._dt_changed = False  # i.e.: i is up-to-date for the dt
+            # Only allow a new dt which allows to correctly set the new time step
+            old_t = self.t_
+            new_i = np.uint64(self.t_ / dt)
+            new_t = new_i * dt
+            if abs(new_t - old_t) > self.epsilon:
+                raise ValueError(('Cannot set dt from {old} to {new}, the current '
+                                  'time {t} is not a multiple of '
+                                  '{new}').format(old=self.dt,
+                                                  new=dt*second,
+                                                  t=self.t))
+            self._dt = dt
+
+        new_i = np.uint64(np.round(t/dt))
+        new_t = new_i*self.dt_
+        if new_t==t or np.abs(new_t-t)<=self.epsilon*np.abs(new_t):
+            self._i = new_i
+        else:
+            self._i = np.uint64(np.ceil(t/dt))
+        logger.debug("Setting Clock {self.name} to t={self.t}, dt={self.dt}".format(self=self))
 
     def __str__(self):
-        return 'Clock ' + self.name + ': t = ' + str(self.t) + ', dt = ' + str(self.dt)
+        if self._dt_changed:
+            return 'Clock ' + self.name + ': t = <unknown (dt changed)>, dt = ' + str(self.dt)
+        else:
+            return 'Clock ' + self.name + ': t = ' + str(self.t) + ', dt = ' + str(self.dt)
     
     def __repr__(self):
         return 'Clock(dt=%r, name=%r)' % (self.dt, self.name)
@@ -68,24 +86,29 @@ class Clock(Nameable):
     @check_units(end=second)
     def _set_t_end(self, end):
         self._i_end = np.uint64(float(end) / self.dt_)
-        
+
+    @property
+    def t_(self):
+        'The simulation time as a float (in seconds)'
+        if self._dt_changed:
+            raise RuntimeError("Cannot retrieve the clock's time, dt has "
+                               "changed and the internal integer "
+                               "representation has not yet been updated. This "
+                               "will happen at the beginning of a run.")
+        return float(self._i*self.dt_)
+
+    @property
+    def t(self):
+        'The simulation time in seconds'
+        return self.t_*second
+
     def _get_dt_(self):
         return self._dt
-            
+
+    @check_units(dt_=1)
     def _set_dt_(self, dt_):
-        # Only allow a new dt which allows to correctly set the new time step
-        old_t = self.t_
-        new_i = np.uint64(self.t_ / dt_)
-        new_t = new_i * dt_
-        if abs(new_t - old_t) > self.epsilon:
-            raise ValueError(('Cannot set dt from {old} to {new}, the current'
-                              'time {t} is not a multiple of '
-                              '{new}').format(old=self.dt,
-                                              new=dt_*second,
-                                              t=self.t))
         self._dt = dt_
-        self._i = new_i
-        logger.debug("Set dt for clock {self.name} to {self.dt}".format(self=self))
+        self._dt_changed = True
     
     @check_units(dt=second)
     def _set_dt(self, dt):
@@ -95,13 +118,8 @@ class Clock(Nameable):
                   fset=_set_dt,
                   doc='''The time step of the simulation in seconds.''',
                   )
-    
     dt_ = property(fget=_get_dt_, fset=_set_dt_,
                    doc='''The time step of the simulation as a float (in seconds)''')
-    t = property(fget=lambda self: self._i*self.dt_*second,
-                 doc='The simulation time in seconds')
-    t_ = property(fget=lambda self: float(self._i*self.dt_),
-                  doc='The simulation time as a float (in seconds)')
     t_end = property(fget=lambda self: self._i_end*self.dt_*second,
                      doc='The time the simulation will end (in seconds)')
 
@@ -116,14 +134,8 @@ class Clock(Nameable):
         possible (using epsilon) or rounding up if not. This assures that
         multiple calls to `Network.run` will not re-run the same time step.      
         '''
-        start = float(start)
+        self._set_t_dt(dt=self._dt*second, t=start)
         end = float(end)
-        i_start = np.uint64(np.round(start/self.dt_))
-        t_start = i_start*self.dt_
-        if t_start==start or np.abs(t_start-start)<=self.epsilon*np.abs(t_start):
-            self._i = i_start
-        else:
-            self._i = np.uint64(np.ceil(start/self.dt_))
         i_end = np.uint64(np.round(end/self.dt_))
         t_end = i_end*self.dt_
         if t_end==end or np.abs(t_end-end)<=self.epsilon*np.abs(t_end):
