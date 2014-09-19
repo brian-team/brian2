@@ -197,14 +197,14 @@ class SpikeQueue(object):
             self.X[row_idx, self.n[row_idx]] = target
             self.n[row_idx] += 1
 
-    def store(self, name='default'):
+    def _store(self, name='default'):
         self._stored_spikes[name] = self._extract_spikes()
 
-    def restore(self, name='default'):
+    def _restore(self, name='default'):
         if name in self._stored_spikes:
             self._store_spikes(self._stored_spikes[name])
         else:
-            # It is possible that store was called in `SynapticPathway`, before
+            # It is possible that _store was called in `SynapticPathway`, before
             # the `SpikeQueue` was created. In that case, delete all spikes in
             # the queue
             self._store_spikes(np.empty((0, 2)))

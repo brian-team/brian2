@@ -38,11 +38,11 @@ cdef class SpikeQueue:
     def __dealloc__(self):
         del self.thisptr
 
-    def store(self, str name='default'):
+    def _store(self, str name='default'):
         cdef string s = name.encode('UTF-8')
         self.thisptr.store(s)
 
-    def restore(self, str name='default'):
+    def _restore(self, str name='default'):
         cdef string s = name.encode('UTF-8')
         self.thisptr.restore(s)
 

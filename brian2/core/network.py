@@ -286,14 +286,14 @@ class Network(Nameable):
     def store(self, name='default'):
         self._stored_t[name] = self.t_
         for obj in self.objects:
-            if hasattr(obj, 'store'):
-                obj.store(name=name)
+            if hasattr(obj, '_store'):
+                obj._store(name=name)
 
     @device_override('network_restore')
     def restore(self, name='default'):
         for obj in self.objects:
-            if hasattr(obj, 'restore'):
-                obj.restore(name=name)
+            if hasattr(obj, '_restore'):
+                obj._restore(name=name)
         self.t_ = self._stored_t[name]
 
     def _get_schedule(self):

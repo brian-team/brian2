@@ -253,13 +253,13 @@ class SynapticPathway(CodeRunner, Group):
         self.queue.prepare(self._delays.get_value(), self.synapses.clock.dt_,
                            self.synapse_sources.get_value())
 
-    def store(self, name='default'):
+    def _store(self, name='default'):
         if self.queue is not None:
-            self.queue.store(name)
+            self.queue._store(name)
 
-    def restore(self, name='default'):
+    def _restore(self, name='default'):
         if self.queue is not None:
-            self.queue.restore(name)
+            self.queue._restore(name)
 
     def push_spikes(self):
         # Push new spikes into the queue

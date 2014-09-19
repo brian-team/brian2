@@ -358,7 +358,7 @@ class Group(BrianObject):
         else:
             object.__setattr__(self, name, val)
 
-    def store(self, name='default'):
+    def _store(self, name='default'):
         logger.debug('Storing state at for object %s' % self.name)
         state = {}
         for var in self.variables.itervalues():
@@ -367,10 +367,10 @@ class Group(BrianObject):
         self._stored_states[name] = state
         self._stored_clocks[name] = (self.clock.t_, self.clock.dt_)
         for obj in self._contained_objects:
-            if hasattr(obj, 'store'):
-                obj.store(name)
+            if hasattr(obj, '_store'):
+                obj._store(name)
 
-    def restore(self, name='default'):
+    def _restore(self, name='default'):
         logger.debug('Restoring state at for object %s' % self.name)
         if not name in self._stored_states:
             raise ValueError(('No state with name "%s" to restore -- '
@@ -382,8 +382,8 @@ class Group(BrianObject):
         t, dt = self._stored_clocks[name]
         self.clock._force_reinit(dt=dt*second, t=t*second)
         for obj in self._contained_objects:
-            if hasattr(obj, 'restore'):
-                obj.restore(name)
+            if hasattr(obj, '_restore'):
+                obj._restore(name)
 
     def _check_expression_scalar(self, expr, varname, level=0,
                                  run_namespace=None):
