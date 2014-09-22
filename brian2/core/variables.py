@@ -1121,52 +1121,69 @@ class VariableView(object):
 
     # Allow some basic calculations directly on the ArrayView object
     def __array__(self, dtype=None):
+        try:
+            # This will fail for subexpressions that refer to external
+            # parameters
+            value = self[:]
+        except ValueError:
+            raise ValueError(('Cannot get the values for variable {var}. If it '
+                              'is a subexpression referring to external '
+                              'variables, use "group.{var}[:]" instead of '
+                              '"group.{var}"'.format(var=self.variable.name)))
         return np.asanyarray(self[:], dtype=dtype)
 
     def __len__(self):
-        return len(self[:])
+        return len(self.get_item(slice(None), level=1))
 
     def __neg__(self):
-        return -self[:]
+        return -self.get_item(slice(None), level=1)
 
     def __pos__(self):
-        return self[:]
+        return self.get_item(slice(None), level=1)
 
     def __add__(self, other):
-        return self[:] + other
+        return self.get_item(slice(None), level=1) + other
 
     def __radd__(self, other):
-        return other + self[:]
+        return other + self.get_item(slice(None), level=1)
 
     def __sub__(self, other):
-        return self[:] - other
+        return self.get_item(slice(None), level=1) - other
 
     def __rsub__(self, other):
-        return other - self[:]
+        return other - self.get_item(slice(None), level=1)
 
     def __mul__(self, other):
-        return self[:] * other
+        return self.get_item(slice(None), level=1) * other
 
     def __rmul__(self, other):
-        return self.__mul__(other)
+        return other * self.get_item(slice(None), level=1)
 
     def __div__(self, other):
-        return self[:] / other
+        return self.get_item(slice(None), level=1) / other
 
     def __truediv__(self, other):
-        return self[:] / other
+        return self.get_item(slice(None), level=1) / other
+
+    def __floordiv__(self, other):
+        return self.get_item(slice(None), level=1) // other
 
     def __rdiv__(self, other):
-        return other / self[:]
+        return other / self.get_item(slice(None), level=1)
 
     def __rtruediv__(self, other):
-        return other / self[:]
+        return other / self.get_item(slice(None), level=1)
+
+    def __rfloordiv__(self, other):
+        return other // self.get_item(slice(None), level=1)
 
     def __iadd__(self, other):
         if isinstance(other, basestring):
             raise TypeError(('In-place modification with strings not '
                              'supported. Use group.var = "var + expression" '
                              'instead of group.var += "expression".'))
+        elif isinstance(self.variable, Subexpression):
+            raise TypeError('Cannot assign to a subexpression.')
         else:
             rhs = self[:] + other
         self[:] = rhs
@@ -1177,6 +1194,8 @@ class VariableView(object):
             raise TypeError(('In-place modification with strings not '
                              'supported. Use group.var = "var - expression" '
                              'instead of group.var -= "expression".'))
+        elif isinstance(self.variable, Subexpression):
+            raise TypeError('Cannot assign to a subexpression.')
         else:
             rhs = self[:] - other
         self[:] = rhs
@@ -1187,6 +1206,8 @@ class VariableView(object):
             raise TypeError(('In-place modification with strings not '
                              'supported. Use group.var = "var * expression" '
                              'instead of group.var *= "expression".'))
+        elif isinstance(self.variable, Subexpression):
+            raise TypeError('Cannot assign to a subexpression.')
         else:
             rhs = self[:] * other
         self[:] = rhs
@@ -1197,6 +1218,8 @@ class VariableView(object):
             raise TypeError(('In-place modification with strings not '
                              'supported. Use group.var = "var / expression" '
                              'instead of group.var /= "expression".'))
+        elif isinstance(self.variable, Subexpression):
+            raise TypeError('Cannot assign to a subexpression.')
         else:
             rhs = self[:] / other
         self[:] = rhs
@@ -1205,29 +1228,36 @@ class VariableView(object):
     # Also allow logical comparisons
 
     def __eq__(self, other):
-        return self[:] == other
+        return self.get_item(slice(None), level=1) == other
 
     def __ne__(self, other):
-        return self[:] != other
+        return self.get_item(slice(None), level=1) != other
 
     def __lt__(self, other):
-        return self[:] < other
+        return self.get_item(slice(None), level=1) < other
 
     def __le__(self, other):
-        return self[:] <= other
+        return self.get_item(slice(None), level=1) <= other
 
     def __gt__(self, other):
-        return self[:] > other
+        return self.get_item(slice(None), level=1) > other
 
     def __ge__(self, other):
-        return self[:] >= other
+        return self.get_item(slice(None), level=1) >= other
 
     def __repr__(self):
         varname = self.name
         if self.unit is None:
             varname += '_'
-        return '<%s.%s: %r>' % (self.group_name, varname,
-                                 self[:])
+        try:
+            # This will fail for subexpressions that refer to external
+            # parameters
+            values = repr(self[:])
+        except ValueError:
+            values = ('[Subexpression refers to external parameters. Use '
+                      '"group.{var}[:]"]').format(var=self.variable.name)
+        return '<%s.%s: %s>' % (self.group_name, varname,
+                                 values)
 
 
 class Variables(collections.Mapping):
