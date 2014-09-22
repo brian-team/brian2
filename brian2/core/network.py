@@ -278,6 +278,17 @@ class Network(Nameable):
 
     @device_override('network_store')
     def store(self, name='default'):
+        '''
+        store(name='default')
+
+        Store the state of the network and all included objects.
+
+        Parameters
+        ----------
+        name : str, optional
+            A name for the snapshot, if not specified uses ``'default'``.
+
+        '''
         self._stored_t[name] = self.t_
         for obj in self.objects:
             if hasattr(obj, '_store'):
@@ -285,6 +296,18 @@ class Network(Nameable):
 
     @device_override('network_restore')
     def restore(self, name='default'):
+        '''
+        restore(name='default')
+
+        Retore the state of the network and all included objects.
+
+        Parameters
+        ----------
+        name : str, optional
+            The name of the snapshot to restore, if not specified uses
+            ``'default'``.
+
+        '''
         for obj in self.objects:
             if hasattr(obj, '_restore'):
                 obj._restore(name=name)

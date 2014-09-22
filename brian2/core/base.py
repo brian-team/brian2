@@ -73,7 +73,7 @@ class BrianObject(Nameable):
                      "clock={self._clock}, "
                      "when={self.when}, order={self.order}".format(self=self))
 
-    #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is created or removed
+    #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is added
     invalidates_magic_network = True
 
     #: Whether or not the object should be added to a `MagicNetwork`. Note that

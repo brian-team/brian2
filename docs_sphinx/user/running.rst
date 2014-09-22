@@ -7,7 +7,54 @@ collecting all the objects in the current namespace.
 
 Magic networks
 --------------
-TODO
+In most straight-forward simulations, you do not have to explicitly create a
+`Network` object but instead can simply call `run` to run a simulation. This is
+what is called the "magic" system, because Brian figures out automatically what
+you want to do.
+
+When calling `run`, Brian runs the `collect` function to gather all the objects
+in the current context. It will include all the objects that are "visible", i.e.
+that you could refer to with an explicit name::
+
+  G = NeuronGroup(10, 'dv/dt = -v / tau : volt')
+  S = Synapses(G, G, model='w:1', pre='v+=w', connect='i!=j')
+  mon = SpikeMonitor(G)
+
+  run(10*ms)  # will include G, S, mon
+
+Note that it will not automatically include objects that are "hidden" in
+containers, e.g. if you store several monitors in a list. Use an explicit
+`Network` object in this case. It might be convenient to use the `collect`
+function when creating the `Network` object in that case::
+
+    G = NeuronGroup(10, 'dv/dt = -v / tau : volt')
+    S = Synapses(G, G, model='w:1', pre='v+=w', connect='i!=j')
+    monitors = [SpikeMonitor(G), StateMonitor(G, 'v', record=True)]
+
+    # a simple run would not include the monitors
+    net = Network(collect())  # automatically include G and S
+    net.add(monitors)  # manually add the monitors
+
+When you use more than a single `run` statement, the magic system tries to
+detect which of the following two situations applies:
+
+1. You want to continue a previous simulation
+2. You want to start a new simulation
+
+For this, it uses the following heuristic: if a simulation consists only of
+objects that have not been run, it will start a new simulation starting at
+time 0 (corresponding to the creation of a new `Network` object). If a
+simulation only consists of objects that have been simulated in the previous
+`run` call, it will continue that simulation at the previous time.
+
+If neither of these two situations apply, i.e., the network consists of a mix
+of previously run objects and new objects, an error will be raised. If this is
+not a mistake but intended (e.g. when a new input source and synapses should be
+added to a network at a later stage), use an explicit `Network` object.
+
+In these checks, "non-invalidating" objects (i.e. objects that have
+`BrianObject.invalidates_magic_network` set to ``False``) are ignored, e.g.
+creating new monitors is always possible.
 
 Progress reporting
 ------------------
@@ -151,14 +198,14 @@ represented as 200 steps. You cannot, however, switch to a dt of 0.3ms, because
 Continuing/repeating simulations
 --------------------------------
 
-Every simulated object has a `~BrianObject.store` method, that allows to store
-its current state, including internal state variables (e.g. ``lastspike``, used
-for the refractory mechanism in `NeuronGroup`). Most of the time, the user
-should call `store` on a `Network` which will store the state of all the objects
+To store the current state of a network, including the time of the simulation,
+internal variables like triggered but not yet delivered spikes, etc., call
+`Network.store` which will store the state of all the objects
 in the network (use a plain ``store`` if you are using the magic system). You
 can store more than one snapshot of a system by providing a name for the
-snapshot; if ``Network.store`` is called without a specified name, ``'default'``
-is used as the name. To restore a network's state, use ``Network.restore``.
+snapshot; if ``Network.store`` is called without a specified name,
+``'default'`` is used as the name. To restore a network's state, use
+``Network.restore``.
 
 The following simple example shows how this system can be used to run several
 trials of an experiment::
@@ -221,4 +268,7 @@ and testing is repeated several times as well::
             # Do something with the result
             # ...
 
-
+Note that `Network.run`, `Network.store` and `Network.restore` (or `run`,
+`store`, `restore`) are the only way of affecting the time of the clocks. In
+contrast to Brian1, it is no longer necessary (nor possible) to directly set
+the time of the clocks or call a ``reinit`` function.

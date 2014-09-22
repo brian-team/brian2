@@ -104,8 +104,7 @@ class MagicNetwork(Network):
        simulation. Subsequently, you may call `run` again to run it again for
        a further duration. In this case, the `Network.t` time will start at 0
        and for the second call to `run` will continue from the end of the
-       previous run. To reset time to 0 between runs, write
-       ``magic_network.t = 0*second``.
+       previous run.
        
     2. You have a loop in which at each iteration, you create some Brian
        objects and run a simulation using them. In this case, time is reset to
@@ -117,12 +116,21 @@ class MagicNetwork(Network):
     When it is not possible to safely guess which case you are in, it raises
     `MagicError`. The rules for this guessing system are explained below.
     
-    TODO
+    If a simulation consists only of objects that have not been run, it will
+    assume that you want to start a new simulation. If a simulation only
+    consists of objects that have been simulated in the previous `run` call,
+    it will continue that simulation at the previous time.
+
+    If neither of these two situations apply, i.e., the network consists of a
+    mix of previously run objects and new objects, an error will be raised.
+
+    In these checks, "non-invalidating" objects (i.e. objects that have
+    `BrianObject.invalidates_magic_network` set to ``False``) are ignored, e.g.
+    creating new monitors is always possible.
     
     See Also
     --------
-    
-    Network, run, collect, reinit, stop
+    Network, collect, run, stop, store, restore
     '''
     
     _already_created = False
@@ -354,10 +362,27 @@ def reinit():
     magic_network.reinit()
 
 def store(name='default'):
+    '''
+    Store the state of the network and all included objects.
+
+    Parameters
+    ----------
+    name : str, optional
+        A name for the snapshot, if not specified uses ``'default'``.
+    '''
     magic_network.store(name=name, level=1)
 
 
 def restore(name='default'):
+    '''
+    Restore the state of the network and all included objects.
+
+    Parameters
+    ----------
+    name : str, optional
+        The name of the snapshot to restore, if not specified uses
+        ``'default'``.
+    '''
     magic_network.restore(name=name, level=1)
 
 
