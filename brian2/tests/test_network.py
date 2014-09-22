@@ -291,9 +291,8 @@ def test_multiple_networks_invalid():
     except RuntimeError:
         pass  # this is expected
 
-    net2 = Network(x)
     try:
-        net2.run(1*ms)
+        net2 = Network(x)
         raise AssertionError('Expected a RuntimeError')
     except RuntimeError:
         pass  # this is expected

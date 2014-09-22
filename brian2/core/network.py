@@ -230,6 +230,12 @@ class Network(Nameable):
         """
         for obj in objs:
             if isinstance(obj, BrianObject):
+                if obj._network is not None:
+                    raise RuntimeError('%s has already been simulated, cannot '
+                                       'add it to the network. If you were '
+                                       'trying to remove and add an object to '
+                                       'temporarily stop it from being run, '
+                                       'set its active flag to False instead.')
                 self.objects.append(obj)
                 self.add(obj.contained_objects)
             else:
