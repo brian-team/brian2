@@ -95,9 +95,6 @@ class CythonCodeGenerator(CodeGenerator):
         handled_pointers = set()
         for varname, var in self.variables.iteritems():
             if isinstance(var, AuxiliaryVariable):
-                print varname
-                for k, v in var.__dict__.items():
-                    print '   ', k, v
                 line = "cdef {dtype} {varname}".format(
                                 dtype=weave_data_type(var.dtype),
                                 varname=varname)
@@ -218,15 +215,26 @@ DEFAULT_FUNCTIONS['floor'].implementations.add_implementation(CythonCodeGenerato
 
 
 
-# TEMPORARY: Random number generation - NOT efficient
-def randn_func(vectorisation_idx):
-    return np.random.randn()
+rand_code = '''
+cdef int _rand_buffer_size = 1024 
+cdef double[:] _rand_buf = _numpy.zeros(_rand_buffer_size, dtype=_numpy.float64)
+cdef int _cur_rand_buf = 0
+cdef double rand(int _idx):
+    global _cur_rand_buf
+    global _rand_buf
+    if _cur_rand_buf==0:
+        _rand_buf = _numpy.random.rand(_rand_buffer_size)
+    cdef double val = _rand_buf[_cur_rand_buf]
+    _cur_rand_buf = (_cur_rand_buf+1)%_rand_buffer_size
+    return val
+'''
 
-def rand_func(vectorisation_idx):
-    return np.random.rand()
-
-DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CythonCodeGenerator,
-                                                              code=randn_func)
+randn_code = rand_code.replace('rand', 'randn').replace('randnom', 'random')
 
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CythonCodeGenerator,
-                                                             code=rand_func)
+                                                             code=rand_code,
+                                                             name='rand')
+
+DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CythonCodeGenerator,
+                                                              code=randn_code,
+                                                              name='randn')

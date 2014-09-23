@@ -10,26 +10,27 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, rand,
 {% block template_support_code %}
 
 cdef int _buffer_size = 1024
-
-_prebuf = _numpy.zeros(_buffer_size, dtype=int)
-_postbuf = _numpy.zeros(_buffer_size, dtype=int)
+cdef int[:] _prebuf = _numpy.zeros(_buffer_size, dtype=int)
+cdef int[:] _postbuf = _numpy.zeros(_buffer_size, dtype=int)
 cdef int _curbuf = 0
 
-cdef void _flush_buffer(buf, dynarr, N):
+cdef void _flush_buffer(buf, dynarr, int N):
     _curlen = dynarr.shape[0]
     _newlen = _curlen+N
     # Resize the array
     dynarr.resize(_newlen)
     # Get the potentially newly created underlying data arrays
     data = dynarr.data
-    for i in range(N):
-        data[_curlen+i] = buf[i]
-
+    data[_curlen:_curlen+N] = buf[:N]
+    
 {% endblock %}
 
 ######################## MAIN CODE ##############################
 
 {% block maincode %}
+
+    cdef int* _prebuf_ptr = &(_prebuf[0])
+    cdef int* _postbuf_ptr = &(_postbuf[0])
 
     global _curbuf
     
@@ -62,8 +63,8 @@ cdef void _flush_buffer(buf, dynarr, N):
                     for _repetition in range(_n):
                         {{N_outgoing}}[_pre_idx] += 1
                         {{N_incoming}}[_post_idx] += 1
-                        _prebuf[_curbuf] = _pre_idx
-                        _postbuf[_curbuf] = _post_idx
+                        _prebuf_ptr[_curbuf] = _pre_idx
+                        _postbuf_ptr[_curbuf] = _post_idx
                         _curbuf += 1
                         # Flush buffer
                         if _curbuf==_buffer_size:
