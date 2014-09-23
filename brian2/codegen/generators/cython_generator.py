@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 
 from brian2.utils.stringtools import word_substitute
-from brian2.parsing.rendering import NumpyNodeRenderer
+from brian2.parsing.rendering import NodeRenderer
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function, SymbolicConstant
 from brian2.core.variables import (ArrayVariable, Constant, AttributeVariable,
                                    DynamicArrayVariable, AuxiliaryVariable,
@@ -24,6 +24,26 @@ def cython_data_type(dtype):
     return d
 
 
+
+class CythonNodeRenderer(NodeRenderer):
+    pass
+#    expression_ops = NodeRenderer.expression_ops.copy()
+#    expression_ops.update({
+#          # Unary ops
+#          # We'll handle "not" explicitly below
+#          # Bool ops
+#          'And': '*',
+#          'Or': '+',
+#          })
+#
+#    def render_UnaryOp(self, node):
+#        if node.op.__class__.__name__ == 'Not':
+#            return 'logical_not(%s)' % self.render_node(node.operand)
+#        else:
+#            return NodeRenderer.render_UnaryOp(self, node)
+
+
+
 class CythonCodeGenerator(CodeGenerator):
     '''
     Cython code generator
@@ -38,7 +58,7 @@ class CythonCodeGenerator(CodeGenerator):
                 impl_name = var.implementations[self.codeobj_class].name
                 if impl_name is not None:
                     expr = word_substitute(expr, {varname: impl_name})
-        return NumpyNodeRenderer().render_expr(expr, self.variables).strip()
+        return CythonNodeRenderer().render_expr(expr, self.variables).strip()
 
     def translate_statement(self, statement):
         # TODO: optimisation, translate arithmetic to a sequence of inplace
