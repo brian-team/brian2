@@ -223,7 +223,27 @@ def test_network_t():
     run(1*ms)
     assert_equal(x.count, 9)
     assert_equal(y.count, 5)
-    
+
+@with_setup(teardown=restore_initial_state)
+def test_incorrect_dt_defaultclock():
+    defaultclock.dt = 0.5*ms
+    G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
+    net = Network(G)
+    net.run(0.5*ms)
+    defaultclock.dt = 1*ms
+    assert_raises(ValueError, lambda: net.run(0*ms))
+
+
+@with_setup(teardown=restore_initial_state)
+def test_incorrect_dt_custom_clock():
+    clock = Clock(dt=0.5*ms)
+    G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1', clock=clock)
+    net = Network(G)
+    net.run(0.5*ms)
+    clock.dt = 1*ms
+    assert_raises(ValueError, lambda: net.run(0*ms))
+
+
 @with_setup(teardown=restore_initial_state)
 def test_network_remove():
     x = Counter()
@@ -588,6 +608,82 @@ def test_store_restore_magic():
     assert_equal(spike_indices, spike_mon.i[:])
     assert_equal(spike_times, spike_mon.t_[:])
 
+@with_setup(teardown=restore_initial_state)
+def test_defaultclock_dt_changes():
+    for dt in [0.1*ms, 0.01*ms, 0.5*ms, 1*ms, 3.3*ms]:
+        defaultclock.dt = dt
+        G = NeuronGroup(1, 'v:1')
+        mon = StateMonitor(G, 'v', record=True)
+        net = Network(G, mon)
+        net.run(2*dt)
+        assert_equal(mon.t[:], [0, dt/ms]*ms)
+
+@with_setup(teardown=restore_initial_state)
+def test_dt_restore():
+    defaultclock.dt = 0.5*ms
+    G = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1')
+    mon = StateMonitor(G, 'v', record=True)
+    net = Network(G, mon)
+    net.store()
+
+    net.run(1*ms)
+    assert_equal(mon.t[:], [0, 0.5]*ms)
+    defaultclock.dt = 1*ms
+    net.run(2*ms)
+    assert_equal(mon.t[:], [0, 0.5, 1, 2]*ms)
+    net.restore()
+    assert_equal(mon.t[:], [])
+    net.run(1*ms)
+    assert defaultclock.dt == 0.5*ms
+    assert_equal(mon.t[:], [0, 0.5]*ms)
+
+@with_setup(teardown=restore_initial_state)
+def test_continuation():
+    defaultclock.dt = 1*ms
+    G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
+    G.v = 1
+    mon = StateMonitor(G, 'v', record=True)
+    net = Network(G, mon)
+    net.run(2*ms)
+
+    # Run the same simulation but with two runs that use sub-dt run times
+    G2 = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
+    G2.v = 1
+    mon2 = StateMonitor(G2, 'v', record=True)
+    net2 = Network(G2, mon2)
+    net2.run(0.5*ms)
+    net2.run(1.5*ms)
+
+    assert_equal(mon.t[:], mon2.t[:])
+    assert_equal(mon.v[:], mon2.v[:])
+
+@with_setup(teardown=restore_initial_state)
+def test_multiple_runs_defaultclock():
+    defaultclock.dt = 0.1*ms
+    G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
+    net = Network(G)
+    net.run(0.5*ms)
+
+    # The new dt is not compatible with the previous time but it should not
+    # raise an error because we start a new simulation at time 0
+    defaultclock.dt = 1*ms
+    G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
+    net = Network(G)
+    net.run(1*ms)
+
+
+@with_setup(teardown=restore_initial_state)
+def test_multiple_runs_defaultclock_incorrect():
+    defaultclock.dt = 0.1*ms
+    G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
+    net = Network(G)
+    net.run(0.5*ms)
+
+    # The new dt is not compatible with the previous time since we cannot
+    # continue at 0.5ms with a dt of 1ms
+    defaultclock.dt = 1*ms
+    assert_raises(ValueError, lambda: net.run(1*ms))
+
 
 if __name__=='__main__':
     for t in [
@@ -603,6 +699,8 @@ if __name__=='__main__':
               test_network_operations,
               test_network_active_flag,
               test_network_t,
+              test_incorrect_dt_defaultclock,
+              test_incorrect_dt_custom_clock,
               test_network_remove,
               test_magic_weak_reference,
               test_magic_unused_object,
@@ -614,7 +712,12 @@ if __name__=='__main__':
               test_progress_report,
               test_progress_report_incorrect,
               test_store_restore,
-              test_store_restore_magic
+              test_store_restore_magic,
+              test_defaultclock_dt_changes,
+              test_dt_restore,
+              test_continuation,
+              test_multiple_runs_defaultclock,
+              test_multiple_runs_defaultclock_incorrect
               ]:
         t()
         restore_initial_state()

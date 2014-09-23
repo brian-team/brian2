@@ -16,17 +16,26 @@ def test_clocks():
 def test_clock_dt_change():
     clock = Clock(dt=1*ms)
     # at time 0s, all dt changes should be allowed
-    clock._set_t_dt(dt=0.75*ms, t=0*ms)
-    clock._set_t_dt(dt=2.5*ms, t=0*ms)
-    clock._set_t_dt(dt=1*ms, t=0*ms)
-
+    clock.dt = 0.75*ms
+    clock._set_t_update_dt()
+    clock.dt = 2.5*ms
+    clock._set_t_update_dt()
+    clock.dt = 1*ms
+    clock._set_t_update_dt()
 
     # at 0.1ms only changes that are still representable as an integer of the
     # current time 1s are allowed
-    clock._set_t_dt(dt=0.5*ms, t=0.1*ms)
-    clock._set_t_dt(dt=0.1*ms, t=0.1*ms)
-    assert_raises(ValueError, lambda: clock._set_t_dt(dt=0.3*ms, t=0.1*ms))
-    assert_raises(ValueError, lambda: clock._set_t_dt(dt=2*ms, t=0.1*ms))
+    clock.dt = 0.1*ms
+    clock._set_t_update_dt()
+
+    clock.dt = 0.05*ms
+    clock._set_t_update_dt(t=0.1*ms)
+    clock.dt = 0.1*ms
+    clock._set_t_update_dt(t=0.1*ms)
+    clock.dt = 0.3*ms
+    assert_raises(ValueError, lambda: clock._set_t_update_dt(t=0.1*ms))
+    clock.dt = 2*ms
+    assert_raises(ValueError, lambda: clock._set_t_update_dt(t=0.1*ms))
 
 
 @with_setup(teardown=restore_initial_state)

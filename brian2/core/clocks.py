@@ -38,26 +38,35 @@ class Clock(Nameable):
 
     def __init__(self, dt, name='clock*'):
         self._i = 0
+        #: The internally used dt. Note that right after a change of dt, this
+        #: will not equal the new dt (which is stored in `Clock._new_dt`). Call
+        #: `Clock._set_t_update_t` to update the internal clock representation.
         self._dt = float(dt)
-        self._dt_changed = False
+        self._new_dt = None
         Nameable.__init__(self, name=name)
         logger.debug("Created clock {self.name} with dt={self._dt}".format(self=self))
 
-    @check_units(dt=second, t=second)
-    def _set_t_dt(self, dt, t=0*second):
-        dt, t = float(dt), float(t)
-        if self._dt_changed or dt != self.dt_:
-            self._dt_changed = False  # i.e.: i is up-to-date for the dt
+    @check_units(t=second)
+    def _set_t_update_dt(self, t=0*second):
+        dt = self._new_dt if self._new_dt is not None else self._dt
+        t = float(t)
+        if dt != self._dt:
+            self._new_dt = None  # i.e.: i is up-to-date for the dt
             # Only allow a new dt which allows to correctly set the new time step
-            old_t = self.t_
-            new_i = np.uint64(self.t_ / dt)
-            new_t = new_i * dt
+            if t != self.t_:
+                old_t = np.uint64(np.round(t / self._dt)) * self._dt
+                new_t = np.uint64(np.round(t / dt)) * dt
+                error_t = t
+            else:
+                old_t = np.uint64(np.round(self.t_ / self._dt)) * self._dt
+                new_t = np.uint64(np.round(self.t_ / dt)) * dt
+                error_t = self.t_
             if abs(new_t - old_t) > self.epsilon:
-                raise ValueError(('Cannot set dt from {old} to {new}, the current '
+                raise ValueError(('Cannot set dt from {old} to {new}, the '
                                   'time {t} is not a multiple of '
                                   '{new}').format(old=self.dt,
                                                   new=dt*second,
-                                                  t=self.t))
+                                                  t=error_t*second))
             self._dt = dt
 
         new_i = np.uint64(np.round(t/dt))
@@ -69,13 +78,16 @@ class Clock(Nameable):
         logger.debug("Setting Clock {self.name} to t={self.t}, dt={self.dt}".format(self=self))
 
     def __str__(self):
-        if self._dt_changed:
-            return 'Clock ' + self.name + ': t = <unknown (dt changed)>, dt = ' + str(self.dt)
-        else:
+        if self._new_dt is None:
             return 'Clock ' + self.name + ': t = ' + str(self.t) + ', dt = ' + str(self.dt)
+        else:
+            return 'Clock ' + self.name + ': t = ' + str(self.t) + ', (new) dt = ' + str(self._new_dt*second)
     
     def __repr__(self):
-        return 'Clock(dt=%r, name=%r)' % (self.dt, self.name)
+        return 'Clock(dt=%r, name=%r)' % (self._new_dt*second
+                                          if self._new_dt is not None
+                                          else self.dt,
+                                          self.name)
 
     def tick(self):
         '''
@@ -90,12 +102,7 @@ class Clock(Nameable):
     @property
     def t_(self):
         'The simulation time as a float (in seconds)'
-        if self._dt_changed:
-            raise RuntimeError("Cannot retrieve the clock's time, dt has "
-                               "changed and the internal integer "
-                               "representation has not yet been updated. This "
-                               "will happen at the beginning of a run.")
-        return float(self._i*self.dt_)
+        return float(self._i*self._dt)
 
     @property
     def t(self):
@@ -103,16 +110,18 @@ class Clock(Nameable):
         return self.t_*second
 
     def _get_dt_(self):
-        return self._dt
+        if self._new_dt is None:
+            return self._dt
+        else:
+            return self._new_dt
 
     @check_units(dt_=1)
     def _set_dt_(self, dt_):
-        self._dt = dt_
-        self._dt_changed = True
+        self._new_dt = dt_
     
     @check_units(dt=second)
     def _set_dt(self, dt):
-        self.dt_ = float(dt)
+        self._new_dt = float(dt)
     
     dt = property(fget=lambda self: Quantity(self.dt_, dim=second.dim),
                   fset=_set_dt,
@@ -134,7 +143,7 @@ class Clock(Nameable):
         possible (using epsilon) or rounding up if not. This assures that
         multiple calls to `Network.run` will not re-run the same time step.      
         '''
-        self._set_t_dt(dt=self._dt*second, t=start)
+        self._set_t_update_dt(t=start)
         end = float(end)
         i_end = np.uint64(np.round(end/self.dt_))
         t_end = i_end*self.dt_

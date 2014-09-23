@@ -52,10 +52,10 @@ def restore_initial_state():
     '''
     Restores internal Brian variables to the state they are in when Brian is imported
 
-    Resets ``defaultclock.dt = 0.1*ms``, ``defaultclock.t = 0*ms``,
-    objects and `BrianGlobalPreferences._restore` preferences.
+    Resets ``defaultclock.dt = 0.1*ms`` and
+    `BrianGlobalPreferences._restore` preferences.
     '''
-    defaultclock._set_t_dt(0.1*ms, t=0*second)
+    defaultclock.dt = 0.1*ms
     brian_prefs._restore()
 
 # make the test suite available via brian2.test()

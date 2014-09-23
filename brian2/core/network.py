@@ -166,11 +166,11 @@ class Network(Nameable):
 
         Nameable.__init__(self, name=name)
 
-        for obj in objs:
-            self.add(obj)
-            
         #: Current time as a float
         self.t_ = 0.0
+
+        for obj in objs:
+            self.add(obj)
 
         #: Stored time for the store/restore mechanism
         self._stored_t = {}
@@ -290,6 +290,11 @@ class Network(Nameable):
 
         '''
         self._stored_t[name] = self.t_
+        clocks = [obj.clock for obj in self.objects]
+        # Make sure that all clocks are up to date
+        for clock in clocks:
+            clock._set_t_update_dt(t=self.t)
+
         for obj in self.objects:
             if hasattr(obj, '_store'):
                 obj._store(name=name)

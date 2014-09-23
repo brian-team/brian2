@@ -441,7 +441,8 @@ class Group(BrianObject):
                 var.resize(size)
             var.set_value(values)
         t, dt = self._stored_clocks[name]
-        self.clock._set_t_dt(dt=dt*second, t=t*second)
+        self.clock.dt_ = dt
+        self.clock._set_t_update_dt(t=t*second)
         for obj in self._contained_objects:
             if hasattr(obj, '_restore'):
                 obj._restore(name)
