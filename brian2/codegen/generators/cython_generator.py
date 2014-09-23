@@ -94,7 +94,24 @@ class CythonCodeGenerator(CodeGenerator):
         support_code = []
         handled_pointers = set()
         for varname, var in self.variables.iteritems():
-            if isinstance(var, Variable):
+            if isinstance(var, AuxiliaryVariable):
+                print varname
+                for k, v in var.__dict__.items():
+                    print '   ', k, v
+                line = "cdef {dtype} {varname}".format(
+                                dtype=weave_data_type(var.dtype),
+                                varname=varname)
+                load_namespace.append(line)
+            elif isinstance(var, AttributeVariable):
+                val = getattr(var.obj, var.attribute)
+                dtype_name = unsafe_type(val)
+                dtype_name = dtype_name.replace('numpy.', '_numpy.')
+                line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
+                load_namespace.append(line)
+                if isinstance(val, np.ndarray):
+                    line = "cdef int _num{varname} = len(_namespace['{varname}'])".format(varname=varname)
+                    load_namespace.append(line)
+            elif isinstance(var, Variable):
                 if var.dynamic:                
                     load_namespace.append('%s = _namespace["%s"]' % (self.get_array_name(var, False),
                                                                      self.get_array_name(var, False)))
@@ -121,21 +138,10 @@ class CythonCodeGenerator(CodeGenerator):
                                            )
                         load_namespace.append(line)
                     handled_pointers.add(pointer_name)
-                elif isinstance(var, AttributeVariable):
-                    val = getattr(var.obj, var.attribute)
-                    dtype_name = unsafe_type(val)
-                    dtype_name = dtype_name.replace('numpy.', '_numpy.')
-                    line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
-                    load_namespace.append(line)
-                    if isinstance(val, np.ndarray):
-                        line = "cdef int _num{varname} = len(_namespace['{varname}'])".format(varname=varname)
-                        load_namespace.append(line)
                 elif var.constant:
                     dtype_name = unsafe_type(var.value)
                     line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
                     load_namespace.append(line)
-                elif isinstance(var, AuxiliaryVariable):
-                    pass
             elif isinstance(var, Function):
                 func_impl = var.implementations[self.codeobj_class].get_code(self.owner)
                 # Implementation can be None if the function is already
