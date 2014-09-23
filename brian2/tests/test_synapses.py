@@ -498,6 +498,23 @@ def test_transmission():
                         target_mon.t[target_mon.i==1] - defaultclock.dt - delay[1])
 
 
+def test_clocks():
+    '''
+    Make sure that a `Synapse` object uses the correct clocks.
+    '''
+    source_clock = Clock(dt=0.05*ms)
+    target_clock = Clock(dt=0.1*ms)
+    synapse_clock = Clock(dt=0.2*ms)
+    source = NeuronGroup(1, 'v:1', clock=source_clock)
+    target = NeuronGroup(1, 'v:1', clock=target_clock)
+    synapse = Synapses(source, target, 'w:1', pre='v+=1', post='v+=1',
+                       clock=synapse_clock, connect=True)
+
+    assert synapse.pre.clock is source_clock
+    assert synapse.post.clock is target_clock
+    assert synapse.clock is synapse_clock
+
+
 def test_changed_dt_spikes_in_queue():
     for codeobj_class in codeobj_classes:
         defaultclock.dt = .5*ms
@@ -715,6 +732,7 @@ if __name__ == '__main__':
     test_subexpression_references()
     test_delay_specification()
     test_transmission()
+    test_clocks()
     test_changed_dt_spikes_in_queue()
     test_summed_variable()
     test_summed_variable_errors()

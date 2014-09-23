@@ -172,7 +172,32 @@ def test_rate_monitor():
 
     brian_prefs.codegen.target = target_before
 
+
+def test_rate_monitor_subgroups():
+    target_before = brian_prefs.codegen.target
+    old_dt = defaultclock.dt
+    defaultclock.dt = 0.01*ms
+    for target in targets:
+        brian_prefs.codegen.target = target
+        G = NeuronGroup(4, '''dv/dt = rate : 1
+                              rate : Hz''', threshold='v>1', reset='v=0')
+        G.rate = [100, 200, 400, 800] * Hz
+        rate_all = PopulationRateMonitor(G)
+        rate_1 = PopulationRateMonitor(G[:2])
+        rate_2 = PopulationRateMonitor(G[2:])
+        s_mon = SpikeMonitor(G)
+        net = Network(G, rate_all, rate_1, rate_2, s_mon)
+        net.run(100*ms)
+        assert_allclose(mean(G.rate[:]), mean(rate_all.rate[:]))
+        assert_allclose(mean(G.rate[:2]), mean(rate_1.rate[:]))
+        assert_allclose(mean(G.rate[2:]), mean(rate_2.rate[:]))
+
+    brian_prefs.codegen.target = target_before
+    defaultclock.dt = old_dt
+
+
 if __name__ == '__main__':
     test_spike_monitor()
     test_state_monitor()
     test_rate_monitor()
+    test_rate_monitor_subgroups()

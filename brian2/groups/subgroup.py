@@ -30,10 +30,18 @@ class Subgroup(Group, SpikeSource):
     * You need to keep a reference to it
     * It makes a copy of the spikes, and there is no direct support for
       subgroups in `Connection` (or rather `Synapses`)
-
     '''
     def __init__(self, source, start, stop, name=None):
-        self.source = weakproxy_with_fallback(source)
+        # First check if the source is itself a Subgroup
+        # If so, then make this a Subgroup of the original Group
+        if isinstance(source, Subgroup):
+            source = source.source
+            start = start + source.start
+            stop = stop + source.start
+            self.source = source
+        else:
+            self.source = weakproxy_with_fallback(source)
+
         if name is None:
             name = source.name + '_subgroup*'
         # We want to update the spikes attribute after it has been updated
@@ -52,11 +60,16 @@ class Subgroup(Group, SpikeSource):
         self.variables = Variables(self, default_index='_sub_idx')
 
         # overwrite the meaning of N and i
-        self.variables.add_constant('_offset', unit=Unit(1), value=self.start)
-        self.variables.add_reference('_source_i', source, 'i')
-        self.variables.add_subexpression('i', unit=Unit(1),
-                                         dtype=source.variables['i'].dtype,
-                                         expr='_source_i - _offset')
+        if self.start > 0:
+            self.variables.add_constant('_offset', unit=Unit(1), value=self.start)
+            self.variables.add_reference('_source_i', source, 'i')
+            self.variables.add_subexpression('i', unit=Unit(1),
+                                             dtype=source.variables['i'].dtype,
+                                             expr='_source_i - _offset')
+        else:
+            # no need to calculate anything if this is a subgroup starting at 0
+            self.variables.add_reference('i', source)
+
         self.variables.add_constant('N', unit=Unit(1), value=self._N)
         # add references for all variables in the original group
         self.variables.add_references(source, source.variables.keys())
@@ -67,9 +80,10 @@ class Subgroup(Group, SpikeSource):
                                   index='_idx')
 
         for key, value in self.source.variables.indices.iteritems():
-            if value != '_idx':
-                raise ValueError(('Do not how to deal with variable %s using '
-                                  'index %s in a subgroup') % (key, value))
+            if value not in ('_idx', '0'):
+                raise ValueError(('Do not know how to deal with variable %s '
+                                  'using  index %s in a subgroup') % (key,
+                                                                      value))
 
         self.namespace = self.source.namespace
         self.codeobj_class = self.source.codeobj_class
@@ -88,7 +102,7 @@ class Subgroup(Group, SpikeSource):
             raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
                              (start, stop))
         return Subgroup(self.source, self.start + start, self.start + stop)
-    
+
     def __len__(self):
         return self._N
         

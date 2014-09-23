@@ -41,6 +41,11 @@ class PopulationRateMonitor(Group, CodeRunner):
         self.add_dependency(source)
 
         self.variables = Variables(self)
+        # Handle subgroups correctly
+        start = getattr(source, 'start', 0)
+        stop = getattr(source, 'stop', len(source))
+        self.variables.add_constant('_source_start', Unit(1), start)
+        self.variables.add_constant('_source_stop', Unit(1), stop)
         self.variables.add_reference('_spikespace', source)
         self.variables.add_reference('_clock_t', source, 't')
         self.variables.add_reference('_clock_dt', source, 'dt')

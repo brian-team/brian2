@@ -92,21 +92,21 @@ Other code generation targets
 To make a function available for other code generation targets (e.g. C++),
 implementations for these targets have to be added. This can be achieved using
 the `make_function` decorator. The form of the code (e.g. a simple string or
-a dictionary of strings) necessary is target-dependent. An implementation for
+a dictionary of strings) necessary is target-dependent, however the decorators
+`make_cpp_function` and `make_weave_function` can be used to provide C++
+implementations (the first should be used for generic C++ implementations, and
+the latter if weave-specific code is necessary). An implementation for
 the C++ target could look like this::
 
-    @make_function(codes={'cpp':
-                         {'support_code':'''
-                         double piecewise_linear(I) {
-                            if (I < 1e-9)
-                                return 0;
-                            if (I > 3e-9)
-                                return 100;
-                            return (I/1e-9 - 1) * 50;
-                         }
-                         '''
-                         }
-                         })
+    @make_cpp_function('''
+         double piecewise_linear(I) {
+            if (I < 1e-9)
+                return 0;
+            if (I > 3e-9)
+                return 100;
+            return (I/1e-9 - 1) * 50;
+         }
+         ''')
     @check_units(I=amp, result=Hz)
     def piecewise_linear(I):
         return np.clip((I-1*nA) * 50*Hz/nA, 0*Hz, 100*Hz)
@@ -114,3 +114,22 @@ the C++ target could look like this::
 Alternatively, `FunctionImplementation` objects can be added to the `Function`
 object. For a more complex example that also makes the function contribute
 additional values to the namespace of a `CodeObject` see `TimedArray`.
+
+Arrays vs. scalar values in user-provided functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Equations, expressions and abstract code statements are always implicitly
+referring to all the neurons in a `NeuronGroup`, all the synapses in a
+`Synapses` object, etc. Therefore, function calls also apply to more than a
+single value. The way in which this is handled differs between code generation
+targets that support vectorized expressions (e.g. the ``numpy`` target) and
+targets that don't (e.g. the ``weave`` target or the ``cpp_standalone`` mode).
+If the code generation target supports vectorized expressions, it will receive
+an array of values. For example, in the ``piecewise_linear`` example above, the
+argument ``I`` will be an array of values and the function returns an array of
+values. For code generation without support for vectorized expressions, all
+code will be executed in a loop (over neurons, over synapses, ...), the function
+will therefore be called several times with a single value each time.
+
+In both cases, the function will only receive the "relevant" values, meaning
+that if for example a function is evaluated as part of a reset statement, it
+will only receive values for the neurons that just spiked.

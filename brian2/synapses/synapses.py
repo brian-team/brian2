@@ -137,7 +137,7 @@ class SynapticPathway(CodeRunner, Group):
         CodeRunner.__init__(self, synapses,
                             'synapses',
                             code=code,
-                            when=(synapses.clock, 'synapses'),
+                            when=(self.source.clock, 'synapses'),
                             name=synapses.name + '_' + objname,
                             template_kwds={'pathway': self})
 
@@ -635,7 +635,7 @@ class Synapses(Group):
         self._enable_group_attributes()
 
     def __len__(self):
-        return self._N
+        return len(self.variables['_synaptic_pre'].get_value())
 
     def before_run(self, run_namespace=None, level=0):
         self.lastupdate = self.clock.t

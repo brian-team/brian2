@@ -66,8 +66,8 @@ class CPPWriter(object):
             if open(fullfilename, 'r').read()==contents:
                 return
         open(fullfilename, 'w').write(contents)
-        
-        
+
+
 def invert_dict(x):
     return dict((v, k) for k, v in x.iteritems())
 
@@ -158,17 +158,41 @@ class CPPStandaloneDevice(Device):
         # Note that a dynamic array variable is added to both the arrays and
         # the _dynamic_array dictionary
         if isinstance(var, DynamicArrayVariable):
-            name = '_dynamic_array_%s_%s' % (var.owner.name, var.name)
+            # The code below is slightly more complicated than just looking
+            # for a unique name as above for static_array, the name has
+            # potentially to be unique for more than one dictionary, with
+            # different prefixes. This is because dynamic arrays are added to
+            # a ``dynamic_arrays`` dictionary (with a `_dynamic` prefix) and to
+            # the general ``arrays`` dictionary. We want to make sure that we
+            # use the same name in the two dictionaries, not for example
+            # ``_dynamic_array_source_name_2`` and ``_array_source_name_1``
+            # (this would work fine, but it would make the code harder to read).
+            orig_dynamic_name = dynamic_name = '_dynamic_array_%s_%s' % (var.owner.name, var.name)
+            orig_array_name = array_name = '_array_%s_%s' % (var.owner.name, var.name)
+            suffix = 0
+
             if var.dimensions == 1:
-                self.dynamic_arrays[var] = name
+                dynamic_dict = self.dynamic_arrays
             elif var.dimensions == 2:
-                self.dynamic_arrays_2d[var] = name
+                dynamic_dict = self.dynamic_arrays_2d
             else:
                 raise AssertionError(('Did not expect a dynamic array with %d '
                                       'dimensions.') % var.dimensions)
+            while (dynamic_name in dynamic_dict.values() or
+                   array_name in self.arrays.values()):
+                suffix += 1
+                dynamic_name = orig_dynamic_name + '_%d' % suffix
+                array_name = orig_array_name + '_%d' % suffix
+            dynamic_dict[var] = dynamic_name
+            self.arrays[var] = array_name
+        else:
+            orig_array_name = array_name = '_array_%s_%s' % (var.owner.name, var.name)
+            suffix = 0
+            while (array_name in self.arrays.values()):
+                suffix += 1
+                array_name = orig_array_name + '_%d' % suffix
+            self.arrays[var] = array_name
 
-        name = '_array_%s_%s' % (var.owner.name, var.name)
-        self.arrays[var] = name
 
     def init_with_zeros(self, var):
         self.zero_arrays.append(var)
@@ -237,22 +261,19 @@ class CPPStandaloneDevice(Device):
         # of expressions at runtime. For constant, read-only arrays that have
         # been explicitly initialized (static arrays) or aranges (e.g. the
         # neuronal indices) we can, however
-        if var.constant and var.read_only:
-            array_name = self.get_array_name(var, access_data=False)
+        array_name = self.get_array_name(var, access_data=False)
+        if (var.constant and var.read_only and
+                (array_name in self.static_arrays or
+                 var in self.arange_arrays)):
             if array_name in self.static_arrays:
                 return self.static_arrays[array_name]
             elif var in self.arange_arrays:
                 return np.arange(0, var.size) + self.arange_arrays[var]
-            else:
-                raise AssertionError(('Variable %s is constant and read-only '
-                                      ' but uninitialized'))
         else:
             # After the network has been run, we can retrieve the values from
             # disk
             if self.has_been_run:
                 dtype = var.dtype
-                array_name = array_name = self.get_array_name(var,
-                                                              access_data=False)
                 fname = os.path.join(self.project_dir, 'results',
                                      array_name)
                 with open(fname, 'rb') as f:
@@ -279,7 +300,9 @@ class CPPStandaloneDevice(Device):
                                       'simulation has been run.')
 
 
-    def variableview_get_subexpression_with_index_array(self, variableview, item):
+    def variableview_get_subexpression_with_index_array(self, variableview,
+                                                        item, level=0,
+                                                        run_namespace=None):
         raise NotImplementedError(('Cannot evaluate subexpressions in '
                                    'standalone scripts.'))
 

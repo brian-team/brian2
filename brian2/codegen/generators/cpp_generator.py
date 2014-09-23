@@ -6,7 +6,7 @@ from brian2.utils.stringtools import (deindent, stripped_deindented_lines,
                                       word_substitute)
 from brian2.utils.logger import get_logger
 from brian2.parsing.rendering import CPPNodeRenderer
-from brian2.core.functions import Function, DEFAULT_FUNCTIONS
+from brian2.core.functions import Function, DEFAULT_FUNCTIONS, make_function
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.variables import ArrayVariable
 
@@ -16,7 +16,55 @@ logger = get_logger(__name__)
 
 __all__ = ['CPPCodeGenerator',
            'c_data_type',
+           'make_cpp_function',
            ]
+
+
+def make_cpp_function(code, namespace=None, discard_units=None):
+    '''
+    Decorator to provide a C++ implementation of a function.
+    
+    Parameters
+    ----------
+    code : str
+        The C++ implementation of the function. The name of the C++ function
+        definition should match the name of the Python decorated function.
+    namespace : dict
+        Dictionary of values that should be accessible to the function.
+    discard_units : bool, optional
+        See documentation for `make_function`
+        
+    Notes
+    -----
+    
+    For more details, see `make_function`.
+    
+    Examples
+    --------
+    Sample usage::
+
+        @make_cpp_function("""
+            #include<math.h>
+            inline double usersin(double x)
+            {
+                return sin(x);
+            }
+            """)
+        def usersin(x):
+            return sin(x)
+
+    See also
+    --------
+    
+    make_function, make_weave_function
+    '''
+    codes = {'cpp':{'support_code':code}}
+    if namespace is not None:
+        namespaces = {'cpp': namespace}
+    else:
+        namespaces = None
+    return make_function(codes=codes, namespaces=namespaces,
+                         discard_units=discard_units)
 
 
 def c_data_type(dtype):
@@ -48,7 +96,7 @@ def c_data_type(dtype):
     elif dtype == numpy.uint32:
         dtype = 'uint32_t'
     elif dtype == numpy.bool_ or dtype is bool:
-        dtype = 'bool'
+        dtype = 'char'
     else:
         raise ValueError("dtype " + str(dtype) + " not known.")
     return dtype

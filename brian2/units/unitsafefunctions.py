@@ -33,7 +33,9 @@ def where(condition, *args, **kwds):  # pylint: disable=C0111
             return np.where(condition, *args, **kwds)
         else:
             # as both arguments have the same unit, just use the first one's
-            return Quantity.with_dimensions(np.where(condition, *args),
+            dimensionless_args = [np.asarray(arg) for arg in args]
+            return Quantity.with_dimensions(np.where(condition,
+                                                     *dimensionless_args),
                                             args[0].dimensions)
     else:
         # illegal number of arguments, let numpy take care of this
