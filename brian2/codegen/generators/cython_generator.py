@@ -148,9 +148,12 @@ class CythonCodeGenerator(CodeGenerator):
                         "cdef {dtype} {varname}",
                         ]
                     for line in newlines:
-                        line = line.format(dtype=weave_data_type(var.dtype),
+                        wd = weave_data_type(var.dtype)
+                        if wd=='bool':
+                            wd = 'char'
+                        line = line.format(dtype=wd,#weave_data_type(var.dtype),
                                            pointer_name=pointer_name, array_name=array_name,
-                                           varname=varname, dtype_str=var.dtype.__name__,
+                                           varname=varname, dtype_str=var.dtype.__name__ if var.dtype.__name__!='bool' else 'uint8',
                                            dtype_str_t=('_numpy.'+var.dtype.__name__+'_t' if var.dtype.__name__!='bool' else '_numpy.uint8_t, cast=True'),
                                            )
                         load_namespace.append(line)
@@ -258,3 +261,18 @@ DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CythonCodeGenerator
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CythonCodeGenerator,
                                                               code=randn_code,
                                                               name='randn')
+
+int_code = '''
+ctypedef fused _to_int:
+    char
+    short
+    int
+    float
+    double
+
+cdef int _int(_to_int x):
+    return <int>x
+'''
+DEFAULT_FUNCTIONS['int'].implementations.add_implementation(CythonCodeGenerator,
+                                                            code=int_code,
+                                                            name='_int')
