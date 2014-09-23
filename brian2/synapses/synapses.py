@@ -1005,8 +1005,8 @@ class Synapses(Group):
             # synapses but to all the possible sources/targets
             variables = Variables(None)
             # Will be set in the template
-            variables.add_auxiliary_variable('_i', unit=Unit(1))
-            variables.add_auxiliary_variable('_j', unit=Unit(1))
+            variables.add_auxiliary_variable('_i', unit=Unit(1), dtype=np.int32)
+            variables.add_auxiliary_variable('_j', unit=Unit(1), dtype=np.int32)
             # Make sure that variables have the correct type in the code
             variables.add_auxiliary_variable('_pre_idx', unit=Unit(1), dtype=np.int32)
             variables.add_auxiliary_variable('_post_idx', unit=Unit(1), dtype=np.int32)
