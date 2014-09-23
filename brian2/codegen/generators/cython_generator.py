@@ -148,12 +148,9 @@ class CythonCodeGenerator(CodeGenerator):
                         "cdef {dtype} {varname}",
                         ]
                     for line in newlines:
-                        wd = weave_data_type(var.dtype)
-                        if wd=='bool':
-                            wd = 'char'
-                        line = line.format(dtype=wd,#weave_data_type(var.dtype),
+                        line = line.format(dtype=weave_data_type(var.dtype),
                                            pointer_name=pointer_name, array_name=array_name,
-                                           varname=varname, dtype_str=var.dtype.__name__ if var.dtype.__name__!='bool' else 'uint8',
+                                           varname=varname, dtype_str=var.dtype.__name__,
                                            dtype_str_t=('_numpy.'+var.dtype.__name__+'_t' if var.dtype.__name__!='bool' else '_numpy.uint8_t, cast=True'),
                                            )
                         load_namespace.append(line)
