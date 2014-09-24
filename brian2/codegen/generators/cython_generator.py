@@ -24,24 +24,8 @@ def cython_data_type(dtype):
     return d
 
 
-
 class CythonNodeRenderer(NodeRenderer):
     pass
-#    expression_ops = NodeRenderer.expression_ops.copy()
-#    expression_ops.update({
-#          # Unary ops
-#          # We'll handle "not" explicitly below
-#          # Bool ops
-#          'And': '*',
-#          'Or': '+',
-#          })
-#
-#    def render_UnaryOp(self, node):
-#        if node.op.__class__.__name__ == 'Not':
-#            return 'logical_not(%s)' % self.render_node(node.operand)
-#        else:
-#            return NodeRenderer.render_UnaryOp(self, node)
-
 
 
 class CythonCodeGenerator(CodeGenerator):
@@ -61,8 +45,6 @@ class CythonCodeGenerator(CodeGenerator):
         return CythonNodeRenderer().render_expr(expr, self.variables).strip()
 
     def translate_statement(self, statement):
-        # TODO: optimisation, translate arithmetic to a sequence of inplace
-        # operations like a=b+c -> add(b, c, a)
         var, op, expr, comment = (statement.var, statement.op,
                                   statement.expr, statement.comment)
         if op == ':=':
@@ -212,28 +194,6 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
                                                                code=None,
                                                                name=func_cpp)
 
-clip_code = '''
-def clip(float value, float a_min, float a_max):
-    if value < a_min:
-        return a_min
-    elif value > a_max:
-        return a_max
-    else:
-        return value
-'''
-DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CythonCodeGenerator,
-                                                             code=clip_code)
-int_func = lambda value: np.int32(value)
-DEFAULT_FUNCTIONS['int'].implementations.add_implementation(CythonCodeGenerator,
-                                                            code=int_func)
-ceil_func = lambda value: np.int32(np.ceil(value))
-DEFAULT_FUNCTIONS['ceil'].implementations.add_implementation(CythonCodeGenerator,
-                                                            code=ceil_func)
-floor_func = lambda value: np.int32(np.floor(value))
-DEFAULT_FUNCTIONS['floor'].implementations.add_implementation(CythonCodeGenerator,
-                                                            code=floor_func)
-
-
 
 rand_code = '''
 cdef int _rand_buffer_size = 1024 
@@ -273,3 +233,21 @@ cdef int _int(_to_int x):
 DEFAULT_FUNCTIONS['int'].implementations.add_implementation(CythonCodeGenerator,
                                                             code=int_code,
                                                             name='_int')
+
+clip_code = '''
+ctypedef fused _float_or_double:
+    float
+    double
+
+cdef _float_or_double clip(_float_or_double x, _float_or_double low,
+                           _float_or_double high):
+    if x<low:
+        return low
+    if x>high:
+        return high
+    return x
+'''
+DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CythonCodeGenerator,
+                                                             code=clip_code,
+                                                             name='clip')
+
