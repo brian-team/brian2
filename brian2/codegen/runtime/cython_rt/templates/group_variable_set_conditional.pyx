@@ -1,7 +1,3 @@
-{# Note that we use this template only for subexpressions -- for normal arrays
-   we do not generate any code but simply access the data in the underlying
-   array directly. See RuntimeDevice.get_with_array #}
-
 {% extends 'common.pyx' %}
 
 {# USES_VARIABLES { N } #}
