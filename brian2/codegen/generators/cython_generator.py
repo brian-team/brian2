@@ -7,7 +7,7 @@ from brian2.parsing.rendering import NodeRenderer
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function, SymbolicConstant
 from brian2.core.variables import (ArrayVariable, Constant, AttributeVariable,
                                    DynamicArrayVariable, AuxiliaryVariable,
-                                   get_dtype_str, Variable)
+                                   get_dtype_str, Variable, Subexpression)
 
 from .base import CodeGenerator
 from .cpp_generator import c_data_type
@@ -110,6 +110,11 @@ class CythonCodeGenerator(CodeGenerator):
                 if isinstance(val, np.ndarray):
                     line = "cdef int _num{varname} = len(_namespace['{varname}'])".format(varname=varname)
                     load_namespace.append(line)
+            elif isinstance(var, Subexpression):
+                dtype = weave_data_type(var.dtype)
+                line = "cdef {dtype} {varname}".format(dtype=dtype,
+                                                       varname=varname)
+                load_namespace.append(line)
             elif isinstance(var, Variable):
                 if var.dynamic:                
                     load_namespace.append('%s = _namespace["%s"]' % (self.get_array_name(var, False),
