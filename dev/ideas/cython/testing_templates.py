@@ -1,16 +1,11 @@
 from brian2 import *
 
-brian_prefs.codegen.target = 'weave'
-#brian_prefs.codegen.target = 'cython'
+#brian_prefs.codegen.target = 'weave'
+brian_prefs.codegen.target = 'cython'
 
-G = NeuronGroup(10, 'v : 1')
-#S = Synapses(G, G, 'w:1', connect='i==j')
-#S.w = 'i'
-#print S.w
-
-#G.v = 'i'
-#print G.v
-
-v = G.v
-v[5:] = 'i'
-print G.v
+G = NeuronGroup(10, 'dv/dt = 1/second : 1')
+M = StateMonitor(G, 'v', record=True)
+run(10*ms)
+print M.t
+plot(M.t/ms, M.v[0])
+show()
