@@ -13,6 +13,7 @@ from ...templates import Templater
 from ...generators.cython_generator import CythonCodeGenerator
 from ...targets import codegen_targets
 from .extension_manager import cython_extension_manager
+from ..weave_rt.weave_rt import weave_data_type
 
 __all__ = ['CythonCodeObject']
 
@@ -21,7 +22,8 @@ class CythonCodeObject(NumpyCodeObject):
     '''
     '''
     templater = Templater('brian2.codegen.runtime.cython_rt',
-                          env_globals={})
+                          env_globals={'c_data_type': weave_data_type,
+                                       'dtype': numpy.dtype})
     generator_class = CythonCodeGenerator
     class_name = 'cython'
 
