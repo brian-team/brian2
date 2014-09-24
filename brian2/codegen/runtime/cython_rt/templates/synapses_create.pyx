@@ -58,19 +58,18 @@ cdef void _flush_buffer(buf, dynarr, int N):
             if _cond:
                 if _p!=1.0:
                     if rand(_vectorisation_idx)>=_p:
-                    #if rand(1)>=_p:
                         continue
-                    for _repetition in range(_n):
-                        {{N_outgoing}}[_pre_idx] += 1
-                        {{N_incoming}}[_post_idx] += 1
-                        _prebuf_ptr[_curbuf] = _pre_idx
-                        _postbuf_ptr[_curbuf] = _post_idx
-                        _curbuf += 1
-                        # Flush buffer
-                        if _curbuf==_buffer_size:
-                            _flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf)
-                            _flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf)
-                            _curbuf = 0
+                for _repetition in range(_n):
+                    {{N_outgoing}}[_pre_idx] += 1
+                    {{N_incoming}}[_post_idx] += 1
+                    _prebuf_ptr[_curbuf] = _pre_idx
+                    _postbuf_ptr[_curbuf] = _post_idx
+                    _curbuf += 1
+                    # Flush buffer
+                    if _curbuf==_buffer_size:
+                        _flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf)
+                        _flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf)
+                        _curbuf = 0
                         
     # Final buffer flush
     _flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf)

@@ -25,7 +25,13 @@ def cython_data_type(dtype):
 
 
 class CythonNodeRenderer(NodeRenderer):
-    pass
+    def render_NameConstant(self, node):
+        return {True: '1',
+                False: '0'}.get(node.value, node.value)
+
+    def render_Name(self, node):
+        return {'True': '1',
+                'False': '0'}.get(node.id, node.id)
 
 
 class CythonCodeGenerator(CodeGenerator):
