@@ -9,8 +9,8 @@ from collections import defaultdict
 
 import numpy as np
 
-from brian2.core.clocks import defaultclock
 from brian2.core.network import Network
+from brian2.core.clocks import defaultclock
 from brian2.devices.device import Device, all_devices
 from brian2.core.variables import *
 from brian2.synapses.synapses import Synapses
@@ -407,8 +407,12 @@ class CPPStandaloneDevice(Device):
             static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
 
         # Write the global objects
-        networks = [net() for net in Network.__instances__() if net().name!='_fake_network']
-        synapses = [S() for S in Synapses.__instances__()]
+        networks = [net() for net in Network.__instances__()
+                    if net().name!='_fake_network']
+        synapses = []
+        for net in networks:
+            synapses.extend(s for s in net.objects if isinstance(s, Synapses))
+
         arr_tmp = CPPStandaloneCodeObject.templater.objects(
                         None, None,
                         array_specs=self.arrays,
@@ -593,7 +597,7 @@ class CPPStandaloneDevice(Device):
 
     def network_run(self, net, duration, report=None, report_period=10*second,
                     namespace=None, level=0):
-
+        net._clocks = [obj.clock for obj in net.objects]
         # We have to use +2 for the level argument here, since this function is
         # called through the device_override mechanism
         net.before_run(namespace, level=level+2)
@@ -666,6 +670,14 @@ class CPPStandaloneDevice(Device):
                                                                                               report_call=report_call,
                                                                                               report_period=float(report_period)))
         self.main_queue.append(('run_network', (net, run_lines)))
+
+    def network_store(self, net, name='default'):
+        raise NotImplementedError(('The store/restore mechanism is not '
+                                   'supported in the C++ standalone'))
+
+    def network_restore(self, net, name='default'):
+        raise NotImplementedError(('The store/restore mechanism is not '
+                                   'supported in the C++ standalone'))
 
     def run_function(self, name, include_in_parent=True):
         '''

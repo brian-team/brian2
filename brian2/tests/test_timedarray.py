@@ -36,7 +36,7 @@ def test_timedarray_no_units():
 
 
 def test_timedarray_with_units():
-    ta = TimedArray(np.arange(10)*amp, defaultclock.dt)
+    ta = TimedArray(np.arange(10)*amp, dt=defaultclock.dt)
     for codeobj_class in codeobj_classes:
         G = NeuronGroup(1, 'value = ta(t) + 2*nA: amp', codeobj_class=codeobj_class)
         mon = StateMonitor(G, 'value', record=True)
@@ -55,7 +55,7 @@ def test_long_timedarray():
         mon = StateMonitor(G, 'value', record=True, codeobj_class=codeobj_class)
         net = Network(G, mon)
         # We'll start the simulation close to the critical boundary
-        net.t = 16384*second - 5*ms
+        net.t_ = float(16384*second - 5*ms)
         net.run(10*ms)
         assert all(mon[0].value[mon.t < 16384*second] == 16383)
         assert all(mon[0].value[mon.t >= 16384*second] == 16384)

@@ -123,16 +123,14 @@ def restore_device():
 
 @with_setup(teardown=restore_device)
 def test_connection_array_standalone():
-    Synapses.__instances__().clear()  #FIXME
     set_device('cpp_standalone')
     # use a clock with 1s timesteps to avoid rounding issues
-    clock = Clock(dt=1*second)
     G1 = SpikeGeneratorGroup(4, np.array([0, 1, 2, 3]),
-                             [0, 1, 2, 3]*second, when=clock)
+                             [0, 1, 2, 3]*second, dt=1*second)
     G2 = NeuronGroup(8, 'v:1')
-    S = Synapses(G1, G2, '', pre='v+=1', clock=clock)
+    S = Synapses(G1, G2, '', pre='v+=1', dt=1*second)
     S.connect([0, 1, 2, 3], [0, 2, 4, 6])
-    mon = StateMonitor(G2, 'v', record=True, name='mon', when=clock)
+    mon = StateMonitor(G2, 'v', record=True, name='mon', dt=1*second)
     net = Network(G1, G2, S, mon)
     net.run(5*second)
     tempdir = tempfile.mkdtemp()
@@ -471,6 +469,7 @@ def test_delay_specification():
                                                delay={'post': 5*ms}))
 
 def test_transmission():
+    default_dt = defaultclock.dt
     delays = [[0, 0] * ms, [1, 1] * ms, [1, 2] * ms]
     for codeobj_class, delay in zip(codeobj_classes, delays):
         # Make sure that the Synapses class actually propagates spikes :)
@@ -488,31 +487,33 @@ def test_transmission():
                      codeobj_class=codeobj_class)
         S.delay = delay
         net = Network(S, source, target, source_mon, target_mon)
-        net.run(100*ms+defaultclock.dt+max(delay))
+        net.run(100*ms+default_dt+max(delay))
 
         # All spikes should trigger spikes in the receiving neurons with
         # the respective delay ( + one dt)
         assert_allclose(source_mon.t[source_mon.i==0],
-                        target_mon.t[target_mon.i==0] - defaultclock.dt - delay[0])
+                        target_mon.t[target_mon.i==0] - default_dt - delay[0])
         assert_allclose(source_mon.t[source_mon.i==1],
-                        target_mon.t[target_mon.i==1] - defaultclock.dt - delay[1])
+                        target_mon.t[target_mon.i==1] - default_dt - delay[1])
 
 
 def test_clocks():
     '''
     Make sure that a `Synapse` object uses the correct clocks.
     '''
-    source_clock = Clock(dt=0.05*ms)
-    target_clock = Clock(dt=0.1*ms)
-    synapse_clock = Clock(dt=0.2*ms)
-    source = NeuronGroup(1, 'v:1', clock=source_clock)
-    target = NeuronGroup(1, 'v:1', clock=target_clock)
+    source_dt = 0.05*ms
+    target_dt = 0.1*ms
+    synapse_dt = 0.2*ms
+    source = NeuronGroup(1, 'v:1', dt=source_dt)
+    target = NeuronGroup(1, 'v:1', dt=target_dt)
     synapse = Synapses(source, target, 'w:1', pre='v+=1', post='v+=1',
-                       clock=synapse_clock, connect=True)
+                       dt=synapse_dt, connect=True)
 
-    assert synapse.pre.clock is source_clock
-    assert synapse.post.clock is target_clock
-    assert synapse.clock is synapse_clock
+    assert synapse.pre.clock is source.clock
+    assert synapse.post.clock is target.clock
+    assert synapse.pre._clock.dt == source_dt
+    assert synapse.post._clock.dt == target_dt
+    assert synapse._clock.dt == synapse_dt
 
 
 def test_changed_dt_spikes_in_queue():

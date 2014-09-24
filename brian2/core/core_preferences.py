@@ -5,6 +5,8 @@ Brian preferences.
 from numpy import float64, int32
 
 from brian2.core.preferences import BrianPreference, brian_prefs
+from brian2.units.stdunits import ms
+
 
 def dtype_repr(dtype):
     return dtype.__name__

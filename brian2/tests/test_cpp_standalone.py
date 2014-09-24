@@ -10,7 +10,6 @@ from brian2.devices.cpp_standalone import cpp_standalone_device
 
 
 def restore_device():
-    #Network.__instances__().clear()  #TODO
     cpp_standalone_device.reinit()
     set_device('runtime')
     restore_initial_state()
@@ -65,6 +64,7 @@ def test_multiple_connects(with_output=False):
     tempdir = tempfile.mkdtemp()
     if with_output:
         print tempdir
+    run(0*ms)
     device.build(project_dir=tempdir, compile_project=True, run_project=True,
                  with_output=True)
     assert len(S) == 2 and len(S.w[:]) == 2

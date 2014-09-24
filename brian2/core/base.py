@@ -6,11 +6,12 @@ import gc
 import weakref
 
 from brian2.utils.logger import get_logger
-from brian2.core.scheduler import Scheduler
 from brian2.core.names import Nameable
+from brian2.core.clocks import Clock, defaultclock
+from brian2.units.allunits import second
+from brian2.units.fundamentalunits import check_units
 
 __all__ = ['BrianObject',
-           'clear',
            'weakproxy_with_fallback',
            ]
 
@@ -26,9 +27,7 @@ class BrianObject(Nameable):
     
     Parameters
     ----------
-    when : `Scheduler`, optional
-        Defines when the object is updated in the main `Network.run`
-        loop.
+    TODO
     name : str, optional
         A unique name for the object - one will be assigned automatically if
         not provided (of the form ``brianobject_1``, etc.).
@@ -38,23 +37,31 @@ class BrianObject(Nameable):
         
     The set of all `BrianObject` objects is stored in ``BrianObject.__instances__()``.
     '''
-    def __init__(self, when=None, name='brianobject*'):
-        scheduler = Scheduler(when)
-        when = scheduler.when
-        order = scheduler.order
-        clock = scheduler.clock
-        
+    @check_units(dt=second)
+    def __init__(self, dt=None, clock=None, when='start', order=0, name='brianobject*'):
+
+        if dt is not None and clock is not None:
+            raise ValueError('Can only specify either a dt or a clock, not both.')
+
         Nameable.__init__(self, name)
-     
-        # : The ID string determining when the object should be updated in `Network.run`.
+
+        #: The clock used for simulating this object
+        self._clock = clock
+        if clock is None:
+            if dt is not None:
+                self._clock = Clock(dt=dt, name=self.name+'_clock*')
+            else:
+                self._clock = defaultclock
+
+        #: Used to remember the `Network` in which this object has been included
+        #: before, to raise an error if it is included in a new `Network`
+        self._network = None
+
+        #: The ID string determining when the object should be updated in `Network.run`.
         self.when = when
         
         #: The order in which objects with the same clock and ``when`` should be updated
         self.order = order
-        
-#        #: The `Clock` determining when the object should be updated.
-#        self.clock = clock
-        self._clock = clock
 
         self._dependencies = set()
         self._contained_objects = []
@@ -63,10 +70,10 @@ class BrianObject(Nameable):
         self._active = True
         
         logger.debug("Created BrianObject with name {self.name}, "
-                     "clock name {self.clock.name}, "
+                     "clock={self._clock}, "
                      "when={self.when}, order={self.order}".format(self=self))
 
-    #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is created or removed
+    #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is added
     invalidates_magic_network = True
 
     #: Whether or not the object should be added to a `MagicNetwork`. Note that
@@ -111,12 +118,6 @@ class BrianObject(Nameable):
     def run(self):
         for codeobj in self._code_objects:
             codeobj()
-
-    def reinit(self, level=0):
-        '''
-        Reinitialise the object, called by `Network.reinit`.
-        '''
-        pass
 
     contained_objects = property(fget=lambda self:self._contained_objects,
                                  doc='''
@@ -176,60 +177,16 @@ class BrianObject(Nameable):
                         ''')
 
     def __repr__(self):
-        description = ('{classname}(when={scheduler}, name={name})')
+        description = ('{classname}(clock={clock}, when={when}, order={order}, name={name})')
         return description.format(classname=self.__class__.__name__,
-                                  scheduler=repr(Scheduler(when=self.when,
-                                                           clock=self.clock,
-                                                           order=self.order)),
+                                  when=self.when,
+                                  clock=self._clock,
+                                  order=self.order,
                                   name=repr(self.name))
 
     # This is a repeat from Nameable.name, but we want to get the documentation
     # here again
     name = Nameable.name
-
-
-def clear(erase=False):
-    '''
-    Stops all Brian objects from being automatically detected
-
-    Stops objects from being tracked by `run` and `reinit`.
-    Use this if you are seeing `MagicError` on repeated runs.
-
-    Parameters
-    ----------
-
-    erase : bool, optional
-        If set to ``True``, all data attributes of all Brian objects
-        will be set to ``None``. This
-        can help solve problems with circular references stopping objects
-        from being garbage collected, and is a quick way to ensure that all
-        memory associated to Brian objects is deleted.
-
-    Notes
-    -----
-
-    Removes the objects from ``BrianObject.__instances__()`` and
-    ``Nameable.__instances__()``.
-    Will also set the
-    `BrianObject.active` flag to ``False`` for already existing `Network`
-    objects. Calls a garbage collection on completion.
-
-    See Also
-    --------
-
-    run, reinit, MagicError
-    '''
-    if erase:
-        instances = set(BrianObject.__instances__())
-        for obj in instances:
-            obj = obj()
-            if obj is None:
-                continue
-            for k, v in obj.__dict__.iteritems():
-                object.__setattr__(obj, k, None)
-    BrianObject.__instances__().clear()
-    Nameable.__instances__().clear()
-    gc.collect()
 
 
 def weakproxy_with_fallback(obj):

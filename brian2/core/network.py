@@ -166,14 +166,16 @@ class Network(Nameable):
 
         Nameable.__init__(self, name=name)
 
+        #: Current time as a float
+        self.t_ = 0.0
+
         for obj in objs:
             self.add(obj)
-            
-        #: Current time as a float
-        self.t_ = 0.0   
+
+        #: Stored time for the store/restore mechanism
+        self._stored_t = {}
      
     t = property(fget=lambda self: self.t_*second,
-                 fset=lambda self, val: setattr(self, 't_', float(val)),
                  doc='''
                      Current simulation time in seconds (`Quantity`)
                      ''')
@@ -228,6 +230,12 @@ class Network(Nameable):
         """
         for obj in objs:
             if isinstance(obj, BrianObject):
+                if obj._network is not None:
+                    raise RuntimeError('%s has already been simulated, cannot '
+                                       'add it to the network. If you were '
+                                       'trying to remove and add an object to '
+                                       'temporarily stop it from being run, '
+                                       'set its active flag to False instead.')
                 self.objects.append(obj)
                 self.add(obj.contained_objects)
             else:
@@ -268,18 +276,48 @@ class Network(Nameable):
                                     "BrianObject, or containers of such "
                                     "objects from Network")
 
-    @device_override('network_reinit')
-    def reinit(self, level=0):
+    @device_override('network_store')
+    def store(self, name='default'):
         '''
-        reinit()
+        store(name='default')
 
-        Reinitialises all contained objects.
-        
-        Calls `BrianObject.reinit` on each object.
+        Store the state of the network and all included objects.
+
+        Parameters
+        ----------
+        name : str, optional
+            A name for the snapshot, if not specified uses ``'default'``.
+
+        '''
+        self._stored_t[name] = self.t_
+        clocks = [obj.clock for obj in self.objects]
+        # Make sure that all clocks are up to date
+        for clock in clocks:
+            clock._set_t_update_dt(t=self.t)
+
+        for obj in self.objects:
+            if hasattr(obj, '_store'):
+                obj._store(name=name)
+
+    @device_override('network_restore')
+    def restore(self, name='default'):
+        '''
+        restore(name='default')
+
+        Retore the state of the network and all included objects.
+
+        Parameters
+        ----------
+        name : str, optional
+            The name of the snapshot to restore, if not specified uses
+            ``'default'``.
+
         '''
         for obj in self.objects:
-            obj.reinit(level=level+2)
-    
+            if hasattr(obj, '_restore'):
+                obj._restore(name=name)
+        self.t_ = self._stored_t[name]
+
     def _get_schedule(self):
         if not hasattr(self, '_schedule'):
             self._schedule = ['start',
@@ -307,17 +345,20 @@ class Network(Nameable):
         names in the default schedule:
         ``['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']``.
         ''')
-    
+
     def _sort_objects(self):
         '''
         Sorts the objects in the order defined by the schedule.
         
         Objects are sorted first by their ``when`` attribute, and secondly
         by the ``order`` attribute. The order of the ``when`` attribute is
-        defined by the ``schedule``.
+        defined by the ``schedule``. Final ties are resolved using the objects'
+        names, leading to an arbitrary but deterministic sorting.
         '''
         when_to_int = dict((when, i) for i, when in enumerate(self.schedule))
-        self.objects.sort(key=lambda obj: (when_to_int[obj.when], obj.order))
+        self.objects.sort(key=lambda obj: (when_to_int[obj.when],
+                                           obj.order,
+                                           obj.name))
 
     def check_dependencies(self):
         all_ids = [obj.id for obj in self.objects]
@@ -345,8 +386,6 @@ class Network(Nameable):
             namespace will be run.
         '''                
         brian_prefs.check_all_validated()
-
-        self._clocks = set(obj.clock for obj in self.objects)
         
         self._stopped = False
         Network._globally_stopped = False
@@ -364,6 +403,17 @@ class Network(Nameable):
         for obj in self.objects:
             if obj.active:
                 obj.before_run(run_namespace, level=level+2)
+
+        # Check that no object has been run as part of another network before
+        for obj in self.objects:
+            if obj._network is None:
+                obj._network = self.id
+            elif obj._network != self.id:
+                raise RuntimeError(('%s has already been run in the '
+                                    'context of another network. Use '
+                                    'add/remove to change the objects '
+                                    'in a simulated network instead of '
+                                    'creating a new one.') % obj.name)
 
         logger.debug("Network {self.name} has {num} "
                      "clocks: {clocknames}".format(self=self,
@@ -431,18 +481,17 @@ class Network(Nameable):
         # A garbage collection here can be useful to free memory if we have
         # multiple runs
         gc.collect()
-        self.before_run(namespace, level=level+3)
 
         if len(self.objects)==0:
             return # TODO: raise an error? warning?
 
+        self._clocks = [obj.clock for obj in self.objects]
         t_start = self.t
         t_end = self.t+duration
         for clock in self._clocks:
             clock.set_interval(self.t, t_end)
-            
-        # TODO: progress reporting stuff
-        
+
+        self.before_run(namespace, level=level+3)
         # Find the first clock to be updated (see note below)
         clock, curclocks = self._nextclocks()
         if report is not None:
@@ -477,7 +526,7 @@ class Network(Nameable):
                     next_report_time = current + report_period
                 # update the objects with this clock
             for obj in self.objects:
-                if obj.clock in curclocks and obj.active:
+                if obj._clock in curclocks and obj.active:
                     obj.run()
             # tick the clock forward one time step
             for c in curclocks:
@@ -488,7 +537,10 @@ class Network(Nameable):
             # same t value in which case we update all of them
             clock, curclocks = self._nextclocks()
 
-        self.t = t_end
+        if self._stopped or Network._globally_stopped:
+            self.t_ = clock.t_
+        else:
+            self.t_ = float(t_end)
 
         if report is not None:
             report_callback((current-start)*second, 1.0, duration)

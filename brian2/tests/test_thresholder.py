@@ -13,7 +13,8 @@ except ImportError:
 
 def test_simple_threshold():
     for codeobj_class in codeobj_classes:
-        G = NeuronGroup(4, 'v : 1', threshold='v > 1')
+        G = NeuronGroup(4, 'v : 1', threshold='v > 1',
+                        codeobj_class=codeobj_class)
         G.v = [1.5, 0, 3, -1]
         s_mon = SpikeMonitor(G)
         net = Network(G, s_mon)
@@ -23,7 +24,8 @@ def test_simple_threshold():
 def test_scalar_threshold():
     c = 2
     for codeobj_class in codeobj_classes:
-        G = NeuronGroup(4, '', threshold='c > 1')
+        G = NeuronGroup(4, '', threshold='c > 1',
+                        codeobj_class=codeobj_class)
         s_mon = SpikeMonitor(G)
         net = Network(G, s_mon)
         net.run(defaultclock.dt)

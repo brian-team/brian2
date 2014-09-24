@@ -23,7 +23,7 @@ def test_default_content():
     '''
     Test that the default namespace contains standard units and functions.
     '''
-    group = Group({})
+    group = Group()
     # Units
     assert group.resolve('second', None).get_value_with_unit() == second
     assert group.resolve('volt', None).get_value_with_unit() == volt

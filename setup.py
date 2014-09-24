@@ -10,11 +10,17 @@ from ez_setup import use_setuptools
 use_setuptools()
 
 import pkg_resources
+from pkg_resources import parse_version
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.errors import CompileError, DistutilsPlatformError
 
+REQUIRED_CYTHON_VERSION = '0.18'
+
 try:
+    import Cython
+    if parse_version(Cython.__version__) < parse_version(REQUIRED_CYTHON_VERSION):
+        raise ImportError('Cython version %s is too old' % Cython.__version__)
     from Cython.Build import cythonize
     cython_available = True
 except ImportError:
@@ -45,10 +51,10 @@ if WITH_CYTHON or not os.path.exists(cpp_fname):
     if not cython_available:
         if FAIL_ON_ERROR:
             raise RuntimeError('Compilation with Cython requested/necesary but '
-                               'Cython is not available.')
+                               'Cython >= %s is not available.' % REQUIRED_CYTHON_VERSION)
         else:
             sys.stderr.write('Compilation with Cython requested/necesary but '
-                             'Cython is not available.\n')
+                             'Cython >= %s is not available.\n' % REQUIRED_CYTHON_VERSION)
             fname = None
     if not os.path.exists(pyx_fname):
         if FAIL_ON_ERROR:

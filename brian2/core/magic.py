@@ -5,12 +5,13 @@ import itertools
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
-from brian2.core.network import Network
-from brian2.core.base import BrianObject
+
+from .network import Network
+from .base import BrianObject, device_override
 
 __all__ = ['MagicNetwork', 'magic_network',
            'MagicError',
-           'run', 'reinit', 'stop', 'collect',
+           'run', 'reinit', 'stop', 'collect', 'store', 'restore'
            ]
 
 logger = get_logger(__name__)
@@ -103,8 +104,7 @@ class MagicNetwork(Network):
        simulation. Subsequently, you may call `run` again to run it again for
        a further duration. In this case, the `Network.t` time will start at 0
        and for the second call to `run` will continue from the end of the
-       previous run. To reset time to 0 between runs, write
-       ``magic_network.t = 0*second``.
+       previous run.
        
     2. You have a loop in which at each iteration, you create some Brian
        objects and run a simulation using them. In this case, time is reset to
@@ -116,30 +116,21 @@ class MagicNetwork(Network):
     When it is not possible to safely guess which case you are in, it raises
     `MagicError`. The rules for this guessing system are explained below.
     
-    The rule is essentially this: if you are running a network consisting of
-    entirely new objects compared to the previous run, then time will be reset
-    to 0 and no error is raised. If you are running a network consisting only
-    of objects that existed on the previous run, time continues from the end
-    of the previous run and no error is raised. If the set of objects is
-    different but has some overlap, an error is raised. So, for example,
-    creating a new `NeuronGroup` and calling `run` will raise an error. The
-    reason for this raising an error is that Brian cannot guess the
-    intent of the user, and doesn't know whether to reset time to 0 or not.
-    
-    There is a slight subtlety to the rules above: adding or removing some
-    types of Brian object will not cause an error to be raised. All Brian
-    objects have a `~BrianObject.invalidates_magic_network` attribute - if this
-    flag is set to ``False`` then adding it will not cause an error to be
-    raised. You can check this attribute on each object, but the basic rule is
-    that the flag will be set to ``True`` for "stand-alone" Brian objects which
-    can be run on their own, e.g. `NeuronGroup` and ``False`` for objects which
-    require the existence of another object such as `Synapses` or
-    `SpikeMonitor`.
+    If a simulation consists only of objects that have not been run, it will
+    assume that you want to start a new simulation. If a simulation only
+    consists of objects that have been simulated in the previous `run` call,
+    it will continue that simulation at the previous time.
+
+    If neither of these two situations apply, i.e., the network consists of a
+    mix of previously run objects and new objects, an error will be raised.
+
+    In these checks, "non-invalidating" objects (i.e. objects that have
+    `BrianObject.invalidates_magic_network` set to ``False``) are ignored, e.g.
+    creating new monitors is always possible.
     
     See Also
     --------
-    
-    Network, run, collect, reinit, stop
+    Network, collect, run, stop, store, restore
     '''
     
     _already_created = False
@@ -168,27 +159,44 @@ class MagicNetwork(Network):
     def _update_magic_objects(self, level):
         objects = collect(level+1)
         contained_objects = set()
-        valid_refs = set()
         for obj in objects:
-            if obj.invalidates_magic_network:
-                valid_refs.add(weakref.ref(obj))
             for contained in _get_contained_objects(obj):
                 contained_objects.add(contained)
+        objects |= contained_objects
+
         # check whether we should restart time, continue time, or raise an
         # error
-        inter = valid_refs.intersection(self._previous_refs)
-        if len(inter) == 0:
-            # reset time
-            self.t = 0 * second
-        elif len(self._previous_refs) == len(valid_refs):
-            # continue time
-            pass
-        else:
-            raise MagicError(
-                "Brian cannot guess what you intend to do here, see docs for MagicNetwork for details")
-        self._previous_refs = valid_refs
+        some_known = False
+        some_new = False
+        for obj in objects:
+            if obj._network == self.id:
+                some_known = True  # we are continuing a previous run
+            elif obj._network is None and obj.invalidates_magic_network:
+                some_new = True
+            # Note that the inclusion of objects that have been run as part of
+            # other objects will lead to an error in `Network.before_run`, we
+            # do not have to deal with this case here.
 
-        self.objects[:] = objects | contained_objects
+        if some_known and some_new:
+            raise MagicError(('The magic network contains a mix of objects '
+                              'that has been run before and new objects, Brian '
+                              'does not know whether you want to start a new '
+                              'simulation or continue an old one. Consider '
+                              'explicitly creating a Network object. Also note '
+                              'that you can find out which objects will be '
+                              'included in a magic network with the '
+                              'collect() function.'))
+        elif some_new:  # all objects are new, start a new simulation
+            # reset time
+            self.t_ = 0.0
+            # reset id -- think of this as a new Network
+            self.assign_id()
+
+        for obj in objects:
+            if obj._network is None:
+                obj._network = self.id
+
+        self.objects[:] = objects
         logger.info("Updated MagicNetwork to include {numobjs} objects "
                     "with names {names}".format(
                         numobjs=len(self.objects),
@@ -210,19 +218,29 @@ class MagicNetwork(Network):
                     obj.active = False
                     break
 
-    def before_run(self, run_namespace=None, level=0):
-        self._update_magic_objects(level=level+1)
-        Network.before_run(self, run_namespace, level=level+1)
-
     def after_run(self):
         self.objects[:] = []
 
-    def reinit(self, level=0):
+    def run(self, duration, report=None, report_period=10*second,
+            namespace=None, level=0):
+        self._update_magic_objects(level=level+1)
+        Network.run(self, duration, report=report, report_period=report_period,
+                    namespace=namespace, level=level+1)
+
+    def store(self, name='default', level=0):
         '''
-        See `Network.reinit`.
+        See `Network.store`.
         '''
         self._update_magic_objects(level=level+1)
-        super(MagicNetwork, self).reinit()
+        super(MagicNetwork, self).store(name=name)
+        self.objects[:] = []
+
+    def restore(self, name='default', level=0):
+        '''
+        See `Network.store`.
+        '''
+        self._update_magic_objects(level=level+1)
+        super(MagicNetwork, self).restore(name=name)
         self.objects[:] = []
 
     def __str__(self):
@@ -342,6 +360,30 @@ def reinit():
         intended use. See `MagicNetwork` for more details.
     '''
     magic_network.reinit()
+
+def store(name='default'):
+    '''
+    Store the state of the network and all included objects.
+
+    Parameters
+    ----------
+    name : str, optional
+        A name for the snapshot, if not specified uses ``'default'``.
+    '''
+    magic_network.store(name=name, level=1)
+
+
+def restore(name='default'):
+    '''
+    Restore the state of the network and all included objects.
+
+    Parameters
+    ----------
+    name : str, optional
+        The name of the snapshot to restore, if not specified uses
+        ``'default'``.
+    '''
+    magic_network.restore(name=name, level=1)
 
 
 def stop():
