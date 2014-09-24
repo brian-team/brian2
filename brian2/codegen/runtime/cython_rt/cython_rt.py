@@ -32,10 +32,7 @@ class CythonCodeObject(NumpyCodeObject):
         self.compiled_code = cython_extension_manager.create_extension(self.code)
         
     def run(self):
-#        print '**** namespace.keys() at runtime for object', self.name+'\n    ' +str(self.namespace.keys())
-#        for k, v in self.namespace.items():
-#            print '  ', k, v.__class__
-        self.compiled_code.main(self.namespace)
+        return self.compiled_code.main(self.namespace)
 
     # the following are copied from WeaveCodeObject
 
