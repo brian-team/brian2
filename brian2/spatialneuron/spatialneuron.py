@@ -73,8 +73,15 @@ class SpatialNeuron(NeuronGroup):
         dictionary specifying the type for variable names. If a value is not
         provided for a variable (or no value is provided at all), the preference
         setting `core.default_float_dtype` is used.
-    clock : Clock, optional
-        The update clock to be used, or defaultclock if not specified.
+    dt : `Quantity`, optional
+        The time step to be used for the simulation. Cannot be combined with
+        the `clock` argument.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the `defaultclock` will be used.
+    order : int, optional
+        The priority of of this group for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
     name : str, optional
         A unique name for the group, otherwise use ``spatialneuron_0``, etc.
     '''
@@ -82,7 +89,7 @@ class SpatialNeuron(NeuronGroup):
     def __init__(self, morphology=None, model=None, threshold=None,
                  refractory=False, reset=None,
                  threshold_location=None,
-                 clock=None, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
+                 dt=None, clock=None, order=0, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
                  name='spatialneuron*', dtype=None, namespace=None,
                  method=None):
 
@@ -186,7 +193,7 @@ class SpatialNeuron(NeuronGroup):
         NeuronGroup.__init__(self, len(morphology), model=model + eqs_constants,
                              threshold=threshold, refractory=refractory,
                              reset=reset,
-                             method=method, clock=clock,
+                             method=method, dt=dt, clock=clock, order=order,
                              namespace=namespace, dtype=dtype, name=name)
 
         self.Cm = Cm
@@ -205,7 +212,9 @@ class SpatialNeuron(NeuronGroup):
             distance=self.variables['distance'].get_value())
 
         # Performs numerical integration step
-        self.diffusion_state_updater = SpatialStateUpdater(self, method)
+        self.diffusion_state_updater = SpatialStateUpdater(self, method,
+                                                           clock=self.clock,
+                                                           order=order)
 
         # Creation of contained_objects that do the work
         self.contained_objects.extend([self.diffusion_state_updater])
@@ -307,19 +316,19 @@ class SpatialStateUpdater(CodeRunner, Group):
     TODO: all internal variables (u_minus etc) could be inserted in the SpatialNeuron.
     '''
 
-    def __init__(self, group, method):
+    def __init__(self, group, method, clock, order=0):
         # group is the neuron (a group of compartments) 
         self.method_choice = method
         self._isprepared = False
         CodeRunner.__init__(self, group,
                             'spatialstateupdate',
-                            when=(group.clock, 'groups', 1),
+                            code='''_gtot = gtot__private
+                                    _I0 = I0__private''',
+                            clock=clock,
+                            when='groups',
+                            order=order,
                             name=group.name + '_spatialstateupdater*',
                             check_units=False)
-        self.abstract_code = '''
-        _gtot = gtot__private
-        _I0 = I0__private
-        '''
         N = len(self.group)
         self.ab_star = zeros((3, N))
         self.ab_plus = zeros((3, N))

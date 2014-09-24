@@ -4,7 +4,6 @@ import numbers
 import numpy as np
 
 from brian2.core.variables import (Variables, Subexpression, get_dtype)
-from brian2.core.scheduler import Scheduler
 from brian2.groups.group import Group, CodeRunner
 from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Unit, Quantity
@@ -105,9 +104,18 @@ class StateMonitor(Group, CodeRunner):
         Which indices to record, nothing is recorded for ``None`` or ``False``,
         everything is recorded for ``True`` (warning: may use a great deal of
         memory), or a specified subset of indices.
-    when : `Scheduler`, optional
-        When to record the spikes, by default uses the clock of the source
-        and records spikes in the slot 'end'.
+    dt : `Quantity`, optional
+        The time step to be used for the monitor. Cannot be combined with
+        the `clock` argument.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the clock of the `source` will be used.
+    when : str, optional
+        At which point during a time step the values should be recorded.
+        Defaults to ``'end'``.
+    order : int, optional
+        The priority of of this group for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
     name : str, optional
         A unique name for the object, otherwise will use
         ``source.name+'statemonitor_0'``, etc.
@@ -131,20 +139,25 @@ class StateMonitor(Group, CodeRunner):
         plot(M.t, M.V.T)
         show()
 
+    Notes
+    -----
+
+    Since this monitor by default records in the ``'end'`` time slot, recordings
+    of the membrane potential in integrate-and-fire models may look unexpected:
+    the recording is done *after* application of the reset statement, i.e the
+    recorded membrane potential trace will never be above threshold. Set the
+    `when` keyword to a different value if this is not what you want.
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
-    def __init__(self, source, variables, record=None, when=None,
-                 name='statemonitor*', codeobj_class=None):
+    def __init__(self, source, variables, record=None, dt=None, clock=None,
+                 when='end', order=0, name='statemonitor*', codeobj_class=None):
         self.source = source
         self.codeobj_class = codeobj_class
 
         # run by default on source clock at the end
-        scheduler = Scheduler(when)
-        if not scheduler.defined_clock:
-            scheduler.clock = source.clock
-        if not scheduler.defined_when:
-            scheduler.when = 'end'
+        if dt is None and clock is None:
+            clock = source.clock
 
         # variables should always be a list of strings
         if variables is True:
@@ -178,7 +191,10 @@ class StateMonitor(Group, CodeRunner):
 
         CodeRunner.__init__(self, group=self, template='statemonitor',
                             code=code, name=name,
-                            when=scheduler,
+                            clock=clock,
+                            dt=dt,
+                            when=when,
+                            order=order,
                             check_units=False)
 
         self.add_dependency(source)
@@ -188,12 +204,6 @@ class StateMonitor(Group, CodeRunner):
 
         self.variables.add_dynamic_array('t', size=0, unit=second,
                                          constant=False, constant_size=False)
-        if scheduler.clock is source.clock:
-            self.variables.add_reference('_clock_t', source, 't')
-        else:
-            self.variables.add_attribute_variable('_clock_t', unit=second,
-                                                  obj=scheduler.clock,
-                                                  attribute='t_')
         self.variables.add_attribute_variable('N', unit=Unit(1),
                                               dtype=np.int32,
                                               obj=self, attribute='_N')
@@ -201,7 +211,8 @@ class StateMonitor(Group, CodeRunner):
                                  unit=Unit(1), dtype=self.indices.dtype,
                                  constant=True, read_only=True)
         self.variables['_indices'].set_value(self.indices)
-
+        self.variables.create_clock_variables(self._clock,
+                                              prefix='_clock_')
         for varname in variables:
             var = source.variables[varname]
             if var.scalar and len(self.indices) > 1:

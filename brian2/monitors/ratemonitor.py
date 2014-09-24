@@ -1,6 +1,5 @@
 import numpy as np
 
-from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
 from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Unit, Quantity
@@ -23,6 +22,12 @@ class PopulationRateMonitor(Group, CodeRunner):
         ``source.name+'_ratemonitor_0'``, etc.
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
+
+    Notes
+    -----
+    Currently, this monitor can only monitor the instantaneous firing rates at
+    each time step of the source clock. Any binning/smoothing of the firing
+    rates has to be done manually afterwards.
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
@@ -32,11 +37,9 @@ class PopulationRateMonitor(Group, CodeRunner):
         #: The group we are recording from
         self.source = source
 
-        scheduler = Scheduler(clock=source.clock, when='end')
-
         self.codeobj_class = codeobj_class
-        CodeRunner.__init__(self, group=self, template='ratemonitor',
-                            when=scheduler, name=name)
+        CodeRunner.__init__(self, group=self, code='', template='ratemonitor',
+                            clock=source.clock, when='end', order=0, name=name)
 
         self.add_dependency(source)
 
@@ -47,8 +50,6 @@ class PopulationRateMonitor(Group, CodeRunner):
         self.variables.add_constant('_source_start', Unit(1), start)
         self.variables.add_constant('_source_stop', Unit(1), stop)
         self.variables.add_reference('_spikespace', source)
-        self.variables.add_reference('_clock_t', source, 't')
-        self.variables.add_reference('_clock_dt', source, 'dt')
         self.variables.add_dynamic_array('rate', size=0, unit=hertz,
                                          constant_size=False)
         self.variables.add_dynamic_array('t', size=0, unit=second,
@@ -56,7 +57,8 @@ class PopulationRateMonitor(Group, CodeRunner):
         self.variables.add_reference('_num_source_neurons', source, 'N')
         self.variables.add_attribute_variable('N', unit=Unit(1), obj=self,
                                               attribute='_N', dtype=np.int32)
-
+        self.variables.create_clock_variables(self._clock,
+                                              prefix='_clock_')
         self._enable_group_attributes()
 
     @property

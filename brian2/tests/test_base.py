@@ -20,9 +20,7 @@ def test_base():
     x.contained_objects.append(y)
     assert_equal(len(x.contained_objects), 1)
     assert x.contained_objects[0] is y
-    
-    assert x.clock is defaultclock
-    
+
     assert_equal(x.active, True)
     assert_equal(y.active, True)
     y.active = False
@@ -36,26 +34,6 @@ def test_base():
     assert_equal(y.active, False)
 
 @with_setup(teardown=restore_initial_state)
-def test_scheduler():
-    clock = Clock(dt=1*ms)
-    x = BrianObject(when=(clock, 'end', 2))
-    assert x.clock is clock
-    assert_equal(x.when, 'end')
-    assert_equal(x.order, 2)
-    x = BrianObject(when=(clock, 'end'))
-    assert x.clock is clock
-    assert_equal(x.when, 'end')
-    assert_equal(x.order, 0)
-    x = BrianObject(when=(clock, 3))
-    assert x.clock is clock
-    assert_equal(x.when, 'start')
-    assert_equal(x.order, 3)
-    x = BrianObject(when='end')
-    assert x.clock is defaultclock
-    assert_equal(x.when, 'end')
-    assert_equal(x.order, 0)
-
-@with_setup(teardown=restore_initial_state)
 def test_names():
     obj = BrianObject()
     obj2 = BrianObject()
@@ -67,5 +45,4 @@ def test_names():
 
 if __name__=='__main__':
     test_base()
-    test_scheduler()
     test_names()

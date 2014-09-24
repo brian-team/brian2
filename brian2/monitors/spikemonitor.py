@@ -1,6 +1,5 @@
 import numpy as np
 
-from brian2.core.scheduler import Scheduler
 from brian2.core.variables import Variables
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit, Quantity
@@ -20,9 +19,12 @@ class SpikeMonitor(Group, CodeRunner):
     record : bool
         Whether or not to record each spike in `i` and `t` (the `count` will
         always be recorded).
-    when : `Scheduler`, optional
+    when : str, optional
         When to record the spikes, by default uses the clock of the source
         and records spikes in the slot 'end'.
+    order : int, optional
+        The priority of of this group for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
     name : str, optional
         A unique name for the object, otherwise will use
         ``source.name+'_spikemonitor_0'``, etc.
@@ -31,22 +33,16 @@ class SpikeMonitor(Group, CodeRunner):
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
-    def __init__(self, source, record=True, when=None, name='spikemonitor*',
-                 codeobj_class=None):
+    def __init__(self, source, record=True, when='end', order=0,
+                 name='spikemonitor*', codeobj_class=None):
         self.record = bool(record)
         #: The source we are recording from
         self.source =source
 
-        # run by default on source clock at the end
-        scheduler = Scheduler(when)
-        if not scheduler.defined_clock:
-            scheduler.clock = source.clock
-        if not scheduler.defined_when:
-            scheduler.when = 'end'
-
         self.codeobj_class = codeobj_class
-        CodeRunner.__init__(self, group=self, template='spikemonitor',
-                            name=name, when=scheduler)
+        CodeRunner.__init__(self, group=self, code='', template='spikemonitor',
+                            name=name, clock=source.clock, when=when,
+                            order=order)
 
         self.add_dependency(source)
 
@@ -55,7 +51,6 @@ class SpikeMonitor(Group, CodeRunner):
         stop = getattr(source, 'stop', len(source))
 
         self.variables = Variables(self)
-        self.variables.add_clock_variables(scheduler.clock, prefix='_clock_')
         self.variables.add_reference('_spikespace', source)
         self.variables.add_dynamic_array('i', size=0, unit=Unit(1),
                                          dtype=np.int32, constant_size=False)
@@ -67,7 +62,8 @@ class SpikeMonitor(Group, CodeRunner):
         self.variables.add_constant('_source_stop', Unit(1), stop)
         self.variables.add_attribute_variable('N', unit=Unit(1), obj=self,
                                               attribute='_N', dtype=np.int32)
-
+        self.variables.create_clock_variables(self._clock,
+                                              prefix='_clock_')
         self._enable_group_attributes()
 
     @property

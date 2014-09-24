@@ -56,10 +56,12 @@ class StateUpdater(CodeRunner):
     '''
     def __init__(self, group, method):
         self.method_choice = method
-        
         CodeRunner.__init__(self, group,
                             'stateupdate',
-                            when=(group.clock, 'groups'),
+                            code='',  # will be set in update_abstract_code
+                            clock=group.clock,
+                            when='groups',
+                            order=group.order,
                             name=group.name + '_stateupdater*',
                             check_units=False)
 
@@ -150,7 +152,10 @@ class Thresholder(CodeRunner):
             needed_variables=['t', 'not_refractory', 'lastspike']
         CodeRunner.__init__(self, group,
                             'threshold',
-                            when=(group.clock, 'thresholds'),
+                            code='',  # will be set in update_abstract_code
+                            clock=group.clock,
+                            when='thresholds',
+                            order=group.order,
                             name=group.name+'_thresholder*',
                             needed_variables=needed_variables,
                             template_kwds=template_kwds)
@@ -198,7 +203,10 @@ class Resetter(CodeRunner):
     def __init__(self, group):
         CodeRunner.__init__(self, group,
                             'reset',
-                            when=(group.clock, 'resets'),
+                            code='',  # will be set in update_abstract_code
+                            clock=group.clock,
+                            when='resets',
+                            order=group.order,
                             name=group.name + '_resetter*',
                             override_conditional_write=['not_refractory'])
 
@@ -266,8 +274,15 @@ class NeuronGroup(Group, SpikeSource):
         setting `core.default_float_dtype` is used.
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
-    clock : Clock, optional
-        The update clock to be used, or defaultclock if not specified.
+    dt : `Quantity`, optional
+        The time step to be used for the simulation. Cannot be combined with
+        the `clock` argument.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the `defaultclock` will be used.
+    order : int, optional
+        The priority of of this group for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
     name : str, optional
         A unique name for the group, otherwise use ``neurongroup_0``, etc.
         
@@ -275,9 +290,10 @@ class NeuronGroup(Group, SpikeSource):
     -----
     `NeuronGroup` contains a `StateUpdater`, `Thresholder` and `Resetter`, and
     these are run at the 'groups', 'thresholds' and 'resets' slots (i.e. the
-    values of `Scheduler.when` take these values). The `Scheduler.order`
-    attribute is set to 0 initially, but this can be modified using the
-    attributes `state_updater`, `thresholder` and `resetter`.    
+    values of their `when` attribute take these values). The `order`
+    attribute will be passed down to the contained objects but can be set
+    individually by setting the `order` attribute of the `state_updater`,
+    `thresholder` and `resetter` attributes, respectively.
     '''
     add_to_magic_network = True
 
@@ -287,9 +303,13 @@ class NeuronGroup(Group, SpikeSource):
                  refractory=False,
                  namespace=None,
                  dtype=None,
-                 clock=None, name='neurongroup*',
+                 dt=None,
+                 clock=None,
+                 order=0,
+                 name='neurongroup*',
                  codeobj_class=None):
-        Group.__init__(self, when=clock, name=name)
+        Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
+                       name=name)
 
         self.codeobj_class = codeobj_class
 
@@ -540,7 +560,6 @@ class NeuronGroup(Group, SpikeSource):
         entries for the equation variables and some standard entries.
         '''
         self.variables = Variables(self)
-        self.variables.add_clock_variables(self.clock)
         self.variables.add_constant('N', Unit(1), self._N)
 
         # Standard variables always present
@@ -549,6 +568,8 @@ class NeuronGroup(Group, SpikeSource):
         # Add the special variable "i" which can be used to refer to the neuron index
         self.variables.add_arange('i', size=self._N, constant=True,
                                   read_only=True)
+        # Add the clock variables
+        self.variables.create_clock_variables(self._clock)
 
         for eq in self.equations.itervalues():
             dtype = get_dtype(eq, user_dtype)
@@ -605,7 +626,7 @@ class NeuronGroup(Group, SpikeSource):
         # Check units
         self.equations.check_units(self, run_namespace=run_namespace,
                                    level=level+1)
-    
+
     def _repr_html_(self):
         text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self._N)]
         text.append(r'<b>Model:</b><nr>')
