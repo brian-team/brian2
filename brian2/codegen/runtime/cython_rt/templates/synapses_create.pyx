@@ -10,8 +10,8 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, rand,
 {% block template_support_code %}
 
 cdef int _buffer_size = 1024
-cdef int[:] _prebuf = _numpy.zeros(_buffer_size, dtype=int)
-cdef int[:] _postbuf = _numpy.zeros(_buffer_size, dtype=int)
+cdef int[:] _prebuf = _numpy.zeros(_buffer_size, dtype=_numpy.int32)
+cdef int[:] _postbuf = _numpy.zeros(_buffer_size, dtype=_numpy.int32)
 cdef int _curbuf = 0
 
 cdef void _flush_buffer(buf, dynarr, int N):

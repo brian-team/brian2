@@ -7,7 +7,7 @@
     _vectorisation_idx = 1
 
     cdef int _num_elements = 0
-    cdef _numpy.ndarray[int, ndim=1, mode='c'] _elements = _numpy.zeros(N, dtype=int)
+    cdef _numpy.ndarray[int, ndim=1, mode='c'] _elements = _numpy.zeros(N, dtype=_numpy.int32)
     cdef int[:] _elements_view = _elements
     
     {{scalar_code|autoindent}}
