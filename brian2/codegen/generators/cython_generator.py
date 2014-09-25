@@ -121,41 +121,55 @@ class CythonCodeGenerator(CodeGenerator):
                 line = "cdef {dtype} {varname}".format(dtype=dtype,
                                                        varname=varname)
                 load_namespace.append(line)
+            elif isinstance(var, Constant):
+                dtype_name = unsafe_type(var.value)
+                line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
+                load_namespace.append(line)
             elif isinstance(var, Variable):
                 if var.dynamic:                
                     load_namespace.append('%s = _namespace["%s"]' % (self.get_array_name(var, False),
                                                                      self.get_array_name(var, False)))
-                
+
+                # This is the "true" array name, not the restricted pointer.
+                array_name = device.get_array_name(var)
+                pointer_name = self.get_array_name(var)
+                if pointer_name in handled_pointers:
+                    continue
+                if getattr(var, 'dimensions', 1) > 1:
+                    continue  # multidimensional (dynamic) arrays have to be treated differently
+                newlines = [
+                    "cdef _numpy.ndarray[{dtype_str_t}, ndim=1, mode='c'] _buf_{array_name} = _numpy.ascontiguousarray(_namespace['{array_name}'], dtype=_numpy.{dtype_str})",
+                    "cdef {dtype} * {array_name} = <{dtype} *> _buf_{array_name}.data",]
+
+                # This is the "true" array name, not the restricted pointer.
+                array_name = device.get_array_name(var)
+                pointer_name = self.get_array_name(var)
+                if pointer_name in handled_pointers:
+                    continue
+                if getattr(var, 'dimensions', 1) > 1:
+                    continue  # multidimensional (dynamic) arrays have to be treated differently
+                newlines = [
+                    "cdef _numpy.ndarray[{dtype_str_t}, ndim=1, mode='c'] _buf_{array_name} = _numpy.ascontiguousarray(_namespace['{array_name}'], dtype=_numpy.{dtype_str})",
+                    "cdef {dtype} * {array_name} = <{dtype} *> _buf_{array_name}.data"]
+
                 if not var.scalar:
-                    # This is the "true" array name, not the restricted pointer.
-                    array_name = device.get_array_name(var)
-                    pointer_name = self.get_array_name(var)
-                    if pointer_name in handled_pointers:
-                        continue
-                    if getattr(var, 'dimensions', 1) > 1:
-                        continue  # multidimensional (dynamic) arrays have to be treated differently
-                    newlines = [
-                        "cdef _numpy.ndarray[{dtype_str_t}, ndim=1, mode='c'] _buf_{array_name} = _numpy.ascontiguousarray(_namespace['{array_name}'], dtype=_numpy.{dtype_str})",
-                        "cdef {dtype} * {array_name} = <{dtype} *> _buf_{array_name}.data",
-                        "cdef int _num{array_name} = len(_namespace['{array_name}'])",
-                        "cdef {dtype} {varname}",
-                        ]
-                    for line in newlines:
-                        if hasattr(var.dtype, '__name__'):
-                            vdtn = var.dtype.__name__
-                        else:
-                            vdtn = var.dtype.name
-                        line = line.format(dtype=weave_data_type(var.dtype),
-                                           pointer_name=pointer_name, array_name=array_name,
-                                           varname=varname, dtype_str=vdtn,
-                                           dtype_str_t=('_numpy.'+vdtn+'_t' if vdtn!='bool' else '_numpy.uint8_t, cast=True'),
-                                           )
-                        load_namespace.append(line)
-                    handled_pointers.add(pointer_name)
-                elif var.constant:
-                    dtype_name = unsafe_type(var.value)
-                    line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
+                    newlines += ["cdef int _num{array_name} = len(_namespace['{array_name}'])"]
+
+                newlines += ["cdef {dtype} {varname}"]
+
+                for line in newlines:
+                    if hasattr(var.dtype, '__name__'):
+                        vdtn = var.dtype.__name__
+                    else:
+                        vdtn = var.dtype.name
+                    line = line.format(dtype=weave_data_type(var.dtype),
+                                       pointer_name=pointer_name, array_name=array_name,
+                                       varname=varname, dtype_str=vdtn,
+                                       dtype_str_t=('_numpy.'+vdtn+'_t' if vdtn!='bool' else '_numpy.uint8_t, cast=True'),
+                                       )
                     load_namespace.append(line)
+                handled_pointers.add(pointer_name)
+
             elif isinstance(var, Function):
                 func_impl = var.implementations[self.codeobj_class].get_code(self.owner)
                 # Implementation can be None if the function is already
