@@ -33,5 +33,4 @@
         _record_data_{{varname}}[_new_len-1, _i] = _to_record_{{varname}}
     {% endfor %}
 
-
 {% endblock %}

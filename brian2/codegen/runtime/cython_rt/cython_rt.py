@@ -11,8 +11,8 @@ from brian2.core.functions import (DEFAULT_FUNCTIONS, FunctionImplementation,
 from ...codeobject import CodeObject
 from ..numpy_rt import NumpyCodeObject
 from ...templates import Templater
-from ...generators.cython_generator import (CythonCodeGenerator, cpp_dtype,
-                                            numpy_dtype)
+from ...generators.cython_generator import (CythonCodeGenerator, get_cpp_dtype,
+                                            get_numpy_dtype)
 from ...targets import codegen_targets
 from .extension_manager import cython_extension_manager
 
@@ -23,8 +23,8 @@ class CythonCodeObject(NumpyCodeObject):
     '''
     '''
     templater = Templater('brian2.codegen.runtime.cython_rt',
-                          env_globals={'cpp_dtype': cpp_dtype,
-                                       'numpy_dtype': numpy_dtype,
+                          env_globals={'cpp_dtype': get_cpp_dtype,
+                                       'numpy_dtype': get_numpy_dtype,
                                        'dtype': numpy.dtype})
     generator_class = CythonCodeGenerator
     class_name = 'cython'
