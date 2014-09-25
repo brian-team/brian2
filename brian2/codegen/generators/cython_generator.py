@@ -10,18 +10,29 @@ from brian2.core.variables import (ArrayVariable, Constant, AttributeVariable,
                                    get_dtype_str, Variable, Subexpression)
 
 from .base import CodeGenerator
-from .cpp_generator import c_data_type
 
-from Cython.Build.Inline import unsafe_type, safe_type
 
 __all__ = ['CythonCodeGenerator']
 
 
-def cython_data_type(dtype):
-    d = get_dtype_str(dtype)
-    if d=='bool':
-        d = 'uint8'
-    return d
+data_type_conversion_table = [
+    # canonical         C++            Numpy
+    ('float32',        'float',       'float32'),
+    ('float64',        'double',      'float64'),
+    ('int32',          'int32_t',     'int32'),
+    ('int64',          'int64_t',     'int64'),
+    ('bool',           'char',        'uint8'),
+    ('uint8',          'char',        'uint8'),
+    ]
+
+cpp_dtype = dict((canonical, cpp) for canonical, cpp, np in data_type_conversion_table)
+numpy_dtype = dict((canonical, np) for canonical, cpp, np in data_type_conversion_table)
+
+def get_cpp_dtype(obj):
+    return cpp_dtype[get_dtype_str(obj)]
+
+def get_numpy_dtype(obj):
+    return numpy_dtype[get_dtype_str(obj)]
 
 
 class CythonNodeRenderer(NodeRenderer):
@@ -95,7 +106,6 @@ class CythonCodeGenerator(CodeGenerator):
 
     def translate_statement_sequence(self, statements):
         from brian2.devices.device import get_device
-        from brian2.codegen.runtime.weave_rt.weave_rt import weave_data_type
         device = get_device()
         # load variables from namespace
         load_namespace = []
@@ -104,25 +114,29 @@ class CythonCodeGenerator(CodeGenerator):
         for varname, var in self.variables.iteritems():
             if isinstance(var, AuxiliaryVariable):
                 line = "cdef {dtype} {varname}".format(
-                                dtype=weave_data_type(var.dtype),
+                                dtype=get_cpp_dtype(var.dtype),
                                 varname=varname)
                 load_namespace.append(line)
             elif isinstance(var, AttributeVariable):
                 val = getattr(var.obj, var.attribute)
-                dtype_name = unsafe_type(val)
-                dtype_name = dtype_name.replace('numpy.', '_numpy.')
-                line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
+                if isinstance(val, np.ndarray) and val.ndim:
+                    line = "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] {varname} = _namespace['{varname}']".format(
+                        numpy_dtype=get_numpy_dtype(val), varname=varname,
+                        cpp_dtype=get_cpp_dtype(val))
+                else:
+                    line = "cdef {cpp_dtype} {varname} = _namespace['{varname}']".format(
+                        cpp_dtype=get_cpp_dtype(val), varname=varname)
                 load_namespace.append(line)
-                if isinstance(val, np.ndarray):
+                if isinstance(val, np.ndarray) and val.ndim:
                     line = "cdef int _num{varname} = len(_namespace['{varname}'])".format(varname=varname)
                     load_namespace.append(line)
             elif isinstance(var, Subexpression):
-                dtype = weave_data_type(var.dtype)
+                dtype = get_cpp_dtype(var.dtype)
                 line = "cdef {dtype} {varname}".format(dtype=dtype,
                                                        varname=varname)
                 load_namespace.append(line)
             elif isinstance(var, Constant):
-                dtype_name = unsafe_type(var.value)
+                dtype_name = get_cpp_dtype(var.value)
                 line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
                 load_namespace.append(line)
             elif isinstance(var, Variable):
@@ -138,34 +152,20 @@ class CythonCodeGenerator(CodeGenerator):
                 if getattr(var, 'dimensions', 1) > 1:
                     continue  # multidimensional (dynamic) arrays have to be treated differently
                 newlines = [
-                    "cdef _numpy.ndarray[{dtype_str_t}, ndim=1, mode='c'] _buf_{array_name} = _numpy.ascontiguousarray(_namespace['{array_name}'], dtype=_numpy.{dtype_str})",
-                    "cdef {dtype} * {array_name} = <{dtype} *> _buf_{array_name}.data",]
-
-                # This is the "true" array name, not the restricted pointer.
-                array_name = device.get_array_name(var)
-                pointer_name = self.get_array_name(var)
-                if pointer_name in handled_pointers:
-                    continue
-                if getattr(var, 'dimensions', 1) > 1:
-                    continue  # multidimensional (dynamic) arrays have to be treated differently
-                newlines = [
-                    "cdef _numpy.ndarray[{dtype_str_t}, ndim=1, mode='c'] _buf_{array_name} = _numpy.ascontiguousarray(_namespace['{array_name}'], dtype=_numpy.{dtype_str})",
-                    "cdef {dtype} * {array_name} = <{dtype} *> _buf_{array_name}.data"]
+                    "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{array_name} = _numpy.ascontiguousarray(_namespace['{array_name}'], dtype=_numpy.{numpy_dtype})",
+                    "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *> _buf_{array_name}.data",]
 
                 if not var.scalar:
                     newlines += ["cdef int _num{array_name} = len(_namespace['{array_name}'])"]
 
-                newlines += ["cdef {dtype} {varname}"]
+                newlines += ["cdef {cpp_dtype} {varname}"]
 
                 for line in newlines:
-                    if hasattr(var.dtype, '__name__'):
-                        vdtn = var.dtype.__name__
-                    else:
-                        vdtn = var.dtype.name
-                    line = line.format(dtype=weave_data_type(var.dtype),
-                                       pointer_name=pointer_name, array_name=array_name,
-                                       varname=varname, dtype_str=vdtn,
-                                       dtype_str_t=('_numpy.'+vdtn+'_t' if vdtn!='bool' else '_numpy.uint8_t, cast=True'),
+                    line = line.format(cpp_dtype=get_cpp_dtype(var.dtype),
+                                       numpy_dtype=get_numpy_dtype(var.dtype),
+                                       pointer_name=pointer_name,
+                                       array_name=array_name,
+                                       varname=varname,
                                        )
                     load_namespace.append(line)
                 handled_pointers.add(pointer_name)
