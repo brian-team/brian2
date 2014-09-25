@@ -44,3 +44,13 @@ C++ source code and modifying it, or by inserting code directly into the main lo
 
 After a simulation has been run (using the ``run_project`` keyword in the `Device.build` call), state variables and
 monitored variables can be accessed using standard syntax, with a few exceptions (e.g. string expressions for indexing).
+
+3. Multi-threading with OpenMP
+
+When using the C++ standalone mode, you have the opportunity to turn on multi-threading, if your C++ compiler is compatible with
+OpenMP. By default, this option is turned off and only one thread is used. However, by changing the preferences of the codegen.cpp_standalone
+object, you can turn it on. To do so, just add the following line in your python script:
+
+    brian_prefs.codegen.cpp_standalone.openmp_threads = XX
+
+XX should be a positive value representing the number of threads that will be used during the simulation. Note that the speedup will strongly depend on the network, so there is no guarantee that the speedup will be linear as a function of the number of threads. However, this is working fine for networks with not too small timestep (dt > 0.1ms), and results do not depend on the number of threads used in the simulation.
