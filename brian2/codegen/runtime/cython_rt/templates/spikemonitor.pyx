@@ -5,10 +5,6 @@
                         _source_start, _source_stop} #}
     cdef int _num_spikes = {{_spikespace}}[_num{{_spikespace}}-1]
     cdef int _start_idx, _end_idx, _curlen, _newlen
-#    cdef _numpy.ndarray[_numpy.float64_t, ndim=1, mode='c'] _t_data_buf
-#    cdef _numpy.ndarray[_numpy.int32_t, ndim=1, mode='c'] _i_data_buf
-#    cdef double* _t_data
-#    cdef int* _i_data
     if _num_spikes > 0:
         # For subgroups, we do not want to record all spikes
         # We assume that spikes are ordered
@@ -35,20 +31,10 @@
             # Resize the arrays
             _owner.resize(_newlen)
             # Get the potentially newly created underlying data arrays
-            # TODO: how to get the right datatype here?
-#            print {{_dynamic_t}}.__class__
-#            print "{{_dynamic_t}}"
-#            _t_data_buf = _numpy.ascontiguousarray({{_dynamic_t}}.data, dtype=_numpy.float64)
-#            _i_data_buf = _numpy.ascontiguousarray({{_dynamic_i}}.data, dtype=_numpy.int32)
-            #_t_data_buf = {{_dynamic_t}}.data
-            #_i_data_buf = {{_dynamic_i}}.data
-#            _t_data = <double *>(_t_data_buf.data)
-#            _i_data = <int *>(_i_data_buf.data)
             # Copy the values across
+            # TODO: improve efficiency here
             for _j in range(_start_idx, _end_idx):
                 _idx = {{_spikespace}}[_j]
-#                _t_data[_curlen + _j - _start_idx] = _clock_t
-#                _i_data[_curlen + _j - _start_idx] = _idx - _source_start
                 {{_dynamic_t}}[_curlen + _j - _start_idx] = _clock_t
                 {{_dynamic_i}}[_curlen + _j - _start_idx] = _idx - _source_start
                 {{_count}}[_idx - _source_start] += 1

@@ -5,13 +5,13 @@
 {% block maincode %}
 
     {# This is copied from the weave equivalent, seems to work but confusing #}
-    {%set c_type = c_data_type(variables['_variable'].dtype) %}
-    {%set numpy_dtype = dtype(variables['_variable'].dtype).char %}
+    {%set c_type = cpp_dtype(variables['_variable'].dtype) %}
+    {%set np_type = numpy_dtype(variables['_variable'].dtype) %}
 
     _vectorisation_idx = 1
 
     cdef int _num_elements = 0
-    cdef _numpy.ndarray[{{c_type}}, ndim=1, mode='c'] _elements = _numpy.zeros(N, dtype='{{numpy_dtype}}')
+    cdef _numpy.ndarray[{{c_type}}, ndim=1, mode='c'] _elements = _numpy.zeros(N, dtype={{np_type}})
     cdef {{c_type}}[:] _elements_view = _elements
     
     {{scalar_code|autoindent}}

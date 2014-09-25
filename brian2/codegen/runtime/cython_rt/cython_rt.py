@@ -5,15 +5,16 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,
                                    Subexpression)
 from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.core.functions import DEFAULT_FUNCTIONS, FunctionImplementation, Function
+from brian2.core.functions import (DEFAULT_FUNCTIONS, FunctionImplementation,
+                                   Function)
 
 from ...codeobject import CodeObject
 from ..numpy_rt import NumpyCodeObject
 from ...templates import Templater
-from ...generators.cython_generator import CythonCodeGenerator
+from ...generators.cython_generator import (CythonCodeGenerator, cpp_dtype,
+                                            numpy_dtype)
 from ...targets import codegen_targets
 from .extension_manager import cython_extension_manager
-from ..weave_rt.weave_rt import weave_data_type
 
 __all__ = ['CythonCodeObject']
 
@@ -22,7 +23,8 @@ class CythonCodeObject(NumpyCodeObject):
     '''
     '''
     templater = Templater('brian2.codegen.runtime.cython_rt',
-                          env_globals={'c_data_type': weave_data_type,
+                          env_globals={'cpp_dtype': cpp_dtype,
+                                       'numpy_dtype': numpy_dtype,
                                        'dtype': numpy.dtype})
     generator_class = CythonCodeGenerator
     class_name = 'cython'

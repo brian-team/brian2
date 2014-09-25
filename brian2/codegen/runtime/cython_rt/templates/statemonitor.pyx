@@ -21,7 +21,7 @@
     cdef int _i
 
     {% for varname, var in _recorded_variables.items() %}
-    {%set c_type = c_data_type(variables[varname].dtype) %}
+    {% set c_type = cpp_dtype(variables[varname].dtype) %}
     cdef {{c_type}}[:, :] _record_data_{{varname}} = {{get_array_name(var, access_data=False)}}.data
     for _i in range(_num{{_indices}}):
         # vector code
