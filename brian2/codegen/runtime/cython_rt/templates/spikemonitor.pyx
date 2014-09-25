@@ -4,7 +4,9 @@
     {# USES_VARIABLES { t, i, _clock_t, _spikespace, _count,
                         _source_start, _source_stop} #}
     cdef int _num_spikes = {{_spikespace}}[_num{{_spikespace}}-1]
-    cdef int _start_idx, _end_idx, _curlen, _newlen
+    cdef int _start_idx, _end_idx, _curlen, _newlen, _j
+    cdef double[:] _t_view
+    cdef int32_t[:] _i_view
     if _num_spikes > 0:
         # For subgroups, we do not want to record all spikes
         # We assume that spikes are ordered
@@ -31,11 +33,13 @@
             # Resize the arrays
             _owner.resize(_newlen)
             # Get the potentially newly created underlying data arrays
+            _t_view = {{_dynamic_t}}.data
+            _i_view = {{_dynamic_i}}.data
             # Copy the values across
-            # TODO: improve efficiency here
             for _j in range(_start_idx, _end_idx):
                 _idx = {{_spikespace}}[_j]
-                {{_dynamic_t}}[_curlen + _j - _start_idx] = _clock_t
-                {{_dynamic_i}}[_curlen + _j - _start_idx] = _idx - _source_start
+                _t_view[_curlen + _j - _start_idx] = _clock_t
+                _i_view[_curlen + _j - _start_idx] = _idx - _source_start
                 {{_count}}[_idx - _source_start] += 1
+                
 {% endblock %}
