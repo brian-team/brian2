@@ -121,6 +121,10 @@ def test_user_defined_function():
 
 
 def test_cpp_weave_user_defined_function_convenience_wrappers():
+    
+    if brian_prefs.codegen.target != 'weave':
+        raise SkipTest('weave-only test')
+
     for mf in [make_cpp_function, make_weave_function]:
         @mf("""
             inline double usersin(double x)
@@ -401,15 +405,22 @@ def test_function_implementation_container():
 
 
 if __name__ == '__main__':
-    test_constants_sympy()
-    test_constants_values()
-    test_math_functions()
-    test_user_defined_function()
-    test_user_defined_function_units()
-    test_cpp_weave_user_defined_function_convenience_wrappers()
-    test_simple_user_defined_function()
-    test_manual_user_defined_function()
-    test_manual_user_defined_function_weave()
-    test_user_defined_function_discarding_units()
-    test_user_defined_function_discarding_units_2()
-    test_function_implementation_container()
+    for f in [
+            test_constants_sympy,
+            test_constants_values,
+            test_math_functions,
+            test_user_defined_function,
+            test_user_defined_function_units,
+            test_cpp_weave_user_defined_function_convenience_wrappers,
+            test_simple_user_defined_function,
+            test_manual_user_defined_function,
+            test_manual_user_defined_function_weave,
+            test_user_defined_function_discarding_units,
+            test_user_defined_function_discarding_units_2,
+            test_function_implementation_container,
+            ]:
+        try:
+            f()
+        except SkipTest as e:
+            print 'Skipping test', f.__name__, e
+        
