@@ -69,11 +69,12 @@ Brian1 returned ``x1`` for ``0<=t<0.5*my_dt``,
                     threshold='v>1', reset='v=0')
     G.v = '0.5*rand()'  # different initial values for the neurons
 
-Abstract code statements
-------------------------
-An alternative to specifying a stimulus in advance is to run a series of
-abstract code statements at certain points during a simulation. This can be
-achieved with a *custom operation*, one can think of these statements as
+Custom operations
+-----------------
+An alternative to specifying a stimulus in advance is to run explicitly
+specified code at certain points during a simulation. This can be
+achieved with a :meth:`~brian2.groups.group.Group.custom_operation`.
+One can think of these statements as
 equivalent to reset statements but executed unconditionally (i.e. for all
 neurons) and possibly on a different clock as the rest of the group. The
 following code changes the stimulus strength of half of the neurons (randomly
@@ -85,14 +86,13 @@ expressions to have the values only updated for the chosen subset of neurons
                           I : 1  # one stimulus per neuron''')
   stim_updater = G.custom_operation('''change = int(rand() < 0.5)
                                        I = change*(rand()*2) + (1-change)*I''',
-                                    when=Scheduler(clock=Clock(dt=50*ms),
-                                                   when='start'))
+                                    dt=50*ms)
 
 
 Arbitrary Python code (network operations)
 ------------------------------------------
 If none of the above techniques is general enough to fulfill the requirements
-of a simulation, Brian allows to write a `NetworkOperation`, an arbitrary
+of a simulation, Brian allows you to write a `NetworkOperation`, an arbitrary
 Python function that is executed every time step (possible on a different clock
 than the rest of the simulation). This function can do arbitrary operations,
 use conditional statements etc. and it will be executed as it is (i.e. as pure
@@ -106,7 +106,7 @@ neuron every 50 ms::
     G = NeuronGroup(10, '''dv/dt = (-v + active*I)/(10*ms) : 1
                            I = sin(2*pi*100*Hz*t) : 1 (shared) #single input
                            active : 1  # will be set in the network function''')
-    @network_operation(when=Clock(dt=50*ms))
+    @network_operation(dt=50*ms)
     def update_active():
         print defaultclock.t
         index = np.random.randint(10)  # index for the active neuron

@@ -6,4 +6,5 @@ Advanced
    
    namespaces
    refractoriness
+   scheduling
    codegen

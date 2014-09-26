@@ -29,7 +29,8 @@ still possible).
 More importantly, the behaviour of networks is different:
 
 * Either you create a `Network` of objects you want to simulate explicitly,
-  or you use the 'magic' system which now simulates all objects.
+  or you use the 'magic' system which now simulates all named objects in
+  the context where you run it.
 * The magic network will now raise errors if you try to do something where
   it cannot accurately guess what you mean. In these situations, we recommend
   using an explicit `Network`.
@@ -117,6 +118,8 @@ Miscellaneous changes
   :doc:`../user/brian1hears_bridge`)
 * `Equations` objects no longer save their namespace, they now behave just
   like strings.
+* There is no longer any ``reinit()`` mechanism, this is now handled by
+  `store` and `restore`.
 
 Changes in the internal processing
 ----------------------------------
