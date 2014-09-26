@@ -152,7 +152,7 @@ class CythonCodeGenerator(CodeGenerator):
                 if getattr(var, 'dimensions', 1) > 1:
                     continue  # multidimensional (dynamic) arrays have to be treated differently
                 newlines = [
-                    "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{array_name} = _numpy.ascontiguousarray(_namespace['{array_name}'], dtype=_numpy.{numpy_dtype})",
+                    "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{array_name} = _namespace['{array_name}'].view(dtype=_numpy.{numpy_dtype})",
                     "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *> _buf_{array_name}.data",]
 
                 if not var.scalar:
