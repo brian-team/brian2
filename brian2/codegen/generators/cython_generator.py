@@ -94,7 +94,8 @@ class CythonCodeGenerator(CodeGenerator):
                 condvar = conditional_write_vars[stmt.var]
                 lines.append('if %s:' % condvar)
                 lines.append('    '+line)
-            lines.append(line)
+            else:
+                lines.append(line)
         # write arrays
         for varname in write:
             index_var = self.variable_indices[varname]
