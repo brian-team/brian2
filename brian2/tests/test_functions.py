@@ -98,6 +98,10 @@ def test_user_defined_function():
                 """,
             'hashdefine_code':'',
             },
+        'cython': '''
+            cdef double usersin(double x):
+                return sin(x)
+            '''
         })
     @check_units(x=1, result=1)
     def usersin(x):

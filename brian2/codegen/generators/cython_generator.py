@@ -2,7 +2,7 @@ import itertools
 
 import numpy as np
 
-from brian2.utils.stringtools import word_substitute
+from brian2.utils.stringtools import word_substitute, deindent
 from brian2.parsing.rendering import NodeRenderer
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function, SymbolicConstant
 from brian2.core.variables import (ArrayVariable, Constant, AttributeVariable,
@@ -177,7 +177,7 @@ class CythonCodeGenerator(CodeGenerator):
                 if func_impl is not None:
                     if isinstance(func_impl, basestring):
                         # Function is provided as Cython code
-                        support_code.append(func_impl)
+                        support_code.append(deindent(func_impl))
                     elif callable(func_impl):
                         self.variables[varname] = func_impl
                         line = '%s = _namespace["%s"]' % (varname, varname)
