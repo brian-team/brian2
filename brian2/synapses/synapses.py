@@ -646,12 +646,13 @@ class Synapses(Group):
         if not isinstance(connect, (bool, basestring)):
             raise TypeError(('"connect" keyword has to be a boolean value or a '
                              'string, is type %s instead.' % type(connect)))
-        self._initial_connect = connect
-        if not connect is False:
-            self.connect(connect, level=1)
 
         # Activate name attribute access
         self._enable_group_attributes()
+
+        self._initial_connect = connect
+        if not connect is False:
+            self.connect(connect, level=1)
 
     def __len__(self):
         return len(self.variables['_synaptic_pre'].get_value())
