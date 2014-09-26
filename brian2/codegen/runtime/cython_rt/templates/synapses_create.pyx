@@ -8,7 +8,6 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, rand,
 ######################## TEMPLATE SUPPORT CODE ##############################
 
 {% block template_support_code %}
-
 cdef int _buffer_size = 1024
 cdef int[:] _prebuf = _numpy.zeros(_buffer_size, dtype=_numpy.int32)
 cdef int[:] _postbuf = _numpy.zeros(_buffer_size, dtype=_numpy.int32)
@@ -37,11 +36,11 @@ cdef void _flush_buffer(buf, dynarr, int N):
     # scalar code
     _vectorisation_idx = 1
     {{scalar_code|autoindent}}
-    
+
     for _i in range(_num{{_all_pre}}):
         for _j in range(_num{{_all_post}}):
             _vectorisation_idx = _j
-    
+
             {# The abstract code consists of the following lines (the first two lines
             are there to properly support subgroups as sources/targets):
             _pre_idx = _all_pre
@@ -74,9 +73,10 @@ cdef void _flush_buffer(buf, dynarr, int N):
     # Final buffer flush
     _flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf)
     _flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf)
+    _curbuf = 0  # reset the buffer for the next run
 
     newsize = len({{_dynamic__synaptic_pre}})
     # now we need to resize all registered variables (via Python)
     _owner._resize(newsize)
-    
+
 {% endblock %}
