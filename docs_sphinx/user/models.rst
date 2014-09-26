@@ -34,8 +34,8 @@ be used::
 Sometimes it can also be useful to introduce shared variables or subexpressions,
 i.e. variables that have a common value for all neurons. In contrast to
 external variables (such as ``Cm`` above), such variables can change during a
-run, e.g. by using a `CodeRunner`. This can be for example used for an external
-stimulus that changes in the course of a run::
+run, e.g. by using a :meth:`~brian2.groups.group.Group.custom_operation`. This can be for example
+used for an external stimulus that changes in the course of a run::
 
     G = NeuronGroup(10, '''shared_input : volt (shared)
                            dv/dt = (-v + shared_input)/tau : volt

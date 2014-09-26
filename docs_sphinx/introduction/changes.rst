@@ -115,6 +115,8 @@ Miscellaneous changes
 * "Brian Hears" is being rewritten, but there is a bridge to the version
   included in Brian 1 until the new version is written (see
   :doc:`../user/brian1hears_bridge`)
+* `Equations` objects no longer save their namespace, they now behave just
+  like strings.
 
 Changes in the internal processing
 ----------------------------------

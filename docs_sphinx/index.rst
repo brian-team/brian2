@@ -9,6 +9,7 @@ Contents:
 
    introduction/index
    user/index
+   advanced/index
    Reference documentation <reference/brian2>
    developer/index
    notes
