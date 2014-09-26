@@ -15,6 +15,9 @@
         
         {{vector_code['condition']|autoindent}}
         if _cond:
+            # this looks silly but is necessary to avoid an error if there is
+            # no vector code (setting a scalar variable)
+            pass
             {{vector_code['statement']|autoindent}}
 
 {% endblock %}

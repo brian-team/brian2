@@ -11,7 +11,7 @@
     _vectorisation_idx = 1
 
     cdef int _num_elements = 0
-    cdef _numpy.ndarray[{{c_type}}, ndim=1, mode='c'] _elements = _numpy.zeros(N, dtype={{np_type}})
+    cdef _numpy.ndarray[{{c_type}}, ndim=1, mode='c'] _elements = _numpy.zeros(N, dtype=_numpy.{{np_type}})
     cdef {{c_type}}[:] _elements_view = _elements
     
     {{scalar_code|autoindent}}

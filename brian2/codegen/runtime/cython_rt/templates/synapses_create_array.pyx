@@ -6,17 +6,16 @@
                      N_incoming, N_outgoing }
     #}
     
-    cdef int _old_num_synapses = {{_dynamic__synaptic_pre}}.size()
-    cdef int _new_num_synapses = _old_num_synapses + _numsources
-    
-    _newlen_tuple[0] = _new_num_synapses;
+    cdef int _old_num_synapses = len({{_dynamic__synaptic_pre}})
+    cdef int _new_num_synapses = _old_num_synapses + _num{{sources}}
+
     {{_dynamic__synaptic_pre}}.resize(_new_num_synapses)
     {{_dynamic__synaptic_post}}.resize(_new_num_synapses)
     # Get the potentially newly created underlying data arrays
     cdef int32_t[:] _synaptic_pre_data = {{_dynamic__synaptic_pre}}.data
     cdef int32_t[:] _synaptic_post_data = {{_dynamic__synaptic_post}}.data 
     
-    for _idx in range(_numsources):
+    for _idx in range(_num{{sources}}):
         # After this code has been executed, the arrays _real_sources and
         # _real_variables contain the final indices. Having any code here it all is
         # only necessary for supporting subgroups
