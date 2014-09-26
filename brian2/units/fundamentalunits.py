@@ -1974,6 +1974,18 @@ class Unit(Quantity):
     def __ipow__(self, other, modulo=None):
         raise TypeError('Units cannot be modified in-place')
 
+    def __eq__(self, other):
+        if isinstance(other, Unit):
+            return other.dim == self.dim
+        else:
+            return Quantity.__eq__(self, other)
+
+    def __neq__(self, other):
+        if isinstance(other, Unit):
+            return other.dim != self.dim
+        else:
+            return Quantity.__neq__(self, other)
+
 
 class UnitRegistry(object):
     """
@@ -2014,6 +2026,13 @@ class UnitRegistry(object):
             self.units_for_dimensions[dim] = [u]
         else:
             self.units_for_dimensions[dim].append(u)
+
+    def remove(self, u):
+        """Remove a unit from the registry
+        """
+        self.units.remove(u)
+        dim = u.dim
+        self.units_for_dimensions[dim].remove(u)
 
     def __getitem__(self, x):
         """Returns the best unit for quantity x
@@ -2058,8 +2077,24 @@ def register_new_unit(u):
     >>> register_new_unit(pfarad / mmetre**2)
     >>> 2.0*farad/metre**2
     2000000.0 * pfarad / mmetre ** 2
+    >>> unregister_unit(pfarad / mmetre**2)
+    >>> 2.0*farad/metre**2
+    2.0 * metre ** -4 * kilogram ** -1 * second ** 4 * amp ** 2
     """
     user_unit_register.add(u)
+
+
+def unregister_unit(u):
+    """Remove a previously registered unit for automatic displaying of
+    quantities
+
+    Parameters
+    ----------
+    u : `Unit`
+        The unit that should be unregistered.
+    """
+    user_unit_register.remove(u)
+
 
 #: `UnitRegistry` containing all the standard units (metre, kilogram, um2...)
 standard_unit_register = UnitRegistry()
