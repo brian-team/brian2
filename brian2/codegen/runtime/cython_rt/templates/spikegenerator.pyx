@@ -20,8 +20,6 @@ cdef double _current_time = 0.0
     # TODO: We don't deal with more than one spike per neuron yet
     cdef int _cpp_numspikes = 0
 
-    # TODO: improve efficiency, this is O(N) whereas it should be O(1)
-    # note that the weave version is O(log N)
     cdef char found = 0
     for _idx in range(_start_idx, _num{{spike_time}}):
         if {{spike_time}}[_idx]>t-dt:
