@@ -1,3 +1,5 @@
+import uuid
+
 import sympy
 import numpy
 from numpy.testing.utils import assert_raises
@@ -13,6 +15,9 @@ class SimpleGroup(Group):
     def __init__(self, variables, namespace=None):
         self.variables = variables
         self.namespace = namespace
+        # We use a unique name to get repeated warnings
+        Group.__init__(self, name='simplegroup_' +
+                                  str(uuid.uuid4()).replace('-','_'))
 
 def _assert_one_warning(l):
     assert len(l) == 1, "expected one warning got %d" % len(l)
@@ -107,12 +112,12 @@ def test_warning():
     with catch_logs() as l:
         resolved = group.resolve('exp')
         assert resolved == DEFAULT_FUNCTIONS['exp']
-        assert len(l) == 1
+        assert len(l) == 1, 'got warnings: %s' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
     with catch_logs() as l:
         resolved = group.resolve('cm')
         assert resolved.get_value_with_unit() == brian_cm
-        assert len(l) == 1
+        assert len(l) == 1, 'got warnings: %s' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
 
 

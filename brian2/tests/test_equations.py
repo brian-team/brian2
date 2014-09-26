@@ -105,7 +105,7 @@ def test_identifier_checks():
             raise ValueError('I do not like this name')
 
     Equations.check_identifier('gaba_123')
-    old_checks = Equations.identifier_checks
+    old_checks = set(Equations.identifier_checks)
     Equations.register_identifier_check(disallow_gaba_123)
     assert_raises(ValueError, lambda: Equations.check_identifier('gaba_123'))
     Equations.identifier_checks = old_checks

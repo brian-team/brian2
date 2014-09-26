@@ -1,3 +1,5 @@
+import uuid
+
 import sympy
 import numpy as np
 from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
@@ -426,7 +428,9 @@ def test_namespace_errors():
 
 def test_namespace_warnings():
     G = NeuronGroup(1, '''x : 1
-                          y : 1''')
+                          y : 1''',
+                    # unique names to get warnings every time:
+                    name='neurongroup_'+str(uuid.uuid4()).replace('-', '_'))
     # conflicting variable in namespace
     y = 5
     with catch_logs() as l:
