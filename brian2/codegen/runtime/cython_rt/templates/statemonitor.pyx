@@ -22,7 +22,8 @@
 
     {% for varname, var in _recorded_variables.items() %}
     {% set c_type = cpp_dtype(variables[varname].dtype) %}
-    cdef {{c_type}}[:, :] _record_data_{{varname}} = {{get_array_name(var, access_data=False)}}.data
+    {% set np_type = numpy_dtype(variables[varname].dtype) %}
+    cdef {{c_type}}[:, :] _record_data_{{varname}} = {{get_array_name(var, access_data=False)}}.data.view(_numpy.{{np_type}})
     for _i in range(_num{{_indices}}):
         # vector code
         _idx = {{_indices}}[_i]
