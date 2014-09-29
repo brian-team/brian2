@@ -2,6 +2,7 @@ import os
 import tempfile
 
 from nose import with_setup
+from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 import numpy as np
 
@@ -109,6 +110,7 @@ def restore_device():
     set_device('runtime')
     restore_initial_state()
 
+@attr('standalone')
 @with_setup(teardown=restore_device)
 def test_connection_array_standalone():
     set_device('cpp_standalone')

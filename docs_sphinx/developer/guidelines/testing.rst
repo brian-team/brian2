@@ -20,6 +20,22 @@ interactive Python session::
 	>>> import brian2
 	>>> brian2.test() 
 
+By default, this runs the test suite for all available (runtime) code generation
+targets. If you only want to test a specific target, provide it as an argument::
+
+    >>> brian2.test('numpy')
+
+If you want to test several targets, use a list of targets::
+
+    >>> brian2.test(['weave', 'cython'])
+
+To run the C++ standalone tests, you have to set the ``test_standalone``
+argument. If you provide an empty argument for the runtime codegeneration
+targets, you will only run the standalone tests::
+
+    >>> brian2.test([], test_standalone=True)
+
+
 Checking the code coverage
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 To check the code coverage under Linux (with coverage and nosetests in your
@@ -109,6 +125,19 @@ date!
 .. _`doctest documentation`: http://docs.python.org/2/library/doctest.html
 .. _`Sphinx's doctest extension`: http://sphinx-doc.org/ext/doctest.html
 
+C++ Standalone tests
+~~~~~~~~~~~~~~~~~~~~
+All tests that use the C++ standalone mode have to be marked with an attribute
+so that they are not run as part of the standard runtime testing. To do this,
+use the ``attrib`` decorator from nose::
+
+    from nose.plugins.attrib import attr
+
+    @attr('standalone')
+    test_for_standalone():
+        ...
+
+
 Correctness tests
 ~~~~~~~~~~~~~~~~~
 [These do not exist yet for brian2]. Unit tests test a specific function or
@@ -119,4 +148,4 @@ the spiking activity of a complex network), a useful check is also whether the
 result is *consistent*. For example, the spiking activity should be the same
 when using code generation for Python or C++. Or, a network could be pickled
 before running and then the result of the run could be compared to a second run
-that starts from the unpickled network.  
+that starts from the unpickled network.

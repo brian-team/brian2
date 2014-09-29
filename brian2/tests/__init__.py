@@ -4,7 +4,7 @@ from StringIO import StringIO
 
 from brian2.core.preferences import brian_prefs
 
-def run(codegen_targets=None):
+def run(codegen_targets=None, test_standalone=False):
     '''
     Run brian's test suite. Needs an installation of the nose testing tool.
 
@@ -18,6 +18,8 @@ def run(codegen_targets=None):
         ``['numpy', 'weave']`` to test. The whole test suite will be repeatedly
         run with `codegen.target` set to the respective value. If not
         specified, all available code generation targets will be tested.
+    test_standalone : bool, optional
+        Whether to run tests for the C++ standalone mode. Defaults to ``False``.
     '''
     try:
         import nose
@@ -41,8 +43,13 @@ def run(codegen_targets=None):
 
     dirname = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     # We write to stderr since nose does all of its output on stderr as well
-    sys.stderr.write('Running tests in "%s" for targets %s\n' % (dirname,
-                                                                 ', '.join(codegen_targets)))
+    sys.stderr.write('Running tests in "%s" ' % dirname)
+    if codegen_targets:
+        sys.stderr.write('for targets %s\n' % (', '.join(codegen_targets)))
+    else:
+        sys.stderr.write('\n')
+    if test_standalone:
+        sys.stderr.write('Testing standalone \n.')
 
     # Store the currently set preferences and reset to default preferences
     stored_prefs = brian_prefs.as_file
@@ -56,11 +63,27 @@ def run(codegen_targets=None):
             # explicitly ignore the brian2.hears file for testing, otherwise the
             # doctest search will import it, failing on Python 3
             success.append(nose.run(argv=['', dirname,
+                                          '-c=',  # no config file loading
                                           '-I', '^hears\.py$',
                                           '-I', '^\.',
                                           '-I', '^_',
-                                          '--with-doctest', '--nologcapture', '--exe']))
+                                          '--with-doctest',
+                                          # Do not run standalone tests
+                                          "-a", "!standalone",
+                                          '--nologcapture',
+                                          '--exe']))
+        if test_standalone:
+            success.append(nose.run(argv=['', dirname,
+                                          '-c=',  # no config file loading
+                                          '-I', '^hears\.py$',
+                                          '-I', '^\.',
+                                          '-I', '^_',
+                                          # Only run standalone tests
+                                          '-a', 'standalone',
+                                          '--nologcapture',
+                                          '--exe']))
         return all(success)
+
     finally:
         # Restore the user preferences
         brian_prefs.read_preference_file(StringIO(stored_prefs))

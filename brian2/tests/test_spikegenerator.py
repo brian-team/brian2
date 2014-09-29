@@ -5,6 +5,7 @@ import os
 import tempfile
 
 from nose import with_setup
+from nose.plugins.attrib import attr
 import numpy as np
 from numpy.testing.utils import assert_equal
 
@@ -68,6 +69,7 @@ def test_spikegenerator_basic():
             recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
             assert generator_spikes == recorded_spikes
 
+@attr('standalone')
 @with_setup(teardown=restore_device)
 def test_spikegenerator_standalone():
     '''
