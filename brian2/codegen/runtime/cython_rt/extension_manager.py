@@ -79,6 +79,16 @@ class CythonExtensionManager(object):
             #with io.open(pyx_file, 'w') as f:#, encoding='utf-8') as f:
             #    f.write(code)
             open(pyx_file, 'w').write(code)
+
+            # A little hack to suppress a warning about the
+            # `-Wstrict-prototypes' option which is incorrectly added by
+            # distutils (it does not apply to C++)
+            from distutils.sysconfig import get_config_vars
+
+            (opt,) = get_config_vars('OPT')
+            os.environ['OPT'] = " ".join(flag for flag in opt.split()
+                                         if flag != '-Wstrict-prototypes')
+
             extension = Extension(
                 name=module_name,
                 sources=[pyx_file],
