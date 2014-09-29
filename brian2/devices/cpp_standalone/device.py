@@ -413,6 +413,13 @@ class CPPStandaloneDevice(Device):
         for net in networks:
             synapses.extend(s for s in net.objects if isinstance(s, Synapses))
 
+        # Not sure what the best place is to call Network.after_run -- at the
+        # moment the only important thing it does is to clear the objects stored
+        # in magic_network. If this is not done, this might lead to problems
+        # for repeated runs of standalone (e.g. in the test suite).
+        for net in networks:
+            net.after_run()
+
         arr_tmp = CPPStandaloneCodeObject.templater.objects(
                         None, None,
                         array_specs=self.arrays,

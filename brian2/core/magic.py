@@ -1,6 +1,7 @@
 import weakref
 import inspect
 import itertools
+import gc
 
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second
@@ -220,6 +221,7 @@ class MagicNetwork(Network):
 
     def after_run(self):
         self.objects[:] = []
+        gc.collect()  # Make sure that all unused objects are cleared
 
     def run(self, duration, report=None, report_period=10*second,
             namespace=None, level=0):
