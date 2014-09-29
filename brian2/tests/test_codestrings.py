@@ -1,3 +1,4 @@
+from nose import SkipTest
 import numpy as np
 from numpy.testing import assert_raises, assert_equal
 import sympy
@@ -6,6 +7,7 @@ from brian2 import Expression, Statements
 from brian2 import Hz, ms, mV, volt, second, get_dimensions, DimensionMismatchError
 
 from brian2.utils.logger import catch_logs
+from brian2.core.preferences import brian_prefs
 
 import brian2
 
@@ -22,85 +24,19 @@ def sympy_equals(expr1, expr2):
 def test_expr_creation():
     '''
     Test creating expressions.
-    '''    
+    '''
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     expr = Expression('v > 5 * mV')
     assert expr.code == 'v > 5 * mV'
     assert ('v' in expr.identifiers and 'mV' in expr.identifiers and
             not 'V' in expr.identifiers)
     assert_raises(SyntaxError, lambda: Expression('v 5 * mV'))
-    
-
-def test_expr_units():
-    '''
-    Test getting/checking the units of an expression.
-    '''
-    tau = 5 * ms
-#    expr = Expression('-v / tau', namespace={'tau': tau})
-#    expr.check_units(volt / second, {'v': volt})
-#    assert_raises(DimensionMismatchError, lambda: expr.check_units(volt / second,
-#                                                                   {'v': second}))
-#    assert_raises(DimensionMismatchError, lambda: expr.check_units(volt,
-#                                                                   {'v': volt}))
-#    assert expr.get_dimensions({'v': volt}) == get_dimensions(volt / second)
-
-
-#def test_resolution_warnings():
-#    '''
-#    Test that certain calls to resolve generate a warning.
-#    '''
-#    I = 3 * mV
-#    tau = 5 * ms
-#    another_I = 5 * mV
-#    # Only specifying part of the namespace
-#    expr = Expression('-(v + I) / tau', namespace={'I' : another_I},
-#                      exhaustive=False)
-#    
-#    # make sure this triggers a warning (the 'I' in the namespace shadows the
-#    # I variable defined above
-#    with catch_logs() as logs:
-#        namespace = expr.resolve(['v'])
-#        assert len(logs) == 1
-#        assert logs[0][0] == 'WARNING' 
-#        assert logs[0][1].endswith('resolution_conflict')
-#        assert namespace['I'] == another_I and namespace['tau'] == tau
-#    
-#    freq = 300 * Hz
-#    t = 5 * second
-#    # This expression treats t as a special variable and is not actually using
-#    # the t above!
-#    expr = Expression('sin(2 * 3.141 * freq * t)')
-#    with catch_logs() as logs:
-#        namespace = expr.resolve([])
-#        assert len(logs) == 1
-#        assert logs[0][0] == 'WARNING' 
-#        assert logs[0][1].endswith('resolution_conflict')            
-#        assert namespace['freq'] == freq and not 't' in namespace
-#
-#    I = 3 * mV
-#    tau = 5 * ms    
-#    expr = Expression('-(v + I)/ tau')
-#    # If we claim that I is an internal variable, it shadows the variable
-#    # defined in the local namespace -- this should trigger a warning
-#    with catch_logs() as logs:
-#        namespace = expr.resolve(['v', 'I'])
-#        assert len(logs) == 1
-#        assert logs[0][0] == 'WARNING' 
-#        assert logs[0][1].endswith('resolution_conflict')
-#        assert namespace['tau'] == tau and not 'I' in namespace
-#    
-#    # A more extreme example: I is defined above, but also in the namespace and
-#    # is claimed to be an internal variable
-#    expr = Expression('-(v + I)/ tau', namespace={'I': 5 * mV},
-#                      exhaustive=False)
-#    with catch_logs() as logs:
-#        namespace = expr.resolve(['v', 'I'])
-#        assert len(logs) == 1
-#        assert logs[0][0] == 'WARNING' 
-#        assert logs[0][1].endswith('resolution_conflict')
-#        assert namespace['tau'] == tau and not 'I' in namespace
 
 
 def test_split_stochastic():
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     tau = 5 * ms
     expr = Expression('(-v + I) / tau')
     # No stochastic part
@@ -131,6 +67,8 @@ def test_str_repr():
     string of the form "Expression(...)" or "Statements(...)" that can be
     evaluated.
     '''
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     expr_string = '(v - I)/ tau'
     expr = Expression(expr_string)
     
@@ -147,7 +85,7 @@ def test_str_repr():
     assert repr(statement) == "Statements('v += w')"
 
 if __name__ == '__main__':
+    brian_prefs.codegen.target = 'numpy'  # otherwise not all tests are run
     test_expr_creation()
-    test_expr_units()
     test_split_stochastic()
     test_str_repr()

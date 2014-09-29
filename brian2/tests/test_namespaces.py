@@ -3,7 +3,9 @@ import uuid
 import sympy
 import numpy
 from numpy.testing.utils import assert_raises
+from nose import SkipTest
 
+from brian2.core.preferences import brian_prefs
 from brian2.groups.group import Group
 from brian2.units import second, volt
 from brian2.units.stdunits import ms, Hz, mV
@@ -28,6 +30,8 @@ def test_default_content():
     '''
     Test that the default namespace contains standard units and functions.
     '''
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     group = Group()
     # Units
     assert group.resolve('second', None).get_value_with_unit() == second
@@ -52,7 +56,8 @@ def test_default_content():
 
 def test_explicit_namespace():
     ''' Test resolution with an explicitly provided namespace '''
-
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     group = SimpleGroup(namespace={'variable': 42}, variables={})
 
     # Explicitly provided
@@ -74,6 +79,8 @@ def test_explicit_namespace():
 
 
 def test_errors():
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     # No explicit namespace
     group = SimpleGroup(namespace=None, variables={})
     assert_raises(KeyError, lambda: group.resolve('nonexisting_variable'))
@@ -84,6 +91,8 @@ def test_errors():
 
 
 def test_resolution():
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     # implicit namespace
     tau = 10*ms
     group = SimpleGroup(namespace=None, variables={})
@@ -103,6 +112,8 @@ def test_resolution():
 
 
 def test_warning():
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     from brian2.core.functions import DEFAULT_FUNCTIONS
     from brian2.units.stdunits import cm as brian_cm
     # Name in external namespace clashes with unit/function name
@@ -122,6 +133,7 @@ def test_warning():
 
 
 if __name__ == '__main__':
+    brian_prefs.codegen.target = 'numpy'
     test_default_content()
     test_explicit_namespace()
     test_errors()
