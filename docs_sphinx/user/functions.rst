@@ -70,7 +70,7 @@ of the code. For better performance, Brian can alter the namespace of the
 function when it is executed as part of the simulation and remove all the
 units, then pass values without units to the function. In the above example,
 this means making the symbol ``nA`` refer to ``1e-9`` and ``Hz`` to ``1``. To
-use this mechanism, add the decorator `make_functions` with the
+use this mechanism, add the decorator `make_function` with the
 ``discard_units`` keyword::
 
     @make_function(discard_units=True)
@@ -99,7 +99,7 @@ the latter if weave-specific code is necessary). An implementation for
 the C++ target could look like this::
 
     @make_cpp_function('''
-         double piecewise_linear(I) {
+         double piecewise_linear(double I) {
             if (I < 1e-9)
                 return 0;
             if (I > 3e-9)
@@ -114,6 +114,21 @@ the C++ target could look like this::
 Alternatively, `FunctionImplementation` objects can be added to the `Function`
 object. For a more complex example that also makes the function contribute
 additional values to the namespace of a `CodeObject` see `TimedArray`.
+
+The same sort of approach as for C++ works for Cython using the
+`make_cython_function` decorator. The example above would look like this::
+
+    @make_cython_function('''
+        cdef double piecewise_linear(double I):
+            if I<1e-9:
+                return 0.0
+            elif I>3e-9:
+                return 100.0
+            return (I/1e-9-1)*50
+        ''')
+    @check_units(I=amp, result=Hz)
+    def piecewise_linear(I):
+        return np.clip((I-1*nA) * 50*Hz/nA, 0*Hz, 100*Hz)
 
 Arrays vs. scalar values in user-provided functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
