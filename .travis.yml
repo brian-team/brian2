@@ -7,15 +7,15 @@ python:
 matrix:
   include:
     - python: "2.6"
-      standalone: no
+      env: STANDALONE=no
     - python: "2.7"
-      standalone: no
+      env: STANDALONE=no
     - python: "3.3"
-      standalone: no
+      env: STANDALONE=no
     - python: "3.4"
-      standalone: no
-    -python: "2.7"
-      standalone: yes
+      env: STANDALONE=no
+    - python: "2.7"
+      env: STANDALONE=yes
 
 # Use miniconda to install binary versions of numpy etc. from continuum
 # analytic's repository. Follows an approach described by Dan Blanchard:
@@ -38,7 +38,7 @@ install:
 # command to run tests (make sure to not run it from the source directory)
 script:
 - export SRCDIR=$(pwd)
-- if [[ $standalone == 'yes' ]]; then SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests_standalone.py; else SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests.py; fi
+- if [[ $STANDALONE == 'yes' ]]; then SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests_standalone.py; else SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests.py; fi
 - cd ~;coverage run --rcfile=$SRCDIR/.coveragerc $SCRIPTFILE
 # We only report coverage for one Python version
 after_success: if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then cp .coverage $SRCDIR; cd $SRCDIR; coveralls; fi
