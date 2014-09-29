@@ -1,3 +1,6 @@
+import os
+import sys
+
 import cython
 import numpy
 
@@ -19,6 +22,27 @@ from .extension_manager import cython_extension_manager
 __all__ = ['CythonCodeObject']
 
 
+# Preferences
+brian_prefs.register_preferences(
+    'codegen.runtime.cython',
+    'Cython runtime codegen preferences',
+    extra_compile_args = BrianPreference(
+        default=['-w', '-O3'],
+        docs='''
+        Extra compile arguments to pass to compiler
+        '''
+        ),
+    include_dirs = BrianPreference(
+        default=[],
+        docs='''
+        Include directories to use. Note that ``$prefix/include`` will be
+        appended to the end automatically, where ``$prefix`` is Python's
+        site-specific directory prefix as returned by `sys.prefix`.
+        '''
+        )
+    )
+
+
 class CythonCodeObject(NumpyCodeObject):
     '''
     '''
@@ -31,9 +55,14 @@ class CythonCodeObject(NumpyCodeObject):
 
     def __init__(self, owner, code, variables, name='cython_code_object*'):
         super(CythonCodeObject, self).__init__(owner, code, variables, name=name)
+        self.extra_compile_args = brian_prefs['codegen.runtime.weave.extra_compile_args']
+        self.include_dirs = list(brian_prefs['codegen.runtime.weave.include_dirs'])
+        self.include_dirs += [os.path.join(sys.prefix, 'include')]
 
     def compile(self):
-        self.compiled_code = cython_extension_manager.create_extension(self.code)
+        self.compiled_code = cython_extension_manager.create_extension(self.code,
+                                                                       compile_args=self.extra_compile_args,
+                                                                       include=self.include_dirs)
         
     def run(self):
         return self.compiled_code.main(self.namespace)
