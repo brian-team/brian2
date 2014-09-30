@@ -48,10 +48,16 @@ class CythonExtensionManager(object):
             # key which is hashed to determine the module name.
             key += time.time(),            
 
+        if key in self._code_cache:
+            return self._code_cache[key]
+
         if name is not None:
             module_name = name#py3compat.unicode_to_str(args.name)
         else:
             module_name = "_cython_magic_" + hashlib.md5(str(key).encode('utf-8')).hexdigest()
+
+
+
         module_path = os.path.join(lib_dir, module_name + self.so_ext)
         
         have_module = os.path.isfile(module_path)
@@ -114,9 +120,9 @@ class CythonExtensionManager(object):
             build_extension.build_temp = os.path.dirname(pyx_file)
             build_extension.build_lib = lib_dir
             build_extension.run()
-            self._code_cache[key] = module_name
 
         module = imp.load_dynamic(module_name, module_path)
+        self._code_cache[key] = module
         return module
         #self._import_all(module)
 
