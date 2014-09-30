@@ -1,6 +1,8 @@
 Changes from Brian 1
 ====================
 
+For a high level overview of what has changed, see :ref:`for_brian1_users`. 
+
 Major interface changes
 -----------------------
 
