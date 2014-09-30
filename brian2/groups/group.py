@@ -237,11 +237,13 @@ class IndexWrapper(object):
             check_code_units(abstract_code, self.group,
                              additional_variables=variables,
                              level=1)
+            from brian2.devices.device import get_default_codeobject_class
             codeobj = create_runner_codeobj(self.group,
                                             abstract_code,
                                             'group_get_indices',
                                             additional_variables=variables,
-                                            level=1
+                                            level=1,
+                                            codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
                                             )
             return codeobj()
         else:

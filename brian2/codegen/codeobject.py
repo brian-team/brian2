@@ -146,6 +146,7 @@ def create_runner_codeobj(group, code, template_name,
                           run_namespace=None,
                           template_kwds=None,
                           override_conditional_write=None,
+                          codeobj_class=None
                           ):
     ''' Create a `CodeObject` for the execution of code in the context of a
     `Group`.
@@ -185,6 +186,9 @@ def create_runner_codeobj(group, code, template_name,
     override_conditional_write: list of str, optional
         A list of variable names which are used as conditions (e.g. for
         refractoriness) which should be ignored.
+    codeobj_class : class, optional
+        The `CodeObject` class to run code with. If not specified, defaults to
+        the `group`'s ``codeobj_class`` attribute.
     '''
 
     if name is None:
@@ -218,7 +222,10 @@ def create_runner_codeobj(group, code, template_name,
                 error_msg = _error_msg(c, name)
                 raise ValueError(error_msg + str(ex))
 
-    codeobj_class = device.code_object_class(group.codeobj_class)
+    if codeobj_class is None:
+        codeobj_class = device.code_object_class(group.codeobj_class)
+    else:
+        codeobj_class = device.code_object_class(codeobj_class)
     template = getattr(codeobj_class.templater, template_name)
 
     all_variables = dict(group.variables)
@@ -296,6 +303,6 @@ def create_runner_codeobj(group, code, template_name,
                               template_name=template_name,
                               variable_indices=all_variable_indices,
                               template_kwds=template_kwds,
-                              codeobj_class=group.codeobj_class,
+                              codeobj_class=codeobj_class,
                               override_conditional_write=override_conditional_write,
                               )

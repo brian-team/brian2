@@ -314,8 +314,7 @@ class CPPStandaloneDevice(Device):
                                   'standalone scripts.')
 
     def code_object_class(self, codeobj_class=None):
-        if codeobj_class is not None:
-            raise ValueError("Cannot specify codeobj_class for C++ standalone device.")
+        # Ignore the requested codeobj_class
         return CPPStandaloneCodeObject
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
