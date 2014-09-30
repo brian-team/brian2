@@ -7,6 +7,7 @@ This section has additional information on details not covered in the
 .. toctree::
    :maxdepth: 2
    
+   preferences
    namespaces
    refractoriness
    scheduling
