@@ -2139,15 +2139,13 @@ def get_unit(x, *regs):
 
     Returns
     -------
-    q : `Quantity`
-        The equivalent Unit for the quantity `x` or a Quantity with the same
-        dimensions and value 1.
+    q : `Unit`
+        The equivalent `Unit` for the quantity `x`.
     '''
     for u in all_registered_units(*regs):
         if np.asarray(u) == 1 and have_same_dimensions(u, x):
             return u
-    return Quantity.with_dimensions(1, get_dimensions(x))
-
+    return Unit(x, dim=x.dim)
 
 def get_unit_fast(x):
     '''

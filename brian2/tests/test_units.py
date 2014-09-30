@@ -920,8 +920,18 @@ def test_get_unit():
     values = [3 * mV, np.array([1, 2]) * mV,
               np.arange(12).reshape(4, 3) * mV]
     for value in values:
-        assert get_unit(value) == volt
+        unit = get_unit(value)
+        assert isinstance(unit, Unit)
+        assert unit == volt
         assert_quantity(get_unit_fast(value), 1, volt)
+
+    values = [3 * amp/metre**2, np.array([1, 2]) * amp/metre**2,
+              np.arange(12).reshape(4, 3) * amp/metre**2]
+    for value in values:
+        unit = get_unit(value)
+        assert isinstance(unit, Unit)
+        assert unit == amp/metre**2
+        assert_quantity(get_unit_fast(value), 1, amp/metre**2)
 
 
 @attr('codegen-independent')
