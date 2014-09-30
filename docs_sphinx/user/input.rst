@@ -29,6 +29,23 @@ Example use::
     G = NeuronGroup(100, 'dv/dt = -v / (10*ms) : 1')
     S = Synapses(P, G, pre='v+=0.1', connect='i==j')
 
+Spike generation
+----------------
+You can also generate an explicit list of spikes given via arrays using
+`SpikeGeneratorGroup`. This object behaves just like a `NeuronGroup` in that
+you can connect it to other groups via a `Synapses` object, but you specify
+three bits of information: ``N`` the number of neurons in the group; 
+``indices`` an array of the indices of the neurons that will fire; and
+``times`` an array of the same length as ``indices`` with the times that the
+neurons will fire a spike. The ``indices`` and ``times`` arrays are matching,
+so for example ``indices=[0,2,1]`` and ``times=[1*ms,2*ms,3*ms]`` means that
+neuron 0 fires at time 1 ms, neuron 2 fires at 2 ms and neuron 1 fires at 3 ms.
+Example use::
+
+    indices = array([0, 2, 1])
+    times = array([1, 2, 3])*ms
+    G = SpikeGeneratorGroup(3, indices, times)
+
 Explicit equations
 ------------------
 If the input can be explicitly expressed as a function of time (e.g. a
