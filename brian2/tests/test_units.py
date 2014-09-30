@@ -143,7 +143,7 @@ def test_display():
     '''
     Test displaying a quantity in different units
     '''
-    assert_equal(in_unit(3 * volt, mvolt), '3000.0 mV')
+    assert_equal(in_unit(3 * volt, mvolt), '3000. mV')
     assert_equal(in_unit(10 * mV, ohm * amp), '0.01 ohm A')
     assert_raises(DimensionMismatchError, lambda: in_unit(10 * nS, ohm))
     
@@ -193,7 +193,8 @@ def test_str_repr():
                      metre * second**-1, 10 * metre * second**-1,
                      array([1, 2, 3]) * kmetre / second,
                      np.ones(3) * nS / cm**2,
-                     Unit(1, dim=get_or_create_dimension(length=5, time=2))]
+                     Unit(1, dim=get_or_create_dimension(length=5, time=2)),
+                     8000*umetre**3, [0.0001, 10000] * umetre**3]
     
     unitless = [second/second, 5 * second/second, Unit(1)]
     
