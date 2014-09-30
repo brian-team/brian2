@@ -10,6 +10,7 @@ User's guide
    refractoriness
    synapses
    input
+   recording
    running
    functions
    devices
