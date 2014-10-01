@@ -64,6 +64,7 @@ class Templater(object):
 class CodeObjectTemplate(object):
     def __init__(self, template, template_source):
         self.template = template
+        self.template_source = template_source
         #: The set of variables in this template
         self.variables = set([])
         #: The indices over which the template iterates completely

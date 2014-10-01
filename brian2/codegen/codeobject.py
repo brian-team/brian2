@@ -37,7 +37,8 @@ class CodeObject(Nameable):
     #: A short name for this type of `CodeObject`
     class_name = None
 
-    def __init__(self, owner, code, variables, name='codeobject*'):
+    def __init__(self, owner, code, variables, template_name,
+                 template_source, name='codeobject*'):
         Nameable.__init__(self, name=name)
         try:    
             owner = weakref.proxy(owner)
@@ -46,6 +47,8 @@ class CodeObject(Nameable):
         self.owner = owner
         self.code = code
         self.variables = variables
+        self.template_name = template_name
+        self.template_source = template_source
 
     def update_namespace(self):
         '''
