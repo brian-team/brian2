@@ -188,13 +188,12 @@ def test_openmp_consistency(with_output=False):
         results[n_threads]['v'] = v_mon.v
         results[n_threads]['s'] = spike_mon.num_spikes
         results[n_threads]['r'] = rate_mon.rate[:]
-        print results[n_threads]
 
     for n_threads in [1, 2]:
-        assert (results[n_threads]['w'] == results[0]['w']).all()
-        assert (results[n_threads]['v'] == results[0]['v']).all()
-        assert (results[n_threads]['r'] == results[0]['r']).all()
-        assert (results[n_threads]['s'] == results[0]['s'])
+        assert_allclose(results[n_threads]['w'], results[0]['w'])
+        assert_allclose(results[n_threads]['v'], results[0]['v'])
+        assert_allclose(results[n_threads]['r'], results[0]['r'])
+        assert_allclose(results[n_threads]['s'], results[0]['s'])
 
 
 if __name__=='__main__':
