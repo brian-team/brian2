@@ -14,6 +14,7 @@ interest to others wishing to better understand how Brian works internally.
    variables_indices
    preferences
    functions
+   codegen
 
 To be moved, removed or rewritten:
    
@@ -22,5 +23,5 @@ To be moved, removed or rewritten:
 
    overview
    state_update
-   codegen
+   oldcodegen
    
