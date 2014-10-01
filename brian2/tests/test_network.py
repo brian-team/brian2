@@ -8,10 +8,10 @@ from nose import with_setup
 
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
-                    restore_initial_state, MagicError, clear, Synapses,
+                    restore_initial_state, MagicError, Synapses,
                     NeuronGroup, StateMonitor, SpikeMonitor,
                     PopulationRateMonitor, MagicNetwork, magic_network,
-                    PoissonGroup, Hz, collect)
+                    PoissonGroup, Hz, collect, store, restore)
 from brian2.utils.logger import catch_logs
 
 def test_incorrect_network_use():
@@ -66,8 +66,8 @@ def test_network_single_object():
 @with_setup(teardown=restore_initial_state)
 def test_network_two_objects():
     # Check that a network with two objects and the same clock function correctly
-    x = Counter(when=5)
-    y = Counter(when=6)
+    x = Counter(order=5)
+    y = Counter(order=6)
     net = Network()
     net.add([x, [y]]) # check that a funky way of adding objects work correctly
     assert_equal(net.objects[0].order, 5)
@@ -89,10 +89,8 @@ class NameLister(BrianObject):
 @with_setup(teardown=restore_initial_state)
 def test_network_different_clocks():
     # Check that a network with two different clocks functions correctly
-    clock1 = Clock(dt=1*ms)
-    clock3 = Clock(dt=3*ms)
-    x = NameLister(name='x', when=(clock1, 0))
-    y = NameLister(name='y', when=(clock3, 1))
+    x = NameLister(name='x', dt=1*ms, order=0)
+    y = NameLister(name='y', dt=3*ms, order=1)
     net = Network(x, y)
     net.run(10*ms)
     assert_equal(''.join(updates), 'xyxxxyxxxyxxxy')
@@ -121,20 +119,6 @@ class Preparer(BrianObject):
     def after_run(self):
         self.did_post_run = True        
 
-@with_setup(teardown=restore_initial_state)
-def test_network_reinit_pre_post_run():
-    # Check that reinit and before_run and after_run work
-    x = Preparer()
-    net = Network(x)
-    assert_equal(x.did_reinit, False)
-    assert_equal(x.did_pre_run, False)
-    assert_equal(x.did_post_run, False)
-    net.run(1*ms)
-    assert_equal(x.did_reinit, False)
-    assert_equal(x.did_pre_run, True)
-    assert_equal(x.did_post_run, True)
-    net.reinit()
-    assert_equal(x.did_reinit, True)
 
 @with_setup(teardown=restore_initial_state)
 def test_magic_network():
@@ -169,9 +153,6 @@ def test_network_stop():
     net.run(10*ms)
     assert_equal(defaultclock.t, 1*ms)
     
-    del net
-    defaultclock.t = 0*second
-    
     x = Stopper(10, stop)
     net = Network(x)
     net.run(10*ms)
@@ -183,11 +164,11 @@ def test_network_operations():
     seq = []
     def f1():
         seq.append('a')
-    op1 = NetworkOperation(f1, when=('start', 1))
+    op1 = NetworkOperation(f1, when='start', order=1)
     @network_operation
     def f2():
         seq.append('b')
-    @network_operation(when=('end', 1))
+    @network_operation(when='end', order=1)
     def f3():
         seq.append('c')
     run(1*ms)
@@ -206,63 +187,63 @@ def test_network_active_flag():
 @with_setup(teardown=restore_initial_state)
 def test_network_t():
     # test that Network.t works as expected
-    c1 = Clock(dt=1*ms)
-    c2 = Clock(dt=2*ms)
-    x = Counter(when=c1)
-    y = Counter(when=c2)
+    x = Counter(dt=1*ms)
+    y = Counter(dt=2*ms)
     net = Network(x, y)
     net.run(4*ms)
-    assert_equal(c1.t, 4*ms)
-    assert_equal(c2.t, 4*ms)
-    assert_equal(net.t, 4*ms)
+    # assert_equal(net.t, 4*ms)
     net.run(1*ms)
-    assert_equal(c1.t, 5*ms)
-    assert_equal(c2.t, 6*ms)
-    assert_equal(net.t, 5*ms)
+    # assert_equal(net.t, 5*ms)
     assert_equal(x.count, 5)
     assert_equal(y.count, 3)
     net.run(0.5*ms) # should only update x
-    assert_equal(c1.t, 6*ms)
-    assert_equal(c2.t, 6*ms)
-    assert_equal(net.t, 5.5*ms)
+    # assert_equal(net.t, 5.5*ms)
     assert_equal(x.count, 6)
     assert_equal(y.count, 3)
     net.run(0.5*ms) # shouldn't do anything
-    assert_equal(c1.t, 6*ms)
-    assert_equal(c2.t, 6*ms)
-    assert_equal(net.t, 6*ms)
+    # assert_equal(net.t, 6*ms)
     assert_equal(x.count, 6)
     assert_equal(y.count, 3)
     net.run(0.5*ms) # should update x and y
-    assert_equal(c1.t, 7*ms)
-    assert_equal(c2.t, 8*ms)
-    assert_equal(net.t, 6.5*ms)
+    # assert_equal(net.t, 6.5*ms)
     assert_equal(x.count, 7)
     assert_equal(y.count, 4)
     
-    del c1, c2, x, y, net
+    del x, y, net
 
-    # now test with magic run    
-    c1 = Clock(dt=1*ms)
-    c2 = Clock(dt=2*ms)
-    x = Counter(when=c1)
-    y = Counter(when=c2)
+    # now test with magic run
+    x = Counter(dt=1*ms)
+    y = Counter(dt=2*ms)
     run(4*ms)
-    assert_equal(c1.t, 4*ms)
-    assert_equal(c2.t, 4*ms)
     assert_equal(x.count, 4)
     assert_equal(y.count, 2)
     run(4*ms)
-    assert_equal(c1.t, 8*ms)
-    assert_equal(c2.t, 8*ms)
     assert_equal(x.count, 8)
     assert_equal(y.count, 4)
     run(1*ms)
-    assert_equal(c1.t, 9*ms)
-    assert_equal(c2.t, 10*ms)
     assert_equal(x.count, 9)
     assert_equal(y.count, 5)
-    
+
+@with_setup(teardown=restore_initial_state)
+def test_incorrect_dt_defaultclock():
+    defaultclock.dt = 0.5*ms
+    G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
+    net = Network(G)
+    net.run(0.5*ms)
+    defaultclock.dt = 1*ms
+    assert_raises(ValueError, lambda: net.run(0*ms))
+
+
+@with_setup(teardown=restore_initial_state)
+def test_incorrect_dt_custom_clock():
+    clock = Clock(dt=0.5*ms)
+    G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1', clock=clock)
+    net = Network(G)
+    net.run(0.5*ms)
+    clock.dt = 1*ms
+    assert_raises(ValueError, lambda: net.run(0*ms))
+
+
 @with_setup(teardown=restore_initial_state)
 def test_network_remove():
     x = Counter()
@@ -282,18 +263,6 @@ def test_network_remove():
     net.run(1*ms)
     assert_equal(x.count, 10)
     assert_equal(y.count, 0)
-
-@with_setup(teardown=restore_initial_state)
-def test_network_copy():
-    x = Counter()
-    net = Network(x)
-    net2 = Network()
-    for obj in net.objects:
-        net2.add(obj)
-    net2.run(1*ms)
-    assert_equal(x.count, 10)
-    net.run(1*ms)
-    assert_equal(x.count, 20)
 
 class NoninvalidatingCounter(Counter):
     add_to_magic_network = True
@@ -330,13 +299,23 @@ def test_invalid_magic_network():
     run(1*ms)
     assert_equal(x.count, 10)
     assert_equal(y.count, 10) 
-    del x
+
+@with_setup(teardown=restore_initial_state)
+def test_multiple_networks_invalid():
+    x = Counter()
+    net = Network(x)
+    net.run(1*ms)
     try:
         run(1*ms)
-        raise AssertionError('Expected a MagicError')
-    except MagicError:
+        raise AssertionError('Expected a RuntimeError')
+    except RuntimeError:
         pass  # this is expected
 
+    try:
+        net2 = Network(x)
+        raise AssertionError('Expected a RuntimeError')
+    except RuntimeError:
+        pass  # this is expected
 
 @with_setup(teardown=restore_initial_state)
 def test_magic_weak_reference():
@@ -559,30 +538,186 @@ def test_progress_report_incorrect():
     assert_raises(TypeError, lambda: net.run(1*ms, report=object()))
 
 
+def test_store_restore():
+    source = NeuronGroup(10, '''dv/dt = rates : 1
+                                rates : Hz''', threshold='v>1', reset='v=0')
+    source.rates = 'i*100*Hz'
+    target = NeuronGroup(10, 'v:1')
+    synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='i==j')
+    synapses.w = 'i*1.0'
+    synapses.delay = 'i*ms'
+    state_mon = StateMonitor(target, 'v', record=True)
+    spike_mon = SpikeMonitor(source)
+    net = Network(source, target, synapses, state_mon, spike_mon)
+    net.store()  # default time slot
+    net.run(10*ms)
+    net.store('second')
+    net.run(10*ms)
+    v_values = state_mon.v[:, :]
+    spike_indices, spike_times = spike_mon.it_
+
+    net.restore() # Go back to beginning
+    assert defaultclock.t == 0*ms
+    assert net.t == 0*ms
+    net.run(20*ms)
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+
+    # Go back to middle
+    net.restore('second')
+    assert defaultclock.t == 10*ms
+    assert net.t == 10*ms
+    net.run(10*ms)
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+
+@with_setup(teardown=restore_initial_state)
+def test_store_restore_magic():
+    source = NeuronGroup(10, '''dv/dt = rates : 1
+                                rates : Hz''', threshold='v>1', reset='v=0')
+    source.rates = 'i*100*Hz'
+    target = NeuronGroup(10, 'v:1')
+    synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='i==j')
+    synapses.w = 'i*1.0'
+    synapses.delay = 'i*ms'
+    state_mon = StateMonitor(target, 'v', record=True)
+    spike_mon = SpikeMonitor(source)
+    store()  # default time slot
+    run(10*ms)
+    store('second')
+    run(10*ms)
+    v_values = state_mon.v[:, :]
+    spike_indices, spike_times = spike_mon.it_
+
+    restore() # Go back to beginning
+    assert magic_network.t == 0*ms
+    run(20*ms)
+    assert defaultclock.t == 20*ms
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+
+    # Go back to middle
+    restore('second')
+    assert magic_network.t == 10*ms
+    run(10*ms)
+    assert defaultclock.t == 20*ms
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+
+@with_setup(teardown=restore_initial_state)
+def test_defaultclock_dt_changes():
+    for dt in [0.1*ms, 0.01*ms, 0.5*ms, 1*ms, 3.3*ms]:
+        defaultclock.dt = dt
+        G = NeuronGroup(1, 'v:1')
+        mon = StateMonitor(G, 'v', record=True)
+        net = Network(G, mon)
+        net.run(2*dt)
+        assert_equal(mon.t[:], [0, dt/ms]*ms)
+
+@with_setup(teardown=restore_initial_state)
+def test_dt_restore():
+    defaultclock.dt = 0.5*ms
+    G = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1')
+    mon = StateMonitor(G, 'v', record=True)
+    net = Network(G, mon)
+    net.store()
+
+    net.run(1*ms)
+    assert_equal(mon.t[:], [0, 0.5]*ms)
+    defaultclock.dt = 1*ms
+    net.run(2*ms)
+    assert_equal(mon.t[:], [0, 0.5, 1, 2]*ms)
+    net.restore()
+    assert_equal(mon.t[:], [])
+    net.run(1*ms)
+    assert defaultclock.dt == 0.5*ms
+    assert_equal(mon.t[:], [0, 0.5]*ms)
+
+@with_setup(teardown=restore_initial_state)
+def test_continuation():
+    defaultclock.dt = 1*ms
+    G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
+    G.v = 1
+    mon = StateMonitor(G, 'v', record=True)
+    net = Network(G, mon)
+    net.run(2*ms)
+
+    # Run the same simulation but with two runs that use sub-dt run times
+    G2 = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
+    G2.v = 1
+    mon2 = StateMonitor(G2, 'v', record=True)
+    net2 = Network(G2, mon2)
+    net2.run(0.5*ms)
+    net2.run(1.5*ms)
+
+    assert_equal(mon.t[:], mon2.t[:])
+    assert_equal(mon.v[:], mon2.v[:])
+
+@with_setup(teardown=restore_initial_state)
+def test_multiple_runs_defaultclock():
+    defaultclock.dt = 0.1*ms
+    G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
+    net = Network(G)
+    net.run(0.5*ms)
+
+    # The new dt is not compatible with the previous time but it should not
+    # raise an error because we start a new simulation at time 0
+    defaultclock.dt = 1*ms
+    G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
+    net = Network(G)
+    net.run(1*ms)
+
+
+@with_setup(teardown=restore_initial_state)
+def test_multiple_runs_defaultclock_incorrect():
+    defaultclock.dt = 0.1*ms
+    G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
+    net = Network(G)
+    net.run(0.5*ms)
+
+    # The new dt is not compatible with the previous time since we cannot
+    # continue at 0.5ms with a dt of 1ms
+    defaultclock.dt = 1*ms
+    assert_raises(ValueError, lambda: net.run(1*ms))
+
+
 if __name__=='__main__':
-    for t in [test_incorrect_network_use,
+    for t in [
+              test_incorrect_network_use,
               test_network_contains,
               test_empty_network,
               test_network_single_object,
               test_network_two_objects,
               test_network_different_clocks,
               test_network_different_when,
-              test_network_reinit_pre_post_run,
               test_magic_network,
               test_network_stop,
               test_network_operations,
               test_network_active_flag,
               test_network_t,
+              test_incorrect_dt_defaultclock,
+              test_incorrect_dt_custom_clock,
               test_network_remove,
-              test_network_copy,
               test_magic_weak_reference,
               test_magic_unused_object,
               test_invalid_magic_network,
+              test_multiple_networks_invalid,
               test_network_access,
               test_loop,
               test_magic_collect,
               test_progress_report,
-              test_progress_report_incorrect
+              test_progress_report_incorrect,
+              test_store_restore,
+              test_store_restore_magic,
+              test_defaultclock_dt_changes,
+              test_dt_restore,
+              test_continuation,
+              test_multiple_runs_defaultclock,
+              test_multiple_runs_defaultclock_incorrect
               ]:
         t()
         restore_initial_state()

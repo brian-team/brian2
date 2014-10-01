@@ -2,15 +2,20 @@
 Some basic tests for the `Variable` system
 '''
 from collections import namedtuple
+
+from nose import SkipTest
 import numpy as np
 from numpy.testing import assert_raises
 
+from brian2.core.preferences import brian_prefs
 from brian2.core.variables import *
 from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
 
 
 def test_construction_errors():
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     # Boolean variable that isn't dimensionless
     assert_raises(ValueError, lambda: Variable(name='name', unit=second,
                                                dtype=np.bool))
@@ -26,6 +31,8 @@ def test_construction_errors():
 
 
 def test_str_repr():
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     # Basic test that the str/repr methods work
     FakeGroup = namedtuple('G', ['name'])
     group = FakeGroup(name='groupname')
@@ -46,6 +53,8 @@ def test_str_repr():
 
 
 def test_dtype_str():
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     FakeGroup = namedtuple('G', ['name'])
     group = FakeGroup(name='groupname')
     for d in ['int32', 'int64', 'float32', 'float64', 'bool', 'int', 'float']:
@@ -65,7 +74,7 @@ def test_dtype_str():
 
 
 if __name__ == '__main__':
+    brian_prefs.codegen.target = 'numpy'
     test_construction_errors()
     test_str_repr()
     test_dtype_str()
-    

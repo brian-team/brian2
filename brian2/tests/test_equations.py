@@ -17,6 +17,7 @@ from brian2.units.fundamentalunits import (DIMENSIONLESS, get_dimensions,
                                            have_same_dimensions,
                                            DimensionMismatchError)
 from brian2.core.namespace import DEFAULT_UNITS
+from brian2.core.preferences import brian_prefs
 from brian2.equations.equations import (check_identifier_basic,
                                         check_identifier_reserved,
                                         check_identifier_functions,
@@ -38,6 +39,8 @@ class SimpleGroup(Group):
         self.namespace = namespace
 
 def test_utility_functions():
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     unit_namespace = DEFAULT_UNITS
 
     # Some simple tests whether the namespace returned by
@@ -65,6 +68,8 @@ def test_utility_functions():
 
 
 def test_identifier_checks():
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     legal_identifiers = ['v', 'Vm', 'V', 'x', 'ge', 'g_i', 'a2', 'gaba_123']
     illegal_identifiers = ['_v', '1v', u'ü', 'ge!', 'v.x', 'for', 'else', 'if']
 
@@ -105,7 +110,7 @@ def test_identifier_checks():
             raise ValueError('I do not like this name')
 
     Equations.check_identifier('gaba_123')
-    old_checks = Equations.identifier_checks
+    old_checks = set(Equations.identifier_checks)
     Equations.register_identifier_check(disallow_gaba_123)
     assert_raises(ValueError, lambda: Equations.check_identifier('gaba_123'))
     Equations.identifier_checks = old_checks
@@ -115,6 +120,8 @@ def test_identifier_checks():
 
 def test_parse_equations():
     ''' Test the parsing of equation strings '''
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     # A simple equation
     eqs = parse_string_equations('dv/dt = -v / tau : 1')
     assert len(eqs.keys()) == 1 and 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION
@@ -170,6 +177,8 @@ def test_parse_equations():
 
 def test_correct_replacements():
     ''' Test replacing variables via keyword arguments '''
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
 
     # replace a variable name with a new name
     eqs = Equations('dv/dt = -v / tau : 1', v='V')
@@ -185,7 +194,8 @@ def test_correct_replacements():
 
 def test_wrong_replacements():
     '''Tests for replacements that should not work'''
-
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     # Replacing a variable name with an illegal new name
     assert_raises(ValueError, lambda: Equations('dv/dt = -v / tau : 1',
                                                 v='illegal name'))
@@ -214,6 +224,8 @@ def test_construction_errors():
     '''
     Test that the Equations constructor raises errors correctly
     '''
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     # parse error
     assert_raises(EquationError, lambda: Equations('dv/dt = -v / tau volt'))
 
@@ -271,6 +283,8 @@ def test_construction_errors():
 
 
 def test_unit_checking():
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     # dummy Variable class
     class S(object):
         def __init__(self, unit):
@@ -311,6 +325,8 @@ def test_properties():
     '''
     Test accessing the various properties of equation objects
     '''
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     tau = 10 * ms
     eqs = Equations('''dv/dt = -(v + I)/ tau : volt
                        I = sin(2 * 22/7. * f * t)* volt : volt
@@ -362,6 +378,8 @@ def test_properties():
     assert eqs.stochastic_type == 'multiplicative'
 
 def test_concatenation():
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     eqs1 = Equations('''dv/dt = -(v + I) / tau : volt
                         I = sin(2*pi*freq*t) : volt
                         freq : Hz''')
@@ -395,6 +413,8 @@ def test_str_repr():
     '''
     Test the string representation (only that it does not throw errors).
     '''
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     tau = 10 * ms
     eqs = Equations('''dv/dt = -(v + I)/ tau : volt (unless refractory)
                        I = sin(2 * 22/7. * f * t)* volt : volt
@@ -424,6 +444,7 @@ def test_ipython_pprint():
 
 
 if __name__ == '__main__':
+    brian_prefs.codegen.target = 'numpy'  # otherwise not all tests are run
     test_utility_functions()
     test_identifier_checks()
     test_parse_equations()

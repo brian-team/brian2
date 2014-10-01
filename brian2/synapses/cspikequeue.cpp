@@ -1,5 +1,6 @@
 #include<iostream>
 #include<vector>
+#include<map>
 #include<algorithm>
 #include<inttypes.h>
 using namespace std;
@@ -20,6 +21,9 @@ public:
 	int source_end;
     unsigned int openmp_padding;
     vector< vector<int> > synapses;
+    // data structures for the store/restore mechanism
+    map<string, vector< vector<DTYPE_int> > > _stored_queue;
+    map<string, unsigned int> _stored_offset;
 
 	CSpikeQueue(int _source_start, int _source_end)
 		: source_start(_source_start), source_end(_source_end)
@@ -66,6 +70,27 @@ public:
         }
 
         dt = _dt;
+    }
+
+    void store(const string name)
+    {
+        _stored_queue[name].clear();
+        _stored_queue[name].resize(queue.size());
+        for (int i=0; i<queue.size(); i++)
+            _stored_queue[name][i] = queue[i];
+        _stored_offset[name] = offset;
+    }
+
+    void restore(const string name)
+    {
+        unsigned int size = _stored_queue[name].size();
+        queue.clear();
+        if (size == 0)  // the queue did not exist at the time of the store call
+            size = 1;
+        queue.resize(size);
+        for (int i=0; i<_stored_queue[name].size(); i++)
+            queue[i] = _stored_queue[name][i];
+        offset = _stored_offset[name];
     }
 
 	void expand(unsigned int newsize)

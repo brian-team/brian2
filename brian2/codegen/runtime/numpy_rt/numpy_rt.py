@@ -63,8 +63,10 @@ class NumpyCodeObject(CodeObject):
                 continue
 
             try:
+                if not hasattr(var, 'get_value'):
+                    raise TypeError()
                 value = var.get_value()
-            except (TypeError, AttributeError):
+            except TypeError:
                 # A dummy Variable without value or a function
                 self.namespace[name] = var
                 continue

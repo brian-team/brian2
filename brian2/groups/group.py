@@ -14,17 +14,18 @@ import numpy as np
 
 from brian2.core.base import BrianObject
 from brian2.core.preferences import brian_prefs
-from brian2.core.variables import Variables, Constant, Variable, Subexpression
+from brian2.core.variables import (Variables, Constant, Variable,
+                                   ArrayVariable, DynamicArrayVariable)
 from brian2.core.functions import Function
 from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_FUNCTIONS,
                                    DEFAULT_UNITS,
                                    DEFAULT_CONSTANTS)
-from brian2.core.scheduler import Scheduler
 from brian2.codegen.codeobject import create_runner_codeobj, check_code_units
 from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit)
+from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 
@@ -236,11 +237,13 @@ class IndexWrapper(object):
             check_code_units(abstract_code, self.group,
                              additional_variables=variables,
                              level=1)
+            from brian2.devices.device import get_default_codeobject_class
             codeobj = create_runner_codeobj(self.group,
                                             abstract_code,
                                             'group_get_indices',
                                             additional_variables=variables,
-                                            level=1
+                                            level=1,
+                                            codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
                                             )
             return codeobj()
         else:
@@ -266,7 +269,10 @@ class Group(BrianObject):
             self._indexing = self.indexing_class(self)
         if not hasattr(self, 'indices'):
             self.indices = IndexWrapper(self)
-
+        if not hasattr(self, '_stored_states'):
+            self._stored_states = {}
+        if not hasattr(self, '_stored_clocks'):
+            self._stored_clocks = {}
         self._group_attribute_access_active = True
 
     def state(self, name, use_units=True, level=0):
@@ -353,6 +359,95 @@ class Group(BrianObject):
                                                                 level=level+1)
         else:
             object.__setattr__(self, name, val)
+
+    def get_states(self, vars=None, units=True, format='dict', level=0):
+        '''
+        Return a copy of the current state variable values.
+
+        Parameters
+        ----------
+        vars : list of str, optional
+            The names of the variables to extract. If not specified, extract
+            all state variables (except for internal variables, i.e. names that
+            start with ``'_'``).
+        units : bool, optional
+            Whether to include the physical units in the return value. Defaults
+            to ``True``.
+        format : str, optional
+            The output format. Defaults to ``'dict'``.
+        level : int, optional
+            How much higher to go up the stack to resolve external variables.
+            Only relevant if extracting subexpressions that refer to external
+            variables.
+
+        Returns
+        -------
+        values
+            The variables specified in ``vars``, in the specified ``format``.
+
+        '''
+        # For the moment, 'dict' is the only supported format -- later this will
+        # be made into an extensible system, see github issue #306
+        if format != 'dict':
+            raise NotImplementedError("Format '%s' is not supported" % format)
+        if vars is None:
+            vars = [name for name in self.variables.iterkeys()
+                    if not name.startswith('_')]
+        data = {}
+        for var in vars:
+            data[var] = np.array(self.state(var, use_units=units, level=level+1))
+        return data
+
+    def set_states(self, values, units=True, format='dict', level=0):
+        '''
+        Set the state variables.
+
+        Parameters
+        ----------
+        values : depends on ``format``
+            The values according to ``format``.
+        units : bool, optional
+            Whether the ``values`` include physical units. Defaults to ``True``.
+        format : str, optional
+            The format of ``values``. Defaults to ``'dict'``
+        level : int, optional
+            How much higher to go up the stack to resolve external variables.
+            Only relevant when using string expressions to set values.
+        '''
+        # For the moment, 'dict' is the only supported format -- later this will
+        # be made into an extensible system, see github issue #306
+        if format != 'dict':
+            raise NotImplementedError("Format '%s' is not supported" % format)
+        for key, value in values.iteritems():
+            self.state(key, use_units=units, level=level+1)[:] = value
+
+    def _store(self, name='default'):
+        logger.debug('Storing state at for object %s' % self.name)
+        state = {}
+        for var in self.variables.itervalues():
+            if isinstance(var, ArrayVariable):
+                state[var] = (var.get_value().copy(), var.size)
+        self._stored_states[name] = state
+        self._stored_clocks[name] = (self.clock.t_, self.clock.dt_)
+        for obj in self._contained_objects:
+            if hasattr(obj, '_store'):
+                obj._store(name)
+
+    def _restore(self, name='default'):
+        logger.debug('Restoring state at for object %s' % self.name)
+        if not name in self._stored_states:
+            raise ValueError(('No state with name "%s" to restore -- '
+                              'did you call store()?') % name)
+        for var, (values, size) in self._stored_states[name].iteritems():
+            if isinstance(var, DynamicArrayVariable):
+                var.resize(size)
+            var.set_value(values)
+        t, dt = self._stored_clocks[name]
+        self.clock.dt_ = dt
+        self.clock._set_t_update_dt(t=t*second)
+        for obj in self._contained_objects:
+            if hasattr(obj, '_restore'):
+                obj._restore(name)
 
     def _check_expression_scalar(self, expr, varname, level=0,
                                  run_namespace=None):
@@ -627,7 +722,8 @@ class Group(BrianObject):
 
         return resolutions
 
-    def custom_operation(self, code, when=None, name=None):
+    def custom_operation(self, code, dt=None, clock=None, when='start',
+                         order=0, name=None):
         '''
         Returns a `CodeRunner` that runs abstract code in the group's namespace.
 
@@ -635,25 +731,30 @@ class Group(BrianObject):
         ----------
         code : str
             The abstract code to run.
-        when : `Scheduler`, optional
-            When to run, by default in the 'stateupdate' slot with the same
-            clock as the group.
+        dt : `Quantity`, optional
+            The time step to use for this custom operation. Cannot be combined
+            with the `clock` argument.
+        clock : `Clock`, optional
+            The update clock to use for this operation. If neither a clock nor
+            the `dt` argument is specified, defaults to the clock of the group.
+        when : str, optional
+            When to run within a time step, defaults to the ``'start'`` slot.
         name : str, optional
             A unique name, if non is given the name of the group appended with
             'custom_operation', 'custom_operation_1', etc. will be used. If a
             name is given explicitly, it will be used as given (i.e. the group
             name will not be prepended automatically).
         '''
-        when = Scheduler(when)
-        if not when.defined_clock:
-            when.clock = self.clock
-
         if name is None:
             name = self.name + '_custom_operation*'
 
+        if dt is None and clock is None:
+            clock = self._clock
+
         runner = CodeRunner(self, 'stateupdate', code=code, name=name,
-                            when=when)
+                            dt=dt, clock=clock, when=when, order=order)
         return runner
+
 
 
 class CodeRunner(BrianObject):
@@ -676,8 +777,7 @@ class CodeRunner(BrianObject):
         The abstract code that should be executed every time step. The
         `update_abstract_code` method might generate this code dynamically
         before every run instead.
-    when : `Scheduler`, optional
-        At which point in the schedule this object should be executed.
+    TODO
     name : str, optional 
         The name for this object.
     check_units : bool, optional
@@ -700,11 +800,13 @@ class CodeRunner(BrianObject):
     '''
     add_to_magic_network = True
     invalidates_magic_network = True
-    def __init__(self, group, template, code='', when=None,
-                 name='coderunner*', check_units=True, template_kwds=None,
-                 needed_variables=None, override_conditional_write=None,
+    def __init__(self, group, template, code='', clock=None, dt=None,
+                 when='end', order=0, name='coderunner*', check_units=True,
+                 template_kwds=None, needed_variables=None,
+                 override_conditional_write=None,
                  ):
-        BrianObject.__init__(self, when=when, name=name)
+        BrianObject.__init__(self, clock=clock, dt=dt, when=when, order=order,
+                             name=name)
         self.group = weakref.proxy(group)
         self.template = template
         self.abstract_code = code

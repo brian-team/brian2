@@ -5,6 +5,7 @@ import os
 import tempfile
 
 from nose import with_setup
+from nose.plugins.attrib import attr
 import numpy as np
 from numpy.testing.utils import assert_equal
 
@@ -31,29 +32,25 @@ def test_spikegenerator_connected():
     '''
     Test that `SpikeGeneratorGroup` connects properly.
     '''
-    for codeobj_class in codeobj_classes:
-        G = NeuronGroup(10, 'v:1', codeobj_class=codeobj_class)
-        mon = StateMonitor(G, 'v', record=True,
-                           codeobj_class=codeobj_class)
-        indices = np.array([3, 2, 1, 1, 4, 5])
-        times =   np.array([6, 5, 4, 3, 3, 1]) * ms
-        SG = SpikeGeneratorGroup(10, indices, times,
-                                 codeobj_class=codeobj_class)
-        S = Synapses(SG, G, pre='v+=1', connect='i==j',
-                     codeobj_class=codeobj_class)
-        net = Network(G, SG, mon, S)
-        net.run(7*ms)
-        # The following neurons should not receive any spikes
-        for idx in [0, 6, 7, 8, 9]:
-            assert all(mon[idx].v == 0)
-        # The following neurons should receive a single spike
-        for idx, time in zip([2, 3, 4, 5], [5, 6, 3, 1]*ms):
-            assert all(mon[idx].v[mon.t<time] == 0)
-            assert all(mon[idx].v[mon.t>=time] == 1)
-        # This neuron receives two spikes
-        assert all(mon[1].v[mon.t<3*ms] == 0)
-        assert all(mon[1].v[(mon.t>=3*ms) & (mon.t<4*ms)] == 1)
-        assert all(mon[1].v[(mon.t>=4*ms)] == 2)
+    G = NeuronGroup(10, 'v:1')
+    mon = StateMonitor(G, 'v', record=True)
+    indices = np.array([3, 2, 1, 1, 4, 5])
+    times =   np.array([6, 5, 4, 3, 3, 1]) * ms
+    SG = SpikeGeneratorGroup(10, indices, times)
+    S = Synapses(SG, G, pre='v+=1', connect='i==j')
+    net = Network(G, SG, mon, S)
+    net.run(7*ms)
+    # The following neurons should not receive any spikes
+    for idx in [0, 6, 7, 8, 9]:
+        assert all(mon[idx].v == 0)
+    # The following neurons should receive a single spike
+    for idx, time in zip([2, 3, 4, 5], [5, 6, 3, 1]*ms):
+        assert all(mon[idx].v[mon.t<time] == 0)
+        assert all(mon[idx].v[mon.t>=time] == 1)
+    # This neuron receives two spikes
+    assert all(mon[1].v[mon.t<3*ms] == 0)
+    assert all(mon[1].v[(mon.t>=3*ms) & (mon.t<4*ms)] == 1)
+    assert all(mon[1].v[(mon.t>=4*ms)] == 2)
 
 
 def test_spikegenerator_basic():
@@ -63,8 +60,7 @@ def test_spikegenerator_basic():
     for codeobj_class in codeobj_classes:
         indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
         times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
-        SG = SpikeGeneratorGroup(5, indices, times,
-                                 codeobj_class=codeobj_class)
+        SG = SpikeGeneratorGroup(5, indices, times)
         s_mon = SpikeMonitor(SG)
         net = Network(SG, s_mon)
         net.run(5*ms)
@@ -73,12 +69,12 @@ def test_spikegenerator_basic():
             recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
             assert generator_spikes == recorded_spikes
 
+@attr('standalone')
 @with_setup(teardown=restore_device)
 def test_spikegenerator_standalone():
     '''
     Basic test for `SpikeGeneratorGroup` in standalone.
     '''
-    clear()
     set_device('cpp_standalone')
     indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
     times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms

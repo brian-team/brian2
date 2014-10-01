@@ -114,3 +114,22 @@ the C++ target could look like this::
 Alternatively, `FunctionImplementation` objects can be added to the `Function`
 object. For a more complex example that also makes the function contribute
 additional values to the namespace of a `CodeObject` see `TimedArray`.
+
+Arrays vs. scalar values in user-provided functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Equations, expressions and abstract code statements are always implicitly
+referring to all the neurons in a `NeuronGroup`, all the synapses in a
+`Synapses` object, etc. Therefore, function calls also apply to more than a
+single value. The way in which this is handled differs between code generation
+targets that support vectorized expressions (e.g. the ``numpy`` target) and
+targets that don't (e.g. the ``weave`` target or the ``cpp_standalone`` mode).
+If the code generation target supports vectorized expressions, it will receive
+an array of values. For example, in the ``piecewise_linear`` example above, the
+argument ``I`` will be an array of values and the function returns an array of
+values. For code generation without support for vectorized expressions, all
+code will be executed in a loop (over neurons, over synapses, ...), the function
+will therefore be called several times with a single value each time.
+
+In both cases, the function will only receive the "relevant" values, meaning
+that if for example a function is evaluated as part of a reset statement, it
+will only receive values for the neurons that just spiked.

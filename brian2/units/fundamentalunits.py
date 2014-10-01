@@ -968,6 +968,9 @@ class Quantity(np.ndarray, object):
         result.dim = dim
         return result
 
+    def __deepcopy__(self, memo):
+        return Quantity(self, copy=True)
+
 #==============================================================================
 # Quantity-specific functions (not existing in ndarray)
 #==============================================================================
@@ -1971,6 +1974,18 @@ class Unit(Quantity):
     def __ipow__(self, other, modulo=None):
         raise TypeError('Units cannot be modified in-place')
 
+    def __eq__(self, other):
+        if isinstance(other, Unit):
+            return other.dim == self.dim
+        else:
+            return Quantity.__eq__(self, other)
+
+    def __neq__(self, other):
+        if isinstance(other, Unit):
+            return other.dim != self.dim
+        else:
+            return Quantity.__neq__(self, other)
+
 
 class UnitRegistry(object):
     """
@@ -2011,6 +2026,13 @@ class UnitRegistry(object):
             self.units_for_dimensions[dim] = [u]
         else:
             self.units_for_dimensions[dim].append(u)
+
+    def remove(self, u):
+        """Remove a unit from the registry
+        """
+        self.units.remove(u)
+        dim = u.dim
+        self.units_for_dimensions[dim].remove(u)
 
     def __getitem__(self, x):
         """Returns the best unit for quantity x
@@ -2055,8 +2077,24 @@ def register_new_unit(u):
     >>> register_new_unit(pfarad / mmetre**2)
     >>> 2.0*farad/metre**2
     2000000.0 * pfarad / mmetre ** 2
+    >>> unregister_unit(pfarad / mmetre**2)
+    >>> 2.0*farad/metre**2
+    2.0 * metre ** -4 * kilogram ** -1 * second ** 4 * amp ** 2
     """
     user_unit_register.add(u)
+
+
+def unregister_unit(u):
+    """Remove a previously registered unit for automatic displaying of
+    quantities
+
+    Parameters
+    ----------
+    u : `Unit`
+        The unit that should be unregistered.
+    """
+    user_unit_register.remove(u)
+
 
 #: `UnitRegistry` containing all the standard units (metre, kilogram, um2...)
 standard_unit_register = UnitRegistry()
@@ -2218,7 +2256,24 @@ def check_units(**au):
         new_f.__name__ = f.__name__
         # store the information in the function, necessary when using the
         # function in expressions or equations
-        new_f._arg_units = [unit for name, unit in au.iteritems() if name != 'result']
-        new_f._return_unit = au.get('result', None)
+        arg_units = []
+        all_specified = True
+        for name in f.func_code.co_varnames[:f.func_code.co_argcount]:
+            unit = au.get(name, None)
+            if unit is None:
+                all_specified = False
+                break
+            else:
+                arg_units.append(unit)
+        if all_specified:
+            new_f._arg_units = arg_units
+        else:
+            new_f._arg_units = None
+        return_unit = au.get('result', None)
+        if return_unit is None:
+            new_f._return_unit = None
+        else:
+            new_f._return_unit = return_unit
+
         return new_f
     return do_check_units

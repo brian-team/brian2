@@ -2,19 +2,21 @@ import tempfile
 import os
 
 from nose import with_setup
+from nose.plugins.attrib import attr
 import numpy
+from numpy.testing.utils import assert_allclose
 
 from brian2 import *
 from brian2.devices.cpp_standalone import cpp_standalone_device
 
 
 def restore_device():
-    #Network.__instances__().clear()  #TODO
     cpp_standalone_device.reinit()
     set_device('runtime')
     restore_initial_state()
 
 
+@attr('standalone')
 @with_setup(teardown=restore_device)
 def test_cpp_standalone(with_output=False):
     set_device('cpp_standalone')
@@ -54,6 +56,7 @@ def test_cpp_standalone(with_output=False):
     assert M.t[0] == 0.
     assert M.t[-1] == 100*ms - defaultclock.dt
 
+@attr('standalone')
 @with_setup(teardown=restore_device)
 def test_multiple_connects(with_output=False):
     set_device('cpp_standalone')
@@ -64,11 +67,51 @@ def test_multiple_connects(with_output=False):
     tempdir = tempfile.mkdtemp()
     if with_output:
         print tempdir
+    run(0*ms)
     device.build(project_dir=tempdir, compile_project=True, run_project=True,
                  with_output=True)
     assert len(S) == 2 and len(S.w[:]) == 2
 
+@attr('standalone')
+@with_setup(teardown=restore_device)
+def test_storing_loading(with_output=False):
+    set_device('cpp_standalone')
+    G = NeuronGroup(10, '''v : volt
+                           x : 1
+                           n : integer
+                           b : boolean''')
+    v = np.arange(10)*volt
+    x = np.arange(10, 20)
+    n = np.arange(20, 30)
+    b = np.array([True, False]).repeat(5)
+    G.v = v
+    G.x = x
+    G.n = n
+    G.b = b
+    S = Synapses(G, G, '''v : volt
+                          x : 1
+                          n : integer
+                          b : boolean''', connect='i==j')
+    S.v = v
+    S.x = x
+    S.n = n
+    S.b = b
+    run(0*ms)
+    tempdir = tempfile.mkdtemp()
+    if with_output:
+        print tempdir
+    device.build(project_dir=tempdir, compile_project=True, run_project=True,
+                 with_output=True)
+    assert_allclose(G.v[:], v)
+    assert_allclose(S.v[:], v)
+    assert_allclose(G.x[:], x)
+    assert_allclose(S.x[:], x)
+    assert_allclose(G.n[:], n)
+    assert_allclose(S.n[:], n)
+    assert_allclose(G.b[:], b)
+    assert_allclose(S.b[:], b)
 
+@attr('standalone')
 @with_setup(teardown=restore_device)
 def test_openmp_consistency(with_output=False):
 
@@ -129,7 +172,7 @@ def test_openmp_consistency(with_output=False):
 
         spike_mon = SpikeMonitor(P)
         rate_mon  = PopulationRateMonitor(P)
-        state_mon = StateMonitor(S, 'w', record=range(n_recorded), when=Clock(dt=0.1*second))
+        state_mon = StateMonitor(S, 'w', record=range(n_recorded), dt=0.1*second)
         v_mon     = StateMonitor(P, 'v', record=range(n_recorded))
 
         run(0.2 * second, report='text')
@@ -160,6 +203,7 @@ if __name__=='__main__':
     for t in [
              test_cpp_standalone,
              test_multiple_connects,
+             test_storing_loading,
              test_openmp_consistency
              ]:
         t(with_output=True)

@@ -96,7 +96,7 @@ def c_data_type(dtype):
     elif dtype == numpy.uint32:
         dtype = 'uint32_t'
     elif dtype == numpy.bool_ or dtype is bool:
-        dtype = 'bool'
+        dtype = 'char'
     else:
         raise ValueError("dtype " + str(dtype) + " not known.")
     return dtype

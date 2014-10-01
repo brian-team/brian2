@@ -1,7 +1,11 @@
+import uuid
+
 import sympy
 import numpy
 from numpy.testing.utils import assert_raises
+from nose import SkipTest
 
+from brian2.core.preferences import brian_prefs
 from brian2.groups.group import Group
 from brian2.units import second, volt
 from brian2.units.stdunits import ms, Hz, mV
@@ -13,6 +17,9 @@ class SimpleGroup(Group):
     def __init__(self, variables, namespace=None):
         self.variables = variables
         self.namespace = namespace
+        # We use a unique name to get repeated warnings
+        Group.__init__(self, name='simplegroup_' +
+                                  str(uuid.uuid4()).replace('-','_'))
 
 def _assert_one_warning(l):
     assert len(l) == 1, "expected one warning got %d" % len(l)
@@ -23,7 +30,9 @@ def test_default_content():
     '''
     Test that the default namespace contains standard units and functions.
     '''
-    group = Group({})
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
+    group = Group()
     # Units
     assert group.resolve('second', None).get_value_with_unit() == second
     assert group.resolve('volt', None).get_value_with_unit() == volt
@@ -47,7 +56,8 @@ def test_default_content():
 
 def test_explicit_namespace():
     ''' Test resolution with an explicitly provided namespace '''
-
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     group = SimpleGroup(namespace={'variable': 42}, variables={})
 
     # Explicitly provided
@@ -69,6 +79,8 @@ def test_explicit_namespace():
 
 
 def test_errors():
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     # No explicit namespace
     group = SimpleGroup(namespace=None, variables={})
     assert_raises(KeyError, lambda: group.resolve('nonexisting_variable'))
@@ -79,6 +91,8 @@ def test_errors():
 
 
 def test_resolution():
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     # implicit namespace
     tau = 10*ms
     group = SimpleGroup(namespace=None, variables={})
@@ -98,6 +112,8 @@ def test_resolution():
 
 
 def test_warning():
+    if brian_prefs.codegen.target != 'numpy':
+        raise SkipTest()
     from brian2.core.functions import DEFAULT_FUNCTIONS
     from brian2.units.stdunits import cm as brian_cm
     # Name in external namespace clashes with unit/function name
@@ -107,16 +123,17 @@ def test_warning():
     with catch_logs() as l:
         resolved = group.resolve('exp')
         assert resolved == DEFAULT_FUNCTIONS['exp']
-        assert len(l) == 1
+        assert len(l) == 1, 'got warnings: %s' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
     with catch_logs() as l:
         resolved = group.resolve('cm')
         assert resolved.get_value_with_unit() == brian_cm
-        assert len(l) == 1
+        assert len(l) == 1, 'got warnings: %s' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
 
 
 if __name__ == '__main__':
+    brian_prefs.codegen.target = 'numpy'
     test_default_content()
     test_explicit_namespace()
     test_errors()

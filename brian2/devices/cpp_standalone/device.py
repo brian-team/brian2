@@ -1,14 +1,11 @@
 '''
 Module implementing the C++ "standalone" device.
 '''
-import numpy
 import os
 import shutil
 import subprocess
 import inspect
 from collections import defaultdict
-
-import numpy as np
 
 import numpy as np
 
@@ -54,11 +51,6 @@ def freeze(code, ns):
             code = word_substitute(code, {k: str(v)})
         elif (isinstance(v, Variable) and not isinstance(v, AttributeVariable) and
               v.scalar and v.constant and v.read_only):
-            value = v.get_value()
-            if value < 0:
-                string_value = '(%r)' % value
-            else:
-                string_value = '%r' % value
             value = v.get_value()
             if value < 0:
                 string_value = '(%r)' % value
@@ -228,11 +220,6 @@ class CPPStandaloneDevice(Device):
         # treat the array as a static array
         self.static_arrays[array_name] = arr.astype(var.dtype)
 
-    def init_with_array(self, var, arr):
-        array_name = self.get_array_name(var, access_data=False)
-        # treat the array as a static array
-        self.static_arrays[array_name] = arr.astype(var.dtype)
-
     def fill_with_array(self, var, arr):
         arr = np.asarray(arr)
         if arr.shape == ():
@@ -289,22 +276,19 @@ class CPPStandaloneDevice(Device):
         # of expressions at runtime. For constant, read-only arrays that have
         # been explicitly initialized (static arrays) or aranges (e.g. the
         # neuronal indices) we can, however
-        if var.constant and var.read_only:
-            array_name = self.get_array_name(var, access_data=False)
+        array_name = self.get_array_name(var, access_data=False)
+        if (var.constant and var.read_only and
+                (array_name in self.static_arrays or
+                 var in self.arange_arrays)):
             if array_name in self.static_arrays:
                 return self.static_arrays[array_name]
             elif var in self.arange_arrays:
                 return np.arange(0, var.size) + self.arange_arrays[var]
-            else:
-                raise AssertionError(('Variable %s is constant and read-only '
-                                      ' but uninitialized'))
         else:
             # After the network has been run, we can retrieve the values from
             # disk
             if self.has_been_run:
                 dtype = var.dtype
-                array_name = array_name = self.get_array_name(var,
-                                                              access_data=False)
                 fname = os.path.join(self.project_dir, 'results',
                                      array_name)
                 with open(fname, 'rb') as f:
@@ -344,8 +328,7 @@ class CPPStandaloneDevice(Device):
                                   'standalone scripts.')
 
     def code_object_class(self, codeobj_class=None):
-        if codeobj_class is not None:
-            raise ValueError("Cannot specify codeobj_class for C++ standalone device.")
+        # Ignore the requested codeobj_class
         return CPPStandaloneCodeObject
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
@@ -392,10 +375,6 @@ class CPPStandaloneDevice(Device):
             A list of additional header files to include in ``main.cpp``.
         run_includes : list of str
             A list of additional header files to include in ``run.cpp``.
-        n_threads : int, optional
-            Number of threads for OpenMP
-        n_threads : int, optional
-            Number of threads for OpenMP
         '''
         
         if additional_source_files is None:
@@ -447,8 +426,19 @@ class CPPStandaloneDevice(Device):
             static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
 
         # Write the global objects
-        networks = [net() for net in Network.__instances__() if net().name!='_fake_network']
-        synapses = [S() for S in Synapses.__instances__()]
+        networks = [net() for net in Network.__instances__()
+                    if net().name!='_fake_network']
+        synapses = []
+        for net in networks:
+            synapses.extend(s for s in net.objects if isinstance(s, Synapses))
+
+        # Not sure what the best place is to call Network.after_run -- at the
+        # moment the only important thing it does is to clear the objects stored
+        # in magic_network. If this is not done, this might lead to problems
+        # for repeated runs of standalone (e.g. in the test suite).
+        for net in networks:
+            net.after_run()
+
         arr_tmp = CPPStandaloneCodeObject.templater.objects(
                         None, None,
                         array_specs=self.arrays,
@@ -464,7 +454,7 @@ class CPPStandaloneDevice(Device):
 
         main_lines = []
         procedures = [('', main_lines)]
-        runfuncs   = {}
+        runfuncs = {}
         for func, args in self.main_queue:
             if func=='run_code_object':
                 codeobj, = args
@@ -518,7 +508,6 @@ class CPPStandaloneDevice(Device):
         code_object_defs = defaultdict(list)
         for codeobj in self.code_objects.itervalues():
             lines = []
-            lines = []
             for k, v in codeobj.variables.iteritems():
                 if isinstance(v, AttributeVariable):
                     # We assume all attributes are implemented as property-like methods
@@ -542,11 +531,6 @@ class CPPStandaloneDevice(Device):
                             lines.append('const int _num%s = %s;' % (k, v.size))
                     except TypeError:
                         pass
-            for line in lines:
-                # Sometimes an array is referred to by to different keys in our
-                # dictionary -- make sure to never add a line twice
-                if not line in code_object_defs[codeobj.name]:
-                    code_object_defs[codeobj.name].append(line)
             for line in lines:
                 # Sometimes an array is referred to by to different keys in our
                 # dictionary -- make sure to never add a line twice
@@ -603,8 +587,6 @@ class CPPStandaloneDevice(Device):
         spikequeue_h = os.path.join(project_dir, 'brianlib', 'spikequeue.h')
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'cspikequeue.cpp'),
                      spikequeue_h)
-
-        #writer.header_files.append(spikequeue_h)
         
         writer.source_files.extend(additional_source_files)
         writer.header_files.extend(additional_header_files)
@@ -647,7 +629,7 @@ class CPPStandaloneDevice(Device):
 
     def network_run(self, net, duration, report=None, report_period=10*second,
                     namespace=None, level=0):
-
+        net._clocks = [obj.clock for obj in net.objects]
         # We have to use +2 for the level argument here, since this function is
         # called through the device_override mechanism
         net.before_run(namespace, level=level+2)
@@ -715,12 +697,19 @@ class CPPStandaloneDevice(Device):
         for clock, codeobj in code_objects:
             run_lines.append('{net.name}.add(&{clock.name}, _run_{codeobj.name});'.format(clock=clock, net=net,
                                                                                                codeobj=codeobj))
-
         run_lines.append('{net.name}.run({duration}, {report_call}, {report_period});'.format(net=net,
                                                                                               duration=float(duration),
                                                                                               report_call=report_call,
                                                                                               report_period=float(report_period)))
         self.main_queue.append(('run_network', (net, run_lines)))
+
+    def network_store(self, net, name='default'):
+        raise NotImplementedError(('The store/restore mechanism is not '
+                                   'supported in the C++ standalone'))
+
+    def network_restore(self, net, name='default'):
+        raise NotImplementedError(('The store/restore mechanism is not '
+                                   'supported in the C++ standalone'))
 
     def run_function(self, name, include_in_parent=True):
         '''

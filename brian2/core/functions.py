@@ -59,19 +59,34 @@ class Function(object):
         self._arg_units = arg_units
         self._return_unit = return_unit
         if self._arg_units is None:
-            if hasattr(pyfunc, '_arg_units'):
+            if not hasattr(pyfunc, '_arg_units'):
+                raise ValueError(('The Python function "%s" does not specify '
+                                  'how it deals with units, need to specify '
+                                  '"arg_units" or use the "@check_units" '
+                                  'decorator.') % pyfunc.__name__)
+            elif pyfunc._arg_units is None:
+                # @check_units sets _arg_units to None if the units aren't
+                # specified for all of its arguments
+                raise ValueError(('The Python function "%s" does not specify '
+                                  'the units for all of its '
+                                  'arguments.') % pyfunc.__name__)
+            else:
                 self._arg_units = pyfunc._arg_units
-            else:
-                raise ValueError('The given Python function does not specify '
-                                  'how it deals with units, need to specify '
-                                  '"arg_units".')
+
         if self._return_unit is None:
-            if hasattr(pyfunc, '_return_unit'):
-                self._return_unit = pyfunc._return_unit
-            else:
-                raise ValueError(('The given Python function does not specify '
+            if not hasattr(pyfunc, '_return_unit'):
+                raise ValueError(('The Python function "%s" does not specify '
                                   'how it deals with units, need to specify '
-                                  '"return_unit".'))
+                                  '"return_unit" or use the "@check_units" '
+                                  'decorator.') % pyfunc.__name__)
+            elif pyfunc._return_unit is None:
+                # @check_units sets _return_unit to None if no "result=..."
+                # keyword is specified.
+                raise ValueError(('The Python function "%s" does not specify '
+                                  'the unit for its return '
+                                  'value.') % pyfunc.__name__)
+            else:
+                self._return_unit = pyfunc._return_unit
 
         #: Stores implementations for this function in a
         #: `FunctionImplementationContainer`
