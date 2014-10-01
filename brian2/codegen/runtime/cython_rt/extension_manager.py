@@ -102,12 +102,13 @@ class CythonExtensionManager(object):
                     force=True,
                     )
                 # suppresses the output on stdout
-                with open(os.devnull, 'w') as f, stdout_redirected(f):
-                    build_extension.extensions = cythonize([extension], **opts)
+                with open(os.devnull, 'w') as f:
+                    with stdout_redirected(f):
+                        build_extension.extensions = cythonize([extension], **opts)
 
-                    build_extension.build_temp = os.path.dirname(pyx_file)
-                    build_extension.build_lib = lib_dir
-                    build_extension.run()
+                        build_extension.build_temp = os.path.dirname(pyx_file)
+                        build_extension.build_lib = lib_dir
+                        build_extension.run()
             except CompileError:
                 return
 
