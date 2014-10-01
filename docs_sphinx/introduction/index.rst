@@ -7,3 +7,4 @@ Introduction
    install
    gettingstarted
    changes
+   known_issues
