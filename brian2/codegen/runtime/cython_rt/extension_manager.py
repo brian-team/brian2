@@ -4,10 +4,7 @@ Cython automatic extension builder/manager
 Inspired by IPython's Cython cell magics, see:
 https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 '''
-from brian2.utils.stringtools import deindent
-
 import imp
-import io
 import os
 import sys
 
@@ -23,6 +20,8 @@ import Cython
 from Cython.Compiler.Errors import CompileError
 from Cython.Build.Dependencies import cythonize
 
+from brian2.utils.stringtools import deindent
+from brian2.utils.filetools import stdout_redirected
 
 __all__ = ['cython_extension_manager']
 
@@ -61,9 +60,8 @@ class CythonExtensionManager(object):
         module_path = os.path.join(lib_dir, module_name + self.so_ext)
         
         have_module = os.path.isfile(module_path)
-        need_cythonize = not have_module
         
-        if need_cythonize:
+        if not have_module:
             if include is None:
                 include = []
             if library_dirs is None:
@@ -103,14 +101,15 @@ class CythonExtensionManager(object):
                     annotate=False,
                     force=True,
                     )
-                build_extension.extensions = cythonize([extension], **opts)
+                # suppresses the output on stdout
+                with open(os.devnull, 'w') as f, stdout_redirected(f):
+                    build_extension.extensions = cythonize([extension], **opts)
+
+                    build_extension.build_temp = os.path.dirname(pyx_file)
+                    build_extension.build_lib = lib_dir
+                    build_extension.run()
             except CompileError:
                 return
-            
-        if not have_module:
-            build_extension.build_temp = os.path.dirname(pyx_file)
-            build_extension.build_lib = lib_dir
-            build_extension.run()
 
         module = imp.load_dynamic(module_name, module_path)
         self._code_cache[key] = module
