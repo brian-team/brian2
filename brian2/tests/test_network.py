@@ -11,7 +11,7 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     restore_initial_state, MagicError, Synapses,
                     NeuronGroup, StateMonitor, SpikeMonitor,
                     PopulationRateMonitor, MagicNetwork, magic_network,
-                    PoissonGroup, Hz, collect, store, restore)
+                    PoissonGroup, Hz, collect, store, restore, BrianLogger)
 from brian2.utils.logger import catch_logs
 
 def test_incorrect_network_use():
@@ -610,6 +610,7 @@ def test_store_restore_magic():
 
 @with_setup(teardown=restore_initial_state)
 def test_defaultclock_dt_changes():
+    BrianLogger.suppress_name('resolution_conflict')
     for dt in [0.1*ms, 0.01*ms, 0.5*ms, 1*ms, 3.3*ms]:
         defaultclock.dt = dt
         G = NeuronGroup(1, 'v:1')
