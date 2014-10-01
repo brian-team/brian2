@@ -54,6 +54,9 @@ def run(codegen_targets=None, test_standalone=False):
     # Store the currently set preferences and reset to default preferences
     stored_prefs = brian_prefs.as_file
     brian_prefs.read_preference_file(StringIO(brian_prefs.defaults_as_file))
+    # Switch off code optimization to get faster compilation times
+    brian_prefs['codegen.runtime.weave.extra_compile_args'] = ['-w', '-O0']
+    brian_prefs['codegen.runtime.cython.extra_compile_args'] = ['-w', '-O0']
     try:
         success = []
         for target in codegen_targets:
