@@ -78,7 +78,8 @@ class CPPStandaloneCodeObject(CodeObject):
     ``support_code`` for any support code (e.g. function definitions).
     '''
     templater = Templater('brian2.devices.cpp_standalone',
-                          env_globals={'c_data_type': c_data_type, 'openmp_pragma': openmp_pragma})
+                          env_globals={'c_data_type': c_data_type,
+                                       'openmp_pragma': openmp_pragma})
     generator_class = CPPCodeGenerator
 
     def __call__(self, **kwds):

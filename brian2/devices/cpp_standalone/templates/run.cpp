@@ -1,3 +1,4 @@
+{# IS_OPENMP_COMPATIBLE #}
 {% macro cpp_file() %}
 #include<stdlib.h>
 #include "objects.h"

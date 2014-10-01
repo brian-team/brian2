@@ -1,3 +1,4 @@
+{# IS_OPENMP_COMPATIBLE #}
 {% macro cpp_file() %}
 #include "code_objects/{{codeobj_name}}.h"
 {% set pathobj = owner.name %}

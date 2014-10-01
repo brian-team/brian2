@@ -402,7 +402,14 @@ class CPPStandaloneDevice(Device):
             raise ValueError('The number of OpenMP threads can not be negative !') 
 
         logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
-
+        if nb_threads > 0:
+            logger.debug("Using OpenMP with %d threads " % nb_threads)
+            for codeobj in self.code_objects.itervalues():
+                if not 'IS_OPENMP_COMPATIBLE' in codeobj.template_source:
+                    raise RuntimeError(("Code object '%s' uses the template %s "
+                                        "which is not compatible with "
+                                        "OpenMP.") % (codeobj.name,
+                                                      codeobj.template_name))
         arange_arrays = sorted([(var, start)
                                 for var, start in self.arange_arrays.iteritems()],
                                key=lambda (var, start): var.name)

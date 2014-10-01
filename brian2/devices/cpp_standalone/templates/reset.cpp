@@ -1,3 +1,4 @@
+{# IS_OPENMP_COMPATIBLE #}
 {% extends 'common_group.cpp' %}
 {% block maincode %}
 	{# USES_VARIABLES { _spikespace, N } #}

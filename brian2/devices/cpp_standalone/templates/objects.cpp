@@ -1,3 +1,4 @@
+{# IS_OPENMP_COMPATIBLE #}
 {% macro cpp_file() %}
 
 #include<stdint.h>
