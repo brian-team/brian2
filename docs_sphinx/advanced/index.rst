@@ -11,4 +11,4 @@ This section has additional information on details not covered in the
    namespaces
    refractoriness
    scheduling
-   codegen
+   how_brian_works
