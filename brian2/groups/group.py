@@ -480,8 +480,8 @@ class Group(BrianObject):
                                   'variable %s refers to %s which is not '
                                   'scalar.') % (varname, ref_varname))
 
-    def resolve(self, identifier, additional_variables=None,
-                run_namespace=None, level=0, do_warn=True):
+    def resolve(self, identifier, user_identifier=True,
+                additional_variables=None, run_namespace=None, level=0):
         '''
         Resolve an identifier (i.e. variable, constant or function name) in the
         context of this group. This function will first lookup the name in the
@@ -495,6 +495,11 @@ class Group(BrianObject):
         ----------
         identifiers : str
             The name to look up.
+        user_identifier : bool, optional
+            Whether this is an identifier that was used by the user (and not
+            something automatically generated that the user might not even
+            know about). Will be used to determine whether to display a
+            warning in the case of namespace clashes. Defaults to ``True``.
         additional_variables : dict-like, optional
             An additional mapping of names to `Variable` objects that will be
             checked before `Group.variables`.
@@ -503,11 +508,6 @@ class Group(BrianObject):
             `Network.run` method.
         level : int, optional
             How far to go up in the stack to find the original call frame.
-        do_warn : bool, optional
-            Whether to warn about names that are defined both as an internal
-            variable (i.e. in `Group.variables`) and in some other namespace.
-            Defaults to ``True`` but can be switched off for internal variables
-            used in templates that the user might not even know about.
 
         Returns
         -------
@@ -529,7 +529,7 @@ class Group(BrianObject):
             resolved_internal = self.variables[identifier]
 
         if resolved_internal is not None:
-            if do_warn is False:
+            if not user_identifier:
                 return resolved_internal  # no need to go further
             # We already found the identifier, but we try to resolve it in the
             # external namespace nevertheless, to report a warning if it is
@@ -537,8 +537,7 @@ class Group(BrianObject):
             try:
                 self._resolve_external(identifier,
                                        run_namespace=run_namespace,
-                                       level=level+1,
-                                       do_warn=False)
+                                       level=level+1)
                 # If we arrive here without a KeyError then the name is present
                 # in the external namespace as well
                 message = ('Variable {var} is present in the namespace but is '
@@ -557,8 +556,8 @@ class Group(BrianObject):
         return self._resolve_external(identifier, run_namespace=run_namespace,
                                       level=level+1)
 
-    def resolve_all(self, identifiers, additional_variables=None,
-                    run_namespace=None, level=0, do_warn=True):
+    def resolve_all(self, identifiers, user_identifiers=None,
+                    additional_variables=None, run_namespace=None, level=0):
         '''
         Resolve a list of identifiers. Calls `Group.resolve` for each
         identifier.
@@ -567,6 +566,11 @@ class Group(BrianObject):
         ----------
         identifiers : iterable of str
             The names to look up.
+        user_identifiers : iterable of str, optional
+            The names in ``identifiers`` that were provided by the user (i.e.
+            are part of user-specified equations, abstract code, etc.). Will
+            be used to determine when to issue namespace conflict warnings. If
+            not specified, will be assumed to be identical to ``identifiers``.
         additional_variables : dict-like, optional
             An additional mapping of names to `Variable` objects that will be
             checked before `Group.variables`.
@@ -592,17 +596,19 @@ class Group(BrianObject):
         KeyError
             If one of the names in `identifier` cannot be resolved
         '''
+        if user_identifiers is None:
+            user_identifiers = identifiers
         resolved = {}
         for identifier in identifiers:
             resolved[identifier] = self.resolve(identifier,
+                                                identifier in user_identifiers,
                                                 additional_variables=additional_variables,
                                                 run_namespace=run_namespace,
-                                                level=level+1,
-                                                do_warn=do_warn)
+                                                level=level+1)
         return resolved
 
-    def _resolve_external(self, identifier, run_namespace=None, level=0,
-                          do_warn=True):
+    def _resolve_external(self, identifier, user_identifier=True,
+                          run_namespace=None, level=0):
         '''
         Resolve an external identifier in the context of a `Group`. If the `Group`
         declares an explicit namespace, this namespace is used in addition to the
@@ -617,6 +623,11 @@ class Group(BrianObject):
         ----------
         identifier : str
             The name to resolve.
+        user_identifier : bool, optional
+            Whether this is an identifier that was used by the user (and not
+            something automatically generated that the user might not even
+            know about). Will be used to determine whether to display a
+            warning in the case of namespace clashes. Defaults to ``True``.
         group : `Group`
             The group that potentially defines an explicit namespace for looking up
             external names.
@@ -625,9 +636,6 @@ class Group(BrianObject):
             argument to the `Network.run` function.
         level : int, optional
             How far to go up in the stack to find the calling frame.
-        do_warn : int, optional
-            Whether to display a warning if an identifier resolves to different
-            objects in different namespaces. Defaults to ``True``.
         '''
         # We save tuples of (namespace description, referred object) to
         # give meaningful warnings in case of duplicate definitions
@@ -675,7 +683,7 @@ class Group(BrianObject):
                 found_mismatch = True
                 break
 
-            if found_mismatch and do_warn:
+            if found_mismatch and user_identifier:
                 _conflict_warning(('The name "%s" refers to different objects '
                                    'in different namespaces used for resolving '
                                    'names in the context of group "%s". '
@@ -703,22 +711,6 @@ class Group(BrianObject):
             resolved = Constant(identifier, unit=unit, value=value)
 
         return resolved
-
-    def _resolve_all_external(self, identifiers, run_namespace=None, level=0):
-        '''
-        Parameters
-        ----------
-        do_warn : int, optional
-            Whether to display a warning if an identifier resolves to different
-            objects in different namespaces. Defaults to ``True``.
-        '''
-        resolutions = {}
-        for identifier in identifiers:
-            resolved = self.resolve(identifier, run_namespace=run_namespace,
-                                    level=level+1)
-            resolutions[identifier] = resolved
-
-        return resolutions
 
     def custom_operation(self, code, dt=None, clock=None, when='start',
                          order=0, name=None):
@@ -798,8 +790,9 @@ class CodeRunner(BrianObject):
     '''
     add_to_magic_network = True
     invalidates_magic_network = True
-    def __init__(self, group, template, code='', clock=None, dt=None,
-                 when='end', order=0, name='coderunner*', check_units=True,
+    def __init__(self, group, template, code, user_code=None,
+                 clock=None, dt=None, when='end',
+                 order=0, name='coderunner*', check_units=True,
                  template_kwds=None, needed_variables=None,
                  override_conditional_write=None,
                  ):
@@ -807,6 +800,7 @@ class CodeRunner(BrianObject):
                              name=name)
         self.group = weakref.proxy(group)
         self.template = template
+        self.user_code = user_code
         self.abstract_code = code
         self.check_units = check_units
         if needed_variables is None:
@@ -832,9 +826,9 @@ class CodeRunner(BrianObject):
             additional_variables = self.variables
         else:
             additional_variables = None
-
         self.codeobj = create_runner_codeobj(group=self.group,
                                              code=self.abstract_code,
+                                             user_code=self.user_code,
                                              template_name=self.template,
                                              name=self.name+'_codeobject*',
                                              check_units=self.check_units,

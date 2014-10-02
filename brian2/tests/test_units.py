@@ -579,15 +579,19 @@ def test_special_case_numpy_functions():
     from brian2.units.unitsafefunctions import ravel, diagonal, trace, dot, where
     
     quadratic_matrix = np.reshape(np.arange(9), (3, 3)) * mV
-    # Check that function and method do the same thing
-    assert_equal(ravel(quadratic_matrix), quadratic_matrix.ravel())
-    # Check that function gives the same result as on unitless arrays
-    assert_equal(np.asarray(ravel(quadratic_matrix)),
-                 ravel(np.asarray(quadratic_matrix)))
-    # Check that the function gives the same results as the original numpy
-    # function
-    assert_equal(np.ravel(np.asarray(quadratic_matrix)),
-                 ravel(np.asarray(quadratic_matrix)))
+
+    # Temporarily suppress warnings related to the matplotlib 1.3 bug
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        # Check that function and method do the same thing
+        assert_equal(ravel(quadratic_matrix), quadratic_matrix.ravel())
+        # Check that function gives the same result as on unitless arrays
+        assert_equal(np.asarray(ravel(quadratic_matrix)),
+                     ravel(np.asarray(quadratic_matrix)))
+        # Check that the function gives the same results as the original numpy
+        # function
+        assert_equal(np.ravel(np.asarray(quadratic_matrix)),
+                     ravel(np.asarray(quadratic_matrix)))
 
     # Do the same checks for diagonal, trace and dot
     assert_equal(diagonal(quadratic_matrix), quadratic_matrix.diagonal())
