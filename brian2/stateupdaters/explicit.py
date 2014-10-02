@@ -220,10 +220,11 @@ class ExplicitStateUpdater(StateUpdateMethod):
     #: A complete state updater description
     DESCRIPTION = ZeroOrMore(STATEMENT) + OUTPUT
      
-    def __init__(self, description, stochastic=None):
+    def __init__(self, description, stochastic=None, custom_check=None):
         self._description = description
         self.stochastic = stochastic
-                
+        self.custom_check = custom_check
+
         try:
             parsed = ExplicitStateUpdater.DESCRIPTION.parseString(description,
                                                                   parseAll=True)
@@ -271,6 +272,8 @@ class ExplicitStateUpdater(StateUpdateMethod):
             return False
         elif (equations.stochastic_type == 'multiplicative' and
               self.stochastic != 'multiplicative'):
+            return False
+        elif self.custom_check and not self.custom_check(equations, variables):
             return False
         else:
             return True

@@ -261,6 +261,17 @@ def test_registration():
 
 
 @attr('codegen-independent')
+def test_custom_check():
+    # Do not integrate equations for variable v
+    no_v_updater = ExplicitStateUpdater('x_new = x',
+                                        custom_check=lambda eqs, vars: not 'v' in eqs)
+
+
+    assert no_v_updater.can_integrate(Equations('dx/dt = -x / tau : 1'), {})
+    assert not no_v_updater.can_integrate(Equations('dv/dt = -v / tau : 1'), {})
+
+
+@attr('codegen-independent')
 def test_determination():
     '''
     Test the determination of suitable state updaters.
@@ -495,5 +506,6 @@ if __name__ == '__main__':
     test_integrator_code2()
     test_priority()
     test_registration()
+    test_custom_check()
     test_subexpressions()
     test_locally_constant_check()
