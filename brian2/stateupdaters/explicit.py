@@ -3,6 +3,7 @@ Numerical integration functions.
 '''
 
 import string
+import operator
 
 import sympy
 from sympy.core.sympify import SympifyError
@@ -315,7 +316,8 @@ class ExplicitStateUpdater(StateUpdateMethod):
         return self._latex()
 
     def _generate_RHS(self, eqs, var, eq_symbols, temp_vars, expr,
-                      non_stochastic_expr, stochastic_expr):
+                      non_stochastic_expr, stochastic_expr,
+                      stochastic_variable=()):
         '''
         Helper function used in `__call__`. Generates the right hand side of
         an abstract code statement by appropriately replacing f, g and t.
@@ -328,7 +330,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 
         '''
         
-        def replace_func(x, t, expr, temp_vars):
+        def replace_func(x, t, expr, temp_vars, stochastic_variable=None):
             '''
             Used to replace a single occurance of ``f(x, t)`` or ``g(x, t)``:
             `expr` is the non-stochastic (in the case of ``f``) or stochastic
@@ -356,9 +358,14 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 # Generate specific temporary variables for the state variable,
                 # e.g. '_k_v' for the state variable 'v' and the temporary
                 # variable 'k'.
-                temp_var_replacements = dict(((self.symbols[temp_var],
-                                               _symbol(temp_var+'_'+var))
-                                              for temp_var in temp_vars))
+                if stochastic_variable is None:
+                    temp_var_replacements = dict(((self.symbols[temp_var],
+                                                   _symbol(temp_var+'_'+var))
+                                                  for temp_var in temp_vars))
+                else:
+                    temp_var_replacements = dict(((self.symbols[temp_var],
+                                                   _symbol(temp_var+'_'+var+'_'+stochastic_variable))
+                                                  for temp_var in temp_vars))
                 # In the expression given as 'x', replace 'x' by the variable
                 # 'var' and all the temporary variables by their
                 # variable-specific counterparts.
@@ -403,9 +410,17 @@ class ExplicitStateUpdater(StateUpdateMethod):
             non_stochastic_result = non_stochastic_result.subs(self.symbols['__x'],
                                                                eq_symbols[var])
             # Replace intermediate variables
-            temp_var_replacements = dict((self.symbols[temp_var],
-                                          _symbol(temp_var+'_'+var))
-                                         for temp_var in temp_vars)
+            if isinstance(stochastic_variable, basestring):
+                stochastic_variable = [stochastic_variable]
+            if stochastic_variable:
+                temp_var_replacements = dict((self.symbols[temp_var],
+                                               reduce(operator.add, [_symbol(temp_var+'_'+var+'_'+xi)
+                                                                     for xi in stochastic_variable]))
+                                             for temp_var in temp_vars)
+            else:
+                temp_var_replacements = dict((self.symbols[temp_var],
+                                              _symbol(temp_var+'_'+var))
+                                             for temp_var in temp_vars)
             non_stochastic_result = non_stochastic_result.subs(temp_var_replacements)
         else:
             non_stochastic_result = None
@@ -414,15 +429,15 @@ class ExplicitStateUpdater(StateUpdateMethod):
         # description
         if not (stochastic is None or stochastic_expr is None):
             stochastic_results = []
-            
-            # We potentially have more than one stochastic variable
-            for xi in stochastic:
+            if isinstance(stochastic_variable, basestring):
+                stochastic_variable = [stochastic_variable]
+            for xi in stochastic_variable:
                 # Replace the g(x, t)*xi part
                 replace_g = lambda x, t:replace_func(x, t, stochastic[xi],
-                                                     temp_vars)
+                                                     temp_vars, xi)
                 stochastic_result = stochastic_expr.replace(self.symbols['__g'],
                                                             replace_g)
-                
+
                 # Replace x and xi by the respective variables
                 stochastic_result = stochastic_result.subs(self.symbols['__x'],
                                                            eq_symbols[var])
@@ -430,12 +445,12 @@ class ExplicitStateUpdater(StateUpdateMethod):
 
                 # Replace intermediate variables
                 temp_var_replacements = dict((self.symbols[temp_var],
-                                              _symbol(temp_var+'_'+var))
+                                              _symbol(temp_var+'_'+var+'_'+xi))
                                              for temp_var in temp_vars)
-                
+
                 stochastic_result = stochastic_result.subs(temp_var_replacements)
 
-                stochastic_results.append(stochastic_result)                        
+                stochastic_results.append(stochastic_result)
         else:
             stochastic_results = []
         
@@ -483,7 +498,9 @@ class ExplicitStateUpdater(StateUpdateMethod):
         
         # The final list of statements
         statements = []
-        
+
+        stochastic_variables = eqs.stochastic_variables
+
         # The variables for the intermediate results in the state updater
         # description, e.g. the variable k in rk2
         intermediate_vars = [var for var, expr in self.statements]
@@ -493,10 +510,9 @@ class ExplicitStateUpdater(StateUpdateMethod):
         eq_variables = dict(((var, _symbol(var)) for var in eqs.eq_names))
         
         # Generate the random numbers for the stochastic variables
-        stochastic_variables = eqs.stochastic_variables
         for stochastic_variable in stochastic_variables:
             statements.append(stochastic_variable + ' = ' + 'dt**.5 * randn()')
-        
+
         # Process the intermediate statements in the stateupdater description
         for intermediate_var, intermediate_expr in self.statements:
                       
@@ -508,10 +524,16 @@ class ExplicitStateUpdater(StateUpdateMethod):
             # We use the model equations where the subexpressions have
             # already been substituted into the model equations.
             for var, expr in eqs.substituted_expressions:
-                RHS = self._generate_RHS(eqs, var, eq_variables, intermediate_vars,
-                                         expr, non_stochastic_expr,
-                                         stochastic_expr)                
-                statements.append(intermediate_var+'_'+var+' = '+RHS)
+                for xi in stochastic_variables:
+                    RHS = self._generate_RHS(eqs, var, eq_variables, intermediate_vars,
+                                             expr, non_stochastic_expr,
+                                             stochastic_expr, xi)
+                    statements.append(intermediate_var+'_'+var+'_'+xi+' = '+RHS)
+                if  not stochastic_variables:   # no stochastic variables
+                    RHS = self._generate_RHS(eqs, var, eq_variables, intermediate_vars,
+                                             expr, non_stochastic_expr,
+                                             stochastic_expr)
+                    statements.append(intermediate_var+'_'+var+' = '+RHS)
                 
         # Process the "return" line of the stateupdater description
         non_stochastic_expr, stochastic_expr = split_expression(self.output)
@@ -520,7 +542,8 @@ class ExplicitStateUpdater(StateUpdateMethod):
         # equations       
         for var, expr in eqs.substituted_expressions:
             RHS = self._generate_RHS(eqs, var, eq_variables, intermediate_vars,
-                                     expr, non_stochastic_expr, stochastic_expr)
+                                     expr, non_stochastic_expr, stochastic_expr,
+                                     stochastic_variables)
             statements.append('_' + var + ' = ' + RHS)
         
         # Assign everything to the final variables
