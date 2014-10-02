@@ -1,7 +1,9 @@
+from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 from brian2.spatialneuron import *
 from brian2.units.stdunits import um
 
+@attr('codegen-independent')
 def test_basicshapes():
     morpho = Soma(diameter=30*um)
     morpho.L = Cylinder(length=10*um, diameter=1*um, n=10)
@@ -14,6 +16,7 @@ def test_basicshapes():
     # Check that end point is at distance 15 um from soma
     assert_allclose(morpho.LL.distance[-1],15*um)
 
+@attr('codegen-independent')
 def test_subgroup():
     morpho = Soma(diameter=30*um)
     morpho.L = Cylinder(length=10*um, diameter=1*um, n=10)

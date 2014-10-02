@@ -1,8 +1,10 @@
+from nose.plugins.attrib import attr
 import numpy as np
 from numpy.testing.utils import assert_equal
 
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 
+@attr('codegen-independent')
 def test_dynamic_array_1d_access():
     da = DynamicArray1D(10)
     da[:] = np.arange(10)
@@ -16,6 +18,7 @@ def test_dynamic_array_1d_access():
     assert all(da[:] == (np.arange(10) + 2))
 
 
+@attr('codegen-independent')
 def test_dynamic_array_1d_resize():
     for numpy_resize in [True, False]:
         da = DynamicArray1D(10, use_numpy_resize=numpy_resize)
@@ -31,6 +34,7 @@ def test_dynamic_array_1d_resize():
         assert all(da[:] == np.arange(5))
 
 
+@attr('codegen-independent')
 def test_dynamic_array_1d_shrink():
     for numpy_resize in [True, False]:
         da = DynamicArray1D(10, use_numpy_resize=numpy_resize)
@@ -42,6 +46,7 @@ def test_dynamic_array_1d_shrink():
         assert len(da._data) == 5
 
 
+@attr('codegen-independent')
 def test_dynamic_array_2d_access():
     da = DynamicArray1D((10, 20))
     da[:, :] = np.arange(200).reshape((10, 20))
@@ -54,6 +59,7 @@ def test_dynamic_array_2d_access():
     assert_equal(da[:, :], np.arange(200).reshape((10, 20)) + 2)
 
 
+@attr('codegen-independent')
 def test_dynamic_array_2d_resize():
     for numpy_resize in [True, False]:
         da = DynamicArray((10, 20), use_numpy_resize=numpy_resize)
@@ -72,6 +78,7 @@ def test_dynamic_array_2d_resize():
         assert_equal(da[:, :], np.arange(200).reshape((10, 20)))
 
 
+@attr('codegen-independent')
 def test_dynamic_array_2d_shrink():
     for numpy_resize in [True, False]:
         da = DynamicArray((10, 20), use_numpy_resize=numpy_resize)

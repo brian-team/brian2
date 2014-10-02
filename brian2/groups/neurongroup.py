@@ -90,6 +90,7 @@ class StateUpdater(CodeRunner):
         else:
             identifiers = get_identifiers(ref)
             variables = self.group.resolve_all(identifiers,
+                                               identifiers,
                                                run_namespace=run_namespace,
                                                level=level+1)
             unit = parse_expression_unit(str(ref), variables)
@@ -127,6 +128,10 @@ class StateUpdater(CodeRunner):
         external_names = self.group.equations.identifiers | set(['dt'])
 
         variables = self.group.resolve_all(used_known | unknown | names | external_names,
+                                           # we don't need to raise any warnings
+                                           # for the user here, warnings will
+                                           # be raised in create_runner_codeobj
+                                           set(),
                                            run_namespace=run_namespace, level=level+1)
 
         # Since we did not necessarily no all the functions at creation time,
@@ -135,6 +140,11 @@ class StateUpdater(CodeRunner):
                                                                variables,
                                                                self.method_choice)
         self.abstract_code += self.method(self.group.equations, variables)
+        user_code = '\n'.join(['{var} = {expr}'.format(var=var, expr=expr)
+                               for var, expr in
+                               self.group.equations.substituted_expressions])
+        self.user_code = user_code
+
 
 
 class Thresholder(CodeRunner):
@@ -170,6 +180,7 @@ class Thresholder(CodeRunner):
 
     def update_abstract_code(self, run_namespace=None, level=0):
         code = self.group.threshold
+        self.user_code = '_cond = ' + code
         # Raise a useful error message when the user used a Brian1 syntax
         if not isinstance(code, basestring):
             if isinstance(code, Quantity):
@@ -184,6 +195,7 @@ class Thresholder(CodeRunner):
 
         identifiers = get_identifiers(code)
         variables = self.group.resolve_all(identifiers,
+                                           identifiers,
                                            run_namespace=run_namespace,
                                            level=level+1)
         if not is_boolean_expression(self.group.threshold, variables):

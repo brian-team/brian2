@@ -4,6 +4,7 @@ import sympy
 import numpy as np
 from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 from nose import SkipTest
+from nose.plugins.attrib import attr
 
 from brian2.core.variables import linked_var
 from brian2.core.network import Network
@@ -21,6 +22,7 @@ from brian2.units.stdunits import ms, mV, Hz
 from brian2.utils.logger import catch_logs
 
 
+@attr('codegen-independent')
 def test_creation():
     '''
     A basic test that creating a NeuronGroup works.
@@ -45,6 +47,7 @@ def test_creation():
     assert_raises(TypeError, lambda: NeuronGroup(1, object()))
 
 
+@attr('codegen-independent')
 def test_variables():
     '''
     Test the correct creation of the variables dictionary.
@@ -346,6 +349,7 @@ def test_linked_subexpression_synapse():
     assert 'x_post' not in S.variables
 
 
+@attr('codegen-independent')
 def test_linked_variable_indexed_incorrect():
     '''
     Test errors when providing incorrect index arrays
@@ -380,7 +384,8 @@ def test_linked_synapses():
     G2 = NeuronGroup(100, 'x : 1 (linked)')
     assert_raises(NotImplementedError, lambda: setattr(G2, 'x', linked_var(S, 'w')))
     
-    
+
+@attr('codegen-independent')
 def test_unit_errors():
     '''
     Test that units are checked for a complete namespace.
@@ -391,6 +396,8 @@ def test_unit_errors():
     assert_raises(DimensionMismatchError,
                   lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) + 2*mV: 1'))
 
+
+@attr('codegen-independent')
 def test_incomplete_namespace():
     '''
     Test that the namespace does not have to be complete at creation time.
@@ -399,15 +406,16 @@ def test_incomplete_namespace():
     G = NeuronGroup(1, 'dv/dt = -v/tau : 1', namespace={})
     G.namespace['tau'] = 10*ms
     net = Network(G)
-    net.run(1*ms)
+    net.run(0*ms)
 
     # This uses tau which is not defined yet (implicit namespace)
     G = NeuronGroup(1, 'dv/dt = -v/tau : 1')
     tau = 10*ms
     net = Network(G)
-    net.run(1*ms)
+    net.run(0*ms)
 
 
+@attr('codegen-independent')
 def test_namespace_errors():
 
     # model equations use unknown identifier
@@ -426,6 +434,7 @@ def test_namespace_errors():
     assert_raises(KeyError, lambda: net.run(1*ms))
 
 
+@attr('codegen-independent')
 def test_namespace_warnings():
     G = NeuronGroup(1, '''x : 1
                           y : 1''',
@@ -435,17 +444,54 @@ def test_namespace_warnings():
     y = 5
     with catch_logs() as l:
         G.x = 'y'
-        assert len(l) == 1
+        assert len(l) == 1, 'got %s as warnings' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
+
+    del y
 
     # conflicting variables with special meaning
     i = 5
     N = 3
     with catch_logs() as l:
         G.x = 'i / N'
-        assert len(l) == 2
+        assert len(l) == 2, 'got %s as warnings' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
         assert l[1][1].endswith('.resolution_conflict')
+
+    del i
+    del N
+    # conflicting variables in equations
+    y = 5*Hz
+    G = NeuronGroup(1, '''y : Hz
+                          dx/dt = y : 1''', name='group_2')
+
+    net = Network(G)
+    with catch_logs() as l:
+        net.run(0*ms)
+        assert len(l) == 1, 'got %s as warnings' % str(l)
+        assert l[0][1].endswith('.resolution_conflict')
+    del y
+
+    i = 5
+    # i is referring to the neuron number:
+    G = NeuronGroup(1, '''dx/dt = i*Hz : 1''', name='group_3')
+    net = Network(G)
+    with catch_logs() as l:
+        net.run(0*ms)
+        assert len(l) == 1, 'got %s as warnings' % str(l)
+        assert l[0][1].endswith('.resolution_conflict')
+    del i
+
+    # Variables that are used internally but not in equations should not raise
+    # a warning
+    N = 3
+    i = 5
+    dt = 1*ms
+    G = NeuronGroup(1, '''dx/dt = x/(10*ms) : 1''', name='group_4')
+    net = Network(G)
+    with catch_logs() as l:
+        net.run(0*ms)
+        assert len(l) == 0, 'got %s as warnings' % str(l)
 
 
 def test_threshold_reset():
@@ -460,6 +506,8 @@ def test_threshold_reset():
     net.run(defaultclock.dt)
     assert_equal(G.v[:], np.array([0, 1, 0.5]))
 
+
+@attr('codegen-independent')
 def test_unit_errors_threshold_reset():
     '''
     Test that unit errors in thresholds and resets are detected.
@@ -501,6 +549,8 @@ def test_unit_errors_threshold_reset():
                   lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
                                       reset='''v -= 60*mV'''))
 
+
+@attr('codegen-independent')
 def test_syntax_errors():
     '''
     Test that syntax errors are already caught at initialization time.
@@ -759,6 +809,7 @@ def test_subexpression_with_constant():
         assert(len(str(G.I)))
         assert(len(repr(G.I)))
 
+
 def test_scalar_parameter_access():
     G = NeuronGroup(10, '''dv/dt = freq : 1
                            freq : Hz (shared)
@@ -809,6 +860,7 @@ def test_scalar_subexpression():
     assert_raises(SyntaxError, lambda: NeuronGroup(10, 'sub = rand() : 1 (shared)'))
 
 
+@attr('codegen-independent')
 def test_repr():
     G = NeuronGroup(10, '''dv/dt = -(v + Inp) / tau : volt
                            Inp = sin(2*pi*freq*t) : volt
@@ -831,6 +883,7 @@ def test_indices():
     assert_equal(G.indices['v >= 5'], np.nonzero(G.v >= 5)[0])
 
 
+@attr('codegen-independent')
 def test_get_dtype():
     '''
     Check the utility function get_dtype

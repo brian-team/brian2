@@ -1,4 +1,3 @@
-import numpy as np
 from numpy.testing.utils import assert_equal
 
 from brian2 import *

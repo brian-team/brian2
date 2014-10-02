@@ -1,9 +1,10 @@
-import numpy as np
+from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 
 from brian2 import *
 
 
+@attr('codegen-independent')
 def test_str_repr():
     '''
     Test the string representation of a subgroup.
@@ -50,6 +51,7 @@ def test_state_variables():
     assert_raises(DimensionMismatchError, lambda: SG.v.__iadd__(3))
     assert_raises(DimensionMismatchError, lambda: SG.v.__imul__(3*second))
 
+
 def test_state_variables_string_indices():
     '''
     Test accessing subgroups with string indices.
@@ -65,6 +67,7 @@ def test_state_variables_string_indices():
     SG.v['i > 3'] = 'i*10*mV'
 
     assert_equal(G.v[:], [0, 1, 2, 3, 4, 5, 6, 7, 40, 9] * mV)
+
 
 def test_state_monitor():
     G = NeuronGroup(10, 'v : volt')
@@ -266,6 +269,7 @@ def test_spike_monitor():
     assert_equal(sub_s_mon.count, expected)
 
 
+@attr('codegen-independent')
 def test_wrong_indexing():
     G = NeuronGroup(10, 'v:1')
     assert_raises(TypeError, lambda: G[0])

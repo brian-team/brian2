@@ -1,4 +1,5 @@
 from nose import SkipTest
+from nose.plugins.attrib import attr
 from numpy.testing import assert_equal, assert_raises, assert_allclose
 
 from brian2 import *
@@ -6,6 +7,7 @@ from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.utils.logger import catch_logs
 
 
+@attr('codegen-independent')
 def test_constants_sympy():
     '''
     Make sure that symbolic constants are understood correctly by sympy
@@ -28,20 +30,17 @@ def test_constants_values():
     assert G.v == np.inf
 
 
-def test_math_functions():
+def test_math_functions_short():
     '''
     Test that math functions give the same result, regardless of whether used
-    directly or in generated Python or C++ code.
+    directly or in generated Python or C++ code. Test only a few functions
     '''
     default_dt = defaultclock.dt
     test_array = np.array([-1, -0.5, 0, 0.5, 1])
 
     with catch_logs() as _:  # Let's suppress warnings about illegal values
         # Functions with a single argument
-        for func in [sin, cos, tan, sinh, cosh, tanh,
-                     arcsin, arccos, arctan,
-                     exp, log, log10,
-                     np.sqrt, np.ceil, np.floor, np.abs]:
+        for func in [exp, np.sqrt]:
 
             # Calculate the result directly
             numpy_result = func(test_array)
@@ -78,6 +77,45 @@ def test_math_functions():
             G = NeuronGroup(len(test_array),
                             '''func = variable {op} scalar : 1
                                variable : 1'''.format(op=operator))
+            G.variable = test_array
+            mon = StateMonitor(G, 'func', record=True)
+            net = Network(G, mon)
+            net.run(default_dt)
+
+            assert_allclose(numpy_result, mon.func_.flatten(),
+                            err_msg='Function %s did not return the correct values' % func.__name__)
+
+
+@attr('long')
+def test_math_functions():
+    '''
+    Test that math functions give the same result, regardless of whether used
+    directly or in generated Python or C++ code. Tests the remaining functions
+    that were not yet tested by test_math_functions_short
+    '''
+    default_dt = defaultclock.dt
+    test_array = np.array([-1, -0.5, 0, 0.5, 1])
+
+    with catch_logs() as _:  # Let's suppress warnings about illegal values
+        # Functions with a single argument
+        for func in [cos, tan, sinh, cosh, tanh,
+                     arcsin, arccos, arctan,
+                     log, log10,
+                     np.ceil, np.floor]:
+
+            # Calculate the result directly
+            numpy_result = func(test_array)
+
+            # Calculate the result in a somewhat complicated way by using a
+            # subexpression in a NeuronGroup
+            if func.__name__ == 'absolute':
+                # we want to use the name abs instead of absolute
+                func_name = 'abs'
+            else:
+                func_name = func.__name__
+            G = NeuronGroup(len(test_array),
+                            '''func = {func}(variable) : 1
+                               variable : 1'''.format(func=func_name))
             G.variable = test_array
             mon = StateMonitor(G, 'func', record=True)
             net = Network(G, mon)
@@ -310,6 +348,7 @@ def test_manual_user_defined_function_weave():
     assert mon[0].func == [6] * volt
 
 
+@attr('codegen-independent')
 def test_user_defined_function_discarding_units():
     # A function with units that should discard units also inside the function
     @make_function(discard_units=True)
@@ -323,6 +362,7 @@ def test_user_defined_function_discarding_units():
     assert foo.implementations[NumpyCodeObject].get_code(None)(5) == 8
 
 
+@attr('codegen-independent')
 def test_user_defined_function_discarding_units_2():
     # Add a numpy implementation explicitly (as in TimedArray)
     unit = volt
@@ -341,6 +381,8 @@ def test_user_defined_function_discarding_units_2():
     # Test the function that is used during a run
     assert foo.implementations[NumpyCodeObject].get_code(None)(5) == 8
 
+
+@attr('codegen-independent')
 def test_function_implementation_container():
     import brian2.codegen.targets as targets
 
@@ -423,4 +465,3 @@ if __name__ == '__main__':
             f()
         except SkipTest as e:
             print 'Skipping test', f.__name__, e
-        

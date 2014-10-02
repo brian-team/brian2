@@ -3,7 +3,7 @@ import uuid
 import sympy
 import numpy
 from numpy.testing.utils import assert_raises
-from nose import SkipTest
+from nose.plugins.attrib import attr
 
 from brian2.core.preferences import brian_prefs
 from brian2.groups.group import Group
@@ -26,12 +26,11 @@ def _assert_one_warning(l):
     assert l[0][0] == 'WARNING', "expected a WARNING, got %s instead" % l[0][0]
 
 
+@attr('codegen-independent')
 def test_default_content():
     '''
     Test that the default namespace contains standard units and functions.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     group = Group()
     # Units
     assert group.resolve('second', None).get_value_with_unit() == second
@@ -54,10 +53,9 @@ def test_default_content():
     assert group.resolve('inf').get_value() == numpy.inf
 
 
+@attr('codegen-independent')
 def test_explicit_namespace():
     ''' Test resolution with an explicitly provided namespace '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     group = SimpleGroup(namespace={'variable': 42}, variables={})
 
     # Explicitly provided
@@ -78,9 +76,8 @@ def test_explicit_namespace():
         assert len(l) == 0
 
 
+@attr('codegen-independent')
 def test_errors():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # No explicit namespace
     group = SimpleGroup(namespace=None, variables={})
     assert_raises(KeyError, lambda: group.resolve('nonexisting_variable'))
@@ -90,13 +87,12 @@ def test_errors():
     assert_raises(KeyError, lambda: group.resolve('nonexisting_variable'))
 
 
+@attr('codegen-independent')
 def test_resolution():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # implicit namespace
     tau = 10*ms
     group = SimpleGroup(namespace=None, variables={})
-    resolved = group.resolve_all(['tau', 'ms'])
+    resolved = group.resolve_all(['tau', 'ms'], ['tau', 'ms'])
     assert len(resolved) == 2
     assert type(resolved) == type(dict())
     assert resolved['tau'].get_value_with_unit() == tau
@@ -106,14 +102,13 @@ def test_resolution():
     # explicit namespace
     group = SimpleGroup(namespace={'tau': 20 * ms}, variables={})
 
-    resolved = group.resolve_all(['tau', 'ms'])
+    resolved = group.resolve_all(['tau', 'ms'], ['tau', 'ms'])
     assert len(resolved) == 2
     assert resolved['tau'].get_value_with_unit() == 20 * ms
 
 
+@attr('codegen-independent')
 def test_warning():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     from brian2.core.functions import DEFAULT_FUNCTIONS
     from brian2.units.stdunits import cm as brian_cm
     # Name in external namespace clashes with unit/function name
@@ -133,7 +128,6 @@ def test_warning():
 
 
 if __name__ == '__main__':
-    brian_prefs.codegen.target = 'numpy'
     test_default_content()
     test_explicit_namespace()
     test_errors()

@@ -1,4 +1,4 @@
-from nose import SkipTest
+from nose.plugins.attrib import attr
 import numpy as np
 from numpy.testing import assert_raises, assert_equal
 import sympy
@@ -20,13 +20,11 @@ def sympy_equals(expr1, expr2):
     s_expr2 = sympy.sympify(expr2).expand()
     return s_expr1 == s_expr2
 
-
+@attr('codegen-independent')
 def test_expr_creation():
     '''
     Test creating expressions.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     expr = Expression('v > 5 * mV')
     assert expr.code == 'v > 5 * mV'
     assert ('v' in expr.identifiers and 'mV' in expr.identifiers and
@@ -34,9 +32,8 @@ def test_expr_creation():
     assert_raises(SyntaxError, lambda: Expression('v 5 * mV'))
 
 
+@attr('codegen-independent')
 def test_split_stochastic():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     tau = 5 * ms
     expr = Expression('(-v + I) / tau')
     # No stochastic part
@@ -60,6 +57,7 @@ def test_split_stochastic():
     assert_raises(ValueError, expr.split_stochastic)
     
 
+@attr('codegen-independent')
 def test_str_repr():
     '''
     Test the string representation of expressions and statements. Assumes that
@@ -67,8 +65,6 @@ def test_str_repr():
     string of the form "Expression(...)" or "Statements(...)" that can be
     evaluated.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     expr_string = '(v - I)/ tau'
     expr = Expression(expr_string)
     
@@ -85,7 +81,6 @@ def test_str_repr():
     assert repr(statement) == "Statements('v += w')"
 
 if __name__ == '__main__':
-    brian_prefs.codegen.target = 'numpy'  # otherwise not all tests are run
     test_expr_creation()
     test_split_stochastic()
     test_str_repr()

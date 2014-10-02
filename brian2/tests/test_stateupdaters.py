@@ -2,19 +2,18 @@ import re
 from collections import namedtuple
 
 from numpy.testing.utils import assert_equal, assert_raises
-from nose import SkipTest
+from nose.plugins.attrib import attr
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
 from brian2.core.variables import ArrayVariable, AttributeVariable, Variable
 
 
+@attr('codegen-independent')
 def test_explicit_stateupdater_parsing():
     '''
     Test the parsing of explicit state updater descriptions.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # These are valid descriptions and should not raise errors
     updater = ExplicitStateUpdater('x_new = x + dt * f(x, t)')
     updater(Equations('dv/dt = -v / tau : 1'))
@@ -44,25 +43,24 @@ def test_explicit_stateupdater_parsing():
     updater = ExplicitStateUpdater('''x_new = x + dt * f(x, t) * g(x, t) * dW''')
     assert_raises(ValueError, lambda: updater(Equations('')))
 
+
+@attr('codegen-independent')
 def test_str_repr():
     '''
     Assure that __str__ and __repr__ do not raise errors 
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     for integrator in [linear, euler, rk2, rk4]:
         assert len(str(integrator))
         assert len(repr(integrator))
 
 
+@attr('codegen-independent')
 def test_temporary_variables():
     '''
     Make sure that the code does the distinction between temporary variables
     in the state updater description and external variables used in the
     equations.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # Use a variable name that is used in the state updater description
     k_2 = 5
     eqs = Equations('dv/dt = -(v + k_2)/(10*ms) : 1')
@@ -77,14 +75,13 @@ def test_temporary_variables():
     assert converted == converted2.replace('k_var', 'k_2')
 
 
+@attr('codegen-independent')
 def test_temporary_variables2():
     '''
     Make sure that the code does the distinction between temporary variables
     in the state updater description and external variables used in the
     equations.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     tau = 10*ms
     # Use a variable name that is used in the state updater description
     k = 5
@@ -99,12 +96,12 @@ def test_temporary_variables2():
     # Make sure that the two formulations result in the same code
     assert converted == converted2.replace('k_var', 'k')
 
+
+@attr('codegen-independent')
 def test_integrator_code():
     '''
     Check whether the returned abstract code is as expected.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # A very simple example where the abstract code should always look the same
     eqs = Equations('dv/dt = -v / (1 * second) : 1')
     
@@ -133,12 +130,11 @@ def test_integrator_code():
             assert code_var == code_v
 
 
+@attr('codegen-independent')
 def test_integrator_code2():
     '''
     Test integration for a simple model with several state variables.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     eqs = Equations('''
     dv/dt=(ge+gi-v)/tau : volt
     dge/dt=-ge/taue : volt
@@ -159,9 +155,8 @@ def test_integrator_code2():
             assert variable in rhs, '%s not in RHS: "%s"' % (variable, rhs)
 
 
+@attr('codegen-independent')
 def test_priority():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     updater = ExplicitStateUpdater('x_new = x + dt * f(x, t)')
     # Equations that work for the state updater
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
@@ -237,6 +232,7 @@ def test_priority():
         assert integrator.can_integrate(eqs, variables) == able
     
 
+@attr('codegen-independent')
 def test_registration():
     '''
     Test state updater registration.
@@ -264,12 +260,11 @@ def test_registration():
     StateUpdateMethod.stateupdaters = before 
 
 
+@attr('codegen-independent')
 def test_determination():
     '''
     Test the determination of suitable state updaters.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # To save some typing
     determine_stateupdater = StateUpdateMethod.determine_stateupdater
     
@@ -382,6 +377,30 @@ def test_determination():
     # reset to state before the test
     StateUpdateMethod.stateupdaters = before
 
+
+def test_subexpressions_basic():
+    '''
+    Make sure that the integration of a (non-stochastic) differential equation
+    does not depend on whether it's formulated using subexpressions.
+    '''
+    # no subexpression
+    eqs1 = 'dv/dt = (-v + sin(2*pi*100*Hz*t)) / (10*ms) : 1'
+    # same with subexpression
+    eqs2 = '''dv/dt = I / (10*ms) : 1
+              I = -v + sin(2*pi*100*Hz*t): 1'''
+    method = 'euler'
+    G1 = NeuronGroup(1, eqs1, method=method)
+    G1.v = 1
+    G2 = NeuronGroup(1, eqs2, method=method)
+    G2.v = 1
+    mon1 = StateMonitor(G1, 'v', record=True)
+    mon2 = StateMonitor(G2, 'v', record=True)
+    net = Network(G1, mon1, G2, mon2)
+    net.run(10*ms)
+    assert_equal(mon1.v, mon2.v, 'Results for method %s differed!' % method)
+
+
+@attr('long')
 def test_subexpressions():
     '''
     Make sure that the integration of a (non-stochastic) differential equation
@@ -393,7 +412,7 @@ def test_subexpressions():
     eqs2 = '''dv/dt = I / (10*ms) : 1
               I = -v + sin(2*pi*100*Hz*t): 1'''
     
-    methods = ['euler', 'exponential_euler', 'rk2', 'rk4']
+    methods = ['exponential_euler', 'rk2', 'rk4']  # euler is tested in test_subexpressions_basic
     for method in methods:
         G1 = NeuronGroup(1, eqs1, method=method)
         G1.v = 1
@@ -401,16 +420,13 @@ def test_subexpressions():
         G2.v = 1
         mon1 = StateMonitor(G1, 'v', record=True)
         mon2 = StateMonitor(G2, 'v', record=True)
-        net1 = Network(G1, mon1)
-        net2 = Network(G2, mon2)
-        net1.run(10*ms)
-        net2.run(10*ms)
+        net = Network(G1, mon1, G2, mon2)
+        net.run(10*ms)
         assert_equal(mon1.v, mon2.v, 'Results for method %s differed!' % method)
 
 
+@attr('codegen-independent')
 def test_locally_constant_check():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     default_dt = defaultclock.dt
     # The linear state update can handle additive time-dependent functions
     # (e.g. a TimedArray) but only if it can be safely assumed that the function
@@ -470,7 +486,6 @@ def test_locally_constant_check():
     net.run(0*ms)
 
 if __name__ == '__main__':
-    brian_prefs.codegen.target = 'numpy'  # (otherwise not all tests are run)
     test_determination()
     test_explicit_stateupdater_parsing()
     test_str_repr()
