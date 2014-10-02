@@ -92,7 +92,7 @@ def test_resolution():
     # implicit namespace
     tau = 10*ms
     group = SimpleGroup(namespace=None, variables={})
-    resolved = group.resolve_all(['tau', 'ms'])
+    resolved = group.resolve_all(['tau', 'ms'], ['tau', 'ms'])
     assert len(resolved) == 2
     assert type(resolved) == type(dict())
     assert resolved['tau'].get_value_with_unit() == tau
@@ -102,7 +102,7 @@ def test_resolution():
     # explicit namespace
     group = SimpleGroup(namespace={'tau': 20 * ms}, variables={})
 
-    resolved = group.resolve_all(['tau', 'ms'])
+    resolved = group.resolve_all(['tau', 'ms'], ['tau', 'ms'])
     assert len(resolved) == 2
     assert resolved['tau'].get_value_with_unit() == 20 * ms
 

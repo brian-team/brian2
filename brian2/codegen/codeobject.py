@@ -77,7 +77,7 @@ class CodeObject(Nameable):
         raise NotImplementedError()
 
 
-def check_code_units(code, group, additional_variables=None,
+def check_code_units(code, group, user_code=None, additional_variables=None,
                      level=0, run_namespace=None,):
     '''
     Check statements for correct units.
@@ -88,6 +88,10 @@ def check_code_units(code, group, additional_variables=None,
         The series of statements to check
     group : `Group`
         The context for the code execution
+    user_code : str, optional
+        The code that was provided by the user. Used to determine whether to
+        emit warnings and for better error messages. If not specified, assumed
+        to be equal to ``code``.
     additional_variables : dict-like, optional
         A mapping of names to `Variable` objects, used in addition to the
         variables saved in `self.group`.
@@ -105,6 +109,9 @@ def check_code_units(code, group, additional_variables=None,
     if additional_variables is not None:
         all_variables.update(additional_variables)
 
+    if user_code is None:
+        user_code = code
+
     # Resolve the namespace, resulting in a dictionary containing only the
     # external variables that are needed by the code -- keep the units for
     # the unit checks
@@ -112,8 +119,10 @@ def check_code_units(code, group, additional_variables=None,
     # subexpressions. For unit checking, we only need to know the units of
     # the subexpressions not what variables they refer to
     _, _, unknown = analyse_identifiers(code, all_variables)
+    _, _, unknown_user = analyse_identifiers(user_code, all_variables)
 
     resolved_namespace = group.resolve_all(unknown,
+                                           unknown_user,
                                            level=level+1,
                                            run_namespace=run_namespace)
 
@@ -138,6 +147,7 @@ def _error_msg(code, name):
 
 
 def create_runner_codeobj(group, code, template_name,
+                          user_code=None,
                           variable_indices=None,
                           name=None, check_units=True,
                           needed_variables=None,
@@ -159,6 +169,10 @@ def create_runner_codeobj(group, code, template_name,
         The code to be executed.
     template_name : str
         The name of the template to use for the code.
+    user_code : str, optional
+        The code that had been specified by the user before other code was
+        added automatically. If not specified, will be assumed to be identical
+        to ``code``.
     variable_indices : dict-like, optional
         A mapping from `Variable` objects to index names (strings).  If none is
         given, uses the corresponding attribute of `group`.
@@ -197,8 +211,13 @@ def create_runner_codeobj(group, code, template_name,
         else:
             name = '%s_codeobject*' % template_name
 
+    if user_code is None:
+        user_code = code
+
     if isinstance(code, str):
         code = {None: code}
+        user_code = {None: user_code}
+
     msg = 'Creating code object (group=%s, template name=%s) for abstract code:\n' % (group.name, template_name)
     msg += indent(code_representation(code))
     logger.debug(msg)
@@ -233,17 +252,16 @@ def create_runner_codeobj(group, code, template_name,
         all_variables.update(additional_variables)
 
     # Determine the identifiers that were used
-    used_known = set()
-    unknown = set()
-    for v in code.values():
+    identifiers = set()
+    user_identifiers = set()
+    for v, u_v in zip(code.values(), user_code.values()):
         _, uk, u = analyse_identifiers(v, all_variables, recursive=True)
-        used_known |= uk
-        unknown |= u
-
-    logger.debug('Unknown identifiers in the abstract code: ' + ', '.join(unknown))
-
+        identifiers |= uk | u
+        _, uk, u = analyse_identifiers(u_v, all_variables, recursive=True)
+        user_identifiers |= uk | u
     # Only pass the variables that are actually used
-    variables = group.resolve_all(used_known | unknown,
+    variables = group.resolve_all(identifiers,
+                                  user_identifiers,
                                   additional_variables=additional_variables,
                                   run_namespace=run_namespace,
                                   level=level+1)
@@ -271,10 +289,11 @@ def create_runner_codeobj(group, code, template_name,
         needed_variables = []
     # Also add the variables that the template needs
     variables.update(group.resolve_all(set(needed_variables) | set(template.variables),
+                                       # template variables are not known to the user:
+                                       user_identifiers=set(),
                                        additional_variables=additional_variables,
                                        run_namespace=run_namespace,
-                                       level=level+1,
-                                       do_warn=False))  # no warnings for internally used variables
+                                       level=level+1))
 
     all_variable_indices = copy.copy(group.variables.indices)
     if additional_variables is not None:

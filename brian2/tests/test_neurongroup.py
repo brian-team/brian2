@@ -444,17 +444,54 @@ def test_namespace_warnings():
     y = 5
     with catch_logs() as l:
         G.x = 'y'
-        assert len(l) == 1
+        assert len(l) == 1, 'got %s as warnings' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
+
+    del y
 
     # conflicting variables with special meaning
     i = 5
     N = 3
     with catch_logs() as l:
         G.x = 'i / N'
-        assert len(l) == 2
+        assert len(l) == 2, 'got %s as warnings' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
         assert l[1][1].endswith('.resolution_conflict')
+
+    del i
+    del N
+    # conflicting variables in equations
+    y = 5*Hz
+    G = NeuronGroup(1, '''y : Hz
+                          dx/dt = y : 1''', name='group_2')
+
+    net = Network(G)
+    with catch_logs() as l:
+        net.run(0*ms)
+        assert len(l) == 1, 'got %s as warnings' % str(l)
+        assert l[0][1].endswith('.resolution_conflict')
+    del y
+
+    i = 5
+    # i is referring to the neuron number:
+    G = NeuronGroup(1, '''dx/dt = i*Hz : 1''', name='group_3')
+    net = Network(G)
+    with catch_logs() as l:
+        net.run(0*ms)
+        assert len(l) == 1, 'got %s as warnings' % str(l)
+        assert l[0][1].endswith('.resolution_conflict')
+    del i
+
+    # Variables that are used internally but not in equations should not raise
+    # a warning
+    N = 3
+    i = 5
+    dt = 1*ms
+    G = NeuronGroup(1, '''dx/dt = x/(10*ms) : 1''', name='group_4')
+    net = Network(G)
+    with catch_logs() as l:
+        net.run(0*ms)
+        assert len(l) == 0, 'got %s as warnings' % str(l)
 
 
 def test_threshold_reset():

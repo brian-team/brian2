@@ -828,6 +828,7 @@ class Equations(collections.Mapping):
         external -= set(all_variables.keys())
 
         resolved_namespace = group.resolve_all(external,
+                                               external,  # all variables are user defined
                                                run_namespace=run_namespace,
                                                level=level+1)
         all_variables.update(resolved_namespace)
