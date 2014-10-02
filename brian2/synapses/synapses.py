@@ -152,7 +152,7 @@ class SynapticPathway(CodeRunner, Group):
         self.spikes_start = self.source.start
         self.spikes_stop = self.source.stop
 
-        self.spiking_synapses = []
+        self.spiking_synapses = np.array([], dtype=np.int32)
         self.variables = Variables(self)
         self.variables.add_attribute_variable('_spiking_synapses', unit=Unit(1),
                                               obj=self,
@@ -646,12 +646,13 @@ class Synapses(Group):
         if not isinstance(connect, (bool, basestring)):
             raise TypeError(('"connect" keyword has to be a boolean value or a '
                              'string, is type %s instead.' % type(connect)))
-        self._initial_connect = connect
-        if not connect is False:
-            self.connect(connect, level=1)
 
         # Activate name attribute access
         self._enable_group_attributes()
+
+        self._initial_connect = connect
+        if not connect is False:
+            self.connect(connect, level=1)
 
     def __len__(self):
         return len(self.variables['_synaptic_pre'].get_value())
@@ -1024,8 +1025,8 @@ class Synapses(Group):
             # synapses but to all the possible sources/targets
             variables = Variables(None)
             # Will be set in the template
-            variables.add_auxiliary_variable('_i', unit=Unit(1))
-            variables.add_auxiliary_variable('_j', unit=Unit(1))
+            variables.add_auxiliary_variable('_i', unit=Unit(1), dtype=np.int32)
+            variables.add_auxiliary_variable('_j', unit=Unit(1), dtype=np.int32)
             # Make sure that variables have the correct type in the code
             variables.add_auxiliary_variable('_pre_idx', unit=Unit(1), dtype=np.int32)
             variables.add_auxiliary_variable('_post_idx', unit=Unit(1), dtype=np.int32)

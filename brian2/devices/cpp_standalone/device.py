@@ -314,8 +314,7 @@ class CPPStandaloneDevice(Device):
                                   'standalone scripts.')
 
     def code_object_class(self, codeobj_class=None):
-        if codeobj_class is not None:
-            raise ValueError("Cannot specify codeobj_class for C++ standalone device.")
+        # Ignore the requested codeobj_class
         return CPPStandaloneCodeObject
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
@@ -412,6 +411,13 @@ class CPPStandaloneDevice(Device):
         synapses = []
         for net in networks:
             synapses.extend(s for s in net.objects if isinstance(s, Synapses))
+
+        # Not sure what the best place is to call Network.after_run -- at the
+        # moment the only important thing it does is to clear the objects stored
+        # in magic_network. If this is not done, this might lead to problems
+        # for repeated runs of standalone (e.g. in the test suite).
+        for net in networks:
+            net.after_run()
 
         arr_tmp = CPPStandaloneCodeObject.templater.objects(
                         None, None,

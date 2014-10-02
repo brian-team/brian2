@@ -3,12 +3,12 @@ Tests the brian2.parsing package
 '''
 from collections import namedtuple
 
+from nose.plugins.attrib import attr
 from numpy.testing import assert_allclose, assert_raises
 import numpy as np
 
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import Constant
-from brian2.core.functions import Function
 from brian2.groups.group import Group
 from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
@@ -119,18 +119,22 @@ def cpp_evaluator(expr, ns):
         raise nose.SkipTest('No weave support.')
 
 
+@attr('codegen-independent')
 def test_parse_expressions_python():
     parse_expressions(NodeRenderer(), eval)
 
 
+@attr('codegen-independent')
 def test_parse_expressions_numpy():
     parse_expressions(NumpyNodeRenderer(), numpy_evaluator)
 
 
+@attr('codegen-independent')
 def test_parse_expressions_cpp():
     parse_expressions(CPPNodeRenderer(), cpp_evaluator)
 
 
+@attr('codegen-independent')
 def test_parse_expressions_sympy():
     # sympy is about symbolic calculation, the string returned by the renderer
     # contains "Symbol('a')" etc. so we cannot simply evaluate it in a
@@ -150,6 +154,7 @@ def test_parse_expressions_sympy():
     parse_expressions(SympyRenderer(), evaluator)
 
 
+@attr('codegen-independent')
 def test_abstract_code_dependencies():
     code = '''
     a = b+c
@@ -184,6 +189,7 @@ def test_abstract_code_dependencies():
                                         k, getattr(res, k), set(v)))
 
 
+@attr('codegen-independent')
 def test_is_boolean_expression():
     # dummy "Variable" class
     Var = namedtuple("Var", ['is_boolean'])
@@ -235,7 +241,8 @@ def test_is_boolean_expression():
     assert_raises(SyntaxError, is_boolean_expression, 'g(c) and f(a)',
                   variables)
     
-    
+
+@attr('codegen-independent')
 def test_parse_expression_unit():
     Var = namedtuple('Var', ['unit', 'dtype'])
     variables = {'a': Var(unit=volt*amp, dtype=np.float64),
@@ -295,6 +302,7 @@ def test_parse_expression_unit():
         assert_raises(SyntaxError, parse_expression_unit, expr, all_variables)
 
 
+@attr('codegen-independent')
 def test_value_from_expression():
     # This function is used to get the value of an exponent, necessary for unit checking
 
@@ -325,6 +333,7 @@ def test_value_from_expression():
                                                                        variables))
 
 
+@attr('codegen-independent')
 def test_abstract_code_from_function():
     # test basic functioning
     def f(x):
@@ -350,7 +359,7 @@ def test_abstract_code_from_function():
     assert_raises(SyntaxError, abstract_code_from_function, f)
 
 
-
+@attr('codegen-independent')
 def test_extract_abstract_code_functions():
     code = '''
     def f(x):
@@ -366,6 +375,7 @@ def test_extract_abstract_code_functions():
     assert funcs['g'].args == ['V']
 
 
+@attr('codegen-independent')
 def test_substitute_abstract_code_functions():
     def f(x):
         y = x*x
@@ -391,6 +401,8 @@ def test_substitute_abstract_code_functions():
         for k in ['z', 'w', 'h', 'p']:
             assert ns1[k]==ns2[k]
 
+
+@attr('codegen-independent')
 def test_sympytools():
     # sympy_to_str(str_to_sympy(x)) should equal x
 

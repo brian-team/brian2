@@ -2,6 +2,7 @@ import tempfile
 import os
 
 from nose import with_setup
+from nose.plugins.attrib import attr
 import numpy
 from numpy.testing.utils import assert_allclose
 
@@ -15,6 +16,7 @@ def restore_device():
     restore_initial_state()
 
 
+@attr('standalone')
 @with_setup(teardown=restore_device)
 def test_cpp_standalone(with_output=False):
     set_device('cpp_standalone')
@@ -54,6 +56,7 @@ def test_cpp_standalone(with_output=False):
     assert M.t[0] == 0.
     assert M.t[-1] == 100*ms - defaultclock.dt
 
+@attr('standalone')
 @with_setup(teardown=restore_device)
 def test_multiple_connects(with_output=False):
     set_device('cpp_standalone')
@@ -69,7 +72,7 @@ def test_multiple_connects(with_output=False):
                  with_output=True)
     assert len(S) == 2 and len(S.w[:]) == 2
 
-
+@attr('standalone')
 @with_setup(teardown=restore_device)
 def test_storing_loading(with_output=False):
     set_device('cpp_standalone')

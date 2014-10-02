@@ -5,15 +5,17 @@ import logging
 import numpy as np
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
+from nose.plugins.attrib import attr
 
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
                     restore_initial_state, MagicError, Synapses,
                     NeuronGroup, StateMonitor, SpikeMonitor,
                     PopulationRateMonitor, MagicNetwork, magic_network,
-                    PoissonGroup, Hz, collect, store, restore)
+                    PoissonGroup, Hz, collect, store, restore, BrianLogger)
 from brian2.utils.logger import catch_logs
 
+@attr('codegen-independent')
 def test_incorrect_network_use():
     '''Test some wrong uses of `Network` and `MagicNetwork`'''
     assert_raises(TypeError, lambda: Network(name='mynet',
@@ -29,6 +31,7 @@ def test_incorrect_network_use():
     assert_raises(MagicError, lambda: magic_network.remove(G))
 
 
+@attr('codegen-independent')
 def test_network_contains():
     '''
     Test `Network.__contains__`.
@@ -39,6 +42,7 @@ def test_network_contains():
     assert 'neurongroup' not in net
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_empty_network():
     # Check that an empty network functions correctly
@@ -55,6 +59,7 @@ class Counter(BrianObject):
         self.count += 1
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_network_single_object():
     # Check that a network with a single object functions correctly
@@ -63,6 +68,8 @@ def test_network_single_object():
     net.run(1*ms)
     assert_equal(x.count, 10)
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_network_two_objects():
     # Check that a network with two objects and the same clock function correctly
@@ -86,6 +93,8 @@ class NameLister(BrianObject):
     def run(self):
         updates.append(self.name)
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_network_different_clocks():
     # Check that a network with two different clocks functions correctly
@@ -95,6 +104,8 @@ def test_network_different_clocks():
     net.run(10*ms)
     assert_equal(''.join(updates), 'xyxxxyxxxyxxxy')
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_network_different_when():
     # Check that a network with different when attributes functions correctly
@@ -120,6 +131,7 @@ class Preparer(BrianObject):
         self.did_post_run = True        
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_magic_network():
     # test that magic network functions correctly
@@ -144,6 +156,7 @@ class Stopper(BrianObject):
         if self.stoptime<=0:
             self.stopfunc()
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_network_stop():
     # test that Network.stop and global stop() work correctly
@@ -158,6 +171,8 @@ def test_network_stop():
     net.run(10*ms)
     assert_equal(defaultclock.t, 1*ms)
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_network_operations():
     # test NetworkOperation and network_operation
@@ -174,6 +189,8 @@ def test_network_operations():
     run(1*ms)
     assert_equal(''.join(seq), 'bac'*10)
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_network_active_flag():
     # test that the BrianObject.active flag is recognised by Network.run
@@ -184,6 +201,8 @@ def test_network_active_flag():
     assert_equal(x.count, 10)
     assert_equal(y.count, 0)
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_network_t():
     # test that Network.t works as expected
@@ -224,6 +243,8 @@ def test_network_t():
     assert_equal(x.count, 9)
     assert_equal(y.count, 5)
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_incorrect_dt_defaultclock():
     defaultclock.dt = 0.5*ms
@@ -234,6 +255,7 @@ def test_incorrect_dt_defaultclock():
     assert_raises(ValueError, lambda: net.run(0*ms))
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_incorrect_dt_custom_clock():
     clock = Clock(dt=0.5*ms)
@@ -244,6 +266,7 @@ def test_incorrect_dt_custom_clock():
     assert_raises(ValueError, lambda: net.run(0*ms))
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_network_remove():
     x = Counter()
@@ -268,6 +291,7 @@ class NoninvalidatingCounter(Counter):
     add_to_magic_network = True
     invalidates_magic_network = False
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_invalid_magic_network():
     x = Counter()
@@ -300,6 +324,8 @@ def test_invalid_magic_network():
     assert_equal(x.count, 10)
     assert_equal(y.count, 10) 
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_multiple_networks_invalid():
     x = Counter()
@@ -317,6 +343,8 @@ def test_multiple_networks_invalid():
     except RuntimeError:
         pass  # this is expected
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_magic_weak_reference():
     '''
@@ -336,6 +364,7 @@ def test_magic_weak_reference():
         assert '2 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_magic_unused_object():
     '''Test that creating unused objects does not affect the magic system.'''
@@ -355,6 +384,7 @@ def test_magic_unused_object():
         assert '2 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_network_access():
     x = Counter(name='counter')
@@ -379,6 +409,7 @@ def test_network_access():
     assert_raises(KeyError, lambda: net.__delitem__('counter'))
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_dependency_check():
     def create_net():
@@ -443,6 +474,7 @@ def test_loop():
         assert '4 objects' in magic_objects
 
 
+@attr('codegen-independent')
 def test_magic_collect():
     '''
     Make sure all expected objects are collected in a magic network
@@ -475,6 +507,8 @@ def captured_output():
     finally:
         sys.stdout, sys.stderr = old_out, old_err
 
+
+@attr('codegen-independent')
 def test_progress_report():
     '''
     Very basic test of progress reporting
@@ -528,6 +562,7 @@ def test_progress_report():
     assert len(calls) >= 2 and calls[0][1] == 0.0 and calls[-1][1] == 1.0
 
 
+@attr('codegen-independent')
 def test_progress_report_incorrect():
     '''
     Test wrong use of the report option
@@ -538,6 +573,7 @@ def test_progress_report_incorrect():
     assert_raises(TypeError, lambda: net.run(1*ms, report=object()))
 
 
+@attr('codegen-independent')
 def test_store_restore():
     source = NeuronGroup(10, '''dv/dt = rates : 1
                                 rates : Hz''', threshold='v>1', reset='v=0')
@@ -573,6 +609,8 @@ def test_store_restore():
     assert_equal(spike_indices, spike_mon.i[:])
     assert_equal(spike_times, spike_mon.t_[:])
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_store_restore_magic():
     source = NeuronGroup(10, '''dv/dt = rates : 1
@@ -608,8 +646,11 @@ def test_store_restore_magic():
     assert_equal(spike_indices, spike_mon.i[:])
     assert_equal(spike_times, spike_mon.t_[:])
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_defaultclock_dt_changes():
+    BrianLogger.suppress_name('resolution_conflict')
     for dt in [0.1*ms, 0.01*ms, 0.5*ms, 1*ms, 3.3*ms]:
         defaultclock.dt = dt
         G = NeuronGroup(1, 'v:1')
@@ -618,6 +659,8 @@ def test_defaultclock_dt_changes():
         net.run(2*dt)
         assert_equal(mon.t[:], [0, dt/ms]*ms)
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_dt_restore():
     defaultclock.dt = 0.5*ms
@@ -637,6 +680,8 @@ def test_dt_restore():
     assert defaultclock.dt == 0.5*ms
     assert_equal(mon.t[:], [0, 0.5]*ms)
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_continuation():
     defaultclock.dt = 1*ms
@@ -657,6 +702,8 @@ def test_continuation():
     assert_equal(mon.t[:], mon2.t[:])
     assert_equal(mon.v[:], mon2.v[:])
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_multiple_runs_defaultclock():
     defaultclock.dt = 0.1*ms
@@ -672,6 +719,7 @@ def test_multiple_runs_defaultclock():
     net.run(1*ms)
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_multiple_runs_defaultclock_incorrect():
     defaultclock.dt = 0.1*ms
