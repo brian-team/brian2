@@ -1,5 +1,9 @@
-#include<stdlib.h>
+{# IS_OPENMP_COMPATIBLE #}
+#include <stdlib.h>
 #include "objects.h"
+#include <ctime>
+#include <time.h>
+{{ openmp_pragma('include') }}
 #include "run.h"
 
 {% for codeobj in code_objects %}
@@ -10,16 +14,20 @@
 #include "{{name}}"
 {% endfor %}
 
-#include<iostream>
+#include <iostream>
+#include <fstream>
 
 {{report_func|autoindent}}
 
 int main(int argc, char **argv)
 {
+
 	brian_start();
 
 	{
 		using namespace brian;
+
+		{{ openmp_pragma('set_num_threads') }}
         {{main_lines|autoindent}}
 	}
 

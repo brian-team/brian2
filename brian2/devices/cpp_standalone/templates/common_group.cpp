@@ -5,7 +5,6 @@
 #include<stdint.h>
 #include<iostream>
 #include<fstream>
-
 {% block extra_headers %}
 {% endblock %}
 
@@ -18,7 +17,7 @@ namespace {
 {{hashdefine_lines|autoindent}}
 
 void _run_{{codeobj_name}}()
-{
+{	
 	using namespace brian;
 	///// CONSTANTS ///////////
 	%CONSTANTS%
@@ -30,6 +29,7 @@ void _run_{{codeobj_name}}()
 	// scalar code
 	const int _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
+	{{openmp_pragma('static')}} 
 	for(int _idx=0; _idx<N; _idx++)
 	{
 	    // vector code
