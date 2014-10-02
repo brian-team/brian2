@@ -2,6 +2,7 @@ from collections import namedtuple
 
 import numpy as np
 from numpy.testing import assert_raises
+from nose.plugins.attrib import attr
 
 from brian2.codegen.translation import (analyse_identifiers,
                                         get_identifiers_recursively,
@@ -12,6 +13,7 @@ from brian2.units.fundamentalunits import Unit
 
 FakeGroup = namedtuple('FakeGroup', ['variables'])
 
+@attr('codegen-independent')
 def test_analyse_identifiers():
     '''
     Test that the analyse_identifiers function works on a simple clear example.
@@ -32,6 +34,7 @@ def test_analyse_identifiers():
     assert dependent==set(['e', 'f'])
 
 
+@attr('codegen-independent')
 def test_get_identifiers_recursively():
     '''
     Test finding identifiers including subexpressions.
@@ -50,6 +53,7 @@ def test_get_identifiers_recursively():
     assert identifiers == set(['x', '_x', 'y', 'z', 'sub1', 'sub2'])
 
 
+@attr('codegen-independent')
 def test_nested_subexpressions():
     '''
     This test checks that code translation works with nested subexpressions.

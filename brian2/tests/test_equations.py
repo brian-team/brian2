@@ -10,6 +10,7 @@ try:
 except ImportError:
     pprint = None
 from nose import SkipTest
+from nose.plugins.attrib import attr
 
 from brian2 import volt, amp, mV, second, ms, Hz, farad, metre, cm
 from brian2 import Unit, Equations, Expression, sin
@@ -38,9 +39,8 @@ class SimpleGroup(Group):
         self.variables = variables
         self.namespace = namespace
 
+@attr('codegen-independent')
 def test_utility_functions():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     unit_namespace = DEFAULT_UNITS
 
     # Some simple tests whether the namespace returned by
@@ -67,9 +67,8 @@ def test_utility_functions():
     assert_raises(ValueError, lambda: unit_and_type_from_string('farad / cm**2'))
 
 
+@attr('codegen-independent')
 def test_identifier_checks():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     legal_identifiers = ['v', 'Vm', 'V', 'x', 'ge', 'g_i', 'a2', 'gaba_123']
     illegal_identifiers = ['_v', '1v', u'ü', 'ge!', 'v.x', 'for', 'else', 'if']
 
@@ -118,10 +117,9 @@ def test_identifier_checks():
     # registering a non-function should now work
     assert_raises(ValueError, lambda: Equations.register_identifier_check('no function'))
 
+@attr('codegen-independent')
 def test_parse_equations():
     ''' Test the parsing of equation strings '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # A simple equation
     eqs = parse_string_equations('dv/dt = -v / tau : 1')
     assert len(eqs.keys()) == 1 and 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION
@@ -174,12 +172,9 @@ def test_parse_equations():
                       lambda: parse_string_equations(error_eqs))
 
 
-
+@attr('codegen-independent')
 def test_correct_replacements():
     ''' Test replacing variables via keyword arguments '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
-
     # replace a variable name with a new name
     eqs = Equations('dv/dt = -v / tau : 1', v='V')
     # Correct left hand side
@@ -192,10 +187,9 @@ def test_correct_replacements():
     assert not 'tau' in eqs['v'].identifiers
 
 
+@attr('codegen-independent')
 def test_wrong_replacements():
     '''Tests for replacements that should not work'''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # Replacing a variable name with an illegal new name
     assert_raises(ValueError, lambda: Equations('dv/dt = -v / tau : 1',
                                                 v='illegal name'))
@@ -220,12 +214,11 @@ def test_wrong_replacements():
                                                  tau=np.arange(5)))
 
 
+@attr('codegen-independent')
 def test_construction_errors():
     '''
     Test that the Equations constructor raises errors correctly
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # parse error
     assert_raises(EquationError, lambda: Equations('dv/dt = -v / tau volt'))
 
@@ -282,9 +275,8 @@ def test_construction_errors():
     assert_raises(TypeError, lambda: Equations('dv/dt = -v / (10*ms) : integer'))
 
 
+@attr('codegen-independent')
 def test_unit_checking():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # dummy Variable class
     class S(object):
         def __init__(self, unit):
@@ -321,12 +313,11 @@ def test_unit_checking():
                   lambda: eqs.check_units(group))
     
 
+@attr('codegen-independent')
 def test_properties():
     '''
     Test accessing the various properties of equation objects
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     tau = 10 * ms
     eqs = Equations('''dv/dt = -(v + I)/ tau : volt
                        I = sin(2 * 22/7. * f * t)* volt : volt
@@ -377,9 +368,9 @@ def test_properties():
     eqs = Equations('''dv/dt = -v / tau + 0.1*second**-1.5*xi*v : 1''')
     assert eqs.stochastic_type == 'multiplicative'
 
+
+@attr('codegen-independent')
 def test_concatenation():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     eqs1 = Equations('''dv/dt = -(v + I) / tau : volt
                         I = sin(2*pi*freq*t) : volt
                         freq : Hz''')
@@ -409,12 +400,11 @@ def test_concatenation():
     assert str(eqs3) == str(eqs4)
 
 
+@attr('codegen-independent')
 def test_str_repr():
     '''
     Test the string representation (only that it does not throw errors).
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     tau = 10 * ms
     eqs = Equations('''dv/dt = -(v + I)/ tau : volt (unless refractory)
                        I = sin(2 * 22/7. * f * t)* volt : volt
@@ -427,6 +417,7 @@ def test_str_repr():
     for eq in eqs.itervalues():
         assert(len(str(eq))) > 0
         assert(len(repr(eq))) > 0
+
 
 def test_ipython_pprint():
     if pprint is None:
@@ -444,7 +435,6 @@ def test_ipython_pprint():
 
 
 if __name__ == '__main__':
-    brian_prefs.codegen.target = 'numpy'  # otherwise not all tests are run
     test_utility_functions()
     test_identifier_checks()
     test_parse_equations()

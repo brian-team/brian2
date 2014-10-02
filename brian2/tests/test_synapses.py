@@ -21,6 +21,7 @@ def _compare(synapses, expected):
     assert all(synapses.N_incoming[:] == incoming[synapses.j[:]]), 'N_incoming returned an incorrect value'
 
 
+@attr('codegen-independent')
 def test_creation():
     '''
     A basic test that creating a Synapses object works.
@@ -480,6 +481,7 @@ def test_transmission():
                         target_mon.t[target_mon.i==1] - default_dt - delay[1])
 
 
+@attr('codegen-independent')
 def test_clocks():
     '''
     Make sure that a `Synapse` object uses the correct clocks.
@@ -672,6 +674,7 @@ def test_event_driven():
     assert_equal(S1.w[:], S2.w[:])
 
 
+@attr('codegen-independent')
 def test_repr():
     G = NeuronGroup(1, 'v: volt')
     S = Synapses(G, G,

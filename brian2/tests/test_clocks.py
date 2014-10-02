@@ -1,7 +1,9 @@
 from brian2 import *
 from numpy.testing import assert_raises, assert_equal
 from nose import with_setup
+from nose.plugins.attrib import attr
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_clocks():
     clock = Clock(dt=1*ms)
@@ -12,6 +14,7 @@ def test_clocks():
     clock._i = 5
     assert_equal(clock.t, 5*ms)
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_clock_dt_change():
     clock = Clock(dt=1*ms)
@@ -38,6 +41,7 @@ def test_clock_dt_change():
     assert_raises(ValueError, lambda: clock._set_t_update_dt(t=0.1*ms))
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_defaultclock():        
     defaultclock.dt = 1*ms

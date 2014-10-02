@@ -1,10 +1,11 @@
-import numpy as np
+from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 
 from brian2 import *
 from brian2.equations.refractory import add_refractoriness
 
 
+@attr('codegen-independent')
 def test_add_refractoriness():
     eqs = Equations('''
     dv/dt = -x*v/second : volt (unless refractory)
@@ -75,6 +76,7 @@ def test_refractoriness_threshold():
         assert_allclose(spike_mon.t, [4.9, 15] * ms)
 
 
+@attr('codegen-independent')
 def test_refractoriness_types():
     # make sure that using a wrong type of refractoriness does not work
     assert_raises(TypeError, lambda: NeuronGroup(1, '', refractory='3*Hz'))
@@ -84,6 +86,7 @@ def test_refractoriness_types():
     assert_raises(TypeError, lambda: NeuronGroup(1, 'ref: 1',
                                                  refractory='ref'))
 
+@attr('codegen-independent')
 def test_conditional_write_set():
     '''
     Test that the conditional_write attribute is set correctly

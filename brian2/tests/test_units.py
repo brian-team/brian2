@@ -2,7 +2,7 @@ import itertools
 import warnings
 import pickle
 
-from nose import SkipTest
+from nose.plugins.attrib import attr
 import numpy as np
 from numpy.testing import assert_raises, assert_equal
 
@@ -47,10 +47,8 @@ def assert_quantity(q, values, unit):
                                             get_dimensions(unit)))
 
 
-# Construct quantities
+@attr('codegen-independent')
 def test_construction():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     ''' Test the construction of quantity objects '''
     q = 500 * ms
     assert_quantity(q, 0.5, second)
@@ -107,13 +105,11 @@ def test_construction():
     assert_raises(DimensionMismatchError, lambda: Quantity(q, dim=volt.dim))
     
 
-
+@attr('codegen-independent')
 def test_get_dimensions():
     '''
     Test various ways of getting/comparing the dimensions of a quantity.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     q = 500 * ms
     assert get_dimensions(q) is get_or_create_dimension(q.dimensions._dims)
     assert get_dimensions(q) is q.dimensions
@@ -141,12 +137,12 @@ def test_get_dimensions():
     # not a sequence
     assert_raises(ValueError, lambda: get_or_create_dimension(42))
 
+
+@attr('codegen-independent')
 def test_display():
     '''
     Test displaying a quantity in different units
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     assert_equal(in_unit(3 * volt, mvolt), '3000.0 mV')
     assert_equal(in_unit(10 * mV, ohm * amp), '0.01 ohm A')
     assert_raises(DimensionMismatchError, lambda: in_unit(10 * nS, ohm))
@@ -155,12 +151,11 @@ def test_display():
     assert_equal(in_unit(10.0, Unit(10)), '1.0')
 
 
+@attr('codegen-independent')
 def test_pickling():
     '''
     Test pickling of units.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     for q in [500 * mV, 500 * mV/mV, np.arange(10) * mV,
               np.arange(12).reshape(4, 3) * mV/ms]:
         pickled = pickle.dumps(q)
@@ -170,13 +165,12 @@ def test_pickling():
         assert_equal(unpickled, q)
 
 
+@attr('codegen-independent')
 def test_str_repr():
     '''
     Test that str representations do not raise any errors and that repr
     fullfills eval(repr(x)) == x.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     from numpy import array # necessary for evaluating repr    
     
     units_which_should_exist = [metre, meter, kilogram, second, amp, kelvin, mole, candle,
@@ -220,10 +214,10 @@ def test_str_repr():
         assert len(str(error))
         assert len(repr(error))
 
-# Slicing and indexing, setting items
+
+@attr('codegen-independent')
 def test_slicing():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
+    # Slicing and indexing, setting items
     quantity = np.reshape(np.arange(6), (2, 3)) * mV
     assert_equal(quantity[:], quantity)
     assert_equal(quantity[0], np.asarray(quantity)[0] * volt)
@@ -235,9 +229,9 @@ def test_slicing():
     assert_equal(quantity[bool_matrix],
                  np.asarray(quantity)[bool_matrix] * volt)
 
+
+@attr('codegen-independent')
 def test_setting():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     quantity = np.reshape(np.arange(6), (2, 3)) * mV
     quantity[0, 1] = 10 * mV
     assert quantity[0, 1] == 10 * mV
@@ -258,10 +252,8 @@ def test_setting():
                                                                 np.ones((2, 3))))
 
 
-# Binary operations
+@attr('codegen-independent')
 def test_multiplication_division():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     quantities = [3 * mV, np.array([1, 2]) * mV, np.ones((3, 3)) * mV]
     q2 = 5 * second
 
@@ -300,9 +292,8 @@ def test_multiplication_division():
         assert_raises(TypeError, lambda: q * 'string')
 
 
+@attr('codegen-independent')
 def test_addition_subtraction():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     quantities = [3 * mV, np.array([1, 2]) * mV, np.ones((3, 3)) * mV]
     q2 = 5 * volt
 
@@ -361,10 +352,8 @@ def test_addition_subtraction():
         assert_raises(TypeError, lambda: q - 'string')
         assert_raises(TypeError, lambda: 'string' - q)
 
-
+@attr('codegen-independent')
 def test_unary_operations():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     from operator import neg, pos
 
     for op in [neg, pos]:
@@ -372,13 +361,12 @@ def test_unary_operations():
             assert_quantity(op(x*kilogram), op(x), kilogram)
 
 
+@attr('codegen-independent')
 def test_binary_operations():
     ''' Test whether binary operations work when they should and raise
     DimensionMismatchErrors when they should.
     Does not test for the actual result.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     from operator import add, sub, lt, le, gt, ge, eq, ne
 
     def assert_operations_work(a, b):
@@ -476,12 +464,12 @@ def test_binary_operations():
         assert np.all(value > -np.inf)
         assert np.all(-np.inf < value)
 
+
+@attr('codegen-independent')
 def test_power():
     '''
     Test raising quantities to a power.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     values = [2 * kilogram, np.array([2]) * kilogram,
               np.array([1, 2]) * kilogram]
     for value in values:
@@ -492,9 +480,8 @@ def test_power():
         assert_raises(TypeError, lambda: value ** np.array([2, 3]))
 
 
+@attr('codegen-independent')
 def test_inplace_operations():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     q = np.arange(10) * volt
     q_orig = q.copy()
     q_id = id(q)
@@ -546,12 +533,12 @@ def test_inplace_operations():
                        volt.dimensions.__ipow__]:
         assert_raises(TypeError, lambda: inplace_op(volt.dimensions))
 
+
+@attr('codegen-independent')
 def test_unit_discarding_functions():
     '''
     Test functions that discard units.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     from brian2.units.unitsafefunctions import zeros_like, ones_like
     
     values = [3 * mV, np.array([1, 2]) * mV, np.arange(12).reshape(3, 4) * mV]
@@ -562,12 +549,11 @@ def test_unit_discarding_functions():
         assert_equal(np.nonzero(value), np.nonzero(np.asarray(value)))
 
 
+@attr('codegen-independent')
 def test_unitsafe_functions():
     '''
     Test the unitsafe functions wrapping their numpy counterparts.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     from brian2.units.unitsafefunctions import (sin, sinh, arcsin, arcsinh,
                                                 cos, cosh, arccos, arccosh,
                                                 tan, tanh, arctan, arctanh,
@@ -603,12 +589,12 @@ def test_unitsafe_functions():
             for val in numpy_values:
                 assert_equal(func(val), np_func(val))
 
+
+@attr('codegen-independent')
 def test_special_case_numpy_functions():
     '''
     Test a couple of functions/methods that need special treatment.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     from brian2.units.unitsafefunctions import ravel, diagonal, trace, dot, where
     
     quadratic_matrix = np.reshape(np.arange(9), (3, 3)) * mV
@@ -698,9 +684,8 @@ def test_special_case_numpy_functions():
 
 
 # Functions that should not change units
+@attr('codegen-independent')
 def test_numpy_functions_same_dimensions():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     values = [np.array([1, 2]), np.ones((3, 3))]
     units = [volt, second, siemens, mV, kHz]
 
@@ -732,12 +717,12 @@ def test_numpy_functions_same_dimensions():
                                                q_ar.dim,
                                                get_dimensions(test_ar)))
 
+
+@attr('codegen-independent')
 def test_numpy_functions_indices():
     '''
     Check numpy functions that return indices.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     values = [np.array([-4, 3, -2, 1, 0]), np.ones((3, 3)), np.array([17])]
     units = [volt, second, siemens, mV, kHz]
 
@@ -756,13 +741,13 @@ def test_numpy_functions_indices():
                                                    'quantities ') %
                                                   func.__name__))
 
+
+@attr('codegen-independent')
 def test_numpy_functions_dimensionless():
     '''
     Test that numpy functions that should work on dimensionless quantities only
     work dimensionless arrays and return the correct result.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     unitless_values = [3, np.array([-4, 3, -1, 2]),
                        np.ones((3, 3))]
     unit_values = [3 * mV, np.array([-4, 3, -1, 2]) * mV,
@@ -800,12 +785,12 @@ def test_numpy_functions_dimensionless():
                               lambda: eval('np.%s(value, value)' % ufunc,
                                            globals(), {'value': value}))
 
+
+@attr('codegen-independent')
 def test_numpy_functions_change_dimensions():
     '''
     Test some numpy functions that change the dimensions of the quantity.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     unit_values = [np.array([1, 2]) * mV,
                    np.ones((3, 3)) * 2 * mV]
     for value in unit_values:
@@ -817,13 +802,12 @@ def test_numpy_functions_change_dimensions():
                         1.0 / volt)
 
 
+@attr('codegen-independent')
 def test_numpy_functions_typeerror():
     '''
     Assures that certain numpy functions raise a TypeError when called on
     quantities.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     unitless_values = [3 * mV/mV, np.array([1, 2]) * mV/mV,
                        np.ones((3, 3)) * mV/mV]
     unit_values = [3 * mV, np.array([1, 2]) * mV,
@@ -838,13 +822,13 @@ def test_numpy_functions_typeerror():
                 assert_raises(TypeError, lambda: eval('np.%s(value, value)' % ufunc,
                                                    globals(), {'value': value}))
 
+
+@attr('codegen-independent')
 def test_numpy_functions_logical():
     '''
     Assure that logical numpy functions work on all quantities and return
     unitless boolean arrays.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     unit_values1 = [3 * mV, np.array([1, 2]) * mV, np.ones((3, 3)) * mV]
     unit_values2 = [3 * second, np.array([1, 2]) * second,
                     np.ones((3, 3)) * second]
@@ -864,12 +848,12 @@ def test_numpy_functions_logical():
             assert not isinstance(result_units, Quantity)
             assert_equal(result_units, result_array)
 
+
+@attr('codegen-independent')
 def test_list():
     '''
     Test converting to and from a list.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     values = [3 * mV, np.array([1, 2]) * mV,
               np.arange(12).reshape(4, 3) * mV]
     for value in values:
@@ -878,12 +862,12 @@ def test_list():
         assert have_same_dimensions(from_list, value)
         assert_equal(from_list, value)
 
+
+@attr('codegen-independent')
 def test_check_units():
     '''
     Test the check_units decorator
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     @check_units(v=volt)
     def a_function(v, x):
         '''
@@ -924,12 +908,11 @@ def test_check_units():
     assert_raises(DimensionMismatchError, lambda: b_function(False))
 
 
+@attr('codegen-independent')
 def test_get_unit():
     '''
     Test get_unit and get_unit_fast
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     values = [3 * mV, np.array([1, 2]) * mV,
               np.arange(12).reshape(4, 3) * mV]
     for value in values:
@@ -937,12 +920,11 @@ def test_get_unit():
         assert_quantity(get_unit_fast(value), 1, volt)
 
 
+@attr('codegen-independent')
 def test_switching_off_unit_checks():
     '''
     Check switching off unit checks (used for external functions).
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     import brian2.units.fundamentalunits as fundamentalunits
     x = 3 * second
     y = 5 * volt    
@@ -953,13 +935,13 @@ def test_switching_off_unit_checks():
     assert have_same_dimensions(x, y)
     assert x.has_same_dimensions(y)
     fundamentalunits.unit_checking = True
-    
+
+
+@attr('codegen-independent')
 def test_fail_for_dimension_mismatch():
     '''
     Test the fail_for_dimension_mismatch function.
     '''
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # examples that should not raise an error
     fail_for_dimension_mismatch(3)
     fail_for_dimension_mismatch(3 * volt/volt)
@@ -971,9 +953,8 @@ def test_fail_for_dimension_mismatch():
     assert_raises(DimensionMismatchError, lambda: fail_for_dimension_mismatch(6 * volt, 5 * second))    
 
 
+@attr('codegen-independent')
 def test_deepcopy():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     d = {'x': 1*second}
     from copy import deepcopy
     d_copy = deepcopy(d)
@@ -984,7 +965,6 @@ def test_deepcopy():
 
 
 if __name__ == '__main__':
-    brian_prefs.codegen.target = 'numpy'  # otherwise not all tests are un
     test_construction()
     test_get_dimensions()
     test_display()

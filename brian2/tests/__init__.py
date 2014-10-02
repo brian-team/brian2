@@ -4,7 +4,8 @@ from StringIO import StringIO
 
 from brian2.core.preferences import brian_prefs
 
-def run(codegen_targets=None, test_standalone=False):
+def run(codegen_targets=None, test_codegen_independent=True,
+        test_standalone=False):
     '''
     Run brian's test suite. Needs an installation of the nose testing tool.
 
@@ -18,6 +19,9 @@ def run(codegen_targets=None, test_standalone=False):
         ``['numpy', 'weave']`` to test. The whole test suite will be repeatedly
         run with `codegen.target` set to the respective value. If not
         specified, all available code generation targets will be tested.
+    test_codegen_independent : bool, optional
+        Whether to run tests that are independent of code generation. Defaults
+        to ``True``.
     test_standalone : bool, optional
         Whether to run tests for the C++ standalone mode. Defaults to ``False``.
     '''
@@ -49,8 +53,10 @@ def run(codegen_targets=None, test_standalone=False):
     else:
         sys.stderr.write('\n')
     if test_standalone:
-        sys.stderr.write('Testing standalone \n.')
-
+        sys.stderr.write('Testing standalone \n')
+    if test_codegen_independent:
+        sys.stderr.write('Testing codegen-independent code \n')
+    sys.stderr.write('\n')
     # Store the currently set preferences and reset to default preferences
     stored_prefs = brian_prefs.as_file
     brian_prefs.read_preference_file(StringIO(brian_prefs.defaults_as_file))
@@ -59,8 +65,22 @@ def run(codegen_targets=None, test_standalone=False):
     brian_prefs['codegen.runtime.cython.extra_compile_args'] = ['-w', '-O0']
     try:
         success = []
+        if test_codegen_independent:
+            sys.stderr.write('Running tests that do not use code generation\n')
+            # Some doctests do actually use code generation, use numpy for that
+            brian_prefs.codegen.target = 'numpy'
+            brian_prefs._backup()
+            success.append(nose.run(argv=['', dirname,
+                              '-c=',  # no config file loading
+                              '-I', '^hears\.py$',
+                              '-I', '^\.',
+                              '-I', '^_',
+                              '--with-doctest',
+                              "-a", "codegen-independent",
+                              '--nologcapture',
+                              '--exe']))
         for target in codegen_targets:
-            sys.stderr.write('Testing target %s:\n' % target)
+            sys.stderr.write('Running tests for target %s:\n' % target)
             brian_prefs.codegen.target = target
             brian_prefs._backup()
             # explicitly ignore the brian2.hears file for testing, otherwise the
@@ -70,12 +90,13 @@ def run(codegen_targets=None, test_standalone=False):
                                           '-I', '^hears\.py$',
                                           '-I', '^\.',
                                           '-I', '^_',
-                                          '--with-doctest',
-                                          # Do not run standalone tests
-                                          "-a", "!standalone",
+                                          # Do not run standalone or
+                                          # codegen-independent tests
+                                          "-a", "!standalone,!codegen-independent",
                                           '--nologcapture',
                                           '--exe']))
         if test_standalone:
+            sys.stderr.write('Running standalone tests\n')
             success.append(nose.run(argv=['', dirname,
                                           '-c=',  # no config file loading
                                           '-I', '^hears\.py$',

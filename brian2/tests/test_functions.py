@@ -1,4 +1,5 @@
 from nose import SkipTest
+from nose.plugins.attrib import attr
 from numpy.testing import assert_equal, assert_raises, assert_allclose
 
 from brian2 import *
@@ -6,6 +7,7 @@ from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.utils.logger import catch_logs
 
 
+@attr('codegen-independent')
 def test_constants_sympy():
     '''
     Make sure that symbolic constants are understood correctly by sympy
@@ -310,6 +312,7 @@ def test_manual_user_defined_function_weave():
     assert mon[0].func == [6] * volt
 
 
+@attr('codegen-independent')
 def test_user_defined_function_discarding_units():
     # A function with units that should discard units also inside the function
     @make_function(discard_units=True)
@@ -323,6 +326,7 @@ def test_user_defined_function_discarding_units():
     assert foo.implementations[NumpyCodeObject].get_code(None)(5) == 8
 
 
+@attr('codegen-independent')
 def test_user_defined_function_discarding_units_2():
     # Add a numpy implementation explicitly (as in TimedArray)
     unit = volt
@@ -341,6 +345,8 @@ def test_user_defined_function_discarding_units_2():
     # Test the function that is used during a run
     assert foo.implementations[NumpyCodeObject].get_code(None)(5) == 8
 
+
+@attr('codegen-independent')
 def test_function_implementation_container():
     import brian2.codegen.targets as targets
 
@@ -423,4 +429,3 @@ if __name__ == '__main__':
             f()
         except SkipTest as e:
             print 'Skipping test', f.__name__, e
-        

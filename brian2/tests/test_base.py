@@ -1,6 +1,7 @@
 from brian2 import *
 from numpy.testing import assert_raises, assert_equal
 from nose import with_setup
+from nose.plugins.attrib import attr
 
 class DerivedBrianObject(BrianObject):
     def __init__(self, name='derivedbrianobject*'):
@@ -9,6 +10,7 @@ class DerivedBrianObject(BrianObject):
         return self.name
     __repr__ = __str__
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_base():
     x = DerivedBrianObject('x')
@@ -33,6 +35,7 @@ def test_base():
     assert_equal(x.active, False)
     assert_equal(y.active, False)
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_names():
     obj = BrianObject()

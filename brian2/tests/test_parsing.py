@@ -3,13 +3,12 @@ Tests the brian2.parsing package
 '''
 from collections import namedtuple
 
-from nose import SkipTest
+from nose.plugins.attrib import attr
 from numpy.testing import assert_allclose, assert_raises
 import numpy as np
 
 from brian2.core.preferences import brian_prefs
 from brian2.core.variables import Constant
-from brian2.core.functions import Function
 from brian2.groups.group import Group
 from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
@@ -120,27 +119,23 @@ def cpp_evaluator(expr, ns):
         raise nose.SkipTest('No weave support.')
 
 
+@attr('codegen-independent')
 def test_parse_expressions_python():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     parse_expressions(NodeRenderer(), eval)
 
 
+@attr('codegen-independent')
 def test_parse_expressions_numpy():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     parse_expressions(NumpyNodeRenderer(), numpy_evaluator)
 
 
+@attr('codegen-independent')
 def test_parse_expressions_cpp():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     parse_expressions(CPPNodeRenderer(), cpp_evaluator)
 
 
+@attr('codegen-independent')
 def test_parse_expressions_sympy():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # sympy is about symbolic calculation, the string returned by the renderer
     # contains "Symbol('a')" etc. so we cannot simply evaluate it in a
     # namespace.
@@ -159,9 +154,8 @@ def test_parse_expressions_sympy():
     parse_expressions(SympyRenderer(), evaluator)
 
 
+@attr('codegen-independent')
 def test_abstract_code_dependencies():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     code = '''
     a = b+c
     d = b+c
@@ -195,9 +189,8 @@ def test_abstract_code_dependencies():
                                         k, getattr(res, k), set(v)))
 
 
+@attr('codegen-independent')
 def test_is_boolean_expression():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # dummy "Variable" class
     Var = namedtuple("Var", ['is_boolean'])
 
@@ -248,10 +241,9 @@ def test_is_boolean_expression():
     assert_raises(SyntaxError, is_boolean_expression, 'g(c) and f(a)',
                   variables)
     
-    
+
+@attr('codegen-independent')
 def test_parse_expression_unit():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     Var = namedtuple('Var', ['unit', 'dtype'])
     variables = {'a': Var(unit=volt*amp, dtype=np.float64),
                  'b': Var(unit=volt, dtype=np.float64),
@@ -310,9 +302,8 @@ def test_parse_expression_unit():
         assert_raises(SyntaxError, parse_expression_unit, expr, all_variables)
 
 
+@attr('codegen-independent')
 def test_value_from_expression():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # This function is used to get the value of an exponent, necessary for unit checking
 
     constants = {'c': 3}
@@ -342,9 +333,8 @@ def test_value_from_expression():
                                                                        variables))
 
 
+@attr('codegen-independent')
 def test_abstract_code_from_function():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # test basic functioning
     def f(x):
         y = x+1
@@ -369,10 +359,8 @@ def test_abstract_code_from_function():
     assert_raises(SyntaxError, abstract_code_from_function, f)
 
 
-
+@attr('codegen-independent')
 def test_extract_abstract_code_functions():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     code = '''
     def f(x):
         return x*x
@@ -387,9 +375,8 @@ def test_extract_abstract_code_functions():
     assert funcs['g'].args == ['V']
 
 
+@attr('codegen-independent')
 def test_substitute_abstract_code_functions():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     def f(x):
         y = x*x
         return y
@@ -414,9 +401,9 @@ def test_substitute_abstract_code_functions():
         for k in ['z', 'w', 'h', 'p']:
             assert ns1[k]==ns2[k]
 
+
+@attr('codegen-independent')
 def test_sympytools():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # sympy_to_str(str_to_sympy(x)) should equal x
 
     # Note that the test below is quite fragile since sympy might rearrange the
@@ -432,7 +419,6 @@ def test_sympytools():
 
 
 if __name__=='__main__':
-    brian_prefs.codegen.target = 'numpy'  # otherwise not all tests are run
     test_parse_expressions_python()
     test_parse_expressions_numpy()
     #test_parse_expressions_cpp()

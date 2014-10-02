@@ -3,7 +3,7 @@ Some basic tests for the `Variable` system
 '''
 from collections import namedtuple
 
-from nose import SkipTest
+from nose.plugins.attrib import attr
 import numpy as np
 from numpy.testing import assert_raises
 
@@ -13,9 +13,8 @@ from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
 
 
+@attr('codegen-independent')
 def test_construction_errors():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # Boolean variable that isn't dimensionless
     assert_raises(ValueError, lambda: Variable(name='name', unit=second,
                                                dtype=np.bool))
@@ -30,9 +29,8 @@ def test_construction_errors():
                                                            constant_size=False))
 
 
+@attr('codegen-independent')
 def test_str_repr():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     # Basic test that the str/repr methods work
     FakeGroup = namedtuple('G', ['name'])
     group = FakeGroup(name='groupname')
@@ -52,9 +50,8 @@ def test_str_repr():
         assert len(repr(var)) and var.__class__.__name__ in repr(var)
 
 
+@attr('codegen-independent')
 def test_dtype_str():
-    if brian_prefs.codegen.target != 'numpy':
-        raise SkipTest()
     FakeGroup = namedtuple('G', ['name'])
     group = FakeGroup(name='groupname')
     for d in ['int32', 'int64', 'float32', 'float64', 'bool', 'int', 'float']:
@@ -74,7 +71,6 @@ def test_dtype_str():
 
 
 if __name__ == '__main__':
-    brian_prefs.codegen.target = 'numpy'
     test_construction_errors()
     test_str_repr()
     test_dtype_str()
