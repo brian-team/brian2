@@ -1,5 +1,6 @@
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 from nose import with_setup
+from nose.plugins.attrib import attr
 from brian2 import *
 
 @with_setup(teardown=restore_initial_state)
@@ -42,6 +43,7 @@ def test_construction():
     assert_allclose(neuron.L.main.length,morpho.L.length)
 
 
+@attr('long')
 @with_setup(teardown=restore_initial_state)
 def test_infinitecable():
     '''
@@ -92,6 +94,7 @@ def test_infinitecable():
     assert_allclose(v[t>0.5*ms],theory[t>0.5*ms],rtol=0.01) # 1% error tolerance (not exact because not infinite cable)
 
 
+@attr('long')
 @with_setup(teardown=restore_initial_state)
 def test_finitecable():
     '''
@@ -136,6 +139,7 @@ def test_finitecable():
     assert_allclose(v-EL, theory-EL, rtol=0.01)
 
 
+@attr('long')
 @with_setup(teardown=restore_initial_state)
 def test_rall():
     '''

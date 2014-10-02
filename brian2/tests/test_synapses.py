@@ -138,14 +138,32 @@ def test_connection_array_standalone():
     assert_equal(mon.v, expected)
 
 
+def test_connection_string_deterministic_basic():
+    '''
+    Test connecting synapses with a deterministic string expression.
+    '''
+    G = NeuronGroup(17, 'v : 1')
+    G.v = 'i'
+    G2 = NeuronGroup(4, 'v : 1')
+    G2.v = '17 + i'
+
+    # Full connection
+    expected = np.ones((len(G), len(G2)))
+
+    S = Synapses(G, G2, 'w:1', 'v+=w')
+    S.connect('True')
+    _compare(S, expected)
+
+
+@attr('long')
 def test_connection_string_deterministic():
     '''
     Test connecting synapses with a deterministic string expression.
     '''
-    G = NeuronGroup(42, 'v : 1')
+    G = NeuronGroup(17, 'v : 1')
     G.v = 'i'
-    G2 = NeuronGroup(17, 'v : 1')
-    G2.v = '42 + i'
+    G2 = NeuronGroup(4, 'v : 1')
+    G2.v = '17 + i'
 
     # Full connection
     expected = np.ones((len(G), len(G2)))
@@ -192,8 +210,8 @@ def test_connection_string_deterministic():
     S = Synapses(G, G, 'w:1', 'v+=w', connect='i == j')
     _compare(S, expected)
 
-    # Everything except for the upper [5, 5] quadrant
-    number = 5
+    # Everything except for the upper [2, 2] quadrant
+    number = 2
     expected = np.ones((len(G), len(G)))
     expected[:number, :number] = 0
     S = Synapses(G, G, 'w:1', 'v+=w')
@@ -206,13 +224,9 @@ def test_connection_string_deterministic():
     _compare(S, expected)
 
 
-def test_connection_random():
-    '''
-    Test random connections.
-    '''
-    # We can only test probabilities 0 and 1 for strict correctness
-    G = NeuronGroup(42, 'v: 1')
-    G2 = NeuronGroup(17, 'v: 1')
+def test_connection_random_basic():
+    G = NeuronGroup(4, 'v: 1')
+    G2 = NeuronGroup(7, 'v: 1')
 
     S = Synapses(G, G2, 'w:1', 'v+=w')
     S.connect(True, p=0.0)
@@ -220,6 +234,15 @@ def test_connection_random():
     S.connect(True, p=1.0)
     _compare(S, np.ones((len(G), len(G2))))
 
+
+@attr('long')
+def test_connection_random():
+    '''
+    Test random connections.
+    '''
+    G = NeuronGroup(4, 'v: 1')
+    G2 = NeuronGroup(7, 'v: 1')
+    # We can only test probabilities 0 and 1 for strict correctness
     S = Synapses(G, G2, 'w:1', 'v+=w')
     S.connect('rand() < 0.')
     assert len(S) == 0
@@ -455,6 +478,8 @@ def test_delay_specification():
     assert_raises(ValueError, lambda: Synapses(G, G, 'w:1', pre='v+=w',
                                                delay={'post': 5*ms}))
 
+
+@attr('long')
 def test_transmission():
     default_dt = defaultclock.dt
     delays = [[0, 0] * ms, [1, 1] * ms, [1, 2] * ms]
@@ -626,6 +651,7 @@ def test_scalar_subexpression():
                                                 pre='v+=s', connect=True))
 
 
+@attr('long')
 def test_event_driven():
     # Fake example, where the synapse is actually not changing the state of the
     # postsynaptic neuron, the pre- and post spiketrains are regular spike
@@ -669,7 +695,7 @@ def test_event_driven():
     S1.w = 0.5*gmax
     S2.w = 0.5*gmax
     net = Network(pre, post, S1, S2)
-    net.run(100*ms)
+    net.run(25*ms)
     # The two formulations should yield identical results
     assert_equal(S1.w[:], S2.w[:])
 

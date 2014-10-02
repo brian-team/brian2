@@ -30,20 +30,17 @@ def test_constants_values():
     assert G.v == np.inf
 
 
-def test_math_functions():
+def test_math_functions_short():
     '''
     Test that math functions give the same result, regardless of whether used
-    directly or in generated Python or C++ code.
+    directly or in generated Python or C++ code. Test only a few functions
     '''
     default_dt = defaultclock.dt
     test_array = np.array([-1, -0.5, 0, 0.5, 1])
 
     with catch_logs() as _:  # Let's suppress warnings about illegal values
         # Functions with a single argument
-        for func in [sin, cos, tan, sinh, cosh, tanh,
-                     arcsin, arccos, arctan,
-                     exp, log, log10,
-                     np.sqrt, np.ceil, np.floor, np.abs]:
+        for func in [exp, np.sqrt]:
 
             # Calculate the result directly
             numpy_result = func(test_array)
@@ -80,6 +77,45 @@ def test_math_functions():
             G = NeuronGroup(len(test_array),
                             '''func = variable {op} scalar : 1
                                variable : 1'''.format(op=operator))
+            G.variable = test_array
+            mon = StateMonitor(G, 'func', record=True)
+            net = Network(G, mon)
+            net.run(default_dt)
+
+            assert_allclose(numpy_result, mon.func_.flatten(),
+                            err_msg='Function %s did not return the correct values' % func.__name__)
+
+
+@attr('long')
+def test_math_functions():
+    '''
+    Test that math functions give the same result, regardless of whether used
+    directly or in generated Python or C++ code. Tests the remaining functions
+    that were not yet tested by test_math_functions_short
+    '''
+    default_dt = defaultclock.dt
+    test_array = np.array([-1, -0.5, 0, 0.5, 1])
+
+    with catch_logs() as _:  # Let's suppress warnings about illegal values
+        # Functions with a single argument
+        for func in [cos, tan, sinh, cosh, tanh,
+                     arcsin, arccos, arctan,
+                     log, log10,
+                     np.ceil, np.floor]:
+
+            # Calculate the result directly
+            numpy_result = func(test_array)
+
+            # Calculate the result in a somewhat complicated way by using a
+            # subexpression in a NeuronGroup
+            if func.__name__ == 'absolute':
+                # we want to use the name abs instead of absolute
+                func_name = 'abs'
+            else:
+                func_name = func.__name__
+            G = NeuronGroup(len(test_array),
+                            '''func = {func}(variable) : 1
+                               variable : 1'''.format(func=func_name))
             G.variable = test_array
             mon = StateMonitor(G, 'func', record=True)
             net = Network(G, mon)

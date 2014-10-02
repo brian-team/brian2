@@ -378,6 +378,29 @@ def test_determination():
     StateUpdateMethod.stateupdaters = before
 
 
+def test_subexpressions_basic():
+    '''
+    Make sure that the integration of a (non-stochastic) differential equation
+    does not depend on whether it's formulated using subexpressions.
+    '''
+    # no subexpression
+    eqs1 = 'dv/dt = (-v + sin(2*pi*100*Hz*t)) / (10*ms) : 1'
+    # same with subexpression
+    eqs2 = '''dv/dt = I / (10*ms) : 1
+              I = -v + sin(2*pi*100*Hz*t): 1'''
+    method = 'euler'
+    G1 = NeuronGroup(1, eqs1, method=method)
+    G1.v = 1
+    G2 = NeuronGroup(1, eqs2, method=method)
+    G2.v = 1
+    mon1 = StateMonitor(G1, 'v', record=True)
+    mon2 = StateMonitor(G2, 'v', record=True)
+    net = Network(G1, mon1, G2, mon2)
+    net.run(10*ms)
+    assert_equal(mon1.v, mon2.v, 'Results for method %s differed!' % method)
+
+
+@attr('long')
 def test_subexpressions():
     '''
     Make sure that the integration of a (non-stochastic) differential equation
@@ -389,7 +412,7 @@ def test_subexpressions():
     eqs2 = '''dv/dt = I / (10*ms) : 1
               I = -v + sin(2*pi*100*Hz*t): 1'''
     
-    methods = ['euler', 'exponential_euler', 'rk2', 'rk4']
+    methods = ['exponential_euler', 'rk2', 'rk4']  # euler is tested in test_subexpressions_basic
     for method in methods:
         G1 = NeuronGroup(1, eqs1, method=method)
         G1.v = 1
@@ -397,10 +420,8 @@ def test_subexpressions():
         G2.v = 1
         mon1 = StateMonitor(G1, 'v', record=True)
         mon2 = StateMonitor(G2, 'v', record=True)
-        net1 = Network(G1, mon1)
-        net2 = Network(G2, mon2)
-        net1.run(10*ms)
-        net2.run(10*ms)
+        net = Network(G1, mon1, G2, mon2)
+        net.run(10*ms)
         assert_equal(mon1.v, mon2.v, 'Results for method %s differed!' % method)
 
 

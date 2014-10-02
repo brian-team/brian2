@@ -4,7 +4,7 @@ from StringIO import StringIO
 
 from brian2.core.preferences import brian_prefs
 
-def run(codegen_targets=None, test_codegen_independent=True,
+def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         test_standalone=False):
     '''
     Run brian's test suite. Needs an installation of the nose testing tool.
@@ -19,6 +19,8 @@ def run(codegen_targets=None, test_codegen_independent=True,
         ``['numpy', 'weave']`` to test. The whole test suite will be repeatedly
         run with `codegen.target` set to the respective value. If not
         specified, all available code generation targets will be tested.
+    long_tests : bool, optional
+        Whether to run tests that take a long time. Defaults to ``False``.
     test_codegen_independent : bool, optional
         Whether to run tests that are independent of code generation. Defaults
         to ``True``.
@@ -49,7 +51,9 @@ def run(codegen_targets=None, test_codegen_independent=True,
     # We write to stderr since nose does all of its output on stderr as well
     sys.stderr.write('Running tests in "%s" ' % dirname)
     if codegen_targets:
-        sys.stderr.write('for targets %s\n' % (', '.join(codegen_targets)))
+        sys.stderr.write('for targets %s' % (', '.join(codegen_targets)))
+        ex_in = 'including' if long_tests else 'excluding'
+        sys.stderr.write(' (%s long tests)\n' % ex_in)
     else:
         sys.stderr.write('\n')
     if test_standalone:
@@ -83,6 +87,9 @@ def run(codegen_targets=None, test_codegen_independent=True,
             sys.stderr.write('Running tests for target %s:\n' % target)
             brian_prefs.codegen.target = target
             brian_prefs._backup()
+            exclude_str = "!standalone,!codegen-independent"
+            if not long_tests:
+                exclude_str += ',!long'
             # explicitly ignore the brian2.hears file for testing, otherwise the
             # doctest search will import it, failing on Python 3
             success.append(nose.run(argv=['', dirname,
@@ -92,7 +99,7 @@ def run(codegen_targets=None, test_codegen_independent=True,
                                           '-I', '^_',
                                           # Do not run standalone or
                                           # codegen-independent tests
-                                          "-a", "!standalone,!codegen-independent",
+                                          "-a", exclude_str,
                                           '--nologcapture',
                                           '--exe']))
         if test_standalone:

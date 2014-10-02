@@ -158,7 +158,7 @@ def test_rate_monitor_subgroups():
     rate_2 = PopulationRateMonitor(G[2:])
     s_mon = SpikeMonitor(G)
     net = Network(G, rate_all, rate_1, rate_2, s_mon)
-    net.run(100*ms)
+    net.run(10*ms)
     assert_allclose(mean(G.rate[:]), mean(rate_all.rate[:]))
     assert_allclose(mean(G.rate[:2]), mean(rate_1.rate[:]))
     assert_allclose(mean(G.rate[2:]), mean(rate_2.rate[:]))
