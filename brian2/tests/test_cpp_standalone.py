@@ -115,8 +115,6 @@ def test_storing_loading(with_output=False):
 @with_setup(teardown=restore_device)
 def test_openmp_consistency(with_output=False):
 
-    set_device('cpp_standalone')
-
     n_cells    = 100
     n_recorded = 10
     numpy.random.seed(42)
@@ -146,7 +144,11 @@ def test_openmp_consistency(with_output=False):
 
     results = {}
 
-    for n_threads in [0, 1, 2]:
+    for (n_threads, devicename) in [(0, 'runtime'),
+                                    (0, 'cpp_standalone'),
+                                    (1, 'cpp_standalone'),
+                                    (2, 'cpp_standalone')]:
+        set_device(devicename)
         Synapses.__instances__().clear()
         device.reinit()
         brian_prefs.codegen.cpp_standalone.openmp_threads = n_threads                
@@ -177,23 +179,27 @@ def test_openmp_consistency(with_output=False):
 
         run(0.2 * second, report='text')
 
-        tempdir = tempfile.mkdtemp()
-        if with_output:
-            print tempdir
-        device.build(project_dir=tempdir, compile_project=True, run_project=True,
-                     with_output=with_output)
+        if devicename=='cpp_standalone':
+            tempdir = tempfile.mkdtemp()
+            if with_output:
+                print tempdir
+            device.build(project_dir=tempdir, compile_project=True,
+                         run_project=True, with_output=with_output)
 
-        results[n_threads]      = {}
-        results[n_threads]['w'] = state_mon.w
-        results[n_threads]['v'] = v_mon.v
-        results[n_threads]['s'] = spike_mon.num_spikes
-        results[n_threads]['r'] = rate_mon.rate[:]
+        results[n_threads, devicename]      = {}
+        results[n_threads, devicename]['w'] = state_mon.w
+        results[n_threads, devicename]['v'] = v_mon.v
+        results[n_threads, devicename]['s'] = spike_mon.num_spikes
+        results[n_threads, devicename]['r'] = rate_mon.rate[:]
 
-    for n_threads in [1, 2]:
-        assert_allclose(results[n_threads]['w'], results[0]['w'])
-        assert_allclose(results[n_threads]['v'], results[0]['v'])
-        assert_allclose(results[n_threads]['r'], results[0]['r'])
-        assert_allclose(results[n_threads]['s'], results[0]['s'])
+    for key1, key2 in [((0, 'runtime'), (0, 'cpp_standalone')),
+                       ((1, 'cpp_standalone'), (0, 'cpp_standalone')),
+                       ((2, 'cpp_standalone'), (0, 'cpp_standalone')),
+                       ]:
+        assert_allclose(results[key1]['w'], results[key2]['w'])
+        assert_allclose(results[key1]['v'], results[key2]['v'])
+        assert_allclose(results[key1]['r'], results[key2]['r'])
+        assert_allclose(results[key1]['s'], results[key2]['s'])
 
 
 if __name__=='__main__':
