@@ -382,6 +382,10 @@ class SingleEquation(object):
                            if not self.expr is None else set([]),
                            doc='All identifiers in the RHS of this equation.')
 
+    stochastic_variables = property(lambda self: set([variable for variable in self.identifiers
+                                                      if variable =='xi' or variable.startswith('xi_')]),
+                                    doc='Stochastic variables in the RHS of this equation')
+
     def _latex(self, *args):
         if self.type == DIFFERENTIAL_EQUATION:
             return (r'\frac{\mathrm{d}' + sympy.latex(self.varname) + r'}{\mathrm{d}t} = ' +

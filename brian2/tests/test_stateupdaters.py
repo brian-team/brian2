@@ -352,12 +352,41 @@ def test_determination():
     with catch_logs() as logs:
         determine_stateupdater(eqs, variables, method='milstein')
         assert len(logs) == 0
-    
+
+    # diagonal multiplicative noise (supported by milstein)
+    eqs = Equations('''dv/dt = -v / (10*ms) + v*xi_v*second**-.5: 1
+                       dx/dt = -x / (10*ms) + x*xi_x*second**-.5: 1''')
+    for name in ['linear', 'independent', 'euler', 'exponential_euler',
+                 'rk2', 'rk4']:
+        assert_raises(ValueError, lambda: determine_stateupdater(eqs,
+                                                                 variables,
+                                                                 method=name))
+    # milstein should work
+    with catch_logs() as logs:
+        determine_stateupdater(eqs, variables, method='milstein')
+        assert len(logs) == 0
+
+    # non-diagonal noise, milstein does not work
+    eqs = Equations('''dv/dt = -v / (10*ms) + v*xi_v*second**-.5: 1
+                       dx/dt = -x / (10*ms) + x*xi_v*second**-.5: 1''')
+    for name in ['linear', 'independent', 'euler', 'exponential_euler',
+                 'rk2', 'rk4', 'milstein']:
+        assert_raises(ValueError, lambda: determine_stateupdater(eqs,
+                                                                 variables,
+                                                                 method=name))
+
+    # More than one noise variable in an equation, milstein does not work
+    eqs = Equations('dv/dt = -v / (10*ms) + v*xi_v*second**-.5 + v*xi_x*second**-.5: 1')
+    for name in ['linear', 'independent', 'euler', 'exponential_euler',
+                 'rk2', 'rk4', 'milstein']:
+        assert_raises(ValueError, lambda: determine_stateupdater(eqs,
+                                                                 variables,
+                                                                 method=name))
     # non-existing name
     assert_raises(ValueError, lambda: determine_stateupdater(eqs,
                                                              variables,
                                                              method='does_not_exist'))
-    
+
     # Automatic state updater choice should return linear for linear equations,
     # euler for non-linear, non-stochastic equations and equations with
     # additive noise, milstein for equations with multiplicative noise

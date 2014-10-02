@@ -579,10 +579,29 @@ rk4 = ExplicitStateUpdater('''
     x_new = x+(k_1+2*k_2+2*k_3+k_4)/6
     ''')
 
+
+def diagonal_noise(equations, variables):
+    '''
+    Checks whether we deal with diagonal noise, i.e. one independent noise
+    variable per variable.
+    '''
+    stochastic_vars = []
+    for _, expr in equations.substituted_expressions:
+        expr_stochastic_vars = expr.stochastic_variables
+        if len(expr_stochastic_vars) > 1:
+            # More than one stochastic variable --> no diagonal noise
+            return False
+        stochastic_vars.extend(expr_stochastic_vars)
+
+    # If there's no stochastic variable is used in more than one equation, we
+    # have diagonal noise
+    return len(stochastic_vars) == len(set(stochastic_vars))
+
+
 #: Derivative-free Milstein method
 milstein = ExplicitStateUpdater('''
     x_support = x + dt*f(x, t) + dt**.5 * g(x, t)
     g_support = g(x_support, t)
     k = 1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)
     x_new = x + dt*f(x,t) + g(x, t) * dW + k
-    ''', stochastic='multiplicative')
+    ''', stochastic='multiplicative', custom_check=diagonal_noise)
