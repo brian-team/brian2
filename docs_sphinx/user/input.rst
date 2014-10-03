@@ -93,7 +93,7 @@ specified code at certain points during a simulation. This can be
 achieved with a :meth:`~brian2.groups.group.Group.custom_operation`.
 One can think of these statements as
 equivalent to reset statements but executed unconditionally (i.e. for all
-neurons) and possibly on a different clock as the rest of the group. The
+neurons) and possibly on a different clock than the rest of the group. The
 following code changes the stimulus strength of half of the neurons (randomly
 chosen) to a new random value every 50ms. Note that the statement uses logical
 expressions to have the values only updated for the chosen subset of neurons

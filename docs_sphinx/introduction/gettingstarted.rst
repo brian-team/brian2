@@ -44,7 +44,7 @@ The two core concepts in Brian are as follows:
   "reset statement" defining what happens after a spike.
 * Synapses are defined by a `Synapses` object. This consists of (1) equations
   defining the evolution of the variables - same as for neurons,
-  (2) equations defining what happens when a presynaptic or postsynaptic
+  (2) statements defining what happens when a presynaptic or postsynaptic
   neuron fires a spike, (3) the pattern/structure of the synaptic connectivity
   (i.e. which neurons are connected via a synapse to which other neurons).
   

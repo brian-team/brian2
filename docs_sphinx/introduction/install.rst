@@ -1,6 +1,8 @@
 Installation
 ============
 
+Released version
+----------------
 Brian2 is available on the Python package index: https://pypi.python.org/pypi/Brian2
 
 It can therefore be installed using ``easy_install`` or ``pip`` (in newer
@@ -23,7 +25,7 @@ prelease)::
       it tries to install the Python 3 version (see this issue_), use ``pip``
       instead.
 
-.. _issue: http://code.google.com/p/sympy/issues/detail?id=3511
+.. _issue: https://github.com/sympy/sympy/issues/6610
 
 Alternatively, you can download the source package directly and uncompress it.
 You can then either run ``python setup.py install`` to install it, or simply add
@@ -31,8 +33,16 @@ the source directory to your ``PYTHONPATH``. Note that if you are using
 Python 3, directly running from the source directory is not possible, you have
 to install the package first.
 
+Development version
+-------------------
+
 To run the latest development code, clone the git repository at github:
 https://github.com/brian-team/brian2
+
+You can also use ``pip`` to install directly from github, use::
+
+    pip install https://github.com/brian-team/brian2/archive/master.zip
+
 
 C extensions
 ------------
@@ -55,7 +65,8 @@ suite::
     brian2.test()
 
 It should end with "OK", possibly showing a number of skipped tests but no
-warnings or errors.
+warnings or errors. For more control about the tests that are run see the
+:doc:`developer documentation on testing <../developer/guidelines/testing>`.
 
 .. _nose: https://pypi.python.org/pypi/nose
 .. _Cython: http://cython.org/
