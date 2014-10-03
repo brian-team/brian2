@@ -5,6 +5,10 @@ To run a simulation, one either constructs a new `Network` object and calls its
 `Network.run` method, or uses the "magic" system and a plain `run` call,
 collecting all the objects in the current namespace.
 
+Note that Brian has several different ways of running the actual computations,
+and choosing the right one can make orders of magnitude of difference in
+terms of simplicity and efficiency. See :doc:`computation` for more details.
+
 Magic networks
 --------------
 In most straightforward simulations, you do not have to explicitly create a

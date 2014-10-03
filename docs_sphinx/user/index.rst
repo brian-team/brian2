@@ -12,6 +12,7 @@ User's guide
    input
    recording
    running
+   computation
    functions
    devices
    brian1hears_bridge
