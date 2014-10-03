@@ -52,7 +52,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     '''
 
     @check_units(N=1, indices=1, times=second)
-    def __init__(self, N, indices, times, dt=None, clock=None,
+    def __init__(self, N, indices, times, dt=None, clock=None, period=0*second,
                  when='thresholds', order=0, name='spikegeneratorgroup*',
                  codeobj_class=None):
 
@@ -68,6 +68,9 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                               'match, but %d != %d') % (len(indices),
                                                         len(times)))
 
+        if (period > 0*second) and (period <= np.max(times)):
+            raise ValueError('The period has to be greater than the max of the spike times')
+
         self.start = 0
         self.stop = N
 
@@ -81,6 +84,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
         # standard variables
         self.variables.add_constant('N', unit=Unit(1), value=N)
+        self.variables.add_constant('period', unit=second, value=period)
         self.variables.add_arange('i', N)
         self.variables.add_arange('spike_number', len(indices))
         self.variables.add_array('neuron_index', values=indices,
@@ -92,6 +96,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                  read_only=True)
         self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
                                  dtype=np.int32)
+        self.variables.add_array('_lastindex', size=1, values=np.zeros(1), unit=Unit(1),
+                                 dtype=np.int32, read_only=True)
         self.variables.create_clock_variables(self._clock)
 
         # Activate name attribute access

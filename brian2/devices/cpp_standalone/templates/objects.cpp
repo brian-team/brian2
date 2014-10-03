@@ -194,6 +194,7 @@ void _dealloc_arrays()
 #include "brianlib/clocks.h"
 #include "brianlib/dynamic_array.h"
 #include "network.h"
+#include <cmath>
 {{ openmp_pragma('include') }}
 
 namespace brian {

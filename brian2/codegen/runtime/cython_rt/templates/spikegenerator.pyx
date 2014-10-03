@@ -1,39 +1,36 @@
 {% extends 'common.pyx' %}
 
-{% block template_support_code %}
-cdef int _start_idx = 0
-cdef double _current_time = 0.0
-{% endblock %}
-
 {% block maincode %}
 
-    {# USES_VARIABLES {_spikespace, N, t, dt, neuron_index, spike_time } #}
-     
-    global _start_idx, _current_time
-    
-    # Check if we have been reset, if so reset the cache
-    if t<_current_time:
-        _start_idx = 0
-    
-    _current_time = t
+    {# USES_VARIABLES {_spikespace, N, t, dt, neuron_index, spike_time, period, _lastindex } #}
 
     # TODO: We don't deal with more than one spike per neuron yet
     cdef int _cpp_numspikes = 0
+    cdef int padding        = 0
+    cdef float epsilon      = 0.001*dt
 
-    cdef char found = 0
-    for _idx in range(_start_idx, _num{{spike_time}}):
-        if {{spike_time}}[_idx]>t-dt:
-            found = 1
+    if (period > 0):
+        padding = int(t / period)
+
+    # If there is a periodicity in the SpikeGenerator, we need to reset the lastindex 
+    # when all spikes have been played
+    if ((period > 0) and (abs(t-period*padding) < epsilon)):
+        {{_lastindex}}[0] = 0      
+
+    for _idx in range({{_lastindex}}[0], _num{{spike_time}}):
+        test = ({{spike_time}}[_idx] > (t - period*padding)) or (abs({{spike_time}}[_idx] - (t - period*padding)) < epsilon)
+        if test:
             break
-    if not found:
-        _idx = _num{{spike_time}}
+        {{_lastindex}}[0] += 1
     
-    for _idx in range(_idx, _num{{spike_time}}):
-        if {{spike_time}}[_idx]>t:
+    for _idx in range({{_lastindex}}[0], _num{{spike_time}}):
+        test = ({{spike_time}}[_idx] > (t + dt - period*padding)) or (abs({{spike_time}}[_idx] - (t + dt - period*padding)) < epsilon)
+        if test:
             break
         {{_spikespace}}[_cpp_numspikes] = {{neuron_index}}[_idx]
         _cpp_numspikes += 1
-            
+
     {{_spikespace}}[N] = _cpp_numspikes
+    {{_lastindex}}[0] += _cpp_numspikes
 
 {% endblock %}

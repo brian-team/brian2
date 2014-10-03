@@ -69,6 +69,46 @@ def test_spikegenerator_basic():
             recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
             assert generator_spikes == recorded_spikes
 
+def test_spikegenerator_period():
+    '''
+    Basic test for `SpikeGeneratorGroup`.
+    '''
+    for codeobj_class in codeobj_classes:
+        indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
+        times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
+        SG = SpikeGeneratorGroup(5, indices, times, period=5*ms,
+                                 codeobj_class=codeobj_class)
+
+        s_mon = SpikeMonitor(SG)
+        net = Network(SG, s_mon)
+        net.run(10*ms)
+        for idx in xrange(5):
+            generator_spikes = sorted([(idx, time) for time in times[indices==idx]] + [(idx, time+5*ms) for time in times[indices==idx]])
+            recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
+            assert generator_spikes == recorded_spikes
+
+def test_spikegenerator_period_repeat():
+    '''
+    Basic test for `SpikeGeneratorGroup`.
+    '''
+    for codeobj_class in codeobj_classes:
+        indices = np.zeros(10)
+        times   = arange(0, 1, 0.1) * ms
+
+        rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
+        rec.sort()
+        sorted_times = np.ascontiguousarray(rec.t)*1000
+        sorted_indices = np.ascontiguousarray(rec.i)
+
+        SG = SpikeGeneratorGroup(1, indices, times, period=1*ms,
+                                 codeobj_class=codeobj_class)
+        s_mon = SpikeMonitor(SG)
+        net   = Network(SG, s_mon)
+        rate  = PopulationRateMonitor(SG)
+        for idx in xrange(5):
+            net.run(1*ms)
+            assert (idx+1)*len(SG.spike_time) == s_mon.num_spikes
+
 @attr('standalone')
 @with_setup(teardown=restore_device)
 def test_spikegenerator_standalone():
@@ -95,4 +135,6 @@ def test_spikegenerator_standalone():
 if __name__ == '__main__':
     test_spikegenerator_connected()
     test_spikegenerator_basic()
+    test_spikegenerator_period()
+    test_spikegenerator_period_repeat()
     test_spikegenerator_standalone()
