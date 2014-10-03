@@ -153,6 +153,9 @@ class StateMonitor(Group, CodeRunner):
     def __init__(self, source, variables, record=None, dt=None, clock=None,
                  when='end', order=0, name='statemonitor*', codeobj_class=None):
         self.source = source
+        # Make the monitor use the explicitly defined namespace of its source
+        # group (if it exists)
+        self.namespace = getattr(source, 'namespace', None)
         self.codeobj_class = codeobj_class
 
         # run by default on source clock at the end

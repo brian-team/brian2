@@ -2,14 +2,18 @@
 Some basic tests for the `Variable` system
 '''
 from collections import namedtuple
+
+from nose.plugins.attrib import attr
 import numpy as np
 from numpy.testing import assert_raises
 
+from brian2.core.preferences import brian_prefs
 from brian2.core.variables import *
 from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
 
 
+@attr('codegen-independent')
 def test_construction_errors():
     # Boolean variable that isn't dimensionless
     assert_raises(ValueError, lambda: Variable(name='name', unit=second,
@@ -25,6 +29,7 @@ def test_construction_errors():
                                                            constant_size=False))
 
 
+@attr('codegen-independent')
 def test_str_repr():
     # Basic test that the str/repr methods work
     FakeGroup = namedtuple('G', ['name'])
@@ -45,6 +50,7 @@ def test_str_repr():
         assert len(repr(var)) and var.__class__.__name__ in repr(var)
 
 
+@attr('codegen-independent')
 def test_dtype_str():
     FakeGroup = namedtuple('G', ['name'])
     group = FakeGroup(name='groupname')
@@ -68,4 +74,3 @@ if __name__ == '__main__':
     test_construction_errors()
     test_str_repr()
     test_dtype_str()
-    

@@ -15,6 +15,7 @@ interest to others wishing to better understand how Brian works internally.
    preferences
    functions
    codegen
+   openmp
 
 To be moved, removed or rewritten:
    

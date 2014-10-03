@@ -1,12 +1,13 @@
+{# IS_OPENMP_COMPATIBLE #}
 {% macro cpp_file() %}
 #include "code_objects/{{codeobj_name}}.h"
 {% set pathobj = owner.name %}
 void _run_{{codeobj_name}}() {
 	using namespace brian;
     double* real_delays = &({{pathobj}}.delay[0]);
-    int* sources = &({{pathobj}}.sources[0]);
+    int32_t* sources = &({{pathobj}}.sources[0]);
     const unsigned int n_synapses = {{pathobj}}.sources.size();
-    {{pathobj}}.queue->prepare(real_delays, sources, n_synapses,
+    {{pathobj}}.prepare(real_delays, sources, n_synapses,
                                {{pathobj}}.dt);
 }
 {% endmacro %}

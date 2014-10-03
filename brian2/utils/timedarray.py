@@ -19,7 +19,7 @@ def _find_K(group_dt, dt):
                      'of %s') % (group_dt*second, dt*second), once=True)
     # Find an upsampling factor that should avoid rounding issues even
     # for multistep methods
-    K = int(2**np.ceil(np.log2(8/group_dt*dt)))
+    K = max(int(2**np.ceil(np.log2(8/group_dt*dt))), 1)
     return K
 
 
@@ -50,7 +50,7 @@ class TimedArray(Function, Nameable):
     >>> from brian2 import *
     >>> ta = TimedArray([1, 2, 3, 4] * mV, dt=0.1*ms)
     >>> print(ta(0.3*ms))
-    4.0 mV
+    4. mV
     >>> G = NeuronGroup(1, 'v = ta(t) : volt')
     >>> mon = StateMonitor(G, 'v', record=True)
     >>> net = Network(G, mon)
@@ -83,12 +83,14 @@ class TimedArray(Function, Nameable):
         # in a way that avoids rounding problems with the group's dt
         def create_numpy_implementation(owner):
             group_dt = owner.clock.dt_
+
             K = _find_K(group_dt, dt)
-            epsilon = dt / K
             n_values = len(values)
+            epsilon = dt / K
             def unitless_timed_array_func(t):
                 timestep = np.clip(np.int_(np.round(t/epsilon) / K), 0, n_values-1)
                 return values[timestep]
+
             unitless_timed_array_func._arg_units = [second]
             unitless_timed_array_func._return_unit = unit
 
@@ -100,19 +102,20 @@ class TimedArray(Function, Nameable):
         def create_cpp_implementation(owner):
             group_dt = owner.clock.dt_
             K = _find_K(group_dt, dt)
-            cpp_code = {'support_code': '''
+            support_code = '''
             inline double _timedarray_%NAME%(const double t, const int _num_values, const double* _values)
             {
                 const double epsilon = %DT% / %K%;
                 int i = (int)((t/epsilon + 0.5)/%K%); // rounds to nearest int for positive values
                 if(i<0)
-                    i = 0;
+                   i = 0;
                 if(i>=_num_values)
                     i = _num_values-1;
                 return _values[i];
             }
-            '''.replace('%NAME%', self.name).replace('%DT%', '%.18f' % dt).replace('%K%', str(K)),
-                                           'hashdefine_code': '''
+            '''.replace('%NAME%', self.name).replace('%DT%', '%.18f' % dt).replace('%K%', str(K))
+            cpp_code = {'support_code': support_code,
+                        'hashdefine_code': '''
             #define %NAME%(t) _timedarray_%NAME%(t, _%NAME%_num_values, _%NAME%_values)
             '''.replace('%NAME%', self.name)}
 

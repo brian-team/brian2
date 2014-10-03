@@ -8,7 +8,9 @@ from brian2.core.preferences import (DefaultValidator, BrianPreference,
 
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
+from nose.plugins.attrib import attr
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_defaultvalidator():
     # Test that the default validator checks the class
@@ -24,6 +26,7 @@ def test_defaultvalidator():
     assert not validator(1*amp)
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_brianpreference():
     # check default args
@@ -33,6 +36,8 @@ def test_brianpreference():
     assert pref.default==1./3
     assert pref.representor(pref.default)==repr(1./3)
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_preference_name_checking():
     '''
@@ -68,6 +73,7 @@ def test_preference_name_checking():
                                                                    ))
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_brianglobalpreferences():
     # test that pre-setting a nonexistent preference in a subsequently
@@ -160,6 +166,8 @@ def test_brianglobalpreferences():
     gp = BrianGlobalPreferences()
     gp.load_preferences()
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_preference_name_access():
     '''
@@ -251,6 +259,7 @@ def test_preference_name_access():
     assert gp.main._basename == 'main'
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_str_repr():
     # Just test whether str and repr do not throw an error and return something

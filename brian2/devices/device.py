@@ -27,11 +27,11 @@ logger = get_logger(__name__)
 all_devices = {}
 
 
-def get_default_codeobject_class():
+def get_default_codeobject_class(pref='codegen.target'):
     '''
     Returns the default `CodeObject` class from the preferences.
     '''
-    codeobj_class = brian_prefs['codegen.target']
+    codeobj_class = brian_prefs[pref]
     if isinstance(codeobj_class, str):
         for target in codegen_targets:
             if target.class_name == codeobj_class:
@@ -211,7 +211,10 @@ class Device(object):
                         **template_kwds)
         logger.debug('%s code:\n%s' % (name, indent(code_representation(code))))
 
-        codeobj = codeobj_class(owner, code, variables, name=name)
+        codeobj = codeobj_class(owner, code, variables,
+                                template_name=template_name,
+                                template_source=template.template_source,
+                                name=name)
         codeobj.compile()
         return codeobj
     

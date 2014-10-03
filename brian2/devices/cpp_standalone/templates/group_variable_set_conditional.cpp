@@ -1,3 +1,4 @@
+{# IS_OPENMP_COMPATIBLE #}
 {% macro cpp_file() %}
 #include "code_objects/{{codeobj_name}}.h"
 #include<math.h>
@@ -38,6 +39,8 @@ void _run_{{codeobj_name}}()
 	{{scalar_code['condition']|autoindent}}
 	{{scalar_code['statement']|autoindent}}
 
+	//We add the parallel flag because this is executed outside the main run loop
+	{{ openmp_pragma('parallel-static') }}
 	for(int _idx=0; _idx<N; _idx++)
 	{
 	    // vector code

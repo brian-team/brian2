@@ -642,11 +642,11 @@ def in_unit(x, u, precision=None):
     --------
     >>> from brian2 import *
     >>> in_unit(3 * volt, mvolt)
-    '3000.0 mV'
+    '3000. mV'
     >>> in_unit(123123 * msecond, second, 2)
     '123.12 s'
     >>> in_unit(10 * uA/cm**2, nA/um**2)
-    '0.0001 nA/um^2'
+    '1.00000000e-04 nA/um^2'
     >>> in_unit(10 * mV, ohm * amp)
     '0.01 ohm A'
     >>> in_unit(10 * nS, ohm) # doctest: +NORMALIZE_WHITESPACE
@@ -735,7 +735,7 @@ def quantity_with_dimensions(floatval, dims):
     --------
     >>> from brian2 import *
     >>> quantity_with_dimensions(0.001, volt.dim)
-    1.0 * mvolt
+    1. * mvolt
 
     See Also
     --------
@@ -781,9 +781,9 @@ class Quantity(np.ndarray, object):
     >>> I = 3 * amp # I is a Quantity object
     >>> R = 2 * ohm # same for R
     >>> I * R
-    6.0 * volt
+    6. * volt
     >>> (I * R).in_unit(mvolt)
-    '6000.0 mV'
+    '6000. mV'
     >>> (I * R) / mvolt
     array(6000.0)
     >>> X = I + R  # doctest: +IGNORE_EXCEPTION_DETAIL
@@ -999,11 +999,11 @@ class Quantity(np.ndarray, object):
 
         >>> from brian2 import *
         >>> Quantity.with_dimensions(2, get_or_create_dimension(length=1))
-        2.0 * metre
+        2. * metre
         >>> Quantity.with_dimensions(2, length=1)
-        2.0 * metre
+        2. * metre
         >>> 2 * metre
-        2.0 * metre
+        2. * metre
         """
         if len(args) and isinstance(args[0], Dimension):
             dimensions = args[0]
@@ -1089,36 +1089,31 @@ class Quantity(np.ndarray, object):
 
         fail_for_dimension_mismatch(self, u,
                                     'Non-matching unit for method "in_unit"')
-        if precision is None:
-            precision = np.get_printoptions()['precision']
         
         value = np.asarray(self / u)
-        # numpy uses the printoptions setting only in arrays, not in array scalars
-        if value.size == 1:
-            if python_code:
-                s = repr(np.round(value, precision)) + ' '
-            else:
-                s = str(np.round(value, precision)) + ' '
+        # numpy uses the printoptions setting only in arrays, not in array
+        # scalars, so we use this hackish way of turning the scalar first into
+        # an array, then removing the square brackets from the output
+        if value.shape == ():
+            s = np.array_str(np.array([value]), precision=precision)
+            s = s.replace('[', '').replace(']', '').strip()
         else:
-            # use numpy's mechanism but don't overwrite the setting
-            old_precision = np.get_printoptions()['precision']
-            np.set_printoptions(precision)
             if python_code:
-                s = repr(value) + ' '
+                s = np.array_repr(value, precision=precision)
             else:
-                s = str(value) + ' '
-            np.set_printoptions(old_precision)
+                s = np.array_str(value, precision=precision)
+
         if not u.is_dimensionless:
             if isinstance(u, Unit):
                 if python_code:
-                    s += '* ' + repr(u)
+                    s += ' * ' + repr(u)
                 else:
-                    s += str(u)
+                    s += ' ' + str(u)
             else:
                 if python_code:
-                    s += '* ' + repr(u.dim)
+                    s += ' * ' + repr(u.dim)
                 else:
-                    s += str(u.dim)
+                    s += ' ' + str(u.dim)
         elif python_code == True:  # Make a quantity without unit recognisable
             return '%s(%s)' % (self.__class__.__name__, s.strip())
         return s.strip()
@@ -1633,7 +1628,7 @@ class Unit(Quantity):
     You can then do
 
     >>> (1*Nm).in_unit(Nm)
-    '1.0 N m'
+    '1. N m'
     
     which returns ``"1 N m"`` because the `Unit` class generates a new
     display name of ``"N m"`` from the display names ``"N"`` and ``"m"`` for
@@ -1974,6 +1969,17 @@ class Unit(Quantity):
     def __ipow__(self, other, modulo=None):
         raise TypeError('Units cannot be modified in-place')
 
+    def __eq__(self, other):
+        if isinstance(other, Unit):
+            return (other.dim == self.dim and
+                    other.scalefactor == self.scalefactor and
+                    other.scale == self.scale)
+        else:
+            return Quantity.__eq__(self, other)
+
+    def __neq__(self, other):
+        return not self.__eq__(other)
+
 
 class UnitRegistry(object):
     """
@@ -2015,6 +2021,13 @@ class UnitRegistry(object):
         else:
             self.units_for_dimensions[dim].append(u)
 
+    def remove(self, u):
+        """Remove a unit from the registry
+        """
+        self.units.remove(u)
+        dim = u.dim
+        self.units_for_dimensions[dim].remove(u)
+
     def __getitem__(self, x):
         """Returns the best unit for quantity x
 
@@ -2022,25 +2035,26 @@ class UnitRegistry(object):
 
         m=abs(x/u)
 
-        for all matching units u. If there are units u where m lies between 0.1
-        and 1000, we select the unit u where this property is fulfilled for the
-        most array members. Otherwise, we select the first matching unit
-        (which will typically be the unscaled version).
+        for all matching units u. We select the unit where this ratio is the
+        closest to 10 (if it is an array with several values, we select the
+        unit where the deviations from that are the smallest. More precisely,
+        the unit that minimizes the sum of (log10(m)-1)**2 over all entries).
         """
         matching = self.units_for_dimensions.get(x.dim, [])
         if len(matching) == 0:
             raise KeyError("Unit not found in registry.")
 
-        # count the number of entries well represented by this unit
+        # determine how well this unit represents the value
         matching_values = np.asarray(matching)
         x_flat = np.asarray(x).flatten()
-        floatreps = np.tile(x_flat, (len(matching), 1)).T / matching_values
-        good_reps = np.sum((np.abs(floatreps) >= 0.1) & (np.abs(floatreps) < 1000),
-                           axis=0)
-        if any(good_reps):
-            return matching[good_reps.argmax()]
-        else:
-            return matching[0]
+        floatreps = np.tile(np.abs(x_flat), (len(matching), 1)).T / matching_values
+        # ignore zeros, they are well represented in any unit
+        floatreps[floatreps == 0] = np.nan
+        if np.all(np.isnan(floatreps)):
+            return matching[0]  # all zeros, use the base unit
+
+        deviations = np.nansum((np.log10(floatreps) - 1)**2, axis=0)
+        return matching[deviations.argmin()]
 
 def register_new_unit(u):
     """Register a new unit for automatic displaying of quantities
@@ -2054,12 +2068,28 @@ def register_new_unit(u):
     --------
     >>> from brian2 import *
     >>> 2.0*farad/metre**2
-    2.0 * metre ** -4 * kilogram ** -1 * second ** 4 * amp ** 2
+    2. * metre ** -4 * kilogram ** -1 * second ** 4 * amp ** 2
     >>> register_new_unit(pfarad / mmetre**2)
     >>> 2.0*farad/metre**2
-    2000000.0 * pfarad / mmetre ** 2
+    2000000. * pfarad / mmetre ** 2
+    >>> unregister_unit(pfarad / mmetre**2)
+    >>> 2.0*farad/metre**2
+    2. * metre ** -4 * kilogram ** -1 * second ** 4 * amp ** 2
     """
     user_unit_register.add(u)
+
+
+def unregister_unit(u):
+    """Remove a previously registered unit for automatic displaying of
+    quantities
+
+    Parameters
+    ----------
+    u : `Unit`
+        The unit that should be unregistered.
+    """
+    user_unit_register.remove(u)
+
 
 #: `UnitRegistry` containing all the standard units (metre, kilogram, um2...)
 standard_unit_register = UnitRegistry()
@@ -2104,15 +2134,13 @@ def get_unit(x, *regs):
 
     Returns
     -------
-    q : `Quantity`
-        The equivalent Unit for the quantity `x` or a Quantity with the same
-        dimensions and value 1.
+    q : `Unit`
+        The equivalent `Unit` for the quantity `x`.
     '''
     for u in all_registered_units(*regs):
         if np.asarray(u) == 1 and have_same_dimensions(u, x):
             return u
-    return Quantity.with_dimensions(1, get_dimensions(x))
-
+    return Unit(x, dim=x.dim)
 
 def get_unit_fast(x):
     '''
@@ -2146,12 +2174,12 @@ def check_units(**au):
     fails, but
 
     >>> getvoltage(1*amp, 1*ohm, wibble=1*metre)
-    1.0 * volt
+    1. * volt
 
     passes. String arguments or ``None`` are not checked
     
     >>> getvoltage(1*amp, 1*ohm, wibble='hello')
-    1.0 * volt
+    1. * volt
     
     By using the special name ``result``, you can check the return value of the
     function.

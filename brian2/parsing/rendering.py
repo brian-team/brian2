@@ -135,8 +135,8 @@ class NodeRenderer(object):
         return self.render_BinOp_parentheses(node.left, node.comparators[0], node.ops[0])
         
     def render_UnaryOp(self, node):
-        return '%s%s' % (self.expression_ops[node.op.__class__.__name__],
-                         self.render_element_parentheses(node.operand))
+        return '%s %s' % (self.expression_ops[node.op.__class__.__name__],
+                          self.render_element_parentheses(node.operand))
                 
     def render_Assign(self, node):
         if len(node.targets)>1:

@@ -9,11 +9,12 @@ from collections import defaultdict
 
 import numpy as np
 
-from brian2.core.network import Network
 from brian2.core.clocks import defaultclock
+from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices
 from brian2.core.variables import *
 from brian2.synapses.synapses import Synapses
+from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.generators.cpp_generator import c_data_type
@@ -21,13 +22,27 @@ from brian2.units.fundamentalunits import Quantity, have_same_dimensions
 from brian2.units import second
 from brian2.utils.logger import get_logger
 
-from .codeobject import CPPStandaloneCodeObject
+from .codeobject import CPPStandaloneCodeObject, openmp_pragma
 
 
 __all__ = []
 
 logger = get_logger(__name__)
 
+
+# Preferences
+brian_prefs.register_preferences(
+    'codegen.cpp_standalone',
+    'C++ standalone preferences ',
+    openmp_threads = BrianPreference(
+        default=0,
+        docs='''
+        The number of threads to use if OpenMP is turned on. By default, this value is set to 0 and the C++ code
+        is generated without any reference to OpenMP. If greater than 0, then the corresponding number of threads
+        are used to launch the simulation.
+        ''',
+        )
+    )
 
 def freeze(code, ns):
     # this is a bit of a hack, it should be passed to the template somehow
@@ -299,7 +314,6 @@ class CPPStandaloneDevice(Device):
                                       'variables in standalone code before the '
                                       'simulation has been run.')
 
-
     def variableview_get_subexpression_with_index_array(self, variableview,
                                                         item, level=0,
                                                         run_namespace=None):
@@ -314,8 +328,7 @@ class CPPStandaloneDevice(Device):
                                   'standalone scripts.')
 
     def code_object_class(self, codeobj_class=None):
-        if codeobj_class is not None:
-            raise ValueError("Cannot specify codeobj_class for C++ standalone device.")
+        # Ignore the requested codeobj_class
         return CPPStandaloneCodeObject
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
@@ -334,8 +347,7 @@ class CPPStandaloneDevice(Device):
               with_output=True, native=True,
               additional_source_files=None, additional_header_files=None,
               main_includes=None, run_includes=None,
-              run_args=None,
-              ):
+              run_args=None):
         '''
         Build the project
         
@@ -377,13 +389,27 @@ class CPPStandaloneDevice(Device):
             run_args = []
         self.project_dir = project_dir
         ensure_directory(project_dir)
+        
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(project_dir, d))
             
         writer = CPPWriter(project_dir)
-            
-        logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
+        
+        # Get the number of threads if specified in an openmp context
+        nb_threads = brian_prefs.codegen.cpp_standalone.openmp_threads   
+        # If the number is negative, we need to throw an error
+        if (nb_threads < 0):
+            raise ValueError('The number of OpenMP threads can not be negative !') 
 
+        logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
+        if nb_threads > 0:
+            logger.debug("Using OpenMP with %d threads " % nb_threads)
+            for codeobj in self.code_objects.itervalues():
+                if not 'IS_OPENMP_COMPATIBLE' in codeobj.template_source:
+                    raise RuntimeError(("Code object '%s' uses the template %s "
+                                        "which is not compatible with "
+                                        "OpenMP.") % (codeobj.name,
+                                                      codeobj.template_name))
         arange_arrays = sorted([(var, start)
                                 for var, start in self.arange_arrays.iteritems()],
                                key=lambda (var, start): var.name)
@@ -413,6 +439,13 @@ class CPPStandaloneDevice(Device):
         for net in networks:
             synapses.extend(s for s in net.objects if isinstance(s, Synapses))
 
+        # Not sure what the best place is to call Network.after_run -- at the
+        # moment the only important thing it does is to clear the objects stored
+        # in magic_network. If this is not done, this might lead to problems
+        # for repeated runs of standalone (e.g. in the test suite).
+        for net in networks:
+            net.after_run()
+
         arr_tmp = CPPStandaloneCodeObject.templater.objects(
                         None, None,
                         array_specs=self.arrays,
@@ -423,8 +456,7 @@ class CPPStandaloneDevice(Device):
                         synapses=synapses,
                         clocks=self.clocks,
                         static_array_specs=static_array_specs,
-                        networks=networks,
-                        )
+                        networks=networks)
         writer.write('objects.*', arr_tmp)
 
         main_lines = []
@@ -440,21 +472,23 @@ class CPPStandaloneDevice(Device):
             elif func=='set_by_array':
                 arrayname, staticarrayname = args
                 code = '''
+                {pragma}
                 for(int i=0; i<_num_{staticarrayname}; i++)
                 {{
                     {arrayname}[i] = {staticarrayname}[i];
                 }}
-                '''.format(arrayname=arrayname, staticarrayname=staticarrayname)
+                '''.format(arrayname=arrayname, staticarrayname=staticarrayname, pragma=openmp_pragma('static'))
                 main_lines.extend(code.split('\n'))
             elif func=='set_array_by_array':
                 arrayname, staticarrayname_index, staticarrayname_value = args
                 code = '''
+                {pragma}
                 for(int i=0; i<_num_{staticarrayname_index}; i++)
                 {{
                     {arrayname}[{staticarrayname_index}[i]] = {staticarrayname_value}[i];
                 }}
                 '''.format(arrayname=arrayname, staticarrayname_index=staticarrayname_index,
-                           staticarrayname_value=staticarrayname_value)
+                           staticarrayname_value=staticarrayname_value, pragma=openmp_pragma('static'))
                 main_lines.extend(code.split('\n'))
             elif func=='insert_code':
                 main_lines.append(args)
@@ -532,6 +566,12 @@ class CPPStandaloneDevice(Device):
                                                           additional_headers=main_includes,
                                                           )
         writer.write('main.cpp', main_tmp)
+
+        main_tmp = CPPStandaloneCodeObject.templater.network(None, None)
+        writer.write('network.*', main_tmp)
+
+        main_tmp = CPPStandaloneCodeObject.templater.synapses_classes(None, None)
+        writer.write('synapses_classes.*', main_tmp)
         
         # Generate the run functions
         run_tmp = CPPStandaloneCodeObject.templater.run(None, None, run_funcs=runfuncs,
@@ -554,7 +594,6 @@ class CPPStandaloneDevice(Device):
         spikequeue_h = os.path.join(project_dir, 'brianlib', 'spikequeue.h')
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'cspikequeue.cpp'),
                      spikequeue_h)
-        #writer.header_files.append(spikequeue_h)
         
         writer.source_files.extend(additional_source_files)
         writer.header_files.extend(additional_header_files)

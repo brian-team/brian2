@@ -384,7 +384,11 @@ class Network(Nameable):
         namespace : dict-like, optional
             A namespace in which objects which do not define their own
             namespace will be run.
-        '''                
+        '''
+        # A garbage collection here can be useful to free memory if we have
+        # multiple runs
+        gc.collect()
+
         brian_prefs.check_all_validated()
         
         self._stopped = False
@@ -478,10 +482,6 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
-        # A garbage collection here can be useful to free memory if we have
-        # multiple runs
-        gc.collect()
-
         if len(self.objects)==0:
             return # TODO: raise an error? warning?
 

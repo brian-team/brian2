@@ -126,6 +126,7 @@ setup(name='Brian2',
       packages=find_packages(),
       package_data={# include template files
                     'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
+                    'brian2.codegen.runtime.cython_rt': ['templates/*.pyx'],
                     'brian2.codegen.runtime.weave_rt': ['templates/*.cpp',
                                                         'templates/*.h'],
                     'brian2.devices.cpp_standalone': ['templates/*.cpp',

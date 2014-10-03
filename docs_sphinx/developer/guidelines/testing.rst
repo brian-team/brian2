@@ -14,11 +14,35 @@ suite with::
 	$ nosetests brian2 --with-doctest
 
 This should show no errors or failures but possibly a number of skipped tests.
-Alternatively you can import brian2 and call the test function, e.g. in an
-interactive Python session::
+The recommended way however is to import brian2 and call the test function,
+which gives you convenient control over which tests are run::
 
 	>>> import brian2
 	>>> brian2.test() 
+
+By default, this runs the test suite for all available (runtime) code generation
+targets. If you only want to test a specific target, provide it as an argument::
+
+    >>> brian2.test('numpy')
+
+If you want to test several targets, use a list of targets::
+
+    >>> brian2.test(['weave', 'cython'])
+
+
+In addition to the tests specific to a code generation target, the test suite
+will also run a set of independent tests (e.g. parsing of equations, unit
+system, utility functions, etc.). To exclude these tests, set the
+``test_codegen_independent`` argument to ``False``. Not all available tests are
+run by default, tests that take a long time are excluded. To include these, set
+``long_tests`` to ``True``.
+
+To run the C++ standalone tests, you have to set the ``test_standalone``
+argument. If you provide an empty argument for the runtime code generation
+targets, you will only run the standalone tests::
+
+    >>> brian2.test([], test_standalone=True)
+
 
 Checking the code coverage
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -109,6 +133,29 @@ date!
 .. _`doctest documentation`: http://docs.python.org/2/library/doctest.html
 .. _`Sphinx's doctest extension`: http://sphinx-doc.org/ext/doctest.html
 
+Test attributes
+~~~~~~~~~~~~~~~
+
+As explained above, the test suite can be run with different subsets of the
+available tests. For this, tests have to be annotated with the ``attr``
+decorator available from ``nose.plugins.attrib``. Currently, the following
+attributes are understood:
+
+* **standalone**: A C++ standalone test (not run by default when calling ``brian2.test()``)
+* **codegen-independent**: A test that does not use any code generation (run by default)
+* **long**: A test that takes a long time to run (not run by default)
+
+Attributes can be simply given as a string argument to the ``attr`` decorator:
+
+.. code-block:: python
+   :emphasize-lines: 3
+
+    from nose.plugins.attrib import attr
+
+    @attr('standalone')
+    test_for_standalone():
+        pass  # ...
+
 Correctness tests
 ~~~~~~~~~~~~~~~~~
 [These do not exist yet for brian2]. Unit tests test a specific function or
@@ -119,4 +166,4 @@ the spiking activity of a complex network), a useful check is also whether the
 result is *consistent*. For example, the spiking activity should be the same
 when using code generation for Python or C++. Or, a network could be pickled
 before running and then the result of the run could be compared to a second run
-that starts from the unpickled network.  
+that starts from the unpickled network.
