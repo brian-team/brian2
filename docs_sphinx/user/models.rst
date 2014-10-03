@@ -10,7 +10,7 @@ form of equations::
 
 This defines a group of 10 leaky integrators. The model description can be
 directly given as a (possibly multi-line) string as above, or as an
-`Equation` object. For more details on the form of equations, see
+`Equations` object. For more details on the form of equations, see
 :doc:`equations`. Note that model descriptions can make reference to physical
 units, but also to scalar variables declared outside of the model description
 itself::
@@ -81,7 +81,8 @@ State variables
 ---------------
 Differential equations and parameters in model descriptions are stored as 
 *state variables* of the `NeuronGroup`. They can be accessed and set as an
-attribute of the group:
+attribute of the group. To get the values without physical units (e.g. for
+analysing data with external tools), use an underscore after the name:
 
 .. doctest::
 
@@ -91,6 +92,8 @@ attribute of the group:
     >>> G.v = -70*mV
     >>> print G.v
     <neurongroup.v: array([-70., -70., -70., -70., -70., -70., -70., -70., -70., -70.]) * mvolt>
+    >>> print G.v_  # values without units
+    <neurongroup.v_: array([-0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07])>
     >>> G.shared_input = 5*mV
     >>> print G.shared_input
     <neurongroup.shared_input: 5.0 * mvolt>

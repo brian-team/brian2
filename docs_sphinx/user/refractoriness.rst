@@ -51,11 +51,11 @@ In some cases, the condition for leaving the refractory period is not easily
 expressed as a certain time span. For example, in a Hodgkin-Huxley type model the
 threshold is only used for *counting* spikes and the refractoriness is used to
 prevent to count multiple spikes for a single threshold crossing (the threshold
-condition would evaluate to ``True`` for several time points). Leaving the
-refractory period is not easily expressed as a time span but more naturally as
-a condition that the neuron should remain refractory for as long as it stays
-above the threshold. This can be achieved by using a string expression for
-the ``refractory`` keyword that evaluates to a boolean condition::
+condition would evaluate to ``True`` for several time points). When a neuron
+should leave the refractory period is not easily expressed as a time span but
+more naturally as a condition that the neuron should remain refractory for as
+long as it stays above the threshold. This can be achieved by using a string
+expression for the ``refractory`` keyword that evaluates to a boolean condition::
 
     G = NeuronGroup(N, model='...', threshold='v > -20*mV',
                     refractory='v >= -20*mV')
@@ -93,4 +93,5 @@ In the above model, the ``v`` variable is clamped at 0 for 2ms after a spike but
 the adaptation variable ``w`` continues to update during this time.
 
 In fact, arbitrary behaviours can be defined using Brian's refractoriness
-mechanism. For more details, see :doc:`../advanced/refractoriness`.
+mechanism. For more details, see the documentation on details of the
+:doc:`refractoriness implementation <../advanced/refractoriness>`.

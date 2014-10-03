@@ -30,12 +30,11 @@ For stochastic equations with several ``xi`` values it is now necessary to make 
 or different noise instantiations. To make this distinction, an arbitrary suffix can be used, e.g. using ``xi_1`` several times
 refers to the same variable, ``xi_2`` (or ``xi_inh``, ``xi_alpha``, etc.) refers to another. An error will be raised if
 you use more than one plain ``xi``. Note that noise is always independent across neurons, you can only work around this
-restriction by defining your noise variable as a shared parameter and update it using a user-defined function (e.g. a `CodeRunner`).
+restriction by defining your noise variable as a shared parameter and update it using a user-defined function (e.g. with a  `~Group.custom_operation`).
 
 Flags
 ~~~~~
-A new syntax is the possibility of *flags*. A flag is a keyword in parentheses
-at the end of the line, which
+A *flag* is a keyword in parentheses at the end of the line, which
 qualifies the equations. There are several keywords:
 
 *event-driven*
@@ -52,11 +51,11 @@ qualifies the equations. There are several keywords:
   this means the parameter will not be changed during a run. This allows
   optimizations in state updaters. This can only qualify parameters.
 *shared*
-  this means that a parameter or subexpression isn't neuron-/synapse-specific
+  this means that a parameter or subexpression is not neuron-/synapse-specific
   but rather a single value for the whole `NeuronGroup` or `Synapses`. A shared
   subexpression can only refer to other shared variables.
 
-Different flags may be specified as follows::
+Multiple flags may be specified as follows::
 
 	dx/dt = f : unit (flag1,flag2)
 
@@ -70,8 +69,7 @@ There are additional constraints:
   also event-driven.
 * An event-driven equation cannot depend on a differential equation that is not
   event-driven (directly, or indirectly through subexpressions). It can depend
-  on a constant parameter. An open question is whether we should also allow it
-  to depend on a parameter not defined as constant (I would say no).
+  on a constant parameter.
 
 Currently, automatic event-driven updates are only possible for one-dimensional
 linear equations, but this may be extended in the future.
