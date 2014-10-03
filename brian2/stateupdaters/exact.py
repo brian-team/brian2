@@ -36,10 +36,10 @@ def get_linear_system(eqs):
         If the equations cannot be converted into an M * X + B form.
     '''
     diff_eqs = eqs.substituted_expressions
-    diff_eq_names = eqs.diff_eq_names
-    
+    diff_eq_names = [name for name, _ in diff_eqs]
+
     symbols = [Symbol(name, real=True) for name in diff_eq_names]
-    
+
     coefficients = sp.zeros(len(diff_eq_names))
     constants = sp.zeros(len(diff_eq_names), 1)
 
@@ -47,7 +47,7 @@ def get_linear_system(eqs):
         s_expr = expr.sympy_expr.expand()
 
         current_s_expr = s_expr
-        for col_idx, (name, symbol) in enumerate(zip(eqs.diff_eq_names, symbols)):
+        for col_idx, symbol in enumerate(symbols):
             current_s_expr = current_s_expr.collect(symbol)
             constant_wildcard = Wild('c', exclude=[symbol])
             factor_wildcard = Wild('c_'+name, exclude=symbols)
