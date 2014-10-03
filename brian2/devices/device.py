@@ -341,8 +341,14 @@ class CurrentDeviceProxy(object):
     '''
     def __getattr__(self, name):
         if not hasattr(active_device, name):
-            logger.warn("Active device does not have an attribute '%s', ignoring this" % name)
-            attr = Dummy()
+            if name.startswith('_'):
+                # Do not fake private/magic attributes
+                raise AttributeError(('Active device does not have an '
+                                      'attribute %s') % name)
+            else:
+                logger.warn(("Active device does not have an attribute '%s', "
+                             "ignoring this") % name)
+                attr = Dummy()
         else:
             attr = getattr(active_device, name)
         return attr
