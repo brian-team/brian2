@@ -18,21 +18,33 @@ def test_timedarray_direct_use():
 
 
 def test_timedarray_no_units():
-    ta = TimedArray(np.arange(10), defaultclock.dt)
-    G = NeuronGroup(1, 'value = ta(t) + 1: 1')
-    mon = StateMonitor(G, 'value', record=True)
+    ta = TimedArray(np.arange(10), dt=0.1*ms)
+    G = NeuronGroup(1, 'value = ta(t) + 1: 1', dt=0.1*ms)
+    mon = StateMonitor(G, 'value', record=True, dt=0.1*ms)
     net = Network(G, mon)
-    net.run(11*ms)
+    net.run(1.1*ms)
     assert_equal(mon[0].value_, np.clip(np.arange(len(mon[0].t)), 0, 9) + 1)
 
 
 def test_timedarray_with_units():
-    ta = TimedArray(np.arange(10)*amp, dt=defaultclock.dt)
-    G = NeuronGroup(1, 'value = ta(t) + 2*nA: amp')
-    mon = StateMonitor(G, 'value', record=True)
+    ta = TimedArray(np.arange(10)*amp, dt=0.1*ms)
+    G = NeuronGroup(1, 'value = ta(t) + 2*nA: amp', dt=0.1*ms)
+    mon = StateMonitor(G, 'value', record=True, dt=0.1*ms)
     net = Network(G, mon)
-    net.run(11*ms)
+    net.run(1.1*ms)
     assert_equal(mon[0].value, np.clip(np.arange(len(mon[0].t)), 0, 9)*amp + 2*nA)
+
+
+def test_timedarray_no_upsampling():
+    # Test a TimedArray where no upsampling is necessary because the monitor's
+    # dt is bigger than the TimedArray's
+    ta = TimedArray(np.arange(10), dt=0.01*ms)
+    G = NeuronGroup(1, 'value = ta(t): 1', dt=0.1*ms)
+    mon = StateMonitor(G, 'value', record=True, dt=1*ms)
+    net = Network(G, mon)
+    net.run(2.1*ms)
+    assert_equal(mon[0].value, [0, 9, 9])
+
 
 def test_long_timedarray():
     '''
@@ -54,4 +66,5 @@ if __name__ == '__main__':
     test_timedarray_direct_use()
     test_timedarray_no_units()
     test_timedarray_with_units()
+    test_timedarray_no_upsampling()
     test_long_timedarray()
