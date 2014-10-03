@@ -7,7 +7,8 @@ current stage...
 
 Magic and clocks
 ----------------
-For a more detailed description, see :doc:`new_magic_and_clocks`.
+For a more detailed description, see :doc:`../user/running` and 
+:doc:`../advanced/scheduling`.
 
 The clock system has been simplified and is now more explicit: The user either
 defines a `Clock` (and passes it for example to the `NeuronGroup`) or the default

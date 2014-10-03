@@ -111,7 +111,8 @@ Miscellaneous changes
 ~~~~~~~~~~~~~~~~~~~~~
 * New preferences system (see :doc:`../developer/preferences`)
 * New handling of namespaces (see :doc:`../user/equations`)
-* New "magic" and clock system (see :doc:`../developer/new_magic_and_clocks`)
+* New "magic" and clock system (see :doc:`../advanced/scheduling` and
+  :doc:`../user/running`)
 * New refractoriness system (see :doc:`../user/refractoriness`)
 * More powerful string expressions that can also be used as indices for state
   variables (see e.g. :doc:`../user/synapses`)

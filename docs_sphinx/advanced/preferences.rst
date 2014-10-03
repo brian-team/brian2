@@ -48,4 +48,3 @@ Brian itself defines the following preferences (including their default
 values):
 
 .. document_brian_prefs::
-   :nolinks:
