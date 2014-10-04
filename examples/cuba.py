@@ -2,19 +2,19 @@
 This is a Brian script implementing a benchmark described
 in the following review paper:
 
-Simulation of networks of spiking neurons: A review of tools and strategies (2007).
-Brette, Rudolph, Carnevale, Hines, Beeman, Bower, Diesmann, Goodman, Harris, Zirpe,
-Natschläger, Pecevski, Ermentrout, Djurfeldt, Lansner, Rochel, Vibert, Alvarez, Muller,
-Davison, El Boustani and Destexhe.
+Simulation of networks of spiking neurons: A review of tools and strategies
+(2007). Brette, Rudolph, Carnevale, Hines, Beeman, Bower, Diesmann, Goodman,
+Harris, Zirpe, Natschlager, Pecevski, Ermentrout, Djurfeldt, Lansner, Rochel,
+Vibert, Alvarez, Muller, Davison, El Boustani and Destexhe.
 Journal of Computational Neuroscience 23(3):349-98
 
-Benchmark 2: random network of integrate-and-fire neurons with exponential synaptic currents
+Benchmark 2: random network of integrate-and-fire neurons with exponential
+synaptic currents.
 
 Clock-driven implementation with exact subthreshold integration
-(but spike times are aligned to the grid)
+(but spike times are aligned to the grid).
 '''
 from brian2 import *
-import time
 
 taum = 20*ms
 taue = 5*ms
