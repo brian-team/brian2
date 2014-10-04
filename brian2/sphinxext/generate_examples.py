@@ -91,7 +91,7 @@ def main(rootpath, destdir):
                    examplescode, examplesdocs, examplesafterdoccode,
                    relativepaths, outnames)
     for fname, path, basename, code, docs, afterdoccode, relpath, exname in examples:
-        categories[relpath].append(exname)
+        categories[relpath].append((exname, basename))
         title = 'Example: ' + basename
         output = '.. currentmodule:: brian2\n\n'
         output += '.. ' + basename + ':\n\n'
@@ -111,8 +111,8 @@ def main(rootpath, destdir):
         mainpage_text += '.. toctree::\n'
         mainpage_text += '   :maxdepth: 1\n\n'
         curpath = ''
-        for exname in sorted(categories[category]):
-            mainpage_text += '   ' + exname + '\n'
+        for exname, basename in sorted(categories[category]):
+            mainpage_text += '   %s <%s>\n' % (basename, exname)
         return mainpage_text
             
     mainpage_text = insert_category('', mainpage_text)
