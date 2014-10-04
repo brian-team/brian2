@@ -4,8 +4,6 @@ spatial (deterministic or stochastic) connection patterns.
 '''
 from brian2 import *
 
-# brian_prefs.codegen.target = 'weave'
-
 rows, cols = 20, 20
 G = NeuronGroup(rows * cols, '''x : meter
                                 y : meter''')
@@ -13,7 +11,6 @@ G = NeuronGroup(rows * cols, '''x : meter
 grid_dist = 25*umeter
 G.x = '(i / rows) * grid_dist - rows/2.0 * grid_dist'
 G.y = '(i % rows) * grid_dist - cols/2.0 * grid_dist'
-
 
 # Deterministic connections
 distance = 120*umeter
@@ -24,6 +21,8 @@ S_deterministic.connect('sqrt((x_pre - x_post)**2 + (y_pre - y_post)**2) < dista
 S_stochastic = Synapses(G, G)
 S_stochastic.connect('i != j',
                      p='1.5 * exp(-((x_pre-x_post)**2 + (y_pre-y_post)**2)/(2*(60*umeter)**2))')
+
+figure(figsize=(12, 6))
 
 # Show the connections for some neurons in different colors
 for color in ['g', 'b', 'm']:
@@ -48,4 +47,6 @@ for idx, t in enumerate(['determininstic connections',
     xlabel('x')
     ylabel('y', rotation='horizontal')
     axis('equal')
+
+tight_layout()
 show()
