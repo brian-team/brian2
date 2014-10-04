@@ -37,15 +37,26 @@ class RunTestCase(unittest.TestCase):
 __file__ = '{fname}'
 import matplotlib as _mpl
 _mpl.use('Agg')
-import warnings, traceback, pickle, sys
+import warnings, traceback, pickle, sys, os
 warnings.simplefilter('ignore')
 try:
     from brian2 import brian_prefs
+    from brian2.utils.filetools import ensure_directory_of_file
     brian_prefs.codegen.target = '{target}'
-    execfile('{fname}')
+    execfile(r'{fname}')
+    if '{target}'=='numpy':
+        for fignum in _mpl.pyplot.get_fignums():
+            fname = r'{fname}'
+            fname = os.path.relpath(fname, '../../examples')
+            fname = fname.replace('/', '.').replace('\\\\', '.')
+            fname = fname.replace('.py', '.%d.png' % fignum)
+            fname = '../../docs_sphinx/examples_images/'+fname
+            print fname
+            ensure_directory_of_file(fname)
+            _mpl.pyplot.figure(fignum).savefig(fname)
 except Exception, ex:
     traceback.print_exc(file=sys.stdout)
-    f = open('{tempfname}', 'w')
+    f = open(r'{tempfname}', 'w')
     pickle.dump(ex, f, -1)
     f.close()
 """.format(fname=self.filename,
@@ -103,7 +114,11 @@ class SelectFilesPlugin(Plugin):
 
     def loadTestsFromName(self, name, module=None, discovered=False):
         all_examples = self.find_examples(name)
-        return [RunTestCase(example, 'numpy') for example in all_examples] + [RunTestCase(example, 'weave') for example in all_examples]
+        all_tests = []
+        for target in ['numpy', 'weave', 'cython']:
+            for example in all_examples:
+                all_tests.append(RunTestCase(example, target))
+        return all_tests
 
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@ import fnmatch
 import shutil
 import unicodedata
 from collections import defaultdict
+import glob
 
 
 class GlobDirectoryWalker:
@@ -99,6 +100,10 @@ def main(rootpath, destdir):
         output += docs + '\n\n::\n\n'
         output += '\n'.join(['    ' + line for line in afterdoccode.split('\n')])
         output += '\n\n'
+        images = glob.glob('../../docs_sphinx/examples_images/%s.*.png' % exname)
+        for image in sorted(images):
+            image = os.path.relpath(image, '../../docs_sphinx/examples_images')
+            output += '.. image:: ../examples_images/%s\n\n' % image
     
         open(os.path.join(destdir, exname + '.rst'), 'w').write(output)
     
