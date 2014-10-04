@@ -686,7 +686,9 @@ def test_state_variable_access():
 
 
 def test_state_variable_access_strings():
-    G = NeuronGroup(10, 'v:volt')
+    G = NeuronGroup(10, '''v : volt
+                           dv_ref/dt = -v_ref/(10*ms) : 1 (unless refractory)''',
+                    threshold='v_ref>1', reset='v_ref=1', refractory=1*ms)
     G.v = np.arange(10) * volt
     # Indexing with strings
     assert G.v['i==2'] == G.v[2]
@@ -708,6 +710,11 @@ def test_state_variable_access_strings():
                  np.array([0, 3, 6, 9, 12, 10, 12, 14, 16, 18])*volt)
 
     G.v = np.arange(10) * volt
+
+    # Conditional write variable
+    G.v_ref = '2*i'
+    assert_equal(G.v_ref[:], 2*np.arange(10))
+
     # String value referring to a state variable
     G.v = '2*v'
     assert_equal(G.v[:], 2*np.arange(10)*volt)
