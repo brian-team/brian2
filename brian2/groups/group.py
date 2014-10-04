@@ -792,7 +792,7 @@ class CodeRunner(BrianObject):
     '''
     add_to_magic_network = True
     invalidates_magic_network = True
-    def __init__(self, group, template, code, user_code=None,
+    def __init__(self, group, template, code='', user_code=None,
                  clock=None, dt=None, when='end',
                  order=0, name='coderunner*', check_units=True,
                  template_kwds=None, needed_variables=None,
