@@ -3,7 +3,8 @@
 
 {% block maincode %}
     #include<iostream>
-	{# USES_VARIABLES { _synaptic_pre, _synaptic_post, rand} #}
+	{# USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
+	                    N_incoming, N_outgoing } #}
     
     // scalar code
     const int _vectorisation_idx = -1;
@@ -33,6 +34,8 @@
 			            continue;
 			    }
 			    for (int _repetition=0; _repetition<_n; _repetition++) {
+			        {{N_outgoing}}[_pre_idx] += 1;
+			        {{N_incoming}}[_post_idx] += 1;
 			    	{{_dynamic__synaptic_pre}}.push_back(_pre_idx);
 			    	{{_dynamic__synaptic_post}}.push_back(_post_idx);
                 }
