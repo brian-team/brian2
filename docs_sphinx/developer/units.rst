@@ -34,7 +34,7 @@ object whereas the multiplication of an array with a unit resulted in a
 (unitless) array. Accordingly, scalars where considered as dimensionless
 quantities for the purpose of unit checking (e.g.. 1 + 1 * mV raised an error)
 whereas arrays where not (e.g. array(1) + 1 * mV resulted in 1.001 without any
-errors). Brian2 no longer makes this distinction and treats both scalars and
+errors). Brian 2 no longer makes this distinction and treats both scalars and
 arrays as dimensionless for unit checking and make all operations involving
 quantities return a quantity.::
 

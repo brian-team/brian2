@@ -1,7 +1,7 @@
 Refractoriness
 ==============
 
-Brian2 allows you to model the absolute refractory period of a neuron in a flexible
+Brian allows you to model the absolute refractory period of a neuron in a flexible
 way. The definition of refractoriness consists of two components: the amount of time
 after a spike that a neuron is considered to be refractory, and what changes in the
 neuron during the refractoriness.

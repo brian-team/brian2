@@ -1,7 +1,7 @@
-Overview of Brian2
+Overview of Brian
 =============================
 
-This page describes some of the concepts in Brian2 and how the different parts
+This page describes some of the concepts in Brian and how the different parts
 are meant to work together. Of course, nothing here is set in stone at the
 current stage...
 

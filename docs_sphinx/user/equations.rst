@@ -22,7 +22,7 @@ the values out of a `NeuronGroup` and discarding the units. Compound units are o
 There are also three special "units" that can be used: ``1`` denotes a dimensionless floating point variable,
 ``boolean`` and ``integer`` denote dimensionless variables of the respective kind.
 
-Aliases are no longer available in Brian 2. Some special variables are defined: `t`, `dt` (time) and `xi` (white noise).
+Some special variables are defined: `t`, `dt` (time) and `xi` (white noise).
 Variable names starting with an underscore and a couple of other names that have special meanings under certain
 circumstances (e.g. names ending in ``_pre`` or ``_post``) are forbidden.
 

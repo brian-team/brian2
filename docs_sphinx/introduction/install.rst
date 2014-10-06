@@ -3,7 +3,7 @@ Installation
 
 Released version
 ----------------
-Brian2 is available on the Python package index: https://pypi.python.org/pypi/Brian2
+Brian is available on the Python package index: https://pypi.python.org/pypi/brian2
 
 It can therefore be installed using ``easy_install`` or ``pip`` (in newer
 versions, this needs the ``--pre`` flag to allow for the installation of a
@@ -47,7 +47,7 @@ You can also use ``pip`` to install directly from github, use::
 C extensions
 ------------
 
-During installation, Brian2 will try to compile a C++ version of the
+During installation, Brian will try to compile a C++ version of the
 `~brian2.synapses.spikequeue.SpikeQueue`, which increases the speed of synaptic
 propagation. If compilation fails, the pure Python version is used instead.
 Note that if you use the source package directly without an install, you have to
@@ -58,7 +58,7 @@ github, this process additionally needs a working installation of Cython_.
 Testing Brian
 -------------
 
-If you have the nose_ testing utility installed, you can run Brian2's test
+If you have the nose_ testing utility installed, you can run Brian's test
 suite::
 
     import brian2

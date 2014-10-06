@@ -1,7 +1,7 @@
 State update
 ============
 
-In Brian 2, a state updater transforms a set of equations into an abstract
+In Brian, a state updater transforms a set of equations into an abstract
 state update code (and therefore is automatically target-independent). In
 general, any function (or callable object) that takes an `Equations` object
 and returns abstract code (as a string) can be used as a state updater and
@@ -43,12 +43,12 @@ updaters use the Stratonovich interpretation for stochastic equations (which
 is the correct interpretation if the white noise source is seen as the limit
 of a coloured noise source with a short time constant). As a result of this,
 the simple Euler-Maruyama scheme (``x_new = x + dt*f(x, t) + dW*g(x, t)``) will
-only be used for additive noise. You can enforce the Itō interpretation,
+only be used for additive noise. You can enforce the Ito interpretation,
 however, by simply directly passing such a state updater. For example, if you 
 specify `euler` for a system with multiplicative noise it will generate a
 warning (because the state updater does not give correct results under the
 Stratonovich interpretation) but will work (and give the correct result under
-the Itō interpretation).
+the Ito interpretation).
 
 An example for a general state updater that handles arbitrary multiplicative
 noise (under Stratonovich interpretation) is the derivative-free Milstein

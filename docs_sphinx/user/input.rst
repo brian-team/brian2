@@ -1,7 +1,7 @@
 Input stimuli
 =============
 
-There are various ways of providing "external" input to a network. Brian2 does
+There are various ways of providing "external" input to a network. Brian does
 not yet provide all the features of Brian1 in this regard, but there is already
 a range of options, detailed below.
 

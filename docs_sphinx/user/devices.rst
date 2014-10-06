@@ -1,7 +1,7 @@
 Devices
 =======
 
-Brian 2 supports generating standalone code for multiple devices. In this mode, running a Brian script generates
+Brian supports generating standalone code for multiple devices. In this mode, running a Brian script generates
 source code in a project tree for the target device/language. This code can then be compiled and run on the device,
 and modified if needed. At the moment, the only 'device' supported is standalone C++ code.
 In some cases, the speed gains can be impressive, in particular for smaller networks with complicated spike
