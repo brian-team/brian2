@@ -1,31 +1,6 @@
 Units
 =====  
 
-Importing units
----------------
-Brian generates standard names for units, combining the unit name (e.g.
-"siemens") with a prefixes (e.g. "m"), and also generates squared and cubed
-versions by appending a number. For example, the units "msiemens", "siemens2",
-"usiemens3" are all predefined. You can import these units from the package
-``brian2.units.allunits`` -- accordingly, an
-``from brian2.units.allunits import *`` will result in everything from
-``Ylumen3`` (cubed yotta lumen) to ``ymol`` (yocto mole) being imported.
-
-A better choice is normally to do an ``from brian2.units import *``, this
-imports only the base units amp, kilogram, second, metre/meter and the
-derived units coulomb, farad, gram/gramme, hertz, joule, pascal, ohm, 
-siemens, volt, watt, together with the prefixes p, n, u, m, k, M, G, T (two
-exceptions: kilogram is not imported with any prefixes, metre and meter are
-additionaly defined with the "centi" prefix, i.e. cmetre/cmeter).
-
-In addition to these, the module ``brian2.units.stdunits`` adds a couple of
-useful standard abbreviations like "cm" (instead of cmetre/cmeter), "nS"
-(instead of nsiemens), "ms" (instead of msecond), "Hz" (instead of hertz), etc.
-
-Doing a top-level wildcard import ``from brian2 import *`` is equivalent to
-doing both ``from brian2.units import *`` and
-``from brian2.units.stdunits import *``. 
-
 Casting rules
 -------------
 In Brian 1, a distinction is made between scalars and numpy arrays (including
@@ -205,24 +180,6 @@ they are only using functions/methods that work with quantities:
 User-defined functions and units
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 For performance and simplicity reasons, code within the Brian core does not use
-Quantity objects but unitless numpy arrays instead.
+Quantity objects but unitless numpy arrays instead. See :doc:`functions` for
+details on how to make use user-defined functions with Brian's unit system.
 
-.. todo:: describe how functions should deal with units.
-
-Comparison with Brian 1
------------------------
-
-Some expressions and their return values in Brian 1 and Brian 2
-
-================================    ================================    =================================
-Expression                          Brian 1                             Brian 2
-================================    ================================    =================================
-1 * mV                              1.0 * mvolt                         1.0 * mvolt
-np.array(1) * mV                    0.001                               1.0 * mvolt
-np.array([1]) * mV                  array([ 0.001])                     array([1.]) * mvolt
-np.mean(np.arange(5) * mV)          0.002                               2.0 * mvolt
-np.arange(2) * mV                   array([ 0.   ,  0.001])             array([ 0.,  1.]) * mvolt
-(np.arange(2) * mV) >= 1 * mV       array([False, True], dtype=bool)    array([False, True], dtype=bool)
-(np.arange(2) * mV)[0] >= 1 * mV    False                               False
-(np.arange(2) * mV)[1] >= 1 * mV    DimensionMismatchError              True
-================================    ================================    =================================

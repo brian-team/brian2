@@ -5,6 +5,7 @@ User's guide
    :maxdepth: 2
    
    import
+   units
    models
    equations
    refractoriness
