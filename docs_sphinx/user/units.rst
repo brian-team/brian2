@@ -1,28 +1,17 @@
 Physical units
 ==============
 
-Importing units
----------------
-Brian generates standard names for units, combining the unit name (e.g.
-"siemens") with a prefixes (e.g. "m"), and also generates squared and cubed
-versions by appending a number. For example, the units "msiemens", "siemens2",
-"usiemens3" are all predefined. You can import these units from the package
-``brian2.units.allunits`` -- accordingly, an
-``from brian2.units.allunits import *`` will result in everything from
-``Ylumen3`` (cubed yotta lumen) to ``ymol`` (yocto mole) being imported.
-
-A better choice is normally to do an ``from brian2.units import *`` or import
-everything ``from brian2 import *``, this imports only the base units amp,
+Brian includes a system for defining physical units. These are defined by
+their standard SI unit names: amp,
 kilogram, second, metre/meter and the derived units coulomb, farad, gram/gramme,
-hertz, joule, pascal, ohm,  siemens, volt, watt, together with the prefixes
+hertz, joule, pascal, ohm,  siemens, volt, watt, together with prefixed
+versions (e.g. ``msiemens = 0.001*siemens``) using the prefixes
 p, n, u, m, k, M, G, T (two exceptions: kilogram is not imported with any
 prefixes, metre and meter are additionaly defined with the "centi" prefix,
-i.e. cmetre/cmeter).
-
-In addition a couple of useful standard abbreviations like
+i.e. cmetre/cmeter). In addition a couple of useful standard abbreviations like
 "cm" (instead of cmetre/cmeter), "nS" (instead of nsiemens),
-"ms" (instead of msecond), "Hz" (instead of hertz), etc. are added (they can
-be individually imported from ``brian2.units.stdunits``).
+"ms" (instead of msecond), "Hz" (instead of hertz), etc. are included.
+
 
 Using units
 -----------
@@ -84,6 +73,31 @@ analysis functions that do not correctly work with units)
     >>> G = NeuronGroup(5, 'dv/dt = -v/tau: volt')
     >>> print G.v_[:]
     [ 0.,  0.,  0.,  0.,  0.]
+
+
+Importing units
+---------------
+Brian generates standard names for units, combining the unit name (e.g.
+"siemens") with a prefixes (e.g. "m"), and also generates squared and cubed
+versions by appending a number. For example, the units "msiemens", "siemens2",
+"usiemens3" are all predefined. You can import these units from the package
+``brian2.units.allunits`` -- accordingly, an
+``from brian2.units.allunits import *`` will result in everything from
+``Ylumen3`` (cubed yotta lumen) to ``ymol`` (yocto mole) being imported.
+
+A better choice is normally to do an ``from brian2.units import *`` or import
+everything ``from brian2 import *``, this imports only the base units amp,
+kilogram, second, metre/meter and the derived units coulomb, farad, gram/gramme,
+hertz, joule, pascal, ohm,  siemens, volt, watt, together with the prefixes
+p, n, u, m, k, M, G, T (two exceptions: kilogram is not imported with any
+prefixes, metre and meter are additionaly defined with the "centi" prefix,
+i.e. cmetre/cmeter).
+
+In addition a couple of useful standard abbreviations like
+"cm" (instead of cmetre/cmeter), "nS" (instead of nsiemens),
+"ms" (instead of msecond), "Hz" (instead of hertz), etc. are added (they can
+be individually imported from ``brian2.units.stdunits``).
+
 
 Comparison with Brian 1
 -----------------------

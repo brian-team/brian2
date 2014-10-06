@@ -23,6 +23,5 @@ To be moved, removed or rewritten:
    :maxdepth: 2
 
    overview
-   state_update
    oldcodegen
    

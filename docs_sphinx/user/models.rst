@@ -143,5 +143,5 @@ until it finds a method than can integrate the given equations:
 * ``'milstein'``: derivative-free Milstein method for solving stochastic
   differential equations with diagonal multiplicative noise
 
-You can also define your own numerical integrators, see the :doc:`development
-documentation <../developer/state_update>` for details.
+You can also define your own numerical integrators, see
+:doc:`../advanced/state_update` for details.

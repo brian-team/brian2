@@ -11,4 +11,5 @@ This section has additional information on details not covered in the
    namespaces
    refractoriness
    scheduling
+   state_update
    how_brian_works
