@@ -101,3 +101,13 @@ Code guide
 * ``brian2.parsing.rendering``: AST tools for rendering expressions in Python
   into different languages.
 * ``brian2.utils``: various tools for string manipulation, file management, etc.
+
+Additional information
+----------------------
+
+For some additional (older, but still accurate) notes on code generation:
+
+.. toctree::
+   :maxdepth: 2
+
+   oldcodegen

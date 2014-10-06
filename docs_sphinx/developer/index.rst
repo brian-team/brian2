@@ -16,12 +16,3 @@ interest to others wishing to better understand how Brian works internally.
    functions
    codegen
    openmp
-
-To be moved, removed or rewritten:
-   
-.. toctree::
-   :maxdepth: 2
-
-   overview
-   oldcodegen
-   
