@@ -117,3 +117,31 @@ For shared variables, such string expressions can only refer to shared values:
     >>> G.shared_input = 'rand()*mV + 4*mV'
     >>> print G.shared_input
     <neurongroup.shared_input: 4.2579690100000001 * mvolt>
+
+Numerical integration
+---------------------
+Differential equations are converted into a sequence of statements that
+integrate the equations numerically over a single time step. By default, Brian
+choses an integration method automatically, trying to solve the equations
+exactly first (which is possible for example for linear equations) and then
+resorting to numerical algorithms (see below). It will also take care of integrating
+stochastic differential equations appropriately. If you prefer to chose an
+integration algorithm yourself, you can do so using the ``method`` keyword for
+`NeuronGroup` or `Synapses`. The list of available methods is the following,
+if no method is chosen explicitly Brian will try methods starting at the top
+until it finds a method than can integrate the given equations:
+
+* ``'linear'``: exact integration for linear equations
+* ``'independent'``: exact integration for a system of independent equations,
+  where all the equations can be analytically solved independently
+* ``'exponential_euler'``: exponential Euler integration for conditionally
+  linear equations
+* ``'euler'``: forward Euler integration (for additive stochastic
+  differential equations using the Euler-Maruyama method)
+* ``'rk2'``: second order Runge-Kutta method (midpoint method)
+* ``'rk4'``: classical Runge-Kutta method (RK4)
+* ``'milstein'``: derivative-free Milstein method for solving stochastic
+  differential equations with diagonal multiplicative noise
+
+You can also define your own numerical integrators, see the :doc:`development
+documentation <../developer/state_update>` for details.
