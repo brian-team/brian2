@@ -352,7 +352,7 @@ class SynapticIndexing(object):
         self.source_start = synapses.source.start
         self.target_start = synapses.target.start
 
-    def calc_indices(self, index, var_index='_idx'):
+    def __call__(self, index, var_index='_idx'):
         '''
         Returns synaptic indices for `index`, which can be a tuple of indices
         (including arrays and slices), a single index or a string.

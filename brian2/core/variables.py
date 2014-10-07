@@ -909,7 +909,7 @@ class VariableView(object):
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
         '''
-        indices = self.indexing.calc_indices(item)
+        indices = self.indexing(item)
         abstract_code = self.name + ' = ' + code
         variables = Variables(None)
         variables.add_array('_group_idx', unit=Unit(1),
@@ -1044,7 +1044,7 @@ class VariableView(object):
                                   'scalar variable.') % self.name)
             indices = np.array(0)
         else:
-            indices = self.indexing.calc_indices(item, self.var_index)
+            indices = self.indexing(item, self.var_index)
 
         if variable.scalar:
             return variable.get_value()[0]
@@ -1065,7 +1065,7 @@ class VariableView(object):
                                   'scalar variable.') % self.name)
             indices = np.array(0)
         else:
-            indices = self.indexing.calc_indices(item)
+            indices = self.indexing(item)
 
         # For "normal" variables, we can directly access the underlying data
         # and use the usual slicing syntax. For subexpressions, however, we
@@ -1113,7 +1113,7 @@ class VariableView(object):
                                   'scalar variable.') % self.name)
             variable.get_value()[0] = value
         else:
-            indices = self.indexing.calc_indices(item, self.var_index)
+            indices = self.indexing(item, self.var_index)
             # We are not going via code generation so we have to take care
             # of correct indexing (in particular for subgroups) explicitly
             if self.var_index != '_idx':

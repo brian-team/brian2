@@ -168,7 +168,7 @@ class Indexing(object):
                                      for varname in set(group.variables.indices.values())
                                      if not varname in ('_idx', '0')])
 
-    def calc_indices(self, item, var_index='_idx'):
+    def __call__(self, item, var_index='_idx'):
         '''
         Return flat indices to index into state variables from arbitrary
         group specific indices. In the default implementation, raises an error
@@ -219,7 +219,7 @@ class IndexWrapper(object):
     Convenience class to allow access to the indices via indexing syntax. This
     allows for example to get all indices for synapses originating from neuron
     10 by writing `synapses.indices[10, :]` instead of
-    `synapses._indexing.calc_indices((10, slice(None))`.
+    `synapses._indexing.((10, slice(None))`.
     '''
     def __init__(self, group):
         self.group = weakref.proxy(group)
@@ -247,7 +247,7 @@ class IndexWrapper(object):
                                             )
             return codeobj()
         else:
-            return self.indices.calc_indices(item)
+            return self.indices(item)
 
 
 class Group(BrianObject):
