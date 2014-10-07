@@ -16,13 +16,13 @@ if (period > 0):
 if ((period > 0) and abs(t - period*padding < epsilon)):
     {{_lastindex}}[0] = 0
 
-for _idx in xrange({{_lastindex}}[0], len({{spike_time}})):
+for _idx in range({{_lastindex}}[0], len({{spike_time}})):
     test = ({{spike_time}}[_idx] > (t - period*padding)) or (abs({{spike_time}}[_idx] - (t - period*padding)) < epsilon)
     if test:
         break
     {{_lastindex}}[0] += 1
 
-for _idx in xrange({{_lastindex}}[0], len({{spike_time}})):
+for _idx in range({{_lastindex}}[0], len({{spike_time}})):
     test = ({{spike_time}}[_idx] > (t + dt - period*padding)) or (abs({{spike_time}}[_idx] - (t + dt - period*padding)) < epsilon)
     if test:
         break
