@@ -1,17 +1,13 @@
 import os
 import sys
 
-import cython
 import numpy
 
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,
                                    Subexpression)
 from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.core.functions import (DEFAULT_FUNCTIONS, FunctionImplementation,
-                                   Function)
 
-from ...codeobject import CodeObject
 from ..numpy_rt import NumpyCodeObject
 from ...templates import Templater
 from ...generators.cython_generator import (CythonCodeGenerator, get_cpp_dtype,
