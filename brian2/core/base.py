@@ -27,7 +27,18 @@ class BrianObject(Nameable):
     
     Parameters
     ----------
-    TODO
+    dt : `Quantity`, optional
+        The time step to be used for the simulation. Cannot be combined with
+        the `clock` argument.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the `defaultclock` will be used.
+    when : str, optional
+        In which scheduling slot to simulate the object during a time step.
+        Defaults to ``'start'``.
+    order : int, optional
+        The priority of this object for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
     name : str, optional
         A unique name for the object - one will be assigned automatically if
         not provided (of the form ``brianobject_1``, etc.).

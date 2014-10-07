@@ -20,16 +20,6 @@ class Subgroup(Group, SpikeSource):
         Select only spikes with indices from ``start`` to ``stop-1``.
     name : str, optional
         A unique name for the group, or use ``source.name+'_subgroup_0'``, etc.
-    
-    Notes
-    -----
-    
-    Functions differently to Brian 1.x subgroup in that:
-    
-    * It works for any spike source
-    * You need to keep a reference to it
-    * It makes a copy of the spikes, and there is no direct support for
-      subgroups in `Connection` (or rather `Synapses`)
     '''
     def __init__(self, source, start, stop, name=None):
         # First check if the source is itself a Subgroup

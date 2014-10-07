@@ -150,7 +150,7 @@ class FilterbankGroup(NeuronGroup):
         
         NeuronGroup.__init__(self, filterbank.nchannels, *args, **kwds)
         
-        @network_operation(when=(self.clock, 'start'))
+        @network_operation(clock=self.clock, when='start')
         def apply_filterbank_output():
             if self.buffer_pointer>=self.buffersize:
                 self.buffer_pointer = 0
