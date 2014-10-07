@@ -9,6 +9,8 @@ import sys
 import os
 from os import path
 
+from .examplefinder import auto_find_examples
+
 INITPY = '__init__.py'
 
 OPTIONS = ['show-inheritance']
@@ -121,6 +123,7 @@ def create_member_file(module_name, member, member_obj, destdir, suffix='rst'):
         text += format_heading(1, '%s class' % member)
         text += import_text
         text += '.. autoclass:: %s\n\n' % member
+        text += auto_find_examples(member_obj, headersymbol='-')
     elif inspect.isfunction(member_obj):
         text += format_heading(1, '%s function' % member)
         text += import_text
