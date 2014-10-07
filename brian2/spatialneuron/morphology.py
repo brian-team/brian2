@@ -248,13 +248,20 @@ class Morphology(object):
         '''
         return arange(self.compartment(x, local), self.compartment(y, local))
 
-    def indices(self):
+    def _indexing(self, item=None, index_var='_idx'):
         '''
         Returns compartment indices for the main branch, relative to the
         original morphology.
         '''
-        if hasattr(self, '_origin'):
-            return arange(self._origin, self._origin + len(self.x))
+        if index_var != '_idx':
+            raise AssertionError('Unexpected index %s' % index_var)
+        if item is not None:
+            return self[item]._indexing()
+        elif hasattr(self, '_origin'):
+            if len(self.x) == 1:
+                return self._origin  # single compartment
+            else:
+                return arange(self._origin, self._origin + len(self.x))
         else:
             raise AttributeError('Absolute compartment indexes do not exist '
                                  'until the morphology is compressed '

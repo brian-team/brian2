@@ -6,9 +6,11 @@ import collections
 from collections import defaultdict
 import weakref
 import re
+from numbers import Number
 
 import numpy as np
 
+from brian2.core.base import weakproxy_with_fallback
 from brian2.core.base import device_override
 from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.codegen.codeobject import create_runner_codeobj
@@ -24,7 +26,6 @@ from brian2.units.fundamentalunits import (Unit, Quantity,
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.core.spikesource import SpikeSource
-
 
 MAX_SYNAPSES = 2147483647
 
@@ -280,9 +281,13 @@ def slice_to_test(x):
     Returns a testing function corresponding to whether an index is in slice x.
     x can also be an int.
     '''
-    if isinstance(x,int):
+    try:
+        x = int(x)
         return lambda y: (y == x)
-    elif isinstance(x, slice):
+    except TypeError:
+        pass
+
+    if isinstance(x, slice):
         if isinstance(x, slice) and x == slice(None):
             # No need for testing
             return lambda y: np.repeat(True, len(y))
@@ -317,6 +322,11 @@ def slice_to_test(x):
 
 
 def find_synapses(index, synaptic_neuron):
+    try:
+        index = int(index)
+    except TypeError:
+        pass
+
     if isinstance(index, (int, slice)):
         test = slice_to_test(index)
         found = test(synaptic_neuron)
@@ -347,19 +357,19 @@ class SynapticIndexing(object):
 
     def __init__(self, synapses):
         self.synapses = weakref.proxy(synapses)
+        self.source = weakproxy_with_fallback(self.synapses.source)
+        self.target = weakproxy_with_fallback(self.synapses.target)
         self.synaptic_pre = synapses.variables['_synaptic_pre']
         self.synaptic_post = synapses.variables['_synaptic_post']
-        self.source_start = synapses.source.start
-        self.target_start = synapses.target.start
 
-    def __call__(self, index, var_index='_idx'):
+    def __call__(self, index=None, index_var='_idx'):
         '''
         Returns synaptic indices for `index`, which can be a tuple of indices
         (including arrays and slices), a single index or a string.
 
         '''
-        if not var_index in ['_idx', '_presynaptic_idx', '_postsynaptic_idx']:
-            raise AssertionError('Do not know how to deal with index %s' % var_index)
+        if index is None:
+            index = slice(None)
 
         if (not isinstance(index, (tuple, basestring)) and
                 isinstance(index, (int, np.ndarray, slice,
@@ -372,31 +382,47 @@ class SynapticIndexing(object):
                 raise IndexError('Need 1, 2 or 3 indices, got %d.' % len(index))
 
             I, J, K = index
+            # Convert to absolute indices (e.g. for subgroups)
+            # Allow the indexing to fail, we'll later return an empty array in
+            # that case
+            try:
+                I = self.source._indexing(I)
+                pre_synapses = find_synapses(I, self.synaptic_pre.get_value())
+            except IndexError:
+                pre_synapses = np.array([], dtype=np.int32)
+            try:
+                J = self.target._indexing(J)
+                post_synapses = find_synapses(J, self.synaptic_post.get_value())
+            except IndexError:
+                post_synapses = np.array([], dtype=np.int32)
 
-            pre_synapses = find_synapses(I, self.synaptic_pre.get_value() - self.source_start)
-            post_synapses = find_synapses(J, self.synaptic_post.get_value() - self.target_start)
             matching_synapses = np.intersect1d(pre_synapses, post_synapses,
                                                assume_unique=True)
 
             if isinstance(K, slice) and K == slice(None):
-                return matching_synapses
-            elif isinstance(K, (int, slice)):
-                test_k = slice_to_test(K)
+                final_indices = matching_synapses
             else:
-                raise NotImplementedError(('Indexing synapses with arrays not'
-                                           'implemented yet'))
+                if isinstance(K, (int, slice)):
+                    test_k = slice_to_test(K)
+                else:
+                    raise NotImplementedError(('Indexing synapses with arrays not'
+                                               'implemented yet'))
 
-            # We want to access the raw arrays here, not go through the Variable
-            pre_neurons = self.synaptic_pre.get_value()[pre_synapses]
-            post_neurons = self.synaptic_post.get_value()[post_synapses]
-            synapse_numbers = _synapse_numbers(pre_neurons,
-                                               post_neurons)
-            return np.intersect1d(matching_synapses,
-                                  np.flatnonzero(test_k(synapse_numbers)),
-                                  assume_unique=True)
+                # We want to access the raw arrays here, not go through the Variable
+                pre_neurons = self.synaptic_pre.get_value()[matching_synapses]
+                post_neurons = self.synaptic_post.get_value()[matching_synapses]
+                synapse_numbers = _synapse_numbers(pre_neurons,
+                                                   post_neurons)
+                final_indices = np.intersect1d(matching_synapses,
+                                      np.flatnonzero(test_k(synapse_numbers)),
+                                      assume_unique=True)
         else:
             raise IndexError('Unsupported index type {itype}'.format(itype=type(index)))
 
+        if index_var not in ('_idx', '0'):
+            return index_var.get_value()[final_indices.astype(np.int32)]
+        else:
+            return final_indices
 
 class Synapses(Group):
     '''
@@ -663,10 +689,9 @@ class Synapses(Group):
     def __len__(self):
         return len(self.variables['_synaptic_pre'].get_value())
 
-    @device_override('synapses_before_run')
     def before_run(self, run_namespace=None, level=0):
         self.lastupdate = self._clock.t
-        super(Synapses, self).before_run(run_namespace, level=level+2)
+        super(Synapses, self).before_run(run_namespace, level=level+1)
 
     def _add_updater(self, code, prepost, objname=None, delay=None):
         '''

@@ -35,8 +35,8 @@ def test_subgroup():
     assert_raises(AttributeError,lambda :morpho.L.indices())
     # Compress the morphology and get absolute compartment indices
     neuron = SpatialNeuron(morphology=morpho,model='Im = 0*amp/meter**2 : amp/meter**2')
-    assert_equal(morpho.LL.indices(),[11,12,13,14,15])
-    assert_allclose(morpho.L[3*um:5.1*um].indices(),[3,4,5])
+    assert_equal(morpho.LL._indexing(),[11,12,13,14,15])
+    assert_allclose(morpho.L[3*um:5.1*um]._indexing(),[3,4,5])
     # Main branch
     assert_equal(len(morpho.L.main),10)
     # Non-existing branch

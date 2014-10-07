@@ -161,14 +161,12 @@ class Indexing(object):
     when the respective `Group` no longer exists. Note that this object does
     not handle string indexing.
     '''
-    def __init__(self, group):
+    def __init__(self, group, default_index='_idx'):
         self.group = weakref.proxy(group)
         self.N = group.variables['N']
-        self.index_variables = dict([(varname, group.variables[varname])
-                                     for varname in set(group.variables.indices.values())
-                                     if not varname in ('_idx', '0')])
+        self.default_index = default_index
 
-    def __call__(self, item, var_index='_idx'):
+    def __call__(self, item=None, index_var=None):
         '''
         Return flat indices to index into state variables from arbitrary
         group specific indices. In the default implementation, raises an error
@@ -188,21 +186,24 @@ class Indexing(object):
         --------
         SynapticIndexing
         '''
+        if index_var is None:
+            index_var = self.default_index
+
+        if hasattr(item, '_indexing'):
+            item = item._indexing(index_var=index_var)
+
         if isinstance(item, tuple):
             raise IndexError(('Can only interpret 1-d indices, '
                               'got %d dimensions.') % len(item))
         else:
+            if item is None:
+                item = slice(None)
             if isinstance(item, slice):
-                if var_index == '_idx':
+                if index_var == '_idx':
                     start, stop, step = item.indices(self.N.get_value())
                 else:
-                    # For linked variables, the index might not have been there
-                    # yet at the time of the creation of the indexing object
-                    if var_index in self.index_variables:
-                        start, stop, step = item.indices(self.index_variables[var_index].size)
-                    else:
-                        start, stop, step = item.indices(self.group.variables[var_index].size)
-                return np.arange(start, stop, step)
+                    start, stop, step = item.indices(index_var.size)
+                index_array = np.arange(start, stop, step)
             else:
                 index_array = np.asarray(item)
                 if index_array.dtype == np.bool:
@@ -211,6 +212,19 @@ class Indexing(object):
                     raise TypeError(('Indexing is only supported for integer '
                                      'and boolean arrays, not for type '
                                      '%s' % index_array.dtype))
+
+            if index_var != '_idx':
+                try:
+                    return index_var.get_value()[index_array]
+                except IndexError as ex:
+                    # We try to emulate numpy's indexing semantics here:
+                    # slices never lead to IndexErrors, instead they return an
+                    # empty array if they don't match anything
+                    if isinstance(item, slice):
+                        return np.array([], dtype=np.int32)
+                    else:
+                        raise ex
+            else:
                 return index_array
 
 

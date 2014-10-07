@@ -737,9 +737,11 @@ class VariableView(object):
     def __init__(self, name, variable, group, unit=None):
         self.name = name
         self.variable = variable
-        self.var_index = group.variables.indices[name]
-        if not self.var_index in ('_idx', '0'):
-            self.var_index_variable = group.variables[self.var_index]
+        self.index_var_name = group.variables.indices[name]
+        if self.index_var_name in ('_idx', '0'):
+            self.index_var = self.index_var_name
+        else:
+            self.index_var = group.variables[self.index_var_name]
 
         if isinstance(variable, Subexpression):
             # For subexpressions, we *always* have to go via codegen to get
@@ -1044,16 +1046,11 @@ class VariableView(object):
                                   'scalar variable.') % self.name)
             indices = np.array(0)
         else:
-            indices = self.indexing(item, self.var_index)
+            indices = self.indexing(item, self.index_var)
 
         if variable.scalar:
             return variable.get_value()[0]
         else:
-            # We are not going via code generation so we have to take care
-            # of correct indexing (in particular for subgroups) explicitly
-
-            if not self.var_index in ('_idx', '0'):
-                indices = self.var_index_variable.get_value()[indices]
             return variable.get_value()[indices]
 
     @device_override('variableview_get_subexpression_with_index_array')
@@ -1065,17 +1062,17 @@ class VariableView(object):
                                   'scalar variable.') % self.name)
             indices = np.array(0)
         else:
-            indices = self.indexing(item)
+            indices = self.indexing(item, self.index_var)
 
         # For "normal" variables, we can directly access the underlying data
         # and use the usual slicing syntax. For subexpressions, however, we
         # have to evaluate code for the given indices
-        variables = Variables(None)
+        variables = Variables(None, default_index='_group_index')
         variables.add_auxiliary_variable('_variable',
                                          unit=variable.unit,
                                          dtype=variable.dtype,
                                          scalar=variable.scalar)
-        if indices.shape ==  ():
+        if indices.shape == ():
             single_index = True
             indices = np.array([indices])
         else:
@@ -1083,6 +1080,12 @@ class VariableView(object):
         variables.add_array('_group_idx', unit=Unit(1),
                             size=len(indices), dtype=np.int32)
         variables['_group_idx'].set_value(indices)
+        # Force the use of this variable as a replacement for the original
+        # index variable
+        using_orig_index = [varname for varname, index in self.group.variables.indices.iteritems()
+                            if index == self.index_var_name]
+        for varname in using_orig_index:
+            variables.indices[varname] = '_idx'
 
         abstract_code = '_variable = ' + self.name + '\n'
         from brian2.codegen.codeobject import create_runner_codeobj
@@ -1090,6 +1093,7 @@ class VariableView(object):
         codeobj = create_runner_codeobj(self.group,
                                         abstract_code,
                                         'group_variable_get',
+                                        needed_variables=['_group_idx'],
                                         additional_variables=variables,
                                         level=level+2,
                                         run_namespace=run_namespace,
@@ -1113,11 +1117,7 @@ class VariableView(object):
                                   'scalar variable.') % self.name)
             variable.get_value()[0] = value
         else:
-            indices = self.indexing(item, self.var_index)
-            # We are not going via code generation so we have to take care
-            # of correct indexing (in particular for subgroups) explicitly
-            if self.var_index != '_idx':
-                indices = self.var_index_variable.get_value()[indices]
+            indices = self.indexing(item, self.index_var)
 
             q = Quantity(value, copy=False)
             if len(q.shape):
@@ -1498,7 +1498,8 @@ class Variables(collections.Mapping):
         var = Constant(name=name, unit=unit, value=value)
         self._add_variable(name, var)
 
-    def add_subexpression(self, name, unit, expr, dtype=None, scalar=False):
+    def add_subexpression(self, name, unit, expr, dtype=None, scalar=False,
+                          index=None):
         '''
         Add a named subexpression.
 
@@ -1516,10 +1517,13 @@ class Variables(collections.Mapping):
         scalar : bool, optional
             Whether this is an expression only referring to scalar variables.
             Defaults to ``False``
+        index : str, optional
+            The index to use for this variable. Defaults to
+            `Variables.default_index`.
         '''
         var = Subexpression(name=name, unit=unit, expr=expr, owner=self.owner,
                             dtype=dtype, device=self.device, scalar=scalar)
-        self._add_variable(name, var)
+        self._add_variable(name, var, index=index)
 
     def add_auxiliary_variable(self, name, unit, dtype=None, scalar=False):
         '''
