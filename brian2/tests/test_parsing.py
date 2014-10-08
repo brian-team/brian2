@@ -83,7 +83,7 @@ def parse_expressions(renderer, evaluator, numvalues=10):
                 # Use all close because we can introduce small numerical
                 # difference through sympy's rearrangements
                 # We add some absolute tolerance for expressions evaluating to 0
-                assert_allclose(r1, r2, atol=1e-16)
+                assert_allclose(r1, r2, atol=1e-15)
             except AssertionError as e:
                 raise AssertionError("In expression " + str(expr) +
                                      " translated to " + str(pexpr) +
