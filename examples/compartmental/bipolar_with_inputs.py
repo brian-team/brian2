@@ -33,22 +33,22 @@ w = 20*nS
 S = Synapses(stimulation, neuron, model='''dg/dt = -g/taus : siemens
                                            gs_post = g : siemens (summed)''',
              pre = 'g += w')
-# !! Indices must be relative to the object in Synapses (neuron here)
-S.connect(0, morpho.L.compartment(100*um))
-S.connect(1, morpho.R.compartment(100*um))
+
+S.connect(0, morpho.L[-1])
+S.connect(1, morpho.R[-1])
 
 # Monitors
 mon_soma = StateMonitor(neuron, 'v', record=[0])
 mon_L = StateMonitor(neuron.L, 'v', record=True)
 mon_R = StateMonitor(neuron.R, 'v',
-                     record=morpho.R.compartment(100*um, local=True))
+                     record=morpho.R[-1])
 
 run(50*ms, report='text')
 
 subplot(211)
 plot(mon_L.t/ms, mon_soma[0].v/mV,'k')
-plot(mon_L.t/ms, mon_L[morpho.L.compartment(100*um, local=True)].v/mV, 'r')
-plot(mon_L.t/ms, mon_R[morpho.R.compartment(100*um, local=True)].v/mV, 'b')
+plot(mon_L.t/ms, mon_L[morpho.L[-1]].v/mV, 'r')
+plot(mon_L.t/ms, mon_R[morpho.R[-1]].v/mV, 'b')
 ylabel('v (mV)')
 subplot(212)
 for i in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45]:

@@ -25,18 +25,18 @@ neuron.I = 0*amp
 # Monitors
 mon_soma = StateMonitor(neuron, 'v', record=[0])
 mon_L = StateMonitor(neuron.L, 'v', record=True)
-mon_R = StateMonitor(neuron, 'v', record=morpho.R[75*um].indices())
+mon_R = StateMonitor(neuron, 'v', record=morpho.R[75*um])
 
 run(1*ms)
-neuron.I[morpho.L.compartment(50*um)] = 0.2*nA # injecting in the left dendrite
+neuron.I[morpho.L[50*um]] = 0.2*nA # injecting in the left dendrite
 run(5*ms)
 neuron.I = 0*amp
 run(50*ms, report='text')
 
 subplot(211)
 plot(mon_L.t/ms, mon_soma[0].v/mV, 'k')
-plot(mon_L.t/ms, mon_L[morpho.L.compartment(50*um, local=True)].v/mV, 'r')
-plot(mon_L.t/ms, mon_R[morpho.R.compartment(75*um)].v/mV, 'b')
+plot(mon_L.t/ms, mon_L[morpho.L[50*um]].v/mV, 'r')
+plot(mon_L.t/ms, mon_R[morpho.R[75*um]].v/mV, 'b')
 ylabel('v (mV)')
 subplot(212)
 for i in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45]:
