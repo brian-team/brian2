@@ -190,7 +190,7 @@ class Indexing(object):
             index_var = self.default_index
 
         if hasattr(item, '_indices'):
-            item = item._indices(index_var=index_var)
+            item = item._indices()
 
         if isinstance(item, tuple):
             raise IndexError(('Can only interpret 1-d indices, '

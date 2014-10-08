@@ -372,8 +372,9 @@ class SynapticIndexing(object):
             index = slice(None)
 
         if (not isinstance(index, (tuple, basestring)) and
-                isinstance(index, (int, np.ndarray, slice,
-                                   collections.Sequence))):
+                (isinstance(index, (int, np.ndarray, slice,
+                                   collections.Sequence))
+                 or hasattr(index, '_indices'))):
             index = (index, slice(None), slice(None))
         if isinstance(index, tuple):
             if len(index) == 2:  # two indices (pre- and postsynaptic cell)
@@ -386,12 +387,18 @@ class SynapticIndexing(object):
             # Allow the indexing to fail, we'll later return an empty array in
             # that case
             try:
-                I = self.source._indices(I)
+                if hasattr(I, '_indices'):  # will return absolute indices already
+                    I = I._indices()
+                else:
+                    I = self.source._indices(I)
                 pre_synapses = find_synapses(I, self.synaptic_pre.get_value())
             except IndexError:
                 pre_synapses = np.array([], dtype=np.int32)
             try:
-                J = self.target._indices(J)
+                if hasattr(J, '_indices'):
+                    J = J._indices()
+                else:
+                    J = self.target._indices(J)
                 post_synapses = find_synapses(J, self.synaptic_post.get_value())
             except IndexError:
                 post_synapses = np.array([], dtype=np.int32)

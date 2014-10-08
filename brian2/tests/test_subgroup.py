@@ -51,6 +51,9 @@ def test_state_variables():
     assert_raises(DimensionMismatchError, lambda: SG.v.__iadd__(3))
     assert_raises(DimensionMismatchError, lambda: SG.v.__imul__(3*second))
 
+    # Indexing with subgroups
+    assert_equal(G.v[SG], SG.v[:])
+
 
 def test_state_variables_string_indices():
     '''
@@ -152,6 +155,12 @@ def test_synapse_access():
     assert_equal(S.w[:], S.j[:] + 10)
     S.w = 'v_post + v_pre'
     assert_equal(S.w[:], S.j[:] + 10 + S.i[:])
+
+    # Test using subgroups as indices
+    assert len(S) == len(S.w[SG1, SG2])
+    assert_equal(S.w[SG1, 1], S.w[:, 1])
+    assert_equal(S.w[1, SG2], S.w[1, :])
+    assert len(S.w[SG1, 10]) == 0
 
 
 def test_subexpression_references():
