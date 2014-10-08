@@ -769,7 +769,7 @@ class CodeRunner(BrianObject):
         The abstract code that should be executed every time step. The
         `update_abstract_code` method might generate this code dynamically
         before every run instead.
-        dt : `Quantity`, optional
+    dt : `Quantity`, optional
         The time step to be used for the simulation. Cannot be combined with
         the `clock` argument.
     user_code : str, optional
