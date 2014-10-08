@@ -38,26 +38,28 @@ class Mock(object):
         else:
             return Mock()
 
-MOCK_MODULES = ['scipy', 'brian', 'brian.hears']  # mock Brian1 for the bridge
+MOCK_MODULES = ['scipy', 'brian', 'brian.hears',   # mock Brian1 for the bridge
+                'Cython', 'Cython.Compiler', 'Cython.Build']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
 
-# -- Automatically generate the reference documentation ------------------------
-import brian2.sphinxext.generate_reference as generate_reference
-# first generate the reference documentation
-target_dir = './reference'
-if os.path.exists(target_dir):
-    shutil.rmtree(target_dir)
-os.makedirs(target_dir)
-abs_root = os.path.abspath('../brian2')
-generate_reference.main(abs_root, ['tests', 'sphinxext'], target_dir)
-
-# -- Automatically generate the examples documentation -------------------------
-import brian2.sphinxext.generate_examples as generate_examples
-target_dir = './examples'
-root_dir = os.path.abspath('../examples')
-generate_examples.main(root_dir, target_dir)
+if 'BRIAN2_DOCS_QUICK_REBUILD' not in os.environ:
+    # -- Automatically generate the reference documentation ------------------------
+    import brian2.sphinxext.generate_reference as generate_reference
+    # first generate the reference documentation
+    target_dir = './reference'
+    if os.path.exists(target_dir):
+        shutil.rmtree(target_dir)
+    os.makedirs(target_dir)
+    abs_root = os.path.abspath('../brian2')
+    generate_reference.main(abs_root, ['tests', 'sphinxext'], target_dir)
+    
+    # -- Automatically generate the examples documentation -------------------------
+    import brian2.sphinxext.generate_examples as generate_examples
+    target_dir = './examples'
+    root_dir = os.path.abspath('../examples')
+    generate_examples.main(root_dir, target_dir)
 
 # -- General configuration -----------------------------------------------------
 

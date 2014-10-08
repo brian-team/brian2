@@ -7,6 +7,7 @@ https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 import imp
 import os
 import sys
+import time
 
 try:
     import hashlib
@@ -17,8 +18,8 @@ from distutils.core import Distribution, Extension
 from distutils.command.build_ext import build_ext
 
 import Cython
-from Cython.Compiler.Errors import CompileError
-from Cython.Build.Dependencies import cythonize
+import Cython.Compiler as Cython_Compiler
+import Cython.Build as Cython_Build
 
 from brian2.utils.stringtools import deindent
 from brian2.utils.filetools import stdout_redirected
@@ -104,12 +105,12 @@ class CythonExtensionManager(object):
                 # suppresses the output on stdout
                 with open(os.devnull, 'w') as f:
                     with stdout_redirected(f):
-                        build_extension.extensions = cythonize([extension], **opts)
+                        build_extension.extensions = Cython_Build.cythonize([extension], **opts)
 
                         build_extension.build_temp = os.path.dirname(pyx_file)
                         build_extension.build_lib = lib_dir
                         build_extension.run()
-            except CompileError:
+            except Cython_Compiler.Errors.CompileError:
                 return
 
         module = imp.load_dynamic(module_name, module_path)

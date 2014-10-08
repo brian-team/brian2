@@ -10,7 +10,7 @@ form of equations::
 
 This defines a group of 10 leaky integrators. The model description can be
 directly given as a (possibly multi-line) string as above, or as an
-`Equation` object. For more details on the form of equations, see
+`Equations` object. For more details on the form of equations, see
 :doc:`equations`. Note that model descriptions can make reference to physical
 units, but also to scalar variables declared outside of the model description
 itself::
@@ -34,8 +34,8 @@ be used::
 Sometimes it can also be useful to introduce shared variables or subexpressions,
 i.e. variables that have a common value for all neurons. In contrast to
 external variables (such as ``Cm`` above), such variables can change during a
-run, e.g. by using a `CodeRunner`. This can be for example used for an external
-stimulus that changes in the course of a run::
+run, e.g. by using a :meth:`~brian2.groups.group.Group.custom_operation`. This can be for example
+used for an external stimulus that changes in the course of a run::
 
     G = NeuronGroup(10, '''shared_input : volt (shared)
                            dv/dt = (-v + shared_input)/tau : volt
@@ -81,7 +81,8 @@ State variables
 ---------------
 Differential equations and parameters in model descriptions are stored as 
 *state variables* of the `NeuronGroup`. They can be accessed and set as an
-attribute of the group:
+attribute of the group. To get the values without physical units (e.g. for
+analysing data with external tools), use an underscore after the name:
 
 .. doctest::
 
@@ -91,6 +92,8 @@ attribute of the group:
     >>> G.v = -70*mV
     >>> print G.v
     <neurongroup.v: array([-70., -70., -70., -70., -70., -70., -70., -70., -70., -70.]) * mvolt>
+    >>> print G.v_  # values without units
+    <neurongroup.v_: array([-0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07])>
     >>> G.shared_input = 5*mV
     >>> print G.shared_input
     <neurongroup.shared_input: 5.0 * mvolt>
@@ -114,3 +117,31 @@ For shared variables, such string expressions can only refer to shared values:
     >>> G.shared_input = 'rand()*mV + 4*mV'
     >>> print G.shared_input
     <neurongroup.shared_input: 4.2579690100000001 * mvolt>
+
+Numerical integration
+---------------------
+Differential equations are converted into a sequence of statements that
+integrate the equations numerically over a single time step. By default, Brian
+choses an integration method automatically, trying to solve the equations
+exactly first (which is possible for example for linear equations) and then
+resorting to numerical algorithms (see below). It will also take care of integrating
+stochastic differential equations appropriately. If you prefer to chose an
+integration algorithm yourself, you can do so using the ``method`` keyword for
+`NeuronGroup` or `Synapses`. The list of available methods is the following,
+if no method is chosen explicitly Brian will try methods starting at the top
+until it finds a method than can integrate the given equations:
+
+* ``'linear'``: exact integration for linear equations
+* ``'independent'``: exact integration for a system of independent equations,
+  where all the equations can be analytically solved independently
+* ``'exponential_euler'``: exponential Euler integration for conditionally
+  linear equations
+* ``'euler'``: forward Euler integration (for additive stochastic
+  differential equations using the Euler-Maruyama method)
+* ``'rk2'``: second order Runge-Kutta method (midpoint method)
+* ``'rk4'``: classical Runge-Kutta method (RK4)
+* ``'milstein'``: derivative-free Milstein method for solving stochastic
+  differential equations with diagonal multiplicative noise
+
+You can also define your own numerical integrators, see
+:doc:`../advanced/state_update` for details.

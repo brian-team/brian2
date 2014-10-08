@@ -308,9 +308,20 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         s = ''
         if basename is None:
-            for basename in self.pref_register:
-                s += '**' + basename + '**\n\n'
+            basenames = [tuple(basename.split('.')) for basename in self.pref_register.keys()]
+            basenames.sort()
+            for basename in basenames:
+                lev = len(basename)
+                basename = '.'.join(basename)
+                if lev==1:
+                    s += basename+'\n'+'"'*len(basename)+'\n\n'
+                else:
+                    s += '**' + basename + '**\n\n'
                 s += self._get_one_documentation(basename, link_targets)
+            #for basename in self.pref_register:
+                #s += '**' + basename + '**\n\n'
+                #s += basename+'\n'+'"'*len(basename)+'\n\n'
+                #s += self._get_one_documentation(basename, link_targets)
         else:
             s += self._get_one_documentation(basename, link_targets)
 

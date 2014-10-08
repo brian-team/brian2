@@ -1,5 +1,8 @@
-Notes to be included in documentation somewhere
-===============================================
+Known issues
+============
+
+.. contents:: List of known issues
+    :local:
 
 Cannot find msvcr90d.dll
 ------------------------

@@ -140,7 +140,7 @@ index for a group (e.g. all neurons for a `NeuronGroup`, all synapses for a
 In this case, ``_postsynaptic_idx`` refers to a dynamic array that stores the
 postsynaptic targets for each synapse (since it is an array itself, it also has
 an index. It is defined for each synapse so its index is ``_idx`` -- in fact
-there is currently no support for an additional level of indirection in Brian2:
+there is currently no support for an additional level of indirection in Brian:
 a variable representing an index has to have ``_idx`` as its own index). Using
 this index information, the following C++ code (slightly simplified) is
 generated:

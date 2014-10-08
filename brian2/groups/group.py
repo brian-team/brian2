@@ -769,7 +769,22 @@ class CodeRunner(BrianObject):
         The abstract code that should be executed every time step. The
         `update_abstract_code` method might generate this code dynamically
         before every run instead.
-    TODO
+    dt : `Quantity`, optional
+        The time step to be used for the simulation. Cannot be combined with
+        the `clock` argument.
+    user_code : str, optional
+        The abstract code as specified by the user, i.e. without any additions
+        of internal code that the user not necessarily knows about. This will
+        be used for warnings and error messages.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the `defaultclock` will be used.
+    when : str, optional
+        In which scheduling slot to execute the operation during a time step.
+        Defaults to ``'start'``.
+    order : int, optional
+        The priority of this operation for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
     name : str, optional 
         The name for this object.
     check_units : bool, optional
@@ -793,7 +808,7 @@ class CodeRunner(BrianObject):
     add_to_magic_network = True
     invalidates_magic_network = True
     def __init__(self, group, template, code='', user_code=None,
-                 clock=None, dt=None, when='end',
+                 dt=None, clock=None, when='start',
                  order=0, name='coderunner*', check_units=True,
                  template_kwds=None, needed_variables=None,
                  override_conditional_write=None,

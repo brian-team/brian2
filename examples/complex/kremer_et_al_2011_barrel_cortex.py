@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 '''
-Late Emergence of the Whisker Direction Selectivity Map in the Rat Barrel Cortex
-Kremer Y, Leger JF, Goodman DF, Brette R, Bourdieu L (2011). J Neurosci 31(29):10689-700.
+Late Emergence of the Whisker Direction Selectivity Map in the Rat Barrel Cortex.
+Kremer Y, Leger JF, Goodman DF, Brette R, Bourdieu L (2011).
+J Neurosci 31(29):10689-700.
 
 Development of direction maps with pinwheels in the barrel cortex.
 Whiskers are deflected with random moving bars.
@@ -10,10 +11,15 @@ N.B.: network construction can be long.
 from brian2 import *
 import time
 
-standalone = False
-
-# Uncomment if you have a C compiler
+# Uncomment if you have a C compiler and you are running on Python 2.x
 #brian_prefs.codegen.target = 'weave'
+# Uncomment if you have a C compiler and you are running on Python 3.x
+#brian_prefs.codegen.target = 'cython'
+# Set this to True to run in standalone mode (much faster, but requires a
+# C++ compiler to be installed).
+standalone = False
+# Change this to use multiple OpenMP threads
+#brian_prefs.codegen.cpp_standalone.openmp_threads = 1
 
 if standalone:
     set_device('cpp_standalone')
@@ -43,24 +49,22 @@ IPSC = IPSP * (taui/taum)**(taum/(taui-taum))
 Ap, Ad = Ap*EPSC, Ad*EPSC
 
 # Layer 4, models the input stimulus
-layer4 = NeuronGroup(N4*Nbarrels,
-                     '''
-                     rate = int(is_active)*clip(cos(direction - selectivity), 0, inf)*Fmax: Hz
-                     is_active = abs((barrel_x + 0.5 - bar_x) * cos(direction) + (barrel_y + 0.5 - bar_y) * sin(direction)) < 0.5: boolean
-                     barrel_x : integer # The x index of the barrel
-                     barrel_y : integer # The y index of the barrel
-                     selectivity : 1
-                     # Stimulus parameters (same for all neurons)
-                     bar_x = cos(direction)*(t - stim_start_time)/(5*ms) + stim_start_x : 1 (shared)
-                     bar_y = sin(direction)*(t - stim_start_time)/(5*ms) + stim_start_y : 1 (shared)
-                     direction : 1 (shared) # direction of the current stimulus
-                     stim_start_time : second (shared) # start time of the current stimulus
-                     stim_start_x : 1 (shared) # start position of the stimulus
-                     stim_start_y : 1 (shared) # start position of the stimulus
-                     ''',
-                     threshold='rand() < rate*dt',
-                     method='euler',
-                     name='layer4')
+eqs_layer4 = '''
+rate = int(is_active)*clip(cos(direction - selectivity), 0, inf)*Fmax: Hz
+is_active = abs((barrel_x + 0.5 - bar_x) * cos(direction) + (barrel_y + 0.5 - bar_y) * sin(direction)) < 0.5: boolean
+barrel_x : integer # The x index of the barrel
+barrel_y : integer # The y index of the barrel
+selectivity : 1
+# Stimulus parameters (same for all neurons)
+bar_x = cos(direction)*(t - stim_start_time)/(5*ms) + stim_start_x : 1 (shared)
+bar_y = sin(direction)*(t - stim_start_time)/(5*ms) + stim_start_y : 1 (shared)
+direction : 1 (shared) # direction of the current stimulus
+stim_start_time : second (shared) # start time of the current stimulus
+stim_start_x : 1 (shared) # start position of the stimulus
+stim_start_y : 1 (shared) # start position of the stimulus
+'''
+layer4 = NeuronGroup(N4*Nbarrels, eqs_layer4, threshold='rand() < rate*dt',
+                     method='euler', name='layer4')
 layer4.barrel_x = '(i / N4) % barrelarraysize + 0.5'
 layer4.barrel_y = 'i / (barrelarraysize*N4) + 0.5'
 layer4.selectivity = '(i%N4)/(1.0*N4)*2*pi'  # for each barrel, selectivity between 0 and 2*pi
@@ -78,7 +82,7 @@ stim_updater = layer4.custom_operation(runner_code, dt=60*ms, when='start')
 
 # Layer 2/3
 # Model: IF with adaptive threshold
-eqs = '''
+eqs_layer23 = '''
 dv/dt=(ge+gi+El-v)/taum : volt
 dge/dt=-ge/taue : volt
 dgi/dt=-gi/taui : volt
@@ -87,14 +91,9 @@ barrel_idx : integer
 x : 1  # in "barrel width" units
 y : 1  # in "barrel width" units
 '''
-layer23 = NeuronGroup(Nbarrels*(N23exc+N23inh),
-                      model=eqs,
-                      threshold='v>vt',
-                      reset='v=El;vt+=vt_inc',
-                      refractory=2*ms,
-                      method='euler',
-                      name='layer23'
-                      )
+layer23 = NeuronGroup(Nbarrels*(N23exc+N23inh), eqs_layer23,
+                      threshold='v>vt', reset='v = El; vt += vt_inc',
+                      refractory=2*ms, method='euler', name='layer23')
 layer23.v = El
 layer23.vt = Vt
 
@@ -174,12 +173,11 @@ _i = bincount(feedforward.j,
 selectivity_exc = (arctan2(_r, _i) % (2*pi))*180./pi
 
 
-plt.scatter(layer23.x[:Nbarrels*N23exc],
-            layer23.y[:Nbarrels*N23exc],
-            c=selectivity_exc[:Nbarrels*N23exc],
-            edgecolors='none', marker='s', cmap='hsv')
-plt.vlines(np.arange(barrelarraysize), 0, barrelarraysize, 'k')
-plt.hlines(np.arange(barrelarraysize), 0, barrelarraysize, 'k')
-plt.clim(0, 360)
-plt.colorbar()
-plt.show()
+scatter(layer23.x[:Nbarrels*N23exc], layer23.y[:Nbarrels*N23exc],
+        c=selectivity_exc[:Nbarrels*N23exc],
+        edgecolors='none', marker='s', cmap='hsv')
+vlines(np.arange(barrelarraysize), 0, barrelarraysize, 'k')
+hlines(np.arange(barrelarraysize), 0, barrelarraysize, 'k')
+clim(0, 360)
+colorbar()
+show()

@@ -1,9 +1,9 @@
 Refractoriness
 ==============
 
-Brian2 allows to model the absolute refractory period of a neuron in a flexible
-way. The definition of refractoriness consists of two components: For what time
-after a spike is a neuron considered to be refractory and what changes in the
+Brian allows you to model the absolute refractory period of a neuron in a flexible
+way. The definition of refractoriness consists of two components: the amount of time
+after a spike that a neuron is considered to be refractory, and what changes in the
 neuron during the refractoriness.
 
 Defining the refractory period
@@ -51,11 +51,11 @@ In some cases, the condition for leaving the refractory period is not easily
 expressed as a certain time span. For example, in a Hodgkin-Huxley type model the
 threshold is only used for *counting* spikes and the refractoriness is used to
 prevent to count multiple spikes for a single threshold crossing (the threshold
-condition would evaluate to ``True`` for several time points). Leaving the
-refractory period is not easily expressed as a time span but more naturally as
-a condition that the neuron should remain refractory for as long as it stays
-above the threshold. This can be achieved by using a string expression for
-the ``refractory`` keyword that evaluates to a boolean condition::
+condition would evaluate to ``True`` for several time points). When a neuron
+should leave the refractory period is not easily expressed as a time span but
+more naturally as a condition that the neuron should remain refractory for as
+long as it stays above the threshold. This can be achieved by using a string
+expression for the ``refractory`` keyword that evaluates to a boolean condition::
 
     G = NeuronGroup(N, model='...', threshold='v > -20*mV',
                     refractory='v >= -20*mV')
@@ -70,11 +70,8 @@ time ``t`` and the time of the last spike ``lastspike``. Specifying
 Defining model behaviour during refractoriness
 ----------------------------------------------
 
-The refractoriness definition as described above does only have a single
-effect by itself: threshold crossings during the refractory period are ignored
-(this is simply implemented by adding ``and not_refractory`` to the threshold
-condition).
-
+The refractoriness definition as described above only has a single
+effect by itself: threshold crossings during the refractory period are ignored.
 In the following model, the variable ``v`` continues to update during the
 refractory period but it does not elicit a spike if it crosses the threshold::
 
@@ -93,15 +90,8 @@ stop being updated during refractoriness can be marked with the
                     threshold='v > 1', reset='v=0; w+=0.1', refractory=2*ms)
 
 In the above model, the ``v`` variable is clamped at 0 for 2ms after a spike but
-the adaptation variable ``w`` continues to update during this time. Internally,
-this is implemented by adding ``* int(not_refractory)`` to the right-hand side
-of the respective differential equation, i.e. during refractoriness it is
-multiplied with zero. The same technique can also be used to model more complex
-behaviour during refractoriness. For example, the following code updates the
-``w`` variable with a different time constant during refractoriness::
+the adaptation variable ``w`` continues to update during this time.
 
-    G = NeuronGroup(N, '''dv/dt = -(v + w)/ tau_v : 1 (unless refractory)
-                          dw/dt = (-w / tau_active)*int(not_refractory) + (-w / tau_ref)*(1 - int(not_refractory)) : 1''',
-                    threshold='v > 1', reset='v=0; w+=0.1', refractory=2*ms)
-
-
+In fact, arbitrary behaviours can be defined using Brian's refractoriness
+mechanism. For more details, see the documentation on details of the
+:doc:`refractoriness implementation <../advanced/refractoriness>`.

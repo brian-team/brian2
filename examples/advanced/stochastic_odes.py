@@ -1,10 +1,8 @@
 '''
-Check the correctness of the "derivative-free Milstein method" for
+Demonstrate the correctness of the "derivative-free Milstein method" for
 multiplicative noise.
 '''
 from brian2 import *
-
-#brian_prefs.codegen.target = 'weave'
 
 # setting a random seed makes all variants use exactly the same Wiener process
 seed = 12347  
@@ -22,7 +20,7 @@ def simulate(method, dt):
     ''' 
     np.random.seed(seed)
     G = NeuronGroup(1, 'dX/dt = (mu - 0.5*second*sigma**2)*X + X*sigma*xi*second**.5: 1',
-                    clock=Clock(dt=dt), method=method)
+                    dt=dt, method=method)
     G.X = X0
     mon = StateMonitor(G, 'X', record=True)
     net = Network(G, mon)
@@ -49,6 +47,8 @@ def exact_solution(t, dt):
     
     return (X0 * exp((my_mu - 0.5*my_sigma**2)*(t+dt) + my_sigma*brownian))
 
+figure(1, figsize=(16, 7))
+figure(2, figsize=(16, 7))
 
 methods = ['milstein']
 dts = [1*ms, 0.5*ms, 0.2*ms, 0.1*ms, 0.05*ms, 0.025*ms, 0.01*ms, 0.005*ms]
@@ -85,8 +85,11 @@ for dt_idx, dt in enumerate(dts):
 
 figure(1)
 legend(frameon=False, loc='best')
+tight_layout()
+
 figure(2)
 legend(frameon=False, loc='best')
+tight_layout()
 
 figure(3)
 for method in methods:
@@ -95,5 +98,7 @@ legend(frameon=False, loc='best')
 xscale('log')
 yscale('log')
 xlabel('dt (ms)')
-ylabel('mean absolute error')
+ylabel('Mean absolute error')
+tight_layout()
+
 show()

@@ -1,7 +1,7 @@
 Development workflow
 ====================
 
-Brian2 development is done in a `git`_ repository on `github`_. Continuous
+Brian development is done in a `git`_ repository on `github`_. Continuous
 integration testing is provided by `travis CI`_, code coverage is measured with
 `coveralls.io`_.
 

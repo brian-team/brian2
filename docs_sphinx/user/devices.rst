@@ -1,7 +1,7 @@
 Devices
 =======
 
-Brian 2 supports generating standalone code for multiple devices. In this mode, running a Brian script generates
+Brian supports generating standalone code for multiple devices. In this mode, running a Brian script generates
 source code in a project tree for the target device/language. This code can then be compiled and run on the device,
 and modified if needed. At the moment, the only 'device' supported is standalone C++ code.
 In some cases, the speed gains can be impressive, in particular for smaller networks with complicated spike
@@ -49,8 +49,13 @@ monitored variables can be accessed using standard syntax, with a few exceptions
 
 When using the C++ standalone mode, you have the opportunity to turn on multi-threading, if your C++ compiler is compatible with
 OpenMP. By default, this option is turned off and only one thread is used. However, by changing the preferences of the codegen.cpp_standalone
-object, you can turn it on. To do so, just add the following line in your python script:
+object, you can turn it on. To do so, just add the following line in your python script::
 
     brian_prefs.codegen.cpp_standalone.openmp_threads = XX
 
-XX should be a positive value representing the number of threads that will be used during the simulation. Note that the speedup will strongly depend on the network, so there is no guarantee that the speedup will be linear as a function of the number of threads. However, this is working fine for networks with not too small timestep (dt > 0.1ms), and results do not depend on the number of threads used in the simulation.
+XX should be a positive value representing the number of threads that will be
+used during the simulation. Note that the speedup will strongly depend on the
+network, so there is no guarantee that the speedup will be linear as a function
+of the number of threads. However, this is working fine for networks with not
+too small timestep (dt > 0.1ms), and results do not depend on the number of
+threads used in the simulation.

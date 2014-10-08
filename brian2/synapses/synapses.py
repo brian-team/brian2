@@ -452,8 +452,8 @@ class Synapses(Group):
     codeobj_class : class, optional
         The `CodeObject` class to use to run code.
     dt : `Quantity`, optional
-        The time step to be used for the simulation. Cannot be combined with
-        the `clock` argument.
+        The time step to be used for the update of the state variables.
+        Cannot be combined with the `clock` argument.
     clock : `Clock`, optional
         The update clock to be used. If neither a clock, nor the `dt` argument
         is specified, the `defaultclock` will be used.

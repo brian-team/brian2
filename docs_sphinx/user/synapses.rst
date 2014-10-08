@@ -41,7 +41,7 @@ The model follows exactly the same syntax as for `NeuronGroup`. There can be par
 (e.g. synaptic variable ``w`` above), but there can also be named
 subexpressions and differential equations, describing the dynamics of synaptic
 variables. In all cases, synaptic variables are created, one value per synapse.
-Internally, these are stored as arrays. There are a few specificities:
+Internally, these are stored as arrays. There are a few things worth noting:
 
 * A variable with the ``_post`` suffix is looked up in the postsynaptic (target) neuron. That is,
   ``v_post`` means variable ``v`` in the postsynaptic neuron.
@@ -90,7 +90,7 @@ arrays rather than single values. Any sort of code can be executed. For example,
 stochastic synapses, with a synaptic weight ``w`` and transmission probability ``p``::
 
 	S=Synapses(input,neurons,model="""w : 1
-    	                              p : 1""",
+                                      p : 1""",
         	                 pre="v+=w*(rand()<p)")
 
 The code means that ``w`` is added to ``v`` with probability ``p`` (note that, internally, ``rand()``
