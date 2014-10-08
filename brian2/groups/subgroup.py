@@ -72,7 +72,7 @@ class Subgroup(Group, SpikeSource):
                                   index='_idx')
 
         # special indexing for subgroups
-        self._indexing = Indexing(self, self.variables['_sub_idx'])
+        self._indices = Indexing(self, self.variables['_sub_idx'])
 
         for key, value in self.source.variables.indices.iteritems():
             if value not in ('_idx', '0'):

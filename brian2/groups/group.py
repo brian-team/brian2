@@ -189,8 +189,8 @@ class Indexing(object):
         if index_var is None:
             index_var = self.default_index
 
-        if hasattr(item, '_indexing'):
-            item = item._indexing(index_var=index_var)
+        if hasattr(item, '_indices'):
+            item = item._indices(index_var=index_var)
 
         if isinstance(item, tuple):
             raise IndexError(('Can only interpret 1-d indices, '
@@ -203,7 +203,7 @@ class Indexing(object):
                     start, stop, step = item.indices(self.N.get_value())
                 else:
                     start, stop, step = item.indices(index_var.size)
-                index_array = np.arange(start, stop, step)
+                index_array = np.arange(start, stop, step, dtype=np.int32)
             else:
                 index_array = np.asarray(item)
                 if index_array.dtype == np.bool:
@@ -233,11 +233,11 @@ class IndexWrapper(object):
     Convenience class to allow access to the indices via indexing syntax. This
     allows for example to get all indices for synapses originating from neuron
     10 by writing `synapses.indices[10, :]` instead of
-    `synapses._indexing.((10, slice(None))`.
+    `synapses._indices.((10, slice(None))`.
     '''
     def __init__(self, group):
         self.group = weakref.proxy(group)
-        self.indices = group._indexing
+        self.indices = group._indices
 
     def __getitem__(self, item):
         if isinstance(item, basestring):
@@ -277,8 +277,8 @@ class Group(BrianObject):
             raise ValueError('Classes derived from Group need variables attribute.')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
-        if not hasattr(self, '_indexing'):
-            self._indexing = Indexing(self)
+        if not hasattr(self, '_indices'):
+            self._indices = Indexing(self)
         if not hasattr(self, 'indices'):
             self.indices = IndexWrapper(self)
         if not hasattr(self, '_stored_states'):

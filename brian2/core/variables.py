@@ -756,7 +756,7 @@ class VariableView(object):
         self.group_name = group.name
         # We keep a strong reference to the `Indexing` object so that basic
         # indexing is still possible, even if the group no longer exists
-        self.indexing = self.group._indexing
+        self.indexing = self.group._indices
         self.unit = unit
 
     @property

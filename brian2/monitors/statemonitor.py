@@ -172,8 +172,8 @@ class StateMonitor(Group, CodeRunner):
 
         # record should always be an array of ints
         self.record_all = False
-        if hasattr(record, '_indexing'):
-            record = record._indexing()
+        if hasattr(record, '_indices'):
+            record = record._indices()
         if record is True:
             self.record_all = True
             record = np.arange(len(source), dtype=np.int32)
@@ -279,12 +279,12 @@ class StateMonitor(Group, CodeRunner):
                 raise TypeError('Index has to be an integer or a sequence '
                                 'of integers')
             return StateMonitorView(self, item)
-        elif hasattr(item, '_indexing'):
+        elif hasattr(item, '_indices'):
             # objects that support the indexing interface will return absolute
             # indices but here we need relative ones
             # TODO: How to we prevent the use of completely unrelated objects here?
             source_offset = getattr(self.source, '_offset', 0)
-            return StateMonitorView(self, item._indexing() - source_offset)
+            return StateMonitorView(self, item._indices() - source_offset)
         else:
             raise TypeError('Cannot use object of type %s as an index'
                             % type(item))

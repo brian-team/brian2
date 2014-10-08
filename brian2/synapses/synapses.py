@@ -386,12 +386,12 @@ class SynapticIndexing(object):
             # Allow the indexing to fail, we'll later return an empty array in
             # that case
             try:
-                I = self.source._indexing(I)
+                I = self.source._indices(I)
                 pre_synapses = find_synapses(I, self.synaptic_pre.get_value())
             except IndexError:
                 pre_synapses = np.array([], dtype=np.int32)
             try:
-                J = self.target._indexing(J)
+                J = self.target._indices(J)
                 post_synapses = find_synapses(J, self.synaptic_post.get_value())
             except IndexError:
                 post_synapses = np.array([], dtype=np.int32)
@@ -677,7 +677,7 @@ class Synapses(Group):
                              'string, is type %s instead.' % type(connect)))
 
         # Support 2d indexing
-        self._indexing = SynapticIndexing(self)
+        self._indices = SynapticIndexing(self)
 
         # Activate name attribute access
         self._enable_group_attributes()
