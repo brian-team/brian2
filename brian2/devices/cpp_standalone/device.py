@@ -643,6 +643,16 @@ class CPPStandaloneDevice(Device):
             
         self.clocks.update(net._clocks)
 
+        # We run a simplified "update loop" that only advances the clocks
+        # This can be useful because some Python code might use the t attribute
+        # of the Network or a NeuronGroup etc.
+        t_end = net.t+duration
+        for clock in net._clocks:
+            clock.set_interval(net.t, t_end)
+            # manually set the clock to the end, no need to run Clock.tick() in a loop
+            clock._i = clock._i_end
+        net.t_ = float(t_end)
+
         # TODO: remove this horrible hack
         for clock in self.clocks:
             if clock.name=='clock':
