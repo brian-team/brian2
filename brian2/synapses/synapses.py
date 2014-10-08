@@ -353,6 +353,39 @@ def _synapse_numbers(pre_neurons, post_neurons):
     return synapse_numbers
 
 
+class SynapticSubgroup(object):
+    '''
+    A simple subgroup of `Synapses` that can be used for indexing.
+
+    Parameters
+    ----------
+    indices : `ndarray` of int
+        The synaptic indices represented by this subgroup.
+    synaptic_pre : `DynamicArrayVariable`
+        References to all pre-synaptic indices. Only used to throw an error
+        when new synapses where added after creating this object.
+    '''
+    def __init__(self, synapses, indices):
+        self.synapses = weakproxy_with_fallback(synapses)
+        self._stored_indices = indices
+        self._synaptic_pre = synapses.variables['_synaptic_pre']
+        self._source_N = self._synaptic_pre.size  # total number of synapses
+
+    def _indices(self, index_var='_idx'):
+        if index_var != '_idx':
+            raise AssertionError('Did not expect index %s here.' % index_var)
+        if len(self._synaptic_pre.get_value()) != self._source_N:
+            raise RuntimeError(('Synapses have been added/removed since this '
+                                'synaptic subgroup has been created'))
+        return self._stored_indices
+
+
+    def __repr__(self):
+        return '<%s, storing %d indices of %s>' % (self.__class__.__name__,
+                                                   len(self._stored_indices),
+                                                   self.synapses.name)
+
+
 class SynapticIndexing(object):
 
     def __init__(self, synapses):
@@ -375,8 +408,14 @@ class SynapticIndexing(object):
                 (isinstance(index, (int, np.ndarray, slice,
                                    collections.Sequence))
                  or hasattr(index, '_indices'))):
-            index = (index, slice(None), slice(None))
-        if isinstance(index, tuple):
+            if hasattr(index, '_indices'):
+                final_indices = index._indices(index_var=index_var).astype(np.int32)
+            elif isinstance(index, slice):
+                start, stop, step = index.indices(len(self.synaptic_pre.get_value()))
+                final_indices = np.arange(start, stop, step, dtype=np.int32)
+            else:
+                final_indices = np.asarray(index)
+        elif isinstance(index, tuple):
             if len(index) == 2:  # two indices (pre- and postsynaptic cell)
                 index = (index[0], index[1], slice(None))
             elif len(index) > 3:
@@ -695,6 +734,10 @@ class Synapses(Group):
 
     def __len__(self):
         return len(self.variables['_synaptic_pre'].get_value())
+
+    def __getitem__(self, item):
+        indices = self.indices[item]
+        return SynapticSubgroup(self, indices)
 
     def before_run(self, run_namespace=None, level=0):
         self.lastupdate = self._clock.t

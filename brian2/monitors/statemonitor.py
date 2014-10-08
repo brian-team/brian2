@@ -55,7 +55,7 @@ class StateMonitorView(object):
         dtype = get_dtype(item)
         # scalar value
         if np.issubdtype(dtype, np.int) and not isinstance(item, np.ndarray):
-            indices = np.nonzero(self.monitor.indices == item)[0]
+            indices = np.nonzero(self.monitor.record == item)[0]
             if len(indices) == 0:
                 raise IndexError('Index number %d has not been recorded' % item)
             return indices[0]
@@ -64,8 +64,8 @@ class StateMonitorView(object):
             return item
         indices = []
         for index in item:
-            if index in self.monitor.indices:
-                indices.append(np.nonzero(self.monitor.indices == index)[0][0])
+            if index in self.monitor.record:
+                indices.append(np.nonzero(self.monitor.record == index)[0][0])
             else:
                 raise IndexError('Index number %d has not been recorded' % index)
         return np.array(indices)
@@ -188,7 +188,7 @@ class StateMonitor(Group, CodeRunner):
             record = np.asarray(record, dtype=np.int32)
             
         #: The array of recorded indices
-        self.indices = record
+        self.record = record
         self.n_indices = len(record)
 
         # Some dummy code so that code generation takes care of the indexing
@@ -215,15 +215,15 @@ class StateMonitor(Group, CodeRunner):
         self.variables.add_attribute_variable('N', unit=Unit(1),
                                               dtype=np.int32,
                                               obj=self, attribute='_N')
-        self.variables.add_array('_indices', size=len(self.indices),
-                                 unit=Unit(1), dtype=self.indices.dtype,
-                                 constant=True, read_only=True)
-        self.variables['_indices'].set_value(self.indices)
+        self.variables.add_array('_indices', size=len(self.record),
+                                 unit=Unit(1), dtype=self.record.dtype,
+                                 constant=True, read_only=True,
+                                 values=self.record)
         self.variables.create_clock_variables(self._clock,
                                               prefix='_clock_')
         for varname in variables:
             var = source.variables[varname]
-            if var.scalar and len(self.indices) > 1:
+            if var.scalar and len(self.record) > 1:
                 logger.warn(('Variable %s is a shared variable but it will be '
                              'recorded once for every target.' % varname),
                             once=True)
@@ -232,7 +232,7 @@ class StateMonitor(Group, CodeRunner):
             if not index in ('_idx', '0') and index not in variables:
                 self.variables.add_reference(index, source)
             self.variables.add_dynamic_array('_recorded_' + varname,
-                                             size=(0, len(self.indices)),
+                                             size=(0, len(self.record)),
                                              unit=var.unit,
                                              dtype=var.dtype,
                                              constant=False,
