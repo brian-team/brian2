@@ -3,12 +3,15 @@ Neuronal morphology module.
 This module defines classes to load and build neuronal morphologies.
 '''
 from copy import copy as stdlib_copy
+import numbers
+
 from numpy.random import rand
 
 from brian2.numpy_ import *
 from brian2.units.allunits import meter
 from brian2.utils.logger import get_logger
 from brian2.units.stdunits import um
+from brian2.units.fundamentalunits import have_same_dimensions, Quantity
 
 logger = get_logger(__name__)
 
@@ -19,6 +22,22 @@ except ImportError:
     logger.warn('matplotlib 0.99.1 is required for 3D plots', once=True)
 
 __all__ = ['Morphology', 'Cylinder', 'Soma']
+
+
+class MorphologyIndexWrapper(object):
+    '''
+    A simpler version of `~brian2.groups.group.IndexWrapper`, not allowing for
+    string indexing (`Morphology` is not a `Group`). It allows to use
+    ``morphology.indices[...]`` instead of ``morphology[...]._indices()`
+    '''
+    def __init__(self, morphology):
+        self.morphology = morphology
+
+    def __getitem__(self, item):
+        if isinstance(item, basestring):
+            raise NotImplementedError(('Morphologies do not support string '
+                                       'indexing'))
+        return self.morphology._indices(item)
 
 
 class Morphology(object):
@@ -42,6 +61,7 @@ class Morphology(object):
         self.children = []
         self._namedkid = {}
         self.iscompressed = False
+        self.indices = MorphologyIndexWrapper(self)
         if filename is not None:
             self.loadswc(filename)
         elif n is not None:  # Creates a branch with n compartments
@@ -213,40 +233,8 @@ class Morphology(object):
         morpho = stdlib_copy(self)
         morpho.children = []
         morpho._namedkid = {}
+        morpho.indices = MorphologyIndexWrapper(morpho)
         return morpho
-
-    def compartment(self, x, local=False):
-        '''
-        Returns compartment index. Example:
-        ``i = morpho.index(10*um)``
-
-        If `local` is ``True``, the compartment index is relative to the current
-        branch, otherwise it is an absolute index.
-        '''
-        # Note: distance gives the distance to soma of the end of the compartment
-        i = searchsorted(array(self.distance -
-                               self.distance[0] +
-                               self.length[0]), float(x))
-        if i >= len(self.x):
-            i = len(self.x) - 1
-        if not local:
-            if hasattr(self, '_origin'):
-                i += self._origin
-            else:
-                raise AttributeError(('Absolute compartment indexes do not '
-                                      'exist until the morphology is '
-                                      'compressed (by SpatialNeuron)'))
-        return i
-
-    def compartments(self, x, y, local=False):
-        '''
-        Returns compartment indices. Example:
-        ``cpt_list = morpho.indices(10*um, 30*um)``
-
-        If `local` is ``True``, the compartment index is relative to the current
-        branch, otherwise it is an absolute index.
-        '''
-        return arange(self.compartment(x, local), self.compartment(y, local))
 
     def _indices(self, item=None, index_var='_idx'):
         '''
@@ -255,7 +243,7 @@ class Morphology(object):
         '''
         if index_var != '_idx':
             raise AssertionError('Unexpected index %s' % index_var)
-        if item is not None:
+        if not (item is None or item == slice(None)):
             return self[item]._indices()
         elif hasattr(self, '_origin'):
             if len(self.x) == 1:
@@ -274,28 +262,47 @@ class Morphology(object):
         ```neuron[10*um:20*um]``` returns the subbranch from 10 um to 20 um.
         ```neuron[10*um]``` returns one compartment.
         ```neuron[5]``` returns compartment number 5.
-        
-        TODO:
-        neuron[:] should return the full branch.
-        Factor with compartment().
         """
-        if type(x) == type(0):  # int: returns one compartment
+        if isinstance(x, slice):  # neuron[10*um:20*um] or neuron[1:3]
+            using_lengths = all([arg is None or have_same_dimensions(arg, meter)
+                                 for arg in [x.start, x.stop]])
+            using_ints = all([arg is None or int(arg) == float(arg)
+                                 for arg in [x.start, x.stop]])
+            if not (using_lengths or using_ints):
+                raise TypeError('Index slice has to use lengths or integers')
+
             morpho = self._branch()
-            i = x
+            if using_lengths:
+                if x.step is not None:
+                    raise TypeError(('Cannot provide a step argument when '
+                                     'slicing with lengths'))
+                l = cumsum(array(morpho.length))  # coordinate on the branch
+                if x.start is None:
+                    i = 0
+                else:
+                    i = searchsorted(l, float(x.start))
+                if x.stop is None:
+                    j = len(l)
+                else:
+                    j = searchsorted(l, float(x.stop))
+            else:  # integers
+                i, j, step = x.indices(len(morpho))
+                if step != 1:
+                    raise TypeError('Can only slice a contiguous segment')
+        elif isinstance(x, Quantity) and have_same_dimensions(x, meter):  # neuron[10*um]
+            morpho = self._branch()
+            l = cumsum(array(morpho.length))
+            i = searchsorted(l, x)
             j = i + 1
-        elif isinstance(x, slice):  # neuron[10*um:20*um]
+        elif isinstance(x, numbers.Integral):  # int: returns one compartment
             morpho = self._branch()
-            start, stop = float(x.start), float(x.stop)
-            l = cumsum(array(morpho.length))  # coordinate on the branch
-            i = searchsorted(l, start)
-            j = searchsorted(l, stop)
-        elif type(x) == type(1 * um):  # neuron[10*um]
-            morpho = self._branch()
-            i = self.compartment(x, local=True)
+            if x < 0:  # allows e.g. to use -1 to get the last compartment
+                x += len(morpho)
+            i = x
             j = i + 1
         elif x == 'main':
             return self._branch()
-        else:
+        elif isinstance(x, basestring):
             x = str(x)  # convert int to string
             if (len(x) > 1) and all([c in 'LR123456789' for c in
                                      x]):  # binary string of the form LLLRLR or 1213 (or mixed)
@@ -304,6 +311,8 @@ class Morphology(object):
                 return self._namedkid[x]
             else:
                 raise AttributeError, "The subtree " + x + " does not exist"
+        else:
+            raise TypeError('Index of type %s not understood' % type(x))
 
         # Return the sub-morphology
         morpho.diameter = morpho.diameter[i:j]

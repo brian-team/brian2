@@ -422,7 +422,7 @@ class SynapticIndexing(object):
         if index_var not in ('_idx', '0'):
             return index_var.get_value()[final_indices.astype(np.int32)]
         else:
-            return final_indices
+            return final_indices.astype(np.int32)
 
 class Synapses(Group):
     '''
@@ -929,11 +929,15 @@ class Synapses(Group):
         >>> S.connect('i == j', n=2)  # Connect all neurons to themselves with 2 synapses
         '''
         if not isinstance(pre_or_cond, (bool, basestring)):
+            if hasattr(pre_or_cond, '_indices'):
+                pre_or_cond = pre_or_cond._indices()
             pre_or_cond = np.asarray(pre_or_cond)
             if not np.issubdtype(pre_or_cond.dtype, np.int):
                 raise TypeError(('Presynaptic indices have to be given as '
                                  'integers, are type %s instead.') % pre_or_cond.dtype)
 
+            if hasattr(post, '_indices'):
+                post = post._indices()
             post = np.asarray(post)
             if not np.issubdtype(post.dtype, np.int):
                 raise TypeError(('Presynaptic indices can only be combined '

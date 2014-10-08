@@ -173,7 +173,10 @@ class StateMonitor(Group, CodeRunner):
         # record should always be an array of ints
         self.record_all = False
         if hasattr(record, '_indices'):
-            record = record._indices()
+            # The ._indices method always returns absolute indices
+            # If the source is already a subgroup of another group, we therefore
+            # have to shift the indices to become relative to the subgroup
+            record = record._indices() - getattr(source, '_offset', 0)
         if record is True:
             self.record_all = True
             record = np.arange(len(source), dtype=np.int32)

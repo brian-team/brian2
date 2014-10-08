@@ -1,7 +1,9 @@
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
+import numpy as np
+
 from brian2.spatialneuron import *
-from brian2.units.stdunits import um
+from brian2.units import um, second
 
 @attr('codegen-independent')
 def test_basicshapes():
@@ -32,15 +34,47 @@ def test_subgroup():
     # Getting a segment
     assert_allclose(morpho.L[3*um:5.1*um].distance,[3*um,4*um,5*um])
     # Indices cannot be obtained at this stage
-    assert_raises(AttributeError,lambda :morpho.L.indices())
+    assert_raises(AttributeError,lambda :morpho.L.indices[:])
     # Compress the morphology and get absolute compartment indices
-    neuron = SpatialNeuron(morphology=morpho,model='Im = 0*amp/meter**2 : amp/meter**2')
-    assert_equal(morpho.LL._indices(),[11,12,13,14,15])
-    assert_allclose(morpho.L[3*um:5.1*um]._indices(),[3,4,5])
+    N = len(morpho)
+    morpho.compress(diameter=np.zeros(N),
+                    length=np.zeros(N),
+                    area=np.zeros(N),
+                    x=np.zeros(N),
+                    y=np.zeros(N),
+                    z=np.zeros(N),
+                    distance=np.zeros(N))
+    assert_equal(morpho.LL.indices[:], [11, 12, 13, 14, 15])
+    assert_equal(morpho.L.indices[3*um:5.1*um], [3, 4, 5])
+    assert_equal(morpho.L.indices[3*um:5.1*um],
+                 morpho.L[3*um:5.1*um].indices[:])
+    assert_equal(morpho.L.indices[:5.1*um], [1, 2, 3, 4, 5])
+    assert_equal(morpho.L.indices[3*um:], [3, 4, 5, 6, 7, 8, 9, 10])
+    assert_equal(morpho.L.indices[3.5*um], 4)
+    assert_equal(morpho.L.indices[3], 4)
+    assert_equal(morpho.L.indices[-1], 10)
+    assert_equal(morpho.L.indices[3:5], [4, 5])
+    assert_equal(morpho.L.indices[3:], [4, 5, 6, 7, 8, 9, 10])
+    assert_equal(morpho.L.indices[:5], [1, 2, 3, 4, 5])
+
     # Main branch
-    assert_equal(len(morpho.L.main),10)
+    assert_equal(len(morpho.L.main), 10)
+
     # Non-existing branch
-    assert_raises(AttributeError,lambda :morpho.axon)
+    assert_raises(AttributeError, lambda: morpho.axon)
+
+    # Incorrect indexing
+    #  wrong units or mixing units
+    assert_raises(TypeError, lambda: morpho.indices[3*second:5*second])
+    assert_raises(TypeError, lambda: morpho.indices[3.4:5.3])
+    assert_raises(TypeError, lambda: morpho.indices[3:5*um])
+    assert_raises(TypeError, lambda: morpho.indices[3*um:5])
+    #   providing a step
+    assert_raises(TypeError, lambda: morpho.indices[3*um:5*um:2*um])
+    assert_raises(TypeError, lambda: morpho.indices[3:5:2])
+    #   incorrect type
+    assert_raises(TypeError, lambda: morpho.indices[object()])
+
 
 if __name__ == '__main__':
     test_basicshapes()
