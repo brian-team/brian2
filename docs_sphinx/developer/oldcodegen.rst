@@ -59,7 +59,7 @@ The code for this stage can be seen in `NeuronGroup.__init__`,
 (in ``brian2.groups.neurongroup``), and the `StateUpdateMethod` classes
 defined in the ``brian2.stateupdaters`` package.
 
-For more details, see :doc:`state_update`.
+For more details, see :doc:`../advanced/state_update`.
 
 Abstract code
 -------------
