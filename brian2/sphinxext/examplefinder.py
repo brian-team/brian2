@@ -14,8 +14,11 @@ the_examples_map = defaultdict(list)
 def get_examples_map():
     if the_examples_map:
         return the_examples_map
-    rootdir, _ = os.path.split(__file__)
-    rootdir = os.path.normpath(os.path.join(rootdir, '../../examples'))
+    if 'BRIAN2_DOCS_EXAMPLE_DIR' in os.environ:
+        rootdir = os.environ['BRIAN2_DOCS_EXAMPLE_DIR']
+    else:
+        rootdir, _ = os.path.split(__file__)
+        rootdir = os.path.normpath(os.path.join(rootdir, '../../examples'))
     fnames = [fname for fname in GlobDirectoryWalker(rootdir, '*.py')]
     shortfnames = [os.path.relpath(fname, rootdir) for fname in fnames]
     exnames = [fname.replace('/', '.').replace('\\', '.').replace('.py', '') for fname in shortfnames]
