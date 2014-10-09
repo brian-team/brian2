@@ -51,8 +51,8 @@ plot(mon_L.t/ms, mon_L[morpho.L[-1]].v/mV, 'r')
 plot(mon_L.t/ms, mon_R[morpho.R[-1]].v/mV, 'b')
 ylabel('v (mV)')
 subplot(212)
-for i in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45]:
-    plot(mon_L.t/ms, mon_L.v[i,:]/mV)
+for x in linspace(0*um,45*um,10):
+    plot(mon_L.t/ms, mon_L[morpho.L[x]].v/mV)
 xlabel('Time (ms)')
 ylabel('v (mV)')
 show()
