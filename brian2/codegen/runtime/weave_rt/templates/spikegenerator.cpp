@@ -2,8 +2,8 @@
 {% block maincode %}
     {# USES_VARIABLES {_spikespace, N, t, dt, neuron_index, spike_time, period, _lastindex} #}
 
-    double padding_before = t - int(t/period)*period;
-    double padding_after  = (t + dt) - int((t + dt)/period)*period;
+    double padding_before = fmod(t, period);
+    double padding_after  = fmod(t+dt, period);
     double epsilon        = 1e-3*dt;
 
     // We need some precomputed values that will be used during looping
