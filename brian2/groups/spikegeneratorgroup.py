@@ -52,7 +52,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     '''
 
     @check_units(N=1, indices=1, times=second)
-    def __init__(self, N, indices, times, dt=None, clock=None, period=0*second,
+    def __init__(self, N, indices, times, dt=None, clock=None, period=1000000*second,
                  when='thresholds', order=0, name='spikegeneratorgroup*',
                  codeobj_class=None):
 

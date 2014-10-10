@@ -2,23 +2,28 @@
 {% block maincode %}
     {# USES_VARIABLES {_spikespace, N, t, dt, neuron_index, spike_time, period, _lastindex} #}
 
-    int   padding = 0;
-    float epsilon = 0.001*dt;
+    double padding_before = t - int(t/period)*period;
+    double padding_after  = (t + dt) - int((t + dt)/period)*period;
+    double epsilon        = 1e-3*dt;
 
-    if (period > 0)
-        padding = int(t / period);
-
-    // If there is a periodicity in the SpikeGenerator, we need to reset the lastindex 
-    // when all spikes have been played
-    if ((period > 0) && (std::abs(t - period*padding) < epsilon))
-        {{_lastindex}}[0] = 0;
+    // We need some precomputed values that will be used during looping
+    bool not_first_spike = ({{_lastindex}}[0] > 0);
+    bool not_end_period  = (fabs(padding_after) > epsilon);
+    bool test;
 
     // TODO: We don't deal with more than one spike per neuron yet
     long _cpp_numspikes = 0;
 
+    // If there is a periodicity in the SpikeGenerator, we need to reset the lastindex 
+    // when all spikes have been played and at the end of the period
+    if (not_first_spike && ({{spike_time}}[{{_lastindex}}[0] - 1] > padding_before))
+    {   
+        {{_lastindex}}[0] = 0;
+    }
+
     for(int _idx={{_lastindex}}[0]; _idx < _numspike_time; _idx++)
     {
-        bool test = ({{spike_time}}[_idx] > (t - period*padding)) || (std::abs({{spike_time}}[_idx] - (t - period*padding)) < epsilon);
+        test = ({{spike_time}}[_idx] > padding_before) || (fabs({{spike_time}}[_idx] - padding_before) < epsilon);
         if (test)
             break;
         {{_lastindex}}[0]++;
@@ -26,7 +31,12 @@
     
     for(int _idx={{_lastindex}}[0]; _idx < _numspike_time; _idx++)
     {
-        bool test = ({{spike_time}}[_idx] > (t + dt - period*padding)) || (std::abs({{spike_time}}[_idx] - (t + dt - period*padding)) < epsilon);
+        if (not_end_period)
+            test = ({{spike_time}}[_idx] > padding_after) || (fabs({{spike_time}}[_idx] - padding_after) < epsilon);
+        else
+            // If we are in the last timestep before the end of the period, we remove the first part of the
+            // test, because padding will be 0
+            test = (fabs({{spike_time}}[_idx] - padding_after) < epsilon);
         if (test)
             break;
         {{_spikespace}}[_cpp_numspikes++] = {{neuron_index}}[_idx];
@@ -37,4 +47,5 @@
     
 
 {% endblock %}
+
 

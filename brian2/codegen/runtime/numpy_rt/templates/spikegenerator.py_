@@ -4,26 +4,33 @@ import numpy as np
 # TODO: We don't deal with more than one spike per neuron yet
 # Spikes since the preceding time step
 
-padding   = 0
-_n_spikes = 0
-epsilon   = 0.001*dt
+padding_before = t % period
+padding_after  = (t + dt) % period
+_n_spikes      = 0
+epsilon        = 1e-3*dt
 
-if (period > 0):
-    padding = int(t/period)
+# We need some precomputed values that will be used during looping
+not_first_spike = {{_lastindex}}[0] > 0
+not_end_period  = abs(padding_after) > epsilon
 
 # If there is a periodicity in the SpikeGenerator, we need to reset the lastindex 
-# when all spikes have been played
-if ((period > 0) and abs(t - period*padding < epsilon)):
+# when all spikes have been played and at the end of the period
+if not_first_spike and ({{spike_time}}[{{_lastindex}}[0] - 1] > padding_before):
     {{_lastindex}}[0] = 0
 
 for _idx in range({{_lastindex}}[0], len({{spike_time}})):
-    test = ({{spike_time}}[_idx] > (t - period*padding)) or (abs({{spike_time}}[_idx] - (t - period*padding)) < epsilon)
+    test = ({{spike_time}}[_idx] > padding_before) or (abs({{spike_time}}[_idx] - padding_before) < epsilon)
     if test:
         break
     {{_lastindex}}[0] += 1
 
 for _idx in range({{_lastindex}}[0], len({{spike_time}})):
-    test = ({{spike_time}}[_idx] > (t + dt - period*padding)) or (abs({{spike_time}}[_idx] - (t + dt - period*padding)) < epsilon)
+    if not_end_period:
+        test = ({{spike_time}}[_idx] > padding_after) or (abs({{spike_time}}[_idx] - padding_after) < epsilon)
+    else:
+        # If we are in the last timestep before the end of the period, we remove the first part of the
+        # test, because padding will be 0
+        test = abs({{spike_time}}[_idx] - padding_after) < epsilon
     if test:
         break
     _n_spikes += 1
