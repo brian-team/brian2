@@ -35,13 +35,14 @@ dge/dt=-ge/taue : 1
 
 input = PoissonGroup(N, rates=F)
 neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v=vr')
+myconst = np.inf
 S = Synapses(input, neurons,
              '''w:1
                 dApre/dt=-Apre/taupre : 1 (event-driven)
                 dApost/dt=-Apost/taupost : 1 (event-driven)''',
              pre='''ge+=w
                     Apre+=dApre
-                    w=clip(w+Apost,0,gmax)''',
+                    w=clip(w+Apost,0,gmax) + 1.0/myconst''',
              post='''Apost+=dApost
                      w=clip(w+Apre,0,gmax)''',
              connect=True,
