@@ -18,7 +18,7 @@ To use the C++ standalone mode, make the following changes to your script:
 
 2. After ``run(duration)`` in your script, add::
 
-    device.build(project_dir='output', compile_project=True, run_project=True, debug=False)
+    device.build(directory='output', compile=True, run=True, debug=False)
 
 The `~CPPStandaloneDevice.build` function has several arguments to specify the output directory, whether or not to compile and run
 the project after creating it (using ``gcc``) and whether or not to compile it with debugging support or not.
@@ -42,7 +42,7 @@ C++ source code and modifying it, or by inserting code directly into the main lo
     cout << "Testing direct insertion of code." << endl;
     ''')
 
-After a simulation has been run (using the ``run_project`` keyword in the `Device.build` call), state variables and
+After a simulation has been run (using the ``run`` keyword in the `Device.build` call), state variables and
 monitored variables can be accessed using standard syntax, with a few exceptions (e.g. string expressions for indexing).
 
 3. Multi-threading with OpenMP

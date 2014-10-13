@@ -47,7 +47,7 @@ def test_cpp_standalone(with_output=False):
     tempdir = tempfile.mkdtemp()
     if with_output:
         print tempdir
-    device.build(project_dir=tempdir, compile_project=True, run_project=True,
+    device.build(directory=tempdir, compile=True, run=True,
                  with_output=with_output)
     # we do an approximate equality here because depending on minor details of how it was compiled, the results
     # may be slightly different (if -ffast-math is on)
@@ -68,7 +68,7 @@ def test_multiple_connects(with_output=False):
     if with_output:
         print tempdir
     run(0*ms)
-    device.build(project_dir=tempdir, compile_project=True, run_project=True,
+    device.build(directory=tempdir, compile=True, run=True,
                  with_output=True)
     assert len(S) == 2 and len(S.w[:]) == 2
 
@@ -100,8 +100,7 @@ def test_storing_loading(with_output=False):
     tempdir = tempfile.mkdtemp()
     if with_output:
         print tempdir
-    device.build(project_dir=tempdir, compile_project=True, run_project=True,
-                 with_output=True)
+    device.build(directory=tempdir, compile=True, run=True, with_output=True)
     assert_allclose(G.v[:], v)
     assert_allclose(S.v[:], v)
     assert_allclose(G.x[:], x)
@@ -184,8 +183,8 @@ def test_openmp_consistency(with_output=False):
             tempdir = tempfile.mkdtemp()
             if with_output:
                 print tempdir
-            device.build(project_dir=tempdir, compile_project=True,
-                         run_project=True, with_output=with_output)
+            device.build(directory=tempdir, compile=True,
+                         run=True, with_output=with_output)
 
         results[n_threads, devicename]      = {}
         results[n_threads, devicename]['w'] = state_mon.w

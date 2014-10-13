@@ -343,11 +343,11 @@ class CPPStandaloneDevice(Device):
         self.code_objects[codeobj.name] = codeobj
         return codeobj
 
-    def build(self, project_dir='output', compile_project=True, run_project=False, debug=True,
+    def build(self, directory='output', compile=True, run=False, debug=True,
               with_output=True, native=True,
               additional_source_files=None, additional_header_files=None,
               main_includes=None, run_includes=None,
-              run_args=None):
+              run_args=None, **kwds):
         '''
         Build the project
         
@@ -355,11 +355,11 @@ class CPPStandaloneDevice(Device):
         
         Parameters
         ----------
-        project_dir : str
+        directory : str
             The output directory to write the project to, any existing files will be overwritten.
-        compile_project : bool
+        compile : bool
             Whether or not to attempt to compile the project using GNU make.
-        run_project : bool
+        run : bool
             Whether or not to attempt to run the built project if it successfully builds.
         debug : bool
             Whether to compile in debug mode.
@@ -376,7 +376,19 @@ class CPPStandaloneDevice(Device):
         run_includes : list of str
             A list of additional header files to include in ``run.cpp``.
         '''
-        
+        renames = {'project_dir': 'directory',
+                   'compile_project': 'compile',
+                   'run_project': 'run'}
+        if len(kwds):
+            msg = ''
+            for kwd in kwds:
+                if kwd in renames:
+                    msg += ("Keyword argument '%s' has been renamed to "
+                            "'%s'. ") % (kwd, renames[kwd])
+                else:
+                    msg += "Unknown keyword argument '%s'. " % kwd
+            raise TypeError(msg)
+
         if additional_source_files is None:
             additional_source_files = []
         if additional_header_files is None:
@@ -387,13 +399,13 @@ class CPPStandaloneDevice(Device):
             run_includes = []
         if run_args is None:
             run_args = []
-        self.project_dir = project_dir
-        ensure_directory(project_dir)
+        self.project_dir = directory
+        ensure_directory(directory)
         
         for d in ['code_objects', 'results', 'static_arrays']:
-            ensure_directory(os.path.join(project_dir, d))
+            ensure_directory(os.path.join(directory, d))
             
-        writer = CPPWriter(project_dir)
+        writer = CPPWriter(directory)
         
         # Get the number of threads if specified in an openmp context
         nb_threads = brian_prefs.codegen.cpp_standalone.openmp_threads   
@@ -401,7 +413,7 @@ class CPPStandaloneDevice(Device):
         if (nb_threads < 0):
             raise ValueError('The number of OpenMP threads can not be negative !') 
 
-        logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
+        logger.debug("Writing C++ standalone project to directory "+os.path.normpath(directory))
         if nb_threads > 0:
             logger.debug("Using OpenMP with %d threads " % nb_threads)
             for codeobj in self.code_objects.itervalues():
@@ -429,12 +441,12 @@ class CPPStandaloneDevice(Device):
         logger.debug("static arrays: "+str(sorted(self.static_arrays.keys())))
         static_array_specs = []
         for name, arr in sorted(self.static_arrays.items()):
-            arr.tofile(os.path.join(project_dir, 'static_arrays', name))
+            arr.tofile(os.path.join(directory, 'static_arrays', name))
             static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
 
         # Write the global objects
         networks = [net() for net in Network.__instances__()
-                    if net().name!='_fake_network']
+                    if net().name != '_fake_network']
         synapses = []
         for net in networks:
             synapses.extend(s for s in net.objects if isinstance(s, Synapses))
@@ -583,7 +595,7 @@ class CPPStandaloneDevice(Device):
         # Copy the brianlibdirectory
         brianlib_dir = os.path.join(os.path.split(inspect.getsourcefile(CPPStandaloneCodeObject))[0],
                                     'brianlib')
-        brianlib_files = copy_directory(brianlib_dir, os.path.join(project_dir, 'brianlib'))
+        brianlib_files = copy_directory(brianlib_dir, os.path.join(directory, 'brianlib'))
         for file in brianlib_files:
             if file.lower().endswith('.cpp'):
                 writer.source_files.append('brianlib/'+file)
@@ -591,7 +603,7 @@ class CPPStandaloneDevice(Device):
                 writer.header_files.append('brianlib/'+file)
 
         # Copy the CSpikeQueue implementation
-        spikequeue_h = os.path.join(project_dir, 'brianlib', 'spikequeue.h')
+        spikequeue_h = os.path.join(directory, 'brianlib', 'spikequeue.h')
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'cspikequeue.cpp'),
                      spikequeue_h)
         
@@ -610,8 +622,8 @@ class CPPStandaloneDevice(Device):
         writer.write('makefile', makefile_tmp)
 
         # build the project
-        if compile_project:
-            with in_directory(project_dir):
+        if compile:
+            with in_directory(directory):
                 if debug:
                     x = os.system('make debug')
                 elif native:
@@ -619,7 +631,7 @@ class CPPStandaloneDevice(Device):
                 else:
                     x = os.system('make')
                 if x==0:
-                    if run_project:
+                    if run:
                         if not with_output:
                             stdout = open(os.devnull, 'w')
                         else:
