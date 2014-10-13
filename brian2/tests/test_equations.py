@@ -166,9 +166,9 @@ def test_parse_equations():
     '''dv/dt = -v / tau : 1 : volt
     x = 2 * t : 1''',
     ''' dv/dt = -v / tau : 2 * volt''',
-    'dv/dt = v / second : bool']
+    'dv/dt = v / second : boolean']
     for error_eqs in parse_error_eqs:
-        assert_raises((ValueError, EquationError),
+        assert_raises((ValueError, EquationError, TypeError),
                       lambda: parse_string_equations(error_eqs))
 
 
