@@ -5,7 +5,7 @@ Run the ``cuba.py`` example with OpenMP threads.
 from brian2 import *
 
 set_device('cpp_standalone')
-brian_prefs.codegen.cpp_standalone.openmp_threads = 4
+prefs.codegen.cpp_standalone.openmp_threads = 4
 
 taum = 20*ms
 taue = 5*ms

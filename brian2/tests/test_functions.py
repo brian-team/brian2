@@ -157,7 +157,7 @@ def test_user_defined_function_units():
     '''
     Test the preparation of functions for use in code with check_units.
     '''
-    if brian_prefs.codegen.target != 'numpy':
+    if prefs.codegen.target != 'numpy':
         raise SkipTest('numpy-only test')
 
     def nothing_specified(x, y, z):
@@ -228,7 +228,7 @@ def test_simple_user_defined_function():
 
 
 def test_manual_user_defined_function():
-    if brian_prefs.codegen.target != 'numpy':
+    if prefs.codegen.target != 'numpy':
         raise SkipTest('numpy-only test')
 
     default_dt = defaultclock.dt
@@ -285,7 +285,7 @@ def test_manual_user_defined_function():
     assert mon[0].func == [6] * volt
 
 def test_manual_user_defined_function_weave():
-    if brian_prefs.codegen.target != 'weave':
+    if prefs.codegen.target != 'weave':
         raise SkipTest('weave-only test')
 
     # User defined function without any decorators

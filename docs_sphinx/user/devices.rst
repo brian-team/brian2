@@ -51,7 +51,7 @@ When using the C++ standalone mode, you have the opportunity to turn on multi-th
 OpenMP. By default, this option is turned off and only one thread is used. However, by changing the preferences of the codegen.cpp_standalone
 object, you can turn it on. To do so, just add the following line in your python script::
 
-    brian_prefs.codegen.cpp_standalone.openmp_threads = XX
+    prefs.codegen.cpp_standalone.openmp_threads = XX
 
 XX should be a positive value representing the number of threads that will be
 used during the simulation. Note that the speedup will strongly depend on the

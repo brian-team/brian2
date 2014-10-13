@@ -14,7 +14,7 @@ from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices
 from brian2.core.variables import *
 from brian2.synapses.synapses import Synapses
-from brian2.core.preferences import brian_prefs, BrianPreference
+from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.generators.cpp_generator import c_data_type
@@ -31,7 +31,7 @@ logger = get_logger(__name__)
 
 
 # Preferences
-brian_prefs.register_preferences(
+prefs.register_preferences(
     'codegen.cpp_standalone',
     'C++ standalone preferences ',
     openmp_threads = BrianPreference(
@@ -408,7 +408,7 @@ class CPPStandaloneDevice(Device):
         writer = CPPWriter(directory)
         
         # Get the number of threads if specified in an openmp context
-        nb_threads = brian_prefs.codegen.cpp_standalone.openmp_threads   
+        nb_threads = prefs.codegen.cpp_standalone.openmp_threads
         # If the number is negative, we need to throw an error
         if (nb_threads < 0):
             raise ValueError('The number of OpenMP threads can not be negative !') 

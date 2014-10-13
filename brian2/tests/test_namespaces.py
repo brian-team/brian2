@@ -5,7 +5,7 @@ import numpy
 from numpy.testing.utils import assert_raises
 from nose.plugins.attrib import attr
 
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 from brian2.groups.group import Group
 from brian2.units import second, volt
 from brian2.units.stdunits import ms, Hz, mV

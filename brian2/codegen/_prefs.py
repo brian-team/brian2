@@ -3,10 +3,10 @@ Module declaring general code generation preferences.
 '''
 
 from .codeobject import CodeObject
-from brian2.core.preferences import brian_prefs, BrianPreference
+from brian2.core.preferences import prefs, BrianPreference
 
 # Preferences
-brian_prefs.register_preferences(
+prefs.register_preferences(
     'codegen',
     'Code generation preferences',
     target=BrianPreference(

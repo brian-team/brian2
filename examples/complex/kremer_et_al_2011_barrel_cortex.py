@@ -12,14 +12,14 @@ from brian2 import *
 import time
 
 # Uncomment if you have a C compiler and you are running on Python 2.x
-#brian_prefs.codegen.target = 'weave'
+#prefs.codegen.target = 'weave'
 # Uncomment if you have a C compiler and you are running on Python 3.x
-#brian_prefs.codegen.target = 'cython'
+#prefs.codegen.target = 'cython'
 # Set this to True to run in standalone mode (much faster, but requires a
 # C++ compiler to be installed).
 standalone = False
 # Change this to use multiple OpenMP threads
-#brian_prefs.codegen.cpp_standalone.openmp_threads = 1
+#prefs.codegen.cpp_standalone.openmp_threads = 1
 
 if standalone:
     set_device('cpp_standalone')

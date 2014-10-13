@@ -7,7 +7,7 @@ from brian2.utils.stringtools import (deindent, stripped_deindented_lines,
 from brian2.utils.logger import get_logger
 from brian2.parsing.rendering import CPPNodeRenderer
 from brian2.core.functions import Function, DEFAULT_FUNCTIONS
-from brian2.core.preferences import brian_prefs, BrianPreference
+from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.variables import ArrayVariable
 
 from .base import CodeGenerator
@@ -55,7 +55,7 @@ def c_data_type(dtype):
 
 
 # Preferences
-brian_prefs.register_preferences(
+prefs.register_preferences(
     'codegen.generators.cpp',
     'C++ codegen preferences',
     restrict_keyword = BrianPreference(
@@ -111,8 +111,8 @@ class CPPCodeGenerator(CodeGenerator):
 
     def __init__(self, *args, **kwds):
         super(CPPCodeGenerator, self).__init__(*args, **kwds)
-        self.restrict = brian_prefs['codegen.generators.cpp.restrict_keyword'] + ' '
-        self.flush_denormals = brian_prefs['codegen.generators.cpp.flush_denormals']
+        self.restrict = prefs['codegen.generators.cpp.restrict_keyword'] + ' '
+        self.flush_denormals = prefs['codegen.generators.cpp.flush_denormals']
         self.c_data_type = c_data_type
 
     @staticmethod

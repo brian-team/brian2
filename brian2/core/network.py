@@ -10,7 +10,7 @@ from brian2.core.base import BrianObject
 from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second 
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 
 from .base import device_override
 
@@ -389,7 +389,7 @@ class Network(Nameable):
         # multiple runs
         gc.collect()
 
-        brian_prefs.check_all_validated()
+        prefs.check_all_validated()
         
         self._stopped = False
         Network._globally_stopped = False

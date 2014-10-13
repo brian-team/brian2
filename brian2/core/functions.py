@@ -8,7 +8,7 @@ from sympy.core import mod as sympy_mod
 import numpy as np
 from numpy.random import randn, rand
 
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            Quantity, get_dimensions,
                                            check_units)
@@ -222,7 +222,7 @@ class FunctionImplementationContainer(collections.Mapping):
         from brian2.codegen.runtime.numpy_rt.numpy_rt import NumpyCodeObject
 
         if discard_units is None:
-            discard_units = brian_prefs['codegen.runtime.numpy.discard_units']
+            discard_units = prefs['codegen.runtime.numpy.discard_units']
 
         # Get the original function inside the check_units decorator
         if hasattr(wrapped_func,  '_orig_func'):

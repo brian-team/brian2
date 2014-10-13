@@ -3,7 +3,7 @@ Module providing `NumpyCodeObject`.
 '''
 import numpy as np
 
-from brian2.core.preferences import brian_prefs, BrianPreference
+from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,
                                    Subexpression)
@@ -17,7 +17,7 @@ from ...targets import codegen_targets
 __all__ = ['NumpyCodeObject']
 
 # Preferences
-brian_prefs.register_preferences(
+prefs.register_preferences(
     'codegen.runtime.numpy',
     'Numpy runtime codegen preferences',
     discard_units = BrianPreference(

@@ -15,7 +15,7 @@ except ImportError:
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,
                                    Subexpression)
-from brian2.core.preferences import brian_prefs, BrianPreference
+from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.functions import DEFAULT_FUNCTIONS
 
 from ...codeobject import CodeObject
@@ -26,7 +26,7 @@ from ...targets import codegen_targets
 __all__ = ['WeaveCodeObject', 'WeaveCodeGenerator']
 
 # Preferences
-brian_prefs.register_preferences(
+prefs.register_preferences(
     'codegen.runtime.weave',
     'Weave runtime codegen preferences',
     compiler = BrianPreference(
@@ -100,9 +100,9 @@ class WeaveCodeObject(CodeObject):
         super(WeaveCodeObject, self).__init__(owner, code, variables,
                                               template_name, template_source,
                                               name=name)
-        self.compiler = brian_prefs['codegen.runtime.weave.compiler']
-        self.extra_compile_args = brian_prefs['codegen.runtime.weave.extra_compile_args']
-        self.include_dirs = list(brian_prefs['codegen.runtime.weave.include_dirs'])
+        self.compiler = prefs['codegen.runtime.weave.compiler']
+        self.extra_compile_args = prefs['codegen.runtime.weave.extra_compile_args']
+        self.include_dirs = list(prefs['codegen.runtime.weave.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
         self.python_code_namespace = {'_owner': owner}
         self.variables_to_namespace()

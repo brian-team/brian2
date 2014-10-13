@@ -13,7 +13,7 @@ except ImportError:
 import numpy as np
 
 from brian2.core.base import BrianObject
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 from brian2.core.variables import (Variables, Constant, Variable,
                                    ArrayVariable, DynamicArrayVariable)
 from brian2.core.functions import Function
@@ -101,7 +101,7 @@ def get_dtype(equation, dtype=None):
     if equation.var_type == BOOLEAN:
         return np.bool
     elif equation.var_type == INTEGER:
-        return brian_prefs['core.default_integer_dtype']
+        return prefs['core.default_integer_dtype']
     elif equation.var_type == FLOAT:
         if dtype is not None:
             dtype = np.dtype(dtype)
@@ -110,7 +110,7 @@ def get_dtype(equation, dtype=None):
                                  'dtype') % dtype)
             return dtype
         else:
-            return brian_prefs['core.default_float_dtype']
+            return prefs['core.default_float_dtype']
     else:
         raise ValueError(('Do not know how to determine a dtype for '
                           'variable %s of type %s' ) % (equation.varname,

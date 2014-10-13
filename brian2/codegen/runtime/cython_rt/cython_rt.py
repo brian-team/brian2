@@ -6,7 +6,7 @@ import numpy
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,
                                    Subexpression)
-from brian2.core.preferences import brian_prefs, BrianPreference
+from brian2.core.preferences import prefs, BrianPreference
 
 from ..numpy_rt import NumpyCodeObject
 from ...templates import Templater
@@ -19,7 +19,7 @@ __all__ = ['CythonCodeObject']
 
 
 # Preferences
-brian_prefs.register_preferences(
+prefs.register_preferences(
     'codegen.runtime.cython',
     'Cython runtime codegen preferences',
     extra_compile_args = BrianPreference(
@@ -54,8 +54,8 @@ class CythonCodeObject(NumpyCodeObject):
         super(CythonCodeObject, self).__init__(owner, code, variables,
                                                template_name, template_source,
                                                name=name)
-        self.extra_compile_args = brian_prefs['codegen.runtime.weave.extra_compile_args']
-        self.include_dirs = list(brian_prefs['codegen.runtime.weave.include_dirs'])
+        self.extra_compile_args = prefs['codegen.runtime.weave.extra_compile_args']
+        self.include_dirs = list(prefs['codegen.runtime.weave.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
 
     def compile(self):

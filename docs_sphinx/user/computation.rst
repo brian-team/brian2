@@ -14,7 +14,7 @@ running on Python 2.x then you can use this for a speed by setting the
 the following at the top of your script::
 
     from brian2 import *
-    brian_prefs.codegen.target = 'weave'
+    prefs.codegen.target = 'weave'
 
 See :doc:`../advanced/preferences` for different ways of setting preferences.
 If you are running on Python 3.x then the scipy.weave module that we use
@@ -35,7 +35,7 @@ using Python functions which are not compatible with weave or Cython. For
 example, if you wrote something like this it would not be efficient::
 
     from brian2 import *
-    brian_prefs.codegen.target = 'weave'
+    prefs.codegen.target = 'weave'
     def f(x):
         return abs(x)
     G = NeuronGroup(10000, 'dv/dt = -x*f(x) : 1')

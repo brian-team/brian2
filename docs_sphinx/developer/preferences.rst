@@ -24,17 +24,17 @@ Preferences can be accessed and set either keyword-based or attribute-based.
 To set/get the value for the preference example mentioned before, the following
 are equivalent::
 
-    brian_prefs['codegen.c.compiler'] = 'gcc'
-    brian_prefs.codegen.c.compiler = 'gcc'
+    prefs['codegen.c.compiler'] = 'gcc'
+    prefs.codegen.c.compiler = 'gcc'
     
-    if brian_prefs['codegen.c.compiler'] == 'gcc':
+    if prefs['codegen.c.compiler'] == 'gcc':
         ...
-    if brian_prefs.codegen.c.compiler == 'gcc':
+    if prefs.codegen.c.compiler == 'gcc':
         ...
 
 Using the attribute-based form can be particulary useful for interactive
 work, e.g. in ipython, as it offers autocompletion and documentation.
-In ipython, ``brian_prefs.codegen.c?`` would display a docstring with all
+In ipython, ``prefs.codegen.c?`` would display a docstring with all
 the preferences available in the ``codegen.c`` category.
 
 Preference files
