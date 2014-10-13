@@ -466,15 +466,17 @@ class NeuronGroup(Group, SpikeSource):
                                            'supported, can only link to '
                                            'state variables of fixed '
                                            'size.') % linked_var.name)
-            if isinstance(linked_var, Subexpression):
-                raise NotImplementedError(('Linking to subexpression %s is not '
-                                           'supported.') % linked_var.name)
 
             eq = self.equations[key]
             if eq.unit != linked_var.unit:
                 raise DimensionMismatchError(('Unit of variable %s does not '
                                               'match its link target %s') % (key,
                                                                              linked_var.name))
+
+            if not isinstance(linked_var, Subexpression):
+                var_length = len(linked_var)
+            else:
+                var_length = len(linked_var.owner)
 
             if value.index is not None:
                 try:
@@ -498,41 +500,42 @@ class NeuronGroup(Group, SpikeSource):
                                      '%s') % (key,
                                               len(self),
                                               str(index_array.shape)))
-                if min(index_array) < 0 or max(index_array) >= len(linked_var):
+                if min(index_array) < 0 or max(index_array) >= var_length:
                     raise ValueError('Index array for linked variable %s '
                                      'contains values outside of the valid '
                                      'range [0, %d[' % (key,
-                                                        len(linked_var)))
+                                                        var_length))
                 self.variables.add_array('_%s_indices' % key, unit=Unit(1),
                                          size=size, dtype=index_array.dtype,
                                          constant=True, read_only=True,
                                          values=index_array)
                 index = '_%s_indices' % key
-            elif len(linked_var) == 1:
-                index = '0'
             else:
-                index = value.group.variables.indices[value.name]
-                if index == '_idx':
-                    target_length = len(linked_var)
+                if linked_var.scalar or var_length == 1:
+                    index = '0'
                 else:
-                    target_length = len(value.group.variables[index])
-                    # we need a name for the index that does not clash with
-                    # other names and a reference to the index
-                    new_index = '_' + value.name + '_index_' + index
-                    self.variables.add_reference(new_index,
-                                                 value.group,
-                                                 index)
-                    index = new_index
+                    index = value.group.variables.indices[value.name]
+                    if index == '_idx':
+                        target_length = var_length
+                    else:
+                        target_length = len(value.group.variables[index])
+                        # we need a name for the index that does not clash with
+                        # other names and a reference to the index
+                        new_index = '_' + value.name + '_index_' + index
+                        self.variables.add_reference(new_index,
+                                                     value.group,
+                                                     index)
+                        index = new_index
 
-                if len(self) != target_length:
-                    raise ValueError(('Cannot link variable %s to %s, the size of '
-                                      'the target group does not match '
-                                      '(%d != %d). You can provide an indexing '
-                                      'scheme with the "index" keyword to link '
-                                      'groups with different sizes') % (key,
-                                                       linked_var.name,
-                                                       len(self),
-                                                       target_length))
+                    if len(self) != target_length:
+                        raise ValueError(('Cannot link variable %s to %s, the size of '
+                                          'the target group does not match '
+                                          '(%d != %d). You can provide an indexing '
+                                          'scheme with the "index" keyword to link '
+                                          'groups with different sizes') % (key,
+                                                           linked_var.name,
+                                                           len(self),
+                                                           target_length))
 
             self.variables.add_reference(key,
                                          value.group,

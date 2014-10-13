@@ -1567,11 +1567,13 @@ class Variables(collections.Mapping):
             elif subexpr_var_index == '0':
                 pass  # nothing to do for a shared variable
             elif index != self.default_index:
-                raise TypeError(('Cannot link to subexpression %s: it refers '
-                                 'to the variable %s which is index with the '
-                                 'non-standard index %s.') % (name,
-                                                              identifier,
-                                                              subexpr_var_index))
+                index_var = self._variables.get(index, None)
+                if isinstance(index_var, DynamicArrayVariable):
+                    raise TypeError(('Cannot link to subexpression %s: it refers '
+                                     'to the variable %s which is indexed with the '
+                                     'dynamic index %s.') % (name,
+                                                             identifier,
+                                                             subexpr_var_index))
             else:
                 self.add_reference(subexpr_var_index, group)
 

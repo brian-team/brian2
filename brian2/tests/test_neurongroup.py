@@ -326,6 +326,50 @@ def test_linked_subexpression():
     assert all((all(mon[i+5].I == mon[5].I) for i in xrange(5)))
 
 
+def test_linked_subexpression_2():
+    '''
+    Test a linked variable referring to a subexpression without indices
+    '''
+    G = NeuronGroup(2, '''dv/dt = 100*Hz : 1
+                          I = clip(v, 0, inf) : 1''',
+                    threshold='v>1', reset='v=0')
+    G.v = [0, .5]
+    G2 = NeuronGroup(2, '''I_l : 1 (linked) ''')
+
+    G2.I_l = linked_var(G.I)
+    mon1 = StateMonitor(G, 'I', record=True)
+    mon = StateMonitor(G2, 'I_l', record=True)
+
+    net = Network(G, G2, mon, mon1)
+    net.run(5*ms)
+
+    assert all(mon[0].I_l == mon1[0].I)
+    assert all(mon[1].I_l == mon1[1].I)
+
+
+def test_linked_subexpression_3():
+    '''
+    Test a linked variable referring to a subexpression with indices
+    '''
+    G = NeuronGroup(2, '''dv/dt = 100*Hz : 1
+                          I = clip(v, 0, inf) : 1''',
+                    threshold='v>1', reset='v=0')
+    G.v = [0, .5]
+    G2 = NeuronGroup(10, '''I_l : 1 (linked) ''')
+
+    G2.I_l = linked_var(G.I, index=np.array([0, 1]).repeat(5))
+    mon1 = StateMonitor(G, 'I', record=True)
+    mon = StateMonitor(G2, 'I_l', record=True)
+
+    net = Network(G, G2, mon, mon1)
+    net.run(5*ms)
+
+    # Due to the linking, the first 5 and the second 5 recorded I vectors should
+    # refer to the
+    assert all((all(mon[i].I_l == mon1[0].I) for i in xrange(5)))
+    assert all((all(mon[i+5].I_l == mon1[1].I) for i in xrange(5)))
+
+
 def test_linked_subexpression_synapse():
     '''
     Test a complicated setup (not unlikely when using brian hears)
@@ -968,6 +1012,8 @@ if __name__ == '__main__':
     test_linked_subgroup()
     test_linked_subgroup2()
     test_linked_subexpression()
+    test_linked_subexpression_2()
+    test_linked_subexpression_3()
     test_linked_subexpression_synapse()
     test_linked_variable_indexed_incorrect()
     test_linked_synapses()
