@@ -6,7 +6,7 @@ from brian2.utils.stringtools import (deindent, stripped_deindented_lines,
                                       word_substitute)
 from brian2.utils.logger import get_logger
 from brian2.parsing.rendering import CPPNodeRenderer
-from brian2.core.functions import Function, DEFAULT_FUNCTIONS, make_function
+from brian2.core.functions import Function, DEFAULT_FUNCTIONS
 from brian2.core.preferences import brian_prefs, BrianPreference
 from brian2.core.variables import ArrayVariable
 
@@ -15,56 +15,8 @@ from .base import CodeGenerator
 logger = get_logger(__name__)
 
 __all__ = ['CPPCodeGenerator',
-           'c_data_type',
-           'make_cpp_function',
+           'c_data_type'
            ]
-
-
-def make_cpp_function(code, namespace=None, discard_units=None):
-    '''
-    Decorator to provide a C++ implementation of a function.
-    
-    Parameters
-    ----------
-    code : str
-        The C++ implementation of the function. The name of the C++ function
-        definition should match the name of the Python decorated function.
-    namespace : dict
-        Dictionary of values that should be accessible to the function.
-    discard_units : bool, optional
-        See documentation for `make_function`
-        
-    Notes
-    -----
-    
-    For more details, see `make_function`.
-    
-    Examples
-    --------
-    Sample usage::
-
-        @make_cpp_function("""
-            #include<math.h>
-            inline double usersin(double x)
-            {
-                return sin(x);
-            }
-            """)
-        def usersin(x):
-            return sin(x)
-
-    See also
-    --------
-    
-    make_function, make_weave_function
-    '''
-    codes = {'cpp':{'support_code':code}}
-    if namespace is not None:
-        namespaces = {'cpp': namespace}
-    else:
-        namespaces = None
-    return make_function(codes=codes, namespaces=namespaces,
-                         discard_units=discard_units)
 
 
 def c_data_type(dtype):
@@ -311,6 +263,8 @@ class CPPCodeGenerator(CodeGenerator):
             if isinstance(variable, Function):
                 user_functions.append((varname, variable))
                 funccode = variable.implementations[self.codeobj_class].get_code(self.owner)
+                if isinstance(funccode, basestring):
+                    funccode = {'support_code': funccode}
                 if funccode is not None:
                     support_code += '\n' + deindent(funccode.get('support_code', ''))
                     hash_defines += '\n' + deindent(funccode.get('hashdefine_code', ''))
@@ -373,7 +327,7 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
                                                                name=func_cpp)
 
 # Functions that need to be implemented specifically
-randn_code = {'support_code': '''
+randn_code = '''
 
     inline double _ranf()
     {
@@ -405,22 +359,22 @@ randn_code = {'support_code': '''
             return y2;
          }
     }
-        '''}
+        '''
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CPPCodeGenerator,
                                                               code=randn_code,
                                                               name='_randn')
 
-rand_code = {'support_code': '''
+rand_code = '''
         double _rand(int vectorisation_idx)
         {
 	        return (double)rand()/RAND_MAX;
         }
-        '''}
+        '''
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CPPCodeGenerator,
                                                              code=rand_code,
                                                              name='_rand')
 
-clip_code = {'support_code': '''
+clip_code = '''
         double _clip(const float value, const float a_min, const float a_max)
         {
 	        if (value < a_min)
@@ -429,18 +383,17 @@ clip_code = {'support_code': '''
 	            return a_max;
 	        return value;
 	    }
-        '''}
+        '''
 DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CPPCodeGenerator,
                                                              code=clip_code,
                                                              name='_clip')
 
-int_code = {'support_code':
-        '''
+int_code = '''
         int int_(const bool value)
         {
 	        return value ? 1 : 0;
         }
-        '''}
+        '''
 DEFAULT_FUNCTIONS['int'].implementations.add_implementation(CPPCodeGenerator,
                                                             code=int_code,
                                                             name='int_')
