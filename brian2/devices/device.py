@@ -225,6 +225,11 @@ class Device(object):
         pass
 
     def insert_device_code(self, slot, code):
+        # Deprecated
+        raise AttributeError("The method 'insert_device_code' has been renamed "
+                             "to 'insert_code'.")
+
+    def insert_code(self, slot, code):
         '''
         Insert code directly into a given slot in the device. By default does nothing.
         '''

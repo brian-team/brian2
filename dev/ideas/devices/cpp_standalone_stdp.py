@@ -60,7 +60,7 @@ net = Network(input, neurons, S, name='stdp_net')
 
 net.run(0*second)
 
-device.insert_device_code('main', '''
+device.insert_code('main', '''
     double duration = 1.0;
     if(argc>1)
     {

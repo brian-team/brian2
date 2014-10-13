@@ -38,7 +38,7 @@ The current C++ standalone code generation only works for a fixed number of `~Ne
 If you need to do loops or other features not supported automatically, you can do so by inspecting the generated
 C++ source code and modifying it, or by inserting code directly into the main loop as follows::
 
-    device.insert_device_code('main.cpp', '''
+    device.insert_code('main.cpp', '''
     cout << "Testing direct insertion of code." << endl;
     ''')
 

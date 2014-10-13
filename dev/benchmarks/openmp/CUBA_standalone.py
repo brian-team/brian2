@@ -58,12 +58,12 @@ spike_mon = SpikeMonitor(P)
 net = Network(P, Se, Si, spike_mon, name='stdp_net')
 
 if standalone == 1:
-    device.insert_device_code('main', 'std::clock_t start = std::clock();')
+    device.insert_code('main', 'std::clock_t start = std::clock();')
 
 net.run(10 * second, report='text')
 
 if standalone == 1:
-    device.insert_device_code('main', '''
+    device.insert_code('main', '''
         std::ofstream myfile ("speed.txt");
         if (myfile.is_open())
         {

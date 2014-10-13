@@ -125,7 +125,7 @@ class CPPStandaloneDevice(Device):
     def reinit(self):
         self.__init__()
 
-    def insert_device_code(self, slot, code):
+    def insert_code(self, slot, code):
         '''
         Insert code directly into main.cpp
         '''
