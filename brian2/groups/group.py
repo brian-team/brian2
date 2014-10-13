@@ -714,6 +714,10 @@ class Group(BrianObject):
 
         return resolved
 
+    def runner(self, *args, **kwds):
+        raise AttributeError("The 'runner' method has been renamed to "
+                             "'custom_operation'")
+
     def custom_operation(self, code, dt=None, clock=None, when='start',
                          order=0, name=None):
         '''
