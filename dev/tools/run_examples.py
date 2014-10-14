@@ -40,9 +40,9 @@ _mpl.use('Agg')
 import warnings, traceback, pickle, sys, os
 warnings.simplefilter('ignore')
 try:
-    from brian2 import brian_prefs
+    from brian2 import prefs
     from brian2.utils.filetools import ensure_directory_of_file
-    brian_prefs.codegen.target = '{target}'
+    prefs.codegen.target = '{target}'
     execfile(r'{fname}')
     if '{target}'=='numpy':
         for fignum in _mpl.pyplot.get_fignums():
