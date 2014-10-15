@@ -2,15 +2,17 @@ language: python
 matrix:
   include:
     - python: "2.6"
-      env: STANDALONE=no
+      env: STANDALONE=no CYTHON=yes
     - python: "2.7"
-      env: STANDALONE=no
+      env: STANDALONE=no CYTHON=yes
     - python: "3.3"
-      env: STANDALONE=no
+      env: STANDALONE=no CYTHON=yes
     - python: "3.4"
-      env: STANDALONE=no
+      env: STANDALONE=no CYTHON=yes
     - python: "2.7"
-      env: STANDALONE=yes
+      env: STANDALONE=yes CYTHON=no
+    - python: "2.7"  # test without installed cython
+      env: STANDALONE=no CYTHON=no
 
 # Use miniconda to install binary versions of numpy etc. from continuum
 # analytic's repository. Follows an approach described by Dan Blanchard:
@@ -26,10 +28,11 @@ before_install:
 # command to install dependencies
 install:
   - conda update --yes conda
-  - conda create -n travis_conda --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy nose sphinx ipython sympy pyparsing cython
+  - conda create -n travis_conda --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy nose sphinx ipython sympy pyparsing
   - source activate travis_conda
+  - if [[ $CYTHON == 'yes' ]]; then conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=""; fi
   - pip install -q coveralls --use-mirrors
-  - python setup.py install --with-cython --fail-on-error
+  - python setup.py install $SETUP_ARGS --fail-on-error
 # command to run tests (make sure to not run it from the source directory)
 script:
 - export SRCDIR=$(pwd)
