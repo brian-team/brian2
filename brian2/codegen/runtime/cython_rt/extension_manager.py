@@ -17,9 +17,12 @@ except ImportError:
 from distutils.core import Distribution, Extension
 from distutils.command.build_ext import build_ext
 
-import Cython
-import Cython.Compiler as Cython_Compiler
-import Cython.Build as Cython_Build
+try:
+    import Cython
+    import Cython.Compiler as Cython_Compiler
+    import Cython.Build as Cython_Build
+except ImportError:
+    Cython = None
 
 from brian2.utils.stringtools import deindent
 from brian2.utils.filetools import stdout_redirected
@@ -34,7 +37,10 @@ class CythonExtensionManager(object):
     def create_extension(self, code, force=False, name=None,
                          include=None, library_dirs=None, compile_args=None, link_args=None, lib=None,
                          ):
-        
+
+        if Cython is None:
+            raise ImportError('Cython is not available')
+
         code = deindent(code)
 
         lib_dir = os.path.expanduser('~/.brian/cython_extensions')
