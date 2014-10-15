@@ -18,7 +18,7 @@ To use the C++ standalone mode, make the following changes to your script:
 
 2. After ``run(duration)`` in your script, add::
 
-    device.build(project_dir='output', compile_project=True, run_project=True, debug=False)
+    device.build(directory='output', compile=True, run=True, debug=False)
 
 The `~CPPStandaloneDevice.build` function has several arguments to specify the output directory, whether or not to compile and run
 the project after creating it (using ``gcc``) and whether or not to compile it with debugging support or not.
@@ -38,11 +38,11 @@ The current C++ standalone code generation only works for a fixed number of `~Ne
 If you need to do loops or other features not supported automatically, you can do so by inspecting the generated
 C++ source code and modifying it, or by inserting code directly into the main loop as follows::
 
-    device.insert_device_code('main.cpp', '''
+    device.insert_code('main.cpp', '''
     cout << "Testing direct insertion of code." << endl;
     ''')
 
-After a simulation has been run (using the ``run_project`` keyword in the `Device.build` call), state variables and
+After a simulation has been run (using the ``run`` keyword in the `Device.build` call), state variables and
 monitored variables can be accessed using standard syntax, with a few exceptions (e.g. string expressions for indexing).
 
 3. Multi-threading with OpenMP
@@ -51,7 +51,7 @@ When using the C++ standalone mode, you have the opportunity to turn on multi-th
 OpenMP. By default, this option is turned off and only one thread is used. However, by changing the preferences of the codegen.cpp_standalone
 object, you can turn it on. To do so, just add the following line in your python script::
 
-    brian_prefs.codegen.cpp_standalone.openmp_threads = XX
+    prefs.codegen.cpp_standalone.openmp_threads = XX
 
 XX should be a positive value representing the number of threads that will be
 used during the simulation. Note that the speedup will strongly depend on the

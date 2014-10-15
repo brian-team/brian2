@@ -19,7 +19,7 @@ import scipy
 import sympy
 
 import brian2
-from brian2.core.preferences import brian_prefs, BrianPreference
+from brian2.core.preferences import prefs, BrianPreference
 
 from .environment import running_from_ipython
 
@@ -40,7 +40,7 @@ LOG_LEVELS = {'CRITICAL': logging.CRITICAL,
               'INFO': logging.INFO,
               'DEBUG': logging.DEBUG}
 
-brian_prefs.register_preferences('logging', 'Logging system preferences',
+prefs.register_preferences('logging', 'Logging system preferences',
     delete_log_on_exit=BrianPreference(
         default=True,
         docs=    '''
@@ -106,14 +106,14 @@ logger.setLevel(logging.DEBUG)
 
 # Log to a file
 TMP_LOG = FILE_HANDLER = None
-if brian_prefs['logging.file_log']:    
+if prefs['logging.file_log']:
     try:
         # Temporary filename used for logging
         TMP_LOG = tempfile.NamedTemporaryFile(prefix='brian_debug_',
                                               suffix='.log', delete=False)
         TMP_LOG = TMP_LOG.name
         FILE_HANDLER = logging.FileHandler(TMP_LOG, mode='wt')
-        FILE_HANDLER.setLevel(LOG_LEVELS[brian_prefs['logging.file_log_level'].upper()])
+        FILE_HANDLER.setLevel(LOG_LEVELS[prefs['logging.file_log_level'].upper()])
         FILE_HANDLER.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(name)s: %(message)s'))
         logger.addHandler(FILE_HANDLER)
     except IOError as ex:
@@ -121,7 +121,7 @@ if brian_prefs['logging.file_log']:
 
 # Save a copy of the script
 TMP_SCRIPT = None
-if brian_prefs['logging.save_script']:
+if prefs['logging.save_script']:
     if len(sys.argv[0]) and not running_from_ipython():
         try:
             tmp_file = tempfile.NamedTemporaryFile(prefix='brian_script_',
@@ -143,7 +143,7 @@ if brian_prefs['logging.save_script']:
 
 # create console handler with a higher log level
 CONSOLE_HANDLER = logging.StreamHandler()
-CONSOLE_HANDLER.setLevel(LOG_LEVELS[brian_prefs['logging.console_log_level'].upper()])
+CONSOLE_HANDLER.setLevel(LOG_LEVELS[prefs['logging.console_log_level'].upper()])
 CONSOLE_HANDLER.setFormatter(logging.Formatter('%(levelname)-8s %(name)s: %(message)s'))
 
 # add the handler to the logger
@@ -214,7 +214,7 @@ def clean_up_logging():
     occured.
     '''
     logging.shutdown()
-    if not BrianLogger.exception_occured and brian_prefs['logging.delete_log_on_exit']:
+    if not BrianLogger.exception_occured and prefs['logging.delete_log_on_exit']:
         if not TMP_LOG is None:
             try:
                 os.remove(TMP_LOG)

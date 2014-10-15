@@ -8,7 +8,7 @@ from nose.plugins.attrib import attr
 
 from brian2.core.variables import linked_var
 from brian2.core.network import Network
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 from brian2.core.clocks import defaultclock
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
@@ -945,16 +945,16 @@ def test_get_dtype():
                        n : integer''')
 
     # Test standard dtypes
-    assert get_dtype(eqs['v']) == brian_prefs['core.default_float_dtype']
-    assert get_dtype(eqs['x']) == brian_prefs['core.default_float_dtype']
-    assert get_dtype(eqs['n']) == brian_prefs['core.default_integer_dtype']
+    assert get_dtype(eqs['v']) == prefs['core.default_float_dtype']
+    assert get_dtype(eqs['x']) == prefs['core.default_float_dtype']
+    assert get_dtype(eqs['n']) == prefs['core.default_integer_dtype']
     assert get_dtype(eqs['b']) == np.bool
 
     # Test a changed default (float) dtype
     assert get_dtype(eqs['v'], np.float32) == np.float32, get_dtype(eqs['v'], np.float32)
     assert get_dtype(eqs['x'], np.float32) == np.float32
     # integer and boolean variables should be unaffected
-    assert get_dtype(eqs['n']) == brian_prefs['core.default_integer_dtype']
+    assert get_dtype(eqs['n']) == prefs['core.default_integer_dtype']
     assert get_dtype(eqs['b']) == np.bool
 
     # Explicitly provide a dtype for some variables
@@ -965,7 +965,7 @@ def test_get_dtype():
     # Not setting some dtypes should use the standard dtypes
     dtypes = {'n': np.int64}
     assert get_dtype(eqs['n'], dtypes) == np.int64
-    assert get_dtype(eqs['v'], dtypes) == brian_prefs['core.default_float_dtype']
+    assert get_dtype(eqs['v'], dtypes) == prefs['core.default_float_dtype']
 
     # Test that incorrect types raise an error
     # incorrect general dtype
@@ -980,7 +980,7 @@ def test_aliasing_in_statements():
     '''
     Test an issue around variables aliasing other variables (#259)
     '''
-    if brian_prefs.codegen.target != 'numpy':
+    if prefs.codegen.target != 'numpy':
         raise SkipTest('numpy-only test')
 
     runner_code = '''x_1 = x_0
@@ -1036,5 +1036,5 @@ if __name__ == '__main__':
     test_indices()
     test_repr()
     test_get_dtype()
-    if brian_prefs.codegen.target == 'numpy':
+    if prefs.codegen.target == 'numpy':
         test_aliasing_in_statements()

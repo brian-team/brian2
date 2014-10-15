@@ -83,8 +83,7 @@ def test_spikegenerator_standalone():
     net = Network(SG, s_mon)
     net.run(5*ms)
     tempdir = tempfile.mkdtemp()
-    device.build(project_dir=tempdir, compile_project=True, run_project=True,
-                 with_output=False)
+    device.build(directory=tempdir, compile=True, run=True, with_output=False)
     for idx in xrange(5):
         generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
         recorded_spikes = sorted([(idx, time)

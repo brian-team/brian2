@@ -125,8 +125,7 @@ def test_connection_array_standalone():
     net = Network(G1, G2, S, mon)
     net.run(5*second)
     tempdir = tempfile.mkdtemp()
-    device.build(project_dir=tempdir, compile_project=True, run_project=True,
-                 with_output=False)
+    device.build(directory=tempdir, compile=True, run=True, with_output=False)
     expected = np.array([[1, 1, 1, 1, 1],
                          [0, 0, 0, 0, 0],
                          [0, 1, 1, 1, 1],

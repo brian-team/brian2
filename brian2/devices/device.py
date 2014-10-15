@@ -10,7 +10,7 @@ from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.codegen.targets import codegen_targets
 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
 from brian2.core.names import find_name
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 from brian2.core.variables import ArrayVariable, DynamicArrayVariable
 from brian2.core.functions import Function
 from brian2.utils.logger import get_logger
@@ -31,7 +31,7 @@ def get_default_codeobject_class(pref='codegen.target'):
     '''
     Returns the default `CodeObject` class from the preferences.
     '''
-    codeobj_class = brian_prefs[pref]
+    codeobj_class = prefs[pref]
     if isinstance(codeobj_class, str):
         for target in codegen_targets:
             if target.class_name == codeobj_class:
@@ -186,7 +186,7 @@ class Device(object):
         logger.debug('%s abstract code:\n%s' % (name, indent(code_representation(abstract_code))))
 
         scalar_code, vector_code, kwds = generator.translate(abstract_code,
-                                                             dtype=brian_prefs['core.default_float_dtype'])
+                                                             dtype=prefs['core.default_float_dtype'])
         # Add the array names as keywords as well
         for varname, var in variables.iteritems():
             if isinstance(var, ArrayVariable):
@@ -225,6 +225,11 @@ class Device(object):
         pass
 
     def insert_device_code(self, slot, code):
+        # Deprecated
+        raise AttributeError("The method 'insert_device_code' has been renamed "
+                             "to 'insert_code'.")
+
+    def insert_code(self, slot, code):
         '''
         Insert code directly into a given slot in the device. By default does nothing.
         '''

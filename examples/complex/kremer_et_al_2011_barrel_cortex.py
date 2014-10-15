@@ -12,14 +12,14 @@ from brian2 import *
 import time
 
 # Uncomment if you have a C compiler and you are running on Python 2.x
-#brian_prefs.codegen.target = 'weave'
+#prefs.codegen.target = 'weave'
 # Uncomment if you have a C compiler and you are running on Python 3.x
-#brian_prefs.codegen.target = 'cython'
+#prefs.codegen.target = 'cython'
 # Set this to True to run in standalone mode (much faster, but requires a
 # C++ compiler to be installed).
 standalone = False
 # Change this to use multiple OpenMP threads
-#brian_prefs.codegen.cpp_standalone.openmp_threads = 1
+#prefs.codegen.cpp_standalone.openmp_threads = 1
 
 if standalone:
     set_device('cpp_standalone')
@@ -159,7 +159,7 @@ if not standalone:
     print "Construction time: %.1fs" % (t2 - t1)
 
 run(5*second, report='text')
-device.build(project_dir='barrelcortex', compile_project=True, run_project=True)
+device.build(directory='barrelcortex', compile=True, run=True)
 
 # Calculate the preferred direction of each cell in layer23 by doing a
 # vector average of the selectivity of the projecting layer4 cells, weighted

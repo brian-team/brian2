@@ -126,21 +126,16 @@ def test_math_functions():
 
 
 def test_user_defined_function():
-    @make_function(codes={
-        'cpp':{
-            'support_code':"""
+    @implementation('cpp',"""
                 inline double usersin(double x)
                 {
                     return sin(x);
                 }
-                """,
-            'hashdefine_code':'',
-            },
-        'cython': '''
+                """)
+    @implementation('cython', '''
             cdef double usersin(double x):
                 return sin(x)
-            '''
-        })
+            ''')
     @check_units(x=1, result=1)
     def usersin(x):
         return np.sin(x)
@@ -158,39 +153,11 @@ def test_user_defined_function():
     assert_equal(np.sin(test_array), mon.func_.flatten())
 
 
-def test_cpp_weave_user_defined_function_convenience_wrappers():
-    
-    if brian_prefs.codegen.target != 'weave':
-        raise SkipTest('weave-only test')
-
-    for mf in [make_cpp_function, make_weave_function]:
-        @mf("""
-            inline double usersin(double x)
-            {
-                return sin(x);
-            }
-            """)
-        @check_units(x=1, result=1)
-        def usersin(x):
-            return np.sin(x)
-    
-        test_array = np.array([0, 1, 2, 3])
-        G = NeuronGroup(len(test_array),
-                        '''func = usersin(variable) : 1
-                                  variable : 1''')
-        G.variable = test_array
-        mon = StateMonitor(G, 'func', record=True)
-        net = Network(G, mon)
-        net.run(defaultclock.dt)
-
-        assert_equal(np.sin(test_array), mon.func_.flatten())
-
-
 def test_user_defined_function_units():
     '''
     Test the preparation of functions for use in code with check_units.
     '''
-    if brian_prefs.codegen.target != 'numpy':
+    if prefs.codegen.target != 'numpy':
         raise SkipTest('numpy-only test')
 
     def nothing_specified(x, y, z):
@@ -261,7 +228,7 @@ def test_simple_user_defined_function():
 
 
 def test_manual_user_defined_function():
-    if brian_prefs.codegen.target != 'numpy':
+    if prefs.codegen.target != 'numpy':
         raise SkipTest('numpy-only test')
 
     default_dt = defaultclock.dt
@@ -318,7 +285,7 @@ def test_manual_user_defined_function():
     assert mon[0].func == [6] * volt
 
 def test_manual_user_defined_function_weave():
-    if brian_prefs.codegen.target != 'weave':
+    if prefs.codegen.target != 'weave':
         raise SkipTest('weave-only test')
 
     # User defined function without any decorators
@@ -334,7 +301,7 @@ def test_manual_user_defined_function_weave():
     }
     '''}
 
-    foo.implementations.add_implementations(codes={'cpp': code})
+    foo.implementations.add_implementation('cpp', code)
 
     G = NeuronGroup(1, '''
                        func = foo(x, y) : volt
@@ -351,7 +318,7 @@ def test_manual_user_defined_function_weave():
 @attr('codegen-independent')
 def test_user_defined_function_discarding_units():
     # A function with units that should discard units also inside the function
-    @make_function(discard_units=True)
+    @implementation('numpy', discard_units=True)
     @check_units(v=volt, result=volt)
     def foo(v):
         return v + 3*volt  # this normally raises an error for unitless v
@@ -453,7 +420,6 @@ if __name__ == '__main__':
             test_math_functions,
             test_user_defined_function,
             test_user_defined_function_units,
-            test_cpp_weave_user_defined_function_convenience_wrappers,
             test_simple_user_defined_function,
             test_manual_user_defined_function,
             test_manual_user_defined_function_weave,

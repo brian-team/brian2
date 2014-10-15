@@ -7,7 +7,7 @@ from nose.plugins.attrib import attr
 from numpy.testing import assert_allclose, assert_raises
 import numpy as np
 
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 from brian2.core.variables import Constant
 from brian2.groups.group import Group
 from brian2.utils.stringtools import get_identifiers, deindent
@@ -111,9 +111,9 @@ def numpy_evaluator(expr, userns):
 def cpp_evaluator(expr, ns):
     if weave is not None:
         return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
-                            compiler=brian_prefs['codegen.runtime.weave.compiler'],
-                            extra_compile_args=brian_prefs['codegen.runtime.weave.extra_compile_args'],
-                            include_dirs=brian_prefs['codegen.runtime.weave.include_dirs']
+                            compiler=prefs['codegen.runtime.weave.compiler'],
+                            extra_compile_args=prefs['codegen.runtime.weave.extra_compile_args'],
+                            include_dirs=prefs['codegen.runtime.weave.include_dirs']
                             )
     else:
         raise nose.SkipTest('No weave support.')

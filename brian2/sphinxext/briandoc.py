@@ -28,7 +28,7 @@ from sphinx.domains.python import PyXRefRole
 if sphinx.__version__ < '1.0.1':
     raise RuntimeError("Sphinx 1.0.1 or newer is required")
 
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 
 from .docscrape_sphinx import get_doc_object, SphinxDocString
 
@@ -67,7 +67,7 @@ class BrianPrefsDirective(Directive):
         else:
             section = None
         link_targets = not ('nolinks' in self.options)
-        rawtext = brian_prefs.get_documentation(section, link_targets)
+        rawtext = prefs.get_documentation(section, link_targets)
         include_lines = statemachine.string2lines(rawtext,
                                                   convert_whitespace=True)
         self.state_machine.insert_input(include_lines, 'Brian preferences')
@@ -82,7 +82,7 @@ def brianobj_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
     a `from brian2 import *`, e.g `NeuronGroup`.
     Also allows to directly link to preference names using the same syntax.
     '''
-    if text in brian_prefs:
+    if text in prefs:
         linktext = text.replace('_', '-').replace('.', '-')
         text = '%s <brian-pref-%s>' % (text, linktext)
         # Use sphinx's cross-reference role

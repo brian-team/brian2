@@ -50,8 +50,8 @@ s_mon = SpikeMonitor(input)
 r_mon = PopulationRateMonitor(input)
 
 run(100*second, report='text')
-device.build(project_dir='STDP_standalone', compile_project=True,
-             run_project=True, debug=True)
+device.build(directory='STDP_standalone', compile=True,
+             run=True, debug=True)
 
 subplot(311)
 plot(S.w / gmax, '.k')

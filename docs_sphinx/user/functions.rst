@@ -70,10 +70,10 @@ of the code. For better performance, Brian can alter the namespace of the
 function when it is executed as part of the simulation and remove all the
 units, then pass values without units to the function. In the above example,
 this means making the symbol ``nA`` refer to ``1e-9`` and ``Hz`` to ``1``. To
-use this mechanism, add the decorator `make_function` with the
+use this mechanism, add the decorator `implementation` with the
 ``discard_units`` keyword::
 
-    @make_function(discard_units=True)
+    @implementation('numpy', discard_units=True)
     @check_units(I=amp, result=Hz)
     def piecewise_linear(I):
         return clip((I-1*nA) * 50*Hz/nA, 0*Hz, 100*Hz)
@@ -84,21 +84,22 @@ a rate in Hertz. The ``discard_units`` mechanism does not work in all cases,
 e.g. it does not work if the function refers to units as ``brian2.nA`` instead
 of ``nA``, if it uses imports inside the function (e.g.
 ``from brian2 import nA``), etc. The ``discard_units`` can also be switched on
-for all functions without having to use the `make_function` decorator by
+for all functions without having to use the `implementation` decorator by
 setting the `codegen.runtime.numpy.discard_units` preference.
 
 Other code generation targets
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To make a function available for other code generation targets (e.g. C++),
 implementations for these targets have to be added. This can be achieved using
-the `make_function` decorator. The form of the code (e.g. a simple string or
-a dictionary of strings) necessary is target-dependent, however the decorators
-`make_cpp_function` and `make_weave_function` can be used to provide C++
-implementations (the first should be used for generic C++ implementations, and
-the latter if weave-specific code is necessary). An implementation for
-the C++ target could look like this::
+the `implementation` decorator. The form of the code (e.g. a simple string or
+a dictionary of strings) necessary is target-dependent, for C++ both options
+are allowed, a simple string will be interpreted as filling the
+``'support_code'`` block. Note that both ``'cpp'`` and ``'weave'`` can be used
+to provide C++ implementations, the first should be used for generic C++
+implementations, and the latter if weave-specific code is necessary. An
+implementation for the C++ target could look like this::
 
-    @make_cpp_function('''
+    @implementation('cpp', '''
          double piecewise_linear(double I) {
             if (I < 1e-9)
                 return 0;
@@ -116,9 +117,9 @@ object. For a more complex example that also makes the function contribute
 additional values to the namespace of a `CodeObject` see `TimedArray`.
 
 The same sort of approach as for C++ works for Cython using the
-`make_cython_function` decorator. The example above would look like this::
+``'cython'`` target. The example above would look like this::
 
-    @make_cython_function('''
+    @implementation('cython', '''
         cdef double piecewise_linear(double I):
             if I<1e-9:
                 return 0.0

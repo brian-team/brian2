@@ -6,7 +6,7 @@ from nose.plugins.attrib import attr
 import numpy as np
 from numpy.testing import assert_raises, assert_equal
 
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            UFUNCS_DIMENSIONLESS_TWOARGS,
                                            UFUNCS_INTEGERS,

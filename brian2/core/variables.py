@@ -17,7 +17,7 @@ from brian2.units.fundamentalunits import (Quantity, Unit,
 from brian2.units.allunits import second
 
 
-from .preferences import brian_prefs
+from .preferences import prefs
 
 __all__ = ['Variable',
            'Constant',
@@ -124,7 +124,7 @@ class Variable(object):
         #: The dtype used for storing the variable.
         self.dtype = dtype
         if dtype is None:
-            self.dtype = brian_prefs.core.default_float_dtype
+            self.dtype = prefs.core.default_float_dtype
 
         if self.is_boolean:
             if not have_same_dimensions(unit, 1):

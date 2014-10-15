@@ -54,6 +54,23 @@ class BrianObject(Nameable):
         if dt is not None and clock is not None:
             raise ValueError('Can only specify either a dt or a clock, not both.')
 
+        if not isinstance(when, basestring):
+            # Give some helpful error messages for users coming from the alpha
+            # version
+            if isinstance(when, Clock):
+                raise TypeError(("Do not use the 'when' argument for "
+                                 "specifying a clock, either provide a "
+                                 "timestep for the 'dt' argument or a Clock "
+                                 "object for 'clock'."))
+            if isinstance(when, tuple):
+                raise TypeError("Use the separate keyword arguments, 'dt' (or "
+                                "'clock'), 'when', and 'order' instead of "
+                                "providing a tuple for 'when'. Only use the "
+                                "'when' argument for the scheduling slot.")
+            # General error
+            raise TypeError("The 'when' argument has to be a string "
+                            "specifying the scheduling slot (e.g. 'start').")
+
         Nameable.__init__(self, name)
 
         #: The clock used for simulating this object

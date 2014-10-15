@@ -43,10 +43,10 @@ import brian2.devices.cpp_standalone as _cpp_standalone
 
 # preferences
 from brian2.core.core_preferences import *
-brian_prefs.load_preferences()
-brian_prefs.do_validation()
+prefs.load_preferences()
+prefs.do_validation()
 
-brian_prefs._backup()
+prefs._backup()
 
 def restore_initial_state():
     '''
@@ -56,7 +56,7 @@ def restore_initial_state():
     `BrianGlobalPreferences._restore` preferences.
     '''
     defaultclock.dt = 0.1*ms
-    brian_prefs._restore()
+    prefs._restore()
 
 # make the test suite available via brian2.test()
 from brian2.tests import run as test

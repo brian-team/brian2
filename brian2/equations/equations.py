@@ -243,6 +243,9 @@ def unit_and_type_from_string(unit_string):
     # Another special case: boolean variable
     if unit_string == 'boolean':
         return Unit(1, dim=DIMENSIONLESS), BOOLEAN
+    if unit_string == 'bool':
+        raise TypeError("Use 'boolean' not 'bool' as the unit for a boolean "
+                        "variable.")
 
     # Yet another special case: integer variable
     if unit_string == 'integer':

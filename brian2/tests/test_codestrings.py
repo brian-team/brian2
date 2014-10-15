@@ -7,7 +7,7 @@ from brian2 import Expression, Statements
 from brian2 import Hz, ms, mV, volt, second, get_dimensions, DimensionMismatchError
 
 from brian2.utils.logger import catch_logs
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 
 import brian2
 
