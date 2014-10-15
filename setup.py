@@ -49,7 +49,7 @@ cpp_fname = os.path.join('brian2', 'synapses', 'cythonspikequeue.cpp')
 if WITH_CYTHON or not os.path.exists(cpp_fname):
     fname = pyx_fname
     if not cython_available:
-        if FAIL_ON_ERROR:
+        if FAIL_ON_ERROR and WITH_CYTHON:
             raise RuntimeError('Compilation with Cython requested/necesary but '
                                'Cython >= %s is not available.' % REQUIRED_CYTHON_VERSION)
         else:
@@ -57,7 +57,7 @@ if WITH_CYTHON or not os.path.exists(cpp_fname):
                              'Cython >= %s is not available.\n' % REQUIRED_CYTHON_VERSION)
             fname = None
     if not os.path.exists(pyx_fname):
-        if FAIL_ON_ERROR:
+        if FAIL_ON_ERROR and WITH_CYTHON:
             raise RuntimeError(('Compilation with Cython requested/necessary but '
                                 'Cython source file %s does not exist') % pyx_fname)
         else:
