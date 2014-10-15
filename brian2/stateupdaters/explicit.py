@@ -318,6 +318,180 @@ class ExplicitStateUpdater(StateUpdateMethod):
     def _repr_latex_(self):
         return self._latex()
 
+    def replace_func(self, x, t, expr, temp_vars, eq_symbols,
+                     stochastic_variable=None):
+        '''
+        Used to replace a single occurance of ``f(x, t)`` or ``g(x, t)``:
+        `expr` is the non-stochastic (in the case of ``f``) or stochastic
+        part (``g``) of the expression defining the right-hand-side of the
+        differential equation describing `var`. It replaces the variable
+        `var` with the value given as `x` and `t` by the value given for
+        `t. Intermediate variables will be replaced with the appropriate
+        replacements as well.
+
+        For example, in the `rk2` integrator, the second step involves the
+        calculation of ``f(k/2 + x, dt/2 + t)``.  If `var` is ``v`` and
+        `expr` is ``-v / tau``, this will result in ``-(_k_v/2 + v)/tau``.
+
+        Note that this deals with only one state variable `var`, given as
+        an argument to the surrounding `_generate_RHS` function.
+        '''
+
+        try:
+            s_expr = str_to_sympy(str(expr))
+        except SympifyError as ex:
+            raise ValueError('Error parsing the expression "%s": %s' %
+                             (expr, str(ex)))
+
+        for var in eq_symbols:
+            # Generate specific temporary variables for the state variable,
+            # e.g. '_k_v' for the state variable 'v' and the temporary
+            # variable 'k'.
+            if stochastic_variable is None:
+                temp_var_replacements = dict(((self.symbols[temp_var],
+                                               _symbol(temp_var+'_'+var))
+                                              for temp_var in temp_vars))
+            else:
+                temp_var_replacements = dict(((self.symbols[temp_var],
+                                               _symbol(temp_var+'_'+var+'_'+stochastic_variable))
+                                              for temp_var in temp_vars))
+            # In the expression given as 'x', replace 'x' by the variable
+            # 'var' and all the temporary variables by their
+            # variable-specific counterparts.
+            x_replacement = x.subs(self.symbols['__x'], eq_symbols[var])
+            x_replacement = x_replacement.subs(temp_var_replacements)
+
+            # Replace the variable `var` in the expression by the new `x`
+            # expression
+            s_expr = s_expr.subs(eq_symbols[var], x_replacement)
+
+        # Directly substitute the 't' expression for the symbol t, there
+        # are no temporary variables to consider here.
+        s_expr = s_expr.subs(self.symbols['__t'], t)
+
+        return s_expr
+
+    def _non_stochastic_part(self, eq_symbols, non_stochastic,
+                             non_stochastic_expr, stochastic_variable,
+                             temp_vars, var):
+        non_stochastic_results = []
+        if stochastic_variable is None or len(stochastic_variable) == 0:
+            # Replace the f(x, t) part
+            replace_f = lambda x, t: self.replace_func(x, t, non_stochastic,
+                                                  temp_vars, eq_symbols)
+            non_stochastic_result = non_stochastic_expr.replace(
+                self.symbols['__f'],
+                replace_f)
+            # Replace x by the respective variable
+            non_stochastic_result = non_stochastic_result.subs(
+                self.symbols['__x'],
+                eq_symbols[var])
+            # Replace intermediate variables
+            temp_var_replacements = dict((self.symbols[temp_var],
+                                          _symbol(temp_var + '_' + var))
+                                         for temp_var in temp_vars)
+            non_stochastic_result = non_stochastic_result.subs(
+                temp_var_replacements)
+            non_stochastic_results.append(non_stochastic_result)
+        elif isinstance(stochastic_variable, basestring):
+            # Replace the f(x, t) part
+            replace_f = lambda x, t: self.replace_func(x, t, non_stochastic,
+                                                  temp_vars, eq_symbols,
+                                                  stochastic_variable)
+            non_stochastic_result = non_stochastic_expr.replace(
+                self.symbols['__f'],
+                replace_f)
+            # Replace x by the respective variable
+            non_stochastic_result = non_stochastic_result.subs(
+                self.symbols['__x'],
+                eq_symbols[var])
+            # Replace intermediate variables
+            temp_var_replacements = dict((self.symbols[temp_var],
+                                          _symbol(
+                                              temp_var + '_' + var + '_' + stochastic_variable))
+                                         for temp_var in temp_vars)
+
+            non_stochastic_result = non_stochastic_result.subs(
+                temp_var_replacements)
+            non_stochastic_results.append(non_stochastic_result)
+        else:
+            # Replace the f(x, t) part
+            replace_f = lambda x, t: self.replace_func(x, t, non_stochastic,
+                                                  temp_vars, eq_symbols)
+            non_stochastic_result = non_stochastic_expr.replace(
+                self.symbols['__f'],
+                replace_f)
+            # Replace x by the respective variable
+            non_stochastic_result = non_stochastic_result.subs(
+                self.symbols['__x'],
+                eq_symbols[var])
+            # Replace intermediate variables
+            temp_var_replacements = dict((self.symbols[temp_var],
+                                          reduce(operator.add, [_symbol(
+                                              temp_var + '_' + var + '_' + xi)
+                                                                for xi in
+                                                                stochastic_variable]))
+                                         for temp_var in temp_vars)
+
+            non_stochastic_result = non_stochastic_result.subs(
+                temp_var_replacements)
+            non_stochastic_results.append(non_stochastic_result)
+
+        return non_stochastic_results
+
+    def _stochastic_part(self, eq_symbols, stochastic, stochastic_expr,
+                         stochastic_variable, temp_vars, var):
+        stochastic_results = []
+        if isinstance(stochastic_variable, basestring):
+            # Replace the g(x, t) part
+            replace_f = lambda x, t: self.replace_func(x, t,
+                                                       stochastic.get(stochastic_variable, 0),
+                                                       temp_vars, eq_symbols,
+                                                       stochastic_variable)
+            stochastic_result = stochastic_expr.replace(self.symbols['__g'],
+                                                        replace_f)
+            # Replace x by the respective variable
+            stochastic_result = stochastic_result.subs(self.symbols['__x'],
+                                                       eq_symbols[var])
+            # Replace dW by the respective variable
+            stochastic_result = stochastic_result.subs(self.symbols['__dW'],
+                                                       stochastic_variable)
+            # Replace intermediate variables
+            temp_var_replacements = dict((self.symbols[temp_var],
+                                          _symbol(
+                                              temp_var + '_' + var + '_' + stochastic_variable))
+                                         for temp_var in temp_vars)
+
+            stochastic_result = stochastic_result.subs(temp_var_replacements)
+            stochastic_results.append(stochastic_result)
+        else:
+            for xi in stochastic_variable:
+                # Replace the g(x, t) part
+                replace_f = lambda x, t: self.replace_func(x, t,
+                                                           stochastic.get(xi, 0),
+                                                           temp_vars,
+                                                           eq_symbols, xi)
+                stochastic_result = stochastic_expr.replace(self.symbols['__g'],
+                                                            replace_f)
+                # Replace x by the respective variable
+                stochastic_result = stochastic_result.subs(self.symbols['__x'],
+                                                           eq_symbols[var])
+
+                # Replace dW by the respective variable
+                stochastic_result = stochastic_result.subs(self.symbols['__dW'],
+                                                           xi)
+
+
+                # Replace intermediate variables
+                temp_var_replacements = dict((self.symbols[temp_var],
+                                              _symbol(temp_var + '_' + var + '_' + xi))
+                                             for temp_var in temp_vars)
+
+                stochastic_result = stochastic_result.subs(
+                    temp_var_replacements)
+                stochastic_results.append(stochastic_result)
+        return stochastic_results
+
     def _generate_RHS(self, eqs, var, eq_symbols, temp_vars, expr,
                       non_stochastic_expr, stochastic_expr,
                       stochastic_variable=()):
@@ -332,58 +506,6 @@ class ExplicitStateUpdater(StateUpdateMethod):
         produces ``v + dt*(-v - _k_v/2 + I + _k_I/2)/tau``.
                 
         '''
-        
-        def replace_func(x, t, expr, temp_vars, stochastic_variable=None):
-            '''
-            Used to replace a single occurance of ``f(x, t)`` or ``g(x, t)``:
-            `expr` is the non-stochastic (in the case of ``f``) or stochastic
-            part (``g``) of the expression defining the right-hand-side of the
-            differential equation describing `var`. It replaces the variable
-            `var` with the value given as `x` and `t` by the value given for
-            `t. Intermediate variables will be replaced with the appropriate
-            replacements as well.
-            
-            For example, in the `rk2` integrator, the second step involves the
-            calculation of ``f(k/2 + x, dt/2 + t)``.  If `var` is ``v`` and
-            `expr` is ``-v / tau``, this will result in ``-(_k_v/2 + v)/tau``.
-            
-            Note that this deals with only one state variable `var`, given as
-            an argument to the surrounding `_generate_RHS` function.
-            '''
-
-            try:
-                s_expr = str_to_sympy(str(expr))
-            except SympifyError as ex:
-                raise ValueError('Error parsing the expression "%s": %s' %
-                                 (expr, str(ex)))
-
-            for var in eq_symbols:
-                # Generate specific temporary variables for the state variable,
-                # e.g. '_k_v' for the state variable 'v' and the temporary
-                # variable 'k'.
-                if stochastic_variable is None:
-                    temp_var_replacements = dict(((self.symbols[temp_var],
-                                                   _symbol(temp_var+'_'+var))
-                                                  for temp_var in temp_vars))
-                else:
-                    temp_var_replacements = dict(((self.symbols[temp_var],
-                                                   _symbol(temp_var+'_'+var+'_'+stochastic_variable))
-                                                  for temp_var in temp_vars))
-                # In the expression given as 'x', replace 'x' by the variable
-                # 'var' and all the temporary variables by their
-                # variable-specific counterparts.
-                x_replacement = x.subs(self.symbols['__x'], eq_symbols[var])
-                x_replacement = x_replacement.subs(temp_var_replacements)
-                
-                # Replace the variable `var` in the expression by the new `x`
-                # expression
-                s_expr = s_expr.subs(eq_symbols[var], x_replacement)
-                
-            # Directly substitute the 't' expression for the symbol t, there
-            # are no temporary variables to consider here.             
-            s_expr = s_expr.subs(self.symbols['__t'], t)
-            
-            return s_expr
         
         # Note: in the following we are silently ignoring the case that a
         # state updater does not care about either the non-stochastic or the
@@ -401,109 +523,26 @@ class ExplicitStateUpdater(StateUpdateMethod):
         # the stochastic or the non-stochastic part.
         
         non_stochastic, stochastic = expr.split_stochastic()
-        # We do have a non-stochastic part in our equation and in the state
-        # updater description 
+
         if not (non_stochastic is None or non_stochastic_expr is None):
-            non_stochastic_results = []
-            if stochastic_variable is None or len(stochastic_variable) == 0:
-                # Replace the f(x, t) part
-                replace_f = lambda x, t:replace_func(x, t, non_stochastic,
-                                                     temp_vars)
-                non_stochastic_result = non_stochastic_expr.replace(self.symbols['__f'],
-                                                                    replace_f)
-                # Replace x by the respective variable
-                non_stochastic_result = non_stochastic_result.subs(self.symbols['__x'],
-                                                                   eq_symbols[var])
-                # Replace intermediate variables
-                temp_var_replacements = dict((self.symbols[temp_var],
-                                              _symbol(temp_var+'_'+var))
-                                             for temp_var in temp_vars)
-                non_stochastic_result = non_stochastic_result.subs(temp_var_replacements)
-                non_stochastic_results.append(non_stochastic_result)
-            elif isinstance(stochastic_variable, basestring):
-                # Replace the f(x, t) part
-                replace_f = lambda x, t:replace_func(x, t, non_stochastic,
-                                                     temp_vars, stochastic_variable)
-                non_stochastic_result = non_stochastic_expr.replace(self.symbols['__f'],
-                                                                    replace_f)
-                # Replace x by the respective variable
-                non_stochastic_result = non_stochastic_result.subs(self.symbols['__x'],
-                                                                   eq_symbols[var])
-                # Replace intermediate variables
-                temp_var_replacements = dict((self.symbols[temp_var],
-                                              _symbol(temp_var+'_'+var+'_'+stochastic_variable))
-                                             for temp_var in temp_vars)
-
-                non_stochastic_result = non_stochastic_result.subs(temp_var_replacements)
-                non_stochastic_results.append(non_stochastic_result)
-            else:
-                # Replace the f(x, t) part
-                replace_f = lambda x, t:replace_func(x, t, non_stochastic,
-                                                     temp_vars)
-                non_stochastic_result = non_stochastic_expr.replace(self.symbols['__f'],
-                                                                    replace_f)
-                # Replace x by the respective variable
-                non_stochastic_result = non_stochastic_result.subs(self.symbols['__x'],
-                                                                   eq_symbols[var])
-                # Replace intermediate variables
-                temp_var_replacements = dict((self.symbols[temp_var],
-                                               reduce(operator.add, [_symbol(temp_var+'_'+var+'_'+xi)
-                                                                     for xi in stochastic_variable]))
-                                             for temp_var in temp_vars)
-
-
-                non_stochastic_result = non_stochastic_result.subs(temp_var_replacements)
-                non_stochastic_results.append(non_stochastic_result)
-
+            # We do have a non-stochastic part in our equation and in the state
+            # updater description
+            non_stochastic_results = self._non_stochastic_part(eq_symbols,
+                                                               non_stochastic,
+                                                               non_stochastic_expr,
+                                                               stochastic_variable,
+                                                               temp_vars, var)
         else:
             non_stochastic_results = []
 
-        # We do have a stochastic part in our equation and in the state updater
-        # description
         if not (stochastic is None or stochastic_expr is None):
-            stochastic_results = []
-            if isinstance(stochastic_variable, basestring):
-                # Replace the g(x, t) part
-                replace_f = lambda x, t:replace_func(x, t, stochastic.get(stochastic_variable, 0),
-                                                     temp_vars, stochastic_variable)
-                stochastic_result = stochastic_expr.replace(self.symbols['__g'],
-                                                                    replace_f)
-                # Replace x by the respective variable
-                stochastic_result = stochastic_result.subs(self.symbols['__x'],
-                                                                   eq_symbols[var])
-                # Replace dW by the respective variable
-                stochastic_result = stochastic_result.subs(self.symbols['__dW'], stochastic_variable)
-                # Replace intermediate variables
-                temp_var_replacements = dict((self.symbols[temp_var],
-                                              _symbol(temp_var+'_'+var+'_'+stochastic_variable))
-                                             for temp_var in temp_vars)
-
-                stochastic_result = stochastic_result.subs(temp_var_replacements)
-                stochastic_results.append(stochastic_result)
-            else:
-                for xi in stochastic_variable:
-                    # Replace the g(x, t) part
-                    replace_f = lambda x, t:replace_func(x, t, stochastic.get(xi, 0),
-                                                         temp_vars, xi)
-                    stochastic_result = stochastic_expr.replace(self.symbols['__g'],
-                                                                        replace_f)
-                    # Replace x by the respective variable
-                    stochastic_result = stochastic_result.subs(self.symbols['__x'],
-                                                                       eq_symbols[var])
-
-                    # Replace dW by the respective variable
-                    stochastic_result = stochastic_result.subs(self.symbols['__dW'], xi)
-
-
-                    # Replace intermediate variables
-                    temp_var_replacements = dict((self.symbols[temp_var],
-                                                  _symbol(temp_var+'_'+var+'_'+xi))
-                                                 for temp_var in temp_vars)
-
-
-                    stochastic_result = stochastic_result.subs(temp_var_replacements)
-                    stochastic_results.append(stochastic_result)
-
+            # We do have a stochastic part in our equation and in the state
+            # updater description
+            stochastic_results = self._stochastic_part(eq_symbols,
+                                                       stochastic,
+                                                       stochastic_expr,
+                                                       stochastic_variable,
+                                                       temp_vars, var)
         else:
             stochastic_results = []
         
@@ -537,7 +576,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         >>> from brian2 import *
         >>> eqs = Equations('dv/dt = -v / tau : volt')        
         >>> print(euler(eqs))
-        _v = -dt*v/tau + v
+        _v = v*(-dt + tau)/tau
         v = _v
         >>> print(rk4(eqs))
         __k_1_v = -dt*v/tau
