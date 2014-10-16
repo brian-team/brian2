@@ -3,6 +3,7 @@ from collections import namedtuple
 
 from numpy.testing.utils import assert_equal, assert_raises, assert_allclose
 from nose.plugins.attrib import attr
+from nose import with_setup
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
@@ -105,6 +106,77 @@ def test_multiple_noise_variables_extended():
                             err_msg='Method %s gave incorrect results' % method_name)
             assert_allclose(mon.y[:], no_noise_y,
                             err_msg='Method %s gave incorrect results' % method_name)
+
+
+old_randn = None
+def store_randn():
+    global old_randn
+    old_randn = DEFAULT_FUNCTIONS['randn']
+def restore_randn():
+    DEFAULT_FUNCTIONS['randn'] = old_randn
+
+
+@with_setup(setup=store_randn, teardown=restore_randn)
+def test_multiple_noise_variables_deterministic_noise():
+    # The "random" values are always 0.5
+    @implementation('cpp',
+                    '''
+                    double randn(int vectorisation_idx)
+                    {
+                        return 0.5;
+                    }
+                    ''')
+    @implementation('cython',
+                    '''
+                    cdef double randn(int vectorisation_idx):
+                        return 0.5
+                    ''')
+    @check_units(N=Unit(1), result=Unit(1))
+    def fake_randn(N):
+        return 0.5*ones(N)
+
+    old_randn = DEFAULT_FUNCTIONS['randn']
+    DEFAULT_FUNCTIONS['randn'] = fake_randn
+
+    all_eqs = ['''dx/dt = y : 1
+                          dy/dt = -y / (10*ms) + dt**-.5*0.5*ms**-1.5 + dt**-.5*0.5*ms**-1.5: Hz
+                     ''',
+                     '''dx/dt = y + dt**-.5*0.5*ms**-0.5: 1
+                        dy/dt = -y / (10*ms) + dt**-.5*0.5 * ms**-1.5 : Hz
+                ''']
+    all_eqs_noise = ['''dx/dt = y : 1
+                          dy/dt = -y / (10*ms) + xi_1 * ms**-1.5 + xi_2 * ms**-1.5: Hz
+                     ''',
+                     '''dx/dt = y + xi_1*ms**-0.5: 1
+                        dy/dt = -y / (10*ms) + xi_2 * ms**-1.5 : Hz
+                     ''']
+    for eqs, eqs_noise in zip(all_eqs, all_eqs_noise):
+        G = NeuronGroup(2, eqs, method='euler')
+        G.x = [5,  17]
+        G.y = [25, 5 ] * Hz
+        mon = StateMonitor(G, ['x', 'y'], record=True)
+        net = Network(G, mon)
+        net.run(10*ms)
+        no_noise_x, no_noise_y = mon.x[:], mon.y[:]
+
+        for method_name, method in [('euler', euler), ('milstein', milstein)]:
+            # Note that for milstein, the check for diagonal noise will fail, but
+            # it should still work since the two noise variables really do only
+            # present a single variable
+            with catch_logs('WARNING'):
+                G = NeuronGroup(2, eqs_noise, method=method)
+                G.x = [5,  17]
+                G.y = [25, 5 ] * Hz
+                mon = StateMonitor(G, ['x', 'y'], record=True)
+                net = Network(G, mon)
+                # We run it deterministically, but still we'd detect major errors (e.g.
+                # non-stochastic terms that are added twice, see #330
+                net.run(10*ms, namespace={'noise_factor': 0})
+            assert_allclose(mon.x[:], no_noise_x,
+                            err_msg='Method %s gave incorrect results' % method_name)
+            assert_allclose(mon.y[:], no_noise_y,
+                            err_msg='Method %s gave incorrect results' % method_name)
+
 
 
 @attr('codegen-independent')
@@ -544,6 +616,9 @@ if __name__ == '__main__':
     test_str_repr()
     test_multiple_noise_variables_basic()
     test_multiple_noise_variables_extended()
+    store_randn()
+    test_multiple_noise_variables_deterministic_noise()
+    restore_randn()
     test_temporary_variables()
     test_temporary_variables2()
     test_integrator_code()
