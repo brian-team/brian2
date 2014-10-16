@@ -1,5 +1,6 @@
 import numpy as np
 
+from brian2.core.clocks import defaultclock
 from brian2.core.functions import Function
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units, get_unit
@@ -74,7 +75,11 @@ class TimedArray(Function, Nameable):
         # directly, outside of a simulation
         @check_units(t=second, result=unit)
         def timed_array_func(t):
-            i = np.clip(np.int_(np.float_(t) / dt + 0.5), 0, len(values)-1)
+            # We round according to the current defaultclock.dt
+            K = _find_K(float(defaultclock.dt), dt)
+            epsilon = dt / K
+            i = np.clip(np.int_(np.round(np.asarray(t/epsilon)) / K),
+                        0, len(values)-1)
             return values[i] * unit
 
         Function.__init__(self, pyfunc=timed_array_func)
@@ -88,7 +93,8 @@ class TimedArray(Function, Nameable):
             n_values = len(values)
             epsilon = dt / K
             def unitless_timed_array_func(t):
-                timestep = np.clip(np.int_(np.round(t/epsilon) / K), 0, n_values-1)
+                timestep = np.clip(np.int_(np.round(t/epsilon) / K),
+                                   0, n_values-1)
                 return values[timestep]
 
             unitless_timed_array_func._arg_units = [second]
