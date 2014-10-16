@@ -1,7 +1,7 @@
 import re
 from collections import namedtuple
 
-from numpy.testing.utils import assert_equal, assert_raises
+from numpy.testing.utils import assert_equal, assert_raises, assert_allclose
 from nose.plugins.attrib import attr
 
 from brian2 import *
@@ -52,6 +52,59 @@ def test_str_repr():
     for integrator in [linear, euler, rk2, rk4]:
         assert len(str(integrator))
         assert len(repr(integrator))
+
+
+@attr('codegen-independent')
+def test_multiple_noise_variables_basic():
+    # Very basic test, only to make sure that stochastic state updaters handle
+    # multiple noise variables at all
+    eqs = Equations('''dv/dt = -v / (10*ms) + xi_1 * ms ** -.5 : 1
+                       dw/dt = -w / (10*ms) + xi_2 * ms ** -.5 : 1''')
+    for method in [euler, milstein]:
+        code = method(eqs, {})
+        assert 'xi_1' in code
+        assert 'xi_2' in code
+
+
+def test_multiple_noise_variables_extended():
+    # Some actual simulations with multiple noise variables
+    eqs = '''dx/dt = y : 1
+             dy/dt = - 1*ms**-1*y - 40*ms**-2*x : Hz
+            '''
+    all_eqs_noise = ['''dx/dt = y : 1
+                        dy/dt = noise_factor*ms**-1.5*xi_1 + noise_factor*ms**-1.5*xi_2
+                           - 1*ms**-1*y - 40*ms**-2*x : Hz
+                     ''',
+                     '''dx/dt = y + noise_factor*ms**-0.5*xi_1: 1
+                        dy/dt = noise_factor*ms**-1.5*xi_2
+                            - 1*ms**-1*y - 40*ms**-2*x : Hz
+                     ''']
+    G = NeuronGroup(2, eqs, method='euler')
+    G.x = [0.5, 1]
+    G.y = [0, 0.5] * Hz
+    mon = StateMonitor(G, ['x', 'y'], record=True)
+    net = Network(G, mon)
+    net.run(10*ms)
+    no_noise_x, no_noise_y = mon.x[:], mon.y[:]
+
+    for eqs_noise in all_eqs_noise:
+        for method_name, method in [('euler', euler), ('milstein', milstein)]:
+            # Note that for milstein, the check for diagonal noise will fail, but
+            # it should still work since the two noise variables really do only
+            # present a single variable
+            with catch_logs('WARNING'):
+                G = NeuronGroup(2, eqs_noise, method=method)
+                G.x = [0.5, 1]
+                G.y = [0, 0.5] * Hz
+                mon = StateMonitor(G, ['x', 'y'], record=True)
+                net = Network(G, mon)
+                # We run it deterministically, but still we'd detect major errors (e.g.
+                # non-stochastic terms that are added twice, see #330
+                net.run(10*ms, namespace={'noise_factor': 0})
+            assert_allclose(mon.x[:], no_noise_x,
+                            err_msg='Method %s gave incorrect results' % method_name)
+            assert_allclose(mon.y[:], no_noise_y,
+                            err_msg='Method %s gave incorrect results' % method_name)
 
 
 @attr('codegen-independent')
@@ -114,23 +167,20 @@ def test_integrator_code():
     
     # Make sure that it isn't a problem to use 'x', 'f' and 'g'  as variable
     # names, even though they are also used in state updater descriptions.
-    # The resulting code should be identical when replacing x by x0 (and ..._x by
-    # ..._x0)
+    # The resulting code should be identical when replacing x by v (and ..._x by
+    # ..._v)
     for varname in ['x', 'f', 'g']:
-        # We use a very similar names here to avoid slightly re-arranged
-        # expressions due to alphabetical sorting of terms in
-        # multiplications, etc.
-        eqs_v = Equations('d{varname}0/dt = -{varname}0 / (1 * second) : 1'.format(varname=varname))
+        eqs_v = Equations('dv/dt = -v / (1 * second) : 1')
         eqs_var = Equations('d{varname}/dt = -{varname} / (1 * second) : 1'.format(varname=varname))  
         for integrator in [linear, euler, rk2, rk4]:
             code_v = integrator(eqs_v)
             code_var = integrator(eqs_var)
             # Re-substitute the variable names in the output
             code_var = re.sub(r'\b{varname}\b'.format(varname=varname),
-                              '{varname}0'.format(varname=varname), code_var)
+                              'v', code_var)
             code_var = re.sub(r'\b(\w*)_{varname}\b'.format(varname=varname),
-                              r'\1_{varname}0'.format(varname=varname), code_var)
-            assert code_var == code_v, "'%s' does not match '%s'" % (code_var, code_v)
+                              r'\1_v', code_var)
+            assert code_var == code_v
 
 
 @attr('codegen-independent')
@@ -264,17 +314,6 @@ def test_registration():
 
 
 @attr('codegen-independent')
-def test_custom_check():
-    # Do not integrate equations for variable v
-    no_v_updater = ExplicitStateUpdater('x_new = x',
-                                        custom_check=lambda eqs, vars: not 'v' in eqs)
-
-
-    assert no_v_updater.can_integrate(Equations('dx/dt = -x / tau : 1'), {})
-    assert not no_v_updater.can_integrate(Equations('dv/dt = -v / tau : 1'), {})
-
-
-@attr('codegen-independent')
 def test_determination():
     '''
     Test the determination of suitable state updaters.
@@ -355,41 +394,12 @@ def test_determination():
     with catch_logs() as logs:
         determine_stateupdater(eqs, variables, method='milstein')
         assert len(logs) == 0
-
-    # diagonal multiplicative noise (supported by milstein)
-    eqs = Equations('''dv/dt = -v / (10*ms) + v*xi_v*second**-.5: 1
-                       dx/dt = -x / (10*ms) + x*xi_x*second**-.5: 1''')
-    for name in ['linear', 'independent', 'euler', 'exponential_euler',
-                 'rk2', 'rk4']:
-        assert_raises(ValueError, lambda: determine_stateupdater(eqs,
-                                                                 variables,
-                                                                 method=name))
-    # milstein should work
-    with catch_logs() as logs:
-        determine_stateupdater(eqs, variables, method='milstein')
-        assert len(logs) == 0
-
-    # non-diagonal noise, milstein does not work
-    eqs = Equations('''dv/dt = -v / (10*ms) + v*xi_v*second**-.5: 1
-                       dx/dt = -x / (10*ms) + x*xi_v*second**-.5: 1''')
-    for name in ['linear', 'independent', 'euler', 'exponential_euler',
-                 'rk2', 'rk4', 'milstein']:
-        assert_raises(ValueError, lambda: determine_stateupdater(eqs,
-                                                                 variables,
-                                                                 method=name))
-
-    # More than one noise variable in an equation, milstein does not work
-    eqs = Equations('dv/dt = -v / (10*ms) + v*xi_v*second**-.5 + v*xi_x*second**-.5: 1')
-    for name in ['linear', 'independent', 'euler', 'exponential_euler',
-                 'rk2', 'rk4', 'milstein']:
-        assert_raises(ValueError, lambda: determine_stateupdater(eqs,
-                                                                 variables,
-                                                                 method=name))
+    
     # non-existing name
     assert_raises(ValueError, lambda: determine_stateupdater(eqs,
                                                              variables,
                                                              method='does_not_exist'))
-
+    
     # Automatic state updater choice should return linear for linear equations,
     # euler for non-linear, non-stochastic equations and equations with
     # additive noise, milstein for equations with multiplicative noise
@@ -532,12 +542,13 @@ if __name__ == '__main__':
     test_determination()
     test_explicit_stateupdater_parsing()
     test_str_repr()
+    test_multiple_noise_variables_basic()
+    test_multiple_noise_variables_extended()
     test_temporary_variables()
     test_temporary_variables2()
     test_integrator_code()
     test_integrator_code2()
     test_priority()
     test_registration()
-    test_custom_check()
     test_subexpressions()
     test_locally_constant_check()
