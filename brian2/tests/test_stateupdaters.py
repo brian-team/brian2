@@ -67,6 +67,7 @@ def test_multiple_noise_variables_basic():
         assert 'xi_2' in code
 
 
+@attr('long')
 def test_multiple_noise_variables_extended():
     # Some actual simulations with multiple noise variables
     eqs = '''dx/dt = y : 1
@@ -116,6 +117,7 @@ def restore_randn():
     DEFAULT_FUNCTIONS['randn'] = old_randn
 
 
+@attr('long')
 @with_setup(setup=store_randn, teardown=restore_randn)
 def test_multiple_noise_variables_deterministic_noise():
     # The "random" values are always 0.5
@@ -239,20 +241,23 @@ def test_integrator_code():
     
     # Make sure that it isn't a problem to use 'x', 'f' and 'g'  as variable
     # names, even though they are also used in state updater descriptions.
-    # The resulting code should be identical when replacing x by v (and ..._x by
-    # ..._v)
+    # The resulting code should be identical when replacing x by x0 (and ..._x by
+    # ..._x0)
     for varname in ['x', 'f', 'g']:
-        eqs_v = Equations('dv/dt = -v / (1 * second) : 1')
+        # We use a very similar names here to avoid slightly re-arranged
+        # expressions due to alphabetical sorting of terms in
+        # multiplications, etc.
+        eqs_v = Equations('d{varname}0/dt = -{varname}0 / (1 * second) : 1'.format(varname=varname))
         eqs_var = Equations('d{varname}/dt = -{varname} / (1 * second) : 1'.format(varname=varname))  
         for integrator in [linear, euler, rk2, rk4]:
             code_v = integrator(eqs_v)
             code_var = integrator(eqs_var)
             # Re-substitute the variable names in the output
             code_var = re.sub(r'\b{varname}\b'.format(varname=varname),
-                              'v', code_var)
+                              '{varname}0'.format(varname=varname), code_var)
             code_var = re.sub(r'\b(\w*)_{varname}\b'.format(varname=varname),
-                              r'\1_v', code_var)
-            assert code_var == code_v
+                              r'\1_{varname}0'.format(varname=varname), code_var)
+            assert code_var == code_v, "'%s' does not match '%s'" % (code_var, code_v)
 
 
 @attr('codegen-independent')
