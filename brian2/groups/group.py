@@ -395,7 +395,9 @@ class Group(BrianObject):
                     if not name.startswith('_')]
         data = {}
         for var in vars:
-            data[var] = np.array(self.state(var, use_units=units, level=level+1))
+            data[var] = np.array(self.state(var, use_units=units,
+                                            level=level+1),
+                                 copy=True, subok=True)
         return data
 
     def set_states(self, values, units=True, format='dict', level=0):
