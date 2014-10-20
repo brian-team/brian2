@@ -7,6 +7,8 @@ and modified if needed. At the moment, the only 'device' supported is standalone
 In some cases, the speed gains can be impressive, in particular for smaller networks with complicated spike
 propagation rules (such as STDP).
 
+.. _cpp_standalone:
+
 C++ standalone
 --------------
 
@@ -45,7 +47,10 @@ C++ source code and modifying it, or by inserting code directly into the main lo
 After a simulation has been run (using the ``run`` keyword in the `Device.build` call), state variables and
 monitored variables can be accessed using standard syntax, with a few exceptions (e.g. string expressions for indexing).
 
-3. Multi-threading with OpenMP
+.. _openmp:
+
+Multi-threading with OpenMP
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When using the C++ standalone mode, you have the opportunity to turn on multi-threading, if your C++ compiler is compatible with
 OpenMP. By default, this option is turned off and only one thread is used. However, by changing the preferences of the codegen.cpp_standalone

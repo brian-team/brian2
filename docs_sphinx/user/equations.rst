@@ -1,6 +1,8 @@
 Equations
 =========
 
+.. _equation_strings:
+
 Equation strings
 ----------------
 Equations are used both in `NeuronGroup` and `Synapses` to:

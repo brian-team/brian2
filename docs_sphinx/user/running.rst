@@ -60,6 +60,8 @@ In these checks, "non-invalidating" objects (i.e. objects that have
 `BrianObject.invalidates_magic_network` set to ``False``) are ignored, e.g.
 creating new monitors is always possible.
 
+.. _progress_reporting:
+
 Progress reporting
 ------------------
 Especially for long simulations it is useful to get some feedback about the
@@ -109,6 +111,9 @@ below.
 For more details, including finer control over the scheduling of operations
 and changing the value of ``dt`` between runs see
 :doc:`../advanced/scheduling`.
+
+
+.. _continue_repeat:
 
 Continuing/repeating simulations
 --------------------------------

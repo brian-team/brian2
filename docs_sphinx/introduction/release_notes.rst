@@ -1,0 +1,83 @@
+Release notes
+=============
+
+Brian 2.0beta
+-------------
+This is the first beta release for Brian 2.0 and the first version of Brian 2.0
+we recommend for general use. From now on, we will try to keep changes that
+break existing code to a minimum. If you are a user new to Brian, we'd
+recommend to start with the Brian 2 beta instead of using the stable release of
+Brian 1.
+
+This is however still a Beta release, please report bugs or suggestions to the
+github bug tracker (https://github.com/brian-team/brian2/issues) or to the
+brian-development mailing list (brian-development@googlegroups.com).
+
+Major new features
+~~~~~~~~~~~~~~~~~~
+* New classes `Morphology` and `SpatialNeuron` for the simulation of
+  :doc:`../user/multicompartmental`
+* A temporary "bridge" for ``brian.hears`` that allows to use its Brian 1
+  version from Brian 2 (:doc:`../user/brian1hears_bridge`)
+* Cython is now a new code generation target, therefore the performance benefits
+  of compiled code are now also available to users running simulations under
+  Python 3.x (where ``scipy.weave`` is not available)
+* Networks can now store their current state and return to it at a later time,
+  e.g. for simulating multiple trials starting from a fixed network state
+  (:ref:`continue_repeat`)
+* C++ standalone mode: multiple processors are now supported via OpenMP
+  (:ref:`openmp`)
+* C++ standalone mode: after a run, state variables and monitored values can
+  be loaded from disk transparently. Most scripts therefore only need two
+  additional lines to use standalone mode instead of Brian's default runtime
+  mode (:ref:`cpp_standalone`)
+
+Syntax changes
+~~~~~~~~~~~~~~
+* The syntax and semantics of everything around simulation time steps, clocks,
+  and multiple runs have been cleaned up, making ``reinit`` obsolete and also
+  making it unnecessary for most users to explicitly generate `Clock` objects --
+  instead, a ``dt`` keyword can be specified for objects such as `NeuronGroup`
+  (:doc:`../user/running`)
+* The ``scalar`` flag for parameters/subexpressions has been renamed to
+  ``shared``
+* The "unit" for boolean variables has been renamed from ``bool`` to ``boolean``
+* C++ standalone: several keywords of
+  `CPPStandaloneDevice.build <brian2.devices.cpp_standalone.device.CPPStandaloneDevice.build>`
+  have been renamed
+* The preferences are now accessible via ``prefs`` instead of ``brian_prefs``
+* The ``runner`` method has been renamed to `~brian2.groups.group.Group.custom_operation`
+
+Improvements
+~~~~~~~~~~~~
+* Variables can now be linked across `NeuronGroup`\ s (:ref:`linked_variables`)
+* More flexible progress reporting system, progress reporting also works in the
+  C++ standalone mode (:ref:`progress_reporting`)
+* State variables can be declared as ``integer`` (:ref:`equation_strings`)
+
+Bug fixes
+~~~~~~~~~
+55 github issues have been closed since the alpha release, of which 25 had been
+labeled as bugs. We recommend all users of Brian 2 to upgrade.
+
+Contributions
+~~~~~~~~~~~~~
+Code and documentation contributions (ordered by the number of commits):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Romain Brette (`@romainbrette <https://github.com/romainbrette>`_)
+* Pierre Yger (`@yger <https://github.com/yger>`_)
+* Werner Beroux (`@wernight <https://github.com/wernight>`_)
+
+Testing, suggestions and bug reports (ordered alphabetically, apologies to
+everyone we forgot…):
+
+* Guillaume Bellec
+* Victor Benichoux
+* Laureline Logiaco
+* Konstantin Mergenthaler
+* Maurizio De Pitta
+* Jan-Hendrick Schleimer
+* Douglas Sterling
+* Katharina Wilmes
