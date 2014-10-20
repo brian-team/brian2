@@ -114,7 +114,7 @@ and easily extensible. It is based on a code generation framework that allows
 to execute simulations using other programming languages and/or on different
 devices.
 
-We currently consider this software to be in the alpha status, please report
+We currently consider this software to be in the beta status, please report
 issues to the github issue tracker (https://github.com/brian-team/brian2/issues) or to the
 brian-development mailing list (http://groups.google.com/group/brian-development/)
 
@@ -158,7 +158,7 @@ setup(name='Brian2',
       author='Marcel Stimberg, Dan Goodman, Romain Brette',
       author_email='Romain.Brette at ens.fr',
       classifiers=[
-          'Development Status :: 3 - Alpha',
+          'Development Status :: 4 - Beta',
           'Intended Audience :: Science/Research',
           'License :: OSI Approved',
           'Natural Language :: English',
