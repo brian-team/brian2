@@ -721,7 +721,7 @@ class Group(BrianObject):
                              "'custom_operation'")
 
     def custom_operation(self, code, dt=None, clock=None, when='start',
-                         order=0, name=None):
+                         order=0, name=None, codeobj_class=None):
         '''
         Returns a `CodeRunner` that runs abstract code in the group's namespace.
 
@@ -742,6 +742,9 @@ class Group(BrianObject):
             'custom_operation', 'custom_operation_1', etc. will be used. If a
             name is given explicitly, it will be used as given (i.e. the group
             name will not be prepended automatically).
+        codeobj_class : class, optional
+            The `CodeObject` class to run code with. If not specified, defaults
+            to the `group`'s ``codeobj_class`` attribute.
         '''
         if name is None:
             name = self.name + '_custom_operation*'
@@ -750,7 +753,8 @@ class Group(BrianObject):
             clock = self._clock
 
         runner = CodeRunner(self, 'stateupdate', code=code, name=name,
-                            dt=dt, clock=clock, when=when, order=order)
+                            dt=dt, clock=clock, when=when, order=order,
+                            codeobj_class=codeobj_class)
         return runner
 
 
@@ -810,6 +814,9 @@ class CodeRunner(BrianObject):
     override_conditional_write: list of str, optional
         A list of variable names which are used as conditions (e.g. for
         refractoriness) which should be ignored.
+    codeobj_class : class, optional
+        The `CodeObject` class to run code with. If not specified, defaults to
+        the `group`'s ``codeobj_class`` attribute.
     '''
     add_to_magic_network = True
     invalidates_magic_network = True
@@ -818,6 +825,7 @@ class CodeRunner(BrianObject):
                  order=0, name='coderunner*', check_units=True,
                  template_kwds=None, needed_variables=None,
                  override_conditional_write=None,
+                 codeobj_class=None,
                  ):
         BrianObject.__init__(self, clock=clock, dt=dt, when=when, order=order,
                              name=name)
@@ -831,6 +839,9 @@ class CodeRunner(BrianObject):
         self.needed_variables = needed_variables
         self.template_kwds = template_kwds
         self.override_conditional_write = override_conditional_write
+        if codeobj_class is None:
+            codeobj_class = group.codeobj_class
+        self.codeobj_class = codeobj_class
     
     def update_abstract_code(self, run_namespace=None, level=0):
         '''
@@ -861,5 +872,6 @@ class CodeRunner(BrianObject):
                                              level=level+1,
                                              template_kwds=self.template_kwds,
                                              override_conditional_write=self.override_conditional_write,
+                                             codeobj_class=self.codeobj_class
                                              )
         self.code_objects[:] = [weakref.proxy(self.codeobj)]
