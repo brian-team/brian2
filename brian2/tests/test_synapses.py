@@ -519,7 +519,7 @@ def test_transmission_scalar_delay():
 
 
 def test_transmission_scalar_delay_different_clocks():
-    inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms, dt=1*ms)
+    inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms, dt=0.5*ms)
     target = NeuronGroup(2, 'v:1', dt=0.1*ms)
     S = Synapses(inp, target, pre='v+=1', delay=0.5*ms, connect='i==j')
     mon = StateMonitor(target, 'v', record=True)

@@ -253,7 +253,7 @@ class SynapticPathway(CodeRunner, Group):
 
         # Update the dt (might have changed between runs)
 
-        self.queue.prepare(self._delays.get_value(), self.synapses.clock.dt_,
+        self.queue.prepare(self._delays.get_value(), self.source.clock.dt_,
                            self.synapse_sources.get_value())
 
     def _store(self, name='default'):
