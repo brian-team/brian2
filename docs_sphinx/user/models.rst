@@ -118,6 +118,9 @@ For shared variables, such string expressions can only refer to shared values:
     >>> print G.shared_input
     <neurongroup.shared_input: 4.2579690100000001 * mvolt>
 
+
+.. _numerical_integration:
+
 Numerical integration
 ---------------------
 Differential equations are converted into a sequence of statements that
