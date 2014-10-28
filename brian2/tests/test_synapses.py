@@ -650,6 +650,19 @@ def test_scalar_subexpression():
                                                 pre='v+=s', connect=True))
 
 
+def test_external_variables():
+    # Make sure that external variables are correctly resolved
+    source = SpikeGeneratorGroup(1, [0], [0]*ms)
+    target = NeuronGroup(1, 'v:1')
+    w_var = 1
+    amplitude = 2
+    syn = Synapses(source, target, 'w=w_var : 1',
+                   pre='v+=amplitude*w', connect=True)
+    net = Network(source, target, syn)
+    net.run(defaultclock.dt)
+    assert target.v[0] == 2
+
+
 @attr('long')
 def test_event_driven():
     # Fake example, where the synapse is actually not changing the state of the
@@ -736,5 +749,6 @@ if __name__ == '__main__':
     test_summed_variable_errors()
     test_scalar_parameter_access()
     test_scalar_subexpression()
+    test_external_variables()
     test_event_driven()
     test_repr()

@@ -164,7 +164,9 @@ class Device(object):
                                                   iterate_all=iterate_all,
                                                   codeobj_class=codeobj_class,
                                                   override_conditional_write=override_conditional_write,
-                                                  allows_scalar_write=template.allows_scalar_write)
+                                                  allows_scalar_write=template.allows_scalar_write,
+                                                  name=name,
+                                                  template_name=template_name)
         if template_kwds is None:
             template_kwds = dict()
         else:
