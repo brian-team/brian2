@@ -9,6 +9,7 @@ import re
 
 import numpy as np
 
+from brian2.core.base import device_override
 from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.devices.device import get_device
@@ -202,6 +203,7 @@ class SynapticPathway(CodeRunner, Group):
     def __len__(self):
         return self.N_
 
+    @device_override('synaptic_pathway_update_abstract_code')
     def update_abstract_code(self, run_namespace=None, level=0):
         if self.synapses.event_driven is not None:
             event_driven_update = independent(self.synapses.event_driven,
@@ -217,6 +219,7 @@ class SynapticPathway(CodeRunner, Group):
         self.abstract_code += self.code + '\n'
         self.abstract_code += 'lastupdate = t\n'
 
+    @device_override('synaptic_pathway_before_run')
     def before_run(self, run_namespace=None, level=0):
         # execute code to initalize the spike queue
         if self._initialise_queue_codeobj is None:
@@ -657,6 +660,7 @@ class Synapses(Group):
     def __len__(self):
         return len(self.variables['_synaptic_pre'].get_value())
 
+    @device_override('synapses_before_run')
     def before_run(self, run_namespace=None, level=0):
         self.lastupdate = self._clock.t
         super(Synapses, self).before_run(run_namespace, level=level+1)
