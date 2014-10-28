@@ -231,6 +231,9 @@ def device_override(name):
     Decorates a function/method to allow it to be overridden by the current `Device`.
 
     The ``name`` is the function name in the `Device` to use as an override if it exists.
+    
+    The returned function has an additional attribute ``original_function``
+    which is a reference to the original, undecorated function.
     '''
     def device_override_decorator(func):
         def device_override_decorated_function(*args, **kwds):
@@ -242,6 +245,7 @@ def device_override(name):
                 return func(*args, **kwds)
 
         device_override_decorated_function.__doc__ = func.__doc__
+        device_override_decorated_function.original_function = func
 
         return device_override_decorated_function
 
