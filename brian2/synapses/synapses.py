@@ -230,9 +230,9 @@ class SynapticPathway(CodeRunner, Group):
                                                                    check_units=False,
                                                                    additional_variables=self.variables,
                                                                    run_namespace=run_namespace,
-                                                                   level=level+1)
+                                                                   level=level+2)
         self._initialise_queue_codeobj()
-        CodeRunner.before_run(self, run_namespace, level=level+1)
+        CodeRunner.before_run(self, run_namespace, level=level+2)
 
         # we insert rather than replace because CodeRunner puts a CodeObject in updaters already
         if self._pushspikes_codeobj is None:
@@ -243,7 +243,7 @@ class SynapticPathway(CodeRunner, Group):
                                                              check_units=False,
                                                              additional_variables=self.variables,
                                                              run_namespace=run_namespace,
-                                                             level=level+1)
+                                                             level=level+2)
 
         self._code_objects.insert(0, weakref.proxy(self._pushspikes_codeobj))
 
@@ -663,7 +663,7 @@ class Synapses(Group):
     @device_override('synapses_before_run')
     def before_run(self, run_namespace=None, level=0):
         self.lastupdate = self._clock.t
-        super(Synapses, self).before_run(run_namespace, level=level+1)
+        super(Synapses, self).before_run(run_namespace, level=level+2)
 
     def _add_updater(self, code, prepost, objname=None, delay=None):
         '''
