@@ -52,6 +52,58 @@ class NeuronGroupIntegrationEuler(FeatureTest):
         if err>maxrelerr:
             raise InaccuracyError(err)
 
+
+class NeuronGroupLIF(FeatureTest):
+    
+    category = "Basic NeuronGroup features"
+    name = "Leaky integrate and fire"
+    tags = ["NeuronGroup", "Threshold", "Reset",
+            "Network", "Network.run",
+            "SpikeMonitor"]
+    
+    def run(self):
+        self.tau = tau = 10*ms
+        self.duration = 1000*ms
+        self.G = NeuronGroup(1, 'dv/dt=(1.2-v)/tau:1',
+                             threshold='v>1', reset='v=0')
+        self.M = SpikeMonitor(self.G)
+        self.net = Network(self.G, self.M)
+        self.net.run(self.duration)
+        
+    def results(self):
+        return self.M.t[:]
+    
+    def compare(self, maxrelerr, t_base, t_test):
+        err = amax(abs(t_base-t_test)/t_base)
+        if err>maxrelerr:
+            raise InaccuracyError(err)
+
+
+class NeuronGroupLIFRefractory(FeatureTest):
+    
+    category = "Basic NeuronGroup features"
+    name = "Refractory leaky integrate and fire"
+    tags = ["NeuronGroup", "Threshold", "Reset", "Refractory",
+            "Network", "Network.run",
+            "SpikeMonitor"]
+    
+    def run(self):
+        self.tau = tau = 10*ms
+        self.duration = 1000*ms
+        self.G = NeuronGroup(1, 'dv/dt=(1.2-v)/tau:1 (unless refractory)',
+                             threshold='v>1', reset='v=0', refractory=1*ms)
+        self.M = SpikeMonitor(self.G)
+        self.net = Network(self.G, self.M)
+        self.net.run(self.duration)
+        
+    def results(self):
+        return self.M.t[:]
+    
+    def compare(self, maxrelerr, t_base, t_test):
+        err = amax(abs(t_base-t_test)/t_base)
+        if err>maxrelerr:
+            raise InaccuracyError(err)
+
         
 if __name__=='__main__':
 #    ft = NeuronGroupIntegrationLinear()

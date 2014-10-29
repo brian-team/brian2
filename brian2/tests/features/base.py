@@ -5,7 +5,7 @@ import sys
 from StringIO import StringIO
 
 __all__ = ['FeatureTest', 'InaccuracyError', 'Configuration',
-           'run_feature_tests',
+           'run_feature_tests', 'run_single_feature_test',
            'DefaultConfiguration', 'WeaveConfiguration',
            'CythonConfiguration', 'CPPStandaloneConfiguration',
            'CPPStandaloneConfigurationOpenMP']
@@ -130,7 +130,11 @@ def check_or_compare(feature, res, baseline, maxrelerr):
         feature.check(maxrelerr, res)
     except NotImplementedError:
         feature.compare(maxrelerr, baseline, res)
-    
+        
+
+def run_single_feature_test(configuration, feature):
+    return results(configuration(), feature())        
+
     
 def run_feature_tests(configurations=None, feature_tests=None,
                       strict=1e-5, tolerant=0.05):
@@ -144,7 +148,6 @@ def run_feature_tests(configurations=None, feature_tests=None,
     feature_tests.sort(key=lambda ft: ft.fullname())
     print 'Running feature tests'
     print 'Configurations:', ', '.join(c.name for c in configurations)
-    print 'Feature tests:', ', '.join(ft.fullname() for ft in feature_tests)
 
     table = []
     table.append(['Test']+[c.name for c in configurations])
@@ -157,6 +160,7 @@ def run_feature_tests(configurations=None, feature_tests=None,
             curcat = cat
         row = [ftc.name]
         baseline = None
+        print ftc.fullname()+': [',
         for configurationc in configurations:
             configuration = configurationc()
             ft = ftc()
@@ -185,11 +189,10 @@ def run_feature_tests(configurations=None, feature_tests=None,
                 res = exc
                 sym = 'E'
                 txt = 'Run failed.'
-                raise
             sys.stdout.write(sym)
             row.append(txt)
         table.append(row)
-    print
+        print ']'
     return make_table(table)
             
 
