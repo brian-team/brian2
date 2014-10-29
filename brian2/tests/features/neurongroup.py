@@ -22,11 +22,61 @@ class NeuronGroupIntegrationLinear(FeatureTest):
     def results(self):
         return self.G.v[:]
             
-    def check(self, v_end):
+    def check(self, maxrelerr, v_end):
         v_correct = self.v_init*exp(-self.duration/self.tau)
-        err = amax(100.0*abs(v_end-v_correct)/v_correct)
-        if not allclose(v_end, v_correct):
-            raise InaccuracyError("Max relative error in final values: %.2f %%" % err)
+        err = amax(abs(v_end-v_correct)/v_correct)
+        if err>maxrelerr:
+            raise InaccuracyError(err)
+
+
+class NeuronGroupIntegrationLinearWrong(FeatureTest):
+    
+    category = "Basic NeuronGroup features"
+    name = "Linear integration (wrong)"
+    tags = ["NeuronGroup", "Network", "Network.run"]
+    
+    def run(self):
+        self.tau = tau = 1*second
+        self.v_init = rand(10)
+        self.duration = 100*ms
+        self.G = NeuronGroup(10, 'dv/dt=-v/tau:1')
+        self.G.v = self.v_init
+        self.net = Network(self.G)
+        self.net.run(self.duration)
+        
+    def results(self):
+        return self.G.v[:]
+            
+    def check(self, maxrelerr, v_end):
+        v_correct = self.v_init*exp(-1.01*self.duration/self.tau)
+        err = amax(abs(v_end-v_correct)/v_correct)
+        if err>maxrelerr:
+            raise InaccuracyError(err)
+
+
+class NeuronGroupIntegrationLinearVeryWrong(FeatureTest):
+    
+    category = "Basic NeuronGroup features"
+    name = "Linear integration (very wrong)"
+    tags = ["NeuronGroup", "Network", "Network.run"]
+    
+    def run(self):
+        self.tau = tau = 1*second
+        self.v_init = rand(10)
+        self.duration = 100*ms
+        self.G = NeuronGroup(10, 'dv/dt=-v/tau:1')
+        self.G.v = self.v_init
+        self.net = Network(self.G)
+        self.net.run(self.duration)
+        
+    def results(self):
+        return self.G.v[:]
+            
+    def check(self, maxrelerr, v_end):
+        v_correct = self.v_init*exp(-2*self.duration/self.tau)
+        err = amax(abs(v_end-v_correct)/v_correct)
+        if err>maxrelerr:
+            raise InaccuracyError(err)
         
 if __name__=='__main__':
     ft = NeuronGroupIntegrationLinear()
