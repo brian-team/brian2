@@ -9,14 +9,14 @@ import numbers
 import sympy
 import numpy as np
 
-from brian2.core.base import weakproxy_with_fallback, device_override
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.units.fundamentalunits import (Quantity, Unit,
                                            fail_for_dimension_mismatch,
                                            have_same_dimensions)
 from brian2.units.allunits import second
+from brian2.utils.logger import get_logger
 
-
+from .base import weakproxy_with_fallback, device_override
 from .preferences import prefs
 
 __all__ = ['Variable',
@@ -31,6 +31,9 @@ __all__ = ['Variable',
            'LinkedVariable',
            'linked_var'
            ]
+
+
+logger = get_logger(__name__)
 
 
 def get_dtype(obj):
@@ -911,6 +914,47 @@ class VariableView(object):
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
         '''
+        # Some fairly complicated code to raise a warning in ambiguous
+        # situations, when indexing with a group. For example, in:
+        #   group.v[subgroup] =  'i'
+        # the index 'i' is the index of 'group' ("absolute index") and not of
+        # subgroup ("relative index")
+        if hasattr(item, 'variables') or (isinstance(item, tuple)
+                                          and any(hasattr(one_item, 'variables')
+                                                  for one_item in item)):
+            # Determine the variables that are used in the expression
+            from brian2.codegen.translation import get_identifiers_recursively
+            identifiers = get_identifiers_recursively([code],
+                                                      self.group.variables)
+            variables = self.group.resolve_all(identifiers, [],
+                                               run_namespace=run_namespace,
+                                               level=level+2)
+            if not isinstance(item, tuple):
+                index_groups = [item]
+            else:
+                index_groups = item
+
+            for varname, var in variables.iteritems():
+                for index_group in index_groups:
+                    if not hasattr(index_group, 'variables'):
+                        continue
+                    if varname in index_group.variables or var.name in index_group.variables:
+                        indexed_var = index_group.variables.get(varname,
+                                                                index_group.variables.get(var.name))
+                        if not indexed_var is var:
+                            logger.warn(('The string expression used for setting '
+                                         '{varname} refers to {referred_var} which '
+                                         'might be ambiguous. It will be '
+                                         'interpreted as referring to '
+                                         '{referred_var} in {group}, not as '
+                                         'a variable of a group used for '
+                                         'indexing.').format(varname=self.name,
+                                                             referred_var=varname,
+                                                             group=self.group.name,
+                                                             index_group=index_group.name),
+                                        'ambiguous_string_expression')
+                            break  # no need to warn more than once for a variable
+
         indices = self.indexing(item)
         abstract_code = self.name + ' = ' + code
         variables = Variables(None)
