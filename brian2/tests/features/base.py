@@ -5,7 +5,10 @@ import sys
 from StringIO import StringIO
 
 __all__ = ['FeatureTest', 'InaccuracyError', 'Configuration',
-           'run_feature_tests']
+           'run_feature_tests',
+           'DefaultConfiguration', 'WeaveConfiguration',
+           'CythonConfiguration', 'CPPStandaloneConfiguration',
+           'CPPStandaloneConfigurationOpenMP']
 
 class InaccuracyError(AssertionError):
     def __init__(self, error, *args):
@@ -102,7 +105,7 @@ class CPPStandaloneConfiguration(Configuration):
         brian2.device.build(directory='cpp_standalone', compile=True, run=True)
 
 
-class CPPStandaloneConfiguration(Configuration):
+class CPPStandaloneConfigurationOpenMP(Configuration):
     name = 'C++ standalone (OpenMP)'
     def before_run(self):
         brian2.prefs.read_preference_file(StringIO(brian2.prefs.defaults_as_file))
@@ -154,14 +157,14 @@ def run_feature_tests(configurations=None, feature_tests=None,
             curcat = cat
         row = [ftc.name]
         baseline = None
-        for configuration in configurations:
-            configuration = configuration()
+        for configurationc in configurations:
+            configuration = configurationc()
             ft = ftc()
             txt = 'OK'
             sym = '.'
             try:
                 res = results(configuration, ft)
-                if configuration is DefaultConfiguration:
+                if configurationc is DefaultConfiguration:
                     baseline = res
                     
                 if isinstance(baseline, Exception):
@@ -182,6 +185,7 @@ def run_feature_tests(configurations=None, feature_tests=None,
                 res = exc
                 sym = 'E'
                 txt = 'Run failed.'
+                raise
             sys.stdout.write(sym)
             row.append(txt)
         table.append(row)
