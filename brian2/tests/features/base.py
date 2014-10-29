@@ -1,4 +1,6 @@
 import brian2
+import os
+import shutil
 import sys
 from StringIO import StringIO
 
@@ -95,6 +97,21 @@ class CPPStandaloneConfiguration(Configuration):
         brian2.set_device('cpp_standalone')
         
     def after_run(self):
+        if os.path.exists('cpp_standalone'):
+            shutil.rmtree('cpp_standalone')
+        brian2.device.build(directory='cpp_standalone', compile=True, run=True)
+
+
+class CPPStandaloneConfiguration(Configuration):
+    name = 'C++ standalone (OpenMP)'
+    def before_run(self):
+        brian2.prefs.read_preference_file(StringIO(brian2.prefs.defaults_as_file))
+        brian2.set_device('cpp_standalone')
+        brian2.prefs.codegen.cpp_standalone.openmp_threads = 4
+        
+    def after_run(self):
+        if os.path.exists('cpp_standalone'):
+            shutil.rmtree('cpp_standalone')
         brian2.device.build(directory='cpp_standalone', compile=True, run=True)
     
     
@@ -157,10 +174,10 @@ def run_feature_tests(configurations=None, feature_tests=None,
                         try:
                             check_or_compare(ft, res, baseline, tolerant)
                             sym = 'I'
-                            txt = 'Inaccurate at strict level (error=%.2f%%)' % (100.0*exc.error)
+                            txt = 'Poor (error=%.2f%%)' % (100.0*exc.error)
                         except InaccuracyError as exc:
                             sym = 'F'
-                            txt = 'Inaccurate at tolerant level (error=%.2f%%)' % (100.0*exc.error)
+                            txt = 'Fail (error=%.2f%%)' % (100.0*exc.error)
             except Exception as exc:
                 res = exc
                 sym = 'E'
@@ -169,7 +186,7 @@ def run_feature_tests(configurations=None, feature_tests=None,
             row.append(txt)
         table.append(row)
     print
-    print make_table(table)
+    return make_table(table)
             
 
 # Code below auto generates restructured text tables, copied from:
