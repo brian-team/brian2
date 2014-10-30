@@ -14,7 +14,7 @@ __all__ = ['CPPStandaloneCodeObject']
 
 def openmp_pragma(pragma_type):
 
-    nb_threads = prefs.codegen.cpp_standalone.openmp_threads
+    nb_threads = prefs.devices.cpp_standalone.openmp_threads
     openmp_on  = not (nb_threads == 0)
 
     ## First we need to deal with some special cases that have to be handle in case

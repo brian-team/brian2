@@ -151,7 +151,7 @@ def test_openmp_consistency(with_output=False):
         Synapses.__instances__().clear()
         if devicename=='cpp_standalone':
             device.reinit()
-        prefs.codegen.cpp_standalone.openmp_threads = n_threads
+        prefs.devices.cpp_standalone.openmp_threads = n_threads
         P    = NeuronGroup(n_cells, model=eqs, threshold='v>Vt', reset='v=Vr', refractory=5 * ms)
         Q    = SpikeGeneratorGroup(n_cells, sources, times)
         P.v  = v_init
