@@ -7,6 +7,8 @@ import subprocess
 import sys
 import tempfile
 
+from collections import defaultdict
+
 __all__ = ['FeatureTest', 'InaccuracyError', 'Configuration',
            'run_feature_tests', 'run_single_feature_test',
            'DefaultConfiguration', 'WeaveConfiguration',
@@ -205,6 +207,7 @@ def run_feature_tests(configurations=None, feature_tests=None,
         print 'Configurations:', ', '.join(c.name for c in configurations)
 
     full_results = {}
+    tag_results = defaultdict(lambda:defaultdict(list))
     for ft in feature_tests:
         baseline = None
         if verbose:
@@ -240,15 +243,20 @@ def run_feature_tests(configurations=None, feature_tests=None,
                     raise
             sys.stdout.write(sym)
             full_results[configuration.name, ft.name] = (sym, txt, exc)
+            for tag in ft.tags:
+                tag_results[tag][configuration.name].append((sym, txt, exc))
         if verbose:
             print ']'
         
-    return FeatureTestResults(full_results, configurations, feature_tests)
+    return FeatureTestResults(full_results, tag_results,
+                              configurations, feature_tests)
 
 
 class FeatureTestResults(object):
-    def __init__(self, full_results, configurations, feature_tests):
+    def __init__(self, full_results, tag_results,
+                 configurations, feature_tests):
         self.full_results = full_results
+        self.tag_results = tag_results
         self.configurations = configurations
         self.feature_tests = feature_tests
         
@@ -272,7 +280,39 @@ class FeatureTestResults(object):
     
     @property
     def tag_table(self):
-        return 'TODO'
+        table = []
+        table.append(['Tag']+[c.name for c in self.configurations])
+        tags = sorted(self.tag_results.keys())
+    
+        for tag in tags:
+            row = [tag]
+            for configuration in self.configurations:
+                tag_res = self.tag_results[tag][configuration.name]
+                syms = [sym for sym, txt, exc in tag_res]
+                n = len(syms)
+                okcount = sum(sym=='.' for sym in syms)
+                poorcount = sum(sym=='I' for sym in syms)
+                failcount = sum(sym=='F' for sym in syms)
+                errcount = sum(sym=='E' for sym in syms)
+                if okcount==n:
+                    txt = 'OK'
+                elif errcount==n:
+                    txt = 'Unsupported'
+                elif okcount+poorcount==n:
+                    txt = 'Poor (%d%%)' % int(poorcount*100.0/n)
+                elif errcount==0:
+                    txt = 'Fail: {fail}% (poor={poor}%)'.format(
+                        fail=int(failcount*100.0/n),
+                        poor=int(poorcount*100.0/n),
+                        )
+                else:
+                    txt = 'Fail: OK={ok}%, Poor={poor}%, Fail={fail}%, Error={err}%'.format(
+                        ok=int(okcount*100.0/n), poor=int(poorcount*100.0/n), 
+                        fail=int(failcount*100.0/n), err=int(errcount*100.0/n), 
+                        )
+                row.append(txt)
+            table.append(row)
+        return make_table(table)
         
     def __str__(self):
         r = ''
@@ -296,6 +336,7 @@ def make_table(grid):
         rst += normalize_row(row,max_cols)
         rst += table_div(max_cols, header_flag )
     return rst
+
 
 def table_div(max_cols, header_flag=1):
     out = ""
