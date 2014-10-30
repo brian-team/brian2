@@ -167,7 +167,7 @@ except Exception, ex:
     # redirected into the capture plugin
     p = subprocess.Popen(args, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
-    #stdout, stderr = p.communicate()
+    stdout, stderr = p.communicate()
     #sys.stdout.write(stdout)
     #sys.stderr.write(stderr)
     f = open(tempfilename, 'rb')
@@ -191,7 +191,7 @@ def run_single_feature_test(configuration, feature):
 
     
 def run_feature_tests(configurations=None, feature_tests=None,
-                      strict=1e-5, tolerant=0.05):
+                      strict=1e-5, tolerant=0.05, verbose=True):
     if configurations is None:
         configurations = Configuration.__subclasses__()
     if feature_tests is None:
@@ -200,24 +200,19 @@ def run_feature_tests(configurations=None, feature_tests=None,
         configurations.remove(DefaultConfiguration)
     configurations = [DefaultConfiguration]+configurations
     feature_tests.sort(key=lambda ft: ft.fullname())
-    print 'Running feature tests'
-    print 'Configurations:', ', '.join(c.name for c in configurations)
+    if verbose:
+        print 'Running feature tests'
+        print 'Configurations:', ', '.join(c.name for c in configurations)
 
-    table = []
-    table.append(['Test']+[c.name for c in configurations])
-    curcat = ''
-
+    full_results = {}
     for ft in feature_tests:
-        cat = ft.category
-        if cat!=curcat:
-            table.append([cat]+['']*len(configurations))
-            curcat = cat
-        row = [ft.name]
         baseline = None
-        print ft.fullname()+': [',
+        if verbose:
+            print ft.fullname()+': [',
         for configuration in configurations:
             txt = 'OK'
             sym = '.'
+            exc = None
             try:
                 res = results(configuration, ft)
                 if configuration is DefaultConfiguration:
@@ -244,11 +239,49 @@ def run_feature_tests(configurations=None, feature_tests=None,
                 if configuration is DefaultConfiguration:
                     raise
             sys.stdout.write(sym)
-            row.append(txt)
-        table.append(row)
-        print ']'
-    return make_table(table)
-            
+            full_results[configuration.name, ft.name] = (sym, txt, exc)
+        if verbose:
+            print ']'
+        
+    return FeatureTestResults(full_results, configurations, feature_tests)
+
+
+class FeatureTestResults(object):
+    def __init__(self, full_results, configurations, feature_tests):
+        self.full_results = full_results
+        self.configurations = configurations
+        self.feature_tests = feature_tests
+        
+    @property
+    def test_table(self):
+        table = []
+        table.append(['Test']+[c.name for c in self.configurations])
+        curcat = ''
+    
+        for ft in self.feature_tests:
+            cat = ft.category
+            if cat!=curcat:
+                table.append([cat]+['']*len(self.configurations))
+                curcat = cat
+            row = [ft.name]
+            for configuration in self.configurations:
+                sym, txt, exc = self.full_results[configuration.name, ft.name]
+                row.append(txt)
+            table.append(row)
+        return make_table(table)
+    
+    @property
+    def tag_table(self):
+        return 'TODO'
+        
+    def __str__(self):
+        r = ''
+        s = 'Feature test results'
+        r += s+'\n'+'-'*len(s)+'\n\n'+self.test_table+'\n'
+        s = 'Tag results'
+        r += s+'\n'+'-'*len(s)+'\n\n'+self.tag_table+'\n'
+        return r
+    __repr__ = __str__
 
 # Code below auto generates restructured text tables, copied from:
 # http://stackoverflow.com/questions/11347505/what-are-some-approaches-to-outputting-a-python-data-structure-to-restructuredte
