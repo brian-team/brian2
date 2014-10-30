@@ -122,7 +122,7 @@ class CPPStandaloneConfigurationOpenMP(Configuration):
     def before_run(self):
         brian2.prefs.reset_to_defaults()
         brian2.set_device('cpp_standalone')
-        brian2.prefs.codegen.cpp_standalone.openmp_threads = 4
+        brian2.prefs.devices.cpp_standalone.openmp_threads = 4
         
     def after_run(self):
         if os.path.exists('cpp_standalone'):
