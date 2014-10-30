@@ -1,12 +1,12 @@
 '''
-Check that the basic features of `NeuronGroup` are available and correct.
+Check that the features of `NeuronGroup` are available and correct.
 '''
 from brian2 import *
 from brian2.tests.features import FeatureTest, InaccuracyError
 
 class NeuronGroupIntegrationLinear(FeatureTest):
     
-    category = "Basic NeuronGroup features"
+    category = "NeuronGroup"
     name = "Linear integration"
     tags = ["NeuronGroup", "Network", "Network.run"]
     
@@ -31,7 +31,7 @@ class NeuronGroupIntegrationLinear(FeatureTest):
     
 class NeuronGroupIntegrationEuler(FeatureTest):
     
-    category = "Basic NeuronGroup features"
+    category = "NeuronGroup"
     name = "Euler integration"
     tags = ["NeuronGroup", "Network", "Network.run"]
     
@@ -47,15 +47,12 @@ class NeuronGroupIntegrationEuler(FeatureTest):
     def results(self):
         return self.G.v[:]
     
-    def compare(self, maxrelerr, v_base, v_test):
-        err = amax(abs(v_base-v_test)/v_base)
-        if err>maxrelerr:
-            raise InaccuracyError(err)
+    compare = FeatureTest.compare_arrays
 
 
 class NeuronGroupLIF(FeatureTest):
     
-    category = "Basic NeuronGroup features"
+    category = "NeuronGroup"
     name = "Leaky integrate and fire"
     tags = ["NeuronGroup", "Threshold", "Reset",
             "Network", "Network.run",
@@ -73,15 +70,12 @@ class NeuronGroupLIF(FeatureTest):
     def results(self):
         return self.M.t[:]
     
-    def compare(self, maxrelerr, t_base, t_test):
-        err = amax(abs(t_base-t_test)/t_base)
-        if err>maxrelerr:
-            raise InaccuracyError(err)
+    compare = FeatureTest.compare_arrays
 
 
 class NeuronGroupLIFRefractory(FeatureTest):
     
-    category = "Basic NeuronGroup features"
+    category = "NeuronGroup"
     name = "Refractory leaky integrate and fire"
     tags = ["NeuronGroup", "Threshold", "Reset", "Refractory",
             "Network", "Network.run",
@@ -99,10 +93,7 @@ class NeuronGroupLIFRefractory(FeatureTest):
     def results(self):
         return self.M.t[:]
     
-    def compare(self, maxrelerr, t_base, t_test):
-        err = amax(abs(t_base-t_test)/t_base)
-        if err>maxrelerr:
-            raise InaccuracyError(err)
+    compare = FeatureTest.compare_arrays
 
         
 if __name__=='__main__':

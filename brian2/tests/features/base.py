@@ -1,4 +1,5 @@
 import brian2
+import numpy
 import os
 import shutil
 import sys
@@ -55,6 +56,14 @@ class FeatureTest(object):
         This method or `compare` should be implemented.
         '''
         raise NotImplementedError
+    
+    def compare_arrays(self, maxrelerr, v_base, v_test):
+        '''
+        Often you just want to compare the values of some arrays, this does that.
+        '''
+        err = numpy.amax(numpy.abs(v_base-v_test)/v_base)
+        if err>maxrelerr:
+            raise InaccuracyError(err)
     
 
 class Configuration(object):
@@ -189,6 +198,8 @@ def run_feature_tests(configurations=None, feature_tests=None,
                 res = exc
                 sym = 'E'
                 txt = 'Run failed.'
+                if configurationc is DefaultConfiguration:
+                    raise
             sys.stdout.write(sym)
             row.append(txt)
         table.append(row)

@@ -3,3 +3,4 @@ __all__ = ['FeatureTest', 'InaccuracyError', 'Configuration',
 
 from base import *
 import neurongroup
+import synapses
