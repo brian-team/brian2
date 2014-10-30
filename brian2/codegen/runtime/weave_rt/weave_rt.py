@@ -92,12 +92,13 @@ class WeaveCodeObject(CodeObject):
     generator_class = WeaveCodeGenerator
     class_name = 'weave'
 
-    def __init__(self, owner, code, variables, template_name,
-                 template_source, name='weave_code_object*'):
+    def __init__(self, owner, code, variables, variable_indices,
+                 template_name, template_source, name='weave_code_object*'):
         from brian2.devices.device import get_device
         self.device = get_device()
         self.namespace = {'_owner': owner}
         super(WeaveCodeObject, self).__init__(owner, code, variables,
+                                              variable_indices,
                                               template_name, template_source,
                                               name=name)
         self.compiler = prefs['codegen.runtime.weave.compiler']

@@ -216,7 +216,7 @@ class Device(object):
                         **template_kwds)
         logger.debug('%s code:\n%s' % (name, indent(code_representation(code))))
 
-        codeobj = codeobj_class(owner, code, variables,
+        codeobj = codeobj_class(owner, code, variables, variable_indices,
                                 template_name=template_name,
                                 template_source=template.template_source,
                                 name=name)

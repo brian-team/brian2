@@ -49,9 +49,10 @@ class CythonCodeObject(NumpyCodeObject):
     generator_class = CythonCodeGenerator
     class_name = 'cython'
 
-    def __init__(self, owner, code, variables, template_name,
-                 template_source, name='cython_code_object*'):
+    def __init__(self, owner, code, variables, variable_indices,
+                 template_name, template_source, name='cython_code_object*'):
         super(CythonCodeObject, self).__init__(owner, code, variables,
+                                               variable_indices,
                                                template_name, template_source,
                                                name=name)
         self.extra_compile_args = prefs['codegen.runtime.weave.extra_compile_args']
