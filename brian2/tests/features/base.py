@@ -3,7 +3,6 @@ import numpy
 import os
 import shutil
 import sys
-from StringIO import StringIO
 
 __all__ = ['FeatureTest', 'InaccuracyError', 'Configuration',
            'run_feature_tests', 'run_single_feature_test',
@@ -82,14 +81,14 @@ class Configuration(object):
 class DefaultConfiguration(Configuration):
     name = 'Default'
     def before_run(self):
-        brian2.prefs.read_preference_file(StringIO(brian2.prefs.defaults_as_file))
+        brian2.prefs.reset_to_defaults()
         brian2.set_device('runtime')
 
 
 class WeaveConfiguration(Configuration):
     name = 'Weave'
     def before_run(self):
-        brian2.prefs.read_preference_file(StringIO(brian2.prefs.defaults_as_file))
+        brian2.prefs.reset_to_defaults()
         brian2.set_device('runtime')
         brian2.prefs.codegen.target = 'weave'
 
@@ -97,7 +96,7 @@ class WeaveConfiguration(Configuration):
 class CythonConfiguration(Configuration):
     name = 'Cython'
     def before_run(self):
-        brian2.prefs.read_preference_file(StringIO(brian2.prefs.defaults_as_file))
+        brian2.prefs.reset_to_defaults()
         brian2.set_device('runtime')
         brian2.prefs.codegen.target = 'cython'
     
@@ -105,26 +104,28 @@ class CythonConfiguration(Configuration):
 class CPPStandaloneConfiguration(Configuration):
     name = 'C++ standalone'
     def before_run(self):
-        brian2.prefs.read_preference_file(StringIO(brian2.prefs.defaults_as_file))
+        brian2.prefs.reset_to_defaults()
         brian2.set_device('cpp_standalone')
         
     def after_run(self):
         if os.path.exists('cpp_standalone'):
             shutil.rmtree('cpp_standalone')
-        brian2.device.build(directory='cpp_standalone', compile=True, run=True)
+        brian2.device.build(directory='cpp_standalone', compile=True, run=True,
+                            with_output=False)
 
 
 class CPPStandaloneConfigurationOpenMP(Configuration):
     name = 'C++ standalone (OpenMP)'
     def before_run(self):
-        brian2.prefs.read_preference_file(StringIO(brian2.prefs.defaults_as_file))
+        brian2.prefs.reset_to_defaults()
         brian2.set_device('cpp_standalone')
         brian2.prefs.codegen.cpp_standalone.openmp_threads = 4
         
     def after_run(self):
         if os.path.exists('cpp_standalone'):
             shutil.rmtree('cpp_standalone')
-        brian2.device.build(directory='cpp_standalone', compile=True, run=True)
+        brian2.device.build(directory='cpp_standalone', compile=True, run=True,
+                            with_output=False)
     
     
 def results(configuration, feature):
