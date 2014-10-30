@@ -8,16 +8,15 @@ class NeuronGroupIntegrationLinear(FeatureTest):
     
     category = "NeuronGroup"
     name = "Linear integration"
-    tags = ["NeuronGroup", "Network", "Network.run"]
+    tags = ["NeuronGroup", "run"]
     
     def run(self):
         self.tau = tau = 1*second
         self.v_init = linspace(0.1, 1, 10)
         self.duration = 100*ms
-        self.G = NeuronGroup(10, 'dv/dt=-v/tau:1')
+        G = self.G = NeuronGroup(10, 'dv/dt=-v/tau:1')
         self.G.v = self.v_init
-        self.net = Network(self.G)
-        self.net.run(self.duration)
+        run(self.duration)
         
     def results(self):
         v_correct = self.v_init*exp(-self.duration/self.tau)
@@ -33,16 +32,15 @@ class NeuronGroupIntegrationEuler(FeatureTest):
     
     category = "NeuronGroup"
     name = "Euler integration"
-    tags = ["NeuronGroup", "Network", "Network.run"]
+    tags = ["NeuronGroup", "run"]
     
     def run(self):
         self.tau = tau = 1*second
         self.v_init = linspace(0.1, 1, 10)
         self.duration = 100*ms
-        self.G = NeuronGroup(10, 'dv/dt=-v**1.1/tau:1')
+        G = self.G = NeuronGroup(10, 'dv/dt=-v**1.1/tau:1')
         self.G.v = self.v_init
-        self.net = Network(self.G)
-        self.net.run(self.duration)
+        run(self.duration)
         
     def results(self):
         return self.G.v[:]
@@ -55,17 +53,16 @@ class NeuronGroupLIF(FeatureTest):
     category = "NeuronGroup"
     name = "Leaky integrate and fire"
     tags = ["NeuronGroup", "Threshold", "Reset",
-            "Network", "Network.run",
+            "run",
             "SpikeMonitor"]
     
     def run(self):
         self.tau = tau = 10*ms
         self.duration = 1000*ms
-        self.G = NeuronGroup(1, 'dv/dt=(1.2-v)/tau:1',
-                             threshold='v>1', reset='v=0')
-        self.M = SpikeMonitor(self.G)
-        self.net = Network(self.G, self.M)
-        self.net.run(self.duration)
+        G = self.G = NeuronGroup(1, 'dv/dt=(1.2-v)/tau:1',
+                                 threshold='v>1', reset='v=0')
+        M = self.M = SpikeMonitor(self.G)
+        run(self.duration)
         
     def results(self):
         return self.M.t[:]
@@ -78,17 +75,16 @@ class NeuronGroupLIFRefractory(FeatureTest):
     category = "NeuronGroup"
     name = "Refractory leaky integrate and fire"
     tags = ["NeuronGroup", "Threshold", "Reset", "Refractory",
-            "Network", "Network.run",
+            "run",
             "SpikeMonitor"]
     
     def run(self):
         self.tau = tau = 10*ms
         self.duration = 1000*ms
-        self.G = NeuronGroup(1, 'dv/dt=(1.2-v)/tau:1 (unless refractory)',
-                             threshold='v>1', reset='v=0', refractory=1*ms)
-        self.M = SpikeMonitor(self.G)
-        self.net = Network(self.G, self.M)
-        self.net.run(self.duration)
+        G = self.G = NeuronGroup(1, 'dv/dt=(1.2-v)/tau:1 (unless refractory)',
+                                 threshold='v>1', reset='v=0', refractory=1*ms)
+        M = self.M = SpikeMonitor(self.G)
+        run(self.duration)
         
     def results(self):
         return self.M.t[:]

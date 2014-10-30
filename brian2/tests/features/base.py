@@ -187,7 +187,7 @@ def check_or_compare(feature, res, baseline, maxrelerr):
         
 
 def run_single_feature_test(configuration, feature):
-    return results(configuration(), feature())        
+    return results(configuration, feature)        
 
     
 def run_feature_tests(configurations=None, feature_tests=None,

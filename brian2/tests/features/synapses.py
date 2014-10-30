@@ -8,7 +8,7 @@ class SynapsesPre(FeatureTest):
     
     category = "Synapses"
     name = "Presynaptic code"
-    tags = ["NeuronGroup", "Network", "Network.run",
+    tags = ["NeuronGroup", "run",
             "Synapses", "Presynaptic code"]
     
     def run(self):
@@ -22,8 +22,7 @@ class SynapsesPre(FeatureTest):
         H = NeuronGroup(10, 'u:1')
         S = Synapses(G, H, pre='u += 1', connect='i==j')
         self.H = H
-        net = Network(G, H, S)
-        net.run(101*ms)
+        run(101*ms)
         
     def results(self):
         return self.H.u[:]
@@ -35,7 +34,7 @@ class SynapsesPost(FeatureTest):
     
     category = "Synapses"
     name = "Postsynaptic code"
-    tags = ["NeuronGroup", "Network", "Network.run",
+    tags = ["NeuronGroup", "run",
             "Synapses", "Postsynaptic code"]
     
     def run(self):
@@ -49,8 +48,7 @@ class SynapsesPost(FeatureTest):
         H = NeuronGroup(10, 'u:1')
         S = Synapses(H, G, post='u_pre += 1', connect='i==j')
         self.H = H
-        net = Network(G, H, S)
-        net.run(101*ms)
+        run(101*ms)
         
     def results(self):
         return self.H.u[:]
