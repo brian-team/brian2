@@ -14,18 +14,18 @@ class SynapsesPre(FeatureTest):
     def run(self):
         tau = 5*ms
         eqs = '''
-        dv/dt = k/tau : 1
+        dV/dt = k/tau : 1
         k : 1
         '''
-        G = NeuronGroup(10, eqs, threshold='v>1', reset='v=0')
+        G = NeuronGroup(10, eqs, threshold='V>1', reset='V=0')
         G.k = linspace(1, 5, len(G))
-        H = NeuronGroup(10, 'u:1')
-        S = Synapses(G, H, pre='u += 1', connect='i==j')
+        H = NeuronGroup(10, 'V:1')
+        S = Synapses(G, H, pre='V += 1', connect='i==j')
         self.H = H
         run(101*ms)
         
     def results(self):
-        return self.H.u[:]
+        return self.H.V[:]
             
     compare = FeatureTest.compare_arrays
 
@@ -40,18 +40,18 @@ class SynapsesPost(FeatureTest):
     def run(self):
         tau = 5*ms
         eqs = '''
-        dv/dt = k/tau : 1
+        dV/dt = k/tau : 1
         k : 1
         '''
-        G = NeuronGroup(10, eqs, threshold='v>1', reset='v=0')
+        G = NeuronGroup(10, eqs, threshold='V>1', reset='V=0')
         G.k = linspace(1, 5, len(G))
-        H = NeuronGroup(10, 'u:1')
-        S = Synapses(H, G, post='u_pre += 1', connect='i==j')
+        H = NeuronGroup(10, 'V:1')
+        S = Synapses(H, G, post='V_pre += 1', connect='i==j')
         self.H = H
         run(101*ms)
         
     def results(self):
-        return self.H.u[:]
+        return self.H.V[:]
             
     compare = FeatureTest.compare_arrays
 
