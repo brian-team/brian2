@@ -313,14 +313,26 @@ class FeatureTestResults(object):
                 row.append(txt)
             table.append(row)
         return make_table(table)
-        
-    def __str__(self):
+    
+    @property
+    def tables(self):
         r = ''
         s = 'Feature test results'
         r += s+'\n'+'-'*len(s)+'\n\n'+self.test_table+'\n'
         s = 'Tag results'
         r += s+'\n'+'-'*len(s)+'\n\n'+self.tag_table+'\n'
         return r
+    
+    @property
+    def exceptions(self):
+        return ''
+    
+    @property
+    def tables_and_exceptions(self):
+        return self.tables+'\n'+self.exceptions
+        
+    def __str__(self):
+        return self.tables
     __repr__ = __str__
 
 # Code below auto generates restructured text tables, copied from:
