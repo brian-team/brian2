@@ -1,8 +1,11 @@
 import brian2
 import numpy
 import os
+import pickle
 import shutil
+import subprocess
 import sys
+import tempfile
 
 __all__ = ['FeatureTest', 'InaccuracyError', 'Configuration',
            'run_feature_tests', 'run_single_feature_test',
@@ -129,13 +132,54 @@ class CPPStandaloneConfigurationOpenMP(Configuration):
     
     
 def results(configuration, feature):
+    tempfilename = tempfile.mktemp('exception')
+    code_string = '''
+__file__ = '{fname}'
+from {config_module} import {config_name}
+from {feature_module} import {feature_name}
+configuration = {config_name}()
+feature = {feature_name}()
+import warnings, traceback, pickle, sys, os
+warnings.simplefilter('ignore')
+try:
     configuration.before_run()
     feature.run()
     configuration.after_run()
-    return feature.results()
-
+    results = feature.results()
+    f = open(r'{tempfname}', 'wb')
+    pickle.dump(results, f, -1)
+    f.close()
+except Exception, ex:
+    traceback.print_exc(file=sys.stdout)
+    f = open(r'{tempfname}', 'wb')
+    pickle.dump(ex, f, -1)
+    f.close()
+    '''.format(config_module=configuration.__module__,
+               config_name=configuration.__name__,
+               feature_module=feature.__module__,
+               feature_name=feature.__name__,
+               tempfname=tempfilename,
+               fname=__file__,
+               )
+    args = [sys.executable, '-c',
+            code_string]
+    # Run the example in a new process and make sure that stdout gets
+    # redirected into the capture plugin
+    p = subprocess.Popen(args, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    #stdout, stderr = p.communicate()
+    #sys.stdout.write(stdout)
+    #sys.stderr.write(stderr)
+    f = open(tempfilename, 'rb')
+    res = pickle.load(f)
+    if isinstance(res, Exception):
+        raise res
+    else:
+        return res
+    
 
 def check_or_compare(feature, res, baseline, maxrelerr):
+    feature = feature()
     try:
         feature.check(maxrelerr, res)
     except NotImplementedError:
@@ -163,22 +207,20 @@ def run_feature_tests(configurations=None, feature_tests=None,
     table.append(['Test']+[c.name for c in configurations])
     curcat = ''
 
-    for ftc in feature_tests:
-        cat = ftc.category
+    for ft in feature_tests:
+        cat = ft.category
         if cat!=curcat:
             table.append([cat]+['']*len(configurations))
             curcat = cat
-        row = [ftc.name]
+        row = [ft.name]
         baseline = None
-        print ftc.fullname()+': [',
-        for configurationc in configurations:
-            configuration = configurationc()
-            ft = ftc()
+        print ft.fullname()+': [',
+        for configuration in configurations:
             txt = 'OK'
             sym = '.'
             try:
                 res = results(configuration, ft)
-                if configurationc is DefaultConfiguration:
+                if configuration is DefaultConfiguration:
                     baseline = res
                     
                 if isinstance(baseline, Exception):
@@ -199,7 +241,7 @@ def run_feature_tests(configurations=None, feature_tests=None,
                 res = exc
                 sym = 'E'
                 txt = 'Run failed.'
-                if configurationc is DefaultConfiguration:
+                if configuration is DefaultConfiguration:
                     raise
             sys.stdout.write(sym)
             row.append(txt)

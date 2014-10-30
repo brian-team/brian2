@@ -20,10 +20,10 @@ class NeuronGroupIntegrationLinear(FeatureTest):
         self.net.run(self.duration)
         
     def results(self):
-        return self.G.v[:]
-            
-    def check(self, maxrelerr, v_end):
         v_correct = self.v_init*exp(-self.duration/self.tau)
+        return v_correct, self.G.v[:]
+            
+    def check(self, maxrelerr, (v_correct, v_end)):
         err = amax(abs(v_end-v_correct)/v_correct)
         if err>maxrelerr:
             raise InaccuracyError(err)
