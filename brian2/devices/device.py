@@ -27,6 +27,9 @@ logger = get_logger(__name__)
 all_devices = {}
 
 
+prefs.register_preferences('devices', 'Device preferences')
+
+
 def get_default_codeobject_class(pref='codegen.target'):
     '''
     Returns the default `CodeObject` class from the preferences.

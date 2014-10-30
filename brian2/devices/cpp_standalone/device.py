@@ -32,7 +32,7 @@ logger = get_logger(__name__)
 
 # Preferences
 prefs.register_preferences(
-    'codegen.cpp_standalone',
+    'devices.cpp_standalone',
     'C++ standalone preferences ',
     openmp_threads = BrianPreference(
         default=0,
@@ -41,8 +41,15 @@ prefs.register_preferences(
         is generated without any reference to OpenMP. If greater than 0, then the corresponding number of threads
         are used to launch the simulation.
         ''',
-        )
+        ),
+    optimisation_flags = BrianPreference(
+        default='-O3',
+        docs='''
+        Optimisation flags to pass to the compiler
+        '''
+        ),
     )
+
 
 def freeze(code, ns):
     # this is a bit of a hack, it should be passed to the template somehow
@@ -344,6 +351,7 @@ class CPPStandaloneDevice(Device):
         return codeobj
 
     def build(self, directory='output', compile=True, run=False, debug=True,
+              optimisations='-O3 -ffast-math',
               with_output=True, native=True,
               additional_source_files=None, additional_header_files=None,
               main_includes=None, run_includes=None,
@@ -408,7 +416,7 @@ class CPPStandaloneDevice(Device):
         writer = CPPWriter(directory)
         
         # Get the number of threads if specified in an openmp context
-        nb_threads = prefs.codegen.cpp_standalone.openmp_threads
+        nb_threads = prefs.devices.cpp_standalone.openmp_threads
         # If the number is negative, we need to throw an error
         if (nb_threads < 0):
             raise ValueError('The number of OpenMP threads can not be negative !') 
@@ -616,9 +624,10 @@ class CPPStandaloneDevice(Device):
         else:
             rm_cmd = 'rm'
         makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None, None,
-                                                                  source_files=' '.join(writer.source_files),
-                                                                  header_files=' '.join(writer.header_files),
-                                                                  rm_cmd=rm_cmd)
+            source_files=' '.join(writer.source_files),
+            header_files=' '.join(writer.header_files),
+            optimisations=prefs['devices.cpp_standalone.optimisation_flags'],
+            rm_cmd=rm_cmd)
         writer.write('makefile', makefile_tmp)
 
         # build the project
