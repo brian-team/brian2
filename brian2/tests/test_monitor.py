@@ -59,13 +59,15 @@ def test_state_monitor():
     all_mon = StateMonitor(G, True, record=True)
 
     # record from a Synapses object (all synapses connecting to neuron 1)
-    indices = S.indices[:, 1]
-    synapse_mon = StateMonitor(S, 'w', record=indices)
+    synapse_mon = StateMonitor(S, 'w', record=S[:, 1])
+    synapse_mon2 = StateMonitor(S, 'w', record=S['j==1'])
+
 
     net = Network(G, S, nothing_mon,
                   v_mon, v_mon1,
                   multi_mon, multi_mon1,
-                  all_mon, synapse_mon)
+                  all_mon,
+                  synapse_mon, synapse_mon2)
     net.run(10*ms)
 
     # Check time recordings
@@ -96,8 +98,11 @@ def test_state_monitor():
     assert all(all_mon[0].not_refractory[:] == True)
 
     # Synaptic variables
-    assert_allclose(synapse_mon[indices[0]].w, 1*nS)
+    assert_allclose(synapse_mon[S[0, 1]].w, 1*nS)
     assert_allclose(synapse_mon.w[1], 1*nS)
+    assert_allclose(synapse_mon2[S[0, 1]].w, 1*nS)
+    assert_allclose(synapse_mon2[S['i==0 and j==1']].w, 1*nS)
+    assert_allclose(synapse_mon2.w[1], 1*nS)
 
     # Check indexing semantics
     G = NeuronGroup(10, 'v:volt')

@@ -2,6 +2,7 @@ from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 
 from brian2 import *
+from brian2.utils.logger import catch_logs
 
 
 @attr('codegen-independent')
@@ -51,6 +52,9 @@ def test_state_variables():
     assert_raises(DimensionMismatchError, lambda: SG.v.__iadd__(3))
     assert_raises(DimensionMismatchError, lambda: SG.v.__imul__(3*second))
 
+    # Indexing with subgroups
+    assert_equal(G.v[SG], SG.v[:])
+
 
 def test_state_variables_string_indices():
     '''
@@ -68,6 +72,32 @@ def test_state_variables_string_indices():
 
     assert_equal(G.v[:], [0, 1, 2, 3, 4, 5, 6, 7, 40, 9] * mV)
 
+@attr('codegen-independent')
+def test_state_variables_group_as_index():
+    G = NeuronGroup(10, 'v : 1')
+    SG = G[4:9]
+    G.v[SG] = 1
+    assert_equal(G.v[:], np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 0]))
+    G.v = 1
+    G.v[SG] = '2*v'
+    assert_equal(G.v[:], np.array([1, 1, 1, 1, 2, 2, 2, 2, 2, 1]))
+
+
+@attr('codegen-independent')
+def test_state_variables_group_as_index_problematic():
+    G = NeuronGroup(10, 'v : 1')
+    SG = G[4:9]
+    G.v = 1
+    tests = [('i', 1),
+             ('N', 1),
+             ('N + i', 2),
+             ('v', 0)]
+    for value, n_warnings in tests:
+        with catch_logs() as l:
+            G.v.__setitem__(SG, value)
+            assert len(l) == n_warnings, 'expected %d, got %d warnings' % (n_warnings, len(l))
+            assert all([entry[1].endswith('ambiguous_string_expression')
+                        for entry in l])
 
 def test_state_monitor():
     G = NeuronGroup(10, 'v : volt')
@@ -152,6 +182,66 @@ def test_synapse_access():
     assert_equal(S.w[:], S.j[:] + 10)
     S.w = 'v_post + v_pre'
     assert_equal(S.w[:], S.j[:] + 10 + S.i[:])
+
+    # Test using subgroups as indices
+    assert len(S) == len(S.w[SG1, SG2])
+    assert_equal(S.w[SG1, 1], S.w[:, 1])
+    assert_equal(S.w[1, SG2], S.w[1, :])
+    assert len(S.w[SG1, 10]) == 0
+
+
+def test_synapses_access_subgroups():
+    G1 = NeuronGroup(5, 'x:1')
+    G2 = NeuronGroup(10, 'y:1')
+    SG1 = G1[2:5]
+    SG2 = G2[4:9]
+    S = Synapses(G1, G2, 'w:1', connect=True)
+    S.w[SG1, SG2] = 1
+    assert_equal(S.w['(i>=2 and i<5) and (j>=4 and j<9)'], 1)
+    assert_equal(S.w['not ((i>=2 and i<5) and (j>=4 and j<9))'], 0)
+    S.w = 0
+    S.w[SG1, :] = 1
+    assert_equal(S.w['i>=2 and i<5'], 1)
+    assert_equal(S.w['not (i>=2 and i<5)'], 0)
+    S.w = 0
+    S.w[:, SG2] = 1
+    assert_equal(S.w['j>=4 and j<9'], 1)
+    assert_equal(S.w['not (j>=4 and j<9)'], 0)
+
+
+@attr('codegen-independent')
+def test_synapses_access_subgroups_problematic():
+    G1 = NeuronGroup(5, 'x:1')
+    G2 = NeuronGroup(10, 'y:1')
+    SG1 = G1[2:5]
+    SG2 = G2[4:9]
+    S = Synapses(G1, G2, 'w:1', connect=True)
+
+    tests = [
+        ((SG1, slice(None)), 'i', 1),
+        ((SG1, slice(None)), 'i + N_pre', 2),
+        ((SG1, slice(None)), 'N_pre', 1),
+        ((slice(None), SG2), 'j', 1),
+        ((slice(None), SG2), 'N_post', 1),
+        ((slice(None), SG2), 'N', 1),
+        ((SG1, SG2), 'i', 1),
+        ((SG1, SG2), 'i + j', 2),
+        ((SG1, SG2), 'N_pre', 1),
+        ((SG1, SG2), 'j', 1),
+        ((SG1, SG2), 'N_post', 1),
+        ((SG1, SG2), 'N', 1),
+        # These should not raise a warning
+        ((SG1, SG2), 'w', 0),
+        ((SG1, SG2), 'x_pre', 0),
+        ((SG1, SG2), 'y_post', 0),
+        ((SG1, SG2), 'y', 0)
+        ]
+    for item, value, n_warnings in tests:
+        with catch_logs() as l:
+            S.w.__setitem__(item, value)
+            assert len(l) == n_warnings, 'expected %d, got %d warnings' % (n_warnings, len(l))
+            assert all([entry[1].endswith('ambiguous_string_expression')
+                        for entry in l])
 
 
 def test_subexpression_references():
@@ -350,10 +440,14 @@ if __name__ == '__main__':
     test_str_repr()
     test_state_variables()
     test_state_variables_string_indices()
+    test_state_variables_group_as_index()
+    test_state_variables_group_as_index_problematic()
     test_state_monitor()
     test_shared_variable()
     test_synapse_creation()
     test_synapse_access()
+    test_synapses_access_subgroups()
+    test_synapses_access_subgroups_problematic()
     test_subexpression_references()
     test_subexpression_no_references()
     test_synaptic_propagation()

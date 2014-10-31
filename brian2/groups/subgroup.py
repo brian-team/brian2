@@ -1,9 +1,9 @@
 from brian2.core.base import weakproxy_with_fallback
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Variables
-from brian2.groups.group import Group
 from brian2.units.fundamentalunits import Unit
-from brian2.units.allunits import second
+
+from .group import Group, Indexing
 
 __all__ = ['Subgroup']
 
@@ -56,7 +56,8 @@ class Subgroup(Group, SpikeSource):
             self.variables.add_reference('_source_i', source, 'i')
             self.variables.add_subexpression('i', unit=Unit(1),
                                              dtype=source.variables['i'].dtype,
-                                             expr='_source_i - _offset')
+                                             expr='_source_i - _offset',
+                                             index='_idx')
         else:
             # no need to calculate anything if this is a subgroup starting at 0
             self.variables.add_reference('i', source)
@@ -69,6 +70,9 @@ class Subgroup(Group, SpikeSource):
         # and needs the normal index for this group
         self.variables.add_arange('_sub_idx', size=self._N, start=self.start,
                                   index='_idx')
+
+        # special indexing for subgroups
+        self._indices = Indexing(self, self.variables['_sub_idx'])
 
         for key, value in self.source.variables.indices.iteritems():
             if value not in ('_idx', '0'):

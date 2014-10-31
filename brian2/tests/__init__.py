@@ -64,8 +64,6 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     # Store the currently set preferences and reset to default preferences
     stored_prefs = prefs.as_file
     prefs.read_preference_file(StringIO(prefs.defaults_as_file))
-    stored_prefs = prefs.as_file
-    prefs.read_preference_file(StringIO(prefs.defaults_as_file))
 
     for target in ['cython', 'weave']:
         if target in codegen_targets:
