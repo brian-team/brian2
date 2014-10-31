@@ -103,8 +103,8 @@ class SpatialNeuron(NeuronGroup):
         # Insert the threshold mechanism at the specified location
         if threshold_location is not None:
             if hasattr(threshold_location,
-                       'indices'):  # assuming this is a method
-                threshold_location = threshold_location.indices()
+                       '_indices'):  # assuming this is a method
+                threshold_location = threshold_location._indices()
                 # for now, only a single compartment allowed
                 if len(threshold_location) == 1:
                     threshold_location = threshold_location[0]

@@ -186,10 +186,10 @@ Then we use a `Synapses` object to connect a spike source to the neuron::
     S.connect(1,100)
 
 This creates two synapses, on compartments 50 and 100. One can specify the compartment number
-with its spatial position as follows::
+with its spatial position by indexing the morphology::
 
-    S.connect(0,morpho.compartment(25*um))
-    S.connect(1,morpho.axon.compartment(30*um))
+    S.connect(0,morpho[25*um])
+    S.connect(1,morpho.axon[30*um])
 
 In this method for creating synapses,
 there is a single value for the synaptic conductance in any compartment.

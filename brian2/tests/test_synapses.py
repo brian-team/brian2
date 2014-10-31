@@ -381,13 +381,13 @@ def test_state_variable_indexing():
 
     #Slicing
     assert len(S.w[:]) == len(S.w[:, :]) == len(S.w[:, :, :]) == len(G1)*len(G2)*2
-    assert len(S.w[0:]) == len(S.w[0:, 0:]) == len(S.w[0:, 0:, 0:]) == len(G1)*len(G2)*2
-    assert len(S.w[0::2]) == len(S.w[0::2, 0:]) == 3*len(G2)*2
-    assert len(S.w[0]) == len(S.w[0, :]) == len(S.w[0, :, :]) == len(G2)*2
-    assert len(S.w[0:2]) == len(S.w[0:2, :]) == len(S.w[0:2, :, :]) == 2*len(G2)*2
-    assert len(S.w[:2]) == len(S.w[:2, :]) == len(S.w[:2, :, :]) == 2*len(G2)*2
-    assert len(S.w[0:4:2]) == len(S.w[0:4:2, :]) == len(S.w[0:4:2, :, :]) == 2*len(G2)*2
-    assert len(S.w[:4:2]) == len(S.w[:4:2, :]) == len(S.w[:4:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[0:, 0:]) == len(S.w[0:, 0:, 0:]) == len(G1)*len(G2)*2
+    assert len(S.w[0::2, 0:]) == 3*len(G2)*2
+    assert len(S.w[0, :]) == len(S.w[0, :, :]) == len(G2)*2
+    assert len(S.w[0:2, :]) == len(S.w[0:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[:2, :]) == len(S.w[:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[0:4:2, :]) == len(S.w[0:4:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[:4:2, :]) == len(S.w[:4:2, :, :]) == 2*len(G2)*2
     assert len(S.w[:, 0]) == len(S.w[:, 0, :]) == len(G1)*2
     assert len(S.w[:, 0:2]) == len(S.w[:, 0:2, :]) == 2*len(G1)*2
     assert len(S.w[:, :2]) == len(S.w[:, :2, :]) == 2*len(G1)*2
@@ -399,18 +399,21 @@ def test_state_variable_indexing():
     assert len(S.w[:, :, 0:2:2]) == len(G1)*len(G2)
     assert len(S.w[:, :, :2:2]) == len(G1)*len(G2)
 
+    # 1d indexing is directly indexing synapses!
+    assert len(S.w[:]) == len(S.w[0:])
+    assert len(S.w[[0, 1]]) == len(S.w[3:5]) == 2
+    assert len(S.w[:]) == len(S.w[np.arange(len(G1)*len(G2)*2)])
+
     #Array-indexing (not yet supported for synapse index)
-    assert_equal(S.w[0:3], S.w[[0, 1, 2]])
-    assert_equal(S.w[0:3], S.w[[0, 1, 2], np.arange(len(G2))])
     assert_equal(S.w[:, 0:3], S.w[:, [0, 1, 2]])
     assert_equal(S.w[:, 0:3], S.w[np.arange(len(G1)), [0, 1, 2]])
 
     #string-based indexing
-    assert_equal(S.w[0:3], S.w['i<3'])
+    assert_equal(S.w[0:3, :], S.w['i<3'])
     assert_equal(S.w[:, 0:3], S.w['j<3'])
     # TODO: k is not working yet
     # assert_equal(S.w[:, :, 0], S.w['k==0'])
-    assert_equal(S.w[0:3], S.w['v_pre < 3*mV'])
+    assert_equal(S.w[0:3, :], S.w['v_pre < 3*mV'])
     assert_equal(S.w[:, 0:3], S.w['v_post < 13*mV'])
 
     #invalid indices
