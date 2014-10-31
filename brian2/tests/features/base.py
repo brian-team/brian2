@@ -7,6 +7,8 @@ import subprocess
 import sys
 import tempfile
 
+from brian2.utils.stringtools import indent
+
 from collections import defaultdict
 
 __all__ = ['FeatureTest', 'InaccuracyError', 'Configuration',
@@ -149,12 +151,13 @@ try:
     configuration.after_run()
     results = feature.results()
     f = open(r'{tempfname}', 'wb')
-    pickle.dump(results, f, -1)
+    pickle.dump((None, results), f, -1)
     f.close()
 except Exception, ex:
-    traceback.print_exc(file=sys.stdout)
+    #traceback.print_exc(file=sys.stdout)
+    tb = traceback.format_exc()
     f = open(r'{tempfname}', 'wb')
-    pickle.dump(ex, f, -1)
+    pickle.dump((tb, ex), f, -1)
     f.close()
     '''.format(config_module=configuration.__module__,
                config_name=configuration.__name__,
@@ -173,11 +176,8 @@ except Exception, ex:
     #sys.stdout.write(stdout)
     #sys.stderr.write(stderr)
     f = open(tempfilename, 'rb')
-    res = pickle.load(f)
-    if isinstance(res, Exception):
-        raise res
-    else:
-        return res
+    tb, res = pickle.load(f)
+    return tb, res
     
 
 def check_or_compare(feature, res, baseline, maxrelerr):
@@ -216,35 +216,30 @@ def run_feature_tests(configurations=None, feature_tests=None,
             txt = 'OK'
             sym = '.'
             exc = None
-            try:
-                res = results(configuration, ft)
-                if configuration is DefaultConfiguration:
-                    baseline = res
-                    
-                if isinstance(baseline, Exception):
-                    sym = '?'
-                    txt = 'Error in default configuration'
-                else:
-                    try:
-                        check_or_compare(ft, res, baseline, strict)
-                    except InaccuracyError as exc:
-                        try:
-                            check_or_compare(ft, res, baseline, tolerant)
-                            sym = 'I'
-                            txt = 'Poor (error=%.2f%%)' % (100.0*exc.error)
-                        except InaccuracyError as exc:
-                            sym = 'F'
-                            txt = 'Fail (error=%.2f%%)' % (100.0*exc.error)
-            except Exception as exc:
+            tb, res = results(configuration, ft)
+            if isinstance(res, Exception):
                 res = exc
                 sym = 'E'
                 txt = 'Run failed.'
                 if configuration is DefaultConfiguration:
-                    raise
+                    raise res
+            else:
+                if configuration is DefaultConfiguration:
+                    baseline = res                    
+                try:
+                    check_or_compare(ft, res, baseline, strict)
+                except InaccuracyError as exc:
+                    try:
+                        check_or_compare(ft, res, baseline, tolerant)
+                        sym = 'I'
+                        txt = 'Poor (error=%.2f%%)' % (100.0*exc.error)
+                    except InaccuracyError as exc:
+                        sym = 'F'
+                        txt = 'Fail (error=%.2f%%)' % (100.0*exc.error)
             sys.stdout.write(sym)
-            full_results[configuration.name, ft.name] = (sym, txt, exc)
+            full_results[configuration.name, ft.fullname()] = (sym, txt, exc, tb)
             for tag in ft.tags:
-                tag_results[tag][configuration.name].append((sym, txt, exc))
+                tag_results[tag][configuration.name].append((sym, txt, exc, tb))
         if verbose:
             print ']'
         
@@ -273,7 +268,8 @@ class FeatureTestResults(object):
                 curcat = cat
             row = [ft.name]
             for configuration in self.configurations:
-                sym, txt, exc = self.full_results[configuration.name, ft.name]
+                sym, txt, exc, tb = self.full_results[configuration.name,
+                                                      ft.fullname()]
                 row.append(txt)
             table.append(row)
         return make_table(table)
@@ -288,7 +284,7 @@ class FeatureTestResults(object):
             row = [tag]
             for configuration in self.configurations:
                 tag_res = self.tag_results[tag][configuration.name]
-                syms = [sym for sym, txt, exc in tag_res]
+                syms = [sym for sym, txt, exc, tb in tag_res]
                 n = len(syms)
                 okcount = sum(sym=='.' for sym in syms)
                 poorcount = sum(sym=='I' for sym in syms)
@@ -325,7 +321,27 @@ class FeatureTestResults(object):
     
     @property
     def exceptions(self):
-        return ''
+        exc_list = []
+        for configuration in self.configurations:
+            curconfig = []
+            for ft in self.feature_tests:
+                sym, txt, exc, tb = self.full_results[configuration.name,
+                                                      ft.fullname()]
+                if tb is not None:
+                    curconfig.append((ft.fullname(), tb))
+            if len(curconfig):
+                exc_list.append((configuration.name, curconfig))
+        if len(exc_list)==0:
+            return ''
+        r = ''
+        s = 'Exceptions'
+        r += s+'\n'+'-'*len(s)+'\n\n'
+        for config_name, curconfig in exc_list:
+            s = config_name
+            r += s+'\n'+'^'*len(s)+'\n\n'
+            for name, tb in curconfig:
+                r += name+'::\n\n'+indent(tb)+'\n\n' 
+        return r
     
     @property
     def tables_and_exceptions(self):
