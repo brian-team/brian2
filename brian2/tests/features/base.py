@@ -195,6 +195,11 @@ def run_single_feature_test(configuration, feature):
 def run_feature_tests(configurations=None, feature_tests=None,
                       strict=1e-5, tolerant=0.05, verbose=True):
     if configurations is None:
+        # some configurations to attempt to import
+        try:
+            import brian2genn.correctness_testing
+        except:
+            pass
         configurations = Configuration.__subclasses__()
     if feature_tests is None:
         feature_tests = FeatureTest.__subclasses__()
