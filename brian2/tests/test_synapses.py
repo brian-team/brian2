@@ -1,3 +1,4 @@
+import uuid
 import os
 import tempfile
 
@@ -7,6 +8,7 @@ from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 import numpy as np
 
 from brian2 import *
+from brian2.utils.logger import catch_logs
 
 def _compare(synapses, expected):
     conn_matrix = np.zeros((len(synapses.source), len(synapses.target)))
@@ -508,6 +510,42 @@ def test_transmission():
                         target_mon.t[target_mon.i==1] - default_dt - delay[1])
 
 
+def test_transmission_scalar_delay():
+    inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms)
+    target = NeuronGroup(2, 'v:1')
+    S = Synapses(inp, target, pre='v+=1', delay=0.5*ms, connect='i==j')
+    mon = StateMonitor(target, 'v', record=True)
+    net = Network(inp, target, S, mon)
+    net.run(2*ms)
+    assert_equal(mon[0].v[mon.t<0.5*ms], 0)
+    assert_equal(mon[0].v[mon.t>=0.5*ms], 1)
+    assert_equal(mon[1].v[mon.t<1.5*ms], 0)
+    assert_equal(mon[1].v[mon.t>=1.5*ms], 1)
+
+
+def test_transmission_scalar_delay_different_clocks():
+
+    inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms, dt=0.5*ms,
+                              # give the group a unique name to always
+                              # get a 'fresh' warning
+                              name='sg_%d' % uuid.uuid4())
+    target = NeuronGroup(2, 'v:1', dt=0.1*ms)
+    S = Synapses(inp, target, pre='v+=1', delay=0.5*ms, connect='i==j')
+    mon = StateMonitor(target, 'v', record=True)
+    net = Network(inp, target, S, mon)
+
+    # We should get a warning when using inconsistent dts
+    with catch_logs() as l:
+        net.run(2*ms)
+        assert len(l) == 1, 'expected a warning, got %d' % len(l)
+        assert l[0][1].endswith('synapses_dt_mismatch')
+
+    assert_equal(mon[0].v[mon.t<0.5*ms], 0)
+    assert_equal(mon[0].v[mon.t>=0.5*ms], 1)
+    assert_equal(mon[1].v[mon.t<1.5*ms], 0)
+    assert_equal(mon[1].v[mon.t>=1.5*ms], 1)
+
+
 @attr('codegen-independent')
 def test_clocks():
     '''
@@ -746,6 +784,8 @@ if __name__ == '__main__':
     test_subexpression_references()
     test_delay_specification()
     test_transmission()
+    test_transmission_scalar_delay()
+    test_transmission_scalar_delay_different_clocks()
     test_clocks()
     test_changed_dt_spikes_in_queue()
     test_summed_variable()
