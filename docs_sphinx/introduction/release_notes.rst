@@ -26,7 +26,8 @@ Major new features
   e.g. for simulating multiple trials starting from a fixed network state
   (:ref:`continue_repeat`)
 * C++ standalone mode: multiple processors are now supported via OpenMP
-  (:ref:`openmp`)
+  (:ref:`openmp`), although this code has not yet been well tested so may be
+  inaccurate.
 * C++ standalone mode: after a run, state variables and monitored values can
   be loaded from disk transparently. Most scripts therefore only need two
   additional lines to use standalone mode instead of Brian's default runtime

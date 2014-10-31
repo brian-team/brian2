@@ -52,6 +52,9 @@ monitored variables can be accessed using standard syntax, with a few exceptions
 Multi-threading with OpenMP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. warning::
+    OpenMP code has not yet been well tested and so may be inaccurate.
+
 When using the C++ standalone mode, you have the opportunity to turn on multi-threading, if your C++ compiler is compatible with
 OpenMP. By default, this option is turned off and only one thread is used. However, by changing the preferences of the codegen.cpp_standalone
 object, you can turn it on. To do so, just add the following line in your python script::
