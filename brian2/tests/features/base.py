@@ -218,9 +218,12 @@ def run_feature_tests(configurations=None, feature_tests=None,
             exc = None
             tb, res = results(configuration, ft)
             if isinstance(res, Exception):
-                res = exc
-                sym = 'E'
-                txt = 'Run failed.'
+                if isinstance(res, NotImplementedError):
+                    sym = 'N'
+                    txt = 'Not implemented'
+                else:
+                    sym = 'E'
+                    txt = 'Error'
                 if configuration is DefaultConfiguration:
                     raise res
             else:
@@ -290,21 +293,25 @@ class FeatureTestResults(object):
                 poorcount = sum(sym=='I' for sym in syms)
                 failcount = sum(sym=='F' for sym in syms)
                 errcount = sum(sym=='E' for sym in syms)
+                nicount = sum(sym=='N' for sym in syms)
                 if okcount==n:
                     txt = 'OK'
+                elif nicount==n:
+                    txt = 'Not implemented'
                 elif errcount==n:
                     txt = 'Unsupported'
                 elif okcount+poorcount==n:
                     txt = 'Poor (%d%%)' % int(poorcount*100.0/n)
-                elif errcount==0:
+                elif okcount+poorcount+failcount==n:
                     txt = 'Fail: {fail}% (poor={poor}%)'.format(
                         fail=int(failcount*100.0/n),
                         poor=int(poorcount*100.0/n),
                         )
                 else:
-                    txt = 'Fail: OK={ok}%, Poor={poor}%, Fail={fail}%, Error={err}%'.format(
+                    txt = 'Fail: OK={ok}%, Poor={poor}%, Fail={fail}%, NotImpl={ni}% Error={err}%'.format(
                         ok=int(okcount*100.0/n), poor=int(poorcount*100.0/n), 
-                        fail=int(failcount*100.0/n), err=int(errcount*100.0/n), 
+                        fail=int(failcount*100.0/n), err=int(errcount*100.0/n),
+                        ni=int(nicount*100.0/n), 
                         )
                 row.append(txt)
             table.append(row)
