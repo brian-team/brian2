@@ -31,7 +31,7 @@ Major new features
 * C++ standalone mode: after a run, state variables and monitored values can
   be loaded from disk transparently. Most scripts therefore only need two
   additional lines to use standalone mode instead of Brian's default runtime
-  mode (:ref:`cpp_standalone`)
+  mode (:ref:`cpp_standalone`).
 
 Syntax changes
 ~~~~~~~~~~~~~~
@@ -58,7 +58,7 @@ Improvements
 
 Bug fixes
 ~~~~~~~~~
-55 github issues have been closed since the alpha release, of which 25 had been
+57 github issues have been closed since the alpha release, of which 26 had been
 labeled as bugs. We recommend all users of Brian 2 to upgrade.
 
 Contributions
