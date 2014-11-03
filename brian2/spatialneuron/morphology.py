@@ -28,7 +28,7 @@ class MorphologyIndexWrapper(object):
     '''
     A simpler version of `~brian2.groups.group.IndexWrapper`, not allowing for
     string indexing (`Morphology` is not a `Group`). It allows to use
-    ``morphology.indices[...]`` instead of ``morphology[...]._indices()`
+    ``morphology.indices[...]`` instead of ``morphology[...]._indices()``.
     '''
     def __init__(self, morphology):
         self.morphology = morphology

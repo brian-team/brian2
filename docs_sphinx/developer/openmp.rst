@@ -107,8 +107,8 @@ synchronization is not needed, then you can use to ``single-nowait`` flag.
 How to make your template compatible with OpenMP
 ================================================
 
-Use of ``OPENMP_AWARE`` flag
-----------------------------
+Use of ``IS_OPENMP_COMPATIBLE`` flag
+------------------------------------
 
 If an existing template is not compatible with OpenMP....
 
@@ -220,7 +220,7 @@ the user::
     _nb_threads = {{ openmp_pragma('get_num_threads') }};
 
 By doing so, a `SynapticPathway`, instead of handling only one `SpikeQueue`,
-will be divided into ``_nb_threads`` `SpikeQueue`s, each of them handling a
+will be divided into ``_nb_threads`` `SpikeQueue`\ s, each of them handling a
 subset of the total number of connections. Because all the calls to
 `SynapticPathway` object are performed within the ``run()`` loop of
 ``devices/cpp_standalone/templates/network.cpp``, we have to assume that they
