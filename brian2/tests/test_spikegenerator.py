@@ -108,6 +108,29 @@ def test_spikegenerator_period_repeat():
             net.run(1*ms)
             assert (idx+1)*len(SG.spike_time) == s_mon.num_spikes
 
+def test_spikegenerator_period_repeat_not_dt_multiple():
+    '''
+    Basic test for `SpikeGeneratorGroup`.
+    '''
+    for codeobj_class in codeobj_classes:
+        indices = np.zeros(10)
+        times   = arange(0, 1, 0.1) * ms
+
+        rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
+        rec.sort()
+        sorted_times = np.ascontiguousarray(rec.t)*1000
+        sorted_indices = np.ascontiguousarray(rec.i)
+        SG = SpikeGeneratorGroup(1, indices, times, period=1.25*ms,
+                                 codeobj_class=codeobj_class)
+
+        s_mon = SpikeMonitor(SG)
+        net   = Network(SG, s_mon)
+        rate  = PopulationRateMonitor(SG)
+        for idx in xrange(2):
+            net.run(2.5*ms)
+        print SG.spike_time, s_mon.t[:], s_mon.num_spikes
+        assert 4*len(SG.spike_time) == s_mon.num_spikes
+
 @attr('standalone')
 @with_setup(teardown=restore_device)
 def test_spikegenerator_standalone():
@@ -136,4 +159,5 @@ if __name__ == '__main__':
     test_spikegenerator_basic()
     test_spikegenerator_period()
     test_spikegenerator_period_repeat()
+    test_spikegenerator_period_repeat_not_dt_multiple()
     test_spikegenerator_standalone()

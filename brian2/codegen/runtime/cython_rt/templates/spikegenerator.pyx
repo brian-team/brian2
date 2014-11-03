@@ -12,26 +12,26 @@
 
     # We need some precomputed values that will be used during looping
     not_first_spike = {{_lastindex}}[0] > 0
-    not_end_period  = abs(padding_after) > epsilon
+    not_end_period  = abs(padding_after) > (dt - epsilon)
 
     # If there is a periodicity in the SpikeGenerator, we need to reset the lastindex 
     # when all spikes have been played and at the end of the period
     if not_first_spike and ({{spike_time}}[{{_lastindex}}[0] - 1] > padding_before):
         {{_lastindex}}[0] = 0    
 
-    for _idx in range({{_lastindex}}[0], _num{{spike_time}}):
+    for _spike_time in {{spike_time}}[{{_lastindex}}[0]:]:
         test = ({{spike_time}}[_idx] > padding_before) or (abs({{spike_time}}[_idx] - padding_before) < epsilon)
         if test:
             break
         {{_lastindex}}[0] += 1
     
-    for _idx in range({{_lastindex}}[0], _num{{spike_time}}):
+    for _spike_time in {{spike_time}}[{{_lastindex}}[0]:]:
         if not_end_period:
-            test = ({{spike_time}}[_idx] > padding_after) or (abs({{spike_time}}[_idx] - padding_after) < epsilon)
+            test = (_spike_time > padding_after) or (abs(_spike_time - padding_after) < epsilon)
         else:
             # If we are in the last timestep before the end of the period, we remove the first part of the
             # test, because padding will be 0
-            test = abs({{spike_time}}[_idx] - padding_after) < epsilon
+            test = abs(_spike_time - padding_after) < epsilon
         if test:
             break
         {{_spikespace}}[_cpp_numspikes] = {{neuron_index}}[_idx]
