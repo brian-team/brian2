@@ -146,7 +146,9 @@ def test_openmp_consistency(with_output=False):
     for (n_threads, devicename) in [(0, 'runtime'),
                                     (0, 'cpp_standalone'),
                                     (1, 'cpp_standalone'),
-                                    (2, 'cpp_standalone')]:
+                                    (2, 'cpp_standalone'),
+                                    (3, 'cpp_standalone'),
+                                    (4, 'cpp_standalone')]:
         set_device(devicename)
         Synapses.__instances__().clear()
         if devicename=='cpp_standalone':
@@ -195,6 +197,8 @@ def test_openmp_consistency(with_output=False):
     for key1, key2 in [((0, 'runtime'), (0, 'cpp_standalone')),
                        ((1, 'cpp_standalone'), (0, 'cpp_standalone')),
                        ((2, 'cpp_standalone'), (0, 'cpp_standalone')),
+                       ((3, 'cpp_standalone'), (0, 'cpp_standalone')),
+                       ((4, 'cpp_standalone'), (0, 'cpp_standalone'))
                        ]:
         assert_allclose(results[key1]['w'], results[key2]['w'])
         assert_allclose(results[key1]['v'], results[key2]['v'])
