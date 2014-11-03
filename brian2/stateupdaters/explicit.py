@@ -326,7 +326,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         part (``g``) of the expression defining the right-hand-side of the
         differential equation describing `var`. It replaces the variable
         `var` with the value given as `x` and `t` by the value given for
-        `t. Intermediate variables will be replaced with the appropriate
+        `t`. Intermediate variables will be replaced with the appropriate
         replacements as well.
 
         For example, in the `rk2` integrator, the second step involves the
