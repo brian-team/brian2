@@ -214,7 +214,7 @@ class SympyNodeRenderer(NodeRenderer):
             return 'Symbol("%s", real=True)' % node.id
 
     def render_Num(self, node):
-        return 'Float(%f)' % node.n
+        return 'Float(%s)' % node.n
 
 
 class CPPNodeRenderer(NodeRenderer):
