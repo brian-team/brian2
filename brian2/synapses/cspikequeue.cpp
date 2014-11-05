@@ -2,7 +2,7 @@
 #include<vector>
 #include<map>
 #include<algorithm>
-#include<inttypes.h>
+#include<stdint.h>
 #include<assert.h>
 using namespace std;
 
