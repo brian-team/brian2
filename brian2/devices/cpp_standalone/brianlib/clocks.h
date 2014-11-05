@@ -35,7 +35,7 @@ public:
         }
         i_end = fround(end/dt_value);
         double t_end = i_end*dt_value;
-        if(not (t_end==end || fabs(t_end-end)<=epsilon*fabs(t_end)))
+        if(!(t_end==end || fabs(t_end-end)<=epsilon*fabs(t_end)))
         {
             i_end = (int)ceil(end/dt_value);
         }
