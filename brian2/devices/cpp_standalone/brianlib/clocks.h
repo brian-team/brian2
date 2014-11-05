@@ -26,7 +26,7 @@ public:
 	{
         int i_start = fround(start/dt_value);
         double t_start = i_start*dt_value;
-        if(t_start==start or fabs(t_start-start)<=epsilon*fabs(t_start))
+        if(t_start==start || fabs(t_start-start)<=epsilon*fabs(t_start))
         {
             i = i_start;
         } else
@@ -35,7 +35,7 @@ public:
         }
         i_end = fround(end/dt_value);
         double t_end = i_end*dt_value;
-        if(not (t_end==end or fabs(t_end-end)<=epsilon*fabs(t_end)))
+        if(not (t_end==end || fabs(t_end-end)<=epsilon*fabs(t_end)))
         {
             i_end = (int)ceil(end/dt_value);
         }
