@@ -59,11 +59,12 @@ prefs.register_preferences(
     'codegen.generators.cpp',
     'C++ codegen preferences',
     restrict_keyword = BrianPreference(
-        default='__restrict__',
+        default='__restrict',
         docs='''
         The keyword used for the given compiler to declare pointers as restricted.
         
-        This keyword is different on different compilers, the default is for gcc.
+        This keyword is different on different compilers, the default works for
+        gcc and MSVS.
         ''',
         ),
     flush_denormals = BrianPreference(
