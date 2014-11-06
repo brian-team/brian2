@@ -19,15 +19,6 @@ def restore_device():
     restore_initial_state()
 
 
-# We can only test C++ if weave is availabe
-try:
-    import scipy.weave
-    codeobj_classes = [NumpyCodeObject, WeaveCodeObject]
-except ImportError:
-    # Can't test C++
-    codeobj_classes = [NumpyCodeObject]
-
-
 def test_spikegenerator_connected():
     '''
     Test that `SpikeGeneratorGroup` connects properly.
@@ -57,17 +48,33 @@ def test_spikegenerator_basic():
     '''
     Basic test for `SpikeGeneratorGroup`.
     '''
-    for codeobj_class in codeobj_classes:
-        indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
-        times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
-        SG = SpikeGeneratorGroup(5, indices, times)
-        s_mon = SpikeMonitor(SG)
-        net = Network(SG, s_mon)
-        net.run(5*ms)
-        for idx in xrange(5):
-            generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
-            recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
-            assert generator_spikes == recorded_spikes
+    indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
+    times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
+    SG = SpikeGeneratorGroup(5, indices, times)
+    s_mon = SpikeMonitor(SG)
+    net = Network(SG, s_mon)
+    net.run(5*ms)
+    for idx in xrange(5):
+        generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
+        recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
+        assert generator_spikes == recorded_spikes
+
+
+def test_spikegenerator_basic_sorted():
+    '''
+    Basic test for `SpikeGeneratorGroup` with already sorted spike events.
+    '''
+    indices = np.array([3, 1, 2, 3, 1, 2, 1, 2, 3])
+    times   = np.array([1, 2, 2, 2, 3, 3, 4, 4, 4]) * ms
+    SG = SpikeGeneratorGroup(5, indices, times)
+    s_mon = SpikeMonitor(SG)
+    net = Network(SG, s_mon)
+    net.run(5*ms)
+    for idx in xrange(5):
+        generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
+        recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
+        assert generator_spikes == recorded_spikes
+
 
 @attr('standalone')
 @with_setup(teardown=restore_device)
@@ -94,4 +101,5 @@ def test_spikegenerator_standalone():
 if __name__ == '__main__':
     test_spikegenerator_connected()
     test_spikegenerator_basic()
+    test_spikegenerator_basic_sorted()
     test_spikegenerator_standalone()

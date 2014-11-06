@@ -38,6 +38,11 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     order : int, optional
         The priority of of this group for operations occurring at the same time
         step and in the same scheduling slot. Defaults to 0.
+    sorted : bool, optional
+        Whether the given indices and times are already sorted. Set to ``True``
+        if your events are already sorted (first by spike time, then by index),
+        this can save significant time at construction if your arrays contain
+        large numbers of spikes. Defaults to ``False``.
 
     Notes
     -----
@@ -48,12 +53,13 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
       spikes more that once during a time step, but other code (e.g. for
       synaptic propagation) might assume that neurons only spike once per
       time step and will therefore not work properly.
+    * If `sorted` is set to ``True``, the given arrays will not be copied.
     '''
 
     @check_units(N=1, indices=1, times=second)
     def __init__(self, N, indices, times, dt=None, clock=None,
-                 when='thresholds', order=0, name='spikegeneratorgroup*',
-                 codeobj_class=None):
+                 when='thresholds', order=0, sorted=False,
+                 name='spikegeneratorgroup*', codeobj_class=None):
 
         Group.__init__(self, dt=dt, clock=clock, when=when, order=order, name=name)
 
@@ -70,11 +76,12 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.start = 0
         self.stop = N
 
-        # sort times and indices first by time, then by indices
-        rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
-        rec.sort()
-        times = np.ascontiguousarray(rec.t)
-        indices = np.ascontiguousarray(rec.i)
+        if not sorted:
+            # sort times and indices first by time, then by indices
+            rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
+            rec.sort()
+            times = np.ascontiguousarray(rec.t)
+            indices = np.ascontiguousarray(rec.i)
 
         self.variables = Variables(self)
 
