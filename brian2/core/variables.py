@@ -693,8 +693,9 @@ def linked_var(group_or_variable, name=None, index=None):
     name : str, optional
         The name of the target variable, necessary if `group_or_variable` is a
         `NeuronGroup`.
-    name : str, optional
-        The name of another variable, used to index the linked variable.
+    index : str or `ndarray`, optional
+        An indexing array (or the name of a state variable), providing a mapping
+        from the entries in the link source to the link target.
 
     Examples
     --------

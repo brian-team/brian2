@@ -68,7 +68,8 @@ public:
     	return &all_peek;
     }
 
-    void prepare(scalar *real_delays, int *sources, unsigned int n_synapses, double _dt)
+    void prepare(scalar *real_delays, unsigned int n_delays,
+                 int *sources, unsigned int n_synapses, double _dt)
     {
     	{{ openmp_pragma('parallel') }}
     	{
@@ -81,7 +82,10 @@ public:
             unsigned int padding  = {{ openmp_pragma('get_thread_num') }}*(n_synapses/_nb_threads);
 
             queue[{{ openmp_pragma('get_thread_num') }}]->openmp_padding = padding;
-    		queue[{{ openmp_pragma('get_thread_num') }}]->prepare(&real_delays[padding], &sources[padding], length, _dt);
+            if (n_delays > 1)
+    		    queue[{{ openmp_pragma('get_thread_num') }}]->prepare(&real_delays[padding], length, &sources[padding], length, _dt);
+    		else
+    		    queue[{{ openmp_pragma('get_thread_num') }}]->prepare(&real_delays[0], 1, &sources[padding], length, _dt);
     	}
     }
 

@@ -77,6 +77,39 @@ This will not allow any threshold crossing for a neuron for 5ms after a spike.
 The refractory keyword allows for more flexible refractoriness specifications,
 see :doc:`refractoriness` for details.
 
+.. _linked_variables:
+
+Linked variables
+----------------
+A `NeuronGroup` can define parameters that are not stored in this group, but are
+instead a reference to a state variable in another group. For this, a group
+defines a parameter as ``linked`` and then uses `linked_var` to
+specify the linking. This can for example be useful to model shared noise
+between cells::
+
+    inp = NeuronGroup(1, 'dnoise/dt = -noise/tau + tau**-0.5*xi : 1')
+
+    neurons = NeuronGroup(100, '''noise : 1 (linked)
+                                  dv/dt = (-v + noise_strength*noise)/tau : volt''')
+    neurons.noise = linked_var(inp, 'noise')
+
+If the two groups have the same size, the linking will be done in a 1-to-1
+fashion. If the source group has the size one (as in the above example) or if
+the source parameter is a shared variable, then the linking will be done as
+1-to-all. In all other cases, you have to specify the indices to use for the
+linking explicitly::
+
+    # two inputs with different phases
+    inp = NeuronGroup(2, '''phase : 1
+                            dx/dt = 1*mV/ms*sin(2*pi*100*Hz*t-phase) : volt''')
+    inp.phase = [0, pi/2]
+
+    neurons = NeuronGroup(100, '''inp : volt (linked)
+                                  dv/dt = (-v + inp) / tau : volt''')
+    # Half of the cells get the first input, other half gets the second
+    neurons.inp = linked_var(inp, 'x', index=repeat([0, 1], 50))
+
+
 State variables
 ---------------
 Differential equations and parameters in model descriptions are stored as 
@@ -117,6 +150,9 @@ For shared variables, such string expressions can only refer to shared values:
     >>> G.shared_input = 'rand()*mV + 4*mV'
     >>> print G.shared_input
     <neurongroup.shared_input: 4.2579690100000001 * mvolt>
+
+
+.. _numerical_integration:
 
 Numerical integration
 ---------------------

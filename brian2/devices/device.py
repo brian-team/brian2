@@ -249,6 +249,8 @@ class Device(object):
     
 class RuntimeDevice(Device):
     '''
+    The default device used in Brian, state variables are stored as numpy
+    arrays in memory.
     '''
     def __init__(self):
         super(Device, self).__init__()
