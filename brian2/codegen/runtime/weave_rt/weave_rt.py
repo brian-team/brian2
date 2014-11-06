@@ -173,7 +173,29 @@ class WeaveCodeObject(CodeObject):
     def run(self):
         if hasattr(self, 'compiled_python_pre'):
             exec self.compiled_python_pre in self.python_code_namespace
-        ret_val = weave.inline(self.code.main, self.namespace.keys(),
+        code = self.code.main+'''
+/*
+The following code is just compiler options for the call to weave.inline.
+By including them here, we force a recompile if the compiler options change,
+which is a good thing (e.g. switching -ffast-math on and off).
+
+support_code:
+{support_code}
+
+compiler:
+{compiler}
+
+extra_compile_args:
+{extra_compile_args}
+
+include_dirs:
+{include_dirs}
+*/
+        '''.format(support_code=self.code.support_code,
+                   compiler=self.compiler,
+                   extra_compile_args=self.extra_compile_args,
+                   include_dirs=self.include_dirs)
+        ret_val = weave.inline(code, self.namespace.keys(),
                                local_dict=self.namespace,
                                support_code=self.code.support_code,
                                compiler=self.compiler,
