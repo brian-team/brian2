@@ -41,6 +41,7 @@ prefs.register_preferences(
 
 class CythonCodeObject(NumpyCodeObject):
     '''
+    Execute code using Cython.
     '''
     templater = Templater('brian2.codegen.runtime.cython_rt',
                           env_globals={'cpp_dtype': get_cpp_dtype,
