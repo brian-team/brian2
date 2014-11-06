@@ -123,7 +123,7 @@ Clock* Network::next_clocks()
 		{
 			Clock *clock = *i;
 			double s = clock->t_();
-			if(s==t or fabs(s-t)<=Clock_epsilon)
+			if(s==t || fabs(s-t)<=Clock_epsilon)
 				curclocks.insert(clock);
 		}
 	}
