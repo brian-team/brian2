@@ -60,6 +60,8 @@ TEST_EXPRESSIONS = '''
     a>0.5 and b>0.5 or c>0.5
     a>0.5 and b>0.5 or not c>0.5
     2%4
+    17e-12
+    42e17
     '''
 
 
