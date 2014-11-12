@@ -7,6 +7,7 @@ from nose.plugins.attrib import attr
 from numpy.testing import assert_allclose, assert_raises
 import numpy as np
 
+from brian2.codegen.runtime.weave_rt.weave_rt import get_compiler_and_args
 from brian2.core.preferences import prefs
 from brian2.core.variables import Constant
 from brian2.groups.group import Group
@@ -112,9 +113,10 @@ def numpy_evaluator(expr, userns):
     
 def cpp_evaluator(expr, ns):
     if weave is not None:
+        compiler, extra_compile_args = get_compiler_and_args()
         return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
-                            compiler=prefs['codegen.runtime.weave.compiler'],
-                            extra_compile_args=prefs['codegen.runtime.weave.extra_compile_args'],
+                            compiler=compiler,
+                            extra_compile_args=extra_compile_args,
                             include_dirs=prefs['codegen.runtime.weave.include_dirs']
                             )
     else:

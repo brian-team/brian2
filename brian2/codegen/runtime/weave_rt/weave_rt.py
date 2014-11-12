@@ -4,6 +4,7 @@ Module providing `WeaveCodeObject`.
 import os
 import sys
 import numpy
+from distutils.ccompiler import get_default_compiler
 
 try:
     from scipy import weave
@@ -30,16 +31,29 @@ prefs.register_preferences(
     'codegen.runtime.weave',
     'Weave runtime codegen preferences',
     compiler = BrianPreference(
-        default='gcc',
-        validator=lambda pref: pref=='gcc',
+        default='',
         docs='''
-        Compiler to use for weave.
+        Compiler to use for weave (uses default if empty)
         '''
         ),
     extra_compile_args = BrianPreference(
+        default=None,
+        validator=lambda v: True,
+        docs='''
+        Extra arguments to pass to compiler (if None, use either
+        ``extra_compile_args_gcc`` or ``extra_compile_args_msvs``).
+        '''
+        ),
+    extra_compile_args_gcc = BrianPreference(
         default=['-w', '-O3'],
         docs='''
-        Extra compile arguments to pass to compiler
+        Extra compile arguments to pass to GCC compiler
+        '''
+        ),
+    extra_compile_args_msvc = BrianPreference(
+        default=['/Ox', '/EHsc', '/w'],
+        docs='''
+        Extra compile arguments to pass to MSVC compiler
         '''
         ),
     include_dirs = BrianPreference(
@@ -72,6 +86,19 @@ def weave_data_type(dtype):
     return num_to_c_types[dtype]
 
 
+def get_compiler_and_args():
+    compiler = prefs['codegen.runtime.weave.compiler']
+    if compiler=='':
+        compiler = get_default_compiler()
+    extra_compile_args = prefs['codegen.runtime.weave.extra_compile_args']
+    if extra_compile_args is None:
+        if compiler=='gcc':
+            extra_compile_args = prefs['codegen.runtime.weave.extra_compile_args_gcc']
+        if compiler=='msvc':
+            extra_compile_args = prefs['codegen.runtime.weave.extra_compile_args_msvc']
+    return compiler, extra_compile_args
+
+
 class WeaveCodeGenerator(CPPCodeGenerator):
     def __init__(self, *args, **kwds):
         super(WeaveCodeGenerator, self).__init__(*args, **kwds)
@@ -101,8 +128,7 @@ class WeaveCodeObject(CodeObject):
                                               variable_indices,
                                               template_name, template_source,
                                               name=name)
-        self.compiler = prefs['codegen.runtime.weave.compiler']
-        self.extra_compile_args = prefs['codegen.runtime.weave.extra_compile_args']
+        self.compiler, self.extra_compile_args = get_compiler_and_args()
         self.include_dirs = list(prefs['codegen.runtime.weave.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
         self.python_code_namespace = {'_owner': owner}
@@ -195,11 +221,13 @@ include_dirs:
                    compiler=self.compiler,
                    extra_compile_args=self.extra_compile_args,
                    include_dirs=self.include_dirs)
+        if self.compiler=='msvc':
+            code = '#define INFINITY (std::numeric_limits<double>::infinity())\n'+code
         ret_val = weave.inline(code, self.namespace.keys(),
                                local_dict=self.namespace,
                                support_code=self.code.support_code,
                                compiler=self.compiler,
-                               headers=['<algorithm>'],
+                               headers=['<algorithm>', '<limits>'],
                                extra_compile_args=self.extra_compile_args,
                                include_dirs=self.include_dirs)
         if hasattr(self, 'compiled_python_post'):

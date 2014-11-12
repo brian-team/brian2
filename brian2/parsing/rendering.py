@@ -233,7 +233,7 @@ class CPPNodeRenderer(NodeRenderer):
                                     self.render_node(node.right))
         elif node.op.__class__.__name__ == 'Mod':
             # In C, the modulo operator is only defined on integers
-            return 'fmod(%s, %s)' % (self.render_node(node.left),
+            return 'fmod((double)(%s), (double)(%s))' % (self.render_node(node.left),
                                      self.render_node(node.right))
         else:
             return NodeRenderer.render_BinOp(self, node)
