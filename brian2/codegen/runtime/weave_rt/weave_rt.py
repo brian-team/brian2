@@ -18,6 +18,7 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    Subexpression)
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.functions import DEFAULT_FUNCTIONS
+from brian2.utils.debugging import std_silent
 
 from ...codeobject import CodeObject
 from ...templates import Templater
@@ -170,13 +171,16 @@ include_dirs:
                    include_dirs=self.include_dirs)
         if self.compiler=='msvc':
             code = '#define INFINITY (std::numeric_limits<double>::infinity())\n'+code
-        ret_val = weave.inline(code, self.namespace.keys(),
-                               local_dict=self.namespace,
-                               support_code=self.code.support_code,
-                               compiler=self.compiler,
-                               headers=['<algorithm>', '<limits>'],
-                               extra_compile_args=self.extra_compile_args,
-                               include_dirs=self.include_dirs)
+        with std_silent(hasattr(self, '_done_first_run')):
+            ret_val = weave.inline(code, self.namespace.keys(),
+                                   local_dict=self.namespace,
+                                   support_code=self.code.support_code,
+                                   compiler=self.compiler,
+                                   headers=['<algorithm>', '<limits>'],
+                                   extra_compile_args=self.extra_compile_args,
+                                   include_dirs=self.include_dirs,
+                                   verbose=0)
+        self._done_first_run = True
         if hasattr(self, 'compiled_python_post'):
             exec self.compiled_python_post in self.python_code_namespace
         return ret_val

@@ -12,6 +12,7 @@ from brian2.core.preferences import prefs
 from brian2.core.variables import Constant
 from brian2.groups.group import Group
 from brian2.utils.stringtools import get_identifiers, deindent
+from brian2.utils.debugging import std_silent
 from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
                                       CPPNodeRenderer,
                                       )
@@ -114,11 +115,12 @@ def numpy_evaluator(expr, userns):
 def cpp_evaluator(expr, ns):
     if weave is not None:
         compiler, extra_compile_args = get_compiler_and_args()
-        return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
-                            compiler=compiler,
-                            extra_compile_args=extra_compile_args,
-                            include_dirs=prefs['codegen.cpp.include_dirs']
-                            )
+        with std_silent():
+            return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
+                                compiler=compiler,
+                                extra_compile_args=extra_compile_args,
+                                include_dirs=prefs['codegen.cpp.include_dirs']
+                                )
     else:
         raise nose.SkipTest('No weave support.')
 

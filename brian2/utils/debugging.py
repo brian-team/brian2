@@ -1,7 +1,7 @@
 '''
 Some tools for debugging.
 '''
-import os, sys
+import os, sys, tempfile
 from cStringIO import StringIO
 
 __all__ = ['RedirectStdStreams', 'std_silent']
@@ -29,24 +29,43 @@ class RedirectStdStreams(object):
         sys.stderr = self.old_stderr
 
 
-class std_silent(RedirectStdStreams):
+# See http://stackoverflow.com/questions/26126160/redirecting-standard-out-in-err-back-after-os-dup2
+# for an explanation of how this function works. Note that 1 and 2 are the file
+# numbers for stdout and stderr
+class std_silent(object):
     '''
-    Context manager which temporarily silences stdin/stdout unless there is an exception.
+    Context manager that temporarily silences stdout and stderr but keeps the
+    output saved in a temporary file and writes it if an exception is raised.
     '''
     def __init__(self, alwaysprint=False):
         self.alwaysprint = alwaysprint
-        self.newout = StringIO()
-        self.newerr = StringIO()
-        RedirectStdStreams.__init__(self,
-                                    stdout=self.newout,
-                                    stderr=self.newerr)
+        if not hasattr(std_silent, 'dest_stdout'):
+            std_silent.dest_fname_stdout = tempfile.mktemp()
+            std_silent.dest_fname_stderr = tempfile.mktemp()
+            std_silent.dest_stdout = open(std_silent.dest_fname_stdout, 'w')
+            std_silent.dest_stderr = open(std_silent.dest_fname_stderr, 'w')
+        
+    def __enter__(self):
+        if not self.alwaysprint:
+            sys.stdout.flush()
+            sys.stderr.flush()
+            self.orig_out_fd = os.dup(1)
+            self.orig_err_fd = os.dup(2)
+            os.dup2(std_silent.dest_stdout.fileno(), 1)
+            os.dup2(std_silent.dest_stderr.fileno(), 2)
+
     def __exit__(self, exc_type, exc_value, traceback):
-        if exc_type is not None or self.alwaysprint:
-            self.newout.flush()
-            self.newerr.flush()
-            self.old_stdout.write(self.newout.getvalue())
-            self.old_stderr.write(self.newerr.getvalue())
-            self.old_stdout.flush()
-            self.old_stderr.flush()
-        RedirectStdStreams.__exit__(self, exc_type, exc_value, traceback)
+        if not self.alwaysprint:
+            std_silent.dest_stdout.flush()
+            std_silent.dest_stderr.flush()
+            if exc_type is not None:
+                out = open(std_silent.dest_fname_stdout, 'r').read()
+                err = open(std_silent.dest_fname_stderr, 'r').read()
+            os.dup2(self.orig_out_fd, 1)
+            os.dup2(self.orig_err_fd, 2)
+            os.close(self.orig_out_fd)
+            os.close(self.orig_err_fd)
+            if exc_type is not None:
+                sys.stdout.write(out)
+                sys.stderr.write(err)
         
