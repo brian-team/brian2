@@ -189,11 +189,15 @@ include_dirs:
         CodeObject.compile(self)
         if hasattr(self.code, 'python_pre'):
             self.compiled_python_pre = compile(self.code.python_pre, '(string)', 'exec')
+        else:
+            self.compiled_python_pre = None
         if hasattr(self.code, 'python_post'):
             self.compiled_python_post = compile(self.code.python_post, '(string)', 'exec')
+        else:
+            self.compiled_python_post = None
 
     def run(self):
-        if hasattr(self, 'compiled_python_pre'):
+        if self.compiled_python_pre is not None:
             exec self.compiled_python_pre in self.python_code_namespace
         ret_val = weave.inline(self.annotated_code, self.namespace.keys(),
                                local_dict=self.namespace,
@@ -202,7 +206,7 @@ include_dirs:
                                headers=['<algorithm>'],
                                extra_compile_args=self.extra_compile_args,
                                include_dirs=self.include_dirs)
-        if hasattr(self, 'compiled_python_post'):
+        if self.compiled_python_post is not None:
             exec self.compiled_python_post in self.python_code_namespace
         return ret_val
 
