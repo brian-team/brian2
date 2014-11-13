@@ -714,6 +714,8 @@ class CPPStandaloneDevice(Device):
                         if clean:
                             os.system('%s >>winmake.log 2>&1 && %s clean >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
                         x = os.system('%s >>winmake.log 2>&1 && %s >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
+                        if x!=0:
+                            raise RuntimeError("Project compilation failed")
                 else:
                     with std_silent(debug):
                         if clean:
@@ -724,21 +726,20 @@ class CPPStandaloneDevice(Device):
                             x = os.system('make native')
                         else:
                             x = os.system('make')
-                if x==0:
-                    if run:
-                        if not with_output:
-                            stdout = open(os.devnull, 'w')
-                        else:
-                            stdout = None
-                        if os.name=='nt':
-                            x = subprocess.call(['main'] + run_args, stdout=stdout)
-                        else:
-                            x = subprocess.call(['./main'] + run_args, stdout=stdout)
-                        if x:
-                            raise RuntimeError("Project run failed")
-                        self.has_been_run = True
-                else:
-                    raise RuntimeError("Project compilation failed")
+                        if x!=0:
+                            raise RuntimeError("Project compilation failed")
+                if run:
+                    if not with_output:
+                        stdout = open(os.devnull, 'w')
+                    else:
+                        stdout = None
+                    if os.name=='nt':
+                        x = subprocess.call(['main'] + run_args, stdout=stdout)
+                    else:
+                        x = subprocess.call(['./main'] + run_args, stdout=stdout)
+                    if x:
+                        raise RuntimeError("Project run failed")
+                    self.has_been_run = True
 
     def network_run(self, net, duration, report=None, report_period=10*second,
                     namespace=None, level=0):
