@@ -117,7 +117,7 @@ def cpp_evaluator(expr, ns):
         return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
                             compiler=compiler,
                             extra_compile_args=extra_compile_args,
-                            include_dirs=prefs['codegen.runtime.weave.include_dirs']
+                            include_dirs=prefs['codegen.cpp.include_dirs']
                             )
     else:
         raise nose.SkipTest('No weave support.')

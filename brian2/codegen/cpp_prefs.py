@@ -40,6 +40,14 @@ prefs.register_preferences(
         Extra compile arguments to pass to MSVC compiler
         '''
         ),
+    include_dirs = BrianPreference(
+        default=[],
+        docs='''
+        Include directories to use. Note that ``$prefix/include`` will be
+        appended to the end automatically, where ``$prefix`` is Python's
+        site-specific directory prefix as returned by `sys.prefix`.
+        '''
+        ),
     msvc_vars_location = BrianPreference(
         default='',
         docs='''

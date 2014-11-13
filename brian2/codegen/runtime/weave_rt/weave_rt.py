@@ -27,21 +27,6 @@ from ...cpp_prefs import get_compiler_and_args
 
 __all__ = ['WeaveCodeObject', 'WeaveCodeGenerator']
 
-# Preferences
-prefs.register_preferences(
-    'codegen.runtime.weave',
-    'Weave runtime codegen preferences',
-    include_dirs = BrianPreference(
-        default=[],
-        docs='''
-        Include directories to use. Note that ``$prefix/include`` will be
-        appended to the end automatically, where ``$prefix`` is Python's
-        site-specific directory prefix as returned by `sys.prefix`.
-        '''
-        )
-    )
-
-
 def weave_data_type(dtype):
     '''
     Gives the C language specifier for numpy data types using weave. For example,
@@ -91,7 +76,7 @@ class WeaveCodeObject(CodeObject):
                                               template_name, template_source,
                                               name=name)
         self.compiler, self.extra_compile_args = get_compiler_and_args()
-        self.include_dirs = list(prefs['codegen.runtime.weave.include_dirs'])
+        self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
         self.python_code_namespace = {'_owner': owner}
         self.variables_to_namespace()
