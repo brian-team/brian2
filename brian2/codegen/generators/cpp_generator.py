@@ -328,22 +328,20 @@ for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
 
 # Functions that need a name translation
 for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),
-                       ('abs', 'fabs'),
+                       ('mod', 'fmod'),
                        ]:
     DEFAULT_FUNCTIONS[func].implementations.add_implementation(CPPCodeGenerator,
                                                                code=None,
                                                                name=func_cpp)
 
-mod_code = '''
-template<class X, class Y>
-inline X _mod(X &x, Y &y)
-{
-    return fmod((double)x, (double)y);
-}
+
+abs_code = '''
+#define _brian_abs std::abs
 '''
-DEFAULT_FUNCTIONS['mod'].implementations.add_implementation(CPPCodeGenerator,
-                                                            code=mod_code,
-                                                            name='_mod')
+DEFAULT_FUNCTIONS['abs'].implementations.add_implementation(CPPCodeGenerator,
+                                                            code=abs_code,
+                                                            name='_brian_abs')
+
 
 # Functions that need to be implemented specifically
 randn_code = '''
