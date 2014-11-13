@@ -23,6 +23,7 @@ from brian2.codegen.generators.cpp_generator import c_data_type
 from brian2.units.fundamentalunits import Quantity, have_same_dimensions
 from brian2.units import second
 from brian2.utils.logger import get_logger
+from brian2.utils.debugging import std_silent
 
 from .codeobject import CPPStandaloneCodeObject, openmp_pragma
 
@@ -709,18 +710,20 @@ class CPPStandaloneDevice(Device):
                     make_cmd = 'nmake /f win_makefile'
                     if os.path.exists('winmake.log'):
                         os.remove('winmake.log')
-                    if clean:
-                        os.system('%s >>winmake.log 2>&1 && %s clean >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
-                    x = os.system('%s >>winmake.log 2>&1 && %s >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
+                    with std_silent(debug):
+                        if clean:
+                            os.system('%s >>winmake.log 2>&1 && %s clean >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
+                        x = os.system('%s >>winmake.log 2>&1 && %s >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
                 else:
-                    if clean:
-                        os.system('make clean')
-                    if debug:
-                        x = os.system('make debug')
-                    elif native:
-                        x = os.system('make native')
-                    else:
-                        x = os.system('make')
+                    with std_silent(debug):
+                        if clean:
+                            os.system('make clean')
+                        if debug:
+                            x = os.system('make debug')
+                        elif native:
+                            x = os.system('make native')
+                        else:
+                            x = os.system('make')
                 if x==0:
                     if run:
                         if not with_output:
