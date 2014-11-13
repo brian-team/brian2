@@ -26,7 +26,7 @@ executable: $(OBJS) $(DEPS)
 	$(CC) $(LFLAGS) $(OBJS) -o $(PROGRAM)
 
 clean:
-	rm $(OBJS) $(PROGRAM) $(DEPS)
+	{{ rm_cmd }}
 
 make.deps: $(SRCS) $(H_SRCS)
 	$(CC) $(CFLAGS) -MM $(SRCS) > make.deps

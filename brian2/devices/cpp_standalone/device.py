@@ -407,6 +407,9 @@ class CPPStandaloneDevice(Device):
             run_args = []
         self.project_dir = directory
         ensure_directory(directory)
+
+        compiler, extra_compile_args = get_compiler_and_args()
+        compiler_flags = ' '.join(extra_compile_args)
         
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(directory, d))
@@ -586,11 +589,16 @@ class CPPStandaloneDevice(Device):
                                                           )
         writer.write('main.cpp', main_tmp)
 
-        main_tmp = CPPStandaloneCodeObject.templater.network(None, None)
-        writer.write('network.*', main_tmp)
+        if compiler=='msvc':
+            std_move = 'std::move'
+        else:
+            std_move = ''
+        network_tmp = CPPStandaloneCodeObject.templater.network(None, None,
+                                                             std_move=std_move)
+        writer.write('network.*', network_tmp)
 
-        main_tmp = CPPStandaloneCodeObject.templater.synapses_classes(None, None)
-        writer.write('synapses_classes.*', main_tmp)
+        synapses_classes_tmp = CPPStandaloneCodeObject.templater.synapses_classes(None, None)
+        writer.write('synapses_classes.*', synapses_classes_tmp)
         
         # Generate the run functions
         run_tmp = CPPStandaloneCodeObject.templater.run(None, None, run_funcs=runfuncs,
@@ -616,9 +624,6 @@ class CPPStandaloneDevice(Device):
         
         writer.source_files.extend(additional_source_files)
         writer.header_files.extend(additional_header_files)
-
-        compiler, extra_compile_args = get_compiler_and_args()
-        compiler_flags = ' '.join(extra_compile_args)
 
         if compiler=='msvc':
             if native:
@@ -650,9 +655,9 @@ class CPPStandaloneDevice(Device):
         else:
             # Generate the makefile
             if os.name=='nt':
-                rm_cmd = 'del'
+                rm_cmd = 'del *.o /s\n\tdel main.exe $(DEPS)'
             else:
-                rm_cmd = 'rm'
+                rm_cmd = 'rm $(OBJS) $(PROGRAM) $(DEPS)'
             makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None, None,
                 source_files=' '.join(writer.source_files),
                 header_files=' '.join(writer.header_files),
@@ -663,8 +668,8 @@ class CPPStandaloneDevice(Device):
         # build the project
         if compile:
             with in_directory(directory):
-                if compiler=='msvc': #TODO: check that we are using MSVC here
-                    # TODO: handle debug/native
+                if compiler=='msvc':
+                    # TODO: handle debug
                     if debug:
                         logger.warn('Debug flag currently ignored for MSVC')
                     vcvars_search_paths = [
@@ -699,10 +704,6 @@ class CPPStandaloneDevice(Device):
                         else:
                             arch_name = 'x86'
                     
-                    # TODO: remove this temporary override
-                    vcvars_loc = r'c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat'
-                    arch_name = 'x86'
-
                     vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(
                             vcvars_loc=vcvars_loc, arch_name=arch_name)
                     make_cmd = 'nmake /f win_makefile'
