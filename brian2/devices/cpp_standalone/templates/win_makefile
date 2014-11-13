@@ -1,0 +1,15 @@
+all: main.exe
+
+clean:
+    del *.obj /s
+    del *.exe /s
+
+{% for base in source_bases %}
+{{base}}.obj:
+    cl /c /EHsc /I. {{compiler_flags}} {{openmp_flag}} {{base}}.cpp /Fo{{base}}.obj
+    
+{% endfor %}
+
+main.exe: {% for base in source_bases %}{{base}}.obj {% endfor %}
+
+    link {% for base in source_bases %}{{base}}.obj {% endfor %} /OUT:main.exe

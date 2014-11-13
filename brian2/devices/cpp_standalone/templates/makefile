@@ -4,7 +4,7 @@ H_SRCS = {{header_files}}
 OBJS = ${SRCS:.cpp=.o}
 CC = @g++
 DEBUG = -g
-OPTIMISATIONS = {{optimisations}}
+OPTIMISATIONS = {{ compiler_flags }}
 CFLAGS = -c -Wno-write-strings $(OPTIMISATIONS) -I. {{ openmp_pragma('compilation') }}
 LFLAGS = {{ openmp_pragma('compilation') }}
 DEPS = make.deps

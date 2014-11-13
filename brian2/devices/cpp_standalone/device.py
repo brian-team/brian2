@@ -5,10 +5,12 @@ import os
 import shutil
 import subprocess
 import inspect
+import platform
 from collections import defaultdict
 
 import numpy as np
 
+from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.clocks import defaultclock
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices
@@ -41,12 +43,6 @@ prefs.register_preferences(
         is generated without any reference to OpenMP. If greater than 0, then the corresponding number of threads
         are used to launch the simulation.
         ''',
-        ),
-    optimisation_flags = BrianPreference(
-        default='-O3',
-        docs='''
-        Optimisation flags to pass to the compiler
-        '''
         ),
     )
 
@@ -350,8 +346,8 @@ class CPPStandaloneDevice(Device):
         self.code_objects[codeobj.name] = codeobj
         return codeobj
 
-    def build(self, directory='output', compile=True, run=False, debug=True,
-              optimisations='-O3 -ffast-math',
+    def build(self, directory='output',
+              compile=True, run=True, debug=False, clean=True,
               with_output=True, native=True,
               additional_source_files=None, additional_header_files=None,
               main_includes=None, run_includes=None,
@@ -366,7 +362,7 @@ class CPPStandaloneDevice(Device):
         directory : str
             The output directory to write the project to, any existing files will be overwritten.
         compile : bool
-            Whether or not to attempt to compile the project using GNU make.
+            Whether or not to attempt to compile the project
         run : bool
             Whether or not to attempt to run the built project if it successfully builds.
         debug : bool
@@ -374,7 +370,9 @@ class CPPStandaloneDevice(Device):
         with_output : bool
             Whether or not to show the ``stdout`` of the built program when run.
         native : bool
-            Whether or not to compile natively using the ``--march=native`` gcc option.
+            Whether or not to compile for the current machine's architecture (best for speed, but not portable)
+        clean : bool
+            Whether or not to clean the project before building
         additional_source_files : list of str
             A list of additional ``.cpp`` files to include in the build.
         additional_header_files : list of str
@@ -619,27 +617,105 @@ class CPPStandaloneDevice(Device):
         writer.source_files.extend(additional_source_files)
         writer.header_files.extend(additional_header_files)
 
-        # Generate the makefile
-        if os.name=='nt':
-            rm_cmd = 'del'
-        else:
-            rm_cmd = 'rm'
-        makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None, None,
-            source_files=' '.join(writer.source_files),
-            header_files=' '.join(writer.header_files),
-            optimisations=prefs['devices.cpp_standalone.optimisation_flags'],
-            rm_cmd=rm_cmd)
-        writer.write('makefile', makefile_tmp)
+        compiler, extra_compile_args = get_compiler_and_args()
+        compiler_flags = ' '.join(extra_compile_args)
 
+        if compiler=='msvc':
+            # Generate the visual studio makefile
+            source_bases = [fname.replace('.cpp', '').replace('/', '\\') for fname in writer.source_files]
+            win_makefile_tmp = CPPStandaloneCodeObject.templater.win_makefile(
+                None, None,
+                source_bases=source_bases,
+                compiler_flags=compiler_flags,
+                openmp_flag='',
+                )
+            writer.write('win_makefile', win_makefile_tmp)
+        else:
+            # Generate the makefile
+            if os.name=='nt':
+                rm_cmd = 'del'
+            else:
+                rm_cmd = 'rm'
+            makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None, None,
+                source_files=' '.join(writer.source_files),
+                header_files=' '.join(writer.header_files),
+                compiler_flags=compiler_flags,
+                rm_cmd=rm_cmd)
+            writer.write('makefile', makefile_tmp)
+        
         # build the project
         if compile:
             with in_directory(directory):
-                if debug:
-                    x = os.system('make debug')
-                elif native:
-                    x = os.system('make native')
+                if compiler=='msvc': #TODO: check that we are using MSVC here
+                    # TODO: handle debug/native
+                    if debug:
+                        logger.warn('Debug flag currently ignored for MSVC')
+                    if native:
+                        # TODO: can automatically work this out by doing this (untested)
+#                        try:
+#                            # easy_install py-cpuinfo
+#                            from cpuinfo import cpuinfo
+#                            res = cpuinfo.get_cpu_info()
+#                            if 'sse' in res['flags']:
+#                                pass
+#                            if 'sse2' in res['flags']:
+#                                pass
+#                        except ImportError:
+#                            pass
+                        logger.warn('Native flag not supported for MSVC compiler, add /arch:XX to optimisation flags for XX one of IA32, SSE, SSE2, AVX, AVX2')
+                    vcvars_search_paths = [
+                        # futureproofing!
+                        r'c:\Program Files\Microsoft Visual Studio 15.0\VC\vcvarsall.bat',
+                        r'c:\Program Files (x86)\Microsoft Visual Studio 15.0\VC\vcvarsall.bat',
+                        r'c:\Program Files\Microsoft Visual Studio 14.0\VC\vcvarsall.bat',
+                        r'c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat',
+                        r'c:\Program Files\Microsoft Visual Studio 13.0\VC\vcvarsall.bat',
+                        r'c:\Program Files (x86)\Microsoft Visual Studio 13.0\VC\vcvarsall.bat',
+                        r'c:\Program Files\Microsoft Visual Studio 12.0\VC\vcvarsall.bat',
+                        r'c:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat',
+                        r'c:\Program Files\Microsoft Visual Studio 11.0\VC\vcvarsall.bat',
+                        r'c:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\vcvarsall.bat',
+                        r'c:\Program Files\Microsoft Visual Studio 10.0\VC\vcvarsall.bat',
+                        r'c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat',
+                        ]
+                    vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
+                    if vcvars_loc=='':
+                        for fname in vcvars_search_paths:
+                            if os.path.exists(fname):
+                                vcvars_loc = fname
+                                break
+                    if vcvars_loc=='':
+                        raise IOError("Cannot find vcvarsall.bat on standard search path.")
+                    # TODO: copy vcvars and make replacements for 64 bit automatically
+                    arch_name = prefs['codegen.cpp.msvc_architecture']
+                    if arch_name=='':
+                        mach = platform.machine()
+                        if mach=='AMD64':
+                            arch_name = 'x86_amd64'
+                        else:
+                            arch_name = 'x86'
+                    
+                    # TODO: remove this temporary override
+                    vcvars_loc = r'c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat'
+                    arch_name = 'x86'
+
+                    vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(
+                            vcvars_loc=vcvars_loc, arch_name=arch_name)
+                    make_cmd = 'nmake /f win_makefile'
+                    if os.path.exists('winmake.log'):
+                        os.remove('winmake.log')
+                    if clean:
+                        os.system('%s >>winmake.log 2>&1 && %s clean >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
+                    x = os.system('%s >>winmake.log 2>&1 && %s >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
                 else:
-                    x = os.system('make')
+                    if clean:
+                        os.system('make clean')
+                    if debug:
+                        x = os.system('make debug')
+                    elif native:
+                        x = os.system('make native')
+                    else:
+                        x = os.system('make')
                 if x==0:
                     if run:
                         if not with_output:

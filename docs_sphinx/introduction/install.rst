@@ -52,6 +52,12 @@ the file ``C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcvarsall.bat``
 `this patch <https://gist.githubusercontent.com/mikofski/11024332/raw/vcvarsall.bat.patch>`_ to
 correct a bug in the free versions of Visual Studio.
 
+Annoyingly, if you wish to use standalone mode on Windows, you will also need a more
+recent version of Visual Studio: any version of Visual Studio express from
+2010 onwards (also
+`freely available <http://www.visualstudio.com/en-us/products/visual-studio-express-vs.aspx>`_
+from Microsoft). You will need to apply a similar patch to the above.
+
 For further reading on these issues which might help to get compiled C++ code running with a
 different Python installation (particularly for 64 bit Windows), see
 `here <http://poquitopicante.blogspot.co.uk/2014/04/fix-vcvarsallbat-to-install-python-27.html>`_.

@@ -23,6 +23,7 @@ from ...codeobject import CodeObject
 from ...templates import Templater
 from ...generators.cpp_generator import CPPCodeGenerator
 from ...targets import codegen_targets
+from ...cpp_prefs import get_compiler_and_args
 
 __all__ = ['WeaveCodeObject', 'WeaveCodeGenerator']
 
@@ -30,32 +31,6 @@ __all__ = ['WeaveCodeObject', 'WeaveCodeGenerator']
 prefs.register_preferences(
     'codegen.runtime.weave',
     'Weave runtime codegen preferences',
-    compiler = BrianPreference(
-        default='',
-        docs='''
-        Compiler to use for weave (uses default if empty)
-        '''
-        ),
-    extra_compile_args = BrianPreference(
-        default=None,
-        validator=lambda v: True,
-        docs='''
-        Extra arguments to pass to compiler (if None, use either
-        ``extra_compile_args_gcc`` or ``extra_compile_args_msvs``).
-        '''
-        ),
-    extra_compile_args_gcc = BrianPreference(
-        default=['-w', '-O3'],
-        docs='''
-        Extra compile arguments to pass to GCC compiler
-        '''
-        ),
-    extra_compile_args_msvc = BrianPreference(
-        default=['/Ox', '/EHsc', '/w'],
-        docs='''
-        Extra compile arguments to pass to MSVC compiler
-        '''
-        ),
     include_dirs = BrianPreference(
         default=[],
         docs='''
@@ -84,19 +59,6 @@ def weave_data_type(dtype):
         raise TypeError('Illegal dtype %r' % dtype)
         
     return num_to_c_types[dtype]
-
-
-def get_compiler_and_args():
-    compiler = prefs['codegen.runtime.weave.compiler']
-    if compiler=='':
-        compiler = get_default_compiler()
-    extra_compile_args = prefs['codegen.runtime.weave.extra_compile_args']
-    if extra_compile_args is None:
-        if compiler=='gcc':
-            extra_compile_args = prefs['codegen.runtime.weave.extra_compile_args_gcc']
-        if compiler=='msvc':
-            extra_compile_args = prefs['codegen.runtime.weave.extra_compile_args_msvc']
-    return compiler, extra_compile_args
 
 
 class WeaveCodeGenerator(CPPCodeGenerator):
