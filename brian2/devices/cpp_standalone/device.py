@@ -621,13 +621,30 @@ class CPPStandaloneDevice(Device):
         compiler_flags = ' '.join(extra_compile_args)
 
         if compiler=='msvc':
+            if native:
+                arch_flag = ''
+                try:
+                    from cpuinfo import cpuinfo
+                    res = cpuinfo.get_cpu_info()
+                    if 'sse' in res['flags']:
+                        arch_flag = '/arch:SSE'
+                    if 'sse2' in res['flags']:
+                        arch_flag = '/arch:SSE2'
+                except ImportError:
+                    logger.warn('Native flag for MSVC compiler requires installation of the py-cpuinfo module')
+                compiler_flags += ' '+arch_flag
+            
+            if nb_threads>1:
+                openmp_flag = '/openmp'
+            else:
+                openmp_flag = ''
             # Generate the visual studio makefile
             source_bases = [fname.replace('.cpp', '').replace('/', '\\') for fname in writer.source_files]
             win_makefile_tmp = CPPStandaloneCodeObject.templater.win_makefile(
                 None, None,
                 source_bases=source_bases,
                 compiler_flags=compiler_flags,
-                openmp_flag='',
+                openmp_flag=openmp_flag,
                 )
             writer.write('win_makefile', win_makefile_tmp)
         else:
@@ -650,19 +667,6 @@ class CPPStandaloneDevice(Device):
                     # TODO: handle debug/native
                     if debug:
                         logger.warn('Debug flag currently ignored for MSVC')
-                    if native:
-                        # TODO: can automatically work this out by doing this (untested)
-#                        try:
-#                            # easy_install py-cpuinfo
-#                            from cpuinfo import cpuinfo
-#                            res = cpuinfo.get_cpu_info()
-#                            if 'sse' in res['flags']:
-#                                pass
-#                            if 'sse2' in res['flags']:
-#                                pass
-#                        except ImportError:
-#                            pass
-                        logger.warn('Native flag not supported for MSVC compiler, add /arch:XX to optimisation flags for XX one of IA32, SSE, SSE2, AVX, AVX2')
                     vcvars_search_paths = [
                         # futureproofing!
                         r'c:\Program Files\Microsoft Visual Studio 15.0\VC\vcvarsall.bat',
