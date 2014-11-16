@@ -105,6 +105,28 @@ class WeaveCodeObject(CodeObject):
         self.extra_compile_args = prefs['codegen.runtime.weave.extra_compile_args']
         self.include_dirs = list(prefs['codegen.runtime.weave.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
+        self.annotated_code = self.code.main+'''
+/*
+The following code is just compiler options for the call to weave.inline.
+By including them here, we force a recompile if the compiler options change,
+which is a good thing (e.g. switching -ffast-math on and off).
+
+support_code:
+{support_code}
+
+compiler:
+{compiler}
+
+extra_compile_args:
+{extra_compile_args}
+
+include_dirs:
+{include_dirs}
+*/
+        '''.format(support_code=self.code.support_code,
+                   compiler=self.compiler,
+                   extra_compile_args=self.extra_compile_args,
+                   include_dirs=self.include_dirs)
         self.python_code_namespace = {'_owner': owner}
         self.variables_to_namespace()
 
@@ -167,42 +189,24 @@ class WeaveCodeObject(CodeObject):
         CodeObject.compile(self)
         if hasattr(self.code, 'python_pre'):
             self.compiled_python_pre = compile(self.code.python_pre, '(string)', 'exec')
+        else:
+            self.compiled_python_pre = None
         if hasattr(self.code, 'python_post'):
             self.compiled_python_post = compile(self.code.python_post, '(string)', 'exec')
+        else:
+            self.compiled_python_post = None
 
     def run(self):
-        if hasattr(self, 'compiled_python_pre'):
+        if self.compiled_python_pre is not None:
             exec self.compiled_python_pre in self.python_code_namespace
-        code = self.code.main+'''
-/*
-The following code is just compiler options for the call to weave.inline.
-By including them here, we force a recompile if the compiler options change,
-which is a good thing (e.g. switching -ffast-math on and off).
-
-support_code:
-{support_code}
-
-compiler:
-{compiler}
-
-extra_compile_args:
-{extra_compile_args}
-
-include_dirs:
-{include_dirs}
-*/
-        '''.format(support_code=self.code.support_code,
-                   compiler=self.compiler,
-                   extra_compile_args=self.extra_compile_args,
-                   include_dirs=self.include_dirs)
-        ret_val = weave.inline(code, self.namespace.keys(),
+        ret_val = weave.inline(self.annotated_code, self.namespace.keys(),
                                local_dict=self.namespace,
                                support_code=self.code.support_code,
                                compiler=self.compiler,
                                headers=['<algorithm>'],
                                extra_compile_args=self.extra_compile_args,
                                include_dirs=self.include_dirs)
-        if hasattr(self, 'compiled_python_post'):
+        if self.compiled_python_post is not None:
             exec self.compiled_python_post in self.python_code_namespace
         return ret_val
 
