@@ -71,6 +71,7 @@ class WeaveCodeObject(CodeObject):
                  template_name, template_source, name='weave_code_object*'):
         from brian2.devices.device import get_device
         self.device = get_device()
+        self._done_first_run = False
         self.namespace = {'_owner': owner}
         super(WeaveCodeObject, self).__init__(owner, code, variables,
                                               variable_indices,
@@ -175,7 +176,7 @@ include_dirs:
     def run(self):
         if self.compiled_python_pre is not None:
             exec self.compiled_python_pre in self.python_code_namespace
-        with std_silent(hasattr(self, '_done_first_run')):
+        with std_silent(self._done_first_run):
             ret_val = weave.inline(self.annotated_code, self.namespace.keys(),
                                    local_dict=self.namespace,
                                    support_code=self.code.support_code,
