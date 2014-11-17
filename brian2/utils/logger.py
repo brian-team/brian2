@@ -23,7 +23,7 @@ from brian2.core.preferences import prefs, BrianPreference
 
 from .environment import running_from_ipython
 
-__all__ = ['get_logger', 'BrianLogger']
+__all__ = ['get_logger', 'BrianLogger', 'std_silent']
 
 #===============================================================================
 # Logging preferences
@@ -88,7 +88,19 @@ prefs.register_preferences('logging', 'Logging system preferences',
         run (unless `logging.delete_log_on_exit` is ``False``) but is kept after
         an uncaught exception occured. This can be helpful for debugging,
         in particular when several simulations are running in parallel.
-        ''')
+        '''),
+    std_redirection = BrianPreference(
+        default=True,
+        docs='''
+        Whether or not to redirect stdout/stderr to null at certain places.
+        
+        This silences a lot of annoying compiler output, but will also hide
+        error messages making it harder to debug problems. You can always
+        temporarily switch it off when debugging. In any case, the output
+        is saved to a file and if an error occurs the name of this file
+        will be printed.
+        '''
+        ),                           
     )
 
 #===============================================================================
@@ -202,7 +214,12 @@ def brian_excepthook(exc_type, exc_obj, exc_tb):
         message += (' Additionally, you can also include a copy '
                     'of the script that was run, available '
                     'at: {}').format(TMP_SCRIPT)
-
+    if hasattr(std_silent, 'dest_fname_stdout'):
+        message += (' You can also include a copy of the '
+                    'redirected std stream outputs, available at '
+                    '{stdout} and {stderr}').format(
+                        stdout=std_silent.dest_fname_stdout,
+                        stderr=std_silent.dest_fname_stderr)
     message += ' Thanks!'  # very important :)
 
     logger.error(message, exc_info=(exc_type, exc_obj, exc_tb))
@@ -225,6 +242,8 @@ def clean_up_logging():
                 os.remove(TMP_SCRIPT)
             except IOError as exc:
                 warn('Could not delete copy of script file: %s' % exc)
+        std_silent.close()
+
 
 sys.excepthook = brian_excepthook
 atexit.register(clean_up_logging)
@@ -588,3 +607,69 @@ class LogCapture(logging.Handler):
             the_logger = logging.getLogger(logger_name)
             for handler in self.handlers[logger_name]:
                 the_logger.addHandler(handler)
+
+
+# See http://stackoverflow.com/questions/26126160/redirecting-standard-out-in-err-back-after-os-dup2
+# for an explanation of how this function works. Note that 1 and 2 are the file
+# numbers for stdout and stderr
+class std_silent(object):
+    '''
+    Context manager that temporarily silences stdout and stderr but keeps the
+    output saved in a temporary file and writes it if an exception is raised.
+    '''
+    dest_stdout = None
+    def __init__(self, alwaysprint=False):
+        self.alwaysprint = alwaysprint
+        if not alwaysprint and std_silent.dest_stdout is None:
+            if not prefs['logging.std_redirection']:
+                self.alwaysprint = True
+                return
+            std_silent.dest_fname_stdout = tempfile.mktemp()
+            std_silent.dest_fname_stderr = tempfile.mktemp()
+            std_silent.dest_stdout = open(std_silent.dest_fname_stdout, 'w')
+            std_silent.dest_stderr = open(std_silent.dest_fname_stderr, 'w')
+        
+    def __enter__(self):
+        if not self.alwaysprint:
+            sys.stdout.flush()
+            sys.stderr.flush()
+            self.orig_out_fd = os.dup(1)
+            self.orig_err_fd = os.dup(2)
+            os.dup2(std_silent.dest_stdout.fileno(), 1)
+            os.dup2(std_silent.dest_stderr.fileno(), 2)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if not self.alwaysprint:
+            std_silent.dest_stdout.flush()
+            std_silent.dest_stderr.flush()
+            if exc_type is not None:
+                with open(std_silent.dest_fname.stdout, 'r') as f:
+                    out = f.read()
+                with open(std_silent.dest_fname.stderr, 'r') as f:
+                    err = f.read()
+            os.dup2(self.orig_out_fd, 1)
+            os.dup2(self.orig_err_fd, 2)
+            os.close(self.orig_out_fd)
+            os.close(self.orig_err_fd)
+            if exc_type is not None:
+                sys.stdout.write(out)
+                sys.stderr.write(err)
+    
+    @classmethod
+    def close(cls):
+        if hasattr(std_silent, 'dest_stdout'):
+            std_silent.dest_stdout.close()
+            try:
+                os.remove(std_silent.dest_fname_stdout)
+            except (IOError, WindowsError) as exc:
+                # TODO: this happens quite frequently - why?
+                # The file objects are closed as far as Python is concerned,
+                # but maybe Windows is still hanging on to them?
+                pass
+        if hasattr(std_silent, 'dest_stderr'):
+            std_silent.dest_stderr.close()
+            try:
+                os.remove(std_silent.dest_fname_stderr)
+            except (IOError, WindowsError) as exc:
+                pass
+        

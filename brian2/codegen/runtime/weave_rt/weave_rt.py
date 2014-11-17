@@ -18,7 +18,7 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    Subexpression)
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.functions import DEFAULT_FUNCTIONS
-from brian2.utils.debugging import std_silent
+from brian2.utils.logger import std_silent
 
 from ...codeobject import CodeObject
 from ...templates import Templater

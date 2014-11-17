@@ -12,7 +12,7 @@ from brian2.core.preferences import prefs
 from brian2.core.variables import Constant
 from brian2.groups.group import Group
 from brian2.utils.stringtools import get_identifiers, deindent
-from brian2.utils.debugging import std_silent
+from brian2.utils.logger import std_silent
 from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
                                       CPPNodeRenderer,
                                       )

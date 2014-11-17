@@ -24,7 +24,7 @@ try:
 except ImportError:
     Cython = None
 
-from brian2.utils.debugging import std_silent
+from brian2.utils.logger import std_silent
 from brian2.utils.stringtools import deindent
 
 __all__ = ['cython_extension_manager']

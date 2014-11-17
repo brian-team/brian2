@@ -22,8 +22,7 @@ from brian2.utils.stringtools import word_substitute
 from brian2.codegen.generators.cpp_generator import c_data_type
 from brian2.units.fundamentalunits import Quantity, have_same_dimensions
 from brian2.units import second
-from brian2.utils.logger import get_logger
-from brian2.utils.debugging import std_silent
+from brian2.utils.logger import get_logger, std_silent
 
 from .codeobject import CPPStandaloneCodeObject, openmp_pragma
 
