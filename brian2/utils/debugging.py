@@ -3,8 +3,25 @@ Some tools for debugging.
 '''
 import os, sys, tempfile
 from cStringIO import StringIO
+from brian2.core.preferences import prefs, BrianPreference
 
 __all__ = ['RedirectStdStreams', 'std_silent']
+
+
+prefs.register_preferences(
+    'debugging',
+    'Debugging preferences',
+    std_redirection = BrianPreference(
+        default=True,
+        docs='''
+        Whether or not to redirect stdout/stderr to null at certain places.
+        
+        This silences a lot of annoying compiler output, but will also hide
+        error messages making it harder to debug problems. You can always
+        temporarily switch it off when debugging.
+        '''
+        ),
+    )
 
 class RedirectStdStreams(object):
     '''
@@ -37,9 +54,13 @@ class std_silent(object):
     Context manager that temporarily silences stdout and stderr but keeps the
     output saved in a temporary file and writes it if an exception is raised.
     '''
+    dest_stdout = None
     def __init__(self, alwaysprint=False):
         self.alwaysprint = alwaysprint
-        if not hasattr(std_silent, 'dest_stdout'):
+        if not alwaysprint and std_silent.dest_stdout is None:
+            if not prefs['debugging.std_redirection']:
+                self.alwaysprint = True
+                return
             std_silent.dest_fname_stdout = tempfile.mktemp()
             std_silent.dest_fname_stderr = tempfile.mktemp()
             std_silent.dest_stdout = open(std_silent.dest_fname_stdout, 'w')
