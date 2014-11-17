@@ -435,10 +435,13 @@ class Network(Nameable):
                 obj.after_run()
         
     def _nextclocks(self):
-        minclock = min(self._clocks, key=lambda c: c.t_)
-        curclocks = set(clock for clock in self._clocks if
-                        (clock.t_ == minclock.t_ or
-                         abs(clock.t_ - minclock.t_)<Clock.epsilon))
+        # Getting Clock.t_ is relatively expensive since it involves a
+        # multiplication therefore we extract it only once
+        clocks_times = [(clock, clock.t_) for clock in self._clocks]
+        minclock, min_time = min(clocks_times, key=lambda k: k[1])
+        curclocks = set(clock for clock, time in clocks_times if
+                        (time == min_time or
+                         abs(time - min_time)<Clock.epsilon))
         return minclock, curclocks
 
     @device_override('network_run')
@@ -485,7 +488,7 @@ class Network(Nameable):
         if len(self.objects)==0:
             return # TODO: raise an error? warning?
 
-        self._clocks = [obj.clock for obj in self.objects]
+        self._clocks = set([obj.clock for obj in self.objects])
         t_start = self.t
         t_end = self.t+duration
         for clock in self._clocks:
