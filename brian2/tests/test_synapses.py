@@ -591,6 +591,19 @@ def test_changed_dt_spikes_in_queue():
     assert_equal(mon.t[:], expected)
 
 
+@attr('codegen-independent')
+def test_no_synapses():
+    # Synaptic pathway but no synapses
+    G1 = NeuronGroup(1, '', threshold='True')
+    G2 = NeuronGroup(1, 'v:1')
+    S = Synapses(G1, G2, pre='v+=1', name='synapses_'+str(uuid.uuid4()).replace('-', '_'))
+    net = Network(G1, G2, S)
+    with catch_logs() as l:
+        net.run(defaultclock.dt)
+        assert len(l) == 1, 'expected 1 warning, got %d' % len(l)
+        assert l[0][1].endswith('.no_synapses')
+
+
 def test_summed_variable():
     source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0')
     source.v = 1.1  # will spike immediately
@@ -788,6 +801,7 @@ if __name__ == '__main__':
     test_transmission_scalar_delay_different_clocks()
     test_clocks()
     test_changed_dt_spikes_in_queue()
+    test_no_synapses()
     test_summed_variable()
     test_summed_variable_errors()
     test_scalar_parameter_access()
