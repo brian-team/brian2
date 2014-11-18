@@ -1,5 +1,10 @@
 '''
 Preferences related to C++ compilation
+
+Preferences
+--------------------
+.. document_brian_prefs:: codegen.cpp
+
 '''
 
 from distutils.ccompiler import get_default_compiler
