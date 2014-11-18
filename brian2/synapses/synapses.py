@@ -249,6 +249,10 @@ class SynapticPathway(CodeRunner, Group):
         self._code_objects.insert(0, weakref.proxy(self._pushspikes_codeobj))
 
     def initialise_queue(self):
+        if self.synapse_sources.get_len() == 0:
+            logger.warn(("Synapses object '%s' does not have any synapses. Did "
+                         "you forget a 'connect'?") % self.synapses.name,
+                        'no_synapses', once=True)
         if self.queue is None:
             self.queue = get_device().spike_queue(self.source.start, self.source.stop)
 
