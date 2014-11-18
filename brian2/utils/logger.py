@@ -618,6 +618,7 @@ class std_silent(object):
     output saved in a temporary file and writes it if an exception is raised.
     '''
     dest_stdout = None
+    dest_stderr = None
     def __init__(self, alwaysprint=False):
         self.alwaysprint = alwaysprint
         if not alwaysprint and std_silent.dest_stdout is None:
@@ -657,7 +658,7 @@ class std_silent(object):
     
     @classmethod
     def close(cls):
-        if hasattr(std_silent, 'dest_stdout'):
+        if std_silent.dest_stdout is not None:
             std_silent.dest_stdout.close()
             try:
                 os.remove(std_silent.dest_fname_stdout)
@@ -666,10 +667,9 @@ class std_silent(object):
                 # The file objects are closed as far as Python is concerned,
                 # but maybe Windows is still hanging on to them?
                 pass
-        if hasattr(std_silent, 'dest_stderr'):
+        if std_silent.dest_stderr is not None:
             std_silent.dest_stderr.close()
             try:
                 os.remove(std_silent.dest_fname_stderr)
             except (IOError, WindowsError) as exc:
                 pass
-        
