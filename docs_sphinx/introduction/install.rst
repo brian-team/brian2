@@ -3,6 +3,11 @@ Installation
 
 Released version
 ----------------
+
+.. warning::
+
+    Installing for Windows can be a little more involved: see the section below.
+
 Brian is available on the Python package index: https://pypi.python.org/pypi/brian2
 
 It can therefore be installed using ``easy_install`` or ``pip`` (in newer
@@ -32,6 +37,30 @@ You can then either run ``python setup.py install`` to install it, or simply add
 the source directory to your ``PYTHONPATH``. Note that if you are using
 Python 3, directly running from the source directory is not possible, you have
 to install the package first.
+
+Windows
+-------
+
+We recommend first installing the
+`Anaconda distribution <https://store.continuum.io/cshop/anaconda/>`_ of Python 2.7.
+
+In order to get support for compiled C++ code (highly recommended for speed), you need to next
+install Visual Studio 2008 Express, which can be freely downloaded from Microsoft
+`here <http://go.microsoft.com/?linkid=7729279>`_. If you installed the 64 bit version of Python,
+then you now need to modify
+the file ``C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcvarsall.bat`` according to
+`this patch <https://gist.githubusercontent.com/mikofski/11024332/raw/vcvarsall.bat.patch>`_ to
+correct a bug in the free versions of Visual Studio.
+
+Annoyingly, if you wish to use standalone mode on Windows, you will also need a more
+recent version of Visual Studio: any version of Visual Studio express from
+2010 onwards (also
+`freely available <http://www.visualstudio.com/en-us/products/visual-studio-express-vs.aspx>`_
+from Microsoft). You will need to apply a similar patch to the above.
+
+For further reading on these issues which might help to get compiled C++ code running with a
+different Python installation (particularly for 64 bit Windows), see
+`here <http://poquitopicante.blogspot.co.uk/2014/04/fix-vcvarsallbat-to-install-python-27.html>`_.
 
 Development version
 -------------------

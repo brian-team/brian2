@@ -65,10 +65,10 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     stored_prefs = prefs.as_file
     prefs.read_preference_file(StringIO(prefs.defaults_as_file))
 
-    for target in ['cython', 'weave']:
-        if target in codegen_targets:
-            # Switch off code optimization to get faster compilation times
-            prefs['codegen.runtime.%s.extra_compile_args' % target] = ['-w', '-O0']
+    # Switch off code optimization to get faster compilation times
+    prefs['codegen.runtime.cython.extra_compile_args'] = ['-w', '-O0']
+    prefs['codegen.cpp.extra_compile_args_gcc'] = ['-w', '-O0']
+    
     try:
         success = []
         if test_codegen_independent:

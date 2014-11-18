@@ -4,6 +4,7 @@ Module providing `WeaveCodeObject`.
 import os
 import sys
 import numpy
+from distutils.ccompiler import get_default_compiler
 
 try:
     from scipy import weave
@@ -17,41 +18,15 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    Subexpression)
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.functions import DEFAULT_FUNCTIONS
+from brian2.utils.logger import std_silent
 
 from ...codeobject import CodeObject
 from ...templates import Templater
 from ...generators.cpp_generator import CPPCodeGenerator
 from ...targets import codegen_targets
+from ...cpp_prefs import get_compiler_and_args
 
 __all__ = ['WeaveCodeObject', 'WeaveCodeGenerator']
-
-# Preferences
-prefs.register_preferences(
-    'codegen.runtime.weave',
-    'Weave runtime codegen preferences',
-    compiler = BrianPreference(
-        default='gcc',
-        validator=lambda pref: pref=='gcc',
-        docs='''
-        Compiler to use for weave.
-        '''
-        ),
-    extra_compile_args = BrianPreference(
-        default=['-w', '-O3'],
-        docs='''
-        Extra compile arguments to pass to compiler
-        '''
-        ),
-    include_dirs = BrianPreference(
-        default=[],
-        docs='''
-        Include directories to use. Note that ``$prefix/include`` will be
-        appended to the end automatically, where ``$prefix`` is Python's
-        site-specific directory prefix as returned by `sys.prefix`.
-        '''
-        )
-    )
-
 
 def weave_data_type(dtype):
     '''
@@ -96,14 +71,14 @@ class WeaveCodeObject(CodeObject):
                  template_name, template_source, name='weave_code_object*'):
         from brian2.devices.device import get_device
         self.device = get_device()
+        self._done_first_run = False
         self.namespace = {'_owner': owner}
         super(WeaveCodeObject, self).__init__(owner, code, variables,
                                               variable_indices,
                                               template_name, template_source,
                                               name=name)
-        self.compiler = prefs['codegen.runtime.weave.compiler']
-        self.extra_compile_args = prefs['codegen.runtime.weave.extra_compile_args']
-        self.include_dirs = list(prefs['codegen.runtime.weave.include_dirs'])
+        self.compiler, self.extra_compile_args = get_compiler_and_args()
+        self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
         self.annotated_code = self.code.main+'''
 /*
@@ -127,6 +102,8 @@ include_dirs:
                    compiler=self.compiler,
                    extra_compile_args=self.extra_compile_args,
                    include_dirs=self.include_dirs)
+        if self.compiler == 'msvc':
+            self.annotated_code = '#define INFINITY (std::numeric_limits<double>::infinity())\n'+self.annotated_code        
         self.python_code_namespace = {'_owner': owner}
         self.variables_to_namespace()
 
@@ -199,13 +176,16 @@ include_dirs:
     def run(self):
         if self.compiled_python_pre is not None:
             exec self.compiled_python_pre in self.python_code_namespace
-        ret_val = weave.inline(self.annotated_code, self.namespace.keys(),
-                               local_dict=self.namespace,
-                               support_code=self.code.support_code,
-                               compiler=self.compiler,
-                               headers=['<algorithm>'],
-                               extra_compile_args=self.extra_compile_args,
-                               include_dirs=self.include_dirs)
+        with std_silent(self._done_first_run):
+            ret_val = weave.inline(self.annotated_code, self.namespace.keys(),
+                                   local_dict=self.namespace,
+                                   support_code=self.code.support_code,
+                                   compiler=self.compiler,
+                                   headers=['<algorithm>', '<limits>'],
+                                   extra_compile_args=self.extra_compile_args,
+                                   include_dirs=self.include_dirs,
+                                   verbose=0)
+        self._done_first_run = True
         if self.compiled_python_post is not None:
             exec self.compiled_python_post in self.python_code_namespace
         return ret_val
