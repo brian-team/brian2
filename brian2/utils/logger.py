@@ -644,9 +644,9 @@ class std_silent(object):
             std_silent.dest_stdout.flush()
             std_silent.dest_stderr.flush()
             if exc_type is not None:
-                with open(std_silent.dest_fname.stdout, 'r') as f:
+                with open(std_silent.dest_fname_stdout, 'r') as f:
                     out = f.read()
-                with open(std_silent.dest_fname.stderr, 'r') as f:
+                with open(std_silent.dest_fname_stderr, 'r') as f:
                     err = f.read()
             os.dup2(self.orig_out_fd, 1)
             os.dup2(self.orig_err_fd, 2)
