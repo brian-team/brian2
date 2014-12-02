@@ -235,6 +235,54 @@ class CPPCodeGenerator(CodeGenerator):
         else:
             return ''
 
+    def _add_user_function(self, varname, variable):
+        impl = variable.implementations[self.codeobj_class]
+        support_code = ''
+        hash_defines = ''
+        pointers = ''
+        user_functions = [(varname, variable)]
+        funccode = impl.get_code(self.owner)
+        if isinstance(funccode, basestring):
+            funccode = {'support_code': funccode}
+        if funccode is not None:
+            # To make namespace variables available to functions, we
+            # create global variables and assign to them in the main
+            # code
+            func_namespace = impl.get_namespace(self.owner) or {}
+            for ns_key, ns_value in func_namespace.iteritems():
+                if hasattr(ns_value, 'dtype'):
+                    if ns_value.shape == ():
+                        raise NotImplementedError((
+                        'Directly replace scalar values in the function '
+                        'instead of providing them via the namespace'))
+                    type_str = c_data_type(ns_value.dtype) + '*'
+                else:  # e.g. a function
+                    type_str = 'py::object'
+                support_code += '\nstatic %s _namespace%s;\n' % (
+                type_str, ns_key)
+                pointers += '\n _namespace%s = %s;\n' % (ns_key, ns_key)
+            support_code += '\n' + deindent(
+                funccode.get('support_code', ''))
+            hash_defines += '\n' + deindent(
+                funccode.get('hashdefine_code', ''))
+
+        dep_hash_defines = ''
+        dep_pointers = ''
+        dep_support_code = ''
+        if impl.dependencies is not None:
+            for dep_name, dep in impl.dependencies.iteritems():
+                self.variables[dep_name] = dep
+                hd, ps, sc, uf = self._add_user_function(dep_name, dep)
+                dep_hash_defines += hd
+                dep_pointers += ps
+                dep_support_code += sc
+                user_functions.extend(uf)
+
+        return (dep_hash_defines + hash_defines,
+                dep_pointers + pointers,
+                dep_support_code + support_code,
+                user_functions)
+
     def determine_keywords(self):
         # set up the restricted pointers, these are used so that the compiler
         # knows there is no aliasing in the pointers, for optimisation
@@ -268,27 +316,12 @@ class CPPCodeGenerator(CodeGenerator):
         hash_defines = ''
         for varname, variable in self.variables.items():
             if isinstance(variable, Function):
-                user_functions.append((varname, variable))
-                funccode = variable.implementations[self.codeobj_class].get_code(self.owner)
-                if isinstance(funccode, basestring):
-                    funccode = {'support_code': funccode}
-                if funccode is not None:
-                    # To make namespace variables available to functions, we
-                    # create global variables and assign to them in the main
-                    # code
-                    func_namespace = variable.implementations[self.codeobj_class].get_namespace(self.owner) or {}
-                    for ns_key, ns_value in func_namespace.iteritems():
-                        if hasattr(ns_value, 'dtype'):
-                            if ns_value.shape == ():
-                                raise NotImplementedError(('Directly replace scalar values in the function '
-                                                           'instead of providing them via the namespace'))
-                            type_str = c_data_type(ns_value.dtype) + '*'
-                        else:  # e.g. a function
-                            type_str = 'py::object'
-                        support_code += '\nstatic %s _namespace%s;\n' % (type_str, ns_key)
-                        pointers += '\n _namespace%s = %s;\n' % (ns_key, ns_key)
-                    support_code += '\n' + deindent(funccode.get('support_code', ''))
-                    hash_defines += '\n' + deindent(funccode.get('hashdefine_code', ''))
+                hd, ps, sc, uf = self._add_user_function(varname, variable)
+                user_functions.extend(uf)
+                support_code += sc
+                pointers += ps
+                hash_defines += hd
+
 
         # delete the user-defined functions from the namespace and add the
         # function namespaces (if any)

@@ -105,6 +105,79 @@ class CythonCodeGenerator(CodeGenerator):
 
         return lines
 
+    def _add_user_function(self, varname, var):
+        user_functions = []
+        load_namespace = []
+        support_code = []
+        impl = var.implementations[self.codeobj_class]
+        func_code= impl.get_code(self.owner)
+        # Implementation can be None if the function is already
+        # available in Cython (possibly under a different name)
+        if func_code is not None:
+            if isinstance(func_code, basestring):
+                # Function is provided as Cython code
+                # To make namespace variables available to functions, we
+                # create global variables and assign to them in the main
+                # code
+                user_functions.append((varname, var))
+                func_namespace = impl.get_namespace(self.owner) or {}
+                for ns_key, ns_value in func_namespace.iteritems():
+                    load_namespace.append(
+                        '# namespace for function %s' % varname)
+                    if hasattr(ns_value, 'dtype'):
+                        if ns_value.shape == ():
+                            raise NotImplementedError((
+                            'Directly replace scalar values in the function '
+                            'instead of providing them via the namespace'))
+                        newlines = [
+                            "global _namespace{var_name}",
+                            "global _namespace_num{var_name}",
+                            "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{var_name} = _namespace['{var_name}'].view(dtype=_numpy.{numpy_dtype})",
+                            "_namespace{var_name} = <{cpp_dtype} *> _buf_{var_name}.data",
+                            "_namespace_num{var_name} = len(_namespace['{var_name}'])"
+                        ]
+                        support_code.append(
+                            "cdef {cpp_dtype} *_namespace{var_name}".format(
+                                cpp_dtype=get_cpp_dtype(ns_value.dtype),
+                                var_name=ns_key))
+
+                    else:  # e.g. a function
+                        newlines = [
+                            "_namespace{var_name} = namespace['{var_name}']"
+                        ]
+                    for line in newlines:
+                        load_namespace.append(
+                            line.format(cpp_dtype=get_cpp_dtype(ns_value.dtype),
+                                        numpy_dtype=get_numpy_dtype(
+                                            ns_value.dtype),
+                                        var_name=ns_key))
+                support_code.append(deindent(func_code))
+            elif callable(func_code):
+                self.variables[varname] = func_code
+                line = '%s = _namespace["%s"]' % (varname, varname)
+                load_namespace.append(line)
+            else:
+                raise TypeError(('Provided function implementation '
+                                 'for function %s is neither a string '
+                                 'nor callable (is type %s instead)') % (
+                                varname,
+                                type(func_code)))
+
+        dep_support_code = []
+        dep_load_namespace = []
+        dep_user_functions = []
+        if impl.dependencies is not None:
+            for dep_name, dep in impl.dependencies.iteritems():
+                self.variables[dep_name] = dep
+                sc, ln, uf = self._add_user_function(dep_name, dep)
+                dep_support_code.extend(sc)
+                dep_load_namespace.extend(ln)
+                dep_user_functions.extend(uf)
+
+        return (support_code + dep_support_code,
+                dep_load_namespace + load_namespace,
+                dep_user_functions + user_functions)
+
     def determine_keywords(self):
         from brian2.devices.device import get_device
         device = get_device()
@@ -113,7 +186,7 @@ class CythonCodeGenerator(CodeGenerator):
         support_code = []
         handled_pointers = set()
         user_functions = []
-        for varname, var in self.variables.iteritems():
+        for varname, var in self.variables.items():
             if isinstance(var, AuxiliaryVariable):
                 line = "cdef {dtype} {varname}".format(
                                 dtype=get_cpp_dtype(var.dtype),
@@ -173,51 +246,10 @@ class CythonCodeGenerator(CodeGenerator):
                 handled_pointers.add(pointer_name)
 
             elif isinstance(var, Function):
-                func_impl = var.implementations[self.codeobj_class].get_code(self.owner)
-                # Implementation can be None if the function is already
-                # available in Cython (possibly under a different name)
-                if func_impl is not None:
-                    if isinstance(func_impl, basestring):
-                        # Function is provided as Cython code
-                        # To make namespace variables available to functions, we
-                        # create global variables and assign to them in the main
-                        # code
-                        user_functions.append((varname, var))
-                        func_namespace = var.implementations[self.codeobj_class].get_namespace(self.owner) or {}
-                        for ns_key, ns_value in func_namespace.iteritems():
-                            load_namespace.append('# namespace for function %s' % varname)
-                            if hasattr(ns_value, 'dtype'):
-                                    if ns_value.shape == ():
-                                        raise NotImplementedError(('Directly replace scalar values in the function '
-                                                                   'instead of providing them via the namespace'))
-                                    newlines = [
-                                    "global _namespace{var_name}",
-                                    "global _namespace_num{var_name}",
-                                    "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{var_name} = _namespace['{var_name}'].view(dtype=_numpy.{numpy_dtype})",
-                                    "_namespace{var_name} = <{cpp_dtype} *> _buf_{var_name}.data",
-                                    "_namespace_num{var_name} = len(_namespace['{var_name}'])"
-                                    ]
-                                    support_code.append("cdef {cpp_dtype} *_namespace{var_name}".format(cpp_dtype=get_cpp_dtype(ns_value.dtype),
-                                                                                               var_name=ns_key))
-
-                            else:  # e.g. a function
-                                newlines = [
-                                    "_namespace{var_name} = namespace['{var_name}']"
-                                ]
-                            for line in newlines:
-                                load_namespace.append(line.format(cpp_dtype=get_cpp_dtype(ns_value.dtype),
-                                                                  numpy_dtype=get_numpy_dtype(ns_value.dtype),
-                                                                  var_name=ns_key))
-                        support_code.append(deindent(func_impl))
-                    elif callable(func_impl):
-                        self.variables[varname] = func_impl
-                        line = '%s = _namespace["%s"]' % (varname, varname)
-                        load_namespace.append(line)
-                    else:
-                        raise TypeError(('Provided function implementation '
-                                         'for function %s is neither a string '
-                                         'nor callable (is type %s instead)') % (varname,
-                                                                                 type(func_impl)))
+                sc, ln, uf = self._add_user_function(varname, var)
+                support_code.extend(sc)
+                load_namespace.extend(ln)
+                user_functions.extend(uf)
             else:
                 # fallback to Python object
                 print var

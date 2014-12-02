@@ -417,6 +417,109 @@ def test_function_implementation_container():
     targets.codegen_targets = _previous_codegen_targets
 
 
+def test_function_dependencies_weave():
+    if prefs.codegen.target != 'weave':
+        raise SkipTest('weave-only test')
+
+    @implementation('cpp', '''
+    float foo(float x)
+    {
+        return 42*0.001;
+    }''')
+    @check_units(x=volt, result=volt)
+    def foo(x):
+        return 42*mV
+
+    # Second function with an independent implementation for numpy and an
+    # implementation for C++ that makes use of the previous function.
+
+    @implementation('cpp', '''
+    float bar(float x)
+    {
+        return 2*foo(x);
+    }''', dependencies={'foo': foo})
+    @check_units(x=volt, result=volt)
+    def bar(x):
+        return 84*mV
+
+    G = NeuronGroup(5, 'v : volt')
+    updater = G.custom_operation('v = bar(v)')
+    net = Network(G, updater)
+    net.run(defaultclock.dt)
+
+    assert_allclose(G.v_[:], 84*0.001)
+
+
+def test_function_dependencies_cython():
+    if prefs.codegen.target != 'cython':
+        raise SkipTest('cython-only test')
+
+    @implementation('cython', '''
+    cdef float foo(float x):
+        return 42*0.001
+    ''')
+    @check_units(x=volt, result=volt)
+    def foo(x):
+        return 42*mV
+
+    # Second function with an independent implementation for numpy and an
+    # implementation for C++ that makes use of the previous function.
+
+    @implementation('cython', '''
+    cdef float bar(float x):
+        return 2*foo(x)
+    ''', dependencies={'foo': foo})
+    @check_units(x=volt, result=volt)
+    def bar(x):
+        return 84*mV
+
+    G = NeuronGroup(5, 'v : volt')
+    updater = G.custom_operation('v = bar(v)')
+    net = Network(G, updater)
+    net.run(defaultclock.dt)
+
+    assert_allclose(G.v_[:], 84*0.001)
+
+
+def test_function_dependencies_numpy():
+    if prefs.codegen.target != 'numpy':
+        raise SkipTest('numpy-only test')
+
+    @implementation('cpp', '''
+    float foo(float x)
+    {
+        return 42*0.001;
+    }''')
+    @check_units(x=volt, result=volt)
+    def foo(x):
+        return 42*mV
+
+    # Second function with an independent implementation for C++ and an
+    # implementation for numpy that makes use of the previous function.
+
+    # Note that we don't need to use the explicit dependencies mechanism for
+    # numpy, since the Python function stores a reference to the referenced
+    # function directly
+
+    @implementation('cpp', '''
+    float bar(float x)
+    {
+        return 84*0.001;
+    }''')
+    @check_units(x=volt, result=volt)
+    def bar(x):
+        return 2*foo(x)
+
+    G = NeuronGroup(5, 'v : volt')
+    updater = G.custom_operation('v = bar(v)')
+    net = Network(G, updater)
+    net.run(defaultclock.dt)
+
+    assert_allclose(G.v_[:], 84*0.001)
+
+
+
+
 if __name__ == '__main__':
     for f in [
             test_constants_sympy,
@@ -430,6 +533,9 @@ if __name__ == '__main__':
             test_user_defined_function_discarding_units,
             test_user_defined_function_discarding_units_2,
             test_function_implementation_container,
+            test_function_dependencies_numpy,
+            test_function_dependencies_weave,
+            test_function_dependencies_cython
             ]:
         try:
             f()
