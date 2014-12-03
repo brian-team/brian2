@@ -733,6 +733,25 @@ def test_multiple_runs_defaultclock_incorrect():
     assert_raises(ValueError, lambda: net.run(1*ms))
 
 
+@attr('codegen-independent')
+def test_profile():
+    G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1', threshold='v>1',
+                    reset='v=0', name='profile_test')
+    G.v = 1.1
+    net = Network(G)
+    net.run(1*ms, profile=True)
+    # The should be four simulated CodeObjects, one for the group and one each
+    # for state update, threshold and reset
+    info = net.profiling_info
+    info_dict = dict(info)
+    assert len(info) == 4
+    assert 'profile_test' in info_dict
+    assert 'profile_test_stateupdater' in info_dict
+    assert 'profile_test_thresholder' in info_dict
+    assert 'profile_test_resetter' in info_dict
+    assert all([t>0*second for _, t in info])
+
+
 if __name__=='__main__':
     for t in [
               test_incorrect_network_use,
@@ -765,7 +784,8 @@ if __name__=='__main__':
               test_dt_restore,
               test_continuation,
               test_multiple_runs_defaultclock,
-              test_multiple_runs_defaultclock_incorrect
+              test_multiple_runs_defaultclock_incorrect,
+              test_profile
               ]:
         t()
         restore_initial_state()

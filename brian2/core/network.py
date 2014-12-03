@@ -1,6 +1,7 @@
 import sys
 import gc
 import time
+from collections import defaultdict
 
 import numpy as np
 
@@ -174,11 +175,33 @@ class Network(Nameable):
 
         #: Stored time for the store/restore mechanism
         self._stored_t = {}
+
+        # Stored profiling information (if activated via the keyword option)
+        self._profiling_info = None
      
     t = property(fget=lambda self: self.t_*second,
                  doc='''
                      Current simulation time in seconds (`Quantity`)
                      ''')
+
+    @property
+    def profiling_info(self):
+        '''
+        The time spent in executing the various `CodeObject`\ s.
+
+        A list of ``(name, time)`` tuples, containing the name of the
+        `CodeObject` and the total execution time for simulations of this object
+        (as a `Quantity` with unit `second`). The list is sorted descending
+        with execution time.
+
+        Profiling has to be activated using the ``profile`` keyword in `run` or
+        `Network.run`.
+        '''
+        if self._profiling_info is None:
+            raise ValueError('(No profiling info collected (did you run with '
+                             'profile=True?)')
+        return sorted(self._profiling_info, key=lambda item: item[1],
+                      reverse=True)
 
     _globally_stopped = False
 
@@ -447,7 +470,7 @@ class Network(Nameable):
     @device_override('network_run')
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=10*second,
-            namespace=None, level=0):
+            namespace=None, profile=False, level=0):
         '''
         run(duration, report=None, report_period=60*second, namespace=None, level=0)
         
@@ -474,6 +497,9 @@ class Network(Nameable):
             A namespace that will be used in addition to the group-specific
             namespaces (if defined). If not specified, the locals
             and globals around the run function will be used.
+        profile : bool, optional
+            Whether to record profiling information (see
+            `Network.profiling_info`). Defaults to ``False``.
         level : int, optional
             How deep to go up the stack frame to look for the locals/global
             (see `namespace` argument). Only used by run functions that call
@@ -517,6 +543,8 @@ class Network(Nameable):
                                  'but it is of type %s') % type(report))
             report_callback(0*second, 0.0, duration)
 
+        profiling_info = defaultdict(float)
+
         while clock.running and not self._stopped and not Network._globally_stopped:
             # update the network time to this clocks time
             self.t_ = clock.t_
@@ -530,7 +558,13 @@ class Network(Nameable):
                 # update the objects with this clock
             for obj in self.objects:
                 if obj._clock in curclocks and obj.active:
-                    obj.run()
+                    if profile:
+                        obj_time = time.time()
+                        obj.run()
+                        profiling_info[obj.name] += (time.time() - obj_time)
+                    else:
+                        obj.run()
+
             # tick the clock forward one time step
             for c in curclocks:
                 c.tick()
@@ -548,6 +582,13 @@ class Network(Nameable):
         if report is not None:
             report_callback((current-start)*second, 1.0, duration)
         self.after_run()
+
+        # Store profiling info (or erase old info to avoid confusion)
+        if profile:
+            self._profiling_info = [(name, t*second)
+                                    for name, t in profiling_info.iteritems()]
+        else:
+            self._profiling_info = None
         
     @device_override('network_stop')
     def stop(self):

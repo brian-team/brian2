@@ -74,6 +74,26 @@ it will be printed to "standard error". There will be output at the start and
 the end of the run, and during the run in ``report_period`` intervals. It is
 also possible to do :ref:`custom progress reporting <custom_progress_reporting>`.
 
+Profiling
+---------
+To get an idea which parts of a simulation take the most time, Brian offers a
+basic profiling mechanism. If a simulation is run with the ``profile=True``
+keyword argument, it will collect information about the total simulation time
+for each `CodeObject`. This information can then be retrieved from
+`Network.profiling_info`, which contains a list of ``(name, time)`` tuples. The
+following example shows profiling output after running the CUBA example (where
+the neuronal state updates take up the most time)::
+
+    >>> info = magic_network.profiling_info
+    >>> for name, time in info[:5]:  # show the 5 objects that took the longest
+    ...     print('%s: %s' % (name, time))
+    ...
+    neurongroup_stateupdater: 5.71199036 s
+    synapses_pre: 2.24936628 s
+    synapses_1_pre: 1.86507773 s
+    spikemonitor: 1.68918061 s
+    neurongroup_thresholder: 1.44924188 s
+
 Scheduling
 ----------
 
