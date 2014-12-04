@@ -741,7 +741,10 @@ class CPPStandaloneDevice(Device):
                     self.has_been_run = True
 
     def network_run(self, net, duration, report=None, report_period=10*second,
-                    namespace=None, level=0):
+                    namespace=None, level=0, **kwds):
+        if kwds:
+            logger.warn(('Unsupported keyword argument(s) provided for run: '
+                         '%s') % ', '.join(kwds.keys()))
         net._clocks = [obj.clock for obj in net.objects]
         # We have to use +2 for the level argument here, since this function is
         # called through the device_override mechanism
