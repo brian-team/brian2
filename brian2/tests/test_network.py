@@ -749,7 +749,7 @@ def test_profile():
     assert 'profile_test_stateupdater' in info_dict
     assert 'profile_test_thresholder' in info_dict
     assert 'profile_test_resetter' in info_dict
-    assert all([t>0*second for _, t in info])
+    assert all([t>=0*second for _, t in info])
 
 
 if __name__=='__main__':
