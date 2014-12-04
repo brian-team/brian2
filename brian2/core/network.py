@@ -470,7 +470,7 @@ class Network(Nameable):
     @device_override('network_run')
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=10*second,
-            namespace=None, profile=False, level=0):
+            namespace=None, profile=True, level=0):
         '''
         run(duration, report=None, report_period=60*second, namespace=None, level=0)
         
@@ -499,7 +499,7 @@ class Network(Nameable):
             and globals around the run function will be used.
         profile : bool, optional
             Whether to record profiling information (see
-            `Network.profiling_info`). Defaults to ``False``.
+            `Network.profiling_info`). Defaults to ``True``.
         level : int, optional
             How deep to go up the stack frame to look for the locals/global
             (see `namespace` argument). Only used by run functions that call
@@ -587,6 +587,8 @@ class Network(Nameable):
         if profile:
             self._profiling_info = [(name, t*second)
                                     for name, t in profiling_info.iteritems()]
+            # Dump a profiling summary to the log
+            logger.debug('\n' + str(profiling_summary(self)))
         else:
             self._profiling_info = None
         
@@ -625,7 +627,12 @@ class ProfilingSummary(object):
     '''
     def __init__(self, net, show=None):
         prof = net.profiling_info
-        names, times = zip(*prof)
+        if len(prof):
+            names, times = zip(*prof)
+        else:  # Can happen if a network has been run for 0ms
+            # Use a dummy entry to prevent problems with empty lists later
+            names = ['no codeobjects have been run']
+            times = [0*second]
         self.total_time = sum(times)
         self.time_unit = msecond
         if self.total_time>1*second:
