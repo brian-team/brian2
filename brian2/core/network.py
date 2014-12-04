@@ -8,7 +8,7 @@ from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.core.base import BrianObject
 from brian2.core.clocks import Clock
-from brian2.units.fundamentalunits import check_units
+from brian2.units.fundamentalunits import check_units, DimensionMismatchError
 from brian2.units.allunits import second 
 from brian2.core.preferences import prefs
 
@@ -406,7 +406,13 @@ class Network(Nameable):
 
         for obj in self.objects:
             if obj.active:
-                obj.before_run(run_namespace, level=level+2)
+                try:
+                    obj.before_run(run_namespace, level=level+2)
+                except DimensionMismatchError as ex:
+                    raise DimensionMismatchError(('An error occured preparing '
+                                                  'object "%s":\n%s') % (obj.name,
+                                                                          ex.desc),
+                                                 *ex.dims)
 
         # Check that no object has been run as part of another network before
         for obj in self.objects:
