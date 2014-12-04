@@ -10,12 +10,12 @@ from brian2.core.names import Nameable
 from brian2.core.base import BrianObject
 from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units
-from brian2.units.allunits import second 
+from brian2.units.allunits import second, msecond 
 from brian2.core.preferences import prefs
 
 from .base import device_override
 
-__all__ = ['Network']
+__all__ = ['Network', 'profiling_summary']
 
 
 logger = get_logger(__name__)
@@ -603,3 +603,87 @@ class Network(Nameable):
         return '<%s at time t=%s, containing objects: %s>' % (self.__class__.__name__,
                                                               str(self.t),
                                                               ', '.join((obj.__repr__() for obj in self.objects)))
+
+
+class ProfilingSummary(object):
+    '''
+    Class to nicely display the results of profiling. Objects of this class are
+    returned by `profiling_summary`.
+
+    Parameters
+    ----------
+
+    net : `Network`
+        The `Network` object to profile.
+    show : int, optional
+        The number of results to show (the longest results will be shown). If
+        not specified, all results will be shown.
+
+    See Also
+    --------
+    Network.profiling_info
+    '''
+    def __init__(self, net, show=None):
+        prof = net.profiling_info
+        names, times = zip(*prof)
+        self.total_time = sum(times)
+        self.time_unit = msecond
+        if self.total_time>1*second:
+            self.time_unit = second
+        if show is not None:
+            names = names[:show]
+            times = times[:show]
+        self.percentages = [100.0*time/self.total_time for time in times]
+        self.names_maxlen = max(len(name) for name in names)
+        self.names = [name+' '*(self.names_maxlen-len(name)) for name in names]
+        self.times = times
+
+    def __repr__(self):
+        times = ['%.2f %s' % (time/self.time_unit, self.time_unit) for time in self.times]
+        times_maxlen = max(len(time) for time in times)
+        times = [' '*(times_maxlen-len(time))+time for time in times]
+        percentages = ['%.2f %%' % percentage for percentage in self.percentages]
+        percentages_maxlen = max(len(percentage) for percentage in percentages)
+        percentages = [(' '*(percentages_maxlen-len(percentage)))+percentage for percentage in percentages]
+
+        s = 'Profiling summary'
+        s += '\n'+'='*len(s)+'\n'
+        for name, time, percentage in zip(self.names, times, percentages):
+            s += '%s    %s    %s\n' % (name, time, percentage)
+        return s
+
+    def _repr_html_(self):
+        times = ['%.2f %s' % (time/self.time_unit, self.time_unit) for time in self.times]
+        percentages = ['%.2f %%' % percentage for percentage in self.percentages]
+        s = '<h2 class="brian_prof_summary_header">Profiling summary</h2>\n'
+        s += '<table class="brian_prof_summary_table">\n'
+        for name, time, percentage in zip(self.names, times, percentages):
+            s += '<tr>'
+            s += '<td>%s</td>' % name
+            s += '<td style="text-align: right">%s</td>' % time
+            s += '<td style="text-align: right">%s</td>' % percentage
+            s += '</tr>\n'
+        s += '</table>'
+        return s
+
+
+def profiling_summary(net=None, show=None):
+    '''
+    Returns a `ProfilingSummary` of the profiling info for a run. This object
+    can be transformed to a string explicitly but on an interactive console
+    simply calling `profiling_summary` is enough since it will
+    automatically convert the `ProfilingSummary` object.
+    
+    Parameters
+    ----------
+
+    net : {`Network`, None} optional
+        The `Network` object to profile, or `magic_network` if not specified.
+    show : int
+        The number of results to show (the longest results will be shown). If
+        not specified, all results will be shown.
+    '''
+    if net is None:
+        from .magic import magic_network
+        net = magic_network
+    return ProfilingSummary(net, show)
