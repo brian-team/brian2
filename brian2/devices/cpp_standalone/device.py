@@ -741,7 +741,8 @@ class CPPStandaloneDevice(Device):
                     self.has_been_run = True
 
     def network_run(self, net, duration, report=None, report_period=10*second,
-                    namespace=None, level=0, **kwds):
+                    namespace=None, profile=True, level=0, **kwds):
+        # Note: profile argument will be ignored
         if kwds:
             logger.warn(('Unsupported keyword argument(s) provided for run: '
                          '%s') % ', '.join(kwds.keys()))
