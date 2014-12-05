@@ -258,7 +258,8 @@ class Network(Nameable):
                                        'add it to the network. If you were '
                                        'trying to remove and add an object to '
                                        'temporarily stop it from being run, '
-                                       'set its active flag to False instead.')
+                                       'set its active flag to False instead.'
+                                       % obj.name)
                 self.objects.append(obj)
                 self.add(obj.contained_objects)
             else:
