@@ -631,7 +631,7 @@ class ProfilingSummary(object):
             names, times = zip(*prof)
         else:  # Can happen if a network has been run for 0ms
             # Use a dummy entry to prevent problems with empty lists later
-            names = ['no codeobjects have been run']
+            names = ['no code objects have been run']
             times = [0*second]
         self.total_time = sum(times)
         self.time_unit = msecond
@@ -640,7 +640,10 @@ class ProfilingSummary(object):
         if show is not None:
             names = names[:show]
             times = times[:show]
-        self.percentages = [100.0*time/self.total_time for time in times]
+        if self.total_time>0*second:
+            self.percentages = [100.0*time/self.total_time for time in times]
+        else:
+            self.percentages = [0. for _ in times]
         self.names_maxlen = max(len(name) for name in names)
         self.names = [name+' '*(self.names_maxlen-len(name)) for name in names]
         self.times = times
