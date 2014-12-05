@@ -1,6 +1,7 @@
 import sys
 import gc
 import time
+from collections import defaultdict
 
 import numpy as np
 
@@ -9,12 +10,12 @@ from brian2.core.names import Nameable
 from brian2.core.base import BrianObject
 from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units, DimensionMismatchError
-from brian2.units.allunits import second 
+from brian2.units.allunits import second, msecond 
 from brian2.core.preferences import prefs
 
 from .base import device_override
 
-__all__ = ['Network']
+__all__ = ['Network', 'profiling_summary']
 
 
 logger = get_logger(__name__)
@@ -174,11 +175,33 @@ class Network(Nameable):
 
         #: Stored time for the store/restore mechanism
         self._stored_t = {}
+
+        # Stored profiling information (if activated via the keyword option)
+        self._profiling_info = None
      
     t = property(fget=lambda self: self.t_*second,
                  doc='''
                      Current simulation time in seconds (`Quantity`)
                      ''')
+
+    @property
+    def profiling_info(self):
+        '''
+        The time spent in executing the various `CodeObject`\ s.
+
+        A list of ``(name, time)`` tuples, containing the name of the
+        `CodeObject` and the total execution time for simulations of this object
+        (as a `Quantity` with unit `second`). The list is sorted descending
+        with execution time.
+
+        Profiling has to be activated using the ``profile`` keyword in `run` or
+        `Network.run`.
+        '''
+        if self._profiling_info is None:
+            raise ValueError('(No profiling info collected (did you run with '
+                             'profile=True?)')
+        return sorted(self._profiling_info, key=lambda item: item[1],
+                      reverse=True)
 
     _globally_stopped = False
 
@@ -453,7 +476,7 @@ class Network(Nameable):
     @device_override('network_run')
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=10*second,
-            namespace=None, level=0):
+            namespace=None, profile=True, level=0):
         '''
         run(duration, report=None, report_period=60*second, namespace=None, level=0)
         
@@ -480,6 +503,9 @@ class Network(Nameable):
             A namespace that will be used in addition to the group-specific
             namespaces (if defined). If not specified, the locals
             and globals around the run function will be used.
+        profile : bool, optional
+            Whether to record profiling information (see
+            `Network.profiling_info`). Defaults to ``True``.
         level : int, optional
             How deep to go up the stack frame to look for the locals/global
             (see `namespace` argument). Only used by run functions that call
@@ -523,6 +549,8 @@ class Network(Nameable):
                                  'but it is of type %s') % type(report))
             report_callback(0*second, 0.0, duration)
 
+        profiling_info = defaultdict(float)
+
         while clock.running and not self._stopped and not Network._globally_stopped:
             # update the network time to this clocks time
             self.t_ = clock.t_
@@ -536,7 +564,13 @@ class Network(Nameable):
                 # update the objects with this clock
             for obj in self.objects:
                 if obj._clock in curclocks and obj.active:
-                    obj.run()
+                    if profile:
+                        obj_time = time.time()
+                        obj.run()
+                        profiling_info[obj.name] += (time.time() - obj_time)
+                    else:
+                        obj.run()
+
             # tick the clock forward one time step
             for c in curclocks:
                 c.tick()
@@ -554,6 +588,15 @@ class Network(Nameable):
         if report is not None:
             report_callback((current-start)*second, 1.0, duration)
         self.after_run()
+
+        # Store profiling info (or erase old info to avoid confusion)
+        if profile:
+            self._profiling_info = [(name, t*second)
+                                    for name, t in profiling_info.iteritems()]
+            # Dump a profiling summary to the log
+            logger.debug('\n' + str(profiling_summary(self)))
+        else:
+            self._profiling_info = None
         
     @device_override('network_stop')
     def stop(self):
@@ -568,3 +611,95 @@ class Network(Nameable):
         return '<%s at time t=%s, containing objects: %s>' % (self.__class__.__name__,
                                                               str(self.t),
                                                               ', '.join((obj.__repr__() for obj in self.objects)))
+
+
+class ProfilingSummary(object):
+    '''
+    Class to nicely display the results of profiling. Objects of this class are
+    returned by `profiling_summary`.
+
+    Parameters
+    ----------
+
+    net : `Network`
+        The `Network` object to profile.
+    show : int, optional
+        The number of results to show (the longest results will be shown). If
+        not specified, all results will be shown.
+
+    See Also
+    --------
+    Network.profiling_info
+    '''
+    def __init__(self, net, show=None):
+        prof = net.profiling_info
+        if len(prof):
+            names, times = zip(*prof)
+        else:  # Can happen if a network has been run for 0ms
+            # Use a dummy entry to prevent problems with empty lists later
+            names = ['no code objects have been run']
+            times = [0*second]
+        self.total_time = sum(times)
+        self.time_unit = msecond
+        if self.total_time>1*second:
+            self.time_unit = second
+        if show is not None:
+            names = names[:show]
+            times = times[:show]
+        if self.total_time>0*second:
+            self.percentages = [100.0*time/self.total_time for time in times]
+        else:
+            self.percentages = [0. for _ in times]
+        self.names_maxlen = max(len(name) for name in names)
+        self.names = [name+' '*(self.names_maxlen-len(name)) for name in names]
+        self.times = times
+
+    def __repr__(self):
+        times = ['%.2f %s' % (time/self.time_unit, self.time_unit) for time in self.times]
+        times_maxlen = max(len(time) for time in times)
+        times = [' '*(times_maxlen-len(time))+time for time in times]
+        percentages = ['%.2f %%' % percentage for percentage in self.percentages]
+        percentages_maxlen = max(len(percentage) for percentage in percentages)
+        percentages = [(' '*(percentages_maxlen-len(percentage)))+percentage for percentage in percentages]
+
+        s = 'Profiling summary'
+        s += '\n'+'='*len(s)+'\n'
+        for name, time, percentage in zip(self.names, times, percentages):
+            s += '%s    %s    %s\n' % (name, time, percentage)
+        return s
+
+    def _repr_html_(self):
+        times = ['%.2f %s' % (time/self.time_unit, self.time_unit) for time in self.times]
+        percentages = ['%.2f %%' % percentage for percentage in self.percentages]
+        s = '<h2 class="brian_prof_summary_header">Profiling summary</h2>\n'
+        s += '<table class="brian_prof_summary_table">\n'
+        for name, time, percentage in zip(self.names, times, percentages):
+            s += '<tr>'
+            s += '<td>%s</td>' % name
+            s += '<td style="text-align: right">%s</td>' % time
+            s += '<td style="text-align: right">%s</td>' % percentage
+            s += '</tr>\n'
+        s += '</table>'
+        return s
+
+
+def profiling_summary(net=None, show=None):
+    '''
+    Returns a `ProfilingSummary` of the profiling info for a run. This object
+    can be transformed to a string explicitly but on an interactive console
+    simply calling `profiling_summary` is enough since it will
+    automatically convert the `ProfilingSummary` object.
+    
+    Parameters
+    ----------
+
+    net : {`Network`, None} optional
+        The `Network` object to profile, or `magic_network` if not specified.
+    show : int
+        The number of results to show (the longest results will be shown). If
+        not specified, all results will be shown.
+    '''
+    if net is None:
+        from .magic import magic_network
+        net = magic_network
+    return ProfilingSummary(net, show)
