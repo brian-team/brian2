@@ -169,6 +169,9 @@ class IndependentStateUpdater(StateUpdateMethod):
             # Check whether this is an explicit solution
             if not getattr(general_solution, 'lhs', None) == f(t):
                 raise ValueError('Cannot explicitly solve: ' + str(diff_eq))
+            # seems to happen sometimes in sympy 0.7.5
+            if getattr(general_solution, 'rhs', None) == sp.nan:
+                raise ValueError('Cannot explicitly solve: ' + str(diff_eq))
             # Solve for C1 (assuming "var" as the initial value and "t0" as time)
             if general_solution.has(Symbol('C1')):
                 if general_solution.has(Symbol('C2')):
