@@ -66,10 +66,23 @@ class TimedArray(Function, Nameable):
             name = '_timedarray*'
         Nameable.__init__(self, name)
         unit = get_unit(values)
+        self.unit = unit
         values = np.asarray(values, dtype=np.double)
         self.values = values
         dt = float(dt)
         self.dt = dt
+        if values.ndim == 1:
+            self._init_1d()
+        elif values.ndim == 2:
+            self._init_2d()
+        else:
+            raise NotImplementedError(('Only 1d and 2d arrays are supported '
+                                       'for TimedArray'))
+
+    def _init_1d(self):
+        unit = self.unit
+        values = self.values
+        dt = self.dt
 
         # Python implementation (with units), used when calling the TimedArray
         # directly, outside of a simulation
@@ -135,6 +148,78 @@ class TimedArray(Function, Nameable):
                                                         create_cpp_implementation,
                                                         create_cpp_namespace,
                                                         name=self.name)
+
+    def _init_2d(self):
+        unit = self.unit
+        values = self.values
+        dt = self.dt
+
+        # Python implementation (with units), used when calling the TimedArray
+        # directly, outside of a simulation
+        @check_units(i=1, t=second, result=unit)
+        def timed_array_func(t, i):
+            # We round according to the current defaultclock.dt
+            K = _find_K(float(defaultclock.dt), dt)
+            epsilon = dt / K
+            time_step = np.clip(np.int_(np.round(np.asarray(t/epsilon)) / K),
+                        0, len(values)-1)
+            return values[time_step, i] * unit
+
+        Function.__init__(self, pyfunc=timed_array_func)
+
+        # we use dynamic implementations because we want to do upsampling
+        # in a way that avoids rounding problems with the group's dt
+        def create_numpy_implementation(owner):
+            group_dt = owner.clock.dt_
+
+            K = _find_K(group_dt, dt)
+            n_values = len(values)
+            epsilon = dt / K
+            def unitless_timed_array_func(t, i):
+                timestep = np.clip(np.int_(np.round(t/epsilon) / K),
+                                   0, n_values-1)
+                return values[timestep, i]
+
+            unitless_timed_array_func._arg_units = [second]
+            unitless_timed_array_func._return_unit = unit
+
+            return unitless_timed_array_func
+
+        self.implementations.add_dynamic_implementation('numpy',
+                                                        create_numpy_implementation)
+
+
+        def create_cpp_implementation(owner):
+            group_dt = owner.clock.dt_
+            K = _find_K(group_dt, dt)
+            support_code = '''
+            inline double _timedarray_%NAME%(const double t, const int i, const int _num_values, const double* _values)
+            {
+                const double epsilon = %DT% / %K%;
+                int timestep = (int)((t/epsilon + 0.5)/%K%); // rounds to nearest int for positive values
+                if(timestep < 0)
+                   timestep = 0;
+                if(timestep >= _num_values)
+                    timestep = _num_values-1;
+                return _values[timestep + i*%COLS%];
+            }
+            '''.replace('%NAME%', self.name).replace('%DT%', '%.18f' % dt).replace('%K%', str(K)).replace('%COLS%', str(self.values.shape[1]))
+            cpp_code = {'support_code': support_code,
+                        'hashdefine_code': '''
+            #define %NAME%(t, i) _timedarray_%NAME%(t, i, _%NAME%_num_values, _%NAME%_values)
+            '''.replace('%NAME%', self.name)}
+
+            return cpp_code
+
+        def create_cpp_namespace(owner):
+            return {'_%s_num_values' % self.name: len(self.values.ravel()),
+                    '_%s_values' % self.name: self.values.astype(np.double, order='C', copy=False).ravel()}
+
+        self.implementations.add_dynamic_implementation('cpp',
+                                                        create_cpp_implementation,
+                                                        create_cpp_namespace,
+                                                        name=self.name)
+
 
     def is_locally_constant(self, dt):
         if dt > self.dt:
