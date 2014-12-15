@@ -218,8 +218,8 @@ class TimedArray(Function, Nameable):
                 int timestep = (int)((t/epsilon + 0.5)/%K%); // rounds to nearest int for positive values
                 if(timestep < 0)
                    timestep = 0;
-                if(timestep >= _num_values)
-                    timestep = _num_values-1;
+                else if(timestep >= %ROWS%)
+                    timestep = %ROWS%-1;
                 return _values[timestep*%COLS% + i];
             }
             '''
