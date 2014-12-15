@@ -6,6 +6,8 @@ from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units, get_unit
 from brian2.core.names import Nameable
 from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import replace
+
 
 __all__ = ['TimedArray']
 
@@ -29,12 +31,16 @@ class TimedArray(Function, Nameable):
     TimedArray(values, dt, name=None)
 
     A function of time built from an array of values. The returned object can
-    be used as a function, including in model equations etc.
+    be used as a function, including in model equations etc. The resulting
+    function has to be called as `funcion_name(t)` if the provided value array
+    is one-dimensional and as `function_name(t, i)` if it is two-dimensional.
 
     Parameters
     ----------
     values : ndarray or `Quantity`
-        An array of values providing the values at various points in time
+        An array of values providing the values at various points in time. This
+        array can either be one- or two-dimensional. If it is two-dimensional
+        it's first dimension should be the time.
     dt : `Quantity`
         The time distance between values in the `values` array.
     name : str, optional
@@ -59,6 +65,17 @@ class TimedArray(Function, Nameable):
     ...
     >>> print(mon[0].v)
     [ 1.  2.  3.  4.  4.  4.  4.  4.  4.  4.] mV
+    >>> ta2d = TimedArray([[1, 2], [3, 4], [5, 6]]*mV, dt=0.1*ms)
+    >>> G = NeuronGroup(4, 'v = ta2d(t, i%2) : volt')
+    >>> mon = StateMonitor(G, 'v', record=True)
+    >>> net = Network(G, mon)
+    >>> net.run(0.2*ms)  # doctest: +ELLIPSIS
+    ...
+    >>> print mon.v[:]
+    [[ 1.  3.]
+     [ 2.  4.]
+     [ 1.  3.]
+     [ 2.  4.]] mV
     '''
     @check_units(dt=second)
     def __init__(self, values, dt, name=None):
@@ -196,14 +213,21 @@ class TimedArray(Function, Nameable):
             inline double _timedarray_%NAME%(const double t, const int i, const int _num_values, const double* _values)
             {
                 const double epsilon = %DT% / %K%;
+                if (i < 0 || i >= %ROWS%)
+                    return NAN;
                 int timestep = (int)((t/epsilon + 0.5)/%K%); // rounds to nearest int for positive values
                 if(timestep < 0)
                    timestep = 0;
                 if(timestep >= _num_values)
                     timestep = _num_values-1;
-                return _values[timestep + i*%COLS%];
+                return _values[timestep*%COLS% + i];
             }
-            '''.replace('%NAME%', self.name).replace('%DT%', '%.18f' % dt).replace('%K%', str(K)).replace('%COLS%', str(self.values.shape[1]))
+            '''
+            support_code = replace(support_code, {'%NAME%': self.name,
+                                                  '%DT%': '%.18f' % dt,
+                                                  '%K%': str(K),
+                                                  '%COLS%': str(self.values.shape[1]),
+                                                  '%ROWS%': str(self.values.shape[0])})
             cpp_code = {'support_code': support_code,
                         'hashdefine_code': '''
             #define %NAME%(t, i) _timedarray_%NAME%(t, i, _%NAME%_num_values, _%NAME%_values)
