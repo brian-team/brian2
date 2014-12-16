@@ -28,7 +28,7 @@ mon_L = StateMonitor(neuron.L, 'v', record=True)
 mon_R = StateMonitor(neuron, 'v', record=morpho.R[75*um])
 
 run(1*ms)
-neuron.I[morpho.L[50*um]] = 0.2*nA # injecting in the left dendrite
+neuron.I[morpho.L[50*um]] = 0.2*nA  # injecting in the left dendrite
 run(5*ms)
 neuron.I = 0*amp
 run(50*ms, report='text')

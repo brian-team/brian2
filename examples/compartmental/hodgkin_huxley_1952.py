@@ -42,7 +42,7 @@ neuron[5*cm:10*cm].gNa = 0*siemens/cm**2
 M = StateMonitor(neuron, 'v', record=True)
 
 run(50*ms, report='text')
-neuron.I[0] = 1*uA # current injection at one end
+neuron.I[0] = 1*uA  # current injection at one end
 run(3*ms)
 neuron.I = 0*amp
 run(100*ms, report='text')

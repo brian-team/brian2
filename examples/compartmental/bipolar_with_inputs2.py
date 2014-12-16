@@ -32,7 +32,6 @@ stimulation.x = [0, 0.5] # Asynchronous
 # Synapses
 w = 20*nS
 S = Synapses(stimulation, neuron, pre = 'gs += w')
-# Here we need a method that gives indices (compartment numbers) or spatial indexing
 S.connect(0, morpho.L[99.9*um])
 S.connect(1, morpho.R[99.9*um])
 
@@ -50,7 +49,7 @@ plot(mon_L.t/ms, mon_R[morpho.R[99.9*um]].v/mV, 'b')
 ylabel('v (mV)')
 subplot(212)
 for i in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45]:
-    plot(mon_L.t/ms,mon_L.v[i, :]/mV)
+    plot(mon_L.t/ms, mon_L.v[i, :]/mV)
 xlabel('Time (ms)')
 ylabel('v (mV)')
 show()
