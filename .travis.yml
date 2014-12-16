@@ -18,10 +18,10 @@ matrix:
 # analytic's repository. Follows an approach described by Dan Blanchard:
 # https://gist.github.com/dan-blanchard/7045057
 before_install:
-- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-2.2.2-Linux-x86_64.sh -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-2.2.2-Linux-x86_64.sh -O miniconda.sh; fi
+- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.7.3-Linux-x86_64.sh -O miniconda.sh; fi
 - chmod +x miniconda.sh
 - ./miniconda.sh -b
-- export PATH=/home/travis/anaconda/bin:$PATH
+- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then export PATH=/home/travis/miniconda/bin:$PATH; else export PATH=/home/travis/miniconda3/bin:$PATH; fi
 # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
 - sudo rm -rf /dev/shm
 - sudo ln -s /run/shm /dev/shm
