@@ -299,6 +299,9 @@ class Morphology(object):
             morpho = self._branch()
             if x < 0:  # allows e.g. to use -1 to get the last compartment
                 x += len(morpho)
+            if x >= len(morpho):
+                raise IndexError(('Invalid index %d '
+                                  'for %d compartments') % (x, len(morpho)))
             i = x
             j = i + 1
         elif x == 'main':
