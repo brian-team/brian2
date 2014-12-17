@@ -17,6 +17,13 @@ def test_timedarray_direct_use():
     assert ta(5*ms) == 5*amp
     assert ta(10*ms) == 10*amp
     assert ta(15*ms) == 10*amp
+    ta2d = TimedArray((np.linspace(0, 11, 12)*amp).reshape(4, 3), 1*ms)
+    assert ta2d(-1*ms, 0) == 0*amp
+    assert ta2d(0*ms, 0) == 0*amp
+    assert ta2d(0*ms, 1) == 1*amp
+    assert ta2d(1*ms, 1) == 4*amp
+    assert_equal(ta2d(1*ms, [0, 1, 2]), [3, 4, 5]*amp)
+    assert_equal(ta2d(15*ms, [0, 1, 2]), [9, 10, 11]*amp)
 
 
 def test_timedarray_semantics():
@@ -47,6 +54,18 @@ def test_timedarray_with_units():
     net = Network(G, mon)
     net.run(1.1*ms)
     assert_equal(mon[0].value, np.clip(np.arange(len(mon[0].t)), 0, 9)*amp + 2*nA)
+
+
+def test_timedarray_2d():
+    # 4 time steps, 3 neurons
+    ta2d = TimedArray(np.arange(12).reshape(4, 3), dt=0.1*ms)
+    G = NeuronGroup(3, 'value = ta2d(t, i) + 1: 1', dt=0.1*ms)
+    mon = StateMonitor(G, 'value', record=True, dt=0.1*ms)
+    net = Network(G, mon)
+    net.run(0.5*ms)
+    assert_equal(mon[0].value_, np.array([0, 3, 6, 9, 9]) + 1)
+    assert_equal(mon[1].value_, np.array([1, 4, 7, 10, 10]) + 1)
+    assert_equal(mon[2].value_, np.array([2, 5, 8, 11, 11]) + 1)
 
 
 def test_timedarray_no_upsampling():
@@ -81,5 +100,6 @@ if __name__ == '__main__':
     test_timedarray_semantics()
     test_timedarray_no_units()
     test_timedarray_with_units()
+    test_timedarray_2d()
     test_timedarray_no_upsampling()
     test_long_timedarray()
