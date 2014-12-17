@@ -1,7 +1,9 @@
 #include<iostream>
 #include<vector>
+#include<map>
 #include<algorithm>
-#include<inttypes.h>
+#include<stdint.h>
+#include<assert.h>
 using namespace std;
 
 //TODO: The data type for indices is currently fixed (int), all floating point
@@ -18,7 +20,11 @@ public:
 	unsigned int *delays;
 	int source_start;
 	int source_end;
+    unsigned int openmp_padding;
     vector< vector<int> > synapses;
+    // data structures for the store/restore mechanism
+    map<string, vector< vector<DTYPE_int> > > _stored_queue;
+    map<string, unsigned int> _stored_offset;
 
 	CSpikeQueue(int _source_start, int _source_end)
 		: source_start(_source_start), source_end(_source_end)
@@ -27,11 +33,16 @@ public:
 		offset = 0;
 		dt = 0.0;
 		delays = NULL;
+        openmp_padding = 0;
 	};
 
-    void prepare(scalar *real_delays, int *sources, unsigned int n_synapses,
+    void prepare(scalar *real_delays, unsigned int n_delays,
+                 int *sources, unsigned int n_synapses,
                  double _dt)
     {
+
+        assert(n_delays == 1 || n_delays == n_synapses);
+
         if (delays)
             delete [] delays;
 
@@ -59,11 +70,33 @@ public:
 
         for (unsigned int i=0; i<n_synapses; i++)
         {
-            delays[i] =  (int)(real_delays[i] / _dt + 0.5); //round to nearest int
-            synapses[sources[i] - source_start].push_back(i);
+            scalar delay = n_delays > 1 ? real_delays[i] : real_delays[0];
+            delays[i] =  (int)(delay / _dt + 0.5); //round to nearest int
+            synapses[sources[i] - source_start].push_back(i + openmp_padding);
         }
 
         dt = _dt;
+    }
+
+    void store(const string name)
+    {
+        _stored_queue[name].clear();
+        _stored_queue[name].resize(queue.size());
+        for (int i=0; i<queue.size(); i++)
+            _stored_queue[name][i] = queue[i];
+        _stored_offset[name] = offset;
+    }
+
+    void restore(const string name)
+    {
+        unsigned int size = _stored_queue[name].size();
+        queue.clear();
+        if (size == 0)  // the queue did not exist at the time of the store call
+            size = 1;
+        queue.resize(size);
+        for (int i=0; i<_stored_queue[name].size(); i++)
+            queue[i] = _stored_queue[name][i];
+        offset = _stored_offset[name];
     }
 
 	void expand(unsigned int newsize)
@@ -97,7 +130,7 @@ public:
 			for(unsigned int idx_indices=0; idx_indices<cur_indices.size(); idx_indices++)
 			{
 				const int synaptic_index = cur_indices[idx_indices];
-				const unsigned int delay = delays[synaptic_index];
+				const unsigned int delay = delays[synaptic_index - openmp_padding];
 				// make sure there is enough space and resize if not
 				ensure_delay(delay);
 				// insert the index into the correct queue

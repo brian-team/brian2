@@ -9,14 +9,15 @@ import numbers
 import sympy
 import numpy as np
 
-from brian2.core.base import weakproxy_with_fallback, device_override
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.units.fundamentalunits import (Quantity, Unit,
                                            fail_for_dimension_mismatch,
                                            have_same_dimensions)
 from brian2.units.allunits import second
+from brian2.utils.logger import get_logger
 
-from .preferences import brian_prefs
+from .base import weakproxy_with_fallback, device_override
+from .preferences import prefs
 
 __all__ = ['Variable',
            'Constant',
@@ -30,6 +31,9 @@ __all__ = ['Variable',
            'LinkedVariable',
            'linked_var'
            ]
+
+
+logger = get_logger(__name__)
 
 
 def get_dtype(obj):
@@ -123,7 +127,7 @@ class Variable(object):
         #: The dtype used for storing the variable.
         self.dtype = dtype
         if dtype is None:
-            self.dtype = brian_prefs.core.default_float_dtype
+            self.dtype = prefs.core.default_float_dtype
 
         if self.is_boolean:
             if not have_same_dimensions(unit, 1):
@@ -689,8 +693,9 @@ def linked_var(group_or_variable, name=None, index=None):
     name : str, optional
         The name of the target variable, necessary if `group_or_variable` is a
         `NeuronGroup`.
-    name : str, optional
-        The name of another variable, used to index the linked variable.
+    index : str or `ndarray`, optional
+        An indexing array (or the name of a state variable), providing a mapping
+        from the entries in the link source to the link target.
 
     Examples
     --------
@@ -736,9 +741,11 @@ class VariableView(object):
     def __init__(self, name, variable, group, unit=None):
         self.name = name
         self.variable = variable
-        self.var_index = group.variables.indices[name]
-        if not self.var_index in ('_idx', '0'):
-            self.var_index_variable = group.variables[self.var_index]
+        self.index_var_name = group.variables.indices[name]
+        if self.index_var_name in ('_idx', '0'):
+            self.index_var = self.index_var_name
+        else:
+            self.index_var = group.variables[self.index_var_name]
 
         if isinstance(variable, Subexpression):
             # For subexpressions, we *always* have to go via codegen to get
@@ -753,7 +760,7 @@ class VariableView(object):
         self.group_name = group.name
         # We keep a strong reference to the `Indexing` object so that basic
         # indexing is still possible, even if the group no longer exists
-        self.indexing = self.group._indexing
+        self.indexing = self.group._indices
         self.unit = unit
 
     @property
@@ -908,7 +915,48 @@ class VariableView(object):
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
         '''
-        indices = self.indexing.calc_indices(item)
+        # Some fairly complicated code to raise a warning in ambiguous
+        # situations, when indexing with a group. For example, in:
+        #   group.v[subgroup] =  'i'
+        # the index 'i' is the index of 'group' ("absolute index") and not of
+        # subgroup ("relative index")
+        if hasattr(item, 'variables') or (isinstance(item, tuple)
+                                          and any(hasattr(one_item, 'variables')
+                                                  for one_item in item)):
+            # Determine the variables that are used in the expression
+            from brian2.codegen.translation import get_identifiers_recursively
+            identifiers = get_identifiers_recursively([code],
+                                                      self.group.variables)
+            variables = self.group.resolve_all(identifiers, [],
+                                               run_namespace=run_namespace,
+                                               level=level+2)
+            if not isinstance(item, tuple):
+                index_groups = [item]
+            else:
+                index_groups = item
+
+            for varname, var in variables.iteritems():
+                for index_group in index_groups:
+                    if not hasattr(index_group, 'variables'):
+                        continue
+                    if varname in index_group.variables or var.name in index_group.variables:
+                        indexed_var = index_group.variables.get(varname,
+                                                                index_group.variables.get(var.name))
+                        if not indexed_var is var:
+                            logger.warn(('The string expression used for setting '
+                                         '{varname} refers to {referred_var} which '
+                                         'might be ambiguous. It will be '
+                                         'interpreted as referring to '
+                                         '{referred_var} in {group}, not as '
+                                         'a variable of a group used for '
+                                         'indexing.').format(varname=self.name,
+                                                             referred_var=varname,
+                                                             group=self.group.name,
+                                                             index_group=index_group.name),
+                                        'ambiguous_string_expression')
+                            break  # no need to warn more than once for a variable
+
+        indices = self.indexing(item)
         abstract_code = self.name + ' = ' + code
         variables = Variables(None)
         variables.add_array('_group_idx', unit=Unit(1),
@@ -918,13 +966,15 @@ class VariableView(object):
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
         from brian2.codegen.codeobject import create_runner_codeobj
+        from brian2.devices.device import get_default_codeobject_class
         codeobj = create_runner_codeobj(self.group,
                                         abstract_code,
                                         'group_variable_set',
                                         additional_variables=variables,
                                         check_units=check_units,
                                         level=level+2,
-                                        run_namespace=run_namespace)
+                                        run_namespace=run_namespace,
+                                        codeobj_class=get_default_codeobject_class('codegen.string_expression_target'))
         codeobj()
 
     @device_override('variableview_set_with_expression_conditional')
@@ -967,6 +1017,7 @@ class VariableView(object):
                          run_namespace=run_namespace)
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
+        from brian2.devices.device import get_default_codeobject_class
         codeobj = create_runner_codeobj(self.group,
                                         {'condition': abstract_code_cond,
                                          'statement': abstract_code},
@@ -974,7 +1025,8 @@ class VariableView(object):
                                         additional_variables=variables,
                                         check_units=check_units,
                                         level=level+2,
-                                        run_namespace=run_namespace)
+                                        run_namespace=run_namespace,
+                                        codeobj_class=get_default_codeobject_class('codegen.string_expression_target'))
         codeobj()
 
     @device_override('variableview_get_with_expression')
@@ -1019,12 +1071,14 @@ class VariableView(object):
                          additional_variables=variables,
                          level=level+2,
                          run_namespace=run_namespace)
+        from brian2.devices.device import get_default_codeobject_class
         codeobj = create_runner_codeobj(self.group,
                                         abstract_code,
                                         'group_variable_get_conditional',
                                         additional_variables=variables,
                                         level=level+2,
                                         run_namespace=run_namespace,
+                                        codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
                                         )
         return codeobj()
 
@@ -1037,16 +1091,11 @@ class VariableView(object):
                                   'scalar variable.') % self.name)
             indices = np.array(0)
         else:
-            indices = self.indexing.calc_indices(item, self.var_index)
+            indices = self.indexing(item, self.index_var)
 
         if variable.scalar:
             return variable.get_value()[0]
         else:
-            # We are not going via code generation so we have to take care
-            # of correct indexing (in particular for subgroups) explicitly
-
-            if not self.var_index in ('_idx', '0'):
-                indices = self.var_index_variable.get_value()[indices]
             return variable.get_value()[indices]
 
     @device_override('variableview_get_subexpression_with_index_array')
@@ -1058,17 +1107,17 @@ class VariableView(object):
                                   'scalar variable.') % self.name)
             indices = np.array(0)
         else:
-            indices = self.indexing.calc_indices(item)
+            indices = self.indexing(item, self.index_var)
 
         # For "normal" variables, we can directly access the underlying data
         # and use the usual slicing syntax. For subexpressions, however, we
         # have to evaluate code for the given indices
-        variables = Variables(None)
+        variables = Variables(None, default_index='_group_index')
         variables.add_auxiliary_variable('_variable',
                                          unit=variable.unit,
                                          dtype=variable.dtype,
                                          scalar=variable.scalar)
-        if indices.shape ==  ():
+        if indices.shape == ():
             single_index = True
             indices = np.array([indices])
         else:
@@ -1076,15 +1125,24 @@ class VariableView(object):
         variables.add_array('_group_idx', unit=Unit(1),
                             size=len(indices), dtype=np.int32)
         variables['_group_idx'].set_value(indices)
+        # Force the use of this variable as a replacement for the original
+        # index variable
+        using_orig_index = [varname for varname, index in self.group.variables.indices.iteritems()
+                            if index == self.index_var_name]
+        for varname in using_orig_index:
+            variables.indices[varname] = '_idx'
 
         abstract_code = '_variable = ' + self.name + '\n'
         from brian2.codegen.codeobject import create_runner_codeobj
+        from brian2.devices.device import get_default_codeobject_class
         codeobj = create_runner_codeobj(self.group,
                                         abstract_code,
                                         'group_variable_get',
+                                        needed_variables=['_group_idx'],
                                         additional_variables=variables,
                                         level=level+2,
-                                        run_namespace=run_namespace
+                                        run_namespace=run_namespace,
+                                        codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
         )
         result = codeobj()
         if single_index and not variable.scalar:
@@ -1104,11 +1162,7 @@ class VariableView(object):
                                   'scalar variable.') % self.name)
             variable.get_value()[0] = value
         else:
-            indices = self.indexing.calc_indices(item, self.var_index)
-            # We are not going via code generation so we have to take care
-            # of correct indexing (in particular for subgroups) explicitly
-            if self.var_index != '_idx':
-                indices = self.var_index_variable.get_value()[indices]
+            indices = self.indexing(item, self.index_var)
 
             q = Quantity(value, copy=False)
             if len(q.shape):
@@ -1121,52 +1175,69 @@ class VariableView(object):
 
     # Allow some basic calculations directly on the ArrayView object
     def __array__(self, dtype=None):
+        try:
+            # This will fail for subexpressions that refer to external
+            # parameters
+            value = self[:]
+        except ValueError:
+            raise ValueError(('Cannot get the values for variable {var}. If it '
+                              'is a subexpression referring to external '
+                              'variables, use "group.{var}[:]" instead of '
+                              '"group.{var}"'.format(var=self.variable.name)))
         return np.asanyarray(self[:], dtype=dtype)
 
     def __len__(self):
-        return len(self[:])
+        return len(self.get_item(slice(None), level=1))
 
     def __neg__(self):
-        return -self[:]
+        return -self.get_item(slice(None), level=1)
 
     def __pos__(self):
-        return self[:]
+        return self.get_item(slice(None), level=1)
 
     def __add__(self, other):
-        return self[:] + other
+        return self.get_item(slice(None), level=1) + other
 
     def __radd__(self, other):
-        return other + self[:]
+        return other + self.get_item(slice(None), level=1)
 
     def __sub__(self, other):
-        return self[:] - other
+        return self.get_item(slice(None), level=1) - other
 
     def __rsub__(self, other):
-        return other - self[:]
+        return other - self.get_item(slice(None), level=1)
 
     def __mul__(self, other):
-        return self[:] * other
+        return self.get_item(slice(None), level=1) * other
 
     def __rmul__(self, other):
-        return self.__mul__(other)
+        return other * self.get_item(slice(None), level=1)
 
     def __div__(self, other):
-        return self[:] / other
+        return self.get_item(slice(None), level=1) / other
 
     def __truediv__(self, other):
-        return self[:] / other
+        return self.get_item(slice(None), level=1) / other
+
+    def __floordiv__(self, other):
+        return self.get_item(slice(None), level=1) // other
 
     def __rdiv__(self, other):
-        return other / self[:]
+        return other / self.get_item(slice(None), level=1)
 
     def __rtruediv__(self, other):
-        return other / self[:]
+        return other / self.get_item(slice(None), level=1)
+
+    def __rfloordiv__(self, other):
+        return other // self.get_item(slice(None), level=1)
 
     def __iadd__(self, other):
         if isinstance(other, basestring):
             raise TypeError(('In-place modification with strings not '
                              'supported. Use group.var = "var + expression" '
                              'instead of group.var += "expression".'))
+        elif isinstance(self.variable, Subexpression):
+            raise TypeError('Cannot assign to a subexpression.')
         else:
             rhs = self[:] + other
         self[:] = rhs
@@ -1177,6 +1248,8 @@ class VariableView(object):
             raise TypeError(('In-place modification with strings not '
                              'supported. Use group.var = "var - expression" '
                              'instead of group.var -= "expression".'))
+        elif isinstance(self.variable, Subexpression):
+            raise TypeError('Cannot assign to a subexpression.')
         else:
             rhs = self[:] - other
         self[:] = rhs
@@ -1187,6 +1260,8 @@ class VariableView(object):
             raise TypeError(('In-place modification with strings not '
                              'supported. Use group.var = "var * expression" '
                              'instead of group.var *= "expression".'))
+        elif isinstance(self.variable, Subexpression):
+            raise TypeError('Cannot assign to a subexpression.')
         else:
             rhs = self[:] * other
         self[:] = rhs
@@ -1197,6 +1272,8 @@ class VariableView(object):
             raise TypeError(('In-place modification with strings not '
                              'supported. Use group.var = "var / expression" '
                              'instead of group.var /= "expression".'))
+        elif isinstance(self.variable, Subexpression):
+            raise TypeError('Cannot assign to a subexpression.')
         else:
             rhs = self[:] / other
         self[:] = rhs
@@ -1205,29 +1282,36 @@ class VariableView(object):
     # Also allow logical comparisons
 
     def __eq__(self, other):
-        return self[:] == other
+        return self.get_item(slice(None), level=1) == other
 
     def __ne__(self, other):
-        return self[:] != other
+        return self.get_item(slice(None), level=1) != other
 
     def __lt__(self, other):
-        return self[:] < other
+        return self.get_item(slice(None), level=1) < other
 
     def __le__(self, other):
-        return self[:] <= other
+        return self.get_item(slice(None), level=1) <= other
 
     def __gt__(self, other):
-        return self[:] > other
+        return self.get_item(slice(None), level=1) > other
 
     def __ge__(self, other):
-        return self[:] >= other
+        return self.get_item(slice(None), level=1) >= other
 
     def __repr__(self):
         varname = self.name
         if self.unit is None:
             varname += '_'
-        return '<%s.%s: %r>' % (self.group_name, varname,
-                                 self[:])
+        try:
+            # This will fail for subexpressions that refer to external
+            # parameters
+            values = repr(self[:])
+        except ValueError:
+            values = ('[Subexpression refers to external parameters. Use '
+                      '"group.{var}[:]"]').format(var=self.variable.name)
+        return '<%s.%s: %s>' % (self.group_name, varname,
+                                 values)
 
 
 class Variables(collections.Mapping):
@@ -1459,7 +1543,8 @@ class Variables(collections.Mapping):
         var = Constant(name=name, unit=unit, value=value)
         self._add_variable(name, var)
 
-    def add_subexpression(self, name, unit, expr, dtype=None, scalar=False):
+    def add_subexpression(self, name, unit, expr, dtype=None, scalar=False,
+                          index=None):
         '''
         Add a named subexpression.
 
@@ -1477,10 +1562,13 @@ class Variables(collections.Mapping):
         scalar : bool, optional
             Whether this is an expression only referring to scalar variables.
             Defaults to ``False``
+        index : str, optional
+            The index to use for this variable. Defaults to
+            `Variables.default_index`.
         '''
         var = Subexpression(name=name, unit=unit, expr=expr, owner=self.owner,
                             dtype=dtype, device=self.device, scalar=scalar)
-        self._add_variable(name, var)
+        self._add_variable(name, var, index=index)
 
     def add_auxiliary_variable(self, name, unit, dtype=None, scalar=False):
         '''
@@ -1528,11 +1616,13 @@ class Variables(collections.Mapping):
             elif subexpr_var_index == '0':
                 pass  # nothing to do for a shared variable
             elif index != self.default_index:
-                raise TypeError(('Cannot link to subexpression %s: it refers '
-                                 'to the variable %s which is index with the '
-                                 'non-standard index %s.') % (name,
-                                                              identifier,
-                                                              subexpr_var_index))
+                index_var = self._variables.get(index, None)
+                if isinstance(index_var, DynamicArrayVariable):
+                    raise TypeError(('Cannot link to subexpression %s: it refers '
+                                     'to the variable %s which is indexed with the '
+                                     'dynamic index %s.') % (name,
+                                                             identifier,
+                                                             subexpr_var_index))
             else:
                 self.add_reference(subexpr_var_index, group)
 
@@ -1617,7 +1707,7 @@ class Variables(collections.Mapping):
         for name in varnames:
             self.add_reference(name, group, name, index)
 
-    def add_clock_variables(self, clock, prefix=''):
+    def create_clock_variables(self, clock, prefix=''):
         '''
         Convenience function to add the ``t`` and ``dt`` attributes of a
         `clock`.
@@ -1633,8 +1723,15 @@ class Variables(collections.Mapping):
             not confuse the dynamic array of recorded times with the current
             time in the recorded group.
         '''
-        self.add_attribute_variable(prefix+'t', unit=second, obj=clock,
-                                    attribute='t_', dtype=np.float64)
-        self.add_attribute_variable(prefix+'dt', unit=second, obj=clock,
-                                    attribute='dt_', dtype=np.float64,
-                                    constant=True)
+        for name in ['t', 'dt']:
+            if prefix+name in self._variables:
+                var = self._variables[prefix+name]
+                if not isinstance(var, AttributeVariable):
+                    raise AssertionError(('%s is present in the variables '
+                                          'dictionary but of '
+                                          'type %s') % (prefix+name,
+                                                        type(var)))
+                var.obj = clock # replace the clock object
+            else:
+                self.add_attribute_variable(prefix+name, unit=second, obj=clock,
+                                            attribute=name+'_', dtype=np.float64)

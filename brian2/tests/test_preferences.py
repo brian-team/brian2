@@ -8,7 +8,9 @@ from brian2.core.preferences import (DefaultValidator, BrianPreference,
 
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
+from nose.plugins.attrib import attr
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_defaultvalidator():
     # Test that the default validator checks the class
@@ -24,6 +26,7 @@ def test_defaultvalidator():
     assert not validator(1*amp)
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_brianpreference():
     # check default args
@@ -33,6 +36,8 @@ def test_brianpreference():
     assert pref.default==1./3
     assert pref.representor(pref.default)==repr(1./3)
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_preference_name_checking():
     '''
@@ -68,6 +73,7 @@ def test_preference_name_checking():
                                                                    ))
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_brianglobalpreferences():
     # test that pre-setting a nonexistent preference in a subsequently
@@ -160,6 +166,8 @@ def test_brianglobalpreferences():
     gp = BrianGlobalPreferences()
     gp.load_preferences()
 
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_preference_name_access():
     '''
@@ -172,19 +180,27 @@ def test_preference_name_access():
                             name=BrianPreference(True, 'some preference'))    
     gp.register_preferences('main.sub', 'subcategory',
                             name2=BrianPreference(True, 'some preference'))
-    
+
+    gp.register_preferences('main.sub_no_pref', 'subcategory without preference')
+    gp.register_preferences('main.sub_no_pref.sub', 'deep subcategory',
+                            name=BrianPreference(True, 'some preference'))
+
     # Keyword based access
     assert gp['main.name']
     assert gp['main.sub.name2']
+    assert gp['main.sub_no_pref.sub.name']
     gp['main.name'] = False
     gp['main.sub.name2'] = False
-    
+    gp['main.sub_no_pref.sub.name'] = False
+
     # Attribute based access
     assert not gp.main.name  # we set it to False above
     assert not gp.main.sub.name2
+    assert not gp.main.sub_no_pref.sub.name
     gp.main.name = True
     gp.main.sub.name2 = True
-    
+    gp.main.sub_no_pref.sub.name = True
+
     # Mixed access
     assert gp.main['name']
     assert gp['main'].name
@@ -224,8 +240,8 @@ def test_preference_name_access():
     for name, value in gp.main.iteritems():
         assert gp.main[name] == value
     
-    assert len(gp) == 2  # two preferences in total
-    assert len(gp['main']) == 2  # both preferences are in the main category
+    assert len(gp) == 3  # three preferences in total
+    assert len(gp['main']) == 3  # all preferences are in the main category
     assert len(gp['main.sub']) == 1  # one preference in main.sub
     
     assert 'main.name' in gp
@@ -251,6 +267,7 @@ def test_preference_name_access():
     assert gp.main._basename == 'main'
 
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_str_repr():
     # Just test whether str and repr do not throw an error and return something

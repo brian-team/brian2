@@ -8,7 +8,7 @@ from sympy.core import mod as sympy_mod
 import numpy as np
 from numpy.random import randn, rand
 
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            Quantity, get_dimensions,
                                            check_units)
@@ -16,7 +16,7 @@ from brian2.units.allunits import second
 from brian2.core.variables import Constant
 import brian2.units.unitsafefunctions as unitsafe
 
-__all__ = ['DEFAULT_FUNCTIONS', 'Function', 'make_function']
+__all__ = ['DEFAULT_FUNCTIONS', 'Function', 'implementation']
 
 
 class Function(object):
@@ -49,7 +49,7 @@ class Function(object):
     -----
     If a function should be usable for code generation targets other than
     Python/numpy, implementations for these target languages have to be added
-    using the `~brian2.codegen.functions.make_function` decorator or using the
+    using the `~brian2.codegen.functions.implementation` decorator or using the
     `~brian2.codegen.functions.add_implementations` function.
     '''
     def __init__(self, pyfunc, sympy_func=None, arg_units=None,
@@ -59,19 +59,34 @@ class Function(object):
         self._arg_units = arg_units
         self._return_unit = return_unit
         if self._arg_units is None:
-            if hasattr(pyfunc, '_arg_units'):
+            if not hasattr(pyfunc, '_arg_units'):
+                raise ValueError(('The Python function "%s" does not specify '
+                                  'how it deals with units, need to specify '
+                                  '"arg_units" or use the "@check_units" '
+                                  'decorator.') % pyfunc.__name__)
+            elif pyfunc._arg_units is None:
+                # @check_units sets _arg_units to None if the units aren't
+                # specified for all of its arguments
+                raise ValueError(('The Python function "%s" does not specify '
+                                  'the units for all of its '
+                                  'arguments.') % pyfunc.__name__)
+            else:
                 self._arg_units = pyfunc._arg_units
-            else:
-                raise ValueError('The given Python function does not specify '
-                                  'how it deals with units, need to specify '
-                                  '"arg_units".')
+
         if self._return_unit is None:
-            if hasattr(pyfunc, '_return_unit'):
-                self._return_unit = pyfunc._return_unit
-            else:
-                raise ValueError(('The given Python function does not specify '
+            if not hasattr(pyfunc, '_return_unit'):
+                raise ValueError(('The Python function "%s" does not specify '
                                   'how it deals with units, need to specify '
-                                  '"return_unit".'))
+                                  '"return_unit" or use the "@check_units" '
+                                  'decorator.') % pyfunc.__name__)
+            elif pyfunc._return_unit is None:
+                # @check_units sets _return_unit to None if no "result=..."
+                # keyword is specified.
+                raise ValueError(('The Python function "%s" does not specify '
+                                  'the unit for its return '
+                                  'value.') % pyfunc.__name__)
+            else:
+                self._return_unit = pyfunc._return_unit
 
         #: Stores implementations for this function in a
         #: `FunctionImplementationContainer`
@@ -201,13 +216,13 @@ class FunctionImplementationContainer(collections.Mapping):
         wrapped_func : callable
             The original function (that will be used for the numpy implementation)
         discard_units : bool, optional
-            See `make_function`.
+            See `implementation`.
         '''
         # do the import here to avoid cyclical imports
         from brian2.codegen.runtime.numpy_rt.numpy_rt import NumpyCodeObject
 
         if discard_units is None:
-            discard_units = brian_prefs['codegen.runtime.numpy.discard_units']
+            discard_units = prefs['codegen.runtime.numpy.discard_units']
 
         # Get the original function inside the check_units decorator
         if hasattr(wrapped_func,  '_orig_func'):
@@ -247,32 +262,6 @@ class FunctionImplementationContainer(collections.Mapping):
                                                                code=code,
                                                                namespace=namespace)
 
-    def add_implementations(self, codes, namespaces=None, names=None):
-        '''
-        Add implementations to a `Function`.
-
-        Parameters
-        ----------
-        function : `Function`
-            The function description for which implementations should be added.
-        codes : dict-like
-            See `make_function`
-        namespace : dict-like, optional
-            See `make_function`
-        names : dict-like, optional
-            The name of the function in the given target language, if it should
-            be renamed. Has to use the same keys as the `codes` and `namespaces`
-            dictionary.
-        '''
-        if namespaces is None:
-            namespaces = {}
-        if names is None:
-            names = {}
-
-        for target, code in codes.iteritems():
-            self.add_implementation(target, code, namespaces.get(target, None),
-                                    names.get(target, None))
-
     def add_dynamic_implementation(self, target, code, namespace=None, name=None):
         '''
         Adds an "dynamic implementation" for this function. `code` and `namespace`
@@ -297,22 +286,22 @@ class FunctionImplementationContainer(collections.Mapping):
         return iter(self._implementations)
 
 
-def make_function(codes=None, namespaces=None, discard_units=None):
+def implementation(target, code=None, namespace=None, discard_units=None):
     '''
     A simple decorator to extend user-written Python functions to work with code
     generation in other languages.
 
     Parameters
     ----------
-    codes : dict-like, optional
-        A mapping from `CodeGenerator` or `CodeObject` class objects, or their
-        corresponding names (e.g. `'numpy'` or `'weave'`) to codes for the
-        target language. What kind of code the target language expects is
-        language-specific, e.g. C++ code has to be provided as a dictionary
-        of code blocks.
+    target : str
+        Name of the code generation target (e.g. ``'weave'``) for which to add
+        an implementation.
+    code : str or dict-like, optional
+        What kind of code the target language expects is language-specific,
+        e.g. C++ code allows for a dictionary of code blocks instead of a
+        single string.
     namespaces : dict-like, optional
-        If provided, has to use the same keys as the `codes` argument and map
-        it to a namespace dictionary (i.e. a mapping of names to values) that
+        A namespace dictionary (i.e. a mapping of names to values) that
         should be added to a `CodeObject` namespace when using this function.
     discard_units: bool, optional
         Numpy functions can internally make use of the unit system. However,
@@ -341,40 +330,37 @@ def make_function(codes=None, namespaces=None, discard_units=None):
     --------
     Sample usage::
 
-        @make_function(codes={
-            'cpp':{
-                'support_code':"""
+        @implementation('cpp',"""
                     #include<math.h>
                     inline double usersin(double x)
                     {
                         return sin(x);
                     }
-                    """,
-                'hashdefine_code':'',
-                },
-            })
+                    """)
         def usersin(x):
             return sin(x)
-            
-    See also
-    --------
-    
-    make_cpp_function, make_weave_function
     '''
-    if codes is None:
-        codes = {}
 
-    def do_make_user_function(func):
-        function = Function(func)
+    def do_user_implementation(func):
+        # Allow nesting of decorators
+        if isinstance(func, Function):
+            function = func
+        else:
+            function = Function(func)
 
         if discard_units:  # Add a numpy implementation that discards units
+            if not (target == 'numpy' and code is None):
+                raise TypeError(("'discard_units' can only be set for code "
+                                 "generation target 'numpy', without providing "
+                                 "any code."))
             function.implementations.add_numpy_implementation(wrapped_func=func,
                                                               discard_units=discard_units)
-
-        function.implementations.add_implementations(codes=codes,
-                                                     namespaces=namespaces)
+        else:
+            function.implementations.add_implementation(target, code=code,
+                                                        namespace=namespace)
         return function
-    return do_make_user_function
+    return do_user_implementation
+
 
 class SymbolicConstant(Constant):
     '''

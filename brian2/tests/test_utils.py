@@ -1,5 +1,9 @@
+from nose.plugins.attrib import attr
+
 from brian2.utils.environment import running_from_ipython
 
+
+@attr('codegen-independent')
 def test_environment():
     '''
     Test information about the environment we are running under.
@@ -27,5 +31,3 @@ def test_environment():
 
 if __name__ == '__main__':
     test_environment()
-
-    

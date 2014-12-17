@@ -88,6 +88,9 @@ class SpikeQueue(object):
         #: The dt used for storing the spikes (will be set in `prepare`)
         self._dt = None
 
+        #: Storage for the store/restore mechanism
+        self._stored_spikes = {}
+
     def prepare(self, delays, dt, synapse_sources):
         '''
         Prepare the data structure and pre-compute offsets.
@@ -194,6 +197,18 @@ class SpikeQueue(object):
             self.X[row_idx, self.n[row_idx]] = target
             self.n[row_idx] += 1
 
+    def _store(self, name='default'):
+        self._stored_spikes[name] = self._extract_spikes()
+
+    def _restore(self, name='default'):
+        if name in self._stored_spikes:
+            self._store_spikes(self._stored_spikes[name])
+        else:
+            # It is possible that _store was called in `SynapticPathway`, before
+            # the `SpikeQueue` was created. In that case, delete all spikes in
+            # the queue
+            self._store_spikes(np.empty((0, 2)))
+
     ################################ SPIKE QUEUE DATASTRUCTURE ################
     def advance(self):
         '''
@@ -218,7 +233,7 @@ class SpikeQueue(object):
         sources : ndarray of int
             The indices of the neurons that spiked.
         '''
-        if len(sources):
+        if len(sources) and len(self._delays):
             start = self._source_start
             stop = self._source_end
             if start > 0:

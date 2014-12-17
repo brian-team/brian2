@@ -21,7 +21,8 @@ class CodeGenerator(object):
     class_name = ''
 
     def __init__(self, variables, variable_indices, owner, iterate_all,
-                 codeobj_class, override_conditional_write=None,
+                 codeobj_class, name, template_name,
+                 override_conditional_write=None,
                  allows_scalar_write=False):
         # We have to do the import here to avoid circular import dependencies.
         from brian2.devices.device import get_device
@@ -36,6 +37,8 @@ class CodeGenerator(object):
         else:
             self.override_conditional_write = set(override_conditional_write)
         self.allows_scalar_write = allows_scalar_write
+        self.name = name
+        self.template_name = template_name
 
     @staticmethod
     def get_array_name(var, access_data=True):
@@ -154,8 +157,10 @@ class CodeGenerator(object):
         '''
         read, write, indices = self.array_read_write(statements)
         conditional_write_vars = self.get_conditional_write_vars()
-        read = read.union(set((conditional_write_vars[var] for var in write
-                               if var in conditional_write_vars)))
+        read |= set(var for var in write
+                    if var in conditional_write_vars)
+        read |= set(conditional_write_vars[var] for var in write
+                    if var in conditional_write_vars)
         return read, write, indices, conditional_write_vars
 
     def translate(self, code, dtype):

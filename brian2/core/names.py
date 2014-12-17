@@ -65,7 +65,8 @@ class Nameable(Trackable):
             # name has already been specified previously
             return
 
-        self._id = uuid.uuid4()
+        self.assign_id()
+
         if not isinstance(name, basestring):
             raise TypeError(('"name" argument has to be a string, is type '
                              '{type} instead').format(type=repr(type(name))))
@@ -74,6 +75,15 @@ class Nameable(Trackable):
 
         self._name = find_name(name)
         logger.debug("Created object of class "+self.__class__.__name__+" with name "+self._name)
+
+    def assign_id(self):
+        '''
+        Assign a new id to this object. Under most circumstances, this method
+        should only be called once at the creation of the object to generate a
+        unique id. In the case of the `MagicNetwork`, however, the id should
+        change when a new, independent set of objects is simulated.
+        '''
+        self._id = uuid.uuid4()
 
     name = property(fget=lambda self:self._name,
                     doc='''
@@ -86,7 +96,7 @@ class Nameable(Trackable):
                         ''')
 
     id = property(fget=lambda self:self._id,
-                    doc='''
+                  doc='''
                         A unique id for this object.
 
                         In contrast to names, which may be reused, the id stays

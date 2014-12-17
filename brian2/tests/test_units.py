@@ -2,9 +2,11 @@ import itertools
 import warnings
 import pickle
 
+from nose.plugins.attrib import attr
 import numpy as np
 from numpy.testing import assert_raises, assert_equal
 
+from brian2.core.preferences import prefs
 from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            UFUNCS_DIMENSIONLESS_TWOARGS,
                                            UFUNCS_INTEGERS,
@@ -45,7 +47,7 @@ def assert_quantity(q, values, unit):
                                             get_dimensions(unit)))
 
 
-# Construct quantities
+@attr('codegen-independent')
 def test_construction():
     ''' Test the construction of quantity objects '''
     q = 500 * ms
@@ -103,7 +105,7 @@ def test_construction():
     assert_raises(DimensionMismatchError, lambda: Quantity(q, dim=volt.dim))
     
 
-
+@attr('codegen-independent')
 def test_get_dimensions():
     '''
     Test various ways of getting/comparing the dimensions of a quantity.
@@ -135,11 +137,13 @@ def test_get_dimensions():
     # not a sequence
     assert_raises(ValueError, lambda: get_or_create_dimension(42))
 
+
+@attr('codegen-independent')
 def test_display():
     '''
     Test displaying a quantity in different units
     '''
-    assert_equal(in_unit(3 * volt, mvolt), '3000.0 mV')
+    assert_equal(in_unit(3 * volt, mvolt), '3000. mV')
     assert_equal(in_unit(10 * mV, ohm * amp), '0.01 ohm A')
     assert_raises(DimensionMismatchError, lambda: in_unit(10 * nS, ohm))
     
@@ -147,6 +151,7 @@ def test_display():
     assert_equal(in_unit(10.0, Unit(10)), '1.0')
 
 
+@attr('codegen-independent')
 def test_pickling():
     '''
     Test pickling of units.
@@ -160,6 +165,7 @@ def test_pickling():
         assert_equal(unpickled, q)
 
 
+@attr('codegen-independent')
 def test_str_repr():
     '''
     Test that str representations do not raise any errors and that repr
@@ -187,7 +193,8 @@ def test_str_repr():
                      metre * second**-1, 10 * metre * second**-1,
                      array([1, 2, 3]) * kmetre / second,
                      np.ones(3) * nS / cm**2,
-                     Unit(1, dim=get_or_create_dimension(length=5, time=2))]
+                     Unit(1, dim=get_or_create_dimension(length=5, time=2)),
+                     8000*umetre**3, [0.0001, 10000] * umetre**3]
     
     unitless = [second/second, 5 * second/second, Unit(1)]
     
@@ -208,8 +215,10 @@ def test_str_repr():
         assert len(str(error))
         assert len(repr(error))
 
-# Slicing and indexing, setting items
+
+@attr('codegen-independent')
 def test_slicing():
+    # Slicing and indexing, setting items
     quantity = np.reshape(np.arange(6), (2, 3)) * mV
     assert_equal(quantity[:], quantity)
     assert_equal(quantity[0], np.asarray(quantity)[0] * volt)
@@ -221,6 +230,8 @@ def test_slicing():
     assert_equal(quantity[bool_matrix],
                  np.asarray(quantity)[bool_matrix] * volt)
 
+
+@attr('codegen-independent')
 def test_setting():
     quantity = np.reshape(np.arange(6), (2, 3)) * mV
     quantity[0, 1] = 10 * mV
@@ -242,7 +253,7 @@ def test_setting():
                                                                 np.ones((2, 3))))
 
 
-# Binary operations
+@attr('codegen-independent')
 def test_multiplication_division():
     quantities = [3 * mV, np.array([1, 2]) * mV, np.ones((3, 3)) * mV]
     q2 = 5 * second
@@ -282,6 +293,7 @@ def test_multiplication_division():
         assert_raises(TypeError, lambda: q * 'string')
 
 
+@attr('codegen-independent')
 def test_addition_subtraction():
     quantities = [3 * mV, np.array([1, 2]) * mV, np.ones((3, 3)) * mV]
     q2 = 5 * volt
@@ -341,7 +353,7 @@ def test_addition_subtraction():
         assert_raises(TypeError, lambda: q - 'string')
         assert_raises(TypeError, lambda: 'string' - q)
 
-
+@attr('codegen-independent')
 def test_unary_operations():
     from operator import neg, pos
 
@@ -350,6 +362,7 @@ def test_unary_operations():
             assert_quantity(op(x*kilogram), op(x), kilogram)
 
 
+@attr('codegen-independent')
 def test_binary_operations():
     ''' Test whether binary operations work when they should and raise
     DimensionMismatchErrors when they should.
@@ -452,6 +465,8 @@ def test_binary_operations():
         assert np.all(value > -np.inf)
         assert np.all(-np.inf < value)
 
+
+@attr('codegen-independent')
 def test_power():
     '''
     Test raising quantities to a power.
@@ -466,6 +481,7 @@ def test_power():
         assert_raises(TypeError, lambda: value ** np.array([2, 3]))
 
 
+@attr('codegen-independent')
 def test_inplace_operations():
     q = np.arange(10) * volt
     q_orig = q.copy()
@@ -518,11 +534,12 @@ def test_inplace_operations():
                        volt.dimensions.__ipow__]:
         assert_raises(TypeError, lambda: inplace_op(volt.dimensions))
 
+
+@attr('codegen-independent')
 def test_unit_discarding_functions():
     '''
     Test functions that discard units.
     '''
-    
     from brian2.units.unitsafefunctions import zeros_like, ones_like
     
     values = [3 * mV, np.array([1, 2]) * mV, np.arange(12).reshape(3, 4) * mV]
@@ -533,6 +550,7 @@ def test_unit_discarding_functions():
         assert_equal(np.nonzero(value), np.nonzero(np.asarray(value)))
 
 
+@attr('codegen-independent')
 def test_unitsafe_functions():
     '''
     Test the unitsafe functions wrapping their numpy counterparts.
@@ -572,6 +590,8 @@ def test_unitsafe_functions():
             for val in numpy_values:
                 assert_equal(func(val), np_func(val))
 
+
+@attr('codegen-independent')
 def test_special_case_numpy_functions():
     '''
     Test a couple of functions/methods that need special treatment.
@@ -579,15 +599,19 @@ def test_special_case_numpy_functions():
     from brian2.units.unitsafefunctions import ravel, diagonal, trace, dot, where
     
     quadratic_matrix = np.reshape(np.arange(9), (3, 3)) * mV
-    # Check that function and method do the same thing
-    assert_equal(ravel(quadratic_matrix), quadratic_matrix.ravel())
-    # Check that function gives the same result as on unitless arrays
-    assert_equal(np.asarray(ravel(quadratic_matrix)),
-                 ravel(np.asarray(quadratic_matrix)))
-    # Check that the function gives the same results as the original numpy
-    # function
-    assert_equal(np.ravel(np.asarray(quadratic_matrix)),
-                 ravel(np.asarray(quadratic_matrix)))
+
+    # Temporarily suppress warnings related to the matplotlib 1.3 bug
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        # Check that function and method do the same thing
+        assert_equal(ravel(quadratic_matrix), quadratic_matrix.ravel())
+        # Check that function gives the same result as on unitless arrays
+        assert_equal(np.asarray(ravel(quadratic_matrix)),
+                     ravel(np.asarray(quadratic_matrix)))
+        # Check that the function gives the same results as the original numpy
+        # function
+        assert_equal(np.ravel(np.asarray(quadratic_matrix)),
+                     ravel(np.asarray(quadratic_matrix)))
 
     # Do the same checks for diagonal, trace and dot
     assert_equal(diagonal(quadratic_matrix), quadratic_matrix.diagonal())
@@ -665,6 +689,7 @@ def test_special_case_numpy_functions():
 
 
 # Functions that should not change units
+@attr('codegen-independent')
 def test_numpy_functions_same_dimensions():
     values = [np.array([1, 2]), np.ones((3, 3))]
     units = [volt, second, siemens, mV, kHz]
@@ -697,6 +722,8 @@ def test_numpy_functions_same_dimensions():
                                                q_ar.dim,
                                                get_dimensions(test_ar)))
 
+
+@attr('codegen-independent')
 def test_numpy_functions_indices():
     '''
     Check numpy functions that return indices.
@@ -719,6 +746,8 @@ def test_numpy_functions_indices():
                                                    'quantities ') %
                                                   func.__name__))
 
+
+@attr('codegen-independent')
 def test_numpy_functions_dimensionless():
     '''
     Test that numpy functions that should work on dimensionless quantities only
@@ -761,6 +790,8 @@ def test_numpy_functions_dimensionless():
                               lambda: eval('np.%s(value, value)' % ufunc,
                                            globals(), {'value': value}))
 
+
+@attr('codegen-independent')
 def test_numpy_functions_change_dimensions():
     '''
     Test some numpy functions that change the dimensions of the quantity.
@@ -776,6 +807,7 @@ def test_numpy_functions_change_dimensions():
                         1.0 / volt)
 
 
+@attr('codegen-independent')
 def test_numpy_functions_typeerror():
     '''
     Assures that certain numpy functions raise a TypeError when called on
@@ -795,6 +827,8 @@ def test_numpy_functions_typeerror():
                 assert_raises(TypeError, lambda: eval('np.%s(value, value)' % ufunc,
                                                    globals(), {'value': value}))
 
+
+@attr('codegen-independent')
 def test_numpy_functions_logical():
     '''
     Assure that logical numpy functions work on all quantities and return
@@ -819,6 +853,8 @@ def test_numpy_functions_logical():
             assert not isinstance(result_units, Quantity)
             assert_equal(result_units, result_array)
 
+
+@attr('codegen-independent')
 def test_list():
     '''
     Test converting to and from a list.
@@ -831,6 +867,8 @@ def test_list():
         assert have_same_dimensions(from_list, value)
         assert_equal(from_list, value)
 
+
+@attr('codegen-independent')
 def test_check_units():
     '''
     Test the check_units decorator
@@ -875,6 +913,7 @@ def test_check_units():
     assert_raises(DimensionMismatchError, lambda: b_function(False))
 
 
+@attr('codegen-independent')
 def test_get_unit():
     '''
     Test get_unit and get_unit_fast
@@ -882,10 +921,21 @@ def test_get_unit():
     values = [3 * mV, np.array([1, 2]) * mV,
               np.arange(12).reshape(4, 3) * mV]
     for value in values:
-        assert get_unit(value) == volt
+        unit = get_unit(value)
+        assert isinstance(unit, Unit)
+        assert unit == volt
         assert_quantity(get_unit_fast(value), 1, volt)
 
+    values = [3 * amp/metre**2, np.array([1, 2]) * amp/metre**2,
+              np.arange(12).reshape(4, 3) * amp/metre**2]
+    for value in values:
+        unit = get_unit(value)
+        assert isinstance(unit, Unit)
+        assert unit == amp/metre**2
+        assert_quantity(get_unit_fast(value), 1, amp/metre**2)
 
+
+@attr('codegen-independent')
 def test_switching_off_unit_checks():
     '''
     Check switching off unit checks (used for external functions).
@@ -900,7 +950,9 @@ def test_switching_off_unit_checks():
     assert have_same_dimensions(x, y)
     assert x.has_same_dimensions(y)
     fundamentalunits.unit_checking = True
-    
+
+
+@attr('codegen-independent')
 def test_fail_for_dimension_mismatch():
     '''
     Test the fail_for_dimension_mismatch function.
@@ -914,6 +966,17 @@ def test_fail_for_dimension_mismatch():
     # examples that should raise an error
     assert_raises(DimensionMismatchError, lambda: fail_for_dimension_mismatch(6 * volt))
     assert_raises(DimensionMismatchError, lambda: fail_for_dimension_mismatch(6 * volt, 5 * second))    
+
+
+@attr('codegen-independent')
+def test_deepcopy():
+    d = {'x': 1*second}
+    from copy import deepcopy
+    d_copy = deepcopy(d)
+    assert d_copy['x'] == 1*second
+    d_copy['x'] += 1*second
+    assert d_copy['x'] == 2*second
+    assert d['x'] == 1*second
 
 
 if __name__ == '__main__':
@@ -944,3 +1007,4 @@ if __name__ == '__main__':
     test_get_unit()
     test_switching_off_unit_checks()
     test_fail_for_dimension_mismatch()
+    test_deepcopy()

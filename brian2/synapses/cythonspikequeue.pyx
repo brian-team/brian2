@@ -2,6 +2,7 @@
 # distutils: sources = brian2/synapses/cspikequeue.cpp
 
 from libcpp.vector cimport vector
+from libcpp.string cimport string
 
 from cython.operator import dereference
 from cython.operator cimport dereference
@@ -20,8 +21,10 @@ cdef extern from "inttypes.h":
 cdef extern from "cspikequeue.cpp":
     cdef cppclass CSpikeQueue[T]:
         CSpikeQueue(int, int) except +
-        void prepare(T*, int32_t*, int, double)
+        void prepare(T*, int, int32_t*, int, double)
         void push(int32_t *, int)
+        void store(const string)
+        void restore(const string)
         vector[int32_t]* peek()
         void advance()
 
@@ -35,12 +38,21 @@ cdef class SpikeQueue:
     def __dealloc__(self):
         del self.thisptr
 
+    def _store(self, str name='default'):
+        cdef string s = name.encode('UTF-8')
+        self.thisptr.store(s)
+
+    def _restore(self, str name='default'):
+        cdef string s = name.encode('UTF-8')
+        self.thisptr.restore(s)
+
     def prepare(self, np.ndarray[double, ndim=1, mode='c'] real_delays,
                 double dt,
                 np.ndarray[int32_t, ndim=1, mode='c'] sources):
         self.thisptr.prepare(<double*>real_delays.data,
+                             real_delays.shape[0],
                              <int32_t*>sources.data,
-                             real_delays.shape[0], dt)
+                             sources.shape[0], dt)
 
     def push(self, np.ndarray[int32_t, ndim=1, mode='c'] spikes):
         self.thisptr.push(<int32_t*>spikes.data, spikes.shape[0])

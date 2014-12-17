@@ -1,5 +1,7 @@
 import numpy as np
 from numpy.testing.utils import assert_equal
+from nose.plugins.attrib import attr
+
 from brian2.synapses.spikequeue import SpikeQueue
 from brian2.units.stdunits import ms
 from brian2.memory.dynamicarray import DynamicArray1D
@@ -31,6 +33,7 @@ def create_one_to_one(N, dt):
     return synapses, delays
 
 
+@attr('codegen-independent')
 def test_spikequeue():
     N = 100
     dt = float(0.1*ms)

@@ -10,6 +10,7 @@ try:
 except ImportError:
     pprint = None
 from nose import SkipTest
+from nose.plugins.attrib import attr
 
 from brian2 import volt, amp, mV, second, ms, Hz, farad, metre, cm
 from brian2 import Unit, Equations, Expression, sin
@@ -17,6 +18,7 @@ from brian2.units.fundamentalunits import (DIMENSIONLESS, get_dimensions,
                                            have_same_dimensions,
                                            DimensionMismatchError)
 from brian2.core.namespace import DEFAULT_UNITS
+from brian2.core.preferences import prefs
 from brian2.equations.equations import (check_identifier_basic,
                                         check_identifier_reserved,
                                         check_identifier_functions,
@@ -37,6 +39,7 @@ class SimpleGroup(Group):
         self.variables = variables
         self.namespace = namespace
 
+@attr('codegen-independent')
 def test_utility_functions():
     unit_namespace = DEFAULT_UNITS
 
@@ -64,6 +67,7 @@ def test_utility_functions():
     assert_raises(ValueError, lambda: unit_and_type_from_string('farad / cm**2'))
 
 
+@attr('codegen-independent')
 def test_identifier_checks():
     legal_identifiers = ['v', 'Vm', 'V', 'x', 'ge', 'g_i', 'a2', 'gaba_123']
     illegal_identifiers = ['_v', '1v', u'ü', 'ge!', 'v.x', 'for', 'else', 'if']
@@ -105,7 +109,7 @@ def test_identifier_checks():
             raise ValueError('I do not like this name')
 
     Equations.check_identifier('gaba_123')
-    old_checks = Equations.identifier_checks
+    old_checks = set(Equations.identifier_checks)
     Equations.register_identifier_check(disallow_gaba_123)
     assert_raises(ValueError, lambda: Equations.check_identifier('gaba_123'))
     Equations.identifier_checks = old_checks
@@ -113,6 +117,7 @@ def test_identifier_checks():
     # registering a non-function should now work
     assert_raises(ValueError, lambda: Equations.register_identifier_check('no function'))
 
+@attr('codegen-independent')
 def test_parse_equations():
     ''' Test the parsing of equation strings '''
     # A simple equation
@@ -161,16 +166,15 @@ def test_parse_equations():
     '''dv/dt = -v / tau : 1 : volt
     x = 2 * t : 1''',
     ''' dv/dt = -v / tau : 2 * volt''',
-    'dv/dt = v / second : bool']
+    'dv/dt = v / second : boolean']
     for error_eqs in parse_error_eqs:
-        assert_raises((ValueError, EquationError),
+        assert_raises((ValueError, EquationError, TypeError),
                       lambda: parse_string_equations(error_eqs))
 
 
-
+@attr('codegen-independent')
 def test_correct_replacements():
     ''' Test replacing variables via keyword arguments '''
-
     # replace a variable name with a new name
     eqs = Equations('dv/dt = -v / tau : 1', v='V')
     # Correct left hand side
@@ -183,9 +187,9 @@ def test_correct_replacements():
     assert not 'tau' in eqs['v'].identifiers
 
 
+@attr('codegen-independent')
 def test_wrong_replacements():
     '''Tests for replacements that should not work'''
-
     # Replacing a variable name with an illegal new name
     assert_raises(ValueError, lambda: Equations('dv/dt = -v / tau : 1',
                                                 v='illegal name'))
@@ -210,6 +214,7 @@ def test_wrong_replacements():
                                                  tau=np.arange(5)))
 
 
+@attr('codegen-independent')
 def test_construction_errors():
     '''
     Test that the Equations constructor raises errors correctly
@@ -270,6 +275,7 @@ def test_construction_errors():
     assert_raises(TypeError, lambda: Equations('dv/dt = -v / (10*ms) : integer'))
 
 
+@attr('codegen-independent')
 def test_unit_checking():
     # dummy Variable class
     class S(object):
@@ -307,6 +313,7 @@ def test_unit_checking():
                   lambda: eqs.check_units(group))
     
 
+@attr('codegen-independent')
 def test_properties():
     '''
     Test accessing the various properties of equation objects
@@ -361,6 +368,8 @@ def test_properties():
     eqs = Equations('''dv/dt = -v / tau + 0.1*second**-1.5*xi*v : 1''')
     assert eqs.stochastic_type == 'multiplicative'
 
+
+@attr('codegen-independent')
 def test_concatenation():
     eqs1 = Equations('''dv/dt = -(v + I) / tau : volt
                         I = sin(2*pi*freq*t) : volt
@@ -391,6 +400,7 @@ def test_concatenation():
     assert str(eqs3) == str(eqs4)
 
 
+@attr('codegen-independent')
 def test_str_repr():
     '''
     Test the string representation (only that it does not throw errors).
@@ -407,6 +417,7 @@ def test_str_repr():
     for eq in eqs.itervalues():
         assert(len(str(eq))) > 0
         assert(len(repr(eq))) > 0
+
 
 def test_ipython_pprint():
     if pprint is None:

@@ -1,6 +1,7 @@
 import sys
 import gc
 import time
+from collections import defaultdict
 
 import numpy as np
 
@@ -8,13 +9,13 @@ from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.core.base import BrianObject
 from brian2.core.clocks import Clock
-from brian2.units.fundamentalunits import check_units
-from brian2.units.allunits import second 
-from brian2.core.preferences import brian_prefs
+from brian2.units.fundamentalunits import check_units, DimensionMismatchError
+from brian2.units.allunits import second, msecond 
+from brian2.core.preferences import prefs
 
 from .base import device_override
 
-__all__ = ['Network']
+__all__ = ['Network', 'profiling_summary']
 
 
 logger = get_logger(__name__)
@@ -166,17 +167,41 @@ class Network(Nameable):
 
         Nameable.__init__(self, name=name)
 
+        #: Current time as a float
+        self.t_ = 0.0
+
         for obj in objs:
             self.add(obj)
-            
-        #: Current time as a float
-        self.t_ = 0.0   
+
+        #: Stored time for the store/restore mechanism
+        self._stored_t = {}
+
+        # Stored profiling information (if activated via the keyword option)
+        self._profiling_info = None
      
     t = property(fget=lambda self: self.t_*second,
-                 fset=lambda self, val: setattr(self, 't_', float(val)),
                  doc='''
                      Current simulation time in seconds (`Quantity`)
                      ''')
+
+    @property
+    def profiling_info(self):
+        '''
+        The time spent in executing the various `CodeObject`\ s.
+
+        A list of ``(name, time)`` tuples, containing the name of the
+        `CodeObject` and the total execution time for simulations of this object
+        (as a `Quantity` with unit `second`). The list is sorted descending
+        with execution time.
+
+        Profiling has to be activated using the ``profile`` keyword in `run` or
+        `Network.run`.
+        '''
+        if self._profiling_info is None:
+            raise ValueError('(No profiling info collected (did you run with '
+                             'profile=True?)')
+        return sorted(self._profiling_info, key=lambda item: item[1],
+                      reverse=True)
 
     _globally_stopped = False
 
@@ -228,6 +253,13 @@ class Network(Nameable):
         """
         for obj in objs:
             if isinstance(obj, BrianObject):
+                if obj._network is not None:
+                    raise RuntimeError('%s has already been simulated, cannot '
+                                       'add it to the network. If you were '
+                                       'trying to remove and add an object to '
+                                       'temporarily stop it from being run, '
+                                       'set its active flag to False instead.'
+                                       % obj.name)
                 self.objects.append(obj)
                 self.add(obj.contained_objects)
             else:
@@ -268,18 +300,48 @@ class Network(Nameable):
                                     "BrianObject, or containers of such "
                                     "objects from Network")
 
-    @device_override('network_reinit')
-    def reinit(self, level=0):
+    @device_override('network_store')
+    def store(self, name='default'):
         '''
-        reinit()
+        store(name='default')
 
-        Reinitialises all contained objects.
-        
-        Calls `BrianObject.reinit` on each object.
+        Store the state of the network and all included objects.
+
+        Parameters
+        ----------
+        name : str, optional
+            A name for the snapshot, if not specified uses ``'default'``.
+
+        '''
+        self._stored_t[name] = self.t_
+        clocks = [obj.clock for obj in self.objects]
+        # Make sure that all clocks are up to date
+        for clock in clocks:
+            clock._set_t_update_dt(t=self.t)
+
+        for obj in self.objects:
+            if hasattr(obj, '_store'):
+                obj._store(name=name)
+
+    @device_override('network_restore')
+    def restore(self, name='default'):
+        '''
+        restore(name='default')
+
+        Retore the state of the network and all included objects.
+
+        Parameters
+        ----------
+        name : str, optional
+            The name of the snapshot to restore, if not specified uses
+            ``'default'``.
+
         '''
         for obj in self.objects:
-            obj.reinit(level=level+2)
-    
+            if hasattr(obj, '_restore'):
+                obj._restore(name=name)
+        self.t_ = self._stored_t[name]
+
     def _get_schedule(self):
         if not hasattr(self, '_schedule'):
             self._schedule = ['start',
@@ -307,17 +369,20 @@ class Network(Nameable):
         names in the default schedule:
         ``['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']``.
         ''')
-    
+
     def _sort_objects(self):
         '''
         Sorts the objects in the order defined by the schedule.
         
         Objects are sorted first by their ``when`` attribute, and secondly
         by the ``order`` attribute. The order of the ``when`` attribute is
-        defined by the ``schedule``.
+        defined by the ``schedule``. Final ties are resolved using the objects'
+        names, leading to an arbitrary but deterministic sorting.
         '''
         when_to_int = dict((when, i) for i, when in enumerate(self.schedule))
-        self.objects.sort(key=lambda obj: (when_to_int[obj.when], obj.order))
+        self.objects.sort(key=lambda obj: (when_to_int[obj.when],
+                                           obj.order,
+                                           obj.name))
 
     def check_dependencies(self):
         all_ids = [obj.id for obj in self.objects]
@@ -343,10 +408,12 @@ class Network(Nameable):
         namespace : dict-like, optional
             A namespace in which objects which do not define their own
             namespace will be run.
-        '''                
-        brian_prefs.check_all_validated()
+        '''
+        # A garbage collection here can be useful to free memory if we have
+        # multiple runs
+        gc.collect()
 
-        self._clocks = set(obj.clock for obj in self.objects)
+        prefs.check_all_validated()
         
         self._stopped = False
         Network._globally_stopped = False
@@ -363,7 +430,24 @@ class Network(Nameable):
 
         for obj in self.objects:
             if obj.active:
-                obj.before_run(run_namespace, level=level+2)
+                try:
+                    obj.before_run(run_namespace, level=level+2)
+                except DimensionMismatchError as ex:
+                    raise DimensionMismatchError(('An error occured preparing '
+                                                  'object "%s":\n%s') % (obj.name,
+                                                                          ex.desc),
+                                                 *ex.dims)
+
+        # Check that no object has been run as part of another network before
+        for obj in self.objects:
+            if obj._network is None:
+                obj._network = self.id
+            elif obj._network != self.id:
+                raise RuntimeError(('%s has already been run in the '
+                                    'context of another network. Use '
+                                    'add/remove to change the objects '
+                                    'in a simulated network instead of '
+                                    'creating a new one.') % obj.name)
 
         logger.debug("Network {self.name} has {num} "
                      "clocks: {clocknames}".format(self=self,
@@ -381,16 +465,19 @@ class Network(Nameable):
                 obj.after_run()
         
     def _nextclocks(self):
-        minclock = min(self._clocks, key=lambda c: c.t_)
-        curclocks = set(clock for clock in self._clocks if
-                        (clock.t_ == minclock.t_ or
-                         abs(clock.t_ - minclock.t_)<Clock.epsilon))
+        # Getting Clock.t_ is relatively expensive since it involves a
+        # multiplication therefore we extract it only once
+        clocks_times = [(clock, clock.t_) for clock in self._clocks]
+        minclock, min_time = min(clocks_times, key=lambda k: k[1])
+        curclocks = set(clock for clock, time in clocks_times if
+                        (time == min_time or
+                         abs(time - min_time)<Clock.epsilon))
         return minclock, curclocks
 
     @device_override('network_run')
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=10*second,
-            namespace=None, level=0):
+            namespace=None, profile=True, level=0):
         '''
         run(duration, report=None, report_period=60*second, namespace=None, level=0)
         
@@ -417,6 +504,9 @@ class Network(Nameable):
             A namespace that will be used in addition to the group-specific
             namespaces (if defined). If not specified, the locals
             and globals around the run function will be used.
+        profile : bool, optional
+            Whether to record profiling information (see
+            `Network.profiling_info`). Defaults to ``True``.
         level : int, optional
             How deep to go up the stack frame to look for the locals/global
             (see `namespace` argument). Only used by run functions that call
@@ -428,21 +518,16 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
-        # A garbage collection here can be useful to free memory if we have
-        # multiple runs
-        gc.collect()
-        self.before_run(namespace, level=level+3)
-
         if len(self.objects)==0:
             return # TODO: raise an error? warning?
 
+        self._clocks = set([obj.clock for obj in self.objects])
         t_start = self.t
         t_end = self.t+duration
         for clock in self._clocks:
             clock.set_interval(self.t, t_end)
-            
-        # TODO: progress reporting stuff
-        
+
+        self.before_run(namespace, level=level+3)
         # Find the first clock to be updated (see note below)
         clock, curclocks = self._nextclocks()
         if report is not None:
@@ -465,6 +550,8 @@ class Network(Nameable):
                                  'but it is of type %s') % type(report))
             report_callback(0*second, 0.0, duration)
 
+        profiling_info = defaultdict(float)
+
         while clock.running and not self._stopped and not Network._globally_stopped:
             # update the network time to this clocks time
             self.t_ = clock.t_
@@ -477,8 +564,14 @@ class Network(Nameable):
                     next_report_time = current + report_period
                 # update the objects with this clock
             for obj in self.objects:
-                if obj.clock in curclocks and obj.active:
-                    obj.run()
+                if obj._clock in curclocks and obj.active:
+                    if profile:
+                        obj_time = time.time()
+                        obj.run()
+                        profiling_info[obj.name] += (time.time() - obj_time)
+                    else:
+                        obj.run()
+
             # tick the clock forward one time step
             for c in curclocks:
                 c.tick()
@@ -488,11 +581,23 @@ class Network(Nameable):
             # same t value in which case we update all of them
             clock, curclocks = self._nextclocks()
 
-        self.t = t_end
+        if self._stopped or Network._globally_stopped:
+            self.t_ = clock.t_
+        else:
+            self.t_ = float(t_end)
 
         if report is not None:
             report_callback((current-start)*second, 1.0, duration)
         self.after_run()
+
+        # Store profiling info (or erase old info to avoid confusion)
+        if profile:
+            self._profiling_info = [(name, t*second)
+                                    for name, t in profiling_info.iteritems()]
+            # Dump a profiling summary to the log
+            logger.debug('\n' + str(profiling_summary(self)))
+        else:
+            self._profiling_info = None
         
     @device_override('network_stop')
     def stop(self):
@@ -507,3 +612,95 @@ class Network(Nameable):
         return '<%s at time t=%s, containing objects: %s>' % (self.__class__.__name__,
                                                               str(self.t),
                                                               ', '.join((obj.__repr__() for obj in self.objects)))
+
+
+class ProfilingSummary(object):
+    '''
+    Class to nicely display the results of profiling. Objects of this class are
+    returned by `profiling_summary`.
+
+    Parameters
+    ----------
+
+    net : `Network`
+        The `Network` object to profile.
+    show : int, optional
+        The number of results to show (the longest results will be shown). If
+        not specified, all results will be shown.
+
+    See Also
+    --------
+    Network.profiling_info
+    '''
+    def __init__(self, net, show=None):
+        prof = net.profiling_info
+        if len(prof):
+            names, times = zip(*prof)
+        else:  # Can happen if a network has been run for 0ms
+            # Use a dummy entry to prevent problems with empty lists later
+            names = ['no code objects have been run']
+            times = [0*second]
+        self.total_time = sum(times)
+        self.time_unit = msecond
+        if self.total_time>1*second:
+            self.time_unit = second
+        if show is not None:
+            names = names[:show]
+            times = times[:show]
+        if self.total_time>0*second:
+            self.percentages = [100.0*time/self.total_time for time in times]
+        else:
+            self.percentages = [0. for _ in times]
+        self.names_maxlen = max(len(name) for name in names)
+        self.names = [name+' '*(self.names_maxlen-len(name)) for name in names]
+        self.times = times
+
+    def __repr__(self):
+        times = ['%.2f %s' % (time/self.time_unit, self.time_unit) for time in self.times]
+        times_maxlen = max(len(time) for time in times)
+        times = [' '*(times_maxlen-len(time))+time for time in times]
+        percentages = ['%.2f %%' % percentage for percentage in self.percentages]
+        percentages_maxlen = max(len(percentage) for percentage in percentages)
+        percentages = [(' '*(percentages_maxlen-len(percentage)))+percentage for percentage in percentages]
+
+        s = 'Profiling summary'
+        s += '\n'+'='*len(s)+'\n'
+        for name, time, percentage in zip(self.names, times, percentages):
+            s += '%s    %s    %s\n' % (name, time, percentage)
+        return s
+
+    def _repr_html_(self):
+        times = ['%.2f %s' % (time/self.time_unit, self.time_unit) for time in self.times]
+        percentages = ['%.2f %%' % percentage for percentage in self.percentages]
+        s = '<h2 class="brian_prof_summary_header">Profiling summary</h2>\n'
+        s += '<table class="brian_prof_summary_table">\n'
+        for name, time, percentage in zip(self.names, times, percentages):
+            s += '<tr>'
+            s += '<td>%s</td>' % name
+            s += '<td style="text-align: right">%s</td>' % time
+            s += '<td style="text-align: right">%s</td>' % percentage
+            s += '</tr>\n'
+        s += '</table>'
+        return s
+
+
+def profiling_summary(net=None, show=None):
+    '''
+    Returns a `ProfilingSummary` of the profiling info for a run. This object
+    can be transformed to a string explicitly but on an interactive console
+    simply calling `profiling_summary` is enough since it will
+    automatically convert the `ProfilingSummary` object.
+    
+    Parameters
+    ----------
+
+    net : {`Network`, None} optional
+        The `Network` object to profile, or `magic_network` if not specified.
+    show : int
+        The number of results to show (the longest results will be shown). If
+        not specified, all results will be shown.
+    '''
+    if net is None:
+        from .magic import magic_network
+        net = magic_network
+    return ProfilingSummary(net, show)

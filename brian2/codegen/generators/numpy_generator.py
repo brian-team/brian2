@@ -151,24 +151,24 @@ for func_name, func in [('sin', np.sin), ('cos', np.cos), ('tan', np.tan),
                         ('exp', np.exp), ('log', np.log), ('log10', np.log10),
                         ('sqrt', np.sqrt), ('arcsin', np.arcsin),
                         ('arccos', np.arccos), ('arctan', np.arctan),
-                        ('abs', np.abs), ('mod', np.mod)]:
+                        ('abs', np.abs), ('mod', np.fmod)]:
     DEFAULT_FUNCTIONS[func_name].implementations.add_implementation(NumpyCodeGenerator,
                                                                     code=func)
 
 # Functions that are implemented in a somewhat special way
 def randn_func(vectorisation_idx):
     try:
-        N = int(vectorisation_idx)
-    except (TypeError, ValueError):
         N = len(vectorisation_idx)
+    except TypeError:
+        N = int(vectorisation_idx)
 
     return np.random.randn(N)
 
 def rand_func(vectorisation_idx):
     try:
-        N = int(vectorisation_idx)
-    except (TypeError, ValueError):
         N = len(vectorisation_idx)
+    except TypeError:
+        N = int(vectorisation_idx)
 
     return np.random.rand(N)
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(NumpyCodeGenerator,

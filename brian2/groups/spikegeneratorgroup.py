@@ -4,7 +4,6 @@ Module defining `SpikeGeneratorGroup`.
 import numpy as np
 
 from brian2.core.spikesource import SpikeSource
-from brian2.core.scheduler import Scheduler
 from brian2.units.fundamentalunits import check_units, Unit
 from brian2.units.allunits import second
 from brian2.core.variables import Variables
@@ -28,26 +27,41 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     times : `Quantity`
         The spike times for the cells given in `indices`. Has to have the
         same length as `indices`.
-    when : `Scheduler`
-        When to update this group
+    dt : `Quantity`, optional
+        The time step to be used for the simulation. Cannot be combined with
+        the `clock` argument.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the `defaultclock` will be used.
+    when : str, optional
+        When to run within a time step, defaults to the ``'thresholds'`` slot.
+    order : int, optional
+        The priority of of this group for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
+    sorted : bool, optional
+        Whether the given indices and times are already sorted. Set to ``True``
+        if your events are already sorted (first by spike time, then by index),
+        this can save significant time at construction if your arrays contain
+        large numbers of spikes. Defaults to ``False``.
 
     Notes
     -----
     * In a time step, `SpikeGeneratorGroup` emits all spikes that happened
       at :math:`t-dt < t_{spike} \leq t`. This might lead to unexpected
-      or missing spikes if you change the timestep dt between runs.
+      or missing spikes if you change the time step dt between runs.
     * `SpikeGeneratorGroup` does not currently raise any warning if a neuron
-      spikes more that once during a timestep, but other code (e.g. for
+      spikes more that once during a time step, but other code (e.g. for
       synaptic propagation) might assume that neurons only spike once per
-      timestep and will therefore not work properly.
+      time step and will therefore not work properly.
+    * If `sorted` is set to ``True``, the given arrays will not be copied.
     '''
 
     @check_units(N=1, indices=1, times=second)
-    def __init__(self, N, indices, times, when=None,
+    def __init__(self, N, indices, times, dt=None, clock=None,
+                 when='thresholds', order=0, sorted=False,
                  name='spikegeneratorgroup*', codeobj_class=None):
-        if when is None:
-            when = Scheduler(when='thresholds')
-        Group.__init__(self, when=when, name=name)
+
+        Group.__init__(self, dt=dt, clock=clock, when=when, order=order, name=name)
 
         self.codeobj_class = codeobj_class
 
@@ -62,16 +76,16 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.start = 0
         self.stop = N
 
-        # sort times and indices first by time, then by indices
-        rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
-        rec.sort()
-        times = np.ascontiguousarray(rec.t)
-        indices = np.ascontiguousarray(rec.i)
+        if not sorted:
+            # sort times and indices first by time, then by indices
+            rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
+            rec.sort()
+            times = np.ascontiguousarray(rec.t)
+            indices = np.ascontiguousarray(rec.i)
 
         self.variables = Variables(self)
 
         # standard variables
-        self.variables.add_clock_variables(self.clock)
         self.variables.add_constant('N', unit=Unit(1), value=N)
         self.variables.add_arange('i', N)
         self.variables.add_arange('spike_number', len(indices))
@@ -84,12 +98,17 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                  read_only=True)
         self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
                                  dtype=np.int32)
+        self.variables.create_clock_variables(self._clock)
+
         # Activate name attribute access
         self._enable_group_attributes()
 
         CodeRunner.__init__(self, self,
-                            'spikegenerator',
+                            code='',
+                            template='spikegenerator',
+                            clock=self._clock,
                             when=when,
+                            order=order,
                             name=None)
 
     @property

@@ -1,3 +1,4 @@
+{# IS_OPENMP_COMPATIBLE #}
 ////////////////////////////////////////////////////////////////////////////
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
@@ -21,9 +22,9 @@ void _run_{{codeobj_name}}()
     //// MAIN CODE ////////////
 	// we do advance at the beginning rather than at the end because it saves us making
 	// a copy of the current spiking synapses
-	{{owner.name}}.queue->advance();
-	{{owner.name}}.queue->push({{_spikespace}}, {{_spikespace}}[_num_spikespace-1]);
-	{{owner.name}}.queue->peek();
+	{{owner.name}}.advance();
+	{{owner.name}}.push({{_spikespace}}, {{_spikespace}}[_num_spikespace-1]);
+	//{{owner.name}}.queue->peek();
 }
 {% endmacro %}
 

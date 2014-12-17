@@ -3,8 +3,11 @@ File system tools
 '''
 
 import os
+import sys
+from contextlib import contextmanager
 
-__all__ = ['ensure_directory', 'ensure_directory_of_file', 'in_directory', 'copy_directory']
+__all__ = ['ensure_directory', 'ensure_directory_of_file', 'in_directory',
+           'copy_directory']
 
 
 def ensure_directory_of_file(f):

@@ -13,8 +13,18 @@ class NetworkOperation(BrianObject):
         The function to call every time step, should take either no arguments
         in which case it is called as ``function()`` or one argument, in which
         case it is called with the current `Clock` time (`Quantity`).
-    when : `Scheduler`, optional
-        Determines when the function should be called.
+    dt : `Quantity`, optional
+        The time step to be used for the simulation. Cannot be combined with
+        the `clock` argument.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the `defaultclock` will be used.
+    when : str, optional
+        In which scheduling slot to execute the operation during a time step.
+        Defaults to ``'start'``.
+    order : int, optional
+        The priority of this operation for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
         
     See Also
     --------
@@ -22,8 +32,8 @@ class NetworkOperation(BrianObject):
     network_operation, Network, BrianObject
     """
     add_to_magic_network = True
-    def __init__(self, function, when=None):
-        BrianObject.__init__(self, when=when, name='networkoperation*')
+    def __init__(self, function, dt=None, clock=None, when='start', order=0):
+        BrianObject.__init__(self, dt=dt, clock=clock, when=when, order=order, name='networkoperation*')
         
         #: The function to be called each time step
         self.function = function
@@ -35,7 +45,7 @@ class NetworkOperation(BrianObject):
 
     def run(self):
         if self._has_arg:
-            self.function(self.clock.t)
+            self.function(self._clock.t)
         else:
             self.function()
 
@@ -47,12 +57,22 @@ def network_operation(*args, **kwds):
     Decorator to make a function get called every time step of a simulation.
     
     The function being decorated should either have no arguments, or a single
-    argument which will be called with the current time `Clock.t`.
+    argument which will be called with the current time ``t``.
     
     Parameters
     ----------
-    when : `Scheduler`, optional
-        Determines when the function should be called.
+    dt : `Quantity`, optional
+        The time step to be used for the simulation. Cannot be combined with
+        the `clock` argument.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the `defaultclock` will be used.
+    when : str, optional
+        In which scheduling slot to execute the operation during a time step.
+        Defaults to ``'start'``.
+    order : int, optional
+        The priority of this operation for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
 
     Examples
     --------
@@ -73,12 +93,11 @@ def network_operation(*args, **kwds):
     ...
     >>> net = Network(f)
     
-    Specify a clock, etc.:
-    
-    >>> myclock = Clock(dt=0.5*ms) 
-    >>> @network_operation(when=(myclock, 'start', 0))
+    Specify a dt, etc.:
+
+    >>> @network_operation(dt=0.5*ms, when='end')
     ... def f():
-    ...   print('This will happen at the start of each timestep.')
+    ...   print('This will happen at the end of each timestep.')
     ...
     >>> net = Network(f)
     
@@ -89,7 +108,7 @@ def network_operation(*args, **kwds):
     
     If using the form::
     
-        @network_operations(when='start')
+        @network_operations(when='end')
         def f():
             ...
             

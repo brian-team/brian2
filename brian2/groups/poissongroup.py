@@ -22,8 +22,17 @@ class PoissonGroup(Group, SpikeSource):
     rates : `Quantity`, str
         Single rate, array of rates of length N, or a string expression
         evaluating to a rate
-    clock : Clock, optional
-        The update clock to be used, or defaultclock if not specified.
+    dt : `Quantity`, optional
+        The time step to be used for the simulation. Cannot be combined with
+        the `clock` argument.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the `defaultclock` will be used.
+    when : str, optional
+        When to run within a time step, defaults to the ``'thresholds'`` slot.
+    order : int, optional
+        The priority of of this group for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
     name : str, optional
         Unique name, or use poissongroup, poissongroup_1, etc.
 
@@ -31,10 +40,11 @@ class PoissonGroup(Group, SpikeSource):
     add_to_magic_network = True
 
     @check_units(rates=Hz)
-    def __init__(self, N, rates, clock=None, name='poissongroup*',
-                 codeobj_class=None):
+    def __init__(self, N, rates, dt=None, clock=None, when='thresholds',
+                 order=0, name='poissongroup*', codeobj_class=None):
 
-        Group.__init__(self, when=clock, name=name)
+        Group.__init__(self, dt=dt, clock=clock, when=when, order=order,
+                       name=name)
 
         self.codeobj_class = codeobj_class
 
@@ -49,11 +59,11 @@ class PoissonGroup(Group, SpikeSource):
 
         self.variables = Variables(self)
         # standard variables
-        self.variables.add_clock_variables(self.clock)
         self.variables.add_constant('N', unit=Unit(1), value=self._N)
         self.variables.add_arange('i', self._N, constant=True, read_only=True)
         self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
                                  dtype=np.int32)
+        self.variables.create_clock_variables(self._clock)
 
         # The firing rates
         self.variables.add_array('rates', size=N, unit=Hz)
@@ -75,6 +85,7 @@ class PoissonGroup(Group, SpikeSource):
         # Here we want to use the local namespace, but at the level where the
         # constructor was called
         self.rates.set_item(slice(None), rates, level=2)
+
 
     @property
     def spikes(self):

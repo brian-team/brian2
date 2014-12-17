@@ -4,8 +4,8 @@ Brian2
 *A clock-driven simulator for spiking neural networks*
 
 Brian2 is currently under development and meant to replace Brian, the spiking
-neural network simulator, in the long term. We currently consider this
-software to be in the alpha status, please report issues at the github issue
+neural network simulator. We currently consider this software to be in the
+beta status, please report issues at the github issue
 tracker (https://github.com/brian-team/brian2/issues) or at the
 brian-development mailing list (http://groups.google.com/group/brian-development/)
 
@@ -24,6 +24,3 @@ Testing status for master branch
 
 .. image:: https://coveralls.io/repos/brian-team/brian2/badge.png?branch=master
   :target: https://coveralls.io/r/brian-team/brian2?branch=master
-
-
-

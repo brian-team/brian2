@@ -1,6 +1,8 @@
 Changes from Brian 1
 ====================
 
+For a high level overview of what has changed, see :ref:`for_brian1_users`. 
+
 Major interface changes
 -----------------------
 
@@ -17,9 +19,28 @@ be used for thresholding and reset. This entails:
 * When a variable should be clamped during refractoriness (in Brian 1, the
   membrane potential was clamped by default), it has to be explicitly marked
   with the flag ``(unless refractory)`` in the equations
-* An object such as `NeuronGroup` either uses an explicitly specified `Clock`
-  or the `defaultclock` instead of using a clock defined in the current
-  execution frame, if it exists
+
+Clocks and networks
+~~~~~~~~~~~~~~~~~~~
+
+Brian's system of handling clocks and networks has been substantially
+changed. You now usually specify a value of ``dt`` either globally or
+explicitly for each object rather than creating clocks (although this is
+still possible).
+
+More importantly, the behaviour of networks is different:
+
+* Either you create a `Network` of objects you want to simulate explicitly,
+  or you use the 'magic' system which now simulates all named objects in
+  the context where you run it.
+* The magic network will now raise errors if you try to do something where
+  it cannot accurately guess what you mean. In these situations, we recommend
+  using an explicit `Network`.
+* Objects can now only belong to a single `Network` object, in order to avoid
+  inadvertent errors.
+* Similarly, you can no longer change the time explicitly: the only way the
+  time changes is by running a simulation. Instead, you can `store` and
+  `restore` the state of a `Network` (including the time).
 
 Removed classes
 ~~~~~~~~~~~~~~~
@@ -27,7 +48,7 @@ Removed classes
 Several classes have been merged or are replaced by string-based model
 specifications:
 
-* *Connections* and  *STDP* are replaced by `Synapses`
+* *Connections*, *STP* and  *STDP* are replaced by `Synapses`
 * All reset and refractoriness classes (*VariableReset*,
   *CustomRefractoriness*, etc.) are replaced by the new string-based reset
   and refractoriness mechanisms, see :doc:`../user/models` and
@@ -90,13 +111,18 @@ Miscellaneous changes
 ~~~~~~~~~~~~~~~~~~~~~
 * New preferences system (see :doc:`../developer/preferences`)
 * New handling of namespaces (see :doc:`../user/equations`)
-* New "magic" and clock system (see :doc:`../developer/new_magic_and_clocks`)
+* New "magic" and clock system (see :doc:`../advanced/scheduling` and
+  :doc:`../user/running`)
 * New refractoriness system (see :doc:`../user/refractoriness`)
 * More powerful string expressions that can also be used as indices for state
   variables (see e.g. :doc:`../user/synapses`)
 * "Brian Hears" is being rewritten, but there is a bridge to the version
   included in Brian 1 until the new version is written (see
   :doc:`../user/brian1hears_bridge`)
+* `Equations` objects no longer save their namespace, they now behave just
+  like strings.
+* There is no longer any ``reinit()`` mechanism, this is now handled by
+  `store` and `restore`.
 
 Changes in the internal processing
 ----------------------------------

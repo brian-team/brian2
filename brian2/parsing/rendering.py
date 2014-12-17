@@ -135,8 +135,8 @@ class NodeRenderer(object):
         return self.render_BinOp_parentheses(node.left, node.comparators[0], node.ops[0])
         
     def render_UnaryOp(self, node):
-        return '%s%s' % (self.expression_ops[node.op.__class__.__name__],
-                         self.render_element_parentheses(node.operand))
+        return '%s %s' % (self.expression_ops[node.op.__class__.__name__],
+                          self.render_element_parentheses(node.operand))
                 
     def render_Assign(self, node):
         if len(node.targets)>1:
@@ -214,7 +214,7 @@ class SympyNodeRenderer(NodeRenderer):
             return 'Symbol("%s", real=True)' % node.id
 
     def render_Num(self, node):
-        return 'Float(%f)' % node.n
+        return 'Float(%s)' % node.n
 
 
 class CPPNodeRenderer(NodeRenderer):
@@ -231,10 +231,6 @@ class CPPNodeRenderer(NodeRenderer):
         if node.op.__class__.__name__=='Pow':
             return 'pow(%s, %s)' % (self.render_node(node.left),
                                     self.render_node(node.right))
-        elif node.op.__class__.__name__ == 'Mod':
-            # In C, the modulo operator is only defined on integers
-            return 'fmod(%s, %s)' % (self.render_node(node.left),
-                                     self.render_node(node.right))
         else:
             return NodeRenderer.render_BinOp(self, node)
 

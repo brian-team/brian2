@@ -1,7 +1,7 @@
 Input stimuli
 =============
 
-There are various ways of providing "external" input to a network. Brian2 does
+There are various ways of providing "external" input to a network. Brian does
 not yet provide all the features of Brian1 in this regard, but there is already
 a range of options, detailed below.
 
@@ -28,6 +28,23 @@ Example use::
     P = PoissonGroup(100, np.arange(100)*Hz + 10*Hz)
     G = NeuronGroup(100, 'dv/dt = -v / (10*ms) : 1')
     S = Synapses(P, G, pre='v+=0.1', connect='i==j')
+
+Spike generation
+----------------
+You can also generate an explicit list of spikes given via arrays using
+`SpikeGeneratorGroup`. This object behaves just like a `NeuronGroup` in that
+you can connect it to other groups via a `Synapses` object, but you specify
+three bits of information: ``N`` the number of neurons in the group; 
+``indices`` an array of the indices of the neurons that will fire; and
+``times`` an array of the same length as ``indices`` with the times that the
+neurons will fire a spike. The ``indices`` and ``times`` arrays are matching,
+so for example ``indices=[0,2,1]`` and ``times=[1*ms,2*ms,3*ms]`` means that
+neuron 0 fires at time 1 ms, neuron 2 fires at 2 ms and neuron 1 fires at 3 ms.
+Example use::
+
+    indices = array([0, 2, 1])
+    times = array([1, 2, 3])*ms
+    G = SpikeGeneratorGroup(3, indices, times)
 
 Explicit equations
 ------------------
@@ -69,13 +86,14 @@ Brian1 returned ``x1`` for ``0<=t<0.5*my_dt``,
                     threshold='v>1', reset='v=0')
     G.v = '0.5*rand()'  # different initial values for the neurons
 
-Abstract code statements
-------------------------
-An alternative to specifying a stimulus in advance is to run a series of
-abstract code statements at certain points during a simulation. This can be
-achieved with a *custom operation*, one can think of these statements as
+Custom operations
+-----------------
+An alternative to specifying a stimulus in advance is to run explicitly
+specified code at certain points during a simulation. This can be
+achieved with a :meth:`~brian2.groups.group.Group.custom_operation`.
+One can think of these statements as
 equivalent to reset statements but executed unconditionally (i.e. for all
-neurons) and possibly on a different clock as the rest of the group. The
+neurons) and possibly on a different clock than the rest of the group. The
 following code changes the stimulus strength of half of the neurons (randomly
 chosen) to a new random value every 50ms. Note that the statement uses logical
 expressions to have the values only updated for the chosen subset of neurons
@@ -85,14 +103,13 @@ expressions to have the values only updated for the chosen subset of neurons
                           I : 1  # one stimulus per neuron''')
   stim_updater = G.custom_operation('''change = int(rand() < 0.5)
                                        I = change*(rand()*2) + (1-change)*I''',
-                                    when=Scheduler(clock=Clock(dt=50*ms),
-                                                   when='start'))
+                                    dt=50*ms)
 
 
 Arbitrary Python code (network operations)
 ------------------------------------------
 If none of the above techniques is general enough to fulfill the requirements
-of a simulation, Brian allows to write a `NetworkOperation`, an arbitrary
+of a simulation, Brian allows you to write a `NetworkOperation`, an arbitrary
 Python function that is executed every time step (possible on a different clock
 than the rest of the simulation). This function can do arbitrary operations,
 use conditional statements etc. and it will be executed as it is (i.e. as pure
@@ -106,7 +123,7 @@ neuron every 50 ms::
     G = NeuronGroup(10, '''dv/dt = (-v + active*I)/(10*ms) : 1
                            I = sin(2*pi*100*Hz*t) : 1 (shared) #single input
                            active : 1  # will be set in the network function''')
-    @network_operation(when=Clock(dt=50*ms))
+    @network_operation(dt=50*ms)
     def update_active():
         print defaultclock.t
         index = np.random.randint(10)  # index for the active neuron

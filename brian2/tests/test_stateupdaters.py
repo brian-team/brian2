@@ -1,13 +1,16 @@
 import re
 from collections import namedtuple
 
-from numpy.testing.utils import assert_equal, assert_raises
+from numpy.testing.utils import assert_equal, assert_raises, assert_allclose
+from nose.plugins.attrib import attr
+from nose import with_setup
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
 from brian2.core.variables import ArrayVariable, AttributeVariable, Variable
 
 
+@attr('codegen-independent')
 def test_explicit_stateupdater_parsing():
     '''
     Test the parsing of explicit state updater descriptions.
@@ -41,6 +44,8 @@ def test_explicit_stateupdater_parsing():
     updater = ExplicitStateUpdater('''x_new = x + dt * f(x, t) * g(x, t) * dW''')
     assert_raises(ValueError, lambda: updater(Equations('')))
 
+
+@attr('codegen-independent')
 def test_str_repr():
     '''
     Assure that __str__ and __repr__ do not raise errors 
@@ -50,6 +55,133 @@ def test_str_repr():
         assert len(repr(integrator))
 
 
+@attr('codegen-independent')
+def test_multiple_noise_variables_basic():
+    # Very basic test, only to make sure that stochastic state updaters handle
+    # multiple noise variables at all
+    eqs = Equations('''dv/dt = -v / (10*ms) + xi_1 * ms ** -.5 : 1
+                       dw/dt = -w / (10*ms) + xi_2 * ms ** -.5 : 1''')
+    for method in [euler, milstein]:
+        code = method(eqs, {})
+        assert 'xi_1' in code
+        assert 'xi_2' in code
+
+
+@attr('long')
+def test_multiple_noise_variables_extended():
+    # Some actual simulations with multiple noise variables
+    eqs = '''dx/dt = y : 1
+             dy/dt = - 1*ms**-1*y - 40*ms**-2*x : Hz
+            '''
+    all_eqs_noise = ['''dx/dt = y : 1
+                        dy/dt = noise_factor*ms**-1.5*xi_1 + noise_factor*ms**-1.5*xi_2
+                           - 1*ms**-1*y - 40*ms**-2*x : Hz
+                     ''',
+                     '''dx/dt = y + noise_factor*ms**-0.5*xi_1: 1
+                        dy/dt = noise_factor*ms**-1.5*xi_2
+                            - 1*ms**-1*y - 40*ms**-2*x : Hz
+                     ''']
+    G = NeuronGroup(2, eqs, method='euler')
+    G.x = [0.5, 1]
+    G.y = [0, 0.5] * Hz
+    mon = StateMonitor(G, ['x', 'y'], record=True)
+    net = Network(G, mon)
+    net.run(10*ms)
+    no_noise_x, no_noise_y = mon.x[:], mon.y[:]
+
+    for eqs_noise in all_eqs_noise:
+        for method_name, method in [('euler', euler), ('milstein', milstein)]:
+            # Note that for milstein, the check for diagonal noise will fail, but
+            # it should still work since the two noise variables really do only
+            # present a single variable
+            with catch_logs('WARNING'):
+                G = NeuronGroup(2, eqs_noise, method=method)
+                G.x = [0.5, 1]
+                G.y = [0, 0.5] * Hz
+                mon = StateMonitor(G, ['x', 'y'], record=True)
+                net = Network(G, mon)
+                # We run it deterministically, but still we'd detect major errors (e.g.
+                # non-stochastic terms that are added twice, see #330
+                net.run(10*ms, namespace={'noise_factor': 0})
+            assert_allclose(mon.x[:], no_noise_x,
+                            err_msg='Method %s gave incorrect results' % method_name)
+            assert_allclose(mon.y[:], no_noise_y,
+                            err_msg='Method %s gave incorrect results' % method_name)
+
+
+old_randn = None
+def store_randn():
+    global old_randn
+    old_randn = DEFAULT_FUNCTIONS['randn']
+def restore_randn():
+    DEFAULT_FUNCTIONS['randn'] = old_randn
+
+
+@attr('long')
+@with_setup(setup=store_randn, teardown=restore_randn)
+def test_multiple_noise_variables_deterministic_noise():
+    # The "random" values are always 0.5
+    @implementation('cpp',
+                    '''
+                    double randn(int vectorisation_idx)
+                    {
+                        return 0.5;
+                    }
+                    ''')
+    @implementation('cython',
+                    '''
+                    cdef double randn(int vectorisation_idx):
+                        return 0.5
+                    ''')
+    @check_units(N=Unit(1), result=Unit(1))
+    def fake_randn(N):
+        return 0.5*ones(N)
+
+    old_randn = DEFAULT_FUNCTIONS['randn']
+    DEFAULT_FUNCTIONS['randn'] = fake_randn
+
+    all_eqs = ['''dx/dt = y : 1
+                          dy/dt = -y / (10*ms) + dt**-.5*0.5*ms**-1.5 + dt**-.5*0.5*ms**-1.5: Hz
+                     ''',
+                     '''dx/dt = y + dt**-.5*0.5*ms**-0.5: 1
+                        dy/dt = -y / (10*ms) + dt**-.5*0.5 * ms**-1.5 : Hz
+                ''']
+    all_eqs_noise = ['''dx/dt = y : 1
+                          dy/dt = -y / (10*ms) + xi_1 * ms**-1.5 + xi_2 * ms**-1.5: Hz
+                     ''',
+                     '''dx/dt = y + xi_1*ms**-0.5: 1
+                        dy/dt = -y / (10*ms) + xi_2 * ms**-1.5 : Hz
+                     ''']
+    for eqs, eqs_noise in zip(all_eqs, all_eqs_noise):
+        G = NeuronGroup(2, eqs, method='euler')
+        G.x = [5,  17]
+        G.y = [25, 5 ] * Hz
+        mon = StateMonitor(G, ['x', 'y'], record=True)
+        net = Network(G, mon)
+        net.run(10*ms)
+        no_noise_x, no_noise_y = mon.x[:], mon.y[:]
+
+        for method_name, method in [('euler', euler), ('milstein', milstein)]:
+            # Note that for milstein, the check for diagonal noise will fail, but
+            # it should still work since the two noise variables really do only
+            # present a single variable
+            with catch_logs('WARNING'):
+                G = NeuronGroup(2, eqs_noise, method=method)
+                G.x = [5,  17]
+                G.y = [25, 5 ] * Hz
+                mon = StateMonitor(G, ['x', 'y'], record=True)
+                net = Network(G, mon)
+                # We run it deterministically, but still we'd detect major errors (e.g.
+                # non-stochastic terms that are added twice, see #330
+                net.run(10*ms, namespace={'noise_factor': 0})
+            assert_allclose(mon.x[:], no_noise_x,
+                            err_msg='Method %s gave incorrect results' % method_name)
+            assert_allclose(mon.y[:], no_noise_y,
+                            err_msg='Method %s gave incorrect results' % method_name)
+
+
+
+@attr('codegen-independent')
 def test_temporary_variables():
     '''
     Make sure that the code does the distinction between temporary variables
@@ -70,6 +202,7 @@ def test_temporary_variables():
     assert converted == converted2.replace('k_var', 'k_2')
 
 
+@attr('codegen-independent')
 def test_temporary_variables2():
     '''
     Make sure that the code does the distinction between temporary variables
@@ -90,6 +223,8 @@ def test_temporary_variables2():
     # Make sure that the two formulations result in the same code
     assert converted == converted2.replace('k_var', 'k')
 
+
+@attr('codegen-independent')
 def test_integrator_code():
     '''
     Check whether the returned abstract code is as expected.
@@ -106,22 +241,26 @@ def test_integrator_code():
     
     # Make sure that it isn't a problem to use 'x', 'f' and 'g'  as variable
     # names, even though they are also used in state updater descriptions.
-    # The resulting code should be identical when replacing x by v (and ..._x by
-    # ..._v)
+    # The resulting code should be identical when replacing x by x0 (and ..._x by
+    # ..._x0)
     for varname in ['x', 'f', 'g']:
-        eqs_v = Equations('dv/dt = -v / (1 * second) : 1')
+        # We use a very similar names here to avoid slightly re-arranged
+        # expressions due to alphabetical sorting of terms in
+        # multiplications, etc.
+        eqs_v = Equations('d{varname}0/dt = -{varname}0 / (1 * second) : 1'.format(varname=varname))
         eqs_var = Equations('d{varname}/dt = -{varname} / (1 * second) : 1'.format(varname=varname))  
         for integrator in [linear, euler, rk2, rk4]:
             code_v = integrator(eqs_v)
             code_var = integrator(eqs_var)
             # Re-substitute the variable names in the output
             code_var = re.sub(r'\b{varname}\b'.format(varname=varname),
-                              'v', code_var)
+                              '{varname}0'.format(varname=varname), code_var)
             code_var = re.sub(r'\b(\w*)_{varname}\b'.format(varname=varname),
-                              r'\1_v', code_var)
-            assert code_var == code_v
+                              r'\1_{varname}0'.format(varname=varname), code_var)
+            assert code_var == code_v, "'%s' does not match '%s'" % (code_var, code_v)
 
 
+@attr('codegen-independent')
 def test_integrator_code2():
     '''
     Test integration for a simple model with several state variables.
@@ -146,6 +285,7 @@ def test_integrator_code2():
             assert variable in rhs, '%s not in RHS: "%s"' % (variable, rhs)
 
 
+@attr('codegen-independent')
 def test_priority():
     updater = ExplicitStateUpdater('x_new = x + dt * f(x, t)')
     # Equations that work for the state updater
@@ -222,6 +362,7 @@ def test_priority():
         assert integrator.can_integrate(eqs, variables) == able
     
 
+@attr('codegen-independent')
 def test_registration():
     '''
     Test state updater registration.
@@ -249,11 +390,11 @@ def test_registration():
     StateUpdateMethod.stateupdaters = before 
 
 
+@attr('codegen-independent')
 def test_determination():
     '''
     Test the determination of suitable state updaters.
     '''
-    
     # To save some typing
     determine_stateupdater = StateUpdateMethod.determine_stateupdater
     
@@ -366,6 +507,30 @@ def test_determination():
     # reset to state before the test
     StateUpdateMethod.stateupdaters = before
 
+
+def test_subexpressions_basic():
+    '''
+    Make sure that the integration of a (non-stochastic) differential equation
+    does not depend on whether it's formulated using subexpressions.
+    '''
+    # no subexpression
+    eqs1 = 'dv/dt = (-v + sin(2*pi*100*Hz*t)) / (10*ms) : 1'
+    # same with subexpression
+    eqs2 = '''dv/dt = I / (10*ms) : 1
+              I = -v + sin(2*pi*100*Hz*t): 1'''
+    method = 'euler'
+    G1 = NeuronGroup(1, eqs1, method=method)
+    G1.v = 1
+    G2 = NeuronGroup(1, eqs2, method=method)
+    G2.v = 1
+    mon1 = StateMonitor(G1, 'v', record=True)
+    mon2 = StateMonitor(G2, 'v', record=True)
+    net = Network(G1, mon1, G2, mon2)
+    net.run(10*ms)
+    assert_equal(mon1.v, mon2.v, 'Results for method %s differed!' % method)
+
+
+@attr('long')
 def test_subexpressions():
     '''
     Make sure that the integration of a (non-stochastic) differential equation
@@ -377,29 +542,29 @@ def test_subexpressions():
     eqs2 = '''dv/dt = I / (10*ms) : 1
               I = -v + sin(2*pi*100*Hz*t): 1'''
     
-    methods = ['euler', 'exponential_euler', 'rk2', 'rk4']
+    methods = ['exponential_euler', 'rk2', 'rk4']  # euler is tested in test_subexpressions_basic
     for method in methods:
-        G1 = NeuronGroup(1, eqs1, clock=Clock(), method=method)
+        G1 = NeuronGroup(1, eqs1, method=method)
         G1.v = 1
-        G2 = NeuronGroup(1, eqs2, clock=Clock(), method=method)
+        G2 = NeuronGroup(1, eqs2, method=method)
         G2.v = 1
         mon1 = StateMonitor(G1, 'v', record=True)
         mon2 = StateMonitor(G2, 'v', record=True)
-        net1 = Network(G1, mon1)
-        net2 = Network(G2, mon2)
-        net1.run(10*ms)
-        net2.run(10*ms)
+        net = Network(G1, mon1, G2, mon2)
+        net.run(10*ms)
         assert_equal(mon1.v, mon2.v, 'Results for method %s differed!' % method)
 
 
+@attr('codegen-independent')
 def test_locally_constant_check():
+    default_dt = defaultclock.dt
     # The linear state update can handle additive time-dependent functions
     # (e.g. a TimedArray) but only if it can be safely assumed that the function
     # is constant over a single time check
-    ta0 = TimedArray(np.array([1]), dt=defaultclock.dt)  # ok
-    ta1 = TimedArray(np.array([1]), dt=2*defaultclock.dt)  # ok
-    ta2 = TimedArray(np.array([1]), dt=defaultclock.dt/2)  # not ok
-    ta3 = TimedArray(np.array([1]), dt=defaultclock.dt*1.5)  # not ok
+    ta0 = TimedArray(np.array([1]), dt=default_dt)  # ok
+    ta1 = TimedArray(np.array([1]), dt=2*default_dt)  # ok
+    ta2 = TimedArray(np.array([1]), dt=default_dt/2)  # not ok
+    ta3 = TimedArray(np.array([1]), dt=default_dt*1.5)  # not ok
 
     for ta_func, ok in zip([ta0, ta1, ta2, ta3], [True, True, False, False]):
         # additive
@@ -454,6 +619,11 @@ if __name__ == '__main__':
     test_determination()
     test_explicit_stateupdater_parsing()
     test_str_repr()
+    test_multiple_noise_variables_basic()
+    test_multiple_noise_variables_extended()
+    store_randn()
+    test_multiple_noise_variables_deterministic_noise()
+    restore_randn()
     test_temporary_variables()
     test_temporary_variables2()
     test_integrator_code()
