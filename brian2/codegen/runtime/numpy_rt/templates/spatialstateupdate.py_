@@ -1,5 +1,7 @@
 {# USES_VARIABLES { Cm, dt, v, N,
-                  ab_star, b_plus, ab_plus, b_minus, ab_minus, v_star, u_plus, u_minus} #}
+                  ab_star0, ab_star1, ab_star2, b_plus,
+                  ab_plus0, ab_plus1, ab_plus2, b_minus,
+                  ab_minus0, ab_minus1, ab_minus2, v_star, u_plus, u_minus} #}
 {# ITERATE_ALL { _idx } #}
 
 '''
@@ -21,15 +23,21 @@ _vectorisation_idx = N
 # Particular solution
 b=-({{Cm}}/dt*{{v}})-_I0
 ab = zeros((3,N))
-ab[:]={{ab_star}}.reshape((3,N))
+ab[0,:]={{ab_star0}}
+ab[1,:]={{ab_star1}}
+ab[2,:]={{ab_star2}}
 ab[1,:]-=_gtot
 {{v_star}}[:]=solve_banded((1,1),ab,b,overwrite_ab=True,overwrite_b=True)
 # Homogeneous solutions
 b[:]={{b_plus}}
-ab[:]={{ab_plus}}.reshape((3,N))
+ab[0,:]={{ab_plus0}}
+ab[1,:]={{ab_plus1}}
+ab[2,:]={{ab_plus2}}
 ab[1,:]-=_gtot
 {{u_plus}}[:]=solve_banded((1,1),ab,b,overwrite_ab=True,overwrite_b=True)
 b[:]={{b_minus}}
-ab[:]={{ab_minus}}.reshape((3,N))
+ab[0,:]={{ab_minus0}}
+ab[1,:]={{ab_minus1}}
+ab[2,:]={{ab_minus2}}
 ab[1,:]-=_gtot
 {{u_minus}}[:]=solve_banded((1,1),ab,b,overwrite_ab=True,overwrite_b=True)

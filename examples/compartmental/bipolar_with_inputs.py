@@ -25,14 +25,14 @@ neuron.v = EL
 
 # Regular inputs
 stimulation = NeuronGroup(2, 'dx/dt = 300*Hz : 1', threshold='x>1', reset='x=0')
-stimulation.x = [0, 0.5] # Asynchronous
+stimulation.x = [0, 0.5]  # Asynchronous
 
 # Synapses
 taus = 1*ms
 w = 20*nS
 S = Synapses(stimulation, neuron, model='''dg/dt = -g/taus : siemens
                                            gs_post = g : siemens (summed)''',
-             pre = 'g += w')
+             pre='g += w')
 
 S.connect(0, morpho.L[-1])
 S.connect(1, morpho.R[-1])
@@ -46,12 +46,12 @@ mon_R = StateMonitor(neuron.R, 'v',
 run(50*ms, report='text')
 
 subplot(211)
-plot(mon_L.t/ms, mon_soma[0].v/mV,'k')
+plot(mon_L.t/ms, mon_soma[0].v/mV, 'k')
 plot(mon_L.t/ms, mon_L[morpho.L[-1]].v/mV, 'r')
 plot(mon_L.t/ms, mon_R[morpho.R[-1]].v/mV, 'b')
 ylabel('v (mV)')
 subplot(212)
-for x in linspace(0*um,45*um,10):
+for x in linspace(0*um, 100*um, 10, endpoint=False):
     plot(mon_L.t/ms, mon_L[morpho.L[x]].v/mV)
 xlabel('Time (ms)')
 ylabel('v (mV)')

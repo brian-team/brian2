@@ -23,17 +23,15 @@ I : amp (point current)
 neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
 neuron.v = EL
 
-taum = Cm / gL # membrane time constant
+taum = Cm  /gL  # membrane time constant
 print "Time constant", taum
-rm = 1/(gL * pi * diameter) # membrane resistance per unit length
-ra = (4 * Ri) / (pi * diameter**2) # axial resistance per unit length
-la = sqrt(rm / ra) # space length
+la = neuron.space_constant[0]
 print "Characteristic length", la
 
 # Monitors
 mon = StateMonitor(neuron, 'v', record=range(0, N/2, 20))
 
-neuron.I[len(neuron) / 2] = 1*nA # injecting in the middle
+neuron.I[len(neuron) / 2] = 1*nA  # injecting in the middle
 run(0.02*ms)
 neuron.I = 0*amp
 run(10*ms, report='text')
@@ -43,9 +41,10 @@ plot(t/ms, mon.v.T/mV, 'k')
 # Theory (incorrect near cable ends)
 for i in range(0, len(neuron)/2, 20):
     x = (len(neuron)/2 - i) * morpho.length[0]*meter
-    theory = 1/(la*Cm*pi*diameter) * sqrt(taum / (4*pi*(t+defaultclock.dt))) * \
-       exp(-(t+defaultclock.dt)/taum - taum / (4*(t+defaultclock.dt))*(x/la)**2)
-    theory = EL + theory*1*nA*0.02*ms
+    theory = (1/(la*Cm*pi*diameter) * sqrt(taum / (4*pi*(t + defaultclock.dt))) *
+              exp(-(t+defaultclock.dt)/taum -
+                  taum / (4*(t+defaultclock.dt))*(x/la)**2))
+    theory = EL + theory * 1*nA * 0.02*ms
     plot(t/ms, theory/mV, 'r')
 xlabel('Time (ms)')
 ylabel('v (mV')

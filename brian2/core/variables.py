@@ -1138,6 +1138,12 @@ class VariableView(object):
         codeobj = create_runner_codeobj(self.group,
                                         abstract_code,
                                         'group_variable_get',
+                                        # Setting the user code to an empty
+                                        # string suppresses warnings if the
+                                        # subexpression refers to variable
+                                        # names that are also present in the
+                                        # local namespace
+                                        user_code='',
                                         needed_variables=['_group_idx'],
                                         additional_variables=variables,
                                         level=level+2,

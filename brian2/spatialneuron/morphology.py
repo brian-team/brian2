@@ -11,7 +11,8 @@ from brian2.numpy_ import *
 from brian2.units.allunits import meter
 from brian2.utils.logger import get_logger
 from brian2.units.stdunits import um
-from brian2.units.fundamentalunits import have_same_dimensions, Quantity
+from brian2.units.fundamentalunits import (have_same_dimensions, Quantity,
+                                           check_units)
 
 logger = get_logger(__name__)
 
@@ -298,6 +299,9 @@ class Morphology(object):
             morpho = self._branch()
             if x < 0:  # allows e.g. to use -1 to get the last compartment
                 x += len(morpho)
+            if x >= len(morpho):
+                raise IndexError(('Invalid index %d '
+                                  'for %d compartments') % (x, len(morpho)))
             i = x
             j = i + 1
         elif x == 'main':
@@ -496,6 +500,7 @@ class Cylinder(Morphology):
         x position of end point in `meter` units.
     """
 
+    @check_units(length=meter, diameter=meter, n=1, x=meter, y=meter, z=meter)
     def __init__(self, length=None, diameter=None, n=1, type=None, x=None,
                  y=None, z=None):
         """
@@ -537,6 +542,7 @@ class Soma(Morphology):  # or Sphere?
         Diameter of the sphere.
     """
 
+    @check_units(diameter=meter)
     def __init__(self, diameter=None):
         Morphology.__init__(self, n=1)
         self.diameter = ones(1) * diameter
