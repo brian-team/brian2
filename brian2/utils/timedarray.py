@@ -213,7 +213,7 @@ class TimedArray(Function, Nameable):
             inline double _timedarray_%NAME%(const double t, const int i, const int _num_values, const double* _values)
             {
                 const double epsilon = %DT% / %K%;
-                if (i < 0 || i >= %ROWS%)
+                if (i < 0 || i >= %COLS%)
                     return NAN;
                 int timestep = (int)((t/epsilon + 0.5)/%K%); // rounds to nearest int for positive values
                 if(timestep < 0)
