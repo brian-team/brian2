@@ -73,8 +73,11 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                               'match, but %d != %d') % (len(indices),
                                                         len(times)))
 
-        if (period > 0*second) and (period <= np.max(times)):
-            raise ValueError('The period has to be greater than the max of the spike times')
+        if period < 0*second:
+            raise ValueError('The period cannot be negative.')
+        elif len(times) and period <= np.max(times):
+            raise ValueError('The period has to be greater than the maximum of '
+                             'the spike times')
 
         self.start = 0
         self.stop = N
@@ -116,6 +119,24 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                             when=when,
                             order=order,
                             name=None)
+
+    def before_run(self, run_namespace=None, level=0):
+        # Do some checks on the period vs. dt
+        if self.period < np.inf*second:
+            if self.period < self.dt:
+                raise ValueError('The period of %s is %s, which is smaller '
+                                 'than its dt of %s.' % (self.name,
+                                                         self.period,
+                                                         self.dt))
+            if (abs(int(self.period/self.dt)*self.dt - self.period)
+                    > np.finfo(self.dt.dtype).eps*self.period):
+                raise NotImplementedError('The period of %s is %s, which is '
+                                          'not an integer multiple of its dt '
+                                          'of %s.' % (self.name,
+                                                      self.period,
+                                                      self.dt))
+        super(SpikeGeneratorGroup, self).before_run(run_namespace=run_namespace,
+                                                    level=level+1)
 
     @property
     def spikes(self):

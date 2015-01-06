@@ -6,8 +6,7 @@ import tempfile
 
 from nose import with_setup
 from nose.plugins.attrib import attr
-import numpy as np
-from numpy.testing.utils import assert_equal
+from numpy.testing.utils import assert_raises
 
 from brian2 import *
 from brian2.devices.cpp_standalone import cpp_standalone_device
@@ -113,26 +112,27 @@ def test_spikegenerator_period_repeat():
         assert (idx+1)*len(SG.spike_time) == s_mon.num_spikes
 
 
-def test_spikegenerator_period_repeat_not_dt_multiple():
+def test_spikegenerator_incorrect_period():
     '''
-    Basic test for `SpikeGeneratorGroup`.
+    Test that you cannot provide incorrect period arguments or combine
+    inconsistent period and dt arguments.
     '''
-    indices = np.zeros(10)
-    times   = arange(0, 1, 0.1) * ms
+    # Period is negative
+    assert_raises(ValueError, lambda: SpikeGeneratorGroup(1, [], []*second,
+                                                          period=-1*ms))
 
-    rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
-    rec.sort()
-    sorted_times = np.ascontiguousarray(rec.t)*1000
-    sorted_indices = np.ascontiguousarray(rec.i)
-    SG = SpikeGeneratorGroup(1, indices, times, period=1.25*ms)
+    # Period is smaller than the highest spike time
+    assert_raises(ValueError, lambda: SpikeGeneratorGroup(1, [0], [2]*ms,
+                                                          period=1*ms))
+    # Period is not an integer multiple of dt
+    SG = SpikeGeneratorGroup(1, [], []*second, period=1.25*ms, dt=0.1*ms)
+    net = Network(SG)
+    assert_raises(NotImplementedError, lambda: net.run(0*ms))
 
-    s_mon = SpikeMonitor(SG)
-    net   = Network(SG, s_mon)
-    rate  = PopulationRateMonitor(SG)
-    for idx in xrange(2):
-        net.run(2.5*ms)
-    print SG.spike_time, s_mon.t[:], s_mon.num_spikes
-    assert 4*len(SG.spike_time) == s_mon.num_spikes
+    # Period is smaller than dt
+    SG = SpikeGeneratorGroup(1, [], []*second, period=1*ms, dt=2*ms)
+    net = Network(SG)
+    assert_raises(ValueError, lambda: net.run(0*ms))
 
 
 @attr('standalone')
@@ -163,5 +163,5 @@ if __name__ == '__main__':
     test_spikegenerator_basic_sorted()
     test_spikegenerator_period()
     test_spikegenerator_period_repeat()
-    test_spikegenerator_period_repeat_not_dt_multiple()
+    test_spikegenerator_incorrect_period()
     test_spikegenerator_standalone()

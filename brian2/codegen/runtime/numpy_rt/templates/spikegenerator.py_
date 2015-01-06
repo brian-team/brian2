@@ -2,7 +2,6 @@
 import numpy as np
 
 # TODO: We don't deal with more than one spike per neuron yet
-# Spikes since the preceding time step
 
 padding_before = t % period
 padding_after  = (t + dt) % period
