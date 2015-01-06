@@ -9,6 +9,7 @@
     cdef float padding_before = t % period
     cdef float padding_after  = (t + dt) % period
     cdef float epsilon        = 1e-3*dt
+    cdef double _spike_time
 
     # We need some precomputed values that will be used during looping
     not_first_spike = {{_lastindex}}[0] > 0
@@ -19,13 +20,14 @@
     if not_first_spike and ({{spike_time}}[{{_lastindex}}[0] - 1] > padding_before):
         {{_lastindex}}[0] = 0    
 
-    for _spike_time in {{spike_time}}[{{_lastindex}}[0]:]:
-        test = ({{spike_time}}[_idx] > padding_before) or (abs({{spike_time}}[_idx] - padding_before) < epsilon)
+    for _spike_time in {{spike_time}}[{{_lastindex}}[0]:_num{{spike_time}}]:
+        test = (_spike_time > padding_before) or (abs(_spike_time - padding_before) < epsilon)
         if test:
             break
         {{_lastindex}}[0] += 1
-    
-    for _spike_time in {{spike_time}}[{{_lastindex}}[0]:]:
+
+    for _idx in range({{_lastindex}}[0], _num{{spike_time}}):
+        _spike_time = {{spike_time}}[_idx]
         if not_end_period:
             test = (_spike_time > padding_after) or (abs(_spike_time - padding_after) < epsilon)
         else:
