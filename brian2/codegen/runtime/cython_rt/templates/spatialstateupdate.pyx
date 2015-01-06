@@ -2,7 +2,9 @@
 
 {% block maincode %}
     {# USES_VARIABLES { Cm, dt, v, N,
-                        ab_star, b_plus, ab_plus, b_minus, ab_minus,
+                        ab_star0, ab_star1, ab_star2, b_plus,
+                        ab_plus0, ab_plus1, ab_plus2, b_minus,
+                        ab_minus0, ab_minus1, ab_minus2,
                         v_star, u_plus, u_minus} #}
 
 
@@ -25,11 +27,11 @@
         _gtot_all[_idx] = _gtot
 
         {{v_star}}[_i] = -({{Cm}}[_i]/dt*{{v}}[_i])-_I0 # RHS -> v_star (solution)
-        bi={{ab_star}}[N + _i] - _gtot_all[_i] # main diagonal
+        bi={{ab_star1}}[_i] - _gtot_all[_i] # main diagonal
         if (_i<N-1):
-            c[_i]= {{ab_star}}[0 + _i+1] # superdiagonal
+            c[_i]= {{ab_star0}}[_i+1] # superdiagonal
         if (_i>0):
-            ai = {{ab_star}}[2*N + _i-1] # subdiagonal
+            ai = {{ab_star2}}[_i-1] # subdiagonal
             _m = 1.0/(bi-ai*c[_i-1])
             c[_i] = c[_i]*_m
             {{v_star}}[_i] = ({{v_star}}[_i] - ai*{{v_star}}[_i-1])*_m
@@ -42,11 +44,11 @@
     # Pass 2
     for _i in range(N):
         {{u_plus}}[_i] = {{b_plus}}[_i] # RHS -> v_star (solution)
-        bi = {{ab_plus}}[N + _i]-_gtot_all[_i] # main diagonal
+        bi = {{ab_plus1}}[_i]-_gtot_all[_i] # main diagonal
         if (_i<N-1):
-            c[_i] = {{ab_plus}}[0 + _i+1] # superdiagonal
+            c[_i] = {{ab_plus0}}[_i+1] # superdiagonal
         if (_i>0):
-            ai = {{ab_plus}}[2*N + _i-1] # subdiagonal
+            ai = {{ab_plus2}}[_i-1] # subdiagonal
             _m = 1.0/(bi-ai*c[_i-1])
             c[_i] = c[_i]*_m
             {{u_plus}}[_i] = ({{u_plus}}[_i] - ai*{{u_plus}}[_i-1])*_m
@@ -59,11 +61,11 @@
     # Pass 3
     for _i in range(N):
         {{u_minus}}[_i] = {{b_minus}}[_i] # RHS -> v_star (solution)
-        bi = {{ab_minus}}[N + _i] - _gtot_all[_i] # main diagonal
+        bi = {{ab_minus1}}[_i] - _gtot_all[_i] # main diagonal
         if (_i<N-1):
-            c[_i] = {{ab_minus}}[0 + _i+1] # superdiagonal
+            c[_i] = {{ab_minus0}}[_i+1] # superdiagonal
         if (_i>0):
-            ai = {{ab_minus}}[2*N + _i-1] # subdiagonal
+            ai = {{ab_minus2}}[_i-1] # subdiagonal
             _m = 1.0/(bi-ai*c[_i-1])
             c[_i] = c[_i]*_m
             {{u_minus}}[_i] = ({{u_minus}}[_i] - ai*{{u_minus}}[_i-1])*_m
