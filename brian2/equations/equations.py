@@ -17,7 +17,8 @@ from brian2.core.variables import Constant
 from brian2.core.functions import Function
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.units.fundamentalunits import (Unit, Quantity, have_same_dimensions,
-                                           get_unit, DIMENSIONLESS)
+                                           get_unit, DIMENSIONLESS,
+                                           DimensionMismatchError)
 from brian2.units.allunits import (metre, meter, second, amp, kelvin, mole,
                                    candle, kilogram, radian, steradian, hertz,
                                    newton, pascal, joule, watt, coulomb, volt,
@@ -243,6 +244,9 @@ def unit_and_type_from_string(unit_string):
     # Another special case: boolean variable
     if unit_string == 'boolean':
         return Unit(1, dim=DIMENSIONLESS), BOOLEAN
+    if unit_string == 'bool':
+        raise TypeError("Use 'boolean' not 'bool' as the unit for a boolean "
+                        "variable.")
 
     # Yet another special case: integer variable
     if unit_string == 'integer':
@@ -378,6 +382,10 @@ class SingleEquation(object):
     identifiers = property(lambda self: self.expr.identifiers
                            if not self.expr is None else set([]),
                            doc='All identifiers in the RHS of this equation.')
+
+    stochastic_variables = property(lambda self: set([variable for variable in self.identifiers
+                                                      if variable =='xi' or variable.startswith('xi_')]),
+                                    doc='Stochastic variables in the RHS of this equation')
 
     def _latex(self, *args):
         if self.type == DIFFERENTIAL_EQUATION:
@@ -838,11 +846,26 @@ class Equations(collections.Mapping):
                 continue
 
             if eq.type == DIFFERENTIAL_EQUATION:
-                check_unit(str(eq.expr), self.units[var] / second,
-                           all_variables)
+                try:
+                    check_unit(str(eq.expr), self.units[var] / second,
+                               all_variables)
+                except DimensionMismatchError as ex:
+                    raise DimensionMismatchError(('Inconsistent units in '
+                                                  'differential equation '
+                                                  'defining variable %s:'
+                                                  '\n%s') % (eq.varname,
+                                                             ex.desc),
+                                                 *ex.dims)
             elif eq.type == SUBEXPRESSION:
-                check_unit(str(eq.expr), self.units[var],
+                try:
+                    check_unit(str(eq.expr), self.units[var],
                            all_variables)
+                except DimensionMismatchError as ex:
+                    raise DimensionMismatchError(('Inconsistent units in '
+                                                  'subexpression %s:'
+                                                  '\n%s') % (eq.varname,
+                                                             ex.desc),
+                                                 *ex.dims)
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.type)
 

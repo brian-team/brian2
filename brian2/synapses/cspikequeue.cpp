@@ -2,7 +2,8 @@
 #include<vector>
 #include<map>
 #include<algorithm>
-#include<inttypes.h>
+#include<stdint.h>
+#include<assert.h>
 using namespace std;
 
 //TODO: The data type for indices is currently fixed (int), all floating point
@@ -35,9 +36,13 @@ public:
         openmp_padding = 0;
 	};
 
-    void prepare(scalar *real_delays, int *sources, unsigned int n_synapses,
+    void prepare(scalar *real_delays, unsigned int n_delays,
+                 int *sources, unsigned int n_synapses,
                  double _dt)
     {
+
+        assert(n_delays == 1 || n_delays == n_synapses);
+
         if (delays)
             delete [] delays;
 
@@ -65,7 +70,8 @@ public:
 
         for (unsigned int i=0; i<n_synapses; i++)
         {
-            delays[i] =  (int)(real_delays[i] / _dt + 0.5); //round to nearest int
+            scalar delay = n_delays > 1 ? real_delays[i] : real_delays[0];
+            delays[i] =  (int)(delay / _dt + 0.5); //round to nearest int
             synapses[sources[i] - source_start].push_back(i + openmp_padding);
         }
 

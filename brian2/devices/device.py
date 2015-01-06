@@ -10,7 +10,7 @@ from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.codegen.targets import codegen_targets
 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
 from brian2.core.names import find_name
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 from brian2.core.variables import ArrayVariable, DynamicArrayVariable
 from brian2.core.functions import Function
 from brian2.utils.logger import get_logger
@@ -27,11 +27,14 @@ logger = get_logger(__name__)
 all_devices = {}
 
 
+prefs.register_preferences('devices', 'Device preferences')
+
+
 def get_default_codeobject_class(pref='codegen.target'):
     '''
     Returns the default `CodeObject` class from the preferences.
     '''
-    codeobj_class = brian_prefs[pref]
+    codeobj_class = prefs[pref]
     if isinstance(codeobj_class, str):
         for target in codegen_targets:
             if target.class_name == codeobj_class:
@@ -164,7 +167,9 @@ class Device(object):
                                                   iterate_all=iterate_all,
                                                   codeobj_class=codeobj_class,
                                                   override_conditional_write=override_conditional_write,
-                                                  allows_scalar_write=template.allows_scalar_write)
+                                                  allows_scalar_write=template.allows_scalar_write,
+                                                  name=name,
+                                                  template_name=template_name)
         if template_kwds is None:
             template_kwds = dict()
         else:
@@ -186,7 +191,7 @@ class Device(object):
         logger.debug('%s abstract code:\n%s' % (name, indent(code_representation(abstract_code))))
 
         scalar_code, vector_code, kwds = generator.translate(abstract_code,
-                                                             dtype=brian_prefs['core.default_float_dtype'])
+                                                             dtype=prefs['core.default_float_dtype'])
         # Add the array names as keywords as well
         for varname, var in variables.iteritems():
             if isinstance(var, ArrayVariable):
@@ -211,7 +216,7 @@ class Device(object):
                         **template_kwds)
         logger.debug('%s code:\n%s' % (name, indent(code_representation(code))))
 
-        codeobj = codeobj_class(owner, code, variables,
+        codeobj = codeobj_class(owner, code, variables, variable_indices,
                                 template_name=template_name,
                                 template_source=template.template_source,
                                 name=name)
@@ -225,6 +230,11 @@ class Device(object):
         pass
 
     def insert_device_code(self, slot, code):
+        # Deprecated
+        raise AttributeError("The method 'insert_device_code' has been renamed "
+                             "to 'insert_code'.")
+
+    def insert_code(self, slot, code):
         '''
         Insert code directly into a given slot in the device. By default does nothing.
         '''
@@ -239,6 +249,8 @@ class Device(object):
     
 class RuntimeDevice(Device):
     '''
+    The default device used in Brian, state variables are stored as numpy
+    arrays in memory.
     '''
     def __init__(self):
         super(Device, self).__init__()
@@ -341,8 +353,14 @@ class CurrentDeviceProxy(object):
     '''
     def __getattr__(self, name):
         if not hasattr(active_device, name):
-            logger.warn("Active device does not have an attribute '%s', ignoring this" % name)
-            attr = Dummy()
+            if name.startswith('_'):
+                # Do not fake private/magic attributes
+                raise AttributeError(('Active device does not have an '
+                                      'attribute %s') % name)
+            else:
+                logger.warn(("Active device does not have an attribute '%s', "
+                             "ignoring this") % name)
+                attr = Dummy()
         else:
             attr = getattr(active_device, name)
         return attr

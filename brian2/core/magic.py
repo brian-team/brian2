@@ -224,10 +224,10 @@ class MagicNetwork(Network):
         gc.collect()  # Make sure that all unused objects are cleared
 
     def run(self, duration, report=None, report_period=10*second,
-            namespace=None, level=0):
+            namespace=None, profile=True, level=0):
         self._update_magic_objects(level=level+1)
         Network.run(self, duration, report=report, report_period=report_period,
-                    namespace=namespace, level=level+1)
+                    namespace=namespace, profile=profile, level=level+1)
 
     def store(self, name='default', level=0):
         '''
@@ -281,7 +281,7 @@ def collect(level=0):
 
 @check_units(duration=second, report_period=second)
 def run(duration, report=None, report_period=10*second, namespace=None,
-        level=0):
+        profile=True, level=0):
     '''
     run(duration, report=None, report_period=10*second, namespace=None, level=0)
     
@@ -314,7 +314,10 @@ def run(duration, report=None, report_period=10*second, namespace=None,
         the amount of time elapsed (in seconds) and the fraction complete
         from 0 to 1.
     report_period : `Quantity`
-        How frequently (in real time) to report progress.        
+        How frequently (in real time) to report progress.
+    profile : bool, optional
+        Whether to record profiling information (see `Network.profiling_info`).
+        Defaults to ``False``.
     namespace : dict-like, optional
         A namespace in which objects which do not define their own
         namespace will be run. If not namespace is given, the locals and
@@ -339,7 +342,7 @@ def run(duration, report=None, report_period=10*second, namespace=None,
         intended use. See `MagicNetwork` for more details.
     '''
     return magic_network.run(duration, report=report, report_period=report_period,
-                             namespace=namespace, level=2+level)
+                             namespace=namespace, profile=profile, level=2+level)
 run.__module__ = __name__
 
 def reinit():

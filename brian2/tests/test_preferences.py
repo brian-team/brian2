@@ -180,19 +180,27 @@ def test_preference_name_access():
                             name=BrianPreference(True, 'some preference'))    
     gp.register_preferences('main.sub', 'subcategory',
                             name2=BrianPreference(True, 'some preference'))
-    
+
+    gp.register_preferences('main.sub_no_pref', 'subcategory without preference')
+    gp.register_preferences('main.sub_no_pref.sub', 'deep subcategory',
+                            name=BrianPreference(True, 'some preference'))
+
     # Keyword based access
     assert gp['main.name']
     assert gp['main.sub.name2']
+    assert gp['main.sub_no_pref.sub.name']
     gp['main.name'] = False
     gp['main.sub.name2'] = False
-    
+    gp['main.sub_no_pref.sub.name'] = False
+
     # Attribute based access
     assert not gp.main.name  # we set it to False above
     assert not gp.main.sub.name2
+    assert not gp.main.sub_no_pref.sub.name
     gp.main.name = True
     gp.main.sub.name2 = True
-    
+    gp.main.sub_no_pref.sub.name = True
+
     # Mixed access
     assert gp.main['name']
     assert gp['main'].name
@@ -232,8 +240,8 @@ def test_preference_name_access():
     for name, value in gp.main.iteritems():
         assert gp.main[name] == value
     
-    assert len(gp) == 2  # two preferences in total
-    assert len(gp['main']) == 2  # both preferences are in the main category
+    assert len(gp) == 3  # three preferences in total
+    assert len(gp['main']) == 3  # all preferences are in the main category
     assert len(gp['main.sub']) == 1  # one preference in main.sub
     
     assert 'main.name' in gp

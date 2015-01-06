@@ -10,7 +10,7 @@ form of equations::
 
 This defines a group of 10 leaky integrators. The model description can be
 directly given as a (possibly multi-line) string as above, or as an
-`Equation` object. For more details on the form of equations, see
+`Equations` object. For more details on the form of equations, see
 :doc:`equations`. Note that model descriptions can make reference to physical
 units, but also to scalar variables declared outside of the model description
 itself::
@@ -34,8 +34,8 @@ be used::
 Sometimes it can also be useful to introduce shared variables or subexpressions,
 i.e. variables that have a common value for all neurons. In contrast to
 external variables (such as ``Cm`` above), such variables can change during a
-run, e.g. by using a `CodeRunner`. This can be for example used for an external
-stimulus that changes in the course of a run::
+run, e.g. by using a :meth:`~brian2.groups.group.Group.custom_operation`. This can be for example
+used for an external stimulus that changes in the course of a run::
 
     G = NeuronGroup(10, '''shared_input : volt (shared)
                            dv/dt = (-v + shared_input)/tau : volt
@@ -77,11 +77,45 @@ This will not allow any threshold crossing for a neuron for 5ms after a spike.
 The refractory keyword allows for more flexible refractoriness specifications,
 see :doc:`refractoriness` for details.
 
+.. _linked_variables:
+
+Linked variables
+----------------
+A `NeuronGroup` can define parameters that are not stored in this group, but are
+instead a reference to a state variable in another group. For this, a group
+defines a parameter as ``linked`` and then uses `linked_var` to
+specify the linking. This can for example be useful to model shared noise
+between cells::
+
+    inp = NeuronGroup(1, 'dnoise/dt = -noise/tau + tau**-0.5*xi : 1')
+
+    neurons = NeuronGroup(100, '''noise : 1 (linked)
+                                  dv/dt = (-v + noise_strength*noise)/tau : volt''')
+    neurons.noise = linked_var(inp, 'noise')
+
+If the two groups have the same size, the linking will be done in a 1-to-1
+fashion. If the source group has the size one (as in the above example) or if
+the source parameter is a shared variable, then the linking will be done as
+1-to-all. In all other cases, you have to specify the indices to use for the
+linking explicitly::
+
+    # two inputs with different phases
+    inp = NeuronGroup(2, '''phase : 1
+                            dx/dt = 1*mV/ms*sin(2*pi*100*Hz*t-phase) : volt''')
+    inp.phase = [0, pi/2]
+
+    neurons = NeuronGroup(100, '''inp : volt (linked)
+                                  dv/dt = (-v + inp) / tau : volt''')
+    # Half of the cells get the first input, other half gets the second
+    neurons.inp = linked_var(inp, 'x', index=repeat([0, 1], 50))
+
+
 State variables
 ---------------
 Differential equations and parameters in model descriptions are stored as 
 *state variables* of the `NeuronGroup`. They can be accessed and set as an
-attribute of the group:
+attribute of the group. To get the values without physical units (e.g. for
+analysing data with external tools), use an underscore after the name:
 
 .. doctest::
 
@@ -91,6 +125,8 @@ attribute of the group:
     >>> G.v = -70*mV
     >>> print G.v
     <neurongroup.v: array([-70., -70., -70., -70., -70., -70., -70., -70., -70., -70.]) * mvolt>
+    >>> print G.v_  # values without units
+    <neurongroup.v_: array([-0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07])>
     >>> G.shared_input = 5*mV
     >>> print G.shared_input
     <neurongroup.shared_input: 5.0 * mvolt>
@@ -114,3 +150,34 @@ For shared variables, such string expressions can only refer to shared values:
     >>> G.shared_input = 'rand()*mV + 4*mV'
     >>> print G.shared_input
     <neurongroup.shared_input: 4.2579690100000001 * mvolt>
+
+
+.. _numerical_integration:
+
+Numerical integration
+---------------------
+Differential equations are converted into a sequence of statements that
+integrate the equations numerically over a single time step. By default, Brian
+choses an integration method automatically, trying to solve the equations
+exactly first (which is possible for example for linear equations) and then
+resorting to numerical algorithms (see below). It will also take care of integrating
+stochastic differential equations appropriately. If you prefer to chose an
+integration algorithm yourself, you can do so using the ``method`` keyword for
+`NeuronGroup` or `Synapses`. The list of available methods is the following,
+if no method is chosen explicitly Brian will try methods starting at the top
+until it finds a method than can integrate the given equations:
+
+* ``'linear'``: exact integration for linear equations
+* ``'independent'``: exact integration for a system of independent equations,
+  where all the equations can be analytically solved independently
+* ``'exponential_euler'``: exponential Euler integration for conditionally
+  linear equations
+* ``'euler'``: forward Euler integration (for additive stochastic
+  differential equations using the Euler-Maruyama method)
+* ``'rk2'``: second order Runge-Kutta method (midpoint method)
+* ``'rk4'``: classical Runge-Kutta method (RK4)
+* ``'milstein'``: derivative-free Milstein method for solving stochastic
+  differential equations with diagonal multiplicative noise
+
+You can also define your own numerical integrators, see
+:doc:`../advanced/state_update` for details.

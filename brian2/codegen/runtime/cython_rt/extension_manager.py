@@ -7,6 +7,7 @@ https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 import imp
 import os
 import sys
+import time
 
 try:
     import hashlib
@@ -16,12 +17,15 @@ except ImportError:
 from distutils.core import Distribution, Extension
 from distutils.command.build_ext import build_ext
 
-import Cython
-from Cython.Compiler.Errors import CompileError
-from Cython.Build.Dependencies import cythonize
+try:
+    import Cython
+    import Cython.Compiler as Cython_Compiler
+    import Cython.Build as Cython_Build
+except ImportError:
+    Cython = None
 
+from brian2.utils.logger import std_silent
 from brian2.utils.stringtools import deindent
-from brian2.utils.filetools import stdout_redirected
 
 __all__ = ['cython_extension_manager']
 
@@ -33,7 +37,10 @@ class CythonExtensionManager(object):
     def create_extension(self, code, force=False, name=None,
                          include=None, library_dirs=None, compile_args=None, link_args=None, lib=None,
                          ):
-        
+
+        if Cython is None:
+            raise ImportError('Cython is not available')
+
         code = deindent(code)
 
         lib_dir = os.path.expanduser('~/.brian/cython_extensions')
@@ -102,14 +109,13 @@ class CythonExtensionManager(object):
                     force=True,
                     )
                 # suppresses the output on stdout
-                with open(os.devnull, 'w') as f:
-                    with stdout_redirected(f):
-                        build_extension.extensions = cythonize([extension], **opts)
+                with std_silent():
+                    build_extension.extensions = Cython_Build.cythonize([extension], **opts)
 
-                        build_extension.build_temp = os.path.dirname(pyx_file)
-                        build_extension.build_lib = lib_dir
-                        build_extension.run()
-            except CompileError:
+                    build_extension.build_temp = os.path.dirname(pyx_file)
+                    build_extension.build_lib = lib_dir
+                    build_extension.run()
+            except Cython_Compiler.Errors.CompileError:
                 return
 
         module = imp.load_dynamic(module_name, module_path)

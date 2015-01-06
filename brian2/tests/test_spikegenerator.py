@@ -19,15 +19,6 @@ def restore_device():
     restore_initial_state()
 
 
-# We can only test C++ if weave is availabe
-try:
-    import scipy.weave
-    codeobj_classes = [NumpyCodeObject, WeaveCodeObject]
-except ImportError:
-    # Can't test C++
-    codeobj_classes = [NumpyCodeObject]
-
-
 def test_spikegenerator_connected():
     '''
     Test that `SpikeGeneratorGroup` connects properly.
@@ -57,79 +48,92 @@ def test_spikegenerator_basic():
     '''
     Basic test for `SpikeGeneratorGroup`.
     '''
-    for codeobj_class in codeobj_classes:
-        indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
-        times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
-        SG = SpikeGeneratorGroup(5, indices, times)
-        s_mon = SpikeMonitor(SG)
-        net = Network(SG, s_mon)
-        net.run(5*ms)
-        for idx in xrange(5):
-            generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
-            recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
-            assert generator_spikes == recorded_spikes
+    indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
+    times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
+    SG = SpikeGeneratorGroup(5, indices, times)
+    s_mon = SpikeMonitor(SG)
+    net = Network(SG, s_mon)
+    net.run(5*ms)
+    for idx in xrange(5):
+        generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
+        recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
+        assert generator_spikes == recorded_spikes
+
+
+def test_spikegenerator_basic_sorted():
+    '''
+    Basic test for `SpikeGeneratorGroup` with already sorted spike events.
+    '''
+    indices = np.array([3, 1, 2, 3, 1, 2, 1, 2, 3])
+    times   = np.array([1, 2, 2, 2, 3, 3, 4, 4, 4]) * ms
+    SG = SpikeGeneratorGroup(5, indices, times)
+    s_mon = SpikeMonitor(SG)
+    net = Network(SG, s_mon)
+    net.run(5*ms)
+    for idx in xrange(5):
+        generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
+        recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
+        assert generator_spikes == recorded_spikes
+
 
 def test_spikegenerator_period():
     '''
     Basic test for `SpikeGeneratorGroup`.
     '''
-    for codeobj_class in codeobj_classes:
-        indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
-        times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
-        SG = SpikeGeneratorGroup(5, indices, times, period=5*ms,
-                                 codeobj_class=codeobj_class)
+    indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
+    times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
+    SG = SpikeGeneratorGroup(5, indices, times, period=5*ms)
 
-        s_mon = SpikeMonitor(SG)
-        net = Network(SG, s_mon)
-        net.run(10*ms)
-        for idx in xrange(5):
-            generator_spikes = sorted([(idx, time) for time in times[indices==idx]] + [(idx, time+5*ms) for time in times[indices==idx]])
-            recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
-            assert generator_spikes == recorded_spikes
+    s_mon = SpikeMonitor(SG)
+    net = Network(SG, s_mon)
+    net.run(10*ms)
+    for idx in xrange(5):
+        generator_spikes = sorted([(idx, time) for time in times[indices==idx]] + [(idx, time+5*ms) for time in times[indices==idx]])
+        recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
+        assert generator_spikes == recorded_spikes
+
 
 def test_spikegenerator_period_repeat():
     '''
     Basic test for `SpikeGeneratorGroup`.
     '''
-    for codeobj_class in codeobj_classes:
-        indices = np.zeros(10)
-        times   = arange(0, 1, 0.1) * ms
+    indices = np.zeros(10)
+    times   = arange(0, 1, 0.1) * ms
 
-        rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
-        rec.sort()
-        sorted_times = np.ascontiguousarray(rec.t)*1000
-        sorted_indices = np.ascontiguousarray(rec.i)
-        SG = SpikeGeneratorGroup(1, indices, times, period=1*ms,
-                                 codeobj_class=codeobj_class)
-        s_mon = SpikeMonitor(SG)
-        net   = Network(SG, s_mon)
-        rate  = PopulationRateMonitor(SG)
-        for idx in xrange(5):
-            net.run(1*ms)
-            assert (idx+1)*len(SG.spike_time) == s_mon.num_spikes
+    rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
+    rec.sort()
+    sorted_times = np.ascontiguousarray(rec.t)*1000
+    sorted_indices = np.ascontiguousarray(rec.i)
+    SG = SpikeGeneratorGroup(1, indices, times, period=1*ms)
+    s_mon = SpikeMonitor(SG)
+    net   = Network(SG, s_mon)
+    rate  = PopulationRateMonitor(SG)
+    for idx in xrange(5):
+        net.run(1*ms)
+        assert (idx+1)*len(SG.spike_time) == s_mon.num_spikes
+
 
 def test_spikegenerator_period_repeat_not_dt_multiple():
     '''
     Basic test for `SpikeGeneratorGroup`.
     '''
-    for codeobj_class in codeobj_classes:
-        indices = np.zeros(10)
-        times   = arange(0, 1, 0.1) * ms
+    indices = np.zeros(10)
+    times   = arange(0, 1, 0.1) * ms
 
-        rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
-        rec.sort()
-        sorted_times = np.ascontiguousarray(rec.t)*1000
-        sorted_indices = np.ascontiguousarray(rec.i)
-        SG = SpikeGeneratorGroup(1, indices, times, period=1.25*ms,
-                                 codeobj_class=codeobj_class)
+    rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
+    rec.sort()
+    sorted_times = np.ascontiguousarray(rec.t)*1000
+    sorted_indices = np.ascontiguousarray(rec.i)
+    SG = SpikeGeneratorGroup(1, indices, times, period=1.25*ms)
 
-        s_mon = SpikeMonitor(SG)
-        net   = Network(SG, s_mon)
-        rate  = PopulationRateMonitor(SG)
-        for idx in xrange(2):
-            net.run(2.5*ms)
-        print SG.spike_time, s_mon.t[:], s_mon.num_spikes
-        assert 4*len(SG.spike_time) == s_mon.num_spikes
+    s_mon = SpikeMonitor(SG)
+    net   = Network(SG, s_mon)
+    rate  = PopulationRateMonitor(SG)
+    for idx in xrange(2):
+        net.run(2.5*ms)
+    print SG.spike_time, s_mon.t[:], s_mon.num_spikes
+    assert 4*len(SG.spike_time) == s_mon.num_spikes
+
 
 @attr('standalone')
 @with_setup(teardown=restore_device)
@@ -145,8 +149,7 @@ def test_spikegenerator_standalone():
     net = Network(SG, s_mon)
     net.run(5*ms)
     tempdir = tempfile.mkdtemp()
-    device.build(project_dir=tempdir, compile_project=True, run_project=True,
-                 with_output=False)
+    device.build(directory=tempdir, compile=True, run=True, with_output=False)
     for idx in xrange(5):
         generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
         recorded_spikes = sorted([(idx, time)
@@ -157,6 +160,7 @@ def test_spikegenerator_standalone():
 if __name__ == '__main__':
     test_spikegenerator_connected()
     test_spikegenerator_basic()
+    test_spikegenerator_basic_sorted()
     test_spikegenerator_period()
     test_spikegenerator_period_repeat()
     test_spikegenerator_period_repeat_not_dt_multiple()

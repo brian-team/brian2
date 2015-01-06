@@ -20,8 +20,8 @@ class SpikeMonitor(Group, CodeRunner):
         Whether or not to record each spike in `i` and `t` (the `count` will
         always be recorded).
     when : str, optional
-        When to record the spikes, by default uses the clock of the source
-        and records spikes in the slot 'end'.
+        When to record the spikes, by default records spikes in the slot
+        ``'end'``.
     order : int, optional
         The priority of of this group for operations occurring at the same time
         step and in the same scheduling slot. Defaults to 0.

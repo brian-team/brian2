@@ -1,3 +1,4 @@
+import uuid
 import os
 import tempfile
 
@@ -7,6 +8,7 @@ from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 import numpy as np
 
 from brian2 import *
+from brian2.utils.logger import catch_logs
 
 def _compare(synapses, expected):
     conn_matrix = np.zeros((len(synapses.source), len(synapses.target)))
@@ -125,8 +127,7 @@ def test_connection_array_standalone():
     net = Network(G1, G2, S, mon)
     net.run(5*second)
     tempdir = tempfile.mkdtemp()
-    device.build(project_dir=tempdir, compile_project=True, run_project=True,
-                 with_output=False)
+    device.build(directory=tempdir, compile=True, run=True, with_output=False)
     expected = np.array([[1, 1, 1, 1, 1],
                          [0, 0, 0, 0, 0],
                          [0, 1, 1, 1, 1],
@@ -382,13 +383,13 @@ def test_state_variable_indexing():
 
     #Slicing
     assert len(S.w[:]) == len(S.w[:, :]) == len(S.w[:, :, :]) == len(G1)*len(G2)*2
-    assert len(S.w[0:]) == len(S.w[0:, 0:]) == len(S.w[0:, 0:, 0:]) == len(G1)*len(G2)*2
-    assert len(S.w[0::2]) == len(S.w[0::2, 0:]) == 3*len(G2)*2
-    assert len(S.w[0]) == len(S.w[0, :]) == len(S.w[0, :, :]) == len(G2)*2
-    assert len(S.w[0:2]) == len(S.w[0:2, :]) == len(S.w[0:2, :, :]) == 2*len(G2)*2
-    assert len(S.w[:2]) == len(S.w[:2, :]) == len(S.w[:2, :, :]) == 2*len(G2)*2
-    assert len(S.w[0:4:2]) == len(S.w[0:4:2, :]) == len(S.w[0:4:2, :, :]) == 2*len(G2)*2
-    assert len(S.w[:4:2]) == len(S.w[:4:2, :]) == len(S.w[:4:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[0:, 0:]) == len(S.w[0:, 0:, 0:]) == len(G1)*len(G2)*2
+    assert len(S.w[0::2, 0:]) == 3*len(G2)*2
+    assert len(S.w[0, :]) == len(S.w[0, :, :]) == len(G2)*2
+    assert len(S.w[0:2, :]) == len(S.w[0:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[:2, :]) == len(S.w[:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[0:4:2, :]) == len(S.w[0:4:2, :, :]) == 2*len(G2)*2
+    assert len(S.w[:4:2, :]) == len(S.w[:4:2, :, :]) == 2*len(G2)*2
     assert len(S.w[:, 0]) == len(S.w[:, 0, :]) == len(G1)*2
     assert len(S.w[:, 0:2]) == len(S.w[:, 0:2, :]) == 2*len(G1)*2
     assert len(S.w[:, :2]) == len(S.w[:, :2, :]) == 2*len(G1)*2
@@ -400,18 +401,21 @@ def test_state_variable_indexing():
     assert len(S.w[:, :, 0:2:2]) == len(G1)*len(G2)
     assert len(S.w[:, :, :2:2]) == len(G1)*len(G2)
 
+    # 1d indexing is directly indexing synapses!
+    assert len(S.w[:]) == len(S.w[0:])
+    assert len(S.w[[0, 1]]) == len(S.w[3:5]) == 2
+    assert len(S.w[:]) == len(S.w[np.arange(len(G1)*len(G2)*2)])
+
     #Array-indexing (not yet supported for synapse index)
-    assert_equal(S.w[0:3], S.w[[0, 1, 2]])
-    assert_equal(S.w[0:3], S.w[[0, 1, 2], np.arange(len(G2))])
     assert_equal(S.w[:, 0:3], S.w[:, [0, 1, 2]])
     assert_equal(S.w[:, 0:3], S.w[np.arange(len(G1)), [0, 1, 2]])
 
     #string-based indexing
-    assert_equal(S.w[0:3], S.w['i<3'])
+    assert_equal(S.w[0:3, :], S.w['i<3'])
     assert_equal(S.w[:, 0:3], S.w['j<3'])
     # TODO: k is not working yet
     # assert_equal(S.w[:, :, 0], S.w['k==0'])
-    assert_equal(S.w[0:3], S.w['v_pre < 3*mV'])
+    assert_equal(S.w[0:3, :], S.w['v_pre < 3*mV'])
     assert_equal(S.w[:, 0:3], S.w['v_post < 13*mV'])
 
     #invalid indices
@@ -506,6 +510,42 @@ def test_transmission():
                         target_mon.t[target_mon.i==1] - default_dt - delay[1])
 
 
+def test_transmission_scalar_delay():
+    inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms)
+    target = NeuronGroup(2, 'v:1')
+    S = Synapses(inp, target, pre='v+=1', delay=0.5*ms, connect='i==j')
+    mon = StateMonitor(target, 'v', record=True)
+    net = Network(inp, target, S, mon)
+    net.run(2*ms)
+    assert_equal(mon[0].v[mon.t<0.5*ms], 0)
+    assert_equal(mon[0].v[mon.t>=0.5*ms], 1)
+    assert_equal(mon[1].v[mon.t<1.5*ms], 0)
+    assert_equal(mon[1].v[mon.t>=1.5*ms], 1)
+
+
+def test_transmission_scalar_delay_different_clocks():
+
+    inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms, dt=0.5*ms,
+                              # give the group a unique name to always
+                              # get a 'fresh' warning
+                              name='sg_%d' % uuid.uuid4())
+    target = NeuronGroup(2, 'v:1', dt=0.1*ms)
+    S = Synapses(inp, target, pre='v+=1', delay=0.5*ms, connect='i==j')
+    mon = StateMonitor(target, 'v', record=True)
+    net = Network(inp, target, S, mon)
+
+    # We should get a warning when using inconsistent dts
+    with catch_logs() as l:
+        net.run(2*ms)
+        assert len(l) == 1, 'expected a warning, got %d' % len(l)
+        assert l[0][1].endswith('synapses_dt_mismatch')
+
+    assert_equal(mon[0].v[mon.t<0.5*ms], 0)
+    assert_equal(mon[0].v[mon.t>=0.5*ms], 1)
+    assert_equal(mon[1].v[mon.t<1.5*ms], 0)
+    assert_equal(mon[1].v[mon.t>=1.5*ms], 1)
+
+
 @attr('codegen-independent')
 def test_clocks():
     '''
@@ -549,6 +589,19 @@ def test_changed_dt_spikes_in_queue():
                 8.1, 9.1 #dt=0.1ms
                 ] * ms
     assert_equal(mon.t[:], expected)
+
+
+@attr('codegen-independent')
+def test_no_synapses():
+    # Synaptic pathway but no synapses
+    G1 = NeuronGroup(1, '', threshold='True')
+    G2 = NeuronGroup(1, 'v:1')
+    S = Synapses(G1, G2, pre='v+=1', name='synapses_'+str(uuid.uuid4()).replace('-', '_'))
+    net = Network(G1, G2, S)
+    with catch_logs() as l:
+        net.run(defaultclock.dt)
+        assert len(l) == 1, 'expected 1 warning, got %d' % len(l)
+        assert l[0][1].endswith('.no_synapses')
 
 
 def test_summed_variable():
@@ -651,6 +704,19 @@ def test_scalar_subexpression():
                                                 pre='v+=s', connect=True))
 
 
+def test_external_variables():
+    # Make sure that external variables are correctly resolved
+    source = SpikeGeneratorGroup(1, [0], [0]*ms)
+    target = NeuronGroup(1, 'v:1')
+    w_var = 1
+    amplitude = 2
+    syn = Synapses(source, target, 'w=w_var : 1',
+                   pre='v+=amplitude*w', connect=True)
+    net = Network(source, target, syn)
+    net.run(defaultclock.dt)
+    assert target.v[0] == 2
+
+
 @attr('long')
 def test_event_driven():
     # Fake example, where the synapse is actually not changing the state of the
@@ -731,11 +797,15 @@ if __name__ == '__main__':
     test_subexpression_references()
     test_delay_specification()
     test_transmission()
+    test_transmission_scalar_delay()
+    test_transmission_scalar_delay_different_clocks()
     test_clocks()
     test_changed_dt_spikes_in_queue()
+    test_no_synapses()
     test_summed_variable()
     test_summed_variable_errors()
     test_scalar_parameter_access()
     test_scalar_subexpression()
+    test_external_variables()
     test_event_driven()
     test_repr()

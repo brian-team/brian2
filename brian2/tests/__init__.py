@@ -2,7 +2,7 @@ import os
 import sys
 from StringIO import StringIO
 
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 
 def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         test_standalone=False):
@@ -62,18 +62,20 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         sys.stderr.write('Testing codegen-independent code \n')
     sys.stderr.write('\n')
     # Store the currently set preferences and reset to default preferences
-    stored_prefs = brian_prefs.as_file
-    brian_prefs.read_preference_file(StringIO(brian_prefs.defaults_as_file))
+    stored_prefs = prefs.as_file
+    prefs.read_preference_file(StringIO(prefs.defaults_as_file))
+
     # Switch off code optimization to get faster compilation times
-    brian_prefs['codegen.runtime.weave.extra_compile_args'] = ['-w', '-O0']
-    brian_prefs['codegen.runtime.cython.extra_compile_args'] = ['-w', '-O0']
+    prefs['codegen.runtime.cython.extra_compile_args'] = ['-w', '-O0']
+    prefs['codegen.cpp.extra_compile_args_gcc'] = ['-w', '-O0']
+    
     try:
         success = []
         if test_codegen_independent:
             sys.stderr.write('Running tests that do not use code generation\n')
             # Some doctests do actually use code generation, use numpy for that
-            brian_prefs.codegen.target = 'numpy'
-            brian_prefs._backup()
+            prefs.codegen.target = 'numpy'
+            prefs._backup()
             success.append(nose.run(argv=['', dirname,
                               '-c=',  # no config file loading
                               '-I', '^hears\.py$',
@@ -85,8 +87,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                               '--exe']))
         for target in codegen_targets:
             sys.stderr.write('Running tests for target %s:\n' % target)
-            brian_prefs.codegen.target = target
-            brian_prefs._backup()
+            prefs.codegen.target = target
+            prefs._backup()
             exclude_str = "!standalone,!codegen-independent"
             if not long_tests:
                 exclude_str += ',!long'
@@ -117,8 +119,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     finally:
         # Restore the user preferences
-        brian_prefs.read_preference_file(StringIO(stored_prefs))
-        brian_prefs._backup()
+        prefs.read_preference_file(StringIO(stored_prefs))
+        prefs._backup()
 
 if __name__=='__main__':
     run()

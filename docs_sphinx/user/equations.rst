@@ -1,6 +1,8 @@
 Equations
 =========
 
+.. _equation_strings:
+
 Equation strings
 ----------------
 Equations are used both in `NeuronGroup` and `Synapses` to:
@@ -22,7 +24,7 @@ the values out of a `NeuronGroup` and discarding the units. Compound units are o
 There are also three special "units" that can be used: ``1`` denotes a dimensionless floating point variable,
 ``boolean`` and ``integer`` denote dimensionless variables of the respective kind.
 
-Aliases are no longer available in Brian 2. Some special variables are defined: `t`, `dt` (time) and `xi` (white noise).
+Some special variables are defined: `t`, `dt` (time) and `xi` (white noise).
 Variable names starting with an underscore and a couple of other names that have special meanings under certain
 circumstances (e.g. names ending in ``_pre`` or ``_post``) are forbidden.
 
@@ -30,11 +32,12 @@ For stochastic equations with several ``xi`` values it is now necessary to make 
 or different noise instantiations. To make this distinction, an arbitrary suffix can be used, e.g. using ``xi_1`` several times
 refers to the same variable, ``xi_2`` (or ``xi_inh``, ``xi_alpha``, etc.) refers to another. An error will be raised if
 you use more than one plain ``xi``. Note that noise is always independent across neurons, you can only work around this
-restriction by defining your noise variable as a shared parameter and update it using a user-defined function (e.g. a `CodeRunner`).
+restriction by defining your noise variable as a shared parameter and update it using a user-defined function (e.g. with a  `~Group.custom_operation`),
+or create a group that models the noise and link to its variable (see :ref:`linked_variables`).
 
 Flags
 ~~~~~
-A new syntax is the possibility of *flags*. A flag is a keyword in brackets, which
+A *flag* is a keyword in parentheses at the end of the line, which
 qualifies the equations. There are several keywords:
 
 *event-driven*
@@ -51,11 +54,14 @@ qualifies the equations. There are several keywords:
   this means the parameter will not be changed during a run. This allows
   optimizations in state updaters. This can only qualify parameters.
 *shared*
-  this means that a parameter or subexpression isn't neuron-/synapse-specific
+  this means that a parameter or subexpression is not neuron-/synapse-specific
   but rather a single value for the whole `NeuronGroup` or `Synapses`. A shared
   subexpression can only refer to other shared variables.
+*linked*
+  this means that a parameter refers to a parameter in another `NeuronGroup`.
+  See :ref:`linked_variables` for more details.
 
-Different flags may be specified as follows::
+Multiple flags may be specified as follows::
 
 	dx/dt = f : unit (flag1,flag2)
 
@@ -69,11 +75,10 @@ There are additional constraints:
   also event-driven.
 * An event-driven equation cannot depend on a differential equation that is not
   event-driven (directly, or indirectly through subexpressions). It can depend
-  on a constant parameter. An open question is whether we should also allow it
-  to depend on a parameter not defined as constant (I would say no).
+  on a constant parameter.
 
 Currently, automatic event-driven updates are only possible for one-dimensional
-linear equations, but it could be extended.
+linear equations, but this may be extended in the future.
 
 Equation objects
 ~~~~~~~~~~~~~~~~
@@ -83,9 +88,7 @@ The model definitions for `NeuronGroup` and `Synapses` can be simple strings or
 	eqs = Equations('dx/dt = (y-x)/tau : volt')
 	eqs += Equations('dy/dt = -y/tau: volt')
 
-In contrast to Brian 1, `Equations` objects do not save the surrounding namespace (which led to a lot
-of complications when combining equations), they are mostly convenience wrappers
-around strings. They do allow for the specification of values in the strings, but do this by simple
+`Equations` allow for the specification of values in the strings, but do this by simple
 string replacement, e.g. you can do::
   
   eqs = Equations('dx/dt = x/tau : volt', tau=10*ms)
@@ -93,11 +96,6 @@ string replacement, e.g. you can do::
 but this is exactly equivalent to::
 
   eqs = Equations('dx/dt = x/(10*ms) : volt')
-
-In contrast to Brian 1, specifying the value of a variable using a keyword argument does not mean you
-have to specify the values for all external variables by keywords.
-[Question: Useful to have the same kind of classes for Thresholds and Resets (Expression and Statements) just
-for convenience?]
 
 The `Equations` object does some basic syntax checking and will raise an error if two equations defining
 the same variable are combined. It does not however do unit checking, checking for unknown identifiers or
@@ -109,35 +107,14 @@ incorrect flags -- all this will be done during the instantiation of a `NeuronGr
 External variables and functions
 --------------------------------
 Equations defining neuronal or synaptic equations can contain references to
-external parameters or functions. During the initialisation of a `NeuronGroup`
-or a `Synapses` object, this *namespace* can be provided as an argument. This
-is a group-specific namespace that will only be used for names in the context
-of the respective group. Note that units and a set of standard functions are
-always provided and should not be given explicitly.
-This namespace does not necessarily need to be exhaustive at the time of the
-creation of the `NeuronGroup`/`Synapses`, entries can be added (or modified)
-at a later stage via the `namespace` attribute (e.g.
-``G.namespace['tau'] = 10*ms``).
-
-At the point of the call to the `Network.run` namespace, any group-specific
-namespace will be augmented by the "run namespace". This namespace can be
-either given explicitly as an argument to the `~Network.run` method or it will
-be taken from the locals and globals surrounding the call. A warning will be
-emitted if a name is defined in more than one namespace.
-
-To summarize: an external identifier will be looked up in the context of an
-object such as `NeuronGroup` or `Synapses`. It will follow the following
-resolution hierarchy:
-
-1. Default unit and function names.
-2. Names defined in the explicit group-specific namespace.
-3. Names in the run namespace which is either explicitly given or the implicit
-   namespace surrounding the run call.
-
-Note that if you completely specify your namespaces at the `Group` level, you
-should probably pass an empty dictionary as the namespace argument to the
-`~Network.run` call -- this will completely switch off the "implicit namespace"
-mechanism.
+external parameters or functions. These references are looked up at the time
+that the simulation is run. If you don't specify where to look them up, it 
+will look in the Python local/global namespace (i.e. the block of code where
+you call `run`). If you want to override this, you can specify an explicit
+"namespace". This is a Python dictionary with keys being variable names as
+they appear in the equations, and values being the desired value of that
+variable. This namespace can be specified either in the creation of the group
+or when you can the `run` function using the ``namespace`` keyword argument.
 
 The following three examples show the different ways of providing external
 variable values, all having the same effect in this case::
@@ -158,8 +135,7 @@ variable values, all having the same effect in this case::
 	tau = 10*ms
 	net.run(10*ms)
 
-External variables are free to change between runs (but not during one run),
-the value at the time of the `run` call is used in the simulation. 
+See :doc:`../advanced/namespaces` for more details.
 
 Examples
 --------

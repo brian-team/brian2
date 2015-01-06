@@ -49,7 +49,7 @@ cpp_fname = os.path.join('brian2', 'synapses', 'cythonspikequeue.cpp')
 if WITH_CYTHON or not os.path.exists(cpp_fname):
     fname = pyx_fname
     if not cython_available:
-        if FAIL_ON_ERROR:
+        if FAIL_ON_ERROR and WITH_CYTHON:
             raise RuntimeError('Compilation with Cython requested/necesary but '
                                'Cython >= %s is not available.' % REQUIRED_CYTHON_VERSION)
         else:
@@ -57,7 +57,7 @@ if WITH_CYTHON or not os.path.exists(cpp_fname):
                              'Cython >= %s is not available.\n' % REQUIRED_CYTHON_VERSION)
             fname = None
     if not os.path.exists(pyx_fname):
-        if FAIL_ON_ERROR:
+        if FAIL_ON_ERROR and WITH_CYTHON:
             raise RuntimeError(('Compilation with Cython requested/necessary but '
                                 'Cython source file %s does not exist') % pyx_fname)
         else:
@@ -114,7 +114,7 @@ and easily extensible. It is based on a code generation framework that allows
 to execute simulations using other programming languages and/or on different
 devices.
 
-We currently consider this software to be in the alpha status, please report
+We currently consider this software to be in the beta status, please report
 issues to the github issue tracker (https://github.com/brian-team/brian2/issues) or to the
 brian-development mailing list (http://groups.google.com/group/brian-development/)
 
@@ -122,7 +122,7 @@ Documentation for Brian2 can be found at http://brian2.readthedocs.org
 '''
 
 setup(name='Brian2',
-      version='2.0a8',
+      version='2.0beta',
       packages=find_packages(),
       package_data={# include template files
                     'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
@@ -158,7 +158,7 @@ setup(name='Brian2',
       author='Marcel Stimberg, Dan Goodman, Romain Brette',
       author_email='Romain.Brette at ens.fr',
       classifiers=[
-          'Development Status :: 3 - Alpha',
+          'Development Status :: 4 - Beta',
           'Intended Audience :: Science/Research',
           'License :: OSI Approved',
           'Natural Language :: English',

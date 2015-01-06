@@ -5,6 +5,7 @@
 #include<stdlib.h>
 #include<iostream>
 #include <ctime>
+#include<utility>
 {{ openmp_pragma('include') }}
 
 #define Clock_epsilon 1e-14
@@ -21,7 +22,7 @@ void Network::clear()
 
 void Network::add(Clock* clock, codeobj_func func)
 {
-	objects.push_back(std::make_pair<Clock*, codeobj_func>(clock, func));
+	objects.push_back(std::make_pair<Clock*, codeobj_func>({{std_move}}(clock), {{std_move}}(func)));
 }
 
 void Network::run(const double duration, void (*report_func)(const double, const double, const double), const double report_period)
@@ -123,7 +124,7 @@ Clock* Network::next_clocks()
 		{
 			Clock *clock = *i;
 			double s = clock->t_();
-			if(s==t or fabs(s-t)<=Clock_epsilon)
+			if(s==t || fabs(s-t)<=Clock_epsilon)
 				curclocks.insert(clock);
 		}
 	}

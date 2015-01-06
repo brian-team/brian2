@@ -13,7 +13,7 @@ except ImportError:
 import numpy as np
 
 from brian2.core.base import BrianObject
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 from brian2.core.variables import (Variables, Constant, Variable,
                                    ArrayVariable, DynamicArrayVariable)
 from brian2.core.functions import Function
@@ -101,7 +101,7 @@ def get_dtype(equation, dtype=None):
     if equation.var_type == BOOLEAN:
         return np.bool
     elif equation.var_type == INTEGER:
-        return brian_prefs['core.default_integer_dtype']
+        return prefs['core.default_integer_dtype']
     elif equation.var_type == FLOAT:
         if dtype is not None:
             dtype = np.dtype(dtype)
@@ -110,7 +110,7 @@ def get_dtype(equation, dtype=None):
                                  'dtype') % dtype)
             return dtype
         else:
-            return brian_prefs['core.default_float_dtype']
+            return prefs['core.default_float_dtype']
     else:
         raise ValueError(('Do not know how to determine a dtype for '
                           'variable %s of type %s' ) % (equation.varname,
@@ -161,14 +161,12 @@ class Indexing(object):
     when the respective `Group` no longer exists. Note that this object does
     not handle string indexing.
     '''
-    def __init__(self, group):
+    def __init__(self, group, default_index='_idx'):
         self.group = weakref.proxy(group)
         self.N = group.variables['N']
-        self.index_variables = dict([(varname, group.variables[varname])
-                                     for varname in set(group.variables.indices.values())
-                                     if not varname in ('_idx', '0')])
+        self.default_index = default_index
 
-    def calc_indices(self, item, var_index='_idx'):
+    def __call__(self, item=None, index_var=None):
         '''
         Return flat indices to index into state variables from arbitrary
         group specific indices. In the default implementation, raises an error
@@ -188,21 +186,24 @@ class Indexing(object):
         --------
         SynapticIndexing
         '''
+        if index_var is None:
+            index_var = self.default_index
+
+        if hasattr(item, '_indices'):
+            item = item._indices()
+
         if isinstance(item, tuple):
             raise IndexError(('Can only interpret 1-d indices, '
                               'got %d dimensions.') % len(item))
         else:
+            if item is None:
+                item = slice(None)
             if isinstance(item, slice):
-                if var_index == '_idx':
+                if index_var == '_idx':
                     start, stop, step = item.indices(self.N.get_value())
                 else:
-                    # For linked variables, the index might not have been there
-                    # yet at the time of the creation of the indexing object
-                    if var_index in self.index_variables:
-                        start, stop, step = item.indices(self.index_variables[var_index].size)
-                    else:
-                        start, stop, step = item.indices(self.group.variables[var_index].size)
-                return np.arange(start, stop, step)
+                    start, stop, step = item.indices(index_var.size)
+                index_array = np.arange(start, stop, step, dtype=np.int32)
             else:
                 index_array = np.asarray(item)
                 if index_array.dtype == np.bool:
@@ -211,6 +212,19 @@ class Indexing(object):
                     raise TypeError(('Indexing is only supported for integer '
                                      'and boolean arrays, not for type '
                                      '%s' % index_array.dtype))
+
+            if index_var != '_idx':
+                try:
+                    return index_var.get_value()[index_array]
+                except IndexError as ex:
+                    # We try to emulate numpy's indexing semantics here:
+                    # slices never lead to IndexErrors, instead they return an
+                    # empty array if they don't match anything
+                    if isinstance(item, slice):
+                        return np.array([], dtype=np.int32)
+                    else:
+                        raise ex
+            else:
                 return index_array
 
 
@@ -219,11 +233,11 @@ class IndexWrapper(object):
     Convenience class to allow access to the indices via indexing syntax. This
     allows for example to get all indices for synapses originating from neuron
     10 by writing `synapses.indices[10, :]` instead of
-    `synapses._indexing.calc_indices((10, slice(None))`.
+    `synapses._indices.((10, slice(None))`.
     '''
     def __init__(self, group):
         self.group = weakref.proxy(group)
-        self.indices = group._indexing
+        self.indices = group._indices
 
     def __getitem__(self, item):
         if isinstance(item, basestring):
@@ -247,7 +261,7 @@ class IndexWrapper(object):
                                             )
             return codeobj()
         else:
-            return self.indices.calc_indices(item)
+            return self.indices(item)
 
 
 class Group(BrianObject):
@@ -257,16 +271,14 @@ class Group(BrianObject):
     # TODO: Overwrite the __dir__ method to return the state variables
     # (should make autocompletion work)
     '''
-    #: The class to convert group-specific indexing into 1d indices
-    indexing_class = Indexing
 
     def _enable_group_attributes(self):
         if not hasattr(self, 'variables'):
             raise ValueError('Classes derived from Group need variables attribute.')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
-        if not hasattr(self, 'indexing'):
-            self._indexing = self.indexing_class(self)
+        if not hasattr(self, '_indices'):
+            self._indices = Indexing(self)
         if not hasattr(self, 'indices'):
             self.indices = IndexWrapper(self)
         if not hasattr(self, '_stored_states'):
@@ -395,7 +407,9 @@ class Group(BrianObject):
                     if not name.startswith('_')]
         data = {}
         for var in vars:
-            data[var] = np.array(self.state(var, use_units=units, level=level+1))
+            data[var] = np.array(self.state(var, use_units=units,
+                                            level=level+1),
+                                 copy=True, subok=True)
         return data
 
     def set_states(self, values, units=True, format='dict', level=0):
@@ -714,8 +728,12 @@ class Group(BrianObject):
 
         return resolved
 
+    def runner(self, *args, **kwds):
+        raise AttributeError("The 'runner' method has been renamed to "
+                             "'custom_operation'")
+
     def custom_operation(self, code, dt=None, clock=None, when='start',
-                         order=0, name=None):
+                         order=0, name=None, codeobj_class=None):
         '''
         Returns a `CodeRunner` that runs abstract code in the group's namespace.
 
@@ -736,6 +754,9 @@ class Group(BrianObject):
             'custom_operation', 'custom_operation_1', etc. will be used. If a
             name is given explicitly, it will be used as given (i.e. the group
             name will not be prepended automatically).
+        codeobj_class : class, optional
+            The `CodeObject` class to run code with. If not specified, defaults
+            to the `group`'s ``codeobj_class`` attribute.
         '''
         if name is None:
             name = self.name + '_custom_operation*'
@@ -744,7 +765,8 @@ class Group(BrianObject):
             clock = self._clock
 
         runner = CodeRunner(self, 'stateupdate', code=code, name=name,
-                            dt=dt, clock=clock, when=when, order=order)
+                            dt=dt, clock=clock, when=when, order=order,
+                            codeobj_class=codeobj_class)
         return runner
 
 
@@ -769,7 +791,22 @@ class CodeRunner(BrianObject):
         The abstract code that should be executed every time step. The
         `update_abstract_code` method might generate this code dynamically
         before every run instead.
-    TODO
+    dt : `Quantity`, optional
+        The time step to be used for the simulation. Cannot be combined with
+        the `clock` argument.
+    user_code : str, optional
+        The abstract code as specified by the user, i.e. without any additions
+        of internal code that the user not necessarily knows about. This will
+        be used for warnings and error messages.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the `defaultclock` will be used.
+    when : str, optional
+        In which scheduling slot to execute the operation during a time step.
+        Defaults to ``'start'``.
+    order : int, optional
+        The priority of this operation for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
     name : str, optional 
         The name for this object.
     check_units : bool, optional
@@ -789,14 +826,18 @@ class CodeRunner(BrianObject):
     override_conditional_write: list of str, optional
         A list of variable names which are used as conditions (e.g. for
         refractoriness) which should be ignored.
+    codeobj_class : class, optional
+        The `CodeObject` class to run code with. If not specified, defaults to
+        the `group`'s ``codeobj_class`` attribute.
     '''
     add_to_magic_network = True
     invalidates_magic_network = True
     def __init__(self, group, template, code='', user_code=None,
-                 clock=None, dt=None, when='end',
+                 dt=None, clock=None, when='start',
                  order=0, name='coderunner*', check_units=True,
                  template_kwds=None, needed_variables=None,
                  override_conditional_write=None,
+                 codeobj_class=None,
                  ):
         BrianObject.__init__(self, clock=clock, dt=dt, when=when, order=order,
                              name=name)
@@ -810,7 +851,10 @@ class CodeRunner(BrianObject):
         self.needed_variables = needed_variables
         self.template_kwds = template_kwds
         self.override_conditional_write = override_conditional_write
-    
+        if codeobj_class is None:
+            codeobj_class = group.codeobj_class
+        self.codeobj_class = codeobj_class
+
     def update_abstract_code(self, run_namespace=None, level=0):
         '''
         Update the abstract code for the code object. Will be called in
@@ -840,5 +884,6 @@ class CodeRunner(BrianObject):
                                              level=level+1,
                                              template_kwds=self.template_kwds,
                                              override_conditional_write=self.override_conditional_write,
+                                             codeobj_class=self.codeobj_class
                                              )
         self.code_objects[:] = [weakref.proxy(self.codeobj)]

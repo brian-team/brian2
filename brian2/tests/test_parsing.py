@@ -7,10 +7,12 @@ from nose.plugins.attrib import attr
 from numpy.testing import assert_allclose, assert_raises
 import numpy as np
 
-from brian2.core.preferences import brian_prefs
+from brian2.codegen.runtime.weave_rt.weave_rt import get_compiler_and_args
+from brian2.core.preferences import prefs
 from brian2.core.variables import Constant
 from brian2.groups.group import Group
 from brian2.utils.stringtools import get_identifiers, deindent
+from brian2.utils.logger import std_silent
 from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
                                       CPPNodeRenderer,
                                       )
@@ -60,6 +62,8 @@ TEST_EXPRESSIONS = '''
     a>0.5 and b>0.5 or c>0.5
     a>0.5 and b>0.5 or not c>0.5
     2%4
+    17e-12
+    42e17
     '''
 
 
@@ -83,7 +87,7 @@ def parse_expressions(renderer, evaluator, numvalues=10):
                 # Use all close because we can introduce small numerical
                 # difference through sympy's rearrangements
                 # We add some absolute tolerance for expressions evaluating to 0
-                assert_allclose(r1, r2, atol=1e-16)
+                assert_allclose(r1, r2, atol=1e-15)
             except AssertionError as e:
                 raise AssertionError("In expression " + str(expr) +
                                      " translated to " + str(pexpr) +
@@ -110,11 +114,13 @@ def numpy_evaluator(expr, userns):
     
 def cpp_evaluator(expr, ns):
     if weave is not None:
-        return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
-                            compiler=brian_prefs['codegen.runtime.weave.compiler'],
-                            extra_compile_args=brian_prefs['codegen.runtime.weave.extra_compile_args'],
-                            include_dirs=brian_prefs['codegen.runtime.weave.include_dirs']
-                            )
+        compiler, extra_compile_args = get_compiler_and_args()
+        with std_silent():
+            return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
+                                compiler=compiler,
+                                extra_compile_args=extra_compile_args,
+                                include_dirs=prefs['codegen.cpp.include_dirs']
+                                )
     else:
         raise nose.SkipTest('No weave support.')
 

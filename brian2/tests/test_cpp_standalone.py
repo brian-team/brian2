@@ -4,7 +4,7 @@ import os
 from nose import with_setup
 from nose.plugins.attrib import attr
 import numpy
-from numpy.testing.utils import assert_allclose
+from numpy.testing.utils import assert_allclose, assert_equal
 
 from brian2 import *
 from brian2.devices.cpp_standalone import cpp_standalone_device
@@ -47,7 +47,7 @@ def test_cpp_standalone(with_output=False):
     tempdir = tempfile.mkdtemp()
     if with_output:
         print tempdir
-    device.build(project_dir=tempdir, compile_project=True, run_project=True,
+    device.build(directory=tempdir, compile=True, run=True,
                  with_output=with_output)
     # we do an approximate equality here because depending on minor details of how it was compiled, the results
     # may be slightly different (if -ffast-math is on)
@@ -68,7 +68,7 @@ def test_multiple_connects(with_output=False):
     if with_output:
         print tempdir
     run(0*ms)
-    device.build(project_dir=tempdir, compile_project=True, run_project=True,
+    device.build(directory=tempdir, compile=True, run=True,
                  with_output=True)
     assert len(S) == 2 and len(S.w[:]) == 2
 
@@ -100,8 +100,7 @@ def test_storing_loading(with_output=False):
     tempdir = tempfile.mkdtemp()
     if with_output:
         print tempdir
-    device.build(project_dir=tempdir, compile_project=True, run_project=True,
-                 with_output=True)
+    device.build(directory=tempdir, compile=True, run=True, with_output=True)
     assert_allclose(G.v[:], v)
     assert_allclose(S.v[:], v)
     assert_allclose(G.x[:], x)
@@ -147,12 +146,14 @@ def test_openmp_consistency(with_output=False):
     for (n_threads, devicename) in [(0, 'runtime'),
                                     (0, 'cpp_standalone'),
                                     (1, 'cpp_standalone'),
-                                    (2, 'cpp_standalone')]:
+                                    (2, 'cpp_standalone'),
+                                    (3, 'cpp_standalone'),
+                                    (4, 'cpp_standalone')]:
         set_device(devicename)
         Synapses.__instances__().clear()
         if devicename=='cpp_standalone':
             device.reinit()
-        brian_prefs.codegen.cpp_standalone.openmp_threads = n_threads                
+        prefs.devices.cpp_standalone.openmp_threads = n_threads
         P    = NeuronGroup(n_cells, model=eqs, threshold='v>Vt', reset='v=Vr', refractory=5 * ms)
         Q    = SpikeGeneratorGroup(n_cells, sources, times)
         P.v  = v_init
@@ -184,8 +185,8 @@ def test_openmp_consistency(with_output=False):
             tempdir = tempfile.mkdtemp()
             if with_output:
                 print tempdir
-            device.build(project_dir=tempdir, compile_project=True,
-                         run_project=True, with_output=with_output)
+            device.build(directory=tempdir, compile=True,
+                         run=True, with_output=with_output)
 
         results[n_threads, devicename]      = {}
         results[n_threads, devicename]['w'] = state_mon.w
@@ -196,11 +197,44 @@ def test_openmp_consistency(with_output=False):
     for key1, key2 in [((0, 'runtime'), (0, 'cpp_standalone')),
                        ((1, 'cpp_standalone'), (0, 'cpp_standalone')),
                        ((2, 'cpp_standalone'), (0, 'cpp_standalone')),
+                       ((3, 'cpp_standalone'), (0, 'cpp_standalone')),
+                       ((4, 'cpp_standalone'), (0, 'cpp_standalone'))
                        ]:
         assert_allclose(results[key1]['w'], results[key2]['w'])
         assert_allclose(results[key1]['v'], results[key2]['v'])
         assert_allclose(results[key1]['r'], results[key2]['r'])
         assert_allclose(results[key1]['s'], results[key2]['s'])
+
+@attr('standalone')
+@with_setup(teardown=restore_device)
+def test_timedarray(with_output=True):
+    set_device('cpp_standalone')
+
+    defaultclock.dt = 0.1*ms
+    ta1d = TimedArray(np.arange(10)*volt, dt=1*ms)
+    ta2d = TimedArray(np.arange(300).reshape(3, 100).T, dt=defaultclock.dt)
+    G = NeuronGroup(4, '''x = ta1d(t) : volt
+                          y = ta2d(t, i) : 1''')
+    mon = StateMonitor(G, ['x', 'y'], record=True)
+    run(11*ms)
+    tempdir = tempfile.mkdtemp()
+    if with_output:
+        print tempdir
+    device.build(directory=tempdir, compile=True,
+                 run=True, with_output=with_output)
+
+    for idx in xrange(4):
+        # x variable should have neuron independent values
+        assert_equal(mon[idx].x[:],
+                     np.clip(np.arange(11).repeat(10), 0, 9)*volt)
+
+    for idx in xrange(3):
+        # y variable is neuron-specific
+        assert_equal(mon[idx].y[:],
+                     np.clip(np.arange(110), 0, 99) + idx*100)
+    # the 2d array only has 3 columns, the last neuron should therefore contain
+    # only NaN
+    assert_equal(mon[3].y[:], np.nan)
 
 
 if __name__=='__main__':
@@ -210,7 +244,8 @@ if __name__=='__main__':
              test_cpp_standalone,
              test_multiple_connects,
              test_storing_loading,
-             test_openmp_consistency
+             test_openmp_consistency,
+             test_timedarray
              ]:
         t(with_output=True)
         restore_device()

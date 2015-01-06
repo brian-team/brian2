@@ -7,14 +7,14 @@ from brian2.codegen.templates import Templater
 from brian2.codegen.generators.cpp_generator import (CPPCodeGenerator,
                                                      c_data_type)
 from brian2.devices.device import get_device
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 
 __all__ = ['CPPStandaloneCodeObject']
 
 
 def openmp_pragma(pragma_type):
 
-    nb_threads = brian_prefs.codegen.cpp_standalone.openmp_threads
+    nb_threads = prefs.devices.cpp_standalone.openmp_threads
     openmp_on  = not (nb_threads == 0)
 
     ## First we need to deal with some special cases that have to be handle in case

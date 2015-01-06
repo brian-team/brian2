@@ -61,12 +61,12 @@ start_time   = time.time()
 net = Network(input, neurons, S, state_mon, spike_mon_1, spike_mon_2, name='stdp_net')
 
 if standalone == 1:
-    device.insert_device_code('main', 'std::clock_t start = std::clock();')
+    device.insert_code('main', 'std::clock_t start = std::clock();')
 
 net.run(5 * second, report='text')
 
 if standalone == 1:
-    device.insert_device_code('main', '''
+    device.insert_code('main', '''
         std::ofstream myfile ("speed.txt");
         if (myfile.is_open())
         {

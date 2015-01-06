@@ -5,24 +5,26 @@ import os
 import shutil
 import subprocess
 import inspect
+import platform
 from collections import defaultdict
 import numbers
 
 import numpy as np
 
+from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.clocks import defaultclock
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices
 from brian2.core.variables import *
 from brian2.parsing.rendering import CPPNodeRenderer
 from brian2.synapses.synapses import Synapses
-from brian2.core.preferences import brian_prefs, BrianPreference
+from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.generators.cpp_generator import c_data_type
 from brian2.units.fundamentalunits import Quantity, have_same_dimensions
 from brian2.units import second
-from brian2.utils.logger import get_logger
+from brian2.utils.logger import get_logger, std_silent
 
 from .codeobject import CPPStandaloneCodeObject, openmp_pragma
 
@@ -33,8 +35,8 @@ logger = get_logger(__name__)
 
 
 # Preferences
-brian_prefs.register_preferences(
-    'codegen.cpp_standalone',
+prefs.register_preferences(
+    'devices.cpp_standalone',
     'C++ standalone preferences ',
     openmp_threads = BrianPreference(
         default=0,
@@ -43,8 +45,9 @@ brian_prefs.register_preferences(
         is generated without any reference to OpenMP. If greater than 0, then the corresponding number of threads
         are used to launch the simulation.
         ''',
-        )
+        ),
     )
+
 
 def freeze(code, ns):
     # this is a bit of a hack, it should be passed to the template somehow
@@ -133,7 +136,7 @@ class CPPStandaloneDevice(Device):
     def reinit(self):
         self.__init__()
 
-    def insert_device_code(self, slot, code):
+    def insert_code(self, slot, code):
         '''
         Insert code directly into main.cpp
         '''
@@ -254,13 +257,13 @@ class CPPStandaloneDevice(Device):
                                                          code=repr(value),
                                                          check_units=check_units)
         # Simple case where we don't have to do any indexing
-        elif (item == 'True' and variableview.var_index == '_idx'):
+        elif (item == 'True' and variableview.index_var == '_idx'):
             self.fill_with_array(variableview.variable, value)
         else:
             # We have to calculate indices. This will not work for synaptic
             # variables
             try:
-                indices = variableview.indexing.calc_indices(item)
+                indices = variableview.indexing(item)
             except NotImplementedError:
                 raise NotImplementedError(('Cannot set variable "%s" this way in '
                                            'standalone, try using string '
@@ -351,11 +354,12 @@ class CPPStandaloneDevice(Device):
         self.code_objects[codeobj.name] = codeobj
         return codeobj
 
-    def build(self, project_dir='output', compile_project=True, run_project=False, debug=True,
+    def build(self, directory='output',
+              compile=True, run=True, debug=False, clean=True,
               with_output=True, native=True,
               additional_source_files=None, additional_header_files=None,
               main_includes=None, run_includes=None,
-              run_args=None):
+              run_args=None, **kwds):
         '''
         Build the project
         
@@ -363,18 +367,20 @@ class CPPStandaloneDevice(Device):
         
         Parameters
         ----------
-        project_dir : str
+        directory : str
             The output directory to write the project to, any existing files will be overwritten.
-        compile_project : bool
-            Whether or not to attempt to compile the project using GNU make.
-        run_project : bool
+        compile : bool
+            Whether or not to attempt to compile the project
+        run : bool
             Whether or not to attempt to run the built project if it successfully builds.
         debug : bool
             Whether to compile in debug mode.
         with_output : bool
             Whether or not to show the ``stdout`` of the built program when run.
         native : bool
-            Whether or not to compile natively using the ``--march=native`` gcc option.
+            Whether or not to compile for the current machine's architecture (best for speed, but not portable)
+        clean : bool
+            Whether or not to clean the project before building
         additional_source_files : list of str
             A list of additional ``.cpp`` files to include in the build.
         additional_header_files : list of str
@@ -384,7 +390,19 @@ class CPPStandaloneDevice(Device):
         run_includes : list of str
             A list of additional header files to include in ``run.cpp``.
         '''
-        
+        renames = {'project_dir': 'directory',
+                   'compile_project': 'compile',
+                   'run_project': 'run'}
+        if len(kwds):
+            msg = ''
+            for kwd in kwds:
+                if kwd in renames:
+                    msg += ("Keyword argument '%s' has been renamed to "
+                            "'%s'. ") % (kwd, renames[kwd])
+                else:
+                    msg += "Unknown keyword argument '%s'. " % kwd
+            raise TypeError(msg)
+
         if additional_source_files is None:
             additional_source_files = []
         if additional_header_files is None:
@@ -395,22 +413,26 @@ class CPPStandaloneDevice(Device):
             run_includes = []
         if run_args is None:
             run_args = []
-        self.project_dir = project_dir
-        ensure_directory(project_dir)
+        self.project_dir = directory
+        ensure_directory(directory)
+
+        compiler, extra_compile_args = get_compiler_and_args()
+        compiler_flags = ' '.join(extra_compile_args)
         
         for d in ['code_objects', 'results', 'static_arrays']:
-            ensure_directory(os.path.join(project_dir, d))
+            ensure_directory(os.path.join(directory, d))
             
-        writer = CPPWriter(project_dir)
+        writer = CPPWriter(directory)
         
         # Get the number of threads if specified in an openmp context
-        nb_threads = brian_prefs.codegen.cpp_standalone.openmp_threads   
+        nb_threads = prefs.devices.cpp_standalone.openmp_threads
         # If the number is negative, we need to throw an error
         if (nb_threads < 0):
             raise ValueError('The number of OpenMP threads can not be negative !') 
 
-        logger.debug("Writing C++ standalone project to directory "+os.path.normpath(project_dir))
+        logger.debug("Writing C++ standalone project to directory "+os.path.normpath(directory))
         if nb_threads > 0:
+            logger.warn("OpenMP code is not yet well tested, and may be inaccurate.", "openmp", once=True)
             logger.debug("Using OpenMP with %d threads " % nb_threads)
             for codeobj in self.code_objects.itervalues():
                 if not 'IS_OPENMP_COMPATIBLE' in codeobj.template_source:
@@ -437,12 +459,12 @@ class CPPStandaloneDevice(Device):
         logger.debug("static arrays: "+str(sorted(self.static_arrays.keys())))
         static_array_specs = []
         for name, arr in sorted(self.static_arrays.items()):
-            arr.tofile(os.path.join(project_dir, 'static_arrays', name))
+            arr.tofile(os.path.join(directory, 'static_arrays', name))
             static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
 
         # Write the global objects
         networks = [net() for net in Network.__instances__()
-                    if net().name!='_fake_network']
+                    if net().name != '_fake_network']
         synapses = []
         for net in networks:
             synapses.extend(s for s in net.objects if isinstance(s, Synapses))
@@ -575,11 +597,16 @@ class CPPStandaloneDevice(Device):
                                                           )
         writer.write('main.cpp', main_tmp)
 
-        main_tmp = CPPStandaloneCodeObject.templater.network(None, None)
-        writer.write('network.*', main_tmp)
+        if compiler=='msvc':
+            std_move = 'std::move'
+        else:
+            std_move = ''
+        network_tmp = CPPStandaloneCodeObject.templater.network(None, None,
+                                                             std_move=std_move)
+        writer.write('network.*', network_tmp)
 
-        main_tmp = CPPStandaloneCodeObject.templater.synapses_classes(None, None)
-        writer.write('synapses_classes.*', main_tmp)
+        synapses_classes_tmp = CPPStandaloneCodeObject.templater.synapses_classes(None, None)
+        writer.write('synapses_classes.*', synapses_classes_tmp)
         
         # Generate the run functions
         run_tmp = CPPStandaloneCodeObject.templater.run(None, None, run_funcs=runfuncs,
@@ -591,7 +618,7 @@ class CPPStandaloneDevice(Device):
         # Copy the brianlibdirectory
         brianlib_dir = os.path.join(os.path.split(inspect.getsourcefile(CPPStandaloneCodeObject))[0],
                                     'brianlib')
-        brianlib_files = copy_directory(brianlib_dir, os.path.join(project_dir, 'brianlib'))
+        brianlib_files = copy_directory(brianlib_dir, os.path.join(directory, 'brianlib'))
         for file in brianlib_files:
             if file.lower().endswith('.cpp'):
                 writer.source_files.append('brianlib/'+file)
@@ -599,57 +626,150 @@ class CPPStandaloneDevice(Device):
                 writer.header_files.append('brianlib/'+file)
 
         # Copy the CSpikeQueue implementation
-        spikequeue_h = os.path.join(project_dir, 'brianlib', 'spikequeue.h')
+        spikequeue_h = os.path.join(directory, 'brianlib', 'spikequeue.h')
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'cspikequeue.cpp'),
                      spikequeue_h)
         
         writer.source_files.extend(additional_source_files)
         writer.header_files.extend(additional_header_files)
 
-        # Generate the makefile
-        if os.name=='nt':
-            rm_cmd = 'del'
+        if compiler=='msvc':
+            if native:
+                arch_flag = ''
+                try:
+                    from cpuinfo import cpuinfo
+                    res = cpuinfo.get_cpu_info()
+                    if 'sse' in res['flags']:
+                        arch_flag = '/arch:SSE'
+                    if 'sse2' in res['flags']:
+                        arch_flag = '/arch:SSE2'
+                except ImportError:
+                    logger.warn('Native flag for MSVC compiler requires installation of the py-cpuinfo module')
+                compiler_flags += ' '+arch_flag
+            
+            if nb_threads>1:
+                openmp_flag = '/openmp'
+            else:
+                openmp_flag = ''
+            # Generate the visual studio makefile
+            source_bases = [fname.replace('.cpp', '').replace('/', '\\') for fname in writer.source_files]
+            win_makefile_tmp = CPPStandaloneCodeObject.templater.win_makefile(
+                None, None,
+                source_bases=source_bases,
+                compiler_flags=compiler_flags,
+                openmp_flag=openmp_flag,
+                )
+            writer.write('win_makefile', win_makefile_tmp)
         else:
-            rm_cmd = 'rm'
-        makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None, None,
-                                                                  source_files=' '.join(writer.source_files),
-                                                                  header_files=' '.join(writer.header_files),
-                                                                  rm_cmd=rm_cmd)
-        writer.write('makefile', makefile_tmp)
-
+            # Generate the makefile
+            if os.name=='nt':
+                rm_cmd = 'del *.o /s\n\tdel main.exe $(DEPS)'
+            else:
+                rm_cmd = 'rm $(OBJS) $(PROGRAM) $(DEPS)'
+            makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None, None,
+                source_files=' '.join(writer.source_files),
+                header_files=' '.join(writer.header_files),
+                compiler_flags=compiler_flags,
+                rm_cmd=rm_cmd)
+            writer.write('makefile', makefile_tmp)
+        
         # build the project
-        if compile_project:
-            with in_directory(project_dir):
-                if debug:
-                    x = os.system('make debug')
-                elif native:
-                    x = os.system('make native')
-                else:
-                    x = os.system('make')
-                if x==0:
-                    if run_project:
-                        if not with_output:
-                            stdout = open(os.devnull, 'w')
+        if compile:
+            with in_directory(directory):
+                if compiler=='msvc':
+                    # TODO: handle debug
+                    if debug:
+                        logger.warn('Debug flag currently ignored for MSVC')
+                    vcvars_search_paths = [
+                        # futureproofing!
+                        r'c:\Program Files\Microsoft Visual Studio 15.0\VC\vcvarsall.bat',
+                        r'c:\Program Files (x86)\Microsoft Visual Studio 15.0\VC\vcvarsall.bat',
+                        r'c:\Program Files\Microsoft Visual Studio 14.0\VC\vcvarsall.bat',
+                        r'c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat',
+                        r'c:\Program Files\Microsoft Visual Studio 13.0\VC\vcvarsall.bat',
+                        r'c:\Program Files (x86)\Microsoft Visual Studio 13.0\VC\vcvarsall.bat',
+                        r'c:\Program Files\Microsoft Visual Studio 12.0\VC\vcvarsall.bat',
+                        r'c:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat',
+                        r'c:\Program Files\Microsoft Visual Studio 11.0\VC\vcvarsall.bat',
+                        r'c:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\vcvarsall.bat',
+                        r'c:\Program Files\Microsoft Visual Studio 10.0\VC\vcvarsall.bat',
+                        r'c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat',
+                        ]
+                    vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
+                    if vcvars_loc=='':
+                        for fname in vcvars_search_paths:
+                            if os.path.exists(fname):
+                                vcvars_loc = fname
+                                break
+                    if vcvars_loc=='':
+                        raise IOError("Cannot find vcvarsall.bat on standard search path.")
+                    # TODO: copy vcvars and make replacements for 64 bit automatically
+                    arch_name = prefs['codegen.cpp.msvc_architecture']
+                    if arch_name=='':
+                        mach = platform.machine()
+                        if mach=='AMD64':
+                            arch_name = 'x86_amd64'
                         else:
-                            stdout = None
-                        if os.name=='nt':
-                            x = subprocess.call(['main'] + run_args, stdout=stdout)
-                        else:
-                            x = subprocess.call(['./main'] + run_args, stdout=stdout)
-                        if x:
-                            raise RuntimeError("Project run failed")
-                        self.has_been_run = True
+                            arch_name = 'x86'
+                    
+                    vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(
+                            vcvars_loc=vcvars_loc, arch_name=arch_name)
+                    make_cmd = 'nmake /f win_makefile'
+                    if os.path.exists('winmake.log'):
+                        os.remove('winmake.log')
+                    with std_silent(debug):
+                        if clean:
+                            os.system('%s >>winmake.log 2>&1 && %s clean >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
+                        x = os.system('%s >>winmake.log 2>&1 && %s >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
+                        if x!=0:
+                            raise RuntimeError("Project compilation failed")
                 else:
-                    raise RuntimeError("Project compilation failed")
+                    with std_silent(debug):
+                        if clean:
+                            os.system('make clean')
+                        if debug:
+                            x = os.system('make debug')
+                        elif native:
+                            x = os.system('make native')
+                        else:
+                            x = os.system('make')
+                        if x!=0:
+                            raise RuntimeError("Project compilation failed")
+                if run:
+                    if not with_output:
+                        stdout = open(os.devnull, 'w')
+                    else:
+                        stdout = None
+                    if os.name=='nt':
+                        x = subprocess.call(['main'] + run_args, stdout=stdout)
+                    else:
+                        x = subprocess.call(['./main'] + run_args, stdout=stdout)
+                    if x:
+                        raise RuntimeError("Project run failed")
+                    self.has_been_run = True
 
     def network_run(self, net, duration, report=None, report_period=10*second,
-                    namespace=None, level=0):
+                    namespace=None, profile=True, level=0, **kwds):
+        # Note: profile argument will be ignored
+        if kwds:
+            logger.warn(('Unsupported keyword argument(s) provided for run: '
+                         '%s') % ', '.join(kwds.keys()))
         net._clocks = [obj.clock for obj in net.objects]
         # We have to use +2 for the level argument here, since this function is
         # called through the device_override mechanism
         net.before_run(namespace, level=level+2)
             
         self.clocks.update(net._clocks)
+
+        # We run a simplified "update loop" that only advances the clocks
+        # This can be useful because some Python code might use the t attribute
+        # of the Network or a NeuronGroup etc.
+        t_end = net.t+duration
+        for clock in net._clocks:
+            clock.set_interval(net.t, t_end)
+            # manually set the clock to the end, no need to run Clock.tick() in a loop
+            clock._i = clock._i_end
+        net.t_ = float(t_end)
 
         # TODO: remove this horrible hack
         for clock in self.clocks:

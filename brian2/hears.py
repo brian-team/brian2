@@ -4,13 +4,15 @@ This is only a temporary bridge for using Brian 1 hears with Brian 2.
 This will be removed as soon as brian2hears is working.
 
 NOTES:
-- Slicing sounds with Brian 2 units doesn't work, you need to either use Brian 1 units or replace calls to
+
+* Slicing sounds with Brian 2 units doesn't work, you need to either use Brian 1 units or replace calls to
   ``sound[:20*ms]`` with ``sound.slice(None, 20*ms)``, etc. 
 
 TODO: handle properties (e.g. sound.duration)
 
 Not working examples:
-- time_varying_filter1 (care with units)
+
+* time_varying_filter1 (care with units)
 '''
 
 try:
@@ -148,7 +150,7 @@ class FilterbankGroup(NeuronGroup):
         
         NeuronGroup.__init__(self, filterbank.nchannels, *args, **kwds)
         
-        @network_operation(when=(self.clock, 'start'))
+        @network_operation(clock=self.clock, when='start')
         def apply_filterbank_output():
             if self.buffer_pointer>=self.buffersize:
                 self.buffer_pointer = 0

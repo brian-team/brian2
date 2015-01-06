@@ -8,7 +8,7 @@ from nose.plugins.attrib import attr
 
 from brian2.core.variables import linked_var
 from brian2.core.network import Network
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 from brian2.core.clocks import defaultclock
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
@@ -324,6 +324,50 @@ def test_linked_subexpression():
     # be identical
     assert all((all(mon[i].I == mon[0].I) for i in xrange(5)))
     assert all((all(mon[i+5].I == mon[5].I) for i in xrange(5)))
+
+
+def test_linked_subexpression_2():
+    '''
+    Test a linked variable referring to a subexpression without indices
+    '''
+    G = NeuronGroup(2, '''dv/dt = 100*Hz : 1
+                          I = clip(v, 0, inf) : 1''',
+                    threshold='v>1', reset='v=0')
+    G.v = [0, .5]
+    G2 = NeuronGroup(2, '''I_l : 1 (linked) ''')
+
+    G2.I_l = linked_var(G.I)
+    mon1 = StateMonitor(G, 'I', record=True)
+    mon = StateMonitor(G2, 'I_l', record=True)
+
+    net = Network(G, G2, mon, mon1)
+    net.run(5*ms)
+
+    assert all(mon[0].I_l == mon1[0].I)
+    assert all(mon[1].I_l == mon1[1].I)
+
+
+def test_linked_subexpression_3():
+    '''
+    Test a linked variable referring to a subexpression with indices
+    '''
+    G = NeuronGroup(2, '''dv/dt = 100*Hz : 1
+                          I = clip(v, 0, inf) : 1''',
+                    threshold='v>1', reset='v=0')
+    G.v = [0, .5]
+    G2 = NeuronGroup(10, '''I_l : 1 (linked) ''')
+
+    G2.I_l = linked_var(G.I, index=np.array([0, 1]).repeat(5))
+    mon1 = StateMonitor(G, 'I', record=True)
+    mon = StateMonitor(G2, 'I_l', record=True)
+
+    net = Network(G, G2, mon, mon1)
+    net.run(5*ms)
+
+    # Due to the linking, the first 5 and the second 5 recorded I vectors should
+    # refer to the
+    assert all((all(mon[i].I_l == mon1[0].I) for i in xrange(5)))
+    assert all((all(mon[i+5].I_l == mon1[1].I) for i in xrange(5)))
 
 
 def test_linked_subexpression_synapse():
@@ -901,16 +945,16 @@ def test_get_dtype():
                        n : integer''')
 
     # Test standard dtypes
-    assert get_dtype(eqs['v']) == brian_prefs['core.default_float_dtype']
-    assert get_dtype(eqs['x']) == brian_prefs['core.default_float_dtype']
-    assert get_dtype(eqs['n']) == brian_prefs['core.default_integer_dtype']
+    assert get_dtype(eqs['v']) == prefs['core.default_float_dtype']
+    assert get_dtype(eqs['x']) == prefs['core.default_float_dtype']
+    assert get_dtype(eqs['n']) == prefs['core.default_integer_dtype']
     assert get_dtype(eqs['b']) == np.bool
 
     # Test a changed default (float) dtype
     assert get_dtype(eqs['v'], np.float32) == np.float32, get_dtype(eqs['v'], np.float32)
     assert get_dtype(eqs['x'], np.float32) == np.float32
     # integer and boolean variables should be unaffected
-    assert get_dtype(eqs['n']) == brian_prefs['core.default_integer_dtype']
+    assert get_dtype(eqs['n']) == prefs['core.default_integer_dtype']
     assert get_dtype(eqs['b']) == np.bool
 
     # Explicitly provide a dtype for some variables
@@ -921,7 +965,7 @@ def test_get_dtype():
     # Not setting some dtypes should use the standard dtypes
     dtypes = {'n': np.int64}
     assert get_dtype(eqs['n'], dtypes) == np.int64
-    assert get_dtype(eqs['v'], dtypes) == brian_prefs['core.default_float_dtype']
+    assert get_dtype(eqs['v'], dtypes) == prefs['core.default_float_dtype']
 
     # Test that incorrect types raise an error
     # incorrect general dtype
@@ -936,7 +980,7 @@ def test_aliasing_in_statements():
     '''
     Test an issue around variables aliasing other variables (#259)
     '''
-    if brian_prefs.codegen.target != 'numpy':
+    if prefs.codegen.target != 'numpy':
         raise SkipTest('numpy-only test')
 
     runner_code = '''x_1 = x_0
@@ -950,45 +994,75 @@ def test_aliasing_in_statements():
     assert_equal(g.x_1_[:], np.array([0]))
 
 
+@attr('codegen-independent')
+def test_get_states():
+    G = NeuronGroup(10, '''v : volt
+                           x : 1
+                           subexpr = x + v/volt : 1
+                           subexpr2 = x*volt + v : volt''')
+    G.v = 'i*volt'
+    G.x = '10*i'
+    states_units = G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=True)
+    states = G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=False)
+
+    assert len(states_units.keys()) == len(states.keys()) == 4
+    assert_equal(states_units['v'], np.arange(10)*volt)
+    assert_equal(states_units['x'], 10*np.arange(10))
+    assert_equal(states_units['subexpr'], 11*np.arange(10))
+    assert_equal(states_units['subexpr2'], 11*np.arange(10)*volt)
+    assert_equal(states['v'], np.arange(10))
+    assert_equal(states['x'], 10*np.arange(10))
+    assert_equal(states['subexpr'], 11*np.arange(10))
+    assert_equal(states['subexpr2'], 11*np.arange(10))
+
+    all_states = G.get_states(units=True)
+    assert set(all_states.keys()) == set(['v', 'x', 'subexpr', 'subexpr2',
+                                          'N', 't', 'dt', 'i'])
+
+
 if __name__ == '__main__':
-    test_creation()
-    test_variables()
-    test_scalar_variable()
-    test_referred_scalar_variable()
-    test_linked_variable_correct()
-    test_linked_variable_incorrect()
-    test_linked_variable_scalar()
-    test_linked_variable_indexed()
-    test_linked_variable_repeat()
-    test_linked_double_linked1()
-    test_linked_double_linked2()
-    test_linked_double_linked3()
-    test_linked_double_linked4()
-    test_linked_triple_linked()
-    test_linked_subgroup()
-    test_linked_subgroup2()
-    test_linked_subexpression()
-    test_linked_subexpression_synapse()
-    test_linked_variable_indexed_incorrect()
-    test_linked_synapses()
-    test_stochastic_variable()
-    test_stochastic_variable_multiplicative()
-    test_unit_errors()
-    test_threshold_reset()
-    test_unit_errors_threshold_reset()
-    test_incomplete_namespace()
-    test_namespace_errors()
-    test_namespace_warnings()
-    test_syntax_errors()
-    test_state_variables()
-    test_state_variable_access()
-    test_state_variable_access_strings()
-    test_subexpression()
-    test_subexpression_with_constant()
-    test_scalar_parameter_access()
-    test_scalar_subexpression()
-    test_indices()
-    test_repr()
-    test_get_dtype()
-    if brian_prefs.codegen.target == 'numpy':
-        test_aliasing_in_statements()
+    # test_creation()
+    # test_variables()
+    # test_scalar_variable()
+    # test_referred_scalar_variable()
+    # test_linked_variable_correct()
+    # test_linked_variable_incorrect()
+    # test_linked_variable_scalar()
+    # test_linked_variable_indexed()
+    # test_linked_variable_repeat()
+    # test_linked_double_linked1()
+    # test_linked_double_linked2()
+    # test_linked_double_linked3()
+    # test_linked_double_linked4()
+    # test_linked_triple_linked()
+    # test_linked_subgroup()
+    # test_linked_subgroup2()
+    # test_linked_subexpression()
+    # test_linked_subexpression_2()
+    # test_linked_subexpression_3()
+    # test_linked_subexpression_synapse()
+    # test_linked_variable_indexed_incorrect()
+    # test_linked_synapses()
+    # test_stochastic_variable()
+    # test_stochastic_variable_multiplicative()
+    # test_unit_errors()
+    # test_threshold_reset()
+    # test_unit_errors_threshold_reset()
+    # test_incomplete_namespace()
+    # test_namespace_errors()
+    # test_namespace_warnings()
+    # test_syntax_errors()
+    # test_state_variables()
+    # test_state_variable_access()
+    # test_state_variable_access_strings()
+    # test_subexpression()
+    # test_subexpression_with_constant()
+    # test_scalar_parameter_access()
+    # test_scalar_subexpression()
+    # test_indices()
+    # test_repr()
+    # test_get_dtype()
+    # if prefs.codegen.target == 'numpy':
+    #     test_aliasing_in_statements()
+    test_get_states()
+

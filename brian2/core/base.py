@@ -27,7 +27,18 @@ class BrianObject(Nameable):
     
     Parameters
     ----------
-    TODO
+    dt : `Quantity`, optional
+        The time step to be used for the simulation. Cannot be combined with
+        the `clock` argument.
+    clock : `Clock`, optional
+        The update clock to be used. If neither a clock, nor the `dt` argument
+        is specified, the `defaultclock` will be used.
+    when : str, optional
+        In which scheduling slot to simulate the object during a time step.
+        Defaults to ``'start'``.
+    order : int, optional
+        The priority of this object for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
     name : str, optional
         A unique name for the object - one will be assigned automatically if
         not provided (of the form ``brianobject_1``, etc.).
@@ -42,6 +53,23 @@ class BrianObject(Nameable):
 
         if dt is not None and clock is not None:
             raise ValueError('Can only specify either a dt or a clock, not both.')
+
+        if not isinstance(when, basestring):
+            # Give some helpful error messages for users coming from the alpha
+            # version
+            if isinstance(when, Clock):
+                raise TypeError(("Do not use the 'when' argument for "
+                                 "specifying a clock, either provide a "
+                                 "timestep for the 'dt' argument or a Clock "
+                                 "object for 'clock'."))
+            if isinstance(when, tuple):
+                raise TypeError("Use the separate keyword arguments, 'dt' (or "
+                                "'clock'), 'when', and 'order' instead of "
+                                "providing a tuple for 'when'. Only use the "
+                                "'when' argument for the scheduling slot.")
+            # General error
+            raise TypeError("The 'when' argument has to be a string "
+                            "specifying the scheduling slot (e.g. 'start').")
 
         Nameable.__init__(self, name)
 
@@ -203,6 +231,9 @@ def device_override(name):
     Decorates a function/method to allow it to be overridden by the current `Device`.
 
     The ``name`` is the function name in the `Device` to use as an override if it exists.
+    
+    The returned function has an additional attribute ``original_function``
+    which is a reference to the original, undecorated function.
     '''
     def device_override_decorator(func):
         def device_override_decorated_function(*args, **kwds):
@@ -214,6 +245,7 @@ def device_override(name):
                 return func(*args, **kwds)
 
         device_override_decorated_function.__doc__ = func.__doc__
+        device_override_decorated_function.original_function = func
 
         return device_override_decorated_function
 

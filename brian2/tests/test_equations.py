@@ -18,7 +18,7 @@ from brian2.units.fundamentalunits import (DIMENSIONLESS, get_dimensions,
                                            have_same_dimensions,
                                            DimensionMismatchError)
 from brian2.core.namespace import DEFAULT_UNITS
-from brian2.core.preferences import brian_prefs
+from brian2.core.preferences import prefs
 from brian2.equations.equations import (check_identifier_basic,
                                         check_identifier_reserved,
                                         check_identifier_functions,
@@ -166,9 +166,9 @@ def test_parse_equations():
     '''dv/dt = -v / tau : 1 : volt
     x = 2 * t : 1''',
     ''' dv/dt = -v / tau : 2 * volt''',
-    'dv/dt = v / second : bool']
+    'dv/dt = v / second : boolean']
     for error_eqs in parse_error_eqs:
-        assert_raises((ValueError, EquationError),
+        assert_raises((ValueError, EquationError, TypeError),
                       lambda: parse_string_equations(error_eqs))
 
 

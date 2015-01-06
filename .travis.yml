@@ -2,34 +2,37 @@ language: python
 matrix:
   include:
     - python: "2.6"
-      env: STANDALONE=no
+      env: STANDALONE=no CYTHON=yes
     - python: "2.7"
-      env: STANDALONE=no
+      env: STANDALONE=no CYTHON=yes
     - python: "3.3"
-      env: STANDALONE=no
+      env: STANDALONE=no CYTHON=yes
     - python: "3.4"
-      env: STANDALONE=no
+      env: STANDALONE=no CYTHON=yes
     - python: "2.7"
-      env: STANDALONE=yes
+      env: STANDALONE=yes CYTHON=no
+    - python: "2.7"  # test without installed cython
+      env: STANDALONE=no CYTHON=no
 
 # Use miniconda to install binary versions of numpy etc. from continuum
 # analytic's repository. Follows an approach described by Dan Blanchard:
 # https://gist.github.com/dan-blanchard/7045057
 before_install:
-- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-2.2.2-Linux-x86_64.sh -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-2.2.2-Linux-x86_64.sh -O miniconda.sh; fi
+- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.7.3-Linux-x86_64.sh -O miniconda.sh; fi
 - chmod +x miniconda.sh
 - ./miniconda.sh -b
-- export PATH=/home/travis/anaconda/bin:$PATH
+- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then export PATH=/home/travis/miniconda/bin:$PATH; else export PATH=/home/travis/miniconda3/bin:$PATH; fi
 # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
 - sudo rm -rf /dev/shm
 - sudo ln -s /run/shm /dev/shm
 # command to install dependencies
 install:
   - conda update --yes conda
-  - conda create -n travis_conda --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy nose sphinx ipython sympy pyparsing cython
+  - conda create -n travis_conda --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy nose sphinx ipython sympy pyparsing
   - source activate travis_conda
+  - if [[ $CYTHON == 'yes' ]]; then conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=""; fi
   - pip install -q coveralls --use-mirrors
-  - python setup.py install --with-cython --fail-on-error
+  - python setup.py install $SETUP_ARGS --fail-on-error
 # command to run tests (make sure to not run it from the source directory)
 script:
 - export SRCDIR=$(pwd)

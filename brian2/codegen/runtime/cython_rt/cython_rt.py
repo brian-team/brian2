@@ -1,17 +1,13 @@
 import os
 import sys
 
-import cython
 import numpy
 
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,
                                    Subexpression)
-from brian2.core.preferences import brian_prefs, BrianPreference
-from brian2.core.functions import (DEFAULT_FUNCTIONS, FunctionImplementation,
-                                   Function)
+from brian2.core.preferences import prefs, BrianPreference
 
-from ...codeobject import CodeObject
 from ..numpy_rt import NumpyCodeObject
 from ...templates import Templater
 from ...generators.cython_generator import (CythonCodeGenerator, get_cpp_dtype,
@@ -23,7 +19,7 @@ __all__ = ['CythonCodeObject']
 
 
 # Preferences
-brian_prefs.register_preferences(
+prefs.register_preferences(
     'codegen.runtime.cython',
     'Cython runtime codegen preferences',
     extra_compile_args = BrianPreference(
@@ -45,6 +41,7 @@ brian_prefs.register_preferences(
 
 class CythonCodeObject(NumpyCodeObject):
     '''
+    Execute code using Cython.
     '''
     templater = Templater('brian2.codegen.runtime.cython_rt',
                           env_globals={'cpp_dtype': get_cpp_dtype,
@@ -53,13 +50,14 @@ class CythonCodeObject(NumpyCodeObject):
     generator_class = CythonCodeGenerator
     class_name = 'cython'
 
-    def __init__(self, owner, code, variables, template_name,
-                 template_source, name='cython_code_object*'):
+    def __init__(self, owner, code, variables, variable_indices,
+                 template_name, template_source, name='cython_code_object*'):
         super(CythonCodeObject, self).__init__(owner, code, variables,
+                                               variable_indices,
                                                template_name, template_source,
                                                name=name)
-        self.extra_compile_args = brian_prefs['codegen.runtime.weave.extra_compile_args']
-        self.include_dirs = list(brian_prefs['codegen.runtime.weave.include_dirs'])
+        self.extra_compile_args = prefs['codegen.runtime.cython.extra_compile_args']
+        self.include_dirs = list(prefs['codegen.runtime.cython.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
 
     def compile(self):

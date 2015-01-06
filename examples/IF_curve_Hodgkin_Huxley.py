@@ -1,28 +1,25 @@
 '''
-Input-Frequency curve of a HH model
+Input-Frequency curve of a HH model.
 Network: 100 unconnected Hodgin-Huxley neurons with an input current I.
 The input is set differently for each neuron.
 
-This simulation should use exponential Euler integration
+This simulation should use exponential Euler integration.
 '''
 from brian2 import *
 
-BrianLogger.log_level_info()
-
-#brian_prefs.codegen.target = 'weave'
-
-N = 100
+num_neurons = 100
+duration = 2*second
 
 # Parameters
-area = 20000 * umetre ** 2
-Cm = (1 * ufarad * cm ** -2) * area
-gl = (5e-5 * siemens * cm ** -2) * area
-El = -65 * mV
-EK = -90 * mV
-ENa = 50 * mV
-g_na = (100 * msiemens * cm ** -2) * area
-g_kd = (30 * msiemens * cm ** -2) * area
-VT = -63 * mV
+area = 20000*umetre**2
+Cm = 1*ufarad*cm**-2 * area
+gl = 5e-5*siemens*cm**-2 * area
+El = -65*mV
+EK = -90*mV
+ENa = 50*mV
+g_na = 100*msiemens*cm**-2 * area
+g_kd = 30*msiemens*cm**-2 * area
+VT = -63*mV
 
 # The model
 eqs = Equations('''
@@ -36,14 +33,17 @@ dh/dt = 0.128*exp((17.*mV-v+VT)/(18.*mV))/ms*(1.-h)-4./(1+exp((40.*mV-v+VT)/(5.*
 I : amp
 ''')
 # Threshold and refractoriness are only used for spike counting
-group = NeuronGroup(N, model=eqs, threshold='not_refractory and (v > -40*mV)',
+group = NeuronGroup(num_neurons, eqs,
+                    threshold='v > -40*mV',
                     refractory='v > -40*mV')
 group.v = El
-group.I = linspace(0 * nA, 0.7 * nA, N)
+group.I = '0.7*nA * i / num_neurons'
 
 monitor = SpikeMonitor(group)
 
-duration = 2 * second
 run(duration)
-plot(group.I / nA, monitor.count / duration)
+
+plot(group.I/nA, monitor.count / duration)
+xlabel('I (nA)')
+ylabel('Firing rate (sp/s)')
 show()
