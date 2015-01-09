@@ -137,7 +137,11 @@ def test_linked_variable_correct():
     net = Network(G1, G2, mon1, mon2)
     net.run(10*ms)
     assert_equal(mon1.v[:, :], mon2.v[:, :])
-
+    # Make sure that printing the variable values works
+    assert len(str(G2.v)) > 0
+    assert len(repr(G2.v)) > 0
+    assert len(str(G2.v[:])) > 0
+    assert len(repr(G2.v[:])) > 0
 
 def test_linked_variable_incorrect():
     '''
@@ -172,9 +176,14 @@ def test_linked_variable_scalar():
     G2.x = linked_var(G1.x)
     mon = StateMonitor(G2, 'y', record=True)
     net = Network(G1, G2, mon)
-    net.run(10*ms)
     # We don't test anything for now, except that it runs without raising an
     # error
+    net.run(10*ms)
+    # Make sure that printing the variable values works
+    assert len(str(G2.x)) > 0
+    assert len(repr(G2.x)) > 0
+    assert len(str(G2.x[:])) > 0
+    assert len(repr(G2.x[:])) > 0
 
 
 def test_linked_variable_indexed():
@@ -1021,48 +1030,48 @@ def test_get_states():
 
 
 if __name__ == '__main__':
-    # test_creation()
-    # test_variables()
-    # test_scalar_variable()
-    # test_referred_scalar_variable()
-    # test_linked_variable_correct()
-    # test_linked_variable_incorrect()
-    # test_linked_variable_scalar()
-    # test_linked_variable_indexed()
-    # test_linked_variable_repeat()
-    # test_linked_double_linked1()
-    # test_linked_double_linked2()
-    # test_linked_double_linked3()
-    # test_linked_double_linked4()
-    # test_linked_triple_linked()
-    # test_linked_subgroup()
-    # test_linked_subgroup2()
-    # test_linked_subexpression()
-    # test_linked_subexpression_2()
-    # test_linked_subexpression_3()
-    # test_linked_subexpression_synapse()
-    # test_linked_variable_indexed_incorrect()
-    # test_linked_synapses()
-    # test_stochastic_variable()
-    # test_stochastic_variable_multiplicative()
-    # test_unit_errors()
-    # test_threshold_reset()
-    # test_unit_errors_threshold_reset()
-    # test_incomplete_namespace()
-    # test_namespace_errors()
-    # test_namespace_warnings()
-    # test_syntax_errors()
-    # test_state_variables()
-    # test_state_variable_access()
-    # test_state_variable_access_strings()
-    # test_subexpression()
-    # test_subexpression_with_constant()
-    # test_scalar_parameter_access()
-    # test_scalar_subexpression()
-    # test_indices()
-    # test_repr()
-    # test_get_dtype()
-    # if prefs.codegen.target == 'numpy':
-    #     test_aliasing_in_statements()
+    test_creation()
+    test_variables()
+    test_scalar_variable()
+    test_referred_scalar_variable()
+    test_linked_variable_correct()
+    test_linked_variable_incorrect()
+    test_linked_variable_scalar()
+    test_linked_variable_indexed()
+    test_linked_variable_repeat()
+    test_linked_double_linked1()
+    test_linked_double_linked2()
+    test_linked_double_linked3()
+    test_linked_double_linked4()
+    test_linked_triple_linked()
+    test_linked_subgroup()
+    test_linked_subgroup2()
+    test_linked_subexpression()
+    test_linked_subexpression_2()
+    test_linked_subexpression_3()
+    test_linked_subexpression_synapse()
+    test_linked_variable_indexed_incorrect()
+    test_linked_synapses()
+    test_stochastic_variable()
+    test_stochastic_variable_multiplicative()
+    test_unit_errors()
+    test_threshold_reset()
+    test_unit_errors_threshold_reset()
+    test_incomplete_namespace()
+    test_namespace_errors()
+    test_namespace_warnings()
+    test_syntax_errors()
+    test_state_variables()
+    test_state_variable_access()
+    test_state_variable_access_strings()
+    test_subexpression()
+    test_subexpression_with_constant()
+    test_scalar_parameter_access()
+    test_scalar_subexpression()
+    test_indices()
+    test_repr()
+    test_get_dtype()
+    if prefs.codegen.target == 'numpy':
+        test_aliasing_in_statements()
     test_get_states()
 
