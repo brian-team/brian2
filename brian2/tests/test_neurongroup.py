@@ -437,6 +437,48 @@ def test_linked_synapses():
     G2 = NeuronGroup(100, 'x : 1 (linked)')
     assert_raises(NotImplementedError, lambda: setattr(G2, 'x', linked_var(S, 'w')))
     
+def test_linked_var_in_reset():
+    G1 = NeuronGroup(3, 'x:1')
+    G2 = NeuronGroup(3, '''x_linked : 1 (linked)
+                           y:1''',
+                     threshold='y>1', reset='y=0; x_linked += 1')
+    G2.x_linked = linked_var(G1, 'x')
+    G2.y = [0, 1.1, 0]
+    net = Network(G1, G2)
+    # In this context, x_linked should not be considered as a scalar variable
+    # and therefore the reset statement should be allowed
+    net.run(3*defaultclock.dt)
+    assert_equal(G1.x[:], [0, 1, 0])
+
+
+def test_linked_var_in_reset_size_1():
+    G1 = NeuronGroup(1, 'x:1')
+    G2 = NeuronGroup(1, '''x_linked : 1 (linked)
+                           y:1''',
+                     threshold='y>1', reset='y=0; x_linked += 1')
+    G2.x_linked = linked_var(G1, 'x')
+    G2.y = 1.1
+    net = Network(G1, G2)
+    # In this context, x_linked should not be considered as a scalar variable
+    # and therefore the reset statement should be allowed
+    net.run(3*defaultclock.dt)
+    assert_equal(G1.x[:], 1)
+
+
+def test_linked_var_in_reset_incorrect():
+    # Raise an error if a scalar variable (linked variable from a group of size
+    # 1 is set in a reset statement of a group with size > 1)
+    G1 = NeuronGroup(1, 'x:1')
+    G2 = NeuronGroup(2, '''x_linked : 1 (linked)
+                           y:1''',
+                     threshold='y>1', reset='y=0; x_linked += 1')
+    G2.x_linked = linked_var(G1, 'x')
+    G2.y = 1.1
+    net = Network(G1, G2)
+    # It is not well-defined what x_linked +=1 means in this context
+    # (as for any other shared variable)
+    assert_raises(SyntaxError, lambda: net.run(0*ms))
+
 
 @attr('codegen-independent')
 def test_unit_errors():
@@ -1052,6 +1094,9 @@ if __name__ == '__main__':
     test_linked_subexpression_synapse()
     test_linked_variable_indexed_incorrect()
     test_linked_synapses()
+    test_linked_var_in_reset()
+    test_linked_var_in_reset_size_1()
+    test_linked_var_in_reset_incorrect()
     test_stochastic_variable()
     test_stochastic_variable_multiplicative()
     test_unit_errors()
@@ -1074,4 +1119,3 @@ if __name__ == '__main__':
     if prefs.codegen.target == 'numpy':
         test_aliasing_in_statements()
     test_get_states()
-
