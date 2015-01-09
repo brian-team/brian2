@@ -199,6 +199,8 @@ class Indexing(object):
             if item is None:
                 item = slice(None)
             if isinstance(item, slice):
+                if index_var == '0':
+                    return 0
                 if index_var == '_idx':
                     start, stop, step = item.indices(self.N.get_value())
                 else:
