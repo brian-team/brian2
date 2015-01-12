@@ -130,7 +130,8 @@ class CodeGenerator(object):
                                        'not allowed in this context.' % stmt.var))
                 for name in ids:
                     if (name in variables and isinstance(variables[name], ArrayVariable)
-                                          and not variables[name].scalar):
+                                          and not (variables[name].scalar or
+                                                           variable_indices[name] == '0')):
                         raise SyntaxError(('Cannot write to scalar variable %s '
                                            'with an expression referring to '
                                            'vector variable %s') %
