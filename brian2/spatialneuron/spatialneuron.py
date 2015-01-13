@@ -5,6 +5,7 @@ This module defines the SpatialNeuron class, which defines multicompartmental mo
 import sympy as sp
 from numpy import zeros, pi
 from numpy.linalg import solve
+import numpy as np
 
 from brian2.equations.equations import (Equations, PARAMETER, SUBEXPRESSION,
                                         DIFFERENTIAL_EQUATION)
@@ -14,7 +15,6 @@ from brian2.units.fundamentalunits import Unit, fail_for_dimension_mismatch
 from brian2.units.stdunits import uF, cm
 from brian2.parsing.sympytools import sympy_to_str
 from brian2.utils.logger import get_logger
-from brian2.core.variables import Variables
 from brian2.groups.neurongroup import NeuronGroup
 from brian2.groups.subgroup import Subgroup
 from brian2.equations.codestrings import Expression
@@ -358,10 +358,11 @@ class SpatialStateUpdater(CodeRunner, Group):
         # Solve the linear system connecting branches
         self.P[:] = 0
         self.B[:] = 0
-        self.fill_matrix(self.group.morphology)
+
+        self.fill_matrix()
         self.V = solve(self.P, self.B)  # This code could be generated at initialization
         # Calculate solutions by linear combination
-        self.linear_combination(self.group.morphology)
+        self.linear_combination()
 
     def prepare(self):
         '''
@@ -403,6 +404,28 @@ class SpatialStateUpdater(CodeRunner, Group):
         self.P = zeros((n, n))  # matrix
         self.B = zeros(n)  # vector RHS
         self.V = zeros(n)  # solution = voltages at nodes
+
+        # Pre-calculate the iteration over the segments (to replace the
+        # recursion during runtime)
+        self.morph_i = zeros(n - 1, dtype=np.int32)
+        self.morph_parent_i = zeros(n - 1, dtype=np.int32)
+        self.starts = zeros(n - 1, dtype=np.int32)
+        self.ends = zeros(n - 1, dtype=np.int32)
+        self.invr0 = zeros(n - 1)
+        self.invrn = zeros(n - 1)
+
+        self.pre_calc_iteration(self.group.morphology)
+
+    def pre_calc_iteration(self, morphology, counter=0):
+        self.morph_i[counter] = morphology.index + 1
+        self.morph_parent_i[counter] = morphology.parent + 1
+        self.starts[counter] = morphology._origin
+        self.ends[counter] = morphology._origin + len(morphology.x) - 1
+        self.invr0[counter] = float(morphology.invr0)
+        self.invrn[counter] = float(morphology.invrn)
+        for child in morphology.children:
+            counter += 1
+            self.pre_calc_iteration(child, counter)
 
     def cut_branches(self, morphology):
         '''
@@ -455,44 +478,39 @@ class SpatialStateUpdater(CodeRunner, Group):
     # ### The two methods below should be written in C
     #### In each one there is a static function, plus a call for each segment
     #### Code for the latter could be generated at initialization
-    def linear_combination(self, morphology):
+    def linear_combination(self):
         '''
         Calculates solutions by linear combination
         '''
-        first = morphology._origin  # first compartment
-        last = first + len(morphology.x) - 1  # last compartment
-        i = morphology.index + 1
-        i_parent = morphology.parent + 1
-        self.group.v_[first:last + 1] = (self.group.v_star_[first:last + 1] +
-                                         self.V[i_parent] * self.group.u_minus_[first:last + 1]
-                                         + self.V[i] * self.group.u_plus_[first:last + 1])
-        # Recursive call
-        for kid in (morphology.children):
-            self.linear_combination(kid)
+        for i, i_parent, first, last in zip(self.morph_i,
+                                            self.morph_parent_i,
+                                            self.starts, self.ends):
+            self.group.v_[first:last + 1] = (self.group.v_star_[first:last + 1] +
+                                             self.V[i_parent] * self.group.u_minus_[first:last + 1]
+                                             + self.V[i] * self.group.u_plus_[first:last + 1])
 
-    def fill_matrix(self, morphology):
+    def fill_matrix(self):
         '''
         Recursively fills the matrix of the linear system that connects
         branches together.
         Apparently this is quick.
         '''
-        first = morphology._origin  # first compartment
-        last = first + len(morphology.x) - 1  # last compartment
-        i = morphology.index + 1
-        i_parent = morphology.parent + 1
-        # Towards parent
-        if i == 1:  # first branch, sealed end
-            self.P[0, 0] = self.group.u_minus_[first] - 1
-            self.P[0, 1] = self.group.u_plus_[first]
-            self.B[0] = -self.group.v_star_[first]
-        else:
-            self.P[i_parent, i_parent] += (1 - self.group.u_minus_[first]) * float(morphology.invr0)
-            self.P[i_parent, i] -= self.group.u_plus_[first] * float(morphology.invr0)
-            self.B[i_parent] += self.group.v_star_[first] * float(morphology.invr0)
-        # Towards children
-        self.P[i, i] = (1 - self.group.u_plus_[last]) * float(morphology.invrn)
-        self.P[i, i_parent] = -self.group.u_minus_[last] * float(morphology.invrn)
-        self.B[i] = self.group.v_star_[last] * float(morphology.invrn)
-        # Recursive call
-        for kid in (morphology.children):
-            self.fill_matrix(kid)
+        for i, i_parent, first, last, invr0, invrn in zip(self.morph_i,
+                                                          self.morph_parent_i,
+                                                          self.starts,
+                                                          self.ends,
+                                                          self.invr0,
+                                                          self.invrn):
+            # Towards parent
+            if i == 1:  # first branch, sealed end
+                self.P[0, 0] = self.group.u_minus_[first] - 1
+                self.P[0, 1] = self.group.u_plus_[first]
+                self.B[0] = -self.group.v_star_[first]
+            else:
+                self.P[i_parent, i_parent] += (1 - self.group.u_minus_[first]) * invr0
+                self.P[i_parent, i] -= self.group.u_plus_[first] * invr0
+                self.B[i_parent] += self.group.v_star_[first] * invr0
+            # Towards children
+            self.P[i, i] = (1 - self.group.u_plus_[last]) * invrn
+            self.P[i, i_parent] = -self.group.u_minus_[last] * invrn
+            self.B[i] = self.group.v_star_[last] * invrn
