@@ -2,11 +2,14 @@
 Compartmental models.
 This module defines the SpatialNeuron class, which defines multicompartmental models.
 '''
+from itertools import izip
+
 import sympy as sp
 from numpy import zeros, pi
 from numpy.linalg import solve
 import numpy as np
 
+from brian2.core.variables import Variables
 from brian2.equations.equations import (Equations, PARAMETER, SUBEXPRESSION,
                                         DIFFERENTIAL_EQUATION)
 from brian2.groups.group import Group, CodeRunner
@@ -346,6 +349,40 @@ class SpatialStateUpdater(CodeRunner, Group):
                             order=order,
                             name=group.name + '_spatialstateupdater*',
                             check_units=False)
+        n = len(group) # total number of compartments
+        segments = self.number_branches(group.morphology)
+        self.variables = Variables(self, default_index='_segment_idx')
+        self.variables.add_reference('N', group)
+        self.variables.add_arange('_compartment_idx', size=n)
+        self.variables.add_arange('_segment_idx', size=segments)
+        self.variables.add_arange('_segment_root_idx', size=segments+1)
+        self.variables.add_arange('_P_idx', size=(segments+1)**2)
+
+        self.variables.add_array('_invr', unit=siemens, size=n, constant=True,
+                                 index='_compartment_idx')
+        self.variables.add_array('_P', unit=Unit(1), size=(segments+1)**2,
+                                 constant=True, index='_P_idx')
+        self.variables.add_array('_B', unit=Unit(1), size=segments+1,
+                                 constant=True, index='_segment_root_idx')
+        self.variables.add_array('_V', unit=Unit(1), size=segments+1,
+                                 constant=True, index='_segment_root_idx')
+        self.variables.add_array('_morph_i', unit=Unit(1), size=segments,
+                                 dtype=np.int32, constant=True)
+        self.variables.add_array('_morph_parent_i', unit=Unit(1), size=segments,
+                                 dtype=np.int32, constant=True)
+        self.variables.add_array('_starts', unit=Unit(1), size=segments,
+                                 dtype=np.int32, constant=True)
+        self.variables.add_array('_ends', unit=Unit(1), size=segments,
+                                 dtype=np.int32, constant=True)
+        self.variables.add_array('_invr0', unit=siemens, size=segments,
+                                 constant=True)
+        self.variables.add_array('_invrn', unit=siemens, size=segments,
+                                 constant=True)
+        self._enable_group_attributes()
+
+        # A 2d view on P for convenience
+        self._P_2d = self.variables['_P'].get_value().reshape((segments + 1,
+                                                               segments + 1))
 
     def before_run(self, run_namespace=None, level=0):
         if not self._isprepared:  # this is done only once even if there are multiple runs
@@ -356,11 +393,11 @@ class SpatialStateUpdater(CodeRunner, Group):
     def run(self):
         CodeRunner.run(self)
         # Solve the linear system connecting branches
-        self.P[:] = 0
-        self.B[:] = 0
+        self._P[:] = 0
+        self._B[:] = 0
 
         self.fill_matrix()
-        self.V = solve(self.P, self.B)  # This code could be generated at initialization
+        self._V = solve(self._P_2d, self._B)  # This code could be generated at initialization
         # Calculate solutions by linear combination
         self.linear_combination()
 
@@ -373,21 +410,20 @@ class SpatialStateUpdater(CodeRunner, Group):
         if self.group.morphology.type == 'soma':
             self.group.length[0] = self.group.diameter[0] * 0.01
         # Inverse axial resistance
-        self.invr = zeros(len(self.group)) * siemens
-        self.invr[1:] = (pi / (2 * self.group.Ri) * (self.group.diameter[:-1] *
-                                                     self.group.diameter[1:]) /
-                         (self.group.length[:-1] + self.group.length[1:]))
+        self._invr[1:] = (pi / (2 * self.group.Ri) * (self.group.diameter[:-1] *
+                                                      self.group.diameter[1:]) /
+                          (self.group.length[:-1] + self.group.length[1:]))
         # Note: this would give nan for the soma
         self.cut_branches(self.group.morphology)
 
         # Linear systems
         # The particular solution
         '''a[i,j]=ab[u+i-j,j]'''  # u is the number of upper diagonals = 1
-        self.group.ab_star0[1:] = self.invr[1:] / self.group.area[:-1]
-        self.group.ab_star2[:-1] = self.invr[1:] / self.group.area[1:]
+        self.group.ab_star0[1:] = self._invr[1:] / self.group.area[:-1]
+        self.group.ab_star2[:-1] = self._invr[1:] / self.group.area[1:]
         self.group.ab_star1[:] = (-(self.group.Cm / self.group.clock.dt) -
-                              self.invr / self.group.area)
-        self.group.ab_star1[:-1] -= self.invr[1:] / self.group.area[:-1]
+                                  self._invr / self.group.area)
+        self.group.ab_star1[:-1] -= self._invr[1:] / self.group.area[:-1]
         # Homogeneous solutions
         self.group.ab_plus0[:] = self.group.ab_star0
         self.group.ab_minus0[:] = self.group.ab_star0
@@ -399,30 +435,18 @@ class SpatialStateUpdater(CodeRunner, Group):
         # Boundary conditions
         self.boundary_conditions(self.group.morphology)
 
-        # Linear system for connecting branches
-        n = 1 + self.number_branches(self.group.morphology)  # number of nodes (2 for the root)
-        self.P = zeros((n, n))  # matrix
-        self.B = zeros(n)  # vector RHS
-        self.V = zeros(n)  # solution = voltages at nodes
-
         # Pre-calculate the iteration over the segments (to replace the
         # recursion during runtime)
-        self.morph_i = zeros(n - 1, dtype=np.int32)
-        self.morph_parent_i = zeros(n - 1, dtype=np.int32)
-        self.starts = zeros(n - 1, dtype=np.int32)
-        self.ends = zeros(n - 1, dtype=np.int32)
-        self.invr0 = zeros(n - 1)
-        self.invrn = zeros(n - 1)
 
         self.pre_calc_iteration(self.group.morphology)
 
     def pre_calc_iteration(self, morphology, counter=0):
-        self.morph_i[counter] = morphology.index + 1
-        self.morph_parent_i[counter] = morphology.parent + 1
-        self.starts[counter] = morphology._origin
-        self.ends[counter] = morphology._origin + len(morphology.x) - 1
-        self.invr0[counter] = float(morphology.invr0)
-        self.invrn[counter] = float(morphology.invrn)
+        self._morph_i[counter] = morphology.index + 1
+        self._morph_parent_i[counter] = morphology.parent + 1
+        self._starts[counter] = morphology._origin
+        self._ends[counter] = morphology._origin + len(morphology.x) - 1
+        self._invr0[counter] = morphology.invr0
+        self._invrn[counter] = morphology.invrn
         for child in morphology.children:
             counter += 1
             self.pre_calc_iteration(child, counter)
@@ -431,7 +455,7 @@ class SpatialStateUpdater(CodeRunner, Group):
         '''
         Recursively cut the branches by setting zero axial resistances.
         '''
-        self.invr[morphology._origin] = 0
+        self._invr[morphology._origin] = 0
         for kid in (morphology.children):
             self.cut_branches(kid)
 
@@ -482,35 +506,44 @@ class SpatialStateUpdater(CodeRunner, Group):
         '''
         Calculates solutions by linear combination
         '''
-        for i, i_parent, first, last in zip(self.morph_i,
-                                            self.morph_parent_i,
-                                            self.starts, self.ends):
-            self.group.v_[first:last + 1] = (self.group.v_star_[first:last + 1] +
-                                             self.V[i_parent] * self.group.u_minus_[first:last + 1]
-                                             + self.V[i] * self.group.u_plus_[first:last + 1])
+        # Directly access the underlying arrays (as in a template) for better
+        # performance
+        v_star = self.group.variables['v_star'].get_value()
+        u_minus = self.group.variables['u_minus'].get_value()
+        u_plus = self.group.variables['u_plus'].get_value()
+        for i, i_parent, first, last in izip(self.variables['_morph_i'].get_value(),
+                                             self.variables['_morph_parent_i'].get_value(),
+                                             self.variables['_starts'].get_value(),
+                                             self.variables['_ends'].get_value()):
+            self.group.v_[first:last + 1] = (v_star[first:last + 1]
+                                             + self._V_[i_parent] * u_minus[first:last + 1]
+                                             + self._V_[i] * u_plus[first:last + 1])
 
     def fill_matrix(self):
         '''
-        Recursively fills the matrix of the linear system that connects
-        branches together.
-        Apparently this is quick.
+        Fills the matrix of the linear system that connects branches together.
         '''
-        for i, i_parent, first, last, invr0, invrn in zip(self.morph_i,
-                                                          self.morph_parent_i,
-                                                          self.starts,
-                                                          self.ends,
-                                                          self.invr0,
-                                                          self.invrn):
+        # Directly access the underlying arrays (as in a template) for better
+        # performance
+        v_star = self.group.variables['v_star'].get_value()
+        u_minus = self.group.variables['u_minus'].get_value()
+        u_plus = self.group.variables['u_plus'].get_value()
+        for i, i_parent, first, last, invr0, invrn in izip(self.variables['_morph_i'].get_value(),
+                                                           self.variables['_morph_parent_i'].get_value(),
+                                                           self.variables['_starts'].get_value(),
+                                                           self.variables['_ends'].get_value(),
+                                                           self.variables['_invr0'].get_value(),
+                                                           self.variables['_invrn'].get_value()):
             # Towards parent
             if i == 1:  # first branch, sealed end
-                self.P[0, 0] = self.group.u_minus_[first] - 1
-                self.P[0, 1] = self.group.u_plus_[first]
-                self.B[0] = -self.group.v_star_[first]
+                self._P_2d[0, 0] = u_minus[first] - 1
+                self._P_2d[0, 1] = u_plus[first]
+                self._B_[0] = -v_star[first]
             else:
-                self.P[i_parent, i_parent] += (1 - self.group.u_minus_[first]) * invr0
-                self.P[i_parent, i] -= self.group.u_plus_[first] * invr0
-                self.B[i_parent] += self.group.v_star_[first] * invr0
+                self._P_2d[i_parent, i_parent] += (1 - u_minus[first]) * invr0
+                self._P_2d[i_parent, i] -= u_plus[first] * invr0
+                self._B_[i_parent] += v_star[first] * invr0
             # Towards children
-            self.P[i, i] = (1 - self.group.u_plus_[last]) * invrn
-            self.P[i, i_parent] = -self.group.u_minus_[last] * invrn
-            self.B[i] = self.group.v_star_[last] * invrn
+            self._P_2d[i, i] = (1 - u_plus[last]) * invrn
+            self._P_2d[i, i_parent] = -u_minus[last] * invrn
+            self._B_[i] = v_star[last] * invrn
