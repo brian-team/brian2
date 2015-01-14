@@ -1,13 +1,16 @@
 {# USES_VARIABLES { Cm, dt, v, N,
                   ab_star0, ab_star1, ab_star2, b_plus,
                   ab_plus0, ab_plus1, ab_plus2, b_minus,
-                  ab_minus0, ab_minus1, ab_minus2, v_star, u_plus, u_minus} #}
+                  ab_minus0, ab_minus1, ab_minus2, v_star, u_plus, u_minus,
+                  _P, _B, _morph_i, _morph_parent_i, _starts, _ends,
+                  _invr0, _invrn} #}
 {# ITERATE_ALL { _idx } #}
 
 '''
 Solves the cable equation (spatial diffusion of currents).
 This is where most time-consuming time computations are done.
 '''
+from itertools import izip
 
 from scipy.linalg import solve_banded
 from numpy import zeros
@@ -41,3 +44,27 @@ ab[1,:]={{ab_minus1}}
 ab[2,:]={{ab_minus2}}
 ab[1,:]-=_gtot
 {{u_minus}}[:]=solve_banded((1,1),ab,b,overwrite_ab=True,overwrite_b=True)
+
+# Prepare matrix for solving the linear system
+_n_segments = len({{_B}})
+{{_B}}[:] = 0
+{{_P}}[:] = 0
+for _i, _i_parent, _first, _last, _invr0, _invrn in izip({{_morph_i}},
+                                                         {{_morph_parent_i}},
+                                                         {{_starts}},
+                                                         {{_ends}},
+                                                         {{_invr0}},
+                                                         {{_invrn}}):
+    # Towards parent
+    if _i == 1:  # first branch, sealed end
+        {{_P}}[0] = {{u_minus}}[_first] - 1
+        {{_P}}[0 + 1] = {{u_plus}}[_first]
+        {{_B}}[0] = -{{v_star}}[_first]
+    else:
+        {{_P}}[_i_parent*_n_segments + _i_parent] += (1 - {{u_minus}}[_first]) * _invr0
+        {{_P}}[_i_parent*_n_segments + _i] -= {{u_plus}}[_first] * _invr0
+        {{_B}}[_i_parent] += {{v_star}}[_first] * _invr0
+    # Towards children
+    {{_P}}[_i*_n_segments + _i] = (1 - {{u_plus}}[_last]) * _invrn
+    {{_P}}[_i*_n_segments + _i_parent] = -{{u_minus}}[_last] * _invrn
+    {{_B}}[_i] = {{v_star}}[_last] * _invrn

@@ -393,10 +393,6 @@ class SpatialStateUpdater(CodeRunner, Group):
     def run(self):
         CodeRunner.run(self)
         # Solve the linear system connecting branches
-        self._P[:] = 0
-        self._B[:] = 0
-
-        self.fill_matrix()
         self._V = solve(self._P_2d, self._B)  # This code could be generated at initialization
         # Calculate solutions by linear combination
         self.linear_combination()
@@ -499,9 +495,6 @@ class SpatialStateUpdater(CodeRunner, Group):
         for kid in (morphology.children):
             self.boundary_conditions(kid)
 
-    # ### The two methods below should be written in C
-    #### In each one there is a static function, plus a call for each segment
-    #### Code for the latter could be generated at initialization
     def linear_combination(self):
         '''
         Calculates solutions by linear combination
@@ -519,31 +512,3 @@ class SpatialStateUpdater(CodeRunner, Group):
                                              + self._V_[i_parent] * u_minus[first:last + 1]
                                              + self._V_[i] * u_plus[first:last + 1])
 
-    def fill_matrix(self):
-        '''
-        Fills the matrix of the linear system that connects branches together.
-        '''
-        # Directly access the underlying arrays (as in a template) for better
-        # performance
-        v_star = self.group.variables['v_star'].get_value()
-        u_minus = self.group.variables['u_minus'].get_value()
-        u_plus = self.group.variables['u_plus'].get_value()
-        for i, i_parent, first, last, invr0, invrn in izip(self.variables['_morph_i'].get_value(),
-                                                           self.variables['_morph_parent_i'].get_value(),
-                                                           self.variables['_starts'].get_value(),
-                                                           self.variables['_ends'].get_value(),
-                                                           self.variables['_invr0'].get_value(),
-                                                           self.variables['_invrn'].get_value()):
-            # Towards parent
-            if i == 1:  # first branch, sealed end
-                self._P_2d[0, 0] = u_minus[first] - 1
-                self._P_2d[0, 1] = u_plus[first]
-                self._B_[0] = -v_star[first]
-            else:
-                self._P_2d[i_parent, i_parent] += (1 - u_minus[first]) * invr0
-                self._P_2d[i_parent, i] -= u_plus[first] * invr0
-                self._B_[i_parent] += v_star[first] * invr0
-            # Towards children
-            self._P_2d[i, i] = (1 - u_plus[last]) * invrn
-            self._P_2d[i, i_parent] = -u_minus[last] * invrn
-            self._B_[i] = v_star[last] * invrn
