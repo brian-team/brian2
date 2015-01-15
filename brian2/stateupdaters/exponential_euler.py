@@ -62,8 +62,8 @@ def get_conditionally_linear_system(eqs):
             raise ValueError(('The expression "%s", defining the variable %s, '
                              'could not be separated into linear components') %
                              (s_expr, name))
-        coefficients[name] = (matches[wildcard].simplify(),
-                              matches[constant_wildcard].simplify())
+        coefficients[name] = (matches[wildcard],
+                              matches[constant_wildcard])
     
     return coefficients
 

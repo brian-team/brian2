@@ -118,8 +118,7 @@ def sympy_to_str(sympy_expr):
     # Replace _vectorisation_idx by an empty symbol
     replacements[sympy.Symbol('_vectorisation_idx')] = sympy.Symbol('')
 
-    for sympy_symbol, our_symbol in replacements.iteritems():
-        sympy_expr = sympy_expr.replace(sympy_symbol, our_symbol)
+    sympy_expr = sympy_expr.xreplace(replacements)
 
     return PRINTER.doprint(sympy_expr)
 
@@ -154,10 +153,5 @@ def replace_constants(sympy_expr, variables=None):
                 # TODO: We should handle variables of other data types better
                 float_val = var.get_value()
                 sympy_expr = sympy_expr.xreplace({symbol: sympy.Float(float_val)})
-    try:
-        # unfortunately, simplifying does sometimes not work
-        sympy_expr = sympy_expr.simplify()
-    except AttributeError:
-        pass
 
     return sympy_expr
