@@ -5,6 +5,8 @@
 import numpy as _numpy
 cimport numpy as _numpy
 from libc.math cimport sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, abs, asin, acos, atan, fabs, fmod, floor, ceil
+cdef extern from "math.h":
+    double M_PI
 from libcpp cimport bool
 from libc.stdint cimport int32_t, int64_t, uint8_t
 

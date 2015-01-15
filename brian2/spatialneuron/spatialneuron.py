@@ -3,6 +3,7 @@ Compartmental models.
 This module defines the SpatialNeuron class, which defines multicompartmental models.
 '''
 from itertools import izip
+import weakref
 
 import sympy as sp
 from numpy import pi
@@ -11,7 +12,7 @@ import numpy as np
 from brian2.core.variables import Variables
 from brian2.equations.equations import (Equations, PARAMETER, SUBEXPRESSION,
                                         DIFFERENTIAL_EQUATION)
-from brian2.groups.group import Group, CodeRunner
+from brian2.groups.group import Group, CodeRunner, create_runner_codeobj
 from brian2.units.allunits import ohm, siemens, amp
 from brian2.units.fundamentalunits import Unit, fail_for_dimension_mismatch
 from brian2.units.stdunits import uF, cm
@@ -338,7 +339,7 @@ class SpatialStateUpdater(CodeRunner, Group):
     def __init__(self, group, method, clock, order=0):
         # group is the neuron (a group of compartments) 
         self.method_choice = method
-        self._isprepared = False
+        self.group = weakref.proxy(group)
         CodeRunner.__init__(self, group,
                             'spatialstateupdate',
                             code='''_gtot = gtot__private
@@ -377,73 +378,35 @@ class SpatialStateUpdater(CodeRunner, Group):
                                  constant=True)
         self._enable_group_attributes()
 
-        # A 2d view on P for convenience
-        self._P_2d = self.variables['_P'].get_value().reshape((segments + 1,
-                                                               segments + 1))
+        # The morphology is considered fixed (length etc. can still be changed,
+        # though)
+        # Traverse it once to get a flattened representation
+        self._pre_calc_iteration(self.group.morphology)
+
+        self._prepare_codeobj = None
 
     def before_run(self, run_namespace=None, level=0):
-        if not self._isprepared:  # this is done only once even if there are multiple runs
-            self.prepare()
-            self._isprepared = True
+        # execute code to initalize the data structures
+        if self._prepare_codeobj is None:
+            self._prepare_codeobj = create_runner_codeobj(self.group,
+                                                          '', # no code,
+                                                          'spatialneuron_prepare',
+                                                          name=self.name+'_spatialneuron_prepare',
+                                                          check_units=False,
+                                                          additional_variables=self.variables,
+                                                          run_namespace=run_namespace,
+                                                          level=level+1)
+        self._prepare_codeobj()
         CodeRunner.before_run(self, run_namespace, level=level + 1)
 
-    def prepare(self):
-        '''
-        Preparation of data structures.
-        See the relevant document.
-        '''
-        # Correction for soma (a bit of a hack), so that it has negligible axial resistance
-        if self.group.morphology.type == 'soma':
-            self.group.length[0] = self.group.diameter[0] * 0.01
-        # Inverse axial resistance
-        self._invr[1:] = (pi / (2 * self.group.Ri) * (self.group.diameter[:-1] *
-                                                      self.group.diameter[1:]) /
-                          (self.group.length[:-1] + self.group.length[1:]))
-        # Note: this would give nan for the soma
-        self.cut_branches(self.group.morphology)
-
-        # Linear systems
-        # The particular solution
-        '''a[i,j]=ab[u+i-j,j]'''  # u is the number of upper diagonals = 1
-        self.group.ab_star0[1:] = self._invr[1:] / self.group.area[:-1]
-        self.group.ab_star2[:-1] = self._invr[1:] / self.group.area[1:]
-        self.group.ab_star1[:] = (-(self.group.Cm / self.group.clock.dt) -
-                                  self._invr / self.group.area)
-        self.group.ab_star1[:-1] -= self._invr[1:] / self.group.area[:-1]
-        # Homogeneous solutions
-        self.group.ab_plus0[:] = self.group.ab_star0
-        self.group.ab_minus0[:] = self.group.ab_star0
-        self.group.ab_plus1[:] = self.group.ab_star1
-        self.group.ab_minus1[:] = self.group.ab_star1
-        self.group.ab_plus2[:] = self.group.ab_star2
-        self.group.ab_minus2[:] = self.group.ab_star2
-
-        # Boundary conditions
-        self.boundary_conditions(self.group.morphology)
-
-        # Pre-calculate the iteration over the segments (to replace the
-        # recursion during runtime)
-
-        self.pre_calc_iteration(self.group.morphology)
-
-    def pre_calc_iteration(self, morphology, counter=0):
+    def _pre_calc_iteration(self, morphology, counter=0):
         self._morph_i[counter] = morphology.index + 1
         self._morph_parent_i[counter] = morphology.parent + 1
         self._starts[counter] = morphology._origin
         self._ends[counter] = morphology._origin + len(morphology.x) - 1
-        self._invr0[counter] = morphology.invr0
-        self._invrn[counter] = morphology.invrn
         for child in morphology.children:
             counter += 1
-            self.pre_calc_iteration(child, counter)
-
-    def cut_branches(self, morphology):
-        '''
-        Recursively cut the branches by setting zero axial resistances.
-        '''
-        self._invr[morphology._origin] = 0
-        for kid in (morphology.children):
-            self.cut_branches(kid)
+            self._pre_calc_iteration(child, counter)
 
     def number_branches(self, morphology, n=0, parent=-1):
         '''
@@ -457,30 +420,3 @@ class SpatialStateUpdater(CodeRunner, Group):
         for kid in (morphology.children):
             nbranches += self.number_branches(kid, n + nbranches, n)
         return nbranches
-
-    def boundary_conditions(self, morphology):
-        '''
-        Recursively sets the boundary conditions in the linear systems.
-        '''
-        first = morphology._origin  # first compartment
-        last = first + len(morphology.x) - 1  # last compartment
-        # Inverse axial resistances at the ends: r0 and rn
-        morphology.invr0 = (pi / (2 * self.group.Ri) *
-                                 self.group.diameter[first] ** 2 /
-                                 self.group.length[first])
-        morphology.invrn = (pi / (2 * self.group.Ri) *
-                                 self.group.diameter[last] ** 2 /
-                                 self.group.length[last])
-        # Correction for boundary conditions
-        self.group.ab_star1[first] -= (morphology.invr0 / self.group.area[first])  # because of units problems
-        self.group.ab_star1[last] -= (morphology.invrn / self.group.area[last])
-        self.group.ab_plus1[first] -= (morphology.invr0 / self.group.area[first])  # because of units problems
-        self.group.ab_plus1[last] -= (morphology.invrn / self.group.area[last])
-        self.group.ab_minus1[first] -= (morphology.invr0 / self.group.area[first])  # because of units problems
-        self.group.ab_minus1[last] -= (morphology.invrn / self.group.area[last])
-        # RHS for homogeneous solutions
-        self.group.b_plus[last] = -(morphology.invrn / self.group.area[last])
-        self.group.b_minus[first] = -(morphology.invr0 / self.group.area[first])
-        # Recursive call
-        for kid in (morphology.children):
-            self.boundary_conditions(kid)
