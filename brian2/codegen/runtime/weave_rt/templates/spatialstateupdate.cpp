@@ -13,16 +13,20 @@
     {{ common.insert_group_preamble() }}
 
 	double *_gtot_all=(double *)malloc(N*sizeof(double));
-	double *c=(double *)malloc(N*sizeof(double));
+	double *c=(double *)calloc(N, sizeof(double));
 	double ai,bi,_m;
 
+    int _vectorisation_idx = 1;
+
 	//// MAIN CODE ////////////
+	{{scalar_code|autoindent}}
+
 	// Tridiagonal solving
 	// Pass 1
 	for(int i=0;i<N;i++)
 	{
 		const int _idx = i;
-	    const int _vectorisation_idx = _idx;
+	    _vectorisation_idx = _idx;
 
 		{{vector_code|autoindent}}
 		_gtot_all[_idx]=_gtot;
@@ -44,8 +48,9 @@
 		}
 	}
 	for(int i=N-2;i>=0;i--)
+	{
 		{{v_star}}[i]={{v_star}}[i] - c[i]*{{v_star}}[i+1];
-	
+    }
 	// Pass 2
 	for(int i=0;i<N;i++)
 	{
@@ -121,6 +126,75 @@
         {{_P}}[_i*_num_B + _i] = (1 - {{u_plus}}[_last]) * _invrn;
         {{_P}}[_i*_num_B + _i_parent] = -{{u_minus}}[_last] * _invrn;
         {{_B}}[_i] = {{v_star}}[_last] * _invrn;
+    }
+
+    // Solve the linear system (the result will be in _B in the end)
+    for (int i=0; i<_num_B; i++)
+    {
+        // find pivot element
+        int i_pivot = i;
+        double pivot_magnitude = fabs({{_P}}[i*_num_B + i]);
+        for (int j=i+1; j<_num_B; j++)
+           if (fabs({{_P}}[j*_num_B + i]) > pivot_magnitude)
+           {
+               i_pivot = j;
+               pivot_magnitude = fabs({{_P}}[j*_num_B + i]);
+           }
+
+        if (pivot_magnitude == 0)
+        {
+            std::cerr << "Singular!" << std::endl;
+        }
+
+        // swap rows
+        if (i != i_pivot)
+        {
+            for (int col=i; col<_num_B; col++)
+            {
+                const double tmp = {{_P}}[i*_num_B + col];
+                {{_P}}[i*_num_B + col] = {{_P}}[i_pivot*_num_B + col];
+                {{_P}}[i_pivot*_num_B + col] = tmp;
+            }
+        }
+
+        // Deal with rows below
+        for (int j=i+1; j<_num_B; j++)
+        {
+            const double pivot_factor = {{_P}}[j*_num_B + i]/{{_P}}[i*_num_B + i];
+            for (int k=i+1; k<_num_B; k++)
+            {
+                {{_P}}[j*_num_B + k] -= {{_P}}[i*_num_B + k]*pivot_factor;
+            }
+            {{_B}}[j] -= {{_B}}[i]*pivot_factor;
+            {{_P}}[j*_num_B + i] = 0;
+        }
+
+    }
+
+    // Back substitution
+    for (int i=_num_B-1; i>=0; i--)
+    {
+        // substitute all the known values
+        for (int j=_num_B-1; j>i; j--)
+        {
+            {{_B}}[i] -= {{_P}}[i*_num_B + j]*{{_B}}[j];
+            {{_P}}[i*_num_B + j] = 0;
+        }
+        // divide by the diagonal element
+        {{_B}}[i] /= {{_P}}[i*_num_B + i];
+        {{_P}}[i*_num_B + i] = 1;
+    }
+
+    // Linear combination
+    for (int _j=0; _j<_num_B - 1; _j++)
+    {
+        const int _i = {{_morph_i}}[_j];
+        const int _i_parent = {{_morph_parent_i}}[_j];
+        const int _first = {{_starts}}[_j];
+        const int _last = {{_ends}}[_j];
+        for (int _k=_first; _k<_last + 1; _k++)
+            {{v}}[_k] = {{v_star}}[_k] + {{_B}}[_i_parent] * {{u_minus}}[_k]
+                                       + {{_B}}[_i] * {{u_plus}}[_k];
     }
 
 {% endmacro %}

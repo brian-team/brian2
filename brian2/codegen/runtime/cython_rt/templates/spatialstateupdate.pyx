@@ -26,8 +26,17 @@
     cdef int __last
     cdef double __invr0
     cdef double __invrn
+    cdef int col
+    cdef int i_pivot
+    cdef double pivot_magnitude
+    cdef double pivot_factor
+    cdef double tmp
+
+    _vectorisation_idx = 1
 
     ## MAIN CODE ######
+   {{scalar_code|autoindent}}
+
     # Tridiagonal solving
     # Pass 1
     for _i in range(N):
@@ -49,6 +58,7 @@
         else:
             c[0]=c[0]/bi
             {{v_star}}[0]={{v_star}}[0]/bi
+
     for _i in range(N-2, -1, -1):
         {{v_star}}[_i]={{v_star}}[_i] - c[_i]*{{v_star}}[_i+1]
     
@@ -111,5 +121,52 @@
         {{_P}}[__morph_i*_n_segments + __morph_i] = (1 - {{u_plus}}[__last]) * __invrn
         {{_P}}[__morph_i*_n_segments + __i_parent] = -{{u_minus}}[__last] * __invrn
         {{_B}}[__morph_i] = {{v_star}}[__last] * __invrn
+
+    # Solve the linear system (the result will be in _B in the end)
+    for _i in range(_n_segments):
+        # find pivot element
+        i_pivot = _i
+        pivot_magnitude = fabs({{_P}}[_i*_n_segments + _i])
+        for _j in range(_i+1, _n_segments):
+            if fabs({{_P}}[_j*_n_segments + _i]) > pivot_magnitude:
+                i_pivot = _j
+                pivot_magnitude = fabs({{_P}}[_j*_n_segments + _i])
+
+        if pivot_magnitude == 0.:
+            raise ValueError('Matrix is singular')
+
+        # swap rows
+        if _i != i_pivot:
+            for col in range(_i, _n_segments):
+                tmp = {{_P}}[_i*_n_segments + col]
+                {{_P}}[_i*_n_segments + col] = {{_P}}[i_pivot*_n_segments + col]
+                {{_P}}[i_pivot*_n_segments + col] = tmp
+
+        # Deal with rows below
+        for _j in range(_i+1, _n_segments):
+            pivot_factor = {{_P}}[_j*_n_segments + _i]/{{_P}}[_i*_n_segments + _i]
+            for _k in range(_i+1, _n_segments):
+                {{_P}}[_j*_n_segments + _k] -= {{_P}}[_i*_n_segments + _k]*pivot_factor
+            {{_B}}[_j] -= {{_B}}[_i]*pivot_factor
+            {{_P}}[_j*_n_segments + _i] = 0
+
+    # Back substitution
+    for _i in range(_n_segments, -1, -1):
+        # substitute all the known values
+        for _j in range(_n_segments-1, _i, -1):
+            {{_B}}[_i] -= {{_P}}[_i*_n_segments + _j]*{{_B}}[_j]
+            {{_P}}[_i*_n_segments + _j] = 0
+        # divide by the diagonal element
+        {{_B}}[_i] /= {{_P}}[_i*_n_segments + _i]
+        {{_P}}[_i*_n_segments + _i] = 1
+
+    # Linear combination
+    for _i in range(_n_segments):
+        __morph_i = {{_morph_i}}[_i]
+        __i_parent = {{_morph_parent_i}}[_i]
+        __first = {{_starts}}[_i]
+        __last = {{_ends}}[_i]
+        for _j in range(__first, __last+1):
+            {{v}}[_j] = {{v_star}}[_j] + {{_B}}[__i_parent] * {{u_minus}}[_j] + {{_B}}[__morph_i] * {{u_plus}}[_j]
 
 {% endblock %}

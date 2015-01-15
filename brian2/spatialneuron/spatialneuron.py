@@ -5,8 +5,7 @@ This module defines the SpatialNeuron class, which defines multicompartmental mo
 from itertools import izip
 
 import sympy as sp
-from numpy import zeros, pi
-from numpy.linalg import solve
+from numpy import pi
 import numpy as np
 
 from brian2.core.variables import Variables
@@ -364,8 +363,6 @@ class SpatialStateUpdater(CodeRunner, Group):
                                  constant=True, index='_P_idx')
         self.variables.add_array('_B', unit=Unit(1), size=segments+1,
                                  constant=True, index='_segment_root_idx')
-        self.variables.add_array('_V', unit=Unit(1), size=segments+1,
-                                 constant=True, index='_segment_root_idx')
         self.variables.add_array('_morph_i', unit=Unit(1), size=segments,
                                  dtype=np.int32, constant=True)
         self.variables.add_array('_morph_parent_i', unit=Unit(1), size=segments,
@@ -389,13 +386,6 @@ class SpatialStateUpdater(CodeRunner, Group):
             self.prepare()
             self._isprepared = True
         CodeRunner.before_run(self, run_namespace, level=level + 1)
-
-    def run(self):
-        CodeRunner.run(self)
-        # Solve the linear system connecting branches
-        self._V = solve(self._P_2d, self._B)  # This code could be generated at initialization
-        # Calculate solutions by linear combination
-        self.linear_combination()
 
     def prepare(self):
         '''
@@ -494,21 +484,3 @@ class SpatialStateUpdater(CodeRunner, Group):
         # Recursive call
         for kid in (morphology.children):
             self.boundary_conditions(kid)
-
-    def linear_combination(self):
-        '''
-        Calculates solutions by linear combination
-        '''
-        # Directly access the underlying arrays (as in a template) for better
-        # performance
-        v_star = self.group.variables['v_star'].get_value()
-        u_minus = self.group.variables['u_minus'].get_value()
-        u_plus = self.group.variables['u_plus'].get_value()
-        for i, i_parent, first, last in izip(self.variables['_morph_i'].get_value(),
-                                             self.variables['_morph_parent_i'].get_value(),
-                                             self.variables['_starts'].get_value(),
-                                             self.variables['_ends'].get_value()):
-            self.group.v_[first:last + 1] = (v_star[first:last + 1]
-                                             + self._V_[i_parent] * u_minus[first:last + 1]
-                                             + self._V_[i] * u_plus[first:last + 1])
-

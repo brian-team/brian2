@@ -13,6 +13,7 @@ This is where most time-consuming time computations are done.
 from itertools import izip
 
 from scipy.linalg import solve_banded
+from numpy.linalg import solve
 from numpy import zeros
 
 # scalar code
@@ -68,3 +69,15 @@ for _i, _i_parent, _first, _last, _invr0, _invrn in izip({{_morph_i}},
     {{_P}}[_i*_n_segments + _i] = (1 - {{u_plus}}[_last]) * _invrn
     {{_P}}[_i*_n_segments + _i_parent] = -{{u_minus}}[_last] * _invrn
     {{_B}}[_i] = {{v_star}}[_last] * _invrn
+
+# Solve the linear system
+_V = solve({{_P}}.reshape((_n_segments, _n_segments)), {{_B}})
+
+# Final solutions as linear combinations
+for _i, _i_parent, _first, _last, in izip({{_morph_i}},
+                                          {{_morph_parent_i}},
+                                          {{_starts}},
+                                          {{_ends}}):
+    {{v}}[_first:_last + 1] = ({{v_star}}[_first:_last + 1]
+                                     + _V[_i_parent] * {{u_minus}}[_first:_last + 1]
+                                     + _V[_i] * {{u_plus}}[_first:_last + 1])
