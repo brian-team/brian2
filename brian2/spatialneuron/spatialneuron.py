@@ -386,10 +386,10 @@ class SpatialStateUpdater(CodeRunner, Group):
         # The morphology is considered fixed (length etc. can still be changed,
         # though)
         # Traverse it once to get a flattened representation
-        self._temp_morph_i = np.zeros(segments)
-        self._temp_morph_parent_i = np.zeros(segments)
-        self._temp_starts = np.zeros(segments)
-        self._temp_ends = np.zeros(segments)
+        self._temp_morph_i = np.zeros(segments, dtype=np.int32)
+        self._temp_morph_parent_i = np.zeros(segments, dtype=np.int32)
+        self._temp_starts = np.zeros(segments, dtype=np.int32)
+        self._temp_ends = np.zeros(segments, dtype=np.int32)
         self._pre_calc_iteration(self.group.morphology)
         self._morph_i = self._temp_morph_i
         self._morph_parent_i = self._temp_morph_parent_i
