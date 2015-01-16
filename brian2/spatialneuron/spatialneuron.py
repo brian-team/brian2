@@ -22,6 +22,8 @@ from brian2.groups.neurongroup import NeuronGroup
 from brian2.groups.subgroup import Subgroup
 from brian2.equations.codestrings import Expression
 
+from .morphology import MorphologyData
+
 __all__ = ['SpatialNeuron']
 
 logger = get_logger(__name__)
@@ -221,15 +223,18 @@ class SpatialNeuron(NeuronGroup):
 
         # Insert morphology
         self.morphology = morphology
+
         # Link morphology variables to neuron's state variables
-        self.morphology.compress(
-            diameter=self.variables['diameter'].get_value(),
-            length=self.variables['length'].get_value(),
-            x=self.variables['x'].get_value(),
-            y=self.variables['y'].get_value(),
-            z=self.variables['z'].get_value(),
-            area=self.variables['area'].get_value(),
-            distance=self.variables['distance'].get_value())
+        self.morphology_data = MorphologyData(self.N)
+        self.morphology.compress(self.morphology_data)
+        # TODO: View instead of copy for runtime?
+        self.diameter_ = self.morphology_data.diameter
+        self.distance_ = self.morphology_data.distance
+        self.length_ = self.morphology_data.length
+        self.area_ = self.morphology_data.area
+        self.x_ = self.morphology_data.x
+        self.y_ = self.morphology_data.y
+        self.z_ = self.morphology_data.z
 
         # Performs numerical integration step
         self.diffusion_state_updater = SpatialStateUpdater(self, method,
@@ -381,8 +386,15 @@ class SpatialStateUpdater(CodeRunner, Group):
         # The morphology is considered fixed (length etc. can still be changed,
         # though)
         # Traverse it once to get a flattened representation
+        self._temp_morph_i = np.zeros(segments)
+        self._temp_morph_parent_i = np.zeros(segments)
+        self._temp_starts = np.zeros(segments)
+        self._temp_ends = np.zeros(segments)
         self._pre_calc_iteration(self.group.morphology)
-
+        self._morph_i = self._temp_morph_i
+        self._morph_parent_i = self._temp_morph_parent_i
+        self._starts = self._temp_starts
+        self._ends = self._temp_ends
         self._prepare_codeobj = None
 
     def before_run(self, run_namespace=None, level=0):
@@ -400,10 +412,10 @@ class SpatialStateUpdater(CodeRunner, Group):
         CodeRunner.before_run(self, run_namespace, level=level + 1)
 
     def _pre_calc_iteration(self, morphology, counter=0):
-        self._morph_i[counter] = morphology.index + 1
-        self._morph_parent_i[counter] = morphology.parent + 1
-        self._starts[counter] = morphology._origin
-        self._ends[counter] = morphology._origin + len(morphology.x) - 1
+        self._temp_morph_i[counter] = morphology.index + 1
+        self._temp_morph_parent_i[counter] = morphology.parent + 1
+        self._temp_starts[counter] = morphology._origin
+        self._temp_ends[counter] = morphology._origin + len(morphology.x) - 1
         for child in morphology.children:
             counter += 1
             self._pre_calc_iteration(child, counter)

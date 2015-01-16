@@ -22,7 +22,18 @@ try:
 except ImportError:
     logger.warn('matplotlib 0.99.1 is required for 3D plots', once=True)
 
-__all__ = ['Morphology', 'Cylinder', 'Soma']
+__all__ = ['Morphology', 'MorphologyData', 'Cylinder', 'Soma']
+
+
+class MorphologyData(object):
+    def __init__(self, N):
+        self.diameter = zeros(N)
+        self.length = zeros(N)
+        self.x = zeros(N)
+        self.y = zeros(N)
+        self.z = zeros(N)
+        self.area = zeros(N)
+        self.distance = zeros(N)
 
 
 class MorphologyIndexWrapper(object):
@@ -408,8 +419,7 @@ class Morphology(object):
         """
         return len(self.x) + sum(len(child) for child in self.children)
 
-    def compress(self, diameter=None, length=None, area=None, x=None, y=None,
-                 z=None, distance=None, origin=0):
+    def compress(self, morphology_data, origin=0):
         """
         Compresses the tree by changing the compartment vectors to views on
         a matrix (or vectors). The morphology cannot be changed anymore but
@@ -421,25 +431,23 @@ class Morphology(object):
         self._origin = origin
         n = len(self.x)
         # Update values of vectors
-        diameter[:n] = self.diameter
-        length[:n] = self.length
-        area[:n] = self.area
-        x[:n] = self.x
-        y[:n] = self.y
-        z[:n] = self.z
-        distance[:n] = self.distance
+        morphology_data.diameter[origin:origin+n] = self.diameter
+        morphology_data.length[origin:origin+n] = self.length
+        morphology_data.area[origin:origin+n] = self.area
+        morphology_data.x[origin:origin+n] = self.x
+        morphology_data.y[origin:origin+n] = self.y
+        morphology_data.z[origin:origin+n] = self.z
+        morphology_data.distance[origin:origin+n] = self.distance
         # Attributes are now views on these vectors
-        self.diameter = diameter[:n]
-        self.length = length[:n]
-        self.area = area[:n]
-        self.x = x[:n]
-        self.y = y[:n]
-        self.z = z[:n]
-        self.distance = distance[:n]
+        self.diameter = morphology_data.diameter[origin:origin+n]
+        self.length = morphology_data.length[origin:origin+n]
+        self.area = morphology_data.area[origin:origin+n]
+        self.x = morphology_data.x[origin:origin+n]
+        self.y = morphology_data.y[origin:origin+n]
+        self.z = morphology_data.z[origin:origin+n]
+        self.distance = morphology_data.distance[origin:origin+n]
         for kid in self.children:
-            kid.compress(diameter=diameter[n:], length=length[n:],
-                         area=area[n:], x=x[n:], y=y[n:], z=z[n:],
-                         distance=distance[n:], origin=origin + n)
+            kid.compress(morphology_data, origin=origin + n)
             n += len(kid)
         self.iscompressed = True
 
