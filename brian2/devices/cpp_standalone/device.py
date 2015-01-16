@@ -255,7 +255,8 @@ class CPPStandaloneDevice(Device):
             # We have to calculate indices. This will not work for synaptic
             # variables
             try:
-                indices = variableview.indexing(item)
+                indices = variableview.indexing(item,
+                                                index_var=variableview.index_var)
             except NotImplementedError:
                 raise NotImplementedError(('Cannot set variable "%s" this way in '
                                            'standalone, try using string '
