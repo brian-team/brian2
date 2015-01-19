@@ -189,8 +189,9 @@
         const int _first = {{_starts}}[_j];
         const int _last = {{_ends}}[_j];
         for (int _k=_first; _k<_last + 1; _k++)
-            {{v}}[_k] = {{v_star}}[_k] + {{_B}}[_i_parent] * {{u_minus}}[_k]
-                                       + {{_B}}[_i] * {{u_plus}}[_k];
+            if (_k < _numv)  // don't go beyond the last element
+                {{v}}[_k] = {{v_star}}[_k] + {{_B}}[_i_parent] * {{u_minus}}[_k]
+                                           + {{_B}}[_i] * {{u_plus}}[_k];
     }
 
 {% endblock %}

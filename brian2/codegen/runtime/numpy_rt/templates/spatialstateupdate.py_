@@ -78,6 +78,8 @@ for _i, _i_parent, _first, _last, in izip({{_morph_i}},
                                           {{_morph_parent_i}},
                                           {{_starts}},
                                           {{_ends}}):
-    {{v}}[_first:_last + 1] = ({{v_star}}[_first:_last + 1]
-                                     + _V[_i_parent] * {{u_minus}}[_first:_last + 1]
-                                     + _V[_i] * {{u_plus}}[_first:_last + 1])
+    # _last+1 can go beyond the last element, but in Python slicing syntax, this
+    # is ignored.
+    {{v}}[_first:_last+1] = ({{v_star}}[_first:_last+1]
+                                     + _V[_i_parent] * {{u_minus}}[_first:_last+1]
+                                     + _V[_i] * {{u_plus}}[_first:_last+1])

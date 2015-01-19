@@ -151,7 +151,7 @@
             {{_P}}[_j*_n_segments + _i] = 0
 
     # Back substitution
-    for _i in range(_n_segments, -1, -1):
+    for _i in range(_n_segments-1, -1, -1):
         # substitute all the known values
         for _j in range(_n_segments-1, _i, -1):
             {{_B}}[_i] -= {{_P}}[_i*_n_segments + _j]*{{_B}}[_j]
@@ -167,6 +167,7 @@
         __first = {{_starts}}[_i]
         __last = {{_ends}}[_i]
         for _j in range(__first, __last+1):
-            {{v}}[_j] = {{v_star}}[_j] + {{_B}}[__i_parent] * {{u_minus}}[_j] + {{_B}}[__morph_i] * {{u_plus}}[_j]
+            if (_j < _num{{v}}):
+                {{v}}[_j] = {{v_star}}[_j] + {{_B}}[__i_parent] * {{u_minus}}[_j] + {{_B}}[__morph_i] * {{u_plus}}[_j]
 
 {% endblock %}
