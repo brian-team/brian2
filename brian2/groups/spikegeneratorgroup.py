@@ -27,6 +27,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     times : `Quantity`
         The spike times for the cells given in `indices`. Has to have the
         same length as `indices`.
+    period: `Quantity`, optional
+        If this is specified, it will repeat spikes with this period.
     dt : `Quantity`, optional
         The time step to be used for the simulation. Cannot be combined with
         the `clock` argument.
@@ -58,7 +60,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
     @check_units(N=1, indices=1, times=second)
     def __init__(self, N, indices, times, dt=None, clock=None,
-                 period=np.inf*second, when='thresholds', order=0, sorted=False,
+                 period=1e100*second, when='thresholds', order=0, sorted=False,
                  name='spikegeneratorgroup*', codeobj_class=None):
 
         Group.__init__(self, dt=dt, clock=clock, when=when, order=order, name=name)
