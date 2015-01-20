@@ -2123,6 +2123,7 @@ def all_registered_units(*regs):
         for u in r.units:
             yield u
 
+
 def get_unit(x, *regs):
     '''
     Find the most appropriate consistent unit from the unit registries.
@@ -2140,7 +2141,8 @@ def get_unit(x, *regs):
     for u in all_registered_units(*regs):
         if np.asarray(u) == 1 and have_same_dimensions(u, x):
             return u
-    return Unit(x, dim=x.dim)
+    return Unit(1.0, dim=x.dim)
+
 
 def get_unit_fast(x):
     '''
