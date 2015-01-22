@@ -117,8 +117,9 @@ def sympy_to_str(sympy_expr):
 
     # Replace _vectorisation_idx by an empty symbol
     replacements[sympy.Symbol('_vectorisation_idx')] = sympy.Symbol('')
-
-    sympy_expr = sympy_expr.xreplace(replacements)
+    for old, new in replacements.iteritems():
+        if sympy_expr.has(old):
+            sympy_expr = sympy_expr.subs(old, new)
 
     return PRINTER.doprint(sympy_expr)
 
