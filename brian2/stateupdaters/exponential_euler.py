@@ -46,24 +46,16 @@ def get_conditionally_linear_system(eqs):
     coefficients = {}
     
     for name, expr in diff_eqs:
-        var = sp.Symbol(name, real=True)        
-        
-        # Coefficients
-        wildcard = sp.Wild('_A', exclude=[var])
-        #Additive constant
-        constant_wildcard = sp.Wild('_B', exclude=[var])    
-        pattern = wildcard*var + constant_wildcard
+        var = sp.Symbol(name, real=True)
     
         # Factor out the variable
-        s_expr = sp.collect(expr.sympy_expr.expand(), var)
-        matches = s_expr.match(pattern)
+        s_expr = sp.collect(expr.sympy_expr.expand(), var, evaluate=False)
         
-        if matches is None:
+        if len(s_expr) > 2 or var not in s_expr:
             raise ValueError(('The expression "%s", defining the variable %s, '
                              'could not be separated into linear components') %
-                             (s_expr, name))
-        coefficients[name] = (matches[wildcard],
-                              matches[constant_wildcard])
+                             (expr, name))
+        coefficients[name] = (s_expr[var], s_expr.get(1, 0))
     
     return coefficients
 
