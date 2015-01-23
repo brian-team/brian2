@@ -34,7 +34,7 @@ I : amp
 ''')
 # Threshold and refractoriness are only used for spike counting
 group = NeuronGroup(num_neurons, eqs,
-                    threshold='not_refractory and (v > -40*mV)',
+                    threshold='v > -40*mV',
                     refractory='v > -40*mV')
 group.v = El
 group.I = '0.7*nA * i / num_neurons'

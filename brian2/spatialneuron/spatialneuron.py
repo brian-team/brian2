@@ -164,8 +164,8 @@ class SpatialNeuron(NeuronGroup):
 
         if matches is None:
             raise TypeError, "The membrane current must be linear with respect to v"
-        a, b = (matches[wildcard].simplify(),
-                matches[constant_wildcard].simplify())
+        a, b = (matches[wildcard],
+                matches[constant_wildcard])
 
         # Extracts the total conductance from Im, and the remaining current
         minusa_str, b_str = sympy_to_str(-a), sympy_to_str(b)

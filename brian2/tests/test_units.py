@@ -932,6 +932,7 @@ def test_get_unit():
         unit = get_unit(value)
         assert isinstance(unit, Unit)
         assert unit == amp/metre**2
+        assert float(unit) == 1.
         assert_quantity(get_unit_fast(value), 1, amp/metre**2)
 
 

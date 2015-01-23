@@ -53,6 +53,15 @@ class WeaveCodeGenerator(CPPCodeGenerator):
         self.c_data_type = weave_data_type
 
 
+def compiler_defines(compiler):
+    if compiler=='msvc':
+        return '''
+#define INFINITY (std::numeric_limits<double>::infinity())
+#define NAN (std::numeric_limits<double>::quiet_NaN())
+        '''
+    return ''
+
+
 class WeaveCodeObject(CodeObject):
     '''
     Weave code object
@@ -80,7 +89,8 @@ class WeaveCodeObject(CodeObject):
         self.compiler, self.extra_compile_args = get_compiler_and_args()
         self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
-        self.annotated_code = self.code.main+'''
+        self.code.support_code = compiler_defines(self.compiler)+self.code.support_code
+        self.annotated_code = compiler_defines(self.compiler)+self.code.main+'''
 /*
 The following code is just compiler options for the call to weave.inline.
 By including them here, we force a recompile if the compiler options change,
@@ -102,8 +112,7 @@ include_dirs:
                    compiler=self.compiler,
                    extra_compile_args=self.extra_compile_args,
                    include_dirs=self.include_dirs)
-        if self.compiler == 'msvc':
-            self.annotated_code = '#define INFINITY (std::numeric_limits<double>::infinity())\n'+self.annotated_code        
+            
         self.python_code_namespace = {'_owner': owner}
         self.variables_to_namespace()
 

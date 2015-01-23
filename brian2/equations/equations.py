@@ -500,6 +500,8 @@ class Equations(collections.Mapping):
                                         eq.varname)
                 self._equations[eq.varname] = eq
 
+        self._substituted_expressions = None
+
         # save these to change the keys of the dictionary later
         model_var_replacements = []
         for varname, replacement in kwds.iteritems():
@@ -653,6 +655,10 @@ class Equations(collections.Mapping):
             `CodeString` object with all subexpression variables substituted
             with the respective expression.
         '''
+        # Cache the substituted expressions
+        if self._substituted_expressions is not None:
+            return self._substituted_expressions
+
         subst_exprs = []
         substitutions = {}
         for eq in self.ordered:
@@ -660,7 +666,7 @@ class Equations(collections.Mapping):
             if eq.expr is None:
                 continue
 
-            new_sympy_expr = eq.expr.sympy_expr.subs(substitutions)
+            new_sympy_expr = eq.expr.sympy_expr.xreplace(substitutions)
             new_str_expr = sympy_to_str(new_sympy_expr)
             expr = Expression(new_str_expr)
 
@@ -672,6 +678,7 @@ class Equations(collections.Mapping):
             else:
                 raise AssertionError('Unknown equation type %s' % eq.type)
 
+        self._substituted_expressions = subst_exprs
         return subst_exprs
 
     def _get_stochastic_type(self):

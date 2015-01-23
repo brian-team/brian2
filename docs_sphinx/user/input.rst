@@ -82,9 +82,24 @@ Brian1 returned ``x1`` for ``0<=t<0.5*my_dt``,
     stimulus = TimedArray(np.hstack([[c, c, c, 0, 0]
                                      for c in np.random.rand(1000)]),
                                     dt=10*ms)
-    G = NeuronGroup(100, 'dv/dt = (-v + 2*stimulus(t))/(10*ms) : 1',
+    G = NeuronGroup(100, 'dv/dt = (-v + stimulus(t))/(10*ms) : 1',
                     threshold='v>1', reset='v=0')
     G.v = '0.5*rand()'  # different initial values for the neurons
+
+`TimedArray` can take a one-dimensional value array (as above) and therefore
+return the same value for all neurons or it can take a two-dimensional array
+with time as the first and (neuron/synapse/...-)index as the second dimension.
+
+In the following, this is used to implement shared noise between neurons, all
+the "even neurons" get the first noise instantiation, all the "odd neurons" get
+the second::
+
+    runtime = 1*second
+    stimulus = TimedArray(np.random.rand(int(runtime/defaultclock.dt), 2),
+                          dt=defaultclock.dt)
+    G = NeuronGroup(100, 'dv/dt = (-v + stimulus(t, i % 2))/(10*ms) : 1',
+                    threshold='v>1', reset='v=0')
+
 
 Custom operations
 -----------------

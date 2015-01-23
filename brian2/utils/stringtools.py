@@ -7,6 +7,7 @@ import re
 __all__ = ['indent',
            'deindent',
            'word_substitute',
+           'replace',
            'get_identifiers',
            'strip_empty_lines',
            'stripped_deindented_lines',
@@ -134,6 +135,16 @@ def word_substitute(expr, substitutions):
     for var, replace_var in substitutions.iteritems():
         expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)
     return expr
+
+
+def replace(s, substitutions):
+    '''
+    Applies a dictionary of substitutions. Simpler than `word_substitute`, it
+    does not attempt to only replace words
+    '''
+    for before, after in substitutions.iteritems():
+        s = s.replace(before, after)
+    return s
 
 
 KEYWORDS = set(['and', 'or', 'not', 'True', 'False'])

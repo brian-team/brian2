@@ -511,7 +511,7 @@ class NeuronGroup(Group, SpikeSource):
                                          values=index_array)
                 index = '_%s_indices' % key
             else:
-                if linked_var.scalar or var_length == 1:
+                if linked_var.scalar or (var_length == 1 and self._N != 1):
                     index = '0'
                 else:
                     index = value.group.variables.indices[value.name]
