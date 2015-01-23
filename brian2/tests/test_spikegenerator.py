@@ -6,7 +6,7 @@ import tempfile
 
 from nose import with_setup
 from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_raises
+from numpy.testing.utils import assert_raises, assert_equal
 
 from brian2 import *
 from brian2.devices.cpp_standalone import cpp_standalone_device
@@ -135,6 +135,55 @@ def test_spikegenerator_incorrect_period():
     assert_raises(ValueError, lambda: net.run(0*ms))
 
 
+def test_spikegenerator_rounding():
+    # all spikes should fall into the first time bin
+    indices = np.arange(1000)
+    times = np.linspace(0, 0.1, 1000, endpoint=False)*ms
+    SG = SpikeGeneratorGroup(1000, indices, times, dt=0.1*ms)
+    mon = SpikeMonitor(SG)
+    net = Network(SG, mon)
+    net.run(0.1*ms)
+    assert_equal(mon.count, np.ones(1000))
+
+    # all spikes should fall in separate bins
+    dt = 0.1*ms
+    indices = np.zeros(10000)
+    times = np.arange(10000)*dt
+    SG = SpikeGeneratorGroup(1, indices, times, dt=dt)
+    target = NeuronGroup(1, 'count : 1',
+                         threshold='True', reset='count=0')  # set count to zero at every time step
+    syn = Synapses(SG, target, pre='count+=1', connect=True)
+    mon = StateMonitor(target, 'count', record=0, when='end')
+    net = Network(SG, target, syn, mon)
+    # change the schedule so that resets are processed before synapses
+    net.schedule = ['start', 'groups', 'thresholds', 'resets', 'synapses', 'end']
+    net.run(10000*dt)
+    assert_equal(mon[0].count, np.ones(10000))
+
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_initial_state)
+def test_spikegenerator_multiple_spikes_per_bin():
+    # Multiple spikes per bin are of course fine if they don't belong to the
+    # same neuron
+    SG = SpikeGeneratorGroup(1, [0, 1], [0, 0.05]*ms, dt=0.1*ms)
+    net = Network(SG)
+    net.run(0*ms)
+
+    # This should raise an error
+    SG = SpikeGeneratorGroup(1, [0, 0], [0, 0.05]*ms, dt=0.1*ms)
+    net = Network(SG)
+    assert_raises(ValueError, lambda: net.run(0*ms))
+
+    # More complicated scenario where dt changes between runs
+    defaultclock.dt = 0.1*ms
+    SG = SpikeGeneratorGroup(1, [0, 0], [0.05, 0.15]*ms)
+    net = Network(SG)
+    net.run(0*ms)  # all is fine
+    defaultclock.dt = 0.2*ms  # Now the two spikes fall into the same bin
+    assert_raises(ValueError, lambda: net.run(0*ms))
+
+
 @attr('standalone')
 @with_setup(teardown=restore_device)
 def test_spikegenerator_standalone():
@@ -164,4 +213,7 @@ if __name__ == '__main__':
     test_spikegenerator_period()
     test_spikegenerator_period_repeat()
     test_spikegenerator_incorrect_period()
+    test_spikegenerator_rounding()
+    test_spikegenerator_multiple_spikes_per_bin()
     test_spikegenerator_standalone()
+

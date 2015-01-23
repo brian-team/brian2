@@ -4,7 +4,7 @@
 
     double padding_before = fmod(t, period);
     double padding_after  = fmod(t+dt, period);
-    double epsilon        = 1e-3*dt;
+    double epsilon        = 1e-6*dt;
 
     // We need some precomputed values that will be used during looping
     bool not_first_spike = ({{_lastindex}}[0] > 0);
