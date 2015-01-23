@@ -18,13 +18,7 @@
     # If there is a periodicity in the SpikeGenerator, we need to reset the lastindex 
     # when all spikes have been played and at the end of the period
     if not_first_spike and ({{spike_time}}[{{_lastindex}}[0] - 1] > padding_before):
-        {{_lastindex}}[0] = 0    
-
-    for _spike_time in {{spike_time}}[{{_lastindex}}[0]:_num{{spike_time}}]:
-        test = (_spike_time > padding_before) or (abs(_spike_time - padding_before) < epsilon)
-        if test:
-            break
-        {{_lastindex}}[0] += 1
+        {{_lastindex}}[0] = 0
 
     for _idx in range({{_lastindex}}[0], _num{{spike_time}}):
         _spike_time = {{spike_time}}[_idx]

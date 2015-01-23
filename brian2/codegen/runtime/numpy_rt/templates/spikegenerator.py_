@@ -17,22 +17,10 @@ not_end_period  = abs(padding_after) > (dt - epsilon)
 if not_first_spike and ({{spike_time}}[{{_lastindex}}[0] - 1] > padding_before):
     {{_lastindex}}[0] = 0
 
-for _spike_time in {{spike_time}}[{{_lastindex}}[0]:]:
-    test = (_spike_time > padding_before) or (abs(_spike_time - padding_before) < epsilon)
-    if test:
-        break
-    {{_lastindex}}[0] += 1
-
-for _spike_time in {{spike_time}}[{{_lastindex}}[0]:]:
-    if not_end_period:
-        test = (_spike_time > padding_after) or (abs(_spike_time - padding_after) < epsilon)
-    else:
-        # If we are in the last timestep before the end of the period, we remove the first part of the
-        # test, because padding will be 0
-        test = abs(_spike_time - padding_after) < epsilon
-    if test:
-        break
-    _n_spikes += 1
+if not_end_period:
+    _n_spikes = np.searchsorted({{spike_time}}[{{_lastindex}}[0]:], padding_after - epsilon, side='right')
+else:
+    _n_spikes = np.searchsorted({{spike_time}}[{{_lastindex}}[0]:], period, side='right')
 
 _indices = {{neuron_index}}[{{_lastindex}}[0]:{{_lastindex}}[0]+_n_spikes]
 

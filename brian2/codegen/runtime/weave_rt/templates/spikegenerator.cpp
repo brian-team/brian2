@@ -23,14 +23,6 @@
 
     for(int _idx={{_lastindex}}[0]; _idx < _numspike_time; _idx++)
     {
-        test = ({{spike_time}}[_idx] > padding_before) || (fabs({{spike_time}}[_idx] - padding_before) < epsilon);
-        if (test)
-            break;
-        {{_lastindex}}[0]++;
-    }
-    
-    for(int _idx={{_lastindex}}[0]; _idx < _numspike_time; _idx++)
-    {
         if (not_end_period)
             test = ({{spike_time}}[_idx] > padding_after) || (fabs({{spike_time}}[_idx] - padding_after) < epsilon);
         else

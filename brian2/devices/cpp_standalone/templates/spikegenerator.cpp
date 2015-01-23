@@ -19,16 +19,8 @@
     {
 
         if (not_first_spike && ({{spike_time}}[{{_lastindex}}[0] - 1] > padding_before))
-        {   
-            {{_lastindex}}[0] = 0;
-        }
-
-        for(int _idx={{_lastindex}}[0]; _idx < _numspike_time; _idx++)
         {
-            test = ({{spike_time}}[_idx] > padding_before) || (fabs({{spike_time}}[_idx] - padding_before) < epsilon);
-            if (test)
-                break;
-            {{_lastindex}}[0]++;
+            {{_lastindex}}[0] = 0;
         }
         
         for(int _idx={{_lastindex}}[0]; _idx < _numspike_time; _idx++)
