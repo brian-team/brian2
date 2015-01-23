@@ -154,7 +154,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             # at exact multiples of dt do not end up in the previous time bin
             # This shift has to be quite significant relative to machine
             # epsilon, we use 1e-6 of the dt here
-            shift = 1e-6*self.dt_
+            shift = 1e-3*self.dt_
             timebins = np.asarray(np.asarray(self._spike_time + shift)/self.dt_ ,
                                   dtype=np.int32)
             index_timebins = np.rec.fromarrays([self._neuron_index,

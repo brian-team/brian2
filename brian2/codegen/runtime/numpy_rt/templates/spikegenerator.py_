@@ -6,7 +6,7 @@ import numpy as np
 padding_before = t % period
 padding_after  = (t + dt) % period
 _n_spikes      = 0
-epsilon        = 1e-6*dt
+epsilon        = 1e-3*dt
 
 # We need some precomputed values that will be used during looping
 not_first_spike = {{_lastindex}}[0] > 0

@@ -137,13 +137,13 @@ def test_spikegenerator_incorrect_period():
 
 def test_spikegenerator_rounding():
     # all spikes should fall into the first time bin
-    indices = np.arange(1000)
-    times = np.linspace(0, 0.1, 1000, endpoint=False)*ms
-    SG = SpikeGeneratorGroup(1000, indices, times, dt=0.1*ms)
+    indices = np.arange(100)
+    times = np.linspace(0, 0.1, 100, endpoint=False)*ms
+    SG = SpikeGeneratorGroup(100, indices, times, dt=0.1*ms)
     mon = SpikeMonitor(SG)
     net = Network(SG, mon)
     net.run(0.1*ms)
-    assert_equal(mon.count, np.ones(1000))
+    assert_equal(mon.count, np.ones(100))
 
     # all spikes should fall in separate bins
     dt = 0.1*ms
