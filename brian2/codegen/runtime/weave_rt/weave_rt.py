@@ -54,10 +54,11 @@ class WeaveCodeGenerator(CPPCodeGenerator):
 
 
 def compiler_defines(compiler):
-    if compiler=='msvc':
+    if compiler == 'msvc':
         return '''
 #define INFINITY (std::numeric_limits<double>::infinity())
 #define NAN (std::numeric_limits<double>::quiet_NaN())
+#define M_PI 3.14159265358979323846
         '''
     return ''
 
