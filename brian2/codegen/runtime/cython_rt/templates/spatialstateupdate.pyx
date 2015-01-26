@@ -161,7 +161,7 @@
         {{_P}}[_i*_n_segments + _i] = 1
 
     # Linear combination
-    for _i in range(_n_segments):
+    for _i in range(_n_segments-1):
         __morph_i = {{_morph_i}}[_i]
         __i_parent = {{_morph_parent_i}}[_i]
         __first = {{_starts}}[_i]
