@@ -24,8 +24,8 @@ try:
 except ImportError:
     Cython = None
 
+from brian2.utils.logger import std_silent
 from brian2.utils.stringtools import deindent
-from brian2.utils.filetools import stdout_redirected
 
 __all__ = ['cython_extension_manager']
 
@@ -109,13 +109,12 @@ class CythonExtensionManager(object):
                     force=True,
                     )
                 # suppresses the output on stdout
-                with open(os.devnull, 'w') as f:
-                    with stdout_redirected(f):
-                        build_extension.extensions = Cython_Build.cythonize([extension], **opts)
+                with std_silent():
+                    build_extension.extensions = Cython_Build.cythonize([extension], **opts)
 
-                        build_extension.build_temp = os.path.dirname(pyx_file)
-                        build_extension.build_lib = lib_dir
-                        build_extension.run()
+                    build_extension.build_temp = os.path.dirname(pyx_file)
+                    build_extension.build_lib = lib_dir
+                    build_extension.run()
             except Cython_Compiler.Errors.CompileError:
                 return
 

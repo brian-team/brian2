@@ -233,7 +233,7 @@ class SpikeQueue(object):
         sources : ndarray of int
             The indices of the neurons that spiked.
         '''
-        if len(sources):
+        if len(sources) and len(self._delays):
             start = self._source_start
             stop = self._source_end
             if start > 0:

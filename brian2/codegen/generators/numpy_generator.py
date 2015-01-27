@@ -151,7 +151,7 @@ for func_name, func in [('sin', np.sin), ('cos', np.cos), ('tan', np.tan),
                         ('exp', np.exp), ('log', np.log), ('log10', np.log10),
                         ('sqrt', np.sqrt), ('arcsin', np.arcsin),
                         ('arccos', np.arccos), ('arctan', np.arctan),
-                        ('abs', np.abs), ('mod', np.mod)]:
+                        ('abs', np.abs), ('mod', np.fmod)]:
     DEFAULT_FUNCTIONS[func_name].implementations.add_implementation(NumpyCodeGenerator,
                                                                     code=func)
 

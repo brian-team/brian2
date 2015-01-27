@@ -1,12 +1,29 @@
-{# USES_VARIABLES { _spikespace, t, dt, neuron_index, spike_time } #}
+{# USES_VARIABLES { _spikespace, t, dt, neuron_index, spike_time, period, _lastindex } #}
 import numpy as np
 
 # TODO: We don't deal with more than one spike per neuron yet
-# Spikes since the preceding time step
-start = np.searchsorted({{spike_time}}, t-dt, side='right')
-stop = np.searchsorted({{spike_time}}, t, side='right')
-_indices = {{neuron_index}}[start:stop]
 
-_n_spikes = len(_indices)
+padding_before = t % period
+padding_after  = (t + dt) % period
+_n_spikes      = 0
+epsilon        = 1e-3*dt
+
+# We need some precomputed values that will be used during looping
+not_first_spike = {{_lastindex}}[0] > 0
+not_end_period  = abs(padding_after) > (dt - epsilon)
+
+# If there is a periodicity in the SpikeGenerator, we need to reset the lastindex 
+# when all spikes have been played and at the end of the period
+if not_first_spike and ({{spike_time}}[{{_lastindex}}[0] - 1] > padding_before):
+    {{_lastindex}}[0] = 0
+
+if not_end_period:
+    _n_spikes = np.searchsorted({{spike_time}}[{{_lastindex}}[0]:], padding_after - epsilon, side='right')
+else:
+    _n_spikes = np.searchsorted({{spike_time}}[{{_lastindex}}[0]:], period, side='right')
+
+_indices = {{neuron_index}}[{{_lastindex}}[0]:{{_lastindex}}[0]+_n_spikes]
+
 {{_spikespace}}[:_n_spikes] = _indices
 {{_spikespace}}[-1] = _n_spikes
+{{_lastindex}}[0]  += _n_spikes

@@ -135,6 +135,12 @@ transmembrane current at every point on the neuronal morphology, and updates ``v
 the diffusion current, which is calculated based on the morphology and the intracellular resistivity.
 Note that the transmembrane current is a surfacic current, not the total current in the compartement.
 This choice means that the model equations are independent of the number of compartments chosen for the simulation.
+The space constant can obtained for any point of the neuron with the ``space_constant`` attribute::
+
+    l = neuron.space_constant[0]
+
+The calculation is based on the local total conductance (not just the leak conductance).
+Therefore, it can potentially vary during a simulation (e.g. decrease during an action potential).
 
 To inject a current `I` at a particular point (e.g. through an electrode or a synapse), this current must be divided by
 the area of the compartment when inserted in the transmembrane current equation. This is done automatically when

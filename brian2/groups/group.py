@@ -196,9 +196,11 @@ class Indexing(object):
             raise IndexError(('Can only interpret 1-d indices, '
                               'got %d dimensions.') % len(item))
         else:
-            if item is None:
+            if item is None or item == 'True':
                 item = slice(None)
             if isinstance(item, slice):
+                if index_var == '0':
+                    return 0
                 if index_var == '_idx':
                     start, stop, step = item.indices(self.N.get_value())
                 else:

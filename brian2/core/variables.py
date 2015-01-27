@@ -840,7 +840,12 @@ class VariableView(object):
         if variable.read_only:
             raise TypeError('Variable %s is read-only.' % self.name)
 
-        if isinstance(item, slice) and item == slice(None):
+        # The second part is equivalent to item == slice(None) but formulating
+        # it this way prevents a FutureWarning if one of the elements is a
+        # numpy array
+        if isinstance(item, slice) and (item.start is None and
+                                        item.stop is None and
+                                        item.step is None):
             item = 'True'
 
         check_units = self.unit is not None
@@ -1138,6 +1143,12 @@ class VariableView(object):
         codeobj = create_runner_codeobj(self.group,
                                         abstract_code,
                                         'group_variable_get',
+                                        # Setting the user code to an empty
+                                        # string suppresses warnings if the
+                                        # subexpression refers to variable
+                                        # names that are also present in the
+                                        # local namespace
+                                        user_code='',
                                         needed_variables=['_group_idx'],
                                         additional_variables=variables,
                                         level=level+2,

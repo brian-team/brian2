@@ -2,22 +2,27 @@
 Compartmental models.
 This module defines the SpatialNeuron class, which defines multicompartmental models.
 '''
-import sympy as sp
-from numpy import zeros, pi
-from numpy.linalg import solve
+from itertools import izip
+import weakref
 
+import sympy as sp
+from numpy import pi
+import numpy as np
+
+from brian2.core.variables import Variables
 from brian2.equations.equations import (Equations, PARAMETER, SUBEXPRESSION,
                                         DIFFERENTIAL_EQUATION)
-from brian2.groups.group import Group, CodeRunner
+from brian2.groups.group import Group, CodeRunner, create_runner_codeobj
 from brian2.units.allunits import ohm, siemens, amp
 from brian2.units.fundamentalunits import Unit, fail_for_dimension_mismatch
 from brian2.units.stdunits import uF, cm
 from brian2.parsing.sympytools import sympy_to_str
 from brian2.utils.logger import get_logger
-from brian2.core.variables import Variables
 from brian2.groups.neurongroup import NeuronGroup
 from brian2.groups.subgroup import Subgroup
 from brian2.equations.codestrings import Expression
+
+from .morphology import MorphologyData
 
 __all__ = ['SpatialNeuron']
 
@@ -159,8 +164,8 @@ class SpatialNeuron(NeuronGroup):
 
         if matches is None:
             raise TypeError, "The membrane current must be linear with respect to v"
-        a, b = (matches[wildcard].simplify(),
-                matches[constant_wildcard].simplify())
+        a, b = (matches[wildcard],
+                matches[constant_wildcard])
 
         # Extracts the total conductance from Im, and the remaining current
         minusa_str, b_str = sympy_to_str(-a), sympy_to_str(b)
@@ -188,7 +193,24 @@ class SpatialNeuron(NeuronGroup):
         Cm : farad/meter**2 (constant)
         Ri : ohm*meter (constant, shared)
         space_constant = (diameter/(4*Ri*gtot__private))**.5 : meter # Not so sure about the name
+
+        ### Parameters and intermediate variables for solving the cable equation
+        ab_star0 : siemens/meter**2
+        ab_plus0 : siemens/meter**2
+        ab_minus0 : siemens/meter**2
+        ab_star1 : siemens/meter**2
+        ab_plus1 : siemens/meter**2
+        ab_minus1 : siemens/meter**2
+        ab_star2 : siemens/meter**2
+        ab_plus2 : siemens/meter**2
+        ab_minus2 : siemens/meter**2
+        b_plus : siemens/meter**2
+        b_minus : siemens/meter**2
+        v_star : volt
+        u_plus : 1
+        u_minus : 1
         """)
+        # Possibilities for the name: characteristic_length, electrotonic_length, length_constant, space_constant
 
         NeuronGroup.__init__(self, len(morphology), model=model + eqs_constants,
                              threshold=threshold, refractory=refractory,
@@ -201,15 +223,18 @@ class SpatialNeuron(NeuronGroup):
 
         # Insert morphology
         self.morphology = morphology
+
         # Link morphology variables to neuron's state variables
-        self.morphology.compress(
-            diameter=self.variables['diameter'].get_value(),
-            length=self.variables['length'].get_value(),
-            x=self.variables['x'].get_value(),
-            y=self.variables['y'].get_value(),
-            z=self.variables['z'].get_value(),
-            area=self.variables['area'].get_value(),
-            distance=self.variables['distance'].get_value())
+        self.morphology_data = MorphologyData(self.N)
+        self.morphology.compress(self.morphology_data)
+        # TODO: View instead of copy for runtime?
+        self.diameter_ = self.morphology_data.diameter
+        self.distance_ = self.morphology_data.distance
+        self.length_ = self.morphology_data.length
+        self.area_ = self.morphology_data.area
+        self.x_ = self.morphology_data.x
+        self.y_ = self.morphology_data.y
+        self.z_ = self.morphology_data.z
 
         # Performs numerical integration step
         self.diffusion_state_updater = SpatialStateUpdater(self, method,
@@ -319,7 +344,7 @@ class SpatialStateUpdater(CodeRunner, Group):
     def __init__(self, group, method, clock, order=0):
         # group is the neuron (a group of compartments) 
         self.method_choice = method
-        self._isprepared = False
+        self.group = weakref.proxy(group)
         CodeRunner.__init__(self, group,
                             'spatialstateupdate',
                             code='''_gtot = gtot__private
@@ -329,104 +354,71 @@ class SpatialStateUpdater(CodeRunner, Group):
                             order=order,
                             name=group.name + '_spatialstateupdater*',
                             check_units=False)
-        N = len(self.group)
-        self.ab_star = zeros((3, N))
-        self.ab_plus = zeros((3, N))
-        self.ab_minus = zeros((3, N))
-        self.b_plus = zeros(N)
-        self.b_minus = zeros(N)
-        self.v_star = zeros(N)
-        self.u_plus = zeros(N)
-        self.u_minus = zeros(N)
-        self.variables = Variables(self)
-        # These 5 variables are constant after prepare()
-        self.variables.add_array('ab_star', Unit(1), 3 * N,
-                                 values=self.ab_star.flatten(),
-                                 dtype=self.ab_star.dtype)
-        self.variables.add_array('ab_plus', Unit(1), 3 * N,
-                                 values=self.ab_plus.flatten(),
-                                 dtype=self.ab_plus.dtype)
-        self.variables.add_array('ab_minus', Unit(1), 3 * N,
-                                 values=self.ab_minus.flatten(),
-                                 dtype=self.ab_minus.dtype)
-        self.variables.add_array('b_plus', Unit(1), N, values=self.b_plus,
-                                 dtype=self.b_plus.dtype)
-        self.variables.add_array('b_minus', Unit(1), N, values=self.b_minus,
-                                 dtype=self.b_minus.dtype)
-        # These 3 variables change every time step
-        self.variables.add_array('v_star', Unit(1), N, values=self.v_star,
-                                 dtype=self.v_star.dtype)
-        self.variables.add_array('u_plus', Unit(1), N, values=self.u_plus,
-                                 dtype=self.u_plus.dtype)
-        self.variables.add_array('u_minus', Unit(1), N, values=self.u_minus,
-                                 dtype=self.u_minus.dtype)
+        n = len(group) # total number of compartments
+        segments = self.number_branches(group.morphology)
+        self.variables = Variables(self, default_index='_segment_idx')
+        self.variables.add_reference('N', group)
+        self.variables.add_arange('_compartment_idx', size=n)
+        self.variables.add_arange('_segment_idx', size=segments)
+        self.variables.add_arange('_segment_root_idx', size=segments+1)
+        self.variables.add_arange('_P_idx', size=(segments+1)**2)
+
+        self.variables.add_array('_invr', unit=siemens, size=n, constant=True,
+                                 index='_compartment_idx')
+        self.variables.add_array('_P', unit=Unit(1), size=(segments+1)**2,
+                                 constant=True, index='_P_idx')
+        self.variables.add_array('_B', unit=Unit(1), size=segments+1,
+                                 constant=True, index='_segment_root_idx')
+        self.variables.add_array('_morph_i', unit=Unit(1), size=segments,
+                                 dtype=np.int32, constant=True)
+        self.variables.add_array('_morph_parent_i', unit=Unit(1), size=segments,
+                                 dtype=np.int32, constant=True)
+        self.variables.add_array('_starts', unit=Unit(1), size=segments,
+                                 dtype=np.int32, constant=True)
+        self.variables.add_array('_ends', unit=Unit(1), size=segments,
+                                 dtype=np.int32, constant=True)
+        self.variables.add_array('_invr0', unit=siemens, size=segments,
+                                 constant=True)
+        self.variables.add_array('_invrn', unit=siemens, size=segments,
+                                 constant=True)
+        self._enable_group_attributes()
+
+        # The morphology is considered fixed (length etc. can still be changed,
+        # though)
+        # Traverse it once to get a flattened representation
+        self._temp_morph_i = np.zeros(segments, dtype=np.int32)
+        self._temp_morph_parent_i = np.zeros(segments, dtype=np.int32)
+        self._temp_starts = np.zeros(segments, dtype=np.int32)
+        self._temp_ends = np.zeros(segments, dtype=np.int32)
+        self._pre_calc_iteration(self.group.morphology)
+        self._morph_i = self._temp_morph_i
+        self._morph_parent_i = self._temp_morph_parent_i
+        self._starts = self._temp_starts
+        self._ends = self._temp_ends
+        self._prepare_codeobj = None
 
     def before_run(self, run_namespace=None, level=0):
-        if not self._isprepared:  # this is done only once even if there are multiple runs
-            self.prepare()
-            self._isprepared = True
+        # execute code to initalize the data structures
+        if self._prepare_codeobj is None:
+            self._prepare_codeobj = create_runner_codeobj(self.group,
+                                                          '', # no code,
+                                                          'spatialneuron_prepare',
+                                                          name=self.name+'_spatialneuron_prepare',
+                                                          check_units=False,
+                                                          additional_variables=self.variables,
+                                                          run_namespace=run_namespace,
+                                                          level=level+1)
+        self._prepare_codeobj()
         CodeRunner.before_run(self, run_namespace, level=level + 1)
 
-    def run(self):
-        CodeRunner.run(self)
-        # Solve the linear system connecting branches
-        self.P[:] = 0
-        self.B[:] = 0
-        self.fill_matrix(self.group.morphology)
-        self.V = solve(self.P, self.B)  # This code could be generated at initialization
-        # Calculate solutions by linear combination
-        self.linear_combination(self.group.morphology)
-
-    def prepare(self):
-        '''
-        Preparation of data structures.
-        See the relevant document.
-        '''
-        # Correction for soma (a bit of a hack), so that it has negligible axial resistance
-        if self.group.morphology.type == 'soma':
-            self.group.length[0] = self.group.diameter[0] * 0.01
-        # Inverse axial resistance
-        self.invr = zeros(len(self.group)) * siemens
-        self.invr[1:] = (pi / (2 * self.group.Ri) * (self.group.diameter[:-1] *
-                                                     self.group.diameter[1:]) /
-                         (self.group.length[:-1] + self.group.length[1:]))
-        # Note: this would give nan for the soma
-        self.cut_branches(self.group.morphology)
-
-        # Linear systems
-        # The particular solution
-        '''a[i,j]=ab[u+i-j,j]'''  # u is the number of upper diagonals = 1
-        self.ab_star[0, 1:] = self.invr[1:] / self.group.area[:-1]
-        self.ab_star[2, :-1] = self.invr[1:] / self.group.area[1:]
-        self.ab_star[1, :] = (-(self.group.Cm / self.group.clock.dt) -
-                              self.invr / self.group.area)
-        self.ab_star[1, :-1] -= self.invr[1:] / self.group.area[:-1]
-        # Homogeneous solutions
-        self.ab_plus[:] = self.ab_star
-        self.ab_minus[:] = self.ab_star
-
-        # Boundary conditions
-        self.boundary_conditions(self.group.morphology)
-
-        # Linear system for connecting branches
-        n = 1 + self.number_branches(self.group.morphology)  # number of nodes (2 for the root)
-        self.P = zeros((n, n))  # matrix
-        self.B = zeros(n)  # vector RHS
-        self.V = zeros(n)  # solution = voltages at nodes
-
-        self.variables['ab_star'].set_value(self.ab_star.flatten())
-        self.variables['ab_plus'].set_value(self.ab_plus.flatten())
-        self.variables['ab_minus'].set_value(self.ab_minus.flatten())
-        self.variables['b_plus'].set_value(self.b_plus)
-        self.variables['b_minus'].set_value(self.b_minus)
-
-    def cut_branches(self, morphology):
-        '''
-        Recursively cut the branches by setting zero axial resistances.
-        '''
-        self.invr[morphology._origin] = 0
-        for kid in (morphology.children):
-            self.cut_branches(kid)
+    def _pre_calc_iteration(self, morphology, counter=0):
+        self._temp_morph_i[counter] = morphology.index + 1
+        self._temp_morph_parent_i[counter] = morphology.parent + 1
+        self._temp_starts[counter] = morphology._origin
+        self._temp_ends[counter] = morphology._origin + len(morphology.x) - 1
+        for child in morphology.children:
+            counter += 1
+            self._pre_calc_iteration(child, counter)
 
     def number_branches(self, morphology, n=0, parent=-1):
         '''
@@ -440,81 +432,3 @@ class SpatialStateUpdater(CodeRunner, Group):
         for kid in (morphology.children):
             nbranches += self.number_branches(kid, n + nbranches, n)
         return nbranches
-
-    def boundary_conditions(self, morphology):
-        '''
-        Recursively sets the boundary conditions in the linear systems.
-        '''
-        first = morphology._origin  # first compartment
-        last = first + len(morphology.x) - 1  # last compartment
-        # Inverse axial resistances at the ends: r0 and rn
-        morphology.invr0 = float(pi / (2 * self.group.Ri) *
-                                 self.group.diameter[first] ** 2 /
-                                 self.group.length[first])
-        morphology.invrn = float(pi / (2 * self.group.Ri) *
-                                 self.group.diameter[last] ** 2 /
-                                 self.group.length[last])
-        # Correction for boundary conditions
-        self.ab_star[1, first] -= float(morphology.invr0 / self.group.area[first])  # because of units problems
-        self.ab_star[1, last] -= float(morphology.invrn / self.group.area[last])
-        self.ab_plus[1, first] -= float(morphology.invr0 / self.group.area[first])  # because of units problems
-        self.ab_plus[1, last] -= float(morphology.invrn / self.group.area[last])
-        self.ab_minus[1, first] -= float(morphology.invr0 / self.group.area[first])  # because of units problems
-        self.ab_minus[1, last] -= float(morphology.invrn / self.group.area[last])
-        # RHS for homogeneous solutions
-        self.b_plus[last] = -float(morphology.invrn / self.group.area[last])
-        self.b_minus[first] = -float(morphology.invr0 / self.group.area[first])
-        # Recursive call
-        for kid in (morphology.children):
-            self.boundary_conditions(kid)
-
-    # ### The two methods below should be written in C
-    #### In each one there is a static function, plus a call for each segment
-    #### Code for the latter could be generated at initialization
-    def linear_combination(self, morphology):
-        '''
-        Calculates solutions by linear combination
-        '''
-        first = morphology._origin  # first compartment
-        last = first + len(morphology.x) - 1  # last compartment
-        i = morphology.index + 1
-        i_parent = morphology.parent + 1
-        v_star = self.variables['v_star'].get_value()
-        u_minus = self.variables['u_minus'].get_value()
-        u_plus = self.variables['u_plus'].get_value()
-        self.group.v_[first:last + 1] = (v_star[first:last + 1] +
-                                         self.V[i_parent] * u_minus[first:last + 1]
-                                         + self.V[i] * u_plus[first:last + 1])
-        # Recursive call
-        for kid in (morphology.children):
-            self.linear_combination(kid)
-
-    def fill_matrix(self, morphology):
-        '''
-        Recursively fills the matrix of the linear system that connects
-        branches together.
-        Apparently this is quick.
-        '''
-        first = morphology._origin  # first compartment
-        last = first + len(morphology.x) - 1  # last compartment
-        i = morphology.index + 1
-        i_parent = morphology.parent + 1
-        v_star = self.variables['v_star'].get_value()
-        u_minus = self.variables['u_minus'].get_value()
-        u_plus = self.variables['u_plus'].get_value()
-        # Towards parent
-        if i == 1:  # first branch, sealed end
-            self.P[0, 0] = u_minus[first] - 1
-            self.P[0, 1] = u_plus[first]
-            self.B[0] = -v_star[first]
-        else:
-            self.P[i_parent, i_parent] += (1 - u_minus[first]) * morphology.invr0
-            self.P[i_parent, i] -= u_plus[first] * morphology.invr0
-            self.B[i_parent] += v_star[first] * morphology.invr0
-        # Towards children
-        self.P[i, i] = (1 - u_plus[last]) * morphology.invrn
-        self.P[i, i_parent] = -u_minus[last] * morphology.invrn
-        self.B[i] = v_star[last] * morphology.invrn
-        # Recursive call
-        for kid in (morphology.children):
-            self.fill_matrix(kid)

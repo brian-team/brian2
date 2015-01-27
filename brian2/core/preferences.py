@@ -11,7 +11,7 @@ from StringIO import StringIO
 from brian2.utils.stringtools import deindent, indent
 from brian2.units.fundamentalunits import have_same_dimensions, Quantity
 
-__all__ = ['PreferenceError', 'BrianPreference', 'prefs']
+__all__ = ['PreferenceError', 'BrianPreference', 'prefs', 'brian_prefs']
 
 def parse_preference_name(name):
     '''

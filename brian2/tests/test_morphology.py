@@ -37,13 +37,7 @@ def test_subgroup():
     assert_raises(AttributeError,lambda :morpho.L.indices[:])
     # Compress the morphology and get absolute compartment indices
     N = len(morpho)
-    morpho.compress(diameter=np.zeros(N),
-                    length=np.zeros(N),
-                    area=np.zeros(N),
-                    x=np.zeros(N),
-                    y=np.zeros(N),
-                    z=np.zeros(N),
-                    distance=np.zeros(N))
+    morpho.compress(MorphologyData(N))
     assert_equal(morpho.LL.indices[:], [11, 12, 13, 14, 15])
     assert_equal(morpho.L.indices[3*um:5.1*um], [3, 4, 5])
     assert_equal(morpho.L.indices[3*um:5.1*um],

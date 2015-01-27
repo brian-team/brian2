@@ -554,7 +554,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         for stochastic_result in stochastic_results:
             RHS += stochastic_result
 
-        return sympy_to_str(RHS.simplify())
+        return sympy_to_str(RHS)
 
 
     def __call__(self, eqs, variables=None):
@@ -574,9 +574,9 @@ class ExplicitStateUpdater(StateUpdateMethod):
         Examples
         --------
         >>> from brian2 import *
-        >>> eqs = Equations('dv/dt = -v / tau : volt')        
+        >>> eqs = Equations('dv/dt = -v / tau : volt')
         >>> print(euler(eqs))
-        _v = v*(-dt + tau)/tau
+        _v = -dt*v/tau + v
         v = _v
         >>> print(rk4(eqs))
         __k_1_v = -dt*v/tau

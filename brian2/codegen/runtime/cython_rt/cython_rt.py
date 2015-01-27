@@ -56,8 +56,8 @@ class CythonCodeObject(NumpyCodeObject):
                                                variable_indices,
                                                template_name, template_source,
                                                name=name)
-        self.extra_compile_args = prefs['codegen.runtime.weave.extra_compile_args']
-        self.include_dirs = list(prefs['codegen.runtime.weave.include_dirs'])
+        self.extra_compile_args = prefs['codegen.runtime.cython.extra_compile_args']
+        self.include_dirs = list(prefs['codegen.runtime.cython.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
 
     def compile(self):

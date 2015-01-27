@@ -1,6 +1,6 @@
 {% macro cpp_file() %}
 #include "code_objects/{{codeobj_name}}.h"
-#include<math.h>
+#include<cmath>
 #include "brianlib/common_math.h"
 #include<stdint.h>
 #include<iostream>
