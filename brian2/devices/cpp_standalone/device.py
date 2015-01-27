@@ -241,7 +241,15 @@ class CPPStandaloneDevice(Device):
             item = 'True'
         value = Quantity(value)
 
-        if value.size == 1 and item == 'True':  # set the whole array to a scalar value
+        if (isinstance(item, int) or (isinstance(item, np.ndarray) and item.shape==())) and value.size == 1:
+            array_name = self.get_array_name(variableview.variable, access_data=False)
+            # For a single assignment, generate a code line instead of storing the array
+            self.main_queue.append(('set_by_single_value', (array_name,
+                                                            item,
+                                                            float(value))))
+
+
+        elif value.size == 1 and item == 'True':  # set the whole array to a scalar value
             if have_same_dimensions(value, 1):
                 # Avoid a representation as "Quantity(...)" or "array(...)"
                 value = float(value)
@@ -255,7 +263,8 @@ class CPPStandaloneDevice(Device):
             # We have to calculate indices. This will not work for synaptic
             # variables
             try:
-                indices = variableview.indexing(item)
+                indices = variableview.indexing(item,
+                                                index_var=variableview.index_var)
             except NotImplementedError:
                 raise NotImplementedError(('Cannot set variable "%s" this way in '
                                            'standalone, try using string '
@@ -501,6 +510,12 @@ class CPPStandaloneDevice(Device):
                 }}
                 '''.format(arrayname=arrayname, staticarrayname=staticarrayname, pragma=openmp_pragma('static'))
                 main_lines.extend(code.split('\n'))
+            elif func=='set_by_single_value':
+                arrayname, item, value = args
+                code = '{arrayname}[{item}] = {value};'.format(arrayname=arrayname,
+                                                               item=item,
+                                                               value=value)
+                main_lines.extend([code])
             elif func=='set_array_by_array':
                 arrayname, staticarrayname_index, staticarrayname_value = args
                 code = '''

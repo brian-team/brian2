@@ -840,7 +840,12 @@ class VariableView(object):
         if variable.read_only:
             raise TypeError('Variable %s is read-only.' % self.name)
 
-        if isinstance(item, slice) and item == slice(None):
+        # The second part is equivalent to item == slice(None) but formulating
+        # it this way prevents a FutureWarning if one of the elements is a
+        # numpy array
+        if isinstance(item, slice) and (item.start is None and
+                                        item.stop is None and
+                                        item.step is None):
             item = 'True'
 
         check_units = self.unit is not None
