@@ -88,7 +88,10 @@ class SynapsesSTDP(FeatureTest):
     
         connectivity = numpy.random.randn(n_cells, n_cells)
         sources      = numpy.random.random_integers(0, n_cells-1, 10*n_cells)
-        times        = 1*second*numpy.sort(numpy.random.rand(10*n_cells))
+        # Only use one spike per time step (to rule out that a single source neuron
+        # has more than one spike in a time step)
+        times        = numpy.random.choice(numpy.arange(10*n_cells), 10*n_cells,
+                                           replace=False)*ms
         v_init       = Vr + numpy.random.rand(n_cells) * (Vt - Vr)
     
         eqs  = Equations('''
