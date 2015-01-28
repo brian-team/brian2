@@ -77,7 +77,7 @@ class CodeGenerator(object):
         '''
         raise NotImplementedError
 
-    def translate_statement_sequence(self, statements):
+    def translate_statement_sequence(self, scalar_statements, vector_statements):
         '''
         Translate a sequence of `Statement` into the target language, taking
         care to declare variables, etc. if necessary.
@@ -167,7 +167,10 @@ class CodeGenerator(object):
         '''
         Translates an abstract code block into the target language.
         '''
-        statements = {}
+        scalar_statements = {}
+        vector_statements = {}
         for ac_name, ac_code in code.iteritems():
-            statements[ac_name] = make_statements(ac_code, self.variables, dtype)
-        return self.translate_statement_sequence(statements)
+            scalar_statements[ac_name], vector_statements[ac_name] = make_statements(ac_code,
+                                                                                     self.variables,
+                                                                                     dtype)
+        return self.translate_statement_sequence(scalar_statements, vector_statements)

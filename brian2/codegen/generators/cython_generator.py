@@ -105,7 +105,7 @@ class CythonCodeGenerator(CodeGenerator):
 
         return lines
 
-    def translate_statement_sequence(self, statements):
+    def translate_statement_sequence(self, scalar_statements, vector_statements):
         from brian2.devices.device import get_device
         device = get_device()
         # load variables from namespace
@@ -199,11 +199,10 @@ class CythonCodeGenerator(CodeGenerator):
         # main scalar/vector code
         scalar_code = {}
         vector_code = {}
-        for name, block in statements.iteritems():
-            scalar_statements = [stmt for stmt in block if stmt.scalar]
-            vector_statements = [stmt for stmt in block if not stmt.scalar]
-            scalar_code[name] = self.translate_one_statement_sequence(scalar_statements)
-            vector_code[name] = self.translate_one_statement_sequence(vector_statements)
+        for name, block in scalar_statements.iteritems():
+            scalar_code[name] = self.translate_one_statement_sequence(block)
+        for name, block in vector_statements.iteritems():
+            vector_code[name] = self.translate_one_statement_sequence(block)
 
         return scalar_code, vector_code, {'load_namespace': load_namespace,
                                           'support_code': support_code}

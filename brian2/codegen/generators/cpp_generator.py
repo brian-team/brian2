@@ -302,14 +302,13 @@ class CPPCodeGenerator(CodeGenerator):
         keywords.update(template_kwds)
         return keywords
 
-    def translate_statement_sequence(self, statements):
+    def translate_statement_sequence(self, scalar_statements, vector_statements):
         scalar_code = {}
         vector_code = {}
-        for name, block in statements.iteritems():
-            scalar_statements = [stmt for stmt in block if stmt.scalar]
-            vector_statements = [stmt for stmt in block if not stmt.scalar]
-            scalar_code[name] = self.translate_one_statement_sequence(scalar_statements)
-            vector_code[name] = self.translate_one_statement_sequence(vector_statements)
+        for name, block in scalar_statements.iteritems():
+            scalar_code[name] = self.translate_one_statement_sequence(block)
+        for name, block in vector_statements.iteritems():
+            vector_code[name] = self.translate_one_statement_sequence(block)
 
         kwds = self.determine_keywords()
 

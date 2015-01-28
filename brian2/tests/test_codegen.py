@@ -28,8 +28,8 @@ def test_analyse_identifiers():
              'g': Variable(unit=None, name='g')}
     
     defined, used_known, dependent = analyse_identifiers(code, known)
-    
-    assert defined==set(['a'])
+    assert 'a' in defined  # There might be an additional constant added by the
+                           # loop-invariant optimisation
     assert used_known==set(['b', 'c', 'd'])
     assert dependent==set(['e', 'f'])
 
@@ -73,8 +73,9 @@ def test_nested_subexpressions():
         'c': Variable(unit=None, name='c'),
         'd': Variable(unit=None, name='d'),
         }
-    stmts = make_statements(code, variables, np.float32)
-    evalorder = ''.join(stmt.var for stmt in stmts)
+    scalar_stmts, vector_stmts = make_statements(code, variables, np.float32)
+    assert len(scalar_stmts) == 0
+    evalorder = ''.join(stmt.var for stmt in vector_stmts)
     # This is the order that variables ought to be evaluated in
     assert evalorder=='baxcbaxdax'
     

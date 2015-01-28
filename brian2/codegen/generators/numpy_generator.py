@@ -131,15 +131,14 @@ class NumpyCodeGenerator(CodeGenerator):
 
         return lines
 
-    def translate_statement_sequence(self, statements):
+    def translate_statement_sequence(self, scalar_statements, vector_statements):
         # For numpy, no addiional keywords are provided to the template
         scalar_code = {}
         vector_code = {}
-        for name, block in statements.iteritems():
-            scalar_statements = [stmt for stmt in block if stmt.scalar]
-            vector_statements = [stmt for stmt in block if not stmt.scalar]
-            scalar_code[name] = self.translate_one_statement_sequence(scalar_statements)
-            vector_code[name] = self.translate_one_statement_sequence(vector_statements)
+        for name, block in scalar_statements.iteritems():
+            scalar_code[name] = self.translate_one_statement_sequence(block)
+        for name, block in vector_statements.iteritems():
+            vector_code[name] = self.translate_one_statement_sequence(block)
         return scalar_code, vector_code, {}
 
 ################################################################################
@@ -162,7 +161,12 @@ def randn_func(vectorisation_idx):
     except TypeError:
         N = int(vectorisation_idx)
 
-    return np.random.randn(N)
+    numbers = np.random.randn(N)
+    if N == 1:
+        return numbers[0]
+    else:
+        return numbers
+
 
 def rand_func(vectorisation_idx):
     try:
@@ -170,7 +174,13 @@ def rand_func(vectorisation_idx):
     except TypeError:
         N = int(vectorisation_idx)
 
-    return np.random.rand(N)
+    numbers = np.random.rand(N)
+    if N == 1:
+        return numbers[0]
+    else:
+        return numbers
+
+
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(NumpyCodeGenerator,
                                                               code=randn_func)
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(NumpyCodeGenerator,
