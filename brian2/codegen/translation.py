@@ -163,7 +163,7 @@ def is_scalar_expression(expr, variables):
     # e.g. "True" or "inf".
     return all(name not in variables or
                getattr(variables[name], 'scalar', False) or
-               isinstance(variables[name], Function)
+               (isinstance(variables[name], Function) and variables[name].stateless)
                for name in identifiers)
 
 

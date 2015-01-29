@@ -1071,6 +1071,20 @@ def test_get_states():
                                           'N', 't', 'dt', 'i'])
 
 
+def test_random_vector_values():
+    # Make sure that the new "loop-invariant optimisation" does not pull out
+    # the random number generation and therefore makes all neurons receiving
+    # the same values
+    tau = 10*ms
+    G = NeuronGroup(100, 'dv/dt = -v / tau + xi*tau**-0.5: 1')
+    G.v[:] = 'rand()'
+    assert np.var(G.v[:]) > 0
+    G.v[:] = 0
+    net = Network(G)
+    net.run(defaultclock.dt)
+    assert np.var(G.v[:]) > 0
+
+
 if __name__ == '__main__':
     test_creation()
     test_variables()
@@ -1119,3 +1133,4 @@ if __name__ == '__main__':
     if prefs.codegen.target == 'numpy':
         test_aliasing_in_statements()
     test_get_states()
+    test_random_vector_values()
