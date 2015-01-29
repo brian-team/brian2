@@ -42,7 +42,10 @@ class NodeRenderer(object):
       'AugPow': '**=',
       'AugMod': '%=',
       }
-    
+
+    def __init__(self, use_vectorisation_idx=True):
+        self.use_vectorisation_idx = use_vectorisation_idx
+
     def render_expr(self, expr, strip=True):
         if strip:
             expr = expr.strip()
@@ -81,7 +84,7 @@ class NodeRenderer(object):
             raise ValueError("Variable number of arguments not supported")
         elif node.kwargs is not None:
             raise ValueError("Keyword arguments not supported")
-        if len(node.args) == 0:
+        if len(node.args) == 0 and self.use_vectorisation_idx:
             # argument-less function call such as randn() are transformed into
             # randn(_vectorisation_idx) -- this is important for Python code
             # in particular, because it has to return an array of values.
@@ -97,11 +100,11 @@ class NodeRenderer(object):
         numbers, names and function calls.
         '''
         if node.__class__.__name__ == 'Name':
-            return self.render_Name(node)
+            return self.render_node(node)
         elif node.__class__.__name__ == 'Num' and node.n >= 0:
-            return self.render_Num(node)
+            return self.render_node(node)
         elif node.__class__.__name__ == 'Call':
-            return self.render_Call(node)
+            return self.render_node(node)
         else:
             return '(%s)' % self.render_node(node)
 

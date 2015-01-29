@@ -14,8 +14,13 @@ The input information needed:
 * The dtype to use for newly created variables
 * The language to translate to
 '''
+import ast
 import re
 import collections
+try:
+    from collections import OrderedDict
+except ImportError:
+    from brian2.utils.ordereddict import OrderedDict
 
 import numpy as np
 
@@ -24,7 +29,9 @@ from brian2.core.functions import Function
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
                                       get_identifiers, word_substitute)
 from brian2.utils.topsort import topsort
+from brian2.units.fundamentalunits import Unit
 from brian2.parsing.statements import parse_statement
+from brian2.parsing.rendering import NodeRenderer
 
 from .statements import Statement
 
@@ -90,8 +97,9 @@ def analyse_identifiers(code, variables, recursive=False):
                          for k in known)
 
     known |= STANDARD_IDENTIFIERS
-    stmts = make_statements(code, variables, np.float64)
-    defined = set(stmt.var for stmt in stmts if stmt.op==':=')
+    scalar_stmts, vector_stmts = make_statements(code, variables, np.float64)
+    stmts = scalar_stmts + vector_stmts
+    defined = set(stmt.var for stmt in stmts if stmt.op == ':=')
     if len(stmts) == 0:
         allids = set()
     elif recursive:
@@ -132,13 +140,133 @@ def get_identifiers_recursively(expressions, variables):
     return identifiers
 
 
+def is_scalar_expression(expr, variables):
+    '''
+    Whether the given expression is scalar.
+
+    Parameters
+    ----------
+    expr : str
+        The expression to check
+    variables : dict-like
+        `Variable` and `Function` object for all the identifiers used in `expr`
+
+    Returns
+    -------
+    scalar : bool
+        Whether `expr` is a scalar expression
+    '''
+    # determine whether this is a scalar variable
+    identifiers = get_identifiers_recursively([expr], variables)
+    # In the following we assume that all unknown identifiers are
+    # scalar constants -- this should cover numerical literals and
+    # e.g. "True" or "inf".
+    return all(name not in variables or
+               getattr(variables[name], 'scalar', False) or
+               (isinstance(variables[name], Function) and variables[name].stateless)
+               for name in identifiers)
+
+
+class LIONodeRenderer(NodeRenderer):
+    '''
+    Renders expressions, pulling out scalar expressions and remembering them
+    for later use.
+    '''
+    def __init__(self, variables):
+        self.variables = variables
+        self.optimisations = OrderedDict()
+        self.n = 0
+        NodeRenderer.__init__(self, use_vectorisation_idx=False)
+
+    def render_node(self, node):
+        expr = NodeRenderer(use_vectorisation_idx=False).render_node(node)
+
+        # Do not pull out constants or numbers
+        if node.__class__.__name__ in ['Name', 'Num', 'NameConstant']:
+            return expr
+
+        if is_scalar_expression(expr, self.variables):
+            if expr in self.optimisations:
+                name = self.optimisations[expr]
+            else:
+                self.n += 1
+                name = '_lio_const_'+str(self.n)
+                self.optimisations[expr] = name
+            return name
+        else:
+            return NodeRenderer.render_node(self, node)
+
+
+def apply_loop_invariant_optimisations(statements, variables, dtype):
+    '''
+    Analyzes statements to pull out expressions that need to be evaluated only
+    once.
+
+    Parameters
+    ----------
+    statements : list of `Statement`
+        The statements to analyze.
+    variables : dict-like
+        A mapping of identifier names used in `statements` to `Variable` or
+        `Function` objects.
+    dtype : `dtype`
+        The data type to use for the newly introduced scalar constants
+
+    Returns
+    -------
+    scalar_stmts, vector_stmts : pair of list of `Statement` objects
+        A list of new scalar statements to define constant for expressions that
+        need to be evaluated only once and the rewritten statements using those
+        constants
+    '''
+    renderer = LIONodeRenderer(variables)
+
+    vector_statements = []
+    for stmt in statements:
+        new_expr = renderer.render_node(ast.parse(stmt.expr, mode='eval').body)
+        vector_statements.append(Statement(stmt.var, stmt.op, new_expr, stmt.comment,
+                                           dtype=stmt.dtype,
+                                           constant=stmt.constant,
+                                           subexpression=stmt.subexpression,
+                                           scalar=stmt.scalar))
+
+    scalar_constants = [Statement(name, ':=', expr, '',
+                                  dtype=dtype,
+                                  constant=True,
+                                  subexpression=False,
+                                  scalar=True)
+                        for expr, name in renderer.optimisations.iteritems()]
+    return scalar_constants, vector_statements
+
+
 def make_statements(code, variables, dtype):
     '''
     Turn a series of abstract code statements into Statement objects, inferring
     whether each line is a set/declare operation, whether the variables are
-    constant or not, and handling the cacheing of subexpressions. Returns a
-    list of Statement objects. For arguments, see documentation for
-    :func:`translate`.
+    constant or not, and handling the cacheing of subexpressions.
+
+    Parameters
+    ----------
+    code : str
+        A (multi-line) string of statements.
+    variables : dict-like
+        A dictionary of with `Variable` and `Function` objects for every
+        identifier used in the `code`.
+    dtype : `dtype`
+        The data type to use for temporary variables
+
+    Returns
+    -------
+    scalar_statements, vector_statements : (list of `Statement`, list of `Statement`)
+        Lists with statements that are to be executed once and statements that
+        are to be executed once for every neuron/synapse/... (or in a vectorised
+        way)
+
+    Notes
+    -----
+    The `scalar_statements` may include newly introduced scalar constants that
+    have been identified as loop-invariant and have therefore been pulled out
+    of the vector statements.
     '''
     code = strip_empty_lines(deindent(code))
     lines = re.split(r'[;\n]', code)
@@ -146,13 +274,11 @@ def make_statements(code, variables, dtype):
     if DEBUG:
         print 'INPUT CODE:'
         print code
-    dtypes = dict((name, var.dtype) for name, var in variables.iteritems()
-                  if not isinstance(var, Function))
+    # Do a copy so we can add stuff without altering the original dict
+    variables = dict(variables)
     # we will do inference to work out which lines are := and which are =
     defined = set(k for k, v in variables.iteritems()
                   if not isinstance(v, AuxiliaryVariable))
-    scalars = set(k for k,v in variables.iteritems()
-                  if getattr(v, 'scalar', False))
     for line in lines:
         # parse statement into "var op expr"
         var, op, expr, comment = parse_statement(line.code)
@@ -160,19 +286,16 @@ def make_statements(code, variables, dtype):
             if var not in defined:
                 op = ':='
                 defined.add(var)
-                if var not in dtypes:
-                    dtypes[var] = dtype
-                # determine whether this is a scalar variable
-                identifiers = get_identifiers_recursively([expr], variables)
-                # In the following we assume that all unknown identifiers are
-                # scalar constants -- this should cover numerical literals and
-                # e.g. "True" or "inf".
-                is_scalar = all((name in scalars) or not (name in defined)
-                                for name in identifiers)
-                if is_scalar:
-                    scalars.add(var)
+                if var not in variables:
+                    is_scalar = is_scalar_expression(expr, variables)
+                    new_var = AuxiliaryVariable(var, Unit(1), # doesn't matter here
+                                                dtype=dtype, scalar=is_scalar)
+                    variables[var] = new_var
 
-        statement = Statement(var, op, expr, comment, dtype=dtypes[var], scalar=var in scalars)
+
+        statement = Statement(var, op, expr, comment,
+                              dtype=variables[var].dtype,
+                              scalar=variables[var].scalar)
         line.statement = statement
         # for each line will give the variable being written to
         line.write = var 
@@ -184,11 +307,11 @@ def make_statements(code, variables, dtype):
     scalar_write_done = False
     for line in lines:
         stmt = line.statement
-        if stmt.op != ':=' and stmt.var in scalars and scalar_write_done:
+        if stmt.op != ':=' and variables[stmt.var].scalar and scalar_write_done:
             raise SyntaxError(('All writes to scalar variables in a code block '
                                'have to be made before writes to vector '
                                'variables. Illegal write to %s.') % line.write)
-        elif not stmt.var in scalars:
+        elif not variables[stmt.var].scalar:
             scalar_write_done = True
 
     if DEBUG:
@@ -264,7 +387,6 @@ def make_statements(code, variables, dtype):
                 else:
                     op = ':='
                     subdefined[var] = True
-                    dtypes[var] = variables[var].dtype
                     # set to constant only if we will not write to it again
                     constant = var not in will_write
                     # check all subvariables are not written to again as well
@@ -275,7 +397,8 @@ def make_statements(code, variables, dtype):
                 statement = Statement(var, op, subexpression.expr, comment='',
                                       dtype=variables[var].dtype,
                                       constant=constant,
-                                      subexpression=True, scalar=var in scalars)
+                                      subexpression=True,
+                                      scalar=variables[var].scalar)
                 statements.append(statement)
         var, op, expr, comment = stmt.var, stmt.op, stmt.expr, stmt.comment
         # invalidate any subexpressions including var, recursively
@@ -294,8 +417,10 @@ def make_statements(code, variables, dtype):
         # constant only if we are declaring a new variable and we will not
         # write to it again
         constant = op==':=' and var not in will_write
-        statement = Statement(var, op, expr, comment, dtype=dtypes[var],
-                              constant=constant, scalar=var in scalars)
+        statement = Statement(var, op, expr, comment,
+                              dtype=variables[var].dtype,
+                              constant=constant,
+                              scalar=variables[var].scalar)
         statements.append(statement)
 
     if DEBUG:
@@ -303,5 +428,12 @@ def make_statements(code, variables, dtype):
         for stmt in statements:
             print stmt
 
-    return statements
+    scalar_statements = [s for s in statements if s.scalar]
+    vector_statements = [s for s in statements if not s.scalar]
+    scalar_constants, vector_statements = apply_loop_invariant_optimisations(vector_statements,
+                                                                             variables,
+                                                                             dtype)
+    scalar_statements.extend(scalar_constants)
+
+    return scalar_statements, vector_statements
 

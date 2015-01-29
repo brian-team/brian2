@@ -105,7 +105,7 @@ class CythonCodeGenerator(CodeGenerator):
 
         return lines
 
-    def translate_statement_sequence(self, statements):
+    def determine_keywords(self):
         from brian2.devices.device import get_device
         device = get_device()
         # load variables from namespace
@@ -141,7 +141,7 @@ class CythonCodeGenerator(CodeGenerator):
                 line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
                 load_namespace.append(line)
             elif isinstance(var, Variable):
-                if var.dynamic:                
+                if var.dynamic:
                     load_namespace.append('%s = _namespace["%s"]' % (self.get_array_name(var, False),
                                                                      self.get_array_name(var, False)))
 
@@ -196,17 +196,8 @@ class CythonCodeGenerator(CodeGenerator):
 
         load_namespace = '\n'.join(load_namespace)
         support_code = '\n'.join(support_code)
-        # main scalar/vector code
-        scalar_code = {}
-        vector_code = {}
-        for name, block in statements.iteritems():
-            scalar_statements = [stmt for stmt in block if stmt.scalar]
-            vector_statements = [stmt for stmt in block if not stmt.scalar]
-            scalar_code[name] = self.translate_one_statement_sequence(scalar_statements)
-            vector_code[name] = self.translate_one_statement_sequence(vector_statements)
 
-        return scalar_code, vector_code, {'load_namespace': load_namespace,
-                                          'support_code': support_code}
+        return {'load_namespace': load_namespace, 'support_code': support_code}
 
 ###############################################################################
 # Implement functions

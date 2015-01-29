@@ -77,7 +77,15 @@ class CodeGenerator(object):
         '''
         raise NotImplementedError
 
-    def translate_statement_sequence(self, statements):
+    def determine_keywords(self):
+        '''
+        A dictionary of values that is made available to the templated. This is
+        used for example by the `CPPCodeGenerator` to set up all the supporting
+        code
+        '''
+        raise NotImplementedError
+
+    def translate_statement_sequence(self, scalar_statements, vector_statements):
         '''
         Translate a sequence of `Statement` into the target language, taking
         care to declare variables, etc. if necessary.
@@ -88,7 +96,17 @@ class CodeGenerator(object):
         loop, and ``kwds`` is a dictionary of values that is made available to
         the template.
         '''
-        raise NotImplementedError
+        scalar_code = {}
+        vector_code = {}
+        for name, block in scalar_statements.iteritems():
+            scalar_code[name] = self.translate_one_statement_sequence(block)
+        for name, block in vector_statements.iteritems():
+            vector_code[name] = self.translate_one_statement_sequence(block)
+
+        kwds = self.determine_keywords()
+
+        return scalar_code, vector_code, kwds
+
 
     def array_read_write(self, statements):
         '''
@@ -167,7 +185,10 @@ class CodeGenerator(object):
         '''
         Translates an abstract code block into the target language.
         '''
-        statements = {}
+        scalar_statements = {}
+        vector_statements = {}
         for ac_name, ac_code in code.iteritems():
-            statements[ac_name] = make_statements(ac_code, self.variables, dtype)
-        return self.translate_statement_sequence(statements)
+            scalar_statements[ac_name], vector_statements[ac_name] = make_statements(ac_code,
+                                                                                     self.variables,
+                                                                                     dtype)
+        return self.translate_statement_sequence(scalar_statements, vector_statements)

@@ -35,7 +35,7 @@
     _vectorisation_idx = 1
 
     ## MAIN CODE ######
-   {{scalar_code|autoindent}}
+    {{scalar_code|autoindent}}
 
     # Tridiagonal solving
     # Pass 1

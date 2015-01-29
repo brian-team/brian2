@@ -44,6 +44,11 @@ class Function(object):
         unit, or a function of the input units, e.g. a "square" function would
         return the square of its input units, i.e. `return_unit` could be
         specified as ``lambda u: u**2``.
+    stateless : bool, optional
+        Whether this function does not have an internal state, i.e. if it
+        always returns the same output when called with the same arguments.
+        This is true for mathematical functions but not true for `rand`, for
+        example. Defaults to ``True``.
 
     Notes
     -----
@@ -53,11 +58,12 @@ class Function(object):
     `~brian2.codegen.functions.add_implementations` function.
     '''
     def __init__(self, pyfunc, sympy_func=None, arg_units=None,
-                 return_unit=None):
+                 return_unit=None, stateless=True):
         self.pyfunc = pyfunc
         self.sympy_func = sympy_func
         self._arg_units = arg_units
         self._return_unit = return_unit
+        self.stateless = stateless
         if self._arg_units is None:
             if not hasattr(pyfunc, '_arg_units'):
                 raise ValueError(('The Python function "%s" does not specify '
@@ -428,8 +434,8 @@ DEFAULT_FUNCTIONS = {
                     sympy_func=sympy_mod.Mod,
                     arg_units=[None, None], return_unit=lambda u,v : u),
     # functions that need special treatment
-    'rand': Function(pyfunc=rand, arg_units=[], return_unit=1),
-    'randn': Function(pyfunc=randn, arg_units=[], return_unit=1),
+    'rand': Function(pyfunc=rand, arg_units=[], return_unit=1, stateless=False),
+    'randn': Function(pyfunc=randn, arg_units=[], return_unit=1, stateless=False),
     'clip': Function(pyfunc=np.clip, arg_units=[None, None, None],
                      return_unit=lambda u1, u2, u3: u1,),
     'int': Function(pyfunc=np.int_,
