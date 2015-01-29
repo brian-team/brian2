@@ -7,9 +7,13 @@ from nose.plugins.attrib import attr
 from brian2.codegen.translation import (analyse_identifiers,
                                         get_identifiers_recursively,
                                         make_statements,
+                                        apply_loop_invariant_optimisations
                                         )
-from brian2.core.variables import Subexpression, Variable
+from brian2.codegen.statements import Statement
+from brian2.core.variables import Subexpression, Variable, Constant
+from brian2.core.functions import Function, DEFAULT_FUNCTIONS
 from brian2.units.fundamentalunits import Unit
+from brian2.units import second, ms
 
 FakeGroup = namedtuple('FakeGroup', ['variables'])
 
@@ -79,8 +83,27 @@ def test_nested_subexpressions():
     # This is the order that variables ought to be evaluated in
     assert evalorder=='baxcbaxdax'
     
+@attr('codegen-independent')
+def test_apply_loop_invariant_optimisation():
+    variables = {'v': Variable('v', Unit(1), scalar=False),
+                 'w': Variable('w', Unit(1), scalar=False),
+                 'dt': Constant('dt', second, 0.1*ms),
+                 'tau': Constant('tau', second, 10*ms),
+                 'exp': DEFAULT_FUNCTIONS['exp']}
+    statements = [Statement('v', '=', 'dt*w*exp(-dt/tau)/tau + v*exp(-dt/tau)', '', np.float32),
+                  Statement('w', '=', 'w*exp(-dt/tau)', '', np.float32)]
+    scalar, vector = apply_loop_invariant_optimisations(statements, variables,
+                                                        np.float64)
+    # The optimisation should pull out exp(-dt / tau)
+    assert len(scalar) == 1
+    assert scalar[0].dtype == np.float64  # We asked for this dtype above
+    assert scalar[0].var == '_lio_const_1'
+    assert len(vector) == 2
+    assert all('_lio_const_1' in stmt.expr for stmt in vector)
+
 
 if __name__ == '__main__':
     test_analyse_identifiers()
     test_get_identifiers_recursively()
     test_nested_subexpressions()
+    test_apply_loop_invariant_optimisation()

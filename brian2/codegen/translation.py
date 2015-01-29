@@ -17,6 +17,10 @@ The input information needed:
 import ast
 import re
 import collections
+try:
+    from collections import OrderedDict
+except ImportError:
+    from brian2.utils.ordereddict import OrderedDict
 
 import numpy as np
 
@@ -164,14 +168,15 @@ def is_scalar_expression(expr, variables):
 
 
 class LIONodeRenderer(NodeRenderer):
+    '''
+    Renders expressions, pulling out scalar expressions and remembering them
+    for later use.
+    '''
     def __init__(self, variables):
         self.variables = variables
-        self.optimisations = {}
+        self.optimisations = OrderedDict()
         self.n = 0
         NodeRenderer.__init__(self, use_vectorisation_idx=False)
-
-    def reset(self):
-        self.optimisations.clear()
 
     def render_node(self, node):
         expr = NodeRenderer(use_vectorisation_idx=False).render_node(node)
@@ -185,7 +190,7 @@ class LIONodeRenderer(NodeRenderer):
                 name = self.optimisations[expr]
             else:
                 self.n += 1
-                name = '_scalar_lio_const_'+str(self.n)
+                name = '_lio_const_'+str(self.n)
                 self.optimisations[expr] = name
             return name
         else:
@@ -193,7 +198,27 @@ class LIONodeRenderer(NodeRenderer):
 
 
 def apply_loop_invariant_optimisations(statements, variables, dtype):
+    '''
+    Analyzes statements to pull out expressions that need to be evaluated only
+    once.
 
+    Parameters
+    ----------
+    statements : list of `Statement`
+        The statements to analyze.
+    variables : dict-like
+        A mapping of identifier names used in `statements` to `Variable` or
+        `Function` objects.
+    dtype : `dtype`
+        The data type to use for the newly introduced scalar constants
+
+    Returns
+    -------
+    scalar_stmts, vector_stmts : pair of list of `Statement` objects
+        A list of new scalar statements to define constant for expressions that
+        need to be evaluated only once and the rewritten statements using those
+        constants
+    '''
     renderer = LIONodeRenderer(variables)
 
     vector_statements = []
@@ -221,7 +246,7 @@ def make_statements(code, variables, dtype):
     constant or not, and handling the cacheing of subexpressions.
 
     Parameters
-    ---------
+    ----------
     code : str
         A (multi-line) string of statements.
     variables : dict-like
