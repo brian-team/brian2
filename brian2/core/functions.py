@@ -47,7 +47,7 @@ class Function(object):
     stateless : bool, optional
         Whether this function does not have an internal state, i.e. if it
         always returns the same output when called with the same arguments.
-        This is true for mathematical functions but not true for `rand`, for
+        This is true for mathematical functions but not true for ``rand()``, for
         example. Defaults to ``True``.
 
     Notes
