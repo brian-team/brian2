@@ -131,15 +131,9 @@ class NumpyCodeGenerator(CodeGenerator):
 
         return lines
 
-    def translate_statement_sequence(self, scalar_statements, vector_statements):
+    def determine_keywords(self):
         # For numpy, no addiional keywords are provided to the template
-        scalar_code = {}
-        vector_code = {}
-        for name, block in scalar_statements.iteritems():
-            scalar_code[name] = self.translate_one_statement_sequence(block)
-        for name, block in vector_statements.iteritems():
-            vector_code[name] = self.translate_one_statement_sequence(block)
-        return scalar_code, vector_code, {}
+        return {}
 
 ################################################################################
 # Implement functions

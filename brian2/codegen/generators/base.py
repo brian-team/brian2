@@ -77,6 +77,14 @@ class CodeGenerator(object):
         '''
         raise NotImplementedError
 
+    def determine_keywords(self):
+        '''
+        A dictionary of values that is made available to the templated. This is
+        used for example by the `CPPCodeGenerator` to set up all the supporting
+        code
+        '''
+        raise NotImplementedError
+
     def translate_statement_sequence(self, scalar_statements, vector_statements):
         '''
         Translate a sequence of `Statement` into the target language, taking
@@ -88,7 +96,17 @@ class CodeGenerator(object):
         loop, and ``kwds`` is a dictionary of values that is made available to
         the template.
         '''
-        raise NotImplementedError
+        scalar_code = {}
+        vector_code = {}
+        for name, block in scalar_statements.iteritems():
+            scalar_code[name] = self.translate_one_statement_sequence(block)
+        for name, block in vector_statements.iteritems():
+            vector_code[name] = self.translate_one_statement_sequence(block)
+
+        kwds = self.determine_keywords()
+
+        return scalar_code, vector_code, kwds
+
 
     def array_read_write(self, statements):
         '''
