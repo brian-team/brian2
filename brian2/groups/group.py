@@ -27,7 +27,7 @@ from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
-from brian2.utils.stringtools import get_identifiers
+from brian2.utils.stringtools import get_identifiers, SpellChecker
 
 __all__ = ['Group', 'CodeRunner']
 
@@ -374,10 +374,27 @@ class Group(BrianObject):
         elif hasattr(self, name) or name.startswith('_'):
             object.__setattr__(self, name, val)
         else:
-            raise AttributeError('Could not find a state variable with name '
-                                 '"%s". Use the add_attribute method if you '
-                                 'intend to add a new attribute to the '
-                                 'object.' % name)
+            # Try to suggest the correct name in case of a typo
+            checker = SpellChecker([varname for varname, var in self.variables.iteritems()
+                                    if not (varname.startswith('_') or var.read_only)])
+            if name.endswith('_'):
+                suffix = '_'
+                name = name[:-1]
+            else:
+                suffix = ''
+            error_msg = 'Could not find a state variable with name "%s".' % name
+            suggestions = checker.suggest(name)
+            if len(suggestions) == 1:
+                suggestion, = suggestions
+                error_msg += ' Did you mean to write "%s%s"?' % (suggestion,
+                                                                 suffix)
+            elif len(suggestions) > 1:
+                error_msg += (' Did you mean to write any of the following: %s ?' %
+                              (', '.join(['"%s%s"' % (suggestion, suffix)
+                                          for suggestion in suggestions])))
+            error_msg += (' Use the add_attribute method if you intend to add '
+                          'a new attribute to the object.')
+            raise AttributeError(error_msg)
 
     def add_attribute(self, name):
         '''

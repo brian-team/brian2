@@ -3,6 +3,7 @@ A collection of tools for string formatting tasks.
 """
 
 import re
+import string
 
 __all__ = ['indent',
            'deindent',
@@ -13,6 +14,7 @@ __all__ = ['indent',
            'stripped_deindented_lines',
            'strip_empty_leading_and_trailing_lines',
            'code_representation',
+           'SpellChecker'
            ]
 
 def indent(text, numtabs=1, spacespertab=4, tab=None):
@@ -230,3 +232,54 @@ def code_representation(code):
         msg += indent(str(v))
         output.append(msg)
     return strip_empty_leading_and_trailing_lines('\n'.join(output))
+
+
+# The below is adapted from Peter Norvig's spelling corrector
+# http://norvig.com/spell.py (MIT licensed)
+class SpellChecker(object):
+    '''
+    A simple spell checker that will be used to suggest the correct name if the
+    user made a typo (e.g. for state variable names).
+
+    Parameters
+    ----------
+    words : iterable of str
+        The known words
+    alphabet : iterable of str, optional
+        The allowed characters. Defaults to the characters allowed for
+        identifiers, i.e. ascii characters, digits and the underscore.
+
+    Examples
+    --------
+    >>> checker = SpellChecker(['vm', 'alpha', 'beta'])
+    >>> checker.suggest('Vm')
+    set(['vm'])
+    >>> checker.suggest('alphas')
+    set(['alpha'])
+    >>> checker.suggest('bta')
+    set(['beta'])
+    >>> checker.suggest('gamma')
+    []
+    '''
+    def __init__(self, words,
+                 alphabet=string.ascii_lowercase+string.digits+'_'):
+        self.words = words
+        self.alphabet = alphabet
+
+    def edits1(self, word):
+       s = [(word[:i], word[i:]) for i in range(len(word) + 1)]
+       deletes    = [a + b[1:] for a, b in s if b]
+       transposes = [a + b[1] + b[0] + b[2:] for a, b in s if len(b)>1]
+       replaces   = [a + c + b[1:] for a, b in s for c in self.alphabet if b]
+       inserts    = [a + c + b     for a, b in s for c in self.alphabet]
+       return set(deletes + transposes + replaces + inserts)
+
+    def known_edits2(self, word):
+        return set(e2 for e1 in self.edits1(word)
+                   for e2 in self.edits1(e1) if e2 in self.words)
+
+    def known(self, words):
+        return set(w for w in words if w in self.words)
+
+    def suggest(self, word):
+        return self.known(self.edits1(word)) or self.known_edits2(word) or []
