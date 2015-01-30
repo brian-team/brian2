@@ -371,8 +371,38 @@ class Group(BrianObject):
             var.get_addressable_value(name[:-1], self).set_item(slice(None),
                                                                 val,
                                                                 level=level+1)
-        else:
+        elif hasattr(self, name) or name.startswith('_'):
             object.__setattr__(self, name, val)
+        else:
+            raise AttributeError('Could not find a state variable with name '
+                                 '"%s". Use the add_attribute method if you '
+                                 'intend to add a new attribute to the '
+                                 'object.' % name)
+
+    def add_attribute(self, name):
+        '''
+        Add a new attribute to this group. Using this method instead of simply
+        assigning to the new attribute name is necessary because Brian will
+        raise an error in that case, to avoid bugs passing unnoticed
+        (misspelled state variable name, un-declared state variable, ...).
+
+        Parameters
+        ----------
+        name : str
+            The name of the new attribute
+
+        Raises
+        ------
+        AttributeError
+            If the name already exists as an attribute or a state variable.
+        '''
+        if name in self.variables:
+            raise AttributeError('Cannot add an attribute "%s", it is already '
+                                 'a state variable of this group.' % name)
+        if hasattr(self, name):
+            raise AttributeError('Cannot add an attribute "%s", it is already '
+                                 'an attribute of this group.' % name)
+        object.__setattr__(self, name, None)
 
     def get_states(self, vars=None, units=True, format='dict', level=0):
         '''
@@ -856,6 +886,7 @@ class CodeRunner(BrianObject):
         if codeobj_class is None:
             codeobj_class = group.codeobj_class
         self.codeobj_class = codeobj_class
+        self.codeobj = None
 
     def update_abstract_code(self, run_namespace=None, level=0):
         '''

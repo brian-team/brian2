@@ -73,14 +73,14 @@ class PoissonGroup(Group, SpikeSource):
 
         self._refractory = False
 
-        #
-        self._enable_group_attributes()
         # To avoid a warning about the local variable rates, we set the real
         # threshold condition only after creating the object
         self.threshold = 'False'
         self.thresholder = Thresholder(self)
         self.threshold = 'rand() < rates * dt'
         self.contained_objects.append(self.thresholder)
+
+        self._enable_group_attributes()
 
         # Here we want to use the local namespace, but at the level where the
         # constructor was called

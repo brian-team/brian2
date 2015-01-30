@@ -212,6 +212,13 @@ class SpatialNeuron(NeuronGroup):
         """)
         # Possibilities for the name: characteristic_length, electrotonic_length, length_constant, space_constant
 
+        # Insert morphology
+        self.morphology = morphology
+
+        # Link morphology variables to neuron's state variables
+        self.morphology_data = MorphologyData(len(morphology))
+        self.morphology.compress(self.morphology_data)
+
         NeuronGroup.__init__(self, len(morphology), model=model + eqs_constants,
                              threshold=threshold, refractory=refractory,
                              reset=reset,
@@ -220,13 +227,6 @@ class SpatialNeuron(NeuronGroup):
 
         self.Cm = Cm
         self.Ri = Ri
-
-        # Insert morphology
-        self.morphology = morphology
-
-        # Link morphology variables to neuron's state variables
-        self.morphology_data = MorphologyData(self.N)
-        self.morphology.compress(self.morphology_data)
         # TODO: View instead of copy for runtime?
         self.diameter_ = self.morphology_data.diameter
         self.distance_ = self.morphology_data.distance
@@ -237,6 +237,7 @@ class SpatialNeuron(NeuronGroup):
         self.z_ = self.morphology_data.z
 
         # Performs numerical integration step
+        self.add_attribute('diffusion_state_updater')
         self.diffusion_state_updater = SpatialStateUpdater(self, method,
                                                            clock=self.clock,
                                                            order=order)
@@ -323,8 +324,8 @@ class SpatialSubgroup(Subgroup):
     '''
 
     def __init__(self, source, start, stop, morphology, name=None):
-        Subgroup.__init__(self, source, start, stop, name)
         self.morphology = morphology
+        Subgroup.__init__(self, source, start, stop, name)
 
     def __getattr__(self, x):
         return SpatialNeuron.spatialneuron_attribute(self, x)

@@ -746,10 +746,11 @@ class Synapses(Group):
         # Support 2d indexing
         self._indices = SynapticIndexing(self)
 
+        self._initial_connect = connect
+
         # Activate name attribute access
         self._enable_group_attributes()
 
-        self._initial_connect = connect
         if not connect is False:
             self.connect(connect, level=1)
 

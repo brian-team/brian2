@@ -856,6 +856,23 @@ def test_state_variable_access_strings():
     assert_equal(G.v[:], np.arange(10)*volt)
 
 
+@attr('codegen-independent')
+def test_unknown_state_variables():
+    # Test how setting attribute names that do not correspond to a state
+    # variable are handled
+    G = NeuronGroup(10, 'v : 1')
+    assert_raises(AttributeError, lambda: setattr(G, 'unknown', 42))
+
+    # Creating a new private attribute should be fine
+    G._unknown = 42
+    assert G._unknown == 42
+
+    # Explicitly create the attribute
+    G.add_attribute('unknown')
+    G.unknown = 42
+    assert G.unknown == 42
+
+
 def test_subexpression():
     G = NeuronGroup(10, '''dv/dt = freq : 1
                            freq : Hz
@@ -1109,6 +1126,7 @@ if __name__ == '__main__':
     test_state_variables()
     test_state_variable_access()
     test_state_variable_access_strings()
+    test_unknown_state_variables()
     test_subexpression()
     test_subexpression_with_constant()
     test_scalar_parameter_access()
