@@ -1,7 +1,7 @@
 from nose.plugins.attrib import attr
 
 from brian2.utils.environment import running_from_ipython
-
+from brian2.utils.stringtools import SpellChecker
 
 @attr('codegen-independent')
 def test_environment():
@@ -29,5 +29,14 @@ def test_environment():
         del builtins.__IPYTHON__
 
 
+def test_spell_check():
+    checker = SpellChecker(['vm', 'alpha', 'beta'])
+    assert checker.suggest('Vm') == set(['vm'])
+    assert checker.suggest('alphas') == set(['alpha'])
+    assert checker.suggest('bta') == set(['beta'])
+    assert checker.suggest('gamma') == set()
+
+
 if __name__ == '__main__':
     test_environment()
+    test_spell_check()

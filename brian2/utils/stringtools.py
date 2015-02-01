@@ -248,18 +248,6 @@ class SpellChecker(object):
     alphabet : iterable of str, optional
         The allowed characters. Defaults to the characters allowed for
         identifiers, i.e. ascii characters, digits and the underscore.
-
-    Examples
-    --------
-    >>> checker = SpellChecker(['vm', 'alpha', 'beta'])
-    >>> checker.suggest('Vm')
-    set(['vm'])
-    >>> checker.suggest('alphas')
-    set(['alpha'])
-    >>> checker.suggest('bta')
-    set(['beta'])
-    >>> checker.suggest('gamma')
-    []
     '''
     def __init__(self, words,
                  alphabet=string.ascii_lowercase+string.digits+'_'):
@@ -282,4 +270,4 @@ class SpellChecker(object):
         return set(w for w in words if w in self.words)
 
     def suggest(self, word):
-        return self.known(self.edits1(word)) or self.known_edits2(word) or []
+        return self.known(self.edits1(word)) or self.known_edits2(word) or set()
