@@ -27,7 +27,7 @@ from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
-from brian2.utils.stringtools import get_identifiers
+from brian2.utils.stringtools import get_identifiers, SpellChecker
 
 __all__ = ['Group', 'CodeRunner']
 
@@ -371,8 +371,55 @@ class Group(BrianObject):
             var.get_addressable_value(name[:-1], self).set_item(slice(None),
                                                                 val,
                                                                 level=level+1)
-        else:
+        elif hasattr(self, name) or name.startswith('_'):
             object.__setattr__(self, name, val)
+        else:
+            # Try to suggest the correct name in case of a typo
+            checker = SpellChecker([varname for varname, var in self.variables.iteritems()
+                                    if not (varname.startswith('_') or var.read_only)])
+            if name.endswith('_'):
+                suffix = '_'
+                name = name[:-1]
+            else:
+                suffix = ''
+            error_msg = 'Could not find a state variable with name "%s".' % name
+            suggestions = checker.suggest(name)
+            if len(suggestions) == 1:
+                suggestion, = suggestions
+                error_msg += ' Did you mean to write "%s%s"?' % (suggestion,
+                                                                 suffix)
+            elif len(suggestions) > 1:
+                error_msg += (' Did you mean to write any of the following: %s ?' %
+                              (', '.join(['"%s%s"' % (suggestion, suffix)
+                                          for suggestion in suggestions])))
+            error_msg += (' Use the add_attribute method if you intend to add '
+                          'a new attribute to the object.')
+            raise AttributeError(error_msg)
+
+    def add_attribute(self, name):
+        '''
+        Add a new attribute to this group. Using this method instead of simply
+        assigning to the new attribute name is necessary because Brian will
+        raise an error in that case, to avoid bugs passing unnoticed
+        (misspelled state variable name, un-declared state variable, ...).
+
+        Parameters
+        ----------
+        name : str
+            The name of the new attribute
+
+        Raises
+        ------
+        AttributeError
+            If the name already exists as an attribute or a state variable.
+        '''
+        if name in self.variables:
+            raise AttributeError('Cannot add an attribute "%s", it is already '
+                                 'a state variable of this group.' % name)
+        if hasattr(self, name):
+            raise AttributeError('Cannot add an attribute "%s", it is already '
+                                 'an attribute of this group.' % name)
+        object.__setattr__(self, name, None)
 
     def get_states(self, vars=None, units=True, format='dict', level=0):
         '''
@@ -856,6 +903,7 @@ class CodeRunner(BrianObject):
         if codeobj_class is None:
             codeobj_class = group.codeobj_class
         self.codeobj_class = codeobj_class
+        self.codeobj = None
 
     def update_abstract_code(self, run_namespace=None, level=0):
         '''

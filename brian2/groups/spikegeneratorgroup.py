@@ -117,9 +117,6 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                  dtype=np.int32, read_only=True)
         self.variables.create_clock_variables(self._clock)
 
-        # Activate name attribute access
-        self._enable_group_attributes()
-
         #: Remember the dt we used the last time when we checked the spike bins
         #: to not repeat the work for multiple runs with the same dt
         self._previous_dt = None
@@ -131,6 +128,9 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                             when=when,
                             order=order,
                             name=None)
+
+        # Activate name attribute access
+        self._enable_group_attributes()
 
     def before_run(self, run_namespace=None, level=0):
         # Do some checks on the period vs. dt
