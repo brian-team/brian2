@@ -59,8 +59,10 @@ recent version of Visual Studio: any version of Visual Studio express from
 from Microsoft). You will need to apply a similar patch to the above.
 
 For further reading on these issues which might help to get compiled C++ code running with a
-different Python installation (particularly for 64 bit Windows), see
-`here <http://poquitopicante.blogspot.co.uk/2014/04/fix-vcvarsallbat-to-install-python-27.html>`_.
+different Python installation (particularly for 64 bit Windows), see the following:
+
+* http://poquitopicante.blogspot.co.uk/2014/04/fix-vcvarsallbat-to-install-python-27.html
+* http://bugs.python.org/issue7511
 
 Development version
 -------------------
