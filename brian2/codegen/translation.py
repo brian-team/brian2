@@ -116,7 +116,7 @@ def analyse_identifiers(code, variables, recursive=False):
     return defined, used_known, dependent
 
 
-def get_identifiers_recursively(expressions, variables):
+def get_identifiers_recursively(expressions, variables, include_numbers=False):
     '''
     Gets all the identifiers in a list of expressions, recursing down into
     subexpressions.
@@ -127,15 +127,19 @@ def get_identifiers_recursively(expressions, variables):
         List of expressions to check.
     variables : dict-like
         Dictionary of `Variable` objects
+    include_numbers : bool, optional
+        Whether to include number literals in the output. Defaults to ``False``.
     '''
     if len(expressions):
-        identifiers = set.union(*[get_identifiers(expr) for expr in expressions])
+        identifiers = set.union(*[get_identifiers(expr, include_numbers=include_numbers)
+                                  for expr in expressions])
     else:
         identifiers = set()
     for name in set(identifiers):
         if name in variables and isinstance(variables[name], Subexpression):
             s_identifiers = get_identifiers_recursively([variables[name].expr],
-                                                        variables)
+                                                        variables,
+                                                        include_numbers=include_numbers)
             identifiers |= s_identifiers
     return identifiers
 
@@ -165,7 +169,6 @@ def is_scalar_expression(expr, variables):
                getattr(variables[name], 'scalar', False) or
                (isinstance(variables[name], Function) and variables[name].stateless)
                for name in identifiers)
-
 
 class LIONodeRenderer(NodeRenderer):
     '''
