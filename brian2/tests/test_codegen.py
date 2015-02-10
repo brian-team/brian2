@@ -102,8 +102,19 @@ def test_apply_loop_invariant_optimisation():
     assert all('_lio_const_1' in stmt.expr for stmt in vector)
 
 
+@attr('codegen-independent')
+def test_apply_loop_invariant_optimisation_integer():
+    variables = {'v': Variable('v', Unit(1), scalar=False),
+                 'N': Constant('N', Unit(1), 10)}
+    statements = [Statement('v', '=', 'v % (2*3*N)', '', np.float32)]
+    scalar, vector = apply_loop_invariant_optimisations(statements, variables,
+                                                        np.float64)
+    # The optimisation should not pull out 2*N
+    assert len(scalar) == 0
+
 if __name__ == '__main__':
     test_analyse_identifiers()
     test_get_identifiers_recursively()
     test_nested_subexpressions()
     test_apply_loop_invariant_optimisation()
+    test_apply_loop_invariant_optimisation_integer()

@@ -170,6 +170,41 @@ def is_scalar_expression(expr, variables):
                (isinstance(variables[name], Function) and variables[name].stateless)
                for name in identifiers)
 
+
+def has_non_float(expr, variables):
+    '''
+    Whether the given expression has an integer or boolean variable in it.
+
+    Parameters
+    ----------
+    expr : str
+        The expression to check
+    variables : dict-like
+        `Variable` and `Function` object for all the identifiers used in `expr`
+
+    Returns
+    -------
+    has_non_float : bool
+        Whether `expr` has an integer or boolean in it
+    '''
+    identifiers = get_identifiers_recursively([expr], variables,
+                                              include_numbers=True)
+    # Check whether there is an integer literal in the expression:
+    for name in identifiers:
+        if name not in variables:
+            try:
+                int(name)
+                # if this worked, this was an integer literal
+                return True
+            except (TypeError, ValueError):
+                pass  # not an integer literal
+    non_float_var = any((name in variables and isinstance(name, Variable) and
+                         (np.issubdtype(variables[name].dtype, np.integer) or
+                          np.issubdtype(variables[name].dtype, np.bool_)))
+                        for name in identifiers)
+    return non_float_var
+
+
 class LIONodeRenderer(NodeRenderer):
     '''
     Renders expressions, pulling out scalar expressions and remembering them
@@ -188,7 +223,8 @@ class LIONodeRenderer(NodeRenderer):
         if node.__class__.__name__ in ['Name', 'Num', 'NameConstant']:
             return expr
 
-        if is_scalar_expression(expr, self.variables):
+        if is_scalar_expression(expr, self.variables) and not has_non_float(expr,
+                                                                            self.variables):
             if expr in self.optimisations:
                 name = self.optimisations[expr]
             else:
