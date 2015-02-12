@@ -39,5 +39,15 @@ prefs.register_preferences(
         Accepts the same arguments as `codegen.target`.
         ''',
         validator=lambda target: isinstance(target, basestring) or issubclass(target, CodeObject),
+        ),
+    loop_invariant_optimisations=BrianPreference(
+        default=True,
+        docs='''
+        Whether to pull out scalar expressions out of the statements, so that
+        they are only evaluated once instead of once for every neuron/synapse/...
+        Can be switched off, e.g. because it complicates the code (and the same
+        optimisation is already performed by the compiler) or because the
+        code generation target does not deal well with it. Defaults to ``True``.
+        '''
     )
-    )
+)
