@@ -8,6 +8,7 @@ from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 import numpy as np
 
 from brian2 import *
+from brian2.core.variables import variables_by_owner
 from brian2.utils.logger import catch_logs
 
 def _compare(synapses, expected):
@@ -782,6 +783,25 @@ def test_repr():
         assert len(func(S.equations))
 
 
+def test_variables_by_owner():
+    # Test the `variables_by_owner` convenience function
+    G = NeuronGroup(10, 'v : 1')
+    G2 = NeuronGroup(10, '''v : 1
+                            w : 1''')
+    S = Synapses(G, G2, 'x : 1')
+
+    # Check that the variables returned as owned by the pre/post groups are the
+    # variables stored in the respective groups. We only compare the `Variable`
+    # objects, as the names may be different (e.g. ``v_post`` vs. ``v``)
+    assert set(G.variables.values()) == set(variables_by_owner(S.variables, G).values())
+    assert set(G2.variables.values()) == set(variables_by_owner(S.variables, G2).values())
+    assert len(set(variables_by_owner(S.variables, S)) & set(G.variables.values())) == 0
+    assert len(set(variables_by_owner(S.variables, S)) & set(G2.variables.values())) == 0
+    # Just test a few examples for synaptic variables
+    assert all(varname in variables_by_owner(S.variables, S)
+               for varname in ['x', 'N', 'N_incoming', 'N_outgoing'])
+
+
 if __name__ == '__main__':
     test_creation()
     test_incoming_outgoing()
@@ -809,3 +829,4 @@ if __name__ == '__main__':
     test_external_variables()
     test_event_driven()
     test_repr()
+    test_variables_by_owner()

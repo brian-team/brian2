@@ -85,6 +85,12 @@ def get_dtype_str(val):
     return 'unknown[%s, %s]' % (str(val), val.__class__.__name__)
 
 
+def variables_by_owner(variables, owner):
+    owner_name = getattr(owner, 'name', None)
+    return dict([(varname, var) for varname, var in variables.iteritems()
+                 if getattr(var.owner, 'name', None) is owner_name])
+
+
 class Variable(object):
     '''
     An object providing information about model variables (including implicit
@@ -100,6 +106,11 @@ class Variable(object):
         known as ``v_post`` in a `Synapse` connecting to the group).
     unit : `Unit`
         The unit of the variable.
+    owner : `Nameable`, optional
+        The object that "owns" this variable, e.g. the `NeuronGroup` or
+        `Synapses` object that declares the variable in its model equations.
+        Defaults to ``None`` (the value used for `Variable` objects without an
+        owner, e.g. external `Constant`\ s).
     dtype : `dtype`, optional
         The dtype used for storing the variable. Defaults to the preference
         `core.default_scalar.dtype`.
@@ -115,7 +126,7 @@ class Variable(object):
         for the variable ``N``, the number of neurons in a group). Defaults
         to ``False``.
     '''
-    def __init__(self, name, unit, dtype=None, scalar=False,
+    def __init__(self, name, unit, owner=None, dtype=None, scalar=False,
                  constant=False, read_only=False, dynamic=False):
         
         #: The variable's unit.
@@ -123,6 +134,9 @@ class Variable(object):
 
         #: The variable's name.
         self.name = name
+
+        #: The `Group` to which this variable belongs.
+        self.owner = weakproxy_with_fallback(owner) if owner is not None else None
 
         #: The dtype used for storing the variable.
         self.dtype = dtype
@@ -276,8 +290,12 @@ class Constant(Variable):
         by value) should never have units attached.
     value: reference to the variable value
         The value of the constant.
+    owner : `Nameable`, optional
+        The object that "owns" this variable, for constants that belong to a
+        specific group, e.g. the ``N`` constant for a `NeuronGroup`. External
+        constants will have ``None`` (the default value).
     '''
-    def __init__(self, name, unit, value):
+    def __init__(self, name, unit, value, owner=None):
         # Determine the type of the value
         is_bool = (value is True or
                    value is False or
@@ -307,7 +325,7 @@ class Constant(Variable):
         #: The constant's value
         self.value = value
 
-        super(Constant, self).__init__(unit=unit, name=name,
+        super(Constant, self).__init__(unit=unit, name=name, owner=owner,
                                        dtype=dtype, scalar=True, constant=True,
                                        read_only=True)
 
@@ -371,6 +389,10 @@ class AttributeVariable(Variable):
     dtype : `dtype`, optional
         The dtype used for storing the variable. If none is given, defaults
         to `core.default_float_dtype`.
+    owner : `Nameable`, optional
+        The object that "owns" this variable, e.g. the `NeuronGroup` to which
+        a ``dt`` value belongs (even if it is the attribute of a `Clock`
+        object). Defaults to ``None``.
     constant : bool, optional
         Whether the attribute's value is constant during a run. Defaults to
         ``False``.
@@ -378,9 +400,10 @@ class AttributeVariable(Variable):
         Whether the variable is a scalar value (``True``) or vector-valued, e.g.
         defined for every neuron (``False``). Defaults to ``True``.
     '''
-    def __init__(self, name, unit, obj, attribute, dtype, constant=False,
+    def __init__(self, name, unit, obj, attribute, dtype=None, owner=None,
+                 constant=False,
                  scalar=True):
-        super(AttributeVariable, self).__init__(unit=unit,
+        super(AttributeVariable, self).__init__(unit=unit, owner=owner,
                                                 name=name, dtype=dtype,
                                                 constant=constant,
                                                 scalar=scalar,
@@ -444,13 +467,11 @@ class ArrayVariable(Variable):
     '''
     def __init__(self, name, unit, owner, size, device, dtype=None,
                  constant=False, scalar=False, read_only=False, dynamic=False):
-        super(ArrayVariable, self).__init__(unit=unit, name=name,
+        super(ArrayVariable, self).__init__(unit=unit, name=name, owner=owner,
                                             dtype=dtype, scalar=scalar,
                                             constant=constant,
                                             read_only=read_only,
                                             dynamic=dynamic)
-        #: The `Group` to which this variable belongs.
-        self.owner = weakproxy_with_fallback(owner)
 
         #: The `Device` responsible for memory access.
         self.device = device
@@ -598,12 +619,10 @@ class Subexpression(Variable):
     '''
     def __init__(self, name, unit, owner, expr, device, dtype=None,
                  scalar=False):
-        super(Subexpression, self).__init__(unit=unit,
+        super(Subexpression, self).__init__(unit=unit, owner=owner,
                                             name=name, dtype=dtype,
                                             scalar=scalar,
                                             constant=False, read_only=True)
-        #: The `Group` to which this variable belongs
-        self.owner = weakproxy_with_fallback(owner)
 
         #: The `Device` responsible for memory access
         self.device = device
@@ -1532,8 +1551,8 @@ class Variables(collections.Mapping):
                                   'of object "%r"') % (attribute, obj))
             dtype = get_dtype(value)
 
-        var = AttributeVariable(name=name, unit=unit, obj=obj,
-                                attribute=attribute, dtype=dtype,
+        var = AttributeVariable(name=name, unit=unit, owner=self.owner,
+                                obj=obj, attribute=attribute, dtype=dtype,
                                 constant=constant, scalar=scalar)
         self._add_variable(name, var)
 
@@ -1551,7 +1570,7 @@ class Variables(collections.Mapping):
         value: reference to the variable value
             The value of the constant.
         '''
-        var = Constant(name=name, unit=unit, value=value)
+        var = Constant(name=name, unit=unit, owner=self.owner, value=value)
         self._add_variable(name, var)
 
     def add_subexpression(self, name, unit, expr, dtype=None, scalar=False,
