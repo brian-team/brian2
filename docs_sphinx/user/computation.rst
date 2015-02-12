@@ -43,3 +43,45 @@ example, if you wrote something like this it would not be efficient::
 The reason is that the function ``f(x)`` is a Python function and so cannot
 be called from C++ directly. To solve this problem, you need to provide an
 implementation of the function in the target language. See :doc:`functions`.
+
+Compiler settings for maximum speed
+-----------------------------------
+
+If using C++ code generation (either via weave, cython or standalone), you
+can maximise the efficiency of the generated code in various ways, described
+below. These can be set in the global preferences file as described in
+:doc:`../advanced/preferences`.
+
+GCC
+~~~
+
+For the GCC compiler, the fastest options are::
+
+    codegen.cpp.extra_compile_args_gcc = ['-w', '-Ofast', '-march=native']
+    
+The ``-Ofast`` optimisation allows the compiler to disregard strict IEEE standards
+compliance. In our usage this has never been a problem, but we don't do this
+by default for safety. Note that not all versions of gcc include this switch,
+older versions might require you to write ``'-O3', '-ffast-math'``.
+
+The ``-march=native`` sets the computer architecture to be the one available
+on the machine you are compiling on. This allows the compiler to make use of
+as many advanced instructions as possible, but reduces portability of the
+generated executable (which is not usually an issue). Again, this option
+is not available on all versions of gcc so on an older version you might have
+to put your architecture in explicitly (check the gcc docs for your version).
+
+MSVC
+~~~~
+
+For the MSVC compiler, the fastest options are::
+
+    codegen.cpp.extra_compile_args_msvc = ['/Ox', '/EHsc', '/w', '/arch:AVX2', '/fp:fast']
+    
+Note that as above for ``-Ofast`` on gcc, ``/fp:fast`` will enable the
+compiler to disregard strict IEEE standards compliance, which has never
+been a problem in our usage but we leave this off by default for safety.
+
+The ``/arch:AVX2`` option may not be available on your version of MSVC and
+your computer architecture. The available options (in order from best to
+worst) are: ``AVX2``, ``AVX``, ``SSE2``, ``SSE`` and ``IA32``.
