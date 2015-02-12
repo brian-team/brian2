@@ -24,6 +24,7 @@ except ImportError:
 
 import numpy as np
 
+from brian2.core.preferences import prefs
 from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
 from brian2.core.functions import Function
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
@@ -469,10 +470,12 @@ def make_statements(code, variables, dtype):
 
     scalar_statements = [s for s in statements if s.scalar]
     vector_statements = [s for s in statements if not s.scalar]
-    scalar_constants, vector_statements = apply_loop_invariant_optimisations(vector_statements,
-                                                                             variables,
-                                                                             dtype)
-    scalar_statements.extend(scalar_constants)
+
+    if prefs.codegen.loop_invariant_optimisations:
+        scalar_constants, vector_statements = apply_loop_invariant_optimisations(vector_statements,
+                                                                                 variables,
+                                                                                 dtype)
+        scalar_statements.extend(scalar_constants)
 
     return scalar_statements, vector_statements
 
