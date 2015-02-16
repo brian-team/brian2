@@ -7,7 +7,7 @@
 
 {% set _non_synaptic = [] %}
 {% for var in variables %}
-    {% if variable_indices[var] != '_idx' %}
+    {% if variable_indices[var] not in ('_idx', '0') %}
         {# This is a trick to get around the scoping problem #}
         {% if _non_synaptic.append(1) %}{% endif %}
     {% endif %}
