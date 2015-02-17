@@ -10,12 +10,20 @@ from brian2.codegen.translation import (analyse_identifiers,
                                         apply_loop_invariant_optimisations
                                         )
 from brian2.codegen.statements import Statement
+from brian2.codegen.codeobject import CodeObject
 from brian2.core.variables import Subexpression, Variable, Constant
 from brian2.core.functions import Function, DEFAULT_FUNCTIONS
+from brian2.devices.device import auto_target
 from brian2.units.fundamentalunits import Unit
 from brian2.units import second, ms
 
 FakeGroup = namedtuple('FakeGroup', ['variables'])
+
+@attr('codegen-independent')
+def test_auto_target():
+    # very basic test that the "auto" codegen target is useable
+    assert issubclass(auto_target(), CodeObject)
+
 
 @attr('codegen-independent')
 def test_analyse_identifiers():
@@ -113,6 +121,7 @@ def test_apply_loop_invariant_optimisation_integer():
     assert len(scalar) == 0
 
 if __name__ == '__main__':
+    test_auto_target()
     test_analyse_identifiers()
     test_get_identifiers_recursively()
     test_nested_subexpressions()
