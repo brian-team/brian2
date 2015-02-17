@@ -38,6 +38,21 @@ def test_creation():
     assert S.source.name == S.target.name == G.name
 
 
+@attr('codegen-independent')
+def test_name_clashes():
+    # Using identical names for synaptic and pre- or post-synaptic variables
+    # is confusing and should be forbidden
+    G1 = NeuronGroup(1, 'a : 1')
+    G2 = NeuronGroup(1, 'b : 1')
+    assert_raises(ValueError, lambda: Synapses(G1, G2, 'a : 1'))
+    assert_raises(ValueError, lambda: Synapses(G1, G2, 'b : 1'))
+
+    # this should all be ok
+    Synapses(G1, G2, 'c : 1')
+    Synapses(G1, G2, 'a_syn : 1')
+    Synapses(G1, G2, 'b_syn : 1')
+
+
 def test_incoming_outgoing():
     '''
     Test the count of outgoing/incoming synapses per neuron.
@@ -444,10 +459,10 @@ def test_subexpression_references():
     G.v = np.arange(10)
     S = Synapses(G, G, '''w : 1
                           u = v2_post + 1 : 1
-                          v = v2_pre + 1 : 1''')
+                          x = v2_pre + 1 : 1''')
     S.connect('i==(10-1-j)')
     assert_equal(S.u[:], np.arange(10)[::-1]*2+1)
-    assert_equal(S.v[:], np.arange(10)*2+1)
+    assert_equal(S.x[:], np.arange(10)*2+1)
 
 
 def test_delay_specification():
@@ -804,6 +819,7 @@ def test_variables_by_owner():
 
 if __name__ == '__main__':
     test_creation()
+    test_name_clashes()
     test_incoming_outgoing()
     test_connection_string_deterministic()
     test_connection_random()

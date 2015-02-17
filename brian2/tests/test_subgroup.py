@@ -256,30 +256,30 @@ def test_subexpression_references():
 
     S1 = Synapses(SG1, SG2, '''w : 1
                           u = v2_post + 1 : 1
-                          v = v2_pre + 1 : 1''')
+                          x = v2_pre + 1 : 1''')
     S1.connect('i==(5-1-j)')
     assert_equal(S1.i[:], np.arange(5))
     assert_equal(S1.j[:], np.arange(5)[::-1])
     assert_equal(S1.u[:], np.arange(10)[:-6:-1]*2+1)
-    assert_equal(S1.v[:], np.arange(5)*2+1)
+    assert_equal(S1.x[:], np.arange(5)*2+1)
 
     S2 = Synapses(G, SG2, '''w : 1
                              u = v2_post + 1 : 1
-                             v = v2_pre + 1 : 1''')
+                             x = v2_pre + 1 : 1''')
     S2.connect('i==(5-1-j)')
     assert_equal(S2.i[:], np.arange(5))
     assert_equal(S2.j[:], np.arange(5)[::-1])
     assert_equal(S2.u[:], np.arange(10)[:-6:-1]*2+1)
-    assert_equal(S2.v[:], np.arange(5)*2+1)
+    assert_equal(S2.x[:], np.arange(5)*2+1)
 
     S3 = Synapses(SG1, G, '''w : 1
                              u = v2_post + 1 : 1
-                             v = v2_pre + 1 : 1''')
+                             x = v2_pre + 1 : 1''')
     S3.connect('i==(10-1-j)')
     assert_equal(S3.i[:], np.arange(5))
     assert_equal(S3.j[:], np.arange(10)[:-6:-1])
     assert_equal(S3.u[:], np.arange(10)[:-6:-1]*2+1)
-    assert_equal(S3.v[:], np.arange(5)*2+1)
+    assert_equal(S3.x[:], np.arange(5)*2+1)
 
 
 def test_subexpression_no_references():
@@ -295,30 +295,30 @@ def test_subexpression_no_references():
 
     S1 = Synapses(G[:5], G[5:], '''w : 1
                           u = v2_post + 1 : 1
-                          v = v2_pre + 1 : 1''')
+                          x = v2_pre + 1 : 1''')
     S1.connect('i==(5-1-j)')
     assert_equal(S1.i[:], np.arange(5))
     assert_equal(S1.j[:], np.arange(5)[::-1])
     assert_equal(S1.u[:], np.arange(10)[:-6:-1]*2+1)
-    assert_equal(S1.v[:], np.arange(5)*2+1)
+    assert_equal(S1.x[:], np.arange(5)*2+1)
 
     S2 = Synapses(G, G[5:], '''w : 1
                              u = v2_post + 1 : 1
-                             v = v2_pre + 1 : 1''')
+                             x = v2_pre + 1 : 1''')
     S2.connect('i==(5-1-j)')
     assert_equal(S2.i[:], np.arange(5))
     assert_equal(S2.j[:], np.arange(5)[::-1])
     assert_equal(S2.u[:], np.arange(10)[:-6:-1]*2+1)
-    assert_equal(S2.v[:], np.arange(5)*2+1)
+    assert_equal(S2.x[:], np.arange(5)*2+1)
 
     S3 = Synapses(G[:5], G, '''w : 1
                              u = v2_post + 1 : 1
-                             v = v2_pre + 1 : 1''')
+                             x = v2_pre + 1 : 1''')
     S3.connect('i==(10-1-j)')
     assert_equal(S3.i[:], np.arange(5))
     assert_equal(S3.j[:], np.arange(10)[:-6:-1])
     assert_equal(S3.u[:], np.arange(10)[:-6:-1]*2+1)
-    assert_equal(S3.v[:], np.arange(5)*2+1)
+    assert_equal(S3.x[:], np.arange(5)*2+1)
 
 
 def test_synaptic_propagation():

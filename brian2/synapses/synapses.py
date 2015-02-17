@@ -911,6 +911,16 @@ class Synapses(Group):
 
         # Add all the pre and post variables with _pre and _post suffixes
         for name in getattr(self.source, 'variables', {}).iterkeys():
+            # Raise an error if a variable name is also used for a synaptic
+            # variable
+            if name in equations.names:
+                error_msg = ('The post-synaptic variable {name} has the same '
+                             'name as a synaptic variable, rename the synaptic '
+                             'variable ').format(name=name)
+                if name+'_syn' not in self.variables:
+                    error_msg += ("(for example to '{name}_syn') ".format(name=name))
+                error_msg += 'to avoid confusion'
+                raise ValueError(error_msg)
             var = self.source.variables[name]
             index = '0' if var.scalar else '_presynaptic_idx'
             try:
@@ -924,13 +934,22 @@ class Synapses(Group):
                                                   synapses=self.name,
                                                   source=self.source.name))
         for name in getattr(self.target, 'variables', {}).iterkeys():
+            # Raise an error if a variable name is also used for a synaptic
+            # variable
+            if name in equations.names:
+                error_msg = ("The pre-synaptic variable '{name}' has the same "
+                             "name as a synaptic variable, rename the synaptic "
+                             "variable ").format(name=name)
+                if name+'_syn' not in self.variables:
+                    error_msg += ("(for example to '{name}_syn') ".format(name=name))
+                error_msg += 'to avoid confusion'
+                raise ValueError(error_msg)
             var = self.target.variables[name]
             index = '0' if var.scalar else '_postsynaptic_idx'
             try:
                 self.variables.add_reference(name + '_post', self.target, name,
                                              index=index)
-                # Also add all the post variables without a suffix -- note that
-                # a reference will never overwrite the name of an existing name
+                # Also add all the post variables without a suffix
                 self.variables.add_reference(name, self.target, name,
                                              index=index)
             except TypeError:
