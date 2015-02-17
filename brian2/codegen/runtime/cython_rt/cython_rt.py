@@ -7,6 +7,7 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,
                                    Subexpression)
 from brian2.core.preferences import prefs, BrianPreference
+from brian2.utils.logger import get_logger
 
 from ..numpy_rt import NumpyCodeObject
 from ...templates import Templater
@@ -17,6 +18,8 @@ from .extension_manager import cython_extension_manager
 
 __all__ = ['CythonCodeObject']
 
+
+logger = get_logger(__name__)
 
 # Preferences
 prefs.register_preferences(
@@ -59,6 +62,23 @@ class CythonCodeObject(NumpyCodeObject):
         self.extra_compile_args = prefs['codegen.runtime.cython.extra_compile_args']
         self.include_dirs = list(prefs['codegen.runtime.cython.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
+
+    @staticmethod
+    def is_available():
+        try:
+            extra_compile_args = prefs['codegen.runtime.cython.extra_compile_args']
+            code = '''
+            def main():
+                cdef int x
+                x = 0'''
+            compiled = cython_extension_manager.create_extension(code,
+                                                                 compile_args=extra_compile_args)
+            compiled.main()
+            return True
+        except Exception as ex:
+            logger.debug('Compilation with Cython failed: ' + str(ex))
+            return False
+
 
     def compile(self):
         self.compiled_code = cython_extension_manager.create_extension(self.code,

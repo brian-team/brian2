@@ -18,7 +18,7 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    Subexpression)
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.functions import DEFAULT_FUNCTIONS
-from brian2.utils.logger import std_silent
+from brian2.utils.logger import std_silent, get_logger
 
 from ...codeobject import CodeObject
 from ...templates import Templater
@@ -27,6 +27,10 @@ from ...targets import codegen_targets
 from ...cpp_prefs import get_compiler_and_args
 
 __all__ = ['WeaveCodeObject', 'WeaveCodeGenerator']
+
+
+logger = get_logger(__name__)
+
 
 def weave_data_type(dtype):
     '''
@@ -117,6 +121,21 @@ include_dirs:
         self.python_code_namespace = {'_owner': owner}
         self.variables_to_namespace()
 
+    @staticmethod
+    def is_available():
+        with std_silent(False):
+            try:
+                compiler, extra_compile_args = get_compiler_and_args()
+                weave.inline('int x=0;', [],
+                             compiler=compiler,
+                             headers=['<algorithm>', '<limits>'],
+                             extra_compile_args=extra_compile_args,
+                             verbose=0)
+                return True
+            except Exception as ex:
+                logger.debug('Test compilation with weave failed: ' + str(ex))
+                return False
+
     def variables_to_namespace(self):
 
         # Variables can refer to values that are either constant (e.g. dt)
@@ -200,7 +219,8 @@ include_dirs:
             exec self.compiled_python_post in self.python_code_namespace
         return ret_val
 
-codegen_targets.add(WeaveCodeObject)
+if weave is not None:
+    codegen_targets.add(WeaveCodeObject)
 
 
 # Use a special implementation for the randn function that makes use of numpy's
