@@ -88,27 +88,27 @@ def test_storing_loading(with_output=False):
     G.x = x
     G.n = n
     G.b = b
-    S = Synapses(G, G, '''v : volt
-                          x : 1
-                          n : integer
-                          b : boolean''', connect='i==j')
-    S.v = v
-    S.x = x
-    S.n = n
-    S.b = b
+    S = Synapses(G, G, '''v_syn : volt
+                          x_syn : 1
+                          n_syn : integer
+                          b_syn : boolean''', connect='i==j')
+    S.v_syn = v
+    S.x_syn = x
+    S.n_syn = n
+    S.b_syn = b
     run(0*ms)
     tempdir = tempfile.mkdtemp()
     if with_output:
         print tempdir
     device.build(directory=tempdir, compile=True, run=True, with_output=True)
     assert_allclose(G.v[:], v)
-    assert_allclose(S.v[:], v)
+    assert_allclose(S.v_syn[:], v)
     assert_allclose(G.x[:], x)
-    assert_allclose(S.x[:], x)
+    assert_allclose(S.x_syn[:], x)
     assert_allclose(G.n[:], n)
-    assert_allclose(S.n[:], n)
+    assert_allclose(S.n_syn[:], n)
     assert_allclose(G.b[:], b)
-    assert_allclose(S.b[:], b)
+    assert_allclose(S.b_syn[:], b)
 
 @attr('standalone')
 @with_setup(teardown=restore_device)
