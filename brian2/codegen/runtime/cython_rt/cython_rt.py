@@ -76,7 +76,10 @@ class CythonCodeObject(NumpyCodeObject):
             compiled.main()
             return True
         except Exception as ex:
-            logger.debug('Compilation with Cython failed: ' + str(ex))
+            logger.warn(('Cannot use Cython, a test compilation '
+                         'failed: %s (%s)' % (str(ex),
+                                              ex.__class__.__name__)) ,
+                        'failed_compile_test')
             return False
 
 

@@ -49,14 +49,23 @@ def auto_target():
         target_dict = dict((target.class_name, target)
                            for target in codegen_targets
                            if target.class_name)
+        using_fallback = False
         if 'weave' in target_dict and target_dict['weave'].is_available():
             _auto_target = target_dict['weave']
         elif 'cython' in target_dict and target_dict['cython'].is_available():
             _auto_target = target_dict['cython']
         else:
             _auto_target = target_dict['numpy']
-        logger.info(('Chosing %r as the code generation '
-                     'target.') % _auto_target.class_name)
+            using_fallback = True
+
+        if using_fallback:
+            logger.warn('Cannot use compiled code, falling back to the numpy '
+                        'code generation target. Note that this will likely '
+                        'be slower than using compiled code.',
+                        'codegen_fallback')
+        else:
+            logger.info(('Chosing %r as the code generation '
+                         'target.') % _auto_target.class_name)
 
     return _auto_target
 

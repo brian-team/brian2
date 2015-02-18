@@ -123,8 +123,8 @@ include_dirs:
 
     @staticmethod
     def is_available():
-        with std_silent(False):
-            try:
+        try:
+            with std_silent(False):
                 compiler, extra_compile_args = get_compiler_and_args()
                 weave.inline('int x=0;', [],
                              compiler=compiler,
@@ -132,9 +132,12 @@ include_dirs:
                              extra_compile_args=extra_compile_args,
                              verbose=0)
                 return True
-            except Exception as ex:
-                logger.debug('Test compilation with weave failed: ' + str(ex))
-                return False
+        except Exception as ex:
+            logger.warn(('Cannot use weave, a test compilation '
+                         'failed: %s (%s)' % (str(ex),
+                                              ex.__class__.__name__)) ,
+                        'failed_compile_test')
+            return False
 
     def variables_to_namespace(self):
 
