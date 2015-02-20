@@ -51,6 +51,15 @@ class CodeObject(Nameable):
         self.template_name = template_name
         self.template_source = template_source
 
+    @classmethod
+    def is_available(cls):
+        '''
+        Whether this target for code generation is available. Should use a
+        minimal example to check whether code generation works in general.
+        '''
+        raise NotImplementedError("CodeObject class %s is missing an "
+                                  "'is_available' method." % (cls.__name__))
+
     def update_namespace(self):
         '''
         Update the namespace for this timestep. Should only deal with variables
