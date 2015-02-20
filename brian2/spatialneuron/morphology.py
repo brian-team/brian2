@@ -207,10 +207,6 @@ class Morphology(object):
         self.diameter, self.length, self.area, self.x, self.y, self.z = \
             zip(*[(seg['diameter'], seg['length'], seg['area'], seg['x'],
                    seg['y'], seg['z']) for seg in branch])
-        (self.diameter, self.length, self.area,
-         self.x, self.y, self.z) = (array(self.diameter), array(self.length),
-                                    array(self.area), array(self.x),
-                                    array(self.y), array(self.z))
         self.type = segments[n]['T']  # normally same type for all compartments
                                      # in the branch
         self.set_distance()
