@@ -417,9 +417,10 @@ class SpatialStateUpdater(CodeRunner, Group):
         self._temp_morph_parent_i[counter] = morphology.parent + 1
         self._temp_starts[counter] = morphology._origin
         self._temp_ends[counter] = morphology._origin + len(morphology.x) - 1
+        total_count = 1
         for child in morphology.children:
-            counter += 1
-            self._pre_calc_iteration(child, counter)
+            total_count += self._pre_calc_iteration(child, counter+total_count)
+        return total_count
 
     def number_branches(self, morphology, n=0, parent=-1):
         '''
