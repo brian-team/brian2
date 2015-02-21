@@ -8,6 +8,7 @@ from nose import with_setup
 from brian2 import *
 from brian2.utils.logger import catch_logs
 from brian2.core.variables import ArrayVariable, AttributeVariable, Variable
+from brian2.devices.device import restore_device
 
 
 @attr('codegen-independent')
@@ -507,7 +508,8 @@ def test_determination():
     # reset to state before the test
     StateUpdateMethod.stateupdaters = before
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_subexpressions_basic():
     '''
     Make sure that the integration of a (non-stochastic) differential equation

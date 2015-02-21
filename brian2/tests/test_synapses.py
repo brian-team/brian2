@@ -10,6 +10,8 @@ import numpy as np
 from brian2 import *
 from brian2.core.variables import variables_by_owner
 from brian2.utils.logger import catch_logs
+from brian2.devices.device import restore_device
+
 
 def _compare(synapses, expected):
     conn_matrix = np.zeros((len(synapses.source), len(synapses.target)))
@@ -123,13 +125,7 @@ def test_connection_arrays():
 
 from brian2.devices.cpp_standalone import cpp_standalone_device
 
-
-def restore_device():
-    cpp_standalone_device.reinit()
-    set_device('runtime')
-    restore_initial_state()
-
-@attr('standalone')
+@attr('cpp_standalone')
 @with_setup(teardown=restore_device)
 def test_connection_array_standalone():
     set_device('cpp_standalone')
@@ -525,7 +521,8 @@ def test_transmission():
         assert_allclose(source_mon.t[source_mon.i==1],
                         target_mon.t[target_mon.i==1] - default_dt - delay[1])
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_transmission_scalar_delay():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms)
     target = NeuronGroup(2, 'v:1')
@@ -538,7 +535,8 @@ def test_transmission_scalar_delay():
     assert_equal(mon[1].v[mon.t<1.5*ms], 0)
     assert_equal(mon[1].v[mon.t>=1.5*ms], 1)
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_transmission_scalar_delay_different_clocks():
 
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms, dt=0.5*ms,
@@ -619,7 +617,8 @@ def test_no_synapses():
         assert len(l) == 1, 'expected 1 warning, got %d' % len(l)
         assert l[0][1].endswith('.no_synapses')
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_summed_variable():
     source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0')
     source.v = 1.1  # will spike immediately
@@ -719,7 +718,8 @@ def test_scalar_subexpression():
                                                      sub = v_post + s : 1 (shared)''',
                                                 pre='v+=s', connect=True))
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_external_variables():
     # Make sure that external variables are correctly resolved
     source = SpikeGeneratorGroup(1, [0], [0]*ms)
@@ -733,7 +733,7 @@ def test_external_variables():
     assert target.v[0] == 2
 
 
-@attr('long')
+@attr('long', 'standalone-compatible')
 def test_event_driven():
     # Fake example, where the synapse is actually not changing the state of the
     # postsynaptic neuron, the pre- and post spiketrains are regular spike
@@ -797,7 +797,7 @@ def test_repr():
     for func in [str, repr, sympy.latex]:
         assert len(func(S.equations))
 
-
+@attr('codegen-independent')
 def test_variables_by_owner():
     # Test the `variables_by_owner` convenience function
     G = NeuronGroup(10, 'v : 1')

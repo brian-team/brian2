@@ -10,14 +10,10 @@ from numpy.testing.utils import assert_raises, assert_equal
 
 from brian2 import *
 from brian2.devices.cpp_standalone import cpp_standalone_device
+from brian2.devices.device import restore_device
 
-
-def restore_device():
-    cpp_standalone_device.reinit()
-    set_device('runtime')
-    restore_initial_state()
-
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_spikegenerator_connected():
     '''
     Test that `SpikeGeneratorGroup` connects properly.
@@ -42,7 +38,8 @@ def test_spikegenerator_connected():
     assert all(mon[1].v[(mon.t>=3*ms) & (mon.t<4*ms)] == 1)
     assert all(mon[1].v[(mon.t>=4*ms)] == 2)
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_spikegenerator_basic():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -58,7 +55,8 @@ def test_spikegenerator_basic():
         recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
         assert generator_spikes == recorded_spikes
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_spikegenerator_basic_sorted():
     '''
     Basic test for `SpikeGeneratorGroup` with already sorted spike events.
@@ -74,7 +72,8 @@ def test_spikegenerator_basic_sorted():
         recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
         assert generator_spikes == recorded_spikes
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_spikegenerator_period():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -91,7 +90,8 @@ def test_spikegenerator_period():
         recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
         assert generator_spikes == recorded_spikes
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_spikegenerator_period_repeat():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -111,7 +111,7 @@ def test_spikegenerator_period_repeat():
         net.run(1*ms)
         assert (idx+1)*len(SG.spike_time) == s_mon.num_spikes
 
-
+@attr('codegen-independent')
 def test_spikegenerator_incorrect_period():
     '''
     Test that you cannot provide incorrect period arguments or combine
@@ -134,7 +134,8 @@ def test_spikegenerator_incorrect_period():
     net = Network(SG)
     assert_raises(ValueError, lambda: net.run(0*ms))
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_spikegenerator_rounding():
     # all spikes should fall into the first time bin
     indices = np.arange(100)
@@ -184,7 +185,7 @@ def test_spikegenerator_multiple_spikes_per_bin():
     assert_raises(ValueError, lambda: net.run(0*ms))
 
 
-@attr('standalone')
+@attr('cpp_standalone')
 @with_setup(teardown=restore_device)
 def test_spikegenerator_standalone():
     '''

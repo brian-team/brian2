@@ -8,13 +8,7 @@ from numpy.testing.utils import assert_allclose, assert_equal
 
 from brian2 import *
 from brian2.devices.cpp_standalone import cpp_standalone_device
-
-
-def restore_device():
-    cpp_standalone_device.reinit()
-    set_device('runtime')
-    restore_initial_state()
-
+from brian2.devices.device import restore_device
 
 @attr('cpp_standalone')
 @with_setup(teardown=restore_device)

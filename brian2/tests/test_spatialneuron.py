@@ -98,7 +98,7 @@ def test_infinitecable():
     assert_allclose(v[t>0.5*ms],theory[t>0.5*ms],rtol=0.01) # 1% error tolerance (not exact because not infinite cable)
 
 
-@attr('long')
+@attr('long', 'standalone-compatible')
 @with_setup(teardown=restore_initial_state)
 def test_finitecable():
     '''
@@ -141,7 +141,6 @@ def test_finitecable():
 
 
 @attr('long')
-@with_setup(teardown=restore_initial_state)
 def test_rall():
     '''
     Test simulation of a cylinder plus two branches, with diameters according to Rall's formula

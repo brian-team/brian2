@@ -1,9 +1,10 @@
 import numpy as np
 from numpy.testing.utils import assert_equal
+from nose import with_setup
 from nose.plugins.attrib import attr
 
 from brian2 import *
-
+from brian2.devices.device import restore_device
 
 @attr('codegen-independent')
 def test_timedarray_direct_use():
@@ -25,7 +26,8 @@ def test_timedarray_direct_use():
     assert_equal(ta2d(1*ms, [0, 1, 2]), [3, 4, 5]*amp)
     assert_equal(ta2d(15*ms, [0, 1, 2]), [9, 10, 11]*amp)
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_timedarray_semantics():
     # Make sure that timed arrays are interpreted as specifying the values
     # between t and t+dt (not between t-dt/2 and t+dt/2 as in Brian1)
@@ -37,7 +39,8 @@ def test_timedarray_semantics():
     assert_equal(mon[0].value, [0, 0, 0, 0, 1, 1, 1, 1])
     assert_equal(mon[0].value, ta(mon.t))
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_timedarray_no_units():
     ta = TimedArray(np.arange(10), dt=0.1*ms)
     G = NeuronGroup(1, 'value = ta(t) + 1: 1', dt=0.1*ms)
@@ -46,7 +49,8 @@ def test_timedarray_no_units():
     net.run(1.1*ms)
     assert_equal(mon[0].value_, np.clip(np.arange(len(mon[0].t)), 0, 9) + 1)
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_timedarray_with_units():
     ta = TimedArray(np.arange(10)*amp, dt=0.1*ms)
     G = NeuronGroup(1, 'value = ta(t) + 2*nA: amp', dt=0.1*ms)
@@ -55,7 +59,8 @@ def test_timedarray_with_units():
     net.run(1.1*ms)
     assert_equal(mon[0].value, np.clip(np.arange(len(mon[0].t)), 0, 9)*amp + 2*nA)
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_timedarray_2d():
     # 4 time steps, 3 neurons
     ta2d = TimedArray(np.arange(12).reshape(4, 3), dt=0.1*ms)
@@ -67,7 +72,8 @@ def test_timedarray_2d():
     assert_equal(mon[1].value_, np.array([1, 4, 7, 10, 10]) + 1)
     assert_equal(mon[2].value_, np.array([2, 5, 8, 11, 11]) + 1)
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_timedarray_no_upsampling():
     # Test a TimedArray where no upsampling is necessary because the monitor's
     # dt is bigger than the TimedArray's
@@ -78,7 +84,8 @@ def test_timedarray_no_upsampling():
     net.run(2.1*ms)
     assert_equal(mon[0].value, [0, 9, 9])
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_long_timedarray():
     '''
     Use a very long timedarray (with a big dt), where the upsampling can lead

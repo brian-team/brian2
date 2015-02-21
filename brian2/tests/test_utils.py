@@ -28,7 +28,7 @@ def test_environment():
     if not testing_under_ipython:
         del builtins.__IPYTHON__
 
-
+@attr('codegen-independent')
 def test_spell_check():
     checker = SpellChecker(['vm', 'alpha', 'beta'])
     assert checker.suggest('Vm') == {'vm'}

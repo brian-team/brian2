@@ -1,9 +1,13 @@
-import numpy as np
 from numpy.testing.utils import assert_allclose, assert_array_equal, assert_raises
+from nose import with_setup
+from nose.plugins.attrib import attr
 
 from brian2 import *
+from brian2.devices.device import restore_device
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_spike_monitor():
     G = NeuronGroup(2, '''dv/dt = rate : 1
                           rate: Hz''', threshold='v>1', reset='v=0')
@@ -29,7 +33,8 @@ def test_spike_monitor():
     assert_array_equal(t, mon.t)
     assert_array_equal(t_, mon.t_)
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_state_monitor():
     # Check that all kinds of variables can be recorded
     G = NeuronGroup(2, '''dv/dt = -v / (10*ms) : 1
@@ -104,6 +109,9 @@ def test_state_monitor():
     assert_allclose(synapse_mon2[S['i==0 and j==1']].w, 1*nS)
     assert_allclose(synapse_mon2.w[1], 1*nS)
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_state_monitor_indexing():
     # Check indexing semantics
     G = NeuronGroup(10, 'v:volt')
     G.v = np.arange(10) * volt
@@ -128,7 +136,8 @@ def test_state_monitor():
     assert_raises(TypeError, lambda: mon[5.0])
     assert_raises(TypeError, lambda: mon[[5.0, 6.0]])
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_rate_monitor():
     G = NeuronGroup(5, 'v : 1', threshold='v>1') # no reset
     G.v = 1.1 # All neurons spike every time step
@@ -151,7 +160,8 @@ def test_rate_monitor():
     assert_array_equal(rate_mon.rate['t>0.5*ms'],
                  rate_mon.rate[np.nonzero(rate_mon.t>0.5*ms)[0]])
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_rate_monitor_subgroups():
     old_dt = defaultclock.dt
     defaultclock.dt = 0.01*ms
@@ -174,5 +184,6 @@ def test_rate_monitor_subgroups():
 if __name__ == '__main__':
     test_spike_monitor()
     test_state_monitor()
+    test_state_monitor_indexing()
     test_rate_monitor()
     test_rate_monitor_subgroups()
