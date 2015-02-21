@@ -16,7 +16,7 @@ def restore_device():
     restore_initial_state()
 
 
-@attr('standalone')
+@attr('cpp_standalone')
 @with_setup(teardown=restore_device)
 def test_cpp_standalone(with_output=False):
     set_device('cpp_standalone')
@@ -56,7 +56,7 @@ def test_cpp_standalone(with_output=False):
     assert M.t[0] == 0.
     assert M.t[-1] == 100*ms - defaultclock.dt
 
-@attr('standalone')
+@attr('cpp_standalone')
 @with_setup(teardown=restore_device)
 def test_multiple_connects(with_output=False):
     set_device('cpp_standalone')
@@ -72,7 +72,7 @@ def test_multiple_connects(with_output=False):
                  with_output=True)
     assert len(S) == 2 and len(S.w[:]) == 2
 
-@attr('standalone')
+@attr('cpp_standalone')
 @with_setup(teardown=restore_device)
 def test_storing_loading(with_output=False):
     set_device('cpp_standalone')
@@ -110,7 +110,7 @@ def test_storing_loading(with_output=False):
     assert_allclose(G.b[:], b)
     assert_allclose(S.b_syn[:], b)
 
-@attr('standalone')
+@attr('cpp_standalone')
 @with_setup(teardown=restore_device)
 def test_openmp_consistency(with_output=False):
 
@@ -208,7 +208,7 @@ def test_openmp_consistency(with_output=False):
         assert_allclose(results[key1]['r'], results[key2]['r'])
         assert_allclose(results[key1]['s'], results[key2]['s'])
 
-@attr('standalone')
+@attr('cpp_standalone')
 @with_setup(teardown=restore_device)
 def test_timedarray(with_output=True):
     set_device('cpp_standalone')

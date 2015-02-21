@@ -89,7 +89,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             sys.stderr.write('Running tests for target %s:\n' % target)
             prefs.codegen.target = target
             prefs._backup()
-            exclude_str = "!standalone,!codegen-independent"
+            exclude_str = "!cpp_standalone,!codegen-independent"
             if not long_tests:
                 exclude_str += ',!long'
             # explicitly ignore the brian2.hears file for testing, otherwise the
@@ -105,17 +105,39 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                                           '--nologcapture',
                                           '--exe']))
         if test_standalone:
-            sys.stderr.write('Running standalone tests\n')
+            from brian2.devices.device import get_device, set_device
+            previous_device = get_device()
+            set_device('cpp_standalone_simple')
+            sys.stderr.write('Running standalone-compatible standard tests\n')
             success.append(nose.run(argv=['', dirname,
                                           '-c=',  # no config file loading
                                           '-I', '^hears\.py$',
                                           '-I', '^\.',
                                           '-I', '^_',
                                           # Only run standalone tests
-                                          '-a', 'standalone',
+                                          '-a', 'standalone-compatible',
                                           '--nologcapture',
                                           '--exe']))
-        return all(success)
+            set_device(previous_device)
+            sys.stderr.write('Running standalone-specific tests\n')
+            success.append(nose.run(argv=['', dirname,
+                                          '-c=',  # no config file loading
+                                          '-I', '^hears\.py$',
+                                          '-I', '^\.',
+                                          '-I', '^_',
+                                          # Only run standalone tests
+                                          '-a', 'cpp_standalone',
+                                          '--nologcapture',
+                                          '--exe']))
+        all_success = all(success)
+        if not all_success:
+            sys.stderr.write(('ERROR: %d/%d test suite(s) did not complete '
+                              'successfully (see above).\n') % (len(success) - sum(success),
+                                                                len(success)))
+        else:
+            sys.stderr.write(('OK: %d/%d test suite(s) did complete '
+                              'successfully.\n') % (len(success), len(success)))
+        return all_success
 
     finally:
         # Restore the user preferences
