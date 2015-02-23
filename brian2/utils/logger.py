@@ -162,17 +162,16 @@ CONSOLE_HANDLER.setFormatter(logging.Formatter('%(levelname)-8s %(name)s: %(mess
 logger.addHandler(CONSOLE_HANDLER)
 
 # We want to log all warnings
-if hasattr(logging, 'captureWarnings'):  # This function was added in Python 2.7
-    logging.captureWarnings(True) # pylint: disable=E1101
-    # Manually connect to the warnings logger so that the warnings end up in
-    # the log file. Note that connecting to the console handler here means
-    # duplicated warning messages in the ipython notebook, but not doing so
-    # would mean that they are not displayed at all in the standard ipython
-    # interface...
-    warn_logger = logging.getLogger('py.warnings')
-    warn_logger.addHandler(CONSOLE_HANDLER)
-    if FILE_HANDLER is not None:
-        warn_logger.addHandler(FILE_HANDLER)
+logging.captureWarnings(True)  # pylint: disable=E1101
+# Manually connect to the warnings logger so that the warnings end up in
+# the log file. Note that connecting to the console handler here means
+# duplicated warning messages in the ipython notebook, but not doing so
+# would mean that they are not displayed at all in the standard ipython
+# interface...
+warn_logger = logging.getLogger('py.warnings')
+warn_logger.addHandler(CONSOLE_HANDLER)
+if FILE_HANDLER is not None:
+    warn_logger.addHandler(FILE_HANDLER)
 
 # Put some standard info into the log file
 logger.debug('Logging to file: %s, copy of main script saved as: %s' %
