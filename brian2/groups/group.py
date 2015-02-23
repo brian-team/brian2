@@ -3,12 +3,8 @@ This module defines the `Group` object, a mix-in class for everything that
 saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
 import collections
+from collections import OrderedDict
 import weakref
-try:
-    from collections import OrderedDict
-except ImportError:
-    # OrderedDict was added in Python 2.7, use backport for Python 2.6
-    from brian2.utils.ordereddict import OrderedDict
 
 import numpy as np
 

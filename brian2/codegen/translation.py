@@ -17,10 +17,7 @@ The input information needed:
 import ast
 import re
 import collections
-try:
-    from collections import OrderedDict
-except ImportError:
-    from brian2.utils.ordereddict import OrderedDict
+from collections import OrderedDict
 
 import numpy as np
 
