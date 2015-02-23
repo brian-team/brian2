@@ -49,7 +49,7 @@ class LineInfo(object):
             setattr(self, k, v)
 
     # TODO: This information should go somewhere else, I guess
-STANDARD_IDENTIFIERS = set(['and', 'or', 'not', 'True', 'False'])
+STANDARD_IDENTIFIERS = {'and', 'or', 'not', 'True', 'False'}
 
 
 def analyse_identifiers(code, variables, recursive=False):
@@ -444,7 +444,7 @@ def make_statements(code, variables, dtype):
         # find that have a dependency on something in the invalid set. We
         # go through in sorted subexpression order so that the invalid set
         # is increased in the right order
-        invalid = set([var])
+        invalid = {var}
         for subvar in sorted_subexpr_vars:
             spec = subexpressions[subvar]
             spec_ids = set(spec.identifiers)

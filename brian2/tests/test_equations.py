@@ -326,40 +326,40 @@ def test_properties():
     assert (len(eqs.diff_eq_expressions) == 1 and
             eqs.diff_eq_expressions[0][0] == 'v' and
             isinstance(eqs.diff_eq_expressions[0][1], Expression))
-    assert eqs.diff_eq_names == set(['v'])
+    assert eqs.diff_eq_names == {'v'}
     assert (len(eqs.eq_expressions) == 3 and
-            set([name for name, _ in eqs.eq_expressions]) == set(['v', 'I', 'f']) and
+            set([name for name, _ in eqs.eq_expressions]) == {'v', 'I', 'f'} and
             all((isinstance(expr, Expression) for _, expr in eqs.eq_expressions)))
-    assert len(eqs.eq_names) == 3 and eqs.eq_names == set(['v', 'I', 'f'])
-    assert set(eqs.keys()) == set(['v', 'I', 'f', 'freq'])
+    assert len(eqs.eq_names) == 3 and eqs.eq_names == {'v', 'I', 'f'}
+    assert set(eqs.keys()) == {'v', 'I', 'f', 'freq'}
     # test that the equations object is iterable itself
     assert all((isinstance(eq, SingleEquation) for eq in eqs.itervalues()))
     assert all((isinstance(eq, basestring) for eq in eqs))
     assert (len(eqs.ordered) == 4 and
             all((isinstance(eq, SingleEquation) for eq in eqs.ordered)) and
             [eq.varname for eq in eqs.ordered] == ['f', 'I', 'v', 'freq'])
-    assert eqs.names == set(['v', 'I', 'f', 'freq'])
-    assert eqs.parameter_names == set(['freq'])
-    assert eqs.subexpr_names == set(['I', 'f'])
+    assert eqs.names == {'v', 'I', 'f', 'freq'}
+    assert eqs.parameter_names == {'freq'}
+    assert eqs.subexpr_names == {'I', 'f'}
     units = eqs.units
-    assert set(units.keys()) == set(['v', 'I', 'f', 'freq'])
+    assert set(units.keys()) == {'v', 'I', 'f', 'freq'}
     assert units['v'] == volt
     assert units['I'] == volt
     assert units['f'] == Hz
     assert have_same_dimensions(units['freq'], 1)
     assert eqs.names == set(eqs.units.keys())
-    assert eqs.identifiers == set(['tau', 'volt', 'Hz', 'sin', 't'])
+    assert eqs.identifiers == {'tau', 'volt', 'Hz', 'sin', 't'}
 
     # stochastic equations
     assert len(eqs.stochastic_variables) == 0
     assert eqs.stochastic_type is None
     
     eqs = Equations('''dv/dt = -v / tau + 0.1*second**-.5*xi : 1''')
-    assert eqs.stochastic_variables == set(['xi'])
+    assert eqs.stochastic_variables == {'xi'}
     assert eqs.stochastic_type == 'additive'
     
     eqs = Equations('''dv/dt = -v / tau + 0.1*second**-.5*xi_1 +  0.1*second**-.5*xi_2: 1''')
-    assert eqs.stochastic_variables == set(['xi_1', 'xi_2'])
+    assert eqs.stochastic_variables == {'xi_1', 'xi_2'}
     assert eqs.stochastic_type == 'additive'
     
     eqs = Equations('''dv/dt = -v / tau + 0.1*second**-1.5*xi*t : 1''')

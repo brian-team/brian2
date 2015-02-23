@@ -42,8 +42,8 @@ def test_analyse_identifiers():
     defined, used_known, dependent = analyse_identifiers(code, known)
     assert 'a' in defined  # There might be an additional constant added by the
                            # loop-invariant optimisation
-    assert used_known==set(['b', 'c', 'd'])
-    assert dependent==set(['e', 'f'])
+    assert used_known == {'b', 'c', 'd'}
+    assert dependent == {'e', 'f'}
 
 
 @attr('codegen-independent')
@@ -62,7 +62,7 @@ def test_get_identifiers_recursively():
                  'x': Variable(unit=None, name='x')}
     identifiers = get_identifiers_recursively(['_x = sub1 + x'],
                                               variables)
-    assert identifiers == set(['x', '_x', 'y', 'z', 'sub1', 'sub2'])
+    assert identifiers == {'x', '_x', 'y', 'z', 'sub1', 'sub2'}
 
 
 @attr('codegen-independent')

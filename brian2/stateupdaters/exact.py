@@ -103,7 +103,7 @@ def _non_constant_symbols(symbols, variables, t_symbol):
     for symbol in symbols:
         if symbol in variables and not getattr(variables[symbol],
                                                 'constant', False):
-            non_constant |= set([symbol])
+            non_constant |= {symbol}
 
     return non_constant
 
@@ -148,7 +148,8 @@ class IndependentStateUpdater(StateUpdateMethod):
         code = []
         for name, expression in diff_eqs:
             rhs = expression.sympy_expr
-            non_constant = _non_constant_symbols(rhs.atoms(), variables, t) - set([name])
+            non_constant = _non_constant_symbols(rhs.atoms(), variables, t) - {
+            name}
             if len(non_constant):
                 raise ValueError(('Equation for %s referred to non-constant '
                                   'variables %s') % (name, str(non_constant)))
