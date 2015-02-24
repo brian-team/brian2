@@ -8,6 +8,7 @@ import inspect
 import platform
 from collections import defaultdict
 import numbers
+import time
 
 import numpy as np
 
@@ -751,6 +752,7 @@ class CPPStandaloneDevice(Device):
                         if x!=0:
                             raise RuntimeError("Project compilation failed")
                 if run:
+                    start_time = time.time()
                     if not with_output:
                         stdout = open(os.devnull, 'w')
                     else:
@@ -762,6 +764,7 @@ class CPPStandaloneDevice(Device):
                     if x:
                         raise RuntimeError("Project run failed")
                     self.has_been_run = True
+                    self._last_run_time = time.time()-start_time
 
     def network_run(self, net, duration, report=None, report_period=10*second,
                     namespace=None, profile=True, level=0, **kwds):

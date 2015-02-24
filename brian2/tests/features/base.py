@@ -33,6 +33,9 @@ class BaseTest(object):
     category = None # a string with the category of features
     name = None # a string with the particular feature name within the category
     tags = None # a list of tags (strings) of features used
+    # whether or not to allow the device to override the time: this can be used to remove the
+    # compilation overheads on certain devices (but some tests might want to include this)
+    allow_time_override = True
 
     @classmethod
     def fullname(cls):
@@ -115,6 +118,14 @@ class Configuration(object):
     def after_run(self):
         pass
     
+    def get_last_run_time(self):
+        '''
+        Implement this to overwrite the measured runtime (e.g. to remove overhead).
+        '''
+        if hasattr(brian2.device, '_last_run_time'):
+            return brian2.device._last_run_time
+        raise NotImplementedError
+    
     
 class DefaultConfiguration(Configuration):
     name = 'Default'
@@ -159,7 +170,6 @@ class CPPStandaloneConfiguration(Configuration):
         brian2.device.build(directory='cpp_standalone', compile=True, run=True,
                             with_output=False)
 
-
 class CPPStandaloneConfigurationOpenMP(Configuration):
     name = 'C++ standalone (OpenMP)'
     def before_run(self):
@@ -194,9 +204,14 @@ try:
     feature.run()
     configuration.after_run()
     results = feature.results()
-    end_time = time.time()
+    run_time = time.time()-start_time
+    if feature.allow_time_override:
+        try:
+            run_time = configuration.get_last_run_time()
+        except NotImplementedError:
+            pass
     f = open(r'{tempfname}', 'wb')
-    pickle.dump((None, results, end_time-start_time), f, -1)
+    pickle.dump((None, results, run_time), f, -1)
     f.close()
 except Exception, ex:
     #traceback.print_exc(file=sys.stdout)
