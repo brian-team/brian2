@@ -9,6 +9,7 @@ from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.core.base import BrianObject
 from brian2.core.clocks import Clock
+from brian2.devices.device import device
 from brian2.units.fundamentalunits import check_units, DimensionMismatchError
 from brian2.units.allunits import second, msecond 
 from brian2.core.preferences import prefs
@@ -552,6 +553,7 @@ class Network(Nameable):
 
         profiling_info = defaultdict(float)
 
+        start_time = time.time()
         while clock.running and not self._stopped and not Network._globally_stopped:
             # update the network time to this clocks time
             self.t_ = clock.t_
@@ -580,6 +582,7 @@ class Network(Nameable):
             # with the smallest t value, unless there are several with the 
             # same t value in which case we update all of them
             clock, curclocks = self._nextclocks()
+        device._last_run_time = time.time()-start_time
 
         if self._stopped or Network._globally_stopped:
             self.t_ = clock.t_
