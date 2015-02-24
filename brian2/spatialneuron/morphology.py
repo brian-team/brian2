@@ -16,12 +16,6 @@ from brian2.units.fundamentalunits import (have_same_dimensions, Quantity,
 
 logger = get_logger(__name__)
 
-try:
-    from pylab import figure
-    from mpl_toolkits.mplot3d import Axes3D
-except ImportError:
-    logger.warn('matplotlib 0.99.1 is required for 3D plots', once=True)
-
 __all__ = ['Morphology', 'MorphologyData', 'Cylinder', 'Soma']
 
 
@@ -459,6 +453,11 @@ class Morphology(object):
             if ``True``, the diameter of branches is ignored
             (defaults to ``True``)
         """
+        try:
+            from pylab import figure
+            from mpl_toolkits.mplot3d import Axes3D
+        except ImportError:
+            raise ImportError('matplotlib 0.99.1 is required for 3d plots')
         if axes is None:  # new figure
             fig = figure()
             axes = Axes3D(fig)
