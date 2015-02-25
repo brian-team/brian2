@@ -125,7 +125,7 @@ def test_connection_arrays():
 
 from brian2.devices.cpp_standalone import cpp_standalone_device
 
-@attr('cpp_standalone')
+@attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=restore_device)
 def test_connection_array_standalone():
     set_device('cpp_standalone')

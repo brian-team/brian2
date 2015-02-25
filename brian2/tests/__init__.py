@@ -24,8 +24,13 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     test_codegen_independent : bool, optional
         Whether to run tests that are independent of code generation. Defaults
         to ``True``.
-    test_standalone : bool, optional
-        Whether to run tests for the C++ standalone mode. Defaults to ``False``.
+    test_standalone : str, optional
+        Whether to run tests for a standalone mode. Should be the name of a
+        standalone mode (e.g. ``'cpp_standalone'``) and expects that a device
+        of that name and an accordingly named "simple" device (e.g.
+        ``'cpp_standalone_simple'`` exists that can be used for testing (see
+        `CPPStandaloneSimpleDevice` for details. Defaults to ``None``, meaning
+        that no standalone device is tested.
     '''
     try:
         import nose
@@ -89,7 +94,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             sys.stderr.write('Running tests for target %s:\n' % target)
             prefs.codegen.target = target
             prefs._backup()
-            exclude_str = "!cpp_standalone,!codegen-independent"
+            exclude_str = "!standalone-only,!codegen-independent"
             if not long_tests:
                 exclude_str += ',!long'
             # explicitly ignore the brian2.hears file for testing, otherwise the
@@ -107,7 +112,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         if test_standalone:
             from brian2.devices.device import get_device, set_device
             previous_device = get_device()
-            set_device('cpp_standalone_simple')
+            set_device(test_standalone + '_simple')
+            sys.stderr.write('Testing standalone device "%s"\n' % test_standalone)
             sys.stderr.write('Running standalone-compatible standard tests\n')
             success.append(nose.run(argv=['', dirname,
                                           '-c=',  # no config file loading
@@ -126,7 +132,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                                           '-I', '^\.',
                                           '-I', '^_',
                                           # Only run standalone tests
-                                          '-a', 'cpp_standalone',
+                                          '-a', test_standalone,
                                           '--nologcapture',
                                           '--exe']))
         all_success = all(success)

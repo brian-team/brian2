@@ -185,7 +185,7 @@ def test_spikegenerator_multiple_spikes_per_bin():
     assert_raises(ValueError, lambda: net.run(0*ms))
 
 
-@attr('cpp_standalone')
+@attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=restore_device)
 def test_spikegenerator_standalone():
     '''

@@ -151,6 +151,27 @@ As a rule of thumb:
   values after the run, mark it as ``standalone-compatible`` and register the
   `~brian2.devices.device.restore_device` teardown function
 
+Tests can also be written specifically for a standalone device (they then have
+to include the `~brian2.devices.device.set_device` and
+`~brian2.devices.device.Device.build` calls explicitly). In this case tests
+have to be annotated with the name of the device (e.g. ``'cpp_standalone'``)
+and with ``'standalone-only'`` to exclude this test from the runtime tests.
+Also, the device should be restored in the end::
+
+    from nose import with_setup
+    from nose.plugins.attrib import attr
+    from brian2 import *
+    from brian2.devices.device import restore_device
+
+    @attr('cpp_standalone', 'standalone-only')
+    @with_setup(teardown=restore_initial_state)
+    def test_cpp_standalone():
+        set_device('cpp_standalone')
+        # set up simulation
+        # run simulation
+        device.build(...)
+        # check simulation results
+
 Doctests
 ~~~~~~~~
 Doctests are executable documentation. In the ``Examples`` block of a class or
