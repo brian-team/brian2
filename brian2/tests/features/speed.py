@@ -82,7 +82,7 @@ class CUBAFixedConnectivity(SpeedTest):
     category = "Full examples"
     name = "CUBA fixed connectivity"
     tags = ["Neurons", "Synapses", "SpikeMonitor"]
-    n_range = [10, 100, 1000, 10000, 100000, 1000000]
+    n_range = [10, 100, 1000, 10000, 100000]
     n_label = 'Num neurons'
 
     # configuration options
