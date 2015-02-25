@@ -11,7 +11,8 @@ from brian2genn.correctness_testing import GeNNConfiguration
 
 # Quick testing
 res = run_speed_tests(configurations=[#NumpyConfiguration,
-                                      WeaveConfiguration,
+                                      #WeaveConfiguration,
+                                      LocalConfiguration,
                                       CPPStandaloneConfiguration,
                                       CPPStandaloneConfigurationOpenMP,
                                       GeNNConfiguration,

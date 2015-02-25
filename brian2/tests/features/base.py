@@ -15,8 +15,8 @@ __all__ = ['FeatureTest', 'SpeedTest',
            'InaccuracyError', 'Configuration',
            'run_feature_tests', 'run_single_feature_test',
            'run_speed_tests',
-           'DefaultConfiguration', 'NumpyConfiguration',
-           'WeaveConfiguration',
+           'DefaultConfiguration', 'LocalConfiguration',
+           'NumpyConfiguration', 'WeaveConfiguration',
            'CythonConfiguration', 'CPPStandaloneConfiguration',
            'CPPStandaloneConfigurationOpenMP']
 
@@ -132,6 +132,14 @@ class DefaultConfiguration(Configuration):
     def before_run(self):
         brian2.prefs.reset_to_defaults()
         brian2.set_device('runtime')
+
+
+class LocalConfiguration(Configuration):
+    name = 'Default'
+    def before_run(self):
+        brian2.prefs.reset_to_defaults()
+        brian2.set_device('runtime')
+        brian2.prefs.load_preferences()
 
 
 class NumpyConfiguration(Configuration):
