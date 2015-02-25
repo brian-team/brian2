@@ -16,12 +16,6 @@ from brian2.units.fundamentalunits import (have_same_dimensions, Quantity,
 
 logger = get_logger(__name__)
 
-try:
-    from pylab import figure
-    from mpl_toolkits.mplot3d import Axes3D
-except ImportError:
-    logger.warn('matplotlib 0.99.1 is required for 3D plots', once=True)
-
 __all__ = ['Morphology', 'MorphologyData', 'Cylinder', 'Soma']
 
 
@@ -207,10 +201,6 @@ class Morphology(object):
         self.diameter, self.length, self.area, self.x, self.y, self.z = \
             zip(*[(seg['diameter'], seg['length'], seg['area'], seg['x'],
                    seg['y'], seg['z']) for seg in branch])
-        (self.diameter, self.length, self.area,
-         self.x, self.y, self.z) = (array(self.diameter), array(self.length),
-                                    array(self.area), array(self.x),
-                                    array(self.y), array(self.z))
         self.type = segments[n]['T']  # normally same type for all compartments
                                      # in the branch
         self.set_distance()
@@ -463,6 +453,11 @@ class Morphology(object):
             if ``True``, the diameter of branches is ignored
             (defaults to ``True``)
         """
+        try:
+            from pylab import figure
+            from mpl_toolkits.mplot3d import Axes3D
+        except ImportError:
+            raise ImportError('matplotlib 0.99.1 is required for 3d plots')
         if axes is None:  # new figure
             fig = figure()
             axes = Axes3D(fig)
