@@ -125,7 +125,7 @@ class StateUpdater(CodeRunner):
 
         # Get all names used in the equations (and always get "dt")
         names = self.group.equations.names
-        external_names = self.group.equations.identifiers | set(['dt'])
+        external_names = self.group.equations.identifiers | {'dt'}
 
         variables = self.group.resolve_all(used_known | unknown | names | external_names,
                                            # we don't need to raise any warnings

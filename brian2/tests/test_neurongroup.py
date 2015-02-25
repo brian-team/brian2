@@ -1084,8 +1084,8 @@ def test_get_states():
     assert_equal(states['subexpr2'], 11*np.arange(10))
 
     all_states = G.get_states(units=True)
-    assert set(all_states.keys()) == set(['v', 'x', 'subexpr', 'subexpr2',
-                                          'N', 't', 'dt', 'i'])
+    assert set(all_states.keys()) == {'v', 'x', 'subexpr', 'subexpr2', 'N', 't',
+                                      'dt', 'i'}
 
 
 def test_random_vector_values():

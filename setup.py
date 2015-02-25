@@ -5,6 +5,9 @@ Brian2 setup script
 import sys
 import os
 
+if sys.version_info < (2, 7):
+    raise RuntimeError('Only Python versions >= 2.7 are supported')
+
 # This will automatically download setuptools if it is not already installed
 from ez_setup import use_setuptools
 use_setuptools()

@@ -261,9 +261,8 @@ class SynapticPathway(CodeRunner, Group):
         self.queue.prepare(self._delays.get_value(), self.source.clock.dt_,
                            self.synapse_sources.get_value())
 
-        if len(set([self.source.clock.dt_,
-                    self.synapses.clock.dt_,
-                    self.target.clock.dt_])) > 1:
+        if len({self.source.clock.dt_, self.synapses.clock.dt_,
+                self.target.clock.dt_}) > 1:
             logger.warn(("Note that the synaptic pathway '{pathway}' will run on the "
                          "clock of the group '{source}' using a dt of {dt}. Either "
                          "the Synapses object '{synapses}' or the target '{target}' "

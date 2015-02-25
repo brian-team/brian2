@@ -169,8 +169,8 @@ def test_abstract_code_dependencies():
     a = func_b()
     a = x+d
     '''
-    known_vars = set(['a', 'b', 'c'])
-    known_funcs = set(['func_a'])
+    known_vars = {'a', 'b', 'c'}
+    known_funcs = {'func_a'}
     res = abstract_code_dependencies(code, known_vars, known_funcs)
     expected_res = dict(
         all=['a', 'b', 'c', 'd', 'x',

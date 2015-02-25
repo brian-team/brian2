@@ -48,7 +48,7 @@ def test_split_stochastic():
 
     expr = Expression('(-v + I) / tau + sigma*xi_1/tau**.5 + xi_2*sigma2/sqrt(tau_2)')
     non_stochastic, stochastic = expr.split_stochastic()
-    assert set(stochastic.keys()) == set(['xi_1', 'xi_2'])
+    assert set(stochastic.keys()) == {'xi_1', 'xi_2'}
     assert sympy_equals(non_stochastic.code, '(-v + I) / tau')
     assert sympy_equals(stochastic['xi_1'].code, 'sigma/tau**.5')
     assert sympy_equals(stochastic['xi_2'].code, 'sigma2/tau_2**.5')

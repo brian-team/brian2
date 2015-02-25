@@ -138,7 +138,7 @@ if __name__=='__main__':
     x = y+z
     a = f(b)
     '''
-    known_vars = set(['y', 'z'])
+    known_vars = {'y', 'z'}
     print deindent(code)
     print 'known_vars:', known_vars
     print

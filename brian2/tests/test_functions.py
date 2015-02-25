@@ -374,7 +374,7 @@ def test_function_implementation_container():
 
     # Register the code generation targets
     _previous_codegen_targets = set(targets.codegen_targets)
-    targets.codegen_targets = set([ACodeObject, BCodeObject])
+    targets.codegen_targets = {ACodeObject, BCodeObject}
 
     @check_units(x=volt, result=volt)
     def foo(x):
@@ -406,8 +406,8 @@ def test_function_implementation_container():
 
     # some basic dictionary properties
     assert len(container) == 4
-    assert set((key for key in container)) == set(['A Language', 'B',
-                                                   ACodeObject, BCodeGenerator])
+    assert set((key for key in container)) == {'A Language', 'B', ACodeObject,
+                                               BCodeGenerator}
 
     # Restore the previous codegeneration targets
     targets.codegen_targets = _previous_codegen_targets
