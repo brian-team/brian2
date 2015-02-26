@@ -24,7 +24,7 @@ a = 4*nS
 b = 0.08*nA
 I = .8*nA
 Vcut = VT + 5 * DeltaT  # practical threshold condition
-N = 500
+N = 200
 
 eqs = """
 dvm/dt=(gL*(EL-vm)+gL*DeltaT*exp((vm-VT)/DeltaT)+I-w)/C : volt
@@ -43,7 +43,7 @@ run(init_time, report='text')  # we discard the first spikes
 
 states = StateMonitor(neuron, "w", record=True, when='start')
 spikes = SpikeMonitor(neuron)
-run(2 * second, report='text')
+run(1 * second, report='text')
 
 # Get the values of Vr and w for each spike
 Vr = neuron.Vr[spikes.i]
