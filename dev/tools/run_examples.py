@@ -72,8 +72,10 @@ except Exception, ex:
         p = subprocess.Popen(args, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
-        #sys.stdout.write(stdout)
-        #sys.stderr.write(stderr)
+        # Write both stdout and stderr to stdout so it gets captured by the
+        # Capture plugin
+        sys.stdout.write(stdout)
+        sys.stdout.write(stderr)
 
         # Re-raise any exception that occured
         if os.path.exists(tempfilename):
