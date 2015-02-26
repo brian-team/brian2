@@ -13,8 +13,8 @@ neurons = NeuronGroup(1, """dv/dt = (g-v)/(10*ms) : 1
                             g : 1""")
 S = Synapses(input,neurons,
              '''# This variable could also be called g_syn to avoid confusion
-                dg/dt = -a*g+b*x*(1-g) : 1
-                g_post = g : 1 (summed)
+                dg_syn/dt = -a*g_syn+b*x*(1-g_syn) : 1
+                g_post = g_syn : 1 (summed)
                 dx/dt=-c*x : 1
                 w : 1 # synaptic weight
              ''', pre='x += w') # NMDA synapses
