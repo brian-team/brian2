@@ -11,7 +11,7 @@ This shows the bifurcation structure when the reset value is varied
 Vr).
 '''
 from brian2 import *
-prefs.codegen.target = 'weave'
+
 defaultclock.dt = 0.01*ms
 
 C = 281*pF
