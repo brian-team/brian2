@@ -100,9 +100,11 @@ def main(rootpath, destdir):
         output += docs + '\n\n::\n\n'
         output += '\n'.join(['    ' + line for line in afterdoccode.split('\n')])
         output += '\n\n'
-        images = glob.glob('../../docs_sphinx/examples_images/%s.*.png' % exname)
+        basedir, _ = os.path.split(__file__)
+        eximgpat = os.path.join(basedir, '../../docs_sphinx/examples_images', '%s.*.png' % exname)
+        images = glob.glob(eximgpat)
         for image in sorted(images):
-            image = os.path.relpath(image, '../../docs_sphinx/examples_images')
+            _, image = os.path.split(image)
             output += '.. image:: ../examples_images/%s\n\n' % image
     
         open(os.path.join(destdir, exname + '.rst'), 'w').write(output)
