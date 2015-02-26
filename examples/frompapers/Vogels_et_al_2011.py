@@ -12,7 +12,6 @@ Science (November 10, 2011).
 '''
 
 from brian2 import *
-prefs.codegen.target = 'weave'
 
 # ###########################################
 # Defining network model parameters
