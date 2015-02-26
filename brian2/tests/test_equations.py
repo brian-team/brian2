@@ -418,7 +418,7 @@ def test_str_repr():
         assert(len(str(eq))) > 0
         assert(len(repr(eq))) > 0
 
-
+@attr('codegen-independent')
 def test_ipython_pprint():
     if pprint is None:
         raise SkipTest('ipython is not available')

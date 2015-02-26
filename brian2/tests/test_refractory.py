@@ -1,8 +1,10 @@
+from nose import with_setup
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 
 from brian2 import *
 from brian2.equations.refractory import add_refractoriness
+from brian2.devices.device import restore_device
 
 
 @attr('codegen-independent')
@@ -18,6 +20,8 @@ def test_add_refractoriness():
     assert 'not_refractory' in eqs
     assert 'lastspike' in eqs
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_refractoriness_basic():
     G = NeuronGroup(1, '''
         dv/dt = 100*Hz : 1 (unless refractory)
@@ -99,7 +103,8 @@ def test_refractoriness_threshold():
         net.run(16*ms)
         assert_allclose(spike_mon.t, [4.9, 15] * ms)
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_refractoriness_threshold_basic():
     G = NeuronGroup(1, '''
     dv/dt = 200*Hz : 1
@@ -156,6 +161,8 @@ def test_conditional_write_set():
     assert G.variables['v'].conditional_write is G.variables['not_refractory']
     assert G.variables['w'].conditional_write is None
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_conditional_write_behaviour():
     H = NeuronGroup(1, 'v:1', threshold='v>-1')
 

@@ -98,6 +98,79 @@ mechanism <logging>` for details
 For simple functions, doctests (see below) are a great alternative to writing
 classical unit tests.
 
+By default, all tests are executed for all selected code generation targets
+(see `Running the test suite`_ above). This is not useful for all tests, some
+basic tests that for example test equation syntax or the use of physical units
+do not depend on code generation and need therefore not to be repeated. To
+execute such tests only once, they can be annotated with a
+``codegen-independent`` attribute, using the `~nose.plugins.attrib.attr`
+decorator::
+
+    from nose.plugins.attrib import attr
+    from brian2 import NeuronGroup
+
+    @attr('codegen-independent')
+    def test_simple():
+        # Test that the length of a NeuronGroup is correct
+        group = NeuronGroup(5, '')
+        assert len(group) == 5
+
+Tests that are not "codegen-independent" are by default only executed for the
+runtimes device, i.e. not for the ``cpp_standalone`` device, for example.
+However, many of those tests follow a common pattern that is compatible with
+standalone devices as well: they set up a network, run it, and check the state
+of the network afterwards. Such tests can be marked as
+``standalone-compatible``, using the `~nose.plugins.attrib.attr` decorator in
+the same way as for ``codegen-independent`` tests. Since standalone devices
+usually have an internal state where they store information about arrays,
+array assignments, etc., they need to be reinitialized after such a test. For
+that use the `~nose.with_setup` decorator and provide the
+`~brian2.devices.device.restore_device` function as the ``teardown``
+argument::
+
+    from nose import with_setup
+    from nose.plugins.attrib import attr
+    from numpy.testing.utils import assert_equal
+    from brian2 import *
+    from brian2.devices.device import restore_device
+
+    @attr('standalone-compatible')
+    @with_setup(teardown=restore_initial_state)
+    def test_simple_run():
+        # Check that parameter values of a neuron don't change after a run
+        group = NeuronGroup(5, 'v : volt')
+        group.v = 'i*mV'
+        run(1*ms)
+        assert_equal(group.v[:], np.arange(5)*mV)
+
+As a rule of thumb:
+
+* If a test does not have a `~brian2.core.network.Network.run` call, mark it as
+  ``codegen-independent``
+* If a test has only a single `~brian2.core.network.Network.run` and only reads state variable
+  values after the run, mark it as ``standalone-compatible`` and register the
+  `~brian2.devices.device.restore_device` teardown function
+
+Tests can also be written specifically for a standalone device (they then have
+to include the `~brian2.devices.device.set_device` and
+`~brian2.devices.device.Device.build` calls explicitly). In this case tests
+have to be annotated with the name of the device (e.g. ``'cpp_standalone'``)
+and with ``'standalone-only'`` to exclude this test from the runtime tests.
+Also, the device should be restored in the end::
+
+    from nose import with_setup
+    from nose.plugins.attrib import attr
+    from brian2 import *
+    from brian2.devices.device import restore_device
+
+    @attr('cpp_standalone', 'standalone-only')
+    @with_setup(teardown=restore_initial_state)
+    def test_cpp_standalone():
+        set_device('cpp_standalone')
+        # set up simulation
+        # run simulation
+        device.build(...)
+        # check simulation results
 
 Doctests
 ~~~~~~~~

@@ -18,7 +18,7 @@ from brian2.utils.stringtools import code_representation, indent
 
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
-           'all_devices',
+           'all_devices', 'restore_device',
            'device',
            ]
 
@@ -287,6 +287,13 @@ class Device(object):
         For standalone projects, called when the project is ready to be built. Does nothing for runtime mode.
         '''
         pass
+
+    def reinit(self):
+        '''
+        Reinitialize the device. For standalone devices, clears all the internal
+        state of the device.
+        '''
+        pass
     
     
 class RuntimeDevice(Device):
@@ -418,6 +425,7 @@ def get_device():
     global active_device
     return active_device
 
+
 def set_device(device):
     '''
     Sets the active `Device` object
@@ -428,3 +436,11 @@ def set_device(device):
     active_device = device
     active_device.activate()
 
+
+def restore_device():
+    from brian2 import restore_initial_state  # avoids circular import
+
+    for device in all_devices.itervalues():
+        device.reinit()
+    set_device('runtime')
+    restore_initial_state()

@@ -8,6 +8,7 @@ import inspect
 import platform
 from collections import defaultdict
 import numbers
+import tempfile
 
 import numpy as np
 
@@ -886,7 +887,24 @@ class RunFunctionContext(object):
     def __exit__(self, type, value, traceback):
         cpp_standalone_device.main_queue.append(('end_run_func', (self.name, self.include_in_parent)))
 
-
 cpp_standalone_device = CPPStandaloneDevice()
-
 all_devices['cpp_standalone'] = cpp_standalone_device
+
+
+class CPPStandaloneSimpleDevice(CPPStandaloneDevice):
+    def network_run(self, net, duration, report=None, report_period=10*second,
+                    namespace=None, profile=True, level=0, **kwds):
+        super(CPPStandaloneSimpleDevice, self).network_run(net, duration,
+                                                     report=report,
+                                                     report_period=report_period,
+                                                     namespace=namespace,
+                                                     profile=profile,
+                                                     level=level+1,
+                                                     **kwds)
+        tempdir = tempfile.mkdtemp()
+        self.build(directory=tempdir, compile=True, run=True, debug=False,
+                   with_output=False)
+
+cpp_standalone_simple_device = CPPStandaloneSimpleDevice()
+
+all_devices['cpp_standalone_simple'] = cpp_standalone_simple_device
