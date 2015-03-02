@@ -90,13 +90,6 @@ After creating the state updater, it has to be registered with
     new_state_updater = ExplicitStateUpdater('...', stochastic='additive')
     StateUpdateMethod.register('mymethod', new_state_updater)
 
-The `StateUpdateMethod.register` method also takes an optional ``index``
-argument, allowing you to insert the new state updater at an arbitrary
-location in the list of state updaters (by default it gets added at the end).
-The position in the list determines which state updater is chosen if more than
-one is able to integrate the equations: If more than one choice is possible,
-the state updater that comes first in the list is chosen. 
-
 The preferred way to do write new general state updaters (i.e. state updaters
 that cannot be described using the explicit syntax described above) is to
 extend the `StateUpdateMethod` class (but this is not strictly necessary, all

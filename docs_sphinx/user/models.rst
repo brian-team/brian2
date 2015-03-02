@@ -158,14 +158,18 @@ Numerical integration
 ---------------------
 Differential equations are converted into a sequence of statements that
 integrate the equations numerically over a single time step. By default, Brian
-choses an integration method automatically, trying to solve the equations
-exactly first (which is possible for example for linear equations) and then
-resorting to numerical algorithms (see below). It will also take care of integrating
-stochastic differential equations appropriately. If you prefer to chose an
-integration algorithm yourself, you can do so using the ``method`` keyword for
-`NeuronGroup` or `Synapses`. The list of available methods is the following,
-if no method is chosen explicitly Brian will try methods starting at the top
-until it finds a method than can integrate the given equations:
+chooses an integration method automatically, trying to solve the equations
+exactly first (for linear equations) and then resorting to numerical algorithms.
+It will also take care of integrating stochastic differential equations
+appropriately. Each class defines its own list of algorithms it tries to
+apply, `NeuronGroup` and `Synapses` will use the first suitable method out of
+the methods ``'linear'``, ``'euler'``, and ``'milstein'`` while `SpatialNeuron`
+objects will use ``'linear'``, ``'exponential_euler'``, ``'rk2'``, or
+``'milstein'``.
+
+If you prefer to chose an integration algorithm yourself, you can do so using
+the ``method`` keyword for `NeuronGroup`, `Synapses`, or `SpatialNeuron`.
+The complete list of available methods is the following:
 
 * ``'linear'``: exact integration for linear equations
 * ``'independent'``: exact integration for a system of independent equations,
