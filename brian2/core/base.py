@@ -97,19 +97,16 @@ class BrianObject(Nameable):
         
         self._active = True
         
-        #: The ipython cell restrict magic key for this object
-        self._ipython_cell_restrict_key = self._ipython_cell_restrict_global_key
+        #: The scope key is used to determine which objects are collected by magic
+        self._scope_key = self._scope_current_key
         
         logger.debug("Created BrianObject with name {self.name}, "
                      "clock={self._clock}, "
                      "when={self.when}, order={self.order}".format(self=self))
 
     #: Global key value for ipython cell restrict magic
-    _ipython_cell_restrict_global_key = 0
+    _scope_current_key = 0
     
-    #: Whether or not to use ipython cell restrict magic
-    _ipython_cell_restrict = False
-
     #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is added
     invalidates_magic_network = True
 

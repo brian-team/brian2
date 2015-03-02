@@ -8,19 +8,12 @@ from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 
 from .network import Network
-from .base import BrianObject, device_override
-
-try:
-    from IPython.core.magic import (Magics, magics_class, line_magic,
-                                    cell_magic, line_cell_magic)
-    ipython_available = True
-except ImportError:
-    ipython_available = False
-    
+from .base import BrianObject, device_override    
 
 __all__ = ['MagicNetwork', 'magic_network',
            'MagicError',
-           'run', 'reinit', 'stop', 'collect', 'store', 'restore'
+           'run', 'reinit', 'stop', 'collect', 'store', 'restore',
+           'start_scope',
            ]
 
 logger = get_logger(__name__)
@@ -283,11 +276,10 @@ def collect(level=0):
     for obj in get_objects_in_namespace(level=level+1):
         obj = obj()
         if obj.add_to_magic_network:
-            if BrianObject._ipython_cell_restrict:
-                gk = BrianObject._ipython_cell_restrict_global_key
-                k = obj._ipython_cell_restrict_key
-                if gk!=k:
-                    continue
+            gk = BrianObject._scope_current_key
+            k = obj._scope_key
+            if gk!=k:
+                continue
             all_objects.add(obj)
     return all_objects
 
@@ -416,17 +408,11 @@ def stop():
     Network._globally_stopped = True
 
 
-if ipython_available:
+def start_scope():
+    '''
+    Starts a new scope for magic functions
     
-    @magics_class
-    class BrianCellRestrictMagics(Magics):
-        @cell_magic
-        def brian2_restricted(self, line, cell):
-            "Brian 2 restrict magic functions to objects defined in this cell"
-            BrianObject._ipython_cell_restrict = True
-            BrianObject._ipython_cell_restrict_global_key += 1
-            res = self.shell.run_cell(cell)
-            BrianObject._ipython_cell_restrict = False
-        
-    ip = get_ipython()
-    ip.register_magics(BrianCellRestrictMagics)    
+    All objects created before this call will no longer be automatically
+    included by the magic functions such as `run`.
+    '''
+    BrianObject._scope_current_key += 1
