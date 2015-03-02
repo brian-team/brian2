@@ -5,24 +5,28 @@ Brian has several different methods for running the computations in a
 simulation. In particular, Brian uses "runtime code generation" for
 efficient computation. This means that it takes the Python code and strings
 in your model and generates code in one of several possible different
-languages and actually executes that. By default, this generated code is in
-Python because it is the only one guaranteed to work in all cases, however
-it is not the most computationally efficient language. If you have a C++
-compiler installed (currently gcc is the only supported compiler), and you're
-running on Python 2.x then you can use this for a speed by setting the
-``codegen.target = 'weave'`` preference. The simplest way to do that is to write
-the following at the top of your script::
+languages and actually executes that. The target language for this code
+generation process is set in the `codegen.target` preference. By default, this
+preference is set to ``'auto'``, meaning that it will chose a compiled language
+target if possible and fall back to Python otherwise. There are two compiled
+language targets for Python 2.x, ``'weave'`` (needing a working installation of
+a C++ compiler) and ``'cython'`` (needing the `Cython`_ package in addition);
+for Python 3.x, only ``'cython'`` is available. If you want to chose a code
+generation target explicitly (e.g. because you want to get rid of the warning
+that only the Python fallback is available), set the preference to ``'numpy'``,
+``'weave'`` or ``'cython'`` at the beginning of your script::
 
     from brian2 import *
-    prefs.codegen.target = 'weave'
+    prefs.codegen.target = 'numpy'  # use the Python fallback
 
 See :doc:`../advanced/preferences` for different ways of setting preferences.
-If you are running on Python 3.x then the scipy.weave module that we use
-for C++ code generation will not work, so you'll need to install Cython
-instead and use the preference ``codegen.target = 'cython'``.
+If you are using a compiled language target, also see the
+`Compiler settings for maximum speed`_ section below.
+
+ .. _Cython: http://cython.org/
 
 Both of these code generation targets are still run via Python, which means
-that there are still overheads due to Python. The very fastest way to run
+that there are still overheads due to Python. The fastest way to run
 Brian is in "standalone mode" (see :doc:`devices`), although this won't work
 for every possible simulation. Note that you can also use multiple threads
 with standalone mode, which is not possible in the modes described above.
@@ -35,7 +39,7 @@ using Python functions which are not compatible with weave or Cython. For
 example, if you wrote something like this it would not be efficient::
 
     from brian2 import *
-    prefs.codegen.target = 'weave'
+    prefs.codegen.target = 'cython'
     def f(x):
         return abs(x)
     G = NeuronGroup(10000, 'dv/dt = -x*f(x) : 1')

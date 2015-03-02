@@ -18,7 +18,7 @@ prefs.register_preferences(
         
         * ``'auto'`` the default, automatically chose the best code generation
           target available.
-        * `'weave'` uses ``scipy.weave`` to generate and compile C++ code,
+        * ``'weave'`` uses ``scipy.weave`` to generate and compile C++ code,
           should work anywhere where ``gcc`` is installed and available at the
           command line.
         * ``'cython'``, uses the Cython package to generate C++ code. Needs a
