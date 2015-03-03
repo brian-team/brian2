@@ -12,7 +12,8 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     restore_initial_state, MagicError, Synapses,
                     NeuronGroup, StateMonitor, SpikeMonitor,
                     PopulationRateMonitor, MagicNetwork, magic_network,
-                    PoissonGroup, Hz, collect, store, restore, BrianLogger)
+                    PoissonGroup, Hz, collect, store, restore, BrianLogger,
+                    start_scope)
 from brian2.utils.logger import catch_logs
 
 @attr('codegen-independent')
@@ -752,40 +753,58 @@ def test_profile():
     assert all([t>=0*second for _, t in info])
 
 
+@attr('codegen-independent')
+@with_setup(teardown=restore_initial_state)
+def test_magic_scope():
+    '''
+    Check that `start_scope` works as expected.
+    '''
+    G1 = NeuronGroup(1, 'v:1', name='G1')
+    G2 = NeuronGroup(1, 'v:1', name='G2')
+    objs1 = {obj.name for obj in collect()}
+    start_scope()
+    G3 = NeuronGroup(1, 'v:1', name='G3')
+    G4 = NeuronGroup(1, 'v:1', name='G4')
+    objs2 = {obj.name for obj in collect()}
+    assert objs1=={'G1', 'G2'}
+    assert objs2=={'G3', 'G4'}
+
+
 if __name__=='__main__':
     for t in [
-              test_incorrect_network_use,
-              test_network_contains,
-              test_empty_network,
-              test_network_single_object,
-              test_network_two_objects,
-              test_network_different_clocks,
-              test_network_different_when,
-              test_magic_network,
-              test_network_stop,
-              test_network_operations,
-              test_network_active_flag,
-              test_network_t,
-              test_incorrect_dt_defaultclock,
-              test_incorrect_dt_custom_clock,
-              test_network_remove,
-              test_magic_weak_reference,
-              test_magic_unused_object,
-              test_invalid_magic_network,
-              test_multiple_networks_invalid,
-              test_network_access,
-              test_loop,
-              test_magic_collect,
-              test_progress_report,
-              test_progress_report_incorrect,
-              test_store_restore,
-              test_store_restore_magic,
-              test_defaultclock_dt_changes,
-              test_dt_restore,
-              test_continuation,
-              test_multiple_runs_defaultclock,
-              test_multiple_runs_defaultclock_incorrect,
-              test_profile
-              ]:
+            test_incorrect_network_use,
+            test_network_contains,
+            test_empty_network,
+            test_network_single_object,
+            test_network_two_objects,
+            test_network_different_clocks,
+            test_network_different_when,
+            test_magic_network,
+            test_network_stop,
+            test_network_operations,
+            test_network_active_flag,
+            test_network_t,
+            test_incorrect_dt_defaultclock,
+            test_incorrect_dt_custom_clock,
+            test_network_remove,
+            test_magic_weak_reference,
+            test_magic_unused_object,
+            test_invalid_magic_network,
+            test_multiple_networks_invalid,
+            test_network_access,
+            test_loop,
+            test_magic_collect,
+            test_progress_report,
+            test_progress_report_incorrect,
+            test_store_restore,
+            test_store_restore_magic,
+            test_defaultclock_dt_changes,
+            test_dt_restore,
+            test_continuation,
+            test_multiple_runs_defaultclock,
+            test_multiple_runs_defaultclock_incorrect,
+            test_profile,
+            test_magic_scope,
+            ]:
         t()
         restore_initial_state()
