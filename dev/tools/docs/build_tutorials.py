@@ -10,7 +10,7 @@ from IPython.nbconvert.exporters.rst import RSTExporter
 
 
 src_dir = os.path.abspath('../../../tutorials')
-target_dir = os.path.abspath('../../../docs_sphinx/tutorials')
+target_dir = os.path.abspath('../../../docs_sphinx/resources/tutorials')
 
 # Start from scratch to avoid left-over files due to renamed tutorials, changed
 # cell numbers, etc.
