@@ -442,5 +442,4 @@ def restore_device():
 
     for device in all_devices.itervalues():
         device.reinit()
-    set_device('runtime')
     restore_initial_state()
