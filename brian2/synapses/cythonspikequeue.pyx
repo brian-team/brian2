@@ -14,7 +14,7 @@ import numpy as np
 np.import_array()
 
 
-cdef extern from "our_stdint.h":
+cdef extern from "stdint_compat.h":
     # Note that this does not actually define int32_t as int (which might be
     # wrong on a 64bit system), it only tells Cython that int32_t and int_64t
     # are int-like types

@@ -657,8 +657,8 @@ class CPPStandaloneDevice(Device):
         # Copy the CSpikeQueue implementation
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'cspikequeue.cpp'),
                      os.path.join(directory, 'brianlib', 'spikequeue.h'))
-        shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'our_stdint.h'),
-                     os.path.join(directory, 'brianlib', 'our_stdint.h'))
+        shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'stdint_compat.h'),
+                     os.path.join(directory, 'brianlib', 'stdint_compat.h'))
         
         writer.source_files.extend(additional_source_files)
         writer.header_files.extend(additional_header_files)
