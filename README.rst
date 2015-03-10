@@ -22,8 +22,8 @@ Testing status for master branch
 .. image:: https://img.shields.io/travis/brian-team/brian2/master.svg?style=flat-square
   :target: https://travis-ci.org/brian-team/brian2?branch=master
 
-.. image:: https://img.shields.io/appveyor/ci/brian-team/brian2/master.svg?style=flat-square
-  :target: https://travis-ci.org/brian-team/brian2?branch=master
+.. image:: https://img.shields.io/appveyor/ci/brianteam/brian2/master.svg?style=flat-square
+  :target: https://ci.appveyor.com/project/brianteam/brian2/branch/master
 
 .. image:: https://img.shields.io/coveralls/brian-team/brian2/master.svg?style=flat-square
   :target: https://coveralls.io/r/brian-team/brian2?branch=master
