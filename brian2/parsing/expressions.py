@@ -281,21 +281,29 @@ def parse_expression_unit(expr, variables):
         op = expr.op.__class__.__name__
         left = parse_expression_unit(expr.left, variables)
         right = parse_expression_unit(expr.right, variables)
-        if op=='Add' or op=='Sub':
-            u = left+right
-        elif op=='Mult':
-            u = left*right
-        elif op=='Div':
-            u = left/right
-        elif op=='Pow':
-            if have_same_dimensions(left, 1) and have_same_dimensions(right, 1):
-                return get_unit_fast(1)
-            n = _get_value_from_expression(expr.right, variables)
-            u = left**n
-        elif op=='Mod':
-            u = left % right
-        else:
-            raise SyntaxError("Unsupported operation "+op)
+        try:
+            if op=='Add' or op=='Sub':
+                u = left+right
+            elif op=='Mult':
+                u = left*right
+            elif op=='Div':
+                u = left/right
+            elif op=='Pow':
+                if have_same_dimensions(left, 1) and have_same_dimensions(right, 1):
+                    return get_unit_fast(1)
+                n = _get_value_from_expression(expr.right, variables)
+                u = left**n
+            elif op=='Mod':
+                u = left % right
+            else:
+                raise SyntaxError("Unsupported operation "+op)
+        except DimensionMismatchError as ex:
+            from brian2.parsing.rendering import NodeRenderer
+            renderer = NodeRenderer()
+            raise DimensionMismatchError('Operation "%s" between "%s" and "%s" failed' % (op,
+                                                                                          renderer.render_node(expr.left),
+                                                                                          renderer.render_node(expr.right)),
+                                         *ex.dims)
         return u
     elif expr.__class__ is ast.UnaryOp:
         op = expr.op.__class__.__name__

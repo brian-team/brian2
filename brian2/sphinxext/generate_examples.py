@@ -91,8 +91,14 @@ def main(rootpath, destdir):
     examples = zip(examplesfnames, examplespaths, examplesbasenames,
                    examplescode, examplesdocs, examplesafterdoccode,
                    relativepaths, outnames)
-    basedir, _ = os.path.split(__file__)
-    eximgpath = os.path.abspath(os.path.join(basedir, '../../docs_sphinx/resources/examples_images'))
+    # Get the path relative to the examples director (not relative to the
+    # directory where this file is installed
+    if 'BRIAN2_DOCS_EXAMPLE_DIR' in os.environ:
+        rootdir = os.environ['BRIAN2_DOCS_EXAMPLE_DIR']
+    else:
+        rootdir, _ = os.path.split(__file__)
+        rootdir = os.path.normpath(os.path.join(rootdir, '../../examples'))
+    eximgpath = os.path.abspath(os.path.join(rootdir, '../docs_sphinx/resources/examples_images'))
     print 'Searching for example images in directory', eximgpath
     for fname, path, basename, code, docs, afterdoccode, relpath, exname in examples:
         categories[relpath].append((exname, basename))
