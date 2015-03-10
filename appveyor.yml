@@ -53,7 +53,8 @@ install:
   - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
 
   # Install the build dependencies of the project via conda
-  - "conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython"
+  - "conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython setuptools"
+  - "pip install py-cpuinfo"
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
