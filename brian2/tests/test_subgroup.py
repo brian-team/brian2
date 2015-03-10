@@ -327,7 +327,7 @@ def test_subexpression_no_references():
 @with_setup(teardown=restore_device)
 def test_synaptic_propagation():
     G1 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
-    G1.v[1::2] = 1.1 # odd numbers should spike
+    G1.v['i%2==1'] = 1.1 # odd numbers should spike
     G2 = NeuronGroup(20, 'v:1')
     SG1 = G1[1:6]
     SG2 = G2[10:]
@@ -421,7 +421,7 @@ def test_no_reference_4():
     Using subgroups without keeping an explicit reference. Synapses
     '''
     G1 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
-    G1.v[1::2] = 1.1 # odd numbers should spike
+    G1.v['i%2==1'] = 1.1 # odd numbers should spike
     G2 = NeuronGroup(20, 'v:1')
     S = Synapses(G1[1:6], G2[10:], pre='v+=1')
     S.connect('i==j')

@@ -13,6 +13,7 @@ from brian2.devices.device import restore_device
 @attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=restore_device)
 def test_cpp_standalone(with_output=False):
+    previous_device = get_device()
     set_device('cpp_standalone')
     ##### Define the model
     tau = 1*ms
@@ -49,10 +50,12 @@ def test_cpp_standalone(with_output=False):
     assert len(M.t) == len(M.i)
     assert M.t[0] == 0.
     assert M.t[-1] == 100*ms - defaultclock.dt
+    set_device(previous_device)
 
 @attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=restore_device)
 def test_multiple_connects(with_output=False):
+    previous_device = get_device()
     set_device('cpp_standalone')
     G = NeuronGroup(10, 'v:1')
     S = Synapses(G, G, 'w:1')
@@ -65,10 +68,12 @@ def test_multiple_connects(with_output=False):
     device.build(directory=tempdir, compile=True, run=True,
                  with_output=True)
     assert len(S) == 2 and len(S.w[:]) == 2
+    set_device(previous_device)
 
 @attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=restore_device)
 def test_storing_loading(with_output=False):
+    previous_device = get_device()
     set_device('cpp_standalone')
     G = NeuronGroup(10, '''v : volt
                            x : 1
@@ -103,11 +108,12 @@ def test_storing_loading(with_output=False):
     assert_allclose(S.n_syn[:], n)
     assert_allclose(G.b[:], b)
     assert_allclose(S.b_syn[:], b)
+    set_device(previous_device)
 
 @attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=restore_device)
 def test_openmp_consistency(with_output=False):
-
+    previous_device = get_device()
     n_cells    = 100
     n_recorded = 10
     numpy.random.seed(42)
@@ -201,10 +207,12 @@ def test_openmp_consistency(with_output=False):
         assert_allclose(results[key1]['v'], results[key2]['v'])
         assert_allclose(results[key1]['r'], results[key2]['r'])
         assert_allclose(results[key1]['s'], results[key2]['s'])
+    set_device(previous_device)
 
 @attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=restore_device)
 def test_timedarray(with_output=True):
+    previous_device = get_device()
     set_device('cpp_standalone')
 
     defaultclock.dt = 0.1*ms
@@ -232,6 +240,8 @@ def test_timedarray(with_output=True):
     # the 2d array only has 3 columns, the last neuron should therefore contain
     # only NaN
     assert_equal(mon[3].y[:], np.nan)
+
+    set_device(previous_device)
 
 
 if __name__=='__main__':

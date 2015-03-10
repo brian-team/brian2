@@ -135,10 +135,11 @@ setup(name='Brian2',
                     'brian2.devices.cpp_standalone': ['templates/*.cpp',
                                                       'templates/*.h',
                                                       'templates/makefile',
+                                                      'templates/win_makefile',
                                                       'brianlib/*.cpp',
                                                       'brianlib/*.h'],
                     # include C++ version of spike queue
-                    'brian2.synapses': ['*.cpp'],
+                    'brian2.synapses': ['*.cpp', '*.h'],
                     # include default_preferences file
                     'brian2': ['default_preferences']
                     },

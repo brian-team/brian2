@@ -477,7 +477,20 @@ class CPPStandaloneDevice(Device):
                     if net().name != '_fake_network']
         synapses = []
         for net in networks:
-            synapses.extend(s for s in net.objects if isinstance(s, Synapses))
+            net_synapses = [s for s in net.objects if isinstance(s, Synapses)]
+            synapses.extend(net_synapses)
+            # We don't currently support pathways with scalar delays
+            for synapse_obj in net_synapses:
+                for pathway in synapse_obj._pathways:
+                    if not isinstance(pathway.variables['delay'],
+                                      DynamicArrayVariable):
+                        error_msg = ('The "%s" pathway  uses a scalar '
+                                     'delay (instead of a delay per synapse). '
+                                     'This is not yet supported. Do not '
+                                     'specify a delay in the Synapses(...) '
+                                     'call but instead set its delay attribute '
+                                     'afterwards.') % (pathway.name)
+                        raise NotImplementedError(error_msg)
 
         # Not sure what the best place is to call Network.after_run -- at the
         # moment the only important thing it does is to clear the objects stored
@@ -642,9 +655,10 @@ class CPPStandaloneDevice(Device):
                 writer.header_files.append('brianlib/'+file)
 
         # Copy the CSpikeQueue implementation
-        spikequeue_h = os.path.join(directory, 'brianlib', 'spikequeue.h')
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'cspikequeue.cpp'),
-                     spikequeue_h)
+                     os.path.join(directory, 'brianlib', 'spikequeue.h'))
+        shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'stdint_compat.h'),
+                     os.path.join(directory, 'brianlib', 'stdint_compat.h'))
         
         writer.source_files.extend(additional_source_files)
         writer.header_files.extend(additional_header_files)
