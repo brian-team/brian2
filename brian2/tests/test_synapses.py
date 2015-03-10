@@ -128,6 +128,7 @@ from brian2.devices.cpp_standalone import cpp_standalone_device
 @attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=restore_device)
 def test_connection_array_standalone():
+    previous_device = get_device()
     set_device('cpp_standalone')
     # use a clock with 1s timesteps to avoid rounding issues
     G1 = SpikeGeneratorGroup(4, np.array([0, 1, 2, 3]),
@@ -149,6 +150,7 @@ def test_connection_array_standalone():
                          [0, 0, 0, 1, 1],
                          [0, 0, 0, 0, 0]], dtype=np.float64)
     assert_equal(mon.v, expected)
+    set_device(previous_device)
 
 
 def test_connection_string_deterministic_basic():
@@ -521,7 +523,7 @@ def test_transmission():
         assert_allclose(source_mon.t[source_mon.i==1],
                         target_mon.t[target_mon.i==1] - default_dt - delay[1])
 
-@attr('standalone-compatible')
+#@attr('standalone-compatible')  # scalar delays not yet supported in standalone
 @with_setup(teardown=restore_device)
 def test_transmission_scalar_delay():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms)
@@ -535,7 +537,7 @@ def test_transmission_scalar_delay():
     assert_equal(mon[1].v[mon.t<1.5*ms], 0)
     assert_equal(mon[1].v[mon.t>=1.5*ms], 1)
 
-@attr('standalone-compatible')
+#@attr('standalone-compatible')  # scalar delays not yet supported in standalone
 @with_setup(teardown=restore_device)
 def test_transmission_scalar_delay_different_clocks():
 
@@ -617,7 +619,7 @@ def test_no_synapses():
         assert len(l) == 1, 'expected 1 warning, got %d' % len(l)
         assert l[0][1].endswith('.no_synapses')
 
-@attr('standalone-compatible')
+#@attr('standalone-compatible')  # synaptic indexing is not yet possible in standalone
 @with_setup(teardown=restore_device)
 def test_summed_variable():
     source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0')

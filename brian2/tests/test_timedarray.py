@@ -84,7 +84,7 @@ def test_timedarray_no_upsampling():
     net.run(2.1*ms)
     assert_equal(mon[0].value, [0, 9, 9])
 
-@attr('standalone-compatible')
+#@attr('standalone-compatible')  # see FIXME comment below
 @with_setup(teardown=restore_device)
 def test_long_timedarray():
     '''
@@ -96,10 +96,11 @@ def test_long_timedarray():
     mon = StateMonitor(G, 'value', record=True)
     net = Network(G, mon)
     # We'll start the simulation close to the critical boundary
+    # FIXME: setting the time like this does not work for standalone
     net.t_ = float(16384*second - 5*ms)
     net.run(10*ms)
-    assert all(mon[0].value[mon.t < 16384*second] == 16383)
-    assert all(mon[0].value[mon.t >= 16384*second] == 16384)
+    assert_equal(mon[0].value[mon.t < 16384*second], 16383)
+    assert_equal(mon[0].value[mon.t >= 16384*second], 16384)
 
 
 if __name__ == '__main__':

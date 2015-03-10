@@ -52,7 +52,7 @@ def test_spikegenerator_basic():
     net.run(5*ms)
     for idx in xrange(5):
         generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
-        recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
+        recorded_spikes = sorted([(idx, time) for time in s_mon.t[s_mon.i==idx]])
         assert generator_spikes == recorded_spikes
 
 @attr('standalone-compatible')
@@ -69,7 +69,7 @@ def test_spikegenerator_basic_sorted():
     net.run(5*ms)
     for idx in xrange(5):
         generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
-        recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
+        recorded_spikes = sorted([(idx, time) for time in s_mon.t[s_mon.i==idx]])
         assert generator_spikes == recorded_spikes
 
 @attr('standalone-compatible')
@@ -87,7 +87,7 @@ def test_spikegenerator_period():
     net.run(10*ms)
     for idx in xrange(5):
         generator_spikes = sorted([(idx, time) for time in times[indices==idx]] + [(idx, time+5*ms) for time in times[indices==idx]])
-        recorded_spikes = sorted([(idx, time) for time in s_mon.t['i==%d' % idx]])
+        recorded_spikes = sorted([(idx, time) for time in s_mon.t[s_mon.i==idx]])
         assert generator_spikes == recorded_spikes
 
 @attr('standalone-compatible')
