@@ -8,6 +8,7 @@ Contents:
    :titlesonly:
 
    introduction/index
+   resources/tutorials/index
    user/index
    advanced/index
 

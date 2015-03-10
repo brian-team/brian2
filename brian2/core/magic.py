@@ -8,11 +8,12 @@ from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 
 from .network import Network
-from .base import BrianObject, device_override
+from .base import BrianObject, device_override    
 
 __all__ = ['MagicNetwork', 'magic_network',
            'MagicError',
-           'run', 'reinit', 'stop', 'collect', 'store', 'restore'
+           'run', 'reinit', 'stop', 'collect', 'store', 'restore',
+           'start_scope',
            ]
 
 logger = get_logger(__name__)
@@ -275,6 +276,10 @@ def collect(level=0):
     for obj in get_objects_in_namespace(level=level+1):
         obj = obj()
         if obj.add_to_magic_network:
+            gk = BrianObject._scope_current_key
+            k = obj._scope_key
+            if gk!=k:
+                continue
             all_objects.add(obj)
     return all_objects
 
@@ -401,3 +406,13 @@ def stop():
     Network.stop, run, reinit
     '''
     Network._globally_stopped = True
+
+
+def start_scope():
+    '''
+    Starts a new scope for magic functions
+    
+    All objects created before this call will no longer be automatically
+    included by the magic functions such as `run`.
+    '''
+    BrianObject._scope_current_key += 1

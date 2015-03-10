@@ -52,7 +52,7 @@ try:
             fname = os.path.relpath(fname, '../../examples')
             fname = fname.replace('/', '.').replace('\\\\', '.')
             fname = fname.replace('.py', '.%d.png' % fignum)
-            fname = '../../docs_sphinx/examples_images/'+fname
+            fname = '../../docs_sphinx/resources/examples_images/'+fname
             print fname
             ensure_directory_of_file(fname)
             _mpl.pyplot.figure(fignum).savefig(fname)
@@ -119,7 +119,7 @@ class SelectFilesPlugin(Plugin):
     def loadTestsFromName(self, name, module=None, discovered=False):
         all_examples = self.find_examples(name)
         all_tests = []
-        for target in ['numpy', 'weave', 'cython']:
+        for target in ['numpy']:
             for example in all_examples:
                 all_tests.append(RunTestCase(example, target))
         return all_tests

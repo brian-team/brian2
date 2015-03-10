@@ -47,7 +47,7 @@ class BrianObject(Nameable):
     -----
         
     The set of all `BrianObject` objects is stored in ``BrianObject.__instances__()``.
-    '''
+    '''    
     @check_units(dt=second)
     def __init__(self, dt=None, clock=None, when='start', order=0, name='brianobject*'):
 
@@ -97,10 +97,16 @@ class BrianObject(Nameable):
         
         self._active = True
         
+        #: The scope key is used to determine which objects are collected by magic
+        self._scope_key = self._scope_current_key
+        
         logger.debug("Created BrianObject with name {self.name}, "
                      "clock={self._clock}, "
                      "when={self.when}, order={self.order}".format(self=self))
 
+    #: Global key value for ipython cell restrict magic
+    _scope_current_key = 0
+    
     #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is added
     invalidates_magic_network = True
 
