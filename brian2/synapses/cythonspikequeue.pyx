@@ -4,6 +4,7 @@
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 
+import cython
 from cython.operator import dereference
 from cython.operator cimport dereference
 
@@ -12,11 +13,13 @@ import numpy as np
 
 np.import_array()
 
-cdef extern from "inttypes.h":
+
+cdef extern from "our_stdint.h":
     # Note that this does not actually define int32_t as int (which might be
-    # wrong on a 64bit system), it only tells Cython that int32_t is an int-like
-    # type
+    # wrong on a 64bit system), it only tells Cython that int32_t and int_64t
+    # are int-like types
     ctypedef int int32_t
+    ctypedef int int64_t
 
 cdef extern from "cspikequeue.cpp":
     cdef cppclass CSpikeQueue[T]:
