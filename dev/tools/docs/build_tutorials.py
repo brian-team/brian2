@@ -40,6 +40,21 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
     output, _ = exporter.from_notebook_node(notebook)
     codecs.open(output_ipynb_fname, 'w', encoding='utf-8').write(output)
 
+    # Insert a note about ipython notebooks with a download link
+    note = u'''
+    .. note::
+       This tutorial is written as an interactive notebook that should be run
+       on your own computer. See the :doc:`tutorial overview page <index>` for
+       more details.
+
+       Download link for this tutorial: :download:`{tutorial}.ipynb`.
+    '''.format(tutorial=basename)
+    notebook.cells.insert(1, {
+        u'cell_type': u'raw',
+        u'metadata': {},
+        u'source': note
+    })
+
     exporter = RSTExporter()
     output, resources = exporter.from_notebook_node(notebook,
                                                     resources={'unique_key': basename+'_image'})
@@ -51,17 +66,21 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
 print 'Generating index.rst'
 
 text = '''
-Tutorial
-========
+..
+    This is a generated file, do not edit directly.
+    (See dev/tools/docs/build_tutorials.py)
+
+Tutorials
+=========
 
 The tutorial consists of a series of `IPython notebooks`_ [#]_. If you run such
 a notebook on your own computer, you can interactively change the code in the
-tutorial and experiment with it -- this is the recommend way to get started
+tutorial and experiment with it -- this is the recommended way to get started
 with Brian. The first link for each tutorial below leads to a non-interactive
 version of the notebook; use the links under "Notebook files" to get a file that
 you can run on your computer. You can also copy such a link and paste it at
 http://nbviewer.ipython.org -- this will get you a nicer (but still
-non-interactive) rendering then the one you see in our documentation.
+non-interactive) rendering than the one you see in our documentation.
 
 For more information about how to use IPython notebooks, see the
 `IPython notebook documentation`_.
