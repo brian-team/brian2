@@ -91,6 +91,9 @@ def main(rootpath, destdir):
     examples = zip(examplesfnames, examplespaths, examplesbasenames,
                    examplescode, examplesdocs, examplesafterdoccode,
                    relativepaths, outnames)
+    basedir, _ = os.path.split(__file__)
+    eximgpath = os.path.abspath(os.path.join(basedir, '../../docs_sphinx/resources/examples_images'))
+    print 'Searching for example images in directory', eximgpath
     for fname, path, basename, code, docs, afterdoccode, relpath, exname in examples:
         categories[relpath].append((exname, basename))
         title = 'Example: ' + basename
@@ -100,11 +103,12 @@ def main(rootpath, destdir):
         output += docs + '\n\n::\n\n'
         output += '\n'.join(['    ' + line for line in afterdoccode.split('\n')])
         output += '\n\n'
-        basedir, _ = os.path.split(__file__)
-        eximgpat = os.path.join(basedir, '../../docs_sphinx/resources/examples_images', '%s.*.png' % exname)
-        images = glob.glob(eximgpat)
+
+        eximgpattern = os.path.join(eximgpath, '%s.*.png' % exname)
+        images = glob.glob(eximgpattern)
         for image in sorted(images):
             _, image = os.path.split(image)
+            print 'Found example image file', image
             output += '.. image:: ../resources/examples_images/%s\n\n' % image
     
         open(os.path.join(destdir, exname + '.rst'), 'w').write(output)
