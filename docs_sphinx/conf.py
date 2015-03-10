@@ -43,9 +43,10 @@ MOCK_MODULES = ['scipy', 'brian', 'brian.hears',   # mock Brian1 for the bridge
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
-# Store the examples directory in an environment variable, used by the
-# "example finder" that is called as part of the autoclass documentation
+# Store the examples and tutorials directory in an environment variable,
+# used by the "example finder" that is called as part of the autoclass documentation
 os.environ['BRIAN2_DOCS_EXAMPLE_DIR'] = root_dir = os.path.abspath('../examples')
+os.environ['BRIAN2_DOCS_TUTORIALS_DIR'] = root_dir = os.path.abspath('../tutorials')
 
 if 'BRIAN2_DOCS_QUICK_REBUILD' not in os.environ:
     # -- Automatically generate the reference documentation ------------------------
