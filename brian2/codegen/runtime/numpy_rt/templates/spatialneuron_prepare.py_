@@ -3,8 +3,6 @@
                     ab_plus0, ab_plus1, ab_plus2,
                     ab_minus0, ab_minus1, ab_minus2,
                     _starts, _ends, _invr0, _invrn, b_plus, b_minus } #}
-from itertools import izip
-
 from numpy import pi
 
 {% if owner.morphology.type == 'soma' %}
@@ -38,8 +36,8 @@ for _first in {{_starts}}:
 {{ab_minus2}}[:] = {{ab_star2}}
 
 # Set the boundary conditions
-for _counter, (_first, _last) in enumerate(izip({{_starts}},
-                                             {{_ends}})):
+for _counter, (_first, _last) in enumerate(zip({{_starts}},
+                                               {{_ends}})):
     # Inverse axial resistances at the ends: r0 and rn
     {{_invr0}}[_counter] = _invr0 = (pi / (2 * {{Ri}}) *
                                      {{diameter}}[_first] ** 2 /
