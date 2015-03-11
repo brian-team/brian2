@@ -38,6 +38,9 @@ Note that it is safe to use e.g. ``np.sin`` and ``numpy.sin`` after a
 
 .. _matplotlib: http://matplotlib.org/
 
+
+.. _dependency_checks:
+
 Dependency checks
 -----------------
 Brian will check the dependency versions during import and raise an error for
