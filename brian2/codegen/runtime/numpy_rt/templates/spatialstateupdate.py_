@@ -10,8 +10,6 @@
 Solves the cable equation (spatial diffusion of currents).
 This is where most time-consuming time computations are done.
 '''
-from itertools import izip
-
 from scipy.linalg import solve_banded
 from numpy.linalg import solve
 from numpy import zeros
@@ -50,7 +48,7 @@ ab[1,:]-=_gtot
 _n_segments = len({{_B}})
 {{_B}}[:] = 0
 {{_P}}[:] = 0
-for _i, _i_parent, _first, _last, _invr0, _invrn in izip({{_morph_i}},
+for _i, _i_parent, _first, _last, _invr0, _invrn in zip({{_morph_i}},
                                                          {{_morph_parent_i}},
                                                          {{_starts}},
                                                          {{_ends}},
@@ -74,7 +72,7 @@ for _i, _i_parent, _first, _last, _invr0, _invrn in izip({{_morph_i}},
 _V = solve({{_P}}.reshape((_n_segments, _n_segments)), {{_B}})
 
 # Final solutions as linear combinations
-for _i, _i_parent, _first, _last, in izip({{_morph_i}},
+for _i, _i_parent, _first, _last, in zip({{_morph_i}},
                                           {{_morph_parent_i}},
                                           {{_starts}},
                                           {{_ends}}):
