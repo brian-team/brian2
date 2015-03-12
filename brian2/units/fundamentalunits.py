@@ -1560,18 +1560,6 @@ class Quantity(np.ndarray, object):
     cumprod.__doc__ = np.ndarray.cumprod.__doc__
 
 
-# Ok, this is a bit ugly: numpy 1.7 seems to have silently removed the setasflat
-# method. We'll add it here dynamically to the Quantity class in case ndarray
-# has it (i.e. for numpy < 1.7). On the other hand, this method is probably
-# never used so maybe better to leave it away completely?
-if hasattr(np.ndarray, 'setasflat'):
-    def setasflat(self, arr, **kwds): # pylint: disable=C0111
-        fail_for_dimension_mismatch(self, arr, 'setasflat')
-        super(Quantity, self).setasflat(np.asarray(arr), **kwds)
-    setasflat.__doc__ = np.ndarray.setasflat.__doc__
-    setattr(Quantity, setasflat.__name__, setasflat)
-
-
 class Unit(Quantity):
     r'''
     A physical unit.
