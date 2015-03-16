@@ -139,31 +139,27 @@ class TimedArray(Function, Nameable):
             group_dt = owner.clock.dt_
             K = _find_K(group_dt, dt)
             support_code = '''
-            inline double _timedarray_%NAME%(const double t, const int _num_values, const double* _values)
+            inline double %NAME%(const double t)
             {
                 const double epsilon = %DT% / %K%;
                 int i = (int)((t/epsilon + 0.5)/%K%); // rounds to nearest int for positive values
-                if(i<0)
+                if(i < 0)
                    i = 0;
-                if(i>=_num_values)
-                    i = _num_values-1;
-                return _values[i];
+                if(i >= %NUM_VALUES%)
+                    i = %NUM_VALUES%-1;
+                return _namespace%NAME%_values[i];
             }
-            '''.replace('%NAME%', self.name).replace('%DT%', '%.18f' % dt).replace('%K%', str(K))
-            cpp_code = {'support_code': support_code,
-                        'hashdefine_code': '''
-            #define %NAME%(t) _timedarray_%NAME%(t, _%NAME%_num_values, _%NAME%_values)
-            '''.replace('%NAME%', self.name)}
+            '''.replace('%NAME%', self.name).replace('%DT%', '%.18f' % dt).replace('%K%', str(K)).replace('%NUM_VALUES%', str(len(self.values)))
+            cpp_code = {'support_code': support_code}
 
             return cpp_code
 
         def create_cpp_namespace(owner):
-            return {'_%s_num_values' % self.name: len(self.values),
-                    '_%s_values' % self.name: self.values}
+            return {'%s_values' % self.name: self.values}
 
         self.implementations.add_dynamic_implementation('cpp',
-                                                        create_cpp_implementation,
-                                                        create_cpp_namespace,
+                                                        code=create_cpp_implementation,
+                                                        namespace=create_cpp_namespace,
                                                         name=self.name)
 
     def _init_2d(self):
@@ -210,7 +206,7 @@ class TimedArray(Function, Nameable):
             group_dt = owner.clock.dt_
             K = _find_K(group_dt, dt)
             support_code = '''
-            inline double _timedarray_%NAME%(const double t, const int i, const int _num_values, const double* _values)
+            inline double %NAME%(const double t, const int i)
             {
                 const double epsilon = %DT% / %K%;
                 if (i < 0 || i >= %COLS%)
@@ -220,7 +216,7 @@ class TimedArray(Function, Nameable):
                    timestep = 0;
                 else if(timestep >= %ROWS%)
                     timestep = %ROWS%-1;
-                return _values[timestep*%COLS% + i];
+                return _namespace%NAME%_values[timestep*%COLS% + i];
             }
             '''
             support_code = replace(support_code, {'%NAME%': self.name,
@@ -228,16 +224,14 @@ class TimedArray(Function, Nameable):
                                                   '%K%': str(K),
                                                   '%COLS%': str(self.values.shape[1]),
                                                   '%ROWS%': str(self.values.shape[0])})
-            cpp_code = {'support_code': support_code,
-                        'hashdefine_code': '''
-            #define %NAME%(t, i) _timedarray_%NAME%(t, i, _%NAME%_num_values, _%NAME%_values)
-            '''.replace('%NAME%', self.name)}
+            cpp_code = {'support_code': support_code}
 
             return cpp_code
 
         def create_cpp_namespace(owner):
-            return {'_%s_num_values' % self.name: len(self.values.ravel()),
-                    '_%s_values' % self.name: self.values.astype(np.double, order='C', copy=False).ravel()}
+            return {'%s_values' % self.name: self.values.astype(np.double,
+                                                                order='C',
+                                                                copy=False).ravel()}
 
         self.implementations.add_dynamic_implementation('cpp',
                                                         create_cpp_implementation,
