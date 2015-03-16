@@ -112,6 +112,7 @@ class CythonCodeGenerator(CodeGenerator):
         load_namespace = []
         support_code = []
         handled_pointers = set()
+        user_functions = []
         for varname, var in self.variables.iteritems():
             if isinstance(var, AuxiliaryVariable):
                 line = "cdef {dtype} {varname}".format(
@@ -178,6 +179,35 @@ class CythonCodeGenerator(CodeGenerator):
                 if func_impl is not None:
                     if isinstance(func_impl, basestring):
                         # Function is provided as Cython code
+                        # To make namespace variables available to functions, we
+                        # create global variables and assign to them in the main
+                        # code
+                        user_functions.append((varname, var))
+                        func_namespace = var.implementations[self.codeobj_class].get_namespace(self.owner) or {}
+                        for ns_key, ns_value in func_namespace.iteritems():
+                            load_namespace.append('# namespace for function %s' % varname)
+                            if hasattr(ns_value, 'dtype'):
+                                    if ns_value.shape == ():
+                                        raise NotImplementedError(('Directly replace scalar values in the function '
+                                                                   'instead of providing them via the namespace'))
+                                    newlines = [
+                                    "global _namespace{var_name}",
+                                    "global _namespace_num{var_name}",
+                                    "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{var_name} = _namespace['{var_name}'].view(dtype=_numpy.{numpy_dtype})",
+                                    "_namespace{var_name} = <{cpp_dtype} *> _buf_{var_name}.data",
+                                    "_namespace_num{var_name} = len(_namespace['{var_name}'])"
+                                    ]
+                                    support_code.append("cdef {cpp_dtype} *_namespace{var_name}".format(cpp_dtype=get_cpp_dtype(ns_value.dtype),
+                                                                                               var_name=ns_key))
+
+                            else:  # e.g. a function
+                                newlines = [
+                                    "_namespace{var_name} = namespace['{var_name}']"
+                                ]
+                            for line in newlines:
+                                load_namespace.append(line.format(cpp_dtype=get_cpp_dtype(ns_value.dtype),
+                                                                  numpy_dtype=get_numpy_dtype(ns_value.dtype),
+                                                                  var_name=ns_key))
                         support_code.append(deindent(func_impl))
                     elif callable(func_impl):
                         self.variables[varname] = func_impl
@@ -186,13 +216,22 @@ class CythonCodeGenerator(CodeGenerator):
                     else:
                         raise TypeError(('Provided function implementation '
                                          'for function %s is neither a string '
-                                         'nor callable') % varname)
+                                         'nor callable (is type %s instead)') % (varname,
+                                                                                 type(func_impl)))
             else:
                 # fallback to Python object
                 print var
                 for k, v in var.__dict__.iteritems():
                     print '   ', k, v
                 load_namespace.append('%s = _namespace["%s"]' % (varname, varname))
+
+        # delete the user-defined functions from the namespace and add the
+        # function namespaces (if any)
+        for funcname, func in user_functions:
+            del self.variables[funcname]
+            func_namespace = func.implementations[self.codeobj_class].get_namespace(self.owner)
+            if func_namespace is not None:
+                self.variables.update(func_namespace)
 
         load_namespace = '\n'.join(load_namespace)
         support_code = '\n'.join(support_code)

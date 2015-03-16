@@ -142,7 +142,7 @@ class TimedArray(Function, Nameable):
             inline double %NAME%(const double t)
             {
                 const double epsilon = %DT% / %K%;
-                int i = (int)((t/epsilon + 0.5)/%K%); // rounds to nearest int for positive values
+                int i = (int)((t/epsilon + 0.5)/%K%);
                 if(i < 0)
                    i = 0;
                 if(i >= %NUM_VALUES%)
@@ -161,6 +161,31 @@ class TimedArray(Function, Nameable):
                                                         code=create_cpp_implementation,
                                                         namespace=create_cpp_namespace,
                                                         name=self.name)
+        def create_cython_implementation(owner):
+            group_dt = owner.clock.dt_
+            K = _find_K(group_dt, dt)
+            code = '''
+            cdef double %NAME%(const double t):
+                global _namespace%NAME%_values
+                cdef double epsilon = %DT% / %K%
+                cdef int i = (int)((t/epsilon + 0.5)/%K%)
+                if i < 0:
+                   i = 0
+                if i >= %NUM_VALUES%:
+                    i = %NUM_VALUES% - 1
+                return _namespace%NAME%_values[i]
+            '''.replace('%NAME%', self.name).replace('%DT%', '%.18f' % dt).replace('%K%', str(K)).replace('%NUM_VALUES%', str(len(self.values)))
+
+            return code
+
+        def create_cython_namespace(owner):
+            return {'%s_values' % self.name: self.values}
+
+        self.implementations.add_dynamic_implementation('cython',
+                                                        code=create_cython_implementation,
+                                                        namespace=create_cython_namespace,
+                                                        name=self.name)
+
 
     def _init_2d(self):
         unit = self.unit
@@ -211,7 +236,7 @@ class TimedArray(Function, Nameable):
                 const double epsilon = %DT% / %K%;
                 if (i < 0 || i >= %COLS%)
                     return NAN;
-                int timestep = (int)((t/epsilon + 0.5)/%K%); // rounds to nearest int for positive values
+                int timestep = (int)((t/epsilon + 0.5)/%K%);
                 if(timestep < 0)
                    timestep = 0;
                 else if(timestep >= %ROWS%)
@@ -234,8 +259,42 @@ class TimedArray(Function, Nameable):
                                                                 copy=False).ravel()}
 
         self.implementations.add_dynamic_implementation('cpp',
-                                                        create_cpp_implementation,
-                                                        create_cpp_namespace,
+                                                        code=create_cpp_implementation,
+                                                        namespace=create_cpp_namespace,
+                                                        name=self.name)
+
+        def create_cython_implementation(owner):
+            group_dt = owner.clock.dt_
+            K = _find_K(group_dt, dt)
+            code = '''
+            cdef double %NAME%(const double t, const int i):
+                global _namespace%NAME%_values
+                cdef double epsilon = %DT% / %K%;
+                if i < 0 or i >= %COLS%:
+                    return _numpy.nan
+                cdef int timestep = (int)((t/epsilon + 0.5)/%K%)
+                if timestep < 0:
+                   timestep = 0
+                elif timestep >= %ROWS%:
+                    timestep = %ROWS%-1
+                return _namespace%NAME%_values[timestep*%COLS% + i]
+            '''
+            code = replace(code, {'%NAME%': self.name,
+                                  '%DT%': '%.18f' % dt,
+                                  '%K%': str(K),
+                                  '%COLS%': str(self.values.shape[1]),
+                                  '%ROWS%': str(self.values.shape[0])})
+
+            return code
+
+        def create_cython_namespace(owner):
+            return {'%s_values' % self.name: self.values.astype(np.double,
+                                                                order='C',
+                                                                copy=False).ravel()}
+
+        self.implementations.add_dynamic_implementation('cython',
+                                                        code=create_cython_implementation,
+                                                        namespace=create_cython_namespace,
                                                         name=self.name)
 
 
