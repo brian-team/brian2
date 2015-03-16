@@ -25,12 +25,12 @@ class BinomialFunction(Function, Nameable):
             Probablility
         approximate : bool, optional
             Whether to approximate the binomial with a normal distribution if
-            :math:`n\cdot p > 5`. Defaults to ``True``.
+            :math:`n p > 5 \wedge n (1 - p) > 5`. Defaults to ``True``.
         '''
         Nameable.__init__(self, name)
 
         #Python implementation
-        use_normal = approximate and (n*p > 5)
+        use_normal = approximate and (n*p > 5) and n*(1-p) > 5
         if use_normal:
             loc = n*p
             scale = np.sqrt(n*p*(1-p))
