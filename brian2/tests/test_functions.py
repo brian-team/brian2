@@ -517,7 +517,22 @@ def test_function_dependencies_numpy():
 
     assert_allclose(G.v_[:], 84*0.001)
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_binomial():
+    binomial_f_approximated = BinomialFunction(100, 0.1, approximate=True)
+    binomial_f = BinomialFunction(100, 0.1, approximate=False)
 
+    # Just check that it does not raise an error and that it produces some
+    # values
+    G = NeuronGroup(1, '''x : 1
+                          y : 1''')
+    updater = G.custom_operation('''x = binomial_f_approximated()
+                                    y = binomial_f()''')
+    mon = StateMonitor(G, ['x', 'y'], record=0)
+    run(1*ms)
+    assert np.var(mon[0].x) > 0
+    assert np.var(mon[0].y) > 0
 
 
 if __name__ == '__main__':
@@ -535,7 +550,8 @@ if __name__ == '__main__':
             test_function_implementation_container,
             test_function_dependencies_numpy,
             test_function_dependencies_weave,
-            test_function_dependencies_cython
+            test_function_dependencies_cython,
+            test_binomial
             ]:
         try:
             f()

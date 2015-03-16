@@ -56,7 +56,7 @@ cdef void _flush_buffer(buf, dynarr, int N):
             # add to buffer
             if _cond:
                 if _p!=1.0:
-                    if rand(_vectorisation_idx)>=_p:
+                    if _rand(_vectorisation_idx)>=_p:
                         continue
                 for _repetition in range(_n):
                     {{N_outgoing}}[_pre_idx] += 1

@@ -291,7 +291,7 @@ rand_code = '''
 cdef int _rand_buffer_size = 1024 
 cdef double[:] _rand_buf = _numpy.zeros(_rand_buffer_size, dtype=_numpy.float64)
 cdef int _cur_rand_buf = 0
-cdef double rand(int _idx):
+cdef double _rand(int _idx):
     global _cur_rand_buf
     global _rand_buf
     if _cur_rand_buf==0:
@@ -305,11 +305,11 @@ randn_code = rand_code.replace('rand', 'randn').replace('randnom', 'random')
 
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CythonCodeGenerator,
                                                              code=rand_code,
-                                                             name='rand')
+                                                             name='_rand')
 
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CythonCodeGenerator,
                                                               code=randn_code,
-                                                              name='randn')
+                                                              name='_randn')
 
 int_code = '''
 ctypedef fused _to_int:
