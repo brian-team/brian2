@@ -913,9 +913,10 @@ class Synapses(Group):
         # Add all the pre and post variables with _pre and _post suffixes
         for name in getattr(self.source, 'variables', {}).iterkeys():
             # Raise an error if a variable name is also used for a synaptic
-            # variable
-            if name in equations.names:
-                error_msg = ('The post-synaptic variable {name} has the same '
+            # variable (we ignore 'lastupdate' to allow connections from another
+            # Synapses object)
+            if name in equations.names and name != 'lastupdate':
+                error_msg = ('The pre-synaptic variable {name} has the same '
                              'name as a synaptic variable, rename the synaptic '
                              'variable ').format(name=name)
                 if name+'_syn' not in self.variables:
@@ -936,9 +937,10 @@ class Synapses(Group):
                                                   source=self.source.name))
         for name in getattr(self.target, 'variables', {}).iterkeys():
             # Raise an error if a variable name is also used for a synaptic
-            # variable
-            if name in equations.names:
-                error_msg = ("The pre-synaptic variable '{name}' has the same "
+            # variable (we ignore 'lastupdate' to allow connections to another
+            # Synapses object)
+            if name in equations.names and name != 'lastupdate':
+                error_msg = ("The post-synaptic variable '{name}' has the same "
                              "name as a synaptic variable, rename the synaptic "
                              "variable ").format(name=name)
                 if name+'_syn' not in self.variables:
