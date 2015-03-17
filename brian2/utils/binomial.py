@@ -13,20 +13,23 @@ __all__ = ['BinomialFunction']
 
 
 class BinomialFunction(Function, Nameable):
+    '''
+    BinomialFunction(n, p, approximate=True, name='_binomial*')
 
+    A function that generates samples from a binomial distribution.
+
+    Parameters
+    ----------
+    n : int
+        Number of samples
+    p : float
+        Probablility
+    approximate : bool, optional
+        Whether to approximate the binomial with a normal distribution if
+        :math:`n p > 5 \wedge n (1 - p) > 5`. Defaults to ``True``.
+    '''
     @check_units(n=1, p=1)
     def __init__(self, n, p, approximate=True, name='_binomial*'):
-        '''
-        Parameters
-        ----------
-        n : int
-            Number of samples
-        p : float
-            Probablility
-        approximate : bool, optional
-            Whether to approximate the binomial with a normal distribution if
-            :math:`n p > 5 \wedge n (1 - p) > 5`. Defaults to ``True``.
-        '''
         Nameable.__init__(self, name)
 
         #Python implementation
