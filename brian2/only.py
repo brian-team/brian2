@@ -40,6 +40,7 @@ from brian2.monitors import *
 from brian2.spatialneuron import *
 from brian2.devices import set_device, get_device, device
 import brian2.devices.cpp_standalone as _cpp_standalone
+import brian2.devices.c_standalone as _c_standalone
 
 # preferences
 from brian2.core.core_preferences import *
