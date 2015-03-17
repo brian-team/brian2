@@ -479,6 +479,16 @@ class ArrayVariable(Variable):
         #: The size of this variable.
         self.size = size
 
+        #: The number of dimensions
+        self.ndims = 1
+        #: The total length (different from size for 2d arrays)
+        self.length = size
+        try:
+            self.ndims = len(self.size)
+            self.length = np.prod(self.size)
+        except TypeError:
+            pass
+
         if scalar and size != 1:
             raise ValueError(('Scalar variables need to have size 1, not '
                               'size %d.') % size)

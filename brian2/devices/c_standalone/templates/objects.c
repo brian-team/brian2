@@ -19,7 +19,7 @@ Network *{{net.name}};
 {% for var, varname in array_specs | dictsort(by='value') %}
 {% if not var in dynamic_array_specs %}
 {{c_data_type(var.dtype)}} * {{varname}};
-const int _num_{{varname}} = {{var.size}};
+const int _num_{{varname}} = {{var.length}};
 {% endif %}
 {% endfor %}
 
@@ -49,15 +49,15 @@ void _init_arrays()
     // Arrays initialized to 0
 	{% for var in zero_arrays | sort(attribute='name') %}
 	{% set varname = array_specs[var] %}
-	{{varname}} = calloc(sizeof({{c_data_type(var.dtype)}}), {{var.size}});
+	{{varname}} = calloc(sizeof({{c_data_type(var.dtype)}}), {{var.length}});
     {% endfor %}
 
 	// Arrays initialized to an "arange"
 	{% for var, start in arange_arrays %}
 	{% set varname = array_specs[var] %}
-	{{varname}} = malloc(sizeof({{c_data_type(var.dtype)}}) * {{var.size}});
+	{{varname}} = malloc(sizeof({{c_data_type(var.dtype)}}) * {{var.length}});
 	{{ openmp_pragma('parallel-static') }}
-	for(int i=0; i<{{var.size}}; i++) {{varname}}[i] = {{start}} + i;
+	for(int i=0; i<{{var.length}}; i++) {{varname}}[i] = {{start}} + i;
 	{% endfor %}
 
 	// static arrays
@@ -83,7 +83,7 @@ void _write_arrays()
 	FILE * outfile_{{varname}};
 
 	outfile_{{varname}} = fopen("results/{{varname}}", "wb");
-	fwrite({{varname}}, sizeof({{varname}}[0]), {{var.size}}, outfile_{{varname}});
+	fwrite({{varname}}, sizeof({{varname}}[0]), {{var.length}}, outfile_{{varname}});
 	fclose(outfile_{{varname}});
     {% endif %}
 	{% endfor %}

@@ -24,7 +24,6 @@
 	{
 		const int _idx = i;
 	    _vectorisation_idx = _idx;
-
 		{{vector_code|autoindent}}
 		_gtot_all[_idx]=_gtot;
 
@@ -139,7 +138,7 @@
 
         if (pivot_magnitude == 0)
         {
-            std::cerr << "Singular!" << std::endl;
+            fprintf(stderr, "Singular!\n");
         }
 
         // swap rows

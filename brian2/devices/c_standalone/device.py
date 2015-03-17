@@ -589,7 +589,7 @@ class CStandaloneDevice(Device):
                                 line = line.format(k=k, dyn_array_name=dyn_array_name)
                                 lines.append(line)
                         else:
-                            lines.append('const int _num%s = %s;' % (k, v.size))
+                            lines.append('const int _num%s = %s;' % (k, v.length))
                     except TypeError:
                         pass
             for line in lines:
@@ -801,31 +801,32 @@ class CStandaloneDevice(Device):
                 code_objects.append((obj.clock, codeobj))
 
         # Code for a progress reporting function
-        standard_code = '''
+        standard_code = r'''
         void report_progress(const double elapsed, const double completed, const double duration)
         {
             if (completed == 0.0)
             {
-                %STREAMNAME% << "Starting simulation for duration " << duration << " s";
+                fprintf(%STREAMNAME%, "Starting simulation for duration %f s\n", duration);
             } else
             {
-                %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed << " s";
+                fprintf(%STREAMNAME%, "%f s (%s %%) simulated in %f", completed*duration, (int)(completed*100.), elapsed);
+
                 if (completed < 1.0)
                 {
                     const int remaining = (int)((1-completed)/completed*elapsed+0.5);
-                    %STREAMNAME% << ", estimated " << remaining << " s remaining.";
+                    fprintf(%STREAMNAME%, ", estimated %d s remaining.", remaining);
                 }
             }
 
-            %STREAMNAME% << std::endl << std::flush;
+            fprintf(%STREAMNAME%, "\n");
         }
         '''
         if report is None:
             self.report_func = ''
         elif report == 'text' or report == 'stdout':
-            self.report_func = standard_code.replace('%STREAMNAME%', 'std::cout')
+            self.report_func = standard_code.replace('%STREAMNAME%', 'stdout')
         elif report == 'stderr':
-            self.report_func = standard_code.replace('%STREAMNAME%', 'std::cerr')
+            self.report_func = standard_code.replace('%STREAMNAME%', 'stderr')
         elif isinstance(report, basestring):
             self.report_func = '''
             void report_progress(const double elapsed, const double completed, const double duration)

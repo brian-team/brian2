@@ -25,7 +25,7 @@
                 // We have to use the pointer names directly here: The condition
                 // might contain references to not_refractory or lastspike and in
                 // that case the names will refer to a single entry.
-                {{not_refractory}}[_idx] = FALSE;
+                {{not_refractory}}[_idx] = false;
                 {{lastspike}}[_idx] = t;
                 {% endif %}
             }

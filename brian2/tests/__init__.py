@@ -29,7 +29,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         standalone mode (e.g. ``'cpp_standalone'``) and expects that a device
         of that name and an accordingly named "simple" device (e.g.
         ``'cpp_standalone_simple'`` exists that can be used for testing (see
-        `CPPStandaloneSimpleDevice` for details. Defaults to ``None``, meaning
+        `CStandaloneSimpleDevice` for details. Defaults to ``None``, meaning
         that no standalone device is tested.
     '''
     try:
