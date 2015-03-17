@@ -154,7 +154,7 @@ class CythonCodeGenerator(CodeGenerator):
                 support_code.append(deindent(func_code))
             elif callable(func_code):
                 self.variables[varname] = func_code
-                line = '%s = _namespace["%s"]' % (varname, varname)
+                line = '{0}} = _namespace["{1}}"]'.format(varname, varname)
                 load_namespace.append(line)
             else:
                 raise TypeError(('Provided function implementation '
@@ -216,8 +216,8 @@ class CythonCodeGenerator(CodeGenerator):
                 load_namespace.append(line)
             elif isinstance(var, Variable):
                 if var.dynamic:
-                    load_namespace.append('%s = _namespace["%s"]' % (self.get_array_name(var, False),
-                                                                     self.get_array_name(var, False)))
+                    load_namespace.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
+                                                                           self.get_array_name(var, False)))
 
                 # This is the "true" array name, not the restricted pointer.
                 array_name = device.get_array_name(var)
@@ -255,7 +255,7 @@ class CythonCodeGenerator(CodeGenerator):
                 print var
                 for k, v in var.__dict__.iteritems():
                     print '   ', k, v
-                load_namespace.append('%s = _namespace["%s"]' % (varname, varname))
+                load_namespace.append('{0} = _namespace["{1}"]'.format(varname, varname))
 
         # delete the user-defined functions from the namespace and add the
         # function namespaces (if any)
@@ -265,10 +265,8 @@ class CythonCodeGenerator(CodeGenerator):
             if func_namespace is not None:
                 self.variables.update(func_namespace)
 
-        load_namespace = '\n'.join(load_namespace)
-        support_code = '\n'.join(support_code)
-
-        return {'load_namespace': load_namespace, 'support_code': support_code}
+        return {'load_namespace': '\n'.join(load_namespace),
+                'support_code': '\n'.join(support_code)}
 
 ###############################################################################
 # Implement functions

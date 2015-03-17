@@ -237,9 +237,9 @@ class CPPCodeGenerator(CodeGenerator):
 
     def _add_user_function(self, varname, variable):
         impl = variable.implementations[self.codeobj_class]
-        support_code = ''
-        hash_defines = ''
-        pointers = ''
+        support_code = []
+        hash_defines = []
+        pointers = []
         user_functions = [(varname, variable)]
         funccode = impl.get_code(self.owner)
         if isinstance(funccode, basestring):
@@ -258,24 +258,22 @@ class CPPCodeGenerator(CodeGenerator):
                     type_str = c_data_type(ns_value.dtype) + '*'
                 else:  # e.g. a function
                     type_str = 'py::object'
-                support_code += '\nstatic %s _namespace%s;\n' % (
-                type_str, ns_key)
-                pointers += '\n _namespace%s = %s;\n' % (ns_key, ns_key)
-            support_code += '\n' + deindent(
-                funccode.get('support_code', ''))
-            hash_defines += '\n' + deindent(
-                funccode.get('hashdefine_code', ''))
+                support_code.append('static {0} _namespace{1};'.format(type_str,
+                                                                       ns_key))
+                pointers.append('_namespace{0} = {1};'.format(ns_key, ns_key))
+            support_code.append(deindent(funccode.get('support_code', '')))
+            hash_defines.append(deindent(funccode.get('hashdefine_code', '')))
 
-        dep_hash_defines = ''
-        dep_pointers = ''
-        dep_support_code = ''
+        dep_hash_defines = []
+        dep_pointers = []
+        dep_support_code = []
         if impl.dependencies is not None:
             for dep_name, dep in impl.dependencies.iteritems():
                 self.variables[dep_name] = dep
                 hd, ps, sc, uf = self._add_user_function(dep_name, dep)
-                dep_hash_defines += hd
-                dep_pointers += ps
-                dep_support_code += sc
+                dep_hash_defines.extend(hd)
+                dep_pointers.extend(ps)
+                dep_support_code.extend(sc)
                 user_functions.extend(uf)
 
         return (dep_hash_defines + hash_defines,
@@ -286,7 +284,7 @@ class CPPCodeGenerator(CodeGenerator):
     def determine_keywords(self):
         # set up the restricted pointers, these are used so that the compiler
         # knows there is no aliasing in the pointers, for optimisation
-        lines = []
+        pointers = []
         # It is possible that several different variable names refer to the
         # same array. E.g. in gapjunction code, v_pre and v_post refer to the
         # same array if a group is connected to itself
@@ -304,23 +302,24 @@ class CPPCodeGenerator(CodeGenerator):
                     continue
                 if getattr(var, 'dimensions', 1) > 1:
                     continue  # multidimensional (dynamic) arrays have to be treated differently
-                line = self.c_data_type(var.dtype) + ' * ' + self.restrict + pointer_name + ' = ' + array_name + ';'
-                lines.append(line)
+                line = '{0}* {1} {2} = {3};'.format(self.c_data_type(var.dtype),
+                                                    self.restrict,
+                                                    pointer_name,
+                                                    array_name)
+                pointers.append(line)
                 handled_pointers.add(pointer_name)
-
-        pointers = '\n'.join(lines)
 
         # set up the functions
         user_functions = []
-        support_code = ''
-        hash_defines = ''
+        support_code = []
+        hash_defines = []
         for varname, variable in self.variables.items():
             if isinstance(variable, Function):
                 hd, ps, sc, uf = self._add_user_function(varname, variable)
                 user_functions.extend(uf)
-                support_code += sc
-                pointers += ps
-                hash_defines += hd
+                support_code.extend(sc)
+                pointers.extend(ps)
+                hash_defines.extend(hd)
 
 
         # delete the user-defined functions from the namespace and add the
@@ -331,10 +330,10 @@ class CPPCodeGenerator(CodeGenerator):
             if func_namespace is not None:
                 self.variables.update(func_namespace)
 
-        keywords = {'pointers_lines': stripped_deindented_lines(pointers),
-                    'support_code_lines': stripped_deindented_lines(support_code),
-                    'hashdefine_lines': stripped_deindented_lines(hash_defines),
-                    'denormals_code_lines': stripped_deindented_lines(self.denormals_to_zero_code()),
+        keywords = {'pointers_lines': stripped_deindented_lines('\n'.join(pointers)),
+                    'support_code_lines': stripped_deindented_lines('\n'.join(support_code)),
+                    'hashdefine_lines': stripped_deindented_lines('\n'.join(hash_defines)),
+                    'denormals_code_lines': stripped_deindented_lines('\n'.join(self.denormals_to_zero_code())),
                     }
         keywords.update(template_kwds)
         return keywords
