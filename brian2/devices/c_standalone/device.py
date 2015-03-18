@@ -845,7 +845,7 @@ class CStandaloneDevice(Device):
             report_call = 'NULL'
 
         # Generate the updaters
-        run_lines = []
+        run_lines = ['Network_clear({net.name});'.format(net=net)]
         for clock, codeobj in code_objects:
             run_lines.append('Network_add({net.name}, {clock.name}, _run_{codeobj.name});'.format(clock=clock, net=net,
                                                                                                codeobj=codeobj))

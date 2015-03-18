@@ -16,6 +16,11 @@ Network_construct(Network *network)
 	network->t = 0.0;
 }
 
+void Network_clear(Network *network)
+{
+    network->first_obj = (void*)0;
+}
+
 void Network_add(Network* network, Clock* clock, codeobj_func func)
 {
     network->clock = clock;
