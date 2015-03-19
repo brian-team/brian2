@@ -43,7 +43,6 @@ void _init_arrays()
     //////////////// networks /////////////////
     {% for net in networks | sort(attribute='name') %}
     {{net.name}} = malloc(sizeof(Network));
-    Network_construct({{net.name}});
     {% endfor %}
 
     // Arrays initialized to 0

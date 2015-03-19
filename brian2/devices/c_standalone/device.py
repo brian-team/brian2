@@ -113,6 +113,8 @@ class CStandaloneDevice(Device):
         #: Dict of all static saved arrays
         self.static_arrays = {}
 
+        # We assume a single set of objects for all runs
+        self.net_objects = None
         self.code_objects = {}
         self.main_queue = []
         self.report_func = ''
@@ -490,8 +492,6 @@ class CStandaloneDevice(Device):
         for net in networks:
             net.after_run()
 
-        if len(self.clocks) != 1:
-            raise NotImplementedError('C standalone only supports a single clock')
         arr_tmp = CStandaloneCodeObject.templater.objects(
                         None, None,
                         array_specs=self.arrays,
@@ -770,89 +770,57 @@ class CStandaloneDevice(Device):
         if kwds:
             logger.warn(('Unsupported keyword argument(s) provided for run: '
                          '%s') % ', '.join(kwds.keys()))
-        net._clocks = [obj.clock for obj in net.objects]
-        # We have to use +2 for the level argument here, since this function is
-        # called through the device_override mechanism
-        net.before_run(namespace, level=level+2)
+        clocks = set([obj.clock for obj in net.objects])
+        self.clocks = clocks
+        if len(clocks) > 1:
+            raise NotImplementedError('CStandalone only supports a single clock.')
+        run_lines = []
+        if self.net_objects is None:
+            # This is the first run, set everything up
+            self.net_objects = net.objects
+            net._clocks = clocks
+            # We have to use +2 for the level argument here, since this function is
+            # called through the device_override mechanism
+            net.before_run(namespace, level=level+2)
             
-        self.clocks.update(net._clocks)
+            self.clock = list(clocks)[0]
 
-        # We run a simplified "update loop" that only advances the clocks
-        # This can be useful because some Python code might use the t attribute
-        # of the Network or a NeuronGroup etc.
-        t_end = net.t+duration
-        for clock in net._clocks:
-            clock.set_interval(net.t, t_end)
+            # We run a simplified "update loop" that only advances the clocks
+            # This can be useful because some Python code might use the t attribute
+            # of the Network or a NeuronGroup etc.
+            t_end = net.t+duration
+            self.clock.set_interval(net.t, t_end)
             # manually set the clock to the end, no need to run Clock.tick() in a loop
-            clock._i = clock._i_end
-        net.t_ = float(t_end)
-
-        # TODO: remove this horrible hack
-        for clock in self.clocks:
-            if clock.name=='clock':
-                clock._name = '_clock'
+            self.clock._i = self.clock._i_end
+            net.t_ = float(t_end)
             
-        # Extract all the CodeObjects
-        # Note that since we ran the Network object, these CodeObjects will be sorted into the right
-        # running order, assuming that there is only one clock
-        code_objects = []
-        for obj in net.objects:
-            for codeobj in obj._code_objects:
-                code_objects.append((obj.clock, codeobj))
+            # Extract all the CodeObjects
+            # Note that since we ran the Network object, these CodeObjects will be sorted into the right
+            # running order, assuming that there is only one clock
+            code_objects = []
+            for obj in net.objects:
+                for codeobj in obj._code_objects:
+                    code_objects.append(codeobj)
 
-        # Code for a progress reporting function
-        standard_code = r'''
-        void report_progress(const double elapsed, const double completed, const double duration)
-        {
-            if (completed == 0.0)
-            {
-                fprintf(%STREAMNAME%, "Starting simulation for duration %f s\n", duration);
-            } else
-            {
-                fprintf(%STREAMNAME%, "%f s (%s %%) simulated in %f", completed*duration, (int)(completed*100.), elapsed);
+            # Create the network and store the code objects in the network
+            run_lines.extend(['{net.name}->objects = malloc(sizeof(codeobj_func*) * {n_objects});'.format(net=net,
+                                                                                                        n_objects=len(code_objects)),
+                              '{net.name}->n_objects = {n_objects};'.format(net=net, n_objects=len(code_objects)),
+                              '{net.name}->clock = {clock.name};'.format(net=net, clock=self.clock)])
 
-                if (completed < 1.0)
-                {
-                    const int remaining = (int)((1-completed)/completed*elapsed+0.5);
-                    fprintf(%STREAMNAME%, ", estimated %d s remaining.", remaining);
-                }
-            }
-
-            fprintf(%STREAMNAME%, "\n");
-        }
-        '''
-        if report is None:
-            self.report_func = ''
-        elif report == 'text' or report == 'stdout':
-            self.report_func = standard_code.replace('%STREAMNAME%', 'stdout')
-        elif report == 'stderr':
-            self.report_func = standard_code.replace('%STREAMNAME%', 'stderr')
-        elif isinstance(report, basestring):
-            self.report_func = '''
-            void report_progress(const double elapsed, const double completed, const double duration)
-            {
-            %REPORT%
-            }
-            '''.replace('%REPORT%', report)
+            for i, codeobj in enumerate(code_objects):
+                run_lines.append('{net.name}->objects[{i}] = _run_{codeobj.name};'.format(net=net,
+                                                                                         i=i,
+                                                                                         codeobj=codeobj))
         else:
-            raise TypeError(('report argument has to be either "text", '
-                             '"stdout", "stderr", or the code for a report '
-                             'function'))
+            if list(clocks)[0] is not self.clock:
+                raise NotImplementedError('CStandalone does only support a single clock')
+            if self.net_objects != net.objects:
+                raise NotImplementedError('CStandalone does not support object changes between runs')
 
-        if report is not None:
-            report_call = 'report_progress'
-        else:
-            report_call = 'NULL'
 
-        # Generate the updaters
-        run_lines = ['Network_clear({net.name});'.format(net=net)]
-        for clock, codeobj in code_objects:
-            run_lines.append('Network_add({net.name}, {clock.name}, _run_{codeobj.name});'.format(clock=clock, net=net,
-                                                                                               codeobj=codeobj))
-        run_lines.append('Network_run({net.name}, {duration}, {report_call}, {report_period});'.format(net=net,
-                                                                                              duration=float(duration),
-                                                                                              report_call=report_call,
-                                                                                              report_period=float(report_period)))
+        run_lines.append('Network_run({net.name}, {duration});'.format(net=net,
+                                                                                             duration=float(duration),))
         self.main_queue.append(('run_network', (net, run_lines)))
 
     def network_store(self, net, name='default'):
