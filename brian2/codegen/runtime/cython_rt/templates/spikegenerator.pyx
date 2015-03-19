@@ -6,9 +6,9 @@
 
     # TODO: We don't deal with more than one spike per neuron yet
     cdef int _cpp_numspikes   = 0
-    cdef float padding_before = t % period
-    cdef float padding_after  = (t + dt) % period
-    cdef float epsilon        = 1e-3*dt
+    cdef double padding_before = t % period
+    cdef double padding_after  = (t + dt) % period
+    cdef double epsilon        = 1e-3*dt
     cdef double _spike_time
 
     # We need some precomputed values that will be used during looping
