@@ -126,7 +126,7 @@ I : amp
 """
 eqs += eqs_leak + eqs_ka + eqs_na + eqs_ih + eqs_klt + eqs_kht + eqs_hcno
 
-neuron = NeuronGroup(1, eqs)
+neuron = NeuronGroup(1, eqs, method='exponential_euler')
 neuron.v = El
 
 run(50*ms, report='text')  # Go to rest
