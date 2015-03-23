@@ -161,6 +161,43 @@ def test_spikegenerator_rounding():
     net.run(10000*dt)
     assert_equal(mon[0].count, np.ones(10000))
 
+@attr('standalone-compatible', 'long')
+@with_setup(teardown=restore_device)
+def test_spikegenerator_rounding_long():
+    # all spikes should fall in separate bins
+    dt = 0.1*ms
+    N = 1000000
+    indices = np.zeros(N)
+    times = np.arange(N)*dt
+    SG = SpikeGeneratorGroup(1, indices, times, dt=dt)
+    target = NeuronGroup(1, 'count : 1')
+    syn = Synapses(SG, target, pre='count+=1', connect=True)
+    spikes = SpikeMonitor(SG)
+    mon = StateMonitor(target, 'count', record=0, when='end')
+    net = Network(SG, spikes, target, syn, mon)
+    net.run(N*dt, report='text')
+    assert spikes.count[0] == N, 'expected %d spikes, got %d' % (N, spikes.count[0])
+    assert all(np.diff(mon[0].count[:]) == 1)
+
+@attr('standalone-compatible', 'long')
+@with_setup(teardown=restore_device)
+def test_spikegenerator_rounding_period():
+    # all spikes should fall in separate bins
+    dt = 0.1*ms
+    N = 100
+    repeats = 10000
+    indices = np.zeros(N)
+    times = np.arange(N)*dt
+    SG = SpikeGeneratorGroup(1, indices, times, dt=dt, period=N*dt)
+    target = NeuronGroup(1, 'count : 1')
+    syn = Synapses(SG, target, pre='count+=1', connect=True)
+    spikes = SpikeMonitor(SG)
+    mon = StateMonitor(target, 'count', record=0, when='end')
+    net = Network(SG, spikes, target, syn, mon)
+    net.run(N*repeats*dt, report='text')
+    #print np.int_(np.round(spikes.t/dt))
+    assert_equal(spikes.count[0], N*repeats)
+    assert all(np.diff(mon[0].count[:]) == 1)
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
@@ -215,6 +252,8 @@ if __name__ == '__main__':
     test_spikegenerator_period_repeat()
     test_spikegenerator_incorrect_period()
     test_spikegenerator_rounding()
+    test_spikegenerator_rounding_long()
+    test_spikegenerator_rounding_period()
     test_spikegenerator_multiple_spikes_per_bin()
     test_spikegenerator_standalone()
 

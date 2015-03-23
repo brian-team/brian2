@@ -12,13 +12,7 @@
     cdef double _spike_time
 
     # We need some precomputed values that will be used during looping
-    not_first_spike = {{_lastindex}}[0] > 0
-    not_end_period  = abs(padding_after) > (dt - epsilon)
-
-    # If there is a periodicity in the SpikeGenerator, we need to reset the lastindex 
-    # when all spikes have been played and at the end of the period
-    if not_first_spike and ({{spike_time}}[{{_lastindex}}[0] - 1] > padding_before):
-        {{_lastindex}}[0] = 0
+    not_end_period  = abs(padding_after) > (dt - epsilon) and abs(padding_after) < (period - epsilon)
 
     for _idx in range({{_lastindex}}[0], _num{{spike_time}}):
         _spike_time = {{spike_time}}[_idx]
@@ -34,6 +28,12 @@
         _cpp_numspikes += 1
 
     {{_spikespace}}[N] = _cpp_numspikes
-    {{_lastindex}}[0] += _cpp_numspikes
+
+    # If there is a periodicity in the SpikeGenerator, we need to reset the lastindex
+    # when all spikes have been played and at the end of the period
+    if not_end_period:
+        {{_lastindex}}[0] += _cpp_numspikes
+    else:
+        {{_lastindex}}[0] = 0
 
 {% endblock %}
