@@ -2,24 +2,16 @@
 {% block maincode %}
     {# USES_VARIABLES {_spikespace, N, t, dt, neuron_index, spike_time, period, _lastindex} #}
 
-    double padding_before = fmod(t, period);
-    double padding_after  = fmod(t+dt, period);
-    double epsilon        = 1e-3*dt;
+    const double padding_before = fmod(t, period);
+    const double padding_after  = fmod(t+dt, period);
+    const double epsilon        = 1e-3*dt;
 
     // We need some precomputed values that will be used during looping
-    bool not_first_spike = ({{_lastindex}}[0] > 0);
-    bool not_end_period  = (fabs(padding_after) > epsilon);
+    const bool not_end_period  = (fabs(padding_after) > epsilon) && (fabs(padding_after) < (period - epsilon));
     bool test;
 
     // TODO: We don't deal with more than one spike per neuron yet
     long _cpp_numspikes = 0;
-
-    // If there is a periodicity in the SpikeGenerator, we need to reset the lastindex 
-    // when all spikes have been played and at the end of the period
-    if (not_first_spike && ({{spike_time}}[{{_lastindex}}[0] - 1] > padding_before))
-    {   
-        {{_lastindex}}[0] = 0;
-    }
 
     for(int _idx={{_lastindex}}[0]; _idx < _numspike_time; _idx++)
     {
@@ -32,11 +24,16 @@
         if (test)
             break;
         {{_spikespace}}[_cpp_numspikes++] = {{neuron_index}}[_idx];
-    }       
+    }
 
     {{_spikespace}}[N] = _cpp_numspikes;
-    {{_lastindex}}[0] += _cpp_numspikes;
-    
+
+    // If there is a periodicity in the SpikeGenerator, we need to reset the lastindex
+    // when all spikes have been played and at the end of the period
+    if (! not_end_period)
+        {{_lastindex}}[0] = 0;
+    else
+        {{_lastindex}}[0] += _cpp_numspikes;
 
 {% endblock %}
 
