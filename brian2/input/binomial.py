@@ -6,7 +6,7 @@ import numpy as np
 from brian2.core.base import Nameable
 from brian2.core.functions import Function, DEFAULT_FUNCTIONS
 from brian2.units.fundamentalunits import check_units
-from .stringtools import replace
+from brian2.utils.stringtools import replace
 
 
 __all__ = ['BinomialFunction']

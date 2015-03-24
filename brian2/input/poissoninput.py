@@ -1,10 +1,12 @@
+from .binomial import BinomialFunction
+
 from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner
 from brian2.units.fundamentalunits import (check_units, have_same_dimensions,
                                            get_unit,
                                            DimensionMismatchError)
 from brian2.units.stdunits import Hz
-from brian2.utils.binomial import BinomialFunction
+
 
 __all__ = ['PoissonInput']
 
