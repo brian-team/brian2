@@ -1,3 +1,7 @@
+'''
+Implementation of `PoissonGroup`.
+'''
+
 import numpy as np
 
 from brian2.core.spikesource import SpikeSource
