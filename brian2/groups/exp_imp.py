@@ -10,8 +10,7 @@ class ImportExport(self,object):
 		self.arg = arg
 
 	@staticmethod
-
-   	def export_func1(self,vars,units = True):
+	def export_func1(self,vars,units = True):
         data = {}
         for var in vars:
             data[var] = np.array(Group().state(var, use_units=units,level=level+1),copy=True, subok=True)
