@@ -485,7 +485,7 @@ class Group(BrianObject):
         values
             The variables specified in ``vars``, in the specified ``format``.
         '''
-        exporters = {'dict' : export_func1(vars,units = True) , 'pandas' : export_func2(vars,units = True)  } # , 'JSON' : export_func3
+        exporters = {'dict' : export_func1(self , vars,units = True) , 'pandas' : export_func2(self ,vars,units = True)  } # , 'JSON' : export_func3
         if not format in exporters:
             raise NotImplementedError("Format '%s' is not supported" % format)
 
