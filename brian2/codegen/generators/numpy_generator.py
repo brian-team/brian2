@@ -88,24 +88,13 @@ class NumpyCodeGenerator(CodeGenerator):
         for varname in write:
             var = variables[varname]
             index_var = variable_indices[varname]
-            # check if all operations were inplace and we're operating on the
-            # whole vector, if so we don't need to write the array back
-            if not index_var in self.iterate_all:
-                all_inplace = False
+            line = self.get_array_name(var)
+            if index_var in self.iterate_all:
+                line = line + '[:]'
             else:
-                all_inplace = True
-                for stmt in statements:
-                    if stmt.var == varname and not stmt.inplace:
-                        all_inplace = False
-                        break
-            if not all_inplace:
-                line = self.get_array_name(var)
-                if index_var in self.iterate_all:
-                    line = line + '[:]'
-                else:
-                    line = line + '[' + index_var + ']'
-                line = line + ' = ' + varname
-                lines.append(line)
+                line = line + '[' + index_var + ']'
+            line = line + ' = ' + varname
+            lines.append(line)
 #                if index_var in iterate_all:
 #                    line = '{array_name}[:] = {varname}'
 #                else:

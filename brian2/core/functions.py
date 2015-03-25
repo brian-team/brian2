@@ -137,14 +137,19 @@ class FunctionImplementation(object):
     namespace : dict-like, optional
         A dictionary of mappings from names to values that should be added
         to the namespace of a `CodeObject` using the function.
+    dependencies : dict-like, optional
+        A mapping of names to `Function` objects, for additional functions
+        needed by this function.
     dynamic : bool, optional
         Whether this `code`/`namespace` is dynamic, i.e. generated for each
         new context it is used in. If set to ``True``, `code` and `namespace`
         have to be callable with a `Group` as an argument and are expected
         to return the final `code` and `namespace`. Defaults to ``False``.
     '''
-    def __init__(self, name=None, code=None, namespace=None, dynamic=False):
+    def __init__(self, name=None, code=None, namespace=None,
+                 dependencies=None, dynamic=False):
         self.name = name
+        self.dependencies = dependencies
         self._code = code
         self._namespace = namespace
         self.dynamic = dynamic
@@ -211,7 +216,8 @@ class FunctionImplementationContainer(collections.Mapping):
                         'Available implementations: {keys}').format(key=key,
                                                                     keys=self._implementations.keys()))
 
-    def add_numpy_implementation(self, wrapped_func, discard_units=None):
+    def add_numpy_implementation(self, wrapped_func, dependencies=None,
+                                 discard_units=None):
         '''
         Add a numpy implementation to a `Function`.
 
@@ -221,6 +227,8 @@ class FunctionImplementationContainer(collections.Mapping):
             The function description for which an implementation should be added.
         wrapped_func : callable
             The original function (that will be used for the numpy implementation)
+        dependencies : list of `Function`, optional
+            A list of functions this function needs.
         discard_units : bool, optional
             See `implementation`.
         '''
@@ -246,13 +254,14 @@ class FunctionImplementationContainer(collections.Mapping):
                                                orig_func.func_name,
                                                orig_func.func_defaults,
                                                orig_func.func_closure)
-            self._implementations[NumpyCodeObject] = FunctionImplementation(name=None,
-                                                                            code=unitless_func)
+            self._implementations['numpy'] = FunctionImplementation(name=None,
+                                                                    code=unitless_func,
+                                                                    dependencies=dependencies)
         else:
             def wrapper_function(*args):
                 if not len(args) == len(self._function._arg_units):
                     raise ValueError(('Function %s got %d arguments, '
-                                      'expected %d') % (self._function.name, len(args),
+                                      'expected %d') % (self._function.pyfunc.__name__, len(args),
                                                         len(self._function._arg_units)))
                 new_args = [Quantity.with_dimensions(arg, get_dimensions(arg_unit))
                             for arg, arg_unit in zip(args, self._function._arg_units)]
@@ -260,15 +269,19 @@ class FunctionImplementationContainer(collections.Mapping):
                 fail_for_dimension_mismatch(result, self._function._return_unit)
                 return np.asarray(result)
 
-            self._implementations[NumpyCodeObject] = FunctionImplementation(name=None,
-                                                                            code=wrapper_function)
+            self._implementations['numpy'] = FunctionImplementation(name=None,
+                                                                    code=wrapper_function,
+                                                                    dependencies=dependencies)
 
-    def add_implementation(self, target, code, namespace=None, name=None):
+    def add_implementation(self, target, code, namespace=None,
+                           dependencies=None, name=None):
         self._implementations[target] = FunctionImplementation(name=name,
                                                                code=code,
+                                                               dependencies=dependencies,
                                                                namespace=namespace)
 
-    def add_dynamic_implementation(self, target, code, namespace=None, name=None):
+    def add_dynamic_implementation(self, target, code, namespace=None,
+                                   dependencies=None, name=None):
         '''
         Adds an "dynamic implementation" for this function. `code` and `namespace`
         arguments are expected to be callables that will be called in
@@ -283,6 +296,7 @@ class FunctionImplementationContainer(collections.Mapping):
         self._implementations[target] = FunctionImplementation(name=name,
                                                                code=code,
                                                                namespace=namespace,
+                                                               dependencies=dependencies,
                                                                dynamic=True)
 
     def __len__(self):
@@ -292,7 +306,8 @@ class FunctionImplementationContainer(collections.Mapping):
         return iter(self._implementations)
 
 
-def implementation(target, code=None, namespace=None, discard_units=None):
+def implementation(target, code=None, namespace=None, dependencies=None,
+                   discard_units=None):
     '''
     A simple decorator to extend user-written Python functions to work with code
     generation in other languages.
@@ -309,6 +324,9 @@ def implementation(target, code=None, namespace=None, discard_units=None):
     namespaces : dict-like, optional
         A namespace dictionary (i.e. a mapping of names to values) that
         should be added to a `CodeObject` namespace when using this function.
+    dependencies : dict-like, optional
+        A mapping of names to `Function` objects, for additional functions
+        needed by this function.
     discard_units: bool, optional
         Numpy functions can internally make use of the unit system. However,
         during a simulation run, state variables are passed around as unitless
@@ -360,9 +378,11 @@ def implementation(target, code=None, namespace=None, discard_units=None):
                                  "generation target 'numpy', without providing "
                                  "any code."))
             function.implementations.add_numpy_implementation(wrapped_func=func,
+                                                              dependencies=dependencies,
                                                               discard_units=discard_units)
         else:
             function.implementations.add_implementation(target, code=code,
+                                                        dependencies=dependencies,
                                                         namespace=namespace)
         return function
     return do_user_implementation

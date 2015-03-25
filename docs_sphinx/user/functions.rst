@@ -113,8 +113,7 @@ implementation for the C++ target could look like this::
         return clip((I-1*nA) * 50*Hz/nA, 0*Hz, 100*Hz)
 
 Alternatively, `FunctionImplementation` objects can be added to the `Function`
-object. For a more complex example that also makes the function contribute
-additional values to the namespace of a `CodeObject` see `TimedArray`.
+object.
 
 The same sort of approach as for C++ works for Cython using the
 ``'cython'`` target. The example above would look like this::
@@ -149,3 +148,22 @@ will therefore be called several times with a single value each time.
 In both cases, the function will only receive the "relevant" values, meaning
 that if for example a function is evaluated as part of a reset statement, it
 will only receive values for the neurons that just spiked.
+
+Additional namespace
+~~~~~~~~~~~~~~~~~~~~
+
+Some functions need additional data to compute a result, e.g. a `TimedArray`
+needs access to the underlying array. For the ``numpy`` target, a function can
+simply use a reference to an object defined outside the function, there is no
+need to explicitly pass values in a namespace. For the other code language
+targets, values can be passed in the ``namespace`` argument of the
+`implementation` decorator or the
+`~brian2.core.functions.FunctionImplementationContainer.add_implementation` method. The namespace
+values are then accessible in the function code under the given name, prefixed
+with ``_namespace``. Note that this mechanism should only be used for numpy
+arrays or general objects (e.g. function references to call Python functions
+from weave or Cython code). Scalar values should be directly included in the
+function code, by using a "dynamic implemention" (see
+`~brian2.core.functions.FunctionImplementationContainer.add_dynamic_implementation`).
+
+See `TimedArray` and `BinomialFunction` for examples that use this mechanism.
