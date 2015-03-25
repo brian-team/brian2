@@ -47,7 +47,10 @@ We recommend first installing the
 In order to get support for compiled C++ code (highly recommended for speed), you need to next
 install Visual Studio 2008 Express, which can be freely downloaded from Microsoft
 `here <http://go.microsoft.com/?linkid=7729279>`_. If you installed the 64 bit version of Python,
-then you now need to modify
+on Windows 7 then you will also need to install the
+`Microsoft Windows SDK for Windows 7 and .NET Framework 3.5 SP1 <http://www.microsoft.com/en-us/download/details.aspx?id=3138>`_
+(note: do not install the .NET Framework 4 SDK)
+and also modify
 the file ``C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcvarsall.bat`` according to
 `this patch <https://gist.githubusercontent.com/mikofski/11024332/raw/vcvarsall.bat.patch>`_ to
 correct a bug in the free versions of Visual Studio.
@@ -56,7 +59,8 @@ Annoyingly, if you wish to use standalone mode on Windows, you will also need a 
 recent version of Visual Studio: any version of Visual Studio express from
 2010 onwards (also
 `freely available <http://www.visualstudio.com/en-us/products/visual-studio-express-vs.aspx>`_
-from Microsoft). You will need to apply a similar patch to the above.
+from Microsoft). You will need to apply a similar patch to the above if you are using the free
+Express versus paid Professional editions.
 
 For further reading on these issues which might help to get compiled C++ code running with a
 different Python installation (particularly for 64 bit Windows), see the following:
