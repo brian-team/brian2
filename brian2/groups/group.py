@@ -29,7 +29,7 @@ from brian2.utils.stringtools import get_identifiers, SpellChecker
 
 
 # added these -- Vinay
-from brian2.groups.exp_imp import ImportExport
+#from brian2.groups.exp_imp import ImportExport
 from pandas import DataFrame, read_csv
 import pandas as pd
 import json
@@ -266,32 +266,29 @@ class IndexWrapper(object):
         else:
             return self.indices(item)
 
-#class Group(BrianObject) : pass
+class Group(BrianObject) : pass
 
-# This class is used to export/import data into other formats
-
-#class ImportExport(object):
-    
-    #pass
-    #grp = Group()
-    '''
+class ImportExport():
+    """docstring for ImportExport"""
+    def __init__(self):
+        grp = Group()
+        
+        
+   
     @staticmethod
     def export_func1(vars,units = True):
         data = {}
         for var in vars:
-            data[var] = np.array(state(var, use_units=units,level=level+1),copy=True, subok=True)
+            data[var] = np.array(grp.state(var,use_units = units, level= level+1),copy = True, subok = True)
         return data
 
     @staticmethod
     def export_func2(vars,units = True):
         old_data = {}
         for var in vars:
-
-            old_data[var] = np.array(state(var, use_units=units,level=level+1),copy=True, subok=True)
-
-        data = pd.DataFrame(data = old_data); # Mentioning columns here was not necessary
+            old_data[var] = np.array(grp.state(var,use_units = units, level = level+1),copy = True, subok = True)
+        data = pd.DataFrame(data = old_data); # Mentioning columns was not necessary 
         return data
-    '''
 
    # The problem here is because of units in the dictionary which we get : I should look into this sooner . If no units, the following code should work fine
            
@@ -315,6 +312,10 @@ class Group(BrianObject):
     # TODO: Overwrite the __dir__ method to return the state variables
     # (should make autocompletion work)
     '''
+    #def __init__(self, arg):
+    #ex_im = ImportExport()
+       # super (Group, self).__init__()
+        #self.arg = arg
 
     def _enable_group_attributes(self):
         if not hasattr(self, 'variables'):
@@ -485,7 +486,7 @@ class Group(BrianObject):
         values
             The variables specified in ``vars``, in the specified ``format``.
         '''
-        exporters = {'dict' : export_func1(vars,units = True) , 'pandas' : export_func2(vars,units = True)  } 
+        exporters = {'dict' : ImportExport().export_func1(vars,units = True) , 'pandas' : ImportExport().export_func2(vars,units = True)  } 
 
         if not format in exporters:
             raise NotImplementedError("Format '%s' is not supported" % format)
