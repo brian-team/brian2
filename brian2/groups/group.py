@@ -29,7 +29,7 @@ from brian2.utils.stringtools import get_identifiers, SpellChecker
 
 
 # added these -- Vinay
-#from brian2.groups.exp_imp import ImportExport
+from brian2.groups.exp_imp import ImportExport
 from pandas import DataFrame, read_csv
 import pandas as pd
 import json
@@ -485,7 +485,8 @@ class Group(BrianObject):
         values
             The variables specified in ``vars``, in the specified ``format``.
         '''
-        exporters = {'dict' : export_func1(self , vars,units = True) , 'pandas' : export_func2(self ,vars,units = True)  } # , 'JSON' : export_func3
+        exporters = {'dict' : export_func1(vars,units = True) , 'pandas' : export_func2(vars,units = True)  } 
+
         if not format in exporters:
             raise NotImplementedError("Format '%s' is not supported" % format)
 
@@ -495,7 +496,7 @@ class Group(BrianObject):
 
         return exporters[format](vars) 
 
-     
+    ''' 
     @staticmethod
     def export_func1(self , vars,units = True):
         data = {}
@@ -513,7 +514,7 @@ class Group(BrianObject):
         data = pd.DataFrame(data = old_data); # Mentioning columns here was not necessary
         return data
 
-
+     '''
     def set_states(self, values, units=True, format='dict', level=0):
         '''
         Set the state variables.
