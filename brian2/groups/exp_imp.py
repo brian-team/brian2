@@ -5,11 +5,11 @@ class ImportExport(self,object):
 	# This class is used to export/import data into other formats
 
 	"""docstring for ImportExport"""
-		def __init__(self, arg):
-			super(ImportExport, self).__init__()
-			self.arg = arg
+	def __init__(self, arg):
+		super(ImportExport, self).__init__()
+		self.arg = arg
 
-		@staticmethod
+	@staticmethod
 
    	def export_func1(self,vars,units = True):
         data = {}
