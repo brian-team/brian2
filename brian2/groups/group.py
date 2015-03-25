@@ -270,16 +270,16 @@ class Group(BrianObject) : pass
 
 # This class is used to export/import data into other formats
 
-class ImportExport(Group):
+class ImportExport(object):
     
-    pass
-    #grp = Group()
+    #pass
+    grp = Group()
 
     @staticmethod
     def export_func1(vars,units = True):
         data = {}
         for var in vars:
-            data[var] = np.array(ImportExport().state(var, use_units=units,level=level+1),copy=True, subok=True)
+            data[var] = np.array(grp.state(var, use_units=units,level=level+1),copy=True, subok=True)
         return data
 
     @staticmethod
@@ -287,7 +287,7 @@ class ImportExport(Group):
         old_data = {}
         for var in vars:
 
-            old_data[var] = np.array(ImportExport().state(var, use_units=units,level=level+1),copy=True, subok=True)
+            old_data[var] = np.array(grp.state(var, use_units=units,level=level+1),copy=True, subok=True)
 
         data = pd.DataFrame(data = old_data); # Mentioning columns here was not necessary
         return data
