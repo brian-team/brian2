@@ -436,3 +436,12 @@ int_code = '''
 DEFAULT_FUNCTIONS['int'].implementations.add_implementation(CPPCodeGenerator,
                                                             code=int_code,
                                                             name='int_')
+
+sign_code = '''
+template <typename T> int sign_(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+        '''
+DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(CPPCodeGenerator,
+                                                             code=sign_code,
+                                                             name='sign_')

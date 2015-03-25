@@ -101,7 +101,7 @@ def test_math_functions():
         for func in [cos, tan, sinh, cosh, tanh,
                      arcsin, arccos, arctan,
                      log, log10,
-                     np.ceil, np.floor]:
+                     np.ceil, np.floor, np.sign]:
 
             # Calculate the result directly
             numpy_result = func(test_array)
@@ -539,6 +539,7 @@ if __name__ == '__main__':
     for f in [
             test_constants_sympy,
             test_constants_values,
+            test_math_functions_short,
             test_math_functions,
             test_user_defined_function,
             test_user_defined_function_units,

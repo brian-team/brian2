@@ -19,7 +19,7 @@ ready for use:
 * Random numbers: ``rand()``, ``randn()`` (Note that these functions should be
   called without arguments, the code generation process will take care of
   generating an array of numbers for numpy).
-* Elementary functions: ``sqrt``, ``exp``, ``log``, ``log10``, ``abs``
+* Elementary functions: ``sqrt``, ``exp``, ``log``, ``log10``, ``abs``, ``sign``
 * Trigonometric functions: ``sin``, ``cos``, ``tan``, ``sinh``, ``cosh``,
   ``tanh``, ``arcsin``, ``arccos``, ``arctan``
 * General utility functions: ``clip``, ``floor``, ``ceil``
