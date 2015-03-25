@@ -17,11 +17,10 @@ class ImportExport(object):
 	def export_func2(vars,units = True):
 		old_data = {}
 		for var in vars:
+			old_data[var] = np.array(Group().state(var,use_units = units, level = level+1),copy = True, subok = True)
+		data = pd.DataFrame(data = old_data);
+		return data
 
-	        old_data[var] = np.array(Group().state(var, use_units=units,level=level+1),copy=True, subok=True)
-
-	    data = pd.DataFrame(data = old_data); # Mentioning columns here was not necessary
-	    return data
 
 
 
