@@ -278,14 +278,14 @@ class ImportExport(Group):
     @staticmethod
     def export_func1(vars,units = True):
         data = {}
-        for var in vars[1:]
+        for var in vars:
             data[var] = np.array(ImportExport().state(var, use_units=units,level=level+1),copy=True, subok=True)
         return data
 
     @staticmethod
     def export_func2(vars,units = True):
         old_data = {}
-        for var in vars[1:]
+        for var in vars:
 
             old_data[var] = np.array(ImportExport().state(var, use_units=units,level=level+1),copy=True, subok=True)
 
