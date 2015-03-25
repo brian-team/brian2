@@ -462,7 +462,7 @@ class Group(BrianObject):
 
     
 
-    def get_states(self, vars=None, units=True, format , level=0):
+    def get_states(self, format, vars=None, units=True,level=0):
         '''
         Return a copy of the current state variable values.
         Parameters
