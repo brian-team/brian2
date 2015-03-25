@@ -10,6 +10,7 @@ class ImportExport(self,object):
 		self.arg = arg
 
 	@staticmethod
+
     def export_func1(self,vars,units = True):
         data = {}
         for var in vars:
@@ -17,6 +18,7 @@ class ImportExport(self,object):
         return data
 
     @staticmethod
+
     def export_func2(self ,vars,units = True):
         old_data = {}
         for var in vars:
