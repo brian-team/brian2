@@ -1,7 +1,9 @@
+
 '''
 This module defines the `Group` object, a mix-in class for everything that
 saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
+
 import collections
 from collections import OrderedDict
 import weakref
@@ -25,16 +27,23 @@ from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, SpellChecker
 
+
+# added these -- Vinay
+#from brian2.groups.exp_imp import ImportExport
+from pandas import DataFrame, read_csv
+import pandas as pd
+import json
+
 __all__ = ['Group', 'CodeRunner']
 
 logger = get_logger(__name__)
 
 
 def _conflict_warning(message, resolutions):
+
     '''
     A little helper functions to generate warnings for logging. Specific
     to the `Namespace.resolve` method and should only be used by it.
-
     Parameters
     ----------
     message : str
@@ -60,7 +69,6 @@ def get_dtype(equation, dtype=None):
     '''
     Helper function to interpret the `dtype` keyword argument in `NeuronGroup`
     etc.
-
     Parameters
     ----------
     equation : `SingleEquation`
@@ -70,7 +78,6 @@ def get_dtype(equation, dtype=None):
         (instead of the `core.default_float_dtype` preference) or a
         dictionary stating the `dtype` for some variables; all other variables
         will use the preference default
-
     Returns
     -------
     d : `dtype`
@@ -167,17 +174,14 @@ class Indexing(object):
         Return flat indices to index into state variables from arbitrary
         group specific indices. In the default implementation, raises an error
         for multidimensional indices and transforms slices into arrays.
-
         Parameters
         ----------
         item : slice, array, int
             The indices to translate.
-
         Returns
         -------
         indices : `numpy.ndarray`
             The flat indices corresponding to the indices given in `item`.
-
         See Also
         --------
         SynapticIndexing
@@ -227,6 +231,7 @@ class Indexing(object):
 
 
 class IndexWrapper(object):
+
     '''
     Convenience class to allow access to the indices via indexing syntax. This
     allows for example to get all indices for synapses originating from neuron
@@ -261,8 +266,49 @@ class IndexWrapper(object):
         else:
             return self.indices(item)
 
+class Group(BrianObject) : pass
+
+# This class is used to export/import data into other formats
+
+class ImportExport(Group):
+    
+    pass
+    #grp = Group()
+
+    @staticmethod
+    def export_func1(vars,units = True):
+        data = {}
+        for var in vars[1:]
+            data[var] = np.array(ImportExport().state(var, use_units=units,level=level+1),copy=True, subok=True)
+        return data
+
+    @staticmethod
+    def export_func2(vars,units = True):
+        old_data = {}
+        for var in vars[1:]
+
+            old_data[var] = np.array(ImportExport().state(var, use_units=units,level=level+1),copy=True, subok=True)
+
+        data = pd.DataFrame(data = old_data); # Mentioning columns here was not necessary
+        return data
+   
+
+   # The problem here is because of units in the dictionary which we get : I should look into this sooner . If no units, the following code should work fine
+           
+   # @staticmethod
+    #def export_func3(vars , units = True):
+     #       old_data = {}
+            #for var in vars:
+             #   old_data[var] = np.array(Group().state(var, use_units=units,
+              #                              level=level+1),
+               #                  copy=True, subok=True)
+
+            #json_object = json.dumps(old_data,ensure_ascii=False)
+            #return json_object
 
 class Group(BrianObject):
+
+    
     '''
     Mix-in class for accessing arrays by attribute.
     
@@ -289,7 +335,6 @@ class Group(BrianObject):
         '''
         Return the state variable in a way that properly supports indexing in
         the context of this group
-
         Parameters
         ----------
         name : str
@@ -398,12 +443,10 @@ class Group(BrianObject):
         assigning to the new attribute name is necessary because Brian will
         raise an error in that case, to avoid bugs passing unnoticed
         (misspelled state variable name, un-declared state variable, ...).
-
         Parameters
         ----------
         name : str
             The name of the new attribute
-
         Raises
         ------
         AttributeError
@@ -417,10 +460,11 @@ class Group(BrianObject):
                                  'an attribute of this group.' % name)
         object.__setattr__(self, name, None)
 
-    def get_states(self, vars=None, units=True, format='dict', level=0):
+    
+
+    def get_states(self, vars=None, units=True, format , level=0):
         '''
         Return a copy of the current state variable values.
-
         Parameters
         ----------
         vars : list of str, optional
@@ -436,31 +480,27 @@ class Group(BrianObject):
             How much higher to go up the stack to resolve external variables.
             Only relevant if extracting subexpressions that refer to external
             variables.
-
         Returns
         -------
         values
             The variables specified in ``vars``, in the specified ``format``.
-
         '''
-        # For the moment, 'dict' is the only supported format -- later this will
-        # be made into an extensible system, see github issue #306
-        if format != 'dict':
+        if not format in exporters:
             raise NotImplementedError("Format '%s' is not supported" % format)
+
         if vars is None:
             vars = [name for name in self.variables.iterkeys()
                     if not name.startswith('_')]
-        data = {}
-        for var in vars:
-            data[var] = np.array(self.state(var, use_units=units,
-                                            level=level+1),
-                                 copy=True, subok=True)
-        return data
+
+        return exporters[format](vars) 
+
+    ex_im = ImportExport()
+    exporters = {'dict' : ex_im().export_func1(vars,units = True) , 'pandas' : ex_im().export_func2(vars,units = True)  } # , 'JSON' : export_func3
+
 
     def set_states(self, values, units=True, format='dict', level=0):
         '''
         Set the state variables.
-
         Parameters
         ----------
         values : depends on ``format``
@@ -513,7 +553,6 @@ class Group(BrianObject):
         '''
         Helper function to check that an expression only refers to scalar
         variables, used when setting a scalar variable with a string expression.
-
         Parameters
         ----------
         expr : str
@@ -525,7 +564,6 @@ class Group(BrianObject):
             `run_namespace` is not set).
         run_namespace : dict-like, optional
             A specific namespace provided for this expression.
-
         Raises
         ------
         ValueError
@@ -551,7 +589,6 @@ class Group(BrianObject):
         the latter is not given, it will try to find the variable in the local
         namespace where the original function call took place. See
         :ref:`external-variables`.
-
         Parameters
         ----------
         identifiers : str
@@ -569,14 +606,12 @@ class Group(BrianObject):
             `Network.run` method.
         level : int, optional
             How far to go up in the stack to find the original call frame.
-
         Returns
         -------
         obj : `Variable` or `Function`
             Returns a `Variable` object describing the variable or a `Function`
             object for a function. External variables are represented as
             `Constant` objects
-
         Raises
         ------
         KeyError
@@ -632,7 +667,6 @@ class Group(BrianObject):
         '''
         Resolve a list of identifiers. Calls `Group.resolve` for each
         identifier.
-
         Parameters
         ----------
         identifiers : iterable of str
@@ -655,13 +689,11 @@ class Group(BrianObject):
             variable (i.e. in `Group.variables`) and in some other namespace.
             Defaults to ``True`` but can be switched off for internal variables
             used in templates that the user might not even know about.
-
         Returns
         -------
         variables : dict of `Variable` or `Function`
             A mapping from name to `Variable`/`Function` object for each of the
             names given in `identifiers`
-
         Raises
         ------
         KeyError
@@ -689,7 +721,6 @@ class Group(BrianObject):
         surrounding variables in the stack frame where the original call was made
         is used (to determine this stack frame, the `level` argument has to be set
         correctly).
-
         Parameters
         ----------
         identifier : str
@@ -791,7 +822,6 @@ class Group(BrianObject):
                          order=0, name=None, codeobj_class=None):
         '''
         Returns a `CodeRunner` that runs abstract code in the group's namespace.
-
         Parameters
         ----------
         code : str
@@ -823,6 +853,7 @@ class Group(BrianObject):
                             dt=dt, clock=clock, when=when, order=order,
                             codeobj_class=codeobj_class)
         return runner
+
 
 
 
@@ -943,3 +974,13 @@ class CodeRunner(BrianObject):
                                              codeobj_class=self.codeobj_class
                                              )
         self.code_objects[:] = [weakref.proxy(self.codeobj)]
+
+
+
+
+
+
+
+
+Status API Training Shop Blog About
+© 2015 GitHub, Inc. Terms Privacy Security Contact
