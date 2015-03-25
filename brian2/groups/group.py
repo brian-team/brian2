@@ -495,7 +495,7 @@ class Group(BrianObject):
         return exporters[format](vars) 
 
     ex_im = ImportExport()
-    exporters = {'dict' : ex_im().export_func1(vars,units = True) , 'pandas' : ex_im().export_func2(vars,units = True)  } # , 'JSON' : export_func3
+    exporters = {'dict' : ex_im.export_func1(vars,units = True) , 'pandas' : ex_im.export_func2(vars,units = True)  } # , 'JSON' : export_func3
 
 
     def set_states(self, values, units=True, format='dict', level=0):
