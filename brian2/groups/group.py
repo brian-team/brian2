@@ -266,20 +266,20 @@ class IndexWrapper(object):
         else:
             return self.indices(item)
 
-class Group(BrianObject) : pass
+#class Group(BrianObject) : pass
 
 # This class is used to export/import data into other formats
 
-class ImportExport(object):
+#class ImportExport(object):
     
     #pass
-    grp = Group()
-
+    #grp = Group()
+    '''
     @staticmethod
     def export_func1(vars,units = True):
         data = {}
         for var in vars:
-            data[var] = np.array(grp.state(var, use_units=units,level=level+1),copy=True, subok=True)
+            data[var] = np.array(state(var, use_units=units,level=level+1),copy=True, subok=True)
         return data
 
     @staticmethod
@@ -287,11 +287,11 @@ class ImportExport(object):
         old_data = {}
         for var in vars:
 
-            old_data[var] = np.array(grp.state(var, use_units=units,level=level+1),copy=True, subok=True)
+            old_data[var] = np.array(state(var, use_units=units,level=level+1),copy=True, subok=True)
 
         data = pd.DataFrame(data = old_data); # Mentioning columns here was not necessary
         return data
-   
+    '''
 
    # The problem here is because of units in the dictionary which we get : I should look into this sooner . If no units, the following code should work fine
            
@@ -485,6 +485,7 @@ class Group(BrianObject):
         values
             The variables specified in ``vars``, in the specified ``format``.
         '''
+        exporters = {'dict' : export_func1(vars,units = True) , 'pandas' : export_func2(vars,units = True)  } # , 'JSON' : export_func3
         if not format in exporters:
             raise NotImplementedError("Format '%s' is not supported" % format)
 
@@ -494,8 +495,23 @@ class Group(BrianObject):
 
         return exporters[format](vars) 
 
-    ex_im = ImportExport()
-    exporters = {'dict' : ex_im.export_func1(vars,units = True) , 'pandas' : ex_im.export_func2(vars,units = True)  } # , 'JSON' : export_func3
+     
+    @staticmethod
+    def export_func1(self , vars,units = True):
+        data = {}
+        for var in vars:
+            data[var] = np.array(self.state(var, use_units=units,level=level+1),copy=True, subok=True)
+        return data
+
+    @staticmethod
+    def export_func2(self ,vars,units = True):
+        old_data = {}
+        for var in vars:
+
+            old_data[var] = np.array(self.state(var, use_units=units,level=level+1),copy=True, subok=True)
+
+        data = pd.DataFrame(data = old_data); # Mentioning columns here was not necessary
+        return data
 
 
     def set_states(self, values, units=True, format='dict', level=0):
