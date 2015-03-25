@@ -18,7 +18,7 @@ class ImportExport(object):
 		old_data = {}
 		for var in vars:
 			old_data[var] = np.array(Group().state(var,use_units = units, level = level+1),copy = True, subok = True)
-		data = pd.DataFrame(data = old_data);
+		data = pd.DataFrame(data = old_data); # Mentioning columns was not necessary 
 		return data
 
 
