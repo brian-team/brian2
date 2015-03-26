@@ -324,6 +324,21 @@ DEFAULT_FUNCTIONS['int'].implementations.add_implementation(CythonCodeGenerator,
                                                             code=int_code,
                                                             name='_int')
 
+sign_code = '''
+ctypedef fused _to_sign:
+    char
+    short
+    int
+    float
+    double
+
+cdef int _int(_to_sign x):
+    return (0 < x) - (x < 0)
+'''
+DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(CythonCodeGenerator,
+                                                             code=sign_code,
+                                                             name='_sign')
+
 clip_code = '''
 ctypedef fused _float_or_double:
     float
