@@ -8,9 +8,12 @@ from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 import numpy as np
 
 from brian2 import *
-from brian2.core.variables import variables_by_owner
+from brian2.codegen.translation import make_statements
+from brian2.core.variables import variables_by_owner, ArrayVariable
 from brian2.utils.logger import catch_logs
+from brian2.utils.stringtools import get_identifiers
 from brian2.devices.device import restore_device
+from brian2.synapses.permutation_analysis import check_for_order_independence, OrderDependenceError
 
 
 def _compare(synapses, expected):
@@ -819,6 +822,72 @@ def test_variables_by_owner():
                for varname in ['x', 'N', 'N_incoming', 'N_outgoing'])
 
 
+def check_permutation_code(code):
+    vars = get_identifiers(code)
+    syn = set()
+    presyn = set()
+    postsyn = set()
+    for var in vars:
+        if var.endswith('_syn'):
+            syn.add(var)
+        elif var.endswith('_pre'):
+            presyn.add(var)
+        elif var.endswith('_post'):
+            postsyn.add(var)
+    variables = dict()
+    for var in syn.union(presyn).union(postsyn):
+        variables[var] = ArrayVariable(var, 1, None, 10, device)
+    scalar_statements, vector_statements = make_statements(code, variables, float64)
+    check_for_order_independence(vector_statements, syn, presyn, postsyn)
+    
+
+def test_permutation_analysis():
+    # Examples that should work
+    check_permutation_code('''
+        v_post += w_syn
+        ''')
+    check_permutation_code('''
+        v_post += 1
+        ''')
+    check_permutation_code('''
+        v_post = 1
+        ''')
+    check_permutation_code('''
+        w_syn = v_pre
+        ''')
+    check_permutation_code('''
+        w_syn = a_syn
+        ''')
+    check_permutation_code('''
+        w_syn = a_syn
+        a_syn += 1
+        ''')
+    check_permutation_code('''
+        v_post *= 2
+        ''')
+    check_permutation_code('''
+        v_post *= w_syn
+        ''')
+    check_permutation_code('''
+        v_pre = 0
+        w_syn = v_pre
+        ''')
+    # Examples that shouldn't work
+    assert_raises(OrderDependenceError, check_permutation_code, '''
+        v_pre = w_syn
+        ''')
+    assert_raises(OrderDependenceError, check_permutation_code, '''
+        v_post = v_pre
+        ''')
+    assert_raises(OrderDependenceError, check_permutation_code, '''
+        a_syn = v_post
+        v_post += w_syn
+        ''')
+    # Examples that should work but will currently raise an error (we don't check any)
+    # e.g. v_pre = v_pre+w_syn
+    #      v_pre = w_syn+v_pre
+
+
 if __name__ == '__main__':
     test_creation()
     test_name_clashes()
@@ -848,3 +917,4 @@ if __name__ == '__main__':
     test_event_driven()
     test_repr()
     test_variables_by_owner()
+    test_permutation_analysis()
