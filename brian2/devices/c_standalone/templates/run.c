@@ -15,7 +15,6 @@
 void brian_start()
 {
 	_init_arrays();
-	_load_arrays();
 	srand((unsigned int)time(NULL));
 }
 

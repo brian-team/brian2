@@ -137,14 +137,7 @@ class CStandaloneDevice(Device):
             
     def static_array(self, name, arr):
         assert len(arr), 'length for %s: %d' % (name, len(arr))
-        name = '_static_array_' + name
-        basename = name
-        i = 0
-        while name in self.static_arrays:
-            i += 1
-            name = basename+'_'+str(i)
         self.static_arrays[name] = arr.copy()
-        return name
 
     def get_array_name(self, var, access_data=True):
         '''
@@ -231,9 +224,7 @@ class CStandaloneDevice(Device):
             self.main_queue.append(('set_by_constant', (array_name,
                                                      arr.item())))
         else:
-            static_array_name = self.static_array(array_name, arr)
-            self.main_queue.append(('set_by_array', (array_name,
-                                                     static_array_name)))
+            self.static_array(array_name, arr)
 
     def variableview_set_with_index_array(self, variableview, item,
                                           value, check_units):
@@ -260,27 +251,7 @@ class CStandaloneDevice(Device):
         elif (item == 'True' and variableview.index_var == '_idx'):
             self.fill_with_array(variableview.variable, value)
         else:
-            # We have to calculate indices. This will not work for synaptic
-            # variables
-            try:
-                indices = variableview.indexing(item,
-                                                index_var=variableview.index_var)
-            except NotImplementedError:
-                raise NotImplementedError(('Cannot set variable "%s" this way in '
-                                           'standalone, try using string '
-                                           'expressions.') % variableview.name)
-            # Using the std::vector instead of a pointer to the underlying
-            # data for dynamic arrays is fast enough here and it saves us some
-            # additional work to set up the pointer
-            arrayname = self.get_array_name(variableview.variable,
-                                            access_data=False)
-            staticarrayname_index = self.static_array('_index_'+arrayname,
-                                                      indices)
-            staticarrayname_value = self.static_array('_value_'+arrayname,
-                                                      value)
-            self.main_queue.append(('set_array_by_array', (arrayname,
-                                                           staticarrayname_index,
-                                                           staticarrayname_value)))
+            raise NotImplementedError('Setting subsets of an array with concrete values is not supported in C standalone')
 
     def get_value(self, var, access_data=True):
         # Usually, we cannot retrieve the values of state variables in
@@ -456,13 +427,6 @@ class CStandaloneDevice(Device):
                 if isinstance(value, np.ndarray):
                     self.static_arrays[name] = value
 
-        # write the static arrays
-        logger.debug("static arrays: "+str(sorted(self.static_arrays.keys())))
-        static_array_specs = []
-        for name, arr in sorted(self.static_arrays.items()):
-            arr.tofile(os.path.join(directory, 'static_arrays', name))
-            static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
-
         # Write the global objects
         networks = [net() for net in Network.__instances__()
                     if net().name != '_fake_network']
@@ -504,7 +468,7 @@ class CStandaloneDevice(Device):
                         arange_arrays=arange_arrays,
                         synapses=synapses,
                         clocks=self.clocks,
-                        static_array_specs=static_array_specs,
+                        static_arrays=self.static_arrays,
                         networks=networks)
         writer.write('objects.*', arr_tmp)
 
@@ -528,16 +492,6 @@ class CStandaloneDevice(Device):
                 }}
                 '''.format(arrayname=arrayname, value=CPPNodeRenderer().render_expr(repr(value)),
                            pragma=openmp_pragma('static'))
-                main_lines.extend(code.split('\n'))
-            elif func=='set_by_array':
-                arrayname, staticarrayname = args
-                code = '''
-                {pragma}
-                for(int i=0; i<_num_{staticarrayname}; i++)
-                {{
-                    {arrayname}[i] = {staticarrayname}[i];
-                }}
-                '''.format(arrayname=arrayname, staticarrayname=staticarrayname, pragma=openmp_pragma('static'))
                 main_lines.extend(code.split('\n'))
             elif func=='set_by_single_value':
                 arrayname, item, value = args

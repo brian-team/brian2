@@ -19,19 +19,17 @@ Network *{{net.name}} = &_{{net.name}};
 
 //////////////// arrays ///////////////////
 {% for var, varname in array_specs | dictsort(by='value') %}
-{% if not var in dynamic_array_specs %}
+{% if (not var in dynamic_array_specs) and (not varname in static_arrays) %}
 {{c_data_type(var.dtype)}} {{varname}}[{{var.length}}] = {0,};
 const int _num_{{varname}} = {{var.length}};
 {% endif %}
 {% endfor %}
 
 /////////////// static arrays /////////////
-{% for (name, dtype_spec, N, filename) in static_array_specs | sort %}
-{# arrays that are initialized from static data are already declared #}
-{% if not name in array_specs.values() %}
-{{dtype_spec}} {{name}}[{{N}}];
+{% for name, var in static_arrays | dictsort(by='key') %}
+{% set N = var.size %}
+{{c_data_type(var.dtype)}} {{name}}[{{N}}] = { {% for val in var %} {{val}}, {% endfor %} };
 const int _num_{{name}} = {{N}};
-{% endif %}
 {% endfor %}
 
 void _init_arrays()
@@ -48,16 +46,6 @@ void _init_arrays()
 	for(int i=0; i<{{var.length}}; i++) {{varname}}[i] = {{start}} + i;
 	{% endfor %}
 }
-
-void _load_arrays()
-{
-	{% for (name, dtype_spec, N, filename) in static_array_specs | sort %}
-	FILE* f{{name}};
-	f{{name}} = fopen("static_arrays/{{name}}", "rb");
-	fread({{name}}, sizeof({{dtype_spec}}), {{N}}, f{{name}});
-    fclose(f{{name}});
-	{% endfor %}
-}	
 
 void _write_arrays()
 {
@@ -116,7 +104,6 @@ extern const int _num_{{name}};
 {% endfor %}
 
 extern void _init_arrays();
-extern void _load_arrays();
 extern void _write_arrays();
 
 #endif
