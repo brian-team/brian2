@@ -223,6 +223,9 @@ class CStandaloneDevice(Device):
         if arr.shape == ():
             self.main_queue.append(('set_by_constant', (array_name,
                                                      arr.item())))
+        elif len(np.unique(arr)) == 1:  # many entries, but all the same...
+            self.main_queue.append(('set_by_constant', (array_name,
+                                                     arr[0])))
         else:
             self.static_array(array_name, arr)
 
