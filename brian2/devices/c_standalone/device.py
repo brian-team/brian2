@@ -222,16 +222,18 @@ class CStandaloneDevice(Device):
         self.static_arrays[array_name] = arr.astype(var.dtype)
 
     def fill_with_array(self, var, arr):
-        arr = np.asarray(arr)
-        if arr.shape == ():
-            arr = np.repeat(arr, var.size)
         # Using the std::vector instead of a pointer to the underlying
         # data for dynamic arrays is fast enough here and it saves us some
         # additional work to set up the pointer
         array_name = self.get_array_name(var, access_data=False)
-        static_array_name = self.static_array(array_name, arr)
-        self.main_queue.append(('set_by_array', (array_name,
-                                                 static_array_name)))
+        arr = np.asarray(arr)
+        if arr.shape == ():
+            self.main_queue.append(('set_by_constant', (array_name,
+                                                     arr.item())))
+        else:
+            static_array_name = self.static_array(array_name, arr)
+            self.main_queue.append(('set_by_array', (array_name,
+                                                     static_array_name)))
 
     def variableview_set_with_index_array(self, variableview, item,
                                           value, check_units):
@@ -516,6 +518,17 @@ class CStandaloneDevice(Device):
             elif func=='run_network':
                 net, netcode = args
                 main_lines.extend(netcode)
+            elif func=='set_by_constant':
+                arrayname, value = args
+                code = '''
+                {pragma}
+                for(int i=0; i<_num_{arrayname}; i++)
+                {{
+                    {arrayname}[i] = {value};
+                }}
+                '''.format(arrayname=arrayname, value=CPPNodeRenderer().render_expr(repr(value)),
+                           pragma=openmp_pragma('static'))
+                main_lines.extend(code.split('\n'))
             elif func=='set_by_array':
                 arrayname, staticarrayname = args
                 code = '''
