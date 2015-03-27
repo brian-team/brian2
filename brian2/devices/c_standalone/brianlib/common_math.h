@@ -3,7 +3,7 @@
 
 #include<stdlib.h>
 #include<math.h>
-#if !defined(TRUE)
+#if !defined(true)
 #define true  1
 #define false 0
 #endif

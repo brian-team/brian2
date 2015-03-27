@@ -224,11 +224,9 @@ class MagicNetwork(Network):
         self.objects[:] = []
         gc.collect()  # Make sure that all unused objects are cleared
 
-    def run(self, duration, report=None, report_period=10*second,
-            namespace=None, profile=True, level=0):
+    def before_run(self, run_namespace=None, level=0):
         self._update_magic_objects(level=level+1)
-        Network.run(self, duration, report=report, report_period=report_period,
-                    namespace=namespace, profile=profile, level=level+1)
+        Network.before_run(self, run_namespace=run_namespace, level=level+1)
 
     def store(self, name='default', level=0):
         '''

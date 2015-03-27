@@ -1,6 +1,7 @@
 {# IS_OPENMP_COMPATIBLE #}
 #include <stdlib.h>
 #include "objects.h"
+#include "brianlib/common_math.h"
 #include <time.h>
 {{ openmp_pragma('include') }}
 #include "run.h"

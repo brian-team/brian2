@@ -2,6 +2,10 @@
 {% macro cpp_file() %}
 
 #include "network.h"
+#include "objects.h"
+{% for codeobj in code_objects | sort(attribute='name') %}
+#include "code_objects/{{codeobj.name}}.h"
+{% endfor %}
 #include<stdlib.h>
 #include<stdio.h>
 #include <time.h>
@@ -9,21 +13,22 @@
 
 #define Clock_epsilon 1e-14
 
-void Network_run(Network* network, const double duration)
+void Network_run_{{net.name}}(const double duration)
 {
-    const double t_start = network->t;
-	const double t_end = network->t + duration;
-	Clock_set_interval(network->clock, network->t, t_end);
+    const double t_start = {{net.name}}->t;
+	const double t_end = {{net.name}}->t + duration;
+	Clock_set_interval({{net.name}}->clock, {{net.name}}->t, t_end);
 	{{ openmp_pragma('parallel') }}
 	{
-		while(Clock_running(network->clock))
+		while(Clock_running({{net.name}}->clock))
 		{
 		    // Simulate all the objects for this time step
-		    for (int i=0; i<network->n_objects; i++)
-	            network->objects[i]();
-			Clock_tick(network->clock);
+		    {% for codeobj in code_objects %}
+	        _run_{{codeobj.name}}();
+	        {% endfor %}
+			Clock_tick({{net.name}}->clock);
 		}
-	network->t = t_end;
+	{{net.name}}->t = t_end;
 	}
 }
 
@@ -47,7 +52,7 @@ typedef struct
 	Clock *clock;
 } Network;
 
-void Network_run(Network* network, const double duration);
+void Network_run_{{net.name}}(const double duration);
 void Network_clear(Network* network);
 
 #endif

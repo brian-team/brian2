@@ -115,6 +115,7 @@ class CStandaloneDevice(Device):
 
         # We assume a single set of objects for all runs
         self.net_objects = None
+        self.network = None
         self.code_objects = {}
         self.main_queue = []
         self.report_func = ''
@@ -625,8 +626,18 @@ class CStandaloneDevice(Device):
             std_move = 'std::move'
         else:
             std_move = ''
+
+        # Extract all the CodeObjects
+        # Note that since we ran the Network object, these CodeObjects will be sorted into the right
+        # running order, assuming that there is only one clock
+        code_objects = []
+        for obj in self.net_objects:
+            for codeobj in obj._code_objects:
+                code_objects.append(codeobj)
         network_tmp = CStandaloneCodeObject.templater.network(None, None,
-                                                             std_move=std_move)
+                                                              code_objects=code_objects,
+                                                              net=self.network,
+                                                              std_move=std_move)
         writer.write('network.*', network_tmp)
         
         # Generate the run functions
@@ -770,19 +781,19 @@ class CStandaloneDevice(Device):
         if kwds:
             logger.warn(('Unsupported keyword argument(s) provided for run: '
                          '%s') % ', '.join(kwds.keys()))
-        clocks = set([obj.clock for obj in net.objects])
-        self.clocks = clocks
-        if len(clocks) > 1:
-            raise NotImplementedError('CStandalone only supports a single clock.')
         run_lines = []
         if self.net_objects is None:
-            # This is the first run, set everything up
-            self.net_objects = net.objects
-            net._clocks = clocks
+            self.network = net
             # We have to use +2 for the level argument here, since this function is
             # called through the device_override mechanism
             net.before_run(namespace, level=level+2)
-            
+            self.net_objects = list(net.objects)  # make a copy
+            clocks = set([obj.clock for obj in net.objects])
+            # This is the first run, set everything up
+            net._clocks = clocks
+            self.clocks = clocks
+            if len(clocks) > 1:
+                raise NotImplementedError('CStandalone only supports a single clock.')
             self.clock = list(clocks)[0]
 
             # We run a simplified "update loop" that only advances the clocks
@@ -793,33 +804,19 @@ class CStandaloneDevice(Device):
             # manually set the clock to the end, no need to run Clock.tick() in a loop
             self.clock._i = self.clock._i_end
             net.t_ = float(t_end)
-            
-            # Extract all the CodeObjects
-            # Note that since we ran the Network object, these CodeObjects will be sorted into the right
-            # running order, assuming that there is only one clock
-            code_objects = []
-            for obj in net.objects:
-                for codeobj in obj._code_objects:
-                    code_objects.append(codeobj)
 
             # Create the network and store the code objects in the network
-            run_lines.extend(['{net.name}->objects = malloc(sizeof(codeobj_func*) * {n_objects});'.format(net=net,
-                                                                                                        n_objects=len(code_objects)),
-                              '{net.name}->n_objects = {n_objects};'.format(net=net, n_objects=len(code_objects)),
-                              '{net.name}->clock = {clock.name};'.format(net=net, clock=self.clock)])
-
-            for i, codeobj in enumerate(code_objects):
-                run_lines.append('{net.name}->objects[{i}] = _run_{codeobj.name};'.format(net=net,
-                                                                                         i=i,
-                                                                                         codeobj=codeobj))
+            run_lines.extend(['{net.name}->clock = {clock.name};'.format(net=net, clock=self.clock)])
         else:
+            net.before_run(namespace, level=level+2)
+            clocks = set([obj.clock for obj in net.objects])
             if list(clocks)[0] is not self.clock:
                 raise NotImplementedError('CStandalone does only support a single clock')
             if self.net_objects != net.objects:
                 raise NotImplementedError('CStandalone does not support object changes between runs')
 
 
-        run_lines.append('Network_run({net.name}, {duration});'.format(net=net,
+        run_lines.append('Network_run_{net.name}({duration});'.format(net=net,
                                                                                              duration=float(duration),))
         self.main_queue.append(('run_network', (net, run_lines)))
 
