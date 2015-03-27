@@ -38,10 +38,11 @@ run by default, tests that take a long time are excluded. To include these, set
 ``long_tests`` to ``True``.
 
 To run the C++ standalone tests, you have to set the ``test_standalone``
-argument. If you provide an empty argument for the runtime code generation
-targets, you will only run the standalone tests::
+argument to the name of a standalone device. If you provide an empty argument
+for the runtime code generation targets, you will only run the standalone
+tests::
 
-    >>> brian2.test([], test_standalone=True)
+    >>> brian2.test([], test_standalone='cpp_standalone')
 
 
 Checking the code coverage

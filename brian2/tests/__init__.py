@@ -3,9 +3,10 @@ import sys
 from StringIO import StringIO
 
 from brian2.core.preferences import prefs
+from brian2.devices.device import all_devices
 
 def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
-        test_standalone=False):
+        test_standalone=None):
     '''
     Run brian's test suite. Needs an installation of the nose testing tool.
 
@@ -62,6 +63,14 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     else:
         sys.stderr.write('\n')
     if test_standalone:
+        if not isinstance(test_standalone, basestring):
+            raise ValueError('test_standalone argument has to be the name of a '
+                             'standalone device (e.g. "cpp_standalone")')
+        if test_standalone not in all_devices:
+            raise ValueError('test_standalone argument "%s" is not a known '
+                             'device. Known devices are: '
+                             '%s' % (test_standalone,
+                                     ', '.join(repr(d) for d in all_devices)))
         sys.stderr.write('Testing standalone \n')
     if test_codegen_independent:
         sys.stderr.write('Testing codegen-independent code \n')
