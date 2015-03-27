@@ -9,8 +9,8 @@
                   _invr0, _invrn} #}
 {% extends 'common_group.c' %}
 {% block maincode %}
-	double *_gtot_all=(double *)malloc(N*sizeof(double));
-	double *c=(double *)calloc(N, sizeof(double));
+	double _gtot_all[N];
+	double c[N] = {0,};
 	double ai,bi,_m;
 
     int _vectorisation_idx = 1;
@@ -90,9 +90,6 @@
 	}
 	for(int i=N-2;i>=0;i--)
 		{{u_minus}}[i]={{u_minus}}[i] - c[i]*{{u_minus}}[i+1];
-
-	free(_gtot_all);
-	free(c);
 
     // Prepare matrix for solving the linear system
 
