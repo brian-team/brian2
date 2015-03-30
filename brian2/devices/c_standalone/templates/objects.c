@@ -49,6 +49,7 @@ void _init_arrays()
 
 void _write_arrays()
 {
+    {% if write_arrays %}
 	{% for var, varname in array_specs | dictsort(by='value') %}
 	{% if not (var in dynamic_array_specs or var in dynamic_array_2d_specs) %}
 	FILE * outfile_{{varname}};
@@ -58,6 +59,9 @@ void _write_arrays()
 	fclose(outfile_{{varname}});
     {% endif %}
 	{% endfor %}
+	{% else %}
+	// Writing arrays to disk has been disabled
+	{% endif %}
 }
 
 

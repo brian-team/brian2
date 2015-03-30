@@ -331,6 +331,7 @@ class CStandaloneDevice(Device):
 
     def build(self, directory='output',
               compile=True, run=True, debug=False, clean=True,
+              write_arrays=True,
               with_output=True, native=True,
               additional_source_files=None, additional_header_files=None,
               main_includes=None, run_includes=None,
@@ -365,6 +366,8 @@ class CStandaloneDevice(Device):
         run_includes : list of str
             A list of additional header files to include in ``run.c``.
         '''
+        print 'write_arrays is', write_arrays
+
         renames = {'project_dir': 'directory',
                    'compile_project': 'compile',
                    'run_project': 'run'}
@@ -472,7 +475,8 @@ class CStandaloneDevice(Device):
                         synapses=synapses,
                         clocks=self.clocks,
                         static_arrays=self.static_arrays,
-                        networks=networks)
+                        networks=networks,
+                        write_arrays=write_arrays)
         writer.write('objects.*', arr_tmp)
 
         main_lines = []
