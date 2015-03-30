@@ -493,7 +493,7 @@ class CStandaloneDevice(Device):
                 arrayname, value = args
                 code = '''
                 {pragma}
-                for(int i=0; i<_num_{arrayname}; i++)
+                for(i=0; i<_num_{arrayname}; i++)
                 {{
                     {arrayname}[i] = {value};
                 }}
@@ -510,7 +510,7 @@ class CStandaloneDevice(Device):
                 arrayname, staticarrayname_index, staticarrayname_value = args
                 code = '''
                 {pragma}
-                for(int i=0; i<_num_{staticarrayname_index}; i++)
+                for(i=0; i<_num_{staticarrayname_index}; i++)
                 {{
                     {arrayname}[{staticarrayname_index}[i]] = {staticarrayname_value}[i];
                 }}
@@ -611,7 +611,8 @@ class CStandaloneDevice(Device):
         network_tmp = CStandaloneCodeObject.templater.network(None, None,
                                                               code_objects=code_objects,
                                                               net=self.network,
-                                                              std_move=std_move)
+                                                              std_move=std_move,
+                                                              clock=self.clock)
         writer.write('network.*', network_tmp)
         
         # Generate the run functions
@@ -779,8 +780,6 @@ class CStandaloneDevice(Device):
             self.clock._i = self.clock._i_end
             net.t_ = float(t_end)
 
-            # Create the network and store the code objects in the network
-            run_lines.extend(['{net.name}->clock = {clock.name};'.format(net=net, clock=self.clock)])
         else:
             net.before_run(namespace, level=level+2)
             clocks = set([obj.clock for obj in net.objects])

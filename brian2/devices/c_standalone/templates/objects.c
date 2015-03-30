@@ -13,8 +13,7 @@ Clock *{{clock.name}} = &_{{clock.name}};
 {% endfor %}
 
 {% for net in networks | sort(attribute='name') %}
-Network _{{net.name}};
-Network *{{net.name}} = &_{{net.name}};
+double {{net.name}}_t = 0.0;
 {% endfor %}
 
 //////////////// arrays ///////////////////
@@ -34,6 +33,7 @@ const int _num_{{name}} = {{N}};
 
 void _init_arrays()
 {
+    int i;
     //////////////// clocks ///////////////////
     {% for clock in clocks | sort(attribute='name') %}
     Clock_construct({{clock.name}}, {{clock.dt_}}, 1e-14);
@@ -43,7 +43,7 @@ void _init_arrays()
 	{% for var, start in arange_arrays %}
 	{% set varname = array_specs[var] %}
 	{{ openmp_pragma('parallel-static') }}
-	for(int i=0; i<{{var.length}}; i++) {{varname}}[i] = {{start}} + i;
+	for(i=0; i<{{var.length}}; i++) {{varname}}[i] = {{start}} + i;
 	{% endfor %}
 }
 
@@ -83,11 +83,6 @@ void _write_arrays()
 //////////////// clocks ///////////////////
 {% for clock in clocks %}
 extern Clock* {{clock.name}};
-{% endfor %}
-
-//////////////// networks /////////////////
-{% for net in networks %}
-extern Network* {{net.name}};
 {% endfor %}
 
 
