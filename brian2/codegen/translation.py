@@ -321,6 +321,7 @@ def make_statements(code, variables, dtype):
     defined = set(k for k, v in variables.iteritems()
                   if not isinstance(v, AuxiliaryVariable))
     for line in lines:
+        statement = None
         # parse statement into "var op expr"
         var, op, expr, comment = parse_statement(line.code)
         if op == '=':
@@ -358,11 +359,7 @@ def make_statements(code, variables, dtype):
                                           comment,
                                           dtype=variables[var].dtype,
                                           scalar=variables[var].scalar)
-                else:
-                    statement = Statement(var, op, expr, comment,
-                                          dtype=variables[var].dtype,
-                                          scalar=variables[var].scalar)
-        else:
+        if statement is None:
             statement = Statement(var, op, expr, comment,
                                   dtype=variables[var].dtype,
                                   scalar=variables[var].scalar)
