@@ -19,32 +19,6 @@ def check_for_order_independence(statements,
                                  presynaptic_variables, postsynaptic_variables):
     '''
     '''
-    # Prepare the statements by using augmented assignments if possible
-    # (e.g., replace v_post = v_post + 1*mV by v_post += 1*mV)
-    new_statements = []
-    for statement in statements:
-            sympy_expr = str_to_sympy(statement.expr)
-            var = sympy.Symbol(statement.var, real=True)
-            collected = sympy.collect(sympy_expr, var, exact=True, evaluate=False)
-            if len(collected) == 2 and set(collected.keys()) == {1, var}:
-                # We can replace this statement by a += assignment
-                new_statements.append(Statement(statement.var,
-                                                '+=',
-                                                sympy_to_str(collected[1]),
-                                                statement.comment,
-                                                dtype=statement.dtype))
-            elif len(collected) == 1 and var in collected:
-                # We can replace this statement by a *= assignment
-                new_statements.append(Statement(statement.var,
-                                                '*=',
-                                                sympy_to_str(collected[var]),
-                                                statement.comment,
-                                                dtype=statement.dtype))
-            else:
-                new_statements.append(statement)
-
-    statements = new_statements
-
     non_synaptic_variables = presynaptic_variables.union(postsynaptic_variables)
     variables = synaptic_variables.union(non_synaptic_variables)
     permutation_independent = non_synaptic_variables.copy()
