@@ -824,21 +824,19 @@ def test_variables_by_owner():
 
 def check_permutation_code(code):
     vars = get_identifiers(code)
-    syn = set()
-    presyn = set()
-    postsyn = set()
+    indices = dict()
     for var in vars:
         if var.endswith('_syn'):
-            syn.add(var)
+            indices[var] = '_idx'
         elif var.endswith('_pre'):
-            presyn.add(var)
+            indices[var] ='_presynaptic_idx'
         elif var.endswith('_post'):
-            postsyn.add(var)
+            indices[var] = '_postsynaptic_idx'
     variables = dict()
-    for var in syn.union(presyn).union(postsyn):
+    for var in indices:
         variables[var] = ArrayVariable(var, 1, None, 10, device)
     scalar_statements, vector_statements = make_statements(code, variables, float64)
-    check_for_order_independence(vector_statements, syn, presyn, postsyn)
+    check_for_order_independence(vector_statements, variables, indices)
     
 
 def test_permutation_analysis():
