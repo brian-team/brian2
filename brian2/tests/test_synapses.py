@@ -843,73 +843,50 @@ def check_permutation_code(code):
 
 def test_permutation_analysis():
     # Examples that should work
-    check_permutation_code('''
-        v_post += w_syn
-        ''')
-    check_permutation_code('''
-        v_post *= w_syn
-        ''')
-    check_permutation_code('''
-        v_post = v_post + w_syn
-        ''')
-    check_permutation_code('''
-        v_post = w_syn + v_post
-        ''')
-    check_permutation_code('''
-        v_post = v_post * w_syn
-        ''')
-    check_permutation_code('''
-        v_post = w_syn * v_post
-        ''')
-    check_permutation_code('''
-        v_post += 1
-        ''')
-    check_permutation_code('''
-        v_post = 1
-        ''')
-    check_permutation_code('''
-        w_syn = v_pre
-        ''')
-    check_permutation_code('''
-        w_syn = a_syn
-        ''')
-    check_permutation_code('''
-        w_syn += a_syn
-        ''')
-    check_permutation_code('''
-        w_syn *= a_syn
-        ''')
-    check_permutation_code('''
-        w_syn += 1
-        ''')
-    check_permutation_code('''
-        w_syn *= 2
-        ''')
-    check_permutation_code('''
+    good_examples = [
+        'v_post += w_syn',
+        'v_post *= w_syn',
+        'v_post = v_post + w_syn',
+        'v_post = v_post * w_syn',
+        'v_post = w_syn * v_post',
+        'v_post += 1',
+        'v_post = 1',
+        'w_syn = v_pre',
+        'w_syn = a_syn',
+        'w_syn += a_syn',
+        'w_syn *= a_syn',
+        'w_syn += 1',
+        'w_syn *= 2',
+        '''
         w_syn = a_syn
         a_syn += 1
-        ''')
-    check_permutation_code('''
-        v_post *= 2
-        ''')
-    check_permutation_code('''
-        v_post *= w_syn
-        ''')
-    check_permutation_code('''
+        ''',
+        'v_post *= 2',
+        'v_post *= w_syn',
+        '''
         v_pre = 0
         w_syn = v_pre
-        ''')
-    # Examples that shouldn't work
-    assert_raises(OrderDependenceError, check_permutation_code, '''
-        v_pre = w_syn
-        ''')
-    assert_raises(OrderDependenceError, check_permutation_code, '''
-        v_post = v_pre
-        ''')
-    assert_raises(OrderDependenceError, check_permutation_code, '''
+        '''
+    ]
+    for example in good_examples:
+        try:
+            check_permutation_code(example)
+        except OrderDependenceError:
+            raise AssertionError(('Test unexpectedly raised an '
+                                  'OrderDependenceError on these '
+                                  'statements:\n') + example)
+
+    bad_examples = [
+        'v_pre = w_syn',
+        'v_post = v_pre',
+        '''
         a_syn = v_post
         v_post += w_syn
-        ''')
+        '''
+    ]
+    for example in bad_examples:
+        assert_raises(OrderDependenceError, check_permutation_code, example)
+
 
 if __name__ == '__main__':
     test_creation()
