@@ -847,6 +847,21 @@ def test_permutation_analysis():
         v_post += w_syn
         ''')
     check_permutation_code('''
+        v_post *= w_syn
+        ''')
+    check_permutation_code('''
+        v_post = v_post + w_syn
+        ''')
+    check_permutation_code('''
+        v_post = w_syn + v_post
+        ''')
+    check_permutation_code('''
+        v_post = v_post * w_syn
+        ''')
+    check_permutation_code('''
+        v_post = w_syn * v_post
+        ''')
+    check_permutation_code('''
         v_post += 1
         ''')
     check_permutation_code('''
@@ -857,6 +872,18 @@ def test_permutation_analysis():
         ''')
     check_permutation_code('''
         w_syn = a_syn
+        ''')
+    check_permutation_code('''
+        w_syn += a_syn
+        ''')
+    check_permutation_code('''
+        w_syn *= a_syn
+        ''')
+    check_permutation_code('''
+        w_syn += 1
+        ''')
+    check_permutation_code('''
+        w_syn *= 2
         ''')
     check_permutation_code('''
         w_syn = a_syn
@@ -883,10 +910,6 @@ def test_permutation_analysis():
         a_syn = v_post
         v_post += w_syn
         ''')
-    # Examples that should work but will currently raise an error (we don't check any)
-    # e.g. v_pre = v_pre+w_syn
-    #      v_pre = w_syn+v_pre
-
 
 if __name__ == '__main__':
     test_creation()
