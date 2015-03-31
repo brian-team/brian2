@@ -2,14 +2,21 @@ import itertools
 
 import numpy as np
 
-from brian2.utils.stringtools import word_substitute
 from brian2.parsing.rendering import NumpyNodeRenderer
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function
 from brian2.core.variables import ArrayVariable
+from brian2.utils.stringtools import get_identifiers, word_substitute
+from brian2.utils.logger import get_logger
 
 from .base import CodeGenerator
 
 __all__ = ['NumpyCodeGenerator']
+
+
+logger = get_logger(__name__)
+
+class VectorisationError(Exception):
+    pass
 
 
 class NumpyCodeGenerator(CodeGenerator):
@@ -40,8 +47,102 @@ class NumpyCodeGenerator(CodeGenerator):
         if len(comment):
             code += ' # ' + comment
         return code
-        
-    def translate_one_statement_sequence(self, statements):
+
+    def ufunc_at_vectorisation(self, statements, variables, indices, index):
+        '''
+        '''
+        # We assume that the code has passed the test for synapse order independence
+
+        main_index_variables = [v for v in variables if indices[v] == index]
+
+        lines = []
+        need_unique_indices = set()
+
+        for statement in statements:
+            vars_in_expr = get_identifiers(statement.expr).intersection(variables)
+            subs = {}
+            for var in vars_in_expr:
+                if not isinstance(var, ArrayVariable):
+                    continue
+                subs[var] = '{var}[{idx}]'.format(var=var, idx=indices[var])
+            expr = word_substitute(statement.expr, subs)
+            if statement.var in main_index_variables or statement.op == ':=':
+                if statement.op in (':=', '='):
+                    op = '='
+                    indexing = ''
+                else:
+                    op = statement.op
+                    indexing = '[{idx}]'.format(idx=index)
+                line = '{var}{indexing} {op} {expr}'.format(var=statement.var,
+                                                         op=op,
+                                                         expr=expr,
+                                                         indexing=indexing)
+
+            else:
+                if statement.inplace:
+                    if statement.op=='+=':
+                        ufunc_name = 'np.add'
+                    elif statement.op=='*=':
+                        ufunc_name = 'np.multiply'
+                    else:
+                        raise VectorisationError()
+                    line = '{ufunc_name}.at({var}, {idx}, {expr})'.format(ufunc_name=ufunc_name,
+                                                                          var=statement.var,
+                                                                          idx=indices[statement.var],
+                                                                          expr=expr)
+                else:
+                    # if statement is not in-place then we assume the expr has no synaptic
+                    # variables in it otherwise it would have failed the order independence
+                    # check. In this case, we only need to work with the unique indices
+                    need_unique_indices.add(indices[statement.var])
+                    idx = '_unique_' + indices[statement.var]
+                    expr = word_substitute(expr, {indices[statement.var]: idx})
+                    line = '{var}[{idx}] = {expr}'.format(var=statement.var,
+                                                          idx=idx, expr=expr)
+
+            if len(statement.comment):
+                line += ' # ' + statement.comment
+            lines.append(line)
+
+        for unique_idx in need_unique_indices:
+            lines.insert(0, '_unique_{idx} = np.unique({idx})'.format(idx=unique_idx))
+
+        return lines
+
+
+    def vectorise_code(self, statements, variables, indices, index='_idx'):
+        try:
+            return self.ufunc_at_vectorisation(statements, variables, indices,
+                                               index=index)
+        except VectorisationError:
+            logger.warn("Failed to vectorise synapses code, falling back on Python loop: note that "
+                        "this will be very slow! Switch to another code generation target for "
+                        "best performance (e.g. cython or weave).")
+            # fall back to loop
+            # lines = ['for _idx in xrange(len(_spiking_synapses)):',
+            #          '    _syn_idx = _spiking_synapses[_idx]',
+            #          '    _pre_idx = _synaptic_pre[_syn_idx]',
+            #          '    _post_idx = _synaptic_post[_syn_idx]',
+            #          ]
+            # non_synaptic_variables = presynaptic_variables.union(postsynaptic_variables)
+            # variables = synaptic_variables.union(non_synaptic_variables)
+            # subs = {}
+            # for var in variables:
+            #     if var in synaptic_variables:
+            #         idx = '_syn_idx'
+            #     elif var in presynaptic_variables:
+            #         idx = '_pre_idx'
+            #     elif var in postsynaptic_variables:
+            #         idx = '_post_idx'
+            #     subs[var] = '{var}[{idx}]'.format(var=var, idx=idx)
+            # for statement in statements:
+            #     line = '    {var} {op} {expr}'.format(var=statement.var, op=statement.op,
+            #                                           expr=statement.expr)
+            #     line = word_substitute(line, subs)
+            #     lines.append(line)
+            # return '\n'.join(lines)
+
+    def translate_one_statement_sequence(self, statements, scalar=False):
         variables = self.variables
         variable_indices = self.variable_indices
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
@@ -63,38 +164,34 @@ class NumpyCodeGenerator(CodeGenerator):
                 line += '.copy()'
             lines.append(line)
         # the actual code
-        created_vars = set([])
-        for stmt in statements:
-            if stmt.op==':=':
-                created_vars.add(stmt.var)
-            line = self.translate_statement(stmt)
-            if stmt.var in conditional_write_vars:
-                subs = {}
-                index = conditional_write_vars[stmt.var]
-                # we replace all var with var[index], but actually we use this repl_string first because
-                # we don't want to end up with lines like x[not_refractory[not_refractory]] when
-                # multiple substitution passes are invoked
-                repl_string = '#$(@#&$@$*U#@)$@(#' # this string shouldn't occur anywhere I hope! :)
-                for varname, var in variables.items():
-                    if isinstance(var, ArrayVariable):
-                        subs[varname] = varname+'['+repl_string+']'
-                # all newly created vars are arrays and will need indexing
-                for varname in created_vars:
-                    subs[varname] = varname+'['+repl_string+']'
-                line = word_substitute(line, subs)
-                line = line.replace(repl_string, index)
-            lines.append(line)
+        if scalar:
+            lines.extend(self.translate_statement(stmt) for stmt in statements)
+        else:
+            lines.extend(self.vectorise_code(statements, variables,
+                                             variable_indices))
+
         # write arrays
         for varname in write:
             var = variables[varname]
             index_var = variable_indices[varname]
-            line = self.get_array_name(var)
-            if index_var in self.iterate_all:
-                line = line + '[:]'
+            # check if all operations were inplace and we're operating on the
+            # whole vector, if so we don't need to write the array back
+            if not index_var in self.iterate_all:
+                all_inplace = False
             else:
-                line = line + '[' + index_var + ']'
-            line = line + ' = ' + varname
-            lines.append(line)
+                all_inplace = True
+                for stmt in statements:
+                    if stmt.var == varname and not stmt.inplace:
+                        all_inplace = False
+                        break
+            if not all_inplace:
+                line = self.get_array_name(var)
+                if index_var in self.iterate_all:
+                    line = line + '[:]'
+                else:
+                    line = line + '[' + index_var + ']'
+                line = line + ' = ' + varname
+                lines.append(line)
 #                if index_var in iterate_all:
 #                    line = '{array_name}[:] = {varname}'
 #                else:

@@ -2,6 +2,8 @@
 {# USES_VARIABLES { N } #}
 {# ALLOWS_SCALAR_WRITE #}
 
+import numpy as np
+
 # scalar code
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}

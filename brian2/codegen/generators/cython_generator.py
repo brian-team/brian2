@@ -71,7 +71,7 @@ class CythonCodeGenerator(CodeGenerator):
             code += ' # ' + comment
         return code
         
-    def translate_one_statement_sequence(self, statements):
+    def translate_one_statement_sequence(self, statements, scalar=False):
         variables = self.variables
         variable_indices = self.variable_indices
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)

@@ -85,6 +85,9 @@ class CodeGenerator(object):
         '''
         raise NotImplementedError
 
+    def translate_one_statement_sequence(self, statements, scalar=False):
+        raise NotImplementedError
+
     def translate_statement_sequence(self, scalar_statements, vector_statements):
         '''
         Translate a sequence of `Statement` into the target language, taking
@@ -99,9 +102,9 @@ class CodeGenerator(object):
         scalar_code = {}
         vector_code = {}
         for name, block in scalar_statements.iteritems():
-            scalar_code[name] = self.translate_one_statement_sequence(block)
+            scalar_code[name] = self.translate_one_statement_sequence(block, scalar=True)
         for name, block in vector_statements.iteritems():
-            vector_code[name] = self.translate_one_statement_sequence(block)
+            vector_code[name] = self.translate_one_statement_sequence(block, scalar=False)
 
         kwds = self.determine_keywords()
 
