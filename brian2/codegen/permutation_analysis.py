@@ -1,11 +1,7 @@
 '''
 Module for analysing synaptic pre and post code for synapse order independence.
 '''
-import sympy
-
-from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.utils.stringtools import get_identifiers
-from brian2.codegen.statements import Statement
 
 __all__ = ['OrderDependenceError', 'check_for_order_independence']
 
@@ -14,11 +10,16 @@ class OrderDependenceError(Exception):
     pass
 
 
-def check_for_order_independence(statements, variables, indices, index='_idx'):
+def check_for_order_independence(statements, variables, indices):
     '''
     '''
-    main_index_variables = [v for v in variables if indices[v] == index]
-    different_index_variables = [v for v in variables if indices[v] != index]
+
+    main_index_variables = set([v for v in variables
+                                if (indices[v] in ('_idx', '0')
+                                    or getattr(variables[indices[v]],
+                                               'unique',
+                                               False))])
+    different_index_variables = set(variables.keys()) - main_index_variables
     all_variables = variables.keys()
 
     permutation_independent = list(different_index_variables)
@@ -29,7 +30,9 @@ def check_for_order_independence(statements, variables, indices, index='_idx'):
             vars_in_expr = get_identifiers(statement.expr).intersection(all_variables)
             nonsyn_vars_in_expr = vars_in_expr.intersection(different_index_variables)
             permdep = any(var not in permutation_independent for var in  nonsyn_vars_in_expr)
-            if statement.var in main_index_variables:
+            if statement.op == ':=':
+                continue  # auxiliary variable
+            elif statement.var in main_index_variables:
                 if permdep:
                     raise OrderDependenceError()
             elif statement.var in different_index_variables:
@@ -44,7 +47,7 @@ def check_for_order_independence(statements, variables, indices, index='_idx'):
                                if indices[v] == indices[statement.var]]
                     otheridx = [v for v in variables
                                 if indices[v] not in (indices[statement.var],
-                                                      index)]
+                                                      '_idx', '0')]
                     if any(var in otheridx for var in vars_in_expr):
                         raise OrderDependenceError()
                     if permdep:
@@ -54,7 +57,7 @@ def check_for_order_independence(statements, variables, indices, index='_idx'):
                 else:
                     raise OrderDependenceError()
             else:
-                raise OrderDependenceError()
+                raise AssertionError('Should never get here...')
 
 
 if __name__=='__main__':

@@ -98,11 +98,15 @@ class NumpyCodeGenerator(CodeGenerator):
                 # if statement is not in-place then we assume the expr has no synaptic
                 # variables in it otherwise it would have failed the order independence
                 # check. In this case, we only need to work with the unique indices
-                need_unique_indices.add(indices[statement.var])
-                #idx = '_unique_' + indices[statement.var]
-                #expr = word_substitute(expr, {indices[statement.var]: idx})
 
-                # TODO: This rather needs changes to the array read/write part
+                # TODO: This is more complicated since it needs to change the
+                # indexing/read/write. Note sure it is worth the effort, it's
+                # only an optimisation isn't it?
+
+                # need_unique_indices.add(indices[statement.var])
+                # idx = '_unique_' + indices[statement.var]
+                # expr = word_substitute(expr, {indices[statement.var]: idx})
+
                 line = '{var} = {expr}'.format(var=statement.var,
                                                expr=expr)
 

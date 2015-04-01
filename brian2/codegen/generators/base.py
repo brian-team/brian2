@@ -5,6 +5,7 @@ methods which should be overridden to implement a new language.
 from brian2.core.variables import ArrayVariable
 from brian2.utils.stringtools import get_identifiers
 from brian2.codegen.translation import make_statements
+from brian2.codegen.permutation_analysis import check_for_order_independence
 
 __all__ = ['CodeGenerator']
 
@@ -195,4 +196,10 @@ class CodeGenerator(object):
             scalar_statements[ac_name], vector_statements[ac_name] = make_statements(ac_code,
                                                                                      self.variables,
                                                                                      dtype)
+        for vs in vector_statements.itervalues():
+            # Check that the statements are meaningful independent on the order of
+            # execution (e.g. for synapses)
+            check_for_order_independence(vs,
+                                         self.variables,
+                                         self.variable_indices)
         return self.translate_statement_sequence(scalar_statements, vector_statements)

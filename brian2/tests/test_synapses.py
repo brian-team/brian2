@@ -1,11 +1,9 @@
 import uuid
-import os
 import tempfile
 
-from nose import with_setup
+from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
-import numpy as np
 
 from brian2 import *
 from brian2.codegen.translation import make_statements
@@ -13,7 +11,7 @@ from brian2.core.variables import variables_by_owner, ArrayVariable
 from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import get_identifiers
 from brian2.devices.device import restore_device
-from brian2.synapses.permutation_analysis import check_for_order_independence, OrderDependenceError
+from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 
 
 def _compare(synapses, expected):
@@ -126,7 +124,6 @@ def test_connection_arrays():
                                                p=object()))
     assert_raises(TypeError, lambda: S.connect(object()))
 
-from brian2.devices.cpp_standalone import cpp_standalone_device
 
 @attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=restore_device)
@@ -823,8 +820,9 @@ def test_variables_by_owner():
 
 
 def check_permutation_code(code):
+    from collections import defaultdict
     vars = get_identifiers(code)
-    indices = dict()
+    indices = defaultdict(lambda: '_idx')
     for var in vars:
         if var.endswith('_syn'):
             indices[var] = '_idx'
@@ -835,6 +833,8 @@ def check_permutation_code(code):
     variables = dict()
     for var in indices:
         variables[var] = ArrayVariable(var, 1, None, 10, device)
+    variables['_presynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
+    variables['_postsynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
     scalar_statements, vector_statements = make_statements(code, variables, float64)
     check_for_order_independence(vector_statements, variables, indices)
     
@@ -886,6 +886,24 @@ def test_permutation_analysis():
         assert_raises(OrderDependenceError, check_permutation_code, example)
 
 
+@attr('standalone-compatible')
+def test_vectorisation():
+    source = NeuronGroup(10, 'v : 1', threshold='v>1')
+    target = NeuronGroup(10, '''x : 1
+                                y : 1''')
+    syn = Synapses(source, target, 'w_syn : 1',
+                   pre='''v_pre += w_syn
+                          x_post = y_post
+                       ''', connect=True)
+    syn.w_syn = 1
+    source.v['i<5'] = 2
+    target.y = 'i'
+    run(defaultclock.dt)
+    assert_equal(source.v[:5], 12)
+    assert_equal(source.v[5:], 0)
+    assert_equal(target.x[:], target.y[:])
+
+
 if __name__ == '__main__':
     test_creation()
     test_name_clashes()
@@ -916,3 +934,4 @@ if __name__ == '__main__':
     test_repr()
     test_variables_by_owner()
     test_permutation_analysis()
+    test_vectorisation()
