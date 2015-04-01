@@ -5,7 +5,7 @@ import numpy as np
 from brian2.parsing.rendering import NumpyNodeRenderer
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function
 from brian2.core.variables import ArrayVariable
-from brian2.utils.stringtools import get_identifiers, word_substitute
+from brian2.utils.stringtools import get_identifiers, word_substitute, indent
 from brian2.utils.logger import get_logger
 
 from .base import CodeGenerator
@@ -48,9 +48,13 @@ class NumpyCodeGenerator(CodeGenerator):
             code += ' # ' + comment
         return code
 
-    def ufunc_at_vectorisation(self, statements, variables, indices, index):
+    def ufunc_at_vectorisation(self, statement, variables, indices,
+                               conditional_write_vars, created_vars, index):
         '''
         '''
+        # Avoids circular import
+        from brian2.devices.device import device
+
         # We assume that the code has passed the test for synapse order independence
 
         main_index_variables = [v for v in variables if indices[v] == index]
@@ -58,104 +62,124 @@ class NumpyCodeGenerator(CodeGenerator):
         lines = []
         need_unique_indices = set()
 
-        for statement in statements:
-            vars_in_expr = get_identifiers(statement.expr).intersection(variables)
-            subs = {}
-            for var in vars_in_expr:
-                if not isinstance(var, ArrayVariable):
-                    continue
-                subs[var] = '{var}[{idx}]'.format(var=var, idx=indices[var])
-            expr = word_substitute(statement.expr, subs)
-            if statement.var in main_index_variables or statement.op == ':=':
-                if statement.op in (':=', '='):
-                    op = '='
-                    indexing = ''
-                else:
-                    op = statement.op
-                    indexing = '[{idx}]'.format(idx=index)
-                line = '{var}{indexing} {op} {expr}'.format(var=statement.var,
-                                                         op=op,
-                                                         expr=expr,
-                                                         indexing=indexing)
-
+        vars_in_expr = get_identifiers(statement.expr).intersection(variables)
+        subs = {}
+        # for var in vars_in_expr:
+        #     if not isinstance(var, ArrayVariable):
+        #         continue
+        #     subs[var] = '{var}[{idx}]'.format(var=var, idx=indices[var])
+        # expr = word_substitute(statement.expr, subs)
+        expr = NumpyNodeRenderer().render_expr(statement.expr)
+        if statement.var in main_index_variables or statement.op == ':=':
+            if statement.op in (':=', '='):
+                op = '='
             else:
-                if statement.inplace:
-                    if statement.op=='+=':
-                        ufunc_name = 'np.add'
-                    elif statement.op=='*=':
-                        ufunc_name = 'np.multiply'
-                    else:
-                        raise VectorisationError()
-                    line = '{ufunc_name}.at({var}, {idx}, {expr})'.format(ufunc_name=ufunc_name,
-                                                                          var=statement.var,
-                                                                          idx=indices[statement.var],
-                                                                          expr=expr)
-                else:
-                    # if statement is not in-place then we assume the expr has no synaptic
-                    # variables in it otherwise it would have failed the order independence
-                    # check. In this case, we only need to work with the unique indices
-                    need_unique_indices.add(indices[statement.var])
-                    idx = '_unique_' + indices[statement.var]
-                    expr = word_substitute(expr, {indices[statement.var]: idx})
-                    line = '{var}[{idx}] = {expr}'.format(var=statement.var,
-                                                          idx=idx, expr=expr)
+                op = statement.op
+            line = '{var} {op} {expr}'.format(var=statement.var,
+                                              op=op,
+                                              expr=expr)
 
-            if len(statement.comment):
-                line += ' # ' + statement.comment
-            lines.append(line)
+        else:
+            if statement.inplace:
+                if statement.op=='+=':
+                    ufunc_name = 'np.add'
+                elif statement.op=='*=':
+                    ufunc_name = 'np.multiply'
+                else:
+                    raise VectorisationError()
+                line = '{ufunc_name}.at({array_name}, {idx}, {expr})'.format(ufunc_name=ufunc_name,
+                                                                            array_name=device.get_array_name(variables[statement.var]),
+                                                                            idx=indices[statement.var],
+                                                                            expr=expr)
+                line = self.conditional_write(line, statement, variables,
+                                              conditional_write_vars=conditional_write_vars,
+                                              created_vars=created_vars)
+            else:
+                # if statement is not in-place then we assume the expr has no synaptic
+                # variables in it otherwise it would have failed the order independence
+                # check. In this case, we only need to work with the unique indices
+                need_unique_indices.add(indices[statement.var])
+                #idx = '_unique_' + indices[statement.var]
+                #expr = word_substitute(expr, {indices[statement.var]: idx})
+
+                # TODO: This rather needs changes to the array read/write part
+                line = '{var} = {expr}'.format(var=statement.var,
+                                               expr=expr)
+
+        if len(statement.comment):
+            line += ' # ' + statement.comment
+        lines.append(line)
 
         for unique_idx in need_unique_indices:
             lines.insert(0, '_unique_{idx} = np.unique({idx})'.format(idx=unique_idx))
 
         return lines
 
+    def vectorise_code(self, statements, variables, variable_indices, index='_idx'):
 
-    def vectorise_code(self, statements, variables, indices, index='_idx'):
-        try:
-            return self.ufunc_at_vectorisation(statements, variables, indices,
-                                               index=index)
-        except VectorisationError:
-            logger.warn("Failed to vectorise synapses code, falling back on Python loop: note that "
-                        "this will be very slow! Switch to another code generation target for "
-                        "best performance (e.g. cython or weave).")
-            # fall back to loop
-            # lines = ['for _idx in xrange(len(_spiking_synapses)):',
-            #          '    _syn_idx = _spiking_synapses[_idx]',
-            #          '    _pre_idx = _synaptic_pre[_syn_idx]',
-            #          '    _post_idx = _synaptic_post[_syn_idx]',
-            #          ]
-            # non_synaptic_variables = presynaptic_variables.union(postsynaptic_variables)
-            # variables = synaptic_variables.union(non_synaptic_variables)
-            # subs = {}
-            # for var in variables:
-            #     if var in synaptic_variables:
-            #         idx = '_syn_idx'
-            #     elif var in presynaptic_variables:
-            #         idx = '_pre_idx'
-            #     elif var in postsynaptic_variables:
-            #         idx = '_post_idx'
-            #     subs[var] = '{var}[{idx}]'.format(var=var, idx=idx)
-            # for statement in statements:
-            #     line = '    {var} {op} {expr}'.format(var=statement.var, op=statement.op,
-            #                                           expr=statement.expr)
-            #     line = word_substitute(line, subs)
-            #     lines.append(line)
-            # return '\n'.join(lines)
-
-    def translate_one_statement_sequence(self, statements, scalar=False):
-        variables = self.variables
-        variable_indices = self.variable_indices
-        read, write, indices, conditional_write_vars = self.arrays_helper(statements)
+        # We treat every statement individually with its own read and write code
+        # to be on the safe side
         lines = []
+        created_vars = {stmt.var for stmt in statements if stmt.op == ':='}
+        for statement in statements:
+            lines.append('#  Abstract code:  {var} {op} {expr}'.format(var=statement.var,
+                                                                       op=statement.op,
+                                                                       expr=statement.expr))
+            read, write, indices, conditional_write_vars = self.arrays_helper([statement])
+            try:
+                # We make sure that we only add code to `lines` after it went
+                # through completely
+                ufunc_lines = []
+                ufunc_lines.extend(self.read_arrays(read, write, indices,
+                                              variables, variable_indices))
+                ufunc_lines.extend(self.ufunc_at_vectorisation(statement,
+                                                               variables,
+                                                               variable_indices,
+                                                               conditional_write_vars,
+                                                               created_vars,
+                                                               index=index))
+                # Do not write back such values, the ufuncs have modified the
+                # underlying array already
+                if statement.op in ('+=', '*='):
+                    write -= {statement.var}
+                ufunc_lines.extend(self.write_arrays([statement], read, write,
+                                                     variables,
+                                                     variable_indices))
+                lines.extend(ufunc_lines)
+            except VectorisationError:
+                logger.warn("Failed to vectorise synapses code, falling back on Python loop: note that "
+                            "this will be very slow! Switch to another code generation target for "
+                            "best performance (e.g. cython or weave).",
+                            once=True)
+                lines.extend(['_full_idx = _idx',
+                              'for _idx in _full_idx:'])
+                lines.extend(indent(code) for code in
+                             self.read_arrays(read, write, indices,
+                                              variables, variable_indices))
+                for stmt in statements:
+                    line = self.translate_statement(stmt)
+                    line = self.conditional_write(line, stmt, variables,
+                              conditional_write_vars,
+                              created_vars)
+                    lines.append(indent(line))
+                lines.extend(indent(code) for code in
+                             self.write_arrays(statements, write,
+                                               variables, variable_indices))
+                lines.append('_idx = _full_idx')
+
+        return lines
+
+    def read_arrays(self, read, write, indices, variables, variable_indices):
         # index and read arrays (index arrays first)
+        lines = []
         for varname in itertools.chain(indices, read):
             var = variables[varname]
             index = variable_indices[varname]
-#            if index in iterate_all:
-#                line = '{varname} = {array_name}'
-#            else:
-#                line = '{varname} = {array_name}.take({index})'
-#            line = line.format(varname=varname, array_name=self.get_array_name(var), index=index)
+            # if index in iterate_all:
+            #                line = '{varname} = {array_name}'
+            #            else:
+            #                line = '{varname} = {array_name}.take({index})'
+            #            line = line.format(varname=varname, array_name=self.get_array_name(var), index=index)
             line = varname + ' = ' + self.get_array_name(var)
             if not index in self.iterate_all:
                 line += '[' + index + ']'
@@ -163,20 +187,17 @@ class NumpyCodeGenerator(CodeGenerator):
                 # avoid potential issues with aliased variables, see github #259
                 line += '.copy()'
             lines.append(line)
-        # the actual code
-        if scalar:
-            lines.extend(self.translate_statement(stmt) for stmt in statements)
-        else:
-            lines.extend(self.vectorise_code(statements, variables,
-                                             variable_indices))
+        return lines
 
+    def write_arrays(self, statements, read, write, variables, variable_indices):
         # write arrays
+        lines = []
         for varname in write:
             var = variables[varname]
             index_var = variable_indices[varname]
             # check if all operations were inplace and we're operating on the
             # whole vector, if so we don't need to write the array back
-            if not index_var in self.iterate_all:
+            if index_var not in self.iterate_all or varname in read:
                 all_inplace = False
             else:
                 all_inplace = True
@@ -192,21 +213,58 @@ class NumpyCodeGenerator(CodeGenerator):
                     line = line + '[' + index_var + ']'
                 line = line + ' = ' + varname
                 lines.append(line)
-#                if index_var in iterate_all:
-#                    line = '{array_name}[:] = {varname}'
-#                else:
-#                    line = '''
-#if isinstance(_idx, slice):
-#    {array_name}[:] = {varname}
-#else:
-#    {array_name}.put({index_var}, {varname})
-#                    '''
-#                    line = '\n'.join([l for l in line.split('\n') if l.strip()])
-#                line = line.format(array_name=self.get_array_name(var), index_var=index_var, varname=varname)
-#                if index_var in iterate_all:
-#                    lines.append(line)
-#                else:
-#                    lines.extend(line.split('\n'))
+        return lines
+
+    def conditional_write(self, line, stmt, variables, conditional_write_vars,
+                          created_vars):
+        if stmt.var in conditional_write_vars:
+            subs = {}
+            index = conditional_write_vars[stmt.var]
+            # we replace all var with var[index], but actually we use this repl_string first because
+            # we don't want to end up with lines like x[not_refractory[not_refractory]] when
+            # multiple substitution passes are invoked
+            repl_string = '#$(@#&$@$*U#@)$@(#'  # this string shouldn't occur anywhere I hope! :)
+            for varname, var in variables.items():
+                if isinstance(var, ArrayVariable):
+                    subs[varname] = varname + '[' + repl_string + ']'
+            # all newly created vars are arrays and will need indexing
+            for varname in created_vars:
+                subs[varname] = varname + '[' + repl_string + ']'
+            line = word_substitute(line, subs)
+            line = line.replace(repl_string, index)
+        return line
+
+    def translate_one_statement_sequence(self, statements, scalar=False):
+        variables = self.variables
+        variable_indices = self.variable_indices
+        read, write, indices, conditional_write_vars = self.arrays_helper(statements)
+        lines = []
+
+        # Check whether we potentially deal with repeated indices (which will
+        # be the case most importantly when we write to pre- or post-synaptic
+        # variables in synaptic code)
+        used_indices = set(variable_indices[var] for var in write)
+        all_unique = all(variables[index].unique for index in used_indices
+                         if index not in ('_idx', '0'))
+
+        if scalar or all_unique:
+            # Simple translation
+            lines.extend(self.read_arrays(read, write, indices, variables,
+                                          variable_indices))
+            created_vars = {stmt.var for stmt in statements if stmt.op == ':='}
+            for stmt in statements:
+
+                line = self.translate_statement(stmt)
+                line = self.conditional_write(line, stmt, variables,
+                                              conditional_write_vars,
+                                              created_vars)
+                lines.append(line)
+            lines.extend(self.write_arrays(statements, read, write, variables,
+                                           variable_indices))
+        else:
+            # More complex translation to deal with repeated indices
+            lines.extend(self.vectorise_code(statements, variables,
+                                             variable_indices))
 
         # Make sure we do not use the __call__ function of Function objects but
         # rather the Python function stored internally. The __call__ function
