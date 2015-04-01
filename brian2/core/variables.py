@@ -464,14 +464,26 @@ class ArrayVariable(Variable):
         Whether this is a read-only variable, i.e. a variable that is set
         internally and cannot be changed by the user. Defaults
         to ``False``.
+    unique : bool, optional
+        Whether the values in this array are all unique. This information is
+        only important for variables used as indices and does not have to
+        reflect the actual contents of the array but only the possibility of
+        non-uniqueness (e.g. synaptic indices are always unique but the
+        corresponding pre- and post-synaptic indices are not). Defaults to
+        ``False``.
     '''
     def __init__(self, name, unit, owner, size, device, dtype=None,
-                 constant=False, scalar=False, read_only=False, dynamic=False):
+                 constant=False, scalar=False, read_only=False, dynamic=False,
+                 unique=False):
         super(ArrayVariable, self).__init__(unit=unit, name=name, owner=owner,
                                             dtype=dtype, scalar=scalar,
                                             constant=constant,
                                             read_only=read_only,
                                             dynamic=dynamic)
+
+        #: Wether all values in this arrays are necessarily unique (only
+        #: relevant for index variables).
+        self.unique = unique
 
         #: The `Device` responsible for memory access.
         self.device = device
@@ -550,11 +562,18 @@ class DynamicArrayVariable(ArrayVariable):
         Whether this is a read-only variable, i.e. a variable that is set
         internally and cannot be changed by the user. Defaults
         to ``False``.
+    unique : bool, optional
+        Whether the values in this array are all unique. This information is
+        only important for variables used as indices and does not have to
+        reflect the actual contents of the array but only the possibility of
+        non-uniqueness (e.g. synaptic indices are always unique but the
+        corresponding pre- and post-synaptic indices are not). Defaults to
+        ``False``.
     '''
 
     def __init__(self, name, unit, owner, size, device, dtype=None,
                  constant=False, constant_size=True,
-                 scalar=False, read_only=False):
+                 scalar=False, read_only=False, unique=False):
 
         if isinstance(size, int):
             dimensions = 1
@@ -577,7 +596,8 @@ class DynamicArrayVariable(ArrayVariable):
                                                    dtype=dtype,
                                                    scalar=scalar,
                                                    dynamic=True,
-                                                   read_only=read_only)
+                                                   read_only=read_only,
+                                                   unique=unique)
     def resize(self, new_size):
         '''
         Resize the dynamic array. Calls `self.device.resize` to do the
@@ -1400,7 +1420,7 @@ class Variables(collections.Mapping):
             self.indices[name] = index
 
     def add_array(self, name, unit, size, values=None, dtype=None,
-                  constant=False, read_only=False, scalar=False,
+                  constant=False, read_only=False, scalar=False, unique=False,
                   index=None):
         '''
         Add an array (initialized with zeros).
@@ -1432,13 +1452,16 @@ class Variables(collections.Mapping):
         index : str, optional
             The index to use for this variable. Defaults to
             `Variables.default_index`.
+        unique : bool, optional
+            See `ArrayVariable`. Defaults to ``False``.
         '''
         var = ArrayVariable(name=name, unit=unit, owner=self.owner,
                             device=self.device, size=size,
                             dtype=dtype,
                             constant=constant,
                             scalar=scalar,
-                            read_only=read_only)
+                            read_only=read_only,
+                            unique=unique)
         self._add_variable(name, var, index)
         if values is None:
             self.device.init_with_zeros(var)
@@ -1449,7 +1472,7 @@ class Variables(collections.Mapping):
             self.device.init_with_array(var, values)
 
     def add_dynamic_array(self, name, unit, size, dtype=None, constant=False,
-                          constant_size=True, read_only=False,
+                          constant_size=True, read_only=False, unique=False,
                           index=None):
         '''
         Add a dynamic array.
@@ -1478,16 +1501,18 @@ class Variables(collections.Mapping):
         index : str, optional
             The index to use for this variable. Defaults to
             `Variables.default_index`.
+        unique : bool, optional
+            See `DynamicArrayVariable`. Defaults to ``False``.
         '''
         var = DynamicArrayVariable(name=name, unit=unit, owner=self.owner,
                                    device=self.device,
                                    size=size, dtype=dtype,
                                    constant=constant, constant_size=constant_size,
-                                   read_only=read_only)
+                                   read_only=read_only, unique=unique)
         self._add_variable(name, var, index)
 
     def add_arange(self, name, size, start=0, dtype=np.int32, constant=True,
-                   read_only=True, index=None):
+                   read_only=True, unique=True, index=None):
         '''
         Add an array, initialized with a range of integers.
 
@@ -1512,9 +1537,11 @@ class Variables(collections.Mapping):
         index : str, optional
             The index to use for this variable. Defaults to
             `Variables.default_index`.
+        unique : bool, optional
+            See `ArrayVariable`. Defaults to ``True`` here.
         '''
         self.add_array(name=name, unit=Unit(1), size=size, dtype=dtype,
-                       constant=constant, read_only=read_only,
+                       constant=constant, read_only=read_only, unique=unique,
                        index=index)
         self.device.init_with_arange(self._variables[name], start)
 
