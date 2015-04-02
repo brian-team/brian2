@@ -160,14 +160,13 @@ class NumpyCodeGenerator(CodeGenerator):
                 lines.extend(indent(code) for code in
                              self.read_arrays(read, write, indices,
                                               variables, variable_indices))
-                for stmt in statements:
-                    line = self.translate_statement(stmt)
-                    line = self.conditional_write(line, stmt, variables,
-                              conditional_write_vars,
-                              created_vars)
-                    lines.append(indent(line))
+                line = self.translate_statement(statement)
+                line = self.conditional_write(line, statement, variables,
+                                              conditional_write_vars,
+                                              created_vars)
+                lines.append(indent(line))
                 lines.extend(indent(code) for code in
-                             self.write_arrays(statements, write,
+                             self.write_arrays(statements, read, write,
                                                variables, variable_indices))
                 lines.append('_idx = _full_idx')
 
