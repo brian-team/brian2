@@ -28,59 +28,63 @@ _gtot_all[:] = _gtot
 b = -({{Cm}} / dt*{{v}}) - _I0
 
 # Tridiagonal solving
-# Pass 1
-for i in range(N):
-    {{v_star}}[i] = b[i]  # RHS -> v_star (solution)
-    bi = {{ab_star1}}[i] - _gtot_all[i]  # main diagonal
-    if i < N-1:
-        c[i] = {{ab_star0}}[i+1]  # superdiagonal
-    if i>0:
-        ai = {{ab_star2}}[i-1]  # subdiagonal
-        _m = 1.0/(bi-ai*c[i-1])
-        c[i] = c[i]*_m
-        {{v_star}}[i] = ({{v_star}}[i] - ai*{{v_star}}[i-1])*_m
-    else:
-        c[0]=c[0]/bi
-        {{v_star}}[0]={{v_star}}[0]/bi
+forward = range(1, N)
+backward = range(N-2, -1, -1)
 
-for i in range(N-2, -1, -1):
-    {{v_star}}[i] = {{v_star}}[i] - c[i]*{{v_star}}[i+1]
+# Pass 1
+bi = {{ab_star1}} - _gtot_all  # main diagonal
+
+# First compartment
+c[0] = {{ab_star0}}[1] / bi[0]
+{{v_star}}[0] = b[0] / bi[0]
+
+# Other compartments
+c[1:-1] = {{ab_star0}}[2:]
+for i in forward:
+    ai = {{ab_star2}}[i-1]  # subdiagonal
+    _m = 1.0/(bi[i]-ai*c[i-1])
+    c[i] *= _m
+    {{v_star}}[i] = (b[i] - ai*{{v_star}}[i-1])*_m
+
+for i in backward:
+    {{v_star}}[i] -= c[i]*{{v_star}}[i+1]
 
 # Pass 2
-for i in range(N):
-    {{u_plus}}[i] = {{b_plus}}[i]  # RHS -> v_star (solution)
-    bi = {{ab_plus1}}[i] - _gtot_all[i]  # main diagonal
-    if i < N-1:
-        c[i] = {{ab_plus0}}[i+1]  # superdiagonal
-    if (i>0):
-        ai = {{ab_plus2}}[i-1]  # subdiagonal
-        _m = 1.0/(bi-ai*c[i-1])
-        c[i] = c[i]*_m
-        {{u_plus}}[i] = ({{u_plus}}[i] - ai*{{u_plus}}[i-1])*_m
-    else:
-        c[0] = c[0]/bi
-        {{u_plus}}[0] = {{u_plus}}[0]/bi
+bi = {{ab_plus1}} - _gtot_all  # main diagonal
 
-for i in range(N-2, -1, -1):
-    {{u_plus}}[i]={{u_plus}}[i] - c[i]*{{u_plus}}[i+1];
+# First compartment
+c[0] = {{ab_plus0}}[1]/bi[0]
+{{u_plus}}[0] = {{b_plus}}[0]/bi[0]
+
+# Other compartments
+c[1:-1] = {{ab_plus0}}[2:]  # superdiagonal
+
+for i in forward:
+    ai = {{ab_plus2}}[i-1]  # subdiagonal
+    _m = 1.0/(bi[i]-ai*c[i-1])
+    c[i] *= _m
+    {{u_plus}}[i] = ({{b_plus}}[i] - ai*{{u_plus}}[i-1])*_m
+
+for i in backward:
+    {{u_plus}}[i] -= c[i]*{{u_plus}}[i+1]
 
 # Pass 3
-for i in range(N):
-    {{u_minus}}[i] = {{b_minus}}[i]  # RHS -> v_star (solution)
-    bi = {{ab_minus1}}[i] - _gtot_all[i]  # main diagonal
-    if i < N-1:
-        c[i] = {{ab_minus0}}[i+1]  # superdiagonal
-    if i > 0:
-        ai = {{ab_minus2}}[i-1]  # subdiagonal
-        _m = 1.0/(bi-ai*c[i-1]);
-        c[i] = c[i]*_m
-        {{u_minus}}[i] = ({{u_minus}}[i] - ai*{{u_minus}}[i-1])*_m
-    else:
-        c[0] = c[0]/bi
-        {{u_minus}}[0] = {{u_minus}}[0]/bi
+bi = {{ab_minus1}} - _gtot_all  # main diagonal
 
-for i in range(N-2, -1, -1):
-    {{u_minus}}[i] = {{u_minus}}[i] - c[i]*{{u_minus}}[i+1]
+# First compartment
+c[0] = {{ab_minus0}}[1]/bi[0]
+{{u_minus}}[0] = {{b_minus}}[0]/bi[0]
+
+# Other compartments
+c[1:-1] = {{ab_minus0}}[2:]  # superdiagonal
+for i in forward:
+    ai = {{ab_minus2}}[i-1]  # subdiagonal
+    _m = 1.0/(bi[i]-ai*c[i-1]);
+    c[i] *= _m
+    {{u_minus}}[i] = ({{b_minus}}[i] - ai*{{u_minus}}[i-1])*_m
+
+for i in backward:
+    {{u_minus}}[i] -= c[i]*{{u_minus}}[i+1]
 
 # Prepare matrix for solving the linear system
 _n_segments = len({{_B}})
