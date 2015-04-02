@@ -345,7 +345,8 @@ def make_statements(code, variables, dtype):
                     collected = {1: sympy_expr}
 
                 if (len(collected) == 2 and
-                        set(collected.keys()) == {1, sympy_var}):
+                        set(collected.keys()) == {1, sympy_var} and
+                        collected[sympy_var] == 1):
                     # We can replace this statement by a += assignment
                     statement = Statement(var, '+=',
                                           sympy_to_str(collected[1]),
