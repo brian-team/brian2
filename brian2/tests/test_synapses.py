@@ -736,6 +736,7 @@ def test_external_variables():
 
 
 @attr('long', 'standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_event_driven():
     # Fake example, where the synapse is actually not changing the state of the
     # postsynaptic neuron, the pre- and post spiketrains are regular spike
@@ -887,6 +888,7 @@ def test_permutation_analysis():
 
 
 @attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_vectorisation():
     source = NeuronGroup(10, 'v : 1', threshold='v>1')
     target = NeuronGroup(10, '''x : 1
