@@ -121,8 +121,13 @@ class NumpyCodeGenerator(CodeGenerator):
         return lines
 
     def determine_keywords(self):
-        # For numpy, no addiional keywords are provided to the template
-        return {}
+        try:
+            import scipy
+            scipy_available = True
+        except ImportError:
+            scipy_available = False
+
+        return {'_scipy_available': scipy_available}
 
 ################################################################################
 # Implement functions
