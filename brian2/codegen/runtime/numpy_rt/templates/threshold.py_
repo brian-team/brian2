@@ -3,8 +3,8 @@
 # Thresholder class, we cannot use the USES_VARIABLE mechanism
 # conditionally
 {# ITERATE_ALL { _idx } #}
-
 import numpy as np
+
 numpy_True = np.bool_(True)
 
 # scalar code

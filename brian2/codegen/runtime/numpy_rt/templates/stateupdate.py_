@@ -1,7 +1,6 @@
 {# ITERATE_ALL { _idx } #}
 {# USES_VARIABLES { N } #}
 {# ALLOWS_SCALAR_WRITE #}
-
 import numpy as np
 
 # scalar code

@@ -3,6 +3,7 @@
                     ab_plus0, ab_plus1, ab_plus2,
                     ab_minus0, ab_minus1, ab_minus2,
                     _starts, _ends, _invr0, _invrn, b_plus, b_minus } #}
+import numpy as np
 from numpy import pi
 
 {% if owner.morphology.type == 'soma' %}

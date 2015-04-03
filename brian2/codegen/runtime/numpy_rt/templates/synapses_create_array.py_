@@ -1,5 +1,3 @@
-import numpy as np
-
 {#
 USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets,
                  N_incoming, N_outgoing }
@@ -11,6 +9,7 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets,
 {# After this code has been executed, the arrays _real_sources and
    _real_variables contain the final indices. Having any code here it all is
    only necessary for supporting subgroups #}
+import numpy as np
 {{vector_code|autoindent}}
 
 _old_num_synapses = len({{_dynamic__synaptic_pre}})

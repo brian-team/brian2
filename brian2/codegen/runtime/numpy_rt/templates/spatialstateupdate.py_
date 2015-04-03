@@ -11,6 +11,7 @@ Solves the cable equation (spatial diffusion of currents).
 This is where most time-consuming time computations are done.
 '''
 from scipy.linalg import solve_banded
+import numpy as np
 from numpy.linalg import solve
 from numpy import zeros
 

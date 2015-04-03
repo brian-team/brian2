@@ -1,7 +1,6 @@
-import numpy as np
-
 {# USES_VARIABLES { N } #}
 {# ALLOWS_SCALAR_WRITE #}
+import numpy as np
 
 numpy_False = np.bool_(False)
 numpy_True = np.bool_(True)

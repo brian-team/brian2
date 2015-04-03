@@ -1,5 +1,6 @@
 {# ITERATE_ALL { _idx } #}
 {# USES_VARIABLES { N } #}
+import numpy as np
 
 # scalar code
 _vectorisation_idx = 1

@@ -1,5 +1,5 @@
-import numpy as np
 {# USES_VARIABLES { N } #}
+import numpy as np
 
 # scalar code
 _vectorisation_idx = 1
