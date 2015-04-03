@@ -82,9 +82,9 @@ class NumpyCodeGenerator(CodeGenerator):
         else:
             if statement.inplace:
                 if statement.op=='+=':
-                    ufunc_name = 'np.add'
+                    ufunc_name = '_numpy.add'
                 elif statement.op=='*=':
-                    ufunc_name = 'np.multiply'
+                    ufunc_name = '_numpy.multiply'
                 else:
                     raise VectorisationError()
                 line = '{ufunc_name}.at({array_name}, {idx}, {expr})'.format(ufunc_name=ufunc_name,
@@ -115,7 +115,7 @@ class NumpyCodeGenerator(CodeGenerator):
         lines.append(line)
 
         for unique_idx in need_unique_indices:
-            lines.insert(0, '_unique_{idx} = np.unique({idx})'.format(idx=unique_idx))
+            lines.insert(0, '_unique_{idx} = _numpy.unique({idx})'.format(idx=unique_idx))
 
         return lines
 

@@ -1,12 +1,12 @@
 {# USES_VARIABLES { N } #}
-import numpy as np
+import numpy as _numpy
 
 # scalar code
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}
 
 # vector code
-_idx = np.arange(N)
+_idx = _numpy.arange(N)
 _vectorisation_idx = N
 
 {{vector_code|autoindent}}

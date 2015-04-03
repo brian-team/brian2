@@ -1,5 +1,5 @@
 {# USES_VARIABLES { t, _clock_t, _indices } #}
-import numpy as np
+import numpy as _numpy
 
 # Resize dynamic arrays
 _new_len = len({{_dynamic_t}}) + 1

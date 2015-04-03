@@ -1,7 +1,7 @@
 {# ITERATE_ALL { _idx } #}
 {# USES_VARIABLES { N } #}
 {# ALLOWS_SCALAR_WRITE #}
-import numpy as np
+import numpy as _numpy
 
 # scalar code
 _vectorisation_idx = 1

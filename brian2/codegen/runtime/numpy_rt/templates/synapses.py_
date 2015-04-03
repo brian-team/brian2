@@ -1,5 +1,5 @@
 {# USES_VARIABLES { _spiking_synapses } #}
-import numpy as np
+import numpy as _numpy
 
 # scalar code
 {# Note that we don't write to scalar variables conditionally. The scalar code
