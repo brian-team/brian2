@@ -11,11 +11,6 @@ except ImportError as ex:
     sys.stderr.write('Importing numpy failed: %s\n' % ex)
     missing.append('numpy')
 try:
-    import scipy
-except ImportError as ex:
-    sys.stderr.write('Importing scipy failed: %s\n' % ex)
-    missing.append('scipy')
-try:
     import sympy
 except ImportError as ex:
     sys.stderr.write('Importing sympy failed: %s\n' % ex)
@@ -81,6 +76,5 @@ def _check_dependency_version(name, version):
             logger.warn(message, 'outdated_dependency')
 
 for name, version in [('numpy', '1.8.0'),
-                      ('scipy', '0.13.3'),
                       ('sympy', '0.7.6')]:
     _check_dependency_version(name, version)

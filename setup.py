@@ -144,7 +144,6 @@ setup(name='Brian2',
                     'brian2': ['default_preferences']
                     },
       install_requires=['numpy>=1.8.0',
-                        'scipy>=0.13.3',
                         'sympy>=0.7.6',
                         'pyparsing',
                         'jinja2>=2.7',

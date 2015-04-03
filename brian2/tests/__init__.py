@@ -44,7 +44,11 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             import scipy.weave
             codegen_targets.append('weave')
         except ImportError:
-            pass
+            try:
+                import weave
+                codegen_targets.append('weave')
+            except ImportError:
+                pass
         try:
             import Cython
             codegen_targets.append('cython')

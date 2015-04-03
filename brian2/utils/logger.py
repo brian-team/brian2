@@ -15,7 +15,17 @@ import time
 from warnings import warn
 
 import numpy
-import scipy
+try:
+    import scipy
+except ImportError:
+    scipy = None
+try:
+    import scipy.weave as weave
+except ImportError:
+    try:
+        import weave
+    except ImportError:
+        weave = None
 import sympy
 
 import brian2
@@ -180,7 +190,8 @@ logger.debug('Python interpreter: %s' % sys.executable)
 logger.debug('Platform: %s' % sys.platform)
 version_infos = {'brian': brian2.__version__,
                  'numpy': numpy.__version__,
-                 'scipy': scipy.__version__,
+                 'scipy': scipy.__version__ if scipy else 'not installed',
+                 'weave': weave.__version__ if weave else 'not installed',
                  'sympy': sympy.__version__,
                  'python': sys.version,
                  }
