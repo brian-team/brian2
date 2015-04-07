@@ -30,7 +30,10 @@ from brian2.units import (volt, amp, DimensionMismatchError,
 try:
     from scipy import weave
 except ImportError:
-    weave = None
+    try:
+        import weave
+    except ImportError:
+        weave = None
 import nose
 
 
