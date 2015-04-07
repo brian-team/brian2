@@ -57,67 +57,42 @@ class NumpyCodeGenerator(CodeGenerator):
 
         # We assume that the code has passed the test for synapse order independence
 
-        main_index_variables = [v for v in variables if indices[v] == index]
-
-        lines = []
-        need_unique_indices = set()
-
-        vars_in_expr = get_identifiers(statement.expr).intersection(variables)
-        subs = {}
-        # for var in vars_in_expr:
-        #     if not isinstance(var, ArrayVariable):
-        #         continue
-        #     subs[var] = '{var}[{idx}]'.format(var=var, idx=indices[var])
-        # expr = word_substitute(statement.expr, subs)
         expr = NumpyNodeRenderer().render_expr(statement.expr)
-        if statement.var in main_index_variables or statement.op == ':=':
-            if statement.op in (':=', '='):
+
+        if statement.op == ':=' or indices[statement.var] == '_idx' or not statement.inplace:
+            if statement.op == ':=':
                 op = '='
             else:
                 op = statement.op
             line = '{var} {op} {expr}'.format(var=statement.var,
                                               op=op,
                                               expr=expr)
-
-        else:
-            if statement.inplace:
-                if statement.op=='+=':
-                    ufunc_name = '_numpy.add'
-                elif statement.op=='*=':
-                    ufunc_name = '_numpy.multiply'
-                else:
-                    raise VectorisationError()
-                line = '{ufunc_name}.at({array_name}, {idx}, {expr})'.format(ufunc_name=ufunc_name,
-                                                                            array_name=device.get_array_name(variables[statement.var]),
-                                                                            idx=indices[statement.var],
-                                                                            expr=expr)
-                line = self.conditional_write(line, statement, variables,
-                                              conditional_write_vars=conditional_write_vars,
-                                              created_vars=created_vars)
+        elif statement.inplace:
+            if statement.op == '+=':
+                ufunc_name = '_numpy.add'
+            elif statement.op == '*=':
+                ufunc_name = '_numpy.multiply'
+            elif statement.op == '/=':
+                ufunc_name = '_numpy.divide'
+            elif statement.op == '-=':
+                ufunc_name = '_numpy.subtract'
             else:
-                # if statement is not in-place then we assume the expr has no synaptic
-                # variables in it otherwise it would have failed the order independence
-                # check. In this case, we only need to work with the unique indices
+                raise VectorisationError()
 
-                # TODO: This is more complicated since it needs to change the
-                # indexing/read/write. Note sure it is worth the effort, it's
-                # only an optimisation isn't it?
-
-                # need_unique_indices.add(indices[statement.var])
-                # idx = '_unique_' + indices[statement.var]
-                # expr = word_substitute(expr, {indices[statement.var]: idx})
-
-                line = '{var} = {expr}'.format(var=statement.var,
-                                               expr=expr)
+            line = '{ufunc_name}.at({array_name}, {idx}, {expr})'.format(ufunc_name=ufunc_name,
+                                                                         array_name=device.get_array_name(variables[statement.var]),
+                                                                         idx=indices[statement.var],
+                                                                         expr=expr)
+            line = self.conditional_write(line, statement, variables,
+                                          conditional_write_vars=conditional_write_vars,
+                                          created_vars=created_vars)
+        else:
+            raise VectorisationError()
 
         if len(statement.comment):
             line += ' # ' + statement.comment
-        lines.append(line)
 
-        for unique_idx in need_unique_indices:
-            lines.insert(0, '_unique_{idx} = _numpy.unique({idx})'.format(idx=unique_idx))
-
-        return lines
+        return line
 
     def vectorise_code(self, statements, variables, variable_indices, index='_idx'):
 
@@ -134,9 +109,15 @@ class NumpyCodeGenerator(CodeGenerator):
                 # We make sure that we only add code to `lines` after it went
                 # through completely
                 ufunc_lines = []
+                # No need to load a variable if it is only in read because of
+                # the in-place operation
+                if (statement.inplace and
+                            variable_indices[statement.var] != '_idx' and
+                            statement.var not in get_identifiers(statement.expr)):
+                    read = read - {statement.var}
                 ufunc_lines.extend(self.read_arrays(read, write, indices,
                                               variables, variable_indices))
-                ufunc_lines.extend(self.ufunc_at_vectorisation(statement,
+                ufunc_lines.append(self.ufunc_at_vectorisation(statement,
                                                                variables,
                                                                variable_indices,
                                                                conditional_write_vars,
@@ -144,8 +125,8 @@ class NumpyCodeGenerator(CodeGenerator):
                                                                index=index))
                 # Do not write back such values, the ufuncs have modified the
                 # underlying array already
-                if statement.op in ('+=', '*='):
-                    write -= {statement.var}
+                if statement.inplace and variable_indices[statement.var] != '_idx':
+                    write = write - {statement.var}
                 ufunc_lines.extend(self.write_arrays([statement], read, write,
                                                      variables,
                                                      variable_indices))
