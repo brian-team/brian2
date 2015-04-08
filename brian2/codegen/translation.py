@@ -334,7 +334,7 @@ def make_statements(code, variables, dtype):
                     new_var = AuxiliaryVariable(var, Unit(1), # doesn't matter here
                                                 dtype=dtype, scalar=is_scalar)
                     variables[var] = new_var
-            else:
+            elif not variables[var].is_boolean:
                 sympy_expr = str_to_sympy(expr)
                 sympy_var = sympy.Symbol(var, real=True)
                 try:
