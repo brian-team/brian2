@@ -1,3 +1,4 @@
+{# IS_OPENMP_COMPATIBLE #}
 {# USES_VARIABLES { N, _invr, Ri, Cm, dt, area, diameter, length,
                     ab_star0, ab_star1, ab_star2,
                     ab_plus0, ab_plus1, ab_plus2,
@@ -14,25 +15,30 @@
     {% endif %}
 
     // Inverse axial resistance
+    {{ openmp_pragma('static') }}
     for (int _i=1; _i<N; _i++)
         {{_invr}}[_i] = (M_PI / (2 * _Ri) * ({{diameter}}[_i-1] * {{diameter}}[_i]) /
                        ({{length}}[_i-1] + {{length}}[_i]));
     // Note: this would give nan for the soma
     // Cut branches
+    {{ openmp_pragma('static') }}
     for (int _i=0; _i<_num_starts; _i++)
         {{_invr}}[{{_starts}}[_i]] = 0;
 
     // Linear systems
     // The particular solution
     // a[i,j]=ab[u+i-j,j]   --  u is the number of upper diagonals = 1
+    {{ openmp_pragma('static') }}
     for (int _i=0; _i<N; _i++)
         {{ab_star1}}[_i] = (-({{Cm}}[_i] / dt) - {{_invr}}[_i] / {{area}}[_i]);
+    {{ openmp_pragma('static') }}
     for (int _i=1; _i<N; _i++)
     {
         {{ab_star0}}[_i] = {{_invr}}[_i] / {{area}}[_i-1];
         {{ab_star2}}[_i-1] = {{_invr}}[_i] / {{area}}[_i];
         {{ab_star1}}[_i-1] -= {{_invr}}[_i] / {{area}}[_i-1];
     }
+    {{ openmp_pragma('static') }}
     for (int _i=0; _i<N; _i++)
     {
         // Homogeneous solutions
@@ -45,6 +51,7 @@
     }
 
     // Set the boundary conditions
+    {{ openmp_pragma('single') }}
     for (int _counter=0; _counter<_num_starts; _counter++)
     {
         const int _first = {{_starts}}[_counter];
