@@ -5,13 +5,12 @@
                         ab_star0, ab_star1, ab_star2, b_plus,
                         ab_plus0, ab_plus1, ab_plus2, b_minus,
                         ab_minus0, ab_minus1, ab_minus2,
-                        v_star, u_plus, u_minus,
+                        v_star, u_plus, u_minus, gtot_all
                         _P, _B, _morph_i, _morph_parent_i, _starts, _ends,
                         _invr0, _invrn} #}
 
-
-    cdef double[:] _gtot_all = _numpy.zeros(N, dtype=_numpy.double)
     cdef double[:] c = _numpy.zeros(N, dtype=_numpy.double)
+
     cdef double ai
     cdef double bi
     cdef double _m
@@ -44,10 +43,10 @@
         _vectorisation_idx = _idx
 
         {{vector_code|autoindent}}
-        _gtot_all[_idx] = _gtot
+        {{gtot_all}}[_idx] = _gtot
 
         {{v_star}}[_i] = -({{Cm}}[_i]/dt*{{v}}[_i])-_I0 # RHS -> v_star (solution)
-        bi={{ab_star1}}[_i] - _gtot_all[_i] # main diagonal
+        bi={{ab_star1}}[_i] - {{gtot_all}}[_i] # main diagonal
         if (_i<N-1):
             c[_i]= {{ab_star0}}[_i+1] # superdiagonal
         if (_i>0):
@@ -65,7 +64,7 @@
     # Pass 2
     for _i in range(N):
         {{u_plus}}[_i] = {{b_plus}}[_i] # RHS -> v_star (solution)
-        bi = {{ab_plus1}}[_i]-_gtot_all[_i] # main diagonal
+        bi = {{ab_plus1}}[_i]-{{gtot_all}}[_i] # main diagonal
         if (_i<N-1):
             c[_i] = {{ab_plus0}}[_i+1] # superdiagonal
         if (_i>0):
@@ -82,7 +81,7 @@
     # Pass 3
     for _i in range(N):
         {{u_minus}}[_i] = {{b_minus}}[_i] # RHS -> v_star (solution)
-        bi = {{ab_minus1}}[_i] - _gtot_all[_i] # main diagonal
+        bi = {{ab_minus1}}[_i] - {{gtot_all}}[_i] # main diagonal
         if (_i<N-1):
             c[_i] = {{ab_minus0}}[_i+1] # superdiagonal
         if (_i>0):

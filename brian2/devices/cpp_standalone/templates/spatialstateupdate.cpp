@@ -5,14 +5,14 @@
                   ab_star0, ab_star1, ab_star2, b_plus,
                   ab_plus0, ab_plus1, ab_plus2, b_minus,
                   ab_minus0, ab_minus1, ab_minus2, v_star, u_plus, u_minus,
+                  gtot_all,
                   _P, _B, _morph_i, _morph_parent_i, _starts, _ends,
                   _invr0, _invrn} #}
 {% extends 'common_group.cpp' %}
 {% block maincode %}
-	double *_gtot_all=(double *)malloc(N*sizeof(double));
-	double *c=(double *)calloc(N, sizeof(double));
-	double ai,bi,_m;
 
+	double ai,bi,_m;
+    static double *c = (double*)malloc(N * sizeof(double));
     int _vectorisation_idx = 1;
 
 	//// MAIN CODE ////////////
@@ -26,10 +26,10 @@
 	    _vectorisation_idx = _idx;
 
 		{{vector_code|autoindent}}
-		_gtot_all[_idx]=_gtot;
+		{{gtot_all}}[_idx]=_gtot;
 
 		{{v_star}}[i]=-({{Cm}}[i]/dt*{{v}}[i])-_I0; // RHS -> v_star (solution)
-		bi={{ab_star1}}[i]-_gtot_all[i]; // main diagonal
+		bi={{ab_star1}}[i]-{{gtot_all}}[i]; // main diagonal
 		if (i<N-1)
 			c[i]={{ab_star0}}[i+1]; // superdiagonal
 		if (i>0)
@@ -52,7 +52,7 @@
 	for(int i=0;i<N;i++)
 	{
 		{{u_plus}}[i]={{b_plus}}[i]; // RHS -> v_star (solution)
-		bi={{ab_plus1}}[i]-_gtot_all[i]; // main diagonal
+		bi={{ab_plus1}}[i]-{{gtot_all}}[i]; // main diagonal
 		if (i<N-1)
 			c[i]={{ab_plus0}}[i+1]; // superdiagonal
 		if (i>0)
@@ -69,12 +69,12 @@
 	}
 	for(int i=N-2;i>=0;i--)
 		{{u_plus}}[i]={{u_plus}}[i] - c[i]*{{u_plus}}[i+1];
-	
+
 	// Pass 3
 	for(int i=0;i<N;i++)
 	{
 		{{u_minus}}[i]={{b_minus}}[i]; // RHS -> v_star (solution)
-		bi={{ab_minus1}}[i]-_gtot_all[i]; // main diagonal
+		bi={{ab_minus1}}[i]-{{gtot_all}}[i]; // main diagonal
 		if (i<N-1)
 			c[i]={{ab_minus0}}[i+1]; // superdiagonal
 		if (i>0)
@@ -92,8 +92,6 @@
 	for(int i=N-2;i>=0;i--)
 		{{u_minus}}[i]={{u_minus}}[i] - c[i]*{{u_minus}}[i+1];
 
-	free(_gtot_all);
-	free(c);
 
     // Prepare matrix for solving the linear system
 

@@ -209,6 +209,9 @@ class SpatialNeuron(NeuronGroup):
         v_star : volt
         u_plus : 1
         u_minus : 1
+        # The following is only necessary for C code where we cannot deal
+        # with scalars and arrays interchangeably
+        gtot_all : siemens/meter**2
         """)
         # Possibilities for the name: characteristic_length, electrotonic_length, length_constant, space_constant
 
