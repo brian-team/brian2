@@ -219,15 +219,16 @@ class LIONodeRenderer(NodeRenderer):
     def render_node(self, node):
         expr = NodeRenderer(use_vectorisation_idx=False).render_node(node)
 
-        # Do not pull out constants or numbers
-        if node.__class__.__name__ in ['Name', 'Num', 'NameConstant']:
-            return expr
-
         if is_scalar_expression(expr, self.variables) and not has_non_float(expr,
                                                                             self.variables):
             if expr in self.optimisations:
                 name = self.optimisations[expr]
             else:
+                # Do not pull out very simple expressions (including constants
+                # and numbers)
+                sympy_expr = str_to_sympy(expr)
+                if sympy.count_ops(sympy_expr, visual=False) < 2:
+                    return expr
                 self.n += 1
                 name = '_lio_const_'+str(self.n)
                 self.optimisations[expr] = name
