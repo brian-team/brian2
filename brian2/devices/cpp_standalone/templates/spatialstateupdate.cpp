@@ -5,7 +5,7 @@
                   ab_star0, ab_star1, ab_star2, b_plus,
                   ab_plus0, ab_plus1, ab_plus2, b_minus,
                   ab_minus0, ab_minus1, ab_minus2, v_star, u_plus, u_minus,
-                  gtot_all,
+                  gtot_all, I0_all
                   _P, _B, _morph_i, _morph_parent_i, _starts, _ends,
                   _invr0, _invrn} #}
 {% extends 'common_group.cpp' %}
@@ -26,9 +26,13 @@
 	    _vectorisation_idx = _idx;
 
 		{{vector_code|autoindent}}
-		{{gtot_all}}[_idx]=_gtot;
+		{{gtot_all}}[_idx] = _gtot;
+        {{I0_all}}[_idx] = _I0;
+    }
 
-		{{v_star}}[i]=-({{Cm}}[i]/dt*{{v}}[i])-_I0; // RHS -> v_star (solution)
+    for(int i=0;i<N;i++)
+    {
+		{{v_star}}[i]=-({{Cm}}[i]/dt*{{v}}[i])-{{I0_all}}[i]; // RHS -> v_star (solution)
 		bi={{ab_star1}}[i]-{{gtot_all}}[i]; // main diagonal
 		if (i<N-1)
 			c[i]={{ab_star0}}[i+1]; // superdiagonal
