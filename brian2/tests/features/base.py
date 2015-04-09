@@ -83,9 +83,12 @@ class FeatureTest(BaseTest):
             for k in v_base.keys():
                 self.compare_arrays(maxrelerr, v_base[k], v_test[k])
         else:
-            err = numpy.amax(numpy.abs(v_base-v_test)/v_base)
+            I = (v_base!=0)
+            err = numpy.amax(numpy.abs(v_base[I]-v_test[I])/v_base[I])
             if err>maxrelerr:
                 raise InaccuracyError(err)
+            if (v_test[-I]!=0).any():
+                raise InaccuracyError(numpy.inf)
       
         
 class SpeedTest(BaseTest):
