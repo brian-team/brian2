@@ -7,4 +7,6 @@ __all__ = ['FeatureTest',
 from base import *
 import neurongroup
 import synapses
+import monitors
+import input
 import speed
