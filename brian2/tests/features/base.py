@@ -79,9 +79,13 @@ class FeatureTest(BaseTest):
         '''
         Often you just want to compare the values of some arrays, this does that.
         '''
-        err = numpy.amax(numpy.abs(v_base-v_test)/v_base)
-        if err>maxrelerr:
-            raise InaccuracyError(err)
+        if isinstance(v_base, dict):
+            for k in v_base.keys():
+                self.compare_arrays(maxrelerr, v_base[k], v_test[k])
+        else:
+            err = numpy.amax(numpy.abs(v_base-v_test)/v_base)
+            if err>maxrelerr:
+                raise InaccuracyError(err)
       
         
 class SpeedTest(BaseTest):
