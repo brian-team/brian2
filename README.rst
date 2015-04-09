@@ -1,6 +1,10 @@
 Brian2
 ======
 
+.. image:: https://badges.gitter.im/Join%20Chat.svg
+   :alt: Join the chat at https://gitter.im/brian-team/brian2
+   :target: https://gitter.im/brian-team/brian2?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+
 *A clock-driven simulator for spiking neural networks*
 
 Brian2 is currently under development and meant to replace Brian, the spiking
