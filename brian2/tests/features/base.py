@@ -142,7 +142,7 @@ class DefaultConfiguration(Configuration):
 
 
 class LocalConfiguration(Configuration):
-    name = 'Default'
+    name = 'Local'
     def before_run(self):
         brian2.prefs.reset_to_defaults()
         brian2.set_device('runtime')
