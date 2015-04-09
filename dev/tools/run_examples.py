@@ -43,6 +43,8 @@ try:
     from brian2 import prefs
     from brian2.utils.filetools import ensure_directory_of_file
     prefs.codegen.target = '{target}'
+    # add the files directory to the path so that it can do relative imports
+    sys.path.append(os.path.dirname(os.path.realpath(r'{fname}')))
     execfile(r'{fname}')
     if '{target}'=='numpy':
         for fignum in _mpl.pyplot.get_fignums():
@@ -50,7 +52,7 @@ try:
             fname = os.path.relpath(fname, '../../examples')
             fname = fname.replace('/', '.').replace('\\\\', '.')
             fname = fname.replace('.py', '.%d.png' % fignum)
-            fname = '../../docs_sphinx/examples_images/'+fname
+            fname = '../../docs_sphinx/resources/examples_images/'+fname
             print fname
             ensure_directory_of_file(fname)
             _mpl.pyplot.figure(fignum).savefig(fname)
@@ -70,8 +72,10 @@ except Exception, ex:
         p = subprocess.Popen(args, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
+        # Write both stdout and stderr to stdout so it gets captured by the
+        # Capture plugin
         sys.stdout.write(stdout)
-        sys.stderr.write(stderr)
+        sys.stdout.write(stderr)
 
         # Re-raise any exception that occured
         if os.path.exists(tempfilename):
@@ -115,7 +119,7 @@ class SelectFilesPlugin(Plugin):
     def loadTestsFromName(self, name, module=None, discovered=False):
         all_examples = self.find_examples(name)
         all_tests = []
-        for target in ['numpy', 'weave', 'cython']:
+        for target in ['numpy']:
             for example in all_examples:
                 all_tests.append(RunTestCase(example, target))
         return all_tests

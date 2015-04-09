@@ -10,8 +10,12 @@ try:
     from scipy import weave
     from scipy.weave.c_spec import num_to_c_types
 except ImportError:
-    # No weave for Python 3
-    weave = None
+    try:  # weave as an independent package
+        import weave
+        from weave.c_spec import num_to_c_types
+    except ImportError:
+        # No weave for Python 3
+        weave = None
 
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,
@@ -238,7 +242,10 @@ randn_code = {'support_code': '''
         // function), because this is otherwise only available in
         // compiled_function (where is is automatically handled by weave).
         //
-        double _call_randn(py::object& numpy_randn) {
+        double _randn(const int _vectorisation_idx) {
+            // the _vectorisation_idx argument is unused for now, it could in
+            // principle be used to get reproducible random numbers when using
+            // OpenMP etc.
             static PyArrayObject *randn_buffer = NULL;
             static double *buf_pointer = NULL;
             static npy_int curbuffer = 0;
@@ -247,7 +254,8 @@ randn_code = {'support_code': '''
                 if(randn_buffer) Py_DECREF(randn_buffer);
                 py::tuple args(1);
                 args[0] = BUFFER_SIZE;
-                randn_buffer = (PyArrayObject *)PyArray_FromAny(numpy_randn.call(args), NULL, 1, 1, 0, NULL);
+                randn_buffer = (PyArrayObject *)PyArray_FromAny(_namespace_numpy_randn.call(args),
+                                                                NULL, 1, 1, 0, NULL);
                 buf_pointer = (double*)PyArray_GETPTR1(randn_buffer, 0);
             }
             double number = buf_pointer[curbuffer];
@@ -258,10 +266,11 @@ randn_code = {'support_code': '''
                 curbuffer = 0;
             return number;
         }
-        ''', 'hashdefine_code': '#define _randn(_vectorisation_idx) _call_randn(_python_randn)'}
+        '''}
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(WeaveCodeObject,
                                                               code=randn_code,
-                                                              name='_randn')
+                                                              name='_randn',
+                                                              namespace={'_numpy_randn': numpy.random.randn})
 
 # Also use numpy for rand
 rand_code = {'support_code': '''
@@ -274,7 +283,10 @@ rand_code = {'support_code': '''
         // function), because this is otherwise only available in
         // compiled_function (where is is automatically handled by weave).
         //
-        double _call_rand(py::object& numpy_rand) {
+        double _rand(const int _vectorisation_idx) {
+            // the _vectorisation_idx argument is unused for now, it could in
+            // principle be used to get reproducible random numbers when using
+            // OpenMP etc.
             static PyArrayObject *rand_buffer = NULL;
             static double *buf_pointer = NULL;
             static npy_int curbuffer = 0;
@@ -283,7 +295,8 @@ rand_code = {'support_code': '''
                 if(rand_buffer) Py_DECREF(rand_buffer);
                 py::tuple args(1);
                 args[0] = BUFFER_SIZE;
-                rand_buffer = (PyArrayObject *)PyArray_FromAny(numpy_rand.call(args), NULL, 1, 1, 0, NULL);
+                rand_buffer = (PyArrayObject *)PyArray_FromAny(_namespace_numpy_rand.call(args),
+                                                               NULL, 1, 1, 0, NULL);
                 buf_pointer = (double*)PyArray_GETPTR1(rand_buffer, 0);
             }
             double number = buf_pointer[curbuffer];
@@ -294,7 +307,8 @@ rand_code = {'support_code': '''
                 curbuffer = 0;
             return number;
         }
-        ''', 'hashdefine_code': '#define _rand(_vectorisation_idx) _call_rand(_python_rand)'}
+        '''}
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(WeaveCodeObject,
                                                              code=rand_code,
+                                                             namespace={'_numpy_rand': numpy.random.rand},
                                                              name='_rand')

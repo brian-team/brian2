@@ -9,6 +9,7 @@ import platform
 from collections import defaultdict
 import numbers
 import time
+import tempfile
 
 import numpy as np
 
@@ -477,7 +478,20 @@ class CPPStandaloneDevice(Device):
                     if net().name != '_fake_network']
         synapses = []
         for net in networks:
-            synapses.extend(s for s in net.objects if isinstance(s, Synapses))
+            net_synapses = [s for s in net.objects if isinstance(s, Synapses)]
+            synapses.extend(net_synapses)
+            # We don't currently support pathways with scalar delays
+            for synapse_obj in net_synapses:
+                for pathway in synapse_obj._pathways:
+                    if not isinstance(pathway.variables['delay'],
+                                      DynamicArrayVariable):
+                        error_msg = ('The "%s" pathway  uses a scalar '
+                                     'delay (instead of a delay per synapse). '
+                                     'This is not yet supported. Do not '
+                                     'specify a delay in the Synapses(...) '
+                                     'call but instead set its delay attribute '
+                                     'afterwards.') % (pathway.name)
+                        raise NotImplementedError(error_msg)
 
         # Not sure what the best place is to call Network.after_run -- at the
         # moment the only important thing it does is to clear the objects stored
@@ -642,9 +656,10 @@ class CPPStandaloneDevice(Device):
                 writer.header_files.append('brianlib/'+file)
 
         # Copy the CSpikeQueue implementation
-        spikequeue_h = os.path.join(directory, 'brianlib', 'spikequeue.h')
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'cspikequeue.cpp'),
-                     spikequeue_h)
+                     os.path.join(directory, 'brianlib', 'spikequeue.h'))
+        shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'stdint_compat.h'),
+                     os.path.join(directory, 'brianlib', 'stdint_compat.h'))
         
         writer.source_files.extend(additional_source_files)
         writer.header_files.extend(additional_header_files)
@@ -889,7 +904,24 @@ class RunFunctionContext(object):
     def __exit__(self, type, value, traceback):
         cpp_standalone_device.main_queue.append(('end_run_func', (self.name, self.include_in_parent)))
 
-
 cpp_standalone_device = CPPStandaloneDevice()
-
 all_devices['cpp_standalone'] = cpp_standalone_device
+
+
+class CPPStandaloneSimpleDevice(CPPStandaloneDevice):
+    def network_run(self, net, duration, report=None, report_period=10*second,
+                    namespace=None, profile=True, level=0, **kwds):
+        super(CPPStandaloneSimpleDevice, self).network_run(net, duration,
+                                                     report=report,
+                                                     report_period=report_period,
+                                                     namespace=namespace,
+                                                     profile=profile,
+                                                     level=level+1,
+                                                     **kwds)
+        tempdir = tempfile.mkdtemp()
+        self.build(directory=tempdir, compile=True, run=True, debug=False,
+                   with_output=False)
+
+cpp_standalone_simple_device = CPPStandaloneSimpleDevice()
+
+all_devices['cpp_standalone_simple'] = cpp_standalone_simple_device

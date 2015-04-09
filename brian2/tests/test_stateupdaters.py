@@ -8,6 +8,7 @@ from nose import with_setup
 from brian2 import *
 from brian2.utils.logger import catch_logs
 from brian2.core.variables import ArrayVariable, AttributeVariable, Variable
+from brian2.devices.device import restore_device
 
 
 @attr('codegen-independent')
@@ -368,7 +369,7 @@ def test_registration():
     Test state updater registration.
     '''
     # Save state before tests
-    before = list(StateUpdateMethod.stateupdaters)
+    before = dict(StateUpdateMethod.stateupdaters)
     
     lazy_updater = ExplicitStateUpdater('x_new = x')
     StateUpdateMethod.register('lazy', lazy_updater)
@@ -397,9 +398,6 @@ def test_determination():
     '''
     # To save some typing
     determine_stateupdater = StateUpdateMethod.determine_stateupdater
-    
-    # Save state before tests
-    before = list(StateUpdateMethod.stateupdaters)
     
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     # Just make sure that state updaters know about the two state variables
@@ -480,34 +478,32 @@ def test_determination():
     # Automatic state updater choice should return linear for linear equations,
     # euler for non-linear, non-stochastic equations and equations with
     # additive noise, milstein for equations with multiplicative noise
+    # Because it is somewhat fragile, the "independent" state updater is not
+    # included in this list
+    all_methods = ['linear', 'exponential_euler', 'euler', 'milstein']
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
-    assert determine_stateupdater(eqs, variables) is linear
+    assert determine_stateupdater(eqs, variables, all_methods) is linear
     
     # This is conditionally linear
     eqs = Equations('''dv/dt = -(v + w**2)/ (10*ms) : 1
                        dw/dt = -w/ (10*ms) : 1''')
-    assert determine_stateupdater(eqs, variables) is exponential_euler
+    assert determine_stateupdater(eqs, variables, all_methods) is exponential_euler
 
-    eqs = Equations('dv/dt = sin(t) / (10*ms) : 1')
-    assert determine_stateupdater(eqs, variables) is independent
+    # # Do not test for now
+    # eqs = Equations('dv/dt = sin(t) / (10*ms) : 1')
+    # assert determine_stateupdater(eqs, variables) is independent
 
     eqs = Equations('dv/dt = -sqrt(v) / (10*ms) : 1')
-    assert determine_stateupdater(eqs, variables) is euler
+    assert determine_stateupdater(eqs, variables, all_methods) is euler
 
     eqs = Equations('dv/dt = -v / (10*ms) + 0.1*second**-.5*xi: 1')
-    assert determine_stateupdater(eqs, variables) is euler
+    assert determine_stateupdater(eqs, variables, all_methods) is euler
 
     eqs = Equations('dv/dt = -v / (10*ms) + v*0.1*second**-.5*xi: 1')
-    assert determine_stateupdater(eqs, variables) is milstein
+    assert determine_stateupdater(eqs, variables, all_methods) is milstein
 
-    # remove all registered state updaters --> automatic choice no longer works
-    StateUpdateMethod.stateupdaters = {}
-    assert_raises(ValueError, lambda: determine_stateupdater(eqs, variables))
-
-    # reset to state before the test
-    StateUpdateMethod.stateupdaters = before
-
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_subexpressions_basic():
     '''
     Make sure that the integration of a (non-stochastic) differential equation

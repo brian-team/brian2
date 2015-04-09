@@ -15,7 +15,17 @@ import time
 from warnings import warn
 
 import numpy
-import scipy
+try:
+    import scipy
+except ImportError:
+    scipy = None
+try:
+    import scipy.weave as weave
+except ImportError:
+    try:
+        import weave
+    except ImportError:
+        weave = None
 import sympy
 
 import brian2
@@ -162,17 +172,16 @@ CONSOLE_HANDLER.setFormatter(logging.Formatter('%(levelname)-8s %(name)s: %(mess
 logger.addHandler(CONSOLE_HANDLER)
 
 # We want to log all warnings
-if hasattr(logging, 'captureWarnings'):  # This function was added in Python 2.7
-    logging.captureWarnings(True) # pylint: disable=E1101
-    # Manually connect to the warnings logger so that the warnings end up in
-    # the log file. Note that connecting to the console handler here means
-    # duplicated warning messages in the ipython notebook, but not doing so
-    # would mean that they are not displayed at all in the standard ipython
-    # interface...
-    warn_logger = logging.getLogger('py.warnings')
-    warn_logger.addHandler(CONSOLE_HANDLER)
-    if FILE_HANDLER is not None:
-        warn_logger.addHandler(FILE_HANDLER)
+logging.captureWarnings(True)  # pylint: disable=E1101
+# Manually connect to the warnings logger so that the warnings end up in
+# the log file. Note that connecting to the console handler here means
+# duplicated warning messages in the ipython notebook, but not doing so
+# would mean that they are not displayed at all in the standard ipython
+# interface...
+warn_logger = logging.getLogger('py.warnings')
+warn_logger.addHandler(CONSOLE_HANDLER)
+if FILE_HANDLER is not None:
+    warn_logger.addHandler(FILE_HANDLER)
 
 # Put some standard info into the log file
 logger.debug('Logging to file: %s, copy of main script saved as: %s' %
@@ -181,7 +190,8 @@ logger.debug('Python interpreter: %s' % sys.executable)
 logger.debug('Platform: %s' % sys.platform)
 version_infos = {'brian': brian2.__version__,
                  'numpy': numpy.__version__,
-                 'scipy': scipy.__version__,
+                 'scipy': scipy.__version__ if scipy else 'not installed',
+                 'weave': weave.__version__ if weave else 'not installed',
                  'sympy': sympy.__version__,
                  'python': sys.version,
                  }

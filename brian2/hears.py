@@ -167,7 +167,7 @@ class FilterbankGroup(NeuronGroup):
         self.buffer_pointer = self.buffersize
         self.buffer_start = -self.buffersize
 
-handled_explicitly = set(['Sound', 'FilterbankGroup'])
+handled_explicitly = {'Sound', 'FilterbankGroup'}
 
 __all__ = [k for k in b1h.__dict__.keys() if not k.startswith('_')]
 for k in __all__:

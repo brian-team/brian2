@@ -3,17 +3,13 @@ Brian 2.0
 '''
 # Check basic dependencies
 import sys
+from distutils.version import StrictVersion
 missing = []
 try:
     import numpy
 except ImportError as ex:
     sys.stderr.write('Importing numpy failed: %s\n' % ex)
     missing.append('numpy')
-try:
-    import scipy
-except ImportError as ex:
-    sys.stderr.write('Importing scipy failed: %s\n' % ex)
-    missing.append('scipy')
 try:
     import sympy
 except ImportError as ex:
@@ -55,7 +51,30 @@ if 'rate' in globals():
 
 __docformat__ = "restructuredtext en"
 
-__version__ = '2.0beta'
-__release_date__ = '2014-11-03'
+__version__ = '2.0b2+git'
+__release_date__ = '2015-03-11'
 
 from brian2.only import *
+
+# Check for outdated dependency versions
+def _check_dependency_version(name, version):
+    from core.preferences import prefs
+    from utils.logger import get_logger
+    logger = get_logger(__name__)
+
+    module = sys.modules[name]
+    if not isinstance(module.__version__, basestring):  # mocked module
+        return
+    if not StrictVersion(module.__version__) >= StrictVersion(version):
+        message = '%s is outdated (got version %s, need version %s)' % (name,
+                                                                        module.__version__,
+                                                                        version)
+        if prefs.core.outdated_dependency_error:
+            raise ImportError(message)
+        else:
+
+            logger.warn(message, 'outdated_dependency')
+
+for name, version in [('numpy', '1.8.0'),
+                      ('sympy', '0.7.6')]:
+    _check_dependency_version(name, version)

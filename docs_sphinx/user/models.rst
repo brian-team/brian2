@@ -77,39 +77,6 @@ This will not allow any threshold crossing for a neuron for 5ms after a spike.
 The refractory keyword allows for more flexible refractoriness specifications,
 see :doc:`refractoriness` for details.
 
-.. _linked_variables:
-
-Linked variables
-----------------
-A `NeuronGroup` can define parameters that are not stored in this group, but are
-instead a reference to a state variable in another group. For this, a group
-defines a parameter as ``linked`` and then uses `linked_var` to
-specify the linking. This can for example be useful to model shared noise
-between cells::
-
-    inp = NeuronGroup(1, 'dnoise/dt = -noise/tau + tau**-0.5*xi : 1')
-
-    neurons = NeuronGroup(100, '''noise : 1 (linked)
-                                  dv/dt = (-v + noise_strength*noise)/tau : volt''')
-    neurons.noise = linked_var(inp, 'noise')
-
-If the two groups have the same size, the linking will be done in a 1-to-1
-fashion. If the source group has the size one (as in the above example) or if
-the source parameter is a shared variable, then the linking will be done as
-1-to-all. In all other cases, you have to specify the indices to use for the
-linking explicitly::
-
-    # two inputs with different phases
-    inp = NeuronGroup(2, '''phase : 1
-                            dx/dt = 1*mV/ms*sin(2*pi*100*Hz*t-phase) : volt''')
-    inp.phase = [0, pi/2]
-
-    neurons = NeuronGroup(100, '''inp : volt (linked)
-                                  dv/dt = (-v + inp) / tau : volt''')
-    # Half of the cells get the first input, other half gets the second
-    neurons.inp = linked_var(inp, 'x', index=repeat([0, 1], 50))
-
-
 State variables
 ---------------
 Differential equations and parameters in model descriptions are stored as 
@@ -152,20 +119,81 @@ For shared variables, such string expressions can only refer to shared values:
     <neurongroup.shared_input: 4.2579690100000001 * mvolt>
 
 
+Subgroups
+---------
+It is often useful to refer to a subset of neurons, this can be achieved using
+slicing syntax::
+
+    G = NeuronGroup(10, '''dv/dt = -v/tau : volt
+                           tau : second''',
+                    threshold='v > -50*mV',
+                    reset='v = -70*mV')
+    # Create subgroups
+    G1 = G[:5]
+    G2 = G[5:]
+
+    # This will set the values in the main group, subgroups are just "views"
+    G1.tau = 10*ms
+    G2.tau = 20*ms
+
+Subgroups can be used in most places where regular groups are used, e.g. their
+state variables or spiking activity can be recorded using monitors, they can be
+connected via `Synapses`, etc. In such situations, indices (e.g. the indices of
+the neurons to record from in a `StateMonitor`) are relative to the subgroup,
+not to the main group
+
+
+.. _linked_variables:
+
+Linked variables
+----------------
+A `NeuronGroup` can define parameters that are not stored in this group, but are
+instead a reference to a state variable in another group. For this, a group
+defines a parameter as ``linked`` and then uses `linked_var` to
+specify the linking. This can for example be useful to model shared noise
+between cells::
+
+    inp = NeuronGroup(1, 'dnoise/dt = -noise/tau + tau**-0.5*xi : 1')
+
+    neurons = NeuronGroup(100, '''noise : 1 (linked)
+                                  dv/dt = (-v + noise_strength*noise)/tau : volt''')
+    neurons.noise = linked_var(inp, 'noise')
+
+If the two groups have the same size, the linking will be done in a 1-to-1
+fashion. If the source group has the size one (as in the above example) or if
+the source parameter is a shared variable, then the linking will be done as
+1-to-all. In all other cases, you have to specify the indices to use for the
+linking explicitly::
+
+    # two inputs with different phases
+    inp = NeuronGroup(2, '''phase : 1
+                            dx/dt = 1*mV/ms*sin(2*pi*100*Hz*t-phase) : volt''')
+    inp.phase = [0, pi/2]
+
+    neurons = NeuronGroup(100, '''inp : volt (linked)
+                                  dv/dt = (-v + inp) / tau : volt''')
+    # Half of the cells get the first input, other half gets the second
+    neurons.inp = linked_var(inp, 'x', index=repeat([0, 1], 50))
+
+
 .. _numerical_integration:
 
 Numerical integration
 ---------------------
 Differential equations are converted into a sequence of statements that
 integrate the equations numerically over a single time step. By default, Brian
-choses an integration method automatically, trying to solve the equations
-exactly first (which is possible for example for linear equations) and then
-resorting to numerical algorithms (see below). It will also take care of integrating
-stochastic differential equations appropriately. If you prefer to chose an
-integration algorithm yourself, you can do so using the ``method`` keyword for
-`NeuronGroup` or `Synapses`. The list of available methods is the following,
-if no method is chosen explicitly Brian will try methods starting at the top
-until it finds a method than can integrate the given equations:
+chooses an integration method automatically, trying to solve the equations
+exactly first (for linear equations) and then resorting to numerical algorithms.
+It will also take care of integrating stochastic differential equations
+appropriately. Each class defines its own list of algorithms it tries to
+apply, `NeuronGroup` and `Synapses` will use the first suitable method out of
+the methods ``'linear'``, ``'euler'``, and ``'milstein'`` while `SpatialNeuron`
+objects will use ``'linear'``, ``'exponential_euler'``, ``'rk2'``, or
+``'milstein'``.
+
+If you prefer to chose an integration algorithm yourself, you can do so using
+the ``method`` keyword for `NeuronGroup`, `Synapses`, or `SpatialNeuron`.
+The complete list of available methods is the following:
 
 * ``'linear'``: exact integration for linear equations
 * ``'independent'``: exact integration for a system of independent equations,

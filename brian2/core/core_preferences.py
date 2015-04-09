@@ -21,8 +21,15 @@ prefs.register_preferences('core', 'Core Brian preferences',
     default_integer_dtype=BrianPreference(
         default=int32,
         docs='''
-        Default dtype for all arrays of integer scalars'
+        Default dtype for all arrays of integer scalars.
         ''',
         representor=dtype_repr,
+        ),
+    outdated_dependency_error=BrianPreference(
+        default=True,
+        docs='''
+        Whether to raise an error for outdated dependencies (``True``) or just
+        a warning (``False``).
+        '''
         )
     )

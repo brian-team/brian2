@@ -59,6 +59,7 @@ the equations of the respective group::
     G.rates = '10*Hz + i*Hz'
     G.size = '(100-i)/100. + 0.1'
 
+.. _timed_arrays:
 
 Timed arrays
 ------------

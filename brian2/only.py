@@ -37,6 +37,7 @@ from brian2.core.namespace import *
 from brian2.groups import *
 from brian2.synapses import *
 from brian2.monitors import *
+from brian2.input import *
 from brian2.spatialneuron import *
 from brian2.devices import set_device, get_device, device
 import brian2.devices.cpp_standalone as _cpp_standalone
@@ -52,11 +53,13 @@ def restore_initial_state():
     '''
     Restores internal Brian variables to the state they are in when Brian is imported
 
-    Resets ``defaultclock.dt = 0.1*ms`` and
-    `BrianGlobalPreferences._restore` preferences.
+    Resets ``defaultclock.dt = 0.1*ms``, 
+    `BrianGlobalPreferences._restore` preferences, and set
+    `BrianObject._scope_current_key` back to 0.
     '''
     defaultclock.dt = 0.1*ms
     prefs._restore()
+    BrianObject._scope_current_key = 0
 
 # make the test suite available via brian2.test()
 from brian2.tests import run as test

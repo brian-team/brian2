@@ -7,7 +7,7 @@ This example is modified from ``synapses_STDP.py`` and writes a standalone
 C++ project in the directory ``STDP_standalone``.
 '''
 from brian2 import *
-prefs.codegen.cpp.compiler = 'gcc'
+
 set_device('cpp_standalone')
 
 N = 1000

@@ -5,9 +5,10 @@ import numpy
 from numpy.testing.utils import assert_raises
 from nose.plugins.attrib import attr
 
-from brian2.core.preferences import prefs
+from brian2.core.variables import Constant
 from brian2.groups.group import Group
 from brian2.units import second, volt
+from brian2.units.fundamentalunits import Unit
 from brian2.units.stdunits import ms, Hz, mV
 from brian2.units.unitsafefunctions import sin, log, exp
 from brian2.utils.logger import catch_logs
@@ -126,6 +127,21 @@ def test_warning():
         assert len(l) == 1, 'got warnings: %s' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
 
+@attr('codegen-independent')
+def test_warning_internal_variables():
+    N = 5
+    group1 = SimpleGroup(namespace=None,
+                         variables={'N': Constant('N', Unit(1), 5)})
+    group2 = SimpleGroup(namespace=None,
+                         variables={'N': Constant('N', Unit(1), 7)})
+    with catch_logs() as l:
+        group1.resolve('N')  # should not raise a warning
+        assert len(l) == 0, 'got warnings: %s' % str(l)
+    with catch_logs() as l:
+        group2.resolve('N')  # should raise a warning
+        assert len(l) == 1, 'got warnings: %s' % str(l)
+        assert l[0][1].endswith('.resolution_conflict')
+
 
 if __name__ == '__main__':
     test_default_content()
@@ -133,3 +149,4 @@ if __name__ == '__main__':
     test_errors()
     test_resolution()
     test_warning()
+    test_warning_internal_variables()

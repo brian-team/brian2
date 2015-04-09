@@ -96,7 +96,7 @@ class SpatialNeuron(NeuronGroup):
                  threshold_location=None,
                  dt=None, clock=None, order=0, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
                  name='spatialneuron*', dtype=None, namespace=None,
-                 method=None):
+                 method=('linear', 'exponential_euler', 'rk2', 'milstein')):
 
         # #### Prepare and validate equations
         if isinstance(model, basestring):
@@ -410,6 +410,20 @@ class SpatialStateUpdater(CodeRunner, Group):
                                                           run_namespace=run_namespace,
                                                           level=level+1)
         self._prepare_codeobj()
+        # Raise a warning if the slow pure numpy version is used
+        # For simplicity, we check which CodeObject class the _prepare_codeobj
+        # is using, this will be the same as the main state updater
+        from brian2.codegen.runtime.numpy_rt.numpy_rt import NumpyCodeObject
+        if isinstance(self._prepare_codeobj, NumpyCodeObject):
+            # If numpy is used, raise a warning if scipy is not present
+            try:
+                import scipy
+            except ImportError:
+                logger.warn(('SpatialNeuron will use numpy to do the numerical '
+                             'integration -- this will be very slow. Either '
+                             'switch to a different code generation target '
+                             '(e.g. weave or cython) or install scipy.'),
+                            once=True)
         CodeRunner.before_run(self, run_namespace, level=level + 1)
 
     def _pre_calc_iteration(self, morphology, counter=0):
@@ -417,9 +431,10 @@ class SpatialStateUpdater(CodeRunner, Group):
         self._temp_morph_parent_i[counter] = morphology.parent + 1
         self._temp_starts[counter] = morphology._origin
         self._temp_ends[counter] = morphology._origin + len(morphology.x) - 1
+        total_count = 1
         for child in morphology.children:
-            counter += 1
-            self._pre_calc_iteration(child, counter)
+            total_count += self._pre_calc_iteration(child, counter+total_count)
+        return total_count
 
     def number_branches(self, morphology, n=0, parent=-1):
         '''

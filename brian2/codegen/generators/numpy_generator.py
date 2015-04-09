@@ -88,24 +88,13 @@ class NumpyCodeGenerator(CodeGenerator):
         for varname in write:
             var = variables[varname]
             index_var = variable_indices[varname]
-            # check if all operations were inplace and we're operating on the
-            # whole vector, if so we don't need to write the array back
-            if not index_var in self.iterate_all:
-                all_inplace = False
+            line = self.get_array_name(var)
+            if index_var in self.iterate_all:
+                line = line + '[:]'
             else:
-                all_inplace = True
-                for stmt in statements:
-                    if stmt.var == varname and not stmt.inplace:
-                        all_inplace = False
-                        break
-            if not all_inplace:
-                line = self.get_array_name(var)
-                if index_var in self.iterate_all:
-                    line = line + '[:]'
-                else:
-                    line = line + '[' + index_var + ']'
-                line = line + ' = ' + varname
-                lines.append(line)
+                line = line + '[' + index_var + ']'
+            line = line + ' = ' + varname
+            lines.append(line)
 #                if index_var in iterate_all:
 #                    line = '{array_name}[:] = {varname}'
 #                else:
@@ -132,8 +121,13 @@ class NumpyCodeGenerator(CodeGenerator):
         return lines
 
     def determine_keywords(self):
-        # For numpy, no addiional keywords are provided to the template
-        return {}
+        try:
+            import scipy
+            scipy_available = True
+        except ImportError:
+            scipy_available = False
+
+        return {'_scipy_available': scipy_available}
 
 ################################################################################
 # Implement functions
@@ -144,7 +138,8 @@ for func_name, func in [('sin', np.sin), ('cos', np.cos), ('tan', np.tan),
                         ('exp', np.exp), ('log', np.log), ('log10', np.log10),
                         ('sqrt', np.sqrt), ('arcsin', np.arcsin),
                         ('arccos', np.arccos), ('arctan', np.arctan),
-                        ('abs', np.abs), ('mod', np.fmod)]:
+                        ('abs', np.abs), ('mod', np.fmod),
+                        ('sign', np.sign)]:
     DEFAULT_FUNCTIONS[func_name].implementations.add_implementation(NumpyCodeGenerator,
                                                                     code=func)
 

@@ -3,12 +3,8 @@ This module defines the `Group` object, a mix-in class for everything that
 saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
 '''
 import collections
+from collections import OrderedDict
 import weakref
-try:
-    from collections import OrderedDict
-except ImportError:
-    # OrderedDict was added in Python 2.7, use backport for Python 2.6
-    from brian2.utils.ordereddict import OrderedDict
 
 import numpy as np
 
@@ -600,17 +596,27 @@ class Group(BrianObject):
             # external namespace nevertheless, to report a warning if it is
             # present there as well.
             try:
-                self._resolve_external(identifier,
-                                       run_namespace=run_namespace,
-                                       level=level+1)
+                resolved_external = self._resolve_external(identifier,
+                                                           run_namespace=run_namespace,
+                                                           level=level+1)
                 # If we arrive here without a KeyError then the name is present
                 # in the external namespace as well
-                message = ('Variable {var} is present in the namespace but is '
-                           'also an internal variable of {name}, the internal '
-                           'variable will be used.'.format(var=identifier,
-                                                           name=self.name))
-                logger.warn(message, 'Group.resolve.resolution_conflict',
-                            once=True)
+
+                # Do not raise a warning if both correspond to the same constant
+                # value, a typical case being an externally defined "N" with the
+                # the number of neurons and a later use of "N" in an expression
+                # (which refers to the internal variable storing the number of
+                # neurons in the group)
+                if not (isinstance(resolved_internal, Constant) and
+                            isinstance(resolved_external, Constant) and
+                                resolved_internal.get_value() == resolved_external.get_value()):
+
+                    message = ('Variable {var} is present in the namespace but is '
+                               'also an internal variable of {name}, the internal '
+                               'variable will be used.'.format(var=identifier,
+                                                               name=self.name))
+                    logger.warn(message, 'Group.resolve.resolution_conflict',
+                                once=True)
             except KeyError:
                 pass  # Nothing to warn about
 

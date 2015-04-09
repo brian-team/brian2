@@ -1,9 +1,13 @@
-import numpy as np
 from numpy.testing.utils import assert_allclose, assert_array_equal, assert_raises
+from nose import with_setup
+from nose.plugins.attrib import attr
 
 from brian2 import *
+from brian2.devices.device import restore_device
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_spike_monitor():
     G = NeuronGroup(2, '''dv/dt = rate : 1
                           rate: Hz''', threshold='v>1', reset='v=0')
@@ -30,6 +34,27 @@ def test_spike_monitor():
     assert_array_equal(t_, mon.t_)
 
 
+def test_synapses_state_monitor():
+    G = NeuronGroup(2, '')
+    S = Synapses(G, G, 'w: siemens')
+    S.connect(True)
+    S.w = 'j*nS'
+
+    # record from a Synapses object (all synapses connecting to neuron 1)
+    synapse_mon = StateMonitor(S, 'w', record=S[:, 1])
+    synapse_mon2 = StateMonitor(S, 'w', record=S['j==1'])
+
+    net = Network(G, S, synapse_mon, synapse_mon2)
+    net.run(10*ms)
+    # Synaptic variables
+    assert_allclose(synapse_mon[S[0, 1]].w, 1*nS)
+    assert_allclose(synapse_mon.w[1], 1*nS)
+    assert_allclose(synapse_mon2[S[0, 1]].w, 1*nS)
+    assert_allclose(synapse_mon2[S['i==0 and j==1']].w, 1*nS)
+    assert_allclose(synapse_mon2.w[1], 1*nS)
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_state_monitor():
     # Check that all kinds of variables can be recorded
     G = NeuronGroup(2, '''dv/dt = -v / (10*ms) : 1
@@ -58,16 +83,14 @@ def test_state_monitor():
     # Use a StateMonitor recording everything
     all_mon = StateMonitor(G, True, record=True)
 
-    # record from a Synapses object (all synapses connecting to neuron 1)
-    synapse_mon = StateMonitor(S, 'w', record=S[:, 1])
-    synapse_mon2 = StateMonitor(S, 'w', record=S['j==1'])
-
+    # Record synapses with explicit indices (the only way allowed in standalone)
+    synapse_mon = StateMonitor(S, 'w', record=np.arange(len(G)**2))
 
     net = Network(G, S, nothing_mon,
                   v_mon, v_mon1,
                   multi_mon, multi_mon1,
                   all_mon,
-                  synapse_mon, synapse_mon2)
+                  synapse_mon)
     net.run(10*ms)
 
     # Check time recordings
@@ -97,13 +120,13 @@ def test_state_monitor():
 
     assert all(all_mon[0].not_refractory[:] == True)
 
-    # Synaptic variables
-    assert_allclose(synapse_mon[S[0, 1]].w, 1*nS)
-    assert_allclose(synapse_mon.w[1], 1*nS)
-    assert_allclose(synapse_mon2[S[0, 1]].w, 1*nS)
-    assert_allclose(synapse_mon2[S['i==0 and j==1']].w, 1*nS)
-    assert_allclose(synapse_mon2.w[1], 1*nS)
+    # Synapses
+    assert_allclose(synapse_mon.w[:], np.tile(S.j[:]*nS,
+                                              (synapse_mon.w[:].shape[1], 1)).T)
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_state_monitor_indexing():
     # Check indexing semantics
     G = NeuronGroup(10, 'v:volt')
     G.v = np.arange(10) * volt
@@ -128,7 +151,8 @@ def test_state_monitor():
     assert_raises(TypeError, lambda: mon[5.0])
     assert_raises(TypeError, lambda: mon[[5.0, 6.0]])
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_rate_monitor():
     G = NeuronGroup(5, 'v : 1', threshold='v>1') # no reset
     G.v = 1.1 # All neurons spike every time step
@@ -142,16 +166,15 @@ def test_rate_monitor():
     assert_allclose(rate_mon.rate_, np.asarray(np.ones(10) / defaultclock.dt))
 
     G = NeuronGroup(10, 'v : 1', threshold='v>1') # no reset
-    G.v[:5] = 1.1 # Half of the neurons fire every time step
+    G.v['i<5'] = 1.1  # Half of the neurons fire every time step
     rate_mon = PopulationRateMonitor(G)
     net = Network(G, rate_mon)
     net.run(10*defaultclock.dt)
     assert_allclose(rate_mon.rate, 0.5 * np.ones(10) / defaultclock.dt)
     assert_allclose(rate_mon.rate_, 0.5 *np.asarray(np.ones(10) / defaultclock.dt))
-    assert_array_equal(rate_mon.rate['t>0.5*ms'],
-                 rate_mon.rate[np.nonzero(rate_mon.t>0.5*ms)[0]])
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_rate_monitor_subgroups():
     old_dt = defaultclock.dt
     defaultclock.dt = 0.01*ms
@@ -174,5 +197,6 @@ def test_rate_monitor_subgroups():
 if __name__ == '__main__':
     test_spike_monitor()
     test_state_monitor()
+    test_state_monitor_indexing()
     test_rate_monitor()
     test_rate_monitor_subgroups()

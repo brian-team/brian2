@@ -37,3 +37,17 @@ Note that it is safe to use e.g. ``np.sin`` and ``numpy.sin`` after a
 ``from brian2 import *``.
 
 .. _matplotlib: http://matplotlib.org/
+
+
+.. _dependency_checks:
+
+Dependency checks
+-----------------
+Brian will check the dependency versions during import and raise an error for
+an outdated dependency. An outdated dependency does not necessarily mean that
+Brian cannot be run with it, it only means that Brian is untested on that
+version. If you want to force Brian to run despite the outdated dependency, set
+the `core.outdated_dependency_error` preference to ``False``. Note that this
+cannot be done in a script, since you do not have access to the preferences
+before importing `brian2`. See :doc:`../advanced/preferences` for instructions
+how to set preferences in a file.

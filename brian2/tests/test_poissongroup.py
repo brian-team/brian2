@@ -1,8 +1,13 @@
 from numpy.testing.utils import assert_equal
+from nose import with_setup
+from nose.plugins.attrib import attr
 
 from brian2 import *
+from brian2.devices.device import restore_device
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_single_rates():
     # Specifying single rates
     P0 = PoissonGroup(10, 0*Hz)
@@ -18,7 +23,8 @@ def test_single_rates():
     assert_equal(spikes_P0.count, np.zeros(len(P0)))
     assert_equal(spikes_Pfull.count, 2 * np.ones(len(P0)))
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_rate_arrays():
     P = PoissonGroup(2, np.array([0, 1./defaultclock.dt])*Hz)
     spikes = SpikeMonitor(P)
@@ -27,7 +33,8 @@ def test_rate_arrays():
 
     assert_equal(spikes.count, np.array([0, 2]))
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_propagation():
     # Using a PoissonGroup as a source for Synapses should work as expected
     P = PoissonGroup(2, np.array([0, 1./defaultclock.dt])*Hz)

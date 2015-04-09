@@ -6,6 +6,5 @@ Introduction
 
    install
    release_notes
-   gettingstarted
    changes
    known_issues

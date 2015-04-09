@@ -1,0 +1,3 @@
+[submodule "docs_sphinx/resources"]
+	path = docs_sphinx/resources
+	url = https://github.com/brian-team/brian2-doc-resources.git

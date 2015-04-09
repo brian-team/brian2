@@ -1,11 +1,11 @@
-from nose import SkipTest
+from nose import SkipTest, with_setup
 from nose.plugins.attrib import attr
 from numpy.testing import assert_equal, assert_raises, assert_allclose
 
 from brian2 import *
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.utils.logger import catch_logs
-
+from brian2.devices.device import restore_device
 
 @attr('codegen-independent')
 def test_constants_sympy():
@@ -101,7 +101,7 @@ def test_math_functions():
         for func in [cos, tan, sinh, cosh, tanh,
                      arcsin, arccos, arctan,
                      log, log10,
-                     np.ceil, np.floor]:
+                     np.ceil, np.floor, np.sign]:
 
             # Calculate the result directly
             numpy_result = func(test_array)
@@ -125,6 +125,8 @@ def test_math_functions():
                             err_msg='Function %s did not return the correct values' % func.__name__)
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_user_defined_function():
     @implementation('cpp',"""
                 inline double usersin(double x)
@@ -153,6 +155,7 @@ def test_user_defined_function():
     assert_equal(np.sin(test_array), mon.func_.flatten())
 
 
+@with_setup(teardown=restore_device)
 def test_user_defined_function_units():
     '''
     Test the preparation of functions for use in code with check_units.
@@ -284,6 +287,7 @@ def test_manual_user_defined_function():
 
     assert mon[0].func == [6] * volt
 
+
 def test_manual_user_defined_function_weave():
     if prefs.codegen.target != 'weave':
         raise SkipTest('weave-only test')
@@ -374,7 +378,7 @@ def test_function_implementation_container():
 
     # Register the code generation targets
     _previous_codegen_targets = set(targets.codegen_targets)
-    targets.codegen_targets = set([ACodeObject, BCodeObject])
+    targets.codegen_targets = {ACodeObject, BCodeObject}
 
     @check_units(x=volt, result=volt)
     def foo(x):
@@ -406,17 +410,136 @@ def test_function_implementation_container():
 
     # some basic dictionary properties
     assert len(container) == 4
-    assert set((key for key in container)) == set(['A Language', 'B',
-                                                   ACodeObject, BCodeGenerator])
+    assert set((key for key in container)) == {'A Language', 'B', ACodeObject,
+                                               BCodeGenerator}
 
     # Restore the previous codegeneration targets
     targets.codegen_targets = _previous_codegen_targets
+
+
+def test_function_dependencies_weave():
+    if prefs.codegen.target != 'weave':
+        raise SkipTest('weave-only test')
+
+    @implementation('cpp', '''
+    float foo(float x)
+    {
+        return 42*0.001;
+    }''')
+    @check_units(x=volt, result=volt)
+    def foo(x):
+        return 42*mV
+
+    # Second function with an independent implementation for numpy and an
+    # implementation for C++ that makes use of the previous function.
+
+    @implementation('cpp', '''
+    float bar(float x)
+    {
+        return 2*foo(x);
+    }''', dependencies={'foo': foo})
+    @check_units(x=volt, result=volt)
+    def bar(x):
+        return 84*mV
+
+    G = NeuronGroup(5, 'v : volt')
+    updater = G.custom_operation('v = bar(v)')
+    net = Network(G, updater)
+    net.run(defaultclock.dt)
+
+    assert_allclose(G.v_[:], 84*0.001)
+
+
+def test_function_dependencies_cython():
+    if prefs.codegen.target != 'cython':
+        raise SkipTest('cython-only test')
+
+    @implementation('cython', '''
+    cdef float foo(float x):
+        return 42*0.001
+    ''')
+    @check_units(x=volt, result=volt)
+    def foo(x):
+        return 42*mV
+
+    # Second function with an independent implementation for numpy and an
+    # implementation for C++ that makes use of the previous function.
+
+    @implementation('cython', '''
+    cdef float bar(float x):
+        return 2*foo(x)
+    ''', dependencies={'foo': foo})
+    @check_units(x=volt, result=volt)
+    def bar(x):
+        return 84*mV
+
+    G = NeuronGroup(5, 'v : volt')
+    updater = G.custom_operation('v = bar(v)')
+    net = Network(G, updater)
+    net.run(defaultclock.dt)
+
+    assert_allclose(G.v_[:], 84*0.001)
+
+
+def test_function_dependencies_numpy():
+    if prefs.codegen.target != 'numpy':
+        raise SkipTest('numpy-only test')
+
+    @implementation('cpp', '''
+    float foo(float x)
+    {
+        return 42*0.001;
+    }''')
+    @check_units(x=volt, result=volt)
+    def foo(x):
+        return 42*mV
+
+    # Second function with an independent implementation for C++ and an
+    # implementation for numpy that makes use of the previous function.
+
+    # Note that we don't need to use the explicit dependencies mechanism for
+    # numpy, since the Python function stores a reference to the referenced
+    # function directly
+
+    @implementation('cpp', '''
+    float bar(float x)
+    {
+        return 84*0.001;
+    }''')
+    @check_units(x=volt, result=volt)
+    def bar(x):
+        return 2*foo(x)
+
+    G = NeuronGroup(5, 'v : volt')
+    updater = G.custom_operation('v = bar(v)')
+    net = Network(G, updater)
+    net.run(defaultclock.dt)
+
+    assert_allclose(G.v_[:], 84*0.001)
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_binomial():
+    binomial_f_approximated = BinomialFunction(100, 0.1, approximate=True)
+    binomial_f = BinomialFunction(100, 0.1, approximate=False)
+
+    # Just check that it does not raise an error and that it produces some
+    # values
+    G = NeuronGroup(1, '''x : 1
+                          y : 1''')
+    updater = G.custom_operation('''x = binomial_f_approximated()
+                                    y = binomial_f()''')
+    mon = StateMonitor(G, ['x', 'y'], record=0)
+    run(1*ms)
+    assert np.var(mon[0].x) > 0
+    assert np.var(mon[0].y) > 0
 
 
 if __name__ == '__main__':
     for f in [
             test_constants_sympy,
             test_constants_values,
+            test_math_functions_short,
             test_math_functions,
             test_user_defined_function,
             test_user_defined_function_units,
@@ -426,6 +549,10 @@ if __name__ == '__main__':
             test_user_defined_function_discarding_units,
             test_user_defined_function_discarding_units_2,
             test_function_implementation_container,
+            test_function_dependencies_numpy,
+            test_function_dependencies_weave,
+            test_function_dependencies_cython,
+            test_binomial
             ]:
         try:
             f()

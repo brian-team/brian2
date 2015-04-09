@@ -74,6 +74,8 @@ it will be printed to "standard error". There will be output at the start and
 the end of the run, and during the run in ``report_period`` intervals. It is
 also possible to do :ref:`custom progress reporting <custom_progress_reporting>`.
 
+.. _profiling:
+
 Profiling
 ---------
 To get an idea which parts of a simulation take the most time, Brian offers a

@@ -5,6 +5,9 @@ Brian2 setup script
 import sys
 import os
 
+if sys.version_info < (2, 7):
+    raise RuntimeError('Only Python versions >= 2.7 are supported')
+
 # This will automatically download setuptools if it is not already installed
 from ez_setup import use_setuptools
 use_setuptools()
@@ -122,7 +125,7 @@ Documentation for Brian2 can be found at http://brian2.readthedocs.org
 '''
 
 setup(name='Brian2',
-      version='2.0beta',
+      version='2.0b2+git',
       packages=find_packages(),
       package_data={# include template files
                     'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
@@ -132,20 +135,20 @@ setup(name='Brian2',
                     'brian2.devices.cpp_standalone': ['templates/*.cpp',
                                                       'templates/*.h',
                                                       'templates/makefile',
+                                                      'templates/win_makefile',
                                                       'brianlib/*.cpp',
                                                       'brianlib/*.h'],
                     # include C++ version of spike queue
-                    'brian2.synapses': ['*.cpp'],
+                    'brian2.synapses': ['*.cpp', '*.h'],
                     # include default_preferences file
                     'brian2': ['default_preferences']
                     },
-      install_requires=['numpy>=1.4.1',
-                        'scipy>=0.7.0',
+      install_requires=['numpy>=1.8.0',
                         'sympy>=0.7.6',
                         'pyparsing',
                         'jinja2>=2.7',
                        ],
-      setup_requires=['numpy>=1.4.1'],
+      setup_requires=['numpy>=1.8.0'],
       cmdclass={'build_ext': optional_build_ext},
       provides=['brian2'],
       extras_require={'test': ['nosetests>=1.0'],

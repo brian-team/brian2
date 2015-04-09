@@ -149,7 +149,7 @@ def replace(s, substitutions):
     return s
 
 
-KEYWORDS = set(['and', 'or', 'not', 'True', 'False'])
+KEYWORDS = {'and', 'or', 'not', 'True', 'False'}
 
 
 def get_identifiers(expr, include_numbers=False):

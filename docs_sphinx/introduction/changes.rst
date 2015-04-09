@@ -1,7 +1,29 @@
 Changes from Brian 1
 ====================
 
-For a high level overview of what has changed, see :ref:`for_brian1_users`. 
+In most cases, Brian 2 works in a very similar way to Brian 1 but there are
+some important differences to be aware of. The major distinction is that
+in Brian 2 you need to be more explicit about the definition of your
+simulation in order to avoid inadvertent errors. For example, the equations
+defining thresholds, resets and refractoriness have to be fully explicitly
+specified strings. In addition, some cases where you could use the
+'magic network' system in Brian 1 won't work in Brian 2 and you'll get an
+error telling you that you need to create an explicit `Network` object.
+
+The old system of ``Connection`` and related synaptic objects such as
+``STDP`` and ``STP`` have been removed and replaced with the new
+`Synapses` class.
+
+A slightly technical change that might have a significant impact on your code
+is that the way 'namespaces' are handled has changed. You can now change the
+value of parameters specified outside of equations between simulation runs,
+as well as changing the ``dt`` value of the simulation between runs.
+
+The units system has also been modified so that now arrays have a unit instead
+of just single values. Finally, a number of objects and classes have been
+removed or simplified.
+
+For more details, see below.
 
 Major interface changes
 -----------------------

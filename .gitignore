@@ -26,3 +26,6 @@ nosetests.xml
 # pycharm project files
 .idea
 /Brian2.egg-info
+
+# IPython
+.ipynb_checkpoints

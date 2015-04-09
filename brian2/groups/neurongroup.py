@@ -125,7 +125,7 @@ class StateUpdater(CodeRunner):
 
         # Get all names used in the equations (and always get "dt")
         names = self.group.equations.names
-        external_names = self.group.equations.identifiers | set(['dt'])
+        external_names = self.group.equations.identifiers | {'dt'}
 
         variables = self.group.resolve_all(used_known | unknown | names | external_names,
                                            # we don't need to raise any warnings
@@ -180,7 +180,6 @@ class Thresholder(CodeRunner):
 
     def update_abstract_code(self, run_namespace=None, level=0):
         code = self.group.threshold
-        self.user_code = '_cond = ' + code
         # Raise a useful error message when the user used a Brian1 syntax
         if not isinstance(code, basestring):
             if isinstance(code, Quantity):
@@ -192,6 +191,8 @@ class Thresholder(CodeRunner):
             if vm_var is not None:
                 error_msg += " Probably you intended to use '%s > ...'?" % vm_var
             raise TypeError(error_msg)
+
+        self.user_code = '_cond = ' + code
 
         identifiers = get_identifiers(code)
         variables = self.group.resolve_all(identifiers,
@@ -309,7 +310,8 @@ class NeuronGroup(Group, SpikeSource):
     '''
     add_to_magic_network = True
 
-    def __init__(self, N, model, method=None,
+    def __init__(self, N, model,
+                 method=('linear', 'euler', 'milstein'),
                  threshold=None,
                  reset=None,
                  refractory=False,

@@ -584,10 +584,8 @@ class Equations(collections.Mapping):
     #: Functions can be registered with the static method
     #: `Equations.register_identifier_check` and will be automatically
     #: used when checking identifiers
-    identifier_checks = set([check_identifier_basic,
-                             check_identifier_reserved,
-                             check_identifier_functions,
-                             check_identifier_units])
+    identifier_checks = {check_identifier_basic, check_identifier_reserved,
+                         check_identifier_functions, check_identifier_units}
 
     @staticmethod
     def register_identifier_check(func):

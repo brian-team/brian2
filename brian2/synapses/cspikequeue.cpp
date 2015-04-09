@@ -2,7 +2,7 @@
 #include<vector>
 #include<map>
 #include<algorithm>
-#include<stdint.h>
+#include"stdint_compat.h"
 #include<assert.h>
 using namespace std;
 

@@ -3,12 +3,14 @@ from nose import with_setup
 from nose.plugins.attrib import attr
 from brian2 import *
 
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_construction():
     BrianLogger.suppress_name('resolution_conflict')
     morpho = Soma(diameter=30*um)
     morpho.L = Cylinder(length=10*um, diameter=1*um, n=10)
     morpho.LL = Cylinder(length=5*um, diameter=2*um, n=5)
+    morpho.LR = Cylinder(length=5*um, diameter=2*um, n=10)
     morpho.right = Cylinder(length=3*um, diameter=1*um, n=7)
     morpho.right.nextone = Cylinder(length=2*um, diameter=1*um, n=3)
     gL=1e-4*siemens/cm**2
@@ -41,6 +43,11 @@ def test_construction():
     assert_allclose(neuron.L.main.diameter,morpho.L.diameter)
     assert_allclose(neuron.L.main.area,morpho.L.area)
     assert_allclose(neuron.L.main.length,morpho.L.length)
+
+    # Check basic consistency of the flattened representation
+    assert len(np.unique(neuron.diffusion_state_updater._morph_i[:])) == len(neuron.diffusion_state_updater._morph_i)
+    assert all(neuron.diffusion_state_updater._ends[:].flat >=
+               neuron.diffusion_state_updater._starts[:].flat)
 
 
 @attr('long')
@@ -134,7 +141,6 @@ def test_finitecable():
 
 
 @attr('long')
-@with_setup(teardown=restore_initial_state)
 def test_rall():
     '''
     Test simulation of a cylinder plus two branches, with diameters according to Rall's formula

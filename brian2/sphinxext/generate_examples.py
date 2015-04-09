@@ -91,6 +91,15 @@ def main(rootpath, destdir):
     examples = zip(examplesfnames, examplespaths, examplesbasenames,
                    examplescode, examplesdocs, examplesafterdoccode,
                    relativepaths, outnames)
+    # Get the path relative to the examples director (not relative to the
+    # directory where this file is installed
+    if 'BRIAN2_DOCS_EXAMPLE_DIR' in os.environ:
+        rootdir = os.environ['BRIAN2_DOCS_EXAMPLE_DIR']
+    else:
+        rootdir, _ = os.path.split(__file__)
+        rootdir = os.path.normpath(os.path.join(rootdir, '../../examples'))
+    eximgpath = os.path.abspath(os.path.join(rootdir, '../docs_sphinx/resources/examples_images'))
+    print 'Searching for example images in directory', eximgpath
     for fname, path, basename, code, docs, afterdoccode, relpath, exname in examples:
         categories[relpath].append((exname, basename))
         title = 'Example: ' + basename
@@ -100,10 +109,13 @@ def main(rootpath, destdir):
         output += docs + '\n\n::\n\n'
         output += '\n'.join(['    ' + line for line in afterdoccode.split('\n')])
         output += '\n\n'
-        images = glob.glob('../../docs_sphinx/examples_images/%s.*.png' % exname)
+
+        eximgpattern = os.path.join(eximgpath, '%s.*.png' % exname)
+        images = glob.glob(eximgpattern)
         for image in sorted(images):
-            image = os.path.relpath(image, '../../docs_sphinx/examples_images')
-            output += '.. image:: ../examples_images/%s\n\n' % image
+            _, image = os.path.split(image)
+            print 'Found example image file', image
+            output += '.. image:: ../resources/examples_images/%s\n\n' % image
     
         open(os.path.join(destdir, exname + '.rst'), 'w').write(output)
     
