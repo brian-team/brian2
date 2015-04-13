@@ -368,7 +368,7 @@ class CPPStandaloneDevice(Device):
         self.code_objects[codeobj.name] = codeobj
         return codeobj
     
-    def check_OPENMP_compatible(self, nb_threads):
+    def check_openmp_compatible(self, nb_threads):
         if nb_threads > 0:
             logger.warn("OpenMP code is not yet well tested, and may be inaccurate.", "openmp", once=True)
             logger.debug("Using OpenMP with %d threads " % nb_threads)
@@ -786,7 +786,7 @@ class CPPStandaloneDevice(Device):
 
         logger.debug("Writing C++ standalone project to directory "+os.path.normpath(directory))
         
-        self.check_OPENMP_compatible(nb_threads)
+        self.check_openmp_compatible(nb_threads)
         
         arange_arrays = sorted([(var, start)
                                 for var, start in self.arange_arrays.iteritems()],
