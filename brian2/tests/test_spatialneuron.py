@@ -4,7 +4,6 @@ from nose.plugins.attrib import attr
 from brian2 import *
 from brian2.devices.device import restore_device
 
-
 @attr('codegen-independent')
 @with_setup(teardown=restore_device)
 def test_construction():
@@ -97,7 +96,7 @@ def test_infinitecable():
                  exp(-(t+defaultclock.dt)/taum-taum/(4*(t+defaultclock.dt))*(x/la)**2)
     theory = theory*1*nA*0.02*ms
     assert_allclose(v[t>0.5*ms],theory[t>0.5*ms],rtol=0.01) # 1% error tolerance (not exact because not infinite cable)
-
+    restore_initial_state()
 
 @attr('long', 'standalone-compatible')
 @with_setup(teardown=restore_device)
@@ -139,6 +138,7 @@ def test_finitecable():
     ra = la*4*Ri/(pi*diameter**2)
     theory = EL+ra*neuron.I[0]*cosh((length-x)/la)/sinh(length/la)
     assert_allclose(v-EL, theory-EL, rtol=0.01)
+    restore_initial_state()
 
 
 @attr('long', 'standalone-compatible')
@@ -209,6 +209,7 @@ def test_rall():
     theory = EL+ra*neuron.I[0]*cosh(l-neuron.main.distance[-1]/la-(x-neuron.main.distance[-1])/l2)/sinh(l)
     v = neuron.R.v
     assert_allclose(v-EL, theory-EL, rtol=0.001)
+    restore_initial_state()
 
 
 if __name__ == '__main__':
