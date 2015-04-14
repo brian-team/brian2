@@ -332,6 +332,18 @@ class CPPStandaloneDevice(Device):
             # additional work to set up the pointer
             arrayname = self.get_array_name(variableview.variable,
                                             access_data=False)
+            if indices.shape == ():
+                self.main_queue.append(('set_by_single_value', (arrayname,
+                                            indices.item(),
+                                            float(value))))
+            else:
+                staticarrayname_index = self.static_array('_index_'+arrayname,
+                                                          indices)
+                staticarrayname_value = self.static_array('_value_'+arrayname,
+                                                          value)
+                self.main_queue.append(('set_array_by_array', (arrayname,
+                                                               staticarrayname_index,
+                                                               staticarrayname_value)))
             staticarrayname_index = self.static_array('_index_'+arrayname,
                                                       indices)
             if (indices.shape != () and
