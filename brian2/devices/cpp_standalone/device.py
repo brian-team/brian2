@@ -267,15 +267,18 @@ class CPPStandaloneDevice(Device):
     def fill_with_array(self, var, arr):
         arr = np.asarray(arr)
         array_name = self.get_array_name(var, access_data=False)
-        if arr.shape == () and var.size == 1:
-            value = CPPNodeRenderer().render_expr(repr(arr.item(0)))
-            # For a single assignment, generate a code line instead of storing the array
-            self.main_queue.append(('set_by_single_value', (array_name,
-                                                            0,
-                                                            value)))
-        else:
-            if arr.shape == ():
-                arr = np.repeat(arr, var.size)
+        arr = np.asarray(arr)
+        if arr.shape == ():
+            if var.size == 1:
+                value = CPPNodeRenderer().render_expr(repr(arr.item(0)))
+                # For a single assignment, generate a code line instead of storing the array
+                self.main_queue.append(('set_by_single_value', (array_name,
+                                                                0,
+                                                                value)))
+            else:
+                self.main_queue.append(('set_by_constant', (array_name,
+                                                            arr.item())))
+        else:    
             # Using the std::vector instead of a pointer to the underlying
             # data for dynamic arrays is fast enough here and it saves us some
             # additional work to set up the pointer
@@ -466,6 +469,17 @@ class CPPStandaloneDevice(Device):
             elif func=='run_network':
                 net, netcode = args
                 main_lines.extend(netcode)
+            elif func=='set_by_constant':
+                arrayname, value = args
+                code = '''
+                {pragma}
+                for(int i=0; i<_num_{arrayname}; i++)
+                {{
+                    {arrayname}[i] = {value};
+                }}
+                '''.format(arrayname=arrayname, value=CPPNodeRenderer().render_expr(repr(value)),
+                           pragma=openmp_pragma('static'))
+                main_lines.extend(code.split('\n'))
             elif func=='set_by_array':
                 arrayname, staticarrayname = args
                 code = '''
