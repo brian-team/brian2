@@ -410,6 +410,20 @@ class SpatialStateUpdater(CodeRunner, Group):
                                                           run_namespace=run_namespace,
                                                           level=level+1)
         self._prepare_codeobj()
+        # Raise a warning if the slow pure numpy version is used
+        # For simplicity, we check which CodeObject class the _prepare_codeobj
+        # is using, this will be the same as the main state updater
+        from brian2.codegen.runtime.numpy_rt.numpy_rt import NumpyCodeObject
+        if isinstance(self._prepare_codeobj, NumpyCodeObject):
+            # If numpy is used, raise a warning if scipy is not present
+            try:
+                import scipy
+            except ImportError:
+                logger.warn(('SpatialNeuron will use numpy to do the numerical '
+                             'integration -- this will be very slow. Either '
+                             'switch to a different code generation target '
+                             '(e.g. weave or cython) or install scipy.'),
+                            once=True)
         CodeRunner.before_run(self, run_namespace, level=level + 1)
 
     def _pre_calc_iteration(self, morphology, counter=0):

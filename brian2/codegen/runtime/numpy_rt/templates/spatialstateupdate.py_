@@ -10,8 +10,6 @@
 Solves the cable equation (spatial diffusion of currents).
 This is where most time-consuming time computations are done.
 '''
-from scipy.linalg import solve_banded
-import numpy as _numpy
 from numpy.linalg import solve
 from numpy import zeros
 
@@ -22,6 +20,9 @@ _vectorisation_idx = 1
 # vector code
 _vectorisation_idx = N
 {{vector_code|autoindent}}
+
+{%if _scipy_available %}
+from scipy.linalg import solve_banded
 
 # Particular solution
 b=-({{Cm}}/dt*{{v}})-_I0
@@ -44,6 +45,74 @@ ab[1,:]={{ab_minus1}}
 ab[2,:]={{ab_minus2}}
 ab[1,:]-=_gtot
 {{u_minus}}[:]=solve_banded((1,1),ab,b,overwrite_ab=True,overwrite_b=True)
+{% else %}
+# Pure numpy solution, very slow because it needs forward and backward passes
+# along the array that can't be vectorized
+c = zeros(N)
+ab = zeros((3, N))
+_gtot_all = zeros(N)
+_gtot_all[:] = _gtot
+b = -({{Cm}} / dt*{{v}}) - _I0
+
+# Tridiagonal solving
+forward = range(1, N)
+backward = range(N-2, -1, -1)
+
+# Pass 1
+bi = {{ab_star1}} - _gtot_all  # main diagonal
+
+# First compartment
+c[0] = {{ab_star0}}[1] / bi[0]
+{{v_star}}[0] = b[0] / bi[0]
+
+# Other compartments
+c[1:-1] = {{ab_star0}}[2:]
+for i in forward:
+    ai = {{ab_star2}}[i-1]  # subdiagonal
+    _m = 1.0/(bi[i]-ai*c[i-1])
+    c[i] *= _m
+    {{v_star}}[i] = (b[i] - ai*{{v_star}}[i-1])*_m
+
+for i in backward:
+    {{v_star}}[i] -= c[i]*{{v_star}}[i+1]
+
+# Pass 2
+bi = {{ab_plus1}} - _gtot_all  # main diagonal
+
+# First compartment
+c[0] = {{ab_plus0}}[1]/bi[0]
+{{u_plus}}[0] = {{b_plus}}[0]/bi[0]
+
+# Other compartments
+c[1:-1] = {{ab_plus0}}[2:]  # superdiagonal
+
+for i in forward:
+    ai = {{ab_plus2}}[i-1]  # subdiagonal
+    _m = 1.0/(bi[i]-ai*c[i-1])
+    c[i] *= _m
+    {{u_plus}}[i] = ({{b_plus}}[i] - ai*{{u_plus}}[i-1])*_m
+
+for i in backward:
+    {{u_plus}}[i] -= c[i]*{{u_plus}}[i+1]
+
+# Pass 3
+bi = {{ab_minus1}} - _gtot_all  # main diagonal
+
+# First compartment
+c[0] = {{ab_minus0}}[1]/bi[0]
+{{u_minus}}[0] = {{b_minus}}[0]/bi[0]
+
+# Other compartments
+c[1:-1] = {{ab_minus0}}[2:]  # superdiagonal
+for i in forward:
+    ai = {{ab_minus2}}[i-1]  # subdiagonal
+    _m = 1.0/(bi[i]-ai*c[i-1]);
+    c[i] *= _m
+    {{u_minus}}[i] = ({{b_minus}}[i] - ai*{{u_minus}}[i-1])*_m
+
+for i in backward:
+    {{u_minus}}[i] -= c[i]*{{u_minus}}[i+1]
+{% endif %}
 
 # Prepare matrix for solving the linear system
 _n_segments = len({{_B}})

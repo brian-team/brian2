@@ -10,8 +10,12 @@ try:
     from scipy import weave
     from scipy.weave.c_spec import num_to_c_types
 except ImportError:
-    # No weave for Python 3
-    weave = None
+    try:  # weave as an independent package
+        import weave
+        from weave.c_spec import num_to_c_types
+    except ImportError:
+        # No weave for Python 3
+        weave = None
 
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,

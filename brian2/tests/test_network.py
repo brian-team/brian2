@@ -85,37 +85,40 @@ def test_network_two_objects():
     assert_equal(x.count, 10)
     assert_equal(y.count, 10)
 
-updates = []
+
 class NameLister(BrianObject):
     add_to_magic_network = True
+    updates = []
+
     def __init__(self, **kwds):
         super(NameLister, self).__init__(**kwds)
 
     def run(self):
-        updates.append(self.name)
+        NameLister.updates.append(self.name)
 
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_network_different_clocks():
+    NameLister.updates[:] = []
     # Check that a network with two different clocks functions correctly
     x = NameLister(name='x', dt=1*ms, order=0)
     y = NameLister(name='y', dt=3*ms, order=1)
     net = Network(x, y)
     net.run(10*ms)
-    assert_equal(''.join(updates), 'xyxxxyxxxyxxxy')
+    assert_equal(''.join(NameLister.updates), 'xyxxxyxxxyxxxy')
 
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_network_different_when():
     # Check that a network with different when attributes functions correctly
-    updates[:] = []
+    NameLister.updates[:] = []
     x = NameLister(name='x', when='start')
     y = NameLister(name='y', when='end')
     net = Network(x, y)
     net.run(0.3*ms)
-    assert_equal(''.join(updates), 'xyxyxy')
+    assert_equal(''.join(NameLister.updates), 'xyxyxy')
 
 class Preparer(BrianObject):
     add_to_magic_network = True
@@ -446,7 +449,6 @@ def test_loop():
     '''
     Somewhat realistic test with a loop of magic networks
     '''
-    updates[:] = []
     def run_simulation():
         G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
                         reset='v=0', threshold='v>1')
