@@ -15,7 +15,7 @@ import numpy as np
 from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.clocks import defaultclock
 from brian2.core.network import Network
-from brian2.devices.device import Device, all_devices
+from brian2.devices.device import Device, all_devices, get_device, set_device
 from brian2.core.variables import *
 from brian2.parsing.rendering import CPPNodeRenderer
 from brian2.synapses.synapses import Synapses
@@ -338,9 +338,19 @@ class CPPStandaloneDevice(Device):
     def variableview_get_subexpression_with_index_array(self, variableview,
                                                         item, level=0,
                                                         run_namespace=None):
-        raise NotImplementedError(('Cannot evaluate subexpressions in '
-                                   'standalone scripts.'))
-
+        if not self.has_been_run:
+            raise NotImplementedError('Cannot retrieve the values of state '
+                                      'variables in standalone code before the '
+                                      'simulation has been run.')
+        # Temporarily switch to the runtime device to evaluate the subexpression
+        # (based on the values stored on disk)
+        backup_device = get_device()
+        set_device('runtime')
+        result = VariableView.get_subexpression_with_index_array(variableview, item,
+                                                                 level=level+2,
+                                                                 run_namespace=run_namespace)
+        set_device(backup_device)
+        return result
 
     def variableview_get_with_expression(self, variableview, code, level=0,
                                          run_namespace=None):
