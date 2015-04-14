@@ -154,7 +154,7 @@ class CythonCodeGenerator(CodeGenerator):
                 support_code.append(deindent(func_code))
             elif callable(func_code):
                 self.variables[varname] = func_code
-                line = '{0}} = _namespace["{1}}"]'.format(varname, varname)
+                line = '{0} = _namespace["{1}"]'.format(varname, varname)
                 load_namespace.append(line)
             else:
                 raise TypeError(('Provided function implementation '
@@ -332,7 +332,7 @@ ctypedef fused _to_sign:
     float
     double
 
-cdef int _int(_to_sign x):
+cdef int _sign(_to_sign x):
     return (0 < x) - (x < 0)
 '''
 DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(CythonCodeGenerator,
