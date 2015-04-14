@@ -46,7 +46,8 @@ def test_refractoriness_basic():
     assert np.all(mon[0].v[(mon.t >= 15*ms) & (mon.t <20*ms)] > 0)
 
 
-@attr('long')
+@attr('long', 'standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_refractoriness_variables():
     # Try a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
@@ -81,7 +82,8 @@ def test_refractoriness_variables():
         # After refractoriness, v should increase again
         assert np.all(mon[0].v[(mon.t >= 15*ms) & (mon.t <20*ms)] > 0)
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_refractoriness_threshold():
     # Try a quantity, a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
@@ -118,7 +120,8 @@ def test_refractoriness_threshold_basic():
     assert_allclose(spike_mon.t, [4.9, 15] * ms)
 
 
-@attr('long')
+@attr('long', 'standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_refractoriness_threshold():
     # Try a quantity, a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing

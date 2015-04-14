@@ -2,9 +2,11 @@ from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 from nose import with_setup
 from nose.plugins.attrib import attr
 from brian2 import *
+from brian2.devices.device import restore_device
+
 
 @attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@with_setup(teardown=restore_device)
 def test_construction():
     BrianLogger.suppress_name('resolution_conflict')
     morpho = Soma(diameter=30*um)
@@ -50,8 +52,8 @@ def test_construction():
                neuron.diffusion_state_updater._starts[:].flat)
 
 
-@attr('long')
-@with_setup(teardown=restore_initial_state)
+@attr('long', 'standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_infinitecable():
     '''
     Test simulation of an infinite cable vs. theory for current pulse (Green function)
@@ -85,7 +87,6 @@ def test_infinitecable():
     net.run(0.02*ms)
     neuron.I=0*amp
     net.run(3*ms)
-
     t = mon.t
     v = mon[N//2-20].v
     # Theory (incorrect near cable ends)
@@ -98,8 +99,8 @@ def test_infinitecable():
     assert_allclose(v[t>0.5*ms],theory[t>0.5*ms],rtol=0.01) # 1% error tolerance (not exact because not infinite cable)
 
 
-@attr('long')
-@with_setup(teardown=restore_initial_state)
+@attr('long', 'standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_finitecable():
     '''
     Test simulation of short cylinder vs. theory for constant current.
@@ -140,7 +141,8 @@ def test_finitecable():
     assert_allclose(v-EL, theory-EL, rtol=0.01)
 
 
-@attr('long')
+@attr('long', 'standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_rall():
     '''
     Test simulation of a cylinder plus two branches, with diameters according to Rall's formula
@@ -184,13 +186,13 @@ def test_rall():
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
     neuron.v = EL
 
+    neuron.I[0]=0.02*nA # injecting at the left end
+    run(100*ms)
+
     # Check space constant calculation
     assert_allclose(la, neuron.space_constant[0])
     assert_allclose(l1, neuron.L.space_constant[0])
     assert_allclose(l2, neuron.R.space_constant[0])
-
-    neuron.I[0]=0.02*nA # injecting at the left end
-    run(100*ms)
 
     # Theory
     x = neuron.main.distance

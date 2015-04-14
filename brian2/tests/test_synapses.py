@@ -819,7 +819,7 @@ def test_variables_by_owner():
     assert all(varname in variables_by_owner(S.variables, S)
                for varname in ['x', 'N', 'N_incoming', 'N_outgoing'])
 
-
+@attr('codegen-independent')
 def check_permutation_code(code):
     from collections import defaultdict
     vars = get_identifiers(code)
@@ -839,7 +839,7 @@ def check_permutation_code(code):
     scalar_statements, vector_statements = make_statements(code, variables, float64)
     check_for_order_independence(vector_statements, variables, indices)
     
-
+@attr('codegen-independent')
 def test_permutation_analysis():
     # Examples that should work
     good_examples = [
@@ -910,7 +910,8 @@ def test_vectorisation():
     assert_equal(source.v[5:], 0)
     assert_equal(target.x[:], target.y[:])
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_vectorisation_STDP_like():
     # Test the use of pre- and post-synaptic traces that are stored in the
     # pre/post group instead of in the synapses

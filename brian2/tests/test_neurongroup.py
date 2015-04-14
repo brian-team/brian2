@@ -109,6 +109,8 @@ def test_scalar_variable():
     net = Network(G)
     net.run(defaultclock.dt)
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_referred_scalar_variable():
     '''
     Test the correct handling of referred scalar variables in subexpressions
@@ -434,7 +436,7 @@ def test_linked_variable_indexed_incorrect():
                   lambda: setattr(G, 'y',
                                   linked_var(G.x, index=np.arange(10)+1)))
 
-
+@attr('codegen-independent')
 def test_linked_synapses():
     '''
     Test linking to a synaptic variable (should raise an error).
