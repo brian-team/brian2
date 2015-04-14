@@ -865,7 +865,12 @@ def test_permutation_analysis():
         '''
         v_pre = 0
         w_syn = v_pre
+        ''',
         '''
+        ge_syn += w_syn
+        Apre_syn += 3
+        w_syn = clip(w_syn + Apost_syn, 0, 10)
+        ''',
     ]
     for example in good_examples:
         try:
@@ -906,6 +911,53 @@ def test_vectorisation():
     assert_equal(target.x[:], target.y[:])
 
 
+def test_vectorisation_STDP_like():
+    # Test the use of pre- and post-synaptic traces that are stored in the
+    # pre/post group instead of in the synapses
+    w_max = 10
+    neurons = NeuronGroup(6, '''dv/dt = rate : 1
+                                ge : 1
+                                rate : Hz
+                                dA/dt = -A/(1*ms) : 1''', threshold='v>1', reset='v=0')
+    # Note that the synapse does not actually increase the target v, we want
+    # to have simple control about when neurons spike. Also, we separate the
+    # "depression" and "facilitation" completely. The example also uses
+    # subgroups, which should complicate things further.
+    # This test should try to capture the spirit of indexing in such a use case,
+    # it simply compares the results to fixed pre-calculated values
+    syn = Synapses(neurons[:3], neurons[3:], '''w_dep : 1
+                                                w_fac : 1''',
+                   pre='''ge_post += w_dep - w_fac
+                          A_pre += 1
+                          w_dep = clip(w_dep + A_post, 0, w_max)
+                       ''',
+                   post='''A_post += 1
+                           w_fac = clip(w_fac + A_pre, 0, w_max)
+                        ''', connect=True)
+    neurons.rate = 1000*Hz
+    neurons.v = 'abs(3-i)*0.1 + 0.7'
+    run(2*ms)
+    # Make sure that this test is invariant to synapse order
+    indices = np.argsort(np.array(zip(syn.i[:], syn.j[:]),
+                                  dtype=[('i', '<i4'), ('j', '<i4')]),
+                         order=['i', 'j'])
+    assert_allclose(syn.w_dep[:][indices],
+                    [1.29140162, 1.16226149, 1.04603529, 1.16226149, 1.04603529,
+                     6.941432, 1.04603529, 6.941432, 6.2472887],
+                    rtol=1e-6, atol=1e-12)
+    assert_allclose(syn.w_fac[:][indices],
+                    [5.06030369, 5.62256002, 6.2472887, 5.62256002, 6.2472887,
+                     0.94143176, 6.2472887, 0.94143176, 1.04603529],
+                    rtol=1e-6, atol=1e-12)
+    assert_allclose(neurons.A[:],
+                    [1.69665715, 1.88517461, 2.09463845, 2.32737606, 2.09463845,
+                     1.88517461],
+                    rtol=1e-6, atol=1e-12)
+    assert_allclose(neurons.ge[:],
+                    [0., 0., 0., -7.31700015, -3.07143188, 1.01253295],
+                    rtol=1e-6, atol=1e-12)
+
+
 if __name__ == '__main__':
     test_creation()
     test_name_clashes()
@@ -937,3 +989,4 @@ if __name__ == '__main__':
     test_variables_by_owner()
     test_permutation_analysis()
     test_vectorisation()
+    test_vectorisation_STDP_like()
