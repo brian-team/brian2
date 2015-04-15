@@ -71,16 +71,19 @@ def test_refractoriness_variables():
         mon = StateMonitor(G, ['v', 'w'], record=True)
         net = Network(G, mon)
         net.run(20*ms)
-        # No difference before the spike
-        assert_equal(mon[0].v[mon.t < 10*ms], mon[0].w[mon.t < 10*ms])
-        # v is not updated during refractoriness
-        in_refractoriness = mon[0].v[(mon.t >= 10*ms) & (mon.t <15*ms)]
-        assert_equal(in_refractoriness, np.zeros_like(in_refractoriness))
-        # w should evolve as before
-        assert_equal(mon[0].w[mon.t < 5*ms], mon[0].w[(mon.t >= 10*ms) & (mon.t <15*ms)])
-        assert np.all(mon[0].w[(mon.t >= 10*ms) & (mon.t <15*ms)] > 0)
-        # After refractoriness, v should increase again
-        assert np.all(mon[0].v[(mon.t >= 15*ms) & (mon.t <20*ms)] > 0)
+        try:
+            # No difference before the spike
+            assert_equal(mon[0].v[mon.t < 10*ms], mon[0].w[mon.t < 10*ms])
+            # v is not updated during refractoriness
+            in_refractoriness = mon[0].v[(mon.t >= 10*ms) & (mon.t <15*ms)]
+            assert_equal(in_refractoriness, np.zeros_like(in_refractoriness))
+            # w should evolve as before
+            assert_equal(mon[0].w[mon.t < 5*ms], mon[0].w[(mon.t >= 10*ms) & (mon.t <15*ms)])
+            assert np.all(mon[0].w[(mon.t >= 10*ms) & (mon.t <15*ms)] > 0)
+            # After refractoriness, v should increase again
+            assert np.all(mon[0].v[(mon.t >= 15*ms) & (mon.t <20*ms)] > 0)
+        except AssertionError as ex:
+            raise AssertionError('Assertion failed when using %r as refractory argument:\n%s' % (ref_time, ex))
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
@@ -199,9 +202,10 @@ def test_conditional_write_behaviour():
 
 
 if __name__ == '__main__':
-    test_add_refractoriness()
+    # test_add_refractoriness()
+    set_device('cpp_standalone_simple')
     test_refractoriness_variables()
-    test_refractoriness_threshold()
-    test_refractoriness_types()
-    test_conditional_write_set()
-    test_conditional_write_behaviour()
+    # test_refractoriness_threshold()
+    # test_refractoriness_types()
+    # test_conditional_write_set()
+    # test_conditional_write_behaviour()
