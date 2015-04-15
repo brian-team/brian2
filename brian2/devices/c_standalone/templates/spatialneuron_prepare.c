@@ -7,6 +7,8 @@
 {% block maincode %}
     const double _Ri = {{Ri}}[0];  // Ri is a shared variable
 
+    int _i, _counter;
+
     {% if owner.morphology.type == 'soma' %}
     // Correction for soma (a bit of a hack),
     //  so that it has negligible axial resistance
@@ -14,26 +16,26 @@
     {% endif %}
 
     // Inverse axial resistance
-    for (int _i=1; _i<N; _i++)
+    for (_i=1; _i<N; _i++)
         {{_invr}}[_i] = (M_PI / (2 * _Ri) * ({{diameter}}[_i-1] * {{diameter}}[_i]) /
                        ({{length}}[_i-1] + {{length}}[_i]));
     // Note: this would give nan for the soma
     // Cut branches
-    for (int _i=0; _i<_num_starts; _i++)
+    for (_i=0; _i<_num_starts; _i++)
         {{_invr}}[{{_starts}}[_i]] = 0;
 
     // Linear systems
     // The particular solution
     // a[i,j]=ab[u+i-j,j]   --  u is the number of upper diagonals = 1
-    for (int _i=0; _i<N; _i++)
+    for (_i=0; _i<N; _i++)
         {{ab_star1}}[_i] = (-({{Cm}}[_i] / dt) - {{_invr}}[_i] / {{area}}[_i]);
-    for (int _i=1; _i<N; _i++)
+    for (_i=1; _i<N; _i++)
     {
         {{ab_star0}}[_i] = {{_invr}}[_i] / {{area}}[_i-1];
         {{ab_star2}}[_i-1] = {{_invr}}[_i] / {{area}}[_i];
         {{ab_star1}}[_i-1] -= {{_invr}}[_i] / {{area}}[_i-1];
     }
-    for (int _i=0; _i<N; _i++)
+    for (_i=0; _i<N; _i++)
     {
         // Homogeneous solutions
         {{ab_plus0}}[_i] = {{ab_star0}}[_i];
@@ -45,7 +47,7 @@
     }
 
     // Set the boundary conditions
-    for (int _counter=0; _counter<_num_starts; _counter++)
+    for (_counter=0; _counter<_num_starts; _counter++)
     {
         const int _first = {{_starts}}[_counter];
         const int _last = {{_ends}}[_counter];
