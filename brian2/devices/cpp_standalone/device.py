@@ -147,6 +147,7 @@ class CPPStandaloneDevice(Device):
             logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
             
     def static_array(self, name, arr):
+        arr = np.atleast_1d(arr)
         assert len(arr), 'length for %s: %d' % (name, len(arr))
         name = '_static_array_' + name
         basename = name
@@ -257,8 +258,10 @@ class CPPStandaloneDevice(Device):
                                                             item,
                                                             float(value))))
 
-
-        elif value.size == 1 and item == 'True':  # set the whole array to a scalar value
+        elif (value.size == 1 and
+              item == 'True' and
+              variableview.index_var_name == '_idx'):
+            # set the whole array to a scalar value
             if have_same_dimensions(value, 1):
                 # Avoid a representation as "Quantity(...)" or "array(...)"
                 value = float(value)
