@@ -242,18 +242,6 @@ class CStandaloneDevice(Device):
             self.main_queue.append(('set_by_single_value', (array_name,
                                                             item,
                                                             float(value))))
-
-
-        elif (value.size == 1 and
-              item == 'True' and
-              variableview.index_var_name == '_idx'):
-            # set the whole array to a scalar value
-            if have_same_dimensions(value, 1):
-                # Avoid a representation as "Quantity(...)" or "array(...)"
-                value = float(value)
-            variableview.set_with_expression_conditional(cond=item,
-                                                         code=repr(value),
-                                                         check_units=check_units)
         # Simple case where we don't have to do any indexing
         elif (item == 'True' and
                   (variableview.index_var_name in ('_idx', '0') or
