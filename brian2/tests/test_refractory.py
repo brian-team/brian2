@@ -72,7 +72,6 @@ def test_refractoriness_variables():
         net = Network(G, mon)
         net.run(20*ms)
         try:
-            raise AssertionError('oops')
             # No difference before the spike
             assert_equal(mon[0].v[mon.t < 10*ms], mon[0].w[mon.t < 10*ms])
             # v is not updated during refractoriness
