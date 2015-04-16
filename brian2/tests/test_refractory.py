@@ -51,9 +51,9 @@ def test_refractoriness_basic():
 def test_refractoriness_variables():
     # Try a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
-    for ref_time in ['5*ms', '(t-lastspike) < 5*ms',
-                     'time_since_spike < 5*ms', 'ref_subexpression',
-                     '(t-lastspike) < ref', 'ref', 'ref_no_unit*ms']:
+    for ref_time in ['5*ms', '(t-lastspike) <= 5*ms',
+                     'time_since_spike <= 5*ms', 'ref_subexpression',
+                     '(t-lastspike) <= ref', 'ref', 'ref_no_unit*ms']:
         G = NeuronGroup(1, '''
         dv/dt = 100*Hz : 1 (unless refractory)
         dw/dt = 100*Hz : 1
@@ -83,8 +83,6 @@ def test_refractoriness_variables():
             # After refractoriness, v should increase again
             assert np.all(mon[0].v[(mon.t >= 15*ms) & (mon.t <20*ms)] > 0)
         except AssertionError as ex:
-            print 'state updater code:\n', G.state_updater.codeobj.code
-            print 'mon[0].v', mon[0].v
             raise AssertionError('Assertion failed when using %r as refractory argument:\n%s' % (ref_time, ex))
 
 @attr('standalone-compatible')

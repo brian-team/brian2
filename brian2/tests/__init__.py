@@ -136,8 +136,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                                           # Only run standalone tests
                                           '-a', 'standalone-compatible',
                                           '--nologcapture',
-                                          '--exe',
-                                          '--stop']))
+                                          '--exe']))
             set_device(previous_device)
             sys.stderr.write('Running standalone-specific tests\n')
             success.append(nose.run(argv=['', dirname,
