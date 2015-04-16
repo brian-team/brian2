@@ -72,6 +72,7 @@ def test_refractoriness_variables():
         net = Network(G, mon)
         net.run(20*ms)
         try:
+            raise AssertionError('oops')
             # No difference before the spike
             assert_equal(mon[0].v[mon.t < 10*ms], mon[0].w[mon.t < 10*ms])
             # v is not updated during refractoriness
@@ -83,6 +84,8 @@ def test_refractoriness_variables():
             # After refractoriness, v should increase again
             assert np.all(mon[0].v[(mon.t >= 15*ms) & (mon.t <20*ms)] > 0)
         except AssertionError as ex:
+            print 'state updater code:\n', G.state_updater.codeobj.code
+            print 'mon[0].v', mon[0].v
             raise AssertionError('Assertion failed when using %r as refractory argument:\n%s' % (ref_time, ex))
 
 @attr('standalone-compatible')
@@ -202,10 +205,9 @@ def test_conditional_write_behaviour():
 
 
 if __name__ == '__main__':
-    # test_add_refractoriness()
-    set_device('cpp_standalone_simple')
+    test_add_refractoriness()
     test_refractoriness_variables()
-    # test_refractoriness_threshold()
-    # test_refractoriness_types()
-    # test_conditional_write_set()
-    # test_conditional_write_behaviour()
+    test_refractoriness_threshold()
+    test_refractoriness_types()
+    test_conditional_write_set()
+    test_conditional_write_behaviour()
