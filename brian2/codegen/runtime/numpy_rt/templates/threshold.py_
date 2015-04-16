@@ -3,9 +3,9 @@
 # Thresholder class, we cannot use the USES_VARIABLE mechanism
 # conditionally
 {# ITERATE_ALL { _idx } #}
+import numpy as _numpy
 
-import numpy as np
-numpy_True = np.bool_(True)
+numpy_True = _numpy.bool_(True)
 
 # scalar code
 _vectorisation_idx = 1
@@ -16,7 +16,7 @@ _vectorisation_idx = N
 
 {{vector_code|autoindent}}
 if _cond is True or _cond is numpy_True:
-    _spikes = np.arange(_vectorisation_idx)
+    _spikes = _numpy.arange(_vectorisation_idx)
 else:
     _spikes, = _cond.nonzero()
 {{_spikespace}}[-1] = len(_spikes)

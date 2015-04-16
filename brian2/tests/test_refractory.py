@@ -46,20 +46,21 @@ def test_refractoriness_basic():
     assert np.all(mon[0].v[(mon.t >= 15*ms) & (mon.t <20*ms)] > 0)
 
 
-@attr('long')
+@attr('long', 'standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_refractoriness_variables():
     # Try a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
-    for ref_time in ['5*ms', '(t-lastspike) < 5*ms',
-                     'time_since_spike < 5*ms', 'ref_subexpression',
-                     '(t-lastspike) < ref', 'ref', 'ref_no_unit*ms']:
+    for ref_time in ['5*ms', '(t-lastspike) <= 5*ms',
+                     'time_since_spike <= 5*ms', 'ref_subexpression',
+                     '(t-lastspike) <= ref', 'ref', 'ref_no_unit*ms']:
         G = NeuronGroup(1, '''
         dv/dt = 100*Hz : 1 (unless refractory)
         dw/dt = 100*Hz : 1
         ref : second
         ref_no_unit : 1
         time_since_spike = t - lastspike : second
-        ref_subexpression = (t - lastspike) < ref : boolean
+        ref_subexpression = (t - lastspike) <= ref : boolean
         ''',
                         threshold='v>1', reset='v=0;w=0',
                         refractory=ref_time)
@@ -70,18 +71,22 @@ def test_refractoriness_variables():
         mon = StateMonitor(G, ['v', 'w'], record=True)
         net = Network(G, mon)
         net.run(20*ms)
-        # No difference before the spike
-        assert_equal(mon[0].v[mon.t < 10*ms], mon[0].w[mon.t < 10*ms])
-        # v is not updated during refractoriness
-        in_refractoriness = mon[0].v[(mon.t >= 10*ms) & (mon.t <15*ms)]
-        assert_equal(in_refractoriness, np.zeros_like(in_refractoriness))
-        # w should evolve as before
-        assert_equal(mon[0].w[mon.t < 5*ms], mon[0].w[(mon.t >= 10*ms) & (mon.t <15*ms)])
-        assert np.all(mon[0].w[(mon.t >= 10*ms) & (mon.t <15*ms)] > 0)
-        # After refractoriness, v should increase again
-        assert np.all(mon[0].v[(mon.t >= 15*ms) & (mon.t <20*ms)] > 0)
+        try:
+            # No difference before the spike
+            assert_equal(mon[0].v[mon.t < 10*ms], mon[0].w[mon.t < 10*ms])
+            # v is not updated during refractoriness
+            in_refractoriness = mon[0].v[(mon.t >= 10*ms) & (mon.t <15*ms)]
+            assert_equal(in_refractoriness, np.zeros_like(in_refractoriness))
+            # w should evolve as before
+            assert_equal(mon[0].w[mon.t < 5*ms], mon[0].w[(mon.t >= 10*ms) & (mon.t <15*ms)])
+            assert np.all(mon[0].w[(mon.t >= 10*ms) & (mon.t <15*ms)] > 0)
+            # After refractoriness, v should increase again
+            assert np.all(mon[0].v[(mon.t >= 15*ms) & (mon.t <20*ms)] > 0)
+        except AssertionError as ex:
+            raise AssertionError('Assertion failed when using %r as refractory argument:\n%s' % (ref_time, ex))
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_refractoriness_threshold():
     # Try a quantity, a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
@@ -118,7 +123,8 @@ def test_refractoriness_threshold_basic():
     assert_allclose(spike_mon.t, [4.9, 15] * ms)
 
 
-@attr('long')
+@attr('long', 'standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_refractoriness_threshold():
     # Try a quantity, a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
