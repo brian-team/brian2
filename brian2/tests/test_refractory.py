@@ -60,7 +60,7 @@ def test_refractoriness_variables():
         ref : second
         ref_no_unit : 1
         time_since_spike = t - lastspike : second
-        ref_subexpression = (t - lastspike) < ref : boolean
+        ref_subexpression = (t - lastspike) <= ref : boolean
         ''',
                         threshold='v>1', reset='v=0;w=0',
                         refractory=ref_time)
