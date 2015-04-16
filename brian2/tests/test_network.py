@@ -13,7 +13,7 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     NeuronGroup, StateMonitor, SpikeMonitor,
                     PopulationRateMonitor, MagicNetwork, magic_network,
                     PoissonGroup, Hz, collect, store, restore, BrianLogger,
-                    start_scope)
+                    start_scope, prefs)
 from brian2.utils.logger import catch_logs
 
 @attr('codegen-independent')
@@ -119,6 +119,42 @@ def test_network_different_when():
     net = Network(x, y)
     net.run(0.3*ms)
     assert_equal(''.join(NameLister.updates), 'xyxyxy')
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_initial_state)
+def test_network_default_schedule():
+    net = Network()
+    assert net.schedule == ['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']
+    # Set the preference and check that the change is taken into account
+    prefs.core.network.default_schedule = list(reversed(['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']))
+    assert net.schedule == list(reversed(['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']))
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_initial_state)
+def test_network_schedule_change():
+    # Check that a changed schedule is taken into account correctly
+    NameLister.updates[:] = []
+    x = NameLister(name='x', when='thresholds')
+    y = NameLister(name='y', when='resets')
+    net = Network(x, y)
+    net.run(0.3*ms)
+    assert_equal(''.join(NameLister.updates), 'xyxyxy')
+    NameLister.updates[:] = []
+    net.schedule = ['start', 'groups', 'synapses', 'resets', 'thresholds', 'end']
+    net.run(0.3*ms)
+    assert_equal(''.join(NameLister.updates), 'yxyxyx')
+
+@attr('codegen-independent')
+def test_network_custom_slots():
+    # Check that custom slots can be inserted into the schedule
+    NameLister.updates[:] = []
+    x = NameLister(name='x', when='thresholds')
+    y = NameLister(name='y', when='in_between')
+    z = NameLister(name='z', when='resets')
+    net = Network(x, y, z)
+    net.schedule = ['start', 'groups', 'thresholds', 'in_between', 'synapses', 'resets', 'end']
+    net.run(0.3*ms)
+    assert_equal(''.join(NameLister.updates), 'xyzxyzxyz')
 
 class Preparer(BrianObject):
     add_to_magic_network = True
@@ -781,6 +817,9 @@ if __name__=='__main__':
             test_network_two_objects,
             test_network_different_clocks,
             test_network_different_when,
+            test_network_default_schedule,
+            test_network_schedule_change,
+            test_network_custom_slots,
             test_magic_network,
             test_network_stop,
             test_network_operations,

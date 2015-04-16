@@ -1,9 +1,17 @@
+'''
+Module defining the `Network` object, the basis of all simulation runs.
+
+Preferences
+-----------
+
+.. document_brian_prefs:: core.network
+
+'''
+
 import sys
 import gc
 import time
 from collections import defaultdict
-
-import numpy as np
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
@@ -11,7 +19,7 @@ from brian2.core.base import BrianObject
 from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units, DimensionMismatchError
 from brian2.units.allunits import second, msecond 
-from brian2.core.preferences import prefs
+from brian2.core.preferences import prefs, BrianPreference
 
 from .base import device_override
 
@@ -20,6 +28,22 @@ __all__ = ['Network', 'profiling_summary']
 
 logger = get_logger(__name__)
 
+
+prefs.register_preferences('core.network', 'Network preferences',
+                           default_schedule=BrianPreference(
+                               default=['start',
+                                        'groups',
+                                        'thresholds',
+                                        'synapses',
+                                        'resets',
+                                        'end',
+                                        ],
+                               docs='''
+                               Default schedule used for networks that
+                               don't specify a schedule.
+                               '''
+                           )
+                           )
 
 def _format_time(time_in_s):
     '''
@@ -141,7 +165,7 @@ class Network(Nameable):
     strings, and the objects will be updated in the order determined by the
     schedule. The default schedule is
     ``['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']``. That
-    means that all objects with ``when=='start'` will be updated first, then
+    means that all objects with ``when=='start'`` will be updated first, then
     those with ``when=='groups'``, and so forth. If several objects have the
     same `~BrianObject.when` attribute, then the order is determined by the
     `~BrianObject.order` attribute (lower first).
@@ -178,6 +202,8 @@ class Network(Nameable):
 
         # Stored profiling information (if activated via the keyword option)
         self._profiling_info = None
+
+        self._schedule = None
      
     t = property(fget=lambda self: self.t_*second,
                  doc='''
@@ -343,15 +369,10 @@ class Network(Nameable):
         self.t_ = self._stored_t[name]
 
     def _get_schedule(self):
-        if not hasattr(self, '_schedule'):
-            self._schedule = ['start',
-                              'groups',
-                              'thresholds',
-                              'synapses',
-                              'resets',
-                              'end',
-                              ]
-        return self._schedule            
+        if self._schedule is None:
+            return list(prefs.core.network.default_schedule)
+        else:
+            return list(self._schedule)
     
     def _set_schedule(self, schedule):
         self._schedule = schedule
