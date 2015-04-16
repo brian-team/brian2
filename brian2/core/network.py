@@ -11,7 +11,7 @@ Preferences
 import sys
 import gc
 import time
-from collections import defaultdict
+from collections import defaultdict, Sequence
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
@@ -115,6 +115,7 @@ class TextReport(object):
         # Flush the stream, this is useful if stream is a file
         self.stream.flush()
 
+
 class Network(Nameable):
     '''
     Network(*objs, name='network*')
@@ -164,11 +165,14 @@ class Network(Nameable):
     string names. Each `~BrianObject.when` attribute should be one of these
     strings, and the objects will be updated in the order determined by the
     schedule. The default schedule is
-    ``['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']``. That
-    means that all objects with ``when=='start'`` will be updated first, then
-    those with ``when=='groups'``, and so forth. If several objects have the
-    same `~BrianObject.when` attribute, then the order is determined by the
-    `~BrianObject.order` attribute (lower first).
+    ``['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']``. In
+    addition to the names provided in the schedule, automatic names starting
+    with ``before_`` and ``after_`` can be used. That means that all objects
+    with ``when=='before_start'`` will be updated first, then
+    those with ``when=='start'``, ``when=='after_start'``,
+    ``when=='before_groups'``, ``when=='groups'`` and so forth. If several
+    objects have the same `~BrianObject.when` attribute, then the order is
+    determined by the `~BrianObject.order` attribute (lower first).
     
     See Also
     --------
@@ -375,10 +379,25 @@ class Network(Nameable):
             return list(self._schedule)
     
     def _set_schedule(self, schedule):
-        self._schedule = schedule
-        logger.debug("Set network {self.name} schedule to "
-                     "{self._schedule}".format(self=self),
-                     "_set_schedule")
+        if schedule is None:
+            self._schedule = None
+            logger.debug('Reset network {self.name} schedule to '
+                         'default schedule')
+        else:
+            if (not isinstance(schedule, Sequence) or
+                    not all(isinstance(slot, basestring) for slot in schedule)):
+                raise TypeError('Schedule has to be None or a sequence of '
+                                'scheduling slots')
+            if any(slot.startswith('before_') or slot.startswith('after_')
+                   for slot in schedule):
+                raise ValueError('Slot names are not allowed to start with '
+                                 '"before_" or "after_" -- such slot names '
+                                 'are created automatically based on the '
+                                 'existing slot names.')
+            self._schedule = list(schedule)
+            logger.debug("Set network {self.name} schedule to "
+                         "{self._schedule}".format(self=self),
+                         "_set_schedule")
     
     schedule = property(fget=_get_schedule,
                         fset=_set_schedule,
@@ -389,6 +408,9 @@ class Network(Nameable):
         slots can be added, but the schedule should contain at least all of the
         names in the default schedule:
         ``['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']``.
+
+        The schedule can also be set to ``None``, resetting it to the default
+        schedule set by the `core.network.default_schedule` preference.
         ''')
 
     def _sort_objects(self):
@@ -397,10 +419,24 @@ class Network(Nameable):
         
         Objects are sorted first by their ``when`` attribute, and secondly
         by the ``order`` attribute. The order of the ``when`` attribute is
-        defined by the ``schedule``. Final ties are resolved using the objects'
-        names, leading to an arbitrary but deterministic sorting.
+        defined by the ``schedule``. In addition to the slot names defined in
+        the schedule, automatic slot names starting with ``before_`` and
+        ``after_`` can be used (e.g. the slots ``['groups', 'thresholds']``
+        allow to use ``['before_groups', 'groups', 'after_groups',
+        'before_thresholds', 'thresholds', 'after_thresholds']`).
+
+        Final ties are resolved using the objects' names, leading to an
+        arbitrary but deterministic sorting.
         '''
-        when_to_int = dict((when, i) for i, when in enumerate(self.schedule))
+        # Provided slot names are assigned positions 1, 4, 7, ...
+        # before_... names are assigned positions 0, 3, 6, ...
+        # after_... names are assigned positions 2, 5, 8, ...
+        when_to_int = dict((when, 1+i*3)
+                           for i, when in enumerate(self.schedule))
+        when_to_int.update(('before_' + when, i*3)
+                           for i, when in enumerate(self.schedule))
+        when_to_int.update(('after_' + when, 2+i*3)
+                           for i, when in enumerate(self.schedule))
         self.objects.sort(key=lambda obj: (when_to_int[obj.when],
                                            obj.order,
                                            obj.name))

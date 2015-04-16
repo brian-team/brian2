@@ -145,6 +145,17 @@ def test_network_schedule_change():
     assert_equal(''.join(NameLister.updates), 'yxyxyx')
 
 @attr('codegen-independent')
+def test_network_before_after_schedule():
+    # Test that before... and after... slot names can be used
+    NameLister.updates[:] = []
+    x = NameLister(name='x', when='before_resets')
+    y = NameLister(name='y', when='after_thresholds')
+    net = Network(x, y)
+    net.schedule = ['thresholds', 'resets']
+    net.run(0.3*ms)
+    assert_equal(''.join(NameLister.updates), 'yxyxyx')
+
+@attr('codegen-independent')
 def test_network_custom_slots():
     # Check that custom slots can be inserted into the schedule
     NameLister.updates[:] = []
@@ -155,6 +166,23 @@ def test_network_custom_slots():
     net.schedule = ['start', 'groups', 'thresholds', 'in_between', 'synapses', 'resets', 'end']
     net.run(0.3*ms)
     assert_equal(''.join(NameLister.updates), 'xyzxyzxyz')
+
+@attr('codegen-independent')
+def test_network_incorrect_schedule():
+    # Test that incorrect arguments provided to schedule raise errors
+    net = Network()
+    # net.schedule = object()
+    assert_raises(TypeError, setattr, net, 'schedule', object())
+    # net.schedule = 1
+    assert_raises(TypeError, setattr, net, 'schedule', 1)
+    # net.schedule = {'slot1', 'slot2'}
+    assert_raises(TypeError, setattr, net, 'schedule', {'slot1', 'slot2'})
+    # net.schedule = ['slot', 1]
+    assert_raises(TypeError, setattr, net, 'schedule', ['slot', 1])
+    # net.schedule = ['start', 'after_start']
+    assert_raises(ValueError, setattr, net, 'schedule', ['start', 'after_start'])
+    # net.schedule = ['before_start', 'start']
+    assert_raises(ValueError, setattr, net, 'schedule', ['before_start', 'start'])
 
 class Preparer(BrianObject):
     add_to_magic_network = True
@@ -819,7 +847,9 @@ if __name__=='__main__':
             test_network_different_when,
             test_network_default_schedule,
             test_network_schedule_change,
+            test_network_before_after_schedule,
             test_network_custom_slots,
+            test_network_incorrect_schedule,
             test_magic_network,
             test_network_stop,
             test_network_operations,
