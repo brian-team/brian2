@@ -113,7 +113,7 @@ void _write_arrays()
 	{% for var, varname in array_specs | dictsort(by='value') %}
 	{% if not (var in dynamic_array_specs or var in dynamic_array_2d_specs) %}
 	ofstream outfile_{{varname}};
-	outfile_{{varname}}.open("results/{{varname}}", ios::binary | ios::out);
+	outfile_{{varname}}.open("{{get_array_filename(var)}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
 		outfile_{{varname}}.write(reinterpret_cast<char*>({{varname}}), {{var.size}}*sizeof({{varname}}[0]));
@@ -127,7 +127,7 @@ void _write_arrays()
 
 	{% for var, varname in dynamic_array_specs | dictsort(by='value') %}
 	ofstream outfile_{{varname}};
-	outfile_{{varname}}.open("results/{{varname}}", ios::binary | ios::out);
+	outfile_{{varname}}.open("{{get_array_filename(var)}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
 		outfile_{{varname}}.write(reinterpret_cast<char*>(&{{varname}}[0]), {{varname}}.size()*sizeof({{varname}}[0]));
@@ -140,7 +140,7 @@ void _write_arrays()
 
 	{% for var, varname in dynamic_array_2d_specs | dictsort(by='value') %}
 	ofstream outfile_{{varname}};
-	outfile_{{varname}}.open("results/{{varname}}", ios::binary | ios::out);
+	outfile_{{varname}}.open("{{get_array_filename(var)}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
         for (int n=0; n<{{varname}}.n; n++)
