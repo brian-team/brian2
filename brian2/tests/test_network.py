@@ -14,6 +14,7 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     PopulationRateMonitor, MagicNetwork, magic_network,
                     PoissonGroup, Hz, collect, store, restore, BrianLogger,
                     start_scope, prefs)
+from brian2.devices.device import restore_device, Device, all_devices, set_device
 from brian2.utils.logger import catch_logs
 
 @attr('codegen-independent')
@@ -183,6 +184,48 @@ def test_network_incorrect_schedule():
     assert_raises(ValueError, setattr, net, 'schedule', ['start', 'after_start'])
     # net.schedule = ['before_start', 'start']
     assert_raises(ValueError, setattr, net, 'schedule', ['before_start', 'start'])
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_device)
+def test_schedule_warning():
+    from uuid import uuid4
+    # TestDevice1 supports arbitrary schedules, TestDevice2 does not
+    class TestDevice1(Device):
+        pass
+    class TestDevice2(Device):
+        def __init__(self):
+            super(TestDevice2, self).__init__()
+            self.network_schedule = ['start', 'groups', 'synapses',
+                                     'thresholds', 'resets', 'end']
+
+    # Unique names are important for getting the warnings again for multiple
+    # runs of the test suite
+    name1 = 'testdevice_' + str(uuid4())
+    name2 = 'testdevice_' + str(uuid4())
+    all_devices[name1] = TestDevice1()
+    all_devices[name2] = TestDevice2()
+
+    set_device(name1)
+    net = Network()
+    # Any schedule should work
+    net.schedule = list(reversed(net.schedule))
+    with catch_logs() as l:
+        net.run(0*ms)
+        assert len(l) == 0, 'did not expect a warning'
+
+    set_device(name2)
+    # Using the correct schedule should work
+    net.schedule = ['start', 'groups', 'synapses', 'thresholds', 'resets', 'end']
+    with catch_logs() as l:
+        net.run(0*ms)
+        assert len(l) == 0, 'did not expect a warning'
+
+    # Using another (e.g. the default) schedule should raise a warning
+    net.schedule = None
+    with catch_logs() as l:
+        net.run(0*ms)
+        assert len(l) == 1 and l[0][1].endswith('schedule_conflict')
+
 
 class Preparer(BrianObject):
     add_to_magic_network = True
@@ -850,6 +893,7 @@ if __name__=='__main__':
             test_network_before_after_schedule,
             test_network_custom_slots,
             test_network_incorrect_schedule,
+            test_schedule_warning,
             test_magic_network,
             test_network_stop,
             test_network_operations,

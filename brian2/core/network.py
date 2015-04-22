@@ -466,6 +466,8 @@ class Network(Nameable):
             A namespace in which objects which do not define their own
             namespace will be run.
         '''
+        from brian2.devices.device import get_device, all_devices
+
         # A garbage collection here can be useful to free memory if we have
         # multiple runs
         gc.collect()
@@ -474,7 +476,26 @@ class Network(Nameable):
         
         self._stopped = False
         Network._globally_stopped = False
-        
+
+        device = get_device()
+        if device.network_schedule is not None:
+            # The device defines a fixed network schedule
+            if device.network_schedule != self.schedule:
+                # TODO: The human-readable name of a device should be easier to get
+                device_name = all_devices.keys()[all_devices.values().index(device)]
+                logger.warn(("The selected device '{device_name}' only "
+                             "supports a fixed schedule, but this schedule is "
+                             "not consistent with the network's schedule. The "
+                             "simulation will use the device's schedule.\n"
+                             "Device schedule: {device.network_schedule}\n"
+                             "Network schedule: {net.schedule}\n"
+                             "Set the network schedule explicitly or set the "
+                             "core.network.default_schedule preference to "
+                             "avoid this warning.").format(device_name=device_name,
+                                                           device=device,
+                                                           net=self),
+                            name_suffix='schedule_conflict', once=True)
+
         self._sort_objects()
 
         logger.debug("Preparing network {self.name} with {numobj} "
@@ -575,9 +596,6 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
-        if len(self.objects)==0:
-            return # TODO: raise an error? warning?
-
         self._clocks = set([obj.clock for obj in self.objects])
         t_start = self.t
         t_end = self.t+duration
@@ -585,6 +603,10 @@ class Network(Nameable):
             clock.set_interval(self.t, t_end)
 
         self.before_run(namespace, level=level+3)
+
+        if len(self.objects)==0:
+            return # TODO: raise an error? warning?
+
         # Find the first clock to be updated (see note below)
         clock, curclocks = self._nextclocks()
         if report is not None:
