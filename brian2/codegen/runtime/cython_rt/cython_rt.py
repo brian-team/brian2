@@ -6,7 +6,7 @@ import numpy
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,
                                    Subexpression)
-from brian2.core.preferences import prefs, BrianPreference
+from brian2.core.preferences import prefs
 from brian2.utils.logger import get_logger
 
 from ..numpy_rt import NumpyCodeObject
@@ -14,32 +14,13 @@ from ...templates import Templater
 from ...generators.cython_generator import (CythonCodeGenerator, get_cpp_dtype,
                                             get_numpy_dtype)
 from ...targets import codegen_targets
+from ...cpp_prefs import get_compiler_and_args
 from .extension_manager import cython_extension_manager
 
 __all__ = ['CythonCodeObject']
 
 
 logger = get_logger(__name__)
-
-# Preferences
-prefs.register_preferences(
-    'codegen.runtime.cython',
-    'Cython runtime codegen preferences',
-    extra_compile_args = BrianPreference(
-        default=['-w', '-O3'],
-        docs='''
-        Extra compile arguments to pass to compiler
-        '''
-        ),
-    include_dirs = BrianPreference(
-        default=[],
-        docs='''
-        Include directories to use. Note that ``$prefix/include`` will be
-        appended to the end automatically, where ``$prefix`` is Python's
-        site-specific directory prefix as returned by `sys.prefix`.
-        '''
-        )
-    )
 
 
 class CythonCodeObject(NumpyCodeObject):
@@ -59,9 +40,13 @@ class CythonCodeObject(NumpyCodeObject):
                                                variable_indices,
                                                template_name, template_source,
                                                name=name)
-        self.extra_compile_args = prefs['codegen.runtime.cython.extra_compile_args']
-        self.include_dirs = list(prefs['codegen.runtime.cython.include_dirs'])
+        _, self.extra_compile_args = get_compiler_and_args()
+        self.extra_link_args = list(prefs['codegen.cpp.extra_link_args'])
+        self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
+        self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
+        self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
+        self.libraries = list(prefs['codegen.cpp.libraries'])
 
     @staticmethod
     def is_available():
@@ -72,7 +57,7 @@ class CythonCodeObject(NumpyCodeObject):
                 cdef int x
                 x = 0'''
             compiled = cython_extension_manager.create_extension(code,
-                                                                 compile_args=extra_compile_args)
+                                                                 extra_compile_args=extra_compile_args)
             compiled.main()
             return True
         except Exception as ex:
@@ -85,8 +70,11 @@ class CythonCodeObject(NumpyCodeObject):
 
     def compile(self):
         self.compiled_code = cython_extension_manager.create_extension(self.code,
-                                                                       compile_args=self.extra_compile_args,
-                                                                       include=self.include_dirs)
+                                                                       libraries=self.libraries,
+                                                                       extra_compile_args=self.extra_compile_args,
+                                                                       extra_link_args=self.extra_link_args,
+                                                                       include_dirs=self.include_dirs,
+                                                                       library_dirs=self.library_dirs)
         
     def run(self):
         return self.compiled_code.main(self.namespace)

@@ -35,7 +35,12 @@ class CythonExtensionManager(object):
         self._code_cache = {}
         
     def create_extension(self, code, force=False, name=None,
-                         include=None, library_dirs=None, compile_args=None, link_args=None, lib=None,
+                         include_dirs=None,
+                         library_dirs=None,
+                         runtime_library_dirs=None,
+                         extra_compile_args=None,
+                         extra_link_args=None,
+                         libraries=None,
                          ):
 
         if Cython is None:
@@ -69,18 +74,18 @@ class CythonExtensionManager(object):
         have_module = os.path.isfile(module_path)
         
         if not have_module:
-            if include is None:
-                include = []
+            if include_dirs is None:
+                include_dirs = []
             if library_dirs is None:
                 library_dirs = []
-            if compile_args is None:
-                compile_args = []
-            if link_args is None:
-                link_args = []
-            if lib is None:
-                lib = []
-                
-            c_include_dirs = include
+            if extra_compile_args is None:
+                extra_compile_args = []
+            if extra_link_args is None:
+                extra_link_args = []
+            if libraries is None:
+                libraries = []
+
+            c_include_dirs = include_dirs
             if 'numpy' in code:
                 import numpy
                 c_include_dirs.append(numpy.get_include())
@@ -96,9 +101,10 @@ class CythonExtensionManager(object):
                 sources=[pyx_file],
                 include_dirs=c_include_dirs,
                 library_dirs=library_dirs,
-                extra_compile_args=compile_args,
-                extra_link_args=link_args,
-                libraries=lib,
+                runtime_library_dirs=runtime_library_dirs,
+                extra_compile_args=extra_compile_args,
+                extra_link_args=extra_link_args,
+                libraries=libraries,
                 language='c++',
                 )
             build_extension = self._get_build_extension()
