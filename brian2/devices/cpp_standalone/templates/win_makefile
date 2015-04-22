@@ -12,4 +12,4 @@ clean:
 
 main.exe: {% for base in source_bases %}{{base}}.obj {% endfor %}
 
-    link {% for base in source_bases %}{{base}}.obj {% endfor %} /OUT:main.exe
+    link {% for base in source_bases %}{{base}}.obj {% endfor %} {{linker_flags}} /OUT:main.exe

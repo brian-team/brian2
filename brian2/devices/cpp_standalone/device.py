@@ -9,7 +9,7 @@ import platform
 from collections import defaultdict
 import numbers
 import tempfile
-
+from distutils import ccompiler
 import numpy as np
 
 from brian2.codegen.cpp_prefs import get_compiler_and_args
@@ -575,7 +575,7 @@ class CPPStandaloneDevice(Device):
                                                         )
         writer.write('run.*', run_tmp)
         
-    def generate_makefile(self, writer, compiler, native, compiler_flags, nb_threads):
+    def generate_makefile(self, writer, compiler, native, compiler_flags, linker_flags, nb_threads):
         if compiler=='msvc':
             if native:
                 arch_flag = ''
@@ -600,6 +600,7 @@ class CPPStandaloneDevice(Device):
                 None, None,
                 source_bases=source_bases,
                 compiler_flags=compiler_flags,
+                linker_flags=linker_flags,
                 openmp_flag=openmp_flag,
                 )
             writer.write('win_makefile', win_makefile_tmp)
@@ -613,6 +614,7 @@ class CPPStandaloneDevice(Device):
                 source_files=' '.join(writer.source_files),
                 header_files=' '.join(writer.header_files),
                 compiler_flags=compiler_flags,
+                linker_flags=linker_flags,
                 rm_cmd=rm_cmd)
             writer.write('makefile', makefile_tmp)
     
@@ -815,7 +817,17 @@ class CPPStandaloneDevice(Device):
         ensure_directory(directory)
 
         compiler, extra_compile_args = get_compiler_and_args()
-        compiler_flags = ' '.join(extra_compile_args)
+        # We have to use the name 'unix' for the 'gcc' compiler
+        compiler_name = compiler if compiler != 'gcc' else 'unix'
+        compiler_obj = ccompiler.new_compiler(compiler=compiler_name)
+        compiler_flags = (ccompiler.gen_preprocess_options(prefs['codegen.cpp.define_macros'],
+                                                           prefs['codegen.cpp.include_dirs']) +
+                          extra_compile_args)
+        linker_flags = (ccompiler.gen_lib_options(compiler_obj,
+                                                  library_dirs=prefs['codegen.cpp.library_dirs'],
+                                                  runtime_library_dirs=prefs['codegen.cpp.runtime_library_dirs'],
+                                                  libraries=prefs['codegen.cpp.libraries']) +
+                        prefs['codegen.cpp.extra_link_args'])
         
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(directory, d))
@@ -857,7 +869,10 @@ class CPPStandaloneDevice(Device):
         writer.source_files.extend(additional_source_files)
         writer.header_files.extend(additional_header_files)
         
-        self.generate_makefile(writer, compiler, native, compiler_flags, nb_threads)
+        self.generate_makefile(writer, compiler, native=native,
+                               compiler_flags=' '.join(compiler_flags),
+                               linker_flags=' '.join(linker_flags),
+                               nb_threads=nb_threads)
         
         if compile:
             self.compile_source(directory, compiler, debug, clean, native)
