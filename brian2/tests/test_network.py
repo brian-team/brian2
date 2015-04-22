@@ -14,7 +14,7 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     PopulationRateMonitor, MagicNetwork, magic_network,
                     PoissonGroup, Hz, collect, store, restore, BrianLogger,
                     start_scope, prefs)
-from brian2.devices.device import restore_device, Device, all_devices, set_device
+from brian2.devices.device import restore_device, Device, all_devices, set_device, get_device
 from brian2.utils.logger import catch_logs
 
 @attr('codegen-independent')
@@ -188,6 +188,7 @@ def test_network_incorrect_schedule():
 @attr('codegen-independent')
 @with_setup(teardown=restore_device)
 def test_schedule_warning():
+    previous_device = get_device()
     from uuid import uuid4
     # TestDevice1 supports arbitrary schedules, TestDevice2 does not
     class TestDevice1(Device):
@@ -225,6 +226,7 @@ def test_schedule_warning():
     with catch_logs() as l:
         net.run(0*ms)
         assert len(l) == 1 and l[0][1].endswith('schedule_conflict')
+    set_device(previous_device)
 
 
 class Preparer(BrianObject):
