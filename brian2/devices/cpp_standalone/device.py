@@ -186,6 +186,32 @@ class CPPStandaloneDevice(Device):
             raise TypeError(('Do not have a name for variable of type '
                              '%s') % type(var))
 
+    def get_array_filename(self, var, basedir='results'):
+        '''
+        Return a file name for a variable.
+
+        Parameters
+        ----------
+        var : `ArrayVariable`
+            The variable to get a filename for.
+        basedir : str
+            The base directory for the filename, defaults to ``'results'``.
+        Returns
+        -------
+        filename : str
+            A filename of the form
+            ``'results/'+varname+'_'+str(hash(varname))``, where varname is the
+            name returned by `get_array_name`.
+
+        Notes
+        -----
+        The reason that the filename is not simply ``'results/' + varname`` is
+        that this could lead to file names that are not unique in file systems
+        that are not case sensitive (e.g. on Windows).
+        '''
+        varname = self.get_array_name(var, access_data=False)
+        return os.path.join(basedir, varname + '_' + str(hash(varname)))
+
     def add_array(self, var):
         # Note that a dynamic array variable is added to both the arrays and
         # the _dynamic_array dictionary
@@ -317,8 +343,8 @@ class CPPStandaloneDevice(Device):
             # disk
             if self.has_been_run:
                 dtype = var.dtype
-                fname = os.path.join(self.project_dir, 'results',
-                                     array_name)
+                fname = os.path.join(self.project_dir,
+                                     self.get_array_filename(var))
                 with open(fname, 'rb') as f:
                     data = np.fromfile(f, dtype=dtype)
                 # This is a bit of an heuristic, but our 2d dynamic arrays are
@@ -403,7 +429,8 @@ class CPPStandaloneDevice(Device):
                         synapses=synapses,
                         clocks=self.clocks,
                         static_array_specs=static_array_specs,
-                        networks=networks)
+                        networks=networks,
+                        get_array_filename=self.get_array_filename)
         writer.write('objects.*', arr_tmp)
         
     def generate_main_source(self, writer, main_includes):
