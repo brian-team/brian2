@@ -25,7 +25,7 @@ prefs.register_preferences(
         Should be gcc or msvc.
         '''
         ),
-    extra_compile_args = BrianPreference(
+    extra_compile_args=BrianPreference(
         default=None,
         validator=lambda v: True,
         docs='''
@@ -33,19 +33,26 @@ prefs.register_preferences(
         ``extra_compile_args_gcc`` or ``extra_compile_args_msvs``).
         '''
         ),
-    extra_compile_args_gcc = BrianPreference(
+    extra_compile_args_gcc=BrianPreference(
         default=['-w', '-O3'],
         docs='''
         Extra compile arguments to pass to GCC compiler
         '''
         ),
-    extra_compile_args_msvc = BrianPreference(
+    extra_compile_args_msvc=BrianPreference(
         default=['/Ox', '/EHsc', '/w'],
         docs='''
         Extra compile arguments to pass to MSVC compiler
         '''
         ),
-    include_dirs = BrianPreference(
+    extra_link_args=BrianPreference(
+        default=[],
+        docs='''
+        Any extra platform- and compiler-specific information to use when
+        linking object files together.
+        '''
+    ),
+    include_dirs=BrianPreference(
         default=[],
         docs='''
         Include directories to use. Note that ``$prefix/include`` will be
@@ -53,12 +60,39 @@ prefs.register_preferences(
         site-specific directory prefix as returned by `sys.prefix`.
         '''
         ),
-    msvc_vars_location = BrianPreference(
+    library_dirs=BrianPreference(
+        default=[],
+        docs='''
+        List of directories to search for C/C++ libraries at link time.
+        '''
+    ),
+    runtime_library_dirs=BrianPreference(
+        default=[],
+        docs='''
+        List of directories to search for C/C++ libraries at run time.
+        '''
+    ),
+    libraries=BrianPreference(
+        default=[],
+        docs='''
+        List of library names (not filenames or paths) to link against.
+        '''
+    ),
+    define_macros=BrianPreference(
+        default=[],
+        docs='''
+        List of macros to define; each macro is defined using a 2-tuple,
+        where 'value' is either the string to define it to or None to
+        define it without a particular value (equivalent of "#define
+        FOO" in source or -DFOO on Unix C compiler command line).
+        '''
+    ),
+    msvc_vars_location=BrianPreference(
         default='',
         docs='''
         Location of the MSVC command line tool (or search for best by default).
         '''),
-    msvc_architecture = BrianPreference(
+    msvc_architecture=BrianPreference(
         default='',
         docs='''
         MSVC architecture name (or use system architectue by default).

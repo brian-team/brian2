@@ -61,16 +61,6 @@ class WeaveCodeGenerator(CPPCodeGenerator):
         self.c_data_type = weave_data_type
 
 
-def compiler_defines(compiler):
-    if compiler == 'msvc':
-        return '''
-#define INFINITY (std::numeric_limits<double>::infinity())
-#define NAN (std::numeric_limits<double>::quiet_NaN())
-#define M_PI 3.14159265358979323846
-        '''
-    return ''
-
-
 class WeaveCodeObject(CodeObject):
     '''
     Weave code object
@@ -96,32 +86,39 @@ class WeaveCodeObject(CodeObject):
                                               template_name, template_source,
                                               name=name)
         self.compiler, self.extra_compile_args = get_compiler_and_args()
+        self.define_macros = list(prefs['codegen.cpp.define_macros'])
+        if self.compiler == 'msvc':
+            self.define_macros.extend([
+                ('INFINITY', '(std::numeric_limits<double>::infinity())'),
+                ('NAN', '(std::numeric_limits<double>::quiet_NaN())'),
+                ('M_PI', '3.14159265358979323846')
+            ])
+        self.extra_link_args = list(prefs['codegen.cpp.extra_link_args'])
         self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
-        self.code.support_code = compiler_defines(self.compiler)+self.code.support_code
-        self.annotated_code = compiler_defines(self.compiler)+self.code.main+'''
+        self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
+        self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
+        self.libraries = list(prefs['codegen.cpp.libraries'])
+        self.annotated_code = self.code.main+'''
 /*
 The following code is just compiler options for the call to weave.inline.
 By including them here, we force a recompile if the compiler options change,
 which is a good thing (e.g. switching -ffast-math on and off).
 
 support_code:
-{support_code}
+{self.code.support_code}
 
-compiler:
-{compiler}
-
-extra_compile_args:
-{extra_compile_args}
-
-include_dirs:
-{include_dirs}
+compiler: {self.compiler}
+define_macros: {self.define_macros}
+extra_compile_args: {self.extra_compile_args}
+extra_link_args: {self.extra_link_args}
+include_dirs: {self.include_dirs}
+library_dirs: {self.library_dirs}
+runtime_library_dirs: {self.runtime_library_dirs}
+libraries: {self.libraries}
 */
-        '''.format(support_code=self.code.support_code,
-                   compiler=self.compiler,
-                   extra_compile_args=self.extra_compile_args,
-                   include_dirs=self.include_dirs)
-            
+        '''.format(self=self)
+
         self.python_code_namespace = {'_owner': owner}
         self.variables_to_namespace()
 
@@ -218,8 +215,11 @@ include_dirs:
                                    support_code=self.code.support_code,
                                    compiler=self.compiler,
                                    headers=['<algorithm>', '<limits>'],
+                                   libraries=self.libraries,
                                    extra_compile_args=self.extra_compile_args,
+                                   extra_link_args=self.extra_link_args,
                                    include_dirs=self.include_dirs,
+                                   library_dirs=self.library_dirs,
                                    verbose=0)
         self._done_first_run = True
         if self.compiled_python_post is not None:
