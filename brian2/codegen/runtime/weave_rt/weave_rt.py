@@ -99,6 +99,7 @@ class WeaveCodeObject(CodeObject):
         self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
+        self.headers = ['<algorithm>', '<limits>'] + prefs['codegen.cpp.headers']
         self.annotated_code = self.code.main+'''
 /*
 The following code is just compiler options for the call to weave.inline.
@@ -214,7 +215,7 @@ libraries: {self.libraries}
                                    local_dict=self.namespace,
                                    support_code=self.code.support_code,
                                    compiler=self.compiler,
-                                   headers=['<algorithm>', '<limits>'],
+                                   headers=self.headers,
                                    define_macros=self.define_macros,
                                    libraries=self.libraries,
                                    extra_compile_args=self.extra_compile_args,

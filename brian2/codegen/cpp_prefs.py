@@ -78,6 +78,15 @@ prefs.register_preferences(
         List of library names (not filenames or paths) to link against.
         '''
     ),
+    headers=BrianPreference(
+        default=[],
+        docs='''
+        A list of strings specifying header files to use when compiling the
+        code. The list might look like ["<vector>","'my_header'"]. Note that
+        the header strings need to be in a form than can be pasted at the end
+        of a #include statement in the C++ code.
+        '''
+    ),
     define_macros=BrianPreference(
         default=[],
         docs='''
