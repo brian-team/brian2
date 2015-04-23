@@ -496,6 +496,17 @@ def test_delay_specification():
     assert_raises(ValueError, lambda: Synapses(G, G, 'w:1', pre='v+=w',
                                                delay={'post': 5*ms}))
 
+@attr('codegen-independent')
+def test_pre_before_post():
+    # The pre pathway should be executed before the post pathway
+    G = NeuronGroup(1, '''x : 1
+                          y : 1''', threshold='True')
+    S = Synapses(G, G, '', pre='x=1; y=1', post='x=2', connect=True)
+    run(defaultclock.dt)
+    # Both pathways should have been executed, but post should have overriden
+    # the x value (because it was executed later)
+    assert G.x == 2
+    assert G.y == 1
 
 @attr('long')
 def test_transmission():
@@ -944,18 +955,18 @@ def test_vectorisation_STDP_like():
                          order=['i', 'j'])
     assert_allclose(syn.w_dep[:][indices],
                     [1.29140162, 1.16226149, 1.04603529, 1.16226149, 1.04603529,
-                     6.941432, 1.04603529, 6.941432, 6.2472887],
+                     0.94143176, 1.04603529, 0.94143176, 6.2472887],
                     rtol=1e-6, atol=1e-12)
     assert_allclose(syn.w_fac[:][indices],
                     [5.06030369, 5.62256002, 6.2472887, 5.62256002, 6.2472887,
-                     0.94143176, 6.2472887, 0.94143176, 1.04603529],
+                     6.941432, 6.2472887, 6.941432, 1.04603529],
                     rtol=1e-6, atol=1e-12)
     assert_allclose(neurons.A[:],
                     [1.69665715, 1.88517461, 2.09463845, 2.32737606, 2.09463845,
                      1.88517461],
                     rtol=1e-6, atol=1e-12)
     assert_allclose(neurons.ge[:],
-                    [0., 0., 0., -7.31700015, -3.07143188, 1.01253295],
+                    [0., 0., 0., -7.31700015, -8.13000011, -4.04603529],
                     rtol=1e-6, atol=1e-12)
 
 
@@ -974,6 +985,7 @@ if __name__ == '__main__':
     test_indices()
     test_subexpression_references()
     test_delay_specification()
+    test_pre_before_post()
     test_transmission()
     test_transmission_scalar_delay()
     test_transmission_scalar_delay_different_clocks()
