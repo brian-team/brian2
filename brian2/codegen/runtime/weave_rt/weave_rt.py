@@ -215,6 +215,7 @@ libraries: {self.libraries}
                                    support_code=self.code.support_code,
                                    compiler=self.compiler,
                                    headers=['<algorithm>', '<limits>'],
+                                   define_macros=self.define_macros,
                                    libraries=self.libraries,
                                    extra_compile_args=self.extra_compile_args,
                                    extra_link_args=self.extra_link_args,
