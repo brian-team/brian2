@@ -41,9 +41,10 @@ install:
     fi
   - source activate travis_conda
   - if [[ $CYTHON == 'yes' ]]; then conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=""; fi
-  - pip install -q coveralls --use-mirrors
+  - pip install -q coveralls
   - python setup.py install $SETUP_ARGS --fail-on-error
   - if [[ $DOCS_ONLY == 'yes' ]]; then
+    pip install -q sphinxcontrib-issuetracker;
     python setup.py sdist;
     fi
 # command to run tests (make sure to not run it from the source directory)
