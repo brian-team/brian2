@@ -13,7 +13,8 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     NeuronGroup, StateMonitor, SpikeMonitor,
                     PopulationRateMonitor, MagicNetwork, magic_network,
                     PoissonGroup, Hz, collect, store, restore, BrianLogger,
-                    start_scope)
+                    start_scope, prefs)
+from brian2.devices.device import restore_device, Device, all_devices, set_device, get_device
 from brian2.utils.logger import catch_logs
 
 @attr('codegen-independent')
@@ -119,6 +120,114 @@ def test_network_different_when():
     net = Network(x, y)
     net.run(0.3*ms)
     assert_equal(''.join(NameLister.updates), 'xyxyxy')
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_initial_state)
+def test_network_default_schedule():
+    net = Network()
+    assert net.schedule == ['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']
+    # Set the preference and check that the change is taken into account
+    prefs.core.network.default_schedule = list(reversed(['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']))
+    assert net.schedule == list(reversed(['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']))
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_initial_state)
+def test_network_schedule_change():
+    # Check that a changed schedule is taken into account correctly
+    NameLister.updates[:] = []
+    x = NameLister(name='x', when='thresholds')
+    y = NameLister(name='y', when='resets')
+    net = Network(x, y)
+    net.run(0.3*ms)
+    assert_equal(''.join(NameLister.updates), 'xyxyxy')
+    NameLister.updates[:] = []
+    net.schedule = ['start', 'groups', 'synapses', 'resets', 'thresholds', 'end']
+    net.run(0.3*ms)
+    assert_equal(''.join(NameLister.updates), 'yxyxyx')
+
+@attr('codegen-independent')
+def test_network_before_after_schedule():
+    # Test that before... and after... slot names can be used
+    NameLister.updates[:] = []
+    x = NameLister(name='x', when='before_resets')
+    y = NameLister(name='y', when='after_thresholds')
+    net = Network(x, y)
+    net.schedule = ['thresholds', 'resets']
+    net.run(0.3*ms)
+    assert_equal(''.join(NameLister.updates), 'yxyxyx')
+
+@attr('codegen-independent')
+def test_network_custom_slots():
+    # Check that custom slots can be inserted into the schedule
+    NameLister.updates[:] = []
+    x = NameLister(name='x', when='thresholds')
+    y = NameLister(name='y', when='in_between')
+    z = NameLister(name='z', when='resets')
+    net = Network(x, y, z)
+    net.schedule = ['start', 'groups', 'thresholds', 'in_between', 'synapses', 'resets', 'end']
+    net.run(0.3*ms)
+    assert_equal(''.join(NameLister.updates), 'xyzxyzxyz')
+
+@attr('codegen-independent')
+def test_network_incorrect_schedule():
+    # Test that incorrect arguments provided to schedule raise errors
+    net = Network()
+    # net.schedule = object()
+    assert_raises(TypeError, setattr, net, 'schedule', object())
+    # net.schedule = 1
+    assert_raises(TypeError, setattr, net, 'schedule', 1)
+    # net.schedule = {'slot1', 'slot2'}
+    assert_raises(TypeError, setattr, net, 'schedule', {'slot1', 'slot2'})
+    # net.schedule = ['slot', 1]
+    assert_raises(TypeError, setattr, net, 'schedule', ['slot', 1])
+    # net.schedule = ['start', 'after_start']
+    assert_raises(ValueError, setattr, net, 'schedule', ['start', 'after_start'])
+    # net.schedule = ['before_start', 'start']
+    assert_raises(ValueError, setattr, net, 'schedule', ['before_start', 'start'])
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_device)
+def test_schedule_warning():
+    previous_device = get_device()
+    from uuid import uuid4
+    # TestDevice1 supports arbitrary schedules, TestDevice2 does not
+    class TestDevice1(Device):
+        pass
+    class TestDevice2(Device):
+        def __init__(self):
+            super(TestDevice2, self).__init__()
+            self.network_schedule = ['start', 'groups', 'synapses',
+                                     'thresholds', 'resets', 'end']
+
+    # Unique names are important for getting the warnings again for multiple
+    # runs of the test suite
+    name1 = 'testdevice_' + str(uuid4())
+    name2 = 'testdevice_' + str(uuid4())
+    all_devices[name1] = TestDevice1()
+    all_devices[name2] = TestDevice2()
+
+    set_device(name1)
+    net = Network()
+    # Any schedule should work
+    net.schedule = list(reversed(net.schedule))
+    with catch_logs() as l:
+        net.run(0*ms)
+        assert len(l) == 0, 'did not expect a warning'
+
+    set_device(name2)
+    # Using the correct schedule should work
+    net.schedule = ['start', 'groups', 'synapses', 'thresholds', 'resets', 'end']
+    with catch_logs() as l:
+        net.run(0*ms)
+        assert len(l) == 0, 'did not expect a warning'
+
+    # Using another (e.g. the default) schedule should raise a warning
+    net.schedule = None
+    with catch_logs() as l:
+        net.run(0*ms)
+        assert len(l) == 1 and l[0][1].endswith('schedule_conflict')
+    set_device(previous_device)
+
 
 class Preparer(BrianObject):
     add_to_magic_network = True
@@ -781,6 +890,12 @@ if __name__=='__main__':
             test_network_two_objects,
             test_network_different_clocks,
             test_network_different_when,
+            test_network_default_schedule,
+            test_network_schedule_change,
+            test_network_before_after_schedule,
+            test_network_custom_slots,
+            test_network_incorrect_schedule,
+            test_schedule_warning,
             test_magic_network,
             test_network_stop,
             test_network_operations,
