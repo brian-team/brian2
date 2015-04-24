@@ -96,6 +96,9 @@ the neuronal state updates take up the most time)::
     spikemonitor                0.59 s     6.55 %
     neurongroup_thresholder     0.33 s     3.66 %
 
+
+.. _scheduling:
+
 Scheduling
 ----------
 

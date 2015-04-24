@@ -113,6 +113,11 @@ of the ``(event-driven)`` keyword mentioned above)::
 	                  x*=(1-u)
 	                  u+=U*(1-u)''')
 
+By default, the ``pre`` pathway is executed before the ``post`` pathway (both
+are executed in the ``'synapses'`` scheduling slot, but the ``pre`` pathway has
+the ``order`` attribute -1, wheras the ``post`` pathway has ``order`` 1. See
+:ref:`scheduling` for more details).
+
 Summed variables
 ^^^^^^^^^^^^^^^^
 In many cases, the postsynaptic neuron has a variable that represents a sum of variables over all
@@ -261,6 +266,17 @@ The following statement, for example, sets the delay of the synapse between the 
 of the source and target groups in the ``pre_plasticity`` pathway::
 
 	S.pre_plasticity.delay[0,0] = 3*ms
+
+As mentioned above, ``pre`` pathways are generally executed before ``post``
+pathways. The order of execution of several ``pre`` (or ``post``) pathways is
+however arbitrary, and simply based on the alphabetical ordering of their names
+(i.e. ``pre_plasticity`` will be executed before ``pre_transmission``). To
+explicitly specify the order, set the ``order`` attribute of the pathway, e.g.::
+
+    S.pre_transmission.order = -2
+
+will make sure that the ``pre_transmission`` code is executed before the
+``pre_plasticity`` code in each time step.
 
 Monitoring synaptic variables
 -----------------------------
