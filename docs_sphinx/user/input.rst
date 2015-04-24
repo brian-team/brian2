@@ -29,6 +29,24 @@ Example use::
     G = NeuronGroup(100, 'dv/dt = -v / (10*ms) : 1')
     S = Synapses(P, G, pre='v+=0.1', connect='i==j')
 
+For simulations where the `PoissonGroup` is just used as a source of input to a
+neuron (i.e., the individually generated spikes are not important, just their
+impact on the target cell), the `PoissonInput` class provides a more efficient
+alternative. Instead of generating spikes, it directly updates a target variable
+based on the sum of independent Poisson processes::
+
+    G = NeuronGroup(100, 'dv/dt = -v / (10*ms) : 1')
+    P = PoissonInput(G, 'v', 100, 100*Hz, weight=0.1)
+
+The `PoissonInput` class is however more restrictive than `PoissonGroup`, it
+only allows for a constant rate across all neurons (but you can create
+several `PoissonInput` objects, targeting different subgroups). It internally
+uses `BinomialFunction` which will draw a random number each time step, either
+from a binomial distribution or from a normal distribution as an approximation
+to the binomial distribution if :math:`n p > 5 \wedge n (1 - p) > 5`, where
+:math:`n` is the number of inputs and :math:`p = dt \cdot rate` the spiking
+probability for a single input.
+
 Spike generation
 ----------------
 You can also generate an explicit list of spikes given via arrays using
