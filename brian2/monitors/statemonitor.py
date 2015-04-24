@@ -100,10 +100,10 @@ class StateMonitor(Group, CodeRunner):
     variables : str, sequence of str, True
         Which variables to record, or ``True`` to record all variables
         (note that this may use a great deal of memory).
-    record : None, False, True, sequence of ints
+    record : None, False, True, sequence of ints, optional
         Which indices to record, nothing is recorded for ``None`` or ``False``,
         everything is recorded for ``True`` (warning: may use a great deal of
-        memory), or a specified subset of indices.
+        memory), or a specified subset of indices. Defaults to ``None``.
     dt : `Quantity`, optional
         The time step to be used for the monitor. Cannot be combined with
         the `clock` argument.
@@ -181,6 +181,13 @@ class StateMonitor(Group, CodeRunner):
             self.record_all = True
             record = np.arange(len(source), dtype=np.int32)
         elif record is None or record is False:
+            logger.warn(('The StateMonitor set up to record the variable(s) '
+                         '{vars} of "{source}" is not recording any value. '
+                         'Did you forget to provide the record '
+                         'argument?').format(vars=', '.join('"%s"' % var
+                                                            for var in variables),
+                                             source=self.source.name),
+                        once=True)
             record = np.array([], dtype=np.int32)
         elif isinstance(record, numbers.Number):
             record = np.array([record], dtype=np.int32)
