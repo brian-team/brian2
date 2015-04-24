@@ -1,6 +1,77 @@
 Release notes
 =============
 
+Brian 2.0b3
+-----------
+This is the third beta release for Brian 2.0. This release does not add many new
+features but it fixes a number of important bugs so we recommend all users of
+Brian 2 to upgrade. If you are a user new to Brian, we also recommend to
+directly start with Brian 2 instead of using the stable release of Brian 1.
+
+This is however still a Beta release, please report bugs or suggestions to the
+github bug tracker (https://github.com/brian-team/brian2/issues) or to the
+brian-development mailing list (brian-development@googlegroups.com).
+
+Major new features
+~~~~~~~~~~~~~~~~~~
+* A new `PoissonInput` class for efficient simulation of Poisson-distributed
+  input events.
+
+Improvements
+~~~~~~~~~~~~
+* The default schedule that is used can now be set via a preference
+  (`core.network.default_schedule`). New automatically generated scheduling
+  slots relative to the explicitly defined ones can be used, e.g.
+  ``before_resets`` or ``after_synapses``. See :ref:`scheduling` for details.
+* The scipy_ package is no longer a dependency (note that weave_ for
+  compiled C code under Python 2 is now available in a separate package). Note
+  that multicompartmental models will still benefit from the scipy_ package
+  if they are simulated in pure Python (i.e. with the ``numpy`` code generation
+  target) -- otherwise Brian 2 will fall back to a numpy-only solution which is
+  significantly slower.
+
+Important bug fixes
+~~~~~~~~~~~~~~~~~~~
+* Fix `SpikeGeneratorGroup` which did not emit all the spikes under certain
+  conditions for some code generation targets (#429)
+* Fix an incorrect update of pre-synaptic variables in synaptic statements for
+  the ``numpy`` code generation target (#435).
+* Fix the possibility of an incorrect memory access when recording a subgroup
+  with `SpikeMonitor` (#454).
+* Fix the storing of results on disk for C++ standalone on Windows -- variables
+  that had the same name when ignoring case (e.g. ``i`` and ``I``) where
+  overwriting each other (#455).
+
+Infrastructure improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Brian 2 now has a chat room on gitter_: https://gitter.im/brian-team/brian2
+* The sphinx documentation can now be built from the release archive file
+* After a big cleanup, all files in the repository have now simple LF line
+  endings (see https://help.github.com/articles/dealing-with-line-endings/ on
+  how to configure your own machine properly if you want to contribute to
+  Brian).
+
+.. _scipy: http://scipy.org
+.. _weave: https://pypi.python.org/pypi/weave
+.. _gitter: http://gitter.im
+
+Contributions
+~~~~~~~~~~~~~
+Code and documentation contributions (ordered by the number of commits):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Konrad Wartke (`@kwartke <https://github.com/Kwartke>`_)
+
+Testing, suggestions and bug reports (ordered alphabetically, apologies to
+everyone we forgot...):
+
+* Daniel Bliss
+* Owen Mackwood
+* Ankur Sinha
+* Richard Tomsett
+
+
 Brian 2.0b2
 -----------
 This is the second beta release for Brian 2.0, we recommend all users of Brian 2
