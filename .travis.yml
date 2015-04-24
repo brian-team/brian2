@@ -1,6 +1,11 @@
 language: python
 matrix:
-  include:    
+  include:
+      # test that the documentation can be built from the tarball -- we
+      # automatically build it from github master all the time, but downstream
+      # packaging will use the tarball as the basis
+    - python: "2.7"
+      env: DOCS_ONLY=yes
     - python: "2.7"
       env: STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no REPORT_COVERAGE=yes
     - python: "2.7"
@@ -15,7 +20,6 @@ matrix:
       env: STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no
     - python: "2.7"  # test without installed cython
       env: STANDALONE=no CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no
-
 # Use miniconda to install binary versions of numpy etc. from continuum
 # analytic's repository. Follows an approach described by Dan Blanchard:
 # https://gist.github.com/dan-blanchard/7045057
@@ -39,11 +43,27 @@ install:
   - if [[ $CYTHON == 'yes' ]]; then conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=""; fi
   - pip install -q coveralls --use-mirrors
   - python setup.py install $SETUP_ARGS --fail-on-error
+  - if [[ $DOCS_ONLY == 'yes' ]]; then
+    python setup.py sdist;
+    fi
 # command to run tests (make sure to not run it from the source directory)
 script:
-- export SRCDIR=$(pwd)
-- if [[ $STANDALONE == 'yes' ]]; then SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests_standalone.py; else SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests.py; fi
-- cd ~;coverage run --rcfile=$SRCDIR/.coveragerc $SCRIPTFILE
+- if [[ $DOCS_ONLY == 'yes' ]]; then
+    cd dist;
+    tar xvzf *.tar.gz;
+    cd Brian2*;
+    mkdir docs;
+    sphinx-build docs_sphinx docs;
+  else
+    export SRCDIR=$(pwd);
+    if [[ $STANDALONE == 'yes' ]]; then
+      SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests_standalone.py;
+    else
+      SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests.py;
+    fi;
+    cd ~;
+    coverage run --rcfile=$SRCDIR/.coveragerc $SCRIPTFILE;
+  fi
 # We only report coverage for one Python version
 after_success: if [[ $REPORT_COVERAGE == 'yes' ]]; then cp .coverage $SRCDIR; cd $SRCDIR; coveralls; fi
 notifications:
