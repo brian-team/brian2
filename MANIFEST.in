@@ -1,5 +1,11 @@
 include ez_setup.py
+
+# Include documentation
+include docs_sphinx/conf.py
 recursive-include docs_sphinx *.rst
 prune docs_sphinx/reference
 prune docs_sphinx/examples
 prune docs_sphinx/resources
+
+# Include examples (but not tutorials)
+recursive-include examples *.py
