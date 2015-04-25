@@ -59,11 +59,13 @@ def test_synapses_state_monitor():
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_state_monitor():
+    # Unique name to get the warning even for repeated runs of the test
+    unique_name = 'neurongroup_' + str(uuid.uuid4()).replace('-', '_')
     # Check that all kinds of variables can be recorded
     G = NeuronGroup(2, '''dv/dt = -v / (10*ms) : 1
                           f = clip(v, 0.1, 0.9) : 1
                           rate: Hz''', threshold='v>1', reset='v=0',
-                    refractory=2*ms)
+                    refractory=2*ms, name=unique_name)
     G.rate = [100, 1000] * Hz
     G.v = 1
 
@@ -78,9 +80,7 @@ def test_state_monitor():
     # A more common case is that the user forgets the record argument (which
     # defaults to ``None``) -- raise a warning in this case
     with catch_logs() as l:
-        # Unique name to get the warning even for repeated runs of the test
-        unique_name = 'statemonitor_' + str(uuid.uuid4()).replace('-', '_')
-        no_record = StateMonitor(G, 'v', name=unique_name)
+        no_record = StateMonitor(G, 'v')
         assert len(l) == 1
 
     # Use a single StateMonitor
