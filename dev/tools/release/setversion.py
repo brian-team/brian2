@@ -8,7 +8,7 @@ i.e.:
 * README.txt version
 '''
 
-import os, sys, brian, re, datetime
+import os, sys, re, datetime
 
 
 def setversion(version):
