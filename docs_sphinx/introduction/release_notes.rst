@@ -19,6 +19,11 @@ Major new features
 
 Improvements
 ~~~~~~~~~~~~
+* The order of execution for ``pre`` and ``post`` statements happending in the
+  same time step was not well defined (it fell back to the default alphabetical
+  ordering, executing ``post`` before ``pre``). It now explicitly specifies the
+  ``order`` attribute so that ``pre`` gets executed before ``post`` (as in
+  Brian 1). See the :doc:`../user/synapses` documentation for details.
 * The default schedule that is used can now be set via a preference
   (`core.network.default_schedule`). New automatically generated scheduling
   slots relative to the explicitly defined ones can be used, e.g.
