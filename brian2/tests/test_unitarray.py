@@ -1,4 +1,7 @@
-import scipy as sp
+try:
+    import scipy as sp
+except ImportError:
+    sp = None
 
 from brian2 import *
 
@@ -130,7 +133,8 @@ print_eval('np.histogram(np.array([1, 2, 3]) * mV)')
 print_eval('np.correlate(np.array([1, 2, 3]) * mV, np.array([1, 2, 3]) * mV)')
 print_eval('np.trapz(np.array([1, 2, 3]) * mV, np.array([1, 2, 3]) * second)')
 print_eval('np.arange(0 * mV, 10 * mV, 1 * mV)')
-print_eval('sp.sqrt(np.array([1.5, 3]) * mV)')
-print_eval('sp.interp(np.array([1.5]) * mV, np.array([1, 2, 3]) * mV, np.array([1, 2, 3]) * second)')
-print_eval('sp.fft(np.array([1.5, 3]) * mV)')
-print_eval('sp.average(np.array([1.5, 3]) * mV, weights=[1, 2])')
+if sp is not None:
+    print_eval('sp.sqrt(np.array([1.5, 3]) * mV)')
+    print_eval('sp.interp(np.array([1.5]) * mV, np.array([1, 2, 3]) * mV, np.array([1, 2, 3]) * second)')
+    print_eval('sp.fft(np.array([1.5, 3]) * mV)')
+    print_eval('sp.average(np.array([1.5, 3]) * mV, weights=[1, 2])')
