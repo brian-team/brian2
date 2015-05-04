@@ -305,8 +305,8 @@ class CPPStandaloneDevice(Device):
             # We have to calculate indices. This will not work for synaptic
             # variables
             try:
-                indices = variableview.indexing(item,
-                                                index_var=variableview.index_var)
+                indices = np.asarray(variableview.indexing(item,
+                                                           index_var=variableview.index_var))
             except NotImplementedError:
                 raise NotImplementedError(('Cannot set variable "%s" this way in '
                                            'standalone, try using string '
@@ -318,6 +318,10 @@ class CPPStandaloneDevice(Device):
                                             access_data=False)
             staticarrayname_index = self.static_array('_index_'+arrayname,
                                                       indices)
+            if (indices.shape != () and
+                    (value.shape == () or
+                         (value.size == 1 and indices.size > 1))):
+                value = np.repeat(value, indices.size)
             staticarrayname_value = self.static_array('_value_'+arrayname,
                                                       value)
             self.main_queue.append(('set_array_by_array', (arrayname,

@@ -56,6 +56,28 @@ def test_state_variables():
     # Indexing with subgroups
     assert_equal(G.v[SG], SG.v[:])
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_state_variables_simple():
+    G = NeuronGroup(10, '''a : 1
+                           b : 1
+                           c : 1
+                           d : 1
+                           ''')
+    SG = G[3:7]
+    SG.a = 1
+    SG.a['i == 0'] = 2
+    SG.b = 'i'
+    SG.b['i == 3'] = 'i * 2'
+    SG.c = np.arange(3, 7)
+    SG.d[1:2] = 4
+    SG.d[2:4] = [1, 2]
+    run(0*ms)
+    assert_equal(G.a[:], [0, 0, 0, 2, 1, 1, 1, 0, 0, 0])
+    assert_equal(G.b[:], [0, 0, 0, 0, 1, 2, 6, 0, 0, 0])
+    assert_equal(G.c[:], [0, 0, 0, 3, 4, 5, 6, 0, 0, 0])
+    assert_equal(G.d[:], [0, 0, 0, 0, 4, 1, 2, 0, 0, 0])
+
 
 def test_state_variables_string_indices():
     '''
@@ -448,6 +470,7 @@ def test_recursive_subgroup():
 if __name__ == '__main__':
     test_str_repr()
     test_state_variables()
+    test_state_variables_simple()
     test_state_variables_string_indices()
     test_state_variables_group_as_index()
     test_state_variables_group_as_index_problematic()
