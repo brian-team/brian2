@@ -364,6 +364,17 @@ def test_synaptic_propagation():
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
+def test_synaptic_propagation_2():
+    # This tests for the bug in github issue #461
+    source = NeuronGroup(100, '', threshold='True')
+    sub_source = source[99:]
+    target = NeuronGroup(1, 'v:1')
+    syn = Synapses(sub_source, target, pre='v+=1', connect=True)
+    run(defaultclock.dt)
+    assert target.v[0] == 1.0
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_spike_monitor():
     G = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
     G.v[0] = 1.1
@@ -483,6 +494,7 @@ if __name__ == '__main__':
     test_subexpression_references()
     test_subexpression_no_references()
     test_synaptic_propagation()
+    test_synaptic_propagation_2()
     test_spike_monitor()
     test_wrong_indexing()
     test_no_reference_1()

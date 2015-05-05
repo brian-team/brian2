@@ -63,7 +63,6 @@ class SpikeQueue(object):
     (saves memory). Note that if they are determined at run time, then it is
     possible to also vectorise over presynaptic spikes.
     '''
-    
     def __init__(self, source_start, source_end, dtype=np.int32,
                  precompute_offsets=True):
         #: Whether the offsets should be precomputed
@@ -243,7 +242,7 @@ class SpikeQueue(object):
             if stop <= sources[-1]:
                 stop_idx = bisect.bisect_left(sources, stop, lo=start_idx)
             else:
-                stop_idx = len(self._neurons_to_synapses)
+                stop_idx = len(sources) + 1
             sources = sources[start_idx:stop_idx]
             if len(sources)==0:
                 return
