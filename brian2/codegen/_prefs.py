@@ -1,5 +1,9 @@
 '''
 Module declaring general code generation preferences.
+
+Preferences
+-----------
+.. document_brian_prefs:: codegen
 '''
 
 from .codeobject import CodeObject
