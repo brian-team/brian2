@@ -90,6 +90,7 @@ class PoissonInput(CodeRunner):
                             when=when,
                             order=order,
                             name='poissoninput*',
+                            clock=target.clock
                             )
         self.variables = Variables(self)
         self.variables._add_variable(binomial_sampling.name, binomial_sampling)
