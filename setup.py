@@ -163,7 +163,7 @@ setup(name='Brian2',
       classifiers=[
           'Development Status :: 4 - Beta',
           'Intended Audience :: Science/Research',
-          'License :: OSI Approved',
+          'License :: OSI Approved :: CEA CNRS Inria Logiciel Libre License, version 2.1 (CeCILL-2.1)',
           'Natural Language :: English',
           'Operating System :: OS Independent',
           'Programming Language :: Python',
