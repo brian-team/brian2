@@ -41,28 +41,34 @@ prefs.codegen.cpp.libraries += ['opencv_core',
 # Includes the header files in all generated files
 prefs.codegen.cpp.headers += ['<opencv2/core/core.hpp>',
                               '<opencv2/highgui/highgui.hpp>']
+
+# Pass in values as macros
+# Note that in general we could also pass in the filename this way, but to get
+# the string quoting right is unfortunately quite difficult
+prefs.codegen.cpp.define_macros += [('VIDEO_WIDTH', width),
+                                    ('VIDEO_HEIGHT', height)]
 @implementation('cpp', '''
 double* get_frame(bool new_frame)
 {
     // The following initializations will only be executed once
-    static cv::VideoCapture source("%FILENAME%");
+    static cv::VideoCapture source("VIDEO_FILENAME");
     static cv::Mat frame;
-    static double* grayscale_frame = (double*)malloc(%WIDTH%*%HEIGHT%*sizeof(double));
+    static double* grayscale_frame = (double*)malloc(VIDEO_WIDTH*VIDEO_HEIGHT*sizeof(double));
     if (new_frame)
     {
         source >> frame;
         double mean_value = 0;
-        for (int row=0; row<%HEIGHT%; row++)
-            for (int col=0; col<%WIDTH%; col++)
+        for (int row=0; row<VIDEO_HEIGHT; row++)
+            for (int col=0; col<VIDEO_WIDTH; col++)
             {
                 const double grayscale_value = (frame.at<cv::Vec3b>(row, col)[0] +
                                                 frame.at<cv::Vec3b>(row, col)[1] +
                                                 frame.at<cv::Vec3b>(row, col)[2])/(3.0*128);
-                mean_value += grayscale_value / (%WIDTH% * %HEIGHT%);
-                grayscale_frame[row*%WIDTH% + col] = grayscale_value;
+                mean_value += grayscale_value / (VIDEO_WIDTH * VIDEO_HEIGHT);
+                grayscale_frame[row*VIDEO_WIDTH + col] = grayscale_value;
             }
         // subtract the mean
-        for (int i=0; i<%HEIGHT%*%WIDTH%; i++)
+        for (int i=0; i<VIDEO_HEIGHT*VIDEO_WIDTH; i++)
             grayscale_frame[i] -= mean_value;
     }
     return grayscale_frame;
@@ -73,9 +79,9 @@ double video_input(const int x, const int y)
     // Get the current frame (or a new frame in case we are asked for the first
     // element
     double *frame = get_frame(x==0 && y==0);
-    return frame[y*%WIDTH% + x];
+    return frame[y*VIDEO_WIDTH + x];
 }
-'''.replace('%FILENAME%', filename).replace('%WIDTH%', str(width)).replace('%HEIGHT%', str(height)))
+'''.replace('VIDEO_FILENAME', filename))
 @check_units(x=1, y=1, result=1)
 def video_input(x, y):
     # we assume this will only be called in the custom operation (and not for
