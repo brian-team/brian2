@@ -1,7 +1,11 @@
 '''
 An example that uses a function from external C library (OpenCV in this case).
-Works for all C-based code generation targets (i.e. for weave,
-Cython and the cpp_standalone device) but not for numpy.
+Works for all C-based code generation targets (i.e. for weave and cpp_standalone
+device) and for numpy (using the Python bindings).
+
+This example needs a working installation of OpenCV2 and its Python bindings.
+It has been tested on Ubuntu 14.04 with OpenCV 2.4.8 (libopencv-dev and
+python-opencv packages).
 '''
 import os
 import urllib2
@@ -14,10 +18,10 @@ defaultclock.dt = 1*ms
 prefs.codegen.target = 'weave'
 prefs.logging.std_redirection = False
 set_device('cpp_standalone')
-filename = 'Megamind.avi'
+filename = os.path.abspath('Megamind.avi')
 
 if not os.path.exists(filename):
-    print 'Trying to download the video file'
+    print('Downloading the example video file')
     response = urllib2.urlopen('http://docs.opencv.org/_downloads/Megamind.avi')
     data = response.read()
     with open(filename, 'wb') as f:
@@ -29,13 +33,18 @@ width, height, frame_count = (int(video.get(cv.CV_CAP_PROP_FRAME_WIDTH)),
                               int(video.get(cv.CV_CAP_PROP_FRAME_COUNT)))
 fps = 24
 time_between_frames = 1*second/fps
-print 'fps', fps, 'time between frames:', time_between_frames
 
-prefs.codegen.cpp.libraries += ['opencv_highgui']
-prefs.codegen.cpp.headers += ['<opencv2/core/core.hpp>', '<opencv2/highgui/highgui.hpp>']
+# Links the necessary libraries
+prefs.codegen.cpp.libraries += ['opencv_core',
+                                'opencv_highgui']
+
+# Includes the header files in all generated files
+prefs.codegen.cpp.headers += ['<opencv2/core/core.hpp>',
+                              '<opencv2/highgui/highgui.hpp>']
 @implementation('cpp', '''
 double* get_frame(bool new_frame)
 {
+    // The following initializations will only be executed once
     static cv::VideoCapture source("%FILENAME%");
     static cv::Mat frame;
     static double* grayscale_frame = (double*)malloc(%WIDTH%*%HEIGHT%*sizeof(double));
@@ -82,28 +91,20 @@ N = width * height
 tau, tau_th = 10*ms, time_between_frames
 G = NeuronGroup(N, '''dv/dt = (-v + I)/tau : 1
                       dv_th/dt = -v_th/tau_th : 1
-                      row : integer
-                      column : integer
-                      I : 1   # input current''',
-                threshold='v>v_th', reset='v=0; v_th = 2*v_th + 0.5')
+                      row : integer (constant)
+                      column : integer (constant)
+                      I : 1 # input current''',
+                threshold='v>v_th', reset='v=0; v_th = 3*v_th + 1.0')
+G.v_th = 1
 G.row = 'i/width'
 G.column = 'i%width'
 
 update_input = G.custom_operation('I = video_input(column, row)',
                                   dt=time_between_frames)
 mon = SpikeMonitor(G)
-state_mon = StateMonitor(G, ['v', 'v_th'], record=0)
-runtime = 1000*ms # 0.25*frame_count*time_between_frames
+runtime = frame_count*time_between_frames
 run(runtime, report='text')
 device.build(compile=True, run=True)
-# plt.scatter(G.column[::7], G.row[::7], c=G.v[::7],
-#             edgecolor='none', cmap='gray')
-# plt.gca().invert_yaxis()
-# plt.figure()
-# plt.plot(state_mon.t/ms, state_mon[0].v)
-# plt.plot(state_mon.t/ms, state_mon[0].v_th)
-# print state_mon[0].v_th[:]
-# plt.show()
 
 # Avoid going through the whole Brian2 indexing machinery too much
 i, t, row, column = mon.i[:], mon.t[:], G.row[:], G.column[:]
@@ -130,9 +131,6 @@ ax.invert_yaxis()
 def run(data):
     x, y = data
     dots.set_data(x, y)
-
-    # Clear the old dots
-    #return old_dots,
 
 ani = animation.FuncAnimation(fig, run, next_spikes, blit=False, repeat=True,
                               repeat_delay=1000)
