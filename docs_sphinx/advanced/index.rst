@@ -13,3 +13,5 @@ This section has additional information on details not covered in the
    scheduling
    state_update
    how_brian_works
+   interface
+
