@@ -23,7 +23,7 @@ native: executable
 .PHONY: all debug native executable clean
 
 executable: $(OBJS) $(DEPS)
-	$(CC) $(LFLAGS) $(OBJS) -o $(PROGRAM)
+	$(CC) $(OBJS) -o $(PROGRAM) $(LFLAGS)
 
 clean:
 	{{ rm_cmd }}
