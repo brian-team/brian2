@@ -8,11 +8,6 @@ import os
 if sys.version_info < (2, 7):
     raise RuntimeError('Only Python versions >= 2.7 are supported')
 
-# This will automatically download setuptools if it is not already installed
-from ez_setup import use_setuptools
-use_setuptools()
-
-import pkg_resources
 from pkg_resources import parse_version
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
@@ -147,8 +142,11 @@ setup(name='Brian2',
                         'sympy>=0.7.6',
                         'pyparsing',
                         'jinja2>=2.7',
+                        'setuptools>=6.0'  # FIXME: setuptools>=6.0 is only needed for Windows
                        ],
-      setup_requires=['numpy>=1.8.0'],
+      setup_requires=['numpy>=1.8.0',
+                      'setuptools>=6.0'
+                      ],
       cmdclass={'build_ext': optional_build_ext},
       provides=['brian2'],
       extras_require={'test': ['nosetests>=1.0'],

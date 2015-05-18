@@ -1,0 +1,64 @@
+package:
+  name: brian2
+  version: "2.0b3+git"
+
+# Note: specifying a minimal version for numyp leads to incorrect build strings
+requirements:
+  build:
+    - python
+    - cython >=0.18
+    - setuptools >=6.0
+    - numpy
+    - sympy >=0.7.6
+    - pyparsing
+    - jinja2 >=2.7
+
+  run:
+    - python
+    - numpy
+    - sympy >=0.7.6
+    - pyparsing
+    - scipy >=0.13.3 # since there's no weave package in conda yet
+    - cython >=0.18
+    - jinja2 >=2.7
+    - setuptools >=6.0
+
+test:
+  # Python imports
+  imports:
+    - brian2
+    - brian2.codegen
+    - brian2.codegen.generators
+    - brian2.codegen.runtime
+    - brian2.codegen.runtime.cython_rt
+    - brian2.codegen.runtime.numpy_rt
+    - brian2.codegen.runtime.weave_rt
+    - brian2.core
+    - brian2.devices
+    - brian2.devices.cpp_standalone
+    - brian2.equations
+    - brian2.groups
+    - brian2.input
+    - brian2.memory
+    - brian2.monitors
+    - brian2.parsing
+    - brian2.spatialneuron
+    - brian2.sphinxext
+    - brian2.stateupdaters
+    - brian2.synapses
+    - brian2.tests
+    - brian2.tests.features
+    - brian2.units
+    - brian2.utils
+
+  commands:
+    #- python -c 'import brian2; brian2.test()'
+
+  requires:
+    - nose
+
+about:
+  home: http://www.briansimulator.org/
+  license: CeCILL-2.1
+  summary: 'A clock-driven simulator for spiking neural networks'
+
