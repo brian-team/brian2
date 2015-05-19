@@ -41,6 +41,7 @@ class CythonExtensionManager(object):
                          extra_compile_args=None,
                          extra_link_args=None,
                          libraries=None,
+                         compiler=None,
                          ):
 
         if Cython is None:
@@ -107,7 +108,7 @@ class CythonExtensionManager(object):
                 libraries=libraries,
                 language='c++',
                 )
-            build_extension = self._get_build_extension()
+            build_extension = self._get_build_extension(compiler=compiler)
             try:
                 opts = dict(
                     quiet=True,
@@ -151,7 +152,7 @@ class CythonExtensionManager(object):
             _path_created.clear()
 
 
-    def _get_build_extension(self):
+    def _get_build_extension(self, compiler=None):
         self._clear_distutils_mkpath_cache()
         dist = Distribution()
         config_files = dist.find_config_files()
@@ -161,6 +162,8 @@ class CythonExtensionManager(object):
             pass
         dist.parse_config_files(config_files)
         build_extension = build_ext(dist)
+        if compiler is not None:
+            build_extension.compiler = compiler
         build_extension.finalize_options()
         return build_extension
 
