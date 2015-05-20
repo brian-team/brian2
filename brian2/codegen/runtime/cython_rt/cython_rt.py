@@ -40,7 +40,7 @@ class CythonCodeObject(NumpyCodeObject):
                                                variable_indices,
                                                template_name, template_source,
                                                name=name)
-        _, self.extra_compile_args = get_compiler_and_args()
+        self.compiler, self.extra_compile_args = get_compiler_and_args()
         self.extra_link_args = list(prefs['codegen.cpp.extra_link_args'])
         self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
@@ -74,7 +74,8 @@ class CythonCodeObject(NumpyCodeObject):
                                                                        extra_compile_args=self.extra_compile_args,
                                                                        extra_link_args=self.extra_link_args,
                                                                        include_dirs=self.include_dirs,
-                                                                       library_dirs=self.library_dirs)
+                                                                       library_dirs=self.library_dirs,
+                                                                       compiler=self.compiler)
         
     def run(self):
         return self.compiled_code.main(self.namespace)
