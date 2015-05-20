@@ -76,6 +76,10 @@ public:
 	{
 		return (*data[i])[j];
 	}
+	inline std::vector<T>& operator()(int i)
+	{
+		return (*data[i]);
+	}
 };
 
 #endif

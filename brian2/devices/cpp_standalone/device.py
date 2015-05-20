@@ -549,7 +549,7 @@ class CPPStandaloneDevice(Device):
                             if v.dimensions == 1:
                                 dyn_array_name = self.dynamic_arrays[v]
                                 array_name = self.arrays[v]
-                                line = '{c_type}* const {array_name} = &{dyn_array_name}[0];'
+                                line = '{c_type}* const {array_name} = {dyn_array_name}.empty()? 0 : &{dyn_array_name}[0];'
                                 line = line.format(c_type=c_data_type(v.dtype), array_name=array_name,
                                                    dyn_array_name=dyn_array_name)
                                 lines.append(line)
