@@ -90,6 +90,13 @@ class CythonExtensionManager(object):
             if 'numpy' in code:
                 import numpy
                 c_include_dirs.append(numpy.get_include())
+
+            # TODO: We should probably have a special folder just for header
+            # files that are shared between different codegen targets
+            import brian2.synapses as synapses
+            synapses_dir = os.path.dirname(synapses.__file__)
+            c_include_dirs.append(synapses_dir)
+
             pyx_file = os.path.join(lib_dir, module_name + '.pyx')
             # ignore Python 3 unicode stuff for the moment
             #pyx_file = py3compat.cast_bytes_py2(pyx_file, encoding=sys.getfilesystemencoding())
