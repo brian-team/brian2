@@ -1,6 +1,10 @@
 '''
 Brian 2.0
 '''
+# Import setuptools to do some monkey patching of distutils, necessary for
+# working weave/Cython on Windows with the Python for C++ compiler
+import setuptools as _setuptools
+
 # Check basic dependencies
 import sys
 from distutils.version import StrictVersion
