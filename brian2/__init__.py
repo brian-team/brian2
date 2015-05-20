@@ -24,6 +24,11 @@ try:
 except ImportError as ex:
     sys.stderr.write('Importing pyparsing failed: %s\n' % ex)
     missing.append('pyparsing')
+try:
+    import jinja2
+except ImportError as ex:
+    sys.stderr.write('Importing Jinja2 failed: %s\n' % ex)
+    missing.append('jinja2')
 
 if len(missing):
     raise ImportError('Some required dependencies are missing:\n' + ', '.join(missing))
@@ -79,6 +84,7 @@ def _check_dependency_version(name, version):
 
             logger.warn(message, 'outdated_dependency')
 
-for name, version in [('numpy', '1.8.0'),
-                      ('sympy', '0.7.6')]:
+for name, version in [('numpy',  '1.8.0'),
+                      ('sympy',  '0.7.6'),
+                      ('jinja2', '2.7')]:
     _check_dependency_version(name, version)
