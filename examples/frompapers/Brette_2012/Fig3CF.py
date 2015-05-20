@@ -28,7 +28,6 @@ dm2/dt = (minf2 - m2) / taum : 1 # simplified Na channel, Nav1.2
 minf2 = 1/(1 + exp((va2 - v) / ka)) : 1
 gNa : siemens/meter**2
 gNa2 : siemens/meter**2  # Nav1.2
-gL : siemens/meter**2
 Iin : amp (point current)
 '''
 
