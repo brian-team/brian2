@@ -1,13 +1,13 @@
 {# IS_OPENMP_COMPATIBLE #}
 {% macro cpp_file() %}
 
-#include<stdint.h>
-#include<vector>
 #include "objects.h"
 #include "synapses_classes.h"
 #include "brianlib/clocks.h"
 #include "brianlib/dynamic_array.h"
+#include "brianlib/stdint_compat.h"
 #include "network.h"
+#include<vector>
 #include<iostream>
 #include<fstream>
 
@@ -210,12 +210,12 @@ void _dealloc_arrays()
 #ifndef _BRIAN_OBJECTS_H
 #define _BRIAN_OBJECTS_H
 
-#include<vector>
-#include<stdint.h>
 #include "synapses_classes.h"
 #include "brianlib/clocks.h"
 #include "brianlib/dynamic_array.h"
+#include "brianlib/stdint_compat.h"
 #include "network.h"
+#include<vector>
 {{ openmp_pragma('include') }}
 
 namespace brian {
