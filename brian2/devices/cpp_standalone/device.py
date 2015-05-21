@@ -809,9 +809,7 @@ class CPPStandaloneDevice(Device):
         ensure_directory(directory)
 
         compiler, extra_compile_args = get_compiler_and_args()
-        # We have to use the name 'unix' for the 'gcc' compiler
-        compiler_name = compiler if compiler != 'gcc' else 'unix'
-        compiler_obj = ccompiler.new_compiler(compiler=compiler_name)
+        compiler_obj = ccompiler.new_compiler(compiler=compiler)
         compiler_flags = (ccompiler.gen_preprocess_options(prefs['codegen.cpp.define_macros'],
                                                            prefs['codegen.cpp.include_dirs']) +
                           extra_compile_args)

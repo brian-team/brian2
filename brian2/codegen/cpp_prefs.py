@@ -120,8 +120,7 @@ def get_compiler_and_args():
         compiler = get_default_compiler()
     extra_compile_args = prefs['codegen.cpp.extra_compile_args']
     if extra_compile_args is None:
-        if compiler == 'gcc' or compiler == 'unix':
-            compiler = 'gcc'
+        if compiler in ('gcc', 'unix'):
             extra_compile_args = prefs['codegen.cpp.extra_compile_args_gcc']
         if compiler == 'msvc':
             extra_compile_args = prefs['codegen.cpp.extra_compile_args_msvc']
