@@ -9,7 +9,7 @@ import platform
 from collections import defaultdict
 import numbers
 import tempfile
-from distutils import ccompiler, msvc9compiler
+from distutils import ccompiler
 import numpy as np
 
 from brian2.codegen.cpp_prefs import get_compiler_and_args
@@ -686,6 +686,7 @@ class CPPStandaloneDevice(Device):
     def compile_source(self, directory, compiler, debug, clean, native):
         with in_directory(directory):
             if compiler == 'msvc':
+                from distutils import msvc9compiler
                 # TODO: handle debug
                 if debug:
                     logger.warn('Debug flag currently ignored for MSVC')
