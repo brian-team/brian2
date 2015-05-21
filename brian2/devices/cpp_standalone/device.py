@@ -9,7 +9,7 @@ import platform
 from collections import defaultdict
 import numbers
 import tempfile
-from distutils import ccompiler
+from distutils import ccompiler, msvc9compiler
 import numpy as np
 
 from brian2.codegen.cpp_prefs import get_compiler_and_args
@@ -685,38 +685,27 @@ class CPPStandaloneDevice(Device):
     
     def compile_source(self, directory, compiler, debug, clean, native):
         with in_directory(directory):
-            if compiler=='msvc':
+            if compiler == 'msvc':
                 # TODO: handle debug
                 if debug:
                     logger.warn('Debug flag currently ignored for MSVC')
-                vcvars_search_paths = [
-                    # futureproofing!
-                    r'c:\Program Files\Microsoft Visual Studio 15.0\VC\vcvarsall.bat',
-                    r'c:\Program Files (x86)\Microsoft Visual Studio 15.0\VC\vcvarsall.bat',
-                    r'c:\Program Files\Microsoft Visual Studio 14.0\VC\vcvarsall.bat',
-                    r'c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat',
-                    r'c:\Program Files\Microsoft Visual Studio 13.0\VC\vcvarsall.bat',
-                    r'c:\Program Files (x86)\Microsoft Visual Studio 13.0\VC\vcvarsall.bat',
-                    r'c:\Program Files\Microsoft Visual Studio 12.0\VC\vcvarsall.bat',
-                    r'c:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat',
-                    r'c:\Program Files\Microsoft Visual Studio 11.0\VC\vcvarsall.bat',
-                    r'c:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\vcvarsall.bat',
-                    r'c:\Program Files\Microsoft Visual Studio 10.0\VC\vcvarsall.bat',
-                    r'c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat',
-                    ]
                 vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
-                if vcvars_loc=='':
-                    for fname in vcvars_search_paths:
-                        if os.path.exists(fname):
+                if vcvars_loc == '':
+                    for version in xrange(16, 8, -1):
+                        fname = msvc9compiler.find_vcvarsall(version)
+                        if fname:
                             vcvars_loc = fname
                             break
-                if vcvars_loc=='':
-                    raise IOError("Cannot find vcvarsall.bat on standard search path.")
+                if vcvars_loc == '':
+                    raise IOError("Cannot find vcvarsall.bat on standard "
+                                  "search path. Set the "
+                                  "codegen.cpp.msvc_vars_location preference "
+                                  "explicitly.")
                 # TODO: copy vcvars and make replacements for 64 bit automatically
                 arch_name = prefs['codegen.cpp.msvc_architecture']
-                if arch_name=='':
+                if arch_name == '':
                     mach = platform.machine()
-                    if mach=='AMD64':
+                    if mach == 'AMD64':
                         arch_name = 'x86_amd64'
                     else:
                         arch_name = 'x86'
