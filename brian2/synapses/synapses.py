@@ -423,7 +423,7 @@ class SynapticIndexing(object):
         (including arrays and slices), a single index or a string.
 
         '''
-        if index is None:
+        if index is None or index == 'True':
             index = slice(None)
 
         if (not isinstance(index, (tuple, basestring)) and
