@@ -44,8 +44,11 @@ class CythonExtensionManager(object):
         code = deindent(code)
 
         lib_dir = os.path.expanduser('~/.brian/cython_extensions')
-        if not os.path.exists(lib_dir):
+        try:
             os.makedirs(lib_dir)
+        except OSError as e:
+            if not os.path.exists(lib_dir):
+                raise OSError(e)
 
         key = code, sys.version_info, sys.executable, Cython.__version__
             
