@@ -4,6 +4,7 @@ Brian2 setup script
 '''
 import sys
 import os
+import platform
 
 if sys.version_info < (2, 7):
     raise RuntimeError('Only Python versions >= 2.7 are supported')
@@ -66,9 +67,22 @@ else:
     fname = cpp_fname
 
 if fname is not None:
-    extensions = [Extension("brian2.synapses.cythonspikequeue",
-                            [fname],
-                            include_dirs=[])]  # numpy include dir will be added later
+    if (platform.system() == 'Linux' and
+            platform.architecture()[0] == '32bit' and
+            platform.machine() == 'x86_64'):
+        # We are cross-compiling (most likely to build a 32Bit package for conda
+        # on travis), set paths and flags for 32Bit explicitly
+        print('Configuring compilation for cross-compilation to 32 Bit')
+        extensions = [Extension("brian2.synapses.cythonspikequeue",
+                                [fname],
+                                include_dirs=[], # numpy include dir will be added later
+                                library_dirs=['/lib32', '/usr/lib32'],
+                                extra_compile_args=['-m32'],
+                                extra_link_args=['-m32'])]
+    else:
+        extensions = [Extension("brian2.synapses.cythonspikequeue",
+                                [fname],
+                                include_dirs=[])]  # numpy include dir will be added later
     if fname == pyx_fname:
         extensions = cythonize(extensions)
 else:
