@@ -8,6 +8,12 @@ import imp
 import os
 import sys
 import time
+import errno
+try:
+    import msvcrt
+except ImportError:
+    msvcrt = None
+    import fcntl
 
 try:
     import hashlib
@@ -68,63 +74,70 @@ class CythonExtensionManager(object):
 
 
         module_path = os.path.join(lib_dir, module_name + self.so_ext)
-        
-        have_module = os.path.isfile(module_path)
-        
-        if not have_module:
-            if include is None:
-                include = []
-            if library_dirs is None:
-                library_dirs = []
-            if compile_args is None:
-                compile_args = []
-            if link_args is None:
-                link_args = []
-            if lib is None:
-                lib = []
-                
-            c_include_dirs = include
-            if 'numpy' in code:
-                import numpy
-                c_include_dirs.append(numpy.get_include())
-            pyx_file = os.path.join(lib_dir, module_name + '.pyx')
-            # ignore Python 3 unicode stuff for the moment
-            #pyx_file = py3compat.cast_bytes_py2(pyx_file, encoding=sys.getfilesystemencoding())
-            #with io.open(pyx_file, 'w') as f:#, encoding='utf-8') as f:
-            #    f.write(code)
-            open(pyx_file, 'w').write(code)
 
-            extension = Extension(
-                name=module_name,
-                sources=[pyx_file],
-                include_dirs=c_include_dirs,
-                library_dirs=library_dirs,
-                extra_compile_args=compile_args,
-                extra_link_args=link_args,
-                libraries=lib,
-                language='c++',
-                )
-            build_extension = self._get_build_extension()
-            try:
-                opts = dict(
-                    quiet=True,
-                    annotate=False,
-                    force=True,
+        lock_file = os.path.join(lib_dir, module_name + '.lock')
+        with open(lock_file, 'w') as f:
+            if msvcrt:
+                msvcrt.locking(f.fileno(), msvcrt.LK_RLCK,
+                               os.stat(lock_file).st_size)
+            else:
+                fcntl.flock(f, fcntl.LOCK_EX)
+
+            have_module = os.path.isfile(module_path)
+
+            if not have_module:
+                if include is None:
+                    include = []
+                if library_dirs is None:
+                    library_dirs = []
+                if compile_args is None:
+                    compile_args = []
+                if link_args is None:
+                    link_args = []
+                if lib is None:
+                    lib = []
+
+                c_include_dirs = include
+                if 'numpy' in code:
+                    import numpy
+                    c_include_dirs.append(numpy.get_include())
+                pyx_file = os.path.join(lib_dir, module_name + '.pyx')
+                # ignore Python 3 unicode stuff for the moment
+                #pyx_file = py3compat.cast_bytes_py2(pyx_file, encoding=sys.getfilesystemencoding())
+                #with io.open(pyx_file, 'w') as f:#, encoding='utf-8') as f:
+                #    f.write(code)
+                open(pyx_file, 'w').write(code)
+
+                extension = Extension(
+                    name=module_name,
+                    sources=[pyx_file],
+                    include_dirs=c_include_dirs,
+                    library_dirs=library_dirs,
+                    extra_compile_args=compile_args,
+                    extra_link_args=link_args,
+                    libraries=lib,
+                    language='c++',
                     )
-                # suppresses the output on stdout
-                with std_silent():
-                    build_extension.extensions = Cython_Build.cythonize([extension], **opts)
+                build_extension = self._get_build_extension()
+                try:
+                    opts = dict(
+                        quiet=True,
+                        annotate=False,
+                        force=True,
+                        )
+                    # suppresses the output on stdout
+                    with std_silent():
+                        build_extension.extensions = Cython_Build.cythonize([extension], **opts)
 
-                    build_extension.build_temp = os.path.dirname(pyx_file)
-                    build_extension.build_lib = lib_dir
-                    build_extension.run()
-            except Cython_Compiler.Errors.CompileError:
-                return
-
-        module = imp.load_dynamic(module_name, module_path)
-        self._code_cache[key] = module
-        return module
-        #self._import_all(module)
+                        build_extension.build_temp = os.path.dirname(pyx_file)
+                        build_extension.build_lib = lib_dir
+                        build_extension.run()
+                except Cython_Compiler.Errors.CompileError:
+                    return
+            module = imp.load_dynamic(module_name, module_path)
+            self._code_cache[key] = module
+            return module
+            #self._import_all(module)
 
     @property
     def so_ext(self):
