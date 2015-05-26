@@ -52,7 +52,7 @@ public:
     	queue[{{ openmp_pragma('get_thread_num') }}]->advance();
     }
 
-	vector<DTYPE_int>* peek()
+	vector<int32_t>* peek()
     {
     	{{ openmp_pragma('static-ordered') }}
 		for(int _thread=0; _thread < {{ openmp_pragma('get_num_threads') }}; _thread++)

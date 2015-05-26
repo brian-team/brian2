@@ -9,7 +9,7 @@ import platform
 from collections import defaultdict
 import numbers
 import tempfile
-
+from distutils import ccompiler
 import numpy as np
 
 from brian2.codegen.cpp_prefs import get_compiler_and_args
@@ -402,6 +402,11 @@ class CPPStandaloneDevice(Device):
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None, template_kwds=None,
                     override_conditional_write=None):
+        if template_kwds is None:
+            template_kwds = dict()
+        else:
+            template_kwds = dict(template_kwds)
+        template_kwds['user_headers'] = prefs['codegen.cpp.headers']
         codeobj = super(CPPStandaloneDevice, self).code_object(owner, name, abstract_code, variables,
                                                                template_name, variable_indices,
                                                                codeobj_class=codeobj_class,
@@ -437,7 +442,7 @@ class CPPStandaloneDevice(Device):
                         get_array_filename=self.get_array_filename)
         writer.write('objects.*', arr_tmp)
         
-    def generate_main_source(self, writer, main_includes):
+    def generate_main_source(self, writer):
         main_lines = []
         procedures = [('', main_lines)]
         runfuncs = {}
@@ -506,7 +511,7 @@ class CPPStandaloneDevice(Device):
                                                           code_objects=self.code_objects.values(),
                                                           report_func=self.report_func,
                                                           dt=float(defaultclock.dt),
-                                                          additional_headers=main_includes,
+                                                          user_headers=prefs['codegen.cpp.headers']
                                                           )
         writer.write('main.cpp', main_tmp)
         
@@ -568,14 +573,14 @@ class CPPStandaloneDevice(Device):
         synapses_classes_tmp = CPPStandaloneCodeObject.templater.synapses_classes(None, None)
         writer.write('synapses_classes.*', synapses_classes_tmp)
         
-    def generate_run_source(self, writer, run_includes):
+    def generate_run_source(self, writer):
         run_tmp = CPPStandaloneCodeObject.templater.run(None, None, run_funcs=self.runfuncs,
                                                         code_objects=self.code_objects.values(),
-                                                        additional_headers=run_includes,
+                                                        user_headers=prefs['codegen.cpp.headers']
                                                         )
         writer.write('run.*', run_tmp)
         
-    def generate_makefile(self, writer, compiler, native, compiler_flags, nb_threads):
+    def generate_makefile(self, writer, compiler, native, compiler_flags, linker_flags, nb_threads):
         if compiler=='msvc':
             if native:
                 arch_flag = ''
@@ -600,6 +605,7 @@ class CPPStandaloneDevice(Device):
                 None, None,
                 source_bases=source_bases,
                 compiler_flags=compiler_flags,
+                linker_flags=linker_flags,
                 openmp_flag=openmp_flag,
                 )
             writer.write('win_makefile', win_makefile_tmp)
@@ -613,6 +619,7 @@ class CPPStandaloneDevice(Device):
                 source_files=' '.join(writer.source_files),
                 header_files=' '.join(writer.header_files),
                 compiler_flags=compiler_flags,
+                linker_flags=linker_flags,
                 rm_cmd=rm_cmd)
             writer.write('makefile', makefile_tmp)
     
@@ -678,38 +685,28 @@ class CPPStandaloneDevice(Device):
     
     def compile_source(self, directory, compiler, debug, clean, native):
         with in_directory(directory):
-            if compiler=='msvc':
+            if compiler == 'msvc':
+                from distutils import msvc9compiler
                 # TODO: handle debug
                 if debug:
                     logger.warn('Debug flag currently ignored for MSVC')
-                vcvars_search_paths = [
-                    # futureproofing!
-                    r'c:\Program Files\Microsoft Visual Studio 15.0\VC\vcvarsall.bat',
-                    r'c:\Program Files (x86)\Microsoft Visual Studio 15.0\VC\vcvarsall.bat',
-                    r'c:\Program Files\Microsoft Visual Studio 14.0\VC\vcvarsall.bat',
-                    r'c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat',
-                    r'c:\Program Files\Microsoft Visual Studio 13.0\VC\vcvarsall.bat',
-                    r'c:\Program Files (x86)\Microsoft Visual Studio 13.0\VC\vcvarsall.bat',
-                    r'c:\Program Files\Microsoft Visual Studio 12.0\VC\vcvarsall.bat',
-                    r'c:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat',
-                    r'c:\Program Files\Microsoft Visual Studio 11.0\VC\vcvarsall.bat',
-                    r'c:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\vcvarsall.bat',
-                    r'c:\Program Files\Microsoft Visual Studio 10.0\VC\vcvarsall.bat',
-                    r'c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat',
-                    ]
                 vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
-                if vcvars_loc=='':
-                    for fname in vcvars_search_paths:
-                        if os.path.exists(fname):
+                if vcvars_loc == '':
+                    for version in xrange(16, 8, -1):
+                        fname = msvc9compiler.find_vcvarsall(version)
+                        if fname:
                             vcvars_loc = fname
                             break
-                if vcvars_loc=='':
-                    raise IOError("Cannot find vcvarsall.bat on standard search path.")
+                if vcvars_loc == '':
+                    raise IOError("Cannot find vcvarsall.bat on standard "
+                                  "search path. Set the "
+                                  "codegen.cpp.msvc_vars_location preference "
+                                  "explicitly.")
                 # TODO: copy vcvars and make replacements for 64 bit automatically
                 arch_name = prefs['codegen.cpp.msvc_architecture']
-                if arch_name=='':
+                if arch_name == '':
                     mach = platform.machine()
-                    if mach=='AMD64':
+                    if mach == 'AMD64':
                         arch_name = 'x86_amd64'
                     else:
                         arch_name = 'x86'
@@ -755,8 +752,7 @@ class CPPStandaloneDevice(Device):
     def build(self, directory='output',
               compile=True, run=True, debug=False, clean=True,
               with_output=True, native=True,
-              additional_source_files=None, additional_header_files=None,
-              main_includes=None, run_includes=None,
+              additional_source_files=None,
               run_args=None, **kwds):
         '''
         Build the project
@@ -781,12 +777,6 @@ class CPPStandaloneDevice(Device):
             Whether or not to clean the project before building
         additional_source_files : list of str
             A list of additional ``.cpp`` files to include in the build.
-        additional_header_files : list of str
-            A list of additional ``.h`` files to include in the build.
-        main_includes : list of str
-            A list of additional header files to include in ``main.cpp``.
-        run_includes : list of str
-            A list of additional header files to include in ``run.cpp``.
         '''
         renames = {'project_dir': 'directory',
                    'compile_project': 'compile',
@@ -803,19 +793,21 @@ class CPPStandaloneDevice(Device):
 
         if additional_source_files is None:
             additional_source_files = []
-        if additional_header_files is None:
-            additional_header_files = []
-        if main_includes is None:
-            main_includes = []
-        if run_includes is None:
-            run_includes = []
         if run_args is None:
             run_args = []
         self.project_dir = directory
         ensure_directory(directory)
 
         compiler, extra_compile_args = get_compiler_and_args()
-        compiler_flags = ' '.join(extra_compile_args)
+        compiler_obj = ccompiler.new_compiler(compiler=compiler)
+        compiler_flags = (ccompiler.gen_preprocess_options(prefs['codegen.cpp.define_macros'],
+                                                           prefs['codegen.cpp.include_dirs']) +
+                          extra_compile_args)
+        linker_flags = (ccompiler.gen_lib_options(compiler_obj,
+                                                  library_dirs=prefs['codegen.cpp.library_dirs'],
+                                                  runtime_library_dirs=prefs['codegen.cpp.runtime_library_dirs'],
+                                                  libraries=prefs['codegen.cpp.libraries']) +
+                        prefs['codegen.cpp.extra_link_args'])
         
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(directory, d))
@@ -847,17 +839,19 @@ class CPPStandaloneDevice(Device):
             net.after_run()
 
         self.generate_objects_source(writer, arange_arrays, self.net_synapses, self.static_array_specs, self.networks)
-        self.generate_main_source(writer, main_includes)
+        self.generate_main_source(writer)
         self.generate_codeobj_source(writer)
         self.generate_network_source(writer, compiler)
         self.generate_synapses_classes_source(writer)
-        self.generate_run_source(writer, run_includes)
+        self.generate_run_source(writer)
         self.copy_source_files(writer, directory)
         
         writer.source_files.extend(additional_source_files)
-        writer.header_files.extend(additional_header_files)
         
-        self.generate_makefile(writer, compiler, native, compiler_flags, nb_threads)
+        self.generate_makefile(writer, compiler, native=native,
+                               compiler_flags=' '.join(compiler_flags),
+                               linker_flags=' '.join(linker_flags),
+                               nb_threads=nb_threads)
         
         if compile:
             self.compile_source(directory, compiler, debug, clean, native)

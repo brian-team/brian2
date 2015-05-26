@@ -9,7 +9,12 @@ from libc.math cimport sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, a
 cdef extern from "math.h":
     double M_PI
 from libcpp cimport bool
-from libc.stdint cimport int32_t, int64_t, uint8_t
+
+cdef extern from "stdint_compat.h":
+    # Longness only used for type promotion
+    # Actual compile time size used for conversion
+    ctypedef signed int int32_t
+    ctypedef signed long int64_t
 
 # support code
 {{ support_code | autoindent }}
