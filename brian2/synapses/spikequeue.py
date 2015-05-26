@@ -147,7 +147,7 @@ class SpikeQueue(object):
             self.n = np.zeros(n_steps, dtype=int) # number of events in each time step
 
         # Precompute offsets
-        if self._precompute_offsets:
+        if self._precompute_offsets and not self._homogeneous:
             self._do_precompute_offsets(n_synapses)
 
         # Re-insert the spikes into the data structure
@@ -264,11 +264,7 @@ class SpikeQueue(object):
         Precompute all offsets corresponding to delays. This assumes that
         delays will not change during the simulation.
         '''
-        if len(self._delays) == 1 and n_synapses != 1:
-            # We have a scalar delay value
-            delays = self._delays.repeat(n_synapses)
-        else:
-            delays = self._delays
+        delays = self._delays
         self._offsets = np.zeros_like(delays)
         index = 0
         for targets in self._neurons_to_synapses:

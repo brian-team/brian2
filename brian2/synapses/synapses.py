@@ -184,8 +184,15 @@ class SynapticPathway(CodeRunner, Group):
             fail_for_dimension_mismatch(delay, second, ('Delay has to be '
                                                         'specified in units '
                                                         'of seconds'))
-            self.variables.add_array('delay', unit=second, size=1,
-                                     constant=True, scalar=True)
+            # We use a "dynamic" array of constant size here because it makes
+            # the generated code easier, we don't need to deal with a different
+            # type for scalar and variable delays
+            self.variables.add_dynamic_array('delay', unit=second,
+                                             size=1, constant=True,
+                                             constant_size=True, scalar=True)
+            # Since this array does not grow with the number of synapses, we
+            # have to resize it ourselves
+            self.variables['delay'].resize(1)
             self.variables['delay'].set_value(delay)
 
         self._delays = self.variables['delay']

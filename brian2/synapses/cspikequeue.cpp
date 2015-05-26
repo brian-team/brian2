@@ -17,6 +17,7 @@ public:
 	vector< vector<int32_t> > queue; // queue[(offset+i)%queue.size()] is delay i relative to current time
 	scalar dt;
 	unsigned int offset;
+	bool scalar_delay;
 	unsigned int *delays;
 	int32_t source_start;
 	int32_t source_end;
@@ -26,15 +27,16 @@ public:
     map<string, vector< vector<int32_t> > > _stored_queue;
     map<string, unsigned int> _stored_offset;
 
-	CSpikeQueue(int _source_start, int _source_end)
-		: source_start(_source_start), source_end(_source_end)
-	{
-		queue.resize(1);
-		offset = 0;
-		dt = 0.0;
-		delays = NULL;
+    CSpikeQueue(int _source_start, int _source_end)
+        : source_start(_source_start), source_end(_source_end)
+    {
+        queue.resize(1);
+        offset = 0;
+        dt = 0.0;
+        delays = NULL;
         openmp_padding = 0;
-	};
+        scalar_delay = 0;
+    };
 
     void prepare(scalar *real_delays, unsigned int n_delays,
                  int32_t *sources, unsigned int n_synapses,
@@ -42,6 +44,7 @@ public:
     {
 
         assert(n_delays == 1 || n_delays == n_synapses);
+        scalar_delay = n_delays == 1;
 
         if (delays)
             delete [] delays;
@@ -64,14 +67,17 @@ public:
             offset = 0;
         }
 
-        delays = new unsigned int[n_synapses];
+        delays = new unsigned int[n_delays];
         synapses.clear();
         synapses.resize(source_end - source_start);
 
         for (unsigned int i=0; i<n_synapses; i++)
         {
-            scalar delay = n_delays > 1 ? real_delays[i] : real_delays[0];
-            delays[i] =  (int)(delay / _dt + 0.5); //round to nearest int
+            if (i == 0 || !scalar_delay)
+            {
+                //round to nearest int
+                delays[i] =  (int)(real_delays[i] / _dt + 0.5);
+            }
             synapses[sources[i] - source_start].push_back(i + openmp_padding);
         }
 
@@ -99,25 +105,25 @@ public:
         offset = _stored_offset[name];
     }
 
-	void expand(unsigned int newsize)
-	{
-		const size_t n = queue.size();
-		if (newsize<=n)
-		    return;
-		// rotate offset back to start (leaves the circular structure unchanged)
-		rotate(queue.begin(), queue.begin()+offset, queue.end());
-		offset = 0;
-		// add new elements
-		queue.resize(newsize);
-	};
+    void expand(unsigned int newsize)
+    {
+        const unsigned int n = queue.size();
+        if (newsize<=n)
+            return;
+        // rotate offset back to start (leaves the circular structure unchanged)
+        rotate(queue.begin(), queue.begin()+offset, queue.end());
+        offset = 0;
+        // add new elements
+        queue.resize(newsize);
+    };
 
-	inline void ensure_delay(unsigned int delay)
-	{
-		if(delay>=queue.size())
-		{
-			expand(delay+1);
-		}
-	};
+    inline void ensure_delay(unsigned int delay)
+    {
+        if(delay>=queue.size())
+        {
+            expand(delay+1);
+        }
+    };
 
 	void push(int32_t *spikes, unsigned int nspikes)
 	{
@@ -130,7 +136,7 @@ public:
 			for(unsigned int idx_indices=0; idx_indices<cur_indices.size(); idx_indices++)
 			{
 				const int synaptic_index = cur_indices[idx_indices];
-				const unsigned int delay = delays[synaptic_index - openmp_padding];
+				unsigned int delay = scalar_delay ? delays[0] : delays[synaptic_index - openmp_padding];
 				// make sure there is enough space and resize if not
 				ensure_delay(delay);
 				// insert the index into the correct queue
@@ -144,12 +150,12 @@ public:
 		return &queue[offset];
 	};
 
-	void advance()
-	{
-		// empty the current queue, note that for most compilers this shouldn't deallocate the memory,
-		// although VC<=7.1 will, so it will be less efficient with that compiler
-		queue[offset].clear();
-		// and advance to the next offset
-		offset = (offset+1)%queue.size();
-	};
+    void advance()
+    {
+        // empty the current queue, note that for most compilers this shouldn't deallocate the memory,
+        // although VC<=7.1 will, so it will be less efficient with that compiler
+        queue[offset].clear();
+        // and advance to the next offset
+        offset = (offset+1)%queue.size();
+    };
 };
