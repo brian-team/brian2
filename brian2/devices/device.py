@@ -196,6 +196,19 @@ class Device(object):
         '''
         raise NotImplementedError()
 
+    def resize(self, var, new_size):
+        '''
+        Resize a `DynamicArrayVariable`.
+
+        Parameters
+        ----------
+        var : `DynamicArrayVariable`
+            The variable that should be resized.
+        new_size : int
+            The new size of the variable
+        '''
+        raise NotImplementedError()
+
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is None:
             codeobj_class = get_default_codeobject_class()

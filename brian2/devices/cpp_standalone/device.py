@@ -251,7 +251,6 @@ class CPPStandaloneDevice(Device):
                 array_name = orig_array_name + '_%d' % suffix
             self.arrays[var] = array_name
 
-
     def init_with_zeros(self, var):
         self.zero_arrays.append(var)
 
@@ -278,6 +277,10 @@ class CPPStandaloneDevice(Device):
             static_array_name = self.static_array(array_name, arr)
             self.main_queue.append(('set_by_array', (array_name,
                                                      static_array_name)))
+
+    def resize(self, var, new_size):
+        array_name = self.get_array_name(var, access_data=False)
+        self.main_queue.append(('resize_array', (array_name, new_size)))
 
     def variableview_set_with_index_array(self, variableview, item,
                                           value, check_units):
@@ -484,6 +487,10 @@ class CPPStandaloneDevice(Device):
                 '''.format(arrayname=arrayname, staticarrayname_index=staticarrayname_index,
                            staticarrayname_value=staticarrayname_value, pragma=openmp_pragma('static'))
                 main_lines.extend(code.split('\n'))
+            elif func=='resize_array':
+                array_name, new_size = args
+                main_lines.append("{array_name}.resize({new_size});".format(array_name=array_name,
+                                                                            new_size=new_size))
             elif func=='insert_code':
                 main_lines.append(args)
             elif func=='start_run_func':
