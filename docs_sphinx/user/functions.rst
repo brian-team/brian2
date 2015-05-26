@@ -32,6 +32,8 @@ example, the following reset statement resets the variable `v` to either `v_r1`
 or `v_r2`, depending on the value of `w`:
 ``'v = v_r1 * int(w <= 0.5) + v_r2 * int(w > 0.5)'``
 
+.. _user_functions:
+
 User-provided functions
 -----------------------
 

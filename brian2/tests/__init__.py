@@ -83,7 +83,6 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     prefs.read_preference_file(StringIO(prefs.defaults_as_file))
 
     # Switch off code optimization to get faster compilation times
-    prefs['codegen.runtime.cython.extra_compile_args'] = ['-w', '-O0']
     prefs['codegen.cpp.extra_compile_args_gcc'] = ['-w', '-O0']
     
     try:

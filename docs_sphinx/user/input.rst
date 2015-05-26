@@ -139,6 +139,7 @@ expressions to have the values only updated for the chosen subset of neurons
                                        I = change*(rand()*2) + (1-change)*I''',
                                     dt=50*ms)
 
+.. _network_operation:
 
 Arbitrary Python code (network operations)
 ------------------------------------------

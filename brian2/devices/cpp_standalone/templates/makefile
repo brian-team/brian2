@@ -6,7 +6,7 @@ CC = @g++
 DEBUG = -g
 OPTIMISATIONS = {{ compiler_flags }}
 CFLAGS = -c -Wno-write-strings $(OPTIMISATIONS) -I. {{ openmp_pragma('compilation') }}
-LFLAGS = {{ openmp_pragma('compilation') }}
+LFLAGS = {{ openmp_pragma('compilation') }} {{ linker_flags }}
 DEPS = make.deps
 
 all: executable
@@ -23,7 +23,7 @@ native: executable
 .PHONY: all debug native executable clean
 
 executable: $(OBJS) $(DEPS)
-	$(CC) $(LFLAGS) $(OBJS) -o $(PROGRAM)
+	$(CC) $(OBJS) -o $(PROGRAM) $(LFLAGS)
 
 clean:
 	{{ rm_cmd }}

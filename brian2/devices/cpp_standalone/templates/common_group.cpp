@@ -7,6 +7,9 @@
 #include<fstream>
 {% block extra_headers %}
 {% endblock %}
+{% for name in user_headers %}
+#include {{name}}
+{% endfor %}
 
 ////// SUPPORT CODE ///////
 namespace {
