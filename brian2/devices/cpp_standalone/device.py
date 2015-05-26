@@ -265,15 +265,19 @@ class CPPStandaloneDevice(Device):
 
     def fill_with_array(self, var, arr):
         arr = np.asarray(arr)
-        if arr.shape == ():
-            arr = np.repeat(arr, var.size)
-        # Using the std::vector instead of a pointer to the underlying
-        # data for dynamic arrays is fast enough here and it saves us some
-        # additional work to set up the pointer
         array_name = self.get_array_name(var, access_data=False)
-        static_array_name = self.static_array(array_name, arr)
-        self.main_queue.append(('set_by_array', (array_name,
-                                                 static_array_name)))
+        if arr.shape == ():
+            # For a single assignment, generate a code line instead of storing the array
+            self.main_queue.append(('set_by_single_value', (array_name,
+                                                            0,
+                                                            arr.item(0))))
+        else:
+            # Using the std::vector instead of a pointer to the underlying
+            # data for dynamic arrays is fast enough here and it saves us some
+            # additional work to set up the pointer
+            static_array_name = self.static_array(array_name, arr)
+            self.main_queue.append(('set_by_array', (array_name,
+                                                     static_array_name)))
 
     def variableview_set_with_index_array(self, variableview, item,
                                           value, check_units):
