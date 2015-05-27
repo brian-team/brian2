@@ -8,6 +8,11 @@ import imp
 import os
 import sys
 import time
+try:
+    import msvcrt
+except ImportError:
+    msvcrt = None
+    import fcntl
 
 try:
     import hashlib
@@ -50,8 +55,11 @@ class CythonExtensionManager(object):
         code = deindent(code)
 
         lib_dir = os.path.expanduser('~/.brian/cython_extensions')
-        if not os.path.exists(lib_dir):
+        try:
             os.makedirs(lib_dir)
+        except OSError:
+            if not os.path.exists(lib_dir):
+                raise
 
         key = code, sys.version_info, sys.executable, Cython.__version__
             
@@ -71,71 +79,79 @@ class CythonExtensionManager(object):
 
 
         module_path = os.path.join(lib_dir, module_name + self.so_ext)
+
+        lock_file = os.path.join(lib_dir, module_name + '.lock')
+        with open(lock_file, 'w') as f:
+            if msvcrt:
+                msvcrt.locking(f.fileno(), msvcrt.LK_RLCK,
+                               os.stat(lock_file).st_size)
+            else:
+                fcntl.flock(f, fcntl.LOCK_EX)
         
-        have_module = os.path.isfile(module_path)
-        
-        if not have_module:
-            if include_dirs is None:
-                include_dirs = []
-            if library_dirs is None:
-                library_dirs = []
-            if extra_compile_args is None:
-                extra_compile_args = []
-            if extra_link_args is None:
-                extra_link_args = []
-            if libraries is None:
-                libraries = []
+            have_module = os.path.isfile(module_path)
 
-            c_include_dirs = include_dirs
-            if 'numpy' in code:
-                import numpy
-                c_include_dirs.append(numpy.get_include())
+            if not have_module:
+                if include_dirs is None:
+                    include_dirs = []
+                if library_dirs is None:
+                    library_dirs = []
+                if extra_compile_args is None:
+                    extra_compile_args = []
+                if extra_link_args is None:
+                    extra_link_args = []
+                if libraries is None:
+                    libraries = []
 
-            # TODO: We should probably have a special folder just for header
-            # files that are shared between different codegen targets
-            import brian2.synapses as synapses
-            synapses_dir = os.path.dirname(synapses.__file__)
-            c_include_dirs.append(synapses_dir)
+                c_include_dirs = include_dirs
+                if 'numpy' in code:
+                    import numpy
+                    c_include_dirs.append(numpy.get_include())
 
-            pyx_file = os.path.join(lib_dir, module_name + '.pyx')
-            # ignore Python 3 unicode stuff for the moment
-            #pyx_file = py3compat.cast_bytes_py2(pyx_file, encoding=sys.getfilesystemencoding())
-            #with io.open(pyx_file, 'w') as f:#, encoding='utf-8') as f:
-            #    f.write(code)
-            open(pyx_file, 'w').write(code)
+                # TODO: We should probably have a special folder just for header
+                # files that are shared between different codegen targets
+                import brian2.synapses as synapses
+                synapses_dir = os.path.dirname(synapses.__file__)
+                c_include_dirs.append(synapses_dir)
 
-            extension = Extension(
-                name=module_name,
-                sources=[pyx_file],
-                include_dirs=c_include_dirs,
-                library_dirs=library_dirs,
-                runtime_library_dirs=runtime_library_dirs,
-                extra_compile_args=extra_compile_args,
-                extra_link_args=extra_link_args,
-                libraries=libraries,
-                language='c++',
-                )
-            build_extension = self._get_build_extension(compiler=compiler)
-            try:
-                opts = dict(
-                    quiet=True,
-                    annotate=False,
-                    force=True,
+                pyx_file = os.path.join(lib_dir, module_name + '.pyx')
+                # ignore Python 3 unicode stuff for the moment
+                #pyx_file = py3compat.cast_bytes_py2(pyx_file, encoding=sys.getfilesystemencoding())
+                #with io.open(pyx_file, 'w') as f:#, encoding='utf-8') as f:
+                #    f.write(code)
+                open(pyx_file, 'w').write(code)
+
+                extension = Extension(
+                    name=module_name,
+                    sources=[pyx_file],
+                    include_dirs=c_include_dirs,
+                    library_dirs=library_dirs,
+                    runtime_library_dirs=runtime_library_dirs,
+                    extra_compile_args=extra_compile_args,
+                    extra_link_args=extra_link_args,
+                    libraries=libraries,
+                    language='c++',
                     )
-                # suppresses the output on stdout
-                with std_silent():
-                    build_extension.extensions = Cython_Build.cythonize([extension], **opts)
+                build_extension = self._get_build_extension(compiler=compiler)
+                try:
+                    opts = dict(
+                        quiet=True,
+                        annotate=False,
+                        force=True,
+                        )
+                    # suppresses the output on stdout
+                    with std_silent():
+                        build_extension.extensions = Cython_Build.cythonize([extension], **opts)
 
-                    build_extension.build_temp = os.path.dirname(pyx_file)
-                    build_extension.build_lib = lib_dir
-                    build_extension.run()
-            except Cython_Compiler.Errors.CompileError:
-                return
+                        build_extension.build_temp = os.path.dirname(pyx_file)
+                        build_extension.build_lib = lib_dir
+                        build_extension.run()
+                except Cython_Compiler.Errors.CompileError:
+                    return
 
-        module = imp.load_dynamic(module_name, module_path)
-        self._code_cache[key] = module
-        return module
-        #self._import_all(module)
+            module = imp.load_dynamic(module_name, module_path)
+            self._code_cache[key] = module
+            return module
+            #self._import_all(module)
 
     @property
     def so_ext(self):
