@@ -467,7 +467,8 @@ class CPPStandaloneDevice(Device):
                         clocks=self.clocks,
                         static_array_specs=static_array_specs,
                         networks=networks,
-                        get_array_filename=self.get_array_filename)
+                        get_array_filename=self.get_array_filename,
+                        code_objects=self.code_objects.values())
         writer.write('objects.*', arr_tmp)
         
     def generate_main_source(self, writer):
@@ -886,7 +887,6 @@ class CPPStandaloneDevice(Device):
 
     def network_run(self, net, duration, report=None, report_period=10*second,
                     namespace=None, profile=True, level=0, **kwds):
-        # Note: profile argument will be ignored
         if kwds:
             logger.warn(('Unsupported keyword argument(s) provided for run: '
                          '%s') % ', '.join(kwds.keys()))
@@ -894,7 +894,7 @@ class CPPStandaloneDevice(Device):
         # We have to use +2 for the level argument here, since this function is
         # called through the device_override mechanism
         net.before_run(namespace, level=level+2)
-            
+
         self.clocks.update(net._clocks)
 
         # We run a simplified "update loop" that only advances the clocks
@@ -981,6 +981,17 @@ class CPPStandaloneDevice(Device):
     def network_restore(self, net, name='default'):
         raise NotImplementedError(('The store/restore mechanism is not '
                                    'supported in the C++ standalone'))
+
+    def network_get_profiling_info(self, net):
+        if net._profiling_info is None:
+            net._profiling_info = []
+            fname = os.path.join(self.project_dir, 'results', 'profiling_info.txt')
+            with open(fname) as f:
+                for line in f:
+                    (key, val) = line.split()
+                    net._profiling_info.append((key, float(val)*second))
+        return sorted(net._profiling_info, key=lambda item: item[1],
+                      reverse=True)
 
     def run_function(self, name, include_in_parent=True):
         '''

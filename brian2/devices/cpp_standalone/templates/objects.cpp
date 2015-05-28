@@ -62,6 +62,10 @@ SynapticPathway<double> brian::{{path.name}}(
 {% endfor %}
 {% endfor %}
 
+// Profiling information for each code object
+{% for codeobj in code_objects | sort(attribute='name') %}
+double brian::{{codeobj.name}}_profiling_info = 0.0;
+{% endfor %}
 
 void _init_arrays()
 {
@@ -175,6 +179,20 @@ void _write_arrays()
 		std::cout << "Error writing output file for {{varname}}." << endl;
 	}
 	{% endfor %}
+
+	// Write profiling info to disk
+	ofstream outfile_profiling_info;
+	outfile_profiling_info.open("results/profiling_info.txt", ios::out);
+	if(outfile_profiling_info.is_open())
+	{
+	{% for codeobj in code_objects | sort(attribute='name') %}
+	outfile_profiling_info << "{{codeobj.name}}\t" << {{codeobj.name}}_profiling_info << std::endl;
+	{% endfor %}
+	outfile_profiling_info.close();
+	} else
+	{
+	    std::cout << "Error writing profiling info to file." << std::endl;
+	}
 }
 
 void _dealloc_arrays()
@@ -267,6 +285,11 @@ extern Synapses<double> {{S.name}};
 {% for path in S._pathways | sort(attribute='name') %}
 extern SynapticPathway<double> {{path.name}};
 {% endfor %}
+{% endfor %}
+
+// Profiling information for each code object
+{% for codeobj in code_objects | sort(attribute='name') %}
+extern double {{codeobj.name}}_profiling_info;
 {% endfor %}
 
 }

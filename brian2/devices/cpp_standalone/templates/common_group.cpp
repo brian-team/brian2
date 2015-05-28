@@ -3,6 +3,7 @@
 #include "brianlib/common_math.h"
 #include "brianlib/stdint_compat.h"
 #include<cmath>
+#include<ctime>
 #include<iostream>
 #include<fstream>
 {% block extra_headers %}
@@ -22,6 +23,9 @@ namespace {
 void _run_{{codeobj_name}}()
 {	
 	using namespace brian;
+
+    const std::clock_t _start_time = std::clock();
+
 	///// CONSTANTS ///////////
 	%CONSTANTS%
 	///// POINTERS ////////////
@@ -42,6 +46,12 @@ void _run_{{codeobj_name}}()
 		{% endblock %}
 	}
 	{% endblock %}
+
+    {{ openmp_pragma('single') }}
+    {
+        const double _run_time = (double)(std::clock() -_start_time)/CLOCKS_PER_SEC;
+        {{codeobj_name}}_profiling_info += _run_time;
+    }
 }
 
 {% block extra_functions_cpp %}
