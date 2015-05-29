@@ -8,6 +8,11 @@ import imp
 import os
 import sys
 import time
+try:
+    import msvcrt
+except ImportError:
+    msvcrt = None
+    import fcntl
 
 try:
     import hashlib
@@ -26,6 +31,7 @@ except ImportError:
 
 from brian2.utils.logger import std_silent
 from brian2.utils.stringtools import deindent
+from brian2.core.preferences import prefs
 
 __all__ = ['cython_extension_manager']
 
@@ -50,8 +56,11 @@ class CythonExtensionManager(object):
         code = deindent(code)
 
         lib_dir = os.path.expanduser('~/.brian/cython_extensions')
-        if not os.path.exists(lib_dir):
+        try:
             os.makedirs(lib_dir)
+        except OSError:
+            if not os.path.exists(lib_dir):
+                raise
 
         key = code, sys.version_info, sys.executable, Cython.__version__
             
@@ -71,9 +80,70 @@ class CythonExtensionManager(object):
 
 
         module_path = os.path.join(lib_dir, module_name + self.so_ext)
+
+        if prefs['codegen.runtime.cython.multiprocess_safe']:
+            lock_file = os.path.join(lib_dir, module_name + '.lock')
+            with open(lock_file, 'w') as f:
+                if msvcrt:
+                    msvcrt.locking(f.fileno(), msvcrt.LK_RLCK,
+                                   os.stat(lock_file).st_size)
+                else:
+                    fcntl.flock(f, fcntl.LOCK_EX)
+                return self._load_module(module_path, include_dirs,
+                                         library_dirs,
+                                         extra_compile_args, extra_link_args,
+                                         libraries, code, lib_dir, module_name,
+                                         runtime_library_dirs, compiler, key)
+        else:
+            return self._load_module(module_path, include_dirs, library_dirs,
+                                     extra_compile_args, extra_link_args,
+                                     libraries, code, lib_dir, module_name,
+                                     runtime_library_dirs, compiler, key)
+
+    @property
+    def so_ext(self):
+        """The extension suffix for compiled modules."""
+        try:
+            return self._so_ext
+        except AttributeError:
+            self._so_ext = self._get_build_extension().get_ext_filename('')
+            return self._so_ext
+
+    def _clear_distutils_mkpath_cache(self):
+        """clear distutils mkpath cache
         
+        prevents distutils from skipping re-creation of dirs that have been removed
+        """
+        try:
+            from distutils.dir_util import _path_created
+        except ImportError:
+            pass
+        else:
+            _path_created.clear()
+
+
+    def _get_build_extension(self, compiler=None):
+        self._clear_distutils_mkpath_cache()
+        dist = Distribution()
+        config_files = dist.find_config_files()
+        try:
+            config_files.remove('setup.cfg')
+        except ValueError:
+            pass
+        dist.parse_config_files(config_files)
+        build_extension = build_ext(dist)
+        if compiler is not None:
+            build_extension.compiler = compiler
+        build_extension.finalize_options()
+        return build_extension
+
+    
+    def _load_module(self, module_path, include_dirs, library_dirs,
+                     extra_compile_args, extra_link_args, libraries, code,
+                     lib_dir, module_name, runtime_library_dirs, compiler,
+                     key):
         have_module = os.path.isfile(module_path)
-        
+
         if not have_module:
             if include_dirs is None:
                 include_dirs = []
@@ -136,47 +206,10 @@ class CythonExtensionManager(object):
         self._code_cache[key] = module
         return module
         #self._import_all(module)
-
-    @property
-    def so_ext(self):
-        """The extension suffix for compiled modules."""
-        try:
-            return self._so_ext
-        except AttributeError:
-            self._so_ext = self._get_build_extension().get_ext_filename('')
-            return self._so_ext
-
-    def _clear_distutils_mkpath_cache(self):
-        """clear distutils mkpath cache
         
-        prevents distutils from skipping re-creation of dirs that have been removed
-        """
-        try:
-            from distutils.dir_util import _path_created
-        except ImportError:
-            pass
-        else:
-            _path_created.clear()
-
-
-    def _get_build_extension(self, compiler=None):
-        self._clear_distutils_mkpath_cache()
-        dist = Distribution()
-        config_files = dist.find_config_files()
-        try:
-            config_files.remove('setup.cfg')
-        except ValueError:
-            pass
-        dist.parse_config_files(config_files)
-        build_extension = build_ext(dist)
-        if compiler is not None:
-            build_extension.compiler = compiler
-        build_extension.finalize_options()
-        return build_extension
-
 cython_extension_manager = CythonExtensionManager()
 
-                                
+
 if __name__=='__main__':
     code = '''
     def f(double x):

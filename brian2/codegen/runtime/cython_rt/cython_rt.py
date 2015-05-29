@@ -6,7 +6,7 @@ import numpy
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AttributeVariable, AuxiliaryVariable,
                                    Subexpression)
-from brian2.core.preferences import prefs
+from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.logger import get_logger
 
 from ..numpy_rt import NumpyCodeObject
@@ -21,6 +21,19 @@ __all__ = ['CythonCodeObject']
 
 
 logger = get_logger(__name__)
+
+# Preferences
+prefs.register_preferences(
+    'codegen.runtime.cython',
+    'Cython runtime codegen preferences',
+    multiprocess_safe = BrianPreference(
+        default=True,
+        docs='''
+        Whether to use a lock file to prevent simultaneous write access
+        to cython .pyx and .so files.
+        '''
+        )
+    )
 
 
 class CythonCodeObject(NumpyCodeObject):
