@@ -845,7 +845,7 @@ class Quantity(np.ndarray, object):
                                              'dim keyword',
                                              arr.dim, dim)
         elif hasattr(arr, 'unit'):
-            subarr.dim = arr.unit.dim
+            subarr.dim = arr.unit.dim if arr.unit is not None else None
             if not (dim is None) and not (dim is subarr.dim):
                 raise DimensionMismatchError('Conflicting dimension '
                                              'information between array and '
