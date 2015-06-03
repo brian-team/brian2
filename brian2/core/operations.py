@@ -42,7 +42,8 @@ class NetworkOperation(BrianObject):
 
         is_method = inspect.ismethod(function)
 
-        if hasattr(function, 'func_code'):
+        if (hasattr(function, 'func_code') or  # Python 2
+                hasattr(function, '__code__')):  # Python 3:
             argcount = function.func_code.co_argcount
             if is_method:
                 if argcount == 2:
