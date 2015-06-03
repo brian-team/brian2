@@ -1,3 +1,5 @@
+import inspect
+
 from brian2.core.base import BrianObject
 
 __all__ = ['NetworkOperation', 'network_operation']
@@ -34,12 +36,37 @@ class NetworkOperation(BrianObject):
     add_to_magic_network = True
     def __init__(self, function, dt=None, clock=None, when='start', order=0):
         BrianObject.__init__(self, dt=dt, clock=clock, when=when, order=order, name='networkoperation*')
-        
+
         #: The function to be called each time step
         self.function = function
-        
+
+        is_method = inspect.ismethod(function)
+
         if hasattr(function, 'func_code'):
-            self._has_arg = (self.function.func_code.co_argcount==1)
+            argcount = function.func_code.co_argcount
+            if is_method:
+                if argcount == 2:
+                    self._has_arg = True
+                elif argcount == 1:
+                    self._has_arg = False
+                else:
+                    raise TypeError(('Method "%s" cannot be used as a network '
+                                     'operation, it needs to have either only '
+                                     '"self" or "self, t" as arguments, but it '
+                                     'has %d arguments.' % (function.__name__,
+                                                            argcount)))
+            else:
+                if argcount == 1:
+                    self._has_arg = True
+                elif argcount == 0:
+                    self._has_arg = False
+                else:
+                    raise TypeError(('Function "%s" cannot be used as a '
+                                     'network operation, it needs to have '
+                                     'either only "t" as an argument or have '
+                                     'no arguments, but it has %d '
+                                     'arguments.' % (function.__name__,
+                                                     argcount)))
         else:
             self._has_arg = False
 

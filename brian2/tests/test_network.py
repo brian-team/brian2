@@ -299,8 +299,30 @@ def test_network_operations():
     @network_operation(when='end', order=1)
     def f3():
         seq.append('c')
-    run(1*ms)
-    assert_equal(''.join(seq), 'bac'*10)
+
+    # In complex frameworks, network operations might be object methods that
+    # access some common data
+    class Container(object):
+        def __init__(self):
+            self.g1_data = 'B'
+            self.g2_data = 'C'
+
+        def g1(self):
+            seq.append(self.g1_data)
+
+        def g2(self):
+            seq.append(self.g2_data)
+
+    c = Container()
+    c_op1 = NetworkOperation(c.g1)
+    c_op2 = NetworkOperation(c.g2, when='end', order=1)
+    net = Network(op1, f2, f3, c_op1, c_op2)
+    net.run(1*ms)
+
+    assert_equal(''.join(seq), 'bBacC'*10)
+
+
+# TODO: Test incorrect forms of NetworkOperation
 
 
 @attr('codegen-independent')
