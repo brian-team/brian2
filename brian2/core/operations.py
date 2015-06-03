@@ -56,6 +56,16 @@ class NetworkOperation(BrianObject):
                                      'has %d arguments.' % (function.__name__,
                                                             argcount)))
             else:
+                if (argcount >= 1 and
+                            function.func_code.co_varnames[0] == 'self'):
+                    raise TypeError('The first argument of the function "%s" '
+                                    'is "self", suggesting it is an instance '
+                                    'method and not a function. Did you use '
+                                    '@network_operation on a class method? '
+                                    'This will not work, explicitly create a '
+                                    'NetworkOperation object instead -- see '
+                                    'the documentation for more '
+                                    'details.' % function.__name__)
                 if argcount == 1:
                     self._has_arg = True
                 elif argcount == 0:

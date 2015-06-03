@@ -321,9 +321,30 @@ def test_network_operations():
 
     assert_equal(''.join(seq), 'bBacC'*10)
 
+@attr('codegen-independent')
+def test_incorrect_network_operations():
+    # Network operations with more than one argument are not allowed
+    def func(x, y):
+        pass
 
-# TODO: Test incorrect forms of NetworkOperation
+    class Container(object):
+        def func(self, x, y):
+            pass
+    c = Container()
 
+    assert_raises(TypeError, lambda: NetworkOperation(func))
+    assert_raises(TypeError, lambda: NetworkOperation(c.func))
+
+    # Incorrect use of @network_operation -- it does not work on an instance
+    # method
+    try:
+        class Container(object):
+            @network_operation
+            def func(self):
+                pass
+        raise AssertionError('expected a TypeError')
+    except TypeError:
+        pass  # this is what we expected
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
@@ -921,6 +942,7 @@ if __name__=='__main__':
             test_magic_network,
             test_network_stop,
             test_network_operations,
+            test_incorrect_network_operations,
             test_network_active_flag,
             test_network_t,
             test_incorrect_dt_defaultclock,
