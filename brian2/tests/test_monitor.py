@@ -114,7 +114,7 @@ def test_state_monitor():
                   multi_mon, multi_mon1,
                   all_mon,
                   synapse_mon)
-    net.run(10*ms)
+    net.run(1*ms)
 
     # Check time recordings
     assert_array_equal(nothing_mon.t, v_mon.t)
