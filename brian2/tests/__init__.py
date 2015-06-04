@@ -7,7 +7,8 @@ from brian2.devices.device import all_devices
 
 def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         test_standalone=None,
-        test_in_parallel=['codegen_independent', 'numpy', 'cython', 'cpp_standalone']):
+        test_in_parallel=['codegen_independent', 'numpy', 'cython', 'cpp_standalone'],
+        reset_preferences=True):
     '''
     Run brian's test suite. Needs an installation of the nose testing tool.
 
@@ -93,13 +94,15 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     sys.stderr.write('\n')
 
-    # Store the currently set preferences and reset to default preferences
-    stored_prefs = prefs.as_file
-    prefs.read_preference_file(StringIO(prefs.defaults_as_file))
+    if reset_preferences:
+        # Store the currently set preferences and reset to default preferences
+        stored_prefs = prefs.as_file
+        prefs.read_preference_file(StringIO(prefs.defaults_as_file))
 
     # Switch off code optimization to get faster compilation times
-    prefs['codegen.cpp.extra_compile_args_gcc'] = ['-w', '-O0']
-    
+    prefs['codegen.cpp.extra_compile_args_gcc'].extend(['-w', '-O0'])
+    prefs['codegen.cpp.extra_compile_args_msvc'].extend(['/Od'])
+
     try:
         success = []
         if test_codegen_independent:
@@ -187,9 +190,10 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         return all_success
 
     finally:
-        # Restore the user preferences
-        prefs.read_preference_file(StringIO(stored_prefs))
-        prefs._backup()
+        if reset_preferences:
+            # Restore the user preferences
+            prefs.read_preference_file(StringIO(stored_prefs))
+            prefs._backup()
 
 if __name__=='__main__':
     run()
