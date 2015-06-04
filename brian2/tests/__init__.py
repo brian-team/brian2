@@ -6,7 +6,8 @@ from brian2.core.preferences import prefs
 from brian2.devices.device import all_devices
 
 def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
-        test_standalone=None):
+        test_standalone=None,
+        test_in_parallel=['codegen_independent', 'numpy', 'cython', 'cpp_standalone']):
     '''
     Run brian's test suite. Needs an installation of the nose testing tool.
 
@@ -38,6 +39,10 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     except ImportError:
         raise ImportError('Running the test suite requires the "nose" package.')
 
+    multiprocess_arguments = ['--processes=-1',
+                              '--process-timeout=3600',  # we don't want them to time out
+                              '--process-restartworker']
+
     if codegen_targets is None:
         codegen_targets = ['numpy']
         try:
@@ -65,6 +70,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     ex_in = 'including' if long_tests else 'excluding'
     sys.stderr.write(' (%s long tests)\n' % ex_in)
 
+    all_targets = set(codegen_targets)
+
     if test_standalone:
         if not isinstance(test_standalone, basestring):
             raise ValueError('test_standalone argument has to be the name of a '
@@ -75,9 +82,17 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                              '%s' % (test_standalone,
                                      ', '.join(repr(d) for d in all_devices)))
         sys.stderr.write('Testing standalone \n')
+        all_targets.add(test_standalone)
     if test_codegen_independent:
         sys.stderr.write('Testing codegen-independent code \n')
+        all_targets.add('codegen_independent')
+
+    parallel_tests = all_targets.intersection(set(test_in_parallel))
+    if parallel_tests:
+        sys.stderr.write('Testing with multiple processes for %s\n' % ', '.join(parallel_tests))
+
     sys.stderr.write('\n')
+
     # Store the currently set preferences and reset to default preferences
     stored_prefs = prefs.as_file
     prefs.read_preference_file(StringIO(prefs.defaults_as_file))
@@ -92,15 +107,19 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             # Some doctests do actually use code generation, use numpy for that
             prefs.codegen.target = 'numpy'
             prefs._backup()
-            success.append(nose.run(argv=['', dirname,
-                              '-c=',  # no config file loading
-                              '-I', '^hears\.py$',
-                              '-I', '^\.',
-                              '-I', '^_',
-                              '--with-doctest',
-                              "-a", "codegen-independent",
-                              '--nologcapture',
-                              '--exe']))
+            argv = ['nosetests', dirname,
+                    '-c=',  # no config file loading
+                    '-I', '^hears\.py$',
+                    '-I', '^\.',
+                    '-I', '^_',
+                    '--with-doctest',
+                    "-a", "codegen-independent",
+                    '--nologcapture',
+                    '--exe']
+            if 'codegen_independent' in test_in_parallel:
+                argv.extend(multiprocess_arguments)
+            success.append(nose.run(argv=argv))
+
         for target in codegen_targets:
             sys.stderr.write('Running tests for target %s:\n' % target)
             prefs.codegen.target = target
@@ -110,16 +129,19 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 exclude_str += ',!long'
             # explicitly ignore the brian2.hears file for testing, otherwise the
             # doctest search will import it, failing on Python 3
-            success.append(nose.run(argv=['', dirname,
-                                          '-c=',  # no config file loading
-                                          '-I', '^hears\.py$',
-                                          '-I', '^\.',
-                                          '-I', '^_',
-                                          # Do not run standalone or
-                                          # codegen-independent tests
-                                          "-a", exclude_str,
-                                          '--nologcapture',
-                                          '--exe']))
+            argv = ['nosetests', dirname,
+                    '-c=',  # no config file loading
+                    '-I', '^hears\.py$',
+                    '-I', '^\.',
+                    '-I', '^_',
+                    # Do not run standalone or
+                    # codegen-independent tests
+                    "-a", exclude_str,
+                    '--nologcapture',
+                    '--exe']
+            if target in test_in_parallel:
+                argv.extend(multiprocess_arguments)
+            success.append(nose.run(argv=argv))
         if test_standalone:
             from brian2.devices.device import get_device, set_device
             previous_device = get_device()
@@ -127,26 +149,33 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             sys.stderr.write('Testing standalone device "%s"\n' % test_standalone)
             sys.stderr.write('Running standalone-compatible standard tests\n')
             exclude_str = ',!long' if not long_tests else ''
-            success.append(nose.run(argv=['', dirname,
-                                          '-c=',  # no config file loading
-                                          '-I', '^hears\.py$',
-                                          '-I', '^\.',
-                                          '-I', '^_',
-                                          # Only run standalone tests
-                                          '-a', 'standalone-compatible'+exclude_str,
-                                          '--nologcapture',
-                                          '--exe']))
+            argv = ['nosetests', dirname,
+                    '-c=',  # no config file loading
+                    '-I', '^hears\.py$',
+                    '-I', '^\.',
+                    '-I', '^_',
+                    # Only run standalone tests
+                    '-a', 'standalone-compatible'+exclude_str,
+                    '--nologcapture',
+                    '--exe']
+            if test_standalone in test_in_parallel:
+                argv.extend(multiprocess_arguments)
+            success.append(nose.run(argv=argv))
+
             set_device(previous_device)
             sys.stderr.write('Running standalone-specific tests\n')
-            success.append(nose.run(argv=['', dirname,
-                                          '-c=',  # no config file loading
-                                          '-I', '^hears\.py$',
-                                          '-I', '^\.',
-                                          '-I', '^_',
-                                          # Only run standalone tests
-                                          '-a', test_standalone+exclude_str,
-                                          '--nologcapture',
-                                          '--exe']))
+            argv = ['nosetests', dirname,
+                    '-c=',  # no config file loading
+                    '-I', '^hears\.py$',
+                    '-I', '^\.',
+                    '-I', '^_',
+                    # Only run standalone tests
+                    '-a', test_standalone+exclude_str,
+                    '--nologcapture',
+                    '--exe']
+            if test_standalone in test_in_parallel:
+                argv.extend(multiprocess_arguments)
+            success.append(nose.run(argv=argv))
         all_success = all(success)
         if not all_success:
             sys.stderr.write(('ERROR: %d/%d test suite(s) did not complete '
