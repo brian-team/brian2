@@ -64,13 +64,17 @@ class CythonCodeObject(NumpyCodeObject):
     @staticmethod
     def is_available():
         try:
-            compiler, _ = get_compiler_and_args()
+            compiler, extra_compile_args = get_compiler_and_args()
             code = '''
             def main():
                 cdef int x
                 x = 0'''
             compiled = cython_extension_manager.create_extension(code,
-                                                                 compiler=compiler)
+                                                                 compiler=compiler,
+                                                                 extra_compile_args=extra_compile_args,
+                                                                 extra_link_args=prefs['codegen.cpp.extra_link_args'],
+                                                                 include_dirs=prefs['codegen.cpp.include_dirs'],
+                                                                 library_dirs=prefs['codegen.cpp.library_dirs'])
             compiled.main()
             return True
         except Exception as ex:

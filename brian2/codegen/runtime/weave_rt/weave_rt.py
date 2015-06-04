@@ -132,6 +132,9 @@ libraries: {self.libraries}
                              compiler=compiler,
                              headers=['<algorithm>', '<limits>'],
                              extra_compile_args=extra_compile_args,
+                             extra_link_args=prefs['codegen.cpp.extra_link_args'],
+                             library_dirs=prefs['codegen.cpp.library_dirs'],
+                             include_dirs=prefs['codegen.cpp.include_dirs'],
                              verbose=0)
                 return True
         except Exception as ex:
