@@ -53,7 +53,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
       spikes more that once during a time step, but other code (e.g. for
       synaptic propagation) might assume that neurons only spike once per
       time step and will therefore not work properly.
-    * If `sorted` is set to ``True``, the given arrays will not be copied.
+    * If `sorted` is set to ``True``, the given arrays will not be copied
+      (only affects runtime mode)..
     '''
 
     @check_units(N=1, indices=1, times=second)
@@ -101,14 +102,22 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.variables.add_constant('N', unit=Unit(1), value=N)
         self.variables.add_constant('period', unit=second, value=period)
         self.variables.add_arange('i', N)
-        self.variables.add_arange('spike_number', len(indices))
-        self.variables.add_array('neuron_index', values=indices,
-                                 size=len(indices), unit=Unit(1),
-                                 dtype=np.int32, index='spike_number',
-                                 read_only=True)
-        self.variables.add_array('spike_time', values=times, size=len(times),
-                                 unit=second, index='spike_number',
-                                 read_only=True)
+        self.variables.add_dynamic_array('spike_number',
+                                         values=np.arange(len(indices)),
+                                         size=len(indices), unit=Unit(1),
+                                         dtype=np.int32, read_only=True,
+                                         constant=True,
+                                         constant_size=True,
+                                         unique=True)
+        self.variables.add_dynamic_array('neuron_index', values=indices,
+                                         size=len(indices), unit=Unit(1),
+                                         dtype=np.int32, index='spike_number',
+                                         read_only=True, constant=True,
+                                         constant_size=True)
+        self.variables.add_dynamic_array('spike_time', values=times, size=len(times),
+                                         unit=second, index='spike_number',
+                                         read_only=True, constant=True,
+                                         constant_size=True)
         self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
                                  dtype=np.int32)
         self.variables.add_array('_lastindex', size=1, values=np.zeros(1), unit=Unit(1),

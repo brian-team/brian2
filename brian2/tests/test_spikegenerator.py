@@ -256,4 +256,3 @@ if __name__ == '__main__':
     test_spikegenerator_rounding_period()
     test_spikegenerator_multiple_spikes_per_bin()
     test_spikegenerator_standalone()
-
