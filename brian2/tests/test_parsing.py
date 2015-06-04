@@ -121,6 +121,8 @@ def cpp_evaluator(expr, ns):
         return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
                             compiler=compiler,
                             extra_compile_args=extra_compile_args,
+                            extra_link_args=prefs['codegen.cpp.extra_link_args'],
+                            library_dirs=prefs['codegen.cpp.library_dirs'],
                             include_dirs=prefs['codegen.cpp.include_dirs']
                             )
 
