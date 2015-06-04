@@ -92,6 +92,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     if parallel_tests:
         sys.stderr.write('Testing with multiple processes for %s\n' % ', '.join(parallel_tests))
 
+    if reset_preferences:
+        sys.stderr.write('Resetting to default preferences\n')
+
     sys.stderr.write('\n')
 
     if reset_preferences:
