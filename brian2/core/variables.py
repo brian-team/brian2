@@ -1517,13 +1517,13 @@ class Variables(collections.Mapping):
                                    scalar=scalar,
                                    read_only=read_only, unique=unique)
         self._add_variable(name, var, index)
-        if values is None and size > 0:
+        if values is None and np.prod(size) > 0:
             self.device.init_with_zeros(var)
         elif values is not None:
             if len(values) != size:
                 raise ValueError(('Size of the provided values does not match '
                                   'size: %d != %d') % (len(values), size))
-            if size>0:
+            if np.prod(size) > 0:
                 self.device.init_with_array(var, values)
 
     def add_arange(self, name, size, start=0, dtype=np.int32, constant=True,
