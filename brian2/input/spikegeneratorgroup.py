@@ -14,6 +14,8 @@ __all__ = ['SpikeGeneratorGroup']
 
 class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     '''
+    SpikeGeneratorGroup(N, indices, times, dt=None, clock=None, period=1e100*second, when='thresholds', order=0, sorted=False, name='spikegeneratorgroup*', codeobj_class=None)
+
     A group emitting spikes at given times.
 
     Parameters
@@ -23,9 +25,9 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     indices : array of integers
         The indices of the spiking cells
     times : `Quantity`
-        The spike times for the cells given in `indices`. Has to have the
-        same length as `indices`.
-    period: `Quantity`, optional
+        The spike times for the cells given in ``indices``. Has to have the
+        same length as ``indices``.
+    period : `Quantity`, optional
         If this is specified, it will repeat spikes with this period.
     dt : `Quantity`, optional
         The time step to be used for the simulation. Cannot be combined with
@@ -189,6 +191,32 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
     @check_units(indices=1, times=second, period=second)
     def set_spikes(self, indices, times, period=1e100*second, sorted=False):
+        '''
+        set_spikes(indices, times, period=1e100*second, sorted=False)
+
+        Change the spikes that this group will generate.
+
+        This can be used to set the input for a second run of a model based on
+        the output of a first run (if the input for the second run is already
+        known before the first run, then all the information should simply be
+        included in the initial `SpikeGeneratorGroup` initializer call,
+        instead).
+
+        Parameters
+        ----------
+        indices : array of integers
+            The indices of the spiking cells
+        times : `Quantity`
+            The spike times for the cells given in ``indices``. Has to have the
+            same length as ``indices``.
+        period : `Quantity`, optional
+            If this is specified, it will repeat spikes with this period.
+        sorted : bool, optional
+            Whether the given indices and times are already sorted. Set to
+            ``True`` if your events are already sorted (first by spike time,
+            then by index), this can save significant time at construction if
+            your arrays contain large numbers of spikes. Defaults to ``False``.
+        '''
         if len(indices) != len(times):
             raise ValueError(('Length of the indices and times array must '
                               'match, but %d != %d') % (len(indices),
