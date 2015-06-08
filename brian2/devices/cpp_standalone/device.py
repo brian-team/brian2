@@ -56,8 +56,10 @@ def freeze(code, ns):
 
         if (isinstance(v, Variable) and not isinstance(v, AttributeVariable) and
               v.scalar and v.constant and v.read_only):
-            v = v.get_value()
-
+            try:
+                v = v.get_value()
+            except NotImplementedError:
+                continue
         if isinstance(v, basestring):
             code = word_substitute(code, {k: v})
         elif isinstance(v, numbers.Number):

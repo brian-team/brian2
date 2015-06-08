@@ -6,7 +6,7 @@ import tempfile
 
 from nose import with_setup
 from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_raises, assert_equal
+from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 
 from brian2 import *
 from brian2.devices.cpp_standalone import cpp_standalone_device
@@ -110,6 +110,68 @@ def test_spikegenerator_period_repeat():
     for idx in xrange(5):
         net.run(1*ms)
         assert (idx+1)*len(SG.spike_time) == s_mon.num_spikes
+
+
+def _compare_spikes(N, indices, times, recorded, start_time=0*ms, end_time=1e100*second):
+    for idx in xrange(N):
+        generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
+        recorded_spikes = sorted([(idx, time) for time in recorded.t[recorded.i==idx] if time >= start_time and time < end_time])
+        assert_allclose(generator_spikes, recorded_spikes)
+
+
+def test_spikegenerator_change_spikes():
+    '''
+    Basic test for `SpikeGeneratorGroup`.
+    '''
+    indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
+    times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
+    SG = SpikeGeneratorGroup(5, indices, times)
+    s_mon = SpikeMonitor(SG)
+    net = Network(SG, s_mon)
+    net.run(5*ms)
+
+    _compare_spikes(5, indices, times, s_mon)
+
+    indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1, 3,   3,   3,   1,   2])
+    times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2, 4.5, 4.7, 4.8, 4.5, 4.7])*ms + 5*ms
+
+    SG.set_spikes(indices, times)
+    net.run(5*ms)
+
+    _compare_spikes(5, indices, times, s_mon, 5*ms)
+
+    indices = np.array([4, 1, 0])
+    times   = np.array([1, 3, 4])*ms + 10*ms
+
+    SG.set_spikes(indices, times)
+    net.run(5*ms)
+
+    _compare_spikes(5, indices, times, s_mon, 10*ms)
+
+
+def test_spikegenerator_change_period():
+    '''
+    Basic test for `SpikeGeneratorGroup`.
+    '''
+    indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
+    times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
+    SG = SpikeGeneratorGroup(5, indices, times, period=5*ms)
+    s_mon = SpikeMonitor(SG)
+    net = Network(SG, s_mon)
+    net.run(10*ms)
+
+    _compare_spikes(5, np.hstack([indices, indices]),
+                    np.hstack([times, times+5*ms]),
+                    s_mon)
+
+    indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1, 3,   3,   3,   1,   2])
+    times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2, 4.5, 4.7, 4.8, 4.5, 4.7])*ms + 10*ms
+
+    SG.set_spikes(indices, times)
+    net.run(10*ms)  # period should no longer be in effect
+
+    _compare_spikes(5, indices, times, s_mon, 10*ms)
+
 
 @attr('codegen-independent')
 def test_spikegenerator_incorrect_period():
@@ -224,10 +286,11 @@ def test_spikegenerator_multiple_spikes_per_bin():
 
 @attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=restore_device)
-def test_spikegenerator_standalone():
+def test_spikegenerator_standalone(with_output=False):
     '''
     Basic test for `SpikeGeneratorGroup` in standalone.
     '''
+    previous_device = get_device()
     set_device('cpp_standalone')
     indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
     times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
@@ -236,12 +299,86 @@ def test_spikegenerator_standalone():
     net = Network(SG, s_mon)
     net.run(5*ms)
     tempdir = tempfile.mkdtemp()
-    device.build(directory=tempdir, compile=True, run=True, with_output=False)
-    for idx in xrange(5):
-        generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
-        recorded_spikes = sorted([(idx, time)
-                                  for time in s_mon.t[s_mon.i==idx]])
-        assert generator_spikes == recorded_spikes
+    if with_output:
+        print tempdir
+    device.build(directory=tempdir, compile=True, run=True, with_output=with_output)
+
+    _compare_spikes(5, indices, times, s_mon)
+
+    set_device(previous_device)
+
+
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=restore_device)
+def test_spikegenerator_standalone_change_spikes(with_output=False):
+    '''
+    Basic test for `SpikeGeneratorGroup`.
+    '''
+    previous_device = get_device()
+    set_device('cpp_standalone')
+    indices1 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
+    times1   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
+    SG = SpikeGeneratorGroup(5, indices1, times1)
+    s_mon = SpikeMonitor(SG)
+    net = Network(SG, s_mon)
+    net.run(5*ms)
+
+    indices2 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1, 3,   3,   3,   1,   2])
+    times2   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2, 4.5, 4.7, 4.8, 4.5, 4.7])*ms + 5*ms
+
+    SG.set_spikes(indices2, times2)
+    net.run(5*ms)
+
+    indices3 = np.array([4, 1, 0])
+    times3   = np.array([1, 3, 4])*ms + 10*ms
+
+    SG.set_spikes(indices3, times3)
+    net.run(5*ms)
+
+    tempdir = tempfile.mkdtemp()
+    if with_output:
+        print tempdir
+    device.build(directory=tempdir, compile=True, run=True, with_output=with_output)
+
+    _compare_spikes(5, indices1, times1, s_mon, end_time=5*ms)
+    _compare_spikes(5, indices2, times2, s_mon, start_time=5*ms, end_time=10*ms)
+    _compare_spikes(5, indices3, times3, s_mon, start_time=10*ms)
+
+    set_device(previous_device)
+
+
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=restore_device)
+def test_spikegenerator_standalone_change_period(with_output=False):
+    '''
+    Basic test for `SpikeGeneratorGroup`.
+    '''
+    previous_device = get_device()
+    set_device('cpp_standalone')
+    indices1 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
+    times1   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
+    SG = SpikeGeneratorGroup(5, indices1, times1, period=5*ms)
+    s_mon = SpikeMonitor(SG)
+    net = Network(SG, s_mon)
+    net.run(10*ms)
+
+    indices2 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1, 3,   3,   3,   1,   2])
+    times2   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2, 4.5, 4.7, 4.8, 4.5, 4.7])*ms + 10*ms
+
+    SG.set_spikes(indices2, times2)
+    net.run(10*ms)  # period should no longer be in effect
+
+    tempdir = tempfile.mkdtemp()
+    if with_output:
+        print tempdir
+    device.build(directory=tempdir, compile=True, run=True, with_output=with_output)
+
+    _compare_spikes(5, np.hstack([indices1, indices1]),
+                    np.hstack([times1, times1+5*ms]),
+                    s_mon, end_time=10*ms)
+    _compare_spikes(5, indices2, times2, s_mon, start_time=10*ms)
+
+    set_device(previous_device)
 
 
 if __name__ == '__main__':
@@ -250,9 +387,17 @@ if __name__ == '__main__':
     test_spikegenerator_basic_sorted()
     test_spikegenerator_period()
     test_spikegenerator_period_repeat()
+    test_spikegenerator_change_spikes()
+    test_spikegenerator_change_period()
     test_spikegenerator_incorrect_period()
     test_spikegenerator_rounding()
     test_spikegenerator_rounding_long()
     test_spikegenerator_rounding_period()
     test_spikegenerator_multiple_spikes_per_bin()
-    test_spikegenerator_standalone()
+    for t in [
+                test_spikegenerator_standalone,
+                test_spikegenerator_standalone_change_spikes,
+                test_spikegenerator_standalone_change_period
+             ]:
+        t(with_output=True)
+        restore_device()

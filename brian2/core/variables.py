@@ -1465,6 +1465,7 @@ class Variables(collections.Mapping):
         self._add_variable(name, var, index)
         if values is None:
             self.device.init_with_zeros(var)
+
         else:
             if len(values) != size:
                 raise ValueError(('Size of the provided values does not match '

@@ -3,12 +3,13 @@
 {% block maincode %}
     {# USES_VARIABLES {_spikespace, N, t, dt, neuron_index, spike_time, period, _lastindex } #}
 
-    const double padding_before = fmod(t, period);
-    const double padding_after  = fmod(t+dt, period);
+    const double _the_period = {{period}}[0];
+    const double padding_before = fmod(t, _the_period);
+    const double padding_after  = fmod(t+dt, _the_period);
     const double epsilon        = 1e-3*dt;
 
     // We need some precomputed values that will be used during looping
-    const bool not_end_period  = (fabs(padding_after) > epsilon) && (fabs(padding_after) < (period - epsilon));
+    const bool not_end_period  = (fabs(padding_after) > epsilon) && (fabs(padding_after) < (_the_period - epsilon));
     bool test;
 
     // TODO: We don't deal with more than one spike per neuron yet
