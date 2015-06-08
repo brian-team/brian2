@@ -90,7 +90,7 @@ def test_spikegenerator_period():
         recorded_spikes = sorted([(idx, time) for time in s_mon.t[s_mon.i==idx]])
         assert generator_spikes == recorded_spikes
 
-@attr('standalone-compatible')
+
 @with_setup(teardown=restore_device)
 def test_spikegenerator_period_repeat():
     '''
@@ -196,7 +196,6 @@ def test_spikegenerator_incorrect_period():
     net = Network(SG)
     assert_raises(ValueError, lambda: net.run(0*ms))
 
-@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_spikegenerator_rounding():
     # all spikes should fall into the first time bin
