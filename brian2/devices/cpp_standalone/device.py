@@ -251,7 +251,6 @@ class CPPStandaloneDevice(Device):
                 array_name = orig_array_name + '_%d' % suffix
             self.arrays[var] = array_name
 
-
     def init_with_zeros(self, var):
         self.zero_arrays.append(var)
 
@@ -265,15 +264,26 @@ class CPPStandaloneDevice(Device):
 
     def fill_with_array(self, var, arr):
         arr = np.asarray(arr)
-        if arr.shape == ():
-            arr = np.repeat(arr, var.size)
-        # Using the std::vector instead of a pointer to the underlying
-        # data for dynamic arrays is fast enough here and it saves us some
-        # additional work to set up the pointer
         array_name = self.get_array_name(var, access_data=False)
-        static_array_name = self.static_array(array_name, arr)
-        self.main_queue.append(('set_by_array', (array_name,
-                                                 static_array_name)))
+        if arr.shape == () and var.size == 1:
+            value = CPPNodeRenderer().render_expr(repr(arr.item(0)))
+            # For a single assignment, generate a code line instead of storing the array
+            self.main_queue.append(('set_by_single_value', (array_name,
+                                                            0,
+                                                            value)))
+        else:
+            if arr.shape == ():
+                arr = np.repeat(arr, var.size)
+            # Using the std::vector instead of a pointer to the underlying
+            # data for dynamic arrays is fast enough here and it saves us some
+            # additional work to set up the pointer
+            static_array_name = self.static_array(array_name, arr)
+            self.main_queue.append(('set_by_array', (array_name,
+                                                     static_array_name)))
+
+    def resize(self, var, new_size):
+        array_name = self.get_array_name(var, access_data=False)
+        self.main_queue.append(('resize_array', (array_name, new_size)))
 
     def variableview_set_with_index_array(self, variableview, item,
                                           value, check_units):
@@ -283,10 +293,11 @@ class CPPStandaloneDevice(Device):
 
         if (isinstance(item, int) or (isinstance(item, np.ndarray) and item.shape==())) and value.size == 1:
             array_name = self.get_array_name(variableview.variable, access_data=False)
+            value = CPPNodeRenderer().render_expr(repr(np.asarray(value).item(0)))
             # For a single assignment, generate a code line instead of storing the array
             self.main_queue.append(('set_by_single_value', (array_name,
                                                             item,
-                                                            float(value))))
+                                                            value)))
 
         elif (value.size == 1 and
               item == 'True' and
@@ -480,6 +491,10 @@ class CPPStandaloneDevice(Device):
                 '''.format(arrayname=arrayname, staticarrayname_index=staticarrayname_index,
                            staticarrayname_value=staticarrayname_value, pragma=openmp_pragma('static'))
                 main_lines.extend(code.split('\n'))
+            elif func=='resize_array':
+                array_name, new_size = args
+                main_lines.append("{array_name}.resize({new_size});".format(array_name=array_name,
+                                                                            new_size=new_size))
             elif func=='insert_code':
                 main_lines.append(args)
             elif func=='start_run_func':
@@ -668,18 +683,6 @@ class CPPStandaloneDevice(Device):
         for net in networks:
             net_synapses = [s for s in net.objects if isinstance(s, Synapses)]
             synapses.extend(net_synapses)
-            # We don't currently support pathways with scalar delays
-            for synapse_obj in net_synapses:
-                for pathway in synapse_obj._pathways:
-                    if not isinstance(pathway.variables['delay'],
-                                      DynamicArrayVariable):
-                        error_msg = ('The "%s" pathway  uses a scalar '
-                                     'delay (instead of a delay per synapse). '
-                                     'This is not yet supported. Do not '
-                                     'specify a delay in the Synapses(...) '
-                                     'call but instead set its delay attribute '
-                                     'afterwards.') % (pathway.name)
-                        raise NotImplementedError(error_msg)
         self.networks = networks
         self.net_synapses = synapses
     

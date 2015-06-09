@@ -10,7 +10,7 @@ from brian2.codegen.translation import make_statements
 from brian2.core.variables import variables_by_owner, ArrayVariable
 from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import get_identifiers
-from brian2.devices.device import restore_device
+from brian2.devices.device import restore_device, all_devices, get_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 
 
@@ -534,7 +534,7 @@ def test_transmission():
         assert_allclose(source_mon.t[source_mon.i==1],
                         target_mon.t[target_mon.i==1] - default_dt - delay[1])
 
-#@attr('standalone-compatible')  # scalar delays not yet supported in standalone
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_transmission_scalar_delay():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms)
@@ -548,7 +548,7 @@ def test_transmission_scalar_delay():
     assert_equal(mon[1].v[mon.t<1.5*ms], 0)
     assert_equal(mon[1].v[mon.t>=1.5*ms], 1)
 
-#@attr('standalone-compatible')  # scalar delays not yet supported in standalone
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_transmission_scalar_delay_different_clocks():
 
@@ -561,12 +561,14 @@ def test_transmission_scalar_delay_different_clocks():
     mon = StateMonitor(target, 'v', record=True)
     net = Network(inp, target, S, mon)
 
-    # We should get a warning when using inconsistent dts
-    with catch_logs() as l:
-        net.run(2*ms)
-        assert len(l) == 1, 'expected a warning, got %d' % len(l)
-        assert l[0][1].endswith('synapses_dt_mismatch')
+    if get_device() == all_devices['runtime']:
+        # We should get a warning when using inconsistent dts
+        with catch_logs() as l:
+            net.run(2*ms)
+            assert len(l) == 1, 'expected a warning, got %d' % len(l)
+            assert l[0][1].endswith('synapses_dt_mismatch')
 
+    net.run(0*ms)
     assert_equal(mon[0].v[mon.t<0.5*ms], 0)
     assert_equal(mon[0].v[mon.t>=0.5*ms], 1)
     assert_equal(mon[1].v[mon.t<1.5*ms], 0)

@@ -1473,7 +1473,7 @@ class Variables(collections.Mapping):
 
     def add_dynamic_array(self, name, unit, size, dtype=None, constant=False,
                           constant_size=True, read_only=False, unique=False,
-                          index=None):
+                          scalar=False, index=None):
         '''
         Add a dynamic array.
 
@@ -1494,6 +1494,9 @@ class Variables(collections.Mapping):
         constant_size : bool, optional
             Whether the size of the variable is constant during a run.
             Defaults to ``True``.
+        scalar : bool, optional
+            Whether this is a scalar variable. Defaults to ``False``, if set to
+            ``True``, also implies that `size` equals 1.
         read_only : bool, optional
             Whether this is a read-only variable, i.e. a variable that is set
             internally and cannot be changed by the user. Defaults
@@ -1508,6 +1511,7 @@ class Variables(collections.Mapping):
                                    device=self.device,
                                    size=size, dtype=dtype,
                                    constant=constant, constant_size=constant_size,
+                                   scalar=scalar,
                                    read_only=read_only, unique=unique)
         self._add_variable(name, var, index)
 
