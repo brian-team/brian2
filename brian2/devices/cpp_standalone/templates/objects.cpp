@@ -69,7 +69,11 @@ void _init_arrays()
 
     // Arrays initialized to 0
 	{% for var in zero_arrays | sort(attribute='name') %}
+	{% if var in dynamic_array_specs %}
+	{% set varname = '_dynamic'+array_specs[var] %}
+	{% else %}
 	{% set varname = array_specs[var] %}
+	{% endif %}
 	{% if varname in dynamic_array_specs.values() %}
 	{{varname}}.resize({{var.size}});
 	{% else %}
