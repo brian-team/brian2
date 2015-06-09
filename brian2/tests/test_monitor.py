@@ -25,6 +25,8 @@ def test_spike_monitor():
 
     assert_allclose(mon.t[mon.i == 0], [9.9]*ms)
     assert_allclose(mon.t[mon.i == 1], np.arange(10)*ms + 0.9*ms)
+    assert_allclose(mon[0], [9.9]*ms)
+    assert_allclose(mon[1], np.arange(10)*ms + 0.9*ms)
     assert_allclose(mon.t_[mon.i == 0], np.array([9.9*float(ms)]))
     assert_allclose(mon.t_[mon.i == 1], (np.arange(10) + 0.9)*float(ms))
     assert_array_equal(mon.count, np.array([1, 10]))
@@ -35,6 +37,10 @@ def test_spike_monitor():
     assert_array_equal(i, i_)
     assert_array_equal(t, mon.t)
     assert_array_equal(t_, mon.t_)
+
+    assert_raises(TypeError, lambda: mon['string'])
+    assert_raises(IndexError, lambda: mon[-1])
+    assert_raises(IndexError, lambda: mon[2])
 
 
 def test_synapses_state_monitor():

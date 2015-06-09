@@ -1,3 +1,7 @@
+import collections
+import itertools
+import numbers
+
 import numpy as np
 
 from brian2.core.variables import Variables
@@ -8,10 +12,15 @@ from brian2.groups.group import CodeRunner, Group
 __all__ = ['SpikeMonitor']
 
 
-class SpikeMonitor(Group, CodeRunner):
+class SpikeMonitor(Group, CodeRunner, collections.Mapping, collections.Hashable):
     '''
-    Record spikes from a `NeuronGroup` or other spike source
-    
+    Record spikes from a `NeuronGroup` or other spike source.
+
+    The recorded spikes can be accessed in various ways (see Examples below):
+    the attributes `~SpikeMonitor.i` and `~SpikeMonitor.t` store all the indices
+    and spike times, respectively. The `SpikeMonitor` object can also be
+    accessed like a dictionary mapping neuron indices to arrays of spike times.
+
     Parameters
     ----------
     source : (`NeuronGroup`, `SpikeSource`)
@@ -30,9 +39,29 @@ class SpikeMonitor(Group, CodeRunner):
         ``source.name+'_spikemonitor_0'``, etc.
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
+
+    Examples
+    --------
+    >>> from brian2 import *
+    >>> spikes = SpikeGeneratorGroup(3, [0, 1, 2], [0, 1, 2]*ms)
+    >>> spike_mon = SpikeMonitor(spikes)
+    >>> run(2*ms)
+    >>> spike_mon.i
+    <spikemonitor.i: array([0, 1], dtype=int32)>
+    >>> spike_mon.t
+    <spikemonitor.t: array([ 0.,  1.]) * msecond>
+    >>> spike_mon.t_
+    <spikemonitor.t_: array([ 0.   ,  0.001])>
+    >>> spike_mon.it
+    (<spikemonitor.i: array([0, 1], dtype=int32)>, <spikemonitor.t: array([ 0.,  1.]) * msecond>)
+    >>> spike_mon[0]
+    array([ 0.]) * second
+    >>> spike_mon.items()
+    [(0, array([ 0.]) * second), (1, array([ 1.]) * msecond), (2, array([], dtype=float64) * second)]
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
+
     def __init__(self, source, record=True, when='end', order=0,
                  name='spikemonitor*', codeobj_class=None):
         self.record = bool(record)
@@ -78,6 +107,21 @@ class SpikeMonitor(Group, CodeRunner):
 
     def __len__(self):
         return self._N
+
+    def __getitem__(self, item):
+        if not isinstance(item, numbers.Integral):
+            raise TypeError(('Index has to be an integer, is type %s '
+                             'instead.') % type(item))
+        if item < 0 or item >= len(self.source):
+            raise IndexError(('Index has to be between 0 and %d, was '
+                              '%d.') % (len(self.source), item))
+        return [t for i, t in itertools.izip(self.i, self.t_) if i == item] * second
+
+    def __iter__(self):
+        return iter(xrange(len(self.source)))
+
+    def __hash__(self):
+        return id(self)
 
     def reinit(self):
         '''
