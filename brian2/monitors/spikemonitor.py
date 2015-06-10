@@ -46,17 +46,15 @@ class SpikeMonitor(Group, CodeRunner, collections.Mapping, collections.Hashable)
     >>> spikes = SpikeGeneratorGroup(3, [0, 1, 2], [0, 1, 2]*ms)
     >>> spike_mon = SpikeMonitor(spikes)
     >>> run(2*ms)
-    >>> spike_mon.i
-    <spikemonitor.i: array([0, 1], dtype=int32)>
-    >>> spike_mon.t
-    <spikemonitor.t: array([ 0.,  1.]) * msecond>
-    >>> spike_mon.t_
-    <spikemonitor.t_: array([ 0.   ,  0.001])>
-    >>> spike_mon.it
-    (<spikemonitor.i: array([0, 1], dtype=int32)>, <spikemonitor.t: array([ 0.,  1.]) * msecond>)
-    >>> spike_mon[0]
-    array([ 0.]) * second
-    >>> spike_mon.items()
+    >>> print(spike_mon.i[:])
+    [0 1]
+    >>> print(spike_mon.t[:])
+    [ 0.  1.] ms
+    >>> print(spike_mon.t_[:])
+    [ 0.     0.001]
+    >>> print(spike_mon[0])
+    [ 0.] s
+    >>> print(spike_mon.items())
     [(0, array([ 0.]) * second), (1, array([ 1.]) * msecond), (2, array([], dtype=float64) * second)]
     '''
     invalidates_magic_network = False
