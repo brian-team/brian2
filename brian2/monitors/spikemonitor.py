@@ -1,5 +1,3 @@
-import collections
-import itertools
 import numbers
 
 import numpy as np
@@ -12,16 +10,15 @@ from brian2.groups.group import CodeRunner, Group
 __all__ = ['SpikeMonitor']
 
 
-class SpikeMonitor(Group, CodeRunner, collections.Mapping, collections.Hashable):
+class SpikeMonitor(Group, CodeRunner):
     '''
     Record spikes from a `NeuronGroup` or other spike source.
 
     The recorded spikes can be accessed in various ways (see Examples below):
     the attributes `~SpikeMonitor.i` and `~SpikeMonitor.t` store all the indices
-    and spike times, respectively. The `SpikeMonitor` object can also be
-    accessed like a dictionary mapping neuron indices to arrays of spike times.
-    Note that if the `SpikeMonitor` stores a large number of spikes, getting the
-    spike times using the dictionary indexing can be slow.
+    and spike times, respectively. Alternatively, you can get a dictionary
+    mapping neuron indices to spike trains, by calling the `spike_trains`
+    method.
 
     Parameters
     ----------
@@ -47,17 +44,13 @@ class SpikeMonitor(Group, CodeRunner, collections.Mapping, collections.Hashable)
     >>> from brian2 import *
     >>> spikes = SpikeGeneratorGroup(3, [0, 1, 2], [0, 1, 2]*ms)
     >>> spike_mon = SpikeMonitor(spikes)
-    >>> run(2*ms)
+    >>> run(3*ms)
     >>> print(spike_mon.i[:])
-    [0 1]
+    [0 1 2]
     >>> print(spike_mon.t[:])
-    [ 0.  1.] ms
+    [ 0.  1.  2.] ms
     >>> print(spike_mon.t_[:])
-    [ 0.     0.001]
-    >>> print(spike_mon[0])
-    [ 0.] s
-    >>> print(spike_mon.items())
-    [(0, array([ 0.]) * second), (1, array([ 1.]) * msecond), (2, array([], dtype=float64) * second)]
+    [ 0.     0.001  0.002]
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
@@ -108,22 +101,6 @@ class SpikeMonitor(Group, CodeRunner, collections.Mapping, collections.Hashable)
     def __len__(self):
         return self._N
 
-    def __getitem__(self, item):
-        if not isinstance(item, numbers.Integral):
-            raise TypeError(('Index has to be an integer, is type %s '
-                             'instead.') % type(item))
-        if item < 0 or item >= len(self.source):
-            raise IndexError(('Index has to be between 0 and %d, was '
-                              '%d.') % (len(self.source), item))
-        return Quantity(self.t_[:][np.where(self.i[:] == item)],
-                        dim=second.dim, copy=False)
-
-    def __iter__(self):
-        return iter(xrange(len(self.source)))
-
-    def __hash__(self):
-        return id(self)
-
     def reinit(self):
         '''
         Clears all recorded spikes
@@ -148,6 +125,48 @@ class SpikeMonitor(Group, CodeRunner, collections.Mapping, collections.Hashable)
         Returns the pair (`i`, `t_`).
         '''
         return self.i, self.t_
+
+    def spike_trains(self):
+        '''
+        Return a dictionary mapping spike indices to arrays of spike times.
+
+        Returns
+        -------
+        spike_trains : dict
+            Dictionary that stores an array with the spike times for each
+            neuron index.
+
+        Examples
+        --------
+        >>> from brian2 import *
+        >>> spikes = SpikeGeneratorGroup(3, [0, 1, 2], [0, 1, 2]*ms)
+        >>> spike_mon = SpikeMonitor(spikes)
+        >>> run(3*ms)
+        >>> spike_trains = spike_mon.spike_trains()
+        >>> spike_trains[1]
+        array([ 1.]) * msecond
+        '''
+        indices = self.i[:]
+        sort_indices = np.argsort(indices)
+        used_indices, first_pos = np.unique(self.i[:][sort_indices],
+                                            return_index=True)
+        sorted_times = self.t_[:][sort_indices]
+
+        spike_times = {}
+        current_pos = 0  # position in the all_indices array
+        for idx in xrange(len(self.source)):
+            if current_pos < len(used_indices) and used_indices[current_pos] == idx:
+                if current_pos < len(used_indices)-1:
+                    spike_times[idx] = Quantity(sorted_times[first_pos[current_pos]:first_pos[current_pos+1]],
+                                                dim=second.dim, copy=False)
+                else:
+                    spike_times[idx] = Quantity(sorted_times[first_pos[current_pos]:],
+                                                dim=second.dim, copy=False)
+                current_pos += 1
+            else:
+                spike_times[idx] = Quantity([], dim=second.dim)
+
+        return spike_times
 
     @property
     def num_spikes(self):
