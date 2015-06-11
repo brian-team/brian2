@@ -20,6 +20,8 @@ class SpikeMonitor(Group, CodeRunner, collections.Mapping, collections.Hashable)
     the attributes `~SpikeMonitor.i` and `~SpikeMonitor.t` store all the indices
     and spike times, respectively. The `SpikeMonitor` object can also be
     accessed like a dictionary mapping neuron indices to arrays of spike times.
+    Note that if the `SpikeMonitor` stores a large number of spikes, getting the
+    spike times using the dictionary indexing can be slow.
 
     Parameters
     ----------
@@ -113,7 +115,8 @@ class SpikeMonitor(Group, CodeRunner, collections.Mapping, collections.Hashable)
         if item < 0 or item >= len(self.source):
             raise IndexError(('Index has to be between 0 and %d, was '
                               '%d.') % (len(self.source), item))
-        return [t for i, t in itertools.izip(self.i, self.t_) if i == item] * second
+        return Quantity(self.t_[:][np.where(self.i[:] == item)],
+                        dim=second.dim, copy=False)
 
     def __iter__(self):
         return iter(xrange(len(self.source)))
