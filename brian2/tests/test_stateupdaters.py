@@ -45,6 +45,14 @@ def test_explicit_stateupdater_parsing():
     updater = ExplicitStateUpdater('''x_new = x + dt * f(x, t) * g(x, t) * dW''')
     assert_raises(ValueError, lambda: updater(Equations('')))
 
+@attr('codegen-independent')
+def test_non_autonomous_equations():
+    # Check that non-autonmous equations are handled correctly in multi-step
+    # updates
+    updater = ExplicitStateUpdater('x_new = f(x, t + 0.5*dt)')
+    update_step = updater(Equations('dv/dt = t : 1'))  # Not a valid equation but...
+    # very crude test
+    assert '0.5*dt' in update_step
 
 @attr('codegen-independent')
 def test_str_repr():
@@ -613,6 +621,7 @@ def test_locally_constant_check():
 if __name__ == '__main__':
     test_determination()
     test_explicit_stateupdater_parsing()
+    test_non_autonomous_equations()
     test_str_repr()
     test_multiple_noise_variables_basic()
     test_multiple_noise_variables_extended()
