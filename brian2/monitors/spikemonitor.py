@@ -1,3 +1,5 @@
+import numbers
+
 import numpy as np
 
 from brian2.core.variables import Variables
@@ -10,8 +12,14 @@ __all__ = ['SpikeMonitor']
 
 class SpikeMonitor(Group, CodeRunner):
     '''
-    Record spikes from a `NeuronGroup` or other spike source
-    
+    Record spikes from a `NeuronGroup` or other spike source.
+
+    The recorded spikes can be accessed in various ways (see Examples below):
+    the attributes `~SpikeMonitor.i` and `~SpikeMonitor.t` store all the indices
+    and spike times, respectively. Alternatively, you can get a dictionary
+    mapping neuron indices to spike trains, by calling the `spike_trains`
+    method.
+
     Parameters
     ----------
     source : (`NeuronGroup`, `SpikeSource`)
@@ -30,9 +38,23 @@ class SpikeMonitor(Group, CodeRunner):
         ``source.name+'_spikemonitor_0'``, etc.
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
+
+    Examples
+    --------
+    >>> from brian2 import *
+    >>> spikes = SpikeGeneratorGroup(3, [0, 1, 2], [0, 1, 2]*ms)
+    >>> spike_mon = SpikeMonitor(spikes)
+    >>> run(3*ms)
+    >>> print(spike_mon.i[:])
+    [0 1 2]
+    >>> print(spike_mon.t[:])
+    [ 0.  1.  2.] ms
+    >>> print(spike_mon.t_[:])
+    [ 0.     0.001  0.002]
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
+
     def __init__(self, source, record=True, when='end', order=0,
                  name='spikemonitor*', codeobj_class=None):
         self.record = bool(record)
@@ -103,6 +125,48 @@ class SpikeMonitor(Group, CodeRunner):
         Returns the pair (`i`, `t_`).
         '''
         return self.i, self.t_
+
+    def spike_trains(self):
+        '''
+        Return a dictionary mapping spike indices to arrays of spike times.
+
+        Returns
+        -------
+        spike_trains : dict
+            Dictionary that stores an array with the spike times for each
+            neuron index.
+
+        Examples
+        --------
+        >>> from brian2 import *
+        >>> spikes = SpikeGeneratorGroup(3, [0, 1, 2], [0, 1, 2]*ms)
+        >>> spike_mon = SpikeMonitor(spikes)
+        >>> run(3*ms)
+        >>> spike_trains = spike_mon.spike_trains()
+        >>> spike_trains[1]
+        array([ 1.]) * msecond
+        '''
+        indices = self.i[:]
+        sort_indices = np.argsort(indices)
+        used_indices, first_pos = np.unique(self.i[:][sort_indices],
+                                            return_index=True)
+        sorted_times = self.t_[:][sort_indices]
+
+        spike_times = {}
+        current_pos = 0  # position in the all_indices array
+        for idx in xrange(len(self.source)):
+            if current_pos < len(used_indices) and used_indices[current_pos] == idx:
+                if current_pos < len(used_indices)-1:
+                    spike_times[idx] = Quantity(sorted_times[first_pos[current_pos]:first_pos[current_pos+1]],
+                                                dim=second.dim, copy=False)
+                else:
+                    spike_times[idx] = Quantity(sorted_times[first_pos[current_pos]:],
+                                                dim=second.dim, copy=False)
+                current_pos += 1
+            else:
+                spike_times[idx] = Quantity([], dim=second.dim)
+
+        return spike_times
 
     @property
     def num_spikes(self):

@@ -1465,15 +1465,16 @@ class Variables(collections.Mapping):
         self._add_variable(name, var, index)
         if values is None:
             self.device.init_with_zeros(var)
+
         else:
             if len(values) != size:
                 raise ValueError(('Size of the provided values does not match '
                                   'size: %d != %d') % (len(values), size))
             self.device.init_with_array(var, values)
 
-    def add_dynamic_array(self, name, unit, size, dtype=None, constant=False,
-                          constant_size=True, read_only=False, unique=False,
-                          scalar=False, index=None):
+    def add_dynamic_array(self, name, unit, size, values=None, dtype=None,
+                          constant=False, constant_size=True, read_only=False,
+                          unique=False, scalar=False, index=None):
         '''
         Add a dynamic array.
 
@@ -1484,7 +1485,10 @@ class Variables(collections.Mapping):
         unit : `Unit`
             The unit of the variable
         size : int or tuple of int
-            The size of the array.
+            The (initital) size of the array.
+        values : `ndarray`, optional
+            The values to initalize the array with. If not specified, the array
+            is initialized to zero.
         dtype : `dtype`, optional
             The dtype used for storing the variable. If none is given, defaults
             to `core.default_float_dtype`.
@@ -1514,6 +1518,14 @@ class Variables(collections.Mapping):
                                    scalar=scalar,
                                    read_only=read_only, unique=unique)
         self._add_variable(name, var, index)
+        if values is None and np.prod(size) > 0:
+            self.device.init_with_zeros(var)
+        elif values is not None:
+            if len(values) != size:
+                raise ValueError(('Size of the provided values does not match '
+                                  'size: %d != %d') % (len(values), size))
+            if np.prod(size) > 0:
+                self.device.init_with_array(var, values)
 
     def add_arange(self, name, size, start=0, dtype=np.int32, constant=True,
                    read_only=True, unique=True, index=None):

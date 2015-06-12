@@ -12,22 +12,29 @@ from brian2.utils.logger import catch_logs
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_spike_monitor():
-    G = NeuronGroup(2, '''dv/dt = rate : 1
+    G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate: Hz''', threshold='v>1', reset='v=0')
     # We don't use 100 and 1000Hz, because then the membrane potential would
     # be exactly at 1 after 10 resp. 100 timesteps. Due to floating point
     # issues this will not be exact,
-    G.rate = [101, 1001] * Hz
+    G.rate = [101, 0, 1001] * Hz
 
     mon = SpikeMonitor(G)
     net = Network(G, mon)
     net.run(10*ms)
 
+    spike_trains = mon.spike_trains()
+
     assert_allclose(mon.t[mon.i == 0], [9.9]*ms)
-    assert_allclose(mon.t[mon.i == 1], np.arange(10)*ms + 0.9*ms)
+    assert len(mon.t[mon.i == 1]) == 0
+    assert_allclose(mon.t[mon.i == 2], np.arange(10)*ms + 0.9*ms)
     assert_allclose(mon.t_[mon.i == 0], np.array([9.9*float(ms)]))
-    assert_allclose(mon.t_[mon.i == 1], (np.arange(10) + 0.9)*float(ms))
-    assert_array_equal(mon.count, np.array([1, 10]))
+    assert len(mon.t_[mon.i == 1]) == 0
+    assert_allclose(mon.t_[mon.i == 2], (np.arange(10) + 0.9)*float(ms))
+    assert_allclose(spike_trains[0], [9.9]*ms)
+    assert len(spike_trains[1]) == 0
+    assert_allclose(spike_trains[2], np.arange(10)*ms + 0.9*ms)
+    assert_array_equal(mon.count, np.array([1, 0, 10]))
 
     i, t = mon.it
     i_, t_ = mon.it_
@@ -35,6 +42,10 @@ def test_spike_monitor():
     assert_array_equal(i, i_)
     assert_array_equal(t, mon.t)
     assert_array_equal(t_, mon.t_)
+
+    assert_raises(KeyError, lambda: spike_trains[3])
+    assert_raises(KeyError, lambda: spike_trains[-1])
+    assert_raises(KeyError, lambda: spike_trains['string'])
 
 
 def test_synapses_state_monitor():
