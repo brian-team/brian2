@@ -1006,6 +1006,16 @@ def test_repr():
             assert len(func(eq))
 
 @attr('codegen-independent')
+def test_ipython_html():
+    G = NeuronGroup(10, '''dv/dt = -(v + Inp) / tau : volt
+                           Inp = sin(2*pi*freq*t) : volt
+                           freq : Hz''')
+
+    # Test that HTML representation in IPython does not raise errors
+    assert len(G._repr_html_())
+
+
+@attr('codegen-independent')
 def test_indices():
     G = NeuronGroup(10, 'v : 1')
     G.v = 'i'
@@ -1159,6 +1169,7 @@ if __name__ == '__main__':
     test_scalar_subexpression()
     test_indices()
     test_repr()
+    test_ipython_html()
     test_get_dtype()
     if prefs.codegen.target == 'numpy':
         test_aliasing_in_statements()

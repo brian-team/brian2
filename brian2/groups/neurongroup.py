@@ -638,7 +638,6 @@ class NeuronGroup(Group, SpikeSource):
                                                'to non-shared variable %s.')
                                               % (eq.varname, identifier))
 
-
     def before_run(self, run_namespace=None, level=0):
         # Check units
         self.equations.check_units(self, run_namespace=run_namespace,
@@ -648,8 +647,7 @@ class NeuronGroup(Group, SpikeSource):
         text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self._N)]
         text.append(r'<b>Model:</b><nr>')
         text.append(sympy.latex(self.equations))
-        text.append(r'<b>Integration method:</b><br>')
-        text.append(sympy.latex(self.state_updater.method)+'<br>')
+
         if self.threshold is not None:
             text.append(r'<b>Threshold condition:</b><br>')
             text.append('<code>%s</code><br>' % str(self.threshold))
@@ -658,5 +656,5 @@ class NeuronGroup(Group, SpikeSource):
             text.append(r'<b>Reset statement:</b><br>')            
             text.append(r'<code>%s</code><br>' % str(self.reset))
             text.append('')
-                    
+
         return '\n'.join(text)

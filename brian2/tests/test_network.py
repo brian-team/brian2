@@ -13,7 +13,7 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     NeuronGroup, StateMonitor, SpikeMonitor,
                     PopulationRateMonitor, MagicNetwork, magic_network,
                     PoissonGroup, Hz, collect, store, restore, BrianLogger,
-                    start_scope, prefs)
+                    start_scope, prefs, profiling_summary)
 from brian2.devices.device import restore_device, Device, all_devices, set_device, get_device
 from brian2.utils.logger import catch_logs
 
@@ -865,6 +865,17 @@ def test_profile():
 
 
 @attr('codegen-independent')
+def test_profile_ipython_html():
+    G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1', threshold='v>1',
+                    reset='v=0', name='profile_test')
+    G.v = 1.1
+    net = Network(G)
+    net.run(1*ms, profile=True)
+    summary = profiling_summary(net)
+    assert len(summary._repr_html_())
+
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_magic_scope():
     '''
@@ -921,6 +932,7 @@ if __name__=='__main__':
             test_multiple_runs_defaultclock,
             test_multiple_runs_defaultclock_incorrect,
             test_profile,
+            test_profile_ipython_html,
             test_magic_scope,
             ]:
         t()
