@@ -299,9 +299,52 @@ def test_network_operations():
     @network_operation(when='end', order=1)
     def f3():
         seq.append('c')
-    run(1*ms)
-    assert_equal(''.join(seq), 'bac'*10)
 
+    # In complex frameworks, network operations might be object methods that
+    # access some common data
+    class Container(object):
+        def __init__(self):
+            self.g1_data = 'B'
+            self.g2_data = 'C'
+
+        def g1(self):
+            seq.append(self.g1_data)
+
+        def g2(self):
+            seq.append(self.g2_data)
+
+    c = Container()
+    c_op1 = NetworkOperation(c.g1)
+    c_op2 = NetworkOperation(c.g2, when='end', order=1)
+    net = Network(op1, f2, f3, c_op1, c_op2)
+    net.run(1*ms)
+
+    assert_equal(''.join(seq), 'bBacC'*10)
+
+@attr('codegen-independent')
+def test_incorrect_network_operations():
+    # Network operations with more than one argument are not allowed
+    def func(x, y):
+        pass
+
+    class Container(object):
+        def func(self, x, y):
+            pass
+    c = Container()
+
+    assert_raises(TypeError, lambda: NetworkOperation(func))
+    assert_raises(TypeError, lambda: NetworkOperation(c.func))
+
+    # Incorrect use of @network_operation -- it does not work on an instance
+    # method
+    try:
+        class Container(object):
+            @network_operation
+            def func(self):
+                pass
+        raise AssertionError('expected a TypeError')
+    except TypeError:
+        pass  # this is what we expected
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
@@ -910,6 +953,7 @@ if __name__=='__main__':
             test_magic_network,
             test_network_stop,
             test_network_operations,
+            test_incorrect_network_operations,
             test_network_active_flag,
             test_network_t,
             test_incorrect_dt_defaultclock,
