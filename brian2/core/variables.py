@@ -1808,7 +1808,8 @@ class Variables(collections.Mapping):
             not confuse the dynamic array of recorded times with the current
             time in the recorded group.
         '''
-        for name in ['t', 'dt']:
+        for name, is_constant in [('t', False),
+                                  ('dt', True)]:
             if prefix+name in self._variables:
                 var = self._variables[prefix+name]
                 if not isinstance(var, AttributeVariable):
@@ -1819,4 +1820,6 @@ class Variables(collections.Mapping):
                 var.obj = clock # replace the clock object
             else:
                 self.add_attribute_variable(prefix+name, unit=second, obj=clock,
-                                            attribute=name+'_', dtype=np.float64)
+                                            attribute=name+'_',
+                                            dtype=np.float64,
+                                            constant=is_constant)
