@@ -86,24 +86,19 @@ class DynamicArray(object):
         self.factor = factor
         self.use_numpy_resize = use_numpy_resize
         self.refcheck = refcheck
-    
+
     def resize(self, newshape):
         '''
         Resizes the data to the new shape, which can be a different size to the
         current data, but should have the same rank, i.e. same number of
         dimensions.
         '''
-        if isscalar(newshape):
-            newshape = (newshape,)
         datashapearr = array(self._data.shape)
-        shapearr = array(self.shape)
         newshapearr = array(newshape)
-        if (shapearr==newshapearr).all():
-            return
         resizedimensions = newshapearr>datashapearr
         if resizedimensions.any():
             # resize of the data is needed
-            minnewshapearr = datashapearr.copy()
+            minnewshapearr = datashapearr#.copy()
             dimstoinc = minnewshapearr[resizedimensions]
             incdims = array(dimstoinc*self.factor, dtype=int)
             newdims = maximum(incdims, dimstoinc+1)
@@ -123,7 +118,25 @@ class DynamicArray(object):
                 self._data = newdata
         self.data = self._data[getslices(newshape)]
         self.shape = self.data.shape
-        
+
+    def resize_along_first(self, newshape):
+        new_dimension = newshape[0]
+        if new_dimension > self._data.shape[0]:
+            new_size = maximum(self._data.shape[0]*self.factor, new_dimension + 1)
+            final_new_shape = array(self._data.shape)
+            final_new_shape[0] = new_size
+            if self.use_numpy_resize and self._data.flags['C_CONTIGUOUS']:
+                self.data = None
+                self._data.resize(tuple(final_new_shape),
+                                  refcheck=self.refcheck)
+            else:
+                newdata = zeros(tuple(final_new_shape), dtype=self.dtype)
+                slices = getslices(self._data.shape)
+                newdata[slices] = self._data
+                self._data = newdata
+        self. data = self._data[slice(0, new_dimension)]
+        self.shape = newshape
+
     def shrink(self, newshape):
         '''
         Reduces the data to the given shape, which should be smaller than the
@@ -172,9 +185,9 @@ class DynamicArray1D(DynamicArray):
     to be more efficient.
     '''
     def resize(self, newshape):
-        shape, = self.shape # we work with int shapes only
         datashape, = self._data.shape
-        if newshape>datashape:
+        if newshape > datashape:
+            shape, = self.shape  # we work with int shapes only
             newdatashape = max(newshape, int(shape*self.factor)+1)
             if self.use_numpy_resize and self._data.flags['C_CONTIGUOUS']:
                 self.data = None
@@ -184,7 +197,7 @@ class DynamicArray1D(DynamicArray):
                 newdata[:shape] = self.data
                 self._data = newdata
         self.data = self._data[:newshape]
-        self.shape = (newshape,)      
+        self.shape = (newshape,)
     
             
 if __name__=='__main__':
