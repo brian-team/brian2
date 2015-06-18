@@ -332,6 +332,7 @@ class NeuronGroup(Group, SpikeSource):
                  threshold=None,
                  reset=None,
                  refractory=False,
+                 events=None,
                  namespace=None,
                  dtype=None,
                  dt=None,
@@ -395,13 +396,16 @@ class NeuronGroup(Group, SpikeSource):
         #: The state update method selected by the user
         self.method_choice = method
 
+        if events is None:
+            events = {}
+
         # Setup variables
         # Since we have to create _spikespace and possibly other "eventspace"
         # variables, we pass the supported events
         create_events = []
         if threshold is not None:
             create_events.append('spike')
-        #create_events.extend(events.keys())
+        create_events.extend(events.keys())
         self._create_variables(dtype, events=create_events)
 
         #: Events supported by this group
@@ -418,6 +422,16 @@ class NeuronGroup(Group, SpikeSource):
             self.thresholder.append(Thresholder(self))
             if reset is not None:
                 self.resetter.append(Resetter(self))
+
+        for event, event_tuple in events.iteritems():
+            if not isinstance(event_tuple, tuple) or len(event_tuple) != 2:
+                raise TypeError(('Values in the events dictionary have to be '
+                                 'tuples of length 2: (condition, statements)'))
+            self.events[event] = event_tuple
+            condition, statements = event_tuple
+            self.thresholder.append(Thresholder(self, event=event))
+            if statements is not None:
+                self.resetter.append(Resetter(self, event=event))
 
         # We try to run a before_run already now. This might fail because of an
         # incomplete namespace but if the namespace is already complete we

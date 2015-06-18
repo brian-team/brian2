@@ -11,6 +11,6 @@ _vectorisation_idx = 1
 {% set _eventspace = get_array_name(eventspace_variable) %}
 
 # vector code
-_idx = {{_eventspace}}[:{{_spikespace}}[-1]]
+_idx = {{_eventspace}}[:{{_eventspace}}[-1]]
 _vectorisation_idx = _idx
 {{vector_code|autoindent}}
