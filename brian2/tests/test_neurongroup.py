@@ -629,6 +629,7 @@ def test_unit_errors_threshold_reset():
     # Unit error in reset
     assert_raises(DimensionMismatchError,
                   lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                                      threshold='True',
                                       reset='v = -65*mV'))
 
     # More complicated unit reset with an intermediate variable
@@ -676,8 +677,8 @@ def test_syntax_errors():
     # Syntax error in reset
     assert_raises(Exception,
                   lambda: NeuronGroup(1, 'dv/dt = 5*Hz : 1',
+                                      threshold='True',
                                       reset='0'))
-
 
 def test_state_variables():
     '''
