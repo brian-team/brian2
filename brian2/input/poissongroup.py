@@ -78,9 +78,9 @@ class PoissonGroup(Group, SpikeSource):
 
         # To avoid a warning about the local variable rates, we set the real
         # threshold condition only after creating the object
-        self.threshold = 'False'
+        self.events = {'spike': ('False', None)}
         self.thresholder = Thresholder(self)
-        self.threshold = 'rand() < rates * dt'
+        self.events = {'spike': ('rand() < rates * dt', None)}
         self.contained_objects.append(self.thresholder)
 
         self._enable_group_attributes()
