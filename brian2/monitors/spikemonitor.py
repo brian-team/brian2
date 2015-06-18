@@ -7,64 +7,29 @@ from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.groups.group import CodeRunner, Group
 
-__all__ = ['SpikeMonitor']
+__all__ = ['EventMonitor', 'SpikeMonitor']
 
 
-class SpikeMonitor(Group, CodeRunner):
-    '''
-    Record spikes from a `NeuronGroup` or other spike source.
-
-    The recorded spikes can be accessed in various ways (see Examples below):
-    the attributes `~SpikeMonitor.i` and `~SpikeMonitor.t` store all the indices
-    and spike times, respectively. Alternatively, you can get a dictionary
-    mapping neuron indices to spike trains, by calling the `spike_trains`
-    method.
-
-    Parameters
-    ----------
-    source : (`NeuronGroup`, `SpikeSource`)
-        The source of spikes to record.
-    record : bool
-        Whether or not to record each spike in `i` and `t` (the `count` will
-        always be recorded).
-    when : str, optional
-        When to record the spikes, by default records spikes in the slot
-        ``'end'``.
-    order : int, optional
-        The priority of of this group for operations occurring at the same time
-        step and in the same scheduling slot. Defaults to 0.
-    name : str, optional
-        A unique name for the object, otherwise will use
-        ``source.name+'_spikemonitor_0'``, etc.
-    codeobj_class : class, optional
-        The `CodeObject` class to run code with.
-
-    Examples
-    --------
-    >>> from brian2 import *
-    >>> spikes = SpikeGeneratorGroup(3, [0, 1, 2], [0, 1, 2]*ms)
-    >>> spike_mon = SpikeMonitor(spikes)
-    >>> run(3*ms)
-    >>> print(spike_mon.i[:])
-    [0 1 2]
-    >>> print(spike_mon.t[:])
-    [ 0.  1.  2.] ms
-    >>> print(spike_mon.t_[:])
-    [ 0.     0.001  0.002]
-    '''
+class EventMonitor(Group, CodeRunner):
     invalidates_magic_network = False
     add_to_magic_network = True
 
-    def __init__(self, source, record=True, when='end', order=0,
-                 name='spikemonitor*', codeobj_class=None):
-        self.record = bool(record)
+    def __init__(self, source, event, when='end', order=0,
+                 name='eventmonitor*', codeobj_class=None):
         #: The source we are recording from
         self.source =source
 
         self.codeobj_class = codeobj_class
+        # Since this now works for general events not only spikes, we have to
+        # pass the information about which variable to use to the template,
+        # it can not longer simply refer to "_spikespace"
+        eventspace_name = '_{}space'.format(event)
+        template_kwds = {'eventspace_variable': source.variables[eventspace_name]}
+        needed_variables= [eventspace_name]
         CodeRunner.__init__(self, group=self, code='', template='spikemonitor',
                             name=name, clock=source.clock, when=when,
-                            order=order)
+                            order=order, needed_variables=needed_variables,
+                            template_kwds=template_kwds)
 
         self.add_dependency(source)
 
@@ -73,7 +38,7 @@ class SpikeMonitor(Group, CodeRunner):
         stop = getattr(source, 'stop', len(source))
 
         self.variables = Variables(self)
-        self.variables.add_reference('_spikespace', source)
+        self.variables.add_reference(eventspace_name, source)
         self.variables.add_dynamic_array('i', size=0, unit=Unit(1),
                                          dtype=np.int32, constant_size=False)
         self.variables.add_dynamic_array('t', size=0, unit=second,
@@ -179,3 +144,51 @@ class SpikeMonitor(Group, CodeRunner):
         description = '<{classname}, recording {source}>'
         return description.format(classname=self.__class__.__name__,
                                   source=self.group.name)
+
+class SpikeMonitor(EventMonitor):
+    '''
+    Record spikes from a `NeuronGroup` or other spike source.
+
+    The recorded spikes can be accessed in various ways (see Examples below):
+    the attributes `~SpikeMonitor.i` and `~SpikeMonitor.t` store all the indices
+    and spike times, respectively. Alternatively, you can get a dictionary
+    mapping neuron indices to spike trains, by calling the `spike_trains`
+    method.
+
+    Parameters
+    ----------
+    source : (`NeuronGroup`, `SpikeSource`)
+        The source of spikes to record.
+    record : bool
+        Whether or not to record each spike in `i` and `t` (the `count` will
+        always be recorded).
+    when : str, optional
+        When to record the spikes, by default records spikes in the slot
+        ``'end'``.
+    order : int, optional
+        The priority of of this group for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
+    name : str, optional
+        A unique name for the object, otherwise will use
+        ``source.name+'_spikemonitor_0'``, etc.
+    codeobj_class : class, optional
+        The `CodeObject` class to run code with.
+
+    Examples
+    --------
+    >>> from brian2 import *
+    >>> spikes = SpikeGeneratorGroup(3, [0, 1, 2], [0, 1, 2]*ms)
+    >>> spike_mon = SpikeMonitor(spikes)
+    >>> run(3*ms)
+    >>> print(spike_mon.i[:])
+    [0 1 2]
+    >>> print(spike_mon.t[:])
+    [ 0.  1.  2.] ms
+    >>> print(spike_mon.t_[:])
+    [ 0.     0.001  0.002]
+    '''
+    def __init__(self, source, when='end', order=0,
+             name='spikemonitor*', codeobj_class=None):
+        super(SpikeMonitor, self).__init__(source, event='spike', when=when,
+                                           order=order, name=name,
+                                           codeobj_class=codeobj_class)
