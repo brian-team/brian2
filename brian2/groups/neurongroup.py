@@ -146,20 +146,26 @@ class StateUpdater(CodeRunner):
         self.user_code = user_code
 
 
-
 class Thresholder(CodeRunner):
     '''
     The `CodeRunner` that applies the threshold condition to the state
     variables of a `NeuronGroup` at every timestep and sets its ``spikes``
     and ``refractory_until`` attributes.
     '''
-    def __init__(self, group):
-        if group._refractory is False:
+    def __init__(self, group, event='spike'):
+        self.event = event
+        if group._refractory is False or event != 'spike':
             template_kwds = {'_uses_refractory': False}
             needed_variables = []
         else:
             template_kwds = {'_uses_refractory': True}
             needed_variables=['t', 'not_refractory', 'lastspike']
+        # Since this now works for general events not only spikes, we have to
+        # pass the information about which variable to use to the template,
+        # it can not longer simply refer to "_spikespace"
+        eventspace_name = '_{}space'.format(event)
+        template_kwds['eventspace_variable'] = group.variables[eventspace_name]
+        needed_variables.append(eventspace_name)
         CodeRunner.__init__(self, group,
                             'threshold',
                             code='',  # will be set in update_abstract_code
@@ -179,7 +185,7 @@ class Thresholder(CodeRunner):
             pass
 
     def update_abstract_code(self, run_namespace=None, level=0):
-        code = self.group.threshold
+        code = self.group.events[self.event][0]  # tuple with first element condition
         # Raise a useful error message when the user used a Brian1 syntax
         if not isinstance(code, basestring):
             if isinstance(code, Quantity):
@@ -187,9 +193,10 @@ class Thresholder(CodeRunner):
             else:
                 t = '%s' % type(code)
             error_msg = 'Threshold condition has to be a string, not %s.' % t
-            vm_var = _guess_membrane_potential(self.group.equations)
-            if vm_var is not None:
-                error_msg += " Probably you intended to use '%s > ...'?" % vm_var
+            if self.event == 'spike':
+                vm_var = _guess_membrane_potential(self.group.equations)
+                if vm_var is not None:
+                    error_msg += " Probably you intended to use '%s > ...'?" % vm_var
             raise TypeError(error_msg)
 
         self.user_code = '_cond = ' + code
@@ -199,13 +206,13 @@ class Thresholder(CodeRunner):
                                            identifiers,
                                            run_namespace=run_namespace,
                                            level=level+1)
-        if not is_boolean_expression(self.group.threshold, variables):
+        if not is_boolean_expression(code, variables):
             raise TypeError(('Threshold condition "%s" is not a boolean '
-                             'expression') % self.group.threshold)
-        if self.group._refractory is False:
-            self.abstract_code = '_cond = %s' % self.group.threshold
+                             'expression') % code)
+        if self.group._refractory is False or self.event != 'spike':
+            self.abstract_code = '_cond = %s' % code
         else:
-            self.abstract_code = '_cond = (%s) and not_refractory' % self.group.threshold
+            self.abstract_code = '_cond = (%s) and not_refractory' % code
         
 
 class Resetter(CodeRunner):
@@ -213,7 +220,14 @@ class Resetter(CodeRunner):
     The `CodeRunner` that applies the reset statement(s) to the state
     variables of neurons that have spiked in this timestep.
     '''
-    def __init__(self, group):
+    def __init__(self, group, event='spike'):
+        self.event = event
+        # Since this now works for general events not only spikes, we have to
+        # pass the information about which variable to use to the template,
+        # it can not longer simply refer to "_spikespace"
+        eventspace_name = '_{}space'.format(event)
+        template_kwds = {'eventspace_variable': group.variables[eventspace_name]}
+        needed_variables= [eventspace_name]
         CodeRunner.__init__(self, group,
                             'reset',
                             code='',  # will be set in update_abstract_code
@@ -221,7 +235,9 @@ class Resetter(CodeRunner):
                             when='resets',
                             order=group.order,
                             name=group.name + '_resetter*',
-                            override_conditional_write=['not_refractory'])
+                            override_conditional_write=['not_refractory'],
+                            needed_variables=needed_variables,
+                            template_kwds=template_kwds)
 
         # Check the abstract code for unit mismatches (only works if the
         # namespace is already complete)
@@ -232,7 +248,7 @@ class Resetter(CodeRunner):
             pass
 
     def update_abstract_code(self, run_namespace=None, level=0):
-        code = self.group.reset
+        code = self.group.events[self.event][1]  # tuple with second element statements
         # Raise a useful error message when the user used a Brian1 syntax
         if not isinstance(code, basestring):
             if isinstance(code, Quantity):
@@ -240,9 +256,10 @@ class Resetter(CodeRunner):
             else:
                 t = '%s' % type(code)
             error_msg = 'Reset statement has to be a string, not %s.' % t
-            vm_var = _guess_membrane_potential(self.group.equations)
-            if vm_var is not None:
-                error_msg += " Probably you intended to use '%s = ...'?" % vm_var
+            if self.event == 'spike':
+                vm_var = _guess_membrane_potential(self.group.equations)
+                if vm_var is not None:
+                    error_msg += " Probably you intended to use '%s = ...'?" % vm_var
             raise TypeError(error_msg)
 
         self.abstract_code = code
@@ -367,16 +384,7 @@ class NeuronGroup(Group, SpikeSource):
         #: The group-specific namespace
         self.namespace = namespace
 
-        # Setup variables
-        self._create_variables(dtype)
-
         # All of the following will be created in before_run
-        
-        #: The threshold condition
-        self.threshold = threshold
-        
-        #: The reset statement(s)
-        self.reset = reset
 
         #: The refractory condition or timespan
         self._refractory = refractory
@@ -386,17 +394,30 @@ class NeuronGroup(Group, SpikeSource):
 
         #: The state update method selected by the user
         self.method_choice = method
-        
-        #: Performs thresholding step, sets the value of `spikes`
-        self.thresholder = None
-        if self.threshold is not None:
-            self.thresholder = Thresholder(self)
-            
 
-        #: Resets neurons which have spiked (`spikes`)
-        self.resetter = None
-        if self.reset is not None:
-            self.resetter = Resetter(self)
+        # Setup variables
+        # Since we have to create _spikespace and possibly other "eventspace"
+        # variables, we pass the supported events
+        create_events = []
+        if threshold is not None:
+            create_events.append('spike')
+        #create_events.extend(events.keys())
+        self._create_variables(dtype, events=create_events)
+
+        #: Events supported by this group
+        self.events = {}
+
+        #: Performs thresholding step
+        self.thresholder = []
+
+        #: Reset neurons which have spiked
+        self.resetter = []
+
+        if threshold is not None:
+            self.events['spike'] = (threshold, reset)
+            self.thresholder.append(Thresholder(self))
+            if reset is not None:
+                self.resetter.append(Resetter(self))
 
         # We try to run a before_run already now. This might fail because of an
         # incomplete namespace but if the namespace is already complete we
@@ -411,10 +432,9 @@ class NeuronGroup(Group, SpikeSource):
 
         # Creation of contained_objects that do the work
         self.contained_objects.append(self.state_updater)
-        if self.thresholder is not None:
-            self.contained_objects.append(self.thresholder)
-        if self.resetter is not None:
-            self.contained_objects.append(self.resetter)
+
+        self.contained_objects.extend(self.thresholder)
+        self.contained_objects.extend(self.resetter)
 
         if refractory is not False:
             # Set the refractoriness information
@@ -571,7 +591,7 @@ class NeuronGroup(Group, SpikeSource):
 
         return Subgroup(self, start, stop)
 
-    def _create_variables(self, user_dtype=None):
+    def _create_variables(self, user_dtype, events):
         '''
         Create the variables dictionary for this `NeuronGroup`, containing
         entries for the equation variables and some standard entries.
@@ -580,8 +600,10 @@ class NeuronGroup(Group, SpikeSource):
         self.variables.add_constant('N', Unit(1), self._N)
 
         # Standard variables always present
-        self.variables.add_array('_spikespace', unit=Unit(1), size=self._N+1,
-                                 dtype=np.int32, constant=False)
+        for event in events:
+            self.variables.add_array('_{}space'.format(event), unit=Unit(1),
+                                     size=self._N+1, dtype=np.int32,
+                                     constant=False)
         # Add the special variable "i" which can be used to refer to the neuron index
         self.variables.add_arange('i', size=self._N, constant=True,
                                   read_only=True)
