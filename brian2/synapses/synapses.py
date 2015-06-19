@@ -588,7 +588,8 @@ class Synapses(Group):
 
     add_to_magic_network = True
     def __init__(self, source, target=None, model=None, pre=None, post=None,
-                 connect=False, delay=None, namespace=None, dtype=None,
+                 connect=False, delay=None, events='spike',
+                 namespace=None, dtype=None,
                  codeobj_class=None,
                  dt=None, clock=None, order=0,
                  method=('linear', 'euler', 'milstein'),
@@ -678,12 +679,22 @@ class Synapses(Group):
         self._synaptic_updaters = []
         #: List of all `SynapticPathway` objects
         self._pathways = []
+
+        if isinstance(events, basestring):
+            events_dict = collections.defaultdict(lambda: events)
+        else:
+            events_dict = collections.defaultdict(lambda: 'spike')
+            events_dict.update(events)
+
+        #: "Events" for all the pathways
+        self.events = events_dict
         for prepost, argument in zip(('pre', 'post'), (pre, post)):
             if not argument:
                 continue
             if isinstance(argument, basestring):
                 pathway_delay = delay.get(prepost, None)
-                self._add_updater(argument, prepost, delay=pathway_delay)
+                self._add_updater(argument, prepost, delay=pathway_delay,
+                                  event=self.events[prepost])
             elif isinstance(argument, collections.Mapping):
                 for key, value in argument.iteritems():
                     if not isinstance(key, basestring):
@@ -693,7 +704,7 @@ class Synapses(Group):
                         raise TypeError(err_msg)
                     pathway_delay = delay.get(key, None)
                     self._add_updater(value, prepost, objname=key,
-                                      delay=pathway_delay)
+                                      delay=pathway_delay, event=self.events[key])
 
         # Check whether any delays were specified for pathways that don't exist
         for pathway in delay:
@@ -789,7 +800,8 @@ class Synapses(Group):
         self.lastupdate = self._clock.t
         super(Synapses, self).before_run(run_namespace, level=level+1)
 
-    def _add_updater(self, code, prepost, objname=None, delay=None):
+    def _add_updater(self, code, prepost, objname=None, delay=None,
+                     event='spike'):
         '''
         Add a new target updater. Users should call `add_pre` or `add_post`
         instead.
@@ -827,7 +839,8 @@ class Synapses(Group):
                              ' clock attribute. Is type %r instead')
                             % (group_name, type(spike_group)))
 
-        updater = SynapticPathway(self, code, prepost, objname, delay)
+        updater = SynapticPathway(self, code, prepost, objname,
+                                  delay=delay, event=event)
         objname = updater.objname
         if hasattr(self, objname):
             raise ValueError(('Cannot add updater with name "{name}", synapses '
