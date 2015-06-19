@@ -248,12 +248,23 @@ class SynapticPathway(CodeRunner, Group):
 
         # we insert rather than replace because CodeRunner puts a CodeObject in updaters already
         if self._pushspikes_codeobj is None:
+            # Since this now works for general events not only spikes, we have to
+            # pass the information about which variable to use to the template,
+            # it can not longer simply refer to "_spikespace"
+            # Strictly speaking this is only true for the standalone mode at the
+            # moment, since in runtime, all the template does is to call
+            # SynapticPathway.push_spike
+            eventspace_name = '_{}space'.format(self.event)
+            template_kwds = {'eventspace_variable': self.source.variables[eventspace_name]}
+            needed_variables= [eventspace_name]
             self._pushspikes_codeobj = create_runner_codeobj(self,
                                                              '', # no code
                                                              'synapses_push_spikes',
                                                              name=self.name+'_push_spikes',
                                                              check_units=False,
                                                              additional_variables=self.variables,
+                                                             needed_variables=needed_variables,
+                                                             template_kwds=template_kwds,
                                                              run_namespace=run_namespace,
                                                              level=level+2)
 

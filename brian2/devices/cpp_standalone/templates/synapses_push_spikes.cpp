@@ -3,9 +3,6 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {% macro cpp_file() %}
-
-{# USES_VARIABLES { _spikespace } #}
-
 #include "code_objects/{{codeobj_name}}.h"
 #include<math.h>
 #include<stdint.h>
@@ -22,8 +19,10 @@ void _run_{{codeobj_name}}()
     //// MAIN CODE ////////////
 	// we do advance at the beginning rather than at the end because it saves us making
 	// a copy of the current spiking synapses
+    {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
+    {% set _eventspace = get_array_name(eventspace_variable) %}
 	{{owner.name}}.advance();
-	{{owner.name}}.push({{_spikespace}}, {{_spikespace}}[_num_spikespace-1]);
+	{{owner.name}}.push({{_spikespace}}, {{_eventspace}}[_num{{eventspace_variable.name}}-1]);
 	//{{owner.name}}.queue->peek();
 }
 {% endmacro %}
