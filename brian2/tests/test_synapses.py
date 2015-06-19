@@ -157,9 +157,9 @@ def test_connection_string_deterministic_basic():
     '''
     Test connecting synapses with a deterministic string expression.
     '''
-    G = NeuronGroup(17, 'v : 1')
+    G = NeuronGroup(17, 'v : 1', threshold='False')
     G.v = 'i'
-    G2 = NeuronGroup(4, 'v : 1')
+    G2 = NeuronGroup(4, 'v : 1', threshold='False')
     G2.v = '17 + i'
 
     # Full connection
@@ -240,8 +240,8 @@ def test_connection_string_deterministic():
 
 
 def test_connection_random_basic():
-    G = NeuronGroup(4, 'v: 1')
-    G2 = NeuronGroup(7, 'v: 1')
+    G = NeuronGroup(4, 'v: 1', threshold='False')
+    G2 = NeuronGroup(7, 'v: 1', threshold='False')
 
     S = Synapses(G, G2, 'w:1', 'v+=w')
     S.connect(True, p=0.0)

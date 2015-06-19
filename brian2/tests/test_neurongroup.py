@@ -646,17 +646,20 @@ def test_unit_errors_threshold_reset():
     # This should fail
     assert_raises(DimensionMismatchError,
                   lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                                      threshold='False',
                                       reset='''temp_var = -65*mV
                                                v = temp_var'''))
 
     # Resets with an in-place modification
     # This should work
     NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                threshold='False',
                 reset='''v /= 2''')
 
     # This should fail
     assert_raises(DimensionMismatchError,
                   lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                                      threshold='False',
                                       reset='''v -= 60*mV'''))
 
 @attr('codegen-independent')
