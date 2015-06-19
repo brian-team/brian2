@@ -424,6 +424,9 @@ class NeuronGroup(Group, SpikeSource):
                 self.resetter.append(Resetter(self))
 
         for event, event_tuple in events.iteritems():
+            if isinstance(event_tuple, basestring):
+                # a single string is interpreted as the threshold
+                event_tuple = (event_tuple, None)
             if not isinstance(event_tuple, tuple) or len(event_tuple) != 2:
                 raise TypeError(('Values in the events dictionary have to be '
                                  'tuples of length 2: (condition, statements)'))
