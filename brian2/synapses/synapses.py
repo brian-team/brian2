@@ -121,9 +121,10 @@ class SynapticPathway(CodeRunner, Group):
         not given, delays are expected to vary between synapses.
     '''
     def __init__(self, synapses, code, prepost, objname=None,
-                 delay=None):
+                 delay=None, event='spike'):
         self.code = code
         self.prepost = prepost
+        self.event = event
         if prepost == 'pre':
             self.source = synapses.source
             self.target = synapses.target
@@ -155,7 +156,8 @@ class SynapticPathway(CodeRunner, Group):
 
         self.spikes_start = self.source.start
         self.spikes_stop = self.source.stop
-
+        self.eventspace_name = '_{}space'.format(event)
+        self.eventspace = None  # will be set in before_run
         self.spiking_synapses = np.array([], dtype=np.int32)
         self.variables = Variables(self)
         self.variables.add_attribute_variable('_spiking_synapses', unit=Unit(1),
@@ -163,7 +165,7 @@ class SynapticPathway(CodeRunner, Group):
                                               attribute='spiking_synapses',
                                               constant=False,
                                               scalar=False)
-        self.variables.add_reference('_spikespace', self.source)
+        self.variables.add_reference(self.eventspace_name, self.source)
         self.variables.add_reference('N', synapses)
         if delay is None:  # variable delays
             self.variables.add_dynamic_array('delay', unit=second,
@@ -258,6 +260,7 @@ class SynapticPathway(CodeRunner, Group):
         self._code_objects.insert(0, weakref.proxy(self._pushspikes_codeobj))
 
     def initialise_queue(self):
+        self.eventspace = self.source.variables[self.eventspace_name].get_value()
         if self.synapse_sources.get_len() == 0:
             logger.warn(("Synapses object '%s' does not have any synapses. Did "
                          "you forget a 'connect'?") % self.synapses.name,
@@ -295,10 +298,10 @@ class SynapticPathway(CodeRunner, Group):
             self.queue._restore(name)
 
     def push_spikes(self):
-        # Push new spikes into the queue
-        spikes = self.source.spikes
-        if len(spikes):
-            self.queue.push(spikes)
+        # Push new events (e.g. spikes) into the queue
+        events = self.eventspace[:self.eventspace[len(self.eventspace)-1]]
+        if len(events):
+            self.queue.push(events)
         # Get the spikes
         self.spiking_synapses = self.queue.peek()
         # Advance the spike queue
