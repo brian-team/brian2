@@ -677,7 +677,6 @@ class NeuronGroup(Group, SpikeSource):
                                                'to non-shared variable %s.')
                                               % (eq.varname, identifier))
 
-
     def before_run(self, run_namespace=None, level=0):
         # Check units
         self.equations.check_units(self, run_namespace=run_namespace,
@@ -687,15 +686,27 @@ class NeuronGroup(Group, SpikeSource):
         text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self._N)]
         text.append(r'<b>Model:</b><nr>')
         text.append(sympy.latex(self.equations))
-        text.append(r'<b>Integration method:</b><br>')
-        text.append(sympy.latex(self.state_updater.method)+'<br>')
-        if self.threshold is not None:
+
+        if 'spike' in self.events:
+            threshold, reset = self.events['spike']
+        else:
+            threshold = reset = None
+        if threshold is not None:
             text.append(r'<b>Threshold condition:</b><br>')
-            text.append('<code>%s</code><br>' % str(self.threshold))
+            text.append('<code>%s</code><br>' % str(threshold))
             text.append('')
-        if self.reset is not None:
-            text.append(r'<b>Reset statement:</b><br>')            
-            text.append(r'<code>%s</code><br>' % str(self.reset))
+        if reset is not None:
+            text.append(r'<b>Reset statement(s):</b><br>')
+            text.append(r'<code>%s</code><br>' % str(reset))
             text.append('')
-                    
+        for event, (condition, statements) in self.events.iteritems():
+            if event != 'spike':  # we dealt with this already above
+                text.append(r'<b>Condition for event "%s"</b><br>' % event)
+                text.append('<code>%s</code><br>' % str(condition))
+                text.append('')
+                if statements is not None:
+                    text.append(r'<b>Executed statement(s):</b><br>')
+                    text.append(r'<code>%s</code><br>' % str(statements))
+                    text.append('')
+
         return '\n'.join(text)
