@@ -578,12 +578,7 @@ class CPPStandaloneDevice(Device):
             writer.write('code_objects/'+codeobj.name+'.h', codeobj.code.h_file)
         
     def generate_network_source(self, writer, compiler):
-        if compiler=='msvc':
-            std_move = 'std::move'
-        else:
-            std_move = ''
-        network_tmp = CPPStandaloneCodeObject.templater.network(None, None,
-                                                             std_move=std_move)
+        network_tmp = CPPStandaloneCodeObject.templater.network(None, None)
         writer.write('network.*', network_tmp)
         
     def generate_synapses_classes_source(self, writer):
