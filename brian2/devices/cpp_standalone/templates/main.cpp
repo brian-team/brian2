@@ -5,6 +5,7 @@
 #include <time.h>
 {{ openmp_pragma('include') }}
 #include "run.h"
+#include "brianlib/common_math.h"
 
 {% for codeobj in code_objects %}
 #include "code_objects/{{codeobj.name}}.h"
