@@ -39,6 +39,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         import nose
     except ImportError:
         raise ImportError('Running the test suite requires the "nose" package.')
+    
+    if os.name=='nt':
+        test_in_parallel = []
 
     multiprocess_arguments = ['--processes=-1',
                               '--process-timeout=3600',  # we don't want them to time out
