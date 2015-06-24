@@ -16,6 +16,8 @@ __all__ = ['PoissonInput']
 
 class PoissonInput(CodeRunner):
     '''
+    PoissonInput(target, target_var, N, rate, weight, when='synapses', order=0)
+
     Adds independent Poisson input to a target variable of a `Group`. For large
     numbers of inputs, this is much more efficient than creating a
     `PoissonGroup`. The synaptic events are generated randomly during the
@@ -88,6 +90,7 @@ class PoissonInput(CodeRunner):
                             when=when,
                             order=order,
                             name='poissoninput*',
+                            clock=target.clock
                             )
         self.variables = Variables(self)
         self.variables._add_variable(binomial_sampling.name, binomial_sampling)

@@ -7,6 +7,8 @@ Fig. 3. A, B. Kink with only Nav1.6 channels
 from brian2 import *
 from params import *
 
+codegen.target='numpy'
+
 defaultclock.dt = 0.025*ms
 
 # Morphology
@@ -21,12 +23,12 @@ Im = gL*(EL - v) + gNa*m*(ENa - v) : amp/meter**2
 dm/dt = (minf - m) / taum : 1 # simplified Na channel
 minf = 1 / (1 + exp((va - v) / ka)) : 1
 gNa : siemens/meter**2
-gL : siemens/meter**2
 Iin : amp (point current)
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri,
                        method="exponential_euler")
+
 compartment = morpho.axon[location]
 neuron.v = EL
 neuron.gNa[compartment] = gNa/neuron.area[compartment]
@@ -39,7 +41,7 @@ run(80*ms, report='text')
 subplot(121)
 plot(M.t/ms, M[0].v/mV, 'r')
 plot(M.t/ms, M[compartment].v/mV, 'k')
-plot(M.t/ms, M[compartment].v/mV*(80+60)-80, 'k--')  # open channels
+plot(M.t/ms, M[compartment].m*(80+60)-80, 'k--')  # open channels
 ylim(-80, 60)
 xlabel('Time (ms)')
 ylabel('V (mV)')

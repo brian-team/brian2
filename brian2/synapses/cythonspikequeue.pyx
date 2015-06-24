@@ -13,19 +13,17 @@ import numpy as np
 
 np.import_array()
 
-
 cdef extern from "stdint_compat.h":
-    # Note that this does not actually define int32_t as int (which might be
-    # wrong on a 64bit system), it only tells Cython that int32_t and int_64t
-    # are int-like types
-    ctypedef int int32_t
-    ctypedef int int64_t
+    # Longness only used for type promotion
+    # Actual compile time size used for conversion
+    ctypedef signed int int32_t
+    ctypedef signed long int64_t
 
 cdef extern from "cspikequeue.cpp":
     cdef cppclass CSpikeQueue[T]:
         CSpikeQueue(int, int) except +
-        void prepare(T*, int, int32_t*, int, double)
-        void push(int32_t *, int)
+        void prepare(T*, int, int32_t*, unsigned int, double)
+        void push(int32_t *, unsigned int)
         void store(const string)
         void restore(const string)
         vector[int32_t]* peek()
@@ -61,20 +59,20 @@ cdef class SpikeQueue:
         self.thisptr.push(<int32_t*>spikes.data, spikes.shape[0])
 
     def peek(self):
+        # will only be used if the queue has size > 0
+        cdef int32_t* spikes_data
+        cdef np.npy_intp shape[1]
         # This should create a numpy array from a std::vector<int> without
         # copying -- &spikes[0] is guaranteed to point to a contiguous array
         # according to the C++ standard.
-        cdef:
-            vector[int32_t]* spikes = self.thisptr.peek()
-            int32_t* spikes_data = &(dereference(spikes)[0])
-            unsigned int spikes_size = dereference(spikes).size()
-
+        cdef vector[int32_t]* spikes = self.thisptr.peek()
+        cdef size_t spikes_size = dereference(spikes).size()
         if spikes_size == 0:
             return np.empty(0, dtype=np.int32)
-
-        cdef np.npy_intp shape[1]
-        shape[0] = spikes_size
-        return np.PyArray_SimpleNewFromData(1, shape, np.NPY_INT32, spikes_data)
+        else:
+            spikes_data = <int32_t*>(&(dereference(spikes)[0]))
+            shape[0] = spikes_size
+            return np.PyArray_SimpleNewFromData(1, shape, np.NPY_INT32, spikes_data)
 
     def advance(self):
         self.thisptr.advance()

@@ -6,14 +6,16 @@ from nose.plugins.attrib import attr
 
 from brian2.codegen.translation import (analyse_identifiers,
                                         get_identifiers_recursively,
+                                        parse_statement,
                                         make_statements,
                                         apply_loop_invariant_optimisations
                                         )
 from brian2.codegen.statements import Statement
 from brian2.codegen.codeobject import CodeObject
-from brian2.core.variables import Subexpression, Variable, Constant
-from brian2.core.functions import Function, DEFAULT_FUNCTIONS
-from brian2.devices.device import auto_target
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
+from brian2.core.variables import Subexpression, Variable, Constant, ArrayVariable
+from brian2.core.functions import Function, DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
+from brian2.devices.device import auto_target, device
 from brian2.units.fundamentalunits import Unit
 from brian2.units import second, ms
 
@@ -90,7 +92,7 @@ def test_nested_subexpressions():
     evalorder = ''.join(stmt.var for stmt in vector_stmts)
     # This is the order that variables ought to be evaluated in
     assert evalorder=='baxcbaxdax'
-    
+
 @attr('codegen-independent')
 def test_apply_loop_invariant_optimisation():
     variables = {'v': Variable('v', Unit(1), scalar=False),
@@ -109,7 +111,6 @@ def test_apply_loop_invariant_optimisation():
     assert len(vector) == 2
     assert all('_lio_const_1' in stmt.expr for stmt in vector)
 
-
 @attr('codegen-independent')
 def test_apply_loop_invariant_optimisation_integer():
     variables = {'v': Variable('v', Unit(1), scalar=False),
@@ -120,6 +121,59 @@ def test_apply_loop_invariant_optimisation_integer():
     # The optimisation should not pull out 2*N
     assert len(scalar) == 0
 
+@attr('codegen-independent')
+def test_automatic_augmented_assignments():
+    # We test that statements that could be rewritten as augmented assignments
+    # are correctly rewritten (using sympy to test for symbolic equality)
+    variables = {
+        'x': ArrayVariable('x', unit=Unit(1), owner=None, size=10,
+                           device=device),
+        'y': ArrayVariable('y', unit=Unit(1), owner=None, size=10,
+                           device=device),
+        'z': ArrayVariable('y', unit=Unit(1), owner=None, size=10,
+                           device=device),
+        'b': ArrayVariable('b', unit=Unit(1), owner=None, size=10,
+                           dtype=np.bool, device=device),
+        'clip': DEFAULT_FUNCTIONS['clip'],
+        'inf': DEFAULT_CONSTANTS['inf']
+    }
+    statements = [
+        # examples that should be rewritten
+        # Note that using our approach, we will never get -= or /= but always
+        # the equivalent += or *= statements
+        ('x = x + 1', 'x += 1'),
+        ('x = 2 * x', 'x *= 2'),
+        ('x = x - 3', 'x += -3'),
+        ('x = x/2', 'x *= 0.5'),
+        ('x = y + (x + 1)', 'x += y + 1'),
+        ('x = x + x', 'x *= 2'),
+        ('x = x + y + z', 'x += y + z'),
+        ('x = x + y + z', 'x += y + z'),
+        # examples that should not be rewritten
+        ('x = 1/x', 'x = 1/x'),
+        ('x = 1', 'x = 1'),
+        ('x = 2*(x + 1)', 'x = 2*(x + 1)'),
+        ('x = clip(x + y, 0, inf)', 'x = clip(x + y, 0, inf)'),
+        ('b = b or False', 'b = b or False')
+    ]
+    for orig, rewritten in statements:
+        scalar, vector = make_statements(orig, variables, np.float32)
+        try:  # we augment the assertion error with the original statement
+            assert len(scalar) == 0, 'Did not expect any scalar statements but got ' + str(scalar)
+            assert len(vector) == 1, 'Did expect a single statement but got ' + str(vector)
+            statement = vector[0]
+            expected_var, expected_op, expected_expr, _ = parse_statement(rewritten)
+            assert expected_var == statement.var, 'expected write to variable %s, not to %s' % (expected_var, statement.var)
+            assert expected_op == statement.op, 'expected operation %s, not %s' % (expected_op, statement.op)
+            # Compare the two expressions using sympy to allow for different order etc.
+            sympy_expected = str_to_sympy(expected_expr)
+            sympy_actual = str_to_sympy(statement.expr)
+            assert sympy_expected == sympy_actual, ('RHS expressions "%s" and "%s" are not identical' % (sympy_to_str(sympy_expected),
+                                                                                                         sympy_to_str(sympy_actual)))
+        except AssertionError as ex:
+            raise AssertionError('Transformation for statement "%s" gave an unexpected result: %s' % (orig, str(ex)))
+
+
 if __name__ == '__main__':
     test_auto_target()
     test_analyse_identifiers()
@@ -127,3 +181,4 @@ if __name__ == '__main__':
     test_nested_subexpressions()
     test_apply_loop_invariant_optimisation()
     test_apply_loop_invariant_optimisation_integer()
+    test_automatic_augmented_assignments()

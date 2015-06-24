@@ -11,8 +11,8 @@
     {
         if (_num_spikes > 0)
         {
-            int _start_idx = 0;
-            int _end_idx = - 1;
+            int _start_idx = _num_spikes;
+            int _end_idx = _num_spikes;
             for(int _j=0; _j<_num_spikes; _j++)
             {
                 const int _idx = {{_spikespace}}[_j];
@@ -29,8 +29,6 @@
                     break;
                 }
             }
-            if (_end_idx == -1)
-                _end_idx =_num_spikes;
             _num_spikes = _end_idx - _start_idx;
             if (_num_spikes > 0) {
                 for(int _j=_start_idx; _j<_end_idx; _j++)

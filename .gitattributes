@@ -1,0 +1,37 @@
+# Set the default behavior, in case people don't have core.autocrlf set.
+* text=auto
+
+# These files are text and should be normalized (CRLF --> LF)
+
+# Source code
+*.py        text diff=python
+*.cpp       text diff=cpp
+*.h         text diff=cpp
+*.pyx       text
+*.py_       text
+*.ipynb     text
+
+# Configuration files and scripts
+*.cfg       text
+*.yaml      text
+*.yml       text
+*.bat       text
+*.cmd       text
+*.ps1       text
+*.sh        text
+*.rc        text
+.coveragerc text
+.gitignore  text
+MANIFEST.in text
+
+# Documentation
+*.rst       text
+*.txt       text
+
+# Other text files
+*.swc       text
+
+# Binary files that shouldn't be normalized
+*.png       binary
+*.pptx      binary
+

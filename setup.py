@@ -125,7 +125,7 @@ Documentation for Brian2 can be found at http://brian2.readthedocs.org
 '''
 
 setup(name='Brian2',
-      version='2.0b2+git',
+      version='2.0b3+git',
       packages=find_packages(),
       package_data={# include template files
                     'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
@@ -163,7 +163,7 @@ setup(name='Brian2',
       classifiers=[
           'Development Status :: 4 - Beta',
           'Intended Audience :: Science/Research',
-          'License :: OSI Approved',
+          'License :: OSI Approved :: CEA CNRS Inria Logiciel Libre License, version 2.1 (CeCILL-2.1)',
           'Natural Language :: English',
           'Operating System :: OS Independent',
           'Programming Language :: Python',

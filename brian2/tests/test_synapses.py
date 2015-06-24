@@ -1,16 +1,17 @@
 import uuid
-import os
 import tempfile
 
-from nose import with_setup
+from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
-import numpy as np
 
 from brian2 import *
-from brian2.core.variables import variables_by_owner
+from brian2.codegen.translation import make_statements
+from brian2.core.variables import variables_by_owner, ArrayVariable
 from brian2.utils.logger import catch_logs
-from brian2.devices.device import restore_device
+from brian2.utils.stringtools import get_identifiers
+from brian2.devices.device import restore_device, all_devices, get_device
+from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 
 
 def _compare(synapses, expected):
@@ -123,7 +124,6 @@ def test_connection_arrays():
                                                p=object()))
     assert_raises(TypeError, lambda: S.connect(object()))
 
-from brian2.devices.cpp_standalone import cpp_standalone_device
 
 @attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=restore_device)
@@ -496,6 +496,17 @@ def test_delay_specification():
     assert_raises(ValueError, lambda: Synapses(G, G, 'w:1', pre='v+=w',
                                                delay={'post': 5*ms}))
 
+@attr('codegen-independent')
+def test_pre_before_post():
+    # The pre pathway should be executed before the post pathway
+    G = NeuronGroup(1, '''x : 1
+                          y : 1''', threshold='True')
+    S = Synapses(G, G, '', pre='x=1; y=1', post='x=2', connect=True)
+    run(defaultclock.dt)
+    # Both pathways should have been executed, but post should have overriden
+    # the x value (because it was executed later)
+    assert G.x == 2
+    assert G.y == 1
 
 @attr('long')
 def test_transmission():
@@ -523,7 +534,7 @@ def test_transmission():
         assert_allclose(source_mon.t[source_mon.i==1],
                         target_mon.t[target_mon.i==1] - default_dt - delay[1])
 
-#@attr('standalone-compatible')  # scalar delays not yet supported in standalone
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_transmission_scalar_delay():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms)
@@ -537,7 +548,7 @@ def test_transmission_scalar_delay():
     assert_equal(mon[1].v[mon.t<1.5*ms], 0)
     assert_equal(mon[1].v[mon.t>=1.5*ms], 1)
 
-#@attr('standalone-compatible')  # scalar delays not yet supported in standalone
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_transmission_scalar_delay_different_clocks():
 
@@ -550,12 +561,14 @@ def test_transmission_scalar_delay_different_clocks():
     mon = StateMonitor(target, 'v', record=True)
     net = Network(inp, target, S, mon)
 
-    # We should get a warning when using inconsistent dts
-    with catch_logs() as l:
-        net.run(2*ms)
-        assert len(l) == 1, 'expected a warning, got %d' % len(l)
-        assert l[0][1].endswith('synapses_dt_mismatch')
+    if get_device() == all_devices['runtime']:
+        # We should get a warning when using inconsistent dts
+        with catch_logs() as l:
+            net.run(2*ms)
+            assert len(l) == 1, 'expected a warning, got %d' % len(l)
+            assert l[0][1].endswith('synapses_dt_mismatch')
 
+    net.run(0*ms)
     assert_equal(mon[0].v[mon.t<0.5*ms], 0)
     assert_equal(mon[0].v[mon.t>=0.5*ms], 1)
     assert_equal(mon[1].v[mon.t<1.5*ms], 0)
@@ -736,6 +749,7 @@ def test_external_variables():
 
 
 @attr('long', 'standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_event_driven():
     # Fake example, where the synapse is actually not changing the state of the
     # postsynaptic neuron, the pre- and post spiketrains are regular spike
@@ -818,6 +832,145 @@ def test_variables_by_owner():
     assert all(varname in variables_by_owner(S.variables, S)
                for varname in ['x', 'N', 'N_incoming', 'N_outgoing'])
 
+@attr('codegen-independent')
+def check_permutation_code(code):
+    from collections import defaultdict
+    vars = get_identifiers(code)
+    indices = defaultdict(lambda: '_idx')
+    for var in vars:
+        if var.endswith('_syn'):
+            indices[var] = '_idx'
+        elif var.endswith('_pre'):
+            indices[var] ='_presynaptic_idx'
+        elif var.endswith('_post'):
+            indices[var] = '_postsynaptic_idx'
+    variables = dict()
+    for var in indices:
+        variables[var] = ArrayVariable(var, 1, None, 10, device)
+    variables['_presynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
+    variables['_postsynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
+    scalar_statements, vector_statements = make_statements(code, variables, float64)
+    check_for_order_independence(vector_statements, variables, indices)
+    
+@attr('codegen-independent')
+def test_permutation_analysis():
+    # Examples that should work
+    good_examples = [
+        'v_post += w_syn',
+        'v_post *= w_syn',
+        'v_post = v_post + w_syn',
+        'v_post = v_post * w_syn',
+        'v_post = w_syn * v_post',
+        'v_post += 1',
+        'v_post = 1',
+        'w_syn = v_pre',
+        'w_syn = a_syn',
+        'w_syn += a_syn',
+        'w_syn *= a_syn',
+        'w_syn += 1',
+        'w_syn *= 2',
+        '''
+        w_syn = a_syn
+        a_syn += 1
+        ''',
+        'v_post *= 2',
+        'v_post *= w_syn',
+        '''
+        v_pre = 0
+        w_syn = v_pre
+        ''',
+        '''
+        ge_syn += w_syn
+        Apre_syn += 3
+        w_syn = clip(w_syn + Apost_syn, 0, 10)
+        ''',
+    ]
+    for example in good_examples:
+        try:
+            check_permutation_code(example)
+        except OrderDependenceError:
+            raise AssertionError(('Test unexpectedly raised an '
+                                  'OrderDependenceError on these '
+                                  'statements:\n') + example)
+
+    bad_examples = [
+        'v_pre = w_syn',
+        'v_post = v_pre',
+        '''
+        a_syn = v_post
+        v_post += w_syn
+        '''
+    ]
+    for example in bad_examples:
+        assert_raises(OrderDependenceError, check_permutation_code, example)
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_vectorisation():
+    source = NeuronGroup(10, 'v : 1', threshold='v>1')
+    target = NeuronGroup(10, '''x : 1
+                                y : 1''')
+    syn = Synapses(source, target, 'w_syn : 1',
+                   pre='''v_pre += w_syn
+                          x_post = y_post
+                       ''', connect=True)
+    syn.w_syn = 1
+    source.v['i<5'] = 2
+    target.y = 'i'
+    run(defaultclock.dt)
+    assert_equal(source.v[:5], 12)
+    assert_equal(source.v[5:], 0)
+    assert_equal(target.x[:], target.y[:])
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_vectorisation_STDP_like():
+    # Test the use of pre- and post-synaptic traces that are stored in the
+    # pre/post group instead of in the synapses
+    w_max = 10
+    neurons = NeuronGroup(6, '''dv/dt = rate : 1
+                                ge : 1
+                                rate : Hz
+                                dA/dt = -A/(1*ms) : 1''', threshold='v>1', reset='v=0')
+    # Note that the synapse does not actually increase the target v, we want
+    # to have simple control about when neurons spike. Also, we separate the
+    # "depression" and "facilitation" completely. The example also uses
+    # subgroups, which should complicate things further.
+    # This test should try to capture the spirit of indexing in such a use case,
+    # it simply compares the results to fixed pre-calculated values
+    syn = Synapses(neurons[:3], neurons[3:], '''w_dep : 1
+                                                w_fac : 1''',
+                   pre='''ge_post += w_dep - w_fac
+                          A_pre += 1
+                          w_dep = clip(w_dep + A_post, 0, w_max)
+                       ''',
+                   post='''A_post += 1
+                           w_fac = clip(w_fac + A_pre, 0, w_max)
+                        ''', connect=True)
+    neurons.rate = 1000*Hz
+    neurons.v = 'abs(3-i)*0.1 + 0.7'
+    run(2*ms)
+    # Make sure that this test is invariant to synapse order
+    indices = np.argsort(np.array(zip(syn.i[:], syn.j[:]),
+                                  dtype=[('i', '<i4'), ('j', '<i4')]),
+                         order=['i', 'j'])
+    assert_allclose(syn.w_dep[:][indices],
+                    [1.29140162, 1.16226149, 1.04603529, 1.16226149, 1.04603529,
+                     0.94143176, 1.04603529, 0.94143176, 6.2472887],
+                    rtol=1e-6, atol=1e-12)
+    assert_allclose(syn.w_fac[:][indices],
+                    [5.06030369, 5.62256002, 6.2472887, 5.62256002, 6.2472887,
+                     6.941432, 6.2472887, 6.941432, 1.04603529],
+                    rtol=1e-6, atol=1e-12)
+    assert_allclose(neurons.A[:],
+                    [1.69665715, 1.88517461, 2.09463845, 2.32737606, 2.09463845,
+                     1.88517461],
+                    rtol=1e-6, atol=1e-12)
+    assert_allclose(neurons.ge[:],
+                    [0., 0., 0., -7.31700015, -8.13000011, -4.04603529],
+                    rtol=1e-6, atol=1e-12)
+
 
 if __name__ == '__main__':
     test_creation()
@@ -834,6 +987,7 @@ if __name__ == '__main__':
     test_indices()
     test_subexpression_references()
     test_delay_specification()
+    test_pre_before_post()
     test_transmission()
     test_transmission_scalar_delay()
     test_transmission_scalar_delay_different_clocks()
@@ -848,3 +1002,6 @@ if __name__ == '__main__':
     test_event_driven()
     test_repr()
     test_variables_by_owner()
+    test_permutation_analysis()
+    test_vectorisation()
+    test_vectorisation_STDP_like()

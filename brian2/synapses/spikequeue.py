@@ -63,7 +63,6 @@ class SpikeQueue(object):
     (saves memory). Note that if they are determined at run time, then it is
     possible to also vectorise over presynaptic spikes.
     '''
-    
     def __init__(self, source_start, source_end, dtype=np.int32,
                  precompute_offsets=True):
         #: Whether the offsets should be precomputed
@@ -148,7 +147,7 @@ class SpikeQueue(object):
             self.n = np.zeros(n_steps, dtype=int) # number of events in each time step
 
         # Precompute offsets
-        if self._precompute_offsets:
+        if self._precompute_offsets and not self._homogeneous:
             self._do_precompute_offsets(n_synapses)
 
         # Re-insert the spikes into the data structure
@@ -243,7 +242,7 @@ class SpikeQueue(object):
             if stop <= sources[-1]:
                 stop_idx = bisect.bisect_left(sources, stop, lo=start_idx)
             else:
-                stop_idx = len(self._neurons_to_synapses)
+                stop_idx = len(sources) + 1
             sources = sources[start_idx:stop_idx]
             if len(sources)==0:
                 return
@@ -265,11 +264,7 @@ class SpikeQueue(object):
         Precompute all offsets corresponding to delays. This assumes that
         delays will not change during the simulation.
         '''
-        if len(self._delays) == 1 and n_synapses != 1:
-            # We have a scalar delay value
-            delays = self._delays.repeat(n_synapses)
-        else:
-            delays = self._delays
+        delays = self._delays
         self._offsets = np.zeros_like(delays)
         index = 0
         for targets in self._neurons_to_synapses:

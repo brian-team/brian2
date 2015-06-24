@@ -464,14 +464,26 @@ class ArrayVariable(Variable):
         Whether this is a read-only variable, i.e. a variable that is set
         internally and cannot be changed by the user. Defaults
         to ``False``.
+    unique : bool, optional
+        Whether the values in this array are all unique. This information is
+        only important for variables used as indices and does not have to
+        reflect the actual contents of the array but only the possibility of
+        non-uniqueness (e.g. synaptic indices are always unique but the
+        corresponding pre- and post-synaptic indices are not). Defaults to
+        ``False``.
     '''
     def __init__(self, name, unit, owner, size, device, dtype=None,
-                 constant=False, scalar=False, read_only=False, dynamic=False):
+                 constant=False, scalar=False, read_only=False, dynamic=False,
+                 unique=False):
         super(ArrayVariable, self).__init__(unit=unit, name=name, owner=owner,
                                             dtype=dtype, scalar=scalar,
                                             constant=constant,
                                             read_only=read_only,
                                             dynamic=dynamic)
+
+        #: Wether all values in this arrays are necessarily unique (only
+        #: relevant for index variables).
+        self.unique = unique
 
         #: The `Device` responsible for memory access.
         self.device = device
@@ -550,11 +562,18 @@ class DynamicArrayVariable(ArrayVariable):
         Whether this is a read-only variable, i.e. a variable that is set
         internally and cannot be changed by the user. Defaults
         to ``False``.
+    unique : bool, optional
+        Whether the values in this array are all unique. This information is
+        only important for variables used as indices and does not have to
+        reflect the actual contents of the array but only the possibility of
+        non-uniqueness (e.g. synaptic indices are always unique but the
+        corresponding pre- and post-synaptic indices are not). Defaults to
+        ``False``.
     '''
 
     def __init__(self, name, unit, owner, size, device, dtype=None,
-                 constant=False, constant_size=True,
-                 scalar=False, read_only=False):
+                 constant=False, constant_size=True, resize_along_first=False,
+                 scalar=False, read_only=False, unique=False):
 
         if isinstance(size, int):
             dimensions = 1
@@ -568,6 +587,10 @@ class DynamicArrayVariable(ArrayVariable):
             raise ValueError('A variable cannot be constant and change in size')
         #: Whether the size of the variable is constant during a run.
         self.constant_size = constant_size
+
+        #: Whether this array will be only resized along the first dimension
+        self.resize_along_first = resize_along_first
+
         super(DynamicArrayVariable, self).__init__(unit=unit,
                                                    owner=owner,
                                                    name=name,
@@ -577,7 +600,9 @@ class DynamicArrayVariable(ArrayVariable):
                                                    dtype=dtype,
                                                    scalar=scalar,
                                                    dynamic=True,
-                                                   read_only=read_only)
+                                                   read_only=read_only,
+                                                   unique=unique)
+
     def resize(self, new_size):
         '''
         Resize the dynamic array. Calls `self.device.resize` to do the
@@ -588,8 +613,13 @@ class DynamicArrayVariable(ArrayVariable):
         new_size : int or tuple of int
             The new size.
         '''
-        self.device.resize(self, new_size)
+        if self.resize_along_first:
+            self.device.resize_along_first(self, new_size)
+        else:
+            self.device.resize(self, new_size)
+
         self.size = new_size
+
 
 
 class Subexpression(Variable):
@@ -1400,7 +1430,7 @@ class Variables(collections.Mapping):
             self.indices[name] = index
 
     def add_array(self, name, unit, size, values=None, dtype=None,
-                  constant=False, read_only=False, scalar=False,
+                  constant=False, read_only=False, scalar=False, unique=False,
                   index=None):
         '''
         Add an array (initialized with zeros).
@@ -1432,25 +1462,30 @@ class Variables(collections.Mapping):
         index : str, optional
             The index to use for this variable. Defaults to
             `Variables.default_index`.
+        unique : bool, optional
+            See `ArrayVariable`. Defaults to ``False``.
         '''
         var = ArrayVariable(name=name, unit=unit, owner=self.owner,
                             device=self.device, size=size,
                             dtype=dtype,
                             constant=constant,
                             scalar=scalar,
-                            read_only=read_only)
+                            read_only=read_only,
+                            unique=unique)
         self._add_variable(name, var, index)
         if values is None:
             self.device.init_with_zeros(var)
+
         else:
             if len(values) != size:
                 raise ValueError(('Size of the provided values does not match '
                                   'size: %d != %d') % (len(values), size))
             self.device.init_with_array(var, values)
 
-    def add_dynamic_array(self, name, unit, size, dtype=None, constant=False,
-                          constant_size=True, read_only=False,
-                          index=None):
+    def add_dynamic_array(self, name, unit, size, values=None, dtype=None,
+                          constant=False, constant_size=True,
+                          resize_along_first=False, read_only=False,
+                          unique=False, scalar=False, index=None):
         '''
         Add a dynamic array.
 
@@ -1461,7 +1496,10 @@ class Variables(collections.Mapping):
         unit : `Unit`
             The unit of the variable
         size : int or tuple of int
-            The size of the array.
+            The (initital) size of the array.
+        values : `ndarray`, optional
+            The values to initalize the array with. If not specified, the array
+            is initialized to zero.
         dtype : `dtype`, optional
             The dtype used for storing the variable. If none is given, defaults
             to `core.default_float_dtype`.
@@ -1471,6 +1509,9 @@ class Variables(collections.Mapping):
         constant_size : bool, optional
             Whether the size of the variable is constant during a run.
             Defaults to ``True``.
+        scalar : bool, optional
+            Whether this is a scalar variable. Defaults to ``False``, if set to
+            ``True``, also implies that `size` equals 1.
         read_only : bool, optional
             Whether this is a read-only variable, i.e. a variable that is set
             internally and cannot be changed by the user. Defaults
@@ -1478,16 +1519,28 @@ class Variables(collections.Mapping):
         index : str, optional
             The index to use for this variable. Defaults to
             `Variables.default_index`.
+        unique : bool, optional
+            See `DynamicArrayVariable`. Defaults to ``False``.
         '''
         var = DynamicArrayVariable(name=name, unit=unit, owner=self.owner,
                                    device=self.device,
                                    size=size, dtype=dtype,
                                    constant=constant, constant_size=constant_size,
-                                   read_only=read_only)
+                                   resize_along_first=resize_along_first,
+                                   scalar=scalar,
+                                   read_only=read_only, unique=unique)
         self._add_variable(name, var, index)
+        if values is None and np.prod(size) > 0:
+            self.device.init_with_zeros(var)
+        elif values is not None:
+            if len(values) != size:
+                raise ValueError(('Size of the provided values does not match '
+                                  'size: %d != %d') % (len(values), size))
+            if np.prod(size) > 0:
+                self.device.init_with_array(var, values)
 
     def add_arange(self, name, size, start=0, dtype=np.int32, constant=True,
-                   read_only=True, index=None):
+                   read_only=True, unique=True, index=None):
         '''
         Add an array, initialized with a range of integers.
 
@@ -1512,9 +1565,11 @@ class Variables(collections.Mapping):
         index : str, optional
             The index to use for this variable. Defaults to
             `Variables.default_index`.
+        unique : bool, optional
+            See `ArrayVariable`. Defaults to ``True`` here.
         '''
         self.add_array(name=name, unit=Unit(1), size=size, dtype=dtype,
-                       constant=constant, read_only=read_only,
+                       constant=constant, read_only=read_only, unique=unique,
                        index=index)
         self.device.init_with_arange(self._variables[name], start)
 
@@ -1753,7 +1808,8 @@ class Variables(collections.Mapping):
             not confuse the dynamic array of recorded times with the current
             time in the recorded group.
         '''
-        for name in ['t', 'dt']:
+        for name, is_constant in [('t', False),
+                                  ('dt', True)]:
             if prefix+name in self._variables:
                 var = self._variables[prefix+name]
                 if not isinstance(var, AttributeVariable):
@@ -1764,4 +1820,6 @@ class Variables(collections.Mapping):
                 var.obj = clock # replace the clock object
             else:
                 self.add_attribute_variable(prefix+name, unit=second, obj=clock,
-                                            attribute=name+'_', dtype=np.float64)
+                                            attribute=name+'_',
+                                            dtype=np.float64,
+                                            constant=is_constant)

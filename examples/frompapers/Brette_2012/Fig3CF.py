@@ -28,7 +28,6 @@ dm2/dt = (minf2 - m2) / taum : 1 # simplified Na channel, Nav1.2
 minf2 = 1/(1 + exp((va2 - v) / ka)) : 1
 gNa : siemens/meter**2
 gNa2 : siemens/meter**2  # Nav1.2
-gL : siemens/meter**2
 Iin : amp (point current)
 '''
 
@@ -40,7 +39,7 @@ neuron.v = EL
 neuron.gNa[compartment16] = gNa/neuron.area[compartment16]
 neuron.gNa2[compartment12] = 20*gNa/neuron.area[compartment12]
 # Monitors
-M = StateMonitor(neuron, ['v', 'm'], record=True)
+M = StateMonitor(neuron, ['v', 'm', 'm2'], record=True)
 
 run(20*ms, report='text')
 neuron.Iin[0] = gL * 20*mV * neuron.area[0]
@@ -58,7 +57,7 @@ title('Voltage traces')
 subplot(222)
 plot(M[0].v/mV, M[compartment16].m,'k')
 plot(M[0].v/mV, 1 / (1 + exp((va - M[0].v) / ka)), 'k--')
-plot(M[0].v/mV, M[compartment12].m, 'r')
+plot(M[0].v/mV, M[compartment12].m2, 'r')
 plot(M[0].v/mV, 1 / (1 + exp((va2 - M[0].v) / ka)), 'r--')
 xlim(-70, 0)
 xlabel('V (mV)')

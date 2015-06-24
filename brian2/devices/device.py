@@ -94,7 +94,12 @@ class Device(object):
     Base Device object.
     '''
     def __init__(self):
-        pass
+        #: The network schedule that this device supports. If the device only
+        #: supports a specific, fixed schedule, it has to set this attribute to
+        #: the respective schedule (see `Network.schedule` for details). If it
+        #: supports arbitrary schedules, it should be set to ``None`` (the
+        #: default).
+        self.network_schedule = None
 
     def get_array_name(self, var, access_data=True):
         '''
@@ -190,6 +195,23 @@ class Device(object):
             The end index of the source group (necessary for subgroups)
         '''
         raise NotImplementedError()
+
+    def resize(self, var, new_size):
+        '''
+        Resize a `DynamicArrayVariable`.
+
+        Parameters
+        ----------
+        var : `DynamicArrayVariable`
+            The variable that should be resized.
+        new_size : int
+            The new size of the variable
+        '''
+        raise NotImplementedError()
+
+    def resize_along_first(self, var, new_size):
+        # Can be overwritten with a better implementation
+        return self.resize(var, new_size)
 
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is None:
@@ -302,7 +324,7 @@ class RuntimeDevice(Device):
     arrays in memory.
     '''
     def __init__(self):
-        super(Device, self).__init__()
+        super(RuntimeDevice, self).__init__()
         #: Mapping from `Variable` objects to numpy arrays (or `DynamicArray`
         #: objects). Arrays in this dictionary will disappear as soon as the
         #: last reference to the `Variable` object used as a key is gone
@@ -348,6 +370,9 @@ class RuntimeDevice(Device):
 
     def resize(self, var, new_size):
         self.arrays[var].resize(new_size)
+
+    def resize_along_first(self, var, new_size):
+        self.arrays[var].resize_along_first(new_size)
 
     def init_with_zeros(self, var):
         self.arrays[var][:] = 0

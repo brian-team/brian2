@@ -1,5 +1,3 @@
-import numpy as np
-
 {#
 USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets,
                  N_incoming, N_outgoing }
@@ -11,6 +9,7 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets,
 {# After this code has been executed, the arrays _real_sources and
    _real_variables contain the final indices. Having any code here it all is
    only necessary for supporting subgroups #}
+import numpy as _numpy
 {{vector_code|autoindent}}
 
 _old_num_synapses = len({{_dynamic__synaptic_pre}})
@@ -21,8 +20,8 @@ _new_num_synapses = _old_num_synapses + len({{sources}})
 {{_dynamic__synaptic_post}}[_old_num_synapses:] = _real_targets
 
 # Update the number of total outgoing/incoming synapses per source/target neuron
-{{N_outgoing}}[:] += np.bincount(_real_sources, minlength=len({{N_outgoing}}))
-{{N_incoming}}[:] += np.bincount(_real_targets, minlength=len({{N_incoming}}))
+{{N_outgoing}}[:] += _numpy.bincount(_real_sources, minlength=len({{N_outgoing}}))
+{{N_incoming}}[:] += _numpy.bincount(_real_targets, minlength=len({{N_incoming}}))
 
 # Resize all dependent dynamic arrays (synaptic weights, delays, etc.)
 _owner._resize(_new_num_synapses)

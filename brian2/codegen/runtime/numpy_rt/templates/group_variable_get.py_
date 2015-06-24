@@ -3,6 +3,7 @@
    array directly. See RuntimeDevice.get_with_array #}
 
 {# USES_VARIABLES { _group_idx } #}
+import numpy as _numpy
 # scalar code
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}

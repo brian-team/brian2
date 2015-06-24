@@ -20,6 +20,7 @@ import collections
 from collections import OrderedDict
 
 import numpy as np
+import sympy
 
 from brian2.core.preferences import prefs
 from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
@@ -30,6 +31,7 @@ from brian2.utils.topsort import topsort
 from brian2.units.fundamentalunits import Unit
 from brian2.parsing.statements import parse_statement
 from brian2.parsing.rendering import NodeRenderer
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 
 from .statements import Statement
 
@@ -217,15 +219,16 @@ class LIONodeRenderer(NodeRenderer):
     def render_node(self, node):
         expr = NodeRenderer(use_vectorisation_idx=False).render_node(node)
 
-        # Do not pull out constants or numbers
-        if node.__class__.__name__ in ['Name', 'Num', 'NameConstant']:
-            return expr
-
         if is_scalar_expression(expr, self.variables) and not has_non_float(expr,
                                                                             self.variables):
             if expr in self.optimisations:
                 name = self.optimisations[expr]
             else:
+                # Do not pull out very simple expressions (including constants
+                # and numbers)
+                sympy_expr = str_to_sympy(expr)
+                if sympy.count_ops(sympy_expr, visual=False) < 2:
+                    return expr
                 self.n += 1
                 name = '_lio_const_'+str(self.n)
                 self.optimisations[expr] = name
@@ -303,7 +306,9 @@ def make_statements(code, variables, dtype):
     -----
     The `scalar_statements` may include newly introduced scalar constants that
     have been identified as loop-invariant and have therefore been pulled out
-    of the vector statements.
+    of the vector statements. The resulting statements will also use augmented
+    assignments where possible, i.e. a statement such as ``w = w + 1`` will be
+    replaced by ``w += 1``.
     '''
     code = strip_empty_lines(deindent(code))
     lines = re.split(r'[;\n]', code)
@@ -317,9 +322,10 @@ def make_statements(code, variables, dtype):
     defined = set(k for k, v in variables.iteritems()
                   if not isinstance(v, AuxiliaryVariable))
     for line in lines:
+        statement = None
         # parse statement into "var op expr"
         var, op, expr, comment = parse_statement(line.code)
-        if op=='=':
+        if op == '=':
             if var not in defined:
                 op = ':='
                 defined.add(var)
@@ -328,11 +334,38 @@ def make_statements(code, variables, dtype):
                     new_var = AuxiliaryVariable(var, Unit(1), # doesn't matter here
                                                 dtype=dtype, scalar=is_scalar)
                     variables[var] = new_var
+            elif not variables[var].is_boolean:
+                sympy_expr = str_to_sympy(expr)
+                sympy_var = sympy.Symbol(var, real=True)
+                try:
+                    collected = sympy.collect(sympy_expr, sympy_var,
+                                              exact=True, evaluate=False)
+                except AttributeError:
+                    # If something goes wrong during collection, e.g. collect
+                    # does not work for logical expressions
+                    collected = {1: sympy_expr}
 
+                if (len(collected) == 2 and
+                        set(collected.keys()) == {1, sympy_var} and
+                        collected[sympy_var] == 1):
+                    # We can replace this statement by a += assignment
+                    statement = Statement(var, '+=',
+                                          sympy_to_str(collected[1]),
+                                          comment,
+                                          dtype=variables[var].dtype,
+                                          scalar=variables[var].scalar)
+                elif len(collected) == 1 and sympy_var in collected:
+                    # We can replace this statement by a *= assignment
+                    statement = Statement(var, '*=',
+                                          sympy_to_str(collected[sympy_var]),
+                                          comment,
+                                          dtype=variables[var].dtype,
+                                          scalar=variables[var].scalar)
+        if statement is None:
+            statement = Statement(var, op, expr, comment,
+                                  dtype=variables[var].dtype,
+                                  scalar=variables[var].scalar)
 
-        statement = Statement(var, op, expr, comment,
-                              dtype=variables[var].dtype,
-                              scalar=variables[var].scalar)
         line.statement = statement
         # for each line will give the variable being written to
         line.write = var 

@@ -16,16 +16,20 @@ The ``i`` and ``t``
 attributes give the array of neuron indices and times of the spikes. For
 example, if ``M.i==[0, 2, 1]`` and ``M.t==[1*ms, 2*ms, 3*ms]`` it means that
 neuron 0 fired a spike at 1 ms, neuron 2 fired a spike at 2 ms, and neuron 1
-fired a spike at 3 ms. The ``num_spikes`` attribute gives the total number
+fired a spike at 3 ms. Alternatively, you can also call the
+`~brian2.monitors.spikemonitor.SpikeMonitor.spike_trains` method to get a
+dictionary mapping neuron indices to arrays of spike times, i.e. in the above
+example, ``spike_trains = M.spike_trains(); spike_trains[1]`` would return
+``array([  3.]) * msecond``. The ``num_spikes`` attribute gives the total number
 of spikes recorded, and ``count`` is an array of the length of the recorded
-group giving the total number of spikes recorded from each neuron. Finally, 
-the ``it`` attribute is just the pair ``(i, t)`` for convenience.
+group giving the total number of spikes recorded from each neuron. Finally, the
+``it`` attribute is just the pair ``(i, t)`` for convenience.
 
 Example::
 
-    G = NeuronGroup(...)
+    G = NeuronGroup(N, model='...')
     M = SpikeMonitor(G)
-    run(...)
+    run(runtime)
     plot(M.t/ms, M.i, '.')
 
 Recording variables

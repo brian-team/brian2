@@ -2,7 +2,7 @@
 Brian's logging module.
 
 Preferences
---------------------
+-----------
 .. document_brian_prefs:: logging
 '''
 import atexit

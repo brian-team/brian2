@@ -11,8 +11,8 @@
         # For subgroups, we do not want to record all spikes
         # We assume that spikes are ordered
         # TODO: Will this assumption ever be violated?
-        _start_idx = 0
-        _end_idx = - 1
+        _start_idx = _num_spikes
+        _end_idx = _num_spikes
         for _j in range(_num_spikes):
             _idx = {{_spikespace}}[_j]
             if _idx >= _source_start:
@@ -23,8 +23,6 @@
             if _idx >= _source_stop:
                 _end_idx = _j
                 break
-        if _end_idx == -1:
-            _end_idx =_num_spikes
         _num_spikes = _end_idx - _start_idx
         if _num_spikes > 0:
             # Get the current length and new length of t and i arrays

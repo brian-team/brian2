@@ -6,13 +6,14 @@
 
     # TODO: We don't deal with more than one spike per neuron yet
     cdef int _cpp_numspikes   = 0
-    cdef double padding_before = t % period
-    cdef double padding_after  = (t + dt) % period
+    cdef double _the_period = {{period}}[0]
+    cdef double padding_before = t % _the_period
+    cdef double padding_after  = (t + dt) % _the_period
     cdef double epsilon        = 1e-3*dt
     cdef double _spike_time
 
     # We need some precomputed values that will be used during looping
-    not_end_period  = abs(padding_after) > (dt - epsilon) and abs(padding_after) < (period - epsilon)
+    not_end_period  = abs(padding_after) > (dt - epsilon) and abs(padding_after) < (_the_period - epsilon)
 
     for _idx in range({{_lastindex}}[0], _num{{spike_time}}):
         _spike_time = {{spike_time}}[_idx]

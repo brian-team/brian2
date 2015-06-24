@@ -4,9 +4,16 @@ methods which should be overridden to implement a new language.
 '''
 from brian2.core.variables import ArrayVariable
 from brian2.utils.stringtools import get_identifiers
+from brian2.utils.logger import get_logger
 from brian2.codegen.translation import make_statements
+from brian2.codegen.permutation_analysis import (check_for_order_independence,
+                                                 OrderDependenceError)
 
 __all__ = ['CodeGenerator']
+
+
+logger = get_logger(__name__)
+
 
 class CodeGenerator(object):
     '''
@@ -85,6 +92,9 @@ class CodeGenerator(object):
         '''
         raise NotImplementedError
 
+    def translate_one_statement_sequence(self, statements, scalar=False):
+        raise NotImplementedError
+
     def translate_statement_sequence(self, scalar_statements, vector_statements):
         '''
         Translate a sequence of `Statement` into the target language, taking
@@ -99,14 +109,13 @@ class CodeGenerator(object):
         scalar_code = {}
         vector_code = {}
         for name, block in scalar_statements.iteritems():
-            scalar_code[name] = self.translate_one_statement_sequence(block)
+            scalar_code[name] = self.translate_one_statement_sequence(block, scalar=True)
         for name, block in vector_statements.iteritems():
-            vector_code[name] = self.translate_one_statement_sequence(block)
+            vector_code[name] = self.translate_one_statement_sequence(block, scalar=False)
 
         kwds = self.determine_keywords()
 
         return scalar_code, vector_code, kwds
-
 
     def array_read_write(self, statements):
         '''
@@ -192,4 +201,24 @@ class CodeGenerator(object):
             scalar_statements[ac_name], vector_statements[ac_name] = make_statements(ac_code,
                                                                                      self.variables,
                                                                                      dtype)
-        return self.translate_statement_sequence(scalar_statements, vector_statements)
+        for vs in vector_statements.itervalues():
+            # Check that the statements are meaningful independent on the order of
+            # execution (e.g. for synapses)
+            try:
+                check_for_order_independence(vs,
+                                             self.variables,
+                                             self.variable_indices)
+            except OrderDependenceError:
+                # If the abstract code is only one line, display it in full
+                if len(vs) <= 1:
+                    error_msg = 'Abstract code: "%s"\n' % vs[0]
+                else:
+                    error_msg = ('%d lines of abstract code, first line is: '
+                                 '"%s"\n') % (len(vs), vs[0])
+                logger.warn(('Came across an abstract code block that is not '
+                             'well-defined: the outcome may depend on the '
+                             'order of execution. ' + error_msg))
+
+        return self.translate_statement_sequence(scalar_statements,
+                                                 vector_statements)
+

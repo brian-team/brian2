@@ -208,7 +208,7 @@ class CPPCodeGenerator(CodeGenerator):
             lines.append(line)
         return lines
 
-    def translate_one_statement_sequence(self, statements):
+    def translate_one_statement_sequence(self, statements, scalar=False):
         # This function is refactored into four functions which perform the
         # four necessary operations. It's done like this so that code
         # deriving from this class can overwrite specific parts.

@@ -1,5 +1,6 @@
 {# USES_VARIABLES {i, t, _spikespace, _count, _clock_t, _source_start, _source_stop} #}
-import numpy as np
+import numpy as _numpy
+
 _spikes = {{_spikespace}}[:{{_spikespace}}[-1]]
 # Take subgroups into account
 _spikes = _spikes[(_spikes >= _source_start) & (_spikes < _source_stop)]

@@ -56,6 +56,28 @@ def test_state_variables():
     # Indexing with subgroups
     assert_equal(G.v[SG], SG.v[:])
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_state_variables_simple():
+    G = NeuronGroup(10, '''a : 1
+                           b : 1
+                           c : 1
+                           d : 1
+                           ''')
+    SG = G[3:7]
+    SG.a = 1
+    SG.a['i == 0'] = 2
+    SG.b = 'i'
+    SG.b['i == 3'] = 'i * 2'
+    SG.c = np.arange(3, 7)
+    SG.d[1:2] = 4
+    SG.d[2:4] = [1, 2]
+    run(0*ms)
+    assert_equal(G.a[:], [0, 0, 0, 2, 1, 1, 1, 0, 0, 0])
+    assert_equal(G.b[:], [0, 0, 0, 0, 1, 2, 6, 0, 0, 0])
+    assert_equal(G.c[:], [0, 0, 0, 3, 4, 5, 6, 0, 0, 0])
+    assert_equal(G.d[:], [0, 0, 0, 0, 4, 1, 2, 0, 0, 0])
+
 
 def test_state_variables_string_indices():
     '''
@@ -342,6 +364,17 @@ def test_synaptic_propagation():
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
+def test_synaptic_propagation_2():
+    # This tests for the bug in github issue #461
+    source = NeuronGroup(100, '', threshold='True')
+    sub_source = source[99:]
+    target = NeuronGroup(1, 'v:1')
+    syn = Synapses(sub_source, target, pre='v+=1', connect=True)
+    run(defaultclock.dt)
+    assert target.v[0] == 1.0
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_spike_monitor():
     G = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
     G.v[0] = 1.1
@@ -448,6 +481,7 @@ def test_recursive_subgroup():
 if __name__ == '__main__':
     test_str_repr()
     test_state_variables()
+    test_state_variables_simple()
     test_state_variables_string_indices()
     test_state_variables_group_as_index()
     test_state_variables_group_as_index_problematic()
@@ -460,6 +494,7 @@ if __name__ == '__main__':
     test_subexpression_references()
     test_subexpression_no_references()
     test_synaptic_propagation()
+    test_synaptic_propagation_2()
     test_spike_monitor()
     test_wrong_indexing()
     test_no_reference_1()

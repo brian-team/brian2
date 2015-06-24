@@ -128,10 +128,12 @@ class SynapticPathway(CodeRunner, Group):
             self.source = synapses.source
             self.target = synapses.target
             self.synapse_sources = synapses.variables['_synaptic_pre']
+            order = -1
         elif prepost == 'post':
             self.source = synapses.target
             self.target = synapses.source
             self.synapse_sources = synapses.variables['_synaptic_post']
+            order = 1
         else:
             raise ValueError('prepost argument has to be either "pre" or '
                              '"post"')
@@ -145,7 +147,7 @@ class SynapticPathway(CodeRunner, Group):
                             code=code,
                             clock=self.source.clock,
                             when='synapses',
-                            order=0,
+                            order=order,
                             name=synapses.name + '_' + objname,
                             template_kwds={'pathway': self})
 
@@ -182,8 +184,15 @@ class SynapticPathway(CodeRunner, Group):
             fail_for_dimension_mismatch(delay, second, ('Delay has to be '
                                                         'specified in units '
                                                         'of seconds'))
-            self.variables.add_array('delay', unit=second, size=1,
-                                     constant=True, scalar=True)
+            # We use a "dynamic" array of constant size here because it makes
+            # the generated code easier, we don't need to deal with a different
+            # type for scalar and variable delays
+            self.variables.add_dynamic_array('delay', unit=second,
+                                             size=1, constant=True,
+                                             constant_size=True, scalar=True)
+            # Since this array does not grow with the number of synapses, we
+            # have to resize it ourselves
+            self.variables['delay'].resize(1)
             self.variables['delay'].set_value(delay)
 
         self._delays = self.variables['delay']
@@ -421,7 +430,7 @@ class SynapticIndexing(object):
         (including arrays and slices), a single index or a string.
 
         '''
-        if index is None:
+        if index is None or index == 'True':
             index = slice(None)
 
         if (not isinstance(index, (tuple, basestring)) and

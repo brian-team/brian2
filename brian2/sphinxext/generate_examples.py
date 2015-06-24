@@ -23,7 +23,10 @@ class GlobDirectoryWalker:
             except IndexError:
                 # pop next directory from stack
                 self.directory = self.stack.pop()
-                self.files = os.listdir(self.directory)
+                if os.path.isdir(self.directory):
+                    self.files = os.listdir(self.directory)
+                else:
+                    self.files = []
                 self.index = 0
             else:
                 # got a filename

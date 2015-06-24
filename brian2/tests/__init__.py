@@ -62,10 +62,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     sys.stderr.write('Running tests in "%s" ' % dirname)
     if codegen_targets:
         sys.stderr.write('for targets %s' % (', '.join(codegen_targets)))
-        ex_in = 'including' if long_tests else 'excluding'
-        sys.stderr.write(' (%s long tests)\n' % ex_in)
-    else:
-        sys.stderr.write('\n')
+    ex_in = 'including' if long_tests else 'excluding'
+    sys.stderr.write(' (%s long tests)\n' % ex_in)
+
     if test_standalone:
         if not isinstance(test_standalone, basestring):
             raise ValueError('test_standalone argument has to be the name of a '
@@ -84,7 +83,6 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     prefs.read_preference_file(StringIO(prefs.defaults_as_file))
 
     # Switch off code optimization to get faster compilation times
-    prefs['codegen.runtime.cython.extra_compile_args'] = ['-w', '-O0']
     prefs['codegen.cpp.extra_compile_args_gcc'] = ['-w', '-O0']
     
     try:
@@ -128,13 +126,14 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             set_device(test_standalone + '_simple')
             sys.stderr.write('Testing standalone device "%s"\n' % test_standalone)
             sys.stderr.write('Running standalone-compatible standard tests\n')
+            exclude_str = ',!long' if not long_tests else ''
             success.append(nose.run(argv=['', dirname,
                                           '-c=',  # no config file loading
                                           '-I', '^hears\.py$',
                                           '-I', '^\.',
                                           '-I', '^_',
                                           # Only run standalone tests
-                                          '-a', 'standalone-compatible',
+                                          '-a', 'standalone-compatible'+exclude_str,
                                           '--nologcapture',
                                           '--exe']))
             set_device(previous_device)
@@ -145,7 +144,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                                           '-I', '^\.',
                                           '-I', '^_',
                                           # Only run standalone tests
-                                          '-a', test_standalone,
+                                          '-a', test_standalone+exclude_str,
                                           '--nologcapture',
                                           '--exe']))
         all_success = all(success)

@@ -1,9 +1,17 @@
+'''
+Module defining the `Network` object, the basis of all simulation runs.
+
+Preferences
+-----------
+
+.. document_brian_prefs:: core.network
+
+'''
+
 import sys
 import gc
 import time
-from collections import defaultdict
-
-import numpy as np
+from collections import defaultdict, Sequence
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
@@ -12,7 +20,7 @@ from brian2.core.clocks import Clock
 from brian2.devices.device import device
 from brian2.units.fundamentalunits import check_units, DimensionMismatchError
 from brian2.units.allunits import second, msecond 
-from brian2.core.preferences import prefs
+from brian2.core.preferences import prefs, BrianPreference
 
 from .base import device_override
 
@@ -21,6 +29,22 @@ __all__ = ['Network', 'profiling_summary']
 
 logger = get_logger(__name__)
 
+
+prefs.register_preferences('core.network', 'Network preferences',
+                           default_schedule=BrianPreference(
+                               default=['start',
+                                        'groups',
+                                        'thresholds',
+                                        'synapses',
+                                        'resets',
+                                        'end',
+                                        ],
+                               docs='''
+                               Default schedule used for networks that
+                               don't specify a schedule.
+                               '''
+                           )
+                           )
 
 def _format_time(time_in_s):
     '''
@@ -92,6 +116,7 @@ class TextReport(object):
         # Flush the stream, this is useful if stream is a file
         self.stream.flush()
 
+
 class Network(Nameable):
     '''
     Network(*objs, name='network*')
@@ -141,11 +166,14 @@ class Network(Nameable):
     string names. Each `~BrianObject.when` attribute should be one of these
     strings, and the objects will be updated in the order determined by the
     schedule. The default schedule is
-    ``['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']``. That
-    means that all objects with ``when=='start'` will be updated first, then
-    those with ``when=='groups'``, and so forth. If several objects have the
-    same `~BrianObject.when` attribute, then the order is determined by the
-    `~BrianObject.order` attribute (lower first).
+    ``['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']``. In
+    addition to the names provided in the schedule, automatic names starting
+    with ``before_`` and ``after_`` can be used. That means that all objects
+    with ``when=='before_start'`` will be updated first, then
+    those with ``when=='start'``, ``when=='after_start'``,
+    ``when=='before_groups'``, ``when=='groups'`` and so forth. If several
+    objects have the same `~BrianObject.when` attribute, then the order is
+    determined by the `~BrianObject.order` attribute (lower first).
     
     See Also
     --------
@@ -179,6 +207,8 @@ class Network(Nameable):
 
         # Stored profiling information (if activated via the keyword option)
         self._profiling_info = None
+
+        self._schedule = None
      
     t = property(fget=lambda self: self.t_*second,
                  doc='''
@@ -344,21 +374,31 @@ class Network(Nameable):
         self.t_ = self._stored_t[name]
 
     def _get_schedule(self):
-        if not hasattr(self, '_schedule'):
-            self._schedule = ['start',
-                              'groups',
-                              'thresholds',
-                              'synapses',
-                              'resets',
-                              'end',
-                              ]
-        return self._schedule            
+        if self._schedule is None:
+            return list(prefs.core.network.default_schedule)
+        else:
+            return list(self._schedule)
     
     def _set_schedule(self, schedule):
-        self._schedule = schedule
-        logger.debug("Set network {self.name} schedule to "
-                     "{self._schedule}".format(self=self),
-                     "_set_schedule")
+        if schedule is None:
+            self._schedule = None
+            logger.debug('Reset network {self.name} schedule to '
+                         'default schedule')
+        else:
+            if (not isinstance(schedule, Sequence) or
+                    not all(isinstance(slot, basestring) for slot in schedule)):
+                raise TypeError('Schedule has to be None or a sequence of '
+                                'scheduling slots')
+            if any(slot.startswith('before_') or slot.startswith('after_')
+                   for slot in schedule):
+                raise ValueError('Slot names are not allowed to start with '
+                                 '"before_" or "after_" -- such slot names '
+                                 'are created automatically based on the '
+                                 'existing slot names.')
+            self._schedule = list(schedule)
+            logger.debug("Set network {self.name} schedule to "
+                         "{self._schedule}".format(self=self),
+                         "_set_schedule")
     
     schedule = property(fget=_get_schedule,
                         fset=_set_schedule,
@@ -369,6 +409,9 @@ class Network(Nameable):
         slots can be added, but the schedule should contain at least all of the
         names in the default schedule:
         ``['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']``.
+
+        The schedule can also be set to ``None``, resetting it to the default
+        schedule set by the `core.network.default_schedule` preference.
         ''')
 
     def _sort_objects(self):
@@ -377,10 +420,24 @@ class Network(Nameable):
         
         Objects are sorted first by their ``when`` attribute, and secondly
         by the ``order`` attribute. The order of the ``when`` attribute is
-        defined by the ``schedule``. Final ties are resolved using the objects'
-        names, leading to an arbitrary but deterministic sorting.
+        defined by the ``schedule``. In addition to the slot names defined in
+        the schedule, automatic slot names starting with ``before_`` and
+        ``after_`` can be used (e.g. the slots ``['groups', 'thresholds']``
+        allow to use ``['before_groups', 'groups', 'after_groups',
+        'before_thresholds', 'thresholds', 'after_thresholds']`).
+
+        Final ties are resolved using the objects' names, leading to an
+        arbitrary but deterministic sorting.
         '''
-        when_to_int = dict((when, i) for i, when in enumerate(self.schedule))
+        # Provided slot names are assigned positions 1, 4, 7, ...
+        # before_... names are assigned positions 0, 3, 6, ...
+        # after_... names are assigned positions 2, 5, 8, ...
+        when_to_int = dict((when, 1+i*3)
+                           for i, when in enumerate(self.schedule))
+        when_to_int.update(('before_' + when, i*3)
+                           for i, when in enumerate(self.schedule))
+        when_to_int.update(('after_' + when, 2+i*3)
+                           for i, when in enumerate(self.schedule))
         self.objects.sort(key=lambda obj: (when_to_int[obj.when],
                                            obj.order,
                                            obj.name))
@@ -410,6 +467,8 @@ class Network(Nameable):
             A namespace in which objects which do not define their own
             namespace will be run.
         '''
+        from brian2.devices.device import get_device, all_devices
+
         # A garbage collection here can be useful to free memory if we have
         # multiple runs
         gc.collect()
@@ -418,7 +477,26 @@ class Network(Nameable):
         
         self._stopped = False
         Network._globally_stopped = False
-        
+
+        device = get_device()
+        if device.network_schedule is not None:
+            # The device defines a fixed network schedule
+            if device.network_schedule != self.schedule:
+                # TODO: The human-readable name of a device should be easier to get
+                device_name = all_devices.keys()[all_devices.values().index(device)]
+                logger.warn(("The selected device '{device_name}' only "
+                             "supports a fixed schedule, but this schedule is "
+                             "not consistent with the network's schedule. The "
+                             "simulation will use the device's schedule.\n"
+                             "Device schedule: {device.network_schedule}\n"
+                             "Network schedule: {net.schedule}\n"
+                             "Set the network schedule explicitly or set the "
+                             "core.network.default_schedule preference to "
+                             "avoid this warning.").format(device_name=device_name,
+                                                           device=device,
+                                                           net=self),
+                            name_suffix='schedule_conflict', once=True)
+
         self._sort_objects()
 
         logger.debug("Preparing network {self.name} with {numobj} "
@@ -519,9 +597,6 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
-        if len(self.objects)==0:
-            return # TODO: raise an error? warning?
-
         self._clocks = set([obj.clock for obj in self.objects])
         t_start = self.t
         t_end = self.t+duration
@@ -529,6 +604,10 @@ class Network(Nameable):
             clock.set_interval(self.t, t_end)
 
         self.before_run(namespace, level=level+3)
+
+        if len(self.objects)==0:
+            return # TODO: raise an error? warning?
+
         # Find the first clock to be updated (see note below)
         clock, curclocks = self._nextclocks()
         if report is not None:

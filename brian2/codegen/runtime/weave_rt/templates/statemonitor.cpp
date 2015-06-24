@@ -6,11 +6,10 @@
     // Get the current length and new length of t and value arrays
     const int _curlen = {{_dynamic_t}}.attr("shape")[0];
     const int _new_len = _curlen + 1;
-    // Resize the arrays
-    PyObject_CallMethod(_owner, "resize", "i", _new_len);
 
-    // Get the potentially newly created underlying data arrays and copy the
-    // data
+    // Resize the recorded times and get the (potentially changed) reference to
+    // the underlying data
+    PyObject_CallMethod({{_dynamic_t}}, "resize", "i", _new_len);
     double *_t_data = (double*)(((PyArrayObject*)(PyObject*){{_dynamic_t}}.attr("data"))->data);
     _t_data[_new_len - 1] = _clock_t;
 
@@ -22,6 +21,9 @@
     {% for varname, var in _recorded_variables.items() %}
     {%set c_type = c_data_type(variables[varname].dtype) %}
     {
+        // Resize the recorded variable "{{varname}}" and get the (potentially
+        // changed) reference to the underlying data
+        PyObject_CallMethod({{get_array_name(var, access_data=False)}}, "resize_along_first", "((ii))", _new_len, _num_indices);
         PyArrayObject *_record_data = (((PyArrayObject*)(PyObject*){{get_array_name(var, access_data=False)}}.attr("data")));
         const npy_intp* _record_strides = _record_data->strides;
         for (int _i = 0; _i < _num_indices; _i++)

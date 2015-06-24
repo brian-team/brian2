@@ -96,6 +96,9 @@ the neuronal state updates take up the most time)::
     spikemonitor                0.59 s     6.55 %
     neurongroup_thresholder     0.33 s     3.66 %
 
+
+.. _scheduling:
+
 Scheduling
 ----------
 
@@ -110,7 +113,9 @@ to their ``when``
 argument's position in the schedule.  This schedule is determined by
 `Network.schedule` which is a list of strings, determining "execution slots" and
 their order. It defaults to: ``['start', 'groups', 'thresholds', 'synapses',
-'resets', 'end']``. The default
+'resets', 'end']``. In addition to the names provided in the schedule, names
+such as ``before_thresholds`` or ``after_synapses`` can be used that are
+understood as slots in the respective positions. The default
 for the ``when`` attribute is a sensible value for most objects (resets will
 happen in the ``reset`` slot, etc.) but sometimes it make sense to change it,
 e.g. if one would like a `StateMonitor`, which by default records in the
