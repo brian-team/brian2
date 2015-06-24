@@ -2,7 +2,7 @@ from brian2 import *
 from brian2.tests.features import *
 from brian2.tests.features.base import *
 from brian2.tests.features.speed import *
-from brian2genn.correctness_testing import GeNNConfiguration
+#from brian2genn.correctness_testing import GeNNConfiguration
 
 # Full testing
 # res = run_speed_tests()
@@ -15,7 +15,7 @@ res = run_speed_tests(configurations=[#NumpyConfiguration,
                                       LocalConfiguration,
                                       CPPStandaloneConfiguration,
                                       CPPStandaloneConfigurationOpenMP,
-                                      GeNNConfiguration,
+#                                      GeNNConfiguration,
                                       ],
                       speed_tests=[
                                    LinearNeuronsOnly,
