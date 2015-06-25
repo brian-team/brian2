@@ -149,8 +149,7 @@ def test_user_defined_function():
                               variable : 1''')
     G.variable = test_array
     mon = StateMonitor(G, 'func', record=True)
-    net = Network(G, mon)
-    net.run(default_dt)
+    run(default_dt)
 
     assert_equal(np.sin(test_array), mon.func_.flatten())
 

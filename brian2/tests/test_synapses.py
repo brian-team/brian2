@@ -541,8 +541,7 @@ def test_transmission_scalar_delay():
     target = NeuronGroup(2, 'v:1')
     S = Synapses(inp, target, pre='v+=1', delay=0.5*ms, connect='i==j')
     mon = StateMonitor(target, 'v', record=True)
-    net = Network(inp, target, S, mon)
-    net.run(2*ms)
+    run(2*ms)
     assert_equal(mon[0].v[mon.t<0.5*ms], 0)
     assert_equal(mon[0].v[mon.t>=0.5*ms], 1)
     assert_equal(mon[1].v[mon.t<1.5*ms], 0)
@@ -559,16 +558,15 @@ def test_transmission_scalar_delay_different_clocks():
     target = NeuronGroup(2, 'v:1', dt=0.1*ms)
     S = Synapses(inp, target, pre='v+=1', delay=0.5*ms, connect='i==j')
     mon = StateMonitor(target, 'v', record=True)
-    net = Network(inp, target, S, mon)
 
     if get_device() == all_devices['runtime']:
         # We should get a warning when using inconsistent dts
         with catch_logs() as l:
-            net.run(2*ms)
+            run(2*ms)
             assert len(l) == 1, 'expected a warning, got %d' % len(l)
             assert l[0][1].endswith('synapses_dt_mismatch')
 
-    net.run(0*ms)
+    run(0*ms)
     assert_equal(mon[0].v[mon.t<0.5*ms], 0)
     assert_equal(mon[0].v[mon.t>=0.5*ms], 1)
     assert_equal(mon[1].v[mon.t<1.5*ms], 0)
@@ -743,8 +741,7 @@ def test_external_variables():
     amplitude = 2
     syn = Synapses(source, target, 'w=w_var : 1',
                    pre='v+=amplitude*w', connect=True)
-    net = Network(source, target, syn)
-    net.run(defaultclock.dt)
+    run(defaultclock.dt)
     assert target.v[0] == 2
 
 
@@ -792,8 +789,7 @@ def test_event_driven():
                   connect='i==j')
     S1.w = 0.5*gmax
     S2.w = 0.5*gmax
-    net = Network(pre, post, S1, S2)
-    net.run(25*ms)
+    run(25*ms)
     # The two formulations should yield identical results
     assert_equal(S1.w[:], S2.w[:])
 

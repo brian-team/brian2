@@ -130,8 +130,7 @@ def test_state_monitor():
     SG = G[5:]
     mon_all = StateMonitor(SG, 'v', record=True)
     mon_0 = StateMonitor(SG, 'v', record=0)
-    net = Network(G, SG, mon_all, mon_0)
-    net.run(defaultclock.dt)
+    run(defaultclock.dt)
 
     assert_equal(mon_0[0].v, mon_all[0].v)
     assert_equal(mon_0[0].v, np.array([5]) * volt)
@@ -355,8 +354,7 @@ def test_synaptic_propagation():
     SG2 = G2[10:]
     S = Synapses(SG1, SG2, pre='v+=1')
     S.connect('i==j')
-    net = Network(G1, G2, S)
-    net.run(defaultclock.dt)
+    run(defaultclock.dt)
     expected = np.zeros(len(G2))
     # Neurons 1, 3, 5 spiked and are connected to 10, 12, 14
     expected[[10, 12, 14]] = 1
@@ -383,8 +381,7 @@ def test_spike_monitor():
     SG = G[3:]
     s_mon = SpikeMonitor(G)
     sub_s_mon = SpikeMonitor(SG)
-    net = Network(G, s_mon, sub_s_mon)
-    net.run(defaultclock.dt)
+    run(defaultclock.dt)
     assert_equal(s_mon.i, np.array([0, 2, 5]))
     assert_equal(s_mon.t_, np.zeros(3))
     assert_equal(sub_s_mon.i, np.array([2]))
@@ -427,8 +424,7 @@ def test_no_reference_2():
     state_mon = StateMonitor(G[:1], 'v', record=True)
     spike_mon = SpikeMonitor(G[1:])
     rate_mon = PopulationRateMonitor(G[:2])
-    net = Network(G, state_mon, spike_mon, rate_mon)
-    net.run(2*defaultclock.dt)
+    run(2*defaultclock.dt)
     assert_equal(state_mon[0].v[:], np.zeros(2))
     assert_equal(spike_mon.i[:], np.array([0]))
     assert_equal(spike_mon.t[:], np.array([0])*second)
@@ -443,8 +439,7 @@ def test_no_reference_3():
     G = NeuronGroup(2, 'v:1', threshold='v>1', reset='v=0')
     G.v = [1.1, 0]
     S = Synapses(G[:1], G[1:], pre='v+=1', connect=True)
-    net = Network(G, S)
-    net.run(defaultclock.dt)
+    run(defaultclock.dt)
     assert_equal(G.v[:], np.array([0, 1]))
 
 @attr('standalone-compatible')
@@ -458,8 +453,7 @@ def test_no_reference_4():
     G2 = NeuronGroup(20, 'v:1')
     S = Synapses(G1[1:6], G2[10:], pre='v+=1')
     S.connect('i==j')
-    net = Network(G1, G2, S)
-    net.run(defaultclock.dt)
+    run(defaultclock.dt)
     expected = np.zeros(len(G2))
     # Neurons 1, 3, 5 spiked and are connected to 10, 12, 14
     expected[[10, 12, 14]] = 1
