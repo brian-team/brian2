@@ -668,7 +668,7 @@ class Synapses(Group):
         self._registered_variables = set()
 
         for varname, var in self.variables.iteritems():
-            if isinstance(var, DynamicArrayVariable):
+            if isinstance(var, DynamicArrayVariable) and var.owner.name == self.name:
                 # Register the array with the `SynapticItemMapping` object so
                 # it gets automatically resized
                 self.register_variable(var)
