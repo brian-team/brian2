@@ -528,7 +528,7 @@ def test_namespace_errors():
     assert_raises(KeyError, lambda: net.run(1*ms))
 
     # reset uses unknown identifier
-    G = NeuronGroup(1, 'dv/dt = -v/tau : 1', reset='v = v_r')
+    G = NeuronGroup(1, 'dv/dt = -v/tau : 1', threshold='False', reset='v = v_r')
     net = Network(G)
     assert_raises(KeyError, lambda: net.run(1*ms))
 
@@ -635,10 +635,12 @@ def test_unit_errors_threshold_reset():
     # More complicated unit reset with an intermediate variable
     # This should pass
     NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                threshold='False',
                 reset='''temp_var = -65
                          v = temp_var''')
     # throw in an empty line (should still pass)
     NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                threshold='False',
                 reset='''temp_var = -65
 
                          v = temp_var''')

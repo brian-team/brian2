@@ -820,6 +820,11 @@ class Group(BrianObject):
         codeobj_class : class, optional
             The `CodeObject` class to run code with. If not specified, defaults
             to the `group`'s ``codeobj_class`` attribute.
+
+        Returns
+        -------
+        obj : `CodeRunner`
+            A reference to the object that will be run.
         '''
         if name is None:
             name = self.name + '_run_regularly*'

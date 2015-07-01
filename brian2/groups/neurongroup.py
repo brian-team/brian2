@@ -1,8 +1,11 @@
 '''
 This model defines the `NeuronGroup`, the core of most simulations.
 '''
+import string
+
 import numpy as np
 import sympy
+from pyparsing import Word
 
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         SUBEXPRESSION, PARAMETER, BOOLEAN)
@@ -31,6 +34,30 @@ __all__ = ['NeuronGroup']
 
 logger = get_logger(__name__)
 
+
+IDENTIFIER = Word(string.ascii_letters + '_',
+                  string.ascii_letters + string.digits + '_').setResultsName('identifier')
+
+def _valid_event_name(event_name):
+    '''
+    Helper function to check whether a name is a valid name for an event.
+
+    Parameters
+    ----------
+    event_name : str
+        The name to check
+
+    Returns
+    -------
+    is_valid : bool
+        Whether the given name is valid
+    '''
+    parse_result = list(IDENTIFIER.scanString(event_name))
+
+    # parse_result[0][0][0] refers to the matched string -- this should be the
+    # full identifier, if not it is an illegal identifier like "3foo" which only
+    # matched on "foo"
+    return len(parse_result) == 1 and parse_result[0][0][0] == event_name
 
 def _guess_membrane_potential(equations):
     '''
@@ -152,7 +179,7 @@ class Thresholder(CodeRunner):
     variables of a `NeuronGroup` at every timestep and sets its ``spikes``
     and ``refractory_until`` attributes.
     '''
-    def __init__(self, group, event='spike'):
+    def __init__(self, group, when='thresholds', event='spike'):
         self.event = event
         if group._refractory is False or event != 'spike':
             template_kwds = {'_uses_refractory': False}
@@ -170,7 +197,7 @@ class Thresholder(CodeRunner):
                             'threshold',
                             code='',  # will be set in update_abstract_code
                             clock=group.clock,
-                            when='thresholds',
+                            when=when,
                             order=group.order,
                             name=group.name+'_thresholder*',
                             needed_variables=needed_variables,
@@ -185,7 +212,7 @@ class Thresholder(CodeRunner):
             pass
 
     def update_abstract_code(self, run_namespace=None, level=0):
-        code = self.group.events[self.event][0]  # tuple with first element condition
+        code = self.group.events[self.event]
         # Raise a useful error message when the user used a Brian1 syntax
         if not isinstance(code, basestring):
             if isinstance(code, Quantity):
@@ -194,7 +221,10 @@ class Thresholder(CodeRunner):
                 t = '%s' % type(code)
             error_msg = 'Threshold condition has to be a string, not %s.' % t
             if self.event == 'spike':
-                vm_var = _guess_membrane_potential(self.group.equations)
+                try:
+                    vm_var = _guess_membrane_potential(self.group.equations)
+                except AttributeError:  # not a group with equations...
+                    vm_var = None
                 if vm_var is not None:
                     error_msg += " Probably you intended to use '%s > ...'?" % vm_var
             raise TypeError(error_msg)
@@ -220,7 +250,7 @@ class Resetter(CodeRunner):
     The `CodeRunner` that applies the reset statement(s) to the state
     variables of neurons that have spiked in this timestep.
     '''
-    def __init__(self, group, event='spike'):
+    def __init__(self, group, when='resets', order=None, event='spike'):
         self.event = event
         # Since this now works for general events not only spikes, we have to
         # pass the information about which variable to use to the template,
@@ -228,12 +258,13 @@ class Resetter(CodeRunner):
         eventspace_name = '_{}space'.format(event)
         template_kwds = {'eventspace_variable': group.variables[eventspace_name]}
         needed_variables= [eventspace_name]
+        order = order if order is not None else group.order
         CodeRunner.__init__(self, group,
                             'reset',
                             code='',  # will be set in update_abstract_code
                             clock=group.clock,
-                            when='resets',
-                            order=group.order,
+                            when=when,
+                            order=order,
                             name=group.name + '_resetter*',
                             override_conditional_write=['not_refractory'],
                             needed_variables=needed_variables,
@@ -248,7 +279,7 @@ class Resetter(CodeRunner):
             pass
 
     def update_abstract_code(self, run_namespace=None, level=0):
-        code = self.group.events[self.event][1]  # tuple with second element statements
+        code = self.group.event_codes[self.event]
         # Raise a useful error message when the user used a Brian1 syntax
         if not isinstance(code, basestring):
             if isinstance(code, Quantity):
@@ -292,6 +323,10 @@ class NeuronGroup(Group, SpikeSource):
         after each spike (e.g. ``'(1 + rand())*ms'``), or a string expression
         evaluating to a boolean value, given the condition under which the
         neuron stays refractory after a spike (e.g. ``'v > -20*mV'``)
+    events : dict, optional
+        User-defined events in addition to the "spike" event defined by the
+        ``threshold``. Has to be a mapping of strings (the event name) to
+         strings (the condition) that will be checked.
     namespace: dict, optional
         A dictionary mapping variable/function names to the respective objects.
         If no `namespace` is given, the "implicit" namespace, consisting of
@@ -399,42 +434,47 @@ class NeuronGroup(Group, SpikeSource):
         if events is None:
             events = {}
 
+        if threshold is not None:
+            if 'spike' in events:
+                raise ValueError(("The NeuronGroup defines both a threshold "
+                                  "and a 'spike' event"))
+            events['spike'] = threshold
+
         # Setup variables
         # Since we have to create _spikespace and possibly other "eventspace"
         # variables, we pass the supported events
-        create_events = []
-        if threshold is not None:
-            create_events.append('spike')
-        create_events.extend(events.keys())
-        self._create_variables(dtype, events=create_events)
+        self._create_variables(dtype, events=events.keys())
 
         #: Events supported by this group
-        self.events = {}
+        self.events = events
 
-        #: Performs thresholding step
-        self.thresholder = []
+        #: Code that is triggered on events (e.g. reset)
+        self.event_codes = {}
 
-        #: Reset neurons which have spiked
-        self.resetter = []
+        #: Checks the spike threshold (or abitrary user-defined events)
+        self.thresholder = {}
 
-        if threshold is not None:
-            self.events['spike'] = (threshold, reset)
-            self.thresholder.append(Thresholder(self))
-            if reset is not None:
-                self.resetter.append(Resetter(self))
+        #: Reset neurons which have spiked (or perform arbitrary actions for
+        #: user-defined events)
+        self.resetter = {}
 
-        for event, event_tuple in events.iteritems():
-            if isinstance(event_tuple, basestring):
-                # a single string is interpreted as the threshold
-                event_tuple = (event_tuple, None)
-            if not isinstance(event_tuple, tuple) or len(event_tuple) != 2:
-                raise TypeError(('Values in the events dictionary have to be '
-                                 'tuples of length 2: (condition, statements)'))
-            self.events[event] = event_tuple
-            condition, statements = event_tuple
-            self.thresholder.append(Thresholder(self, event=event))
-            if statements is not None:
-                self.resetter.append(Resetter(self, event=event))
+        for event_name in events.iterkeys():
+            if not isinstance(event_name, basestring):
+                raise TypeError(('Keys in the "events" dictionary have to be '
+                                 'strings, not type %s.') % type(event_name))
+            if not _valid_event_name(event_name):
+                raise TypeError(("The name '%s' cannot be used as an event "
+                                 "name.") % event_name)
+            # By default, user-defined events are checked after the threshold
+            when = 'thresholds' if event_name == 'spike' else 'after_thresholds'
+            # creating a Thresholder will take care of checking the validity
+            # of the condition
+            thresholder = Thresholder(self, event=event_name, when=when)
+            self.thresholder['spike'] = thresholder
+            self.contained_objects.append(thresholder)
+
+        if reset is not None:
+            self.run_on_event('spike', reset, when='resets')
 
         # We try to run a before_run already now. This might fail because of an
         # incomplete namespace but if the namespace is already complete we
@@ -450,9 +490,6 @@ class NeuronGroup(Group, SpikeSource):
         # Creation of contained_objects that do the work
         self.contained_objects.append(self.state_updater)
 
-        self.contained_objects.extend(self.thresholder)
-        self.contained_objects.extend(self.resetter)
-
         if refractory is not False:
             # Set the refractoriness information
             self.variables['lastspike'].set_value(-np.inf*second)
@@ -460,7 +497,6 @@ class NeuronGroup(Group, SpikeSource):
 
         # Activate name attribute access
         self._enable_group_attributes()
-
 
     def __len__(self):
         '''
@@ -488,6 +524,69 @@ class NeuronGroup(Group, SpikeSource):
                                  'set.') % name)
             else:
                 raise ex
+
+    def run_on_event(self, event, code, when='after_resets', order=None):
+        '''
+        Run code triggered by a custom-defined event (see `NeuronGroup`
+        documentation for the specification of events).The created `Resetter`
+        object will be automatically added to the group, it therefore does not
+        need to be added to the network manually. However, a reference to the
+        object will be returned, which can be used to later remove it from the
+        group or to set it to inactive.
+
+        Parameters
+        ----------
+        event : str
+            The name of the event that should trigger the code
+        code : str
+            The code that should be executed
+        when : str, optional
+            The scheduling slot that should be used to execute the code.
+            Defaults to `'after_resets'`.
+        order : int, optional
+            The order for operations in the same scheduling slot. Defaults to
+            the order of the `NeuronGroup`.
+
+        Returns
+        -------
+        obj : `Resetter`
+            A reference to the object that will be run.
+        '''
+        if event not in self.events:
+            error_message = "Unknown event '%s'." % event
+            if event == 'spike':
+                error_message += ' Did you forget to define a threshold?'
+            raise ValueError(error_message)
+        if event in self.resetter:
+            raise ValueError(("Cannot add code for event '%s', code for this "
+                              "event has already been added.") % event)
+        self.event_codes[event] = code
+        resetter = Resetter(self, when=when, order=order)
+        self.resetter[event] = resetter
+        self.contained_objects.append(resetter)
+
+        return resetter
+
+    def set_event_schedule(self, event, when='after_thresholds', order=None):
+        '''
+        Change the scheduling slot for checking the condition of an event.
+
+        Parameters
+        ----------
+        event : str
+            The name of the event for which the scheduling should be changed
+        when : str, optional
+            The scheduling slot that should be used to check the condition.
+            Defaults to `'after_thresholds'`.
+        order : int, optional
+            The order for operations in the same scheduling slot. Defaults to
+            the order of the `NeuronGroup`.
+        '''
+        if event not in self.thresholder:
+            raise ValueError("Unknown event '%s'." % event)
+        order = order if order is not None else self.order
+        self.thresholder[event].when = when
+        self.thresholder[event].order = order
 
     def __setattr__(self, key, value):
         # attribute access is switched off until this attribute is created by

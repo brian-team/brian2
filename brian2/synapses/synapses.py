@@ -556,6 +556,11 @@ class Synapses(Group):
         argument, but instead set the delays via the attribute of the pathway,
         e.g. ``S.pre.delay = ...`` (or ``S.delay = ...`` as an abbreviation),
         ``S.post.delay = ...``, etc.
+    events : str or dict, optional
+        Define the events which trigger the pre and post pathways. By default,
+        both pathways are triggered by the ``'spike'`` event, i.e. the event
+        that is triggered by the ``threshold`` condition in the connected
+        groups.
     namespace : dict, optional
         A dictionary mapping identifier names to objects. If not given, the
         namespace will be filled in at the time of the call of `Network.run`,
@@ -585,8 +590,8 @@ class Synapses(Group):
         The name for this object. If none is given, a unique name of the form
         ``synapses``, ``synapses_1``, etc. will be automatically chosen.
     '''
-
     add_to_magic_network = True
+
     def __init__(self, source, target=None, model=None, pre=None, post=None,
                  connect=False, delay=None, events='spike',
                  namespace=None, dtype=None,
@@ -629,7 +634,7 @@ class Synapses(Group):
         model._equations['lastupdate'] = SingleEquation(PARAMETER,
                                                         'lastupdate',
                                                         second)
-        self._create_variables(model)
+        self._create_variables(model, user_dtype=dtype)
 
         # Separate the equations into event-driven equations,
         # continuously updated equations and summed variable updates
