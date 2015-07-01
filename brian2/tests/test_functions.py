@@ -443,8 +443,8 @@ def test_function_dependencies_weave():
         return 84*mV
 
     G = NeuronGroup(5, 'v : volt')
-    updater = G.custom_operation('v = bar(v)')
-    net = Network(G, updater)
+    G.run_regularly('v = bar(v)')
+    net = Network(G)
     net.run(defaultclock.dt)
 
     assert_allclose(G.v_[:], 84*0.001)
@@ -474,8 +474,8 @@ def test_function_dependencies_cython():
         return 84*mV
 
     G = NeuronGroup(5, 'v : volt')
-    updater = G.custom_operation('v = bar(v)')
-    net = Network(G, updater)
+    G.run_regularly('v = bar(v)')
+    net = Network(G)
     net.run(defaultclock.dt)
 
     assert_allclose(G.v_[:], 84*0.001)
@@ -511,8 +511,8 @@ def test_function_dependencies_numpy():
         return 2*foo(x)
 
     G = NeuronGroup(5, 'v : volt')
-    updater = G.custom_operation('v = bar(v)')
-    net = Network(G, updater)
+    G.run_regularly('v = bar(v)')
+    net = Network(G)
     net.run(defaultclock.dt)
 
     assert_allclose(G.v_[:], 84*0.001)
@@ -527,8 +527,8 @@ def test_binomial():
     # values
     G = NeuronGroup(1, '''x : 1
                           y : 1''')
-    updater = G.custom_operation('''x = binomial_f_approximated()
-                                    y = binomial_f()''')
+    G.run_regularly('''x = binomial_f_approximated()
+                       y = binomial_f()''')
     mon = StateMonitor(G, ['x', 'y'], record=0)
     run(1*ms)
     assert np.var(mon[0].x) > 0

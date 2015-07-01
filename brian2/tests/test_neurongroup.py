@@ -1072,8 +1072,8 @@ def test_aliasing_in_statements():
                      x_0 = -1'''
     g = NeuronGroup(1, model='''x_0 : 1
                                 x_1 : 1 ''')
-    custom_code_obj = g.custom_operation(runner_code)
-    net = Network(g, custom_code_obj)
+    g.run_regularly(runner_code)
+    net = Network(g)
     net.run(defaultclock.dt)
     assert_equal(g.x_0_[:], np.array([-1]))
     assert_equal(g.x_1_[:], np.array([0]))

@@ -32,7 +32,7 @@ For stochastic equations with several ``xi`` values it is now necessary to make 
 or different noise instantiations. To make this distinction, an arbitrary suffix can be used, e.g. using ``xi_1`` several times
 refers to the same variable, ``xi_2`` (or ``xi_inh``, ``xi_alpha``, etc.) refers to another. An error will be raised if
 you use more than one plain ``xi``. Note that noise is always independent across neurons, you can only work around this
-restriction by defining your noise variable as a shared parameter and update it using a user-defined function (e.g. with a  `~Group.custom_operation`),
+restriction by defining your noise variable as a shared parameter and update it using a user-defined function (e.g. with `~Group.run_regularly`),
 or create a group that models the noise and link to its variable (see :ref:`linked_variables`).
 
 Flags

@@ -785,12 +785,20 @@ class Group(BrianObject):
 
     def runner(self, *args, **kwds):
         raise AttributeError("The 'runner' method has been renamed to "
-                             "'custom_operation'")
+                             "'run_regularly'.")
 
-    def custom_operation(self, code, dt=None, clock=None, when='start',
-                         order=0, name=None, codeobj_class=None):
+    def custom_operation(self, *args, **kwds):
+        raise AttributeError("The 'custom_operation' method has been renamed "
+                             "to 'run_regularly'.")
+
+    def run_regularly(self, code, dt=None, clock=None, when='start',
+                      order=0, name=None, codeobj_class=None):
         '''
-        Returns a `CodeRunner` that runs abstract code in the group's namespace.
+        Run abstract code in the group's namespace. The created `CodeRunner`
+        object will be automatically added to the group, it therefore does not
+        need to be added to the network manually. However, a reference to the
+        object will be returned, which can be used to later remove it from the
+        group or to set it to inactive.
 
         Parameters
         ----------
@@ -806,7 +814,7 @@ class Group(BrianObject):
             When to run within a time step, defaults to the ``'start'`` slot.
         name : str, optional
             A unique name, if non is given the name of the group appended with
-            'custom_operation', 'custom_operation_1', etc. will be used. If a
+            'run_regularly', 'run_regularly_1', etc. will be used. If a
             name is given explicitly, it will be used as given (i.e. the group
             name will not be prepended automatically).
         codeobj_class : class, optional
@@ -814,7 +822,7 @@ class Group(BrianObject):
             to the `group`'s ``codeobj_class`` attribute.
         '''
         if name is None:
-            name = self.name + '_custom_operation*'
+            name = self.name + '_run_regularly*'
 
         if dt is None and clock is None:
             clock = self._clock
@@ -822,8 +830,8 @@ class Group(BrianObject):
         runner = CodeRunner(self, 'stateupdate', code=code, name=name,
                             dt=dt, clock=clock, when=when, order=order,
                             codeobj_class=codeobj_class)
+        self.contained_objects.append(runner)
         return runner
-
 
 
 class CodeRunner(BrianObject):
