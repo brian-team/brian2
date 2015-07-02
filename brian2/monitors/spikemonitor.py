@@ -11,13 +11,48 @@ __all__ = ['EventMonitor', 'SpikeMonitor']
 
 
 class EventMonitor(Group, CodeRunner):
+    '''
+    Record events from a `NeuronGroup` or another event source.
+
+    The recorded events can be accessed in various ways:
+    the attributes `~EventMonitor.i` and `~EventMonitor.t` store all the indices
+    and event times, respectively. Alternatively, you can get a dictionary
+    mapping neuron indices to event trains, by calling the `event_trains`
+    method.
+
+    Parameters
+    ----------
+    source : `NeuronGroup`
+        The source of events to record.
+    record : bool
+        Whether or not to record each event in `i` and `t` (the `count` will
+        always be recorded).
+    when : str, optional
+        When to record the events, by default records events in the slot
+        ``'end'``.
+    order : int, optional
+        The priority of of this group for operations occurring at the same time
+        step and in the same scheduling slot. Defaults to 0.
+    name : str, optional
+        A unique name for the object, otherwise will use
+        ``source.name+'_eventmonitor_0'``, etc.
+    codeobj_class : class, optional
+        The `CodeObject` class to run code with.
+
+    See Also
+    --------
+    SpikeMonitor
+    '''
     invalidates_magic_network = False
     add_to_magic_network = True
 
     def __init__(self, source, event, when='end', order=0,
                  name='eventmonitor*', codeobj_class=None):
         #: The source we are recording from
-        self.source =source
+        self.source = source
+
+        #: The event that we are listening to
+        self.event = event
 
         self.codeobj_class = codeobj_class
         # Since this now works for general events not only spikes, we have to
@@ -91,25 +126,19 @@ class EventMonitor(Group, CodeRunner):
         '''
         return self.i, self.t_
 
-    def spike_trains(self):
+    def event_trains(self):
         '''
-        Return a dictionary mapping spike indices to arrays of spike times.
+        Return a dictionary mapping event indices to arrays of event times.
 
         Returns
         -------
-        spike_trains : dict
-            Dictionary that stores an array with the spike times for each
+        event_trains : dict
+            Dictionary that stores an array with the event times for each
             neuron index.
 
-        Examples
+        See Also
         --------
-        >>> from brian2 import *
-        >>> spikes = SpikeGeneratorGroup(3, [0, 1, 2], [0, 1, 2]*ms)
-        >>> spike_mon = SpikeMonitor(spikes)
-        >>> run(3*ms)
-        >>> spike_trains = spike_mon.spike_trains()
-        >>> spike_trains[1]
-        array([ 1.]) * msecond
+        SpikeMonitor.spike_trains
         '''
         indices = self.i[:]
         sort_indices = np.argsort(indices)
@@ -117,32 +146,33 @@ class EventMonitor(Group, CodeRunner):
                                             return_index=True)
         sorted_times = self.t_[:][sort_indices]
 
-        spike_times = {}
+        event_times = {}
         current_pos = 0  # position in the all_indices array
         for idx in xrange(len(self.source)):
             if current_pos < len(used_indices) and used_indices[current_pos] == idx:
                 if current_pos < len(used_indices)-1:
-                    spike_times[idx] = Quantity(sorted_times[first_pos[current_pos]:first_pos[current_pos+1]],
+                    event_times[idx] = Quantity(sorted_times[first_pos[current_pos]:first_pos[current_pos+1]],
                                                 dim=second.dim, copy=False)
                 else:
-                    spike_times[idx] = Quantity(sorted_times[first_pos[current_pos]:],
+                    event_times[idx] = Quantity(sorted_times[first_pos[current_pos]:],
                                                 dim=second.dim, copy=False)
                 current_pos += 1
             else:
-                spike_times[idx] = Quantity([], dim=second.dim)
+                event_times[idx] = Quantity([], dim=second.dim)
 
-        return spike_times
+        return event_times
 
     @property
-    def num_spikes(self):
+    def num_events(self):
         '''
-        Returns the total number of recorded spikes
+        Returns the total number of recorded events.
         '''
         return self._N
 
     def __repr__(self):
-        description = '<{classname}, recording {source}>'
+        description = '<{classname}, recording event "{event}" from {source}>'
         return description.format(classname=self.__class__.__name__,
+                                  event=self.event,
                                   source=self.group.name)
 
 class SpikeMonitor(EventMonitor):
@@ -192,3 +222,37 @@ class SpikeMonitor(EventMonitor):
         super(SpikeMonitor, self).__init__(source, event='spike', when=when,
                                            order=order, name=name,
                                            codeobj_class=codeobj_class)
+
+    @property
+    def num_spikes(self):
+        '''
+        Returns the total number of recorded spikes.
+        '''
+        return self.num_events
+
+    def spike_trains(self):
+        '''
+        Return a dictionary mapping spike indices to arrays of spike times.
+
+        Returns
+        -------
+        spike_trains : dict
+            Dictionary that stores an array with the spike times for each
+            neuron index.
+
+        Examples
+        --------
+        >>> from brian2 import *
+        >>> spikes = SpikeGeneratorGroup(3, [0, 1, 2], [0, 1, 2]*ms)
+        >>> spike_mon = SpikeMonitor(spikes)
+        >>> run(3*ms)
+        >>> spike_trains = spike_mon.spike_trains()
+        >>> spike_trains[1]
+        array([ 1.]) * msecond
+        '''
+        return self.event_trains()
+
+    def __repr__(self):
+        description = '<{classname}, recording from {source}>'
+        return description.format(classname=self.__class__.__name__,
+                                  source=self.group.name)
