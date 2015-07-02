@@ -22,7 +22,7 @@ void _run_{{codeobj_name}}()
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}
 	{{owner.name}}.advance();
-	{{owner.name}}.push({{_spikespace}}, {{_eventspace}}[_num{{eventspace_variable.name}}-1]);
+	{{owner.name}}.push({{_eventspace}}, {{_eventspace}}[_num{{eventspace_variable.name}}-1]);
 	//{{owner.name}}.queue->peek();
 }
 {% endmacro %}
