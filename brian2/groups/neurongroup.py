@@ -470,7 +470,7 @@ class NeuronGroup(Group, SpikeSource):
             # creating a Thresholder will take care of checking the validity
             # of the condition
             thresholder = Thresholder(self, event=event_name, when=when)
-            self.thresholder['spike'] = thresholder
+            self.thresholder[event_name] = thresholder
             self.contained_objects.append(thresholder)
 
         if reset is not None:
@@ -561,7 +561,7 @@ class NeuronGroup(Group, SpikeSource):
             raise ValueError(("Cannot add code for event '%s', code for this "
                               "event has already been added.") % event)
         self.event_codes[event] = code
-        resetter = Resetter(self, when=when, order=order)
+        resetter = Resetter(self, when=when, order=order, event=event)
         self.resetter[event] = resetter
         self.contained_objects.append(resetter)
 
