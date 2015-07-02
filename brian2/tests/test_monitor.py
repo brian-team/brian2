@@ -48,6 +48,45 @@ def test_spike_monitor():
     assert_raises(KeyError, lambda: spike_trains['string'])
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_event_monitor():
+    G = NeuronGroup(3, '''dv/dt = rate : 1
+                          rate: Hz''', events={'my_event': 'v>1'})
+    G.run_on_event('my_event', 'v=0')
+    # We don't use 100 and 1000Hz, because then the membrane potential would
+    # be exactly at 1 after 10 resp. 100 timesteps. Due to floating point
+    # issues this will not be exact,
+    G.rate = [101, 0, 1001] * Hz
+
+    mon = EventMonitor(G, 'my_event')
+    net = Network(G, mon)
+    net.run(10*ms)
+
+    event_trains = mon.event_trains()
+
+    assert_allclose(mon.t[mon.i == 0], [9.9]*ms)
+    assert len(mon.t[mon.i == 1]) == 0
+    assert_allclose(mon.t[mon.i == 2], np.arange(10)*ms + 0.9*ms)
+    assert_allclose(mon.t_[mon.i == 0], np.array([9.9*float(ms)]))
+    assert len(mon.t_[mon.i == 1]) == 0
+    assert_allclose(mon.t_[mon.i == 2], (np.arange(10) + 0.9)*float(ms))
+    assert_allclose(event_trains[0], [9.9]*ms)
+    assert len(event_trains[1]) == 0
+    assert_allclose(event_trains[2], np.arange(10)*ms + 0.9*ms)
+    assert_array_equal(mon.count, np.array([1, 0, 10]))
+
+    i, t = mon.it
+    i_, t_ = mon.it_
+    assert_array_equal(i, mon.i)
+    assert_array_equal(i, i_)
+    assert_array_equal(t, mon.t)
+    assert_array_equal(t_, mon.t_)
+
+    assert_raises(KeyError, lambda: event_trains[3])
+    assert_raises(KeyError, lambda: event_trains[-1])
+    assert_raises(KeyError, lambda: event_trains['string'])
+
 def test_synapses_state_monitor():
     G = NeuronGroup(2, '')
     S = Synapses(G, G, 'w: siemens')
@@ -221,6 +260,7 @@ def test_rate_monitor_subgroups():
 
 if __name__ == '__main__':
     test_spike_monitor()
+    test_event_monitor()
     test_state_monitor()
     test_state_monitor_indexing()
     test_rate_monitor()

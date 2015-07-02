@@ -685,6 +685,54 @@ def test_syntax_errors():
                                       threshold='True',
                                       reset='0'))
 
+@attr('codegen-independent')
+def test_custom_events():
+    G = NeuronGroup(2, '''event_time1 : second
+                          event_time2 : second''',
+                    events={'event1': 't>=i*ms and t<i*ms+dt',
+                            'event2': 't>=(i+1)*ms and t<(i+1)*ms+dt'})
+    G.run_on_event('event1', 'event_time1 = t')
+    G.run_on_event('event2', 'event_time2 = t')
+    net = Network(G)
+    net.run(2.1*ms)
+    assert_allclose(G.event_time1[:], [0, 1]*ms)
+    assert_allclose(G.event_time2[:], [1, 2]*ms)
+
+def test_custom_events_schedule():
+    # In the same time step: event2 will be checked and its code executed
+    # before event1 is checked and its code executed
+    G = NeuronGroup(2, '''x : 1
+                          event_time : second''',
+                    events={'event1': 'x>0',
+                            'event2': 't>=(i+1)*ms and t<(i+1)*ms+dt'})
+    G.set_event_schedule('event1', when='after_resets')
+    G.run_on_event('event2', 'x = 1', when='resets')
+    G.run_on_event('event1',
+                   '''event_time = t
+                      x = 0''', when='after_resets', order=1)
+    net = Network(G)
+    net.run(2.1*ms)
+    assert_allclose(G.event_time[:], [1, 2]*ms)
+
+
+@attr('codegen-independent')
+def test_incorrect_custom_event_definition():
+    # Incorrect event name
+    assert_raises(TypeError, lambda: NeuronGroup(1, '',
+                                                 events={'1event': 'True'}))
+    # duplicate definition of 'spike' event
+    assert_raises(ValueError, lambda: NeuronGroup(1, '', threshold='True',
+                                                  events={'spike': 'False'}))
+    # not a threshold
+    assert_raises(TypeError, lambda: NeuronGroup(1, '',
+                                                 events={'my_event': 10*mV}))
+    # schedule for a non-existing event
+    G = NeuronGroup(1, '', threshold='False', events={'my_event': 'True'})
+    assert_raises(ValueError, lambda: G.set_event_schedule('another_event'))
+    # code for a non-existing event
+    assert_raises(ValueError, lambda: G.run_on_event('another_event', ''))
+
+
 def test_state_variables():
     '''
     Test the setting and accessing of state variables.
@@ -1121,52 +1169,55 @@ def test_random_vector_values():
 
 
 if __name__ == '__main__':
-    test_creation()
-    test_variables()
-    test_scalar_variable()
-    test_referred_scalar_variable()
-    test_linked_variable_correct()
-    test_linked_variable_incorrect()
-    test_linked_variable_scalar()
-    test_linked_variable_indexed()
-    test_linked_variable_repeat()
-    test_linked_double_linked1()
-    test_linked_double_linked2()
-    test_linked_double_linked3()
-    test_linked_double_linked4()
-    test_linked_triple_linked()
-    test_linked_subgroup()
-    test_linked_subgroup2()
-    test_linked_subexpression()
-    test_linked_subexpression_2()
-    test_linked_subexpression_3()
-    test_linked_subexpression_synapse()
-    test_linked_variable_indexed_incorrect()
-    test_linked_synapses()
-    test_linked_var_in_reset()
-    test_linked_var_in_reset_size_1()
-    test_linked_var_in_reset_incorrect()
-    test_stochastic_variable()
-    test_stochastic_variable_multiplicative()
-    test_unit_errors()
-    test_threshold_reset()
-    test_unit_errors_threshold_reset()
-    test_incomplete_namespace()
-    test_namespace_errors()
-    test_namespace_warnings()
-    test_syntax_errors()
-    test_state_variables()
-    test_state_variable_access()
-    test_state_variable_access_strings()
-    test_unknown_state_variables()
-    test_subexpression()
-    test_subexpression_with_constant()
-    test_scalar_parameter_access()
-    test_scalar_subexpression()
-    test_indices()
-    test_repr()
-    test_get_dtype()
-    if prefs.codegen.target == 'numpy':
-        test_aliasing_in_statements()
-    test_get_states()
-    test_random_vector_values()
+    # test_creation()
+    # test_variables()
+    # test_scalar_variable()
+    # test_referred_scalar_variable()
+    # test_linked_variable_correct()
+    # test_linked_variable_incorrect()
+    # test_linked_variable_scalar()
+    # test_linked_variable_indexed()
+    # test_linked_variable_repeat()
+    # test_linked_double_linked1()
+    # test_linked_double_linked2()
+    # test_linked_double_linked3()
+    # test_linked_double_linked4()
+    # test_linked_triple_linked()
+    # test_linked_subgroup()
+    # test_linked_subgroup2()
+    # test_linked_subexpression()
+    # test_linked_subexpression_2()
+    # test_linked_subexpression_3()
+    # test_linked_subexpression_synapse()
+    # test_linked_variable_indexed_incorrect()
+    # test_linked_synapses()
+    # test_linked_var_in_reset()
+    # test_linked_var_in_reset_size_1()
+    # test_linked_var_in_reset_incorrect()
+    # test_stochastic_variable()
+    # test_stochastic_variable_multiplicative()
+    # test_unit_errors()
+    # test_threshold_reset()
+    # test_unit_errors_threshold_reset()
+    test_custom_events()
+    test_custom_events_schedule()
+    test_incorrect_custom_event_definition()
+    # test_incomplete_namespace()
+    # test_namespace_errors()
+    # test_namespace_warnings()
+    # test_syntax_errors()
+    # test_state_variables()
+    # test_state_variable_access()
+    # test_state_variable_access_strings()
+    # test_unknown_state_variables()
+    # test_subexpression()
+    # test_subexpression_with_constant()
+    # test_scalar_parameter_access()
+    # test_scalar_subexpression()
+    # test_indices()
+    # test_repr()
+    # test_get_dtype()
+    # if prefs.codegen.target == 'numpy':
+    #     test_aliasing_in_statements()
+    # test_get_states()
+    # test_random_vector_values()

@@ -508,6 +508,34 @@ def test_pre_before_post():
     assert G.x == 2
     assert G.y == 1
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_transmission_simple():
+    source = SpikeGeneratorGroup(2, [0, 1], [2, 1] * ms)
+    target = NeuronGroup(2, 'v : 1')
+    syn = Synapses(source, target, pre='v += 1', connect='i==j')
+    mon = StateMonitor(target, 'v', record=True)
+    run(2.5*ms)
+    assert_equal(mon[0].v[mon.t<2*ms], 0.)
+    assert_equal(mon[0].v[mon.t>=2*ms], 1.)
+    assert_equal(mon[1].v[mon.t<1*ms], 0.)
+    assert_equal(mon[1].v[mon.t>=1*ms], 1.)
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_transmission_custom_event():
+    source = NeuronGroup(2, '',
+                         events={'custom': 't>=(2-i)*ms and t<(2-i)*ms + dt'})
+    target = NeuronGroup(2, 'v : 1')
+    syn = Synapses(source, target, pre='v += 1', connect='i==j',
+                   events='custom')
+    mon = StateMonitor(target, 'v', record=True)
+    run(2.5*ms)
+    assert_equal(mon[0].v[mon.t<2*ms], 0.)
+    assert_equal(mon[0].v[mon.t>=2*ms], 1.)
+    assert_equal(mon[1].v[mon.t<1*ms], 0.)
+    assert_equal(mon[1].v[mon.t>=1*ms], 1.)
+
 @attr('long')
 def test_transmission():
     default_dt = defaultclock.dt
@@ -988,6 +1016,8 @@ if __name__ == '__main__':
     test_subexpression_references()
     test_delay_specification()
     test_pre_before_post()
+    test_transmission_simple()
+    test_transmission_custom_event()
     test_transmission()
     test_transmission_scalar_delay()
     test_transmission_scalar_delay_different_clocks()
