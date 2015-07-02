@@ -4,7 +4,7 @@ import pickle
 
 from nose.plugins.attrib import attr
 import numpy as np
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_raises, assert_equal, assert_allclose
 
 from brian2.core.preferences import prefs
 from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
@@ -40,7 +40,9 @@ except ImportError:
 
 
 def assert_quantity(q, values, unit):
-    assert isinstance(q, Quantity) or (isinstance(q, np.ndarray) and have_same_dimensions(unit, 1))
+    assert isinstance(q, Quantity) or (have_same_dimensions(unit, 1) and
+                                       (values.shape == () or
+                                        isinstance(q, np.ndarray)))
     assert_equal(np.asarray(q), values)
     assert have_same_dimensions(q, unit), ('Dimension mismatch: (%s) (%s)' %
                                            (get_dimensions(q),
@@ -980,6 +982,37 @@ def test_deepcopy():
     assert d['x'] == 1*second
 
 
+@attr('codegen-independent')
+def test_inplace_on_scalars():
+    # We want "copy semantics" for in-place operations on scalar quantities
+    # in the same way as for Python scalars
+    for scalar in [3*mV, 3*mV/mV]:
+        scalar_reference = scalar
+        scalar_copy = Quantity(scalar, copy=True)
+        scalar += scalar_copy
+        assert_equal(scalar_copy, scalar_reference)
+        scalar *= 1.5
+        assert_equal(scalar_copy, scalar_reference)
+        scalar /= 2
+        assert_equal(scalar_copy, scalar_reference)
+
+        # also check that it worked correctly for the scalar itself
+        assert_allclose(scalar, (scalar_copy + scalar_copy)*1.5/2)
+
+    # For arrays, it should use reference semantics
+    for vector in [[3]*mV, [3]*mV/mV]:
+        vector_reference = vector
+        vector_copy = Quantity(vector, copy=True)
+        vector += vector_copy
+        assert_equal(vector, vector_reference)
+        vector *= 1.5
+        assert_equal(vector, vector_reference)
+        vector /= 2
+        assert_equal(vector, vector_reference)
+
+        # also check that it worked correctly for the vector itself
+        assert_allclose(vector, (vector_copy + vector_copy)*1.5/2)
+
 if __name__ == '__main__':
     test_construction()
     test_get_dimensions()
@@ -995,8 +1028,8 @@ if __name__ == '__main__':
     test_binary_operations()
     test_inplace_operations()
     test_unit_discarding_functions()
-    test_unitsafe_functions()    
-    test_special_case_numpy_functions()    
+    test_unitsafe_functions()
+    test_special_case_numpy_functions()
     test_numpy_functions_same_dimensions()
     test_numpy_functions_indices()
     test_numpy_functions_dimensionless()
@@ -1009,3 +1042,4 @@ if __name__ == '__main__':
     test_switching_off_unit_checks()
     test_fail_for_dimension_mismatch()
     test_deepcopy()
+    test_inplace_on_scalars()
