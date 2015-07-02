@@ -46,6 +46,8 @@ class Subgroup(Group, SpikeSource):
         self.start = start
         self.stop = stop
 
+        self.events = self.source.events
+
         # All the variables have to go via the _sub_idx to refer to the
         # appropriate values in the source group
         self.variables = Variables(self, default_index='_sub_idx')
