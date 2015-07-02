@@ -30,13 +30,13 @@ If the event should trigger a series of statements (i.e. the equivalent of
 
 When neurons are connected by `Synapses`, the ``pre`` and ``post`` pathways
 are triggered by spike events by default. It is possible to change this by
-providing an ``events`` keyword that either specifies which event to use for all
+providing an ``on_event`` keyword that either specifies which event to use for all
 pathways, or a specific event for each pathway (where non-specified pathways use
 the default ``spike`` event)::
 
-    synapse_1 = Synapses(group, another_group, '...', pre='...', events='custom_event')
+    synapse_1 = Synapses(group, another_group, '...', pre='...', on_event='custom_event')
     synapse_2 = Synapses(group, another_group, '...', pre='...', post='...',
-                         events={'pre': 'custom_event'})
+                         on_event={'pre': 'custom_event'})
 
 Scheduling
 ----------

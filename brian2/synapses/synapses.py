@@ -556,7 +556,7 @@ class Synapses(Group):
         argument, but instead set the delays via the attribute of the pathway,
         e.g. ``S.pre.delay = ...`` (or ``S.delay = ...`` as an abbreviation),
         ``S.post.delay = ...``, etc.
-    events : str or dict, optional
+    on_event : str or dict, optional
         Define the events which trigger the pre and post pathways. By default,
         both pathways are triggered by the ``'spike'`` event, i.e. the event
         that is triggered by the ``threshold`` condition in the connected
@@ -593,7 +593,7 @@ class Synapses(Group):
     add_to_magic_network = True
 
     def __init__(self, source, target=None, model=None, pre=None, post=None,
-                 connect=False, delay=None, events='spike',
+                 connect=False, delay=None, on_event='spike',
                  namespace=None, dtype=None,
                  codeobj_class=None,
                  dt=None, clock=None, order=0,
@@ -685,11 +685,11 @@ class Synapses(Group):
         #: List of all `SynapticPathway` objects
         self._pathways = []
 
-        if isinstance(events, basestring):
-            events_dict = collections.defaultdict(lambda: events)
+        if isinstance(on_event, basestring):
+            events_dict = collections.defaultdict(lambda: on_event)
         else:
             events_dict = collections.defaultdict(lambda: 'spike')
-            events_dict.update(events)
+            events_dict.update(on_event)
 
         #: "Events" for all the pathways
         self.events = events_dict

@@ -528,13 +528,23 @@ def test_transmission_custom_event():
                          events={'custom': 't>=(2-i)*ms and t<(2-i)*ms + dt'})
     target = NeuronGroup(2, 'v : 1')
     syn = Synapses(source, target, pre='v += 1', connect='i==j',
-                   events='custom')
+                   on_event='custom')
     mon = StateMonitor(target, 'v', record=True)
     run(2.5*ms)
     assert_equal(mon[0].v[mon.t<2*ms], 0.)
     assert_equal(mon[0].v[mon.t>=2*ms], 1.)
     assert_equal(mon[1].v[mon.t<1*ms], 0.)
     assert_equal(mon[1].v[mon.t>=1*ms], 1.)
+
+@attr('codegen-independent')
+def test_invalid_custom_event():
+    group1 = NeuronGroup(2, 'v : 1',
+                         events={'custom': 't>=(2-i)*ms and t<(2-i)*ms + dt'})
+    group2 = NeuronGroup(2, 'v : 1', threshold='v>1')
+    assert_raises(ValueError, lambda: Synapses(group1, group1, pre='v+=1',
+                                               on_event='spike'))
+    assert_raises(ValueError, lambda: Synapses(group2, group2, pre='v+=1',
+                                               on_event='custom'))
 
 @attr('long')
 def test_transmission():
@@ -1014,6 +1024,7 @@ if __name__ == '__main__':
     test_pre_before_post()
     test_transmission_simple()
     test_transmission_custom_event()
+    test_invalid_custom_event()
     test_transmission()
     test_transmission_scalar_delay()
     test_transmission_scalar_delay_different_clocks()
