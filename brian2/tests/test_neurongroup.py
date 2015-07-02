@@ -14,6 +14,7 @@ from brian2.devices.device import restore_device
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
+from brian2.core.magic import run
 from brian2.synapses.synapses import Synapses
 from brian2.monitors.statemonitor import StateMonitor
 from brian2.units.fundamentalunits import (DimensionMismatchError,
@@ -73,8 +74,7 @@ def test_stochastic_variable():
     '''
     tau = 10 * ms
     G = NeuronGroup(1, 'dv/dt = -v/tau + xi*tau**-0.5: 1')
-    net = Network(G)
-    net.run(defaultclock.dt)
+    run(defaultclock.dt)
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
@@ -86,8 +86,7 @@ def test_stochastic_variable_multiplicative():
     mu = 0.5/second # drift
     sigma = 0.1/second #diffusion
     G = NeuronGroup(1, 'dX/dt = (mu - 0.5*second*sigma**2)*X + X*sigma*xi*second**.5: 1')
-    net = Network(G)
-    net.run(defaultclock.dt)
+    run(defaultclock.dt)
 
 def test_scalar_variable():
     '''
@@ -122,8 +121,7 @@ def test_referred_scalar_variable():
     G.x = np.arange(10)
     G2 = NeuronGroup(10, '')
     G2.variables.add_reference('out', G)
-    net = Network(G, G2)
-    net.run(.25*second)
+    run(.25*second)
     assert_allclose(G2.out[:], np.arange(10)+1)
 
 @attr('standalone-compatible')
@@ -139,8 +137,7 @@ def test_linked_variable_correct():
     G2.v = linked_var(G1.v)
     mon1 = StateMonitor(G1, 'v', record=True)
     mon2 = StateMonitor(G2, 'v', record=True)
-    net = Network(G1, G2, mon1, mon2)
-    net.run(10*ms)
+    run(10*ms)
     assert_equal(mon1.v[:, :], mon2.v[:, :])
     # Make sure that printing the variable values works
     assert len(str(G2.v)) > 0
@@ -182,10 +179,9 @@ def test_linked_variable_scalar():
     G2.y = np.linspace(0, 1, 10)
     G2.x = linked_var(G1.x)
     mon = StateMonitor(G2, 'y', record=True)
-    net = Network(G1, G2, mon)
     # We don't test anything for now, except that it runs without raising an
     # error
-    net.run(10*ms)
+    run(10*ms)
     # Make sure that printing the variable values works
     assert len(str(G2.x)) > 0
     assert len(repr(G2.x)) > 0
@@ -332,9 +328,7 @@ def test_linked_subexpression():
 
     G2.x = linked_var(G.v, index=np.array([0, 1]).repeat(5))
     mon = StateMonitor(G2, 'I', record=True)
-
-    net = Network(G, G2, mon)
-    net.run(5*ms)
+    run(5*ms)
 
     # Due to the linking, the first 5 and the second 5 recorded I vectors should
     # be identical
@@ -356,9 +350,7 @@ def test_linked_subexpression_2():
     G2.I_l = linked_var(G.I)
     mon1 = StateMonitor(G, 'I', record=True)
     mon = StateMonitor(G2, 'I_l', record=True)
-
-    net = Network(G, G2, mon, mon1)
-    net.run(5*ms)
+    run(5*ms)
 
     assert all(mon[0].I_l == mon1[0].I)
     assert all(mon[1].I_l == mon1[1].I)
@@ -378,9 +370,7 @@ def test_linked_subexpression_3():
     G2.I_l = linked_var(G.I, index=np.array([0, 1]).repeat(5))
     mon1 = StateMonitor(G, 'I', record=True)
     mon = StateMonitor(G2, 'I_l', record=True)
-
-    net = Network(G, G2, mon, mon1)
-    net.run(5*ms)
+    run(5*ms)
 
     # Due to the linking, the first 5 and the second 5 recorded I vectors should
     # refer to the
@@ -455,10 +445,9 @@ def test_linked_var_in_reset():
                      threshold='y>1', reset='y=0; x_linked += 1')
     G2.x_linked = linked_var(G1, 'x')
     G2.y = [0, 1.1, 0]
-    net = Network(G1, G2)
     # In this context, x_linked should not be considered as a scalar variable
     # and therefore the reset statement should be allowed
-    net.run(3*defaultclock.dt)
+    run(3*defaultclock.dt)
     assert_equal(G1.x[:], [0, 1, 0])
 
 @attr('standalone-compatible')
@@ -470,10 +459,9 @@ def test_linked_var_in_reset_size_1():
                      threshold='y>1', reset='y=0; x_linked += 1')
     G2.x_linked = linked_var(G1, 'x')
     G2.y = 1.1
-    net = Network(G1, G2)
     # In this context, x_linked should not be considered as a scalar variable
     # and therefore the reset statement should be allowed
-    net.run(3*defaultclock.dt)
+    run(3*defaultclock.dt)
     assert_equal(G1.x[:], 1)
 
 @attr('codegen-independent')
@@ -612,8 +600,7 @@ def test_threshold_reset():
     G = NeuronGroup(3, 'dv/dt = 0 / second : 1',
                     threshold='v > 1', reset='v=0.5')
     G.v = np.array([0, 1, 2])
-    net = Network(G)
-    net.run(defaultclock.dt)
+    run(defaultclock.dt)
     assert_equal(G.v[:], np.array([0, 1, 0.5]))
 
 @attr('codegen-independent')
@@ -1060,6 +1047,16 @@ def test_repr():
             assert len(func(eq))
 
 @attr('codegen-independent')
+def test_ipython_html():
+    G = NeuronGroup(10, '''dv/dt = -(v + Inp) / tau : volt
+                           Inp = sin(2*pi*freq*t) : volt
+                           freq : Hz''')
+
+    # Test that HTML representation in IPython does not raise errors
+    assert len(G._repr_html_())
+
+
+@attr('codegen-independent')
 def test_indices():
     G = NeuronGroup(10, 'v : 1')
     G.v = 'i'
@@ -1169,55 +1166,56 @@ def test_random_vector_values():
 
 
 if __name__ == '__main__':
-    # test_creation()
-    # test_variables()
-    # test_scalar_variable()
-    # test_referred_scalar_variable()
-    # test_linked_variable_correct()
-    # test_linked_variable_incorrect()
-    # test_linked_variable_scalar()
-    # test_linked_variable_indexed()
-    # test_linked_variable_repeat()
-    # test_linked_double_linked1()
-    # test_linked_double_linked2()
-    # test_linked_double_linked3()
-    # test_linked_double_linked4()
-    # test_linked_triple_linked()
-    # test_linked_subgroup()
-    # test_linked_subgroup2()
-    # test_linked_subexpression()
-    # test_linked_subexpression_2()
-    # test_linked_subexpression_3()
-    # test_linked_subexpression_synapse()
-    # test_linked_variable_indexed_incorrect()
-    # test_linked_synapses()
-    # test_linked_var_in_reset()
-    # test_linked_var_in_reset_size_1()
-    # test_linked_var_in_reset_incorrect()
-    # test_stochastic_variable()
-    # test_stochastic_variable_multiplicative()
-    # test_unit_errors()
-    # test_threshold_reset()
-    # test_unit_errors_threshold_reset()
+    test_creation()
+    test_variables()
+    test_scalar_variable()
+    test_referred_scalar_variable()
+    test_linked_variable_correct()
+    test_linked_variable_incorrect()
+    test_linked_variable_scalar()
+    test_linked_variable_indexed()
+    test_linked_variable_repeat()
+    test_linked_double_linked1()
+    test_linked_double_linked2()
+    test_linked_double_linked3()
+    test_linked_double_linked4()
+    test_linked_triple_linked()
+    test_linked_subgroup()
+    test_linked_subgroup2()
+    test_linked_subexpression()
+    test_linked_subexpression_2()
+    test_linked_subexpression_3()
+    test_linked_subexpression_synapse()
+    test_linked_variable_indexed_incorrect()
+    test_linked_synapses()
+    test_linked_var_in_reset()
+    test_linked_var_in_reset_size_1()
+    test_linked_var_in_reset_incorrect()
+    test_stochastic_variable()
+    test_stochastic_variable_multiplicative()
+    test_unit_errors()
+    test_threshold_reset()
+    test_unit_errors_threshold_reset()
     test_custom_events()
     test_custom_events_schedule()
     test_incorrect_custom_event_definition()
-    # test_incomplete_namespace()
-    # test_namespace_errors()
-    # test_namespace_warnings()
-    # test_syntax_errors()
-    # test_state_variables()
-    # test_state_variable_access()
-    # test_state_variable_access_strings()
-    # test_unknown_state_variables()
-    # test_subexpression()
-    # test_subexpression_with_constant()
-    # test_scalar_parameter_access()
-    # test_scalar_subexpression()
-    # test_indices()
-    # test_repr()
-    # test_get_dtype()
-    # if prefs.codegen.target == 'numpy':
-    #     test_aliasing_in_statements()
-    # test_get_states()
-    # test_random_vector_values()
+    test_incomplete_namespace()
+    test_namespace_errors()
+    test_namespace_warnings()
+    test_syntax_errors()
+    test_state_variables()
+    test_state_variable_access()
+    test_state_variable_access_strings()
+    test_unknown_state_variables()
+    test_subexpression()
+    test_subexpression_with_constant()
+    test_scalar_parameter_access()
+    test_scalar_subexpression()
+    test_indices()
+    test_repr()
+    test_ipython_html()    
+    test_get_dtype()
+    if prefs.codegen.target == 'numpy':
+        test_aliasing_in_statements()
+    test_get_states()
+    test_random_vector_values()

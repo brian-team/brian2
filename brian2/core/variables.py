@@ -572,7 +572,7 @@ class DynamicArrayVariable(ArrayVariable):
     '''
 
     def __init__(self, name, unit, owner, size, device, dtype=None,
-                 constant=False, constant_size=True,
+                 constant=False, constant_size=True, resize_along_first=False,
                  scalar=False, read_only=False, unique=False):
 
         if isinstance(size, int):
@@ -587,6 +587,10 @@ class DynamicArrayVariable(ArrayVariable):
             raise ValueError('A variable cannot be constant and change in size')
         #: Whether the size of the variable is constant during a run.
         self.constant_size = constant_size
+
+        #: Whether this array will be only resized along the first dimension
+        self.resize_along_first = resize_along_first
+
         super(DynamicArrayVariable, self).__init__(unit=unit,
                                                    owner=owner,
                                                    name=name,
@@ -598,6 +602,7 @@ class DynamicArrayVariable(ArrayVariable):
                                                    dynamic=True,
                                                    read_only=read_only,
                                                    unique=unique)
+
     def resize(self, new_size):
         '''
         Resize the dynamic array. Calls `self.device.resize` to do the
@@ -608,8 +613,13 @@ class DynamicArrayVariable(ArrayVariable):
         new_size : int or tuple of int
             The new size.
         '''
-        self.device.resize(self, new_size)
+        if self.resize_along_first:
+            self.device.resize_along_first(self, new_size)
+        else:
+            self.device.resize(self, new_size)
+
         self.size = new_size
+
 
 
 class Subexpression(Variable):
@@ -1473,7 +1483,8 @@ class Variables(collections.Mapping):
             self.device.init_with_array(var, values)
 
     def add_dynamic_array(self, name, unit, size, values=None, dtype=None,
-                          constant=False, constant_size=True, read_only=False,
+                          constant=False, constant_size=True,
+                          resize_along_first=False, read_only=False,
                           unique=False, scalar=False, index=None):
         '''
         Add a dynamic array.
@@ -1515,6 +1526,7 @@ class Variables(collections.Mapping):
                                    device=self.device,
                                    size=size, dtype=dtype,
                                    constant=constant, constant_size=constant_size,
+                                   resize_along_first=resize_along_first,
                                    scalar=scalar,
                                    read_only=read_only, unique=unique)
         self._add_variable(name, var, index)
@@ -1796,7 +1808,8 @@ class Variables(collections.Mapping):
             not confuse the dynamic array of recorded times with the current
             time in the recorded group.
         '''
-        for name in ['t', 'dt']:
+        for name, is_constant in [('t', False),
+                                  ('dt', True)]:
             if prefix+name in self._variables:
                 var = self._variables[prefix+name]
                 if not isinstance(var, AttributeVariable):
@@ -1807,4 +1820,6 @@ class Variables(collections.Mapping):
                 var.obj = clock # replace the clock object
             else:
                 self.add_attribute_variable(prefix+name, unit=second, obj=clock,
-                                            attribute=name+'_', dtype=np.float64)
+                                            attribute=name+'_',
+                                            dtype=np.float64,
+                                            constant=is_constant)

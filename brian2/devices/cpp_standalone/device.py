@@ -739,7 +739,7 @@ class CPPStandaloneDevice(Device):
                         x = os.system('make')
                     if x!=0:
                         raise RuntimeError("Project compilation failed")
-                    
+
     def run(self, directory, with_output, run_args):
         with in_directory(directory):
             if not with_output:
@@ -761,9 +761,9 @@ class CPPStandaloneDevice(Device):
               run_args=None, **kwds):
         '''
         Build the project
-        
+
         TODO: more details
-        
+
         Parameters
         ----------
         directory : str
@@ -813,22 +813,22 @@ class CPPStandaloneDevice(Device):
                                                   runtime_library_dirs=prefs['codegen.cpp.runtime_library_dirs'],
                                                   libraries=prefs['codegen.cpp.libraries']) +
                         prefs['codegen.cpp.extra_link_args'])
-        
+
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(directory, d))
-            
+
         writer = CPPWriter(directory)
-        
+
         # Get the number of threads if specified in an openmp context
         nb_threads = prefs.devices.cpp_standalone.openmp_threads
         # If the number is negative, we need to throw an error
         if (nb_threads < 0):
-            raise ValueError('The number of OpenMP threads can not be negative !') 
+            raise ValueError('The number of OpenMP threads can not be negative !')
 
         logger.debug("Writing C++ standalone project to directory "+os.path.normpath(directory))
-        
+
         self.check_openmp_compatible(nb_threads)
-        
+
         arange_arrays = sorted([(var, start)
                                 for var, start in self.arange_arrays.iteritems()],
                                key=lambda (var, start): var.name)
@@ -850,14 +850,14 @@ class CPPStandaloneDevice(Device):
         self.generate_synapses_classes_source(writer)
         self.generate_run_source(writer)
         self.copy_source_files(writer, directory)
-        
+
         writer.source_files.extend(additional_source_files)
-        
+
         self.generate_makefile(writer, compiler, native=native,
                                compiler_flags=' '.join(compiler_flags),
                                linker_flags=' '.join(linker_flags),
                                nb_threads=nb_threads)
-        
+
         if compile:
             self.compile_source(directory, compiler, debug, clean, native)
             if run:

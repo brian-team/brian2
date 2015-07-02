@@ -20,8 +20,7 @@ def test_spike_monitor():
     G.rate = [101, 0, 1001] * Hz
 
     mon = SpikeMonitor(G)
-    net = Network(G, mon)
-    net.run(10*ms)
+    run(10*ms)
 
     spike_trains = mon.spike_trains()
 
@@ -147,13 +146,7 @@ def test_state_monitor():
     # Record synapses with explicit indices (the only way allowed in standalone)
     synapse_mon = StateMonitor(S, 'w', record=np.arange(len(G)**2))
 
-    net = Network(G, S,
-                  nothing_mon, no_record,
-                  v_mon, v_mon1,
-                  multi_mon, multi_mon1,
-                  all_mon,
-                  synapse_mon)
-    net.run(10*ms)
+    run(10*ms)
 
     # Check time recordings
     assert_array_equal(nothing_mon.t, v_mon.t)
@@ -196,8 +189,7 @@ def test_state_monitor_indexing():
     G.v = np.arange(10) * volt
     mon = StateMonitor(G, 'v', record=[5, 6, 7])
 
-    net = Network(G, mon)
-    net.run(2 * defaultclock.dt)
+    run(2 * defaultclock.dt)
 
     assert_array_equal(mon.v, np.array([[5, 5],
                                   [6, 6],
@@ -221,8 +213,7 @@ def test_rate_monitor():
     G = NeuronGroup(5, 'v : 1', threshold='v>1') # no reset
     G.v = 1.1 # All neurons spike every time step
     rate_mon = PopulationRateMonitor(G)
-    net = Network(G, rate_mon)
-    net.run(10*defaultclock.dt)
+    run(10*defaultclock.dt)
 
     assert_allclose(rate_mon.t, np.arange(10) * defaultclock.dt)
     assert_allclose(rate_mon.t_, np.arange(10) * float(defaultclock.dt))
@@ -249,8 +240,7 @@ def test_rate_monitor_subgroups():
     rate_1 = PopulationRateMonitor(G[:2])
     rate_2 = PopulationRateMonitor(G[2:])
     s_mon = SpikeMonitor(G)
-    net = Network(G, rate_all, rate_1, rate_2, s_mon)
-    net.run(10*ms)
+    run(10*ms)
     assert_allclose(mean(G.rate[:]), mean(rate_all.rate[:]))
     assert_allclose(mean(G.rate[:2]), mean(rate_1.rate[:]))
     assert_allclose(mean(G.rate[2:]), mean(rate_2.rate[:]))

@@ -32,8 +32,7 @@ def test_refractoriness_basic():
     # It should take 10ms to reach the threshold, then v should stay at 0
     # for 5ms, while w continues to increase
     mon = StateMonitor(G, ['v', 'w'], record=True)
-    net = Network(G, mon)
-    net.run(20*ms)
+    run(20*ms)
     # No difference before the spike
     assert_equal(mon[0].v[mon.t < 10*ms], mon[0].w[mon.t < 10*ms])
     # v is not updated during refractoriness
@@ -69,8 +68,7 @@ def test_refractoriness_variables():
         # It should take 10ms to reach the threshold, then v should stay at 0
         # for 5ms, while w continues to increase
         mon = StateMonitor(G, ['v', 'w'], record=True)
-        net = Network(G, mon)
-        net.run(20*ms)
+        run(20*ms)
         try:
             # No difference before the spike
             assert_equal(mon[0].v[mon.t < 10*ms], mon[0].w[mon.t < 10*ms])
@@ -104,8 +102,7 @@ def test_refractoriness_threshold():
         # 10ms. The state variable should continue to integrate so there should
         # be a spike after 15ms
         spike_mon = SpikeMonitor(G)
-        net = Network(G, spike_mon)
-        net.run(16*ms)
+        run(16*ms)
         assert_allclose(spike_mon.t, [4.9, 15] * ms)
 
 @attr('standalone-compatible')
@@ -118,8 +115,7 @@ def test_refractoriness_threshold_basic():
     # 10ms. The state variable should continue to integrate so there should
     # be a spike after 15ms
     spike_mon = SpikeMonitor(G)
-    net = Network(G, spike_mon)
-    net.run(16*ms)
+    run(16*ms)
     assert_allclose(spike_mon.t, [4.9, 15] * ms)
 
 
@@ -142,8 +138,7 @@ def test_refractoriness_threshold():
         # 10ms. The state variable should continue to integrate so there should
         # be a spike after 15ms
         spike_mon = SpikeMonitor(G)
-        net = Network(G, spike_mon)
-        net.run(16*ms)
+        run(16*ms)
         assert_allclose(spike_mon.t, [4.9, 15] * ms)
 
 
@@ -193,8 +188,7 @@ def test_conditional_write_behaviour():
 
     M = StateMonitor(G, variables=True, record=True)
 
-    net = Network(H, G, Sx, Sy, M)
-    net.run(10*ms)
+    run(10*ms)
 
     assert G.x[0] < 0.2
     assert G.y[0] > 0.2
