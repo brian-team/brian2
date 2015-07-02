@@ -2,7 +2,7 @@
 {% macro main() %}
     {{ common.insert_pointers_lines() }}
 
-    {# USES_VARIABLES { t, i, _clock_t, _count,
+    {# USES_VARIABLES { t, i, _clock_t, count,
                         _source_start, _source_stop} #}
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}
@@ -49,7 +49,7 @@
                 const int _idx = {{_eventspace}}[_j];
                 _t_data[_curlen + _j - _start_idx] = _clock_t;
                 _i_data[_curlen + _j - _start_idx] = _idx - _source_start;
-                {{_count}}[_idx - _source_start]++;
+                {{count}}[_idx - _source_start]++;
             }
         }
 	}

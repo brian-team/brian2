@@ -3,7 +3,7 @@
 
 {% block maincode %}
 	//// MAIN CODE ////////////
-    {# USES_VARIABLES { t, i, _clock_t, _count,
+    {# USES_VARIABLES { t, i, _clock_t, count,
                         _source_start, _source_stop} #}
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}
@@ -39,7 +39,7 @@
                     const int _idx = {{_eventspace}}[_j];
                     {{_dynamic_i}}.push_back(_idx-_source_start);
                     {{_dynamic_t}}.push_back(_clock_t);
-                    {{_count}}[_idx-_source_start]++;
+                    {{count}}[_idx-_source_start]++;
                 }
             }
         }

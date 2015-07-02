@@ -1,7 +1,7 @@
 {% extends 'common.pyx' %}
 
 {% block maincode %}
-    {# USES_VARIABLES { t, i, _clock_t, _count,
+    {# USES_VARIABLES { t, i, _clock_t, count,
                         _source_start, _source_stop} #}
 
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
@@ -42,6 +42,6 @@
                 _idx = {{_eventspace}}[_j]
                 _t_view[_curlen + _j - _start_idx] = _clock_t
                 _i_view[_curlen + _j - _start_idx] = _idx - _source_start
-                {{_count}}[_idx - _source_start] += 1
+                {{count}}[_idx - _source_start] += 1
                 
 {% endblock %}

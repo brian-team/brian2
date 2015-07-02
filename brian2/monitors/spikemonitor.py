@@ -79,7 +79,7 @@ class EventMonitor(Group, CodeRunner):
         self.variables.add_dynamic_array('t', size=0, unit=second,
                                          constant_size=False)
         self.variables.add_arange('_source_i', size=len(source))
-        self.variables.add_array('_count', size=len(source), unit=Unit(1),
+        self.variables.add_array('count', size=len(source), unit=Unit(1),
                                  dtype=np.int32, read_only=True,
                                  index='_source_i')
         self.variables.add_constant('_source_start', Unit(1), start)
@@ -106,11 +106,6 @@ class EventMonitor(Group, CodeRunner):
         Clears all recorded spikes
         '''
         raise NotImplementedError()
-
-    # TODO: Maybe there's a more elegant solution for the count attribute?
-    @property
-    def count(self):
-        return self.variables['_count'].get_value().copy()
 
     @property
     def it(self):

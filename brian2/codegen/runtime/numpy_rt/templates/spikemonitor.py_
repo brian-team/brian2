@@ -1,4 +1,4 @@
-{# USES_VARIABLES {i, t, _count, _clock_t, _source_start, _source_stop} #}
+{# USES_VARIABLES {i, t, count, _clock_t, _source_start, _source_stop} #}
 import numpy as _numpy
 
 {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
@@ -17,4 +17,4 @@ if _n_events > 0:
     {{_dynamic_t}}[_curlen:_newlen] = _clock_t
     {{_dynamic_i}}[_curlen:_newlen] = _events
 
-    {{_count}}[_events] += 1
+    {{count}}[_events] += 1
