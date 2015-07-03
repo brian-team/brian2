@@ -516,7 +516,7 @@ def test_namespace_errors():
     assert_raises(KeyError, lambda: net.run(1*ms))
 
     # reset uses unknown identifier
-    G = NeuronGroup(1, 'dv/dt = -v/tau : 1', reset='v = v_r')
+    G = NeuronGroup(1, 'dv/dt = -v/tau : 1', threshold='False', reset='v = v_r')
     net = Network(G)
     assert_raises(KeyError, lambda: net.run(1*ms))
 
@@ -616,15 +616,18 @@ def test_unit_errors_threshold_reset():
     # Unit error in reset
     assert_raises(DimensionMismatchError,
                   lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                                      threshold='True',
                                       reset='v = -65*mV'))
 
     # More complicated unit reset with an intermediate variable
     # This should pass
     NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                threshold='False',
                 reset='''temp_var = -65
                          v = temp_var''')
     # throw in an empty line (should still pass)
     NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                threshold='False',
                 reset='''temp_var = -65
 
                          v = temp_var''')
@@ -632,17 +635,20 @@ def test_unit_errors_threshold_reset():
     # This should fail
     assert_raises(DimensionMismatchError,
                   lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                                      threshold='False',
                                       reset='''temp_var = -65*mV
                                                v = temp_var'''))
 
     # Resets with an in-place modification
     # This should work
     NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                threshold='False',
                 reset='''v /= 2''')
 
     # This should fail
     assert_raises(DimensionMismatchError,
                   lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                                      threshold='False',
                                       reset='''v -= 60*mV'''))
 
 @attr('codegen-independent')
@@ -663,7 +669,55 @@ def test_syntax_errors():
     # Syntax error in reset
     assert_raises(Exception,
                   lambda: NeuronGroup(1, 'dv/dt = 5*Hz : 1',
+                                      threshold='True',
                                       reset='0'))
+
+@attr('codegen-independent')
+def test_custom_events():
+    G = NeuronGroup(2, '''event_time1 : second
+                          event_time2 : second''',
+                    events={'event1': 't>=i*ms and t<i*ms+dt',
+                            'event2': 't>=(i+1)*ms and t<(i+1)*ms+dt'})
+    G.run_on_event('event1', 'event_time1 = t')
+    G.run_on_event('event2', 'event_time2 = t')
+    net = Network(G)
+    net.run(2.1*ms)
+    assert_allclose(G.event_time1[:], [0, 1]*ms)
+    assert_allclose(G.event_time2[:], [1, 2]*ms)
+
+def test_custom_events_schedule():
+    # In the same time step: event2 will be checked and its code executed
+    # before event1 is checked and its code executed
+    G = NeuronGroup(2, '''x : 1
+                          event_time : second''',
+                    events={'event1': 'x>0',
+                            'event2': 't>=(i+1)*ms and t<(i+1)*ms+dt'})
+    G.set_event_schedule('event1', when='after_resets')
+    G.run_on_event('event2', 'x = 1', when='resets')
+    G.run_on_event('event1',
+                   '''event_time = t
+                      x = 0''', when='after_resets', order=1)
+    net = Network(G)
+    net.run(2.1*ms)
+    assert_allclose(G.event_time[:], [1, 2]*ms)
+
+
+@attr('codegen-independent')
+def test_incorrect_custom_event_definition():
+    # Incorrect event name
+    assert_raises(TypeError, lambda: NeuronGroup(1, '',
+                                                 events={'1event': 'True'}))
+    # duplicate definition of 'spike' event
+    assert_raises(ValueError, lambda: NeuronGroup(1, '', threshold='True',
+                                                  events={'spike': 'False'}))
+    # not a threshold
+    assert_raises(TypeError, lambda: NeuronGroup(1, '',
+                                                 events={'my_event': 10*mV}))
+    # schedule for a non-existing event
+    G = NeuronGroup(1, '', threshold='False', events={'my_event': 'True'})
+    assert_raises(ValueError, lambda: G.set_event_schedule('another_event'))
+    # code for a non-existing event
+    assert_raises(ValueError, lambda: G.run_on_event('another_event', ''))
 
 
 def test_state_variables():
@@ -1065,8 +1119,8 @@ def test_aliasing_in_statements():
                      x_0 = -1'''
     g = NeuronGroup(1, model='''x_0 : 1
                                 x_1 : 1 ''')
-    custom_code_obj = g.custom_operation(runner_code)
-    net = Network(g, custom_code_obj)
+    g.run_regularly(runner_code)
+    net = Network(g)
     net.run(defaultclock.dt)
     assert_equal(g.x_0_[:], np.array([-1]))
     assert_equal(g.x_1_[:], np.array([0]))
@@ -1142,6 +1196,9 @@ if __name__ == '__main__':
     test_unit_errors()
     test_threshold_reset()
     test_unit_errors_threshold_reset()
+    test_custom_events()
+    test_custom_events_schedule()
+    test_incorrect_custom_event_definition()
     test_incomplete_namespace()
     test_namespace_errors()
     test_namespace_warnings()
@@ -1156,7 +1213,7 @@ if __name__ == '__main__':
     test_scalar_subexpression()
     test_indices()
     test_repr()
-    test_ipython_html()
+    test_ipython_html()    
     test_get_dtype()
     if prefs.codegen.target == 'numpy':
         test_aliasing_in_statements()

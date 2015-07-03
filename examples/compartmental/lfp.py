@@ -45,7 +45,7 @@ neuron.gNa = gNa0
 neuron[5*cm:10*cm].gNa = 0*siemens/cm**2
 M = StateMonitor(neuron, 'v', record=True)
 
-store_v = neuron.custom_operation('previous_v = v',when='start')
+neuron.run_regularly('previous_v = v', when='start')
 
 # LFP recorder
 Ne = 5 # Number of electrodes

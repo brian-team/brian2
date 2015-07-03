@@ -1,7 +1,9 @@
-{# USES_VARIABLES { _spikespace, N } #}
-# t, not_refractory and lastspike are added as needed_variables in the
-# Thresholder class, we cannot use the USES_VARIABLE mechanism
-# conditionally
+{# USES_VARIABLES { N } #}
+{# t, not_refractory and lastspike are added as needed_variables in the
+  Thresholder class, we cannot use the USES_VARIABLE mechanism
+  conditionally
+  Same goes for "eventspace" (e.g. spikespace) which depends on the type of
+  event #}
 {# ITERATE_ALL { _idx } #}
 import numpy as _numpy
 
@@ -16,13 +18,17 @@ _vectorisation_idx = N
 
 {{vector_code|autoindent}}
 if _cond is True or _cond is numpy_True:
-    _spikes = _numpy.arange(_vectorisation_idx)
+    _events = _numpy.arange(_vectorisation_idx)
 else:
-    _spikes, = _cond.nonzero()
-{{_spikespace}}[-1] = len(_spikes)
-{{_spikespace}}[:len(_spikes)] = _spikes
+    _events, = _cond.nonzero()
+
+{#  Get the name of the array that stores these events (e.g. the spikespace array) #}
+{% set _eventspace = get_array_name(eventspace_variable) %}
+
+{{_eventspace}}[-1] = len(_events)
+{{_eventspace}}[:len(_events)] = _events
 {% if _uses_refractory %}
 # Set the neuron to refractory
-{{not_refractory}}[_spikes] = False
-{{lastspike}}[_spikes] = t
+{{not_refractory}}[_events] = False
+{{lastspike}}[_events] = t
 {% endif %}

@@ -569,7 +569,7 @@ def test_network_access():
 @with_setup(teardown=restore_initial_state)
 def test_dependency_check():
     def create_net():
-        G = NeuronGroup(10, 'v: 1')
+        G = NeuronGroup(10, 'v: 1', threshold='False')
         dependent_objects = [
                              StateMonitor(G, 'v', record=True),
                              SpikeMonitor(G),
@@ -635,10 +635,8 @@ def test_magic_collect():
     Make sure all expected objects are collected in a magic network
     '''
     P = PoissonGroup(10, rates=100*Hz)
-    G = NeuronGroup(10, 'v:1')
+    G = NeuronGroup(10, 'v:1', threshold='False')
     S = Synapses(G, G, '')
-    G_runner = G.custom_operation('')
-    S_runner = S.custom_operation('')
 
     state_mon = StateMonitor(G, 'v', record=True)
     spike_mon = SpikeMonitor(G)
@@ -646,7 +644,7 @@ def test_magic_collect():
 
     objects = collect()
 
-    assert len(objects) == 8, ('expected %d objects, got %d' % (8, len(objects)))
+    assert len(objects) == 6, ('expected %d objects, got %d' % (6, len(objects)))
 
 from contextlib import contextmanager
 from StringIO import StringIO

@@ -148,8 +148,8 @@ def test_shared_variable():
 
 
 def test_synapse_creation():
-    G1 = NeuronGroup(10, 'v:1')
-    G2 = NeuronGroup(20, 'v:1')
+    G1 = NeuronGroup(10, 'v:1', threshold='False')
+    G2 = NeuronGroup(20, 'v:1', threshold='False')
     G1.v = 'i'
     G2.v = '10 + i'
     SG1 = G1[:5]
@@ -181,9 +181,9 @@ def test_synapse_creation():
 
 
 def test_synapse_access():
-    G1 = NeuronGroup(10, 'v:1')
+    G1 = NeuronGroup(10, 'v:1', threshold='False')
     G1.v = 'i'
-    G2 = NeuronGroup(20, 'v:1')
+    G2 = NeuronGroup(20, 'v:1', threshold='False')
     G2.v = 'i'
     SG1 = G1[:5]
     SG2 = G2[10:]

@@ -1,17 +1,20 @@
-{# USES_VARIABLES {i, t, _spikespace, _count, _clock_t, _source_start, _source_stop} #}
+{# USES_VARIABLES {i, t, count, _clock_t, _source_start, _source_stop} #}
 import numpy as _numpy
 
-_spikes = {{_spikespace}}[:{{_spikespace}}[-1]]
+{#  Get the name of the array that stores these events (e.g. the spikespace array) #}
+{% set _eventspace = get_array_name(eventspace_variable) %}
+
+_events = {{_eventspace}}[:{{_eventspace}}[-1]]
 # Take subgroups into account
-_spikes = _spikes[(_spikes >= _source_start) & (_spikes < _source_stop)]
-_spikes -= _source_start
-_n_spikes = len(_spikes)
-if _n_spikes > 0:
+_events = _events[(_events >= _source_start) & (_events < _source_stop)]
+_events -= _source_start
+_n_events = len(_events)
+if _n_events > 0:
 
     _curlen = len({{_dynamic_t}})
-    _newlen = _curlen + _n_spikes
+    _newlen = _curlen + _n_events
     _owner.resize(_newlen)
     {{_dynamic_t}}[_curlen:_newlen] = _clock_t
-    {{_dynamic_i}}[_curlen:_newlen] = _spikes
+    {{_dynamic_i}}[_curlen:_newlen] = _events
 
-    {{_count}}[_spikes] += 1
+    {{count}}[_events] += 1

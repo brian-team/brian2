@@ -3,40 +3,43 @@
 
 {% block maincode %}
 	//// MAIN CODE ////////////
-    {# USES_VARIABLES { t, i, _clock_t, _spikespace, _count,
+    {# USES_VARIABLES { t, i, _clock_t, count,
                         _source_start, _source_stop} #}
-	int32_t _num_spikes = {{_spikespace}}[_num_spikespace-1];
-    
+    {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
+    {% set _eventspace = get_array_name(eventspace_variable) %}
+
+	int32_t _num_events = {{_eventspace}}[_num{{eventspace_variable.name}}-1];
+
     {{ openmp_pragma('single-nowait') }}
     {
-        if (_num_spikes > 0)
+        if (_num_events > 0)
         {
-            int _start_idx = _num_spikes;
-            int _end_idx = _num_spikes;
-            for(int _j=0; _j<_num_spikes; _j++)
+            int _start_idx = _num_events;
+            int _end_idx = _num_events;
+            for(int _j=0; _j<_num_events; _j++)
             {
-                const int _idx = {{_spikespace}}[_j];
+                const int _idx = {{_eventspace}}[_j];
                 if (_idx >= _source_start) {
                     _start_idx = _j;
                     break;
                 }
             }
-            for(int _j=_start_idx; _j<_num_spikes; _j++)
+            for(int _j=_start_idx; _j<_num_events; _j++)
             {
-                const int _idx = {{_spikespace}}[_j];
+                const int _idx = {{_eventspace}}[_j];
                 if (_idx >= _source_stop) {
                     _end_idx = _j;
                     break;
                 }
             }
-            _num_spikes = _end_idx - _start_idx;
-            if (_num_spikes > 0) {
+            _num_events = _end_idx - _start_idx;
+            if (_num_events > 0) {
                 for(int _j=_start_idx; _j<_end_idx; _j++)
                 {
-                    const int _idx = {{_spikespace}}[_j];
+                    const int _idx = {{_eventspace}}[_j];
                     {{_dynamic_i}}.push_back(_idx-_source_start);
                     {{_dynamic_t}}.push_back(_clock_t);
-                    {{_count}}[_idx-_source_start]++;
+                    {{count}}[_idx-_source_start]++;
                 }
             }
         }

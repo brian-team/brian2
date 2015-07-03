@@ -2,36 +2,39 @@
 {% macro main() %}
     {{ common.insert_pointers_lines() }}
 
-    {# USES_VARIABLES { t, i, _clock_t, _spikespace, _count,
+    {# USES_VARIABLES { t, i, _clock_t, count,
                         _source_start, _source_stop} #}
-	int _num_spikes = {{_spikespace}}[_num_spikespace-1];
-    if (_num_spikes > 0)
+    {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
+    {% set _eventspace = get_array_name(eventspace_variable) %}
+
+	int _num_events = {{_eventspace}}[_num{{eventspace_variable.name}}-1];
+    if (_num_events > 0)
     {
         // For subgroups, we do not want to record all spikes
         // We assume that spikes are ordered
-        int _start_idx = _num_spikes;
-        int _end_idx = _num_spikes;
-        for(int _j=0; _j<_num_spikes; _j++)
+        int _start_idx = _num_events;
+        int _end_idx = _num_events;
+        for(int _j=0; _j<_num_events; _j++)
         {
-            const int _idx = {{_spikespace}}[_j];
+            const int _idx = {{_eventspace}}[_j];
             if (_idx >= _source_start) {
                 _start_idx = _j;
                 break;
             }
         }
-        for(int _j=_start_idx; _j<_num_spikes; _j++)
+        for(int _j=_start_idx; _j<_num_events; _j++)
         {
-            const int _idx = {{_spikespace}}[_j];
+            const int _idx = {{_eventspace}}[_j];
             if (_idx >= _source_stop) {
                 _end_idx = _j;
                 break;
             }
         }
-        _num_spikes = _end_idx - _start_idx;
-        if (_num_spikes > 0) {
+        _num_events = _end_idx - _start_idx;
+        if (_num_events > 0) {
             // Get the current length and new length of t and i arrays
             const int _curlen = {{_dynamic_t}}.attr("shape")[0];
-            const int _newlen = _curlen + _num_spikes;
+            const int _newlen = _curlen + _num_events;
             // Resize the arrays
             py::tuple _newlen_tuple(1);
             _newlen_tuple[0] = _newlen;
@@ -43,10 +46,10 @@
             // Copy the values across
             for(int _j=_start_idx; _j<_end_idx; _j++)
             {
-                const int _idx = {{_spikespace}}[_j];
+                const int _idx = {{_eventspace}}[_j];
                 _t_data[_curlen + _j - _start_idx] = _clock_t;
                 _i_data[_curlen + _j - _start_idx] = _idx - _source_start;
-                {{_count}}[_idx - _source_start]++;
+                {{count}}[_idx - _source_start]++;
             }
         }
 	}

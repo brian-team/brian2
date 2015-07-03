@@ -1,5 +1,3 @@
-{# USES_VARIABLES { _spikespace } #}
-
 {# Note that we don't write to scalar variables conditionally. The scalar code
    should therefore only include the calculation of scalar expressions
    that are used below for writing to a vector variable #}
@@ -9,7 +7,10 @@ import numpy as _numpy
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}
 
+{#  Get the name of the array that stores these events (e.g. the spikespace array) #}
+{% set _eventspace = get_array_name(eventspace_variable) %}
+
 # vector code
-_idx = {{_spikespace}}[:{{_spikespace}}[-1]]
+_idx = {{_eventspace}}[:{{_eventspace}}[-1]]
 _vectorisation_idx = _idx
 {{vector_code|autoindent}}
