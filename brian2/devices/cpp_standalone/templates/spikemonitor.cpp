@@ -34,11 +34,18 @@
             }
             _num_events = _end_idx - _start_idx;
             if (_num_events > 0) {
+                 const int _vectorisation_idx = 1;
+                {{scalar_code|autoindent}}
                 for(int _j=_start_idx; _j<_end_idx; _j++)
                 {
                     const int _idx = {{_eventspace}}[_j];
+                    const int _vectorisation_idx = _idx;
+                    {{vector_code|autoindent}}
                     {{_dynamic_i}}.push_back(_idx-_source_start);
                     {{_dynamic_t}}.push_back(_clock_t);
+                    {% for varname, var in record_variables.items() %}
+                    {{get_array_name(var, access_data=False)}}.push_back(_to_record_{{varname}});
+                    {% endfor %}
                     {{count}}[_idx-_source_start]++;
                 }
             }

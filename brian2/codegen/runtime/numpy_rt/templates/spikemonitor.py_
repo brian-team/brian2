@@ -9,6 +9,8 @@ _events = {{_eventspace}}[:{{_eventspace}}[-1]]
 _events = _events[(_events >= _source_start) & (_events < _source_stop)]
 _events -= _source_start
 _n_events = len(_events)
+_vectorisation_idx = 1
+{{scalar_code|autoindent}}
 if _n_events > 0:
 
     _curlen = len({{_dynamic_t}})
@@ -16,5 +18,11 @@ if _n_events > 0:
     _owner.resize(_newlen)
     {{_dynamic_t}}[_curlen:_newlen] = _clock_t
     {{_dynamic_i}}[_curlen:_newlen] = _events
-
+    _vectorisation_idx = _n_events
+    _idx = _events
+    {{vector_code|autoindent}}
+    {% for varname, var in record_variables.iteritems() %}
+    {% set dynamic_varname = get_array_name(var, access_data=False) %}
+    {{dynamic_varname}}[_curlen:_newlen] = _to_record_{{varname}}
+    {% endfor %}
     {{count}}[_events] += 1
