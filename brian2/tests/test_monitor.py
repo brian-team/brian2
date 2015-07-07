@@ -64,12 +64,12 @@ def test_spike_monitor_variables():
     mon1 = SpikeMonitor(G, variables='prev_spikes')
     mon2 = SpikeMonitor(G, variables='prev_spikes', when='after_resets')
     run(10*ms)
-    assert_array_equal(mon1.prev_spikes['i==0'], [0])
-    assert_array_equal(mon1.prev_spikes['i==1'], [])
-    assert_array_equal(mon1.prev_spikes['i==2'], np.arange(10))
-    assert_array_equal(mon2.prev_spikes['i==0'], [1])
-    assert_array_equal(mon2.prev_spikes['i==1'], [])
-    assert_array_equal(mon2.prev_spikes['i==2'], np.arange(10)+1)
+    assert_array_equal(mon1.prev_spikes[mon1.i == 0], [0])
+    assert_array_equal(mon1.prev_spikes[mon1.i == 1], [])
+    assert_array_equal(mon1.prev_spikes[mon1.i == 2], np.arange(10))
+    assert_array_equal(mon2.prev_spikes[mon2.i == 0], [1])
+    assert_array_equal(mon2.prev_spikes[mon2.i == 1], [])
+    assert_array_equal(mon2.prev_spikes[mon2.i == 2], np.arange(10)+1)
 
 
 
