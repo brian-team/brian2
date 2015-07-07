@@ -7,7 +7,7 @@ import setuptools as _setuptools
 
 # Check basic dependencies
 import sys
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 missing = []
 try:
     import numpy
@@ -74,7 +74,7 @@ def _check_dependency_version(name, version):
     module = sys.modules[name]
     if not isinstance(module.__version__, basestring):  # mocked module
         return
-    if not StrictVersion(module.__version__) >= StrictVersion(version):
+    if not LooseVersion(module.__version__) >= LooseVersion(version):
         message = '%s is outdated (got version %s, need version %s)' % (name,
                                                                         module.__version__,
                                                                         version)
