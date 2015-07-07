@@ -21,7 +21,7 @@ if _n_events > 0:
     _vectorisation_idx = _n_events
     _idx = _events
     {{vector_code|autoindent}}
-    {% for varname, var in record_variables.iteritems() %}
+    {% for varname, var in record_variables.items() %}
     {% set dynamic_varname = get_array_name(var, access_data=False) %}
     {{dynamic_varname}}[_curlen:_newlen] = _to_record_{{varname}}
     {% endfor %}
