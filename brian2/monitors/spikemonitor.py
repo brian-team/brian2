@@ -181,9 +181,107 @@ class EventMonitor(Group, CodeRunner):
         '''
         return self.i, self.t_
 
+    def _values_dict(self, first_pos, sort_indices, used_indices, var):
+        sorted_values = self.state(var, use_units=False)[sort_indices]
+        dim = self.variables[var].unit.dim
+        event_values = {}
+        current_pos = 0  # position in the all_indices array
+        for idx in xrange(len(self.source)):
+            if current_pos < len(used_indices) and used_indices[current_pos] == idx:
+                if current_pos < len(used_indices) - 1:
+                    event_values[idx] = Quantity(sorted_values[
+                                                 first_pos[current_pos]:
+                                                 first_pos[current_pos + 1]],
+                                                 dim=dim, copy=False)
+                else:
+                    event_values[idx] = Quantity(
+                        sorted_values[first_pos[current_pos]:],
+                        dim=dim, copy=False)
+                current_pos += 1
+            else:
+                event_values[idx] = Quantity([], dim=dim)
+        return event_values
+
+    def values(self, var):
+        '''
+        Return a dictionary mapping neuron indices to arrays of variable values
+        at the time of the events (sorted by time).
+        Parameters
+        ----------
+        var : str
+            The name of the variable.
+
+        Returns
+        -------
+        values : dict
+            Dictionary mapping each neuron index to an array of variable
+            values at the time of the events
+
+        Examples
+        --------
+        >>> from brian2 import *
+        >>> G = NeuronGroup(2, """dv/dt = 100*Hz : 1
+        ...                       v_th : 1""", threshold='v>v_th', reset='v=0')
+        >>> G.v_th = [0.5, 1]
+        >>> mon = EventMonitor(G, event='spike', variables='v')
+        >>> run(20*ms)
+        >>> v_values = mon.values('v')
+        >>> v_values[0]
+        array([ 0.5,  0.5,  0.5,  0.5])
+        >>> v_values[1]
+        array([ 1.,  1.])
+        '''
+        indices = self.i[:]
+        sort_indices = np.argsort(indices)
+        used_indices, first_pos = np.unique(self.i[:][sort_indices],
+                                            return_index=True)
+        return self._values_dict(first_pos, sort_indices, used_indices, var)
+
+    def all_values(self):
+        '''
+        Return a dictionary mapping recorded variable names (including ``t``)
+        to a dictionary mapping neuron indices to arrays of variable values at
+        the time of the events (sorted by time). This is equivalent to (but more
+        efficient than) calling `values` for each variable and storing the
+        result in a dictionary.
+
+        Returns
+        -------
+        all_values : dict
+            Dictionary mapping variable names to dictionaries which themselves
+            are mapping neuron indicies to arrays of variable values at the
+            time of the events.
+
+        Examples
+        --------
+        >>> from brian2 import *
+        >>> G = NeuronGroup(2, """dv/dt = 100*Hz : 1
+        ...                       v_th : 1""", threshold='v>v_th', reset='v=0')
+        >>> G.v_th = [0.5, 1]
+        >>> mon = EventMonitor(G, event='spike', variables='v')
+        >>> run(20*ms)
+        >>> all_values = mon.all_values()
+        >>> all_values['t'][0]
+        array([  4.9,   9.9,  14.9,  19.9]) * msecond
+        >>> all_values['v'][0]
+        array([ 0.5,  0.5,  0.5,  0.5])
+        '''
+        indices = self.i[:]
+        sort_indices = np.argsort(indices)
+        used_indices, first_pos = np.unique(self.i[:][sort_indices],
+                                            return_index=True)
+        all_values_dict = {}
+        for varname in ['t'] + self.record_variables:
+            all_values_dict[varname] = self._values_dict(first_pos,
+                                                         sort_indices,
+                                                         used_indices,
+                                                         varname)
+        return all_values_dict
+
     def event_trains(self):
         '''
         Return a dictionary mapping event indices to arrays of event times.
+        Equivalent to calling ``values('t')``.
 
         Returns
         -------
@@ -195,27 +293,7 @@ class EventMonitor(Group, CodeRunner):
         --------
         SpikeMonitor.spike_trains
         '''
-        indices = self.i[:]
-        sort_indices = np.argsort(indices)
-        used_indices, first_pos = np.unique(self.i[:][sort_indices],
-                                            return_index=True)
-        sorted_times = self.t_[:][sort_indices]
-
-        event_times = {}
-        current_pos = 0  # position in the all_indices array
-        for idx in xrange(len(self.source)):
-            if current_pos < len(used_indices) and used_indices[current_pos] == idx:
-                if current_pos < len(used_indices)-1:
-                    event_times[idx] = Quantity(sorted_times[first_pos[current_pos]:first_pos[current_pos+1]],
-                                                dim=second.dim, copy=False)
-                else:
-                    event_times[idx] = Quantity(sorted_times[first_pos[current_pos]:],
-                                                dim=second.dim, copy=False)
-                current_pos += 1
-            else:
-                event_times[idx] = Quantity([], dim=second.dim)
-
-        return event_times
+        return self.values('t')
 
     @property
     def num_events(self):
@@ -303,6 +381,10 @@ class SpikeMonitor(EventMonitor):
         '''
         return self.num_events
 
+    # We "re-implement" the following functions only to get more specific
+    # doc strings (and to make sure that the methods are included in the
+    # reference documentation for SpikeMonitor).
+
     def spike_trains(self):
         '''
         Return a dictionary mapping spike indices to arrays of spike times.
@@ -324,6 +406,69 @@ class SpikeMonitor(EventMonitor):
         array([ 1.]) * msecond
         '''
         return self.event_trains()
+
+    def values(self, var):
+        '''
+        Return a dictionary mapping neuron indices to arrays of variable values
+        at the time of the spikes (sorted by time).
+
+        Parameters
+        ----------
+        var : str
+            The name of the variable.
+
+        Returns
+        -------
+        values : dict
+            Dictionary mapping each neuron index to an array of variable
+            values at the time of the spikes.
+
+        Examples
+        --------
+        >>> from brian2 import *
+        >>> G = NeuronGroup(2, """dv/dt = 100*Hz : 1
+        ...                       v_th : 1""", threshold='v>v_th', reset='v=0')
+        >>> G.v_th = [0.5, 1]
+        >>> mon = SpikeMonitor(G, variables='v')
+        >>> run(20*ms)
+        >>> v_values = mon.values('v')
+        >>> v_values[0]
+        array([ 0.5,  0.5,  0.5,  0.5])
+        >>> v_values[1]
+        array([ 1.,  1.])
+        '''
+        return super(SpikeMonitor, self).values(var)
+
+    def all_values(self):
+        '''
+        Return a dictionary mapping recorded variable names (including ``t``)
+        to a dictionary mapping neuron indices to arrays of variable values at
+        the time of the spikes (sorted by time). This is equivalent to (but more
+        efficient than) calling `values` for each variable and storing the
+        result in a dictionary.
+
+        Returns
+        -------
+        all_values : dict
+            Dictionary mapping variable names to dictionaries which themselves
+            are mapping neuron indicies to arrays of variable values at the
+            time of the spikes.
+
+        Examples
+        --------
+        >>> from brian2 import *
+        >>> G = NeuronGroup(2, """dv/dt = 100*Hz : 1
+        ...                       v_th : 1""", threshold='v>v_th', reset='v=0')
+        >>> G.v_th = [0.5, 1]
+        >>> mon = SpikeMonitor(G, variables='v')
+        >>> run(20*ms)
+        >>> all_values = mon.all_values()
+        >>> all_values['t'][0]
+        array([  4.9,   9.9,  14.9,  19.9]) * msecond
+        >>> all_values['v'][0]
+        array([ 0.5,  0.5,  0.5,  0.5])
+        '''
+        return super(SpikeMonitor, self).all_values()
 
     def __repr__(self):
         description = '<{classname}, recording from {source}>'

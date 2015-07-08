@@ -41,7 +41,9 @@ of the neuron that spiked. Sometimes it can be useful to addtionaly record
 other variables, e.g. the membrane potential for models where the threshold is
 not at a fixed value. This can be done by providing an extra ``variables``
 argument, the recorded variable can then be accessed as an attribute of the
-`SpikeMonitor`::
+`SpikeMonitor`. To conveniently access the values of a recorded variable for
+a single neuron, the `SpikeMonitor.values` method can be used that returns a
+dictionary with the values for each neuron.::
 
     G = NeuronGroup(N, '''dv/dt = (1-v)/(10*ms) : 1
                           v_th : 1''',
@@ -52,6 +54,8 @@ argument, the recorded variable can then be accessed as an attribute of the
     G.v_th = 0.5
     spike_mon = SpikeMonitor(G, variables='v')
     run(1*second)
+    v_values = spike_mon.values('v')
+    print('Threshold crossing values for neuron 0: {}'.format(v_values[0]))
     hist(spike_mon.v, np.arange(0, 1, .1))
     show()
 
