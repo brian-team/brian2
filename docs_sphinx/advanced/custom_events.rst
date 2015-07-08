@@ -21,7 +21,11 @@ can be recorded with an `EventMonitor`::
 
 Such an `EventMonitor` can be used in the same way as a `SpikeMonitor` -- in
 fact, creating the `SpikeMonitor` is basically identical to recording the
-``spike`` event with an `EventMonitor`.
+``spike`` event with an `EventMonitor`. An `EventMonitor` is not limited to
+record the event time/neuron index, it can also record other variables of the
+model::
+
+    event_mon = EventMonitor(group, 'custom_event', variables['var1', 'var2'])
 
 If the event should trigger a series of statements (i.e. the equivalent of
 ``reset`` statements), this can be added by calling `~NeuronGroup.run_on_event`::

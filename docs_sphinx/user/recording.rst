@@ -32,8 +32,38 @@ Example::
     run(runtime)
     plot(M.t/ms, M.i, '.')
 
-Recording variables
--------------------
+
+Recording variables at spike time
+---------------------------------
+
+By default, a `SpikeMonitor` only records the time of the spike and the index
+of the neuron that spiked. Sometimes it can be useful to addtionaly record
+other variables, e.g. the membrane potential for models where the threshold is
+not at a fixed value. This can be done by providing an extra ``variables``
+argument, the recorded variable can then be accessed as an attribute of the
+`SpikeMonitor`. To conveniently access the values of a recorded variable for
+a single neuron, the `SpikeMonitor.values` method can be used that returns a
+dictionary with the values for each neuron.::
+
+    G = NeuronGroup(N, '''dv/dt = (1-v)/(10*ms) : 1
+                          v_th : 1''',
+                    threshold='v > v_th',
+                    # randomly change the threshold after a spike:
+                    reset='''v=0
+                             v_th = clip(v_th + rand()*0.2 - 0.1, 0.1, 0.9)''')
+    G.v_th = 0.5
+    spike_mon = SpikeMonitor(G, variables='v')
+    run(1*second)
+    v_values = spike_mon.values('v')
+    print('Threshold crossing values for neuron 0: {}'.format(v_values[0]))
+    hist(spike_mon.v, np.arange(0, 1, .1))
+    show()
+
+.. note:: Spikes are not the only events that can trigger recordings, see
+          :doc:`../advanced/custom_events`.
+
+Recording variables continuously
+--------------------------------
 
 To record how a variable evolves over time, use a `StateMonitor`. To use this,
 you specify the group, variables and indices you want to record from. You

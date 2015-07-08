@@ -20,6 +20,9 @@ def test_spike_monitor():
     G.rate = [101, 0, 1001] * Hz
 
     mon = SpikeMonitor(G)
+
+    assert_raises(ValueError, lambda: SpikeMonitor(G, order=1))  # need to specify 'when' as well
+
     run(10*ms)
 
     spike_trains = mon.spike_trains()
@@ -45,6 +48,37 @@ def test_spike_monitor():
     assert_raises(KeyError, lambda: spike_trains[3])
     assert_raises(KeyError, lambda: spike_trains[-1])
     assert_raises(KeyError, lambda: spike_trains['string'])
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_spike_monitor_variables():
+    G = NeuronGroup(3, '''dv/dt = rate : 1
+                          rate : Hz
+                          prev_spikes : integer''',
+                    threshold='v>1', reset='v=0; prev_spikes += 1')
+    # We don't use 100 and 1000Hz, because then the membrane potential would
+    # be exactly at 1 after 10 resp. 100 timesteps. Due to floating point
+    # issues this will not be exact,
+    G.rate = [101, 0, 1001] * Hz
+    mon1 = SpikeMonitor(G, variables='prev_spikes')
+    mon2 = SpikeMonitor(G, variables='prev_spikes', when='after_resets')
+    run(10*ms)
+    all_values = mon1.all_values()
+    prev_spikes_values = mon1.values('prev_spikes')
+    assert_array_equal(mon1.prev_spikes[mon1.i == 0], [0])
+    assert_array_equal(prev_spikes_values[0], [0])
+    assert_array_equal(all_values['prev_spikes'][0], [0])
+    assert_array_equal(mon1.prev_spikes[mon1.i == 1], [])
+    assert_array_equal(prev_spikes_values[1], [])
+    assert_array_equal(all_values['prev_spikes'][1], [])
+    assert_array_equal(mon1.prev_spikes[mon1.i == 2], np.arange(10))
+    assert_array_equal(prev_spikes_values[2], np.arange(10))
+    assert_array_equal(all_values['prev_spikes'][2], np.arange(10))
+    assert_array_equal(mon2.prev_spikes[mon2.i == 0], [1])
+    assert_array_equal(mon2.prev_spikes[mon2.i == 1], [])
+    assert_array_equal(mon2.prev_spikes[mon2.i == 2], np.arange(10)+1)
+
 
 
 @attr('standalone-compatible')
@@ -250,6 +284,7 @@ def test_rate_monitor_subgroups():
 
 if __name__ == '__main__':
     test_spike_monitor()
+    test_spike_monitor_variables()
     test_event_monitor()
     test_state_monitor()
     test_state_monitor_indexing()

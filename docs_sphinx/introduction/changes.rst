@@ -79,6 +79,8 @@ specifications:
   *EventClock* are obsolete
 * The functionality of *MultiStateMonitor* is provided by the standard
   `StateMonitor` class.
+* The functionality of *StateSpikeMonitor* is provided by the
+  `SpikeMonitor` class.
 * The library of models has been removed (*leaky_IF*, *Izhikevich*,
   *alpha_synapse*, *OrnsteinUhlenbeck*, etc.), specify the models directly
   in the equations instead
