@@ -18,7 +18,7 @@ requirements:
     - numpy
     - sympy >=0.7.6
     - pyparsing
-    - scipy >=0.13.3 # since there's no weave package in conda yet
+    - scipy >=0.13.3 # [py2k]
     - cython >=0.18
     - jinja2 >=2.7
     - setuptools >=6.0
