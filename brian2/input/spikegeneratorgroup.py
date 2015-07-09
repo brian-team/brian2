@@ -66,6 +66,9 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
         Group.__init__(self, dt=dt, clock=clock, when=when, order=order, name=name)
 
+        # Let other objects know that we emit spikes events
+        self.events = {'spike': None}
+
         self.codeobj_class = codeobj_class
 
         if N < 1 or int(N) != N:

@@ -240,6 +240,7 @@ class StateMonitor(Group, CodeRunner):
                 self.variables.add_reference(index, source)
             self.variables.add_dynamic_array('_recorded_' + varname,
                                              size=(0, len(self.record)),
+                                             resize_along_first=True,
                                              unit=var.unit,
                                              dtype=var.dtype,
                                              constant=False,

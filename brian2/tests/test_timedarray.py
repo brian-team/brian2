@@ -34,8 +34,7 @@ def test_timedarray_semantics():
     ta = TimedArray(array([0, 1]), dt=0.4*ms)
     G = NeuronGroup(1, 'value = ta(t) : 1', dt=0.1*ms)
     mon = StateMonitor(G, 'value', record=0)
-    net = Network(G, mon)
-    net.run(0.8*ms)
+    run(0.8*ms)
     assert_equal(mon[0].value, [0, 0, 0, 0, 1, 1, 1, 1])
     assert_equal(mon[0].value, ta(mon.t))
 
@@ -45,8 +44,7 @@ def test_timedarray_no_units():
     ta = TimedArray(np.arange(10), dt=0.1*ms)
     G = NeuronGroup(1, 'value = ta(t) + 1: 1', dt=0.1*ms)
     mon = StateMonitor(G, 'value', record=True, dt=0.1*ms)
-    net = Network(G, mon)
-    net.run(1.1*ms)
+    run(1.1*ms)
     assert_equal(mon[0].value_, np.clip(np.arange(len(mon[0].t)), 0, 9) + 1)
 
 @attr('standalone-compatible')
@@ -55,8 +53,7 @@ def test_timedarray_with_units():
     ta = TimedArray(np.arange(10)*amp, dt=0.1*ms)
     G = NeuronGroup(1, 'value = ta(t) + 2*nA: amp', dt=0.1*ms)
     mon = StateMonitor(G, 'value', record=True, dt=0.1*ms)
-    net = Network(G, mon)
-    net.run(1.1*ms)
+    run(1.1*ms)
     assert_equal(mon[0].value, np.clip(np.arange(len(mon[0].t)), 0, 9)*amp + 2*nA)
 
 @attr('standalone-compatible')
@@ -66,8 +63,7 @@ def test_timedarray_2d():
     ta2d = TimedArray(np.arange(12).reshape(4, 3), dt=0.1*ms)
     G = NeuronGroup(3, 'value = ta2d(t, i) + 1: 1', dt=0.1*ms)
     mon = StateMonitor(G, 'value', record=True, dt=0.1*ms)
-    net = Network(G, mon)
-    net.run(0.5*ms)
+    run(0.5*ms)
     assert_equal(mon[0].value_, np.array([0, 3, 6, 9, 9]) + 1)
     assert_equal(mon[1].value_, np.array([1, 4, 7, 10, 10]) + 1)
     assert_equal(mon[2].value_, np.array([2, 5, 8, 11, 11]) + 1)
@@ -80,8 +76,7 @@ def test_timedarray_no_upsampling():
     ta = TimedArray(np.arange(10), dt=0.01*ms)
     G = NeuronGroup(1, 'value = ta(t): 1', dt=0.1*ms)
     mon = StateMonitor(G, 'value', record=True, dt=1*ms)
-    net = Network(G, mon)
-    net.run(2.1*ms)
+    run(2.1*ms)
     assert_equal(mon[0].value, [0, 9, 9])
 
 #@attr('standalone-compatible')  # see FIXME comment below

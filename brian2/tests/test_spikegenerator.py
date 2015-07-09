@@ -24,8 +24,7 @@ def test_spikegenerator_connected():
     times =   np.array([6, 5, 4, 3, 3, 1]) * ms
     SG = SpikeGeneratorGroup(10, indices, times)
     S = Synapses(SG, G, pre='v+=1', connect='i==j')
-    net = Network(G, SG, mon, S)
-    net.run(7*ms)
+    run(7*ms)
     # The following neurons should not receive any spikes
     for idx in [0, 6, 7, 8, 9]:
         assert all(mon[idx].v == 0)
@@ -48,8 +47,7 @@ def test_spikegenerator_basic():
     times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
     SG = SpikeGeneratorGroup(5, indices, times)
     s_mon = SpikeMonitor(SG)
-    net = Network(SG, s_mon)
-    net.run(5*ms)
+    run(5*ms)
     for idx in xrange(5):
         generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
         recorded_spikes = sorted([(idx, time) for time in s_mon.t[s_mon.i==idx]])
@@ -65,8 +63,7 @@ def test_spikegenerator_basic_sorted():
     times   = np.array([1, 2, 2, 2, 3, 3, 4, 4, 4]) * ms
     SG = SpikeGeneratorGroup(5, indices, times)
     s_mon = SpikeMonitor(SG)
-    net = Network(SG, s_mon)
-    net.run(5*ms)
+    run(5*ms)
     for idx in xrange(5):
         generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
         recorded_spikes = sorted([(idx, time) for time in s_mon.t[s_mon.i==idx]])
@@ -83,8 +80,7 @@ def test_spikegenerator_period():
     SG = SpikeGeneratorGroup(5, indices, times, period=5*ms)
 
     s_mon = SpikeMonitor(SG)
-    net = Network(SG, s_mon)
-    net.run(10*ms)
+    run(10*ms)
     for idx in xrange(5):
         generator_spikes = sorted([(idx, time) for time in times[indices==idx]] + [(idx, time+5*ms) for time in times[indices==idx]])
         recorded_spikes = sorted([(idx, time) for time in s_mon.t[s_mon.i==idx]])
@@ -235,8 +231,7 @@ def test_spikegenerator_rounding_long():
     syn = Synapses(SG, target, pre='count+=1', connect=True)
     spikes = SpikeMonitor(SG)
     mon = StateMonitor(target, 'count', record=0, when='end')
-    net = Network(SG, spikes, target, syn, mon)
-    net.run(N*dt, report='text')
+    run(N*dt, report='text')
     assert spikes.count[0] == N, 'expected %d spikes, got %d' % (N, spikes.count[0])
     assert all(np.diff(mon[0].count[:]) == 1)
 
@@ -254,8 +249,7 @@ def test_spikegenerator_rounding_period():
     syn = Synapses(SG, target, pre='count+=1', connect=True)
     spikes = SpikeMonitor(SG)
     mon = StateMonitor(target, 'count', record=0, when='end')
-    net = Network(SG, spikes, target, syn, mon)
-    net.run(N*repeats*dt, report='text')
+    run(N*repeats*dt, report='text')
     #print np.int_(np.round(spikes.t/dt))
     assert_equal(spikes.count[0], N*repeats)
     assert all(np.diff(mon[0].count[:]) == 1)

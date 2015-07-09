@@ -209,6 +209,10 @@ class Device(object):
         '''
         raise NotImplementedError()
 
+    def resize_along_first(self, var, new_size):
+        # Can be overwritten with a better implementation
+        return self.resize(var, new_size)
+
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is None:
             codeobj_class = get_default_codeobject_class()
@@ -366,6 +370,9 @@ class RuntimeDevice(Device):
 
     def resize(self, var, new_size):
         self.arrays[var].resize(new_size)
+
+    def resize_along_first(self, var, new_size):
+        self.arrays[var].resize_along_first(new_size)
 
     def init_with_zeros(self, var):
         self.arrays[var][:] = 0

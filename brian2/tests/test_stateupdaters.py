@@ -521,8 +521,7 @@ def test_subexpressions_basic():
     G2.v = 1
     mon1 = StateMonitor(G1, 'v', record=True)
     mon2 = StateMonitor(G2, 'v', record=True)
-    net = Network(G1, mon1, G2, mon2)
-    net.run(10*ms)
+    run(10*ms)
     assert_equal(mon1.v, mon2.v, 'Results for method %s differed!' % method)
 
 

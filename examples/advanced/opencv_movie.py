@@ -105,8 +105,8 @@ G.v_th = 1
 G.row = 'i/width'
 G.column = 'i%width'
 
-update_input = G.custom_operation('I = video_input(column, row)',
-                                  dt=time_between_frames)
+G.run_regularly('I = video_input(column, row)',
+                dt=time_between_frames)
 mon = SpikeMonitor(G)
 runtime = frame_count*time_between_frames
 run(runtime, report='text')

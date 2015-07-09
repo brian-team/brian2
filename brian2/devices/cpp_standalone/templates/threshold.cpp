@@ -1,17 +1,21 @@
 {# IS_OPENMP_COMPATIBLE #}
 {% extends 'common_group.cpp' %}
 {% block maincode %}
-	{# USES_VARIABLES { t, _spikespace, N } #}
-	// not_refractory and lastspike are added as needed_variables in the
-	// Thresholder class, we cannot use the USES_VARIABLE mechanism
-	// conditionally
+	{# USES_VARIABLES { N } #}
+	   {# not_refractory and lastspike are added as needed_variables in the
+	   Thresholder class, we cannot use the USES_VARIABLE mechanism
+	   conditionally
+	   Same goes for "eventspace" (e.g. spikespace) which depends on the type of
+       event #}
 
 	//// MAIN CODE ////////////
 	// scalar code
 	const int _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
 
-	
+    {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
+    {% set _eventspace = get_array_name(eventspace_variable) %}
+
 	{{ openmp_pragma('single') }}
     {
         long _count = 0;
@@ -20,16 +24,13 @@
             const int _vectorisation_idx = _idx;
             {{vector_code|autoindent}}
             if(_cond) {
-                {{_spikespace}}[_count++] = _idx;
+                {{_eventspace}}[_count++] = _idx;
                 {% if _uses_refractory %}
-                // We have to use the pointer names directly here: The condition
-                // might contain references to not_refractory or lastspike and in
-                // that case the names will refer to a single entry.
                 {{not_refractory}}[_idx] = false;
                 {{lastspike}}[_idx] = t;
                 {% endif %}
             }
         }
-        {{_spikespace}}[N] = _count;
+        {{_eventspace}}[N] = _count;
     }
 {% endblock %}

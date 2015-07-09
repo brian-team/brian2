@@ -80,10 +80,8 @@ def test_infinitecable():
     # Monitors
     mon=StateMonitor(neuron,'v',record=N/2-20)
 
-    net = Network(neuron, mon)
-
     neuron.I[len(neuron)//2]=1*nA # injecting in the middle
-    net.run(0.02*ms)
+    run(0.02*ms)
     neuron.I=0*amp
     net.run(3*ms)
     t = mon.t
@@ -127,8 +125,8 @@ def test_finitecable():
     neuron.v = EL
 
     neuron.I[0]=0.02*nA # injecting at the left end
-    net = Network(neuron)
-    net.run(100*ms)
+
+    run(100*ms)
 
     # Theory
     x = neuron.distance

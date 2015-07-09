@@ -785,7 +785,7 @@ class Quantity(np.ndarray, object):
     >>> (I * R).in_unit(mvolt)
     '6000. mV'
     >>> (I * R) / mvolt
-    array(6000.0)
+    6000.0
     >>> X = I + R  # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
         ...
@@ -825,7 +825,12 @@ class Quantity(np.ndarray, object):
 
         # Do not create dimensionless quantities, use pure numpy arrays instead
         if dim is DIMENSIONLESS and not force_quantity:
-            return np.array(arr, dtype=dtype, copy=copy)
+            arr = np.array(arr, dtype=dtype, copy=copy)
+            if arr.shape == ():
+                # For scalar values, return a simple Python object instead of
+                # a numpy scalar
+                return arr.item()
+            return arr
 
         # All np.ndarray subclasses need something like this, see
         # http://www.scipy.org/Subclasses
@@ -845,7 +850,7 @@ class Quantity(np.ndarray, object):
                                              'dim keyword',
                                              arr.dim, dim)
         elif hasattr(arr, 'unit'):
-            subarr.dim = arr.unit.dim
+            subarr.dim = arr.unit.dim if arr.unit is not None else None
             if not (dim is None) and not (dim is subarr.dim):
                 raise DimensionMismatchError('Conflicting dimension '
                                              'information between array and '
@@ -1240,6 +1245,13 @@ class Quantity(np.ndarray, object):
             An optional error message for the `DimensionMismatchError`.
         inplace: bool, optional
             Whether to do the operation in-place (defaults to ``False``).
+
+        Notes
+        -----
+        For in-place operations on scalar values, a copy of the original object
+        is returned, i.e. it rather works like a fundamental Python type and
+        not like a numpy array scalar, preventing weird effects when a reference
+        to the same value was stored in another variable. See github issue #469.
         '''
         if not (isinstance(other, np.ndarray) or is_scalar_type(other)):
             try:
@@ -1251,9 +1263,13 @@ class Quantity(np.ndarray, object):
             fail_for_dimension_mismatch(self, other, message)
 
         if inplace:
-            operation(self, other)
-            self.dim = dim_operation(self.dim, get_dimensions(other))
-            return self
+            if self.shape == ():
+                self_value = Quantity(self, copy=True)
+            else:
+                self_value = self
+            operation(self_value, other)
+            self_value.dim = dim_operation(self.dim, get_dimensions(other))
+            return self_value
         else:
             other_dim = get_dimensions(other)
             return Quantity.with_dimensions(operation(np.asarray(self),

@@ -117,7 +117,6 @@ class CodeGenerator(object):
 
         return scalar_code, vector_code, kwds
 
-
     def array_read_write(self, statements):
         '''
         Helper function, gives the set of ArrayVariables that are read from and

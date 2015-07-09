@@ -137,11 +137,11 @@ the second::
                     threshold='v>1', reset='v=0')
 
 
-Custom operations
------------------
+Regular operations
+------------------
 An alternative to specifying a stimulus in advance is to run explicitly
 specified code at certain points during a simulation. This can be
-achieved with a :meth:`~brian2.groups.group.Group.custom_operation`.
+achieved with :meth:`~brian2.groups.group.Group.run_regularly`.
 One can think of these statements as
 equivalent to reset statements but executed unconditionally (i.e. for all
 neurons) and possibly on a different clock than the rest of the group. The
@@ -152,9 +152,9 @@ expressions to have the values only updated for the chosen subset of neurons
 
   G = NeuronGroup(100, '''dv/dt = (-v + I)/(10*ms) : 1
                           I : 1  # one stimulus per neuron''')
-  stim_updater = G.custom_operation('''change = int(rand() < 0.5)
-                                       I = change*(rand()*2) + (1-change)*I''',
-                                    dt=50*ms)
+  G.run_regularly('''change = int(rand() < 0.5)
+                     I = change*(rand()*2) + (1-change)*I''',
+                  dt=50*ms)
 
 .. _network_operation:
 
@@ -174,13 +174,41 @@ neuron every 50 ms::
 
     G = NeuronGroup(10, '''dv/dt = (-v + active*I)/(10*ms) : 1
                            I = sin(2*pi*100*Hz*t) : 1 (shared) #single input
-                           active : 1  # will be set in the network function''')
+                           active : 1  # will be set in the network operation''')
     @network_operation(dt=50*ms)
     def update_active():
-        print defaultclock.t
         index = np.random.randint(10)  # index for the active neuron
         G.active_ = 0  # the underscore switches off unit checking
         G.active_[index] = 1
 
 Note that the network operation (in the above example: ``update_active``) has
 to be included in the `Network` object if one is constructed explicitly.
+
+Only functions with zero or one arguments can be used as a `NetworkOperation`.
+If the function has one argument then it will be passed the current time ``t``::
+
+    @network_operation(dt=1*ms)
+    def update_input(t):
+        if t>50*ms and t<100*ms:
+            pass # do something
+
+Note that this is preferable to accessing ``defaultclock.t`` from within the
+function -- if the network operation is not running on the `defaultclock`
+itself, then that value is not guaranteed to be correct.
+
+Instance methods can be used as network operations as well, however in this case
+they have to be constructed explicitly, the `network_operation` decorator
+cannot be used::
+
+    class Simulation(object):
+        def __init__(self, data):
+            self.data = data
+            self.group = NeuronGroup(...)
+            self.network_op = NetworkOperation(self.update_func, dt=10*ms)
+            self.network = Network(self.group, self.network_op)
+
+        def update_func(self):
+            pass # do something
+
+        def run(self, runtime):
+            self.network.run(runtime)

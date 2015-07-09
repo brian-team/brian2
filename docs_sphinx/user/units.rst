@@ -67,7 +67,7 @@ analysis functions that do not correctly work with units)
 ::
 
     >>> tau/ms
-    array(20.0)
+    20.0
     >> asarray(rates)
     array([ 10.,  20.,  30.])
     >>> G = NeuronGroup(5, 'dv/dt = -v/tau: volt')
@@ -98,6 +98,30 @@ In addition a couple of useful standard abbreviations like
 "ms" (instead of msecond), "Hz" (instead of hertz), etc. are added (they can
 be individually imported from ``brian2.units.stdunits``).
 
+In-place operations on quantities
+---------------------------------
+In-place operations on quantity arrays change the underlying array, in the
+same way as for standard numpy arrays. This means, that any other variables
+referencing the same object will be affected as well::
+
+    >>> q = [1, 2] * mV
+    >>> r = q
+    >>> q += 1*mV
+    >>> q
+    array([ 2.,  3.]) * mvolt
+    >>> r
+    array([ 2.,  3.]) * mvolt
+
+In contrast, scalar quantities will never change the underlying value but
+instead return a new value (in the same way as standard Python scalars)::
+
+    >>> x = 1*mV
+    >>> y = x
+    >>> x *= 2
+    >>> x
+    2. * mvolt
+    >>> y
+    1. * mvolt
 
 Comparison with Brian 1
 -----------------------

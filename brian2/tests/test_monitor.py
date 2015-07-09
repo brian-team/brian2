@@ -20,8 +20,10 @@ def test_spike_monitor():
     G.rate = [101, 0, 1001] * Hz
 
     mon = SpikeMonitor(G)
-    net = Network(G, mon)
-    net.run(10*ms)
+
+    assert_raises(ValueError, lambda: SpikeMonitor(G, order=1))  # need to specify 'when' as well
+
+    run(10*ms)
 
     spike_trains = mon.spike_trains()
 
@@ -47,6 +49,76 @@ def test_spike_monitor():
     assert_raises(KeyError, lambda: spike_trains[-1])
     assert_raises(KeyError, lambda: spike_trains['string'])
 
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_spike_monitor_variables():
+    G = NeuronGroup(3, '''dv/dt = rate : 1
+                          rate : Hz
+                          prev_spikes : integer''',
+                    threshold='v>1', reset='v=0; prev_spikes += 1')
+    # We don't use 100 and 1000Hz, because then the membrane potential would
+    # be exactly at 1 after 10 resp. 100 timesteps. Due to floating point
+    # issues this will not be exact,
+    G.rate = [101, 0, 1001] * Hz
+    mon1 = SpikeMonitor(G, variables='prev_spikes')
+    mon2 = SpikeMonitor(G, variables='prev_spikes', when='after_resets')
+    run(10*ms)
+    all_values = mon1.all_values()
+    prev_spikes_values = mon1.values('prev_spikes')
+    assert_array_equal(mon1.prev_spikes[mon1.i == 0], [0])
+    assert_array_equal(prev_spikes_values[0], [0])
+    assert_array_equal(all_values['prev_spikes'][0], [0])
+    assert_array_equal(mon1.prev_spikes[mon1.i == 1], [])
+    assert_array_equal(prev_spikes_values[1], [])
+    assert_array_equal(all_values['prev_spikes'][1], [])
+    assert_array_equal(mon1.prev_spikes[mon1.i == 2], np.arange(10))
+    assert_array_equal(prev_spikes_values[2], np.arange(10))
+    assert_array_equal(all_values['prev_spikes'][2], np.arange(10))
+    assert_array_equal(mon2.prev_spikes[mon2.i == 0], [1])
+    assert_array_equal(mon2.prev_spikes[mon2.i == 1], [])
+    assert_array_equal(mon2.prev_spikes[mon2.i == 2], np.arange(10)+1)
+
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_event_monitor():
+    G = NeuronGroup(3, '''dv/dt = rate : 1
+                          rate: Hz''', events={'my_event': 'v>1'})
+    G.run_on_event('my_event', 'v=0')
+    # We don't use 100 and 1000Hz, because then the membrane potential would
+    # be exactly at 1 after 10 resp. 100 timesteps. Due to floating point
+    # issues this will not be exact,
+    G.rate = [101, 0, 1001] * Hz
+
+    mon = EventMonitor(G, 'my_event')
+    net = Network(G, mon)
+    net.run(10*ms)
+
+    event_trains = mon.event_trains()
+
+    assert_allclose(mon.t[mon.i == 0], [9.9]*ms)
+    assert len(mon.t[mon.i == 1]) == 0
+    assert_allclose(mon.t[mon.i == 2], np.arange(10)*ms + 0.9*ms)
+    assert_allclose(mon.t_[mon.i == 0], np.array([9.9*float(ms)]))
+    assert len(mon.t_[mon.i == 1]) == 0
+    assert_allclose(mon.t_[mon.i == 2], (np.arange(10) + 0.9)*float(ms))
+    assert_allclose(event_trains[0], [9.9]*ms)
+    assert len(event_trains[1]) == 0
+    assert_allclose(event_trains[2], np.arange(10)*ms + 0.9*ms)
+    assert_array_equal(mon.count, np.array([1, 0, 10]))
+
+    i, t = mon.it
+    i_, t_ = mon.it_
+    assert_array_equal(i, mon.i)
+    assert_array_equal(i, i_)
+    assert_array_equal(t, mon.t)
+    assert_array_equal(t_, mon.t_)
+
+    assert_raises(KeyError, lambda: event_trains[3])
+    assert_raises(KeyError, lambda: event_trains[-1])
+    assert_raises(KeyError, lambda: event_trains['string'])
 
 def test_synapses_state_monitor():
     G = NeuronGroup(2, '')
@@ -108,13 +180,7 @@ def test_state_monitor():
     # Record synapses with explicit indices (the only way allowed in standalone)
     synapse_mon = StateMonitor(S, 'w', record=np.arange(len(G)**2))
 
-    net = Network(G, S,
-                  nothing_mon, no_record,
-                  v_mon, v_mon1,
-                  multi_mon, multi_mon1,
-                  all_mon,
-                  synapse_mon)
-    net.run(1*ms)
+    run(10*ms)
 
     # Check time recordings
     assert_array_equal(nothing_mon.t, v_mon.t)
@@ -157,8 +223,7 @@ def test_state_monitor_indexing():
     G.v = np.arange(10) * volt
     mon = StateMonitor(G, 'v', record=[5, 6, 7])
 
-    net = Network(G, mon)
-    net.run(2 * defaultclock.dt)
+    run(2 * defaultclock.dt)
 
     assert_array_equal(mon.v, np.array([[5, 5],
                                   [6, 6],
@@ -182,8 +247,7 @@ def test_rate_monitor():
     G = NeuronGroup(5, 'v : 1', threshold='v>1') # no reset
     G.v = 1.1 # All neurons spike every time step
     rate_mon = PopulationRateMonitor(G)
-    net = Network(G, rate_mon)
-    net.run(10*defaultclock.dt)
+    run(10*defaultclock.dt)
 
     assert_allclose(rate_mon.t, np.arange(10) * defaultclock.dt)
     assert_allclose(rate_mon.t_, np.arange(10) * float(defaultclock.dt))
@@ -210,8 +274,7 @@ def test_rate_monitor_subgroups():
     rate_1 = PopulationRateMonitor(G[:2])
     rate_2 = PopulationRateMonitor(G[2:])
     s_mon = SpikeMonitor(G)
-    net = Network(G, rate_all, rate_1, rate_2, s_mon)
-    net.run(10*ms)
+    run(10*ms)
     assert_allclose(mean(G.rate[:]), mean(rate_all.rate[:]))
     assert_allclose(mean(G.rate[:2]), mean(rate_1.rate[:]))
     assert_allclose(mean(G.rate[2:]), mean(rate_2.rate[:]))
@@ -221,6 +284,8 @@ def test_rate_monitor_subgroups():
 
 if __name__ == '__main__':
     test_spike_monitor()
+    test_spike_monitor_variables()
+    test_event_monitor()
     test_state_monitor()
     test_state_monitor_indexing()
     test_rate_monitor()

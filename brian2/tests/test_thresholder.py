@@ -11,8 +11,7 @@ def test_simple_threshold():
     G = NeuronGroup(4, 'v : 1', threshold='v > 1')
     G.v = [1.5, 0, 3, -1]
     s_mon = SpikeMonitor(G)
-    net = Network(G, s_mon)
-    net.run(defaultclock.dt)
+    run(defaultclock.dt)
     assert_equal(s_mon.count, np.array([1, 0, 1, 0]))
 
 @attr('standalone-compatible')
@@ -21,8 +20,7 @@ def test_scalar_threshold():
     c = 2
     G = NeuronGroup(4, '', threshold='c > 1')
     s_mon = SpikeMonitor(G)
-    net = Network(G, s_mon)
-    net.run(defaultclock.dt)
+    run(defaultclock.dt)
     assert_equal(s_mon.count, np.array([1, 1, 1, 1]))
 
 
