@@ -15,7 +15,6 @@ cmd = ['binstar'] + options
 cmd.extend(filename)
 
 try:
-    print('Executing: ' + (' '.join(cmd)))
     subprocess.check_call(cmd)
 except subprocess.CalledProcessError:
     traceback.print_exc()

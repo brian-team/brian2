@@ -7,7 +7,7 @@ environment:
     # See: http://stackoverflow.com/a/13751649/163740
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\dev\\continuous-integration\\appveyor\\run_with_env.cmd"
   BINSTAR_TOKEN:
-    secure: klmXk7cEWggc+zHCSyZFYaJLw6xvRwUFgKSeGgiw0HWZJuLiM3qgYA6Nhj1fHk7s
+    secure: haSplg2ccSWy75ajN104ThiOv2LQv95O/yb35ZzJewFb+hKxpJj8slJF7j1HAUdW
 
   matrix:
     - PYTHON: "C:\\Python27-conda32"
