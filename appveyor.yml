@@ -108,6 +108,7 @@ test_script:
 after_test:
   - 'IF "%CONDA_BUILD%" == "TRUE" (
           pip install wheel &
+          cd %SRC_DIR% &
           %CMD_IN_ENV% python setup.py bdist_wheel &
           %CMD_IN_ENV% python setup.py bdist_wininst
      )'
