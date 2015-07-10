@@ -140,14 +140,17 @@ On Windows, the necessary steps depend on the Python version you are using:
 
 **Python 2.7**
 
-Download and install the `Microsoft Visual C++ Compiler for Python 2.7  <http://www.microsoft.com/en-us/download/details.aspx?id=44266>`_
+* Download and install the `Microsoft Visual C++ Compiler for Python 2.7  <http://www.microsoft.com/en-us/download/details.aspx?id=44266>`_
+
+This should be all you need.
 
 **Python 3.4**
 
-Download and install the `Microsoft Windows SDK for Windows 7 and .NET Framework 4 <http://www.microsoft.com/en-in/download/details.aspx?id=8279>`_
+* Download and install the `Microsoft .NET Framework 4 <https://www.microsoft.com/en-us/download/details.aspx?id=17851>`_
+* Download and install the `Microsoft Windows SDK for Windows 7 and .NET Framework 4 <http://www.microsoft.com/en-in/download/details.aspx?id=8279>`_
 
-For 64 Bit (and Python 3.4), you have to additionally set up your environment
-correctly every time you run your Brian script (this is why we strongly
+For 64 Bit Windows (and Python 3.4), you have to additionally set up your
+environment correctly every time you run your Brian script (this is why we
 recommend against using this combination on Windows). To do this, run the
 following commands (assuming the default installation path) at the CMD prompt,
 or put them in a batch file::
@@ -155,7 +158,6 @@ or put them in a batch file::
     setlocal EnableDelayedExpansion
     CALL "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 /release
     set DISTUTILS_USE_SDK=1
-
 
 Try running the test suite (see :ref:`testing_brian` below) after the
 installation to make sure everything is working as expected.
