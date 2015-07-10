@@ -105,9 +105,19 @@ test_script:
   # here. We therefore copy its content and use the correct path
   - 'cmd /E:ON /V:ON /C %SRC_DIR%\dev\continuous-integration\appveyor\run_with_env.cmd python %SRC_DIR%\dev\continuous-integration\appveyor\run_test_suite.py'
 
+after_test:
+  - 'IF "%CONDA_BUILD%" == "TRUE" (
+          pip install wheel &
+          %CMD_IN_ENV% python setup.py bdist_wheel &
+          %CMD_IN_ENV% python setup.py bdist_wininst
+     )'
+
 artifacts:
   # Archive the generated conda package in the ci.appveyor.com build report.
   - path: '*.tar.bz2'
+    name: conda package
+  - path: dist\*
+    name: PyPI binaries
 
 on_success:
   # Upload built binaries to binstar.org. The globbing and handling of the
