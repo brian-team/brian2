@@ -22,7 +22,11 @@ void Network::clear()
 
 void Network::add(Clock* clock, codeobj_func func)
 {
-	objects.push_back(std::make_pair<Clock*, codeobj_func>({{std_move}}(clock), {{std_move}}(func)));
+#if defined(_MSC_VER) && (_MSC_VER>=1700)
+	objects.push_back(std::make_pair<Clock*, codeobj_func>(std::move(clock), std::move(func)));
+#else
+	objects.push_back(std::make_pair<Clock*, codeobj_func>(clock, func));
+#endif
 }
 
 void Network::run(const double duration, void (*report_func)(const double, const double, const double), const double report_period)

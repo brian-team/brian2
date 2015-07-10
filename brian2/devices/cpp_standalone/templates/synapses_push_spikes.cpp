@@ -4,9 +4,9 @@
 
 {% macro cpp_file() %}
 #include "code_objects/{{codeobj_name}}.h"
-#include<math.h>
-#include<stdint.h>
 #include "brianlib/common_math.h"
+#include "brianlib/stdint_compat.h"
+#include<cmath>
 
 void _run_{{codeobj_name}}()
 {

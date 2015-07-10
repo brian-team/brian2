@@ -1,0 +1,5 @@
+# Preferences for compiling 32 Bit Code on 64 Bit Linux
+[codegen.cpp]
+extra_compile_args_gcc = ['-m32']
+extra_link_args = ['-m32']
+library_dirs = ['/lib32', '/usr/lib32']

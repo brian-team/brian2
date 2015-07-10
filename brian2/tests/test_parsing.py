@@ -4,6 +4,7 @@ Tests the brian2.parsing package
 from collections import namedtuple
 
 from nose.plugins.attrib import attr
+from nose import SkipTest
 from numpy.testing import assert_allclose, assert_raises
 import numpy as np
 
@@ -34,7 +35,6 @@ except ImportError:
         import weave
     except ImportError:
         weave = None
-import nose
 
 
 # a simple Group for testing
@@ -116,16 +116,15 @@ def numpy_evaluator(expr, userns):
     
     
 def cpp_evaluator(expr, ns):
-    if weave is not None:
-        compiler, extra_compile_args = get_compiler_and_args()
-        with std_silent():
-            return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
-                                compiler=compiler,
-                                extra_compile_args=extra_compile_args,
-                                include_dirs=prefs['codegen.cpp.include_dirs']
-                                )
-    else:
-        raise nose.SkipTest('No weave support.')
+    compiler, extra_compile_args = get_compiler_and_args()
+    with std_silent():
+        return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
+                            compiler=compiler,
+                            extra_compile_args=extra_compile_args,
+                            extra_link_args=prefs['codegen.cpp.extra_link_args'],
+                            library_dirs=prefs['codegen.cpp.library_dirs'],
+                            include_dirs=prefs['codegen.cpp.include_dirs']
+                            )
 
 
 @attr('codegen-independent')
@@ -138,8 +137,9 @@ def test_parse_expressions_numpy():
     parse_expressions(NumpyNodeRenderer(), numpy_evaluator)
 
 
-@attr('codegen-independent')
 def test_parse_expressions_cpp():
+    if prefs.codegen.target != 'weave':
+        raise SkipTest('weave-only test')
     parse_expressions(CPPNodeRenderer(), cpp_evaluator)
 
 

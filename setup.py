@@ -4,15 +4,11 @@ Brian2 setup script
 '''
 import sys
 import os
+import platform
 
 if sys.version_info < (2, 7):
     raise RuntimeError('Only Python versions >= 2.7 are supported')
 
-# This will automatically download setuptools if it is not already installed
-from ez_setup import use_setuptools
-use_setuptools()
-
-import pkg_resources
 from pkg_resources import parse_version
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
@@ -71,9 +67,22 @@ else:
     fname = cpp_fname
 
 if fname is not None:
-    extensions = [Extension("brian2.synapses.cythonspikequeue",
-                            [fname],
-                            include_dirs=[])]  # numpy include dir will be added later
+    if (platform.system() == 'Linux' and
+            platform.architecture()[0] == '32bit' and
+            platform.machine() == 'x86_64'):
+        # We are cross-compiling (most likely to build a 32Bit package for conda
+        # on travis), set paths and flags for 32Bit explicitly
+        print('Configuring compilation for cross-compilation to 32 Bit')
+        extensions = [Extension("brian2.synapses.cythonspikequeue",
+                                [fname],
+                                include_dirs=[], # numpy include dir will be added later
+                                library_dirs=['/lib32', '/usr/lib32'],
+                                extra_compile_args=['-m32'],
+                                extra_link_args=['-m32'])]
+    else:
+        extensions = [Extension("brian2.synapses.cythonspikequeue",
+                                [fname],
+                                include_dirs=[])]  # numpy include dir will be added later
     if fname == pyx_fname:
         extensions = cythonize(extensions)
 else:
@@ -147,8 +156,11 @@ setup(name='Brian2',
                         'sympy>=0.7.6',
                         'pyparsing',
                         'jinja2>=2.7',
+                        'setuptools>=6.0'  # FIXME: setuptools>=6.0 is only needed for Windows
                        ],
-      setup_requires=['numpy>=1.8.0'],
+      setup_requires=['numpy>=1.8.0',
+                      'setuptools>=6.0'
+                      ],
       cmdclass={'build_ext': optional_build_ext},
       provides=['brian2'],
       extras_require={'test': ['nosetests>=1.0'],

@@ -1,54 +1,94 @@
-language: python
+language: c  # We are not using the Python infrastructure
+sudo: false  # Make sure we are using the container-based infrastructure
+
+env:
+  global:
+    secure: "Vtb4Q/obhCgQwNp6OgkE4vAYmjW/MvXJljNcQ39EfN96jicsGpSCfeNqAIcbK+YDboS8lrnqin+bAt5aQpJgnQQtK86miDsiM5leurKxu4he6WBfJ3A1MQmYRFUAN4uM6Mq8mU0x5IvPoF6GKtIZkUG4TrZPUbLVW6UXOo0ioHM="
+
+# Install packages for cross-compilation to 32 Bit
+addons:
+  apt:
+    packages:
+    - gcc-multilib
+    - g++-multilib
+    - lib32z1
+
 matrix:
   include:
       # test that the documentation can be built from the tarball -- we
       # automatically build it from github master all the time, but downstream
       # packaging will use the tarball as the basis
     - python: "2.7"
-      env: DOCS_ONLY=yes
+      env: PYTHON="2.7" DOCS_ONLY=yes ARCHITECTURE="x86_64"
+    # Standard tests
     - python: "2.7"
-      env: STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no REPORT_COVERAGE=yes
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="27" CONDA_NPY="19" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
     - python: "2.7"
-      env: STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=yes REPORT_COVERAGE=no
-    - python: "3.3"
-      env: STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no REPORT_COVERAGE=no
-    - python: "3.3"
-      env: STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=yes REPORT_COVERAGE=no
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="27" CONDA_NPY="19" CONDA_BUILD='yes' ARCHITECTURE="x86"
+    - python: "2.7"
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=yes REPORT_COVERAGE=no  CONDA_PY="27" CONDA_NPY="19" CONDA_BUILD='no'  ARCHITECTURE="x86_64"
     - python: "3.4"
-      env: STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no REPORT_COVERAGE=no
+      env: PYTHON="3.4" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="34" CONDA_NPY="19" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
+    - python: "3.4"
+      env: PYTHON="3.4" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="34" CONDA_NPY="19" CONDA_BUILD='yes' ARCHITECTURE="x86"
+    # test standalone
     - python: "2.7"
-      env: STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no
-    - python: "2.7"  # test without installed cython
-      env: STANDALONE=no CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no
+      env: PYTHON="2.7" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86_64"
+    - python: "2.7"
+      env: PYTHON="2.7" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86_64"
+    - python: "3.4"
+      env: PYTHON="3.4" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86"
+    - python: "3.4"
+      env: PYTHON="3.4" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86"
+    # test without installed cython
+    - python: "2.7"
+      env: PYTHON="2.7" STANDALONE=no CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no ARCHITECTURE="x86_64"
+
+
 # Use miniconda to install binary versions of numpy etc. from continuum
 # analytic's repository. Follows an approach described by Dan Blanchard:
 # https://gist.github.com/dan-blanchard/7045057
 before_install:
-- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.7.3-Linux-x86_64.sh -O miniconda.sh; fi
+- if [ ${PYTHON:0:1} == "2" ]; then
+    wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-$ARCHITECTURE.sh -O miniconda.sh;
+    else
+    wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-$ARCHITECTURE.sh -O miniconda.sh;
+  fi
 - chmod +x miniconda.sh
-- ./miniconda.sh -b
-- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then export PATH=/home/travis/miniconda/bin:$PATH; else export PATH=/home/travis/miniconda3/bin:$PATH; fi
-# The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
-- sudo rm -rf /dev/shm
-- sudo ln -s /run/shm /dev/shm
+# When we are installing the 32 Bit conda on a 64 Bit system, the miniconda
+# installer will ask for a "yes" despite the -b flag, so we pipe in a yes
+- yes | ./miniconda.sh -b
+- if [ ${PYTHON:0:1} == "2" ]; then export PATH=/home/travis/miniconda/bin:$PATH; else export PATH=/home/travis/miniconda3/bin:$PATH; fi
+
 # command to install dependencies
 install:
   - conda update --yes conda
+  - if [[ $CONDA_BUILD == 'yes' ]]; then
+       conda install --yes --quiet binstar conda-build jinja2 pip setuptools;
+    fi
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
-    conda create -n travis_conda --yes pip python=$TRAVIS_PYTHON_VERSION numpy==1.8.0 scipy==0.13.3 nose sphinx ipython sympy==0.7.6 jinja2==2.7 pyparsing;
+    conda create -n travis_conda --yes pip python=$PYTHON numpy==1.8.0 scipy==0.13.3 nose sphinx ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage;
     else
-    conda create -n travis_conda --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy nose sphinx ipython sympy pyparsing jinja2;
+    conda create -n travis_conda --yes pip python=$PYTHON numpy scipy nose sphinx ipython sympy pyparsing jinja2 setuptools coverage;
     fi
   - source activate travis_conda
-  - if [[ $CYTHON == 'yes' ]]; then conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=""; fi
-  - pip install -q coveralls
+  - conda update --yes pip setuptools
+  - if [[ $CYTHON == 'yes' ]]; then conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
+  - if [[ $REPORT_COVERAGE == 'yes' ]]; then pip install -q coveralls; fi
   - python setup.py install $SETUP_ARGS --fail-on-error
   - if [[ $DOCS_ONLY == 'yes' ]]; then
-    pip install -q sphinxcontrib-issuetracker;
-    python setup.py sdist;
-    fi
+      pip install -q sphinxcontrib-issuetracker;
+      python setup.py sdist;
+    fi;
+
 # command to run tests (make sure to not run it from the source directory)
 script:
+- if [[ $CONDA_BUILD == 'yes' ]]; then
+    source deactivate;
+    conda build dev/conda-recipe --quiet;
+    source activate travis_conda;
+  fi
+# Don't run tests in parallel when reporting coverage
 - if [[ $DOCS_ONLY == 'yes' ]]; then
     cd dist;
     tar xvzf *.tar.gz;
@@ -63,9 +103,32 @@ script:
       SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests.py;
     fi;
     cd ~;
-    coverage run --rcfile=$SRCDIR/.coveragerc $SCRIPTFILE;
+    if [[ $ARCHITECTURE == 'x86' ]]; then mkdir ~/.brian; cp $SRCDIR/dev/continuous-integration/preferences_for_32_bit ~/.brian/user_preferences; fi;
+    if [[ $REPORT_COVERAGE == 'yes' ]]; then
+      coverage run --rcfile=$SRCDIR/.coveragerc $SCRIPTFILE no-parallel;
+    elif [[ $ARCHITECTURE == 'x86' ]]; then
+      coverage run --rcfile=$SRCDIR/.coveragerc $SCRIPTFILE cross-compiled;
+    else
+      coverage run --rcfile=$SRCDIR/.coveragerc $SCRIPTFILE;
+    fi;
   fi
-# We only report coverage for one Python version
-after_success: if [[ $REPORT_COVERAGE == 'yes' ]]; then cp .coverage $SRCDIR; cd $SRCDIR; coveralls; fi
+
+after_success:
+# We only upload to binstar for commits merged into the master branch
+- if [[ $CONDA_BUILD == 'yes' && $TRAVIS_PULL_REQUEST == 'false' && $TRAVIS_REPO_SLUG == 'brian-team/brian2' && $TRAVIS_BRANCH == 'master' ]]; then
+    cd $SRCDIR;
+    source deactivate;
+    python dev/continuous-integration/move-conda-package.py dev/conda-recipe &&
+    python dev/continuous-integration/binstar-push.py;
+    source activate travis_conda;
+  fi;
+  if [[ $REPORT_COVERAGE == 'yes' ]]; then
+    cd ~;
+    cp .coverage $SRCDIR;
+    cd $SRCDIR;
+    coveralls;
+  fi
+
 notifications:
   email: false
+

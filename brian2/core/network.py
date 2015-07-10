@@ -469,10 +469,6 @@ class Network(Nameable):
         '''
         from brian2.devices.device import get_device, all_devices
 
-        # A garbage collection here can be useful to free memory if we have
-        # multiple runs
-        gc.collect()
-
         prefs.check_all_validated()
         
         self._stopped = False

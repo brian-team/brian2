@@ -1,33 +1,68 @@
  # CI configuration for Windows tests on appveyor
  # Based on Olivier Grisel's python-appveyor-demo
-
 environment:
   global:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
     # See: http://stackoverflow.com/a/13751649/163740
-    CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\dev\\appveyor\\run_with_env.cmd"
+    CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\dev\\continuous-integration\\appveyor\\run_with_env.cmd"
+  BINSTAR_TOKEN:
+    secure: haSplg2ccSWy75ajN104ThiOv2LQv95O/yb35ZzJewFb+hKxpJj8slJF7j1HAUdW
 
   matrix:
     - PYTHON: "C:\\Python27-conda32"
       PYTHON_VERSION: "2.7.8"
       PYTHON_ARCH: "32"
       STANDALONE: "FALSE"
+      CONDA_PY: "27"
+      CONDA_NPY: "19"
+      CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "1"
+
+    - PYTHON: "C:\\Python27-conda32"
+      PYTHON_VERSION: "2.7.8"
+      PYTHON_ARCH: "32"
+      STANDALONE: "FALSE"
+      CONDA_PY: "27"
+      CONDA_NPY: "19"
+      CONDA_BUILD: "FALSE"
+      SPLIT_RUN: "2"
 
     - PYTHON: "C:\\Python27-conda64"
       PYTHON_VERSION: "2.7.8"
       PYTHON_ARCH: "64"
       STANDALONE: "FALSE"
+      CONDA_PY: "27"
+      CONDA_NPY: "19"
+      CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "1"
+
+    - PYTHON: "C:\\Python27-conda64"
+      PYTHON_VERSION: "2.7.8"
+      PYTHON_ARCH: "64"
+      STANDALONE: "FALSE"
+      CONDA_PY: "27"
+      CONDA_NPY: "19"
+      CONDA_BUILD: "FALSE"
+      SPLIT_RUN: "2"
 
     - PYTHON: "C:\\Python34-conda32"
       PYTHON_VERSION: "3.4.1"
       PYTHON_ARCH: "32"
       STANDALONE: "FALSE"
+      CONDA_PY: "34"
+      CONDA_NPY: "19"
+      CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "FALSE"
 
     - PYTHON: "C:\\Python34-conda64"
       PYTHON_VERSION: "3.4.1"
       PYTHON_ARCH: "64"
       STANDALONE: "FALSE"
+      CONDA_PY: "34"
+      CONDA_NPY: "19"
+      CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "FALSE"
 
     - PYTHON: "C:\\Python27-conda32"
       PYTHON_VERSION: "2.7.8"
@@ -41,29 +76,55 @@ environment:
 
 install:
   # Install Python and miniconda
-  - "powershell .\\dev\\appveyor\\install_python.ps1"
-
-  # Prepend newly installed Python to the PATH of this build (this cannot be
-  # done from inside the powershell script as it would require to restart
-  # the parent CMD process).
-  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - 'powershell .\dev\continuous-integration\appveyor\install_python.ps1'
+  # Add the paths
+  - 'set PATH=%PYTHON%;%PYTHON%/Scripts;%PATH%'
 
   # Check that we have the expected version and architecture for Python
-  - "python --version"
-  - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
+  - 'python --version'
+  - 'python -c "import struct; print(struct.calcsize(''P'') * 8)"'
 
   # Install the build dependencies of the project via conda
-  - "conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython setuptools"
-  - "pip install py-cpuinfo"
+  - 'conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
+  - 'pip install py-cpuinfo'
+  - 'IF "%CONDA_BUILD%" == "TRUE" (conda install --yes --quiet conda-build binstar pip)'
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Run the test suite
-  - "%CMD_IN_ENV% python -c \"import sys; print(sys.executable)\""
-  - "%CMD_IN_ENV% python setup.py install"
-  - "if \"%STANDALONE%\" == \"TRUE\" (
-        %CMD_IN_ENV% python .\\dev\\tools\\run_nose_tests_standalone.py
-    ) ELSE (
-        %CMD_IN_ENV% python .\\dev\\tools\\run_nose_tests.py
-    )"
+  - '%CMD_IN_ENV% python -c "import sys; print(sys.executable)"'
+  - 'IF "%CONDA_BUILD%" == "TRUE" (
+          %CMD_IN_ENV% conda build dev\conda-recipe --quiet &
+          %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe
+     )'
+  - '%CMD_IN_ENV% python setup.py install'
+  - 'set SRC_DIR=%CD%'
+  - 'cd \'
+  # Since "CMD_IN_ENV" assumes we are in the source directory we cannot use it
+  # here. We therefore copy its content and use the correct path
+  - 'cmd /E:ON /V:ON /C %SRC_DIR%\dev\continuous-integration\appveyor\run_with_env.cmd python %SRC_DIR%\dev\continuous-integration\appveyor\run_test_suite.py'
+
+after_test:
+  - 'IF "%CONDA_BUILD%" == "TRUE" (
+          pip install wheel &
+          cd %SRC_DIR% &
+          %CMD_IN_ENV% python setup.py bdist_wheel &
+          %CMD_IN_ENV% python setup.py bdist_wininst
+     )'
+
+artifacts:
+  # Archive the generated conda package in the ci.appveyor.com build report.
+  - path: '*.tar.bz2'
+    name: conda package
+  - path: dist\*
+    name: PyPI binaries
+
+on_success:
+  # Upload built binaries to binstar.org. The globbing and handling of the
+  # exit-status code is tricky in cmd.exe or powershell, so we're just using
+  # a python script.
+  #
+  # We only upload to binstar for commits merged into the master branch
+  - 'cd %SRC_DIR%'
+  - 'if "%CONDA_BUILD%" == "TRUE" if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if "%APPVEYOR_REPO_NAME%" == "brian-team/brian2" if "%APPVEYOR_REPO_BRANCH%" == "master" python dev\continuous-integration\binstar-push.py'

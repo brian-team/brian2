@@ -5,7 +5,7 @@ the pylab (numpy + matplotlib) namespace.
 Usage: ``from brian2.only import *``
 
 '''
-
+import gc
 # To minimize the problems with imports, import the packages in a sensible
 # order
 
@@ -60,6 +60,7 @@ def restore_initial_state():
     defaultclock.dt = 0.1*ms
     prefs._restore()
     BrianObject._scope_current_key = 0
+    gc.collect()
 
 # make the test suite available via brian2.test()
 from brian2.tests import run as test

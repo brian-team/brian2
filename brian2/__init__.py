@@ -1,9 +1,13 @@
 '''
 Brian 2.0
 '''
+# Import setuptools to do some monkey patching of distutils, necessary for
+# working weave/Cython on Windows with the Python for C++ compiler
+import setuptools as _setuptools
+
 # Check basic dependencies
 import sys
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 missing = []
 try:
     import numpy
@@ -20,6 +24,11 @@ try:
 except ImportError as ex:
     sys.stderr.write('Importing pyparsing failed: %s\n' % ex)
     missing.append('pyparsing')
+try:
+    import jinja2
+except ImportError as ex:
+    sys.stderr.write('Importing Jinja2 failed: %s\n' % ex)
+    missing.append('jinja2')
 
 if len(missing):
     raise ImportError('Some required dependencies are missing:\n' + ', '.join(missing))
@@ -65,7 +74,7 @@ def _check_dependency_version(name, version):
     module = sys.modules[name]
     if not isinstance(module.__version__, basestring):  # mocked module
         return
-    if not StrictVersion(module.__version__) >= StrictVersion(version):
+    if not LooseVersion(module.__version__) >= LooseVersion(version):
         message = '%s is outdated (got version %s, need version %s)' % (name,
                                                                         module.__version__,
                                                                         version)
@@ -75,6 +84,7 @@ def _check_dependency_version(name, version):
 
             logger.warn(message, 'outdated_dependency')
 
-for name, version in [('numpy', '1.8.0'),
-                      ('sympy', '0.7.6')]:
+for name, version in [('numpy',  '1.8.0'),
+                      ('sympy',  '0.7.6'),
+                      ('jinja2', '2.7')]:
     _check_dependency_version(name, version)

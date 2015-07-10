@@ -1,13 +1,13 @@
 {# IS_OPENMP_COMPATIBLE #}
 {% macro cpp_file() %}
 
-#include<stdint.h>
-#include<vector>
 #include "objects.h"
 #include "synapses_classes.h"
 #include "brianlib/clocks.h"
 #include "brianlib/dynamic_array.h"
+#include "brianlib/stdint_compat.h"
 #include "network.h"
+#include<vector>
 #include<iostream>
 #include<fstream>
 
@@ -124,7 +124,7 @@ void _load_arrays()
 		std::cout << "Error opening static array {{name}}." << endl;
 	}
 	{% endfor %}
-}	
+}
 
 void _write_arrays()
 {
@@ -150,7 +150,8 @@ void _write_arrays()
 	outfile_{{varname}}.open("{{get_array_filename(var) | replace('\\', '\\\\')}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
-		outfile_{{varname}}.write(reinterpret_cast<char*>(&{{varname}}[0]), {{varname}}.size()*sizeof({{varname}}[0]));
+        if (! {{varname}}.empty() )
+			outfile_{{varname}}.write(reinterpret_cast<char*>(&{{varname}}[0]), {{varname}}.size()*sizeof({{varname}}[0]));
 		outfile_{{varname}}.close();
 	} else
 	{
@@ -165,7 +166,8 @@ void _write_arrays()
 	{
         for (int n=0; n<{{varname}}.n; n++)
         {
-            outfile_{{varname}}.write(reinterpret_cast<char*>(&{{varname}}(n, 0)), {{varname}}.m*sizeof({{varname}}(0, 0)));
+            if (! {{varname}}(n).empty())
+                outfile_{{varname}}.write(reinterpret_cast<char*>(&{{varname}}(n, 0)), {{varname}}.m*sizeof({{varname}}(0, 0)));
         }
         outfile_{{varname}}.close();
 	} else
@@ -210,12 +212,12 @@ void _dealloc_arrays()
 #ifndef _BRIAN_OBJECTS_H
 #define _BRIAN_OBJECTS_H
 
-#include<vector>
-#include<stdint.h>
 #include "synapses_classes.h"
 #include "brianlib/clocks.h"
 #include "brianlib/dynamic_array.h"
+#include "brianlib/stdint_compat.h"
 #include "network.h"
+#include<vector>
 {{ openmp_pragma('include') }}
 
 namespace brian {

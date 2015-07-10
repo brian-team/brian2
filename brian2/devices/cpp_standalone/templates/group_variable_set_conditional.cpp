@@ -1,9 +1,9 @@
 {# IS_OPENMP_COMPATIBLE #}
 {% macro cpp_file() %}
 #include "code_objects/{{codeobj_name}}.h"
-#include<math.h>
 #include "brianlib/common_math.h"
-#include<stdint.h>
+#include "brianlib/stdint_compat.h"
+#include<cmath>
 #include<iostream>
 #include<fstream>
 {% block extra_headers %}

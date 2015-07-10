@@ -549,7 +549,7 @@ class CPPStandaloneDevice(Device):
                             if v.dimensions == 1:
                                 dyn_array_name = self.dynamic_arrays[v]
                                 array_name = self.arrays[v]
-                                line = '{c_type}* const {array_name} = &{dyn_array_name}[0];'
+                                line = '{c_type}* const {array_name} = {dyn_array_name}.empty()? 0 : &{dyn_array_name}[0];'
                                 line = line.format(c_type=c_data_type(v.dtype), array_name=array_name,
                                                    dyn_array_name=dyn_array_name)
                                 lines.append(line)
@@ -578,12 +578,7 @@ class CPPStandaloneDevice(Device):
             writer.write('code_objects/'+codeobj.name+'.h', codeobj.code.h_file)
         
     def generate_network_source(self, writer, compiler):
-        if compiler=='msvc':
-            std_move = 'std::move'
-        else:
-            std_move = ''
-        network_tmp = CPPStandaloneCodeObject.templater.network(None, None,
-                                                             std_move=std_move)
+        network_tmp = CPPStandaloneCodeObject.templater.network(None, None)
         writer.write('network.*', network_tmp)
         
     def generate_synapses_classes_source(self, writer):
