@@ -115,7 +115,7 @@ script:
 
 after_success:
 # We only upload to binstar for commits merged into the master branch
-- if [[ $CONDA_BUILD == 'yes' && $TRAVIS_PULL_REQUEST == 'false' && $TRAVIS_REPO_SLUG == 'brian-team/brian2' && $TRAVIS_BRANCH == 'appveyor_conda' ]]; then
+- if [[ $CONDA_BUILD == 'yes' && $TRAVIS_PULL_REQUEST == 'false' && $TRAVIS_REPO_SLUG == 'brian-team/brian2' && $TRAVIS_BRANCH == 'master' ]]; then
     cd $SRCDIR;
     source deactivate;
     python dev/continuous-integration/move-conda-package.py dev/conda-recipe &&
