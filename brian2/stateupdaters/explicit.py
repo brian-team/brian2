@@ -21,14 +21,15 @@ __all__ = ['milstein', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 # Class for simple definition of explicit state updaters
 #===============================================================================
 
-def _symbol(name):
+def _symbol(name, positive=None):
     ''' Shorthand for ``sympy.Symbol(name, real=True)``. '''
-    return sympy.Symbol(name, real=True)
+    return sympy.Symbol(name, real=True, positive=positive)
 
 #: reserved standard symbols
 SYMBOLS = {'__x' : _symbol('__x'),
-           '__t' : _symbol('__t'),
-           'dt': _symbol('dt'),
+           '__t' : _symbol('__t', positive=True),
+           'dt': _symbol('dt', positive=True),
+           't': _symbol('t', positive=True),
            '__f' : sympy.Function('__f'),
            '__g' : sympy.Function('__g'),
            '__dW': _symbol('__dW')}
@@ -365,9 +366,12 @@ class ExplicitStateUpdater(StateUpdateMethod):
             # expression
             s_expr = s_expr.subs(eq_symbols[var], x_replacement)
 
-        # Directly substitute the 't' expression for the symbol t, there
-        # are no temporary variables to consider here.
-        s_expr = s_expr.subs(self.symbols['__t'], t)
+        # If the expression given for t in the state updater description
+        # is not just "t" (or rather "__t"), then replace t in the
+        # equations by it, and replace "__t" by "t" afterwards.
+        if t != self.symbols['__t']:
+            s_expr = s_expr.subs(SYMBOLS['t'], t)
+            s_expr = s_expr.replace(self.symbols['__t'], SYMBOLS['t'])
 
         return s_expr
 
