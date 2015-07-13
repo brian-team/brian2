@@ -1,0 +1,8 @@
+The Rallpacks are a set of benchmarks for evaluating neuronal simulators.
+
+Bhalla, Upinder S., David H. Bilitch, and James M. Bower.
+“Rallpacks: A Set of Benchmarks for Neuronal Simulators.”
+Trends in Neurosciences 15, no. 11 (1992): 453–58.
+
+This folder contains data with theoretical solutions for Rallpack 1 and 2, and
+the solutions simulated by the NEURON simulator for Rallpack 3.
