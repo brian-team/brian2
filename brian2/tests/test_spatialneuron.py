@@ -51,7 +51,7 @@ def test_construction():
                neuron.diffusion_state_updater._starts[:].flat)
 
 
-@attr('long', 'standalone-compatible')
+@attr('long')
 @with_setup(teardown=restore_device)
 def test_infinitecable():
     '''
@@ -83,7 +83,7 @@ def test_infinitecable():
     neuron.I[len(neuron)//2]=1*nA # injecting in the middle
     run(0.02*ms)
     neuron.I=0*amp
-    net.run(3*ms)
+    run(3*ms)
     t = mon.t
     v = mon[N//2-20].v
     # Theory (incorrect near cable ends)
