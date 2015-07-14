@@ -168,7 +168,7 @@ def test_rallpack1():
     #Record at the two ends
     mon = StateMonitor(neuron, 'v', record=[0, 999], when='start', dt=0.05*ms)
 
-    run(250*ms + defaultclock.dt, report='text')
+    run(250*ms + defaultclock.dt)
 
     # Load the theoretical results
     data_0 = np.loadtxt('rallpack_data/ref_cable.0')
@@ -240,30 +240,34 @@ def test_rallpack2():
     mon = StateMonitor(neuron, 'v', record=[0] + endpoint_indices,
                        when='start', dt=0.05*ms)
 
-    run(250*ms + defaultclock.dt, report='text')
-    print profiling_summary()
+    run(250*ms + defaultclock.dt)
 
     # Load the theoretical results
     data_0 = np.loadtxt('rallpack_data/ref_branch.0')
     data_x = np.loadtxt('rallpack_data/ref_branch.x')
 
+    # sanity check: times are the same
+    assert_allclose(mon.t/second, data_0[:, 0])
+    assert_allclose(mon.t/second, data_x[:, 0])
+
+    # Check that all endpoints are the same:
+    for endpoint in endpoints:
+        assert_allclose(mon[endpoint].v, mon[endpoint[0]].v)
+
     scale_0 = max(data_0[:, 1]*volt) - min(data_0[:, 1]*volt)
     scale_x = max(data_x[:, 1]*volt) - min(data_x[:, 1]*volt)
     squared_diff_0 = (data_0[:, 1] * volt - mon[0].v)**2
-    # One endpoint (all should be the same)
+
+    # One endpoint
     squared_diff_x = (data_x[:, 1] * volt - mon[endpoint_indices[0]].v)**2
     rel_RMS_0 = sqrt(mean(squared_diff_0))/scale_0
     rel_RMS_x = sqrt(mean(squared_diff_x))/scale_x
     max_rel_0 = sqrt(max(squared_diff_0))/scale_0
     max_rel_x = sqrt(max(squared_diff_x))/scale_x
-    #
-    # # sanity check: times are the same
-    assert_allclose(mon.t/second, data_0[:, 0])
-    assert_allclose(mon.t/second, data_x[:, 0])
-    #
-    # # RMS error should be < 0.1%, maximum error along the curve should be < 0.5%
-    assert 100*rel_RMS_0 < 0.1
-    assert 100*rel_RMS_x < 0.1
+
+    # RMS error should be < 0.25%, maximum error along the curve should be < 0.5%
+    assert 100*rel_RMS_0 < 0.25
+    assert 100*rel_RMS_x < 0.25
     assert 100*max_rel_0 < 0.5
     assert 100*max_rel_x < 0.5
 
@@ -308,12 +312,17 @@ def test_rallpack3():
     '''
     axon = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri, method='exponential_euler')
     axon.v = El
+    # Pre-calculated equilibrium values at v = El
+    axon.m = 0.0529324852572
+    axon.n = 0.317676914061
+    axon.h = 0.596120753508
     axon.I[0] = 0.1*nA  # injecting at the left end
 
     #Record at the two ends
     mon = StateMonitor(axon, 'v', record=[0, 999], when='start', dt=0.05*ms)
 
-    run(250*ms + defaultclock.dt, report='text')
+    run(250*ms + defaultclock.dt)
+
 
     # Load the theoretical results
     data_0 = np.loadtxt('rallpack_data/ref_axon.0.neuron')
@@ -323,26 +332,23 @@ def test_rallpack3():
     assert_allclose(mon.t/second, data_0[:, 0])
     assert_allclose(mon.t/second, data_x[:, 0])
 
-    def _find_peaks(data):
-        is_peak = ((data[:-2] > data[1:-1]) &
-                   (data[:-2] > data[2:]) &
-                   (data[:-2] > data[1:-1]) &
-                   (data[:-2] > np.concatenate([[-np.inf, -np.inf], data[:-4]])) &
-                   (data[:-2] > np.concatenate([[-np.inf], data[:-3]])))
-        return is_peak.nonzero()[0]
+    scale_0 = max(data_0[:, 1]*volt) - min(data_0[:, 1]*volt)
+    scale_x = max(data_x[:, 1]*volt) - min(data_x[:, 1]*volt)
+    squared_diff_0 = (data_0[:, 1] * volt - mon[0].v)**2
+    squared_diff_x = (data_x[:, 1] * volt - mon[999].v)**2
 
-    for our_data, comparison in [(mon[0].v_, data_0[:, 1]),
-                                 (mon[999].v_, data_x[:, 1])]:
-        our_peaks = mon.t[:][_find_peaks(our_data)]
-        their_peaks = mon.t[:][_find_peaks(comparison)]
-        n_spikes = min(len(our_peaks), len(their_peaks))
-        our_peaks = our_peaks[:n_spikes]
-        their_peaks = their_peaks[:n_spikes]
-        our_ISIs = np.diff(our_peaks)
-        their_ISIs = np.diff(their_peaks)
-        fractional_difference = (our_ISIs-their_ISIs)/(our_ISIs+their_ISIs)
+    rel_RMS_0 = sqrt(mean(squared_diff_0))/scale_0
+    rel_RMS_x = sqrt(mean(squared_diff_x))/scale_x
+    max_rel_0 = sqrt(max(squared_diff_0))/scale_0
+    max_rel_x = sqrt(max(squared_diff_x))/scale_x
 
-    # TODO: Assertions
+    # RMS error should be < 0.1%, maximum error along the curve should be < 0.5%
+    # Note that this is much stricter than the original Rallpack evaluation, but
+    # with the 1us time step, the voltage traces are extremely similar
+    assert 100*rel_RMS_0 < 0.1
+    assert 100*rel_RMS_x < 0.1
+    assert 100*max_rel_0 < 0.5
+    assert 100*max_rel_x < 0.5
 
 
 @attr('long', 'standalone-compatible')
