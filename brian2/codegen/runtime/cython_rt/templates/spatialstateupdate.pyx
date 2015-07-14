@@ -28,6 +28,7 @@
     cdef int col
     cdef int i_pivot
     cdef double pivot_magnitude
+    cdef double pivot_element
     cdef double pivot_factor
     cdef double tmp
 
@@ -143,7 +144,10 @@
 
         # Deal with rows below
         for _j in range(_i+1, _n_segments):
-            pivot_factor = {{_P}}[_j*_n_segments + _i]/{{_P}}[_i*_n_segments + _i]
+            pivot_element = {{_P}}[_j*_n_segments + _i]
+            if pivot_element == 0.0:
+                continue
+            pivot_factor = pivot_element/{{_P}}[_i*_n_segments + _i]
             for _k in range(_i+1, _n_segments):
                 {{_P}}[_j*_n_segments + _k] -= {{_P}}[_i*_n_segments + _k]*pivot_factor
             {{_B}}[_j] -= {{_B}}[_i]*pivot_factor

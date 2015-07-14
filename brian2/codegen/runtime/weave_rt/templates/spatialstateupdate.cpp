@@ -157,7 +157,10 @@
         // Deal with rows below
         for (int j=i+1; j<_num_B; j++)
         {
-            const double pivot_factor = {{_P}}[j*_num_B + i]/{{_P}}[i*_num_B + i];
+            const double pivot_element = {{_P}}[j*_num_B + i];
+            if (pivot_element == 0.0)
+                continue;
+            const double pivot_factor = pivot_element/{{_P}}[i*_num_B + i];
             for (int k=i+1; k<_num_B; k++)
             {
                 {{_P}}[j*_num_B + k] -= {{_P}}[i*_num_B + k]*pivot_factor;
