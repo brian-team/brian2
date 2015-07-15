@@ -13,7 +13,7 @@
 {% macro main() %}
     {{ common.insert_group_preamble() }}
 
-    static double *c = (double *)malloc(N * sizeof(double));
+    double *c = (double *)malloc(N * sizeof(double));
 	double ai,bi,_m;
 
     int _vectorisation_idx = 1;
@@ -197,6 +197,7 @@
                 {{v}}[_k] = {{v_star}}[_k] + {{_B}}[_i_parent] * {{u_minus}}[_k]
                                            + {{_B}}[_i] * {{u_plus}}[_k];
     }
+    free(c);
 
 {% endmacro %}
 
