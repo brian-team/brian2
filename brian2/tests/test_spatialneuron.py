@@ -1,3 +1,5 @@
+import os
+
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 from nose import with_setup
 from nose.plugins.attrib import attr
@@ -171,8 +173,10 @@ def test_rallpack1():
     run(250*ms + defaultclock.dt)
 
     # Load the theoretical results
-    data_0 = np.loadtxt('rallpack_data/ref_cable.0')
-    data_x = np.loadtxt('rallpack_data/ref_cable.x')
+    basedir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                           'rallpack_data')
+    data_0 = np.loadtxt(os.path.join(basedir, 'ref_cable.0'))
+    data_x = np.loadtxt(os.path.join(basedir, 'ref_cable.x'))
 
     scale_0 = max(data_0[:, 1]*volt) - min(data_0[:, 1]*volt)
     scale_x = max(data_x[:, 1]*volt) - min(data_x[:, 1]*volt)
@@ -243,8 +247,10 @@ def test_rallpack2():
     run(250*ms + defaultclock.dt)
 
     # Load the theoretical results
-    data_0 = np.loadtxt('rallpack_data/ref_branch.0')
-    data_x = np.loadtxt('rallpack_data/ref_branch.x')
+    basedir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                           'rallpack_data')
+    data_0 = np.loadtxt(os.path.join(basedir, 'ref_branch.0'))
+    data_x = np.loadtxt(os.path.join(basedir, 'ref_branch.x'))
 
     # sanity check: times are the same
     assert_allclose(mon.t/second, data_0[:, 0])
@@ -325,8 +331,10 @@ def test_rallpack3():
 
 
     # Load the theoretical results
-    data_0 = np.loadtxt('rallpack_data/ref_axon.0.neuron')
-    data_x = np.loadtxt('rallpack_data/ref_axon.x.neuron')
+    basedir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                           'rallpack_data')
+    data_0 = np.loadtxt(os.path.join(basedir, 'ref_axon.0.neuron'))
+    data_x = np.loadtxt(os.path.join(basedir, 'ref_axon.x.neuron'))
 
     # sanity check: times are the same
     assert_allclose(mon.t/second, data_0[:, 0])

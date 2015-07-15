@@ -147,6 +147,9 @@ setup(name='Brian2',
                                                       'templates/win_makefile',
                                                       'brianlib/*.cpp',
                                                       'brianlib/*.h'],
+                    # Include RALLPACK test data
+                    'brian2.tests': ['rallpack_data/README',
+                                     'rallpack_data/ref_*'],
                     # include C++ version of spike queue
                     'brian2.synapses': ['*.cpp', '*.h'],
                     # include default_preferences file
