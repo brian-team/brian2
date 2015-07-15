@@ -10,7 +10,6 @@
 Solves the cable equation (spatial diffusion of currents).
 This is where most time-consuming time computations are done.
 '''
-from numpy.linalg import solve
 from numpy import zeros
 
 # scalar code
@@ -21,7 +20,7 @@ _vectorisation_idx = 1
 _vectorisation_idx = N
 {{vector_code|autoindent}}
 
-{%if False and _scipy_available %}
+{%if _scipy_available %}
 from scipy.linalg import solve_banded
 
 # Particular solution
@@ -136,7 +135,16 @@ for _i, _i_parent, _first, _last, _invr0, _invrn in zip({{_morph_i}},
     {{_B}}[_i] = {{v_star}}[_last] * _invrn
 
 # Solve the linear system
+{% if _scipy_available %}
+from scipy.sparse.linalg import spsolve as solve
+from scipy.sparse import csr_matrix
+_A = csr_matrix({{_P}}.reshape((_n_segments, _n_segments)))
+_V = solve(_A, {{_B}})
+{% else %}
+from numpy.linalg import solve
 _V = solve({{_P}}.reshape((_n_segments, _n_segments)), {{_B}})
+{% endif %}
+
 
 # Final solutions as linear combinations
 for _i, _i_parent, _first, _last, in zip({{_morph_i}},
