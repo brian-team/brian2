@@ -131,6 +131,16 @@ for neuron i while the latter returns the value for the *ith* recorded neuron.::
     print mon[2].v  # v values for neuron number 2
     print mon.v[2]  # v values for neuron number 4
 
+Another change is that the `StateMonitor` now records in the ``'start'``
+scheduling slot by default. This leads to a more intuitive correspondence
+between the recorded times and the values: previously (where `StateMonitor`
+recorded in the ``'end'`` slot) the recorded value at 0ms was not the initial
+value of the variable but the value after integrating it for a single time
+step. The disadvantage of this new default is that the very last value at the
+end of the last time step of a simulation is not recorded anymore. However, this
+value can be manually added to the monitor by calling
+`StateMonitor.record_single_timestep`.
+
 Miscellaneous changes
 ~~~~~~~~~~~~~~~~~~~~~
 * New preferences system (see :doc:`../developer/preferences`)

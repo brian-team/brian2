@@ -19,7 +19,7 @@ def test_spikegenerator_connected():
     Test that `SpikeGeneratorGroup` connects properly.
     '''
     G = NeuronGroup(10, 'v:1')
-    mon = StateMonitor(G, 'v', record=True)
+    mon = StateMonitor(G, 'v', record=True, when='end')
     indices = np.array([3, 2, 1, 1, 4, 5])
     times =   np.array([6, 5, 4, 3, 3, 1]) * ms
     SG = SpikeGeneratorGroup(10, indices, times)

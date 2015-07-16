@@ -31,7 +31,7 @@ def test_refractoriness_basic():
                         refractory=5*ms)
     # It should take 10ms to reach the threshold, then v should stay at 0
     # for 5ms, while w continues to increase
-    mon = StateMonitor(G, ['v', 'w'], record=True)
+    mon = StateMonitor(G, ['v', 'w'], record=True, when='end')
     run(20*ms)
     # No difference before the spike
     assert_equal(mon[0].v[mon.t < 10*ms], mon[0].w[mon.t < 10*ms])
@@ -68,7 +68,7 @@ def test_refractoriness_variables():
         G.ref_no_unit = 5
         # It should take 10ms to reach the threshold, then v should stay at 0
         # for 5ms, while w continues to increase
-        mon = StateMonitor(G, ['v', 'w'], record=True)
+        mon = StateMonitor(G, ['v', 'w'], record=True, when='end')
         run(20*ms)
         try:
             # No difference before the spike

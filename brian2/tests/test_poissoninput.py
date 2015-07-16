@@ -24,7 +24,7 @@ def test_poissoninput():
     sometimes_update = PoissonInput(G, 'z', 10000, 50*Hz, weight=0.5*volt)
     sometimes_update2 = PoissonInput(G, 'z2', 10000, 50*Hz, weight='w*volt')
 
-    mon = StateMonitor(G, ['x', 'y', 'y2', 'z', 'z2'], record=True)
+    mon = StateMonitor(G, ['x', 'y', 'y2', 'z', 'z2'], record=True, when='end')
 
     run(1*ms)
     assert_equal(0, mon.x[:])
