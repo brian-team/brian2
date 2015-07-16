@@ -81,13 +81,13 @@ class StateMonitor(Group, CodeRunner):
     '''
     Record values of state variables during a run
     
-    To extract recorded values after a run, use `t` attribute for the
+    To extract recorded values after a run, use the ``t`` attribute for the
     array of times at which values were recorded, and variable name attribute
     for the values. The values will have shape ``(len(indices), len(t))``,
-    where `indices` are the array indices which were recorded. When indexing the
-    `StateMonitor` directly, the returned object can be used to get the
+    where ``indices`` are the array indices which were recorded. When indexing
+    the `StateMonitor` directly, the returned object can be used to get the
     recorded values for the specified indices, i.e. the indexing semantic
-    refers to the indices in `source`, not to the relative indices of the
+    refers to the indices in ``source``, not to the relative indices of the
     recorded values. For example, when recording only neurons with even numbers,
     `mon[[0, 2]].v` will return the values for neurons 0 and 2, whereas
     `mon.v[[0, 2]]` will return the values for the first and third *recorded*
@@ -108,11 +108,11 @@ class StateMonitor(Group, CodeRunner):
         The time step to be used for the monitor. Cannot be combined with
         the `clock` argument.
     clock : `Clock`, optional
-        The update clock to be used. If neither a clock, nor the `dt` argument
+        The update clock to be used. If neither a clock, nor the ``dt`` argument
         is specified, the clock of the `source` will be used.
     when : str, optional
         At which point during a time step the values should be recorded.
-        Defaults to ``'end'``.
+        Defaults to ``'start'``.
     order : int, optional
         The priority of of this group for operations occurring at the same time
         step and in the same scheduling slot. Defaults to 0.
@@ -142,16 +142,17 @@ class StateMonitor(Group, CodeRunner):
     Notes
     -----
 
-    Since this monitor by default records in the ``'end'`` time slot, recordings
-    of the membrane potential in integrate-and-fire models may look unexpected:
-    the recording is done *after* application of the reset statement, i.e the
-    recorded membrane potential trace will never be above threshold. Set the
-    `when` keyword to a different value if this is not what you want.
+    Since this monitor by default records in the ``'start'`` time slot,
+    recordings of the membrane potential in integrate-and-fire models may look
+    unexpected: the recorded membrane potential trace will never be above
+    threshold in an integrate-and-fire model, because the reset statement will
+    have been applied already. Set the ``when`` keyword to a different value if
+    this is not what you want.
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
     def __init__(self, source, variables, record=None, dt=None, clock=None,
-                 when='end', order=0, name='statemonitor*', codeobj_class=None):
+                 when='start', order=0, name='statemonitor*', codeobj_class=None):
         self.source = source
         # Make the monitor use the explicitly defined namespace of its source
         # group (if it exists)
@@ -325,3 +326,41 @@ class StateMonitor(Group, CodeRunner):
         return description.format(classname=self.__class__.__name__,
                                   variables=repr(self.record_variables),
                                   source=self.source.name)
+
+    def record_single_timestep(self):
+        '''
+        Records a single time step. Useful for recording the values at the end
+        of the simulation -- otherwise a `StateMonitor` will not record the
+        last simulated values since its ``when`` attribute defaults to
+        ``'start'``, i.e. the last recording is at the *beginning* of the last
+        time step.
+
+        Notes
+        -----
+        This function will only work if the `StateMonitor` has been already run,
+        but a run with a length of ``0*ms`` does suffice.
+
+        Examples
+        --------
+        >>> from brian2 import *
+        >>> G = NeuronGroup(1, 'dv/dt = -v/(5*ms) : 1')
+        >>> G.v = 1
+        >>> mon = StateMonitor(G, 'v', record=True)
+        >>> run(0.5*ms)
+        >>> mon.v
+        array([[ 1.        ,  0.98019867,  0.96078944,  0.94176453,  0.92311635]])
+        >>> mon.t[:]
+        array([   0.,  100.,  200.,  300.,  400.]) * usecond
+        >>> G.v[:]  # last value had not been recorded
+        array([ 0.90483742])
+        >>> mon.record_single_timestep()
+        >>> mon.t[:]
+        array([   0.,  100.,  200.,  300.,  400.,  500.]) * usecond
+        >>> mon.v[:]
+        array([[ 1.        ,  0.98019867,  0.96078944,  0.94176453,  0.92311635,
+                 0.90483742]])
+        '''
+        if self.codeobj is None:
+            raise TypeError('Can only record a single time step after the '
+                            'network has been run once.')
+        self.codeobj()

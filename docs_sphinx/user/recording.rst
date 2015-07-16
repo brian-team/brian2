@@ -88,6 +88,29 @@ In this example, we record two variables v and u, and record from indices 0,
     plot(M.t/ms, M.v[0]/mV, label='v')
     plot(M.t/ms, M.u[0]/mV, label='u')
 
+There are two subtly different ways to get the values for specific neurons: you
+can either index the 2D array stored in the attribute with the variable name
+(as in the example above) or you can index the monitor itself. The former will
+use an index relative to the recorded neurons (e.g. `M.v[1]` will return the
+values for the second *recorded* neuron which is the neuron with the index 10
+whereas `M.v[10]` would raise an error because only three neurons have been
+recorded), whereas the latter will use an absolute index corresponding to the
+recorded group (e.g. `M[1].v` will raise an error because the neuron with the
+index 1 has not been recorded and `M[10].v` will return the values for the
+neuron with the index 10). If all neurons have been recorded (e.g. with
+``record=True``) then both forms give the same result.
+
+Note that for plotting all recorded values at once, you have to transpose the
+variable values::
+
+    plot(M.t/ms, M.v.T/mV)
+
+
+In contrast to previous versions of Brian, the values are recorded at the
+beginning of a time step and not at the end (you can set the ``when`` argument
+when creating a `StateMonitor`, details about scheduling can be
+found here: :doc:`../advanced/scheduling`).
+
 Recording population rates
 --------------------------
 

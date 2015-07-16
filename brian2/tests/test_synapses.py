@@ -136,7 +136,7 @@ def test_connection_array_standalone():
     G2 = NeuronGroup(8, 'v:1')
     S = Synapses(G1, G2, '', pre='v+=1', dt=1*second)
     S.connect([0, 1, 2, 3], [0, 2, 4, 6])
-    mon = StateMonitor(G2, 'v', record=True, name='mon', dt=1*second)
+    mon = StateMonitor(G2, 'v', record=True, name='mon', dt=1*second, when='end')
     net = Network(G1, G2, S, mon)
     net.run(5*second)
     tempdir = tempfile.mkdtemp()
@@ -514,7 +514,7 @@ def test_transmission_simple():
     source = SpikeGeneratorGroup(2, [0, 1], [2, 1] * ms)
     target = NeuronGroup(2, 'v : 1')
     syn = Synapses(source, target, pre='v += 1', connect='i==j')
-    mon = StateMonitor(target, 'v', record=True)
+    mon = StateMonitor(target, 'v', record=True, when='end')
     run(2.5*ms)
     assert_equal(mon[0].v[mon.t<2*ms], 0.)
     assert_equal(mon[0].v[mon.t>=2*ms], 1.)
@@ -529,7 +529,7 @@ def test_transmission_custom_event():
     target = NeuronGroup(2, 'v : 1')
     syn = Synapses(source, target, pre='v += 1', connect='i==j',
                    on_event='custom')
-    mon = StateMonitor(target, 'v', record=True)
+    mon = StateMonitor(target, 'v', record=True, when='end')
     run(2.5*ms)
     assert_equal(mon[0].v[mon.t<2*ms], 0.)
     assert_equal(mon[0].v[mon.t>=2*ms], 1.)
@@ -578,7 +578,7 @@ def test_transmission_scalar_delay():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms)
     target = NeuronGroup(2, 'v:1')
     S = Synapses(inp, target, pre='v+=1', delay=0.5*ms, connect='i==j')
-    mon = StateMonitor(target, 'v', record=True)
+    mon = StateMonitor(target, 'v', record=True, when='end')
     run(2*ms)
     assert_equal(mon[0].v[mon.t<0.5*ms], 0)
     assert_equal(mon[0].v[mon.t>=0.5*ms], 1)
@@ -595,7 +595,7 @@ def test_transmission_scalar_delay_different_clocks():
                               name='sg_%d' % uuid.uuid4())
     target = NeuronGroup(2, 'v:1', dt=0.1*ms)
     S = Synapses(inp, target, pre='v+=1', delay=0.5*ms, connect='i==j')
-    mon = StateMonitor(target, 'v', record=True)
+    mon = StateMonitor(target, 'v', record=True, when='end')
 
     if get_device() == all_devices['runtime']:
         # We should get a warning when using inconsistent dts
