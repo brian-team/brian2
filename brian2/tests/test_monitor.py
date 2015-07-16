@@ -80,6 +80,26 @@ def test_spike_monitor_variables():
     assert_array_equal(mon2.prev_spikes[mon2.i == 1], [])
     assert_array_equal(mon2.prev_spikes[mon2.i == 2], np.arange(10)+1)
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_spike_monitor_get_states():
+    G = NeuronGroup(3, '''dv/dt = rate : 1
+                          rate : Hz
+                          prev_spikes : integer''',
+                    threshold='v>1', reset='v=0; prev_spikes += 1')
+    # We don't use 100 and 1000Hz, because then the membrane potential would
+    # be exactly at 1 after 10 resp. 100 timesteps. Due to floating point
+    # issues this will not be exact,
+    G.rate = [101, 0, 1001] * Hz
+    mon1 = SpikeMonitor(G, variables='prev_spikes')
+    run(10*ms)
+    all_states = mon1.get_states()
+    assert set(all_states.keys()) == {'count', 'i', 't', 'prev_spikes', 'N'}
+    assert_array_equal(all_states['count'], mon1.count[:])
+    assert_array_equal(all_states['i'], mon1.i[:])
+    assert_array_equal(all_states['t'], mon1.t[:])
+    assert_array_equal(all_states['prev_spikes'], mon1.prev_spikes[:])
+    assert_array_equal(all_states['N'], mon1.N)
 
 
 @attr('standalone-compatible')
@@ -282,6 +302,25 @@ def test_state_monitor_indexing():
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
+def test_state_monitor_get_states():
+    G = NeuronGroup(2, '''dv/dt = -v / (10*ms) : 1
+                          f = clip(v, 0.1, 0.9) : 1
+                          rate: Hz''', threshold='v>1', reset='v=0',
+                    refractory=2*ms)
+    G.rate = [100, 1000] * Hz
+    G.v = 1
+    mon = StateMonitor(G, ['v', 'f', 'rate'], record=True)
+    run(10*defaultclock.dt)
+    all_states = mon.get_states()
+    assert set(all_states.keys()) == {'v', 'f', 'rate', 't', 'N'}
+    assert_array_equal(all_states['v'].T, mon.v[:])
+    assert_array_equal(all_states['f'].T, mon.f[:])
+    assert_array_equal(all_states['rate'].T, mon.rate[:])
+    assert_array_equal(all_states['t'], mon.t[:])
+    assert_array_equal(all_states['N'], mon.N)
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_rate_monitor():
     G = NeuronGroup(5, 'v : 1', threshold='v>1') # no reset
     G.v = 1.1 # All neurons spike every time step
@@ -303,6 +342,20 @@ def test_rate_monitor():
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
+def test_rate_monitor_get_states():
+    G = NeuronGroup(5, 'v : 1', threshold='v>1') # no reset
+    G.v = 1.1 # All neurons spike every time step
+    rate_mon = PopulationRateMonitor(G)
+    run(10*defaultclock.dt)
+    all_states = rate_mon.get_states()
+    assert set(all_states.keys()) == {'rate', 't', 'N'}
+    assert_array_equal(all_states['rate'], rate_mon.rate[:])
+    assert_array_equal(all_states['t'], rate_mon.t[:])
+    assert_array_equal(all_states['N'], rate_mon.N)
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_rate_monitor_subgroups():
     old_dt = defaultclock.dt
     defaultclock.dt = 0.01*ms
@@ -312,7 +365,6 @@ def test_rate_monitor_subgroups():
     rate_all = PopulationRateMonitor(G)
     rate_1 = PopulationRateMonitor(G[:2])
     rate_2 = PopulationRateMonitor(G[2:])
-    s_mon = SpikeMonitor(G)
     run(10*ms)
     assert_allclose(mean(G.rate[:]), mean(rate_all.rate[:]))
     assert_allclose(mean(G.rate[:2]), mean(rate_1.rate[:]))
@@ -323,11 +375,14 @@ def test_rate_monitor_subgroups():
 
 if __name__ == '__main__':
     test_spike_monitor()
+    test_spike_monitor_get_states()
     test_spike_monitor_variables()
     test_event_monitor()
     test_state_monitor()
     test_state_monitor_record_single_timestep()
     test_state_monitor_record_single_timestep_cpp_standalone()
+    test_state_monitor_get_states()
     test_state_monitor_indexing()
     test_rate_monitor()
+    test_rate_monitor_get_states()
     test_rate_monitor_subgroups()

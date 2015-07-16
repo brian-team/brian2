@@ -40,10 +40,10 @@ class StateMonitorView(object):
             return mon.variables['t'].get_value()
         elif item in mon.record_variables:
             unit = mon.variables[item].unit
-            return Quantity(mon.variables['_recorded_'+item].get_value().T[self.indices],
+            return Quantity(mon.variables[item].get_value().T[self.indices],
                             dim=unit.dim, copy=True)
         elif item.endswith('_') and item[:-1] in mon.record_variables:
-            return mon.variables['_recorded_'+item[:-1]].get_value().T[self.indices].copy()
+            return mon.variables[item[:-1]].get_value().T[self.indices].copy()
         else:
             raise AttributeError('Unknown attribute %s' % item)
 
@@ -201,8 +201,8 @@ class StateMonitor(Group, CodeRunner):
 
         # Some dummy code so that code generation takes care of the indexing
         # and subexpressions
-        code = ['_to_record_%s = %s' % (v, v)
-                for v in self.record_variables]
+        code = ['_to_record_%s = _source_%s' % (v, v)
+                for v in variables]
         code = '\n'.join(code)
 
         CodeRunner.__init__(self, group=self, template='statemonitor',
@@ -236,10 +236,11 @@ class StateMonitor(Group, CodeRunner):
                              'recorded once for every target.' % varname),
                             once=True)
             index = source.variables.indices[varname]
-            self.variables.add_reference(varname, source, varname, index=index)
+            self.variables.add_reference('_source_%s' % varname,
+                                         source, varname, index=index)
             if not index in ('_idx', '0') and index not in variables:
                 self.variables.add_reference(index, source)
-            self.variables.add_dynamic_array('_recorded_' + varname,
+            self.variables.add_dynamic_array(varname,
                                              size=(0, len(self.record)),
                                              resize_along_first=True,
                                              unit=var.unit,
@@ -247,22 +248,19 @@ class StateMonitor(Group, CodeRunner):
                                              constant=False,
                                              constant_size=False)
 
-        for varname in self.record_variables:
+        for varname in variables:
             var = self.source.variables[varname]
             self.variables.add_auxiliary_variable('_to_record_' + varname,
                                                   unit=var.unit,
                                                   dtype=var.dtype,
                                                   scalar=var.scalar)
 
-        self.recorded_variables = dict([(varname,
-                                         self.variables['_recorded_'+varname])
-                                        for varname in self.record_variables])
-        recorded_names = ['_recorded_'+varname
-                          for varname in self.record_variables]
+        self.recorded_variables = dict([(varname, self.variables[varname])
+                                        for varname in variables])
+        recorded_names = [varname for varname in variables]
 
         self.needed_variables = recorded_names
-        self.template_kwds = template_kwds={'_recorded_variables':
-                                            self.recorded_variables}
+        self.template_kwds = {'_recorded_variables': self.recorded_variables}
         self._enable_group_attributes()
 
     @property
@@ -314,10 +312,10 @@ class StateMonitor(Group, CodeRunner):
             raise AttributeError
         if item in self.record_variables:
             unit = self.variables[item].unit
-            return Quantity(self.variables['_recorded_'+item].get_value().T,
+            return Quantity(self.variables[item].get_value().T,
                             dim=unit.dim, copy=True)
         elif item.endswith('_') and item[:-1] in self.record_variables:
-            return self.variables['_recorded_'+item[:-1]].get_value().T
+            return self.variables[item[:-1]].get_value().T
         else:
             return Group.__getattr__(self, item)
 

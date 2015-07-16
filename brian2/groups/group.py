@@ -11,7 +11,8 @@ import numpy as np
 from brian2.core.base import BrianObject
 from brian2.core.preferences import prefs
 from brian2.core.variables import (Variables, Constant, Variable,
-                                   ArrayVariable, DynamicArrayVariable)
+                                   ArrayVariable, DynamicArrayVariable,
+                                   Subexpression)
 from brian2.core.functions import Function
 from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_FUNCTIONS,
@@ -417,21 +418,30 @@ class Group(BrianObject):
                                  'an attribute of this group.' % name)
         object.__setattr__(self, name, None)
 
-    def get_states(self, vars=None, units=True, format='dict', level=0):
+    def get_states(self, vars=None, units=True, format='dict',
+                   subexpressions=False, level=0):
         '''
-        Return a copy of the current state variable values.
+        Return a copy of the current state variable values. The returned arrays
+        are copies of the actual arrays that store the state variable values,
+        therefore changing the values in the returned dictionary will not affect
+        the state variables.
 
         Parameters
         ----------
         vars : list of str, optional
             The names of the variables to extract. If not specified, extract
             all state variables (except for internal variables, i.e. names that
-            start with ``'_'``).
+            start with ``'_'``). If the ``subexpressions`` argument is ``True``,
+            the current values of all subexpressions are returned as well.
         units : bool, optional
             Whether to include the physical units in the return value. Defaults
             to ``True``.
         format : str, optional
             The output format. Defaults to ``'dict'``.
+        subexpressions: bool, optional
+            Whether to return subexpressions when no list of variable names
+            is given. Defaults to ``False``. This argument is ignored if an
+            explicit list of variable names is given in ``vars``.
         level : int, optional
             How much higher to go up the stack to resolve external variables.
             Only relevant if extracting subexpressions that refer to external
@@ -448,8 +458,9 @@ class Group(BrianObject):
         if format != 'dict':
             raise NotImplementedError("Format '%s' is not supported" % format)
         if vars is None:
-            vars = [name for name in self.variables.iterkeys()
-                    if not name.startswith('_')]
+            vars = [name for name, var in self.variables.iteritems()
+                    if not name.startswith('_') and
+                    (subexpressions or not isinstance(var, Subexpression))]
         data = {}
         for var in vars:
             data[var] = np.array(self.state(var, use_units=units,

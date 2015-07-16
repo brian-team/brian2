@@ -1147,8 +1147,10 @@ def test_get_states():
     assert_equal(states['subexpr2'], 11*np.arange(10))
 
     all_states = G.get_states(units=True)
-    assert set(all_states.keys()) == {'v', 'x', 'subexpr', 'subexpr2', 'N', 't',
-                                      'dt', 'i'}
+    assert set(all_states.keys()) == {'v', 'x', 'N', 't', 'dt', 'i'}
+    all_states = G.get_states(units=True, subexpressions=True)
+    assert set(all_states.keys()) == {'v', 'x', 'N', 't', 'dt', 'i',
+                                      'subexpr', 'subexpr2'}
 
 
 def test_random_vector_values():
@@ -1213,7 +1215,7 @@ if __name__ == '__main__':
     test_scalar_subexpression()
     test_indices()
     test_repr()
-    test_ipython_html()    
+    test_ipython_html()
     test_get_dtype()
     if prefs.codegen.target == 'numpy':
         test_aliasing_in_statements()

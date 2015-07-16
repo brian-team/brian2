@@ -118,6 +118,28 @@ For shared variables, such string expressions can only refer to shared values:
     >>> print G.shared_input
     <neurongroup.shared_input: 4.2579690100000001 * mvolt>
 
+Sometimes it can be convenient to access multiple state variables at once, e.g.
+to set initial values from a dictionary of values or to store all the values of
+a group on disk. This can be done with the `Group.get_states` and
+`Group.set_states` methods:
+
+.. doctest::
+
+    >>> group = NeuronGroup(5, '''dv/dt = -v/tau : 1
+    ...                           tau : second''')
+    >>> initial_values = {'v': [0, 1, 2, 3, 4],
+    ...                   'tau': [10, 20, 10, 20, 10]*ms}
+    >>> group.set_states(initial_values)
+    >>> group.v[:]
+    array([ 0.,  1.,  2.,  3.,  4.])
+    >>> group.tau[:]
+    array([ 10.,  20.,  10.,  20.,  10.]) * msecond
+    >>> states = group.get_states()
+    >>> states['v']
+    array([ 0.,  1.,  2.,  3.,  4.])
+    >>> sorted(states.keys())
+    ['N', 'dt', 'i', 't', 'tau', 'v']
+
 
 Subgroups
 ---------
