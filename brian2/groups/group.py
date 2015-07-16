@@ -421,7 +421,10 @@ class Group(BrianObject):
     def get_states(self, vars=None, units=True, format='dict',
                    subexpressions=False, level=0):
         '''
-        Return a copy of the current state variable values.
+        Return a copy of the current state variable values. The returned arrays
+        are copies of the actual arrays that store the state variable values,
+        therefore changing the values in the returned dictionary will not affect
+        the state variables.
 
         Parameters
         ----------
