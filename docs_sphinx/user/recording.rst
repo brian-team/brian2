@@ -6,6 +6,10 @@ Specifically, spikes are recorded with `SpikeMonitor`, the time evolution of
 variables with `StateMonitor` and the firing rate of a population of neurons
 with `PopulationRateMonitor`.
 
+Note that all monitors are implement as "groups", so you can get all the stored
+values in a monitor with the `Group.get_states` method, which can be useful to
+dump all recorded data to disk, for example.
+
 Recording spikes
 ----------------
 
