@@ -136,7 +136,7 @@ def test_connection_array_standalone():
     G2 = NeuronGroup(8, 'v:1')
     S = Synapses(G1, G2, '', pre='v+=1', dt=1*second)
     S.connect([0, 1, 2, 3], [0, 2, 4, 6])
-    mon = StateMonitor(G2, 'v', record=True, name='mon', dt=1*second)
+    mon = StateMonitor(G2, 'v', record=True, name='mon', dt=1*second, when='end')
     net = Network(G1, G2, S, mon)
     net.run(5*second)
     tempdir = tempfile.mkdtemp()

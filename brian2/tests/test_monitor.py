@@ -1,4 +1,5 @@
 import uuid
+import tempfile
 
 from numpy.testing.utils import assert_allclose, assert_array_equal, assert_raises
 from nose import with_setup
@@ -215,7 +216,6 @@ def test_state_monitor():
     assert_allclose(synapse_mon.w[:], np.tile(S.j[:]*nS,
                                               (synapse_mon.w[:].shape[1], 1)).T)
 
-@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_state_monitor_record_single_timestep():
     G = NeuronGroup(1, 'dv/dt = -v/(5*ms) : 1')
@@ -232,6 +232,27 @@ def test_state_monitor_record_single_timestep():
     assert_allclose(mon.t[-1], 0.5*ms)
     assert len(mon.t) == 6
     assert mon[0].v[-1] == G.v
+
+
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=restore_device)
+def test_state_monitor_record_single_timestep_cpp_standalone():
+    previous_device = get_device()
+    set_device('cpp_standalone')
+    G = NeuronGroup(1, 'dv/dt = -v/(5*ms) : 1')
+    G.v = 1
+    mon = StateMonitor(G, 'v', record=True)
+    # Recording before a run should not work
+    assert_raises(TypeError, lambda: mon.record_single_timestep())
+    run(0.5*ms)
+    mon.record_single_timestep()
+    tempdir = tempfile.mkdtemp()
+    device.build(directory=tempdir, compile=True, run=True,
+                 with_output=False)
+    assert_allclose(mon.t[-1], 0.5*ms)
+    assert len(mon.t) == 6
+    assert mon[0].v[-1] == G.v
+    set_device(previous_device)
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
@@ -306,6 +327,7 @@ if __name__ == '__main__':
     test_event_monitor()
     test_state_monitor()
     test_state_monitor_record_single_timestep()
+    test_state_monitor_record_single_timestep_cpp_standalone()
     test_state_monitor_indexing()
     test_rate_monitor()
     test_rate_monitor_subgroups()
