@@ -1,3 +1,4 @@
+{# IS_OPENMP_COMPATIBLE #}
 ////////////////////////////////////////////////////////////////////////////
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
@@ -5,12 +6,12 @@
                   ab_star0, ab_star1, ab_star2, b_plus,
                   ab_plus0, ab_plus1, ab_plus2, b_minus,
                   ab_minus0, ab_minus1, ab_minus2, v_star, u_plus, u_minus,
+                  gtot_all, I0_all
                   _P, _B, _morph_i, _morph_parent_i, _starts, _ends,
                   _invr0, _invrn} #}
 {% extends 'common_group.cpp' %}
 {% block maincode %}
-	double *_gtot_all=(double *)malloc(N*sizeof(double));
-	double *c=(double *)calloc(N, sizeof(double));
+
 	double ai,bi,_m;
 
     int _vectorisation_idx = 1;
@@ -20,16 +21,26 @@
 
 	// Tridiagonal solving
 	// Pass 1
+	{{ openmp_pragma('static') }}
 	for(int i=0;i<N;i++)
 	{
 		const int _idx = i;
 	    _vectorisation_idx = _idx;
 
 		{{vector_code|autoindent}}
-		_gtot_all[_idx]=_gtot;
+		{{gtot_all}}[_idx] = _gtot;
+        {{I0_all}}[_idx] = _I0;
+    }
 
-		{{v_star}}[i]=-({{Cm}}[i]/dt*{{v}}[i])-_I0; // RHS -> v_star (solution)
-		bi={{ab_star1}}[i]-_gtot_all[i]; // main diagonal
+    double *c = (double *)malloc(N * sizeof(double));
+
+    {{ openmp_pragma('sections') }}
+    {
+    {
+    for(int i=0;i<N;i++)
+    {
+		{{v_star}}[i]=-({{Cm}}[i]/dt*{{v}}[i])-{{I0_all}}[i]; // RHS -> v_star (solution)
+		bi={{ab_star1}}[i]-{{gtot_all}}[i]; // main diagonal
 		if (i<N-1)
 			c[i]={{ab_star0}}[i+1]; // superdiagonal
 		if (i>0)
@@ -45,14 +56,15 @@
 		}
 	}
 	for(int i=N-2;i>=0;i--)
-	{
 		{{v_star}}[i]={{v_star}}[i] - c[i]*{{v_star}}[i+1];
     }
+    {{ openmp_pragma('section') }}
+    {
 	// Pass 2
 	for(int i=0;i<N;i++)
 	{
 		{{u_plus}}[i]={{b_plus}}[i]; // RHS -> v_star (solution)
-		bi={{ab_plus1}}[i]-_gtot_all[i]; // main diagonal
+		bi={{ab_plus1}}[i]-{{gtot_all}}[i]; // main diagonal
 		if (i<N-1)
 			c[i]={{ab_plus0}}[i+1]; // superdiagonal
 		if (i>0)
@@ -69,12 +81,14 @@
 	}
 	for(int i=N-2;i>=0;i--)
 		{{u_plus}}[i]={{u_plus}}[i] - c[i]*{{u_plus}}[i+1];
-	
+    }
+    {{ openmp_pragma('section') }}
+    {
 	// Pass 3
 	for(int i=0;i<N;i++)
 	{
 		{{u_minus}}[i]={{b_minus}}[i]; // RHS -> v_star (solution)
-		bi={{ab_minus1}}[i]-_gtot_all[i]; // main diagonal
+		bi={{ab_minus1}}[i]-{{gtot_all}}[i]; // main diagonal
 		if (i<N-1)
 			c[i]={{ab_minus0}}[i+1]; // superdiagonal
 		if (i>0)
@@ -91,12 +105,13 @@
 	}
 	for(int i=N-2;i>=0;i--)
 		{{u_minus}}[i]={{u_minus}}[i] - c[i]*{{u_minus}}[i+1];
+	}
+    }
 
-	free(_gtot_all);
-	free(c);
+    free(c);
 
     // Prepare matrix for solving the linear system
-
+    {{ openmp_pragma('single') }}
     for (int _j=0; _j<_num_B - 1; _j++)
     {
         const int _i = {{_morph_i}}[_j];
@@ -125,6 +140,7 @@
     }
 
     // Solve the linear system (the result will be in _B in the end)
+    {{ openmp_pragma('single') }}
     for (int i=0; i<_num_B; i++)
     {
         // find pivot element
@@ -156,7 +172,10 @@
         // Deal with rows below
         for (int j=i+1; j<_num_B; j++)
         {
-            const double pivot_factor = {{_P}}[j*_num_B + i]/{{_P}}[i*_num_B + i];
+            const double pivot_element = {{_P}}[j*_num_B + i];
+            if (pivot_element == 0.0)
+                continue;
+            const double pivot_factor = pivot_element/{{_P}}[i*_num_B + i];
             for (int k=i+1; k<_num_B; k++)
             {
                 {{_P}}[j*_num_B + k] -= {{_P}}[i*_num_B + k]*pivot_factor;
@@ -168,6 +187,7 @@
     }
 
     // Back substitution
+    {{ openmp_pragma('single') }}
     for (int i=_num_B-1; i>=0; i--)
     {
         // substitute all the known values
@@ -182,6 +202,7 @@
     }
 
     // Linear combination
+    {{ openmp_pragma('single') }}
     for (int _j=0; _j<_num_B - 1; _j++)
     {
         const int _i = {{_morph_i}}[_j];

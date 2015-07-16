@@ -267,15 +267,18 @@ class CPPStandaloneDevice(Device):
     def fill_with_array(self, var, arr):
         arr = np.asarray(arr)
         array_name = self.get_array_name(var, access_data=False)
-        if arr.shape == () and var.size == 1:
-            value = CPPNodeRenderer().render_expr(repr(arr.item(0)))
-            # For a single assignment, generate a code line instead of storing the array
-            self.main_queue.append(('set_by_single_value', (array_name,
-                                                            0,
-                                                            value)))
-        else:
-            if arr.shape == ():
-                arr = np.repeat(arr, var.size)
+        arr = np.asarray(arr)
+        if arr.shape == ():
+            if var.size == 1:
+                value = CPPNodeRenderer().render_expr(repr(arr.item(0)))
+                # For a single assignment, generate a code line instead of storing the array
+                self.main_queue.append(('set_by_single_value', (array_name,
+                                                                0,
+                                                                value)))
+            else:
+                self.main_queue.append(('set_by_constant', (array_name,
+                                                            arr.item())))
+        else:    
             # Using the std::vector instead of a pointer to the underlying
             # data for dynamic arrays is fast enough here and it saves us some
             # additional work to set up the pointer
@@ -329,6 +332,18 @@ class CPPStandaloneDevice(Device):
             # additional work to set up the pointer
             arrayname = self.get_array_name(variableview.variable,
                                             access_data=False)
+            if indices.shape == ():
+                self.main_queue.append(('set_by_single_value', (arrayname,
+                                            indices.item(),
+                                            float(value))))
+            else:
+                staticarrayname_index = self.static_array('_index_'+arrayname,
+                                                          indices)
+                staticarrayname_value = self.static_array('_value_'+arrayname,
+                                                          value)
+                self.main_queue.append(('set_array_by_array', (arrayname,
+                                                               staticarrayname_index,
+                                                               staticarrayname_value)))
             staticarrayname_index = self.static_array('_index_'+arrayname,
                                                       indices)
             if (indices.shape != () and
@@ -452,7 +467,8 @@ class CPPStandaloneDevice(Device):
                         clocks=self.clocks,
                         static_array_specs=static_array_specs,
                         networks=networks,
-                        get_array_filename=self.get_array_filename)
+                        get_array_filename=self.get_array_filename,
+                        code_objects=self.code_objects.values())
         writer.write('objects.*', arr_tmp)
         
     def generate_main_source(self, writer):
@@ -466,6 +482,17 @@ class CPPStandaloneDevice(Device):
             elif func=='run_network':
                 net, netcode = args
                 main_lines.extend(netcode)
+            elif func=='set_by_constant':
+                arrayname, value = args
+                code = '''
+                {pragma}
+                for(int i=0; i<_num_{arrayname}; i++)
+                {{
+                    {arrayname}[i] = {value};
+                }}
+                '''.format(arrayname=arrayname, value=CPPNodeRenderer().render_expr(repr(value)),
+                           pragma=openmp_pragma('static'))
+                main_lines.extend(code.split('\n'))
             elif func=='set_by_array':
                 arrayname, staticarrayname = args
                 code = '''
@@ -860,7 +887,6 @@ class CPPStandaloneDevice(Device):
 
     def network_run(self, net, duration, report=None, report_period=10*second,
                     namespace=None, profile=True, level=0, **kwds):
-        # Note: profile argument will be ignored
         if kwds:
             logger.warn(('Unsupported keyword argument(s) provided for run: '
                          '%s') % ', '.join(kwds.keys()))
@@ -868,7 +894,7 @@ class CPPStandaloneDevice(Device):
         # We have to use +2 for the level argument here, since this function is
         # called through the device_override mechanism
         net.before_run(namespace, level=level+2)
-            
+
         self.clocks.update(net._clocks)
 
         # We run a simplified "update loop" that only advances the clocks
@@ -955,6 +981,17 @@ class CPPStandaloneDevice(Device):
     def network_restore(self, net, name='default'):
         raise NotImplementedError(('The store/restore mechanism is not '
                                    'supported in the C++ standalone'))
+
+    def network_get_profiling_info(self, net):
+        if net._profiling_info is None:
+            net._profiling_info = []
+            fname = os.path.join(self.project_dir, 'results', 'profiling_info.txt')
+            with open(fname) as f:
+                for line in f:
+                    (key, val) = line.split()
+                    net._profiling_info.append((key, float(val)*second))
+        return sorted(net._profiling_info, key=lambda item: item[1],
+                      reverse=True)
 
     def run_function(self, name, include_in_parent=True):
         '''

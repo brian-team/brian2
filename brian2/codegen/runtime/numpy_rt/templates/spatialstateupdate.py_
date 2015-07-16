@@ -10,7 +10,6 @@
 Solves the cable equation (spatial diffusion of currents).
 This is where most time-consuming time computations are done.
 '''
-from numpy.linalg import solve
 from numpy import zeros
 
 # scalar code
@@ -48,18 +47,15 @@ ab[1,:]-=_gtot
 {% else %}
 # Pure numpy solution, very slow because it needs forward and backward passes
 # along the array that can't be vectorized
-c = zeros(N)
-ab = zeros((3, N))
-_gtot_all = zeros(N)
-_gtot_all[:] = _gtot
 b = -({{Cm}} / dt*{{v}}) - _I0
 
 # Tridiagonal solving
 forward = range(1, N)
 backward = range(N-2, -1, -1)
+c = zeros(N)
 
 # Pass 1
-bi = {{ab_star1}} - _gtot_all  # main diagonal
+bi = {{ab_star1}} - _gtot  # main diagonal
 
 # First compartment
 c[0] = {{ab_star0}}[1] / bi[0]
@@ -77,7 +73,7 @@ for i in backward:
     {{v_star}}[i] -= c[i]*{{v_star}}[i+1]
 
 # Pass 2
-bi = {{ab_plus1}} - _gtot_all  # main diagonal
+bi = {{ab_plus1}} - _gtot  # main diagonal
 
 # First compartment
 c[0] = {{ab_plus0}}[1]/bi[0]
@@ -96,7 +92,7 @@ for i in backward:
     {{u_plus}}[i] -= c[i]*{{u_plus}}[i+1]
 
 # Pass 3
-bi = {{ab_minus1}} - _gtot_all  # main diagonal
+bi = {{ab_minus1}} - _gtot  # main diagonal
 
 # First compartment
 c[0] = {{ab_minus0}}[1]/bi[0]
@@ -139,7 +135,16 @@ for _i, _i_parent, _first, _last, _invr0, _invrn in zip({{_morph_i}},
     {{_B}}[_i] = {{v_star}}[_last] * _invrn
 
 # Solve the linear system
+{% if _scipy_available %}
+from scipy.sparse.linalg import spsolve as solve
+from scipy.sparse import csr_matrix
+_A = csr_matrix({{_P}}.reshape((_n_segments, _n_segments)))
+_V = solve(_A, {{_B}})
+{% else %}
+from numpy.linalg import solve
 _V = solve({{_P}}.reshape((_n_segments, _n_segments)), {{_B}})
+{% endif %}
+
 
 # Final solutions as linear combinations
 for _i, _i_parent, _first, _last, in zip({{_morph_i}},

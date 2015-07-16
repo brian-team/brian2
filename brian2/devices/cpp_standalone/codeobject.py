@@ -68,6 +68,12 @@ def openmp_pragma(pragma_type):
         return '#pragma omp barrier'
     elif pragma_type == 'compilation':
         return '-fopenmp'
+    elif pragma_type == 'sections':
+        return '#pragma omp sections'
+    elif pragma_type == 'section':
+        return '#pragma omp section'
+    else:
+        raise ValueError('Unknown OpenMP pragma "%s"' % pragma_type)
 
 class CPPStandaloneCodeObject(CodeObject):
     '''

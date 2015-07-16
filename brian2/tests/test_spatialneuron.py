@@ -1,3 +1,5 @@
+import os
+
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 from nose import with_setup
 from nose.plugins.attrib import attr
@@ -20,8 +22,10 @@ def test_construction():
     Im=gL*(EL-v) : amp/meter**2
     I : meter (point current)
     '''
+
     # Check units of currents
-    assert_raises(DimensionMismatchError,lambda :SpatialNeuron(morphology=morpho, model=eqs))
+    assert_raises(DimensionMismatchError, lambda: SpatialNeuron(morphology=morpho,
+                                                                model=eqs))
 
     eqs='''
     Im=gL*(EL-v) : amp/meter**2
@@ -50,8 +54,86 @@ def test_construction():
     assert all(neuron.diffusion_state_updater._ends[:].flat >=
                neuron.diffusion_state_updater._starts[:].flat)
 
+    # Check that length and distances make sense after compression
+    assert_allclose(sum(morpho.L.length)*metre, 10*um)
+    assert_allclose(morpho.L.distance*metre, (1 + np.arange(10))*um)
+    assert_allclose(sum(morpho.LL.length)*metre, 5*um)
+    assert_allclose(morpho.LL.distance*metre, 10*um + (1 + np.arange(5))*um)
+    assert_allclose(sum(morpho.LR.length)*metre, 5*um)
+    assert_allclose(morpho.LR.distance*metre, 10*um + (1 + np.arange(10))*0.5*um)
+    assert_allclose(sum(morpho.right.length)*metre, 3*um)
+    assert_allclose(morpho.right.distance*metre, (1 + np.arange(7))*3./7.*um)
+    assert_allclose(sum(morpho.right.nextone.length)*metre, 2*um)
+    assert_allclose(morpho.right.nextone.distance*metre, 3*um+(1 + np.arange(3))*2./3.*um)
 
-@attr('long', 'standalone-compatible')
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_device)
+def test_construction_coordinates():
+    # Same as test_construction, but uses coordinates instead of lengths to
+    # set up everything
+    # Note that all coordinates here are relative to the origin of the
+    # respective cylinder
+    BrianLogger.suppress_name('resolution_conflict')
+    morpho = Soma(diameter=30*um)
+    morpho.L = Cylinder(x=10*um, y=0*um, z=0*um, diameter=1*um, n=10)
+    morpho.LL = Cylinder(x=0*um, y=5*um, z=0*um, diameter=2*um, n=5)
+    morpho.LR = Cylinder(x=0*um, y=0*um, z=5*um, diameter=2*um, n=10)
+    morpho.right = Cylinder(x=sqrt(2)*1.5*um, y=sqrt(2)*1.5*um, z=0*um, diameter=1*um, n=7)
+    morpho.right.nextone = Cylinder(x=0*um, y=sqrt(2)*um, z=sqrt(2)*um, diameter=1*um, n=3)
+    gL=1e-4*siemens/cm**2
+    EL=-70*mV
+    eqs='''
+    Im=gL*(EL-v) : amp/meter**2
+    I : meter (point current)
+    '''
+
+    # Check units of currents
+    assert_raises(DimensionMismatchError, lambda: SpatialNeuron(morphology=morpho,
+                                                                model=eqs))
+
+    eqs='''
+    Im=gL*(EL-v) : amp/meter**2
+    '''
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
+
+    # Test initialization of values
+    neuron.LL.v = EL
+    assert_allclose(neuron.L.main.v,0)
+    assert_allclose(neuron.LL.v,EL)
+    neuron.LL[2*um:3.1*um].v = 0*mV
+    assert_allclose(neuron.LL.v,[EL,0,0,EL,EL])
+    assert_allclose(neuron.Cm,1 * uF / cm ** 2)
+
+    # Test morphological variables
+    assert_allclose(neuron.main.x,morpho.x)
+    assert_allclose(neuron.L.main.x,morpho.L.x)
+    assert_allclose(neuron.LL.main.x,morpho.LL.x)
+    assert_allclose(neuron.right.main.x,morpho.right.x)
+    assert_allclose(neuron.L.main.distance,morpho.L.distance)
+    assert_allclose(neuron.L.main.diameter,morpho.L.diameter)
+    assert_allclose(neuron.L.main.area,morpho.L.area)
+    assert_allclose(neuron.L.main.length,morpho.L.length)
+
+    # Check basic consistency of the flattened representation
+    assert len(np.unique(neuron.diffusion_state_updater._morph_i[:])) == len(neuron.diffusion_state_updater._morph_i)
+    assert all(neuron.diffusion_state_updater._ends[:].flat >=
+               neuron.diffusion_state_updater._starts[:].flat)
+
+    # Check that length and distances make sense after compression
+    assert_allclose(sum(morpho.L.length)*metre, 10*um)
+    assert_allclose(morpho.L.distance*metre, (1 + np.arange(10))*um)
+    assert_allclose(sum(morpho.LL.length)*metre, 5*um)
+    assert_allclose(morpho.LL.distance*metre, 10*um + (1 + np.arange(5))*um)
+    assert_allclose(sum(morpho.LR.length)*metre, 5*um)
+    assert_allclose(morpho.LR.distance*metre, 10*um + (1 + np.arange(10))*0.5*um)
+    assert_allclose(sum(morpho.right.length)*metre, 3*um)
+    assert_allclose(morpho.right.distance*metre, (1 + np.arange(7))*3./7.*um)
+    assert_allclose(sum(morpho.right.nextone.length)*metre, 2*um)
+    assert_allclose(morpho.right.nextone.distance*metre, 3*um+(1 + np.arange(3))*2./3.*um)
+
+
+@attr('long')
 @with_setup(teardown=restore_device)
 def test_infinitecable():
     '''
@@ -83,7 +165,7 @@ def test_infinitecable():
     neuron.I[len(neuron)//2]=1*nA # injecting in the middle
     run(0.02*ms)
     neuron.I=0*amp
-    net.run(3*ms)
+    run(3*ms)
     t = mon.t
     v = mon[N//2-20].v
     # Theory (incorrect near cable ends)
@@ -135,6 +217,227 @@ def test_finitecable():
     ra = la*4*Ri/(pi*diameter**2)
     theory = EL+ra*neuron.I[0]*cosh((length-x)/la)/sinh(length/la)
     assert_allclose(v-EL, theory-EL, rtol=0.01)
+
+@attr('long', 'standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_rallpack1():
+    '''
+    Rallpack 1
+    '''
+
+    defaultclock.dt = 0.05*ms
+
+    # Morphology
+    diameter = 1*um
+    length = 1*mm
+    Cm = 1 * uF / cm ** 2
+    Ri = 100 * ohm * cm
+    N = 1000
+    morpho = Cylinder(diameter=diameter, length=length, n=N)
+
+    # Passive channels
+    gL = 1./(40000*ohm*cm**2)
+    EL = -65*mV
+    eqs = '''
+    Im = gL*(EL - v) : amp/meter**2
+    I : amp (point current, constant)
+    '''
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
+    neuron.v = EL
+
+    neuron.I[0] = 0.1*nA  # injecting at the left end
+
+    #Record at the two ends
+    mon = StateMonitor(neuron, 'v', record=[0, 999], when='start', dt=0.05*ms)
+
+    run(250*ms + defaultclock.dt)
+
+    # Load the theoretical results
+    basedir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                           'rallpack_data')
+    data_0 = np.loadtxt(os.path.join(basedir, 'ref_cable.0'))
+    data_x = np.loadtxt(os.path.join(basedir, 'ref_cable.x'))
+
+    scale_0 = max(data_0[:, 1]*volt) - min(data_0[:, 1]*volt)
+    scale_x = max(data_x[:, 1]*volt) - min(data_x[:, 1]*volt)
+    squared_diff_0 = (data_0[:, 1] * volt - mon[0].v)**2
+    squared_diff_x = (data_x[:, 1] * volt - mon[999].v)**2
+    rel_RMS_0 = sqrt(mean(squared_diff_0))/scale_0
+    rel_RMS_x = sqrt(mean(squared_diff_x))/scale_x
+    max_rel_0 = sqrt(max(squared_diff_0))/scale_0
+    max_rel_x = sqrt(max(squared_diff_x))/scale_x
+
+    # sanity check: times are the same
+    assert_allclose(mon.t/second, data_0[:, 0])
+    assert_allclose(mon.t/second, data_x[:, 0])
+
+    # RMS error should be < 0.1%, maximum error along the curve should be < 0.5%
+    assert 100*rel_RMS_0 < 0.1
+    assert 100*rel_RMS_x < 0.1
+    assert 100*max_rel_0 < 0.5
+    assert 100*max_rel_x < 0.5
+
+
+@attr('long', 'standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_rallpack2():
+    '''
+    Rallpack 2
+    '''
+    defaultclock.dt = 0.05*ms
+
+    # Morphology
+    diameter = 32*um
+    length = 16*um
+    Cm = 1 * uF / cm ** 2
+    Ri = 100 * ohm * cm
+
+    # Construct binary tree according to Rall's formula
+    morpho = Cylinder(diameter=diameter, x=0*umetre, y=length, z=0*umetre)
+    endpoints = {morpho}
+    for depth in xrange(1, 10):
+        diameter /= 2.**(1./3.)
+        length /= 2.**(2./3.)
+        new_endpoints = set()
+        for endpoint in endpoints:
+            new_L = Cylinder(diameter=diameter, length=length)
+            new_R = Cylinder(diameter=diameter, length=length)
+            new_endpoints.add(new_L)
+            new_endpoints.add(new_R)
+            endpoint.L = new_L
+            endpoint.R = new_R
+        endpoints = new_endpoints
+
+    # Passive channels
+    gL = 1./(40000*ohm*cm**2)
+    EL = -65*mV
+    eqs = '''
+    Im = gL*(EL - v) : amp/meter**2
+    I : amp (point current, constant)
+    '''
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
+    neuron.v = EL
+
+    neuron.I[0] = 0.1*nA  # injecting at the origin
+
+    endpoint_indices = [endpoint._origin for endpoint in endpoints]
+    mon = StateMonitor(neuron, 'v', record=[0] + endpoint_indices,
+                       when='start', dt=0.05*ms)
+
+    run(250*ms + defaultclock.dt)
+
+    # Load the theoretical results
+    basedir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                           'rallpack_data')
+    data_0 = np.loadtxt(os.path.join(basedir, 'ref_branch.0'))
+    data_x = np.loadtxt(os.path.join(basedir, 'ref_branch.x'))
+
+    # sanity check: times are the same
+    assert_allclose(mon.t/second, data_0[:, 0])
+    assert_allclose(mon.t/second, data_x[:, 0])
+
+    # Check that all endpoints are the same:
+    for endpoint in endpoints:
+        assert_allclose(mon[endpoint].v, mon[endpoint[0]].v)
+
+    scale_0 = max(data_0[:, 1]*volt) - min(data_0[:, 1]*volt)
+    scale_x = max(data_x[:, 1]*volt) - min(data_x[:, 1]*volt)
+    squared_diff_0 = (data_0[:, 1] * volt - mon[0].v)**2
+
+    # One endpoint
+    squared_diff_x = (data_x[:, 1] * volt - mon[endpoint_indices[0]].v)**2
+    rel_RMS_0 = sqrt(mean(squared_diff_0))/scale_0
+    rel_RMS_x = sqrt(mean(squared_diff_x))/scale_x
+    max_rel_0 = sqrt(max(squared_diff_0))/scale_0
+    max_rel_x = sqrt(max(squared_diff_x))/scale_x
+
+    # RMS error should be < 0.25%, maximum error along the curve should be < 0.5%
+    assert 100*rel_RMS_0 < 0.25
+    assert 100*rel_RMS_x < 0.25
+    assert 100*max_rel_0 < 0.5
+    assert 100*max_rel_x < 0.5
+
+
+@attr('long', 'standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_rallpack3():
+    '''
+    Rallpack 3
+    '''
+
+    defaultclock.dt = 1*usecond
+
+    # Morphology
+    diameter = 1*um
+    length = 1*mm
+    N = 1000
+    morpho = Cylinder(diameter=diameter, length=length, n=N)
+    # Passive properties
+    gl = 1./(40000*ohm*cm**2)
+    El = -65*mV
+    Cm = 1 * uF / cm ** 2
+    Ri = 100 * ohm * cm
+    # Active properties
+    ENa = 50*mV
+    EK = -77*mV
+    gNa = 120*msiemens/cm**2
+    gK = 36*msiemens/cm**2
+    eqs = '''
+    Im = gl * (El-v) + gNa * m**3 * h * (ENa-v) + gK * n**4 * (EK-v) : amp/meter**2
+    dm/dt = alpham * (1-m) - betam * m : 1
+    dn/dt = alphan * (1-n) - betan * n : 1
+    dh/dt = alphah * (1-h) - betah * h : 1
+    v_shifted = v - El : volt
+    alpham = (0.1/mV) * (-v_shifted+25*mV) / (exp((-v_shifted+25*mV) / (10*mV)) - 1)/ms : Hz
+    betam = 4 * exp(-v_shifted/(18*mV))/ms : Hz
+    alphah = 0.07 * exp(-v_shifted/(20*mV))/ms : Hz
+    betah = 1/(exp((-v_shifted+30*mV) / (10*mV)) + 1)/ms : Hz
+    alphan = (0.01/mV) * (-v_shifted+10*mV) / (exp((-v_shifted+10*mV) / (10*mV)) - 1)/ms : Hz
+    betan = 0.125*exp(-v_shifted/(80*mV))/ms : Hz
+    I : amp (point current, constant)
+    '''
+    axon = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri, method='exponential_euler')
+    axon.v = El
+    # Pre-calculated equilibrium values at v = El
+    axon.m = 0.0529324852572
+    axon.n = 0.317676914061
+    axon.h = 0.596120753508
+    axon.I[0] = 0.1*nA  # injecting at the left end
+
+    #Record at the two ends
+    mon = StateMonitor(axon, 'v', record=[0, 999], when='start', dt=0.05*ms)
+
+    run(250*ms + defaultclock.dt)
+
+
+    # Load the theoretical results
+    basedir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                           'rallpack_data')
+    data_0 = np.loadtxt(os.path.join(basedir, 'ref_axon.0.neuron'))
+    data_x = np.loadtxt(os.path.join(basedir, 'ref_axon.x.neuron'))
+
+    # sanity check: times are the same
+    assert_allclose(mon.t/second, data_0[:, 0])
+    assert_allclose(mon.t/second, data_x[:, 0])
+
+    scale_0 = max(data_0[:, 1]*volt) - min(data_0[:, 1]*volt)
+    scale_x = max(data_x[:, 1]*volt) - min(data_x[:, 1]*volt)
+    squared_diff_0 = (data_0[:, 1] * volt - mon[0].v)**2
+    squared_diff_x = (data_x[:, 1] * volt - mon[999].v)**2
+
+    rel_RMS_0 = sqrt(mean(squared_diff_0))/scale_0
+    rel_RMS_x = sqrt(mean(squared_diff_x))/scale_x
+    max_rel_0 = sqrt(max(squared_diff_0))/scale_0
+    max_rel_x = sqrt(max(squared_diff_x))/scale_x
+
+    # RMS error should be < 0.1%, maximum error along the curve should be < 0.5%
+    # Note that this is much stricter than the original Rallpack evaluation, but
+    # with the 1us time step, the voltage traces are extremely similar
+    assert 100*rel_RMS_0 < 0.1
+    assert 100*rel_RMS_x < 0.1
+    assert 100*max_rel_0 < 0.5
+    assert 100*max_rel_x < 0.5
+
 
 @attr('long', 'standalone-compatible')
 @with_setup(teardown=restore_device)
@@ -207,6 +510,10 @@ def test_rall():
 
 if __name__ == '__main__':
     test_construction()
+    test_construction_coordinates()
     test_infinitecable()
     test_finitecable()
+    test_rallpack1()
+    test_rallpack2()
+    test_rallpack3()
     test_rall()

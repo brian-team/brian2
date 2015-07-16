@@ -215,6 +215,18 @@ class Network(Nameable):
                      Current simulation time in seconds (`Quantity`)
                      ''')
 
+    @device_override('network_get_profiling_info')
+    def get_profiling_info(self):
+        '''
+        The only reason this is not directly implemented in `profiling_info`
+        is to allow devices (e.g. `CPPStandaloneDevice`) to overwrite this.
+        '''
+        if self._profiling_info is None:
+            raise ValueError('(No profiling info collected (did you run with '
+                             'profile=True?)')
+        return sorted(self._profiling_info, key=lambda item: item[1],
+                      reverse=True)
+
     @property
     def profiling_info(self):
         '''
@@ -228,11 +240,7 @@ class Network(Nameable):
         Profiling has to be activated using the ``profile`` keyword in `run` or
         `Network.run`.
         '''
-        if self._profiling_info is None:
-            raise ValueError('(No profiling info collected (did you run with '
-                             'profile=True?)')
-        return sorted(self._profiling_info, key=lambda item: item[1],
-                      reverse=True)
+        return self.get_profiling_info()
 
     _globally_stopped = False
 

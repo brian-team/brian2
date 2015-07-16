@@ -538,7 +538,7 @@ class Cylinder(Morphology):
             if length is not None:
                 raise AttributeError(('Length and x-y-z coordinates cannot '
                                       'be simultaneously specified'))
-            length = (sum(array((x, y, z)) ** 2)) ** .5  # * meter (not sure)
+            length = sqrt(x**2 + y**2 + z**2)
         scale = arange(1, n + 1) * 1. / n
         self.x, self.y, self.z = x * scale, y * scale, z * scale
         self.length = ones(n) * length / n

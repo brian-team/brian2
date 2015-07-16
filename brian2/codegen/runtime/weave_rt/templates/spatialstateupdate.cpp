@@ -6,14 +6,14 @@
                   ab_star0, ab_star1, ab_star2, b_plus,
                   ab_plus0, ab_plus1, ab_plus2, b_minus,
                   ab_minus0, ab_minus1, ab_minus2, v_star, u_plus, u_minus,
+                  gtot_all,
                   _P, _B, _morph_i, _morph_parent_i, _starts, _ends,
                   _invr0, _invrn} #}
 
 {% macro main() %}
     {{ common.insert_group_preamble() }}
 
-	double *_gtot_all=(double *)malloc(N*sizeof(double));
-	double *c=(double *)calloc(N, sizeof(double));
+    double *c = (double *)malloc(N * sizeof(double));
 	double ai,bi,_m;
 
     int _vectorisation_idx = 1;
@@ -29,10 +29,10 @@
 	    _vectorisation_idx = _idx;
 
 		{{vector_code|autoindent}}
-		_gtot_all[_idx]=_gtot;
+		{{gtot_all}}[_idx]=_gtot;
 
 		{{v_star}}[i]=-({{Cm}}[i]/dt*{{v}}[i])-_I0; // RHS -> v_star (solution)
-		bi={{ab_star1}}[i]-_gtot_all[i]; // main diagonal
+		bi={{ab_star1}}[i]-{{gtot_all}}[i]; // main diagonal
 		if (i<N-1)
 			c[i]={{ab_star0}}[i+1]; // superdiagonal
 		if (i>0)
@@ -55,7 +55,7 @@
 	for(int i=0;i<N;i++)
 	{
 		{{u_plus}}[i]={{b_plus}}[i]; // RHS -> v_star (solution)
-		bi={{ab_plus1}}[i]-_gtot_all[i]; // main diagonal
+		bi={{ab_plus1}}[i]-{{gtot_all}}[i]; // main diagonal
 		if (i<N-1)
 			c[i]={{ab_plus0}}[i+1]; // superdiagonal
 		if (i>0)
@@ -77,7 +77,7 @@
 	for(int i=0;i<N;i++)
 	{
 		{{u_minus}}[i]={{b_minus}}[i]; // RHS -> v_star (solution)
-		bi={{ab_minus1}}[i]-_gtot_all[i]; // main diagonal
+		bi={{ab_minus1}}[i]-{{gtot_all}}[i]; // main diagonal
 		if (i<N-1)
 			c[i]={{ab_minus0}}[i+1]; // superdiagonal
 		if (i>0)
@@ -94,9 +94,6 @@
 	}
 	for(int i=N-2;i>=0;i--)
 		{{u_minus}}[i]={{u_minus}}[i] - c[i]*{{u_minus}}[i+1];
-
-	free(_gtot_all);
-	free(c);
 
     // Prepare matrix for solving the linear system
     std::fill_n({{_B}}, _num_B, 0.0);
@@ -160,7 +157,10 @@
         // Deal with rows below
         for (int j=i+1; j<_num_B; j++)
         {
-            const double pivot_factor = {{_P}}[j*_num_B + i]/{{_P}}[i*_num_B + i];
+            const double pivot_element = {{_P}}[j*_num_B + i];
+            if (pivot_element == 0.0)
+                continue;
+            const double pivot_factor = pivot_element/{{_P}}[i*_num_B + i];
             for (int k=i+1; k<_num_B; k++)
             {
                 {{_P}}[j*_num_B + k] -= {{_P}}[i*_num_B + k]*pivot_factor;
@@ -197,6 +197,7 @@
                 {{v}}[_k] = {{v_star}}[_k] + {{_B}}[_i_parent] * {{u_minus}}[_k]
                                            + {{_B}}[_i] * {{u_plus}}[_k];
     }
+    free(c);
 
 {% endmacro %}
 
