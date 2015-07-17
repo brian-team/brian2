@@ -16,6 +16,9 @@ Brian2 is released under the terms of the CeCILL 2.1 license.
 .. image:: https://img.shields.io/pypi/v/Brian2.svg?style=flat-square
         :target: https://pypi.python.org/pypi/Brian2
 
+.. image:: https://binstar.org/brian-team/brian2/badges/version.svg
+        :target: https://binstar.org/brian-team/brian2
+
 .. image:: https://badges.gitter.im/Join%20Chat.svg
    :alt: Join the chat at https://gitter.im/brian-team/brian2
    :target: https://gitter.im/brian-team/brian2?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
