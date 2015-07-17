@@ -32,6 +32,10 @@ def setversion(version):
     conf_py = re.sub("version\s*=\s*'.*?'", "version = '" + docs_version + "'", conf_py)
     conf_py = re.sub("release\s*=\s*'.*?'", "release = '" + docs_release + "'", conf_py)
     open('docs_sphinx/conf.py', 'w').write(conf_py)
+    # update conda recipe
+    meta_yaml = open('dev/conda-recipe/meta.yaml', 'r').read()
+    meta_yaml = re.sub('version\s*:\s*".*?"', 'version: "' + version + '"', meta_yaml)
+    open('dev/conda-recipe/meta.yaml', 'w').write(meta_yaml)
 
 
 def setreleasedate():
