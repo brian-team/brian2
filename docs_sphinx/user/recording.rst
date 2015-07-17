@@ -36,6 +36,7 @@ Example::
     run(runtime)
     plot(M.t/ms, M.i, '.')
 
+.. _recording_variables_spike_time:
 
 Recording variables at spike time
 ---------------------------------
@@ -65,6 +66,8 @@ dictionary with the values for each neuron.::
 
 .. note:: Spikes are not the only events that can trigger recordings, see
           :doc:`../advanced/custom_events`.
+
+.. _recording_variables_continuously:
 
 Recording variables continuously
 --------------------------------

@@ -19,7 +19,7 @@ Installation with Anaconda
 
 Installing Anaconda
 ~~~~~~~~~~~~~~~~~~~
-Download the `Anaconda distribution <https://store.continuum.io/cshop/anaconda/>`_
+`Download the Anaconda distribution <http://continuum.io/downloads>`_
 for your Operating System. For Windows users that want to use Python 3.x, we
 strongly recommend installing the 32 Bit version even on 64 Bit systems, since
 setting the compilation environment (see :ref:`installation_cpp` below) is less
@@ -31,6 +31,7 @@ After the installation, make sure that your environment is configured to use
 the Anaconda distribution. You should have access to the ``conda`` command in
 a terminal and running ``python`` (e.g. from your IDE) should show a header like
 this, indicating that you are using Anaconda's Python interpreter::
+
     Python 2.7.10 |Anaconda 2.3.0 (64-bit)| (default, May 28 2015, 17:02:03)
     [GCC 4.4.7 20120313 (Red Hat 4.4.7-1)] on linux2
     Type "help", "copyright", "credits" or "license" for more information.
