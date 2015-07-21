@@ -17,6 +17,7 @@ void brian_start()
 	_init_arrays();
 	_load_arrays();
 	srand((unsigned int)time(NULL));
+	rand(); // put this in because the first random number generated on some versions of C++ is always almost the same
 }
 
 void brian_end()
