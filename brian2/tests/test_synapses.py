@@ -170,7 +170,6 @@ def test_connection_string_deterministic_basic():
     _compare(S, expected)
 
 
-@attr('long')
 def test_connection_string_deterministic():
     '''
     Test connecting synapses with a deterministic string expression.
@@ -250,7 +249,6 @@ def test_connection_random_basic():
     _compare(S, np.ones((len(G), len(G2))))
 
 
-@attr('long')
 def test_connection_random():
     '''
     Test random connections.
@@ -546,7 +544,6 @@ def test_invalid_custom_event():
     assert_raises(ValueError, lambda: Synapses(group2, group2, pre='v+=1',
                                                on_event='custom'))
 
-@attr('long')
 def test_transmission():
     default_dt = defaultclock.dt
     delays = [[0, 0] * ms, [1, 1] * ms, [1, 2] * ms]
@@ -783,7 +780,7 @@ def test_external_variables():
     assert target.v[0] == 2
 
 
-@attr('long', 'standalone-compatible')
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_event_driven():
     # Fake example, where the synapse is actually not changing the state of the
@@ -1007,6 +1004,11 @@ def test_vectorisation_STDP_like():
 
 
 if __name__ == '__main__':
+    from brian2 import prefs
+    # prefs.codegen.target = 'numpy'
+    import time
+    start = time.time()
+
     test_creation()
     test_name_clashes()
     test_incoming_outgoing()
@@ -1042,3 +1044,5 @@ if __name__ == '__main__':
     test_permutation_analysis()
     test_vectorisation()
     test_vectorisation_STDP_like()
+
+    print 'Tests took', time.time()-start

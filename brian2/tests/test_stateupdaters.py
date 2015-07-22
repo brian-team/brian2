@@ -76,7 +76,6 @@ def test_multiple_noise_variables_basic():
         assert 'xi_2' in code
 
 
-@attr('long')
 def test_multiple_noise_variables_extended():
     # Some actual simulations with multiple noise variables
     eqs = '''dx/dt = y : 1
@@ -126,7 +125,6 @@ def restore_randn():
     DEFAULT_FUNCTIONS['randn'] = old_randn
 
 
-@attr('long')
 @with_setup(setup=store_randn, teardown=restore_randn)
 def test_multiple_noise_variables_deterministic_noise():
     # The "random" values are always 0.5
@@ -533,7 +531,6 @@ def test_subexpressions_basic():
     assert_equal(mon1.v, mon2.v, 'Results for method %s differed!' % method)
 
 
-@attr('long')
 def test_subexpressions():
     '''
     Make sure that the integration of a (non-stochastic) differential equation
@@ -619,6 +616,11 @@ def test_locally_constant_check():
     net.run(0*ms)
 
 if __name__ == '__main__':
+    from brian2 import prefs
+    # prefs.codegen.target = 'cython'
+    import time
+    start = time.time()
+
     test_determination()
     test_explicit_stateupdater_parsing()
     test_non_autonomous_equations()
@@ -636,3 +638,5 @@ if __name__ == '__main__':
     test_registration()
     test_subexpressions()
     test_locally_constant_check()
+
+    print 'Tests took', time.time()-start

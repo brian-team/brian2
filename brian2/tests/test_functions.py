@@ -86,7 +86,6 @@ def test_math_functions_short():
                             err_msg='Function %s did not return the correct values' % func.__name__)
 
 
-@attr('long')
 def test_math_functions():
     '''
     Test that math functions give the same result, regardless of whether used
@@ -535,6 +534,9 @@ def test_binomial():
 
 
 if __name__ == '__main__':
+    from brian2 import prefs
+    #prefs.codegen.target = 'weave'
+    import time
     for f in [
             test_constants_sympy,
             test_constants_values,
@@ -554,6 +556,8 @@ if __name__ == '__main__':
             test_binomial
             ]:
         try:
+            start = time.time()
             f()
+            print 'Test', f.__name__, 'took', time.time()-start
         except SkipTest as e:
             print 'Skipping test', f.__name__, e
