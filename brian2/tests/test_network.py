@@ -858,6 +858,25 @@ def test_continuation():
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
+def test_get_set_states():
+    G = NeuronGroup(10, 'v:1', name='a_neurongroup')
+    G.v = 'i'
+    net = Network(G)
+    states1 = net.get_states()
+    states2 = magic_network.get_states()
+    states3 = net.get_states(read_only_variables=False)
+    assert set(states1.keys()) == set(states2.keys()) == set(states3.keys()) == {'a_neurongroup'}
+    assert set(states1['a_neurongroup'].keys()) == set(states2['a_neurongroup'].keys()) == {'i', 'dt', 'N', 't', 'v'}
+    assert set(states3['a_neurongroup']) == {'v'}
+
+    # Try re-setting the state
+    G.v = 0
+    net.set_states(states3)
+    assert_equal(G.v, np.arange(10))
+
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_initial_state)
 def test_multiple_runs_defaultclock():
     defaultclock.dt = 0.1*ms
     G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
@@ -971,6 +990,7 @@ if __name__=='__main__':
             test_defaultclock_dt_changes,
             test_dt_restore,
             test_continuation,
+            test_get_set_states,
             test_multiple_runs_defaultclock,
             test_multiple_runs_defaultclock_incorrect,
             test_profile,
