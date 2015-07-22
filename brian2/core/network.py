@@ -381,6 +381,91 @@ class Network(Nameable):
                 obj._restore(name=name)
         self.t_ = self._stored_t[name]
 
+    def get_states(self, units=True, format='dict',
+                   subexpressions=False, read_only_variables=True, level=0):
+        '''
+        Return a copy of the current state variable values of objects in the
+        network.. The returned arrays are copies of the actual arrays that
+        store the state variable values, therefore changing the values in the
+        returned dictionary will not affect the state variables.
+
+        Parameters
+        ----------
+        vars : list of str, optional
+            The names of the variables to extract. If not specified, extract
+            all state variables (except for internal variables, i.e. names that
+            start with ``'_'``). If the ``subexpressions`` argument is ``True``,
+            the current values of all subexpressions are returned as well.
+        units : bool, optional
+            Whether to include the physical units in the return value. Defaults
+            to ``True``.
+        format : str, optional
+            The output format. Defaults to ``'dict'``.
+        subexpressions: bool, optional
+            Whether to return subexpressions when no list of variable names
+            is given. Defaults to ``False``. This argument is ignored if an
+            explicit list of variable names is given in ``vars``.
+        read_only_variables : bool, optional
+            Whether to return read-only variables (e.g. the number of neurons,
+            the time, etc.). Setting it to ``False`` will assure that the
+            returned state can later be used with `set_states`. Defaults to
+            ``True``.
+        level : int, optional
+            How much higher to go up the stack to resolve external variables.
+            Only relevant if extracting subexpressions that refer to external
+            variables.
+
+        Returns
+        -------
+        values
+            A dictionary mapping object names to the state variables of that
+            object, in the specified ``format``.
+
+        See Also
+        --------
+        Group.get_states
+        '''
+        states = dict()
+        for obj in self.objects:
+            if hasattr(obj, 'get_states'):
+                states[obj.name] = obj.get_states(vars=None, units=units,
+                                                  format=format,
+                                                  subexpressions=subexpressions,
+                                                  read_only_variables=read_only_variables,
+                                                  level=level+1)
+        return states
+
+    def set_states(self, values, units=True, format='dict', level=0):
+        '''
+        Set the state variables of objects in the network.
+
+        Parameters
+        ----------
+        values : dict
+            A dictionary mapping object names to objects of ``format``, setting
+            the states of this object.
+        units : bool, optional
+            Whether the ``values`` include physical units. Defaults to ``True``.
+        format : str, optional
+            The format of ``values``. Defaults to ``'dict'``
+        level : int, optional
+            How much higher to go up the stack to resolve external variables.
+            Only relevant when using string expressions to set values.
+
+        See Also
+        --------
+        Group.set_states
+        '''
+        # For the moment, 'dict' is the only supported format -- later this will
+        # be made into an extensible system, see github issue #306
+        for obj_name, obj_values in values.iteritems():
+            if obj_name not in self:
+                raise KeyError(("Network does not include a network with "
+                                "name '%s'.") % obj_name)
+            self[obj_name].set_states(obj_values, units=units, format=format,
+                                     level=level+1)
+
+
     def _get_schedule(self):
         if self._schedule is None:
             return list(prefs.core.network.default_schedule)
