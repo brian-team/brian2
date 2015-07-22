@@ -314,7 +314,7 @@ class EventMonitor(Group, CodeRunner):
         '''
         Returns the total number of recorded events.
         '''
-        return self.N
+        return self.N[:]
 
     def __repr__(self):
         description = '<{classname}, recording event "{event}" from {source}>'
