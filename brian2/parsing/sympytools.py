@@ -80,6 +80,8 @@ class CustomSympyPrinter(StrPrinter):
         # Special workaround for the int function
         if expr.func.__name__ == 'int_':
             return "int(%s)" % self.stringify(expr.args, ", ")
+        elif expr.func.__name__ == 'mod':
+            return '((%s)%%(%s))' % (self.doprint(expr.args[0]), self.doprint(expr.args[1]))
         else:
             return expr.func.__name__ + "(%s)" % self.stringify(expr.args, ", ")
 

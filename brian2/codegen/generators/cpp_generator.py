@@ -110,6 +110,12 @@ class CPPCodeGenerator(CodeGenerator):
 
     class_name = 'cpp'
 
+    universal_support_code = '''
+    template<class T1, class T2> long _brian_mod(T1 x, T2 y) { return x%y; };
+    template<class T1> double _brian_mod(T1 x, double y) { return fmod((double)x, (double)y); };
+    template<class T2> double _brian_mod(double x, T2 y) { return fmod((double)x, (double)y); };
+    '''
+
     def __init__(self, *args, **kwds):
         super(CPPCodeGenerator, self).__init__(*args, **kwds)
         self.c_data_type = c_data_type
@@ -330,6 +336,9 @@ class CPPCodeGenerator(CodeGenerator):
             if func_namespace is not None:
                 self.variables.update(func_namespace)
 
+        support_code.append(self.universal_support_code)
+
+
         keywords = {'pointers_lines': stripped_deindented_lines('\n'.join(pointers)),
                     'support_code_lines': stripped_deindented_lines('\n'.join(support_code)),
                     'hashdefine_lines': stripped_deindented_lines('\n'.join(hash_defines)),
@@ -350,7 +359,6 @@ for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
 
 # Functions that need a name translation
 for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),
-                       ('mod', 'fmod'),
                        ]:
     DEFAULT_FUNCTIONS[func].implementations.add_implementation(CPPCodeGenerator,
                                                                code=None,

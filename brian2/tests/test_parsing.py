@@ -8,6 +8,7 @@ from nose import SkipTest
 from numpy.testing import assert_allclose, assert_raises
 import numpy as np
 
+from brian2.codegen.generators.cpp_generator import CPPCodeGenerator
 from brian2.codegen.runtime.weave_rt.weave_rt import get_compiler_and_args
 from brian2.core.preferences import prefs
 from brian2.core.variables import Constant
@@ -119,6 +120,7 @@ def cpp_evaluator(expr, ns):
     compiler, extra_compile_args = get_compiler_and_args()
     with std_silent():
         return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
+                            support_code=CPPCodeGenerator.universal_support_code,
                             compiler=compiler,
                             extra_compile_args=extra_compile_args,
                             extra_link_args=prefs['codegen.cpp.extra_link_args'],
@@ -430,7 +432,7 @@ def test_sympytools():
 if __name__=='__main__':
     test_parse_expressions_python()
     test_parse_expressions_numpy()
-    #test_parse_expressions_cpp()
+    test_parse_expressions_cpp()
     test_parse_expressions_sympy()
     test_abstract_code_dependencies()
     test_is_boolean_expression()
