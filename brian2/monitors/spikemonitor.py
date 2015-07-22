@@ -4,7 +4,6 @@ import numpy as np
 
 from brian2.core.variables import Variables
 from brian2.core.names import Nameable
-from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.groups.group import CodeRunner, Group
 
@@ -25,14 +24,14 @@ class EventMonitor(Group, CodeRunner):
     ----------
     source : `NeuronGroup`
         The source of events to record.
-    record : bool
-        Whether or not to record each event in `i` and `t` (the `count` will
-        always be recorded).
     event : str
         The name of the event to record
     variables : str or sequence of str, optional
         Which variables to record at the time of the event (in addition to the
         index of the neuron). Can be the name of a variable or a list of names.
+    record : bool, optional
+        Whether or not to record each event in `i` and `t` (the `count` will
+        always be recorded). Defaults to ``True``.
     when : str, optional
         When to record the events, by default records events in the same slot
         where the event is emitted.
@@ -53,10 +52,13 @@ class EventMonitor(Group, CodeRunner):
     invalidates_magic_network = False
     add_to_magic_network = True
 
-    def __init__(self, source, event, variables=None, when=None, order=None,
-                 name='eventmonitor*', codeobj_class=None):
+    def __init__(self, source, event, variables=None, record=True,
+                 when=None, order=None, name='eventmonitor*',
+                 codeobj_class=None):
         #: The source we are recording from
         self.source = source
+        #: Whether to record times and indices of events
+        self.record = record
 
         if when is None:
             if order is not None:
@@ -74,17 +76,20 @@ class EventMonitor(Group, CodeRunner):
         self.event = event
 
         if variables is None:
-            variables = []
+            variables = {}
         elif isinstance(variables, basestring):
-            variables = [variables]
+            variables = {variables}
 
         #: The additional variables that will be recorded
-        self.record_variables = variables
+        self.record_variables = set(variables)
 
         for variable in variables:
             if variable not in source.variables:
                 raise ValueError(("'%s' is not a variable of the recorded "
                                   "group" % variable))
+
+        if self.record:
+            self.record_variables |= {'i', 't'}
 
         # Some dummy code so that code generation takes care of the indexing
         # and subexpressions
@@ -107,10 +112,7 @@ class EventMonitor(Group, CodeRunner):
 
         self.variables = Variables(self)
         self.variables.add_reference(eventspace_name, source)
-        self.variables.add_dynamic_array('i', size=0, unit=Unit(1),
-                                         dtype=np.int32, constant_size=False)
-        self.variables.add_dynamic_array('t', size=0, unit=second,
-                                         constant_size=False)
+
         for variable in self.record_variables:
             source_var = source.variables[variable]
             self.variables.add_reference('_source_%s' % variable,
@@ -122,20 +124,21 @@ class EventMonitor(Group, CodeRunner):
                                              unit=source_var.unit,
                                              dtype=source_var.dtype,
                                              constant_size=False)
-        self.variables.add_arange('_source_i', size=len(source))
+        self.variables.add_arange('_source_idx', size=len(source))
         self.variables.add_array('count', size=len(source), unit=Unit(1),
                                  dtype=np.int32, read_only=True,
-                                 index='_source_i')
+                                 index='_source_idx')
         self.variables.add_constant('_source_start', Unit(1), start)
         self.variables.add_constant('_source_stop', Unit(1), stop)
-        self.variables.add_attribute_variable('N', unit=Unit(1), obj=self,
-                                              attribute='_N', dtype=np.int32)
+        self.variables.add_array('N', unit=Unit(1), size=1, dtype=np.int32,
+                                 read_only=True, scalar=True)
 
         record_variables = {varname: self.variables[varname]
                             for varname in self.record_variables}
         template_kwds = {'eventspace_variable': source.variables[eventspace_name],
-                         'record_variables': record_variables}
-        needed_variables = [eventspace_name] + self.record_variables
+                         'record_variables': record_variables,
+                         'record': self.record}
+        needed_variables = {eventspace_name} | self.record_variables
         CodeRunner.__init__(self, group=self, code=code, template='spikemonitor',
                             name=None,  # The name has already been initialized
                             clock=source.clock, when=when,
@@ -148,18 +151,12 @@ class EventMonitor(Group, CodeRunner):
         self.add_dependency(source)
         self._enable_group_attributes()
 
-    @property
-    def _N(self):
-        return len(self.variables['t'].get_value())
-
     def resize(self, new_size):
-        self.variables['i'].resize(new_size)
-        self.variables['t'].resize(new_size)
         for variable in self.record_variables:
             self.variables[variable].resize(new_size)
 
     def __len__(self):
-        return self._N
+        return self.N
 
     def reinit(self):
         '''
@@ -172,6 +169,10 @@ class EventMonitor(Group, CodeRunner):
         '''
         Returns the pair (`i`, `t`).
         '''
+        if not self.record:
+            raise AttributeError('Indices and times have not been recorded.'
+                                 'Set the record argument to True to record '
+                                 'them.')
         return self.i, self.t
 
     @property
@@ -179,6 +180,11 @@ class EventMonitor(Group, CodeRunner):
         '''
         Returns the pair (`i`, `t_`).
         '''
+        if not self.record:
+            raise AttributeError('Indices and times have not been recorded.'
+                                 'Set the record argument to True to record '
+                                 'them.')
+
         return self.i, self.t_
 
     def _values_dict(self, first_pos, sort_indices, used_indices, var):
@@ -231,6 +237,10 @@ class EventMonitor(Group, CodeRunner):
         >>> v_values[1]
         array([ 1.,  1.])
         '''
+        if not self.record:
+            raise AttributeError('Indices and times have not been recorded.'
+                                 'Set the record argument to True to record '
+                                 'them.')
         indices = self.i[:]
         sort_indices = np.argsort(indices)
         used_indices, first_pos = np.unique(self.i[:][sort_indices],
@@ -266,12 +276,16 @@ class EventMonitor(Group, CodeRunner):
         >>> all_values['v'][0]
         array([ 0.5,  0.5,  0.5,  0.5])
         '''
+        if not self.record:
+            raise AttributeError('Indices and times have not been recorded.'
+                                 'Set the record argument to True to record '
+                                 'them.')
         indices = self.i[:]
         sort_indices = np.argsort(indices)
         used_indices, first_pos = np.unique(self.i[:][sort_indices],
                                             return_index=True)
         all_values_dict = {}
-        for varname in ['t'] + self.record_variables:
+        for varname in self.record_variables - {'i'}:
             all_values_dict[varname] = self._values_dict(first_pos,
                                                          sort_indices,
                                                          used_indices,
@@ -300,13 +314,14 @@ class EventMonitor(Group, CodeRunner):
         '''
         Returns the total number of recorded events.
         '''
-        return self._N
+        return self.N[:]
 
     def __repr__(self):
         description = '<{classname}, recording event "{event}" from {source}>'
         return description.format(classname=self.__class__.__name__,
                                   event=self.event,
                                   source=self.group.name)
+
 
 class SpikeMonitor(EventMonitor):
     '''
@@ -323,12 +338,12 @@ class SpikeMonitor(EventMonitor):
     ----------
     source : (`NeuronGroup`, `SpikeSource`)
         The source of spikes to record.
-    record : bool
-        Whether or not to record each spike in `i` and `t` (the `count` will
-        always be recorded).
     variables : str or sequence of str, optional
         Which variables to record at the time of the spike (in addition to the
         index of the neuron). Can be the name of a variable or a list of names.
+    record : bool, optional
+        Whether or not to record each spike in `i` and `t` (the `count` will
+        always be recorded). Defaults to ``True``.
     when : str, optional
         When to record the events, by default records events in the same slot
         where the event is emitted.
@@ -367,11 +382,11 @@ class SpikeMonitor(EventMonitor):
     >>> crossings.v
     <crossings.v: array([ 0.00995017,  0.13064176,  0.27385096,  0.39950442])>
     '''
-    def __init__(self, source, variables=None, when=None, order=None,
-             name='spikemonitor*', codeobj_class=None):
+    def __init__(self, source, variables=None, record=True, when=None,
+                 order=None, name='spikemonitor*', codeobj_class=None):
         super(SpikeMonitor, self).__init__(source, event='spike',
-                                           variables=variables, when=when,
-                                           order=order, name=name,
+                                           variables=variables, record=record,
+                                           when=when, order=order, name=name,
                                            codeobj_class=codeobj_class)
 
     @property

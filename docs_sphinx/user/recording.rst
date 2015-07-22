@@ -36,6 +36,11 @@ Example::
     run(runtime)
     plot(M.t/ms, M.i, '.')
 
+If you are only interested in summary statistics but not the individual spikes,
+you can set the ``record`` argument to ``False``. You will then not have access
+to ``i`` and ``t`` but you can still get the ``count`` and the total number of
+spikes (``num_spikes``).
+
 .. _recording_variables_spike_time:
 
 Recording variables at spike time
