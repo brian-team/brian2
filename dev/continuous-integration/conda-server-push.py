@@ -11,7 +11,7 @@ assert len(filename) == 1, 'Expected to find one .tar.bz2 file, found %d' % len(
 release = '+git' not in filename[0]
 if not release:
     options.extend(['--channel', 'dev', '--force'])
-cmd = ['binstar'] + options
+cmd = ['conda-server'] + options
 cmd.extend(filename)
 
 try:

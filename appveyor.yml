@@ -87,7 +87,7 @@ install:
   # Install the build dependencies of the project via conda
   - 'conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
   - 'pip install py-cpuinfo'
-  - 'IF "%CONDA_BUILD%" == "TRUE" (conda install --yes --quiet conda-build binstar pip)'
+  - 'IF "%CONDA_BUILD%" == "TRUE" (conda install --yes --quiet conda-build conda-server pip)'
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
@@ -127,4 +127,4 @@ on_success:
   #
   # We only upload to binstar for commits merged into the master branch
   - 'cd %SRC_DIR%'
-  - 'if "%CONDA_BUILD%" == "TRUE" if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if "%APPVEYOR_REPO_NAME%" == "brian-team/brian2" if "%APPVEYOR_REPO_BRANCH%" == "master" python dev\continuous-integration\binstar-push.py'
+  - 'if "%CONDA_BUILD%" == "TRUE" if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if "%APPVEYOR_REPO_NAME%" == "brian-team/brian2" if "%APPVEYOR_REPO_BRANCH%" == "master" python dev\continuous-integration\conda-server-push.py'
