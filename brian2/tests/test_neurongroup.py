@@ -55,10 +55,11 @@ def test_integer_variables_and_mod():
     '''
     n = 10
     eqs = '''
-    dv/dt = (a+j+k)/second : 1
+    dv/dt = (a+b+j+k)/second : 1
     j = i%n : integer
     k = i/n : integer
     a = v%(i+1) : 1
+    b = v%(2*v) : 1
     '''
     G = NeuronGroup(100, eqs)
     G.v = np.random.rand(len(G))

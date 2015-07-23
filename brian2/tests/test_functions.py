@@ -65,9 +65,7 @@ def test_math_functions_short():
 
         # Functions/operators
         scalar = 3
-        # TODO: We are not testing the modulo operator here since it does
-        #       not work for double values in C
-        for func, operator in [(np.power, '**')]:
+        for func, operator in [(np.power, '**'), (np.mod, '%')]:
 
             # Calculate the result directly
             numpy_result = func(test_array, scalar)
