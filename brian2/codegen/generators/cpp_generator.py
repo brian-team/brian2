@@ -111,9 +111,10 @@ class CPPCodeGenerator(CodeGenerator):
     class_name = 'cpp'
 
     universal_support_code = '''
-    template<class T1, class T2> long _brian_mod(T1 x, T2 y) { return x%y; };
-    template<class T1> double _brian_mod(T1 x, double y) { return fmod((double)x, (double)y); };
-    template<class T2> double _brian_mod(double x, T2 y) { return fmod((double)x, (double)y); };
+    // The ((x%y)+y)%y is to get Python semantics of mod
+    template<class T1, class T2> long _brian_mod(T1 x, T2 y) { return ((x%y)+y)%y; };
+    template<class T1> double _brian_mod(T1 x, double y) { return fmod(fmod((double)x, (double)y)+y, y); };
+    template<class T2> double _brian_mod(double x, T2 y) { return fmod(fmod((double)x, (double)y)+y, y); };
     '''
 
     def __init__(self, *args, **kwds):
