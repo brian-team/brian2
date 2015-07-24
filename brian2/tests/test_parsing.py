@@ -45,7 +45,6 @@ class SimpleGroup(Group):
         self.namespace = namespace
 
 
-# TODO: add some tests with e.g. 1.0%2.0 etc. once this is implemented in C++
 TEST_EXPRESSIONS = '''
     a+b+c*d-f+g-(b+d)-(a-c)
     a**b**2
@@ -66,6 +65,10 @@ TEST_EXPRESSIONS = '''
     a>0.5 and b>0.5 or c>0.5
     a>0.5 and b>0.5 or not c>0.5
     2%4
+    -1%4
+    2.3%5.6
+    2.3%5
+    -1.2%3.4
     17e-12
     42e17
     '''
