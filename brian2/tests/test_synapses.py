@@ -826,7 +826,7 @@ def test_event_driven():
     S2.w = 0.5*gmax
     run(25*ms)
     # The two formulations should yield identical results
-    assert_equal(S1.w[:], S2.w[:])
+    assert_allclose(S1.w[:], S2.w[:])
 
 
 @attr('codegen-independent')
