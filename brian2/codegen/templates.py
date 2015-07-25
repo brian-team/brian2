@@ -5,7 +5,7 @@ import os
 import re
 import collections
 
-from jinja2 import Environment, PackageLoader
+from jinja2 import Environment, PackageLoader, ChoiceLoader
 
 from brian2.utils.stringtools import (indent, strip_empty_lines,
                                       get_identifiers)
@@ -16,6 +16,7 @@ __all__ = ['Templater']
 AUTOINDENT_START = '%%START_AUTOINDENT%%'
 AUTOINDENT_END = '%%END_AUTOINDENT%%'
 
+
 def autoindent(code):
     if isinstance(code, list):
         code = '\n'.join(code)
@@ -24,6 +25,7 @@ def autoindent(code):
     if not code.endswith('\n'):
         code = code + '\n'
     return AUTOINDENT_START+code+AUTOINDENT_END
+
 
 def autoindent_postfilter(code):
     lines = code.split('\n')
@@ -41,24 +43,42 @@ def autoindent_postfilter(code):
         outlines.append(' '*addspaces+line)
     return '\n'.join(outlines)
 
+
 class Templater(object):
     '''
     Class to load and return all the templates a `CodeObject` defines.
     '''
     def __init__(self, package_name, env_globals=None):
-        self.env = Environment(loader=PackageLoader(package_name, 'templates'),
-                               trim_blocks=True,
-                               lstrip_blocks=True,
-                               )
+        if isinstance(package_name, basestring):
+            package_name = (package_name,)
+        loader = ChoiceLoader([PackageLoader(name, 'templates') for name in package_name])
+        self.env = Environment(loader=loader, trim_blocks=True, lstrip_blocks=True)
         self.env.globals['autoindent'] = autoindent
         self.env.filters['autoindent'] = autoindent
         if env_globals is not None:
             self.env.globals.update(env_globals)
+        else:
+            env_globals = {}
+        self.env_globals = env_globals
+        self.package_names = package_name
         for name in self.env.list_templates():
             template = CodeObjectTemplate(self.env.get_template(name),
                                           self.env.loader.get_source(self.env,
                                                                      name)[0])
             setattr(self, os.path.splitext(name)[0], template)
+
+    def derive(self, package_name, env_globals=None):
+        '''
+        Return a new Templater derived from this one, where the new package name and globals overwrite the old.
+        '''
+        if isinstance(package_name, basestring):
+            package_name = (package_name,)
+        if env_globals is None:
+            env_globals = {}
+        package_name = package_name+self.package_names
+        new_env_globals = self.env_globals.copy()
+        new_env_globals.update(**env_globals)
+        return Templater(package_name, env_globals=new_env_globals)
 
 
 class CodeObjectTemplate(object):
