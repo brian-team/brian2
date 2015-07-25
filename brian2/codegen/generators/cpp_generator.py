@@ -86,6 +86,27 @@ prefs.register_preferences(
     )
 
 
+mod_support_code = ''
+typestrs = ['unsigned char', 'char', 'unsigned short', 'short', 'unsigned int', 'int', 'unsigned long', 'long',
+            'unsigned long long', 'long long', 'float', 'double', 'long double']
+floattypestrs = ['float', 'double', 'long double']
+for ix, xtype in enumerate(typestrs):
+    for iy, ytype in enumerate(typestrs):
+        hightype = typestrs[max(ix, iy)]
+        if xtype in floattypestrs or ytype in floattypestrs:
+            expr = 'fmod(fmod(x, y)+y, y)'
+        else:
+            expr = '((x%y)+y)%y'
+        mod_support_code += '''
+        inline {hightype} _brian_mod({xtype} ux, {ytype} uy)
+        {{
+            const {hightype} x = ({hightype})ux;
+            const {hightype} y = ({hightype})uy;
+            return {expr};
+        }}
+        '''.format(hightype=hightype, xtype=xtype, ytype=ytype, expr=expr)
+
+
 class CPPCodeGenerator(CodeGenerator):
     '''
     C++ language
@@ -110,12 +131,7 @@ class CPPCodeGenerator(CodeGenerator):
 
     class_name = 'cpp'
 
-    universal_support_code = '''
-    // The ((x%y)+y)%y is to get Python semantics of mod
-    template<class T1, class T2> long _brian_mod(T1 x, T2 y) { return ((x%y)+y)%y; };
-    template<class T1> double _brian_mod(T1 x, double y) { return fmod(fmod((double)x, (double)y)+y, y); };
-    template<class T2> double _brian_mod(double x, T2 y) { return fmod(fmod((double)x, (double)y)+y, y); };
-    '''
+    universal_support_code = deindent(mod_support_code)
 
     def __init__(self, *args, **kwds):
         super(CPPCodeGenerator, self).__init__(*args, **kwds)
