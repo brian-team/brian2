@@ -6,7 +6,46 @@ works. This is included here to understand the general process that Brian
 goes through in running a simulation, but it will not be sufficient to
 understand the source code of Brian itself or to extend it to do new things.
 For a more detailed view of this, see the documentation in the
-:doc:`../developer/index`
+:doc:`../developer/index`.
+
+Clock-driven versus event-driven
+--------------------------------
+
+Brian is a clock-driven simulator. This means that the simulation time is
+broken into an equally spaced time grid, 0, dt, 2*dt, 3*dt, .... At each
+time step t, the differential equations specifying the models are first
+integrated giving the values at time t+dt. Spikes are generated when a
+condition such as ``v>vt`` is satisfied, and spikes can only occur on the
+time grid.
+
+The advantage of clock driven simulation is that it is very
+flexible (arbitrary differential equations can be used) and
+computationally efficient. However, the time grid approximation can lead
+to an overestimate of the amount of synchrony that is present in a network.
+This is usually not a problem, and can be managed by reducing the time
+step dt, but it can be an issue for some models.
+
+Note that the
+inaccuracy introduced by the spike time approximation is of order
+O(dt), so the total accuracy of the simulation is of order O(dt) per
+time step. This means that in many cases, there is no need to use a
+higher order numerical integration method than forward Euler, as it
+will not improve the order of the error beyond O(dt). See
+:doc:`state_update` for more details of numerical integration methods.
+
+Some simulators use an event-driven method. With this method, spikes can
+occur at arbitrary times instead of just on the grid. This method can be
+more accurate than a clock-driven simulation, but it is usually
+substantially more computationally expensive (especially for larger
+networks). In addition, they are usually more restrictive in terms of
+the class of differential equations that can be solved.
+
+For a review of some of the simulation strategies that have been
+used, see
+`Brette et al. 2007 <http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2638500/>`_.
+
+Code overview
+-------------
 
 The user-visible part of Brian consists of a number of objects such as
 `NeuronGroup`, `Synapses`, `Network`, etc. These are all written in pure
