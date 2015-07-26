@@ -1,0 +1,3 @@
+{% block main %}
+B1
+{% endblock %}

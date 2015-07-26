@@ -147,6 +147,9 @@ setup(name='Brian2',
                                                       'templates/win_makefile',
                                                       'brianlib/*.cpp',
                                                       'brianlib/*.h'],
+                    # include test template files
+                    'brian2.tests.test_templates.fake_package_1': ['templates/*.txt'],
+                    'brian2.tests.test_templates.fake_package_2': ['templates/*.txt'],
                     # Include RALLPACK test data
                     'brian2.tests': ['rallpack_data/README',
                                      'rallpack_data/ref_*'],
