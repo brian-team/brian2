@@ -8,6 +8,7 @@ requirements:
     - python
     - cython >=0.18
     - setuptools >=6.0
+    - markupsafe
     - numpy
     - sympy >=0.7.6
     - pyparsing

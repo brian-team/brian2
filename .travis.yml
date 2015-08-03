@@ -72,10 +72,9 @@ install:
     conda create -n travis_conda --yes pip python=$PYTHON numpy scipy nose sphinx ipython sympy pyparsing jinja2 setuptools coverage;
     fi
   - source activate travis_conda
-  - conda update --yes pip setuptools
   - if [[ $CYTHON == 'yes' ]]; then conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
   - if [[ $REPORT_COVERAGE == 'yes' ]]; then pip install -q coveralls; fi
-  - python setup.py install $SETUP_ARGS --fail-on-error
+  - python setup.py install $SETUP_ARGS --fail-on-error --single-version-externally-managed --record=record.txt
   - if [[ $DOCS_ONLY == 'yes' ]]; then
       pip install -q sphinxcontrib-issuetracker;
       python setup.py sdist;
