@@ -131,6 +131,7 @@ class FilterbankGroup(NeuronGroup):
     def __init__(self, filterbank, targetvar, *args, **kwds):
         self.targetvar = targetvar
         self.filterbank = filterbank
+        self.buffer = None
         filterbank.buffer_init()
 
         # Sanitize the clock - does it have the right dt value?
