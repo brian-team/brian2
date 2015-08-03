@@ -141,6 +141,42 @@ def test_event_monitor():
     assert_raises(KeyError, lambda: event_trains[-1])
     assert_raises(KeyError, lambda: event_trains['string'])
 
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_event_monitor_no_record():
+    # Check that you can switch off recording spike times/indices
+    G = NeuronGroup(3, '''dv/dt = rate : 1
+                          rate: Hz''', events={'my_event': 'v>1'},
+                    threshold='v>1', reset='v=0')
+    # We don't use 100 and 1000Hz, because then the membrane potential would
+    # be exactly at 1 after 10 resp. 100 timesteps. Due to floating point
+    # issues this will not be exact,
+    G.rate = [101, 0, 1001] * Hz
+
+    event_mon = EventMonitor(G, 'my_event', record=False)
+    event_mon2 = EventMonitor(G, 'my_event', variables='rate', record=False)
+    spike_mon = SpikeMonitor(G, record=False)
+    spike_mon2 = SpikeMonitor(G, variables='rate', record=False)
+    net = Network(G, event_mon, event_mon2, spike_mon, spike_mon2)
+    net.run(10*ms)
+
+    # i and t should not be there
+    assert 'i' not in event_mon.variables
+    assert 't' not in event_mon.variables
+    assert 'i' not in spike_mon.variables
+    assert 't' not in spike_mon.variables
+
+    assert_array_equal(event_mon.count, np.array([1, 0, 10]))
+    assert_array_equal(spike_mon.count, np.array([1, 0, 10]))
+    assert spike_mon.num_spikes == sum(spike_mon.count)
+    assert event_mon.num_events == sum(event_mon.count)
+
+    # Other variables should still have been recorded
+    assert len(spike_mon2.rate) == spike_mon.num_spikes
+    assert len(event_mon2.rate) == event_mon.num_events
+
+
 def test_synapses_state_monitor():
     G = NeuronGroup(2, '')
     S = Synapses(G, G, 'w: siemens')
@@ -378,6 +414,7 @@ if __name__ == '__main__':
     test_spike_monitor_get_states()
     test_spike_monitor_variables()
     test_event_monitor()
+    test_event_monitor_no_record()
     test_state_monitor()
     test_state_monitor_record_single_timestep()
     test_state_monitor_record_single_timestep_cpp_standalone()

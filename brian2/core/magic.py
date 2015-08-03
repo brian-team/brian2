@@ -246,6 +246,27 @@ class MagicNetwork(Network):
         super(MagicNetwork, self).restore(name=name)
         self.objects[:] = []
 
+    def get_states(self, units=True, format='dict', subexpressions=False,
+                   level=0):
+        '''
+        See `Network.get_states`.
+        '''
+        self._update_magic_objects(level=level+1)
+        states = super(MagicNetwork, self).get_states(units, format,
+                                                      subexpressions,
+                                                      level=level+1)
+        self.objects[:] = []
+        return states
+
+    def set_states(self, values, units=True, format='dict', level=0):
+        '''
+        See `Network.set_states`.
+        '''
+        self._update_magic_objects(level=level+1)
+        super(MagicNetwork, self).set_states(values, units, format,
+                                             level=level+1)
+        self.objects[:] = []
+
     def __str__(self):
         return 'MagicNetwork()'
     __repr__ = __str__

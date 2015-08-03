@@ -1,4 +1,4 @@
-{# USES_VARIABLES {i, t, count, _clock_t, _source_start, _source_stop} #}
+{# USES_VARIABLES {N, count, _clock_t, _source_start, _source_stop} #}
 import numpy as _numpy
 
 {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
@@ -7,17 +7,13 @@ import numpy as _numpy
 _events = {{_eventspace}}[:{{_eventspace}}[-1]]
 # Take subgroups into account
 _events = _events[(_events >= _source_start) & (_events < _source_stop)]
-_events -= _source_start
 _n_events = len(_events)
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}
 if _n_events > 0:
-
-    _curlen = len({{_dynamic_t}})
+    _curlen = {{N}}
     _newlen = _curlen + _n_events
     _owner.resize(_newlen)
-    {{_dynamic_t}}[_curlen:_newlen] = _clock_t
-    {{_dynamic_i}}[_curlen:_newlen] = _events
     _vectorisation_idx = _n_events
     _idx = _events
     {{vector_code|autoindent}}
@@ -25,4 +21,5 @@ if _n_events > 0:
     {% set dynamic_varname = get_array_name(var, access_data=False) %}
     {{dynamic_varname}}[_curlen:_newlen] = _to_record_{{varname}}
     {% endfor %}
-    {{count}}[_events] += 1
+    {{count}}[_events - _source_start] += 1
+    {{N}} += _n_events

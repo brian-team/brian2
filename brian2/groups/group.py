@@ -419,7 +419,7 @@ class Group(BrianObject):
         object.__setattr__(self, name, None)
 
     def get_states(self, vars=None, units=True, format='dict',
-                   subexpressions=False, level=0):
+                   subexpressions=False, read_only_variables=True, level=0):
         '''
         Return a copy of the current state variable values. The returned arrays
         are copies of the actual arrays that store the state variable values,
@@ -442,6 +442,11 @@ class Group(BrianObject):
             Whether to return subexpressions when no list of variable names
             is given. Defaults to ``False``. This argument is ignored if an
             explicit list of variable names is given in ``vars``.
+        read_only_variables : bool, optional
+            Whether to return read-only variables (e.g. the number of neurons,
+            the time, etc.). Setting it to ``False`` will assure that the
+            returned state can later be used with `set_states`. Defaults to
+            ``True``.
         level : int, optional
             How much higher to go up the stack to resolve external variables.
             Only relevant if extracting subexpressions that refer to external
@@ -460,7 +465,8 @@ class Group(BrianObject):
         if vars is None:
             vars = [name for name, var in self.variables.iteritems()
                     if not name.startswith('_') and
-                    (subexpressions or not isinstance(var, Subexpression))]
+                    (subexpressions or not isinstance(var, Subexpression)) and
+                    (read_only_variables or not getattr(var, 'read_only', False))]
         data = {}
         for var in vars:
             data[var] = np.array(self.state(var, use_units=units,

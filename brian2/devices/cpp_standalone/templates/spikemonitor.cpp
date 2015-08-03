@@ -3,7 +3,7 @@
 
 {% block maincode %}
 	//// MAIN CODE ////////////
-    {# USES_VARIABLES { t, i, _clock_t, count,
+    {# USES_VARIABLES { N, _clock_t, count,
                         _source_start, _source_stop} #}
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}
@@ -41,13 +41,12 @@
                     const int _idx = {{_eventspace}}[_j];
                     const int _vectorisation_idx = _idx;
                     {{vector_code|autoindent}}
-                    {{_dynamic_i}}.push_back(_idx-_source_start);
-                    {{_dynamic_t}}.push_back(_clock_t);
                     {% for varname, var in record_variables.items() %}
                     {{get_array_name(var, access_data=False)}}.push_back(_to_record_{{varname}});
                     {% endfor %}
                     {{count}}[_idx-_source_start]++;
                 }
+                {{N}}[0] += _num_events;
             }
         }
     }
@@ -58,7 +57,10 @@
 void _debugmsg_{{codeobj_name}}()
 {
 	using namespace brian;
-	std::cout << "Number of spikes: " << {{_dynamic_i}}.size() << endl;
+	{# We need the pointers and constants here to get the access to N working #}
+    %CONSTANTS%
+    {{pointers_lines|autoindent}}
+	std::cout << "Number of spikes: " << {{N}}[0] << endl;
 }
 {% endblock %}
 
