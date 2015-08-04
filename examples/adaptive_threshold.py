@@ -1,8 +1,8 @@
-from brian2 import *
 '''
 A model with adaptive threshold (increases with each spike)
 '''
-#set_device('cpp_standalone_simple')
+from brian2 import *
+
 eqs = '''
 dv/dt = -v/(10*ms) : volt
 dvt/dt = (10*mV-vt)/(15*ms) : volt

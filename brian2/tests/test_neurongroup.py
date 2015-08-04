@@ -48,6 +48,25 @@ def test_creation():
     # neither string nor Equations object as model description
     assert_raises(TypeError, lambda: NeuronGroup(1, object()))
 
+@attr('codegen-independent')
+def test_integer_variables_and_mod():
+    '''
+    Test that integer operations and variable definitions work.
+    '''
+    n = 10
+    eqs = '''
+    dv/dt = (a+b+j+k)/second : 1
+    j = i%n : integer
+    k = i/n : integer
+    a = v%(i+1) : 1
+    b = v%(2*v) : 1
+    '''
+    G = NeuronGroup(100, eqs)
+    G.v = np.random.rand(len(G))
+    run(1*ms)
+    assert_equal(G.j[:], G.i[:]%n)
+    assert_equal(G.k[:], G.i[:]/n)
+    assert_equal(G.a[:], G.v[:]%(G.i[:]+1))
 
 @attr('codegen-independent')
 def test_variables():
@@ -1169,6 +1188,7 @@ def test_random_vector_values():
 
 if __name__ == '__main__':
     test_creation()
+    test_integer_variables_and_mod()
     test_variables()
     test_scalar_variable()
     test_referred_scalar_variable()

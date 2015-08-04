@@ -375,6 +375,11 @@ def test_spikegenerator_standalone_change_period(with_output=False):
 
 
 if __name__ == '__main__':
+    from brian2 import prefs
+    # prefs.codegen.target = 'cython'
+    import time
+    start = time.time()
+
     test_spikegenerator_connected()
     test_spikegenerator_basic()
     test_spikegenerator_basic_sorted()
@@ -394,3 +399,5 @@ if __name__ == '__main__':
              ]:
         t(with_output=True)
         restore_device()
+
+    print 'Tests took', time.time()-start

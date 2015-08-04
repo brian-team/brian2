@@ -234,6 +234,9 @@ class CPPNodeRenderer(NodeRenderer):
         if node.op.__class__.__name__=='Pow':
             return 'pow(%s, %s)' % (self.render_node(node.left),
                                     self.render_node(node.right))
+        elif node.op.__class__.__name__=='Mod':
+            return '_brian_mod(%s, %s)' % (self.render_node(node.left),
+                                           self.render_node(node.right))
         else:
             return NodeRenderer.render_BinOp(self, node)
 

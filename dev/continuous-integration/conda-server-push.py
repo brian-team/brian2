@@ -1,7 +1,8 @@
+import sys
 import os
 import glob
-import subprocess
-import traceback
+
+from binstar_client.scripts.cli import main
 
 token = os.environ['BINSTAR_TOKEN']
 options = ['-t', token, 'upload',
@@ -11,10 +12,7 @@ assert len(filename) == 1, 'Expected to find one .tar.bz2 file, found %d' % len(
 release = '+git' not in filename[0]
 if not release:
     options.extend(['--channel', 'dev', '--force'])
-cmd = ['binstar'] + options
-cmd.extend(filename)
 
-try:
-    subprocess.check_call(cmd)
-except subprocess.CalledProcessError:
-    traceback.print_exc()
+options.extend(filename)
+
+sys.exit(main(args=options))

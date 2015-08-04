@@ -64,7 +64,7 @@ before_install:
 install:
   - conda update --yes conda
   - if [[ $CONDA_BUILD == 'yes' ]]; then
-       conda install --yes --quiet binstar conda-build jinja2 pip setuptools;
+       conda install --yes --quiet anaconda-client conda-build jinja2 pip setuptools;
     fi
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
     conda create -n travis_conda --yes pip python=$PYTHON numpy==1.8.0 scipy==0.13.3 nose sphinx ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage;
@@ -72,10 +72,9 @@ install:
     conda create -n travis_conda --yes pip python=$PYTHON numpy scipy nose sphinx ipython sympy pyparsing jinja2 setuptools coverage;
     fi
   - source activate travis_conda
-  - conda update --yes pip setuptools
   - if [[ $CYTHON == 'yes' ]]; then conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
   - if [[ $REPORT_COVERAGE == 'yes' ]]; then pip install -q coveralls; fi
-  - python setup.py install $SETUP_ARGS --fail-on-error
+  - python setup.py install $SETUP_ARGS --fail-on-error --single-version-externally-managed --record=record.txt
   - if [[ $DOCS_ONLY == 'yes' ]]; then
       pip install -q sphinxcontrib-issuetracker;
       python setup.py sdist;
@@ -119,7 +118,7 @@ after_success:
     cd $SRCDIR;
     source deactivate;
     python dev/continuous-integration/move-conda-package.py dev/conda-recipe &&
-    python dev/continuous-integration/binstar-push.py;
+    python dev/continuous-integration/conda-server-push.py;
     source activate travis_conda;
   fi;
   if [[ $REPORT_COVERAGE == 'yes' ]]; then
