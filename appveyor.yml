@@ -87,7 +87,7 @@ install:
   # Install the build dependencies of the project via conda
   - 'conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
   - 'pip install py-cpuinfo'
-  - 'IF "%CONDA_BUILD%" == "TRUE" (conda install --yes --quiet conda-build conda-server pip)'
+  - 'IF "%CONDA_BUILD%" == "TRUE" (conda install --yes --quiet conda-build anaconda-client pip)'
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
