@@ -5,7 +5,7 @@ import os
 import re
 import collections
 
-from jinja2 import Environment, PackageLoader
+from jinja2 import Environment, PackageLoader, ChoiceLoader
 
 from brian2.utils.stringtools import (indent, strip_empty_lines,
                                       get_identifiers)
@@ -16,6 +16,7 @@ __all__ = ['Templater']
 AUTOINDENT_START = '%%START_AUTOINDENT%%'
 AUTOINDENT_END = '%%END_AUTOINDENT%%'
 
+
 def autoindent(code):
     if isinstance(code, list):
         code = '\n'.join(code)
@@ -24,6 +25,7 @@ def autoindent(code):
     if not code.endswith('\n'):
         code = code + '\n'
     return AUTOINDENT_START+code+AUTOINDENT_END
+
 
 def autoindent_postfilter(code):
     lines = code.split('\n')
@@ -41,27 +43,72 @@ def autoindent_postfilter(code):
         outlines.append(' '*addspaces+line)
     return '\n'.join(outlines)
 
+
 class Templater(object):
     '''
     Class to load and return all the templates a `CodeObject` defines.
+
+    Parameters
+    ----------
+
+    package_name : str, tuple of str
+        The package where the templates are saved. If this is a tuple then each template will be searched in order
+        starting from the first package in the tuple until the template is found. This allows for derived templates
+        to be used. See also `~Templater.derive`.
+    env_globals : dict (optional)
+        A dictionary of global values accessible by the templates. Can be used for providing utility functions.
+        In all cases, the filter 'autoindent' is available (see existing templates for example usage).
+
+    Notes
+    -----
+
+    Templates are accessed using ``templater.template_base_name`` (the base name is without the file extension).
+    This returns a `CodeObjectTemplate`.
     '''
     def __init__(self, package_name, env_globals=None):
-        self.env = Environment(loader=PackageLoader(package_name, 'templates'),
-                               trim_blocks=True,
-                               lstrip_blocks=True,
-                               )
+        if isinstance(package_name, basestring):
+            package_name = (package_name,)
+        loader = ChoiceLoader([PackageLoader(name, 'templates') for name in package_name])
+        self.env = Environment(loader=loader, trim_blocks=True, lstrip_blocks=True)
         self.env.globals['autoindent'] = autoindent
         self.env.filters['autoindent'] = autoindent
         if env_globals is not None:
             self.env.globals.update(env_globals)
+        else:
+            env_globals = {}
+        self.env_globals = env_globals
+        self.package_names = package_name
         for name in self.env.list_templates():
             template = CodeObjectTemplate(self.env.get_template(name),
                                           self.env.loader.get_source(self.env,
                                                                      name)[0])
             setattr(self, os.path.splitext(name)[0], template)
 
+    def derive(self, package_name, env_globals=None):
+        '''
+        Return a new Templater derived from this one, where the new package name and globals overwrite the old.
+        '''
+        if isinstance(package_name, basestring):
+            package_name = (package_name,)
+        if env_globals is None:
+            env_globals = {}
+        package_name = package_name+self.package_names
+        new_env_globals = self.env_globals.copy()
+        new_env_globals.update(**env_globals)
+        return Templater(package_name, env_globals=new_env_globals)
+
 
 class CodeObjectTemplate(object):
+    '''
+    Single template object returned by `Templater` and used for final code generation
+
+    Should not be instantiated by the user, but only directly by `Templater`.
+
+    Notes
+    -----
+
+    The final code is obtained from this by calling the template (see `~CodeObjectTemplater.__call__`).
+    '''
     def __init__(self, template, template_source):
         self.template = template
         self.template_source = template_source
@@ -84,6 +131,23 @@ class CodeObjectTemplate(object):
             self.iterate_all.update(get_identifiers(block))
                 
     def __call__(self, scalar_code, vector_code, **kwds):
+        '''
+        Return a usable code block or blocks from this template.
+
+        Parameters
+        ----------
+        scalar_code : dict
+            Dictionary of scalar code blocks.
+        vector_code : dict
+            Dictionary of vector code blocks
+        **kwds
+            Additional parameters to pass to the template
+
+        Notes
+        -----
+
+        Returns either a string (if macros were not used in the template), or a `MultiTemplate` (if macros were used).
+        '''
         if scalar_code is not None and len(scalar_code)==1 and scalar_code.keys()[0] is None:
             scalar_code = scalar_code[None]
         if vector_code is not None and len(vector_code)==1 and vector_code.keys()[0] is None:
@@ -98,6 +162,11 @@ class CodeObjectTemplate(object):
 
 
 class MultiTemplate(object):
+    '''
+    Code generated by a `CodeObjectTemplate` with multiple blocks
+
+    Each block is a string stored as an attribute with the block name.
+    '''
     def __init__(self, module):
         self._templates = {}
         for k, f in module.__dict__.items():
