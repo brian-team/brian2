@@ -1,6 +1,6 @@
 #cython: boundscheck=False
 #cython: wraparound=False
-#cython: cdivision=True
+#cython: cdivision=False
 #cython: infer_types=True
 
 import numpy as _numpy

@@ -450,9 +450,6 @@ DEFAULT_FUNCTIONS = {
     'abs': Function(np.abs,
                     sympy_func=sympy.functions.elementary.complexes.Abs,
                     arg_units=[None], return_unit=lambda u: u),
-    'mod': Function(np.mod,
-                    sympy_func=sympy_mod.Mod,
-                    arg_units=[None, None], return_unit=lambda u,v : u),
     'sign': Function(pyfunc=np.sign, sympy_func=sympy.sign,
                      arg_units=[None], return_unit=1),
     # functions that need special treatment
