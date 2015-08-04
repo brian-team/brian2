@@ -11,11 +11,13 @@ logger = get_logger(__name__)
 
 
 def find_name(name):
-    if name.endswith('*'):
-        name = name[:-1]
-        wildcard = True
-    else:
-        wildcard = False
+    if not name.endswith('*'):
+        # explicitly given names are used as given. Network.before_run (and
+        # the device in case of standalone) will check for name clashes later
+        return name
+
+    name = name[:-1]
+
     instances = set(Nameable.__instances__())
     allnames = set(obj().name for obj in instances
                    if hasattr(obj(), 'name'))
@@ -23,8 +25,6 @@ def find_name(name):
     # Try the name without any additions first:
     if name not in allnames:
         return name
-    elif not wildcard:
-        raise ValueError("An object with name "+name+" is already defined.")
 
     # Name is already taken, try _1, _2, etc.
     i = 1

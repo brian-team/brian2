@@ -9,9 +9,8 @@ Preferences
 '''
 
 import sys
-import gc
 import time
-from collections import defaultdict, Sequence
+from collections import defaultdict, Sequence, Counter
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
@@ -563,7 +562,18 @@ class Network(Nameable):
         from brian2.devices.device import get_device, all_devices
 
         prefs.check_all_validated()
-        
+
+        # Check names in the network for uniqueness
+        names = [obj.name for obj in self.objects]
+        non_unique_names = [name for name, count in Counter(names).iteritems()
+                            if count > 1]
+        if len(non_unique_names):
+            formatted_names = ', '.join("'%s'" % name
+                                        for name in non_unique_names)
+            raise ValueError('All objects in a network need to have unique '
+                             'names, the following name(s) were used more than '
+                             'once: %s' % formatted_names)
+
         self._stopped = False
         Network._globally_stopped = False
 

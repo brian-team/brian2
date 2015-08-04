@@ -44,8 +44,24 @@ def test_names():
     assert_equal(obj.name, 'brianobject')
     assert_equal(obj2.name, 'brianobject_1')
     assert_equal(obj3.name, 'derivedbrianobject')
-    assert_raises(ValueError, lambda: BrianObject(name='brianobject'))
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_initial_state)
+def test_duplicate_names():
+    # duplicate names are allowed, as long as they are not part of the
+    # same network
+    obj1 = BrianObject(name='name1')
+    obj2 = BrianObject(name='name2')
+    obj3 = BrianObject(name='name')
+    obj4 = BrianObject(name='name')
+    net = Network(obj1, obj2)
+    # all is good
+    net.run(0*ms)
+    net = Network(obj3, obj4)
+    assert_raises(ValueError, lambda: net.run(0*ms))
 
 if __name__=='__main__':
     test_base()
     test_names()
+    test_duplicate_names()
+

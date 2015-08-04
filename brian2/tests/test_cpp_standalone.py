@@ -4,7 +4,7 @@ import os
 from nose import with_setup
 from nose.plugins.attrib import attr
 import numpy
-from numpy.testing.utils import assert_allclose, assert_equal
+from numpy.testing.utils import assert_allclose, assert_equal, assert_raises
 
 from brian2 import *
 from brian2.devices.cpp_standalone import cpp_standalone_device
@@ -243,6 +243,25 @@ def test_timedarray(with_output=True):
 
     set_device(previous_device)
 
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=restore_device)
+def test_duplicate_names_across_nets(with_output=True):
+    previous_device = get_device()
+    set_device('cpp_standalone')
+    # In standalone mode, names have to be globally unique, not just unique
+    # per network
+    obj1 = BrianObject(name='name1')
+    obj2 = BrianObject(name='name2')
+    obj3 = BrianObject(name='name3')
+    obj4 = BrianObject(name='name1')
+    net1 = Network(obj1, obj2)
+    net2 = Network(obj3, obj4)
+    net1.run(0*ms)
+    net2.run(0*ms)
+    assert_raises(ValueError, lambda: device.build())
+
+    set_device(previous_device)
+
 
 if __name__=='__main__':
     # Print the debug output when testing this file only but not when running
@@ -252,7 +271,8 @@ if __name__=='__main__':
              test_multiple_connects,
              test_storing_loading,
              test_openmp_consistency,
-             test_timedarray
+             test_timedarray,
+             test_duplicate_names_across_nets
              ]:
         t(with_output=True)
         restore_device()
