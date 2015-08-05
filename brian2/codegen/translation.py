@@ -212,6 +212,7 @@ class LIONodeRenderer(NodeRenderer):
     '''
     def __init__(self, variables):
         self.variables = variables
+        self.boolvars = dict((k, v) for k, v in self.variables.iteritems() if v.dtype==bool)
         self.optimisations = OrderedDict()
         self.n = 0
         NodeRenderer.__init__(self, use_vectorisation_idx=False)
@@ -227,13 +228,28 @@ class LIONodeRenderer(NodeRenderer):
                 # Do not pull out very simple expressions (including constants
                 # and numbers)
                 sympy_expr = str_to_sympy(expr)
-                if sympy.count_ops(sympy_expr, visual=False) < 2:
-                    return expr
+                # TODO: this is bad because e.g. exp(y), y*y*y don't work
+                # if sympy.count_ops(sympy_expr, visual=False) < 2:
+                #     return expr
                 self.n += 1
                 name = '_lio_const_'+str(self.n)
                 self.optimisations[expr] = name
             return name
         else:
+            for varname, var in self.boolvars.iteritems():
+                expr_0 = word_substitute(expr, {varname: '0.0'})
+                expr_1 = word_substitute(expr, {varname: '1.0'})
+                if (is_scalar_expression(expr_0, self.variables) and is_scalar_expression(expr_1, self.variables) and
+                        not has_non_float(expr, self.variables)):
+                    self.n += 1
+                    name_0 = '_lio_const_'+str(self.n)
+                    self.n += 1
+                    name_1 = '_lio_const_'+str(self.n)
+                    newexpr = '({name_0}*(1-{varname})+{name_1}*{varname})'.format(name_0=name_0, name_1=name_1,
+                                                                                   varname=varname)
+                    self.optimisations[expr_0] = name_0
+                    self.optimisations[expr_1] = name_1
+                    return newexpr
             return NodeRenderer.render_node(self, node)
 
 
