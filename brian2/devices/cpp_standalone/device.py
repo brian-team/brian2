@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import inspect
 import platform
-from collections import defaultdict
+from collections import defaultdict, Counter
 import numbers
 import tempfile
 from distutils import ccompiler
@@ -864,6 +864,17 @@ class CPPStandaloneDevice(Device):
         # for repeated runs of standalone (e.g. in the test suite).
         for net in self.networks:
             net.after_run()
+
+        # Check that all names are globally unique
+        names = [obj.name for net in self.networks for obj in net.objects]
+        non_unique_names = [name for name, count in Counter(names).iteritems()
+                            if count > 1]
+        if len(non_unique_names):
+            formatted_names = ', '.join("'%s'" % name
+                                        for name in non_unique_names)
+            raise ValueError('All objects need to have unique names in '
+                             'standalone mode, the following name(s) were used '
+                             'more than once: %s' % formatted_names)
 
         self.generate_objects_source(writer, arange_arrays, self.net_synapses, self.static_array_specs, self.networks)
         self.generate_main_source(writer)
