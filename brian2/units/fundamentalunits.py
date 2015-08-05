@@ -53,10 +53,10 @@ def _short_str(arr):
     error messages.
     '''
     arr = np.asanyarray(arr)
-    edgeitems = np.get_printoptions()['edgeitems']
-    np.set_printoptions(edgeitems=5)
+    old_printoptions = np.get_printoptions()
+    np.set_printoptions(edgeitems=2, threshold=5)
     arr_string = str(arr)
-    np.set_printoptions(edgeitems=edgeitems)
+    np.set_printoptions(**old_printoptions)
     return arr_string
 
 #===============================================================================
@@ -147,7 +147,7 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
     else:
         dim2 = get_dimensions(Quantity(obj2))
 
-    if not dim1 is dim2:
+    if dim1 is not dim2:
         # Special treatment for "0":
         # if it is not a Quantity, it has "any dimension".
         # This allows expressions like 3*mV + 0 to pass (useful in cases where
@@ -155,8 +155,13 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
         # builtin) or comparisons like 3 * mV == 0 to return False instead of
         # failing # with a DimensionMismatchError. Note that 3*mV == 0*second
         # is not allowed, though.
-        if ((not isinstance(obj1, Quantity) and np.all(obj1 == 0)) or
-            (not isinstance(obj2, Quantity) and np.all(obj2 == 0))):
+        obj1_is_dimensionless = (not isinstance(obj1, Quantity) or
+                                 obj1.dim is DIMENSIONLESS)
+        obj2_is_dimensionless = (not isinstance(obj2, Quantity) or
+                                 obj2.dim is DIMENSIONLESS)
+
+        if ((obj1_is_dimensionless and np.all(obj1 == 0)) or
+                (obj2_is_dimensionless and np.all(obj2 == 0))):
             return
 
         # We do another check here, this should allow Brian1 units to pass as
@@ -169,8 +174,13 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
         else:
             error_quantities = {name: _short_str(q)
                                 for name, q in error_quantities.iteritems()}
-            error_message = error_message.format(error_quantities)
-        raise DimensionMismatchError(error_message, dim1, dim2)
+            error_message = error_message.format(**error_quantities)
+        # If we are comparing an object to a specific unit, we don't want to
+        # restate this unit (it is probably mentioned in the text already)
+        if obj2 is None or isinstance(obj2, Unit):
+            raise DimensionMismatchError(error_message, dim1)
+        else:
+            raise DimensionMismatchError(error_message, dim1, dim2)
 
 
 def wrap_function_dimensionless(func):
@@ -184,7 +194,11 @@ def wrap_function_dimensionless(func):
     other arguments are ignored/untouched.
     '''
     def f(x, *args, **kwds): # pylint: disable=C0111
-        fail_for_dimension_mismatch(x, error_message=func.__name__)
+        fail_for_dimension_mismatch(x,
+                                    error_message=('%s expects a dimensionless '
+                                                   'argument but got '
+                                                   '{value}' % func.__name__),
+                                    value=x)
         return func(np.asarray(x), *args, **kwds)
     f._arg_units = [1]
     f._return_unit = 1
@@ -547,13 +561,15 @@ class DimensionMismatchError(Exception):
     def __str__(self):
         s = self.desc
         if len(self.dims) == 1:
-            s += ' (unit was ' + repr(get_unit(self.dims[0]))
+            s += ' (unit is ' + get_unit_for_display(self.dims[0])
         elif len(self.dims) == 2:
             d1, d2 = self.dims
-            s += ' (units were %r and %r' % (get_unit(d1), get_unit(d2))
+            s += ' (units are %s and %s' % (get_unit_for_display(d1),
+                                            get_unit_for_display(d2))
         else:
-            s += (' (units were ' +
-                  ' '.join(['(' + repr(get_unit(d)) + ')' for d in self.dims]))
+            s += (' (units are ' +
+                  ' '.join(['(' + get_unit_for_display(d) + ')'
+                            for d in self.dims]))
         return s + ').'
 
 def is_scalar_type(obj):
@@ -944,16 +960,41 @@ class Quantity(np.ndarray, object):
             raise TypeError('%s cannot be used on quantities.' % uf.__name__)
         elif uf.__name__ in UFUNCS_MATCHING_DIMENSIONS + UFUNCS_COMPARISONS:
             # Ok if dimension of arguments match
-            fail_for_dimension_mismatch(args[0], args[1], uf.__name__)
+            fail_for_dimension_mismatch(args[0], args[1],
+                                        error_message=('Cannot calculate '
+                                                       '{val1} %s {val2}, the '
+                                                       'units do not '
+                                                       'match') % uf.__name__,
+                                        val1=args[0], val2=args[1])
         elif uf.__name__ in UFUNCS_DIMENSIONLESS:
             # Ok if argument is dimensionless
-            fail_for_dimension_mismatch(args[0], error_message=uf.__name__)
+            fail_for_dimension_mismatch(args[0],
+                                        error_message=('%s expects a '
+                                                       'dimensionless argument '
+                                                       'but got '
+                                                       '{value}') % uf.__name__,
+                                        value=args[0])
         elif uf.__name__ in UFUNCS_DIMENSIONLESS_TWOARGS:
             # Ok if both arguments are dimensionless
-            fail_for_dimension_mismatch(args[0], error_message=uf.__name__)
-            fail_for_dimension_mismatch(args[1], error_message=uf.__name__)
+            fail_for_dimension_mismatch(args[0],
+                                        error_message=('First argument for '
+                                                       '%s should be '
+                                                       'dimensionless but was '
+                                                       '{value}') % uf.__name__,
+                                        value=args[0])
+            fail_for_dimension_mismatch(args[1],
+                                        error_message=('Second argument for '
+                                                       '%s should be '
+                                                       'dimensionless but was '
+                                                       '{value}') % uf.__name__,
+                                        value=args[1])
         elif uf.__name__ == 'power':
-            fail_for_dimension_mismatch(args[1], error_message=uf.__name__)
+            fail_for_dimension_mismatch(args[1],
+                                        error_message='The exponent for a '
+                                                      'power operation has to '
+                                                      'be dimensionless but '
+                                                      'was {value}',
+                                        value=args[1])
             if np.asarray(args[1]).size != 1:
                 raise TypeError('Only length-1 arrays can be used as an '
                                 'exponent for quantities.')
@@ -1255,7 +1296,7 @@ class Quantity(np.ndarray, object):
 
     def _binary_operation(self, other, operation,
                           dim_operation=lambda a, b: a, fail_for_mismatch=False,
-                          message=None, inplace=False):
+                          operator_str=None, inplace=False):
         '''
         General implementation for binary operations.
 
@@ -1275,8 +1316,8 @@ class Quantity(np.ndarray, object):
         fail_for_mismatch : bool, optional
             Whether to fail for a dimension mismatch between `self` and `other`
             (defaults to ``False``)
-        message : str, optional
-            An optional error message for the `DimensionMismatchError`.
+        operator_str : str, optional
+            The string to use for the operator in an error message.
         inplace: bool, optional
             Whether to do the operation in-place (defaults to ``False``).
 
@@ -1294,7 +1335,15 @@ class Quantity(np.ndarray, object):
                 return NotImplemented
         
         if fail_for_mismatch:
-            fail_for_dimension_mismatch(self, other, message)
+            if inplace:
+                message = ('Cannot calculate ... %s {value}, units do not '
+                           'match') % operator_str
+                fail_for_dimension_mismatch(self, other, message, value=other)
+            else:
+                message = ('Cannot calculate {value1} %s {value2}, units do not '
+                           'match') % operator_str
+                fail_for_dimension_mismatch(self, other, message,
+                                            value1=self, value2=other)
 
         if inplace:
             if self.shape == ():
@@ -1345,12 +1394,13 @@ class Quantity(np.ndarray, object):
 
     def __mod__(self, other):
         return self._binary_operation(other, operator.mod,
-                                      fail_for_mismatch=True, message='Modulo')
+                                      fail_for_mismatch=True,
+                                      operator_str=r'%')
 
     def __add__(self, other):
         return self._binary_operation(other, operator.add,
                                       fail_for_mismatch=True,
-                                      message='Addition')
+                                      operator_str='+')
 
     def __radd__(self, other):
         return self.__add__(other)
@@ -1358,29 +1408,37 @@ class Quantity(np.ndarray, object):
     def __iadd__(self, other):
         return self._binary_operation(other, np.ndarray.__iadd__,
                                       fail_for_mismatch=True,
-                                      message='Addition',
+                                      operator_str='+=',
                                       inplace=True)
 
     def __sub__(self, other):
         return self._binary_operation(other, operator.sub,
                                       fail_for_mismatch=True,
-                                      message='Subtraction')
+                                      operator_str='-')
 
     def __rsub__(self, other):
-        # subtraction with swapped arguments
-        rsub = lambda a, b: operator.sub(b, a)
-        return self._binary_operation(other, rsub, fail_for_mismatch=True,
-                                      message='Subtraction (R)')
+        # We allow operations with 0 even for dimension mismatches, e.g.
+        # 0 - 3*mV is allowed. In this case, the 0 is not represented by a
+        # Quantity object so we cannot simply call Quantity.__sub__
+        if ((not isinstance(other, Quantity) or other.dim is DIMENSIONLESS) and
+                np.all(other == 0)):
+            return self.__neg__()
+        else:
+            return Quantity(other, copy=False, force_quantity=True).__sub__(self)
 
     def __isub__(self, other):
         return self._binary_operation(other, np.ndarray.__isub__,
                                       fail_for_mismatch=True,
-                                      message='Subtraction',
+                                      operator_str='-=',
                                       inplace=True)
-
     def __pow__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
-            fail_for_dimension_mismatch(other, error_message='Power')
+            fail_for_dimension_mismatch(other,
+                                        error_message='Cannot calculate '
+                                                      '{base} ** {exponent}, '
+                                                      'the exponent has to be '
+                                                      'dimensionless',
+                                        base=self, exponent=other)
             return Quantity.with_dimensions(np.asarray(self)**np.asarray(other),
                                             self.dim**np.asarray(other))
         else:
@@ -1394,11 +1452,21 @@ class Quantity(np.ndarray, object):
             else:
                 return NotImplemented
         else:
-            raise DimensionMismatchError("Power(R)", self.dim)
+            raise DimensionMismatchError(('Cannot calculate '
+                                          '{base} ** {exponent}, the '
+                                          'exponent has to be '
+                                          'dimensionless').format(base=_short_str(other),
+                                                                  exponent=_short_str(self)),
+                                         self.dim)
 
     def __ipow__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
-            fail_for_dimension_mismatch(other, error_message='Power')
+            fail_for_dimension_mismatch(other,
+                                        error_message='Cannot calculate '
+                                                      '... **= {exponent}, '
+                                                      'the exponent has to be '
+                                                      'dimensionless',
+                                        exponent=other)
             super(Quantity, self).__ipow__(np.asarray(other))
             self.dim = self.dim ** np.asarray(other)
             return self
@@ -2181,6 +2249,16 @@ def get_unit(x, *regs):
             return u
     return Unit(1.0, dim=x.dim)
 
+
+def get_unit_for_display(x):
+    '''
+    Return a string representation of the most appropriate unit or ``'1'`` for
+    a dimensionless quantity
+    '''
+    if x is DIMENSIONLESS:
+        return '1'
+    else:
+        return repr(get_unit(x))
 
 def get_unit_fast(x):
     '''
