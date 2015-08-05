@@ -521,8 +521,15 @@ class DimensionMismatchError(Exception):
                                self.desc, ', '.join(dims_repr))
 
     def __str__(self):
-        s = self.desc + ", dimensions were "
-        s += ' '.join(['(' + str(d) + ')' for d in self.dims])
+        s = self.desc
+        if len(self.dims) == 1:
+            s += ', unit was ' + repr(get_unit(self.dims[0]))
+        elif len(self.dims) == 2:
+            d1, d2 = self.dims
+            s += ', units were %r and %r' % (get_unit(d1), get_unit(d2))
+        else:
+            s += (', units were ' +
+                  ' '.join(['(' + repr(get_unit(d)) + ')' for d in self.dims]))
         return s
 
 def is_scalar_type(obj):
@@ -566,7 +573,10 @@ def get_dimensions(obj):
     """
     if (isinstance(obj, numbers.Number) or isinstance(obj, np.number) or
         isinstance(obj, np.ndarray) and not isinstance(obj, Quantity)):
-        return DIMENSIONLESS 
+        return DIMENSIONLESS
+    elif isinstance(obj, Dimension):
+        return obj
+
     try:
         return obj.dim
     except AttributeError:
