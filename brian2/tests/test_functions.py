@@ -90,6 +90,23 @@ def test_math_functions():
             assert_allclose(numpy_result, mon.func_.flatten(),
                             err_msg='Function %s did not return the correct values' % func.__name__)
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_bool_to_int():
+    # Test that boolean expressions and variables are correctly converted into
+    # integers
+    G = NeuronGroup(2, '''
+                       intexpr1 = int(bool_var) : integer
+                       intexpr2 = int(float_var > 1.0) : integer
+                       bool_var : boolean
+                       float_var : 1
+                       ''')
+    G.bool_var = [True, False]
+    G.float_var = [2.0, 0.5]
+    s_mon = StateMonitor(G, ['intexpr1', 'intexpr2'], record=True)
+    run(defaultclock.dt)
+    assert_equal(s_mon.intexpr1.flatten(), [1, 0])
+    assert_equal(s_mon.intexpr2.flatten(), [1, 0])
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
@@ -508,6 +525,7 @@ if __name__ == '__main__':
             test_constants_sympy,
             test_constants_values,
             test_math_functions,
+            test_bool_to_int,
             test_user_defined_function,
             test_user_defined_function_units,
             test_simple_user_defined_function,
