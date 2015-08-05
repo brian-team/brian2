@@ -47,6 +47,18 @@ def _flatten(iterable):
             yield e
 
 
+def _short_str(arr):
+    '''
+    Return a short string representation of an array, suitable for use in
+    error messages.
+    '''
+    arr = np.asanyarray(arr)
+    edgeitems = np.get_printoptions()['edgeitems']
+    np.set_printoptions(edgeitems=5)
+    arr_string = str(arr)
+    np.set_printoptions(edgeitems=edgeitems)
+    return arr_string
+
 #===============================================================================
 # Numpy ufuncs
 #===============================================================================
@@ -95,7 +107,8 @@ UFUNCS_INTEGERS = ['bitwise_and', 'bitwise_or', 'bitwise_xor', 'invert',
 # Utility functions
 #==============================================================================
 
-def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
+def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
+                                **error_quantities):
     '''
     Compare the dimensions of two objects.
 
@@ -104,9 +117,16 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
     obj1, obj2 : {array-like, `Quantity`}
         The object to compare. If `obj2` is ``None``, assume it to be
         dimensionless
-    error_message : `str`, optional
+    error_message : str, optional
         An error message that is used in the DimensionMismatchError
-
+    error_quantities : dict mapping str to `Quantity`, optional
+        Quantities in this dictionary will be converted using the `_short_str`
+        helper method and inserted into the ``error_message`` (which should
+        have placeholders with the corresponding names). The reason for doing
+        this in a somewhat complicated way instead of directly including all the
+        details in ``error_messsage`` is that converting large quantity arrays
+        to strings can be rather costly and we don't want to do it if no error
+        occured.
     Raises
     ------
     DimensionMismatchError
@@ -146,6 +166,10 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None):
 
         if error_message is None:
             error_message = 'Dimension mismatch'
+        else:
+            error_quantities = {name: _short_str(q)
+                                for name, q in error_quantities.iteritems()}
+            error_message = error_message.format(error_quantities)
         raise DimensionMismatchError(error_message, dim1, dim2)
 
 
@@ -523,14 +547,14 @@ class DimensionMismatchError(Exception):
     def __str__(self):
         s = self.desc
         if len(self.dims) == 1:
-            s += ', unit was ' + repr(get_unit(self.dims[0]))
+            s += ' (unit was ' + repr(get_unit(self.dims[0]))
         elif len(self.dims) == 2:
             d1, d2 = self.dims
-            s += ', units were %r and %r' % (get_unit(d1), get_unit(d2))
+            s += ' (units were %r and %r' % (get_unit(d1), get_unit(d2))
         else:
-            s += (', units were ' +
+            s += (' (units were ' +
                   ' '.join(['(' + repr(get_unit(d)) + ')' for d in self.dims]))
-        return s
+        return s + ').'
 
 def is_scalar_type(obj):
     """
