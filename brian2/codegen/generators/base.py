@@ -215,9 +215,11 @@ class CodeGenerator(object):
                 else:
                     error_msg = ('%d lines of abstract code, first line is: '
                                  '"%s"\n') % (len(vs), vs[0])
-                logger.warn(('Came across an abstract code block that is not '
+                logger.warn(('Came across an abstract code block that may not be '
                              'well-defined: the outcome may depend on the '
-                             'order of execution. ' + error_msg))
+                             'order of execution. You can ignore this warning if '
+                             'you are sure that the order of operations does not '
+                             'matter. ' + error_msg))
 
         return self.translate_statement_sequence(scalar_statements,
                                                  vector_statements)

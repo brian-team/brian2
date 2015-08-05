@@ -36,7 +36,7 @@ def check_for_order_independence(statements, variables, indices):
                 if permdep:
                     raise OrderDependenceError()
             elif statement.var in different_index_variables:
-                if statement.op == '+=' or statement.op == '*=':
+                if statement.op == '+=' or statement.op == '*=' or statement.op == '-=' or statement.op == '/=':
                     if permdep:
                         raise OrderDependenceError()
                     if statement.var in permutation_independent:

@@ -898,6 +898,8 @@ def test_permutation_analysis():
         'w_syn = a_syn',
         'w_syn += a_syn',
         'w_syn *= a_syn',
+        'w_syn -= a_syn',
+        'w_syn /= a_syn',
         'w_syn += 1',
         'w_syn *= 2',
         '''
