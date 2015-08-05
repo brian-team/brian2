@@ -37,6 +37,9 @@ def test_math_functions():
     '''
     default_dt = defaultclock.dt
     test_array = np.array([-1, -0.5, 0, 0.5, 1])
+    def int_(x):
+        return array(x, dtype=int)
+    int_.__name__ = 'int'
 
     with catch_logs() as _:  # Let's suppress warnings about illegal values
         # Functions with a single argument
@@ -44,7 +47,7 @@ def test_math_functions():
                      arcsin, arccos, arctan,
                      log, log10,
                      exp, np.sqrt,
-                     np.ceil, np.floor, np.sign]:
+                     np.ceil, np.floor, np.sign, int_]:
 
             # Calculate the result directly
             numpy_result = func(test_array)
@@ -499,7 +502,7 @@ def test_binomial():
 
 if __name__ == '__main__':
     from brian2 import prefs
-    #prefs.codegen.target = 'weave'
+    #prefs.codegen.target = 'numpy'
     import time
     for f in [
             test_constants_sympy,
