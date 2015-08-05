@@ -1143,14 +1143,14 @@ class VariableView(object):
             if not (isinstance(item, slice) and item == slice(None)):
                 raise IndexError(('Illegal index for variable %s, it is a '
                                   'scalar variable.') % self.name)
-            indices = np.array(0)
+            indices = 0
+        elif (isinstance(item, slice) and item == slice(None)
+              and self.index_var == '_idx'):
+            indices = slice(None)
         else:
             indices = self.indexing(item, self.index_var)
 
-        if variable.scalar:
-            return variable.get_value()[0]
-        else:
-            return variable.get_value()[indices]
+        return variable.get_value()[indices]
 
     @device_override('variableview_get_subexpression_with_index_array')
     def get_subexpression_with_index_array(self, item, level=0, run_namespace=None):
