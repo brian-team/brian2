@@ -1246,6 +1246,18 @@ class VariableView(object):
                               '"group.{var}"'.format(var=self.variable.name)))
         return np.asanyarray(self[:], dtype=dtype)
 
+    def __array_prepare__(self, array, context=None):
+        if self.unit is None:
+            return array
+        else:
+            return Quantity.__array_prepare__(self[:], array, context=context)
+
+    def __array_wrap__(self, out_arr, context=None):
+        if self.unit is None:
+            return out_arr
+        else:
+            return Quantity.__array_wrap__(self[:], out_arr, context=context)
+
     def __len__(self):
         return len(self.get_item(slice(None), level=1))
 
@@ -1256,40 +1268,40 @@ class VariableView(object):
         return self.get_item(slice(None), level=1)
 
     def __add__(self, other):
-        return self.get_item(slice(None), level=1) + other
+        return self.get_item(slice(None), level=1) + np.asanyarray(other)
 
     def __radd__(self, other):
-        return other + self.get_item(slice(None), level=1)
+        return np.asanyarray(other) + self.get_item(slice(None), level=1)
 
     def __sub__(self, other):
-        return self.get_item(slice(None), level=1) - other
+        return self.get_item(slice(None), level=1) - np.asanyarray(other)
 
     def __rsub__(self, other):
-        return other - self.get_item(slice(None), level=1)
+        return np.asanyarray(other) - self.get_item(slice(None), level=1)
 
     def __mul__(self, other):
-        return self.get_item(slice(None), level=1) * other
+        return self.get_item(slice(None), level=1) * np.asanyarray(other)
 
     def __rmul__(self, other):
-        return other * self.get_item(slice(None), level=1)
+        return np.asanyarray(other) * self.get_item(slice(None), level=1)
 
     def __div__(self, other):
-        return self.get_item(slice(None), level=1) / other
+        return self.get_item(slice(None), level=1) / np.asanyarray(other)
 
     def __truediv__(self, other):
-        return self.get_item(slice(None), level=1) / other
+        return self.get_item(slice(None), level=1) / np.asanyarray(other)
 
     def __floordiv__(self, other):
-        return self.get_item(slice(None), level=1) // other
+        return self.get_item(slice(None), level=1) // np.asanyarray(other)
 
     def __rdiv__(self, other):
-        return other / self.get_item(slice(None), level=1)
+        return np.asanyarray(other) / self.get_item(slice(None), level=1)
 
     def __rtruediv__(self, other):
-        return other / self.get_item(slice(None), level=1)
+        return np.asanyarray(other) / self.get_item(slice(None), level=1)
 
     def __rfloordiv__(self, other):
-        return other // self.get_item(slice(None), level=1)
+        return np.asanyarray(other) // self.get_item(slice(None), level=1)
 
     def __iadd__(self, other):
         if isinstance(other, basestring):
@@ -1299,7 +1311,7 @@ class VariableView(object):
         elif isinstance(self.variable, Subexpression):
             raise TypeError('Cannot assign to a subexpression.')
         else:
-            rhs = self[:] + other
+            rhs = self[:] + np.asanyarray(other)
         self[:] = rhs
         return self
 
@@ -1311,7 +1323,7 @@ class VariableView(object):
         elif isinstance(self.variable, Subexpression):
             raise TypeError('Cannot assign to a subexpression.')
         else:
-            rhs = self[:] - other
+            rhs = self[:] - np.asanyarray(other)
         self[:] = rhs
         return self
 
@@ -1323,7 +1335,7 @@ class VariableView(object):
         elif isinstance(self.variable, Subexpression):
             raise TypeError('Cannot assign to a subexpression.')
         else:
-            rhs = self[:] * other
+            rhs = self[:] * np.asanyarray(other)
         self[:] = rhs
         return self
 
@@ -1335,29 +1347,29 @@ class VariableView(object):
         elif isinstance(self.variable, Subexpression):
             raise TypeError('Cannot assign to a subexpression.')
         else:
-            rhs = self[:] / other
+            rhs = self[:] / np.asanyarray(other)
         self[:] = rhs
         return self
 
     # Also allow logical comparisons
 
     def __eq__(self, other):
-        return self.get_item(slice(None), level=1) == other
+        return self.get_item(slice(None), level=1) == np.asanyarray(other)
 
     def __ne__(self, other):
-        return self.get_item(slice(None), level=1) != other
+        return self.get_item(slice(None), level=1) != np.asanyarray(other)
 
     def __lt__(self, other):
-        return self.get_item(slice(None), level=1) < other
+        return self.get_item(slice(None), level=1) < np.asanyarray(other)
 
     def __le__(self, other):
-        return self.get_item(slice(None), level=1) <= other
+        return self.get_item(slice(None), level=1) <= np.asanyarray(other)
 
     def __gt__(self, other):
-        return self.get_item(slice(None), level=1) > other
+        return self.get_item(slice(None), level=1) > np.asanyarray(other)
 
     def __ge__(self, other):
-        return self.get_item(slice(None), level=1) >= other
+        return self.get_item(slice(None), level=1) >= np.asanyarray(other)
 
     def __repr__(self):
         varname = self.name
