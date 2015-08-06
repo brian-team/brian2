@@ -36,15 +36,11 @@ def check_for_order_independence(statements, variables, indices):
                 if permdep:
                     raise OrderDependenceError()
             elif statement.var in different_index_variables:
-                if statement.op == '+=' or statement.op == '*=' or statement.op == '-=' or statement.op == '/=':
-                    if permdep:
-                        raise OrderDependenceError()
+                if statement.op in ('+=', '*=', '-=', '/='):
                     if statement.var in permutation_independent:
                         permutation_independent.remove(statement.var)
                         changed_permutation_independent = True
                 elif statement.op == '=':
-                    sameidx = [v for v in variables
-                               if indices[v] == indices[statement.var]]
                     otheridx = [v for v in variables
                                 if indices[v] not in (indices[statement.var],
                                                       '_idx', '0')]

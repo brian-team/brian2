@@ -894,6 +894,11 @@ def test_permutation_analysis():
         'v_post = w_syn * v_post',
         'v_post += 1',
         'v_post = 1',
+        'v_post += v_post',
+        'v_post += sin(-v_post)',
+        'v_post += w*v_pre',
+        'v_post += sin(-v_post)',
+        'v_post -= sin(v_post)',
         'w_syn = v_pre',
         'w_syn = a_syn',
         'w_syn += a_syn',
@@ -929,10 +934,11 @@ def test_permutation_analysis():
     bad_examples = [
         'v_pre = w_syn',
         'v_post = v_pre',
+        'v_post = w_syn',
         '''
         a_syn = v_post
         v_post += w_syn
-        '''
+        ''',
     ]
     for example in bad_examples:
         assert_raises(OrderDependenceError, check_permutation_code, example)
