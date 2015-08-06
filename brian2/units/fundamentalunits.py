@@ -1515,31 +1515,34 @@ class Quantity(np.ndarray, object):
         return replace_with_quantity(np.asarray(self).tolist(), self.dim)
 
     #### COMPARISONS ####
-    def _comparison(self, other, message, operation):
+    def _comparison(self, other, operator_str, operation):
         is_scalar = is_scalar_type(other)
         if not is_scalar and not isinstance(other, np.ndarray):
             return NotImplemented
         if not is_scalar or not np.isinf(other):
-            fail_for_dimension_mismatch(self, other, message)
+                message = ('Cannot perform comparison {value1} %s {value2}, '
+                           'units do not match') % operator_str
+                fail_for_dimension_mismatch(self, other, message,
+                                            value1=self, value2=other)
         return operation(np.asarray(self), np.asarray(other))
 
     def __lt__(self, other):
-        return self._comparison(other, 'LessThan', operator.lt)
+        return self._comparison(other, '<', operator.lt)
 
     def __le__(self, other):
-        return self._comparison(other, 'LessEquals', operator.le)
+        return self._comparison(other, '<=', operator.le)
 
     def __gt__(self, other):
-        return self._comparison(other, 'GreaterThan', operator.gt)
+        return self._comparison(other, '>', operator.gt)
 
     def __ge__(self, other):
-        return self._comparison(other, 'GreaterEquals', operator.ge)
+        return self._comparison(other, '>=', operator.ge)
 
     def __eq__(self, other):
-        return self._comparison(other, 'Equals', operator.eq)
+        return self._comparison(other, '==', operator.eq)
 
     def __ne__(self, other):
-        return self._comparison(other, 'NotEquals', operator.ne)
+        return self._comparison(other, '!=', operator.ne)
 
     #### MAKE QUANTITY PICKABLE ####
     def __reduce__(self):
