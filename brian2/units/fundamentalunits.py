@@ -2258,7 +2258,7 @@ def get_unit_for_display(x):
     Return a string representation of the most appropriate unit or ``'1'`` for
     a dimensionless quantity
     '''
-    if x is DIMENSIONLESS:
+    if x is 1 or x is DIMENSIONLESS:
         return '1'
     else:
         return repr(get_unit(x))
@@ -2350,20 +2350,25 @@ def check_units(**au):
                                        not newkeyset[k] is None):
 
                     if not have_same_dimensions(newkeyset[k], au[k]):
-                        error_message = ('Function "' + f.__name__ +
-                                         '" variable "' + k +
-                                         '" has wrong dimensions')
+                        error_message = ('Function "{f.__name__}" '
+                                         'expected a quantitity with unit '
+                                         '{unit} for argument "{k}" but got '
+                                         '{value}').format(f=f, k=k,
+                                                           unit=repr(au[k]),
+                                                           value=newkeyset[k])
                         raise DimensionMismatchError(error_message,
-                                                     get_dimensions(newkeyset[k]),
-                                                     au[k])
+                                                     newkeyset[k])
             result = f(*args, **kwds)
             if 'result' in au:
                 if not have_same_dimensions(result, au['result']):
-                    error_message = ('The return value of function "' +
-                                     f.__name__ + '" has wrong dimensions')
+                    error_message = ('The return value of function '
+                                     '""{f.__name__}" was expected to have '
+                                     'unit {unit} but was '
+                                     '{value}').format(f=f,
+                                                       unit=repr(au['result']),
+                                                       value=result)
                     raise DimensionMismatchError(error_message,
-                                                 get_dimensions(result),
-                                                 get_dimensions(au['result']))
+                                                 get_dimensions(result))
             return result
         new_f._orig_func = f
         new_f.__doc__ = f.__doc__
