@@ -8,7 +8,7 @@ import sympy
 from pyparsing import Word
 
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
-                                        SUBEXPRESSION, PARAMETER, BOOLEAN)
+                                        SUBEXPRESSION, PARAMETER)
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.translation import analyse_identifiers
@@ -23,7 +23,8 @@ from brian2.utils.stringtools import get_identifiers
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (Quantity, Unit,
                                            have_same_dimensions,
-                                           DimensionMismatchError)
+                                           DimensionMismatchError,
+                                           fail_for_dimension_mismatch)
 
 
 from .group import Group, CodeRunner, get_dtype
@@ -113,6 +114,12 @@ class StateUpdater(CodeRunner):
             # No refractoriness
             abstract_code = ''
         elif isinstance(ref, Quantity):
+            fail_for_dimension_mismatch(ref, second, ('Refractory period has to '
+                                                      'be specified in units '
+                                                      'of seconds but got '
+                                                      '{value}'),
+                                        value=ref)
+
             abstract_code = 'not_refractory = (t - lastspike) > %f\n' % ref
         else:
             identifiers = get_identifiers(ref)
