@@ -185,7 +185,9 @@ class SynapticPathway(CodeRunner, Group):
                                  'quantity with shape %s instead.') % str(delay.shape))
             fail_for_dimension_mismatch(delay, second, ('Delay has to be '
                                                         'specified in units '
-                                                        'of seconds'))
+                                                        'of seconds but got '
+                                                        '{value}'),
+                                        value=delay)
             # We use a "dynamic" array of constant size here because it makes
             # the generated code easier, we don't need to deal with a different
             # type for scalar and variable delays

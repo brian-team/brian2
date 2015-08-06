@@ -4,15 +4,13 @@ import inspect
 
 import sympy
 from sympy import Function as sympy_Function
-from sympy.core import mod as sympy_mod
 import numpy as np
 from numpy.random import randn, rand
 
 from brian2.core.preferences import prefs
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            Quantity, get_dimensions,
-                                           check_units)
-from brian2.units.allunits import second
+                                           DIMENSIONLESS)
 from brian2.core.variables import Constant
 import brian2.units.unitsafefunctions as unitsafe
 
@@ -232,9 +230,6 @@ class FunctionImplementationContainer(collections.Mapping):
         discard_units : bool, optional
             See `implementation`.
         '''
-        # do the import here to avoid cyclical imports
-        from brian2.codegen.runtime.numpy_rt.numpy_rt import NumpyCodeObject
-
         if discard_units is None:
             discard_units = prefs['codegen.runtime.numpy.discard_units']
 
@@ -266,7 +261,24 @@ class FunctionImplementationContainer(collections.Mapping):
                 new_args = [Quantity.with_dimensions(arg, get_dimensions(arg_unit))
                             for arg, arg_unit in zip(args, self._function._arg_units)]
                 result = orig_func(*new_args)
-                fail_for_dimension_mismatch(result, self._function._return_unit)
+                return_unit = self._function._return_unit
+                if return_unit is 1 or return_unit.dim is DIMENSIONLESS:
+                    fail_for_dimension_mismatch(result,
+                                                return_unit,
+                                                'The function %s returned '
+                                                '{value}, but it was expected '
+                                                'to return a dimensionless '
+                                                'quantity' % orig_func.__name__,
+                                                value=result)
+                else:
+                    fail_for_dimension_mismatch(result,
+                                                return_unit,
+                                                ('The function %s returned '
+                                                 '{value}, but it was expected '
+                                                 'to return a quantity with '
+                                                 'units %r') % (orig_func.__name__,
+                                                                return_unit),
+                                                value=result)
                 return np.asarray(result)
 
             self._implementations['numpy'] = FunctionImplementation(name=None,

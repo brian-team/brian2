@@ -38,8 +38,8 @@ def check_unit(expression, unit, variables):
     '''
     expr_unit = parse_expression_unit(expression, variables)
     fail_for_dimension_mismatch(expr_unit, unit, ('Expression %s does not '
-                                                  'have the expected units' %
-                                                  expression))
+                                                  'have the expected unit %r') %
+                                                  (expression.strip(), unit))
 
 
 def check_units_statements(code, variables):
@@ -96,10 +96,12 @@ def check_units_statements(code, variables):
         expr_unit = parse_expression_unit(expr, variables)
 
         if varname in variables:
-            fail_for_dimension_mismatch(variables[varname].unit,
-                                        expr_unit,
-                                        ('Code statement "%s" does not use '
-                                         'correct units' % line))
+            expected_unit = variables[varname].unit
+            fail_for_dimension_mismatch(expr_unit, expected_unit,
+                                        ('The right-hand-side of code '
+                                         'statement ""%s" does not have the '
+                                         'expected unit %r') % (line,
+                                                               expected_unit))
         elif varname in newly_defined:
             # note the unit for later
             variables[varname] = Variable(name=varname, unit=expr_unit,

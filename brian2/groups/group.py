@@ -21,7 +21,7 @@ from brian2.core.namespace import (get_local_namespace,
 from brian2.codegen.codeobject import create_runner_codeobj, check_code_units
 from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
-                                           get_unit)
+                                           get_unit, DIMENSIONLESS)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, SpellChecker
@@ -351,8 +351,18 @@ class Group(BrianObject):
         elif name in self.variables:
             var = self.variables[name]
             if not isinstance(val, basestring):
-                fail_for_dimension_mismatch(val, var.unit,
-                                            'Incorrect units for setting %s' % name)
+                if var.unit.dim is DIMENSIONLESS:
+                    fail_for_dimension_mismatch(val, var.unit,
+                                                ('%s should be set with a '
+                                                 'dimensionless value, but got '
+                                                 '{value}') % name,
+                                                value=val)
+                else:
+                    fail_for_dimension_mismatch(val, var.unit,
+                                                ('%s should be set with a '
+                                                 'value with units %r, but got '
+                                                 '{value}') % (name, var.unit),
+                                                value=val)
             if var.read_only:
                 raise TypeError('Variable %s is read-only.' % name)
             # Make the call X.var = ... equivalent to X.var[:] = ...
