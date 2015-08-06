@@ -977,15 +977,17 @@ class Quantity(np.ndarray, object):
         elif uf.__name__ in UFUNCS_DIMENSIONLESS_TWOARGS:
             # Ok if both arguments are dimensionless
             fail_for_dimension_mismatch(args[0],
-                                        error_message=('First argument for '
-                                                       '%s should be '
-                                                       'dimensionless but was '
+                                        error_message=('Both arguments for '
+                                                       '"%s" should be '
+                                                       'dimensionless but '
+                                                       'first argument was '
                                                        '{value}') % uf.__name__,
                                         value=args[0])
             fail_for_dimension_mismatch(args[1],
-                                        error_message=('Second argument for '
-                                                       '%s should be '
-                                                       'dimensionless but was '
+                                        error_message=('Both arguments for '
+                                                       '"%s" should be '
+                                                       'dimensionless but '
+                                                       'second argument was '
                                                        '{value}') % uf.__name__,
                                         value=args[1])
         elif uf.__name__ == 'power':
