@@ -35,7 +35,7 @@
 	}
 	{% else %}
 	{{ openmp_pragma('static') }}
-	for(unsigned int _spiking_synapse_idx=0;
+	for(int _spiking_synapse_idx=0;
 		_spiking_synapse_idx<_num_spiking_synapses;
 		_spiking_synapse_idx++)
 	{
