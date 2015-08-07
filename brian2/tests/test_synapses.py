@@ -988,6 +988,10 @@ def test_permutation_analysis():
         v_post += v_post
         v_post += v_post
         ''',
+        '''
+        v_post += 1
+        x = v_post
+        ''',
     ]
     for example in good_examples:
         try:
@@ -1031,6 +1035,10 @@ def test_permutation_analysis():
         '''
         v_post += w_syn
         u_post += v_post
+        ''',
+        '''
+        v_post += 1
+        w_syn = v_post
         ''',
     ]
     for example in bad_examples:
@@ -1116,40 +1124,40 @@ if __name__ == '__main__':
     import time
     start = time.time()
 
-    test_creation()
-    test_name_clashes()
-    test_incoming_outgoing()
-    test_connection_string_deterministic()
-    test_connection_random()
-    test_connection_multiple_synapses()
-    test_connection_arrays()
-    test_connection_array_standalone()
-    restore_device()
-    test_state_variable_assignment()
-    test_state_variable_indexing()
-    test_indices()
-    test_subexpression_references()
-    test_delay_specification()
-    test_pre_before_post()
-    test_transmission_simple()
-    test_transmission_custom_event()
-    test_invalid_custom_event()
-    test_transmission()
-    test_transmission_scalar_delay()
-    test_transmission_scalar_delay_different_clocks()
-    test_clocks()
-    test_changed_dt_spikes_in_queue()
-    test_no_synapses()
-    test_summed_variable()
-    test_summed_variable_errors()
-    test_scalar_parameter_access()
-    test_scalar_subexpression()
-    test_external_variables()
-    test_event_driven()
-    test_repr()
-    test_variables_by_owner()
+    # test_creation()
+    # test_name_clashes()
+    # test_incoming_outgoing()
+    # test_connection_string_deterministic()
+    # test_connection_random()
+    # test_connection_multiple_synapses()
+    # test_connection_arrays()
+    # test_connection_array_standalone()
+    # restore_device()
+    # test_state_variable_assignment()
+    # test_state_variable_indexing()
+    # test_indices()
+    # test_subexpression_references()
+    # test_delay_specification()
+    # test_pre_before_post()
+    # test_transmission_simple()
+    # test_transmission_custom_event()
+    # test_invalid_custom_event()
+    # test_transmission()
+    # test_transmission_scalar_delay()
+    # test_transmission_scalar_delay_different_clocks()
+    # test_clocks()
+    # test_changed_dt_spikes_in_queue()
+    # test_no_synapses()
+    # test_summed_variable()
+    # test_summed_variable_errors()
+    # test_scalar_parameter_access()
+    # test_scalar_subexpression()
+    # test_external_variables()
+    # test_event_driven()
+    # test_repr()
+    # test_variables_by_owner()
     test_permutation_analysis()
-    test_vectorisation()
-    test_vectorisation_STDP_like()
+    # test_vectorisation()
+    # test_vectorisation_STDP_like()
 
     print 'Tests took', time.time()-start

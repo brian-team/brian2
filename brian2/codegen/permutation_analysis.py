@@ -52,8 +52,9 @@ def check_for_order_independence(statements, variables, indices):
             permdep = permdep or any(var in permutation_dependent_aux_vars for var in vars_in_expr)
             if statement.op == ':=': # auxiliary variable created
                 if permdep:
-                    permutation_dependent_aux_vars.add(statement.var)
-                    changed_permutation_independent = True
+                    if statement.var not in permutation_dependent_aux_vars:
+                        permutation_dependent_aux_vars.add(statement.var)
+                        changed_permutation_independent = True
                 continue
             elif statement.var in main_index_variables:
                 if permdep:

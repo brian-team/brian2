@@ -79,10 +79,11 @@ class NumpyCodeGenerator(CodeGenerator):
             else:
                 raise VectorisationError()
 
-            line = '{ufunc_name}.at({array_name}, {idx}, {expr})'.format(ufunc_name=ufunc_name,
-                                                                         array_name=device.get_array_name(variables[statement.var]),
-                                                                         idx=indices[statement.var],
-                                                                         expr=expr)
+            line = '{ufunc_name}.at({array_name}, {idx}, {expr})'.format(
+                ufunc_name=ufunc_name,
+                array_name=device.get_array_name(variables[statement.var]),
+                idx=indices[statement.var],
+                expr=expr)
             line = self.conditional_write(line, statement, variables,
                                           conditional_write_vars=conditional_write_vars,
                                           created_vars=created_vars)
@@ -132,7 +133,7 @@ class NumpyCodeGenerator(CodeGenerator):
                                                      variable_indices))
                 lines.extend(ufunc_lines)
             except VectorisationError:
-                logger.warn("Failed to vectorise synapses code, falling back on Python loop: note that "
+                logger.warn("Failed to vectorise code, falling back on Python loop: note that "
                             "this will be very slow! Switch to another code generation target for "
                             "best performance (e.g. cython or weave).",
                             once=True)
