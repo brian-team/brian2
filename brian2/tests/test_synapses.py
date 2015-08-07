@@ -9,7 +9,7 @@ from brian2 import *
 from brian2.codegen.translation import make_statements
 from brian2.core.variables import variables_by_owner, ArrayVariable
 from brian2.utils.logger import catch_logs
-from brian2.utils.stringtools import get_identifiers
+from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
 from brian2.devices.device import restore_device, all_devices, get_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 
@@ -882,7 +882,61 @@ def check_permutation_code(code):
     variables['_postsynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
     scalar_statements, vector_statements = make_statements(code, variables, float64)
     check_for_order_independence(vector_statements, variables, indices)
-    
+
+def numerically_check_permutation_code(code):
+    # numerically checks that a code block used in the test below is permutation-independent by creating a
+    # presynaptic and postsynaptic group of 3 neurons each, and a full connectivity matrix between them, then
+    # repeatedly filling in random values for each of the variables, and checking for several random shuffles of
+    # the synapse order that the result doesn't depend on it. This is a sort of test of the test itself, to make
+    # sure we didn't accidentally assign a good/bad example to the wrong class.
+    code = deindent(code)
+    from collections import defaultdict
+    vars = get_identifiers(code)
+    indices = defaultdict(lambda: '_idx')
+    vals = {}
+    for var in vars:
+        if var.endswith('_syn'):
+            indices[var] = '_idx'
+            vals[var] = zeros(9)
+        elif var.endswith('_pre'):
+            indices[var] ='_presynaptic_idx'
+            vals[var] = zeros(3)
+        elif var.endswith('_post'):
+            indices[var] = '_postsynaptic_idx'
+            vals[var] = zeros(3)
+    subs = dict((var, var+'['+idx+']') for var, idx in indices.iteritems())
+    code = word_substitute(code, subs)
+    code = '''
+from numpy import *
+for _idx in shuffled_indices:
+    _presynaptic_idx = presyn[_idx]
+    _postsynaptic_idx = postsyn[_idx]
+{code}
+    '''.format(code=indent(code))
+    ns = vals.copy()
+    ns['shuffled_indices'] = arange(9)
+    ns['presyn'] = arange(9)%3
+    ns['postsyn'] = arange(9)/3
+    for _ in xrange(10):
+        origvals = {}
+        for k, v in vals.iteritems():
+            v[:] = randn(len(v))
+            origvals[k] = v.copy()
+        exec code in ns
+        endvals = {}
+        for k, v in vals.iteritems():
+            endvals[k] = v.copy()
+        for _ in xrange(10):
+            for k, v in vals.iteritems():
+                v[:] = origvals[k]
+            shuffle(ns['shuffled_indices'])
+            exec code in ns
+            for k, v in vals.iteritems():
+                try:
+                    assert_allclose(v, endvals[k])
+                except AssertionError:
+                    raise OrderDependenceError()
+
 @attr('codegen-independent')
 def test_permutation_analysis():
     # Examples that should work
@@ -896,9 +950,13 @@ def test_permutation_analysis():
         'v_post = 1',
         'v_post += v_post',
         'v_post += sin(-v_post)',
-        'v_post += w*v_pre',
+        'v_post += w_syn*v_post',
+        'v_post += u_post',
+        'v_post += w_syn*v_pre',
         'v_post += sin(-v_post)',
         'v_post -= sin(v_post)',
+        'v_post += v_pre',
+        'v_pre += v_post',
         'w_syn = v_pre',
         'w_syn = a_syn',
         'w_syn += a_syn',
@@ -922,8 +980,18 @@ def test_permutation_analysis():
         Apre_syn += 3
         w_syn = clip(w_syn + Apost_syn, 0, 10)
         ''',
+        '''
+        a_syn = v_pre
+        v_post += a_syn
+        ''',
     ]
     for example in good_examples:
+        try:
+            numerically_check_permutation_code(example)
+        except OrderDependenceError:
+            raise AssertionError(('Test unexpectedly raised a numerical '
+                                  'OrderDependenceError on these '
+                                  'statements:\n') + example)
         try:
             check_permutation_code(example)
         except OrderDependenceError:
@@ -939,10 +1007,32 @@ def test_permutation_analysis():
         a_syn = v_post
         v_post += w_syn
         ''',
+        '''
+        x = w_syn
+        v_pre = x
+        ''',
+        '''
+        x = v_pre
+        v_post = x
+        ''',
+        '''
+        v_post += v_pre
+        v_pre += v_post
+        ''',
+        '''
+        b_syn = v_post
+        v_post += a_syn
+        ''',
     ]
     for example in bad_examples:
-        assert_raises(OrderDependenceError, check_permutation_code, example)
-
+        try:
+            assert_raises(OrderDependenceError, numerically_check_permutation_code, example)
+        except AssertionError:
+            raise AssertionError("Order dependence not raised numerically for example: "+example)
+        try:
+            assert_raises(OrderDependenceError, check_permutation_code, example)
+        except AssertionError:
+            raise AssertionError("Order dependence not raised for example: "+example)
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
