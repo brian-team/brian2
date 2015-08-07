@@ -949,8 +949,8 @@ def test_permutation_analysis():
         'v_post += 1',
         'v_post = 1',
         'v_post += v_post',
+        #'v_post += w_syn*v_post', # this is a hard one (it is good for w*v but bad for w+v)
         'v_post += sin(-v_post)',
-        'v_post += w_syn*v_post',
         'v_post += u_post',
         'v_post += w_syn*v_pre',
         'v_post += sin(-v_post)',
@@ -984,6 +984,10 @@ def test_permutation_analysis():
         a_syn = v_pre
         v_post += a_syn
         ''',
+        '''
+        v_post += v_post
+        v_post += v_post
+        ''',
     ]
     for example in good_examples:
         try:
@@ -1003,6 +1007,7 @@ def test_permutation_analysis():
         'v_pre = w_syn',
         'v_post = v_pre',
         'v_post = w_syn',
+        'v_post += w_syn+v_post',
         '''
         a_syn = v_post
         v_post += w_syn
@@ -1022,6 +1027,10 @@ def test_permutation_analysis():
         '''
         b_syn = v_post
         v_post += a_syn
+        ''',
+        '''
+        v_post += w_syn
+        u_post += v_post
         ''',
     ]
     for example in bad_examples:
