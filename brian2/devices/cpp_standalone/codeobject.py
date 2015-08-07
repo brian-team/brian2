@@ -35,6 +35,11 @@ def openmp_pragma(pragma_type):
             return '1'
         else:
             return '%d' %nb_threads
+    elif pragma_type == 'with_openmp':
+        # The returned value is a proper Python boolean, i.e. not something
+        # that should be included in the generated code but rather for use
+        # in {% if ... %} statements in the template
+        return openmp_on
 
     ## Then by default, if openmp is off, we do not return any pragma statement in the templates
     elif not openmp_on:
