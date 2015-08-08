@@ -31,7 +31,11 @@ void Network::add(Clock* clock, codeobj_func func)
 
 void Network::run(const double duration, void (*report_func)(const double, const double, const double), const double report_period)
 {
+    {% if openmp_pragma('with_openmp') %}
+    double start;
+    {% else %}
 	std::clock_t start, current;
+	{% endif %}
     const double t_start = t;
 	const double t_end = t + duration;
 	double next_report_time = report_period;
@@ -42,14 +46,18 @@ void Network::run(const double duration, void (*report_func)(const double, const
 	for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
 		(*i)->set_interval(t, t_end);
 
+    {% if openmp_pragma('with_openmp') %}
+    start = omp_get_wtime();
+    {% else %}
 	start = std::clock();
+    {% endif %}
 	if (report_func)
 	{
 	    report_func(0.0, 0.0, duration);
 	}
 
 	Clock* clock = next_clocks();
-	
+
 	{{ openmp_pragma('parallel') }}
 	{
 		while(clock->running())
@@ -60,8 +68,12 @@ void Network::run(const double duration, void (*report_func)(const double, const
 				{
 					if (report_func)
 		            {
+                        {% if openmp_pragma('with_openmp') %}
+                        const double elapsed = omp_get_wtime() - start;
+                        {% else %}
 		                current = std::clock();
-		                const double elapsed = (double)(current - start)/({{ openmp_pragma('get_num_threads') }} * CLOCKS_PER_SEC);
+                        const double elapsed = (double)((current - start) / CLOCKS_PER_SEC);
+                        {% endif %}
 		                if (elapsed > next_report_time)
 		                {
 		                    report_func(elapsed, (clock->t_()-t_start)/duration, duration);
@@ -89,8 +101,12 @@ void Network::run(const double duration, void (*report_func)(const double, const
 		{
 			if (report_func)
 			{
+			    {% if openmp_pragma('with_openmp') %}
+                report_func(omp_get_wtime() - start, 1.0, duration);
+                {% else %}
 			    current = std::clock();
 			    report_func((double)(current - start)/({{ openmp_pragma('get_num_threads') }} * CLOCKS_PER_SEC), 1.0, duration);
+			    {% endif %}
 			}
 		}
 	t = t_end;
