@@ -13,7 +13,6 @@ from brian2.utils.stringtools import get_identifiers, word_substitute, indent, d
 from brian2.devices.device import restore_device, all_devices, get_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 
-
 def _compare(synapses, expected):
     conn_matrix = np.zeros((len(synapses.source), len(synapses.target)))
     for _i, _j in zip(synapses.i[:], synapses.j[:]):
@@ -937,6 +936,8 @@ for _idx in shuffled_indices:
                 except AssertionError:
                     raise OrderDependenceError()
 
+SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = False
+
 @attr('codegen-independent')
 def test_permutation_analysis():
     # Examples that should work
@@ -994,12 +995,13 @@ def test_permutation_analysis():
         ''',
     ]
     for example in good_examples:
-        try:
-            numerically_check_permutation_code(example)
-        except OrderDependenceError:
-            raise AssertionError(('Test unexpectedly raised a numerical '
-                                  'OrderDependenceError on these '
-                                  'statements:\n') + example)
+        if SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE:
+            try:
+                numerically_check_permutation_code(example)
+            except OrderDependenceError:
+                raise AssertionError(('Test unexpectedly raised a numerical '
+                                      'OrderDependenceError on these '
+                                      'statements:\n') + example)
         try:
             check_permutation_code(example)
         except OrderDependenceError:
@@ -1042,10 +1044,11 @@ def test_permutation_analysis():
         ''',
     ]
     for example in bad_examples:
-        try:
-            assert_raises(OrderDependenceError, numerically_check_permutation_code, example)
-        except AssertionError:
-            raise AssertionError("Order dependence not raised numerically for example: "+example)
+        if SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE:
+            try:
+                assert_raises(OrderDependenceError, numerically_check_permutation_code, example)
+            except AssertionError:
+                raise AssertionError("Order dependence not raised numerically for example: "+example)
         try:
             assert_raises(OrderDependenceError, check_permutation_code, example)
         except AssertionError:
@@ -1119,6 +1122,7 @@ def test_vectorisation_STDP_like():
 
 
 if __name__ == '__main__':
+    SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
     # prefs.codegen.target = 'numpy'
     import time
