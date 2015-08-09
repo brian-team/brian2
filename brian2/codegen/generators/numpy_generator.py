@@ -53,6 +53,7 @@ class NumpyCodeGenerator(CodeGenerator):
         # Avoids circular import
         from brian2.devices.device import device
 
+        # See https://github.com/brian-team/brian2/pull/531 for explanation
         used = set(get_identifiers(statement.expr))
         used = used.intersection(k for k in variables.keys() if k in indices and indices[k]!='_idx')
         used_variables.update(used)
