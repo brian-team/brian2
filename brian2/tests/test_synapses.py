@@ -938,63 +938,99 @@ for _idx in shuffled_indices:
 
 SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = False
 
+permutation_analysis_good_examples = [
+    'v_post += w_syn',
+    'v_post *= w_syn',
+    'v_post = v_post + w_syn',
+    'v_post = v_post * w_syn',
+    'v_post = w_syn * v_post',
+    'v_post += 1',
+    'v_post = 1',
+    'v_post += v_post',
+    #'v_post += w_syn*v_post', # this is a hard one (it is good for w*v but bad for w+v)
+    'v_post += sin(-v_post)',
+    'v_post += u_post',
+    'v_post += w_syn*v_pre',
+    'v_post += sin(-v_post)',
+    'v_post -= sin(v_post)',
+    'v_post += v_pre',
+    'v_pre += v_post',
+    'w_syn = v_pre',
+    'w_syn = a_syn',
+    'w_syn += a_syn',
+    'w_syn *= a_syn',
+    'w_syn -= a_syn',
+    'w_syn /= a_syn',
+    'w_syn += 1',
+    'w_syn *= 2',
+    '''
+    w_syn = a_syn
+    a_syn += 1
+    ''',
+    'v_post *= 2',
+    'v_post *= w_syn',
+    '''
+    v_pre = 0
+    w_syn = v_pre
+    ''',
+    '''
+    ge_syn += w_syn
+    Apre_syn += 3
+    w_syn = clip(w_syn + Apost_syn, 0, 10)
+    ''',
+    '''
+    a_syn = v_pre
+    v_post += a_syn
+    ''',
+    '''
+    v_post += v_post
+    v_post += v_post
+    ''',
+    '''
+    v_post += 1
+    x = v_post
+    ''',
+    ]
+
+permutation_analysis_bad_examples = [
+    'v_pre = w_syn',
+    'v_post = v_pre',
+    'v_post = w_syn',
+    'v_post += w_syn+v_post',
+    '''
+    a_syn = v_post
+    v_post += w_syn
+    ''',
+    '''
+    x = w_syn
+    v_pre = x
+    ''',
+    '''
+    x = v_pre
+    v_post = x
+    ''',
+    '''
+    v_post += v_pre
+    v_pre += v_post
+    ''',
+    '''
+    b_syn = v_post
+    v_post += a_syn
+    ''',
+    '''
+    v_post += w_syn
+    u_post += v_post
+    ''',
+    '''
+    v_post += 1
+    w_syn = v_post
+    ''',
+    ]
+
 @attr('codegen-independent')
 def test_permutation_analysis():
     # Examples that should work
-    good_examples = [
-        'v_post += w_syn',
-        'v_post *= w_syn',
-        'v_post = v_post + w_syn',
-        'v_post = v_post * w_syn',
-        'v_post = w_syn * v_post',
-        'v_post += 1',
-        'v_post = 1',
-        'v_post += v_post',
-        #'v_post += w_syn*v_post', # this is a hard one (it is good for w*v but bad for w+v)
-        'v_post += sin(-v_post)',
-        'v_post += u_post',
-        'v_post += w_syn*v_pre',
-        'v_post += sin(-v_post)',
-        'v_post -= sin(v_post)',
-        'v_post += v_pre',
-        'v_pre += v_post',
-        'w_syn = v_pre',
-        'w_syn = a_syn',
-        'w_syn += a_syn',
-        'w_syn *= a_syn',
-        'w_syn -= a_syn',
-        'w_syn /= a_syn',
-        'w_syn += 1',
-        'w_syn *= 2',
-        '''
-        w_syn = a_syn
-        a_syn += 1
-        ''',
-        'v_post *= 2',
-        'v_post *= w_syn',
-        '''
-        v_pre = 0
-        w_syn = v_pre
-        ''',
-        '''
-        ge_syn += w_syn
-        Apre_syn += 3
-        w_syn = clip(w_syn + Apost_syn, 0, 10)
-        ''',
-        '''
-        a_syn = v_pre
-        v_post += a_syn
-        ''',
-        '''
-        v_post += v_post
-        v_post += v_post
-        ''',
-        '''
-        v_post += 1
-        x = v_post
-        ''',
-    ]
-    for example in good_examples:
+    for example in permutation_analysis_good_examples:
         if SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE:
             try:
                 numerically_check_permutation_code(example)
@@ -1009,41 +1045,7 @@ def test_permutation_analysis():
                                   'OrderDependenceError on these '
                                   'statements:\n') + example)
 
-    bad_examples = [
-        'v_pre = w_syn',
-        'v_post = v_pre',
-        'v_post = w_syn',
-        'v_post += w_syn+v_post',
-        '''
-        a_syn = v_post
-        v_post += w_syn
-        ''',
-        '''
-        x = w_syn
-        v_pre = x
-        ''',
-        '''
-        x = v_pre
-        v_post = x
-        ''',
-        '''
-        v_post += v_pre
-        v_pre += v_post
-        ''',
-        '''
-        b_syn = v_post
-        v_post += a_syn
-        ''',
-        '''
-        v_post += w_syn
-        u_post += v_post
-        ''',
-        '''
-        v_post += 1
-        w_syn = v_post
-        ''',
-    ]
-    for example in bad_examples:
+    for example in permutation_analysis_bad_examples:
         if SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE:
             try:
                 assert_raises(OrderDependenceError, numerically_check_permutation_code, example)
