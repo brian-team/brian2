@@ -1182,7 +1182,7 @@ class VariableView(object):
         # Force the use of this variable as a replacement for the original
         # index variable
         using_orig_index = [varname for varname, index in self.group.variables.indices.iteritems()
-                            if index == self.index_var_name]
+                            if index == self.index_var_name and index != '0']
         for varname in using_orig_index:
             variables.indices[varname] = '_idx'
 
@@ -1440,6 +1440,11 @@ class Variables(collections.Mapping):
             # Tell the device to actually create the array (or note it down for
             # later code generation in standalone).
             self.device.add_array(var)
+
+        if getattr(var, 'scalar', False):
+            if index is not None:
+                raise ValueError('Cannot set an index for a scalar variable')
+            self.indices[name] = '0'
 
         if index is not None:
             self.indices[name] = index
