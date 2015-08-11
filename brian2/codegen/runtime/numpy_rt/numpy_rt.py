@@ -80,6 +80,8 @@ class NumpyCodeObject(CodeObject):
 
             if isinstance(var, ArrayVariable):
                 self.namespace[self.generator_class.get_array_name(var)] = value
+                if var.scalar and var.constant:
+                    self.namespace[name] = value[0]
             else:
                 self.namespace[name] = value
 
