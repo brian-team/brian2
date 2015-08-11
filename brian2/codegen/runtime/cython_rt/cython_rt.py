@@ -134,6 +134,10 @@ class CythonCodeObject(NumpyCodeObject):
                 self.namespace[dyn_array_name] = self.device.get_value(var,
                                                                        access_data=False)
 
+            # Also provide the Variable object itself in the namespace (can be
+            # necessary for resize operations, for example)
+            self.namespace['_var_'+name] = var
+
             # There are two kinds of objects that we have to inject into the
             # namespace with their current value at each time step:
             # * non-constant AttributeValue (this might be removed since it only
