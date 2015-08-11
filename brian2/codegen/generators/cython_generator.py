@@ -187,6 +187,8 @@ class CythonCodeGenerator(CodeGenerator):
         handled_pointers = set()
         user_functions = []
         for varname, var in self.variables.items():
+            if isinstance(var, Variable) and not isinstance(var, (Subexpression, AuxiliaryVariable)):
+                load_namespace.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
             if isinstance(var, AuxiliaryVariable):
                 line = "cdef {dtype} {varname}".format(
                                 dtype=get_cpp_dtype(var.dtype),

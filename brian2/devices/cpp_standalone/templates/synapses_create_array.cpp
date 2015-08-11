@@ -3,11 +3,15 @@
 
 {% block maincode %}
 {# USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets
-                 N_incoming, N_outgoing, N }
+                    N_incoming, N_outgoing, N,
+                    N_pre, N_post, _source_offset, _target_offset }
 #}
 
 const int _old_num_synapses = {{N}}[0];
 const int _new_num_synapses = _old_num_synapses + _numsources;
+
+{{_dynamic_N_incoming}}.resize(N_post + _target_offset);
+{{_dynamic_N_outgoing}}.resize(N_pre + _source_offset);
 
 for (int _idx=0; _idx<_numsources; _idx++) {
     {# After this code has been executed, the arrays _real_sources and
@@ -18,8 +22,8 @@ for (int _idx=0; _idx<_numsources; _idx++) {
     {{_dynamic__synaptic_pre}}.push_back(_real_sources);
     {{_dynamic__synaptic_post}}.push_back(_real_targets);
     // Update the number of total outgoing/incoming synapses per source/target neuron
-    {{N_outgoing}}[_real_sources]++;
-    {{N_incoming}}[_real_targets]++;
+    {{_dynamic_N_outgoing}}[_real_sources]++;
+    {{_dynamic_N_incoming}}[_real_targets]++;
 }
 
 // now we need to resize all registered variables

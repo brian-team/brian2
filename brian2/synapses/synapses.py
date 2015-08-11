@@ -295,10 +295,12 @@ class SynapticPathway(CodeRunner, Group):
                         'synapses_dt_mismatch', once=True)
 
     def _store(self, name='default'):
+        super(SynapticPathway, self)._store(name=name)
         if self.queue is not None:
             self.queue._store(name)
 
     def _restore(self, name='default'):
+        super(SynapticPathway, self)._restore(name=name)
         if self.queue is not None:
             self.queue._restore(name)
 
@@ -660,7 +662,8 @@ class Synapses(Group):
         self._registered_variables = set()
 
         for varname, var in self.variables.iteritems():
-            if isinstance(var, DynamicArrayVariable) and var.owner.name == self.name:
+            if (isinstance(var, DynamicArrayVariable) and
+                        self.variables.indices[varname] == '_idx'):
                 # Register the array with the `SynapticItemMapping` object so
                 # it gets automatically resized
                 self.register_variable(var)
@@ -872,21 +875,23 @@ class Synapses(Group):
         self.variables.create_clock_variables(self._clock,
                                               prefix='_clock_')
         if '_offset' in self.target.variables:
-            target_offset = self.target.variables['_offset'].get_value()
+            self.variables.add_reference('_target_offset', self.target, '_offset')
         else:
-            target_offset = 0
+            self.variables.add_constant('_target_offset', unit=Unit(1), value=0)
         if '_offset' in self.source.variables:
-            source_offset = self.source.variables['_offset'].get_value()
+            self.variables.add_reference('_source_offset', self.source, '_offset')
         else:
-            source_offset = 0
-        self.variables.add_array('N_incoming', size=len(self.target)+target_offset,
-                                 unit=Unit(1), dtype=np.int32,
-                                 constant=True,  read_only=True,
-                                 index='_postsynaptic_idx')
-        self.variables.add_array('N_outgoing', size=len(self.source)+source_offset,
-                                 unit=Unit(1), dtype=np.int32,
-                                 constant=True,  read_only=True,
-                                 index='_presynaptic_idx')
+            self.variables.add_constant('_source_offset', unit=Unit(1), value=0)
+        # To cope with connections to/from other synapses, N_incoming/N_outgoing
+        # will be resized when synapses are created
+        self.variables.add_dynamic_array('N_incoming', size=0,
+                                         unit=Unit(1), dtype=np.int32,
+                                         constant=True,  read_only=True,
+                                         index='_postsynaptic_idx')
+        self.variables.add_dynamic_array('N_outgoing', size=0,
+                                         unit=Unit(1), dtype=np.int32,
+                                         constant=True,  read_only=True,
+                                         index='_presynaptic_idx')
 
         # We have to make a distinction here between the indices
         # and the arrays (even though they refer to the same object)

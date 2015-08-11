@@ -1,7 +1,8 @@
 {% extends 'common.pyx' %}
 {#
 USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, rand,
-                 N_incoming, N_outgoing, N }
+                 N_incoming, N_outgoing, N,
+                 N_pre, N_post, _source_offset, _target_offset }
 #}
 # ITERATE_ALL { _idx }
 
@@ -32,7 +33,14 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     cdef int* _postbuf_ptr = &(_postbuf[0])
 
     global _curbuf
-    
+
+    # Resize N_incoming and N_outgoing according to the size of the
+    # source/target groups
+    _var_N_incoming.resize(N_post + _target_offset)
+    _var_N_outgoing.resize(N_pre + _source_offset)
+    cdef {{cpp_dtype(variables['N_incoming'].dtype)}}[:] _N_incoming = {{_dynamic_N_incoming}}.data.view(_numpy.{{numpy_dtype(variables['N_incoming'].dtype)}})
+    cdef {{cpp_dtype(variables['N_outgoing'].dtype)}}[:] _N_outgoing = {{_dynamic_N_outgoing}}.data.view(_numpy.{{numpy_dtype(variables['N_outgoing'].dtype)}})
+
     # scalar code
     _vectorisation_idx = 1
     {{scalar_code|autoindent}}
@@ -59,8 +67,8 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
                     if _rand(_vectorisation_idx)>=_p:
                         continue
                 for _repetition in range(_n):
-                    {{N_outgoing}}[_pre_idx] += 1
-                    {{N_incoming}}[_post_idx] += 1
+                    _N_outgoing[_pre_idx] += 1
+                    _N_incoming[_post_idx] += 1
                     _prebuf_ptr[_curbuf] = _pre_idx
                     _postbuf_ptr[_curbuf] = _post_idx
                     _curbuf += 1

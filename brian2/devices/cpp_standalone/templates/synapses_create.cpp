@@ -4,8 +4,12 @@
 {% block maincode %}
     #include<iostream>
 	{# USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
-	                    N_incoming, N_outgoing, N } #}
-    
+	                    N_incoming, N_outgoing, N,
+	                    N_pre, N_post, _source_offset, _target_offset } #}
+
+    {{_dynamic_N_incoming}}.resize(N_post + _target_offset);
+    {{_dynamic_N_outgoing}}.resize(N_pre + _source_offset);
+
     // scalar code
     const int _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
@@ -33,8 +37,8 @@
 			            continue;
 			    }
 			    for (int _repetition=0; _repetition<_n; _repetition++) {
-			        {{N_outgoing}}[_pre_idx] += 1;
-			        {{N_incoming}}[_post_idx] += 1;
+			        {{_dynamic_N_outgoing}}[_pre_idx] += 1;
+			        {{_dynamic_N_incoming}}[_post_idx] += 1;
 			    	{{_dynamic__synaptic_pre}}.push_back(_pre_idx);
 			    	{{_dynamic__synaptic_post}}.push_back(_post_idx);
                 }

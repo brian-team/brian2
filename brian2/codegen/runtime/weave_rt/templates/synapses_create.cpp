@@ -3,7 +3,8 @@
 {% block maincode %}
     {#
     USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
-                     N_incoming, N_outgoing, N }
+                     N_incoming, N_outgoing, N,
+                     N_pre, N_post, _source_offset, _target_offset}
     #}
     srand((unsigned int)time(NULL));
     const int _buffer_size = 1024;
@@ -13,6 +14,12 @@
     int *const _synpostbuf = new int[1];
     int _curbuf = 0;
 
+    // Resize N_incoming and N_outgoing according to the size of the
+    // source/target groups
+    PyObject_CallMethod(_var_N_incoming, "resize", "i", N_post + _target_offset);
+    PyObject_CallMethod(_var_N_outgoing, "resize", "i", N_pre + _source_offset);
+    int *_N_incoming = (int *)(((PyArrayObject*)(PyObject*){{_dynamic_N_incoming}}.attr("data"))->data);
+    int *_N_outgoing = (int *)(((PyArrayObject*)(PyObject*){{_dynamic_N_outgoing}}.attr("data"))->data);
     // scalar code
 	const int _vectorisation_idx = 1;
 	{{scalar_code|autoindent}}
@@ -43,8 +50,8 @@
                 }
 
                 for (int _repetition=0; _repetition<_n; _repetition++) {
-                    {{N_outgoing}}[_pre_idx] += 1;
-                    {{N_incoming}}[_post_idx] += 1;
+                    _N_outgoing[_pre_idx] += 1;
+                    _N_incoming[_post_idx] += 1;
                     _prebuf[_curbuf] = _pre_idx;
                     _postbuf[_curbuf] = _post_idx;
                     _curbuf++;
