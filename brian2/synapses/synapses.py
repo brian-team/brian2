@@ -109,13 +109,8 @@ class SynapticPathway(CodeRunner, Group):
         Whether this object should react to pre- or postsynaptic spikes
     objname : str, optional
         The name to use for the object, will be appendend to the name of
-        `synapses` to create a name in the sense of `Nameable`. The `synapses`
-        object should allow access to this object via
-        ``synapses.getattr(objname)``. It has to use the actual `objname`
-        attribute instead of relying on the provided argument, since the name
-        may have changed to become unique. If ``None`` is provided (the
-        default), ``prepost+'*'`` will be used (see `Nameable` for an
-        explanation of the wildcard operator).
+        `synapses` to create a name in the sense of `Nameable`. If ``None``
+        is provided (the default), ``prepost`` will be used.
     delay : `Quantity`, optional
         A scalar delay (same delay for all synapses) for this pathway. If
         not given, delays are expected to vary between synapses.
@@ -141,7 +136,7 @@ class SynapticPathway(CodeRunner, Group):
         self.synapses = weakref.proxy(synapses)
 
         if objname is None:
-            objname = prepost + '*'
+            objname = prepost
 
         CodeRunner.__init__(self, synapses,
                             'synapses',
