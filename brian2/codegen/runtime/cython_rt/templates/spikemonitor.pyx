@@ -49,5 +49,4 @@
                 _{{varname}}_view [_curlen + _j - _start_idx] = _to_record_{{varname}}
                 {% endfor %}
                 {{count}}[_idx - _source_start] += 1
-            {{N}}[0] += _num_events
 {% endblock %}

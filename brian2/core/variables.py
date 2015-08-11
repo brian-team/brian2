@@ -1442,7 +1442,7 @@ class Variables(collections.Mapping):
             self.device.add_array(var)
 
         if getattr(var, 'scalar', False):
-            if index is not None:
+            if index not in (None, '0'):
                 raise ValueError('Cannot set an index for a scalar variable')
             self.indices[name] = '0'
 

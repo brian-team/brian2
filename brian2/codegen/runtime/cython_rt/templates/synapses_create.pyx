@@ -1,7 +1,7 @@
 {% extends 'common.pyx' %}
 {#
 USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, rand,
-                 N_incoming, N_outgoing }
+                 N_incoming, N_outgoing, N }
 #}
 # ITERATE_ALL { _idx }
 
@@ -13,14 +13,14 @@ cdef int[:] _prebuf = _numpy.zeros(_buffer_size, dtype=_numpy.int32)
 cdef int[:] _postbuf = _numpy.zeros(_buffer_size, dtype=_numpy.int32)
 cdef int _curbuf = 0
 
-cdef void _flush_buffer(buf, dynarr, int N):
+cdef void _flush_buffer(buf, dynarr, int buf_len):
     _curlen = dynarr.shape[0]
-    _newlen = _curlen+N
+    _newlen = _curlen+buf_len
     # Resize the array
     dynarr.resize(_newlen)
     # Get the potentially newly created underlying data arrays
     data = dynarr.data
-    data[_curlen:_curlen+N] = buf[:N]
+    data[_curlen:_curlen+buf_len] = buf[:buf_len]
     
 {% endblock %}
 
@@ -78,5 +78,7 @@ cdef void _flush_buffer(buf, dynarr, int N):
     newsize = len({{_dynamic__synaptic_pre}})
     # now we need to resize all registered variables (via Python)
     _owner._resize(newsize)
+    # Set the total number of synapses
+    {{N}}[0] = newsize
 
 {% endblock %}

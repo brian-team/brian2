@@ -101,9 +101,6 @@ class PoissonGroup(Group, SpikeSource):
         spikespace = self.variables['_spikespace'].get_value()
         return spikespace[:spikespace[-1]]
 
-    def __len__(self):
-        return self.N
-
     def __repr__(self):
         description = '{classname}({N}, rates=<...>)'
         return description.format(classname=self.__class__.__name__,

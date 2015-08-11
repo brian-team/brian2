@@ -3,7 +3,7 @@
 {% block maincode %}
     {#
     USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
-                     N_incoming, N_outgoing }
+                     N_incoming, N_outgoing, N }
     #}
     srand((unsigned int)time(NULL));
     const int _buffer_size = 1024;
@@ -68,7 +68,8 @@
     py::tuple _newlen_tuple(1);
     _newlen_tuple[0] = newsize;
     _owner.mcall("_resize", _newlen_tuple);
-
+    // Set the total number of synapses
+    {{N}}[0] = newsize;
     delete [] _prebuf;
     delete [] _postbuf;
     delete [] _synprebuf;

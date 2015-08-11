@@ -95,8 +95,6 @@ template <class scalar>
 class Synapses
 {
 public:
-    int _N_value;
-    inline double _N() { return _N_value;};
 	int Nsource;
 	int Ntarget;
 	std::vector< std::vector<int> > _pre_synaptic;
@@ -109,7 +107,6 @@ public:
 			_pre_synaptic.push_back(std::vector<int>());
 		for(int i=0; i<Ntarget; i++)
 			_post_synaptic.push_back(std::vector<int>());
-		_N_value = 0;
 	};
 };
 

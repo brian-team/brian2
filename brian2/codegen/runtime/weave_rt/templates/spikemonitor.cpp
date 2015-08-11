@@ -54,7 +54,6 @@
                 {% endfor %}
                 {{count}}[_idx - _source_start]++;
             }
-            {{N}}[0] += _num_events;
         }
 	}
 {% endmacro %}

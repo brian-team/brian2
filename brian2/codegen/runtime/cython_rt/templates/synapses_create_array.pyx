@@ -3,10 +3,10 @@
 {% block maincode %}
 
     {# USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets
-                     N_incoming, N_outgoing }
+                        N_incoming, N_outgoing, N }
     #}
     
-    cdef int _old_num_synapses = len({{_dynamic__synaptic_pre}})
+    cdef int _old_num_synapses = {{N}}[0]
     cdef int _new_num_synapses = _old_num_synapses + _num{{sources}}
 
     {{_dynamic__synaptic_pre}}.resize(_new_num_synapses)
@@ -28,5 +28,7 @@
     
     # now we need to resize all registered variables (via Python)
     _owner._resize(_new_num_synapses)
+    # Set the total number of synapses
+    {{N}}[0] = _new_num_synapses
 
 {% endblock %}

@@ -2,11 +2,11 @@
 
 {% block maincode %}
 {# USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets
-                 N_incoming, N_outgoing }
+                    N_incoming, N_outgoing, N }
 #}
 
 py::tuple _newlen_tuple(1);
-const int _old_num_synapses = {{_dynamic__synaptic_pre}}.size();
+const int _old_num_synapses = {{N}}[0];
 const int _new_num_synapses = _old_num_synapses + _numsources;
 
 _newlen_tuple[0] = _new_num_synapses;
@@ -30,4 +30,6 @@ for (int _idx=0; _idx<_numsources; _idx++) {
 
 // now we need to resize all registered variables (via Python)
 _owner.mcall("_resize", _newlen_tuple);
+// set the total number of synapses
+{{N}}[0] = _new_num_synapses;
 {% endblock %}

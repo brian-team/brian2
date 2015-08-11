@@ -209,9 +209,6 @@ class SynapticPathway(CodeRunner, Group):
         # Enable access to the delay attribute via the specifier
         self._enable_group_attributes()
 
-    def __len__(self):
-        return self.N_
-
     @device_override('synaptic_pathway_update_abstract_code')
     def update_abstract_code(self, run_namespace=None, level=0):
         if self.synapses.event_driven is not None:
@@ -791,9 +788,6 @@ class Synapses(Group):
         if not connect is False:
             self.connect(connect, level=1)
 
-    def __len__(self):
-        return len(self.variables['_synaptic_pre'].get_value())
-
     def __getitem__(self, item):
         indices = self.indices[item]
         return SynapticSubgroup(self, indices)
@@ -908,8 +902,9 @@ class Synapses(Group):
                                      '_synaptic_post')
 
         # Add the standard variables
-        self.variables.add_attribute_variable('N', Unit(1), self, '_N',
-                                              constant=True)
+        self.variables.add_array('N', unit=Unit(1), dtype=np.int32,
+                                 size=1, scalar=True, constant=True,
+                                 read_only=True)
 
         for eq in equations.itervalues():
             dtype = get_dtype(eq, user_dtype)

@@ -3,10 +3,10 @@
 
 {% block maincode %}
 {# USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets
-                 N_incoming, N_outgoing }
+                 N_incoming, N_outgoing, N }
 #}
 
-const int _old_num_synapses = {{_dynamic__synaptic_pre}}.size();
+const int _old_num_synapses = {{N}}[0];
 const int _new_num_synapses = _old_num_synapses + _numsources;
 
 for (int _idx=0; _idx<_numsources; _idx++) {
@@ -29,5 +29,5 @@ const int newsize = {{_dynamic__synaptic_pre}}.size();
 {{varname}}.resize(newsize);
 {% endfor %}
 // Also update the total number of synapses
-{{owner.name}}._N_value = newsize;
+{{N}}[0] = newsize;
 {% endblock %}

@@ -4,12 +4,11 @@
 {% block maincode %}
     #include<iostream>
 	{# USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
-	                    N_incoming, N_outgoing } #}
+	                    N_incoming, N_outgoing, N } #}
     
     // scalar code
     const int _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
-	
     for(int _i=0; _i<_num_all_pre; _i++)
 	{
 		for(int _j=0; _j<_num_all_post; _j++)
@@ -50,5 +49,5 @@
 	{{varname}}.resize(newsize);
 	{% endfor %}
 	// Also update the total number of synapses
-	{{owner.name}}._N_value = newsize;
+	{{N}}[0] = newsize;
 {% endblock %}

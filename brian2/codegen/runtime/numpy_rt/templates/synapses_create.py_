@@ -1,6 +1,6 @@
 {#
 USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post,
-                 N_incoming, N_outgoing }
+                 N_incoming, N_outgoing, N }
 #}
 {# ITERATE_ALL { _idx } #}
 import numpy as _numpy
@@ -9,7 +9,7 @@ numpy_False = _numpy.bool_(False)
 numpy_True = _numpy.bool_(True)
 
 # number of synapses in the beginning
-_old_num_synapses = len({{_dynamic__synaptic_pre}})
+_old_num_synapses = {{N}}[0]
 # number of synapses during the creation process
 _cur_num_synapses = _old_num_synapses
 
@@ -62,3 +62,5 @@ for _i in range(len({{_all_pre}})):
 
 # Resize all dependent dynamic arrays (synaptic weights, delays, etc.)
 _owner._resize(_cur_num_synapses)
+# Set the total number of synapses
+{{N}}[0] = _cur_num_synapses
