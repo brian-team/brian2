@@ -16,5 +16,6 @@ StateUpdateMethod.register('euler', euler)
 StateUpdateMethod.register('rk2', rk2)
 StateUpdateMethod.register('rk4', rk4)
 StateUpdateMethod.register('milstein', milstein)
+StateUpdateMethod.register('heun', heun)
 
 

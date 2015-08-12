@@ -697,3 +697,11 @@ milstein = ExplicitStateUpdater('''
     k = 1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)
     x_new = x + dt*f(x,t) + g(x, t) * dW + k
     ''', stochastic='multiplicative', custom_check=diagonal_noise)
+
+#: Stochastic Heun method (for multiplicative Stratonovic SDEs with non-diagonal
+#  diffusion matrix)
+heun = brian2.ExplicitStateUpdater('''
+    x_support = x + g(x,t) * dW
+    g_support = g(x_support,t+dt)
+    x_new = x + dt*f(x,t) + .5*dW*(g(x,t)+g_support)
+    ''', stochastic='multiplicative')
