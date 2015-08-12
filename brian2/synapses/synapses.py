@@ -6,7 +6,7 @@ import collections
 from collections import defaultdict
 import weakref
 import re
-from numbers import Number
+import numbers
 
 import numpy as np
 
@@ -1108,7 +1108,7 @@ class Synapses(Group):
                              'string, is %s instead.') % type(pre_or_cond))
 
     def _resize(self, number):
-        if not isinstance(number, int):
+        if not isinstance(number, numbers.Integral):
             raise TypeError(('Expected an integer number got {} '
                              'instead').format(type(number)))
         if number < self._N:
