@@ -2241,7 +2241,7 @@ def get_unit(x, *regs):
 
     Parameters
     ----------
-    x : {`Quantity`, array-like, number}
+    x : {`Quantity`, `Dimension`, array-like, number}
         The value to find a unit for.
 
     Returns
@@ -2252,7 +2252,8 @@ def get_unit(x, *regs):
     for u in all_registered_units(*regs):
         if np.asarray(u) == 1 and have_same_dimensions(u, x):
             return u
-    return Unit(1.0, dim=x.dim)
+    dim = getattr(x, 'dim', x)  # For units, get dimensions
+    return Unit(1.0, dim=dim)
 
 
 def get_unit_for_display(x):
