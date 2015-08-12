@@ -14,7 +14,7 @@ from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 
 from .base import StateUpdateMethod
 
-__all__ = ['milstein', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
+__all__ = ['milstein', 'heun', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 
 
 #===============================================================================
@@ -700,7 +700,7 @@ milstein = ExplicitStateUpdater('''
 
 #: Stochastic Heun method (for multiplicative Stratonovic SDEs with non-diagonal
 #  diffusion matrix)
-heun = brian2.ExplicitStateUpdater('''
+heun = ExplicitStateUpdater('''
     x_support = x + g(x,t) * dW
     g_support = g(x_support,t+dt)
     x_new = x + dt*f(x,t) + .5*dW*(g(x,t)+g_support)
