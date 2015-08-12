@@ -162,6 +162,12 @@ class SynapticPathway(CodeRunner, Group):
                                               scalar=False)
         self.variables.add_reference(self.eventspace_name, self.source)
         self.variables.add_reference('N', synapses)
+        if prepost == 'pre':
+            self.variables.add_reference('_n_sources', synapses, 'N_pre')
+            self.variables.add_reference('_n_targets', synapses, 'N_post')
+        else:
+            self.variables.add_reference('_n_sources', synapses, 'N_post')
+            self.variables.add_reference('_n_targets', synapses, 'N_pre')
         if delay is None:  # variable delays
             self.variables.add_dynamic_array('delay', unit=second,
                                              size=synapses._N, constant=True,

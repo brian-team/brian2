@@ -51,10 +51,8 @@ const int brian::_num_{{name}} = {{N}};
 //////////////// synapses /////////////////
 {% for S in synapses | sort(attribute='name') %}
 // {{S.name}}
-Synapses<double> brian::{{S.name}}({{S.source|length}}, {{S.target|length}});
 {% for path in S._pathways | sort(attribute='name') %}
 SynapticPathway<double> brian::{{path.name}}(
-		{{path.source|length}}, {{path.target|length}},
 		{{dynamic_array_specs[path.variables['delay']]}},
 		{{dynamic_array_specs[path.synapse_sources]}},
 		{{path.source.dt_}},
@@ -281,7 +279,6 @@ extern const int _num_{{name}};
 //////////////// synapses /////////////////
 {% for S in synapses | sort(attribute='name') %}
 // {{S.name}}
-extern Synapses<double> {{S.name}};
 {% for path in S._pathways | sort(attribute='name') %}
 extern SynapticPathway<double> {{path.name}};
 {% endfor %}
