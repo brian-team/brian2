@@ -269,12 +269,14 @@ class ExplicitStateUpdater(StateUpdateMethod):
     def can_integrate(self, equations, variables):
         # Non-stochastic numerical integrators should work for all equations,
         # except for stochastic equations
-        if equations.is_stochastic and self.stochastic is None:
-            return False
-        elif (equations.stochastic_type == 'multiplicative' and
-              self.stochastic != 'multiplicative'):
-            return False
-        elif self.custom_check and not self.custom_check(equations, variables):
+        if equations.is_stochastic:
+            if self.stochastic is None:
+                return False
+            if (self.stochastic != 'multiplicative' and
+                        equations.stochastic_type == 'multiplicative'):
+                return False
+
+        if self.custom_check and not self.custom_check(equations, variables):
             return False
         else:
             return True
@@ -677,6 +679,9 @@ def diagonal_noise(equations, variables):
     Checks whether we deal with diagonal noise, i.e. one independent noise
     variable per variable.
     '''
+    if not equations.is_stochastic:
+        return True
+
     stochastic_vars = []
     for _, expr in equations.substituted_expressions:
         expr_stochastic_vars = expr.stochastic_variables
