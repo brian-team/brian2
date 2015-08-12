@@ -114,12 +114,10 @@ class Expression(CodeString):
         if not len(stochastic_variables):
             return (self, None)
 
-        s_expr = self.sympy_expr.expand()
-
         stochastic_symbols = [sympy.Symbol(variable, real=True)
                               for variable in stochastic_variables]
 
-        collected = s_expr.collect(stochastic_symbols, evaluate=False)
+        collected = self.sympy_expr.collect(stochastic_symbols, evaluate=False)
 
         f_expr = None
         stochastic_expressions = {}
