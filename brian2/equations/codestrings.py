@@ -109,32 +109,30 @@ class Expression(CodeString):
         for identifier in self.identifiers:
             if identifier == 'xi' or identifier.startswith('xi_'):
                 stochastic_variables.append(identifier)
-        
+
         # No stochastic variable
         if not len(stochastic_variables):
             return (self, None)
-        
+
         s_expr = self.sympy_expr.expand()
-        
+
         stochastic_symbols = [sympy.Symbol(variable, real=True)
                               for variable in stochastic_variables]
 
-        f = sympy.Wild('f', exclude=stochastic_symbols)  # non-stochastic part
-        match_objects = [sympy.Wild('w_'+variable, exclude=stochastic_symbols)
-                         for variable in stochastic_variables]
-        match_expression = f
-        for symbol, match_object in zip(stochastic_symbols, match_objects):
-            match_expression += match_object * symbol
-        matches = s_expr.match(match_expression)
-        
-        if matches is None:
-            raise ValueError(('Expression "%s" cannot be separated into stochastic '
-                              'and non-stochastic term') % self.code)
+        collected = s_expr.collect(stochastic_symbols, evaluate=False)
 
-        f_expr = Expression(sympy_to_str(matches[f]))
-        stochastic_expressions = dict((variable, Expression(sympy_to_str(matches[match_object])))
-                                        for (variable, match_object) in
-                                        zip(stochastic_variables, match_objects))
+        f_expr = None
+        stochastic_expressions = {}
+        for var, expr in collected.iteritems():
+            expr = Expression(sympy_to_str(expr))
+            if var == 1:
+                f_expr = expr
+            elif var in stochastic_symbols:
+                stochastic_expressions[str(var)] = expr
+            else:
+                raise ValueError(('Expression "%s" cannot be separated into '
+                                  'stochastic and non-stochastic '
+                                  'term') % self.code)
 
         return (f_expr, stochastic_expressions)
 
