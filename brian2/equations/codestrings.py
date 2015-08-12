@@ -68,16 +68,30 @@ class Expression(CodeString):
 
     Parameters
     ----------
-    code : str
+    code : str, optional
         The expression. Note that the expression has to be written in a form
-        that is parseable by sympy.
+        that is parseable by sympy. Alternatively, a sympy expression can be
+        provided (in the ``sympy_expression`` argument).
+    sympy_expression : sympy expression, optional
+        A sympy expression. Alternatively, a plain string expression can be
+        provided (in the ``code`` argument).
     '''
 
-    def __init__(self, code):
-        CodeString.__init__(self, code)
+    def __init__(self, code=None, sympy_expression=None):
+        if code is None and sympy_expression is None:
+            raise TypeError('Have to provide either a string or a sympy expression')
+        if code is not None and sympy_expression is not None:
+            raise TypeError('Provide a string expression or a sympy expression, not both')
+
+        if code is None:
+            code = sympy_to_str(sympy_expression)
+        if sympy_expression is None:
+            sympy_expression = str_to_sympy(code)
+
+        super(Expression, self).__init__(code=code)
 
         # : The expression as a sympy object
-        self.sympy_expr = str_to_sympy(self.code)
+        self.sympy_expr = sympy_expression
 
     stochastic_variables = property(lambda self: set([variable for variable in self.identifiers
                                                       if variable =='xi' or variable.startswith('xi_')]),
@@ -122,7 +136,7 @@ class Expression(CodeString):
         f_expr = None
         stochastic_expressions = {}
         for var, expr in collected.iteritems():
-            expr = Expression(sympy_to_str(expr))
+            expr = Expression(sympy_expression=expr)
             if var == 1:
                 f_expr = expr
             elif var in stochastic_symbols:
