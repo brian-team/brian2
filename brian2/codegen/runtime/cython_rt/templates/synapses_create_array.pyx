@@ -34,9 +34,8 @@
         _N_outgoing[_real_sources] += 1
         _N_incoming[_real_targets] += 1
     
-    # now we need to resize all registered variables (via Python)
+    # now we need to resize all registered variables and set the total number
+    # of synapses (via Python)
     _owner._resize(_new_num_synapses)
-    # Set the total number of synapses
-    {{N}}[0] = _new_num_synapses
 
 {% endblock %}

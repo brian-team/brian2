@@ -1125,6 +1125,7 @@ class Synapses(Group):
             variable.resize(number)
 
         self._N = number
+        self.variables['N'].set_value(number)
 
     def register_variable(self, variable):
         '''

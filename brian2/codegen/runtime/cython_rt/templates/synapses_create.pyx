@@ -84,9 +84,8 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     _curbuf = 0  # reset the buffer for the next run
 
     newsize = len({{_dynamic__synaptic_pre}})
-    # now we need to resize all registered variables (via Python)
+    # now we need to resize all registered variables and set the total number
+    # of synapse (via Python)
     _owner._resize(newsize)
-    # Set the total number of synapses
-    {{N}}[0] = newsize
 
 {% endblock %}

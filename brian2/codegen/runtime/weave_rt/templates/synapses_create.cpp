@@ -69,12 +69,11 @@
     _flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf);
 
     const int newsize = {{_dynamic__synaptic_pre}}.size();
-    // now we need to resize all registered variables (via Python)
+    // now we need to resize all registered variables and set the total number
+    // of synapses (via Python)
     py::tuple _newlen_tuple(1);
     _newlen_tuple[0] = newsize;
     _owner.mcall("_resize", _newlen_tuple);
-    // Set the total number of synapses
-    {{N}}[0] = newsize;
     delete [] _prebuf;
     delete [] _postbuf;
 {% endblock %}

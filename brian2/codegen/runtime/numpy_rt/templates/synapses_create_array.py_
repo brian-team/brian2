@@ -28,6 +28,6 @@ _var_N_outgoing.resize(N_pre + _source_offset)
 {{_dynamic_N_incoming}}[:] += _numpy.bincount(_real_targets, minlength=len({{_dynamic_N_incoming}}))
 {{_dynamic_N_outgoing}}[:] += _numpy.bincount(_real_sources, minlength=len({{_dynamic_N_outgoing}}))
 
-# Resize all dependent dynamic arrays (synaptic weights, delays, etc.)
+# Resize all dependent dynamic arrays (synaptic weights, delays, etc.) and set
+# the total number of synapses
 _owner._resize(_new_num_synapses)
-{{N}}[0] = _new_num_synapses

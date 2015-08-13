@@ -66,7 +66,6 @@ for _i in range(len({{_all_pre}})):
 {{_dynamic_N_outgoing}}[:] += _numpy.bincount({{_dynamic__synaptic_pre}}[_old_num_synapses:], minlength=len({{_dynamic_N_outgoing}}))
 {{_dynamic_N_incoming}}[:] += _numpy.bincount({{_dynamic__synaptic_post}}[_old_num_synapses:], minlength=len({{_dynamic_N_incoming}}))
 
-# Resize all dependent dynamic arrays (synaptic weights, delays, etc.)
+# Resize all dependent dynamic arrays (synaptic weights, delays, etc.) and set
+# the total number of synapses
 _owner._resize(_cur_num_synapses)
-# Set the total number of synapses
-{{N}}[0] = _cur_num_synapses
