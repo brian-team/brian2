@@ -209,9 +209,8 @@ exactly first (for linear equations) and then resorting to numerical algorithms.
 It will also take care of integrating stochastic differential equations
 appropriately. Each class defines its own list of algorithms it tries to
 apply, `NeuronGroup` and `Synapses` will use the first suitable method out of
-the methods ``'linear'``, ``'euler'``, ``'heun'`` and ``'milstein'`` while `SpatialNeuron`
-objects will use ``'linear'``, ``'exponential_euler'``, ``'rk2'``, ``'heun'`` or
-``'milstein'``.
+the methods ``'linear'``, ``'euler'`` and ``'heun'`` while `SpatialNeuron`
+objects will use ``'linear'``, ``'exponential_euler'``, ``'rk2'`` or ``'heun'``.
 
 If you prefer to chose an integration algorithm yourself, you can do so using
 the ``method`` keyword for `NeuronGroup`, `Synapses`, or `SpatialNeuron`.
