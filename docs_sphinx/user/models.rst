@@ -209,8 +209,8 @@ exactly first (for linear equations) and then resorting to numerical algorithms.
 It will also take care of integrating stochastic differential equations
 appropriately. Each class defines its own list of algorithms it tries to
 apply, `NeuronGroup` and `Synapses` will use the first suitable method out of
-the methods ``'linear'``, ``'euler'``, and ``'milstein'`` while `SpatialNeuron`
-objects will use ``'linear'``, ``'exponential_euler'``, ``'rk2'``, or
+the methods ``'linear'``, ``'euler'``, ``'heun'`` and ``'milstein'`` while `SpatialNeuron`
+objects will use ``'linear'``, ``'exponential_euler'``, ``'rk2'``, ``'heun'`` or
 ``'milstein'``.
 
 If you prefer to chose an integration algorithm yourself, you can do so using
@@ -226,6 +226,8 @@ The complete list of available methods is the following:
   differential equations using the Euler-Maruyama method)
 * ``'rk2'``: second order Runge-Kutta method (midpoint method)
 * ``'rk4'``: classical Runge-Kutta method (RK4)
+* ``'heun''``: stochastic Heun method for solving Stratonovich stochastic 
+  differential equations with non-diagonal multiplicative noise.
 * ``'milstein'``: derivative-free Milstein method for solving stochastic
   differential equations with diagonal multiplicative noise
 

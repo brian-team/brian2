@@ -70,7 +70,7 @@ def test_multiple_noise_variables_basic():
     # multiple noise variables at all
     eqs = Equations('''dv/dt = -v / (10*ms) + xi_1 * ms ** -.5 : 1
                        dw/dt = -w / (10*ms) + xi_2 * ms ** -.5 : 1''')
-    for method in [euler, milstein]:
+    for method in [euler, heun, milstein]:
         code = method(eqs, {})
         assert 'xi_1' in code
         assert 'xi_2' in code
@@ -98,7 +98,7 @@ def test_multiple_noise_variables_extended():
     no_noise_x, no_noise_y = mon.x[:], mon.y[:]
 
     for eqs_noise in all_eqs_noise:
-        for method_name, method in [('euler', euler), ('milstein', milstein)]:
+        for method_name, method in [('euler', euler), ('heun', heun), ('milstein', milstein)]:
             # Note that for milstein, the check for diagonal noise will fail, but
             # it should still work since the two noise variables really do only
             # present a single variable
@@ -168,7 +168,7 @@ def test_multiple_noise_variables_deterministic_noise():
         net.run(10*ms)
         no_noise_x, no_noise_y = mon.x[:], mon.y[:]
 
-        for method_name, method in [('euler', euler), ('milstein', milstein)]:
+        for method_name, method in [('euler', euler), ('heun', heun), ('milstein', milstein)]:
             # Note that for milstein, the check for diagonal noise will fail, but
             # it should still work since the two noise variables really do only
             # present a single variable
@@ -320,7 +320,7 @@ def test_priority():
                                        constant=False, device=None)
     assert updater.can_integrate(eqs, variables)
     can_integrate = {linear: False, euler: True, rk2: True, rk4: True, 
-                     milstein: True}
+                     heun: True, milstein: True}
 
     for integrator, able in can_integrate.iteritems():
         assert integrator.can_integrate(eqs, variables) == able
@@ -334,7 +334,7 @@ def test_priority():
                                        device=None, constant=True)
     assert updater.can_integrate(eqs, variables)
     can_integrate = {linear: True, euler: True, rk2: True, rk4: True, 
-                     milstein: True}
+                     heun: True, milstein: True}
     del variables['param']
 
     for integrator, able in can_integrate.iteritems():
@@ -346,7 +346,7 @@ def test_priority():
     eqs = Equations('dv/dt = -param * v / (10*ms) : 1')
     assert updater.can_integrate(eqs, variables)
     can_integrate = {linear: True, euler: True, rk2: True, rk4: True, 
-                     milstein: True}
+                     heun: True, milstein: True}
     for integrator, able in can_integrate.iteritems():
         assert integrator.can_integrate(eqs, variables) == able
     
@@ -355,7 +355,7 @@ def test_priority():
     assert not updater.can_integrate(eqs, variables)
     
     can_integrate = {linear: False, euler: True, rk2: False, rk4: False, 
-                     milstein: True}
+                     heun: True, milstein: True}
     for integrator, able in can_integrate.iteritems():
         assert integrator.can_integrate(eqs, variables) == able
     
@@ -364,7 +364,7 @@ def test_priority():
     assert not updater.can_integrate(eqs, variables)
     
     can_integrate = {linear: False, euler: False, rk2: False, rk4: False, 
-                     milstein: True}
+                     heun: True, milstein: True}
     for integrator, able in can_integrate.iteritems():
         assert integrator.can_integrate(eqs, variables) == able
     
@@ -413,7 +413,7 @@ def test_determination():
     # all methods should work for these equations.
     # First, specify them explicitly (using the object)
     for integrator in (linear, euler, exponential_euler, #TODO: Removed "independent" here due to the issue in sympy 0.7.4
-                       rk2, rk4, milstein):
+                       rk2, rk4, heun, milstein):
         with catch_logs() as logs:
             returned = determine_stateupdater(eqs, variables,
                                               method=integrator)
@@ -433,8 +433,8 @@ def test_determination():
             
     with catch_logs() as logs:
         returned = determine_stateupdater(eqs, variables,
-                                          method=milstein)
-        assert returned is milstein, 'Expected state updater milstein, got %s' % (integrator, returned)
+                                          method=heun)
+        assert returned is heun, 'Expected state updater heun, got %s' % (integrator, returned)
         # No warning here
         assert len(logs) == 0, 'Got %d unexpected warnings: %s' % (len(logs), str([l[2] for l in logs]))
     
@@ -456,7 +456,7 @@ def test_determination():
                              #('independent', independent), #TODO: Removed "independent" here due to the issue in sympy 0.7.4
                              ('exponential_euler', exponential_euler),
                              ('rk2', rk2), ('rk4', rk4),
-                             ('milstein', milstein)]:
+                             ('heun', heun), ('milstein', milstein)]:
         with catch_logs() as logs:
             returned = determine_stateupdater(eqs, variables,
                                               method=name)
@@ -464,16 +464,22 @@ def test_determination():
         # No warning here
         assert len(logs) == 0    
 
-    # Now all except milstein should refuse to work
+    # Now all except heun and milstein should refuse to work
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
     for name in ['linear', 'independent', 'euler', 'exponential_euler',
                  'rk2', 'rk4']:
         assert_raises(ValueError, lambda: determine_stateupdater(eqs,
                                                                  variables,
                                                                  method=name))
+
     # milstein should work
     with catch_logs() as logs:
         determine_stateupdater(eqs, variables, method='milstein')
+        assert len(logs) == 0
+        
+    # heun should work
+    with catch_logs() as logs:
+        determine_stateupdater(eqs, variables, method='heun')
         assert len(logs) == 0
     
     # non-existing name
@@ -483,10 +489,10 @@ def test_determination():
     
     # Automatic state updater choice should return linear for linear equations,
     # euler for non-linear, non-stochastic equations and equations with
-    # additive noise, milstein for equations with multiplicative noise
+    # additive noise, heun for equations with multiplicative noise
     # Because it is somewhat fragile, the "independent" state updater is not
     # included in this list
-    all_methods = ['linear', 'exponential_euler', 'euler', 'milstein']
+    all_methods = ['linear', 'exponential_euler', 'euler', 'heun', 'milstein']
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     assert determine_stateupdater(eqs, variables, all_methods) is linear
     
@@ -506,7 +512,7 @@ def test_determination():
     assert determine_stateupdater(eqs, variables, all_methods) is euler
 
     eqs = Equations('dv/dt = -v / (10*ms) + v*0.1*second**-.5*xi: 1')
-    assert determine_stateupdater(eqs, variables, all_methods) is milstein
+    assert determine_stateupdater(eqs, variables, all_methods) is heun
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)

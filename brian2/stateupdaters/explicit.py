@@ -671,7 +671,6 @@ rk4 = ExplicitStateUpdater('''
     x_new = x+(k_1+2*k_2+2*k_3+k_4)/6
     ''')
 
-
 def diagonal_noise(equations, variables):
     '''
     Checks whether we deal with diagonal noise, i.e. one independent noise
@@ -689,7 +688,6 @@ def diagonal_noise(equations, variables):
     # have diagonal noise
     return len(stochastic_vars) == len(set(stochastic_vars))
 
-
 #: Derivative-free Milstein method
 milstein = ExplicitStateUpdater('''
     x_support = x + dt*f(x, t) + dt**.5 * g(x, t)
@@ -699,7 +697,7 @@ milstein = ExplicitStateUpdater('''
     ''', stochastic='multiplicative', custom_check=diagonal_noise)
 
 #: Stochastic Heun method (for multiplicative Stratonovic SDEs with non-diagonal
-#  diffusion matrix)
+#: diffusion matrix)
 heun = ExplicitStateUpdater('''
     x_support = x + g(x,t) * dW
     g_support = g(x_support,t+dt)
