@@ -599,7 +599,7 @@ class Synapses(Group):
                  namespace=None, dtype=None,
                  codeobj_class=None,
                  dt=None, clock=None, order=0,
-                 method=('linear', 'euler', 'heun', 'milstein'),
+                 method=('linear', 'euler', 'heun'),
                  name='synapses*'):
         self._N = 0
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
