@@ -9,7 +9,7 @@
     cdef int _new_len = _curlen + 1
 
     # Resize the recorded times
-    {{_dynamic_t}}.resize(_new_len)
+    _var_t.resize(_new_len)
     {{_dynamic_t}}[_new_len-1] = _clock_t
 
     # scalar code
@@ -23,7 +23,7 @@
     {% set np_type = numpy_dtype(variables[varname].dtype) %}
     # Resize the recorded variable "{{varname}}" and get the (potentially
     # changed) reference to the underlying data
-    {{get_array_name(var, access_data=False)}}.resize_along_first((_new_len, _num{{_indices}}))
+    _var_{{varname}}.resize((_new_len, _num{{_indices}}))
     cdef {{c_type}}[:, :] _record_data_{{varname}} = {{get_array_name(var, access_data=False)}}.data.view(_numpy.{{np_type}})
     for _i in range(_num{{_indices}}):
         # vector code
