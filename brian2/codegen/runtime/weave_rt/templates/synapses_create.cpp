@@ -10,8 +10,6 @@
     const int _buffer_size = 1024;
     int *const _prebuf = new int[_buffer_size];
     int *const _postbuf = new int[_buffer_size];
-    int *const _synprebuf = new int[1];
-    int *const _synpostbuf = new int[1];
     int _curbuf = 0;
 
     // Resize N_incoming and N_outgoing according to the size of the
@@ -79,8 +77,6 @@
     {{N}}[0] = newsize;
     delete [] _prebuf;
     delete [] _postbuf;
-    delete [] _synprebuf;
-    delete [] _synpostbuf;
 {% endblock %}
 
 {% block support_code_block %}
