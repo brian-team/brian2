@@ -68,16 +68,30 @@ class Expression(CodeString):
 
     Parameters
     ----------
-    code : str
+    code : str, optional
         The expression. Note that the expression has to be written in a form
-        that is parseable by sympy.
+        that is parseable by sympy. Alternatively, a sympy expression can be
+        provided (in the ``sympy_expression`` argument).
+    sympy_expression : sympy expression, optional
+        A sympy expression. Alternatively, a plain string expression can be
+        provided (in the ``code`` argument).
     '''
 
-    def __init__(self, code):
-        CodeString.__init__(self, code)
+    def __init__(self, code=None, sympy_expression=None):
+        if code is None and sympy_expression is None:
+            raise TypeError('Have to provide either a string or a sympy expression')
+        if code is not None and sympy_expression is not None:
+            raise TypeError('Provide a string expression or a sympy expression, not both')
+
+        if code is None:
+            code = sympy_to_str(sympy_expression)
+        if sympy_expression is None:
+            sympy_expression = str_to_sympy(code)
+
+        super(Expression, self).__init__(code=code)
 
         # : The expression as a sympy object
-        self.sympy_expr = str_to_sympy(self.code)
+        self.sympy_expr = sympy_expression
 
     stochastic_variables = property(lambda self: set([variable for variable in self.identifiers
                                                       if variable =='xi' or variable.startswith('xi_')]),
@@ -109,32 +123,28 @@ class Expression(CodeString):
         for identifier in self.identifiers:
             if identifier == 'xi' or identifier.startswith('xi_'):
                 stochastic_variables.append(identifier)
-        
+
         # No stochastic variable
         if not len(stochastic_variables):
             return (self, None)
-        
-        s_expr = self.sympy_expr.expand()
-        
+
         stochastic_symbols = [sympy.Symbol(variable, real=True)
                               for variable in stochastic_variables]
 
-        f = sympy.Wild('f', exclude=stochastic_symbols)  # non-stochastic part
-        match_objects = [sympy.Wild('w_'+variable, exclude=stochastic_symbols)
-                         for variable in stochastic_variables]
-        match_expression = f
-        for symbol, match_object in zip(stochastic_symbols, match_objects):
-            match_expression += match_object * symbol
-        matches = s_expr.match(match_expression)
-        
-        if matches is None:
-            raise ValueError(('Expression "%s" cannot be separated into stochastic '
-                              'and non-stochastic term') % self.code)
+        collected = self.sympy_expr.collect(stochastic_symbols, evaluate=False)
 
-        f_expr = Expression(sympy_to_str(matches[f]))
-        stochastic_expressions = dict((variable, Expression(sympy_to_str(matches[match_object])))
-                                        for (variable, match_object) in
-                                        zip(stochastic_variables, match_objects))
+        f_expr = None
+        stochastic_expressions = {}
+        for var, expr in collected.iteritems():
+            expr = Expression(sympy_expression=expr)
+            if var == 1:
+                f_expr = expr
+            elif var in stochastic_symbols:
+                stochastic_expressions[str(var)] = expr
+            else:
+                raise ValueError(('Expression "%s" cannot be separated into '
+                                  'stochastic and non-stochastic '
+                                  'term') % self.code)
 
         return (f_expr, stochastic_expressions)
 
