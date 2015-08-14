@@ -225,7 +225,7 @@ The complete list of available methods is the following:
   differential equations using the Euler-Maruyama method)
 * ``'rk2'``: second order Runge-Kutta method (midpoint method)
 * ``'rk4'``: classical Runge-Kutta method (RK4)
-* ``'heun''``: stochastic Heun method for solving Stratonovich stochastic 
+* ``'heun'``: stochastic Heun method for solving Stratonovich stochastic
   differential equations with non-diagonal multiplicative noise.
 * ``'milstein'``: derivative-free Milstein method for solving stochastic
   differential equations with diagonal multiplicative noise

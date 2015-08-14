@@ -178,9 +178,7 @@ def test_multiple_noise_variables_deterministic_noise():
                 G.y = [25, 5 ] * Hz
                 mon = StateMonitor(G, ['x', 'y'], record=True)
                 net = Network(G, mon)
-                # We run it deterministically, but still we'd detect major errors (e.g.
-                # non-stochastic terms that are added twice, see #330
-                net.run(10*ms, namespace={'noise_factor': 0})
+                net.run(10*ms)
             assert_allclose(mon.x[:], no_noise_x,
                             err_msg='Method %s gave incorrect results' % method_name)
             assert_allclose(mon.y[:], no_noise_y,
@@ -420,8 +418,8 @@ def test_determination():
             assert returned is integrator, 'Expected state updater %s, got %s' % (integrator, returned)
             assert len(logs) == 0, 'Got %d unexpected warnings: %s' % (len(logs), str([l[2] for l in logs]))
     
-    # Equation with multiplicative noise, only milstein should work without
-    # a warning
+    # Equation with multiplicative noise, only milstein and heun should work
+    # without a warning
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
     for integrator in (linear, independent, euler, exponential_euler, rk2, rk4):
         with catch_logs() as logs:
@@ -430,13 +428,14 @@ def test_determination():
             assert returned is integrator, 'Expected state updater %s, got %s' % (integrator, returned)
             # We should get a warning here
             assert len(logs) == 1, 'Got %d warnings but expected 1: %s' % (len(logs), str([l[2] for l in logs]))
-            
-    with catch_logs() as logs:
-        returned = determine_stateupdater(eqs, variables,
-                                          method=heun)
-        assert returned is heun, 'Expected state updater heun, got %s' % (integrator, returned)
-        # No warning here
-        assert len(logs) == 0, 'Got %d unexpected warnings: %s' % (len(logs), str([l[2] for l in logs]))
+
+    for integrator in (heun, milstein):
+        with catch_logs() as logs:
+            returned = determine_stateupdater(eqs, variables,
+                                              method=integrator)
+            assert returned is integrator, 'Expected state updater %s, got %s' % (integrator, returned)
+            # No warning here
+            assert len(logs) == 0, 'Got %d unexpected warnings: %s' % (len(logs), str([l[2] for l in logs]))
     
     
     # Arbitrary functions (converting equations into abstract code) should
