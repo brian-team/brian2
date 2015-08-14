@@ -3,6 +3,9 @@ Demonstrate the correctness of the "derivative-free Milstein method" for
 multiplicative noise.
 '''
 from brian2 import *
+# We only get exactly the same random numbers for the exact solution and the
+# simulation if we use the numpy code generation target
+prefs.codegen.target = 'numpy'
 
 # setting a random seed makes all variants use exactly the same Wiener process
 seed = 12347  
@@ -40,17 +43,16 @@ def exact_solution(t, dt):
     t = asarray(t)
     
     np.random.seed(seed)
-    # We are calculating the values at the *end* of a time step, as when using
-    # a StateMonitor. Therefore also the Brownian motion starts not with zero
-    # but with a random value.
-    brownian = cumsum(sqrt(dt) * np.random.randn(len(t)))
+    # We are calculating the values at the *start* of a time step, as when using
+    # a StateMonitor. Therefore the Brownian motion starts with zero
+    brownian = np.hstack([0, cumsum(sqrt(dt) * np.random.randn(len(t)-1))])
     
     return (X0 * exp((my_mu - 0.5*my_sigma**2)*(t+dt) + my_sigma*brownian))
 
 figure(1, figsize=(16, 7))
 figure(2, figsize=(16, 7))
 
-methods = ['milstein']
+methods = ['milstein', 'heun']
 dts = [1*ms, 0.5*ms, 0.2*ms, 0.1*ms, 0.05*ms, 0.025*ms, 0.01*ms, 0.005*ms]
 
 rows = floor(sqrt(len(dts)))
