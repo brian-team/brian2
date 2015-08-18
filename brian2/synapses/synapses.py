@@ -165,9 +165,11 @@ class SynapticPathway(CodeRunner, Group):
         if prepost == 'pre':
             self.variables.add_reference('_n_sources', synapses, 'N_pre')
             self.variables.add_reference('_n_targets', synapses, 'N_post')
+            self.variables.add_reference('_source_dt', synapses.source, 'dt')
         else:
             self.variables.add_reference('_n_sources', synapses, 'N_post')
             self.variables.add_reference('_n_targets', synapses, 'N_pre')
+            self.variables.add_reference('_source_dt', synapses.target, 'dt')
         if delay is None:  # variable delays
             self.variables.add_dynamic_array('delay', unit=second,
                                              size=synapses._N, constant=True,
@@ -802,7 +804,7 @@ class Synapses(Group):
         return SynapticSubgroup(self, indices)
 
     def before_run(self, run_namespace=None, level=0):
-        self.lastupdate = self._clock.t
+        self.state('lastupdate')[:] = 't'
         super(Synapses, self).before_run(run_namespace, level=level+1)
 
     def _add_updater(self, code, prepost, objname=None, delay=None,

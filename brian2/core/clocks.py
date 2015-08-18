@@ -8,7 +8,9 @@ import numpy as np
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
-from brian2.units.fundamentalunits import check_units, Quantity
+from brian2.core.variables import Variables
+from brian2.groups.group import Group, CodeRunner
+from brian2.units.fundamentalunits import check_units, Quantity, Unit
 from brian2.units.allunits import second, msecond
 
 __all__ = ['Clock', 'defaultclock']
@@ -16,7 +18,7 @@ __all__ = ['Clock', 'defaultclock']
 logger = get_logger(__name__)
 
 
-class Clock(Nameable):
+class Clock(Group, CodeRunner):
     '''
     An object that holds the simulation time and the time step.
     
@@ -35,65 +37,75 @@ class Clock(Nameable):
     ``abs(t1-t2)<epsilon*abs(t1)``, a standard test for equality of floating
     point values. The value of ``epsilon`` is ``1e-14``.
     '''
-
+    add_to_magic_network = False
     def __init__(self, dt, name='clock*'):
-        self._i = 0
+        # We need a name right away because some devices (e.g. cpp_standalone)
+        # need a name for the object when creating the variables
+        Nameable.__init__(self, name=name)
         #: The internally used dt. Note that right after a change of dt, this
         #: will not equal the new dt (which is stored in `Clock._new_dt`). Call
         #: `Clock._set_t_update_t` to update the internal clock representation.
         self._dt = float(dt)
         self._new_dt = None
-        Nameable.__init__(self, name=name)
-        logger.debug("Created clock {self.name} with dt={self._dt}".format(self=self))
+        self.variables = Variables(self)
+        self.variables.add_array('timestep', unit=Unit(1), size=1,
+                                 dtype=np.uint64, read_only=True, scalar=True)
+        self.variables.add_array('t', unit=second, size=1,
+                                 dtype=np.double, read_only=True, scalar=True)
+        self.variables.add_array('dt', unit=second, size=1, values=float(dt),
+                                 dtype=np.float, read_only=False, constant=True,
+                                 scalar=True)
+        self.variables.add_constant('N', unit=Unit(1), value=1)
+        self.codeobj_class = None
+        CodeRunner.__init__(self, group=self, template='stateupdate',
+                            code='''timestep += 1
+                                    t = timestep * dt''',
+                            user_code='',
+                            clock=self, when='after_end',
+                            name=None)  # Name as already been set
+        self._enable_group_attributes()
+        logger.debug("Created clock {name} with dt={dt}".format(name=self.name,
+                                                                dt=self.dt))
 
     @check_units(t=second)
-    def _set_t_update_dt(self, t=0*second):
-        dt = self._new_dt if self._new_dt is not None else self._dt
-        t = float(t)
-        if dt != self._dt:
+    def _set_t_update_dt(self, target_t=0*second):
+        the_dt = self._new_dt if self._new_dt is not None else self._dt
+        target_t = float(target_t)
+        if the_dt != self._dt:
             self._new_dt = None  # i.e.: i is up-to-date for the dt
             # Only allow a new dt which allows to correctly set the new time step
-            if t != self.t_:
-                old_t = np.uint64(np.round(t / self._dt)) * self._dt
-                new_t = np.uint64(np.round(t / dt)) * dt
-                error_t = t
+            if target_t != self.t_:
+                old_t = np.uint64(np.round(target_t / self._dt)) * self._dt
+                new_t = np.uint64(np.round(target_t / the_dt)) * the_dt
+                error_t = target_t
             else:
                 old_t = np.uint64(np.round(self.t_ / self._dt)) * self._dt
-                new_t = np.uint64(np.round(self.t_ / dt)) * dt
+                new_t = np.uint64(np.round(self.t_ / the_dt)) * the_dt
                 error_t = self.t_
             if abs(new_t - old_t) > self.epsilon:
                 raise ValueError(('Cannot set dt from {old} to {new}, the '
                                   'time {t} is not a multiple of '
                                   '{new}').format(old=self.dt,
-                                                  new=dt*second,
+                                                  new=the_dt*second,
                                                   t=error_t*second))
-            self._dt = dt
+            self._dt = the_dt
 
-        new_i = np.uint64(np.round(t/dt))
+        new_i = np.uint64(np.round(target_t/the_dt))
         new_t = new_i*self.dt_
-        if new_t==t or np.abs(new_t-t)<=self.epsilon*np.abs(new_t):
-            self._i = new_i
+        if new_t==target_t or np.abs(new_t-target_t)<=self.epsilon*np.abs(new_t):
+            self.variables['timestep'].set_value(new_i)
         else:
-            self._i = np.uint64(np.ceil(t/dt))
-        logger.debug("Setting Clock {self.name} to t={self.t}, dt={self.dt}".format(self=self))
+            self.variables['timestep'].set_value(np.uint64(np.ceil(target_t/the_dt)))
+        self.state('t')[:] = 'timestep * dt'
+        # logger.debug("Setting Clock {self.name} to t={self.t}, dt={self.dt}".format(self=self))
 
-    def __str__(self):
-        if self._new_dt is None:
-            return 'Clock ' + self.name + ': t = ' + str(self.t) + ', dt = ' + str(self.dt)
-        else:
-            return 'Clock ' + self.name + ': t = ' + str(self.t) + ', (new) dt = ' + str(self._new_dt*second)
-    
     def __repr__(self):
-        return 'Clock(dt=%r, name=%r)' % (self._new_dt*second
-                                          if self._new_dt is not None
-                                          else self.dt,
+        return 'Clock(dt=%r, name=%r)' % (
+            # self._new_dt*second
+            #                               if self._new_dt is not None
+            #                               else
+                                          self.dt,
                                           self.name)
-
-    def tick(self):
-        '''
-        Advances the clock by one time step.
-        '''
-        self._i += 1
 
     @check_units(end=second)
     def _set_t_end(self, end):
@@ -102,7 +114,7 @@ class Clock(Nameable):
     @property
     def t_(self):
         'The simulation time as a float (in seconds)'
-        return float(self._i*self._dt)
+        return float(self.timestep*self._dt)
 
     @property
     def t(self):
@@ -118,10 +130,12 @@ class Clock(Nameable):
     @check_units(dt_=1)
     def _set_dt_(self, dt_):
         self._new_dt = dt_
-    
+        self.variables['dt'].set_value(dt_)
+
     @check_units(dt=second)
     def _set_dt(self, dt):
         self._new_dt = float(dt)
+        self.variables['dt'].set_value(float(dt))
     
     dt = property(fget=lambda self: Quantity(self.dt_, dim=second.dim),
                   fset=_set_dt,
@@ -143,7 +157,7 @@ class Clock(Nameable):
         possible (using epsilon) or rounding up if not. This assures that
         multiple calls to `Network.run` will not re-run the same time step.      
         '''
-        self._set_t_update_dt(t=start)
+        self._set_t_update_dt(target_t=start)
         end = float(end)
         i_end = np.uint64(np.round(end/self.dt_))
         t_end = i_end*self.dt_
@@ -157,8 +171,25 @@ class Clock(Nameable):
         '''
         A ``bool`` to indicate whether the current simulation is running.
         '''
-        return self._i < self._i_end
+        return self.timestep < self._i_end
 
     epsilon = 1e-14
 
-defaultclock = Clock(dt=0.1*msecond, name='defaultclock')
+
+class DefaultClockProxy(object):
+    '''
+    Method proxy for access to the currently active device
+    '''
+    def __getattr__(self, name):
+        if name == '_is_proxy':
+            return True
+        from brian2.devices.device import active_device
+        return getattr(active_device.defaultclock, name)
+
+    def __setattr__(self, key, value):
+        from brian2.devices.device import active_device
+        # TODO: Why should this happend?
+        if active_device.defaultclock is not None:
+            return setattr(active_device.defaultclock, key, value)
+
+defaultclock = DefaultClockProxy()

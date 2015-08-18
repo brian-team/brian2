@@ -23,6 +23,7 @@ data_type_conversion_table = [
     ('int64',          'int64_t',     'int64'),
     ('bool',           'char',        'uint8'),
     ('uint8',          'char',        'uint8'),
+    ('uint64',         'uint64_t',    'uint64'),
     ]
 
 cpp_dtype = dict((canonical, cpp) for canonical, cpp, np in data_type_conversion_table)

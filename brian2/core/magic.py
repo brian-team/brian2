@@ -3,6 +3,7 @@ import inspect
 import itertools
 import gc
 
+from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
@@ -164,6 +165,8 @@ class MagicNetwork(Network):
         for obj in objects:
             for contained in _get_contained_objects(obj):
                 contained_objects.add(contained)
+            if not isinstance(obj, Clock):
+                contained_objects.add(obj.clock)
         objects |= contained_objects
 
         # check whether we should restart time, continue time, or raise an
@@ -171,6 +174,8 @@ class MagicNetwork(Network):
         some_known = False
         some_new = False
         for obj in objects:
+            if isinstance(obj, Clock):
+                continue
             if obj._network == self.id:
                 some_known = True  # we are continuing a previous run
             elif obj._network is None and obj.invalidates_magic_network:

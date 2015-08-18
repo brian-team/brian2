@@ -14,8 +14,8 @@
 
     // Resize N_incoming and N_outgoing according to the size of the
     // source/target groups
-    PyObject_CallMethod(_var_N_incoming, "resize", "i", N_post + _target_offset);
-    PyObject_CallMethod(_var_N_outgoing, "resize", "i", N_pre + _source_offset);
+    PyObject_CallMethod(_var_N_incoming, "resize", "i", {{constant_or_scalar('N_post', variables['N_post'])}} + _target_offset);
+    PyObject_CallMethod(_var_N_outgoing, "resize", "i", {{constant_or_scalar('N_pre', variables['N_pre'])}} + _source_offset);
     int *_N_incoming = (int *)(((PyArrayObject*)(PyObject*){{_dynamic_N_incoming}}.attr("data"))->data);
     int *_N_outgoing = (int *)(((PyArrayObject*)(PyObject*){{_dynamic_N_outgoing}}.attr("data"))->data);
     // scalar code

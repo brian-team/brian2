@@ -158,7 +158,7 @@ class Variable(object):
 
         #: Whether the variable is read-only
         self.read_only = read_only
-        
+
         #: Whether the variable is dynamically sized (only for non-scalars)
         self.dynamic = dynamic
 
@@ -893,8 +893,8 @@ class VariableView(object):
             defined, the implicit namespace of local variables is used).
         '''
         variable = self.variable
-        if variable.read_only:
-            raise TypeError('Variable %s is read-only.' % self.name)
+        # if variable.read_only:  # TODO: Make this work again
+        #     raise TypeError('Variable %s is read-only.' % self.name)
 
         # The second part is equivalent to item == slice(None) but formulating
         # it this way prevents a FutureWarning if one of the elements is a
@@ -1395,6 +1395,16 @@ class VariableView(object):
         return '<%s.%s: %s>' % (self.group_name, varname,
                                  values)
 
+    # Get access to some basic properties of the underlying array
+    @property
+    def shape(self):
+        return self.get_item(slice(None), level=1).shape
+
+    @property
+    def dtype(self):
+        return self.get_item(slice(None), level=1).dtype
+
+
 
 class Variables(collections.Mapping):
     '''
@@ -1502,7 +1512,10 @@ class Variables(collections.Mapping):
         self._add_variable(name, var, index)
         if values is None:
             self.device.init_with_zeros(var)
-
+        elif scalar:
+            if np.asanyarray(values).shape != ():
+                raise ValueError('Need a scalar value.')
+            self.device.init_with_array(var, values)
         else:
             if len(values) != size:
                 raise ValueError(('Size of the provided values does not match '
@@ -1777,10 +1790,17 @@ class Variables(collections.Mapping):
             The index that should be used for this variable (defaults to
             `Variables.default_index`).
         '''
-        if index is None:
-            index = self.default_index
         if varname is None:
             varname = name
+        if varname not in group.variables:
+            raise KeyError(('Group {group} does not have a variable '
+                            '{name}.').format(group=group.name,
+                                              name=varname))
+        if index is None:
+            if group.variables[varname].scalar:
+                index = '0'
+            else:
+                index = self.default_index
 
         if self.owner is not None and index in self.owner.variables:
             if (not self.owner.variables[index].read_only and
@@ -1835,18 +1855,16 @@ class Variables(collections.Mapping):
             not confuse the dynamic array of recorded times with the current
             time in the recorded group.
         '''
-        for name, is_constant in [('t', False),
-                                  ('dt', True)]:
-            if prefix+name in self._variables:
-                var = self._variables[prefix+name]
-                if not isinstance(var, AttributeVariable):
-                    raise AssertionError(('%s is present in the variables '
-                                          'dictionary but of '
-                                          'type %s') % (prefix+name,
-                                                        type(var)))
-                var.obj = clock # replace the clock object
-            else:
-                self.add_attribute_variable(prefix+name, unit=second, obj=clock,
-                                            attribute=name+'_',
-                                            dtype=np.float64,
-                                            constant=is_constant)
+        for name in ['t', 'dt']:
+            # if prefix+name in self._variables:
+            #     var = self._variables[prefix+name]
+            #     if not isinstance(var, AttributeVariable):
+            #         raise AssertionError(('%s is present in the variables '
+            #                               'dictionary but of '
+            #                               'type %s') % (prefix+name,
+            #                                             type(var)))
+            #     var.obj = clock # replace the clock object
+            # else:
+            if clock is None:
+                pass
+            self.add_reference(prefix+name, clock, name)

@@ -13,7 +13,6 @@ from distutils import ccompiler
 import numpy as np
 
 from brian2.codegen.cpp_prefs import get_compiler_and_args
-from brian2.core.clocks import defaultclock
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices, get_device, set_device
 from brian2.core.variables import *
@@ -24,7 +23,7 @@ from brian2.utils.filetools import copy_directory, ensure_directory, in_director
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.generators.cpp_generator import c_data_type
 from brian2.units.fundamentalunits import Quantity, have_same_dimensions
-from brian2.units import second
+from brian2.units import second, ms
 from brian2.utils.logger import get_logger, std_silent
 
 from .codeobject import CPPStandaloneCodeObject, openmp_pragma
@@ -48,30 +47,6 @@ prefs.register_preferences(
         ''',
         ),
     )
-
-
-def freeze(code, ns):
-    # this is a bit of a hack, it should be passed to the template somehow
-    for k, v in ns.items():
-
-        if (isinstance(v, Variable) and not isinstance(v, AttributeVariable) and
-              v.scalar and v.constant and v.read_only):
-            try:
-                v = v.get_value()
-            except NotImplementedError:
-                continue
-        if isinstance(v, basestring):
-            code = word_substitute(code, {k: v})
-        elif isinstance(v, numbers.Number):
-            # Use a renderer to correctly transform constants such as True or inf
-            renderer = CPPNodeRenderer()
-            string_value = renderer.render_expr(repr(v))
-            if v < 0:
-                string_value = '(%s)' % string_value
-            code = word_substitute(code, {k: string_value})
-        else:
-            pass  # don't deal with this object
-    return code
 
 
 class CPPWriter(object):
@@ -142,6 +117,29 @@ class CPPStandaloneDevice(Device):
         
     def reinit(self):
         self.__init__()
+        super(CPPStandaloneDevice, self).reinit()
+
+    def freeze(self, code, ns):
+        # this is a bit of a hack, it should be passed to the template somehow
+        for k, v in ns.items():
+            if (isinstance(v, Variable) and not isinstance(v, AttributeVariable) and
+                  v.scalar and v.constant and v.read_only):
+                try:
+                    v = v.get_value()
+                except NotImplementedError:
+                    continue
+            if isinstance(v, basestring):
+                code = word_substitute(code, {k: v})
+            elif isinstance(v, numbers.Number):
+                # Use a renderer to correctly transform constants such as True or inf
+                renderer = CPPNodeRenderer()
+                string_value = renderer.render_expr(repr(v))
+                if v < 0:
+                    string_value = '(%s)' % string_value
+                code = word_substitute(code, {k: string_value})
+            else:
+                pass  # don't deal with this object
+        return code
 
     def insert_code(self, slot, code):
         '''
@@ -260,6 +258,7 @@ class CPPStandaloneDevice(Device):
         self.arange_arrays[var] = start
 
     def init_with_array(self, var, arr):
+        arr = np.asanyarray(arr)
         array_name = self.get_array_name(var, access_data=False)
         # treat the array as a static array
         self.static_arrays[array_name] = arr.astype(var.dtype)
@@ -557,7 +556,7 @@ class CPPStandaloneDevice(Device):
                                                           main_lines=main_lines,
                                                           code_objects=self.code_objects.values(),
                                                           report_func=self.report_func,
-                                                          dt=float(defaultclock.dt),
+                                                          dt=float(self.defaultclock.dt),
                                                           user_headers=prefs['codegen.cpp.headers']
                                                           )
         writer.write('main.cpp', main_tmp)
@@ -600,7 +599,7 @@ class CPPStandaloneDevice(Device):
         for codeobj in self.code_objects.itervalues():
             ns = codeobj.variables
             # TODO: fix these freeze/CONSTANTS hacks somehow - they work but not elegant.
-            code = freeze(codeobj.code.cpp_file, ns)
+            code = self.freeze(codeobj.code.cpp_file, ns)
             code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj.name]))
             code = '#include "objects.h"\n'+code
             
@@ -618,7 +617,9 @@ class CPPStandaloneDevice(Device):
     def generate_run_source(self, writer):
         run_tmp = CPPStandaloneCodeObject.templater.run(None, None, run_funcs=self.runfuncs,
                                                         code_objects=self.code_objects.values(),
-                                                        user_headers=prefs['codegen.cpp.headers']
+                                                        user_headers=prefs['codegen.cpp.headers'],
+                                                        array_specs=self.arrays,
+                                                        clocks=self.clocks
                                                         )
         writer.write('run.*', run_tmp)
         
@@ -904,7 +905,7 @@ class CPPStandaloneDevice(Device):
         if kwds:
             logger.warn(('Unsupported keyword argument(s) provided for run: '
                          '%s') % ', '.join(kwds.keys()))
-        net._clocks = [obj.clock for obj in net.objects]
+        net._clocks = {obj.clock for obj in net.objects}
         # We have to use +2 for the level argument here, since this function is
         # called through the device_override mechanism
         net.before_run(namespace, level=level+2)

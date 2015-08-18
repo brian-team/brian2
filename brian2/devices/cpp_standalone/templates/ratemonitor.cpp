@@ -31,8 +31,8 @@
         if (_end_idx == -1)
             _end_idx =_num_spikes;
         _num_spikes = _end_idx - _start_idx;
-		{{_dynamic_rate}}.push_back(1.0*_num_spikes/_clock_dt/_num_source_neurons);
-		{{_dynamic_t}}.push_back(_clock_t);
+		{{_dynamic_rate}}.push_back(1.0*_num_spikes/{{_clock_dt}}[0]/_num_source_neurons);
+		{{_dynamic_t}}.push_back({{_clock_t}}[0]);
 	}
 {% endblock %}
 

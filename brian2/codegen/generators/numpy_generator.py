@@ -219,7 +219,7 @@ class NumpyCodeGenerator(CodeGenerator):
             # multiple substitution passes are invoked
             repl_string = '#$(@#&$@$*U#@)$@(#'  # this string shouldn't occur anywhere I hope! :)
             for varname, var in variables.items():
-                if isinstance(var, ArrayVariable):
+                if isinstance(var, ArrayVariable) and not var.scalar:
                     subs[varname] = varname + '[' + repl_string + ']'
             # all newly created vars are arrays and will need indexing
             for varname in created_vars:

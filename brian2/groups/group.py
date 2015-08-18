@@ -331,7 +331,11 @@ class Group(BrianObject):
             raise AttributeError
         if not '_group_attribute_access_active' in self.__dict__:
             raise AttributeError
-        
+        if (name in self.__getattribute__('__dict__') or
+                    name in self.__getattribute__('__class__').__dict__):
+            # Makes sure that classes can override the "variables" mechanism
+            # with instance/class attributes and properties
+            return object.__getattribute__(self, name)
         # We want to make sure that accessing variables without units is fast
         # because this is what is used during simulations
         # We do not specifically check for len(name) here, we simply assume
@@ -353,6 +357,11 @@ class Group(BrianObject):
         # _enable_group_attributes
         if not hasattr(self, '_group_attribute_access_active') or name in self.__dict__:
             object.__setattr__(self, name, val)
+        elif (name in self.__getattribute__('__dict__') or
+                    name in self.__getattribute__('__class__').__dict__):
+            # Makes sure that classes can override the "variables" mechanism
+            # with instance/class attributes and properties
+            return object.__setattr__(self, name, val)
         elif name in self.variables:
             var = self.variables[name]
             if not isinstance(val, basestring):
@@ -535,7 +544,7 @@ class Group(BrianObject):
             var.set_value(values)
         t, dt = self._stored_clocks[name]
         self.clock.dt_ = dt
-        self.clock._set_t_update_dt(t=t*second)
+        self.clock._set_t_update_dt(target_t=t*second)
         for obj in self._contained_objects:
             if hasattr(obj, '_restore'):
                 obj._restore(name)

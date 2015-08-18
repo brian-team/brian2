@@ -291,15 +291,19 @@ class Network(Nameable):
         """
         for obj in objs:
             if isinstance(obj, BrianObject):
-                if obj._network is not None:
+                if obj._network is not None and not isinstance(obj, Clock):
                     raise RuntimeError('%s has already been simulated, cannot '
                                        'add it to the network. If you were '
                                        'trying to remove and add an object to '
                                        'temporarily stop it from being run, '
                                        'set its active flag to False instead.'
                                        % obj.name)
-                self.objects.append(obj)
+                if obj not in self.objects:  # Don't include objects twice
+                    self.objects.append(obj)
                 self.add(obj.contained_objects)
+                if not isinstance(obj, Clock):
+                    # Add each object's clock
+                    self.add(obj.clock)
             else:
                 try:
                     for o in obj:
@@ -355,7 +359,7 @@ class Network(Nameable):
         clocks = [obj.clock for obj in self.objects]
         # Make sure that all clocks are up to date
         for clock in clocks:
-            clock._set_t_update_dt(t=self.t)
+            clock._set_t_update_dt(target_t=self.t)
 
         for obj in self.objects:
             if hasattr(obj, '_store'):
@@ -618,6 +622,8 @@ class Network(Nameable):
 
         # Check that no object has been run as part of another network before
         for obj in self.objects:
+            if isinstance(obj, Clock):
+                continue
             if obj._network is None:
                 obj._network = self.id
             elif obj._network != self.id:
@@ -752,9 +758,6 @@ class Network(Nameable):
                     else:
                         obj.run()
 
-            # tick the clock forward one time step
-            for c in curclocks:
-                c.tick()
             # find the next clocks to be updated. The < operator for Clock
             # determines that the first clock to be updated should be the one
             # with the smallest t value, unless there are several with the 

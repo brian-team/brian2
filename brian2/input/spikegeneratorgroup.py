@@ -4,7 +4,7 @@ Module defining `SpikeGeneratorGroup`.
 import numpy as np
 
 from brian2.core.spikesource import SpikeSource
-from brian2.units.fundamentalunits import check_units, Unit
+from brian2.units.fundamentalunits import check_units, Unit, Quantity
 from brian2.units.allunits import second
 from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner, Group
@@ -127,7 +127,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                          constant_size=True)
         self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
                                  dtype=np.int32)
-        self.variables.add_array('_lastindex', size=1, values=np.zeros(1), unit=Unit(1),
+        self.variables.add_array('_lastindex', size=1, values=1, unit=Unit(1),
                                  dtype=np.int32, read_only=True, scalar=True)
         self.variables.create_clock_variables(self._clock)
 
@@ -153,6 +153,10 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.variables['period'].set_value(period)
 
     def before_run(self, run_namespace=None, level=0):
+        # TODO: Temporary workaround
+        from brian2.devices.device import get_device, RuntimeDevice
+        if not isinstance(get_device(), RuntimeDevice):
+            return
         # Do some checks on the period vs. dt
         if self._period < np.inf*second:
             if self._period < self.dt:
@@ -169,7 +173,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                                       self.dt))
 
         # Check that we don't have more than one spike per neuron in a time bin
-        if self.dt != self._previous_dt or self._spikes_changed:
+        if self._previous_dt is None or self.dt != self._previous_dt or self._spikes_changed:
             # We shift all the spikes by a tiny amount to make sure that spikes
             # at exact multiples of dt do not end up in the previous time bin
             # This shift has to be quite significant relative to machine
@@ -184,7 +188,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                  'SpikeGeneratorGroup "%s" spike more than '
                                  'once during a time step.' % (str(self.dt),
                                                                self.name))
-            self._previous_dt = self.dt
+            self._previous_dt = Quantity(self.dt, copy=True)
             self._spikes_changed = False
 
             self.variables['_lastindex'].set_value(0)

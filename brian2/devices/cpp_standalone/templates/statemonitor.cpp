@@ -5,7 +5,7 @@
     {# USES_VARIABLES { t, _clock_t, _indices } #}
 
     {{ openmp_pragma('single') }}
-    {{_dynamic_t}}.push_back(_clock_t);
+    {{_dynamic_t}}.push_back({{_clock_t}}[0]);
 
     const int _new_size = {{_dynamic_t}}.size();
     // Resize the dynamic arrays
@@ -13,7 +13,9 @@
     {% set _recorded =  get_array_name(var, access_data=False) %}
 
     {{ openmp_pragma('single') }}
+    {
     {{_recorded}}.resize(_new_size, _num_indices);
+    }
     {% endfor %}
 
     // scalar code

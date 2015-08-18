@@ -57,14 +57,11 @@ void Network::run(const double duration, void (*report_func)(const double, const
 	}
 
 	Clock* clock = next_clocks();
-
-	{{ openmp_pragma('parallel') }}
 	{
 		while(clock->running())
 		{
 			for(int i=0; i<objects.size(); i++)
 			{
-				{{ openmp_pragma('single-nowait') }}
 				{
 					if (report_func)
 		            {
@@ -86,29 +83,21 @@ void Network::run(const double duration, void (*report_func)(const double, const
 				if (curclocks.find(obj_clock) != curclocks.end())
 				{
 	                codeobj_func func = objects[i].second;
-	                {{ openmp_pragma('barrier') }}
+	                {{ openmp_pragma('parallel') }}
 	                func();
 				}
 			}
-			{{ openmp_pragma('single') }}
-			{
-				for(std::set<Clock*>::iterator i=curclocks.begin(); i!=curclocks.end(); i++)
-					(*i)->tick();
-			}
 			clock = next_clocks();
 		}
-		{{ openmp_pragma('single-nowait') }}
-		{
-			if (report_func)
-			{
-			    {% if openmp_pragma('with_openmp') %}
-                report_func(omp_get_wtime() - start, 1.0, duration);
-                {% else %}
-			    current = std::clock();
-			    report_func((double)(current - start)/({{ openmp_pragma('get_num_threads') }} * CLOCKS_PER_SEC), 1.0, duration);
-			    {% endif %}
-			}
-		}
+        if (report_func)
+        {
+            {% if openmp_pragma('with_openmp') %}
+            report_func(omp_get_wtime() - start, 1.0, duration);
+            {% else %}
+            current = std::clock();
+            report_func((current - start) * CLOCKS_PER_SEC, 1.0, duration);
+            {% endif %}
+        }
 	t = t_end;
 	}
 }

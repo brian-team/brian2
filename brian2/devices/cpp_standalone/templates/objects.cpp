@@ -11,11 +11,6 @@
 #include<iostream>
 #include<fstream>
 
-//////////////// clocks ///////////////////
-{% for clock in clocks | sort(attribute='name') %}
-Clock brian::{{clock.name}}({{clock.dt_}});
-{% endfor %}
-
 //////////////// networks /////////////////
 {% for net in networks | sort(attribute='name') %}
 Network brian::{{net.name}};
@@ -55,9 +50,13 @@ const int brian::_num_{{name}} = {{N}};
 SynapticPathway<double> brian::{{path.name}}(
 		{{dynamic_array_specs[path.variables['delay']]}},
 		{{dynamic_array_specs[path.synapse_sources]}},
-		{{path.source.dt_}},
 		{{path.source.start}}, {{path.source.stop}});
 {% endfor %}
+{% endfor %}
+
+//////////////// clocks ///////////////////
+{% for clock in clocks | sort(attribute='name') %}
+Clock brian::{{clock.name}};  // attributes will be set in run.cpp
 {% endfor %}
 
 // Profiling information for each code object
