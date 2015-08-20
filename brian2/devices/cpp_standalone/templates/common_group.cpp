@@ -40,8 +40,17 @@ void _run_{{codeobj_name}}()
 	// scalar code
 	const int _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
+
+    {# N is a constant in most cases (NeuronGroup, etc.), but a scalar array for
+       synapses, we therefore have to take care to get its value in the right
+       way. #}
+	{% if variables['N'].array %}
+	const int _N = {{N}}[0];
+	{% else %}
+	const int _N = N;
+	{% endif %}
 	{{openmp_pragma('static')}} 
-	for(int _idx=0; _idx<N; _idx++)
+	for(int _idx=0; _idx<_N; _idx++)
 	{
 	    // vector code
 		const int _vectorisation_idx = _idx;

@@ -41,9 +41,17 @@ void _run_{{codeobj_name}}()
 	{{scalar_code['condition']|autoindent}}
 	{{scalar_code['statement']|autoindent}}
 
+    {# N is a constant in most cases (NeuronGroup, etc.), but a scalar array for
+       synapses, we therefore have to take care to get its value in the right
+       way. #}
+	{% if variables['N'].array %}
+	const int _N = {{N}}[0];
+	{% else %}
+	const int _N = N;
+	{% endif %}
 	//We add the parallel flag because this is executed outside the main run loop
 	{{ openmp_pragma('parallel-static') }}
-	for(int _idx=0; _idx<N; _idx++)
+	for(int _idx=0; _idx<_N; _idx++)
 	{
 	    // vector code
 		const int _vectorisation_idx = _idx;
