@@ -125,9 +125,12 @@ class Variable(object):
         internally and cannot be changed by the user (this is used for example
         for the variable ``N``, the number of neurons in a group). Defaults
         to ``False``.
+    array : bool, optional
+        Whether this variable is an array. Allows for simpler check than testing
+        ``isinstance(var, ArrayVariable)``. Defaults to ``False``.
     '''
     def __init__(self, name, unit, owner=None, dtype=None, scalar=False,
-                 constant=False, read_only=False, dynamic=False):
+                 constant=False, read_only=False, dynamic=False, array=False):
         
         #: The variable's unit.
         self.unit = unit
@@ -158,6 +161,9 @@ class Variable(object):
         
         #: Whether the variable is dynamically sized (only for non-scalars)
         self.dynamic = dynamic
+
+        #: Whether the variable is an array
+        self.array = array
 
     @property
     def is_boolean(self):
@@ -479,7 +485,8 @@ class ArrayVariable(Variable):
                                             dtype=dtype, scalar=scalar,
                                             constant=constant,
                                             read_only=read_only,
-                                            dynamic=dynamic)
+                                            dynamic=dynamic,
+                                            array=True)
 
         #: Wether all values in this arrays are necessarily unique (only
         #: relevant for index variables).
