@@ -363,7 +363,14 @@ def test_state_monitor_resize():
     mon = StateMonitor(G, 'v', record=True)
     defaultclock.dt = 0.1*ms
     run(1*ms)
+    # On standalone, the size information of the variables is only updated
+    # after the variable has been accessed, so we can not only check the size
+    # information of the variables object
+    assert len(mon.t) == 10
+    assert mon.v.shape == (2, 10)
     assert mon.variables['t'].size == 10
+    # Note that the internally stored variable has the transposed shape of the
+    # variable that is visible to the user
     assert mon.variables['v'].size == (10, 2)
 
 @attr('standalone-compatible')
