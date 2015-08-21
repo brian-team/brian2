@@ -9,7 +9,9 @@ void _run_{{codeobj_name}}() {
     int32_t* sources = {{pathobj}}.sources.empty() ? 0 : &({{pathobj}}.sources[0]);
     const unsigned int n_delays = {{pathobj}}.delay.size();
     const unsigned int n_synapses = {{pathobj}}.sources.size();
-    {{pathobj}}.prepare(_n_sources, _n_targets, real_delays, n_delays, sources,
+    {{pathobj}}.prepare({{constant_or_scalar('_n_sources', variables['_n_sources'])}},
+                        {{constant_or_scalar('_n_targets', variables['_n_targets'])}},
+                        real_delays, n_delays, sources,
                         n_synapses, {{pathobj}}.dt);
 }
 {% endmacro %}
