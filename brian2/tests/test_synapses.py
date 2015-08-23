@@ -4,10 +4,12 @@ import tempfile
 from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
+from collections import defaultdict
 
 from brian2 import *
 from brian2.codegen.translation import make_statements
 from brian2.core.variables import variables_by_owner, ArrayVariable
+from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
 from brian2.devices.device import restore_device, all_devices, get_device
@@ -875,6 +877,7 @@ def check_permutation_code(code):
         elif var.endswith('_post'):
             indices[var] = '_postsynaptic_idx'
     variables = dict()
+    variables.update(DEFAULT_FUNCTIONS)
     for var in indices:
         variables[var] = ArrayVariable(var, 1, None, 10, device)
     variables['_presynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
@@ -907,6 +910,7 @@ def numerically_check_permutation_code(code):
     code = word_substitute(code, subs)
     code = '''
 from numpy import *
+from numpy.random import rand, randn
 for _idx in shuffled_indices:
     _presynaptic_idx = presyn[_idx]
     _postsynaptic_idx = postsyn[_idx]
@@ -946,13 +950,13 @@ permutation_analysis_good_examples = [
     'v_post = w_syn * v_post',
     'v_post += 1',
     'v_post = 1',
-    'v_post += v_post',
+    'v_post += v_post # NOT_UFUNC_AT_VECTORISABLE',
     #'v_post += w_syn*v_post', # this is a hard one (it is good for w*v but bad for w+v)
-    'v_post += sin(-v_post)',
+    'v_post += sin(-v_post) # NOT_UFUNC_AT_VECTORISABLE',
     'v_post += u_post',
     'v_post += w_syn*v_pre',
-    'v_post += sin(-v_post)',
-    'v_post -= sin(v_post)',
+    'v_post += sin(-v_post) # NOT_UFUNC_AT_VECTORISABLE',
+    'v_post -= sin(v_post) # NOT_UFUNC_AT_VECTORISABLE',
     'v_post += v_pre',
     'v_pre += v_post',
     'w_syn = v_pre',
@@ -983,7 +987,7 @@ permutation_analysis_good_examples = [
     v_post += a_syn
     ''',
     '''
-    v_post += v_post
+    v_post += v_post # NOT_UFUNC_AT_VECTORISABLE
     v_post += v_post
     ''',
     '''
@@ -997,6 +1001,7 @@ permutation_analysis_bad_examples = [
     'v_post = v_pre',
     'v_post = w_syn',
     'v_post += w_syn+v_post',
+    'v_post += rand()', # rand() has state, and therefore this is order dependent
     '''
     a_syn = v_post
     v_post += w_syn
@@ -1122,11 +1127,61 @@ def test_vectorisation_STDP_like():
                     [0., 0., 0., -7.31700015, -8.13000011, -4.04603529],
                     rtol=1e-6, atol=1e-12)
 
+def test_ufunc_at_vectorisation():
+    if prefs.codegen.target != 'numpy':
+        raise SkipTest('numpy-only test')
+    for code in permutation_analysis_good_examples:
+        if 'NOT_UFUNC_AT_VECTORISABLE' in code:
+            continue
+        code = deindent(code)
+        vars = get_identifiers(code)
+        vars_src = []
+        vars_tgt = []
+        vars_syn = []
+        for var in vars:
+            if var.endswith('_pre'):
+                vars_src.append(var[:-4])
+            if var.endswith('_post'):
+                vars_tgt.append(var[:-5])
+            if var.endswith('_syn'):
+                vars_syn.append(var[:-4])
+        eqs_src = '\n'.join(var+':1' for var in vars_src)
+        eqs_tgt = '\n'.join(var+':1' for var in vars_tgt)
+        eqs_syn = '\n'.join(var+':1' for var in vars_syn)
+        origvals = {}
+        endvals = {}
+        try:
+            for use_ufunc_at in [False, True]:
+                NumpyCodeGenerator._use_ufunc_at_vectorisation = use_ufunc_at
+                src = NeuronGroup(3, eqs_src, threshold='True', name='src')
+                tgt = NeuronGroup(3, eqs_tgt, name='tgt')
+                syn = Synapses(src, tgt, eqs_syn, pre=code.replace('_syn', ''), connect=True, name='syn')
+                for G, vars in [(src, vars_src), (tgt, vars_tgt), (syn, vars_syn)]:
+                    for var in vars:
+                        fullvar = var+G.name
+                        if fullvar in origvals:
+                            G.state(var)[:] = origvals[fullvar]
+                        else:
+                            val = rand(len(G))
+                            G.state(var)[:] = val
+                            origvals[fullvar] = val.copy()
+                Network(src, tgt, syn).run(defaultclock.dt)
+                for G, vars in [(src, vars_src), (tgt, vars_tgt), (syn, vars_syn)]:
+                    for var in vars:
+                        fullvar = var+G.name
+                        val = G.state(var)[:].copy()
+                        if fullvar in endvals:
+                            assert_allclose(val, endvals[fullvar])
+                        else:
+                            endvals[fullvar] = val
+        finally:
+            NumpyCodeGenerator._use_ufunc_at_vectorisation = True # restore it
+
 
 if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
-    # prefs.codegen.target = 'numpy'
+    prefs.codegen.target = 'numpy'
     import time
     start = time.time()
 
@@ -1162,8 +1217,9 @@ if __name__ == '__main__':
     # test_event_driven()
     # test_repr()
     # test_variables_by_owner()
-    test_permutation_analysis()
+    # test_permutation_analysis()
     # test_vectorisation()
     # test_vectorisation_STDP_like()
+    test_ufunc_at_vectorisation()
 
     print 'Tests took', time.time()-start

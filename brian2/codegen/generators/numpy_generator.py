@@ -28,6 +28,8 @@ class NumpyCodeGenerator(CodeGenerator):
 
     class_name = 'numpy'
 
+    _use_ufunc_at_vectorisation = True # allow this to be off for testing only
+
     def translate_expression(self, expr):
         for varname, var in self.variables.iteritems():
             if isinstance(var, Function):
@@ -50,6 +52,8 @@ class NumpyCodeGenerator(CodeGenerator):
 
     def ufunc_at_vectorisation(self, statement, variables, indices,
                                conditional_write_vars, created_vars, used_variables):
+        if not self._use_ufunc_at_vectorisation:
+            raise VectorisationError()
         # Avoids circular import
         from brian2.devices.device import device
 
@@ -135,31 +139,28 @@ class NumpyCodeGenerator(CodeGenerator):
                                                      variable_indices))
                 lines.extend(ufunc_lines)
         except VectorisationError:
-            logger.warn("Failed to vectorise code, falling back on Python loop: note that "
-                        "this will be very slow! Switch to another code generation target for "
-                        "best performance (e.g. cython or weave).",
-                        once=True)
+            if self._use_ufunc_at_vectorisation:
+                logger.warn("Failed to vectorise code, falling back on Python loop: note that "
+                            "this will be very slow! Switch to another code generation target for "
+                            "best performance (e.g. cython or weave). First line is: "+str(statements[0]),
+                            once=True)
             lines = []
             lines.extend(['_full_idx = _idx',
                           'for _idx in _full_idx:'])
+            read, write, indices, conditional_write_vars = self.arrays_helper(statements)
+            lines.extend(indent(code) for code in
+                         self.read_arrays(read, write, indices,
+                                          variables, variable_indices))
             for statement in statements:
-                # TODO: improve this so that only one read/write block is used (see Cython implementation?)
-                lines.extend(indent(code) for code in
-                             self.read_arrays(read, write, indices,
-                                              variables, variable_indices))
                 line = self.translate_statement(statement)
                 if statement.var in conditional_write_vars:
                     lines.append(indent('if {}:'.format(conditional_write_vars[statement.var])))
                     lines.append(indent(line, 2))
-                    lines.extend(indent(code, 2) for code in
-                                 self.write_arrays(statements, read, write,
-                                                   variables, variable_indices))
                 else:
                     lines.append(indent(line))
-                    lines.extend(indent(code) for code in
-                                 self.write_arrays(statements, read, write,
-                                                   variables, variable_indices))
-
+            lines.extend(indent(code) for code in
+                         self.write_arrays(statements, read, write,
+                                           variables, variable_indices))
         return lines
 
     def read_arrays(self, read, write, indices, variables, variable_indices):

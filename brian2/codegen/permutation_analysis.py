@@ -2,6 +2,7 @@
 Module for analysing synaptic pre and post code for synapse order independence.
 '''
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
+from brian2.core.functions import Function
 from numpy.random import randn, randint
 from numpy import amax, abs, arange, zeros
 from random import shuffle
@@ -17,6 +18,19 @@ def check_for_order_independence(statements, variables, indices):
     '''
     Check that the sequence of statements doesn't depend on the order in which the indices are iterated through.
     '''
+    # Remove stateless functions from variables (only bother with ones that are used)
+    all_used_vars = set()
+    for statement in statements:
+        all_used_vars.update(get_identifiers(statement.expr))
+    variables = variables.copy()
+    for var in set(variables.keys()).intersection(all_used_vars):
+        val = variables[var]
+        if isinstance(val, Function):
+            if val.stateless:
+                del variables[var]
+            else:
+                raise OrderDependenceError("Function %s may have internal state, "
+                                            "which can lead to order dependence." % var)
     # Main index variables are those whose index corresponds to the main index being iterated through. By
     # assumption/definition, these indices are unique, and any order-dependence cannot come from their values,
     # only from the values of the derived indices. In the most common case of Synapses, the main index would be
