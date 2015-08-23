@@ -234,12 +234,7 @@ class NumpyCodeGenerator(CodeGenerator):
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
         lines = []
 
-        # Check whether we potentially deal with repeated indices (which will
-        # be the case most importantly when we write to pre- or post-synaptic
-        # variables in synaptic code)
-        used_indices = set(variable_indices[var] for var in write)
-        all_unique = all(variables[index].unique for index in used_indices
-                         if index not in ('_idx', '0'))
+        all_unique = self.has_repeated_indices(statements)
 
         if scalar or all_unique:
             # Simple translation
