@@ -1131,8 +1131,11 @@ def test_ufunc_at_vectorisation():
     if prefs.codegen.target != 'numpy':
         raise SkipTest('numpy-only test')
     for code in permutation_analysis_good_examples:
-        if 'NOT_UFUNC_AT_VECTORISABLE' in code:
-            continue
+        should_be_able_to_use_ufunc_at = not 'NOT_UFUNC_AT_VECTORISABLE' in code
+        if should_be_able_to_use_ufunc_at:
+            use_ufunc_at_list = [False, True]
+        else:
+            use_ufunc_at_list = [True]
         code = deindent(code)
         vars = get_identifiers(code)
         vars_src = []
@@ -1151,29 +1154,39 @@ def test_ufunc_at_vectorisation():
         origvals = {}
         endvals = {}
         try:
-            for use_ufunc_at in [False, True]:
-                NumpyCodeGenerator._use_ufunc_at_vectorisation = use_ufunc_at
-                src = NeuronGroup(3, eqs_src, threshold='True', name='src')
-                tgt = NeuronGroup(3, eqs_tgt, name='tgt')
-                syn = Synapses(src, tgt, eqs_syn, pre=code.replace('_syn', ''), connect=True, name='syn')
-                for G, vars in [(src, vars_src), (tgt, vars_tgt), (syn, vars_syn)]:
-                    for var in vars:
-                        fullvar = var+G.name
-                        if fullvar in origvals:
-                            G.state(var)[:] = origvals[fullvar]
-                        else:
-                            val = rand(len(G))
-                            G.state(var)[:] = val
-                            origvals[fullvar] = val.copy()
-                Network(src, tgt, syn).run(defaultclock.dt)
-                for G, vars in [(src, vars_src), (tgt, vars_tgt), (syn, vars_syn)]:
-                    for var in vars:
-                        fullvar = var+G.name
-                        val = G.state(var)[:].copy()
-                        if fullvar in endvals:
-                            assert_allclose(val, endvals[fullvar])
-                        else:
-                            endvals[fullvar] = val
+            BrianLogger._log_messages.clear()
+            with catch_logs() as caught_logs:
+                for use_ufunc_at in use_ufunc_at_list:
+                    NumpyCodeGenerator._use_ufunc_at_vectorisation = use_ufunc_at
+                    src = NeuronGroup(3, eqs_src, threshold='True', name='src')
+                    tgt = NeuronGroup(3, eqs_tgt, name='tgt')
+                    syn = Synapses(src, tgt, eqs_syn, pre=code.replace('_syn', ''), connect=True, name='syn')
+                    for G, vars in [(src, vars_src), (tgt, vars_tgt), (syn, vars_syn)]:
+                        for var in vars:
+                            fullvar = var+G.name
+                            if fullvar in origvals:
+                                G.state(var)[:] = origvals[fullvar]
+                            else:
+                                val = rand(len(G))
+                                G.state(var)[:] = val
+                                origvals[fullvar] = val.copy()
+                    Network(src, tgt, syn).run(defaultclock.dt)
+                    for G, vars in [(src, vars_src), (tgt, vars_tgt), (syn, vars_syn)]:
+                        for var in vars:
+                            fullvar = var+G.name
+                            val = G.state(var)[:].copy()
+                            if fullvar in endvals:
+                                assert_allclose(val, endvals[fullvar])
+                            else:
+                                endvals[fullvar] = val
+                if should_be_able_to_use_ufunc_at:
+                    assert len(caught_logs)==0
+                else:
+                    assert len(caught_logs)==1
+                    log_lev, log_mod, log_msg = caught_logs[0]
+                    assert log_lev=='WARNING'
+                    assert log_mod=='brian2.codegen.generators.numpy_generator'
+                    assert log_msg.startswith('Failed to vectorise code')
         finally:
             NumpyCodeGenerator._use_ufunc_at_vectorisation = True # restore it
 
