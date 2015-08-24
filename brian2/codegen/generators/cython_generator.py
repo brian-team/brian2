@@ -235,7 +235,10 @@ class CythonCodeGenerator(CodeGenerator):
                 if not var.scalar:
                     newlines += ["cdef int _num{array_name} = len(_namespace['{array_name}'])"]
 
-                newlines += ["cdef {cpp_dtype} {varname}"]
+                if var.array and var.scalar and var.constant:
+                    newlines += ['cdef {cpp_dtype} {varname} = _namespace["{varname}"]']
+                else:
+                    newlines += ["cdef {cpp_dtype} {varname}"]
 
                 for line in newlines:
                     line = line.format(cpp_dtype=get_cpp_dtype(var.dtype),
