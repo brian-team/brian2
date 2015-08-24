@@ -999,9 +999,12 @@ class Synapses(Group):
             try:
                 self.variables.add_reference(name + '_post', self.target, name,
                                              index=index)
-                # Also add all the post variables without a suffix
-                self.variables.add_reference(name, self.target, name,
-                                             index=index)
+                # Also add all the post variables without a suffix, but only if
+                # it does not have a post or pre suffix in the target group
+                # (which could happen when connecting to synapses)
+                if not name.endswith('_post') or name.endswith('pre'):
+                    self.variables.add_reference(name, self.target, name,
+                                                 index=index)
             except TypeError:
                 logger.debug(('Cannot include a reference to {var} in '
                               '{synapses}, {var} uses a non-standard indexing '
