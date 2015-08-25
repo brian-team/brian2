@@ -264,9 +264,6 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         spikespace = self.variables['_spikespace'].get_value()
         return spikespace[:spikespace[-1]]
 
-    def __len__(self):
-        return self.N
-
     def __repr__(self):
         return ('{cls}({N}, indices=<length {l} array>, '
                 'times=<length {l} array>').format(cls=self.__class__.__name__,

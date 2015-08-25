@@ -3,16 +3,21 @@
 {% block maincode %}
     {#
     USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
-                     N_incoming, N_outgoing }
+                     N_incoming, N_outgoing, N,
+                     N_pre, N_post, _source_offset, _target_offset}
     #}
     srand((unsigned int)time(NULL));
     const int _buffer_size = 1024;
     int *const _prebuf = new int[_buffer_size];
     int *const _postbuf = new int[_buffer_size];
-    int *const _synprebuf = new int[1];
-    int *const _synpostbuf = new int[1];
     int _curbuf = 0;
 
+    // Resize N_incoming and N_outgoing according to the size of the
+    // source/target groups
+    PyObject_CallMethod(_var_N_incoming, "resize", "i", N_post + _target_offset);
+    PyObject_CallMethod(_var_N_outgoing, "resize", "i", N_pre + _source_offset);
+    int *_N_incoming = (int *)(((PyArrayObject*)(PyObject*){{_dynamic_N_incoming}}.attr("data"))->data);
+    int *_N_outgoing = (int *)(((PyArrayObject*)(PyObject*){{_dynamic_N_outgoing}}.attr("data"))->data);
     // scalar code
 	const int _vectorisation_idx = 1;
 	{{scalar_code|autoindent}}
@@ -43,8 +48,8 @@
                 }
 
                 for (int _repetition=0; _repetition<_n; _repetition++) {
-                    {{N_outgoing}}[_pre_idx] += 1;
-                    {{N_incoming}}[_post_idx] += 1;
+                    _N_outgoing[_pre_idx] += 1;
+                    _N_incoming[_post_idx] += 1;
                     _prebuf[_curbuf] = _pre_idx;
                     _postbuf[_curbuf] = _post_idx;
                     _curbuf++;
@@ -64,15 +69,13 @@
     _flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf);
 
     const int newsize = {{_dynamic__synaptic_pre}}.size();
-    // now we need to resize all registered variables (via Python)
+    // now we need to resize all registered variables and set the total number
+    // of synapses (via Python)
     py::tuple _newlen_tuple(1);
     _newlen_tuple[0] = newsize;
     _owner.mcall("_resize", _newlen_tuple);
-
     delete [] _prebuf;
     delete [] _postbuf;
-    delete [] _synprebuf;
-    delete [] _synpostbuf;
 {% endblock %}
 
 {% block support_code_block %}

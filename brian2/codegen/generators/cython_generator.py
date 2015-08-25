@@ -187,6 +187,8 @@ class CythonCodeGenerator(CodeGenerator):
         handled_pointers = set()
         user_functions = []
         for varname, var in self.variables.items():
+            if isinstance(var, Variable) and not isinstance(var, (Subexpression, AuxiliaryVariable)):
+                load_namespace.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
             if isinstance(var, AuxiliaryVariable):
                 line = "cdef {dtype} {varname}".format(
                                 dtype=get_cpp_dtype(var.dtype),
@@ -233,7 +235,10 @@ class CythonCodeGenerator(CodeGenerator):
                 if not var.scalar:
                     newlines += ["cdef int _num{array_name} = len(_namespace['{array_name}'])"]
 
-                newlines += ["cdef {cpp_dtype} {varname}"]
+                if var.scalar and var.constant:
+                    newlines += ['cdef {cpp_dtype} {varname} = _namespace["{varname}"]']
+                else:
+                    newlines += ["cdef {cpp_dtype} {varname}"]
 
                 for line in newlines:
                     line = line.format(cpp_dtype=get_cpp_dtype(var.dtype),

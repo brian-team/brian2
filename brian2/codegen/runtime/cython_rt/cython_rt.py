@@ -123,6 +123,8 @@ class CythonCodeObject(NumpyCodeObject):
                 self.namespace[self.device.get_array_name(var,
                                                             self.variables)] = value
                 self.namespace['_num'+name] = var.get_len()
+                if var.scalar and var.constant:
+                    self.namespace[name] = value.item()
             else:
                 self.namespace[name] = value
 
@@ -131,6 +133,10 @@ class CythonCodeObject(NumpyCodeObject):
                                                                     access_data=False)
                 self.namespace[dyn_array_name] = self.device.get_value(var,
                                                                        access_data=False)
+
+            # Also provide the Variable object itself in the namespace (can be
+            # necessary for resize operations, for example)
+            self.namespace['_var_'+name] = var
 
             # There are two kinds of objects that we have to inject into the
             # namespace with their current value at each time step:

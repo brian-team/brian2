@@ -3,7 +3,8 @@ import tempfile
 
 from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
+from numpy.testing.utils import (assert_equal, assert_allclose, assert_raises,
+                                 assert_array_equal)
 
 from brian2 import *
 from brian2.codegen.translation import make_statements
@@ -1002,6 +1003,19 @@ def test_vectorisation_STDP_like():
                     [0., 0., 0., -7.31700015, -8.13000011, -4.04603529],
                     rtol=1e-6, atol=1e-12)
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_synapses_to_synapses():
+    source = SpikeGeneratorGroup(3, [0, 1, 2], [0, 0, 0]*ms, period=2*ms)
+    modulator = SpikeGeneratorGroup(3, [0, 2], [1, 3]*ms)
+    target = NeuronGroup(3, 'v : integer')
+    conn = Synapses(source, target, 'w : integer', pre='v += w', connect='i==j')
+    conn.w = 1
+    modulatory_conn = Synapses(modulator, conn, pre='w += 1', connect='i==j')
+    run(5*ms)
+    # First group has its weight increased to 2 after the first spike
+    # Third group has its weight increased to 2 after the second spike
+    assert_array_equal(target.v, [5, 3, 4])
 
 if __name__ == '__main__':
     from brian2 import prefs
@@ -1044,5 +1058,6 @@ if __name__ == '__main__':
     test_permutation_analysis()
     test_vectorisation()
     test_vectorisation_STDP_like()
+    test_synapses_to_synapses()
 
     print 'Tests took', time.time()-start

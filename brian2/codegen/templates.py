@@ -3,9 +3,8 @@ Handles loading templates from a directory.
 '''
 import os
 import re
-import collections
 
-from jinja2 import Environment, PackageLoader, ChoiceLoader
+from jinja2 import Environment, PackageLoader, ChoiceLoader, StrictUndefined
 
 from brian2.utils.stringtools import (indent, strip_empty_lines,
                                       get_identifiers)
@@ -69,7 +68,8 @@ class Templater(object):
         if isinstance(package_name, basestring):
             package_name = (package_name,)
         loader = ChoiceLoader([PackageLoader(name, 'templates') for name in package_name])
-        self.env = Environment(loader=loader, trim_blocks=True, lstrip_blocks=True)
+        self.env = Environment(loader=loader, trim_blocks=True,
+                               lstrip_blocks=True, undefined=StrictUndefined)
         self.env.globals['autoindent'] = autoindent
         self.env.filters['autoindent'] = autoindent
         if env_globals is not None:

@@ -55,22 +55,16 @@ class PopulationRateMonitor(Group, CodeRunner):
         self.variables.add_dynamic_array('t', size=0, unit=second,
                                          constant_size=False)
         self.variables.add_reference('_num_source_neurons', source, 'N')
-        self.variables.add_attribute_variable('N', unit=Unit(1), obj=self,
-                                              attribute='_N', dtype=np.int32)
+        self.variables.add_array('N', unit=Unit(1), dtype=np.int32, size=1,
+                                 scalar=True, read_only=True)
         self.variables.create_clock_variables(self._clock,
                                               prefix='_clock_')
         self._enable_group_attributes()
 
-    @property
-    def _N(self):
-        return len(self.variables['t'].get_value())
-
     def resize(self, new_size):
+        self.variables['N'].set_value(new_size)
         self.variables['rate'].resize(new_size)
         self.variables['t'].resize(new_size)
-
-    def __len__(self):
-        return self._N
 
     def reinit(self):
         '''

@@ -505,12 +505,6 @@ class NeuronGroup(Group, SpikeSource):
         # Activate name attribute access
         self._enable_group_attributes()
 
-    def __len__(self):
-        '''
-        Return number of neurons in the group.
-        '''
-        return self.N
-
     @property
     def spikes(self):
         '''
@@ -747,12 +741,10 @@ class NeuronGroup(Group, SpikeSource):
                     constant = 'constant' in eq.flags
                     shared = 'shared' in eq.flags
                     size = 1 if shared else self._N
-                    index = '0' if shared else None
                     self.variables.add_array(eq.varname, size=size,
                                              unit=eq.unit, dtype=dtype,
                                              constant=constant,
-                                             scalar=shared,
-                                             index=index)
+                                             scalar=shared)
             elif eq.type == SUBEXPRESSION:
                 self.variables.add_subexpression(eq.varname, unit=eq.unit,
                                                  expr=str(eq.expr),

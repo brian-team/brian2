@@ -274,6 +274,8 @@ class Group(BrianObject):
     def _enable_group_attributes(self):
         if not hasattr(self, 'variables'):
             raise ValueError('Classes derived from Group need variables attribute.')
+        if not 'N' in self.variables:
+            raise ValueError('Each group needs an "N" variable.')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
         if not hasattr(self, '_indices'):
@@ -285,6 +287,9 @@ class Group(BrianObject):
         if not hasattr(self, '_stored_clocks'):
             self._stored_clocks = {}
         self._group_attribute_access_active = True
+
+    def __len__(self):
+        return self.variables['N'].get_value()
 
     def state(self, name, use_units=True, level=0):
         '''
