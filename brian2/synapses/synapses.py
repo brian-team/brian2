@@ -1156,6 +1156,18 @@ class Synapses(Group):
 
             sources = np.atleast_1d(sources).astype(np.int32)
             targets = np.atleast_1d(targets).astype(np.int32)
+
+            # Check whether the values in sources/targets make sense
+            error_message = ('The given {source_or_target} indices contain '
+                             'values outside of the range [0, {max_value}] '
+                             'allowed for the {source_or_target} group '
+                             '"{group_name}"')
+            for indices, source_or_target, group in [(sources, 'source', self.source),
+                                                     (targets, 'target', self.target)]:
+                if np.max(indices) >= len(group) or np.min(indices) < 0:
+                    raise IndexError(error_message.format(source_or_target=source_or_target,
+                                                          max_value=len(group)-1,
+                                                          group_name=group.name))
             n = np.atleast_1d(n)
             p = np.atleast_1d(p)
 

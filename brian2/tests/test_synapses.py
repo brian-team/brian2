@@ -117,6 +117,10 @@ def test_connection_arrays():
     assert_raises(ValueError, lambda: S.connect([1, 2, 3], [1, 2]))
     assert_raises(ValueError, lambda: S.connect(np.ones((3, 3), dtype=np.int32),
                                                 np.ones((3, 1), dtype=np.int32)))
+    assert_raises(IndexError, lambda: S.connect([41, 42], [0, 1]))  # source index > max
+    assert_raises(IndexError, lambda: S.connect([0, 1], [16, 17]))  # target index > max
+    assert_raises(IndexError, lambda: S.connect([0, -1], [0, 1]))  # source index < 0
+    assert_raises(IndexError, lambda: S.connect([0, 1], [0, -1]))  # target index < 0
     assert_raises(ValueError, lambda: S.connect('i==j',
                                                 post=np.arange(10)))
     assert_raises(TypeError, lambda: S.connect('i==j',
