@@ -1017,6 +1017,21 @@ def test_synapses_to_synapses():
     # Third group has its weight increased to 2 after the second spike
     assert_array_equal(target.v, [5, 3, 4])
 
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_synapses_to_synapses_summed_variable():
+    source = NeuronGroup(5, '', threshold='False')
+    target = NeuronGroup(5, '')
+    conn = Synapses(source, target, 'w : integer', connect='i==j')
+    conn.w = 1
+    summed_conn = Synapses(source, conn, '''w_post = x : integer (summed)
+                                            x : integer''', connect='i>=j')
+    summed_conn.x = 'i'
+    run(defaultclock.dt)
+    assert_array_equal(conn.w[:], [10, 10, 9, 7, 4])
+
+
 if __name__ == '__main__':
     from brian2 import prefs
     # prefs.codegen.target = 'numpy'
@@ -1059,5 +1074,6 @@ if __name__ == '__main__':
     test_vectorisation()
     test_vectorisation_STDP_like()
     test_synapses_to_synapses()
+    test_synapses_to_synapses_summed_variable()
 
     print 'Tests took', time.time()-start
