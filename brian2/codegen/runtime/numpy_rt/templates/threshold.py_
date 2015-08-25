@@ -8,6 +8,7 @@
 import numpy as _numpy
 
 numpy_True = _numpy.bool_(True)
+numpy_False = _numpy.bool_(False)
 
 # scalar code
 _vectorisation_idx = 1
@@ -19,6 +20,8 @@ _vectorisation_idx = N
 {{vector_code|autoindent}}
 if _cond is True or _cond is numpy_True:
     _events = _numpy.arange(_vectorisation_idx)
+elif _cond is False or _cond is numpy_False:
+    _events = _numpy.array([])
 else:
     _events, = _cond.nonzero()
 
