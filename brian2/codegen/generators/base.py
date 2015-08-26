@@ -192,6 +192,10 @@ class CodeGenerator(object):
         return read, write, indices, conditional_write_vars
 
     def has_repeated_indices(self, statements):
+        '''
+        Whether any of the statements potentially uses repeated indices (e.g.
+        pre- or postsynaptic indices).
+        '''
         variables = self.variables
         variable_indices = self.variable_indices
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
@@ -201,7 +205,7 @@ class CodeGenerator(object):
         used_indices = set(variable_indices[var] for var in write)
         all_unique = all(variables[index].unique for index in used_indices
                          if index not in ('_idx', '0'))
-        return all_unique
+        return not all_unique
 
     def translate(self, code, dtype):
         '''
@@ -217,7 +221,7 @@ class CodeGenerator(object):
             # Check that the statements are meaningful independent on the order of
             # execution (e.g. for synapses)
             try:
-                if not self.has_repeated_indices(vs): # only do order dependence if there are repeated indices
+                if self.has_repeated_indices(vs):  # only do order dependence if there are repeated indices
                     check_for_order_independence(vs,
                                                  self.variables,
                                                  self.variable_indices)

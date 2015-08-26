@@ -234,7 +234,7 @@ class NumpyCodeGenerator(CodeGenerator):
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
         lines = []
 
-        all_unique = self.has_repeated_indices(statements)
+        all_unique = not self.has_repeated_indices(statements)
 
         if scalar or all_unique:
             # Simple translation
