@@ -191,6 +191,22 @@ class CodeGenerator(object):
                     if var in conditional_write_vars)
         return read, write, indices, conditional_write_vars
 
+    def has_repeated_indices(self, statements):
+        '''
+        Whether any of the statements potentially uses repeated indices (e.g.
+        pre- or postsynaptic indices).
+        '''
+        variables = self.variables
+        variable_indices = self.variable_indices
+        read, write, indices, conditional_write_vars = self.arrays_helper(statements)
+        # Check whether we potentially deal with repeated indices (which will
+        # be the case most importantly when we write to pre- or post-synaptic
+        # variables in synaptic code)
+        used_indices = set(variable_indices[var] for var in write)
+        all_unique = all(variables[index].unique for index in used_indices
+                         if index not in ('_idx', '0'))
+        return not all_unique
+
     def translate(self, code, dtype):
         '''
         Translates an abstract code block into the target language.
@@ -205,9 +221,10 @@ class CodeGenerator(object):
             # Check that the statements are meaningful independent on the order of
             # execution (e.g. for synapses)
             try:
-                check_for_order_independence(vs,
-                                             self.variables,
-                                             self.variable_indices)
+                if self.has_repeated_indices(vs):  # only do order dependence if there are repeated indices
+                    check_for_order_independence(vs,
+                                                 self.variables,
+                                                 self.variable_indices)
             except OrderDependenceError:
                 # If the abstract code is only one line, display it in full
                 if len(vs) <= 1:
@@ -215,9 +232,11 @@ class CodeGenerator(object):
                 else:
                     error_msg = ('%d lines of abstract code, first line is: '
                                  '"%s"\n') % (len(vs), vs[0])
-                logger.warn(('Came across an abstract code block that is not '
+                logger.warn(('Came across an abstract code block that may not be '
                              'well-defined: the outcome may depend on the '
-                             'order of execution. ' + error_msg))
+                             'order of execution. You can ignore this warning if '
+                             'you are sure that the order of operations does not '
+                             'matter. ' + error_msg))
 
         return self.translate_statement_sequence(scalar_statements,
                                                  vector_statements)
