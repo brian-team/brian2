@@ -13,6 +13,8 @@ from .allunits import (
                        cmetre, cmeter, # quite commonly used
                        psecond, nsecond, usecond, msecond, second,
                        ksecond, Msecond, Gsecond, Tsecond,
+                       pmole, nmole, umole, mmole, mole,
+                       kmole, Mmole, Gmole, Tmole,
                        # derived units
                        pcoulomb, ncoulomb, ucoulomb, mcoulomb, coulomb,
                        kcoulomb, Mcoulomb, Gcoulomb, Tcoulomb,
@@ -57,6 +59,8 @@ __all__ = ['pamp', 'namp', 'uamp', 'mamp', 'amp',
            'cmetre', 'cmeter',
            'psecond', 'nsecond', 'usecond', 'msecond', 'second',
            'ksecond', 'Msecond', 'Gsecond', 'Tsecond',
+           'pmole', 'nmole', 'umole', 'mmole', 'mole',
+           'kmole', 'Mmole', 'Gmole', 'Tmole',
            # derived units
            'pcoulomb', 'ncoulomb', 'ucoulomb', 'mcoulomb', 'coulomb',
            'kcoulomb', 'Mcoulomb', 'Gcoulomb', 'Tcoulomb',

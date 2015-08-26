@@ -1,13 +1,10 @@
 import tempfile
-import os
 
-from nose import with_setup
+from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
-import numpy
 from numpy.testing.utils import assert_allclose, assert_equal, assert_raises
 
 from brian2 import *
-from brian2.devices.cpp_standalone import cpp_standalone_device
 from brian2.devices.device import restore_device
 
 @attr('cpp_standalone', 'standalone-only')
@@ -113,6 +110,8 @@ def test_storing_loading(with_output=False):
 @attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=restore_device)
 def test_openmp_consistency(with_output=False):
+    if sys.platform.startswith('darwin'):
+        raise SkipTest('Skipping OpenMP on MacOSX')
     previous_device = get_device()
     n_cells    = 100
     n_recorded = 10

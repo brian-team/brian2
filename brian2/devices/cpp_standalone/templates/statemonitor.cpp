@@ -17,8 +17,8 @@
     {% endfor %}
 
     // scalar code
-	const int _vectorisation_idx = -1;
-	{{scalar_code|autoindent}}
+    const int _vectorisation_idx = -1;
+    {{scalar_code|autoindent}}
 
     {{ openmp_pragma('static') }}
     for (int _i = 0; _i < _num_indices; _i++)

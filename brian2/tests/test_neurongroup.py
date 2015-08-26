@@ -84,6 +84,42 @@ def test_variables():
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1', refractory=5*ms)
     assert 'not_refractory' in G.variables and 'lastspike' in G.variables
 
+@attr('codegen-independent')
+def test_variableview_calculations():
+    # Check that you can directly calculate with "variable views"
+    G = NeuronGroup(10, '''x : 1
+                           y : volt''')
+    G.x = np.arange(10)
+    G.y = np.arange(10)[::-1]*mV
+    assert_allclose(G.x * G.y, np.arange(10)*np.arange(10)[::-1]*mV)
+    assert_allclose(-G.x, -np.arange(10))
+    assert_allclose(-G.y, -np.arange(10)[::-1]*mV)
+
+    assert_allclose(3 * G.x, 3 * np.arange(10))
+    assert_allclose(3 * G.y, 3 *np.arange(10)[::-1]*mV)
+    assert_allclose(G.x * 3, 3 * np.arange(10))
+    assert_allclose(G.y * 3, 3 *np.arange(10)[::-1]*mV)
+    assert_allclose(G.x / 2.0, np.arange(10)/2.0)
+    assert_allclose(G.y / 2, np.arange(10)[::-1]*mV/2)
+    assert_allclose(G.x + 2, 2 + np.arange(10))
+    assert_allclose(G.y + 2*mV, 2*mV + np.arange(10)[::-1]*mV)
+    assert_allclose(2 + G.x, 2 + np.arange(10))
+    assert_allclose(2*mV + G.y, 2*mV + np.arange(10)[::-1]*mV)
+    assert_allclose(G.x - 2, np.arange(10) - 2)
+    assert_allclose(G.y - 2*mV, np.arange(10)[::-1]*mV - 2*mV)
+    assert_allclose(2 - G.x, 2 - np.arange(10))
+    assert_allclose(2*mV - G.y, 2*mV - np.arange(10)[::-1]*mV)
+
+    # incorrect units
+    assert_raises(DimensionMismatchError, lambda: G.x + G.y)
+    assert_raises(DimensionMismatchError, lambda: G.x[:] + G.y)
+    assert_raises(DimensionMismatchError, lambda: G.x + G.y[:])
+    assert_raises(DimensionMismatchError, lambda: G.x + 3*mV)
+    assert_raises(DimensionMismatchError, lambda: 3*mV + G.x)
+    assert_raises(DimensionMismatchError, lambda: G.y + 3)
+    assert_raises(DimensionMismatchError, lambda: 3 + G.y)
+
+
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_stochastic_variable():
@@ -1190,6 +1226,7 @@ if __name__ == '__main__':
     test_creation()
     test_integer_variables_and_mod()
     test_variables()
+    test_variableview_calculations()
     test_scalar_variable()
     test_referred_scalar_variable()
     test_linked_variable_correct()

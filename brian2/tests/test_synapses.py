@@ -3,8 +3,8 @@ import tempfile
 
 from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
-from collections import defaultdict
+from numpy.testing.utils import (assert_equal, assert_allclose, assert_raises,
+                                 assert_array_equal)
 
 from brian2 import *
 from brian2.codegen.translation import make_statements
@@ -14,6 +14,7 @@ from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
 from brian2.devices.device import restore_device, all_devices, get_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
+
 
 def _compare(synapses, expected):
     conn_matrix = np.zeros((len(synapses.source), len(synapses.target)))
@@ -117,6 +118,10 @@ def test_connection_arrays():
     assert_raises(ValueError, lambda: S.connect([1, 2, 3], [1, 2]))
     assert_raises(ValueError, lambda: S.connect(np.ones((3, 3), dtype=np.int32),
                                                 np.ones((3, 1), dtype=np.int32)))
+    assert_raises(IndexError, lambda: S.connect([41, 42], [0, 1]))  # source index > max
+    assert_raises(IndexError, lambda: S.connect([0, 1], [16, 17]))  # target index > max
+    assert_raises(IndexError, lambda: S.connect([0, -1], [0, 1]))  # source index < 0
+    assert_raises(IndexError, lambda: S.connect([0, 1], [0, -1]))  # target index < 0
     assert_raises(ValueError, lambda: S.connect('i==j',
                                                 post=np.arange(10)))
     assert_raises(TypeError, lambda: S.connect('i==j',
@@ -1127,6 +1132,21 @@ def test_vectorisation_STDP_like():
                     [0., 0., 0., -7.31700015, -8.13000011, -4.04603529],
                     rtol=1e-6, atol=1e-12)
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_synapses_to_synapses():
+    source = SpikeGeneratorGroup(3, [0, 1, 2], [0, 0, 0]*ms, period=2*ms)
+    modulator = SpikeGeneratorGroup(3, [0, 2], [1, 3]*ms)
+    target = NeuronGroup(3, 'v : integer')
+    conn = Synapses(source, target, 'w : integer', pre='v += w', connect='i==j')
+    conn.w = 1
+    modulatory_conn = Synapses(modulator, conn, pre='w += 1', connect='i==j')
+    run(5*ms)
+    # First group has its weight increased to 2 after the first spike
+    # Third group has its weight increased to 2 after the second spike
+    assert_array_equal(target.v, [5, 3, 4])
+
+
 def test_ufunc_at_vectorisation():
     if prefs.codegen.target != 'numpy':
         raise SkipTest('numpy-only test')
@@ -1191,48 +1211,64 @@ def test_ufunc_at_vectorisation():
             NumpyCodeGenerator._use_ufunc_at_vectorisation = True # restore it
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_synapses_to_synapses_summed_variable():
+    source = NeuronGroup(5, '', threshold='False')
+    target = NeuronGroup(5, '')
+    conn = Synapses(source, target, 'w : integer', connect='i==j')
+    conn.w = 1
+    summed_conn = Synapses(source, conn, '''w_post = x : integer (summed)
+                                            x : integer''', connect='i>=j')
+    summed_conn.x = 'i'
+    run(defaultclock.dt)
+    assert_array_equal(conn.w[:], [10, 10, 9, 7, 4])
+
+
 if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
-    prefs.codegen.target = 'numpy'
+    # prefs.codegen.target = 'numpy'
     import time
     start = time.time()
 
-    # test_creation()
-    # test_name_clashes()
-    # test_incoming_outgoing()
-    # test_connection_string_deterministic()
-    # test_connection_random()
-    # test_connection_multiple_synapses()
-    # test_connection_arrays()
-    # test_connection_array_standalone()
-    # restore_device()
-    # test_state_variable_assignment()
-    # test_state_variable_indexing()
-    # test_indices()
-    # test_subexpression_references()
-    # test_delay_specification()
-    # test_pre_before_post()
-    # test_transmission_simple()
-    # test_transmission_custom_event()
-    # test_invalid_custom_event()
-    # test_transmission()
-    # test_transmission_scalar_delay()
-    # test_transmission_scalar_delay_different_clocks()
-    # test_clocks()
-    # test_changed_dt_spikes_in_queue()
-    # test_no_synapses()
-    # test_summed_variable()
-    # test_summed_variable_errors()
-    # test_scalar_parameter_access()
-    # test_scalar_subexpression()
-    # test_external_variables()
-    # test_event_driven()
-    # test_repr()
-    # test_variables_by_owner()
-    # test_permutation_analysis()
-    # test_vectorisation()
-    # test_vectorisation_STDP_like()
+    test_creation()
+    test_name_clashes()
+    test_incoming_outgoing()
+    test_connection_string_deterministic()
+    test_connection_random()
+    test_connection_multiple_synapses()
+    test_connection_arrays()
+    test_connection_array_standalone()
+    restore_device()
+    test_state_variable_assignment()
+    test_state_variable_indexing()
+    test_indices()
+    test_subexpression_references()
+    test_delay_specification()
+    test_pre_before_post()
+    test_transmission_simple()
+    test_transmission_custom_event()
+    test_invalid_custom_event()
+    test_transmission()
+    test_transmission_scalar_delay()
+    test_transmission_scalar_delay_different_clocks()
+    test_clocks()
+    test_changed_dt_spikes_in_queue()
+    test_no_synapses()
+    test_summed_variable()
+    test_summed_variable_errors()
+    test_scalar_parameter_access()
+    test_scalar_subexpression()
+    test_external_variables()
+    test_event_driven()
+    test_repr()
+    test_variables_by_owner()
+    test_permutation_analysis()
+    test_vectorisation()
+    test_vectorisation_STDP_like()
+    test_synapses_to_synapses()
+    test_synapses_to_synapses_summed_variable()
     test_ufunc_at_vectorisation()
 
     print 'Tests took', time.time()-start

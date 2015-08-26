@@ -3,7 +3,7 @@
 
 {% set _non_synaptic = [] %}
 {% for var in variables %}
-    {% if variable_indices[var] != '_idx' %}
+    {% if variable_indices[var] not in ('_idx', '0') %}
         {# This is a trick to get around the scoping problem #}
         {% if _non_synaptic.append(1) %}{% endif %}
     {% endif %}
@@ -35,7 +35,7 @@
 	}
 	{% else %}
 	{{ openmp_pragma('static') }}
-	for(unsigned int _spiking_synapse_idx=0;
+	for(int _spiking_synapse_idx=0;
 		_spiking_synapse_idx<_num_spiking_synapses;
 		_spiking_synapse_idx++)
 	{

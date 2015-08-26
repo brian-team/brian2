@@ -125,9 +125,12 @@ class Variable(object):
         internally and cannot be changed by the user (this is used for example
         for the variable ``N``, the number of neurons in a group). Defaults
         to ``False``.
+    array : bool, optional
+        Whether this variable is an array. Allows for simpler check than testing
+        ``isinstance(var, ArrayVariable)``. Defaults to ``False``.
     '''
     def __init__(self, name, unit, owner=None, dtype=None, scalar=False,
-                 constant=False, read_only=False, dynamic=False):
+                 constant=False, read_only=False, dynamic=False, array=False):
         
         #: The variable's unit.
         self.unit = unit
@@ -158,6 +161,9 @@ class Variable(object):
         
         #: Whether the variable is dynamically sized (only for non-scalars)
         self.dynamic = dynamic
+
+        #: Whether the variable is an array
+        self.array = array
 
     @property
     def is_boolean(self):
@@ -479,7 +485,8 @@ class ArrayVariable(Variable):
                                             dtype=dtype, scalar=scalar,
                                             constant=constant,
                                             read_only=read_only,
-                                            dynamic=dynamic)
+                                            dynamic=dynamic,
+                                            array=True)
 
         #: Wether all values in this arrays are necessarily unique (only
         #: relevant for index variables).
@@ -1143,14 +1150,14 @@ class VariableView(object):
             if not (isinstance(item, slice) and item == slice(None)):
                 raise IndexError(('Illegal index for variable %s, it is a '
                                   'scalar variable.') % self.name)
-            indices = np.array(0)
+            indices = 0
+        elif (isinstance(item, slice) and item == slice(None)
+              and self.index_var == '_idx'):
+            indices = slice(None)
         else:
             indices = self.indexing(item, self.index_var)
 
-        if variable.scalar:
-            return variable.get_value()[0]
-        else:
-            return variable.get_value()[indices]
+        return variable.get_value()[indices]
 
     @device_override('variableview_get_subexpression_with_index_array')
     def get_subexpression_with_index_array(self, item, level=0, run_namespace=None):
@@ -1182,7 +1189,7 @@ class VariableView(object):
         # Force the use of this variable as a replacement for the original
         # index variable
         using_orig_index = [varname for varname, index in self.group.variables.indices.iteritems()
-                            if index == self.index_var_name]
+                            if index == self.index_var_name and index != '0']
         for varname in using_orig_index:
             variables.indices[varname] = '_idx'
 
@@ -1220,7 +1227,10 @@ class VariableView(object):
             if not (isinstance(item, slice) and item == slice(None)):
                 raise IndexError(('Illegal index for variable %s, it is a '
                                   'scalar variable.') % self.name)
-            variable.get_value()[0] = value
+            indices = 0
+        elif (isinstance(item, slice) and item == slice(None)
+              and self.index_var == '_idx'):
+            indices = slice(None)
         else:
             indices = self.indexing(item, self.index_var)
 
@@ -1231,7 +1241,7 @@ class VariableView(object):
                                       'of the indices, '
                                       '%d != %d.') % (len(q),
                                                       len(indices)))
-            variable.get_value()[indices] = value
+        variable.get_value()[indices] = value
 
     # Allow some basic calculations directly on the ArrayView object
     def __array__(self, dtype=None):
@@ -1246,6 +1256,18 @@ class VariableView(object):
                               '"group.{var}"'.format(var=self.variable.name)))
         return np.asanyarray(self[:], dtype=dtype)
 
+    def __array_prepare__(self, array, context=None):
+        if self.unit is None:
+            return array
+        else:
+            return Quantity.__array_prepare__(self[:], array, context=context)
+
+    def __array_wrap__(self, out_arr, context=None):
+        if self.unit is None:
+            return out_arr
+        else:
+            return Quantity.__array_wrap__(self[:], out_arr, context=context)
+
     def __len__(self):
         return len(self.get_item(slice(None), level=1))
 
@@ -1256,40 +1278,40 @@ class VariableView(object):
         return self.get_item(slice(None), level=1)
 
     def __add__(self, other):
-        return self.get_item(slice(None), level=1) + other
+        return self.get_item(slice(None), level=1) + np.asanyarray(other)
 
     def __radd__(self, other):
-        return other + self.get_item(slice(None), level=1)
+        return np.asanyarray(other) + self.get_item(slice(None), level=1)
 
     def __sub__(self, other):
-        return self.get_item(slice(None), level=1) - other
+        return self.get_item(slice(None), level=1) - np.asanyarray(other)
 
     def __rsub__(self, other):
-        return other - self.get_item(slice(None), level=1)
+        return np.asanyarray(other) - self.get_item(slice(None), level=1)
 
     def __mul__(self, other):
-        return self.get_item(slice(None), level=1) * other
+        return self.get_item(slice(None), level=1) * np.asanyarray(other)
 
     def __rmul__(self, other):
-        return other * self.get_item(slice(None), level=1)
+        return np.asanyarray(other) * self.get_item(slice(None), level=1)
 
     def __div__(self, other):
-        return self.get_item(slice(None), level=1) / other
+        return self.get_item(slice(None), level=1) / np.asanyarray(other)
 
     def __truediv__(self, other):
-        return self.get_item(slice(None), level=1) / other
+        return self.get_item(slice(None), level=1) / np.asanyarray(other)
 
     def __floordiv__(self, other):
-        return self.get_item(slice(None), level=1) // other
+        return self.get_item(slice(None), level=1) // np.asanyarray(other)
 
     def __rdiv__(self, other):
-        return other / self.get_item(slice(None), level=1)
+        return np.asanyarray(other) / self.get_item(slice(None), level=1)
 
     def __rtruediv__(self, other):
-        return other / self.get_item(slice(None), level=1)
+        return np.asanyarray(other) / self.get_item(slice(None), level=1)
 
     def __rfloordiv__(self, other):
-        return other // self.get_item(slice(None), level=1)
+        return np.asanyarray(other) // self.get_item(slice(None), level=1)
 
     def __iadd__(self, other):
         if isinstance(other, basestring):
@@ -1299,7 +1321,7 @@ class VariableView(object):
         elif isinstance(self.variable, Subexpression):
             raise TypeError('Cannot assign to a subexpression.')
         else:
-            rhs = self[:] + other
+            rhs = self[:] + np.asanyarray(other)
         self[:] = rhs
         return self
 
@@ -1311,7 +1333,7 @@ class VariableView(object):
         elif isinstance(self.variable, Subexpression):
             raise TypeError('Cannot assign to a subexpression.')
         else:
-            rhs = self[:] - other
+            rhs = self[:] - np.asanyarray(other)
         self[:] = rhs
         return self
 
@@ -1323,7 +1345,7 @@ class VariableView(object):
         elif isinstance(self.variable, Subexpression):
             raise TypeError('Cannot assign to a subexpression.')
         else:
-            rhs = self[:] * other
+            rhs = self[:] * np.asanyarray(other)
         self[:] = rhs
         return self
 
@@ -1335,29 +1357,29 @@ class VariableView(object):
         elif isinstance(self.variable, Subexpression):
             raise TypeError('Cannot assign to a subexpression.')
         else:
-            rhs = self[:] / other
+            rhs = self[:] / np.asanyarray(other)
         self[:] = rhs
         return self
 
     # Also allow logical comparisons
 
     def __eq__(self, other):
-        return self.get_item(slice(None), level=1) == other
+        return self.get_item(slice(None), level=1) == np.asanyarray(other)
 
     def __ne__(self, other):
-        return self.get_item(slice(None), level=1) != other
+        return self.get_item(slice(None), level=1) != np.asanyarray(other)
 
     def __lt__(self, other):
-        return self.get_item(slice(None), level=1) < other
+        return self.get_item(slice(None), level=1) < np.asanyarray(other)
 
     def __le__(self, other):
-        return self.get_item(slice(None), level=1) <= other
+        return self.get_item(slice(None), level=1) <= np.asanyarray(other)
 
     def __gt__(self, other):
-        return self.get_item(slice(None), level=1) > other
+        return self.get_item(slice(None), level=1) > np.asanyarray(other)
 
     def __ge__(self, other):
-        return self.get_item(slice(None), level=1) >= other
+        return self.get_item(slice(None), level=1) >= np.asanyarray(other)
 
     def __repr__(self):
         varname = self.name
@@ -1425,6 +1447,11 @@ class Variables(collections.Mapping):
             # Tell the device to actually create the array (or note it down for
             # later code generation in standalone).
             self.device.add_array(var)
+
+        if getattr(var, 'scalar', False):
+            if index not in (None, '0'):
+                raise ValueError('Cannot set an index for a scalar variable')
+            self.indices[name] = '0'
 
         if index is not None:
             self.indices[name] = index

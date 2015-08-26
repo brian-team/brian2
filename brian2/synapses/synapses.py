@@ -6,7 +6,7 @@ import collections
 from collections import defaultdict
 import weakref
 import re
-from numbers import Number
+import numbers
 
 import numpy as np
 
@@ -109,13 +109,8 @@ class SynapticPathway(CodeRunner, Group):
         Whether this object should react to pre- or postsynaptic spikes
     objname : str, optional
         The name to use for the object, will be appendend to the name of
-        `synapses` to create a name in the sense of `Nameable`. The `synapses`
-        object should allow access to this object via
-        ``synapses.getattr(objname)``. It has to use the actual `objname`
-        attribute instead of relying on the provided argument, since the name
-        may have changed to become unique. If ``None`` is provided (the
-        default), ``prepost+'*'`` will be used (see `Nameable` for an
-        explanation of the wildcard operator).
+        `synapses` to create a name in the sense of `Nameable`. If ``None``
+        is provided (the default), ``prepost`` will be used.
     delay : `Quantity`, optional
         A scalar delay (same delay for all synapses) for this pathway. If
         not given, delays are expected to vary between synapses.
@@ -141,7 +136,7 @@ class SynapticPathway(CodeRunner, Group):
         self.synapses = weakref.proxy(synapses)
 
         if objname is None:
-            objname = prepost + '*'
+            objname = prepost
 
         CodeRunner.__init__(self, synapses,
                             'synapses',
@@ -167,6 +162,12 @@ class SynapticPathway(CodeRunner, Group):
                                               scalar=False)
         self.variables.add_reference(self.eventspace_name, self.source)
         self.variables.add_reference('N', synapses)
+        if prepost == 'pre':
+            self.variables.add_reference('_n_sources', synapses, 'N_pre')
+            self.variables.add_reference('_n_targets', synapses, 'N_post')
+        else:
+            self.variables.add_reference('_n_sources', synapses, 'N_post')
+            self.variables.add_reference('_n_targets', synapses, 'N_pre')
         if delay is None:  # variable delays
             self.variables.add_dynamic_array('delay', unit=second,
                                              size=synapses._N, constant=True,
@@ -185,7 +186,9 @@ class SynapticPathway(CodeRunner, Group):
                                  'quantity with shape %s instead.') % str(delay.shape))
             fail_for_dimension_mismatch(delay, second, ('Delay has to be '
                                                         'specified in units '
-                                                        'of seconds'))
+                                                        'of seconds but got '
+                                                        '{value}'),
+                                        value=delay)
             # We use a "dynamic" array of constant size here because it makes
             # the generated code easier, we don't need to deal with a different
             # type for scalar and variable delays
@@ -211,9 +214,6 @@ class SynapticPathway(CodeRunner, Group):
         self.namespace = synapses.namespace
         # Enable access to the delay attribute via the specifier
         self._enable_group_attributes()
-
-    def __len__(self):
-        return self.N_
 
     @device_override('synaptic_pathway_update_abstract_code')
     def update_abstract_code(self, run_namespace=None, level=0):
@@ -301,10 +301,12 @@ class SynapticPathway(CodeRunner, Group):
                         'synapses_dt_mismatch', once=True)
 
     def _store(self, name='default'):
+        super(SynapticPathway, self)._store(name=name)
         if self.queue is not None:
             self.queue._store(name)
 
     def _restore(self, name='default'):
+        super(SynapticPathway, self)._restore(name=name)
         if self.queue is not None:
             self.queue._restore(name)
 
@@ -597,7 +599,7 @@ class Synapses(Group):
                  namespace=None, dtype=None,
                  codeobj_class=None,
                  dt=None, clock=None, order=0,
-                 method=('linear', 'euler', 'milstein'),
+                 method=('linear', 'euler', 'heun'),
                  name='synapses*'):
         self._N = 0
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
@@ -666,7 +668,8 @@ class Synapses(Group):
         self._registered_variables = set()
 
         for varname, var in self.variables.iteritems():
-            if isinstance(var, DynamicArrayVariable):
+            if (isinstance(var, DynamicArrayVariable) and
+                        self.variables.indices[varname] == '_idx'):
                 # Register the array with the `SynapticItemMapping` object so
                 # it gets automatically resized
                 self.register_variable(var)
@@ -794,9 +797,6 @@ class Synapses(Group):
         if not connect is False:
             self.connect(connect, level=1)
 
-    def __len__(self):
-        return len(self.variables['_synaptic_pre'].get_value())
-
     def __getitem__(self, item):
         indices = self.indices[item]
         return SynapticSubgroup(self, indices)
@@ -881,21 +881,23 @@ class Synapses(Group):
         self.variables.create_clock_variables(self._clock,
                                               prefix='_clock_')
         if '_offset' in self.target.variables:
-            target_offset = self.target.variables['_offset'].get_value()
+            self.variables.add_reference('_target_offset', self.target, '_offset')
         else:
-            target_offset = 0
+            self.variables.add_constant('_target_offset', unit=Unit(1), value=0)
         if '_offset' in self.source.variables:
-            source_offset = self.source.variables['_offset'].get_value()
+            self.variables.add_reference('_source_offset', self.source, '_offset')
         else:
-            source_offset = 0
-        self.variables.add_array('N_incoming', size=len(self.target)+target_offset,
-                                 unit=Unit(1), dtype=np.int32,
-                                 constant=True,  read_only=True,
-                                 index='_postsynaptic_idx')
-        self.variables.add_array('N_outgoing', size=len(self.source)+source_offset,
-                                 unit=Unit(1), dtype=np.int32,
-                                 constant=True,  read_only=True,
-                                 index='_presynaptic_idx')
+            self.variables.add_constant('_source_offset', unit=Unit(1), value=0)
+        # To cope with connections to/from other synapses, N_incoming/N_outgoing
+        # will be resized when synapses are created
+        self.variables.add_dynamic_array('N_incoming', size=0,
+                                         unit=Unit(1), dtype=np.int32,
+                                         constant=True,  read_only=True,
+                                         index='_postsynaptic_idx')
+        self.variables.add_dynamic_array('N_outgoing', size=0,
+                                         unit=Unit(1), dtype=np.int32,
+                                         constant=True,  read_only=True,
+                                         index='_presynaptic_idx')
 
         # We have to make a distinction here between the indices
         # and the arrays (even though they refer to the same object)
@@ -911,8 +913,9 @@ class Synapses(Group):
                                      '_synaptic_post')
 
         # Add the standard variables
-        self.variables.add_attribute_variable('N', Unit(1), self, '_N',
-                                              constant=True)
+        self.variables.add_array('N', unit=Unit(1), dtype=np.int32,
+                                 size=1, scalar=True, constant=True,
+                                 read_only=True)
 
         for eq in equations.itervalues():
             dtype = get_dtype(eq, user_dtype)
@@ -996,9 +999,12 @@ class Synapses(Group):
             try:
                 self.variables.add_reference(name + '_post', self.target, name,
                                              index=index)
-                # Also add all the post variables without a suffix
-                self.variables.add_reference(name, self.target, name,
-                                             index=index)
+                # Also add all the post variables without a suffix, but only if
+                # it does not have a post or pre suffix in the target group
+                # (which could happen when connecting to synapses)
+                if not name.endswith('_post') or name.endswith('pre'):
+                    self.variables.add_reference(name, self.target, name,
+                                                 index=index)
             except TypeError:
                 logger.debug(('Cannot include a reference to {var} in '
                               '{synapses}, {var} uses a non-standard indexing '
@@ -1111,7 +1117,7 @@ class Synapses(Group):
                              'string, is %s instead.') % type(pre_or_cond))
 
     def _resize(self, number):
-        if not isinstance(number, int):
+        if not isinstance(number, numbers.Integral):
             raise TypeError(('Expected an integer number got {} '
                              'instead').format(type(number)))
         if number < self._N:
@@ -1122,6 +1128,7 @@ class Synapses(Group):
             variable.resize(number)
 
         self._N = number
+        self.variables['N'].set_value(number)
 
     def register_variable(self, variable):
         '''
@@ -1149,6 +1156,18 @@ class Synapses(Group):
 
             sources = np.atleast_1d(sources).astype(np.int32)
             targets = np.atleast_1d(targets).astype(np.int32)
+
+            # Check whether the values in sources/targets make sense
+            error_message = ('The given {source_or_target} indices contain '
+                             'values outside of the range [0, {max_value}] '
+                             'allowed for the {source_or_target} group '
+                             '"{group_name}"')
+            for indices, source_or_target, group in [(sources, 'source', self.source),
+                                                     (targets, 'target', self.target)]:
+                if np.max(indices) >= len(group) or np.min(indices) < 0:
+                    raise IndexError(error_message.format(source_or_target=source_or_target,
+                                                          max_value=len(group)-1,
+                                                          group_name=group.name))
             n = np.atleast_1d(n)
             p = np.atleast_1d(p)
 

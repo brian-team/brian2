@@ -35,6 +35,11 @@ def openmp_pragma(pragma_type):
             return '1'
         else:
             return '%d' %nb_threads
+    elif pragma_type == 'with_openmp':
+        # The returned value is a proper Python boolean, i.e. not something
+        # that should be included in the generated code but rather for use
+        # in {% if ... %} statements in the template
+        return openmp_on
 
     ## Then by default, if openmp is off, we do not return any pragma statement in the templates
     elif not openmp_on:
@@ -75,6 +80,19 @@ def openmp_pragma(pragma_type):
     else:
         raise ValueError('Unknown OpenMP pragma "%s"' % pragma_type)
 
+
+def constant_or_scalar(varname, variable):
+    '''
+    Convenience function to generate code to access the value of a variable.
+    Will return ``'varname'`` if the ``variable`` is a constant, and
+    ``array_name[0]`` if it is a scalar array.
+    '''
+    if variable.array:
+        return '%s[0]' % get_device().get_array_name(variable)
+    else:
+        return '%s' % varname
+
+
 class CPPStandaloneCodeObject(CodeObject):
     '''
     C++ standalone code object
@@ -85,7 +103,8 @@ class CPPStandaloneCodeObject(CodeObject):
     '''
     templater = Templater('brian2.devices.cpp_standalone',
                           env_globals={'c_data_type': c_data_type,
-                                       'openmp_pragma': openmp_pragma})
+                                       'openmp_pragma': openmp_pragma,
+                                       'constant_or_scalar': constant_or_scalar})
     generator_class = CPPCodeGenerator
 
     def __call__(self, **kwds):

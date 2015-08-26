@@ -100,9 +100,6 @@ class Subgroup(Group, SpikeSource):
                              (start, stop))
         return Subgroup(self.source, self.start + start, self.start + stop)
 
-    def __len__(self):
-        return self._N
-
     def __repr__(self):
         description = '<{classname} {name} of {source} from {start} to {end}>'
         return description.format(classname=self.__class__.__name__,

@@ -220,9 +220,8 @@ class StateMonitor(Group, CodeRunner):
 
         self.variables.add_dynamic_array('t', size=0, unit=second,
                                          constant=False, constant_size=False)
-        self.variables.add_attribute_variable('N', unit=Unit(1),
-                                              dtype=np.int32,
-                                              obj=self, attribute='_N')
+        self.variables.add_array('N', unit=Unit(1), dtype=np.int32,
+                                 size=1, scalar=True, read_only=True)
         self.variables.add_array('_indices', size=len(self.record),
                                  unit=Unit(1), dtype=self.record.dtype,
                                  constant=True, read_only=True,
@@ -263,14 +262,8 @@ class StateMonitor(Group, CodeRunner):
         self.template_kwds = {'_recorded_variables': self.recorded_variables}
         self._enable_group_attributes()
 
-    @property
-    def _N(self):
-        return self.variables['t'].get_value().shape[0]
-
-    def __len__(self):
-        return self._N
-
     def resize(self, new_size):
+        self.variables['N'].set_value(new_size)
         self.variables['t'].resize(new_size)
 
         for var in self.recorded_variables.values():

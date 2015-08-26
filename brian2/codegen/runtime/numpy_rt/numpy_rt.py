@@ -80,6 +80,8 @@ class NumpyCodeObject(CodeObject):
 
             if isinstance(var, ArrayVariable):
                 self.namespace[self.generator_class.get_array_name(var)] = value
+                if var.scalar and var.constant:
+                    self.namespace[name] = value[0]
             else:
                 self.namespace[name] = value
 
@@ -88,6 +90,10 @@ class NumpyCodeObject(CodeObject):
                                                                     access_data=False)
                 self.namespace[dyn_array_name] = self.device.get_value(var,
                                                                        access_data=False)
+
+            # Also provide the Variable object itself in the namespace (can be
+            # necessary for resize operations, for example)
+            self.namespace['_var_'+name] = var
 
             # There are two kinds of objects that we have to inject into the
             # namespace with their current value at each time step:

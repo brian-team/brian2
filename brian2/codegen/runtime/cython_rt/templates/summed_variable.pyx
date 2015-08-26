@@ -9,7 +9,7 @@
 
     # Set all the target variable values to zero
     for _target_idx in range(N_post):
-        {{_target_var_array}}[_target_idx] = 0.0
+        {{_target_var_array}}[_target_idx] = 0
 
     # scalar code
     _vectorisation_idx = 1
