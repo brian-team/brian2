@@ -1,5 +1,4 @@
 import re
-from collections import namedtuple
 
 from numpy.testing.utils import assert_equal, assert_raises, assert_allclose
 from nose.plugins.attrib import attr
@@ -7,7 +6,7 @@ from nose import with_setup
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
-from brian2.core.variables import ArrayVariable, AttributeVariable, Variable
+from brian2.core.variables import ArrayVariable, Variable, Constant
 from brian2.devices.device import restore_device
 
 
@@ -295,18 +294,15 @@ def test_priority():
     updater = ExplicitStateUpdater('x_new = x + dt * f(x, t)')
     # Equations that work for the state updater
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
-    # Fake clock class
-    MyClock = namedtuple('MyClock', ['t_', 'dt_'])
-    clock = MyClock(t_=0, dt_=0.0001)
     variables = {'v': ArrayVariable(name='name', unit=Unit(1), size=10,
                                     owner=None, device=None, dtype=np.float64,
                                     constant=False),
-                  't': AttributeVariable(name='t', unit=second, obj=clock,
-                                         attribute='t_', constant=False,
-                                         dtype=np.float64),
-                  'dt': AttributeVariable(name='dt', unit=second, obj=clock,
-                                          attribute='dt_', constant=True,
-                                          dtype=np.float64)}
+                 't': ArrayVariable(name='t', unit=second, owner=None,
+                                    device=None,
+                                    constant=False, size=1, scalar=True,
+                                    dtype=np.float64),
+                 'dt': Constant(name='dt', unit=second, value=0.1*ms,
+                                owner=None)}
     assert updater.can_integrate(eqs, variables)
 
     # Non-constant parameter in the coefficient, linear integration does not

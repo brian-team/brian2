@@ -5,8 +5,7 @@ import numpy as np
 
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
-                                   AttributeVariable, AuxiliaryVariable,
-                                   Subexpression)
+                                   AuxiliaryVariable, Subexpression)
 
 from ...codeobject import CodeObject
 
@@ -95,15 +94,11 @@ class NumpyCodeObject(CodeObject):
             # necessary for resize operations, for example)
             self.namespace['_var_'+name] = var
 
-            # There are two kinds of objects that we have to inject into the
-            # namespace with their current value at each time step:
-            # * non-constant AttributeValue (this might be removed since it only
-            #   applies to "t" currently)
-            # * Dynamic arrays that change in size during runs (i.e. not
-            #   synapses but e.g. the structures used in monitors)
-            if isinstance(var, AttributeVariable) and not var.constant:
-                self.nonconstant_values.append((name, var.get_value))
-            elif (isinstance(var, DynamicArrayVariable) and
+            # There is one type of objects that we have to inject into the
+            # namespace with their current value at each time step: dynamic
+            # arrays that change in size during runs (i.e. not synapses but
+            # e.g. the structures used in monitors)
+            if (isinstance(var, DynamicArrayVariable) and
                   not var.constant_size):
                 self.nonconstant_values.append((self.generator_class.get_array_name(var,
                                                                                    self.variables),

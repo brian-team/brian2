@@ -122,7 +122,7 @@ class CPPStandaloneDevice(Device):
     def freeze(self, code, ns):
         # this is a bit of a hack, it should be passed to the template somehow
         for k, v in ns.items():
-            if (isinstance(v, Variable) and not isinstance(v, AttributeVariable) and
+            if (isinstance(v, Variable) and
                   v.scalar and v.constant and v.read_only):
                 try:
                     v = v.get_value()
@@ -567,12 +567,7 @@ class CPPStandaloneDevice(Device):
         for codeobj in self.code_objects.itervalues():
             lines = []
             for k, v in codeobj.variables.iteritems():
-                if isinstance(v, AttributeVariable):
-                    # We assume all attributes are implemented as property-like methods
-                    line = 'const {c_type} {varname} = {objname}.{attrname}();'
-                    lines.append(line.format(c_type=c_data_type(v.dtype), varname=k, objname=v.obj.name,
-                                             attrname=v.attribute))
-                elif isinstance(v, ArrayVariable):
+                if isinstance(v, ArrayVariable):
                     try:
                         if isinstance(v, DynamicArrayVariable):
                             if v.dimensions == 1:

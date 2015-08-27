@@ -21,7 +21,6 @@ from .preferences import prefs
 
 __all__ = ['Variable',
            'Constant',
-           'AttributeVariable',
            'ArrayVariable',
            'DynamicArrayVariable',
            'Subexpression',
@@ -367,71 +366,6 @@ class AuxiliaryVariable(Variable):
 
     def get_value(self):
         raise TypeError('Cannot get the value for an auxiliary variable.')
-
-
-class AttributeVariable(Variable):
-    '''
-    An object providing information about a value saved as an attribute of an
-    object. Instead of saving a reference to the value itself, we save the
-    name of the attribute. This way, we get the correct value if the attribute
-    is overwritten with a new value (e.g. in the case of ``clock.t_``).
-    Most of the time `Variables.add_attribute_variable` should be used instead
-    of instantiating this class directly.
-    
-    The object value has to be accessible by doing ``getattr(obj, attribute)``.
-    Variables of this type are considered read-only.
-    
-    Parameters
-    ----------
-    name : str
-        The name of the variable
-    unit : `Unit`
-        The unit of the variable
-    obj : object
-        The object storing the attribute.
-    attribute : str
-        The name of the attribute storing the variable's value. `attribute` has
-        to be an attribute of `obj`.
-    dtype : `dtype`, optional
-        The dtype used for storing the variable. If none is given, defaults
-        to `core.default_float_dtype`.
-    owner : `Nameable`, optional
-        The object that "owns" this variable, e.g. the `NeuronGroup` to which
-        a ``dt`` value belongs (even if it is the attribute of a `Clock`
-        object). Defaults to ``None``.
-    constant : bool, optional
-        Whether the attribute's value is constant during a run. Defaults to
-        ``False``.
-    scalar : bool, optional
-        Whether the variable is a scalar value (``True``) or vector-valued, e.g.
-        defined for every neuron (``False``). Defaults to ``True``.
-    '''
-    def __init__(self, name, unit, obj, attribute, dtype=None, owner=None,
-                 constant=False,
-                 scalar=True):
-        super(AttributeVariable, self).__init__(unit=unit, owner=owner,
-                                                name=name, dtype=dtype,
-                                                constant=constant,
-                                                scalar=scalar,
-                                                read_only=True)
-
-        #: The object storing the `attribute`
-        self.obj = obj
-
-        #: The name of the attribute storing the variable's value
-        self.attribute = attribute
-
-    def get_value(self):
-        return getattr(self.obj, self.attribute)
-
-    def __repr__(self):
-        description = ('{classname}(unit={unit}, obj=<{obj}>, '
-                       'attribute={attribute}, constant={constant})')
-        return description.format(classname=self.__class__.__name__,
-                                  unit=repr(self.unit),
-                                  obj=self.obj,
-                                  attribute=repr(self.attribute),
-                                  constant=repr(self.constant))
 
 
 class ArrayVariable(Variable):
@@ -1613,43 +1547,6 @@ class Variables(collections.Mapping):
                        index=index)
         self.device.init_with_arange(self._variables[name], start)
 
-    def add_attribute_variable(self, name, unit, obj, attribute, dtype=None,
-                               constant=False, scalar=True):
-        '''
-        Add a variable stored as an attribute of an object.
-
-        Parameters
-        ----------
-        name : str
-            The name of the variable
-        unit : `Unit`
-            The unit of the variable
-        obj : object
-            The object storing the attribute.
-        attribute : str
-            The name of the attribute storing the variable's value. `attribute` has
-            to be an attribute of `obj`.
-        dtype : `dtype`, optional
-            The dtype used for storing the variable. If none is given, uses the
-            type of ``obj.attribute`` (which have to exist).
-        constant : bool, optional
-            Whether the attribute's value is constant during a run. Defaults to
-            ``False``.
-        scalar : bool, optional
-            Whether the variable is a scalar value (``True``) or vector-valued, e.g.
-            defined for every neuron (``False``). Defaults to ``True``.
-        '''
-        if dtype is None:
-            value = getattr(obj, attribute, None)
-            if value is None:
-                raise ValueError(('Cannot determine dtype for attribute "%s" '
-                                  'of object "%r"') % (attribute, obj))
-            dtype = get_dtype(value)
-
-        var = AttributeVariable(name=name, unit=unit, owner=self.owner,
-                                obj=obj, attribute=attribute, dtype=dtype,
-                                constant=constant, scalar=scalar)
-        self._add_variable(name, var)
 
     def add_constant(self, name, unit, value):
         '''
@@ -1856,15 +1753,6 @@ class Variables(collections.Mapping):
             time in the recorded group.
         '''
         for name in ['t', 'dt']:
-            # if prefix+name in self._variables:
-            #     var = self._variables[prefix+name]
-            #     if not isinstance(var, AttributeVariable):
-            #         raise AssertionError(('%s is present in the variables '
-            #                               'dictionary but of '
-            #                               'type %s') % (prefix+name,
-            #                                             type(var)))
-            #     var.obj = clock # replace the clock object
-            # else:
             if clock is None:
                 pass
             self.add_reference(prefix+name, clock, name)
