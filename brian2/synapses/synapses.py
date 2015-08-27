@@ -153,13 +153,12 @@ class SynapticPathway(CodeRunner, Group):
         self.spikes_stop = self.source.stop
         self.eventspace_name = '_{}space'.format(event)
         self.eventspace = None  # will be set in before_run
-        self.spiking_synapses = np.array([], dtype=np.int32)
         self.variables = Variables(self)
-        self.variables.add_attribute_variable('_spiking_synapses', unit=Unit(1),
-                                              obj=self,
-                                              attribute='spiking_synapses',
-                                              constant=False,
-                                              scalar=False)
+        self.variables.add_dynamic_array('spiking_synapses', unit=Unit(1),
+                                         size=0, dtype=np.int32,
+                                         constant=False,
+                                         constant_size=False,
+                                         scalar=False)
         self.variables.add_reference(self.eventspace_name, self.source)
         self.variables.add_reference('N', synapses)
         if prepost == 'pre':
@@ -318,7 +317,10 @@ class SynapticPathway(CodeRunner, Group):
         if len(events):
             self.queue.push(events)
         # Get the spikes
-        self.spiking_synapses = self.queue.peek()
+        spiking_synapses = self.queue.peek()
+        spiking_synapses_var = self.variables['spiking_synapses']
+        spiking_synapses_var.resize(len(spiking_synapses))
+        spiking_synapses_var.set_value(spiking_synapses)
         # Advance the spike queue
         self.queue.advance()
 
