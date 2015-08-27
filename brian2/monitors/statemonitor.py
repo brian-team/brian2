@@ -148,6 +148,12 @@ class StateMonitor(Group, CodeRunner):
     threshold in an integrate-and-fire model, because the reset statement will
     have been applied already. Set the ``when`` keyword to a different value if
     this is not what you want.
+
+    Note that ``record=True`` only works in runtime mode for synaptic variables.
+    This is because the actual array of indices has to be calculated and this is
+    not possible in standalone mode, where the synapses have not been created
+    yet at this stage. Consider using an explicit array of indices instead,
+    i.e. something like ``record=np.arange(n_synapses)``.
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
@@ -180,7 +186,19 @@ class StateMonitor(Group, CodeRunner):
             record = record._indices() - getattr(source, '_offset', 0)
         if record is True:
             self.record_all = True
-            record = np.arange(len(source), dtype=np.int32)
+            try:
+                record = np.arange(len(source), dtype=np.int32)
+            except NotImplementedError:
+                # In standalone mode, this is not possible for synaptic
+                # variables because the number of synapses is not defined yet
+                raise NotImplementedError(('Cannot determine the actual '
+                                           'indices to record for record=True. '
+                                           'This can occur for example in '
+                                           'standalone mode when trying to '
+                                           'record a synaptic variable. '
+                                           'Consider providing an explicit '
+                                           'array of indices for the record '
+                                           'argument.'))
         elif record is None or record is False:
             logger.warn(('The StateMonitor set up to record the variable(s) '
                          '{vars} of "{source}" is not recording any value. '

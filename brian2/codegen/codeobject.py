@@ -258,7 +258,13 @@ def create_runner_codeobj(group, code, template_name,
         codeobj_class = device.code_object_class(group.codeobj_class)
     else:
         codeobj_class = device.code_object_class(codeobj_class)
-    template = getattr(codeobj_class.templater, template_name)
+
+    template = getattr(codeobj_class.templater, template_name, None)
+    if template is None:
+        codeobj_class_name = codeobj_class.class_name or codeobj_class.__name__
+        raise AttributeError(('"%s" does not provide a code generation '
+                              'template "%s"') % (codeobj_class_name,
+                                                  template_name))
 
     all_variables = dict(group.variables)
     if additional_variables is not None:
