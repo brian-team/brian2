@@ -78,7 +78,7 @@ class PoissonInput(CodeRunner):
         code = '{targetvar} += {binomial}()*{weight}'.format(targetvar=target_var,
                                                              binomial=binomial_sampling.name,
                                                              weight=weight)
-        self._stored_dt = Quantity(target.dt, copy=True)
+        self._stored_dt = target.clock._dt
         # FIXME: we need an explicit reference here for on-the-fly subgroups
         # For example: PoissonInput(group[:N], ...)
         self._group = target
@@ -96,7 +96,7 @@ class PoissonInput(CodeRunner):
         self.variables._add_variable(binomial_sampling.name, binomial_sampling)
 
     def before_run(self, run_namespace=None, level=0):
-        if self._group.dt != self._stored_dt:
+        if self._group.clock._dt != self._stored_dt:
             raise NotImplementedError('The dt used for simulating %s changed '
                                       'after the PoissonInput source was '
                                       'created.' % self.group.name)

@@ -46,6 +46,9 @@ class Clock(Group, CodeRunner):
         #: will not equal the new dt (which is stored in `Clock._new_dt`). Call
         #: `Clock._set_t_update_t` to update the internal clock representation.
         self._dt = float(dt)
+        #: The "pure Python" copy of the time t -- needed so we can do checks of
+        #: the time in Python, even in standalone mode
+        self._t = 0.0
         self._new_dt = None
         self.variables = Variables(self)
         self.variables.add_array('timestep', unit=Unit(1), size=1,
@@ -74,14 +77,14 @@ class Clock(Group, CodeRunner):
         if the_dt != self._dt:
             self._new_dt = None  # i.e.: i is up-to-date for the dt
             # Only allow a new dt which allows to correctly set the new time step
-            if target_t != self.t_:
+            if target_t != self._t:
                 old_t = np.uint64(np.round(target_t / self._dt)) * self._dt
                 new_t = np.uint64(np.round(target_t / the_dt)) * the_dt
                 error_t = target_t
             else:
-                old_t = np.uint64(np.round(self.t_ / self._dt)) * self._dt
-                new_t = np.uint64(np.round(self.t_ / the_dt)) * the_dt
-                error_t = self.t_
+                old_t = np.uint64(np.round(self._t / self._dt)) * self._dt
+                new_t = np.uint64(np.round(self._t / the_dt)) * the_dt
+                error_t = self._t
             if abs(new_t - old_t) > self.epsilon:
                 raise ValueError(('Cannot set dt from {old} to {new}, the '
                                   'time {t} is not a multiple of '
@@ -93,11 +96,15 @@ class Clock(Group, CodeRunner):
         new_i = np.uint64(np.round(target_t/the_dt))
         new_t = new_i*self.dt_
         if new_t==target_t or np.abs(new_t-target_t)<=self.epsilon*np.abs(new_t):
-            self.variables['timestep'].set_value(new_i)
+            new_timestep = new_i
         else:
-            self.variables['timestep'].set_value(np.uint64(np.ceil(target_t/the_dt)))
+            new_timestep = np.uint64(np.ceil(target_t/the_dt))
+        self.variables['timestep'].set_value(new_timestep)
         self.state('t')[:] = 'timestep * dt'
-        # logger.debug("Setting Clock {self.name} to t={self.t}, dt={self.dt}".format(self=self))
+        self._t = new_timestep * the_dt
+        logger.debug("Setting Clock {name} to t={t}, dt={dt}".format(name=self.name,
+                                                                     t=Quantity(self._t, dim=second.dim),
+                                                                     dt=Quantity(self._dt, dim=second.dim)))
 
     def __repr__(self):
         return 'Clock(dt=%r, name=%r)' % (
@@ -114,7 +121,11 @@ class Clock(Group, CodeRunner):
     @property
     def t_(self):
         'The simulation time as a float (in seconds)'
-        return float(self.timestep*self._dt)
+        try:
+            return float(self.timestep*self._dt)
+        except NotImplementedError:
+            # Standalone mode
+            return self._t
 
     @property
     def t(self):
@@ -136,15 +147,15 @@ class Clock(Group, CodeRunner):
     def _set_dt(self, dt):
         self._new_dt = float(dt)
         self.variables['dt'].set_value(float(dt))
-    
+
     dt = property(fget=lambda self: Quantity(self.dt_, dim=second.dim),
                   fset=_set_dt,
                   doc='''The time step of the simulation in seconds.''',
                   )
     dt_ = property(fget=_get_dt_, fset=_set_dt_,
                    doc='''The time step of the simulation as a float (in seconds)''')
-    t_end = property(fget=lambda self: self._i_end*self.dt_*second,
-                     doc='The time the simulation will end (in seconds)')
+    _t_end = property(fget=lambda self: self._i_end*self._dt,
+                      doc='The time the simulation will end as a float (in seconds)')
 
     @check_units(start=second, end=second)
     def set_interval(self, start, end):

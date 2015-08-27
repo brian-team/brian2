@@ -914,7 +914,7 @@ class CPPStandaloneDevice(Device):
         for clock in net._clocks:
             clock.set_interval(net.t, t_end)
             # manually set the clock to the end, no need to run Clock.tick() in a loop
-            clock._i = clock._i_end
+            clock._t = clock._t_end
         net.t_ = float(t_end)
 
         # TODO: remove this horrible hack
