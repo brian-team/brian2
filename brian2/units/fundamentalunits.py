@@ -1521,14 +1521,11 @@ class Quantity(np.ndarray, object):
         is_scalar = is_scalar_type(other)
         if not is_scalar and not isinstance(other, np.ndarray):
             return NotImplemented
-        try:
-            if not is_scalar or not np.isinf(other):
-                    message = ('Cannot perform comparison {value1} %s {value2}, '
-                               'units do not match') % operator_str
-                    fail_for_dimension_mismatch(self, other, message,
-                                                value1=self, value2=other)
-        except TypeError:
-            raise
+        if not is_scalar or not np.isinf(other):
+                message = ('Cannot perform comparison {value1} %s {value2}, '
+                           'units do not match') % operator_str
+                fail_for_dimension_mismatch(self, other, message,
+                                            value1=self, value2=other)
         return operation(np.asarray(self), np.asarray(other))
 
     def __lt__(self, other):

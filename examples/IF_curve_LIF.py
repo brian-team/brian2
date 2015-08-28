@@ -20,9 +20,8 @@ group.v = 0*mV
 group.v0 = '20*mV * i / (n-1)'
 
 monitor = SpikeMonitor(group)
-net = Network(collect())
-print [obj.name for obj in net.objects]
-net.run(duration, report='text')
+
+run(duration)
 plot(group.v0/mV, monitor.count / duration)
 xlabel('v0 (mV)')
 ylabel('Firing rate (sp/s)')
