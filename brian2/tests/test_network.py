@@ -6,6 +6,7 @@ import numpy as np
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
 from nose.plugins.attrib import attr
+from numpy.testing.utils import assert_allclose
 
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
@@ -823,6 +824,19 @@ def test_defaultclock_dt_changes():
         net.run(2*dt)
         assert_equal(mon.t[:], [0, dt/ms]*ms)
 
+@with_setup(teardown=restore_initial_state)
+def test_dt_changes_between_runs():
+    defaultclock.dt = 0.1*ms
+    G = NeuronGroup(1, 'v:1')
+    mon = StateMonitor(G, 'v', record=True)
+    run(.5*ms)
+    defaultclock.dt = .5*ms
+    run(.5*ms)
+    defaultclock.dt = 0.1*ms
+    run(.5*ms)
+    assert len(mon.t[:]) == 5 + 1 + 5
+    assert_allclose(mon.t[:],
+                    [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 1., 1.1, 1.2, 1.3, 1.4]*ms)
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
@@ -966,47 +980,48 @@ def test_magic_scope():
 if __name__=='__main__':
     for t in [
             test_incorrect_network_use,
-            # test_network_contains,
-            # test_empty_network,
-            # test_network_single_object,
-            # test_network_two_objects,
-            # test_network_different_clocks,
-            # test_network_different_when,
-            # test_network_default_schedule,
-            # test_network_schedule_change,
-            # test_network_before_after_schedule,
-            # test_network_custom_slots,
+            test_network_contains,
+            test_empty_network,
+            test_network_single_object,
+            test_network_two_objects,
+            test_network_different_clocks,
+            test_network_different_when,
+            test_network_default_schedule,
+            test_network_schedule_change,
+            test_network_before_after_schedule,
+            test_network_custom_slots,
             test_network_incorrect_schedule,
             test_schedule_warning,
-            # test_magic_network,
-            # test_network_stop,
-            # test_network_operations,
-            # test_incorrect_network_operations,
-            # test_network_active_flag,
-            # test_network_t,
-            # test_incorrect_dt_defaultclock,
-            # test_incorrect_dt_custom_clock,
-            # test_network_remove,
-            # test_magic_weak_reference,
-            # test_magic_unused_object,
-            # test_invalid_magic_network,
-            # test_multiple_networks_invalid,
-            # test_network_access,
-            # test_loop,
-            # test_magic_collect,
-            # test_progress_report,
-            # test_progress_report_incorrect,
+            test_magic_network,
+            test_network_stop,
+            test_network_operations,
+            test_incorrect_network_operations,
+            test_network_active_flag,
+            test_network_t,
+            test_incorrect_dt_defaultclock,
+            test_incorrect_dt_custom_clock,
+            test_network_remove,
+            test_magic_weak_reference,
+            test_magic_unused_object,
+            test_invalid_magic_network,
+            test_multiple_networks_invalid,
+            test_network_access,
+            test_loop,
+            test_magic_collect,
+            test_progress_report,
+            test_progress_report_incorrect,
             test_store_restore,
             test_store_restore_magic,
             test_defaultclock_dt_changes,
+            test_dt_changes_between_runs,
             test_dt_restore,
-            # test_continuation,
-            # test_get_set_states,
-            # test_multiple_runs_defaultclock,
-            # test_multiple_runs_defaultclock_incorrect,
-            # test_profile,
-            # test_profile_ipython_html,
-            # test_magic_scope,
+            test_continuation,
+            test_get_set_states,
+            test_multiple_runs_defaultclock,
+            test_multiple_runs_defaultclock_incorrect,
+            test_profile,
+            test_profile_ipython_html,
+            test_magic_scope,
             ]:
         t()
         restore_initial_state()

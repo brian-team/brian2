@@ -50,6 +50,28 @@ def test_cpp_standalone(with_output=False):
     set_device(previous_device)
 
 @attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=restore_initial_state)
+def test_dt_changes_between_runs_standalone(with_output=False):
+    previous_device = get_device()
+    set_device('cpp_standalone')
+    defaultclock.dt = 0.1*ms
+    G = NeuronGroup(1, 'v:1')
+    mon = StateMonitor(G, 'v', record=True)
+    run(.5*ms)
+    defaultclock.dt = .5*ms
+    run(.5*ms)
+    defaultclock.dt = 0.1*ms
+    run(.5*ms)
+    tempdir = tempfile.mkdtemp()
+    if with_output:
+        print tempdir
+    device.build(directory=tempdir, compile=True, run=True,
+                 with_output=True)
+    assert len(mon.t[:]) == 5 + 1 + 5
+    assert_allclose(mon.t[:],
+                    [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 1., 1.1, 1.2, 1.3, 1.4]*ms)
+
+@attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=restore_device)
 def test_multiple_connects(with_output=False):
     previous_device = get_device()
@@ -267,6 +289,7 @@ if __name__=='__main__':
     # via nose test
     for t in [
              test_cpp_standalone,
+             test_dt_changes_between_runs_standalone,
              test_multiple_connects,
              test_storing_loading,
              test_openmp_consistency,
