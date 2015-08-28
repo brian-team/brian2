@@ -257,10 +257,15 @@ class LinearStateUpdater(StateUpdateMethod):
         # Check for time dependence
         dt_var = variables.get('dt', None)
         if dt_var is not None:
+            # This is a bit of a complicated way to get the value of dt, but it
+            # allows to access the Python attribute instead of the stored state
+            # variable which makes this work even for standalone mode
+            dt_value = dt_var.owner.clock._dt
             # This will raise an error if we meet the symbol "t" anywhere
             # except as an argument of a locally constant function
             for entry in itertools.chain(matrix, constants):
-                _check_for_locally_constant(entry, variables, dt_var.get_value(), t)
+                _check_for_locally_constant(entry, variables, dt_value, t)
+
         symbols = [Symbol(variable, real=True) for variable in varnames]
         solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
         b = sp.ImmutableMatrix([solution[symbol] for symbol in symbols]).transpose()
