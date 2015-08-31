@@ -260,7 +260,7 @@ class LinearStateUpdater(StateUpdateMethod):
             # This is a bit of a complicated way to get the value of dt, but it
             # allows to access the Python attribute instead of the stored state
             # variable which makes this work even for standalone mode
-            dt_value = dt_var.owner.clock._dt
+            dt_value = dt_var.owner._dt
             # This will raise an error if we meet the symbol "t" anywhere
             # except as an argument of a locally constant function
             for entry in itertools.chain(matrix, constants):

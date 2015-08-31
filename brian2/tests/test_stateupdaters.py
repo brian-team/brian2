@@ -294,15 +294,12 @@ def test_priority():
     updater = ExplicitStateUpdater('x_new = x + dt * f(x, t)')
     # Equations that work for the state updater
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
+    clock = Clock(dt=0.1*ms)
     variables = {'v': ArrayVariable(name='name', unit=Unit(1), size=10,
                                     owner=None, device=None, dtype=np.float64,
                                     constant=False),
-                 't': ArrayVariable(name='t', unit=second, owner=None,
-                                    device=None,
-                                    constant=False, size=1, scalar=True,
-                                    dtype=np.float64),
-                 'dt': Constant(name='dt', unit=second, value=0.1*ms,
-                                owner=None)}
+                 't': clock.variables['t'],
+                 'dt': clock.variables['dt']}
     assert updater.can_integrate(eqs, variables)
 
     # Non-constant parameter in the coefficient, linear integration does not
