@@ -5,14 +5,17 @@ import os
 import shutil
 import subprocess
 import inspect
+import itertools
 import platform
 from collections import defaultdict, Counter
 import numbers
 import tempfile
 from distutils import ccompiler
+
 import numpy as np
 
 from brian2.codegen.cpp_prefs import get_compiler_and_args
+from brian2.codegen.translation import make_statements
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices, get_device, set_device
 from brian2.core.variables import *
@@ -85,6 +88,11 @@ class CPPStandaloneDevice(Device):
         #: Dictionary mapping `ArrayVariable` objects to their globally
         #: unique name
         self.arrays = {}
+        #: Dictionary mapping `ArrayVariable` objects to their value or to
+        #: ``None`` if the value (potentially) depends on executed code. This
+        #: mechanism allows to access state variables in standalone mode if
+        #: their value is known at run time
+        self.array_cache = {}
         #: List of all dynamic arrays
         #: Dictionary mapping `DynamicArrayVariable` objects with 1 dimension to
         #: their globally unique name
@@ -253,20 +261,25 @@ class CPPStandaloneDevice(Device):
 
     def init_with_zeros(self, var):
         self.zero_arrays.append(var)
+        self.array_cache[var] = np.zeros(var.size)
 
     def init_with_arange(self, var, start):
         self.arange_arrays[var] = start
+        self.array_cache[var] = np.arange(0, var.size) + start
 
     def init_with_array(self, var, arr):
         arr = np.asanyarray(arr)
         array_name = self.get_array_name(var, access_data=False)
         # treat the array as a static array
-        self.static_arrays[array_name] = arr.astype(var.dtype)
+        self.static_arrays[array_name] = np.atleast_1d(arr.astype(var.dtype))
+        # Use the same array to not use memory twice
+        self.array_cache[var] = self.static_arrays[array_name]
 
     def fill_with_array(self, var, arr):
         arr = np.asarray(arr)
         array_name = self.get_array_name(var, access_data=False)
         arr = np.asarray(arr)
+        self.array_cache[var] = np.atleast_1d(arr)
         if arr.shape == ():
             if var.size == 1:
                 value = CPPNodeRenderer().render_expr(repr(arr.item(0)))
@@ -297,11 +310,13 @@ class CPPStandaloneDevice(Device):
 
         if (isinstance(item, int) or (isinstance(item, np.ndarray) and item.shape==())) and value.size == 1:
             array_name = self.get_array_name(variableview.variable, access_data=False)
-            value = CPPNodeRenderer().render_expr(repr(np.asarray(value).item(0)))
+            value_str = CPPNodeRenderer().render_expr(repr(np.asarray(value).item(0)))
+            if self.array_cache.get(variableview.variable, None) is not None:
+                self.array_cache[variableview.variable][item] = value
             # For a single assignment, generate a code line instead of storing the array
             self.main_queue.append(('set_by_single_value', (array_name,
                                                             item,
-                                                            value)))
+                                                            value_str)))
 
         elif (value.size == 1 and
               item == 'True' and
@@ -313,6 +328,8 @@ class CPPStandaloneDevice(Device):
             variableview.set_with_expression_conditional(cond=item,
                                                          code=repr(value),
                                                          check_units=check_units)
+            self.array_cache[variableview.variable] = np.atleast_1d(value)
+
         # Simple case where we don't have to do any indexing
         elif (item == 'True' and variableview.index_var == '_idx'):
             self.fill_with_array(variableview.variable, value)
@@ -332,6 +349,7 @@ class CPPStandaloneDevice(Device):
             arrayname = self.get_array_name(variableview.variable,
                                             access_data=False)
             if indices.shape == ():
+                self.array_cache[variableview.variable] = np.atleast_1d(value)
                 self.main_queue.append(('set_by_single_value', (arrayname,
                                             indices.item(),
                                             float(value))))
@@ -351,6 +369,7 @@ class CPPStandaloneDevice(Device):
                 value = np.repeat(value, indices.size)
             staticarrayname_value = self.static_array('_value_'+arrayname,
                                                       value)
+            self.array_cache[variableview.variable] = None
             self.main_queue.append(('set_array_by_array', (arrayname,
                                                            staticarrayname_index,
                                                            staticarrayname_value)))
@@ -358,17 +377,11 @@ class CPPStandaloneDevice(Device):
     def get_value(self, var, access_data=True):
         # Usually, we cannot retrieve the values of state variables in
         # standalone scripts since their values might depend on the evaluation
-        # of expressions at runtime. For constant, read-only arrays that have
-        # been explicitly initialized (static arrays) or aranges (e.g. the
-        # neuronal indices) we can, however
-        array_name = self.get_array_name(var, access_data=False)
-        if (var.constant and var.read_only and
-                (array_name in self.static_arrays or
-                 var in self.arange_arrays)):
-            if array_name in self.static_arrays:
-                return self.static_arrays[array_name]
-            elif var in self.arange_arrays:
-                return np.arange(0, var.size) + self.arange_arrays[var]
+        # of expressions at runtime. For some variables we do know the value
+        # however (values that have been set with explicit values and not
+        # changed in code objects)
+        if self.array_cache.get(var, None) is not None:
+            return self.array_cache[var]
         else:
             # After the network has been run, we can retrieve the values from
             # disk
@@ -444,6 +457,21 @@ class CPPStandaloneDevice(Device):
                                                                override_conditional_write=override_conditional_write,
                                                                )
         self.code_objects[codeobj.name] = codeobj
+
+        # This is a bit of a waste since the code object that was created above
+        # already went throught the code generation process but I don't see
+        # an easy way to access these statements here
+        if isinstance(abstract_code, basestring):
+            abstract_code = {None: abstract_code}
+        abstract_code = '\n'.join(itertools.chain(abstract_code.itervalues()))
+        scalar_stmts, vector_stmts = make_statements(abstract_code,
+                                                     codeobj.variables,
+                                                     dtype=np.float64)
+        for stmt in itertools.chain(scalar_stmts, vector_stmts):
+            variable = codeobj.variables.get(stmt.var, None)
+            if variable is not None:
+                self.array_cache[variable] = None
+
         return codeobj
     
     def check_openmp_compatible(self, nb_threads):
@@ -983,6 +1011,13 @@ class CPPStandaloneDevice(Device):
                                                                                               report_call=report_call,
                                                                                               report_period=float(report_period)))
         self.main_queue.append(('run_network', (net, run_lines)))
+
+        # Now that (from the point of view of the script) the network has been
+        # run, we can no longer assume that the values in the cache are correct
+        # (except for constants that cannot change)
+        for var in self.array_cache.iterkeys():
+            if not var.constant:
+                self.array_cache[var] = None
 
     def network_store(self, net, name='default'):
         raise NotImplementedError(('The store/restore mechanism is not '

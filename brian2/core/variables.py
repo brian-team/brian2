@@ -10,10 +10,9 @@ import sympy
 import numpy as np
 
 from brian2.utils.stringtools import get_identifiers, word_substitute
-from brian2.units.fundamentalunits import (Quantity, Unit,
+from brian2.units.fundamentalunits import (Quantity, Unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch,
                                            have_same_dimensions)
-from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 
 from .base import weakproxy_with_fallback, device_override
@@ -1319,13 +1318,20 @@ class VariableView(object):
         varname = self.name
         if self.unit is None:
             varname += '_'
-        try:
-            # This will fail for subexpressions that refer to external
-            # parameters
-            values = repr(self[:])
-        except ValueError:
-            values = ('[Subexpression refers to external parameters. Use '
-                      '"group.{var}[:]"]').format(var=self.variable.name)
+
+        if self.variable.scalar:
+            dim = self.unit.dim if self.unit is not None else DIMENSIONLESS
+            values = repr(Quantity(self.variable.get_value().item(),
+                                   dim=dim))
+        else:
+            try:
+                # This will fail for subexpressions that refer to external
+                # parameters
+                values = repr(self[:])
+            except ValueError:
+                values = ('[Subexpression refers to external parameters. Use '
+                          '"group.{var}[:]"]').format(var=self.variable.name)
+
         return '<%s.%s: %s>' % (self.group_name, varname,
                                  values)
 
