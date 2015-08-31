@@ -45,7 +45,7 @@ void _run_{{codeobj_name}}()
        synapses, we therefore have to take care to get its value in the right
        way. #}
 	const int _N = {{constant_or_scalar('N', variables['N'])}};
-	{{openmp_pragma('static')}}
+	{{openmp_pragma('parallel-static')}}
 	for(int _idx=0; _idx<_N; _idx++)
 	{
 	    // vector code
@@ -56,15 +56,12 @@ void _run_{{codeobj_name}}()
 	}
 	{% endblock %}
 
-    {{ openmp_pragma('master') }}
-    {
-        {% if openmp_pragma('with_openmp') %}
-        const double _run_time = omp_get_wtime() -_start_time;
-        {% else %}
-        const double _run_time = (double)(std::clock() -_start_time)/CLOCKS_PER_SEC;
-        {% endif %}
-        {{codeobj_name}}_profiling_info += _run_time;
-    }
+    {% if openmp_pragma('with_openmp') %}
+    const double _run_time = omp_get_wtime() -_start_time;
+    {% else %}
+    const double _run_time = (double)(std::clock() -_start_time)/CLOCKS_PER_SEC;
+    {% endif %}
+    {{codeobj_name}}_profiling_info += _run_time;
 }
 
 {% block extra_functions_cpp %}

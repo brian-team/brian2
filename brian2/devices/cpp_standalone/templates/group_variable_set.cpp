@@ -8,7 +8,6 @@
     const int _vectorisation_idx = -1;
     {{scalar_code|autoindent}}
 
-	//We add the parallel flag because this is executed outside the main run loop
     {{ openmp_pragma('parallel-static') }}
 	for(int _idx_group_idx=0; _idx_group_idx<_num_group_idx; _idx_group_idx++)
 	{

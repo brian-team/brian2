@@ -79,7 +79,6 @@ public:
                 length = n_synapses - (unsigned int) {{ openmp_pragma('get_thread_num') }}*(n_synapses/_nb_threads);
             else
                 length = (unsigned int) n_synapses/_nb_threads;
-    		
             unsigned int padding  = {{ openmp_pragma('get_thread_num') }}*(n_synapses/_nb_threads);
 
             queue[{{ openmp_pragma('get_thread_num') }}]->openmp_padding = padding;
