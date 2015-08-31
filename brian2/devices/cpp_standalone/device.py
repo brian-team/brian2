@@ -929,20 +929,15 @@ class CPPStandaloneDevice(Device):
             logger.warn(('Unsupported keyword argument(s) provided for run: '
                          '%s') % ', '.join(kwds.keys()))
         net._clocks = {obj.clock for obj in net.objects}
+        t_end = net.t+duration
+        for clock in net._clocks:
+            clock.set_interval(net.t, t_end)
+
         # We have to use +2 for the level argument here, since this function is
         # called through the device_override mechanism
         net.before_run(namespace, level=level+2)
 
         self.clocks.update(net._clocks)
-
-        # We run a simplified "update loop" that only advances the clocks
-        # This can be useful because some Python code might use the t attribute
-        # of the Network or a NeuronGroup etc.
-        t_end = net.t+duration
-        for clock in net._clocks:
-            clock.set_interval(net.t, t_end)
-            # manually set the clock to the end, no need to run Clock.tick() in a loop
-            clock._t = clock._t_end
         net.t_ = float(t_end)
 
         # TODO: remove this horrible hack
@@ -1018,6 +1013,14 @@ class CPPStandaloneDevice(Device):
         for var in self.array_cache.iterkeys():
             if not var.constant:
                 self.array_cache[var] = None
+
+        # Manually set the cache for the clocks, simulation scripts might
+        # want to access the time (which has been set in code and is therefore
+        # not accessible by the normal means until the code has been built and
+        # run)
+        for clock in net._clocks:
+            self.array_cache[clock.variables['timestep']] = np.array([clock._i_end])
+            self.array_cache[clock.variables['t']] = np.array([clock._i_end * clock.dt_])
 
     def network_store(self, net, name='default'):
         raise NotImplementedError(('The store/restore mechanism is not '
