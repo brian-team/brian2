@@ -170,8 +170,12 @@ class SynapticPathway(CodeRunner, Group):
             self.variables.add_reference('_n_targets', synapses, 'N_pre')
             self.variables.add_reference('_source_dt', synapses.target, 'dt')
         if delay is None:  # variable delays
+            if getattr(synapses, 'N', None) is not None:
+                n_synapses = synapses.N
+            else:
+                n_synapses = 0
             self.variables.add_dynamic_array('delay', unit=second,
-                                             size=synapses._N, constant=True,
+                                             size=n_synapses, constant=True,
                                              constant_size=True)
             # Register the object with the `SynapticIndex` object so it gets
             # automatically resized
@@ -605,7 +609,6 @@ class Synapses(Group):
                  dt=None, clock=None, order=0,
                  method=('linear', 'euler', 'heun'),
                  name='synapses*'):
-        self._N = 0
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
                        name=name)
         
@@ -1124,14 +1127,13 @@ class Synapses(Group):
         if not isinstance(number, numbers.Integral):
             raise TypeError(('Expected an integer number got {} '
                              'instead').format(type(number)))
-        if number < self._N:
+        if number < self.N:
             raise ValueError(('Cannot reduce number of synapses, '
                               '{} < {}').format(number, len(self)))
 
         for variable in self._registered_variables:
             variable.resize(number)
 
-        self._N = number
         self.variables['N'].set_value(number)
 
     def register_variable(self, variable):

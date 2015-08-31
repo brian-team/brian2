@@ -380,22 +380,22 @@ if __name__ == '__main__':
     import time
     start = time.time()
 
-    test_spikegenerator_connected()
-    test_spikegenerator_basic()
-    test_spikegenerator_basic_sorted()
-    test_spikegenerator_period()
-    test_spikegenerator_period_repeat()
-    test_spikegenerator_change_spikes()
-    test_spikegenerator_change_period()
-    test_spikegenerator_incorrect_period()
-    test_spikegenerator_rounding()
-    test_spikegenerator_rounding_long()
-    test_spikegenerator_rounding_period()
-    test_spikegenerator_multiple_spikes_per_bin()
+    # test_spikegenerator_connected()
+    # test_spikegenerator_basic()
+    # test_spikegenerator_basic_sorted()
+    # test_spikegenerator_period()
+    # test_spikegenerator_period_repeat()
+    # test_spikegenerator_change_spikes()
+    # test_spikegenerator_change_period()
+    # test_spikegenerator_incorrect_period()
+    # test_spikegenerator_rounding()
+    # test_spikegenerator_rounding_long()
+    # test_spikegenerator_rounding_period()
+    # test_spikegenerator_multiple_spikes_per_bin()
     for t in [
                 test_spikegenerator_standalone,
-                test_spikegenerator_standalone_change_spikes,
-                test_spikegenerator_standalone_change_period
+                # test_spikegenerator_standalone_change_spikes,
+                # test_spikegenerator_standalone_change_period
              ]:
         t(with_output=True)
         restore_device()

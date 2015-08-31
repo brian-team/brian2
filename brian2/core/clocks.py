@@ -42,13 +42,9 @@ class Clock(Group, CodeRunner):
         # We need a name right away because some devices (e.g. cpp_standalone)
         # need a name for the object when creating the variables
         Nameable.__init__(self, name=name)
-        #: The internally used dt. Note that right after a change of dt, this
+        #: Note that right after a change of dt, this
         #: will not equal the new dt (which is stored in `Clock._new_dt`). Call
         #: `Clock._set_t_update_t` to update the internal clock representation.
-        self._dt = float(dt)
-        #: The "pure Python" copy of the time t -- needed so we can do checks of
-        #: the time in Python, even in standalone mode
-        self._t = 0.0
         self._new_dt = None
         self.variables = Variables(self)
         self.variables.add_array('timestep', unit=Unit(1), size=1,
@@ -67,44 +63,47 @@ class Clock(Group, CodeRunner):
                             clock=self, when='after_end',
                             name=None)  # Name as already been set
         self._enable_group_attributes()
+        self.dt = dt
         logger.debug("Created clock {name} with dt={dt}".format(name=self.name,
                                                                 dt=self.dt))
 
     @check_units(t=second)
     def _set_t_update_dt(self, target_t=0*second):
-        the_dt = self._new_dt if self._new_dt is not None else self._dt
+        new_dt = self._new_dt if self._new_dt is not None else self.dt_
+        old_dt = self.variables['dt'].get_value().item()
         target_t = float(target_t)
-        if the_dt != self._dt:
+        if new_dt != old_dt:
             self._new_dt = None  # i.e.: i is up-to-date for the dt
             # Only allow a new dt which allows to correctly set the new time step
-            if target_t != self._t:
-                old_t = np.uint64(np.round(target_t / self._dt)) * self._dt
-                new_t = np.uint64(np.round(target_t / the_dt)) * the_dt
+            if target_t != self.t_:
+                old_t = np.uint64(np.round(target_t / old_dt)) * old_dt
+                new_t = np.uint64(np.round(target_t / new_dt)) * new_dt
                 error_t = target_t
             else:
-                old_t = np.uint64(np.round(self._t / self._dt)) * self._dt
-                new_t = np.uint64(np.round(self._t / the_dt)) * the_dt
-                error_t = self._t
+                old_t = np.uint64(np.round(self.t_ / old_dt)) * old_dt
+                new_t = np.uint64(np.round(self.t_ / new_dt)) * new_dt
+                error_t = self.t_
             if abs(new_t - old_t) > self.epsilon:
                 raise ValueError(('Cannot set dt from {old} to {new}, the '
                                   'time {t} is not a multiple of '
-                                  '{new}').format(old=self.dt,
-                                                  new=the_dt*second,
+                                  '{new}').format(old=old_dt*second,
+                                                  new=new_dt*second,
                                                   t=error_t*second))
-            self._dt = the_dt
+            self.variables['dt'].set_value(new_dt)
 
-        new_i = np.uint64(np.round(target_t/the_dt))
-        new_t = new_i*self.dt_
+        new_i = np.uint64(np.round(target_t/new_dt))
+        new_t = new_i*new_dt
         if new_t==target_t or np.abs(new_t-target_t)<=self.epsilon*np.abs(new_t):
             new_timestep = new_i
         else:
-            new_timestep = np.uint64(np.ceil(target_t/the_dt))
+            new_timestep = np.uint64(np.ceil(target_t/new_dt))
+        # Since these attributes are read-only for normal users, we have to
+        # update them via the variables object directly
         self.variables['timestep'].set_value(new_timestep)
-        self.state('t')[:] = 'timestep * dt'
-        self._t = new_timestep * the_dt
+        self.variables['t'].set_value(new_timestep * new_dt)
         logger.debug("Setting Clock {name} to t={t}, dt={dt}".format(name=self.name,
-                                                                     t=Quantity(self._t, dim=second.dim),
-                                                                     dt=Quantity(self._dt, dim=second.dim)))
+                                                                     t=self.t,
+                                                                     dt=self.dt))
 
     def __repr__(self):
         return 'Clock(dt=%r, name=%r)' % (
@@ -114,39 +113,19 @@ class Clock(Group, CodeRunner):
                                           self.dt,
                                           self.name)
 
-    @check_units(end=second)
-    def _set_t_end(self, end):
-        self._i_end = np.uint64(float(end) / self.dt_)
-
-    @property
-    def t_(self):
-        'The simulation time as a float (in seconds)'
-        try:
-            return float(self.timestep*self._dt)
-        except NotImplementedError:
-            # Standalone mode
-            return self._t
-
-    @property
-    def t(self):
-        'The simulation time in seconds'
-        return self.t_*second
-
     def _get_dt_(self):
         if self._new_dt is None:
-            return self._dt
+            return self.variables['dt'].get_value().item()
         else:
             return self._new_dt
 
     @check_units(dt_=1)
     def _set_dt_(self, dt_):
         self._new_dt = dt_
-        self.variables['dt'].set_value(dt_)
 
     @check_units(dt=second)
     def _set_dt(self, dt):
         self._new_dt = float(dt)
-        self.variables['dt'].set_value(float(dt))
 
     dt = property(fget=lambda self: Quantity(self.dt_, dim=second.dim),
                   fset=_set_dt,
@@ -154,8 +133,6 @@ class Clock(Group, CodeRunner):
                   )
     dt_ = property(fget=_get_dt_, fset=_set_dt_,
                    doc='''The time step of the simulation as a float (in seconds)''')
-    _t_end = property(fget=lambda self: self._i_end*self._dt,
-                      doc='The time the simulation will end as a float (in seconds)')
 
     @check_units(start=second, end=second)
     def set_interval(self, start, end):

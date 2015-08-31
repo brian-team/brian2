@@ -255,12 +255,8 @@ class LinearStateUpdater(StateUpdateMethod):
                               'constant.') % str(non_constant))
 
         # Check for time dependence
-        dt_var = variables.get('dt', None)
-        if dt_var is not None:
-            # This is a bit of a complicated way to get the value of dt, but it
-            # allows to access the Python attribute instead of the stored state
-            # variable which makes this work even for standalone mode
-            dt_value = dt_var.owner._dt
+        if 'dt' in variables:
+            dt_value = variables['dt'].get_value()
             # This will raise an error if we meet the symbol "t" anywhere
             # except as an argument of a locally constant function
             for entry in itertools.chain(matrix, constants):
