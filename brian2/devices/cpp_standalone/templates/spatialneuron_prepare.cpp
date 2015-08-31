@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 {# USES_VARIABLES { N, _invr, Ri, Cm, dt, area, diameter, length,
                     ab_star0, ab_star1, ab_star2,
                     ab_plus0, ab_plus1, ab_plus2,
