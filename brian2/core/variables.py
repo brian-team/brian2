@@ -1193,13 +1193,23 @@ class VariableView(object):
         if self.unit is None:
             return array
         else:
-            return Quantity.__array_prepare__(self[:], array, context=context)
+            this = self[:]
+            if isinstance(this, Quantity):
+                return Quantity.__array_prepare__(this, array,
+                                                  context=context)
+            else:
+                return array
 
     def __array_wrap__(self, out_arr, context=None):
         if self.unit is None:
             return out_arr
         else:
-            return Quantity.__array_wrap__(self[:], out_arr, context=context)
+            this = self[:]
+            if isinstance(this, Quantity):
+                return Quantity.__array_wrap__(self[:], out_arr,
+                                               context=context)
+            else:
+                return out_arr
 
     def __len__(self):
         return len(self.get_item(slice(None), level=1))
