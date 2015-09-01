@@ -286,13 +286,9 @@ class CPPStandaloneDevice(Device):
                 self.main_queue.append(('set_by_single_value', (array_name,
                                                                 0,
                                                                 value)))
-                self.array_cache[var] = np.atleast_1d(arr).astype(var.dtype)
             else:
                 self.main_queue.append(('set_by_constant', (array_name,
                                                             arr.item())))
-                new_arr = np.empty(var.size, dtype=var.dtype)
-                new_arr[:] = arr
-                self.array_cache[var] = new_arr
         else:
             # Using the std::vector instead of a pointer to the underlying
             # data for dynamic arrays is fast enough here and it saves us some
@@ -300,6 +296,12 @@ class CPPStandaloneDevice(Device):
             static_array_name = self.static_array(array_name, arr)
             self.main_queue.append(('set_by_array', (array_name,
                                                      static_array_name)))
+        if isinstance(var, DynamicArrayVariable):
+            # We can never be sure about the size of a dynamic array, so
+            # we can't do correct broadcasting. Therefore, we do not cache
+            # them at all for now.
+            self.array_cache[var] = None
+        else:
             new_arr = np.empty(var.size, dtype=var.dtype)
             new_arr[:] = arr
             self.array_cache[var] = new_arr
@@ -335,9 +337,15 @@ class CPPStandaloneDevice(Device):
                                                          code=repr(value),
                                                          check_units=check_units)
             var = variableview.variable
-            new_arr = np.empty(var.size, dtype=var.dtype)
-            new_arr[:] = value
-            self.array_cache[var] = new_arr
+            if isinstance(var, DynamicArrayVariable):
+                # We can never be sure about the size of a dynamic array, so
+                # we can't do correct broadcasting. Therefore, we do not cache
+                # them at all for now.
+                self.array_cache[var] = None
+            else:
+                new_arr = np.empty(var.size, dtype=var.dtype)
+                new_arr[:] = value
+                self.array_cache[var] = new_arr
 
         # Simple case where we don't have to do any indexing
         elif (item == 'True' and variableview.index_var == '_idx'):
