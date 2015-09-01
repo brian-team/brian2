@@ -892,7 +892,7 @@ def test_get_set_states():
     states3 = net.get_states(read_only_variables=False)
     assert set(states1.keys()) == set(states2.keys()) == set(states3.keys()) == {'a_neurongroup', 'defaultclock'}
     assert set(states1['a_neurongroup'].keys()) == set(states2['a_neurongroup'].keys()) == {'i', 'dt', 'N', 't', 'v'}
-    assert set(states3['a_neurongroup']) == {'v', 'dt'}  # TODO: dt should be read-only via the reference
+    assert set(states3['a_neurongroup']) == {'v'}
 
     # Try re-setting the state
     G.v = 0
