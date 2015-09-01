@@ -129,7 +129,7 @@ script:
     if [[ $STANDALONE == 'yes' ]]; then
       if [ "$TRAVIS_OS_NAME" == "linux" ]; then
         SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests_standalone_with_openmp.py;
-      else;
+      else
         SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests_standalone.py;
       fi;
     else
