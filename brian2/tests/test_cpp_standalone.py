@@ -107,11 +107,9 @@ def test_storing_loading(with_output=False):
     assert_allclose(S.b_syn[:], b)
     set_device(previous_device)
 
-@attr('cpp_standalone', 'standalone-only')
+@attr('cpp_standalone', 'standalone-only', 'openmp')
 @with_setup(teardown=restore_device)
 def test_openmp_consistency(with_output=False):
-    if sys.platform.startswith('darwin'):
-        raise SkipTest('Skipping OpenMP on MacOSX')
     previous_device = get_device()
     n_cells    = 100
     n_recorded = 10
@@ -261,13 +259,11 @@ def test_duplicate_names_across_nets(with_output=True):
 
     set_device(previous_device)
 
-@attr('cpp_standalone', 'standalone-only')
+@attr('cpp_standalone', 'standalone-only', 'openmp')
 @with_setup(teardown=restore_device)
 def test_openmp_scalar_writes(with_output=True):
     # Test that writing to a scalar variable only is done once in an OpenMP
     # setting (see github issue #551)
-    if sys.platform.startswith('darwin'):
-        raise SkipTest('Skipping OpenMP on MacOSX')
     previous_device = get_device()
     set_device('cpp_standalone')
     prefs.devices.cpp_standalone.openmp_threads = 4
