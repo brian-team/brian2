@@ -269,15 +269,16 @@ class CPPStandaloneDevice(Device):
         arr = np.asanyarray(arr)
         array_name = self.get_array_name(var, access_data=False)
         # treat the array as a static array
-        self.static_arrays[array_name] = np.atleast_1d(arr.astype(var.dtype))
+        new_arr = np.empty(var.size, dtype=var.dtype)
+        new_arr[:] = arr  # use broadcasting and change the type if necessary
+        self.static_arrays[array_name] = new_arr
         # Use the same array to not use memory twice
-        self.array_cache[var] = self.static_arrays[array_name]
+        self.array_cache[var] = new_arr
 
     def fill_with_array(self, var, arr):
         arr = np.asarray(arr)
         array_name = self.get_array_name(var, access_data=False)
         arr = np.asarray(arr)
-        self.array_cache[var] = np.atleast_1d(arr)
         if arr.shape == ():
             if var.size == 1:
                 value = CPPNodeRenderer().render_expr(repr(arr.item(0)))
@@ -285,16 +286,23 @@ class CPPStandaloneDevice(Device):
                 self.main_queue.append(('set_by_single_value', (array_name,
                                                                 0,
                                                                 value)))
+                self.array_cache[var] = np.atleast_1d(arr).astype(var.dtype)
             else:
                 self.main_queue.append(('set_by_constant', (array_name,
                                                             arr.item())))
-        else:    
+                new_arr = np.empty(var.size, dtype=var.dtype)
+                new_arr[:] = arr
+                self.array_cache[var] = new_arr
+        else:
             # Using the std::vector instead of a pointer to the underlying
             # data for dynamic arrays is fast enough here and it saves us some
             # additional work to set up the pointer
             static_array_name = self.static_array(array_name, arr)
             self.main_queue.append(('set_by_array', (array_name,
                                                      static_array_name)))
+            new_arr = np.empty(var.size, dtype=var.dtype)
+            new_arr[:] = arr
+            self.array_cache[var] = new_arr
 
     def resize(self, var, new_size):
         array_name = self.get_array_name(var, access_data=False)
@@ -326,7 +334,10 @@ class CPPStandaloneDevice(Device):
             variableview.set_with_expression_conditional(cond=item,
                                                          code=repr(value),
                                                          check_units=check_units)
-            self.array_cache[variableview.variable] = np.atleast_1d(value)
+            var = variableview.variable
+            new_arr = np.empty(var.size, dtype=var.dtype)
+            new_arr[:] = value
+            self.array_cache[var] = new_arr
 
         # Simple case where we don't have to do any indexing
         elif (item == 'True' and variableview.index_var == '_idx'):
@@ -347,7 +358,8 @@ class CPPStandaloneDevice(Device):
             arrayname = self.get_array_name(variableview.variable,
                                             access_data=False)
             if indices.shape == ():
-                self.array_cache[variableview.variable] = np.atleast_1d(value)
+                if self.array_cache.get(variableview.variable, None) is not None:
+                    self.array_cache[variableview.variable][indices.item()] = float(value)
                 self.main_queue.append(('set_by_single_value', (arrayname,
                                             indices.item(),
                                             float(value))))
