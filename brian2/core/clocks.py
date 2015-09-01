@@ -52,7 +52,7 @@ class Clock(Group, CodeRunner):
         self.variables.add_array('t', unit=second, size=1,
                                  dtype=np.double, read_only=True, scalar=True)
         self.variables.add_array('dt', unit=second, size=1, values=float(dt),
-                                 dtype=np.float, read_only=False, constant=True,
+                                 dtype=np.float, read_only=True, constant=True,
                                  scalar=True)
         self.variables.add_constant('N', unit=Unit(1), value=1)
         self.codeobj_class = None
