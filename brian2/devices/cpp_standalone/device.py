@@ -1005,13 +1005,6 @@ class CPPStandaloneDevice(Device):
                                                                                               report_period=float(report_period)))
         self.main_queue.append(('run_network', (net, run_lines)))
 
-        # Now that (from the point of view of the script) the network has been
-        # run, we can no longer assume that the values in the cache are correct
-        # (except for constants that cannot change)
-        for var in self.array_cache.iterkeys():
-            if not var.constant:
-                self.array_cache[var] = None
-
         # Manually set the cache for the clocks, simulation scripts might
         # want to access the time (which has been set in code and is therefore
         # not accessible by the normal means until the code has been built and
