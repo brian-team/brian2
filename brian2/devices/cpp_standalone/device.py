@@ -458,22 +458,21 @@ class CPPStandaloneDevice(Device):
                                                                )
         self.code_objects[codeobj.name] = codeobj
 
-        # This is a bit of a waste since the code object that was created above
-        # already went throught the code generation process but I don't see
-        # an easy way to access these statements here
-        if isinstance(abstract_code, basestring):
-            abstract_code = {None: abstract_code}
-        abstract_code = '\n'.join(itertools.chain(abstract_code.itervalues()))
-        scalar_stmts, vector_stmts = make_statements(abstract_code,
-                                                     codeobj.variables,
-                                                     dtype=np.float64)
-        for stmt in itertools.chain(scalar_stmts, vector_stmts):
-            variable = codeobj.variables.get(stmt.var, None)
-            if variable is not None:
-                self.array_cache[variable] = None
+        # Mark all the non-constant variables used in this code object as
+        # "dirty". This is almost certainly too much, most of these variables
+        # will only be read. However, the templates for synapse creation will
+        # write constant variables (which are only guaranteed to be constant
+        # *during a run*). This is noted in the WRITES_CONSTANTS comment in the
+        # template
+        template = getattr(codeobj.templater, template_name)
+        written_constant_vars = {codeobj.variables[varname]
+                                 for varname in template.writes_constants}
+        for var in codeobj.variables.itervalues():
+            if not var.constant or var in written_constant_vars:
+                self.array_cache[var] = None
 
         return codeobj
-    
+
     def check_openmp_compatible(self, nb_threads):
         if nb_threads > 0:
             logger.warn("OpenMP code is not yet well tested, and may be inaccurate.", "openmp", once=True)

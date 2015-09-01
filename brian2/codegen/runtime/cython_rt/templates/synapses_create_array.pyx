@@ -6,7 +6,9 @@
                         N_incoming, N_outgoing, N,
                         N_pre, N_post, _source_offset, _target_offset }
     #}
-    
+    {# WRITES_CONSTANTS { _synaptic_pre, _synaptic_post,
+                      N_incoming, N_outgoing, N}
+    #}
     cdef int _old_num_synapses = {{N}}[0]
     cdef int _new_num_synapses = _old_num_synapses + _num{{sources}}
 

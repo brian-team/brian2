@@ -7,6 +7,10 @@
 	                    N_incoming, N_outgoing, N,
 	                    N_pre, N_post, _source_offset, _target_offset } #}
 
+    {# WRITES_CONSTANTS { _synaptic_pre, _synaptic_post,
+                          N_incoming, N_outgoing, N}
+    #}
+
     {# Get N_post and N_pre in the correct way, regardless of whether they are
     constants or scalar arrays#}
     const int _N_pre = {{constant_or_scalar('N_pre', variables['N_pre'])}};

@@ -6,6 +6,9 @@
                      N_incoming, N_outgoing, N,
                      N_pre, N_post, _source_offset, _target_offset}
     #}
+    {# WRITES_CONSTANTS { _synaptic_pre, _synaptic_post,
+                      N_incoming, N_outgoing, N}
+    #}
     srand((unsigned int)time(NULL));
     const int _buffer_size = 1024;
     int *const _prebuf = new int[_buffer_size];
