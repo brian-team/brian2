@@ -256,7 +256,7 @@ class LinearStateUpdater(StateUpdateMethod):
 
         # Check for time dependence
         if 'dt' in variables:
-            dt_value = variables['dt'].get_value()
+            dt_value = variables['dt'].get_value()[0]
             # This will raise an error if we meet the symbol "t" anywhere
             # except as an argument of a locally constant function
             for entry in itertools.chain(matrix, constants):

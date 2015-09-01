@@ -153,7 +153,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
     def before_run(self, run_namespace=None, level=0):
         # Do some checks on the period vs. dt
-        dt = self.dt_
+        dt = self.dt_[:]  # make a copy
         period = self.period_
         if period < np.inf:
             if period < dt:

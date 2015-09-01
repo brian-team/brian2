@@ -5,7 +5,6 @@ import os
 import shutil
 import subprocess
 import inspect
-import itertools
 import platform
 from collections import defaultdict, Counter
 import numbers
@@ -15,7 +14,6 @@ from distutils import ccompiler
 import numpy as np
 
 from brian2.codegen.cpp_prefs import get_compiler_and_args
-from brian2.codegen.translation import make_statements
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices, get_device, set_device
 from brian2.core.variables import *
@@ -468,7 +466,8 @@ class CPPStandaloneDevice(Device):
         written_constant_vars = {codeobj.variables[varname]
                                  for varname in template.writes_constants}
         for var in codeobj.variables.itervalues():
-            if not var.constant or var in written_constant_vars:
+            if (isinstance(var, ArrayVariable) and
+                    (not var.constant or var in written_constant_vars)):
                 self.array_cache[var] = None
 
         return codeobj
