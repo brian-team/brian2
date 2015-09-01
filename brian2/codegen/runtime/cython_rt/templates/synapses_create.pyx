@@ -4,7 +4,7 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, rand,
                  N_incoming, N_outgoing, N,
                  N_pre, N_post, _source_offset, _target_offset }
 #}
-{# WRITES_CONSTANTS { _synaptic_pre, _synaptic_post,
+{# WRITES_READ_ONLY { _synaptic_pre, _synaptic_post,
                       N_incoming, N_outgoing, N}
 #}
 # ITERATE_ALL { _idx }
