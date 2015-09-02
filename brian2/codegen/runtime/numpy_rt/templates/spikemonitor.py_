@@ -11,7 +11,7 @@ _n_events = len(_events)
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}
 if _n_events > 0:
-    _curlen = {{N}}[0]
+    _curlen = {{N}}
     _newlen = _curlen + _n_events
     _owner.resize(_newlen)
     _vectorisation_idx = _n_events

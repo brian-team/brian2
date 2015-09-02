@@ -278,6 +278,8 @@ class Device(object):
         for varname, var in variables.iteritems():
             if isinstance(var, ArrayVariable):
                 pointer_name = generator.get_array_name(var)
+                if var.scalar:
+                    pointer_name += '[0]'
                 template_kwds[varname] = pointer_name
                 if hasattr(var, 'resize'):
                     dyn_array_name = generator.get_array_name(var,

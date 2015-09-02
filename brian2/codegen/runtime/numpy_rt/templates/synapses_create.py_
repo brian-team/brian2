@@ -13,7 +13,7 @@ numpy_False = _numpy.bool_(False)
 numpy_True = _numpy.bool_(True)
 
 # number of synapses in the beginning
-_old_num_synapses = {{N}}[0]
+_old_num_synapses = {{N}}
 # number of synapses during the creation process
 _cur_num_synapses = _old_num_synapses
 

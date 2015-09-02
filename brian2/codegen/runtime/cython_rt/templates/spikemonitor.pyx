@@ -33,7 +33,7 @@
             # scalar code
             _vectorisation_idx = 1
             {{ scalar_code|autoindent }}
-            _curlen = {{N}}[0]
+            _curlen = {{N}}
             _newlen = _curlen + _num_events
             # Resize the arrays
             _owner.resize(_newlen)

@@ -34,7 +34,7 @@
         if (_num_events > 0) {
             const int _vectorisation_idx = 1;
             {{scalar_code|autoindent}}
-            const int _curlen = {{N}}[0];
+            const int _curlen = {{N}};
             const int _newlen = _curlen + _num_events;
             // Resize the arrays
             py::tuple _newlen_tuple(1);

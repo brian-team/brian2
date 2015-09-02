@@ -13,7 +13,7 @@
     cdef double __invr0
     cdef double __invrn
 
-    cdef double _Ri = {{Ri}}[0]  # Ri is a shared variable
+    cdef double _Ri = {{Ri}}  # Ri is a shared variable
 
     {% if owner.morphology.type == 'soma' %}
     # Correction for soma (a bit of a hack),

@@ -43,7 +43,7 @@
                 {% endfor %}
                 {{count}}[_idx-_source_start]++;
             }
-            {{N}}[0] += _num_events;
+            {{N}} += _num_events;
         }
     }
 
@@ -56,7 +56,7 @@ void _debugmsg_{{codeobj_name}}()
 	{# We need the pointers and constants here to get the access to N working #}
     %CONSTANTS%
     {{pointers_lines|autoindent}}
-	std::cout << "Number of spikes: " << {{N}}[0] << endl;
+	std::cout << "Number of spikes: " << {{N}} << endl;
 }
 {% endblock %}
 

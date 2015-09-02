@@ -9,7 +9,7 @@
                       N_incoming, N_outgoing, N}
 #}
 
-const int _old_num_synapses = {{N}}[0];
+const int _old_num_synapses = {{N}};
 const int _new_num_synapses = _old_num_synapses + _numsources;
 
 {# Get N_post and N_pre in the correct way, regardless of whether they are
@@ -39,5 +39,5 @@ const int newsize = {{_dynamic__synaptic_pre}}.size();
 {{varname}}.resize(newsize);
 {% endfor %}
 // Also update the total number of synapses
-{{N}}[0] = newsize;
+{{N}} = newsize;
 {% endblock %}

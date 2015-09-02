@@ -60,5 +60,5 @@
 	{{varname}}.resize(newsize);
 	{% endfor %}
 	// Also update the total number of synapses
-	{{N}}[0] = newsize;
+	{{N}} = newsize;
 {% endblock %}

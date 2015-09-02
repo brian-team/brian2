@@ -136,7 +136,7 @@ void _write_arrays()
 	outfile_{{varname}}.open("{{get_array_filename(var) | replace('\\', '\\\\')}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
-		outfile_{{varname}}.write(reinterpret_cast<char*>({{varname}}), {{var.size}}*sizeof({{varname}}[0]));
+		outfile_{{varname}}.write(reinterpret_cast<char*>({{varname}}), {{var.size}}*sizeof({{get_array_name(var)}}[0]));
 		outfile_{{varname}}.close();
 	} else
 	{

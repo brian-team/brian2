@@ -5,7 +5,7 @@
                     _starts, _ends, _invr0, _invrn, b_plus, b_minus } #}
 {% extends 'common_group.cpp' %}
 {% block maincode %}
-    const double _Ri = {{Ri}}[0];  // Ri is a shared variable
+    const double _Ri = {{Ri}};  // Ri is a shared variable
 
     {% if owner.morphology.type == 'soma' %}
     // Correction for soma (a bit of a hack),

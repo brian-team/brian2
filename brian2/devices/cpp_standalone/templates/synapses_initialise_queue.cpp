@@ -14,7 +14,7 @@ void _run_{{codeobj_name}}() {
                         {{constant_or_scalar('_n_targets', variables['_n_targets'])}},
                         real_delays, n_delays, sources,
                         n_synapses,
-                        {{_source_dt}}[0]);
+                        {{_source_dt}});
 }
 {% endmacro %}
 

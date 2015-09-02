@@ -510,6 +510,7 @@ class CPPStandaloneDevice(Device):
                         static_array_specs=static_array_specs,
                         networks=networks,
                         get_array_filename=self.get_array_filename,
+                        get_array_name=self.get_array_name,
                         code_objects=self.code_objects.values())
         writer.write('objects.*', arr_tmp)
         

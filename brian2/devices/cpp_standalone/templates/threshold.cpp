@@ -25,7 +25,7 @@
             {{_eventspace}}[_count++] = _idx;
             {% if _uses_refractory %}
             {{not_refractory}}[_idx] = false;
-            {{lastspike}}[_idx] = {{t}}[0];
+            {{lastspike}}[_idx] = {{t}};
             {% endif %}
         }
     }

@@ -9,7 +9,7 @@
     {# WRITES_READ_ONLY { _synaptic_pre, _synaptic_post,
                       N_incoming, N_outgoing, N}
     #}
-    cdef int _old_num_synapses = {{N}}[0]
+    cdef int _old_num_synapses = {{N}}
     cdef int _new_num_synapses = _old_num_synapses + _num{{sources}}
 
     {{_dynamic__synaptic_pre}}.resize(_new_num_synapses)
