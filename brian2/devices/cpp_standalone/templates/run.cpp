@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 {% macro cpp_file() %}
 #include<stdlib.h>
 #include "objects.h"
@@ -46,7 +45,6 @@ void {{name}}()
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 {% macro h_file() %}
-{{ openmp_pragma('once') }}
 
 void brian_start();
 void brian_end();

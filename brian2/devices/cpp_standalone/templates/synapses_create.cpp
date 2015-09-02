@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 {% extends 'common_synapses.cpp' %}
 
 {% block maincode %}

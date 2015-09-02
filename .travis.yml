@@ -127,7 +127,11 @@ script:
   else
     export SRCDIR=$(pwd);
     if [[ $STANDALONE == 'yes' ]]; then
-      SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests_standalone.py;
+      if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+        SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests_standalone_with_openmp.py;
+      else
+        SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests_standalone.py;
+      fi;
     else
       SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests.py;
     fi;

@@ -25,6 +25,7 @@ if standalone:
     result = brian2.test([],
                          test_codegen_independent=False,
                          test_standalone='cpp_standalone',
+                         test_openmp=True,
                          test_in_parallel=[])
 else:
     result = brian2.test(targets,

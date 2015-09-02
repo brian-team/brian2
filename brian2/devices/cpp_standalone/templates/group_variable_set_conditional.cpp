@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 {% macro cpp_file() %}
 #include "code_objects/{{codeobj_name}}.h"
 #include "brianlib/common_math.h"
@@ -46,7 +45,6 @@ void _run_{{codeobj_name}}()
        way. #}
 	const int _N = {{constant_or_scalar('N', variables['N'])}};
 
-	//We add the parallel flag because this is executed outside the main run loop
 	{{ openmp_pragma('parallel-static') }}
 	for(int _idx=0; _idx<_N; _idx++)
 	{

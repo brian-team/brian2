@@ -16,21 +16,18 @@
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}
 
-	{{ openmp_pragma('single') }}
+    long _count = 0;
+    for(int _idx=0; _idx<N; _idx++)
     {
-        long _count = 0;
-        for(int _idx=0; _idx<N; _idx++)
-        {
-            const int _vectorisation_idx = _idx;
-            {{vector_code|autoindent}}
-            if(_cond) {
-                {{_eventspace}}[_count++] = _idx;
-                {% if _uses_refractory %}
-                {{not_refractory}}[_idx] = false;
-                {{lastspike}}[_idx] = {{t}}[0];
-                {% endif %}
-            }
+        const int _vectorisation_idx = _idx;
+        {{vector_code|autoindent}}
+        if(_cond) {
+            {{_eventspace}}[_count++] = _idx;
+            {% if _uses_refractory %}
+            {{not_refractory}}[_idx] = false;
+            {{lastspike}}[_idx] = {{t}}[0];
+            {% endif %}
         }
-        {{_eventspace}}[N] = _count;
     }
+    {{_eventspace}}[N] = _count;
 {% endblock %}

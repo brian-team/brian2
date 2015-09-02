@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 {% extends 'common_group.cpp' %}
 {% block maincode %}
 	{# USES_VARIABLES { N } #}
@@ -13,7 +12,7 @@
 	const int _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
 
-	{{ openmp_pragma('static') }}
+	{{ openmp_pragma('parallel-static') }}
 	for(int _index_events=0; _index_events<_num_events; _index_events++)
 	{
 	    // vector code

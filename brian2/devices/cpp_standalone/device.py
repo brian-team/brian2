@@ -496,12 +496,6 @@ class CPPStandaloneDevice(Device):
         if nb_threads > 0:
             logger.warn("OpenMP code is not yet well tested, and may be inaccurate.", "openmp", once=True)
             logger.debug("Using OpenMP with %d threads " % nb_threads)
-            for codeobj in self.code_objects.itervalues():
-                if not 'IS_OPENMP_COMPATIBLE' in codeobj.template_source:
-                    raise RuntimeError(("Code object '%s' uses the template %s "
-                                        "which is not compatible with "
-                                        "OpenMP.") % (codeobj.name,
-                                                      codeobj.template_name))
     
     def generate_objects_source(self, writer, arange_arrays, synapses, static_array_specs, networks):
         arr_tmp = CPPStandaloneCodeObject.templater.objects(

@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 {# USES_VARIABLES { _n_sources, _n_targets, _source_dt } #}
 {% macro cpp_file() %}
 #include "code_objects/{{codeobj_name}}.h"

@@ -129,11 +129,9 @@ def test_storing_loading(with_output=False):
     assert_allclose(S.b_syn[:], b)
     set_device(previous_device)
 
-@attr('cpp_standalone', 'standalone-only')
+@attr('cpp_standalone', 'standalone-only', 'openmp')
 @with_setup(teardown=restore_device)
 def test_openmp_consistency(with_output=False):
-    if sys.platform.startswith('darwin'):
-        raise SkipTest('Skipping OpenMP on MacOSX')
     previous_device = get_device()
     n_cells    = 100
     n_recorded = 10
@@ -283,6 +281,26 @@ def test_duplicate_names_across_nets(with_output=True):
 
     set_device(previous_device)
 
+@attr('cpp_standalone', 'standalone-only', 'openmp')
+@with_setup(teardown=restore_device)
+def test_openmp_scalar_writes(with_output=True):
+    # Test that writing to a scalar variable only is done once in an OpenMP
+    # setting (see github issue #551)
+    previous_device = get_device()
+    set_device('cpp_standalone')
+    prefs.devices.cpp_standalone.openmp_threads = 4
+    G = NeuronGroup(10, 's : 1 (shared)')
+    G.run_regularly('s += 1')
+    run(defaultclock.dt)
+    tempdir = tempfile.mkdtemp()
+    if with_output:
+        print tempdir
+    device.build(directory=tempdir, run=True, compile=True,
+                 with_output=with_output)
+    assert_equal(G.s[:], 1.0)
+
+    set_device(previous_device)
+
 
 if __name__=='__main__':
     # Print the debug output when testing this file only but not when running
@@ -294,7 +312,8 @@ if __name__=='__main__':
              test_storing_loading,
              test_openmp_consistency,
              test_timedarray,
-             test_duplicate_names_across_nets
+             test_duplicate_names_across_nets,
+             test_openmp_scalar_writes
              ]:
         t(with_output=True)
         restore_device()
