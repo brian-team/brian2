@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 {% extends 'common_synapses.cpp' %}
 
 {% set _non_synaptic = [] %}
@@ -17,7 +16,9 @@
 	// scalar code
 	const int _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
-	
+
+	{{ openmp_pragma('parallel') }}
+	{
 	std::vector<int> *_spiking_synapses = {{pathway.name}}.peek();
 	const unsigned int _num_spiking_synapses = _spiking_synapses->size();
 
@@ -45,7 +46,7 @@
 	}
 
 	{% endif %}
-
+    }
 {% endblock %}
 
 

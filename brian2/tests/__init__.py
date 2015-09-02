@@ -6,7 +6,7 @@ from brian2.core.preferences import prefs
 from brian2.devices.device import all_devices
 
 def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
-        test_standalone=None,
+        test_standalone=None, test_openmp=False,
         test_in_parallel=['codegen_independent', 'numpy', 'cython', 'cpp_standalone'],
         reset_preferences=True):
     '''
@@ -34,6 +34,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         ``'cpp_standalone_simple'`` exists that can be used for testing (see
         `CPPStandaloneSimpleDevice` for details. Defaults to ``None``, meaning
         that no standalone device is tested.
+    test_openmp : bool, optional
+        Whether to test standalone test with multiple threads and OpenMP. Will
+        be ignored if ``cpp_standalone`` is not tested. Defaults to ``False``.
     '''
     try:
         import nose
@@ -171,15 +174,34 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 argv.extend(multiprocess_arguments)
             success.append(nose.run(argv=argv))
 
+            if test_openmp and test_standalone == 'cpp_standalone':
+                # Run all the standalone compatible tests again with 4 threads
+                prefs.devices.cpp_standalone.openmp_threads = 4
+                sys.stderr.write('Running standalone-compatible standard tests with OpenMP\n')
+                exclude_str = ',!long' if not long_tests else ''
+                argv = ['nosetests', dirname,
+                        '-c=',  # no config file loading
+                        '-I', '^hears\.py$',
+                        '-I', '^\.',
+                        '-I', '^_',
+                        # Only run standalone tests
+                        '-a', 'standalone-compatible'+exclude_str,
+                        '--nologcapture',
+                        '--exe']
+                success.append(nose.run(argv=argv))
+                prefs.devices.cpp_standalone.openmp_threads = 0
+
             set_device(previous_device)
+
             sys.stderr.write('Running standalone-specific tests\n')
+            exclude_openmp = ',!openmp' if not test_openmp else ''
             argv = ['nosetests', dirname,
                     '-c=',  # no config file loading
                     '-I', '^hears\.py$',
                     '-I', '^\.',
                     '-I', '^_',
                     # Only run standalone tests
-                    '-a', test_standalone+exclude_str,
+                    '-a', test_standalone+exclude_openmp,
                     '--nologcapture',
                     '--exe']
             if test_standalone in test_in_parallel:

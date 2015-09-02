@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 {% macro cpp_file() %}
 
 #include "network.h"
@@ -58,59 +57,47 @@ void Network::run(const double duration, void (*report_func)(const double, const
 
 	Clock* clock = next_clocks();
 
-	{{ openmp_pragma('parallel') }}
-	{
-		while(clock->running())
-		{
-			for(int i=0; i<objects.size(); i++)
-			{
-				{{ openmp_pragma('single-nowait') }}
-				{
-					if (report_func)
-		            {
-                        {% if openmp_pragma('with_openmp') %}
-                        const double elapsed = omp_get_wtime() - start;
-                        {% else %}
-		                current = std::clock();
-                        const double elapsed = (double)((current - start) / CLOCKS_PER_SEC);
-                        {% endif %}
-		                if (elapsed > next_report_time)
-		                {
-		                    report_func(elapsed, (clock->t_()-t_start)/duration, duration);
-		                    next_report_time += report_period;
-		                }
-		            }
-		        }
-				Clock *obj_clock = objects[i].first;
-				// Only execute the object if it uses the right clock for this step
-				if (curclocks.find(obj_clock) != curclocks.end())
-				{
-	                codeobj_func func = objects[i].second;
-	                {{ openmp_pragma('barrier') }}
-	                func();
-				}
-			}
-			{{ openmp_pragma('single') }}
-			{
-				for(std::set<Clock*>::iterator i=curclocks.begin(); i!=curclocks.end(); i++)
-					(*i)->tick();
-			}
-			clock = next_clocks();
-		}
-		{{ openmp_pragma('single-nowait') }}
-		{
-			if (report_func)
-			{
-			    {% if openmp_pragma('with_openmp') %}
-                report_func(omp_get_wtime() - start, 1.0, duration);
+    while(clock->running())
+    {
+        for(int i=0; i<objects.size(); i++)
+        {
+            if (report_func)
+            {
+                {% if openmp_pragma('with_openmp') %}
+                const double elapsed = omp_get_wtime() - start;
                 {% else %}
-			    current = std::clock();
-			    report_func((double)(current - start)/({{ openmp_pragma('get_num_threads') }} * CLOCKS_PER_SEC), 1.0, duration);
-			    {% endif %}
-			}
-		}
+                current = std::clock();
+                const double elapsed = (double)((current - start) / CLOCKS_PER_SEC);
+                {% endif %}
+                if (elapsed > next_report_time)
+                {
+                    report_func(elapsed, (clock->t_()-t_start)/duration, duration);
+                    next_report_time += report_period;
+                }
+            }
+            Clock *obj_clock = objects[i].first;
+            // Only execute the object if it uses the right clock for this step
+            if (curclocks.find(obj_clock) != curclocks.end())
+            {
+                codeobj_func func = objects[i].second;
+                func();
+            }
+        }
+        for(std::set<Clock*>::iterator i=curclocks.begin(); i!=curclocks.end(); i++)
+            (*i)->tick();
+        clock = next_clocks();
+    }
+
+    if (report_func)
+    {
+        {% if openmp_pragma('with_openmp') %}
+        report_func(omp_get_wtime() - start, 1.0, duration);
+        {% else %}
+        current = std::clock();
+        report_func((double)(current - start)/({{ openmp_pragma('get_num_threads') }} * CLOCKS_PER_SEC), 1.0, duration);
+        {% endif %}
+    }
 	t = t_end;
-	}
 }
 
 void Network::compute_clocks()
@@ -133,21 +120,17 @@ Clock* Network::next_clocks()
 		if(clock->t_()<minclock->t_())
 			minclock = clock;
 	}
-	// find set of equal clocks
-	{{ openmp_pragma('single') }}
-	{
-		// find set of equal clocks
-		curclocks.clear();
+    // find set of equal clocks
+    curclocks.clear();
 
-		double t = minclock->t_();
-		for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
-		{
-			Clock *clock = *i;
-			double s = clock->t_();
-			if(s==t || fabs(s-t)<=Clock_epsilon)
-				curclocks.insert(clock);
-		}
-	}
+    double t = minclock->t_();
+    for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
+    {
+        Clock *clock = *i;
+        double s = clock->t_();
+        if(s==t || fabs(s-t)<=Clock_epsilon)
+            curclocks.insert(clock);
+    }
 	return minclock;
 }
 
