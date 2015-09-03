@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 {% macro cpp_file() %}
 
 #include "network.h"

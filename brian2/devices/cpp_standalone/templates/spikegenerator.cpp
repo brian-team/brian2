@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 {% extends 'common_group.cpp' %}
 {% block maincode %}
     {# USES_VARIABLES {_spikespace, N, t, dt, neuron_index, spike_time, period, _lastindex } #}
