@@ -10,7 +10,6 @@ from collections import defaultdict, Counter
 import numbers
 import tempfile
 from distutils import ccompiler
-import hashlib
 
 import numpy as np
 
@@ -207,10 +206,8 @@ class CPPStandaloneDevice(Device):
         -------
         filename : str
             A filename of the form
-            ``'results/'+varname+'_'+hash``, where varname is the
-            name returned by `get_array_name`, and ``hash`` is an MD5 hash of
-            the array name (because on Windows filenames are case
-             insensitive so we add the hash).
+            ``'results/'+varname+'_'+str(hash(varname))``, where varname is the
+            name returned by `get_array_name`.
 
         Notes
         -----
@@ -219,7 +216,7 @@ class CPPStandaloneDevice(Device):
         that are not case sensitive (e.g. on Windows).
         '''
         varname = self.get_array_name(var, access_data=False)
-        return os.path.join(basedir, varname + '_' + str(hashlib.md5(varname).hexdigest()))
+        return os.path.join(basedir, varname + '_' + str(hash(varname)))
 
     def add_array(self, var):
         # Note that a dynamic array variable is added to both the arrays and
