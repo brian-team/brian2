@@ -50,7 +50,7 @@ def test_cpp_standalone(with_output=False):
     set_device(previous_device)
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_initial_state)
+@with_setup(teardown=restore_device)
 def test_dt_changes_between_runs_standalone(with_output=False):
     previous_device = get_device()
     set_device('cpp_standalone')
