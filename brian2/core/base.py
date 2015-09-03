@@ -102,9 +102,9 @@ class BrianObject(Nameable):
         #: The scope key is used to determine which objects are collected by magic
         self._scope_key = self._scope_current_key
         
-        # logger.debug("Created BrianObject with name {self.name}, "
-        #              "clock={self._clock}, "
-        #              "when={self.when}, order={self.order}".format(self=self))
+        logger.debug("Created BrianObject with name {self.name}, "
+                     "clock={self._clock}, "
+                     "when={self.when}, order={self.order}".format(self=self))
 
     #: Global key value for ipython cell restrict magic
     _scope_current_key = 0

@@ -18,9 +18,13 @@ public:
 	double epsilon;
 	double *dt;
 	uint64_t *timestep;
+	double *t;
 	Clock(double _epsilon=1e-14) : epsilon(_epsilon) { i_end = 0;};
-	inline double t_end() { return i_end*(dt[0]); };
-	inline double t_() { return timestep[0]*dt[0]; }
+    inline void tick()
+    {
+        timestep[0] += 1;
+        t[0] = timestep[0] * dt[0];
+    }
 	inline bool running() { return timestep[0]<i_end; };
 	void set_interval(double start, double end)
 	{

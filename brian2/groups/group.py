@@ -9,6 +9,7 @@ import weakref
 import numpy as np
 
 from brian2.core.base import BrianObject
+from brian2.core.names import Nameable
 from brian2.core.preferences import prefs
 from brian2.core.variables import (Variables, Constant, Variable,
                                    ArrayVariable, DynamicArrayVariable,
@@ -26,7 +27,7 @@ from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, SpellChecker
 
-__all__ = ['Group', 'CodeRunner']
+__all__ = ['Group', 'BrianContainer', 'CodeRunner']
 
 logger = get_logger(__name__)
 
@@ -262,15 +263,13 @@ class IndexWrapper(object):
         else:
             return self.indices(item)
 
-
-class Group(BrianObject):
+class BrianContainer(Nameable):
     '''
     Mix-in class for accessing arrays by attribute.
-    
+
     # TODO: Overwrite the __dir__ method to return the state variables
     # (should make autocompletion work)
     '''
-
     def _enable_group_attributes(self):
         if not hasattr(self, 'variables'):
             raise ValueError('Classes derived from Group need variables attribute.')
@@ -287,9 +286,6 @@ class Group(BrianObject):
         if not hasattr(self, '_stored_clocks'):
             self._stored_clocks = {}
         self._group_attribute_access_active = True
-
-    def __len__(self):
-        return self.variables['N'].get_value()
 
     def state(self, name, use_units=True, level=0):
         '''
@@ -581,6 +577,12 @@ class Group(BrianObject):
                 raise ValueError(('String expression for setting scalar '
                                   'variable %s refers to %s which is not '
                                   'scalar.') % (varname, ref_varname))
+
+    def __len__(self):
+        return self.variables['N'].get_value()
+
+
+class Group(BrianContainer, BrianObject):
 
     def resolve(self, identifier, user_identifier=True,
                 additional_variables=None, run_namespace=None, level=0):

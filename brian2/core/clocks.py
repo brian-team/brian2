@@ -9,16 +9,16 @@ import numpy as np
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.core.variables import Variables
-from brian2.groups.group import Group, CodeRunner
+from brian2.groups.group import BrianContainer
 from brian2.units.fundamentalunits import check_units, Quantity, Unit
-from brian2.units.allunits import second, msecond
+from brian2.units.allunits import second
 
 __all__ = ['Clock', 'defaultclock']
 
 logger = get_logger(__name__)
 
 
-class Clock(Group, CodeRunner):
+class Clock(BrianContainer):
     '''
     An object that holds the simulation time and the time step.
     
@@ -37,7 +37,7 @@ class Clock(Group, CodeRunner):
     ``abs(t1-t2)<epsilon*abs(t1)``, a standard test for equality of floating
     point values. The value of ``epsilon`` is ``1e-14``.
     '''
-    add_to_magic_network = False
+
     def __init__(self, dt, name='clock*'):
         # We need a name right away because some devices (e.g. cpp_standalone)
         # need a name for the object when creating the variables
@@ -55,13 +55,6 @@ class Clock(Group, CodeRunner):
                                  dtype=np.float, read_only=True, constant=True,
                                  scalar=True)
         self.variables.add_constant('N', unit=Unit(1), value=1)
-        self.codeobj_class = None
-        CodeRunner.__init__(self, group=self, template='stateupdate',
-                            code='''timestep += 1
-                                    t = timestep * dt''',
-                            user_code='',
-                            clock=self, when='after_end',
-                            name=None)  # Name as already been set
         self._enable_group_attributes()
         self.dt = dt
         logger.debug("Created clock {name} with dt={dt}".format(name=self.name,
@@ -106,12 +99,7 @@ class Clock(Group, CodeRunner):
                                                                      dt=self.dt))
 
     def __repr__(self):
-        return 'Clock(dt=%r, name=%r)' % (
-            # self._new_dt*second
-            #                               if self._new_dt is not None
-            #                               else
-                                          self.dt,
-                                          self.name)
+        return 'Clock(dt=%r, name=%r)' % (self.dt, self.name)
 
     def _get_dt_(self):
         if self._new_dt is None:
@@ -153,6 +141,18 @@ class Clock(Group, CodeRunner):
             self._i_end = i_end
         else:
             self._i_end = np.uint64(np.ceil(end/self.dt_))
+
+    def tick(self):
+        '''
+        Advance the clock by a single time step
+        '''
+        timestep_array = self.variables['timestep'].get_value()
+        # We can assume the runtime device here, standalone will provide it's
+        # own mechanism for advancing the clock. Therefore, we don't have to
+        # update the variable in the general way but just work directly with
+        # the underlying array
+        timestep_array[0] += 1
+        self.variables['t'].get_value()[0] = timestep_array[0] * self.variables['dt'].get_value()[0]
 
     @property
     def running(self):

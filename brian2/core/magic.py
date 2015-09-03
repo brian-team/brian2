@@ -165,8 +165,6 @@ class MagicNetwork(Network):
         for obj in objects:
             for contained in _get_contained_objects(obj):
                 contained_objects.add(contained)
-            if not isinstance(obj, Clock):
-                contained_objects.add(obj.clock)
         objects |= contained_objects
 
         # check whether we should restart time, continue time, or raise an
@@ -174,8 +172,6 @@ class MagicNetwork(Network):
         some_known = False
         some_new = False
         for obj in objects:
-            if isinstance(obj, Clock):
-                continue
             if obj._network == self.id:
                 some_known = True  # we are continuing a previous run
             elif obj._network is None and obj.invalidates_magic_network:

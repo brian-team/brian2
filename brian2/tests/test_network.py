@@ -83,7 +83,7 @@ def test_network_two_objects():
     net.run(1*ms)
     assert_equal(net.objects[0].order, 5)
     assert_equal(net.objects[1].order, 6)
-    assert_equal(len(net.objects), 3)
+    assert_equal(len(net.objects), 2)
     assert_equal(x.count, 10)
     assert_equal(y.count, 10)
 
@@ -529,7 +529,7 @@ def test_magic_weak_reference():
         # Check the debug messages for the number of included objects
         magic_objects = [msg[2] for msg in l
                          if msg[1] == 'brian2.core.magic.magic_objects'][0]
-        assert '3 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
+        assert '2 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
 
 
 @attr('codegen-independent')
@@ -549,7 +549,7 @@ def test_magic_unused_object():
         # Check the debug messages for the number of included objects
         magic_objects = [msg[2] for msg in l
                          if msg[1] == 'brian2.core.magic.magic_objects'][0]
-        assert '3 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
+        assert '2 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
 
 
 @attr('codegen-independent')
@@ -557,7 +557,7 @@ def test_magic_unused_object():
 def test_network_access():
     x = Counter(name='counter')
     net = Network(x)
-    assert len(net) == 2
+    assert len(net) == 1
     assert len(repr(net))  # very basic test...
     assert len(str(net))  # very basic test...
 
@@ -628,7 +628,7 @@ def test_loop():
         # Check the debug messages for the number of included objects
         magic_objects = [msg[2] for msg in l
                          if msg[1] == 'brian2.core.magic.magic_objects'][0]
-        assert '5 objects' in magic_objects
+        assert '4 objects' in magic_objects
 
 
     # Second run
@@ -638,7 +638,7 @@ def test_loop():
         # Check the debug messages for the number of included objects
         magic_objects = [msg[2] for msg in l
                          if msg[1] == 'brian2.core.magic.magic_objects'][0]
-        assert '5 objects' in magic_objects
+        assert '4 objects' in magic_objects
 
 
 @attr('codegen-independent')
@@ -890,7 +890,7 @@ def test_get_set_states():
     states1 = net.get_states()
     states2 = magic_network.get_states()
     states3 = net.get_states(read_only_variables=False)
-    assert set(states1.keys()) == set(states2.keys()) == set(states3.keys()) == {'a_neurongroup', 'defaultclock'}
+    assert set(states1.keys()) == set(states2.keys()) == set(states3.keys()) == {'a_neurongroup'}
     assert set(states1['a_neurongroup'].keys()) == set(states2['a_neurongroup'].keys()) == {'i', 'dt', 'N', 't', 'v'}
     assert set(states3['a_neurongroup']) == {'v'}
 
@@ -941,7 +941,7 @@ def test_profile():
     # for state update, threshold and reset + 1 for the clock
     info = net.profiling_info
     info_dict = dict(info)
-    assert len(info) == 5
+    assert len(info) == 4
     assert 'profile_test' in info_dict
     assert 'profile_test_stateupdater' in info_dict
     assert 'profile_test_thresholder' in info_dict
