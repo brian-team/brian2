@@ -124,8 +124,8 @@ class CodeObjectTemplate(object):
         # Same for ITERATE_ALL
         iterate_all_blocks = re.findall(r'\bITERATE_ALL\b\s*\{(.*?)\}',
                                         template_source, re.M|re.S)
-        # And for WRITES_READ_ONLY
-        writes_read_only_blocks = re.findall(r'\bWRITES_READ_ONLY\b\s*\{(.*?)\}',
+        # And for WRITES_TO_READ_ONLY_VARIABLES
+        writes_read_only_blocks = re.findall(r'\bWRITES_TO_READ_ONLY_VARIABLES\b\s*\{(.*?)\}',
                                              template_source, re.M|re.S)
         #: Does this template allow writing to scalar variables?
         self.allows_scalar_write = 'ALLOWS_SCALAR_WRITE' in template_source

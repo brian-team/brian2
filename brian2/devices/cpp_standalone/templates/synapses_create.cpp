@@ -6,8 +6,8 @@
 	                    N_incoming, N_outgoing, N,
 	                    N_pre, N_post, _source_offset, _target_offset } #}
 
-    {# WRITES_READ_ONLY { _synaptic_pre, _synaptic_post,
-                          N_incoming, N_outgoing, N}
+    {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post,
+                                       N_incoming, N_outgoing, N}
     #}
 
     {# Get N_post and N_pre in the correct way, regardless of whether they are
