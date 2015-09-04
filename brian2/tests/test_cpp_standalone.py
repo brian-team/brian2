@@ -283,7 +283,7 @@ def test_duplicate_names_across_nets(with_output=True):
 
 @attr('cpp_standalone', 'standalone-only', 'openmp')
 @with_setup(teardown=restore_device)
-def test_openmp_scalar_writes(with_output=True):
+def test_openmp_scalar_writes(with_output=False):
     # Test that writing to a scalar variable only is done once in an OpenMP
     # setting (see github issue #551)
     previous_device = get_device()
@@ -301,6 +301,110 @@ def test_openmp_scalar_writes(with_output=True):
 
     set_device(previous_device)
 
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=restore_device)
+def test_time_after_run(with_output=False):
+    previous_device = get_device()
+    set_device('cpp_standalone')
+    # Check that the clock and network time after a run is correct, even if we
+    # have not actually run the code yet (via build)
+    G = NeuronGroup(10, 'dv/dt = -v/(10*ms) : 1')
+    net = Network(G)
+    assert_allclose(defaultclock.dt, 0.1*ms)
+    assert_allclose(defaultclock.t, 0.*ms)
+    assert_allclose(G.t, 0.*ms)
+    assert_allclose(net.t, 0.*ms)
+    net.run(10*ms)
+    assert_allclose(defaultclock.t, 10.*ms)
+    assert_allclose(G.t, 10.*ms)
+    assert_allclose(net.t, 10.*ms)
+    net.run(10*ms)
+    assert_allclose(defaultclock.t, 20.*ms)
+    assert_allclose(G.t, 20.*ms)
+    assert_allclose(net.t, 20.*ms)
+    tempdir = tempfile.mkdtemp()
+    if with_output:
+        print tempdir
+    device.build(directory=tempdir, run=True, compile=True,
+                 with_output=with_output)
+    # Everything should of course still be accessible
+    assert_allclose(defaultclock.t, 20.*ms)
+    assert_allclose(G.t, 20.*ms)
+    assert_allclose(net.t, 20.*ms)
+
+    set_device(previous_device)
+
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=restore_device)
+def test_array_cache(with_output=False):
+    # Check that variables are only accessible from Python when they should be
+    previous_device = get_device()
+    set_device('cpp_standalone')
+
+    G = NeuronGroup(10, '''dv/dt = -v / (10*ms) : 1
+                           w : 1
+                           x : 1
+                           y : 1
+                           z : 1 (shared)''',
+                    threshold='v>1')
+    S = Synapses(G, G, 'weight: 1', pre='w += weight', connect='rand()<0.2')
+    S.weight = 7
+    # All neurongroup values should be known
+    assert_allclose(G.v, 0)
+    assert_allclose(G.w, 0)
+    assert_allclose(G.x, 0)
+    assert_allclose(G.y, 0)
+    assert_allclose(G.z, 0)
+    assert_allclose(G.i, np.arange(10))
+
+    # But the synaptic variable is not -- we don't know the number of synapses
+    assert_raises(NotImplementedError, lambda: S.weight[:])
+
+    # Setting variables with explicit values should not change anything
+    G.v = np.arange(10)+1
+    G.w = 2
+    G.y = 5
+    G.z = 7
+    assert_allclose(G.v, np.arange(10)+1)
+    assert_allclose(G.w, 2)
+    assert_allclose(G.y, 5)
+    assert_allclose(G.z, 7)
+
+    # But setting with code should invalidate them
+    G.x = 'i*2'
+    assert_raises(NotImplementedError, lambda: G.x[:])
+
+    # Make sure that the array cache does not allow to use incorrectly sized
+    # values to pass
+    assert_raises(ValueError, lambda: setattr(G, 'w', [0, 2]))
+    assert_raises(ValueError, lambda: G.w.__setitem__(slice(0, 4), [0, 2]))
+
+    run(10*ms)
+    # v is now no longer known without running the network
+    assert_raises(NotImplementedError, lambda: G.v[:])
+    # Neither is w, it is updated in the synapse
+    assert_raises(NotImplementedError, lambda: G.w[:])
+    # However, no code touches y or z
+    assert_allclose(G.y, 5)
+    assert_allclose(G.z, 7)
+    # i is read-only anyway
+    assert_allclose(G.i, np.arange(10))
+
+    # After actually running the network, everything should be accessible
+    tempdir = tempfile.mkdtemp()
+    if with_output:
+        print tempdir
+    device.build(directory=tempdir, run=True, compile=True,
+                 with_output=with_output)
+    assert all(G.v > 0)
+    assert all(G.w > 0)
+    assert_allclose(G.x, np.arange(10)*2)
+    assert_allclose(G.y, 5)
+    assert_allclose(G.z, 7)
+    assert_allclose(G.i, np.arange(10))
+
+    set_device(previous_device)
+
 
 if __name__=='__main__':
     # Print the debug output when testing this file only but not when running
@@ -313,7 +417,9 @@ if __name__=='__main__':
              test_openmp_consistency,
              test_timedarray,
              test_duplicate_names_across_nets,
-             test_openmp_scalar_writes
+             test_openmp_scalar_writes,
+             test_time_after_run,
+             test_array_cache
              ]:
         t(with_output=True)
         restore_device()
