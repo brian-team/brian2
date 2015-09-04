@@ -328,7 +328,7 @@ class CPPStandaloneDevice(Device):
 
         elif (value.size == 1 and
               item == 'True' and
-              variableview.index_var_name == '_idx'):
+              variableview.index_var_name in ('_idx', '0')):
             # set the whole array to a scalar value
             if have_same_dimensions(value, 1):
                 # Avoid a representation as "Quantity(...)" or "array(...)"
@@ -348,7 +348,7 @@ class CPPStandaloneDevice(Device):
                 self.array_cache[var] = new_arr
 
         # Simple case where we don't have to do any indexing
-        elif (item == 'True' and variableview.index_var == '_idx'):
+        elif (item == 'True' and variableview.index_var in ('_idx', '0')):
             self.fill_with_array(variableview.variable, value)
         else:
             # We have to calculate indices. This will not work for synaptic
@@ -385,6 +385,11 @@ class CPPStandaloneDevice(Device):
                     (value.shape == () or
                          (value.size == 1 and indices.size > 1))):
                 value = np.repeat(value, indices.size)
+            elif len(value) != len(indices):
+                raise ValueError(('Provided values do not match the size '
+                                  'of the indices, '
+                                  '%d != %d.') % (len(value),
+                                                  len(indices)))
             staticarrayname_value = self.static_array('_value_'+arrayname,
                                                       value)
             self.array_cache[variableview.variable] = None
