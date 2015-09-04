@@ -1,7 +1,17 @@
 from brian2 import *
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_raises, assert_equal, assert_array_equal
 from nose import with_setup
 from nose.plugins.attrib import attr
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_initial_state)
+def test_clocks():
+    clock = Clock(dt=1*ms)
+    assert_array_equal(clock.t, 0*second)
+    assert_array_equal(clock.timestep, 0)
+    clock.tick()
+    assert_array_equal(clock.t, 1*ms)
+    assert_array_equal(clock.timestep, 1)
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
@@ -38,6 +48,7 @@ def test_defaultclock():
     assert defaultclock.name=='defaultclock'
 
 if __name__=='__main__':
+    test_clocks()
     restore_initial_state()
     test_clock_dt_change()
     restore_initial_state()
