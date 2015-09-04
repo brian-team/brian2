@@ -188,19 +188,6 @@ class Device(object):
         '''
         raise NotImplementedError()
 
-    def init_with_array(self, var, arr):
-        '''
-        Initialize an array with the values given in another array.
-
-        Parameters
-        ----------
-        var : `ArrayVariable`
-            The array to fill.
-        arr : `ndarray`
-            The array values that should be copied to `var`.
-        '''
-        raise NotImplementedError()
-
     def spike_queue(self, source_start, source_end):
         '''
         Create and return a new `SpikeQueue` for this `Device`.
@@ -404,9 +391,6 @@ class RuntimeDevice(Device):
         self.arrays[var][:] = np.arange(start, stop=var.get_len()+start)
 
     def fill_with_array(self, var, arr):
-        self.arrays[var][:] = arr
-
-    def init_with_array(self, var, arr):
         self.arrays[var][:] = arr
 
     def spike_queue(self, source_start, source_end):

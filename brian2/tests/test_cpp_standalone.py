@@ -340,7 +340,6 @@ def test_array_cache(with_output=False):
     # Check that variables are only accessible from Python when they should be
     previous_device = get_device()
     set_device('cpp_standalone')
-
     G = NeuronGroup(10, '''dv/dt = -v / (10*ms) : 1
                            w : 1
                            x : 1
@@ -402,6 +401,7 @@ def test_array_cache(with_output=False):
     assert_allclose(G.y, 5)
     assert_allclose(G.z, 7)
     assert_allclose(G.i, np.arange(10))
+    assert_allclose(S.weight, 7)
 
     set_device(previous_device)
 

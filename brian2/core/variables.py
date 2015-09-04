@@ -1460,17 +1460,19 @@ class Variables(collections.Mapping):
                             read_only=read_only,
                             unique=unique)
         self._add_variable(name, var, index)
-        if values is None:
-            self.device.init_with_zeros(var)
-        elif scalar:
-            if np.asanyarray(values).shape != ():
-                raise ValueError('Need a scalar value.')
-            self.device.init_with_array(var, values)
-        else:
-            if len(values) != size:
-                raise ValueError(('Size of the provided values does not match '
-                                  'size: %d != %d') % (len(values), size))
-            self.device.init_with_array(var, values)
+        # This could be avoided, but we currently need it so that standalone
+        # allocates the memory
+        self.device.init_with_zeros(var)
+        if values is not None:
+            if scalar:
+                if np.asanyarray(values).shape != ():
+                    raise ValueError('Need a scalar value.')
+                self.device.fill_with_array(var, values)
+            else:
+                if len(values) != size:
+                    raise ValueError(('Size of the provided values does not match '
+                                      'size: %d != %d') % (len(values), size))
+                self.device.fill_with_array(var, values)
 
     def add_dynamic_array(self, name, unit, size, values=None, dtype=None,
                           constant=False, constant_size=True,
@@ -1520,6 +1522,8 @@ class Variables(collections.Mapping):
                                    scalar=scalar,
                                    read_only=read_only, unique=unique)
         self._add_variable(name, var, index)
+        if np.prod(size) > 0:
+            self.device.resize(var, size)
         if values is None and np.prod(size) > 0:
             self.device.init_with_zeros(var)
         elif values is not None:
@@ -1527,7 +1531,7 @@ class Variables(collections.Mapping):
                 raise ValueError(('Size of the provided values does not match '
                                   'size: %d != %d') % (len(values), size))
             if np.prod(size) > 0:
-                self.device.init_with_array(var, values)
+                self.device.fill_with_array(var, values)
 
     def add_arange(self, name, size, start=0, dtype=np.int32, constant=True,
                    read_only=True, unique=True, index=None):

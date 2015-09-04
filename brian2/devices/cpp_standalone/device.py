@@ -265,37 +265,11 @@ class CPPStandaloneDevice(Device):
         self.arange_arrays[var] = start
         self.array_cache[var] = np.arange(0, var.size) + start
 
-    def init_with_array(self, var, arr):
-        arr = np.asanyarray(arr)
-        array_name = self.get_array_name(var, access_data=False)
-        # treat the array as a static array
-        new_arr = np.empty(var.size, dtype=var.dtype)
-        new_arr[:] = arr  # use broadcasting and change the type if necessary
-        self.static_arrays[array_name] = new_arr
-        # Use the same array to not use memory twice
-        self.array_cache[var] = new_arr
-
     def fill_with_array(self, var, arr):
         arr = np.asarray(arr)
+        if arr.size == 0:
+            return  # nothing to do
         array_name = self.get_array_name(var, access_data=False)
-        arr = np.asarray(arr)
-        if arr.shape == ():
-            if var.size == 1:
-                value = CPPNodeRenderer().render_expr(repr(arr.item(0)))
-                # For a single assignment, generate a code line instead of storing the array
-                self.main_queue.append(('set_by_single_value', (array_name,
-                                                                0,
-                                                                value)))
-            else:
-                self.main_queue.append(('set_by_constant', (array_name,
-                                                            arr.item())))
-        else:
-            # Using the std::vector instead of a pointer to the underlying
-            # data for dynamic arrays is fast enough here and it saves us some
-            # additional work to set up the pointer
-            static_array_name = self.static_array(array_name, arr)
-            self.main_queue.append(('set_by_array', (array_name,
-                                                     static_array_name)))
         if isinstance(var, DynamicArrayVariable):
             # We can never be sure about the size of a dynamic array, so
             # we can't do correct broadcasting. Therefore, we do not cache
@@ -305,6 +279,26 @@ class CPPStandaloneDevice(Device):
             new_arr = np.empty(var.size, dtype=var.dtype)
             new_arr[:] = arr
             self.array_cache[var] = new_arr
+
+        if arr.size == 1:
+            if var.size == 1:
+                value = CPPNodeRenderer().render_expr(repr(arr.item(0)))
+                # For a single assignment, generate a code line instead of storing the array
+                self.main_queue.append(('set_by_single_value', (array_name,
+                                                                0,
+                                                                value)))
+            else:
+                self.main_queue.append(('set_by_constant', (array_name,
+                                                            arr.item(),
+                                                            isinstance(var, DynamicArrayVariable))))
+        else:
+            # Using the std::vector instead of a pointer to the underlying
+            # data for dynamic arrays is fast enough here and it saves us some
+            # additional work to set up the pointer
+            static_array_name = self.static_array(array_name, arr)
+            self.main_queue.append(('set_by_array', (array_name,
+                                                     static_array_name,
+                                                     isinstance(var, DynamicArrayVariable))))
 
     def resize(self, var, new_size):
         array_name = self.get_array_name(var, access_data=False)
@@ -325,28 +319,6 @@ class CPPStandaloneDevice(Device):
             self.main_queue.append(('set_by_single_value', (array_name,
                                                             item,
                                                             value_str)))
-
-        elif (value.size == 1 and
-              item == 'True' and
-              variableview.index_var_name in ('_idx', '0')):
-            # set the whole array to a scalar value
-            if have_same_dimensions(value, 1):
-                # Avoid a representation as "Quantity(...)" or "array(...)"
-                value = float(value)
-            variableview.set_with_expression_conditional(cond=item,
-                                                         code=repr(value),
-                                                         check_units=check_units)
-            var = variableview.variable
-            if isinstance(var, DynamicArrayVariable):
-                # We can never be sure about the size of a dynamic array, so
-                # we can't do correct broadcasting. Therefore, we do not cache
-                # them at all for now.
-                self.array_cache[var] = None
-            else:
-                new_arr = np.empty(var.size, dtype=var.dtype)
-                new_arr[:] = value
-                self.array_cache[var] = new_arr
-
         # Simple case where we don't have to do any indexing
         elif (item == 'True' and variableview.index_var in ('_idx', '0')):
             self.fill_with_array(variableview.variable, value)
@@ -365,22 +337,7 @@ class CPPStandaloneDevice(Device):
             # additional work to set up the pointer
             arrayname = self.get_array_name(variableview.variable,
                                             access_data=False)
-            if indices.shape == ():
-                if self.array_cache.get(variableview.variable, None) is not None:
-                    self.array_cache[variableview.variable][indices.item()] = float(value)
-                self.main_queue.append(('set_by_single_value', (arrayname,
-                                            indices.item(),
-                                            float(value))))
-            else:
-                staticarrayname_index = self.static_array('_index_'+arrayname,
-                                                          indices)
-                staticarrayname_value = self.static_array('_value_'+arrayname,
-                                                          value)
-                self.main_queue.append(('set_array_by_array', (arrayname,
-                                                               staticarrayname_index,
-                                                               staticarrayname_value)))
-            staticarrayname_index = self.static_array('_index_'+arrayname,
-                                                      indices)
+
             if (indices.shape != () and
                     (value.shape == () or
                          (value.size == 1 and indices.size > 1))):
@@ -390,6 +347,9 @@ class CPPStandaloneDevice(Device):
                                   'of the indices, '
                                   '%d != %d.') % (len(value),
                                                   len(indices)))
+
+            staticarrayname_index = self.static_array('_index_'+arrayname,
+                                                      indices)
             staticarrayname_value = self.static_array('_value_'+arrayname,
                                                       value)
             self.array_cache[variableview.variable] = None
@@ -531,25 +491,30 @@ class CPPStandaloneDevice(Device):
                 net, netcode = args
                 main_lines.extend(netcode)
             elif func=='set_by_constant':
-                arrayname, value = args
+                arrayname, value, is_dynamic = args
+                size_str = arrayname+'.size()' if is_dynamic else '_num_'+arrayname
                 code = '''
                 {pragma}
-                for(int i=0; i<_num_{arrayname}; i++)
+                for(int i=0; i<{size_str}; i++)
                 {{
                     {arrayname}[i] = {value};
                 }}
-                '''.format(arrayname=arrayname, value=CPPNodeRenderer().render_expr(repr(value)),
+                '''.format(arrayname=arrayname, size_str=size_str,
+                           value=CPPNodeRenderer().render_expr(repr(value)),
                            pragma=openmp_pragma('static'))
                 main_lines.extend(code.split('\n'))
             elif func=='set_by_array':
-                arrayname, staticarrayname = args
+                arrayname, staticarrayname, is_dynamic = args
+                size_str = arrayname+'.size()' if is_dynamic else '_num_'+arrayname
                 code = '''
                 {pragma}
-                for(int i=0; i<_num_{staticarrayname}; i++)
+                for(int i=0; i<{size_str}; i++)
                 {{
                     {arrayname}[i] = {staticarrayname}[i];
                 }}
-                '''.format(arrayname=arrayname, staticarrayname=staticarrayname, pragma=openmp_pragma('static'))
+                '''.format(arrayname=arrayname, size_str=size_str,
+                           staticarrayname=staticarrayname,
+                           pragma=openmp_pragma('static'))
                 main_lines.extend(code.split('\n'))
             elif func=='set_by_single_value':
                 arrayname, item, value = args
