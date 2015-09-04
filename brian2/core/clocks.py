@@ -166,7 +166,7 @@ class Clock(BrianContainer):
 
 class DefaultClockProxy(object):
     '''
-    Method proxy for access to the currently active device
+    Method proxy to access the defaultclock of the currently active device
     '''
     def __getattr__(self, name):
         if name == '_is_proxy':
@@ -178,4 +178,5 @@ class DefaultClockProxy(object):
         from brian2.devices.device import active_device
         setattr(active_device.defaultclock, key, value)
 
+#: The standard clock, used for objects that do not specify any clock or dt
 defaultclock = DefaultClockProxy()

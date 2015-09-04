@@ -1760,9 +1760,7 @@ class Variables(collections.Mapping):
         Parameters
         ----------
         clock : `Clock`
-            The clock that should be used for ``t`` and ``dt``. Note that the
-            actual attributes referred to are ``t_`` and ``dt_``, i.e. the
-            unitless values.
+            The clock that should be used for ``t`` and ``dt``.
         prefix : str, optional
             A prefix for the variable names. Used for example in monitors to
             not confuse the dynamic array of recorded times with the current
