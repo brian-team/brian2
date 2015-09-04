@@ -176,10 +176,6 @@ class DefaultClockProxy(object):
 
     def __setattr__(self, key, value):
         from brian2.devices.device import active_device
-        # TODO: Why should this happend?
-        if active_device.defaultclock is not None:
-            return setattr(active_device.defaultclock, key, value)
-        else:
-            raise AssertionError()
+        setattr(active_device.defaultclock, key, value)
 
 defaultclock = DefaultClockProxy()
