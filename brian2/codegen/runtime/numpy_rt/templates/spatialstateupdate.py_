@@ -24,7 +24,7 @@ _vectorisation_idx = N
 from scipy.linalg import solve_banded
 
 # Particular solution
-b=-({{Cm}}/dt*{{v}})-_I0
+b=-({{Cm}}/{{dt}}*{{v}})-_I0
 ab = zeros((3,N))
 ab[0,:]={{ab_star0}}
 ab[1,:]={{ab_star1}}
@@ -47,7 +47,7 @@ ab[1,:]-=_gtot
 {% else %}
 # Pure numpy solution, very slow because it needs forward and backward passes
 # along the array that can't be vectorized
-b = -({{Cm}} / dt*{{v}}) - _I0
+b = -({{Cm}} / {{dt}}*{{v}}) - _I0
 
 # Tridiagonal solving
 forward = range(1, N)
