@@ -27,7 +27,7 @@ from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, SpellChecker
 
-__all__ = ['Group', 'BrianContainer', 'CodeRunner']
+__all__ = ['Group', 'VariableOwner', 'CodeRunner']
 
 logger = get_logger(__name__)
 
@@ -263,7 +263,7 @@ class IndexWrapper(object):
         else:
             return self.indices(item)
 
-class BrianContainer(Nameable):
+class VariableOwner(Nameable):
     '''
     Mix-in class for accessing arrays by attribute.
 
@@ -582,7 +582,7 @@ class BrianContainer(Nameable):
         return self.variables['N'].get_value()
 
 
-class Group(BrianContainer, BrianObject):
+class Group(VariableOwner, BrianObject):
 
     def resolve(self, identifier, user_identifier=True,
                 additional_variables=None, run_namespace=None, level=0):

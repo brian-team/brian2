@@ -9,7 +9,7 @@ import numpy as np
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.core.variables import Variables
-from brian2.groups.group import BrianContainer
+from brian2.groups.group import VariableOwner
 from brian2.units.fundamentalunits import check_units, Quantity, Unit
 from brian2.units.allunits import second
 
@@ -18,7 +18,7 @@ __all__ = ['Clock', 'defaultclock']
 logger = get_logger(__name__)
 
 
-class Clock(BrianContainer):
+class Clock(VariableOwner):
     '''
     An object that holds the simulation time and the time step.
     
