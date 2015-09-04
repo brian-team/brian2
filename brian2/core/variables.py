@@ -826,8 +826,8 @@ class VariableView(object):
             defined, the implicit namespace of local variables is used).
         '''
         variable = self.variable
-        # if variable.read_only:  # TODO: Make this work again
-        #     raise TypeError('Variable %s is read-only.' % self.name)
+        if variable.read_only:
+            raise TypeError('Variable %s is read-only.' % self.name)
 
         # The second part is equivalent to item == slice(None) but formulating
         # it this way prevents a FutureWarning if one of the elements is a
@@ -1769,6 +1769,4 @@ class Variables(collections.Mapping):
             time in the recorded group.
         '''
         for name in ['t', 'dt']:
-            if clock is None:
-                pass
             self.add_reference(prefix+name, clock, name)

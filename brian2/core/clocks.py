@@ -179,5 +179,7 @@ class DefaultClockProxy(object):
         # TODO: Why should this happend?
         if active_device.defaultclock is not None:
             return setattr(active_device.defaultclock, key, value)
+        else:
+            raise AssertionError()
 
 defaultclock = DefaultClockProxy()
