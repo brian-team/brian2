@@ -8,9 +8,9 @@ generation process has to have access to information about the variables (their
 type, size, etc.) as well as to the indices that should be used for indexing
 arrays (e.g. a state variable of a `NeuronGroup` will be indexed differently in
 the `NeuronGroup` state updater and in synaptic propagation code). Most of this
-information is stored in the `variables` attribute of a `Group` (this includes
-`NeuronGroup`, `Synapses`, `PoissonGroup` and everything else that has state
-variables). The `variables` attribute can be accessed as a (read-only)
+information is stored in the `variables` attribute of a `VariableOwner` (this
+includes `NeuronGroup`, `Synapses`, `PoissonGroup` and everything else that has
+state variables). The `variables` attribute can be accessed as a (read-only)
 dictionary, mapping variable names to `Variable` objects storing the
 information about the respective variable. However, it is not a simple
 dictionary but an instance of the `Variables` class. Let's have a look at its
@@ -179,17 +179,17 @@ The ``__setitem__`` and ``__getitem__`` methods in `VariableView` delegate to
 `VariableView.set_item` and `VariableView.get_item` respectively (which can also
 be called directly under special circumstances). They analyze the arguments (is
 the index a number, a slice or a string? Is the target value an array or a string
-expression?) and delegate the actual retrieval/setting of the values to a method
-of `Group`:
+expression?) and delegate the actual retrieval/setting of the values to a
+specific method:
 
-* Getting with a numerical (or slice) index (e.g. ``G.v[0]``): `Group.get_with_index_array`
-* Getting with a string index (e.g. ``G.v['i>3']``): `Group.get_with_expression`
+* Getting with a numerical (or slice) index (e.g. ``G.v[0]``): `VariableView.get_with_index_array`
+* Getting with a string index (e.g. ``G.v['i>3']``): `VariableView.get_with_expression`
 * Setting with a numerical (or slice) index and a numerical target value (e.g.
-  ``G.v[5:] = -70*mV``): `Group.set_with_index_array`
+  ``G.v[5:] = -70*mV``): `VariableView.set_with_index_array`
 * Setting with a numerical (or slice) index and a string expression value (e.g.
-  ``G.v[5:] = (-70+i)*mV``): `Group.set_with_expression`
+  ``G.v[5:] = (-70+i)*mV``): `VariableView.set_with_expression`
 * Setting with a string index and a string expression value (e.g.
-  ``G.v['i>5'] = (-70+i)*mV``): `Group.set_with_expression_conditional`
+  ``G.v['i>5'] = (-70+i)*mV``): `VariableView.set_with_expression_conditional`
 
 These methods are annotated with the `device_override` decorator and can
 therefore be implemented in a different way in certain devices. The standalone
@@ -199,9 +199,9 @@ not actually set the values but only note them down for later code generation.
 
 Additional variables and indices
 --------------------------------
-The variables stored in the ``variables`` attribute of a ``Group`` can be used
-everywhere (e.g. in the state updater, in the threshold, the reset, etc.).
-Objects that depend on these variables, e.g. the `Thresholder` of a
+The variables stored in the ``variables`` attribute of a `VariableOwner` can
+be used everywhere (e.g. in the state updater, in the threshold, the reset,
+etc.). Objects that depend on these variables, e.g. the `Thresholder` of a
 `NeuronGroup` add additional variables, in particular `AuxiliaryVariables` that
 are automatically added to the abstract code: a threshold condition ``v > 1``
 is converted into the statement ``_cond = v > 1``; to specify the meaning of

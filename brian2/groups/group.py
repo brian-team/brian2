@@ -1,6 +1,9 @@
 '''
-This module defines the `Group` object, a mix-in class for everything that
-saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
+This module defines the `VariableOwner` class, a mix-in class for everything
+that saves state variables, e.g. `Clock` or `NeuronGroup`, the class `Group`
+for objects that in addition to storing state variables also execute code, i.e.
+objects such as `NeuronGroup` or `StateMonitor` but not `Clock`, and finally
+`CodeRunner`, a class to run code in the context of a `Group`.
 '''
 import collections
 from collections import OrderedDict
@@ -156,8 +159,8 @@ class Indexing(object):
     Object responsible for calculating flat index arrays from arbitrary group-
     specific indices. Stores strong references to the necessary variables so
     that basic indexing (i.e. slicing, integer arrays/values, ...) works even
-    when the respective `Group` no longer exists. Note that this object does
-    not handle string indexing.
+    when the respective `VariableOwner` no longer exists. Note that this object
+    does not handle string indexing.
     '''
     def __init__(self, group, default_index='_idx'):
         self.group = weakref.proxy(group)
@@ -272,9 +275,10 @@ class VariableOwner(Nameable):
     '''
     def _enable_group_attributes(self):
         if not hasattr(self, 'variables'):
-            raise ValueError('Classes derived from Group need variables attribute.')
+            raise ValueError(('Classes derived from VariableOwner need a '
+                              'variables attribute.'))
         if not 'N' in self.variables:
-            raise ValueError('Each group needs an "N" variable.')
+            raise ValueError('Each VariableOwner needs an "N" variable.')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
         if not hasattr(self, '_indices'):
