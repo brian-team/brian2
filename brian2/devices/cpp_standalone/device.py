@@ -10,10 +10,10 @@ from collections import defaultdict, Counter
 import numbers
 import tempfile
 from distutils import ccompiler
+
 import numpy as np
 
 from brian2.codegen.cpp_prefs import get_compiler_and_args
-from brian2.core.clocks import defaultclock
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices, get_device, set_device
 from brian2.core.variables import *
@@ -24,7 +24,7 @@ from brian2.utils.filetools import copy_directory, ensure_directory, in_director
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.generators.cpp_generator import c_data_type
 from brian2.units.fundamentalunits import Quantity, have_same_dimensions
-from brian2.units import second
+from brian2.units import second, ms
 from brian2.utils.logger import get_logger, std_silent
 
 from .codeobject import CPPStandaloneCodeObject, openmp_pragma
@@ -48,30 +48,6 @@ prefs.register_preferences(
         ''',
         ),
     )
-
-
-def freeze(code, ns):
-    # this is a bit of a hack, it should be passed to the template somehow
-    for k, v in ns.items():
-
-        if (isinstance(v, Variable) and not isinstance(v, AttributeVariable) and
-              v.scalar and v.constant and v.read_only):
-            try:
-                v = v.get_value()
-            except NotImplementedError:
-                continue
-        if isinstance(v, basestring):
-            code = word_substitute(code, {k: v})
-        elif isinstance(v, numbers.Number):
-            # Use a renderer to correctly transform constants such as True or inf
-            renderer = CPPNodeRenderer()
-            string_value = renderer.render_expr(repr(v))
-            if v < 0:
-                string_value = '(%s)' % string_value
-            code = word_substitute(code, {k: string_value})
-        else:
-            pass  # don't deal with this object
-    return code
 
 
 class CPPWriter(object):
@@ -110,6 +86,11 @@ class CPPStandaloneDevice(Device):
         #: Dictionary mapping `ArrayVariable` objects to their globally
         #: unique name
         self.arrays = {}
+        #: Dictionary mapping `ArrayVariable` objects to their value or to
+        #: ``None`` if the value (potentially) depends on executed code. This
+        #: mechanism allows to access state variables in standalone mode if
+        #: their value is known at run time
+        self.array_cache = {}
         #: List of all dynamic arrays
         #: Dictionary mapping `DynamicArrayVariable` objects with 1 dimension to
         #: their globally unique name
@@ -142,6 +123,29 @@ class CPPStandaloneDevice(Device):
         
     def reinit(self):
         self.__init__()
+        super(CPPStandaloneDevice, self).reinit()
+
+    def freeze(self, code, ns):
+        # this is a bit of a hack, it should be passed to the template somehow
+        for k, v in ns.items():
+            if (isinstance(v, Variable) and
+                  v.scalar and v.constant and v.read_only):
+                try:
+                    v = v.get_value()
+                except NotImplementedError:
+                    continue
+            if isinstance(v, basestring):
+                code = word_substitute(code, {k: v})
+            elif isinstance(v, numbers.Number):
+                # Use a renderer to correctly transform constants such as True or inf
+                renderer = CPPNodeRenderer()
+                string_value = renderer.render_expr(repr(v))
+                if v < 0:
+                    string_value = '(%s)' % string_value
+                code = word_substitute(code, {k: string_value})
+            else:
+                pass  # don't deal with this object
+        return code
 
     def insert_code(self, slot, code):
         '''
@@ -255,20 +259,28 @@ class CPPStandaloneDevice(Device):
 
     def init_with_zeros(self, var):
         self.zero_arrays.append(var)
+        self.array_cache[var] = np.zeros(var.size)
 
     def init_with_arange(self, var, start):
         self.arange_arrays[var] = start
-
-    def init_with_array(self, var, arr):
-        array_name = self.get_array_name(var, access_data=False)
-        # treat the array as a static array
-        self.static_arrays[array_name] = arr.astype(var.dtype)
+        self.array_cache[var] = np.arange(0, var.size) + start
 
     def fill_with_array(self, var, arr):
         arr = np.asarray(arr)
+        if arr.size == 0:
+            return  # nothing to do
         array_name = self.get_array_name(var, access_data=False)
-        arr = np.asarray(arr)
-        if arr.shape == ():
+        if isinstance(var, DynamicArrayVariable):
+            # We can never be sure about the size of a dynamic array, so
+            # we can't do correct broadcasting. Therefore, we do not cache
+            # them at all for now.
+            self.array_cache[var] = None
+        else:
+            new_arr = np.empty(var.size, dtype=var.dtype)
+            new_arr[:] = arr
+            self.array_cache[var] = new_arr
+
+        if arr.size == 1:
             if var.size == 1:
                 value = CPPNodeRenderer().render_expr(repr(arr.item(0)))
                 # For a single assignment, generate a code line instead of storing the array
@@ -277,14 +289,16 @@ class CPPStandaloneDevice(Device):
                                                                 value)))
             else:
                 self.main_queue.append(('set_by_constant', (array_name,
-                                                            arr.item())))
-        else:    
+                                                            arr.item(),
+                                                            isinstance(var, DynamicArrayVariable))))
+        else:
             # Using the std::vector instead of a pointer to the underlying
             # data for dynamic arrays is fast enough here and it saves us some
             # additional work to set up the pointer
             static_array_name = self.static_array(array_name, arr)
             self.main_queue.append(('set_by_array', (array_name,
-                                                     static_array_name)))
+                                                     static_array_name,
+                                                     isinstance(var, DynamicArrayVariable))))
 
     def resize(self, var, new_size):
         array_name = self.get_array_name(var, access_data=False)
@@ -298,24 +312,15 @@ class CPPStandaloneDevice(Device):
 
         if (isinstance(item, int) or (isinstance(item, np.ndarray) and item.shape==())) and value.size == 1:
             array_name = self.get_array_name(variableview.variable, access_data=False)
-            value = CPPNodeRenderer().render_expr(repr(np.asarray(value).item(0)))
+            value_str = CPPNodeRenderer().render_expr(repr(np.asarray(value).item(0)))
+            if self.array_cache.get(variableview.variable, None) is not None:
+                self.array_cache[variableview.variable][item] = value
             # For a single assignment, generate a code line instead of storing the array
             self.main_queue.append(('set_by_single_value', (array_name,
                                                             item,
-                                                            value)))
-
-        elif (value.size == 1 and
-              item == 'True' and
-              variableview.index_var_name == '_idx'):
-            # set the whole array to a scalar value
-            if have_same_dimensions(value, 1):
-                # Avoid a representation as "Quantity(...)" or "array(...)"
-                value = float(value)
-            variableview.set_with_expression_conditional(cond=item,
-                                                         code=repr(value),
-                                                         check_units=check_units)
+                                                            value_str)))
         # Simple case where we don't have to do any indexing
-        elif (item == 'True' and variableview.index_var == '_idx'):
+        elif (item == 'True' and variableview.index_var in ('_idx', '0')):
             self.fill_with_array(variableview.variable, value)
         else:
             # We have to calculate indices. This will not work for synaptic
@@ -332,26 +337,22 @@ class CPPStandaloneDevice(Device):
             # additional work to set up the pointer
             arrayname = self.get_array_name(variableview.variable,
                                             access_data=False)
-            if indices.shape == ():
-                self.main_queue.append(('set_by_single_value', (arrayname,
-                                            indices.item(),
-                                            float(value))))
-            else:
-                staticarrayname_index = self.static_array('_index_'+arrayname,
-                                                          indices)
-                staticarrayname_value = self.static_array('_value_'+arrayname,
-                                                          value)
-                self.main_queue.append(('set_array_by_array', (arrayname,
-                                                               staticarrayname_index,
-                                                               staticarrayname_value)))
-            staticarrayname_index = self.static_array('_index_'+arrayname,
-                                                      indices)
+
             if (indices.shape != () and
                     (value.shape == () or
                          (value.size == 1 and indices.size > 1))):
                 value = np.repeat(value, indices.size)
+            elif len(value) != len(indices):
+                raise ValueError(('Provided values do not match the size '
+                                  'of the indices, '
+                                  '%d != %d.') % (len(value),
+                                                  len(indices)))
+
+            staticarrayname_index = self.static_array('_index_'+arrayname,
+                                                      indices)
             staticarrayname_value = self.static_array('_value_'+arrayname,
                                                       value)
+            self.array_cache[variableview.variable] = None
             self.main_queue.append(('set_array_by_array', (arrayname,
                                                            staticarrayname_index,
                                                            staticarrayname_value)))
@@ -359,17 +360,11 @@ class CPPStandaloneDevice(Device):
     def get_value(self, var, access_data=True):
         # Usually, we cannot retrieve the values of state variables in
         # standalone scripts since their values might depend on the evaluation
-        # of expressions at runtime. For constant, read-only arrays that have
-        # been explicitly initialized (static arrays) or aranges (e.g. the
-        # neuronal indices) we can, however
-        array_name = self.get_array_name(var, access_data=False)
-        if (var.constant and var.read_only and
-                (array_name in self.static_arrays or
-                 var in self.arange_arrays)):
-            if array_name in self.static_arrays:
-                return self.static_arrays[array_name]
-            elif var in self.arange_arrays:
-                return np.arange(0, var.size) + self.arange_arrays[var]
+        # of expressions at runtime. For some variables we do know the value
+        # however (values that have been set with explicit values and not
+        # changed in code objects)
+        if self.array_cache.get(var, None) is not None:
+            return self.array_cache[var]
         else:
             # After the network has been run, we can retrieve the values from
             # disk
@@ -445,8 +440,23 @@ class CPPStandaloneDevice(Device):
                                                                override_conditional_write=override_conditional_write,
                                                                )
         self.code_objects[codeobj.name] = codeobj
+
+        # Mark all the non-read-only or non-constant variables used in this code
+        # object as "dirty". This is almost certainly too much, most of these
+        # variables will only be read. However, the templates for synapse
+        # creation will write to read-only variables.. This is noted in the
+        # WRITES_TO_READ_ONLY_VARIABLES comment in the template.
+        template = getattr(codeobj.templater, template_name)
+        written_readonly_vars = {codeobj.variables[varname]
+                                 for varname in template.writes_read_only}
+        for var in codeobj.variables.itervalues():
+            if (isinstance(var, ArrayVariable) and
+                    (not var.read_only or not var.constant or
+                             var in written_readonly_vars)):
+                self.array_cache[var] = None
+
         return codeobj
-    
+
     def check_openmp_compatible(self, nb_threads):
         if nb_threads > 0:
             logger.warn("OpenMP code is not yet well tested, and may be inaccurate.", "openmp", once=True)
@@ -465,6 +475,7 @@ class CPPStandaloneDevice(Device):
                         static_array_specs=static_array_specs,
                         networks=networks,
                         get_array_filename=self.get_array_filename,
+                        get_array_name=self.get_array_name,
                         code_objects=self.code_objects.values())
         writer.write('objects.*', arr_tmp)
         
@@ -480,25 +491,30 @@ class CPPStandaloneDevice(Device):
                 net, netcode = args
                 main_lines.extend(netcode)
             elif func=='set_by_constant':
-                arrayname, value = args
+                arrayname, value, is_dynamic = args
+                size_str = arrayname+'.size()' if is_dynamic else '_num_'+arrayname
                 code = '''
                 {pragma}
-                for(int i=0; i<_num_{arrayname}; i++)
+                for(int i=0; i<{size_str}; i++)
                 {{
                     {arrayname}[i] = {value};
                 }}
-                '''.format(arrayname=arrayname, value=CPPNodeRenderer().render_expr(repr(value)),
+                '''.format(arrayname=arrayname, size_str=size_str,
+                           value=CPPNodeRenderer().render_expr(repr(value)),
                            pragma=openmp_pragma('static'))
                 main_lines.extend(code.split('\n'))
             elif func=='set_by_array':
-                arrayname, staticarrayname = args
+                arrayname, staticarrayname, is_dynamic = args
+                size_str = arrayname+'.size()' if is_dynamic else '_num_'+arrayname
                 code = '''
                 {pragma}
-                for(int i=0; i<_num_{staticarrayname}; i++)
+                for(int i=0; i<{size_str}; i++)
                 {{
                     {arrayname}[i] = {staticarrayname}[i];
                 }}
-                '''.format(arrayname=arrayname, staticarrayname=staticarrayname, pragma=openmp_pragma('static'))
+                '''.format(arrayname=arrayname, size_str=size_str,
+                           staticarrayname=staticarrayname,
+                           pragma=openmp_pragma('static'))
                 main_lines.extend(code.split('\n'))
             elif func=='set_by_single_value':
                 arrayname, item, value = args
@@ -551,7 +567,7 @@ class CPPStandaloneDevice(Device):
                                                           main_lines=main_lines,
                                                           code_objects=self.code_objects.values(),
                                                           report_func=self.report_func,
-                                                          dt=float(defaultclock.dt),
+                                                          dt=float(self.defaultclock.dt),
                                                           user_headers=prefs['codegen.cpp.headers']
                                                           )
         writer.write('main.cpp', main_tmp)
@@ -562,12 +578,7 @@ class CPPStandaloneDevice(Device):
         for codeobj in self.code_objects.itervalues():
             lines = []
             for k, v in codeobj.variables.iteritems():
-                if isinstance(v, AttributeVariable):
-                    # We assume all attributes are implemented as property-like methods
-                    line = 'const {c_type} {varname} = {objname}.{attrname}();'
-                    lines.append(line.format(c_type=c_data_type(v.dtype), varname=k, objname=v.obj.name,
-                                             attrname=v.attribute))
-                elif isinstance(v, ArrayVariable):
+                if isinstance(v, ArrayVariable):
                     try:
                         if isinstance(v, DynamicArrayVariable):
                             if v.dimensions == 1:
@@ -594,7 +605,7 @@ class CPPStandaloneDevice(Device):
         for codeobj in self.code_objects.itervalues():
             ns = codeobj.variables
             # TODO: fix these freeze/CONSTANTS hacks somehow - they work but not elegant.
-            code = freeze(codeobj.code.cpp_file, ns)
+            code = self.freeze(codeobj.code.cpp_file, ns)
             code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj.name]))
             code = '#include "objects.h"\n'+code
             
@@ -612,7 +623,9 @@ class CPPStandaloneDevice(Device):
     def generate_run_source(self, writer):
         run_tmp = CPPStandaloneCodeObject.templater.run(None, None, run_funcs=self.runfuncs,
                                                         code_objects=self.code_objects.values(),
-                                                        user_headers=prefs['codegen.cpp.headers']
+                                                        user_headers=prefs['codegen.cpp.headers'],
+                                                        array_specs=self.arrays,
+                                                        clocks=self.clocks
                                                         )
         writer.write('run.*', run_tmp)
         
@@ -898,21 +911,16 @@ class CPPStandaloneDevice(Device):
         if kwds:
             logger.warn(('Unsupported keyword argument(s) provided for run: '
                          '%s') % ', '.join(kwds.keys()))
-        net._clocks = [obj.clock for obj in net.objects]
+        net._clocks = {obj.clock for obj in net.objects}
+        t_end = net.t+duration
+        for clock in net._clocks:
+            clock.set_interval(net.t, t_end)
+
         # We have to use +2 for the level argument here, since this function is
         # called through the device_override mechanism
         net.before_run(namespace, level=level+2)
 
         self.clocks.update(net._clocks)
-
-        # We run a simplified "update loop" that only advances the clocks
-        # This can be useful because some Python code might use the t attribute
-        # of the Network or a NeuronGroup etc.
-        t_end = net.t+duration
-        for clock in net._clocks:
-            clock.set_interval(net.t, t_end)
-            # manually set the clock to the end, no need to run Clock.tick() in a loop
-            clock._i = clock._i_end
         net.t_ = float(t_end)
 
         # TODO: remove this horrible hack
@@ -981,6 +989,14 @@ class CPPStandaloneDevice(Device):
                                                                                               report_call=report_call,
                                                                                               report_period=float(report_period)))
         self.main_queue.append(('run_network', (net, run_lines)))
+
+        # Manually set the cache for the clocks, simulation scripts might
+        # want to access the time (which has been set in code and is therefore
+        # not accessible by the normal means until the code has been built and
+        # run)
+        for clock in net._clocks:
+            self.array_cache[clock.variables['timestep']] = np.array([clock._i_end])
+            self.array_cache[clock.variables['t']] = np.array([clock._i_end * clock.dt_])
 
     def network_store(self, net, name='default'):
         raise NotImplementedError(('The store/restore mechanism is not '

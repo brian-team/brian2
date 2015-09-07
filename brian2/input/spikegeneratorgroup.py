@@ -4,7 +4,7 @@ Module defining `SpikeGeneratorGroup`.
 import numpy as np
 
 from brian2.core.spikesource import SpikeSource
-from brian2.units.fundamentalunits import check_units, Unit
+from brian2.units.fundamentalunits import check_units, Unit, Quantity
 from brian2.units.allunits import second
 from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner, Group
@@ -102,7 +102,6 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         # TODO: Remove this when the checks in `before_run` have been moved to the template
         self._spike_time = times
         self._neuron_index = indices
-        self._period = period
 
         # standard variables
         self.variables.add_constant('N', unit=Unit(1), value=N)
@@ -127,7 +126,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                          constant_size=True)
         self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
                                  dtype=np.int32)
-        self.variables.add_array('_lastindex', size=1, values=np.zeros(1), unit=Unit(1),
+        self.variables.add_array('_lastindex', size=1, values=1, unit=Unit(1),
                                  dtype=np.int32, read_only=True, scalar=True)
         self.variables.create_clock_variables(self._clock)
 
@@ -154,28 +153,30 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
     def before_run(self, run_namespace=None, level=0):
         # Do some checks on the period vs. dt
-        if self._period < np.inf*second:
-            if self._period < self.dt:
+        dt = self.dt_[:]  # make a copy
+        period = self.period_
+        if period < np.inf:
+            if period < dt:
                 raise ValueError('The period of %s is %s, which is smaller '
                                  'than its dt of %s.' % (self.name,
                                                          self.period,
-                                                         self.dt))
-            if (abs(int(self._period/self.dt)*self.dt - self._period)
-                    > self._period * np.finfo(self.dt.dtype).eps):
+                                                         dt))
+            if (abs(int(period/dt)*dt - period)
+                    > period * np.finfo(dt.dtype).eps):
                 raise NotImplementedError('The period of %s is %s, which is '
                                           'not an integer multiple of its dt '
                                           'of %s.' % (self.name,
                                                       self.period,
-                                                      self.dt))
+                                                      dt))
 
         # Check that we don't have more than one spike per neuron in a time bin
-        if self.dt != self._previous_dt or self._spikes_changed:
+        if self._previous_dt is None or dt != self._previous_dt or self._spikes_changed:
             # We shift all the spikes by a tiny amount to make sure that spikes
             # at exact multiples of dt do not end up in the previous time bin
             # This shift has to be quite significant relative to machine
-            # epsilon, we use 1e-6 of the dt here
-            shift = 1e-3*self.dt_
-            timebins = np.asarray(np.asarray(self._spike_time + shift)/self.dt_ ,
+            # epsilon, we use 1e-3 of the dt here
+            shift = 1e-3*dt
+            timebins = np.asarray(np.asarray(self._spike_time + shift)/dt,
                                   dtype=np.int32)
             index_timebins = np.rec.fromarrays([self._neuron_index,
                                                 timebins], names=['i', 't'])
@@ -184,7 +185,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                  'SpikeGeneratorGroup "%s" spike more than '
                                  'once during a time step.' % (str(self.dt),
                                                                self.name))
-            self._previous_dt = self.dt
+            self._previous_dt = dt
             self._spikes_changed = False
 
             self.variables['_lastindex'].set_value(0)
@@ -250,7 +251,6 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         # Update the internal variables used in `SpikeGeneratorGroup.before_run`
         self._neuron_index = indices
         self._spike_time = times
-        self._period = period
         self._spikes_changed = True
 
     @property

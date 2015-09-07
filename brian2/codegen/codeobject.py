@@ -18,6 +18,19 @@ __all__ = ['CodeObject',
 logger = get_logger(__name__)
 
 
+def constant_or_scalar(varname, variable):
+    '''
+    Convenience function to generate code to access the value of a variable.
+    Will return ``'varname'`` if the ``variable`` is a constant, and
+    ``array_name[0]`` if it is a scalar array.
+    '''
+    from brian2.devices.device import get_device  # avoid circular import
+    if variable.array:
+        return '%s[0]' % get_device().get_array_name(variable)
+    else:
+        return '%s' % varname
+
+
 class CodeObject(Nameable):
     '''
     Executable code object.

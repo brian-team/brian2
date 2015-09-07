@@ -861,10 +861,14 @@ def test_variables_by_owner():
     # Check that the variables returned as owned by the pre/post groups are the
     # variables stored in the respective groups. We only compare the `Variable`
     # objects, as the names may be different (e.g. ``v_post`` vs. ``v``)
-    assert set(G.variables.values()) == set(variables_by_owner(S.variables, G).values())
-    assert set(G2.variables.values()) == set(variables_by_owner(S.variables, G2).values())
-    assert len(set(variables_by_owner(S.variables, S)) & set(G.variables.values())) == 0
-    assert len(set(variables_by_owner(S.variables, S)) & set(G2.variables.values())) == 0
+    G_variables = {key: value for key, value in G.variables.iteritems()
+                   if value.owner.name==G.name}  # exclude dt
+    G2_variables = {key: value for key, value in G2.variables.iteritems()
+                    if value.owner.name==G2.name}
+    assert set(G_variables.values()) == set(variables_by_owner(S.variables, G).values())
+    assert set(G2_variables.values()) == set(variables_by_owner(S.variables, G2).values())
+    assert len(set(variables_by_owner(S.variables, S)) & set(G_variables.values())) == 0
+    assert len(set(variables_by_owner(S.variables, S)) & set(G2_variables.values())) == 0
     # Just test a few examples for synaptic variables
     assert all(varname in variables_by_owner(S.variables, S)
                for varname in ['x', 'N', 'N_incoming', 'N_outgoing'])

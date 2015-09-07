@@ -7,7 +7,7 @@ _new_len = len({{_dynamic_t}}) + 1
 _owner.resize(_new_len)
 
 # Store values
-{{_dynamic_t}}[-1] = _clock_t
+{{_dynamic_t}}[-1] = {{_clock_t}}
 
 # scalar code
 _vectorisation_idx = 1

@@ -38,8 +38,8 @@
     double *rate_data = (double*)(((PyArrayObject*)(PyObject*){{_dynamic_rate}}.attr("data"))->data);
 
     //Set the new values
-    t_data[_new_len - 1] = _clock_t;
-    rate_data[_new_len - 1] = 1.0 * _num_spikes / (double)_clock_dt / _num_source_neurons;
+    t_data[_new_len - 1] = {{_clock_t}};
+    rate_data[_new_len - 1] = 1.0 * _num_spikes / {{_clock_dt}} / _num_source_neurons;
 
 {% endmacro %}
 

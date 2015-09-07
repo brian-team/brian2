@@ -1,6 +1,8 @@
 #ifndef _BRIAN_CLOCKS_H
 #define _BRIAN_CLOCKS_H
-
+#include<stdlib.h>
+#include<iostream>
+#include<brianlib/stdint_compat.h>
 #include<math.h>
 
 namespace {
@@ -13,35 +15,37 @@ namespace {
 class Clock
 {
 public:
-	int i, i_end;
 	double epsilon;
-	Clock(double _dt, double _epsilon=1e-14) : dt_value(_dt), epsilon(_epsilon) { i=0; i_end=0; };
-	inline void reinit() { i = 0; };
-	inline void tick() { i += 1; };
-	inline double dt_() { return dt_value; }
-	inline double t_() { return i*dt_value; };
-	inline double t_end() { return i_end*dt_value; };
-	inline bool running() { return i<i_end; };
+	double *dt;
+	uint64_t *timestep;
+	double *t;
+	Clock(double _epsilon=1e-14) : epsilon(_epsilon) { i_end = 0;};
+    inline void tick()
+    {
+        timestep[0] += 1;
+        t[0] = timestep[0] * dt[0];
+    }
+	inline bool running() { return timestep[0]<i_end; };
 	void set_interval(double start, double end)
 	{
-        int i_start = fround(start/dt_value);
-        double t_start = i_start*dt_value;
+        int i_start = fround(start/dt[0]);
+        double t_start = i_start*dt[0];
         if(t_start==start || fabs(t_start-start)<=epsilon*fabs(t_start))
         {
-            i = i_start;
+            timestep[0] = i_start;
         } else
         {
-            i = (int)ceil(start/dt_value);
+            timestep[0] = (int)ceil(start/dt[0]);
         }
-        i_end = fround(end/dt_value);
-        double t_end = i_end*dt_value;
+        i_end = fround(end/dt[0]);
+        double t_end = i_end*dt[0];
         if(!(t_end==end || fabs(t_end-end)<=epsilon*fabs(t_end)))
         {
-            i_end = (int)ceil(end/dt_value);
+            i_end = (int)ceil(end/dt[0]);
         }
 	}
 private:
-    double dt_value;
+	uint64_t i_end;
 };
 
 #endif

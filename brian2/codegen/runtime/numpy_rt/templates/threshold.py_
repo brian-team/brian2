@@ -33,5 +33,5 @@ else:
 {% if _uses_refractory %}
 # Set the neuron to refractory
 {{not_refractory}}[_events] = False
-{{lastspike}}[_events] = t
+{{lastspike}}[_events] = {{t}}
 {% endif %}

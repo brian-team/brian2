@@ -8,15 +8,17 @@ import numpy as np
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
-from brian2.units.fundamentalunits import check_units, Quantity
-from brian2.units.allunits import second, msecond
+from brian2.core.variables import Variables
+from brian2.groups.group import VariableOwner
+from brian2.units.fundamentalunits import check_units, Quantity, Unit
+from brian2.units.allunits import second
 
 __all__ = ['Clock', 'defaultclock']
 
 logger = get_logger(__name__)
 
 
-class Clock(Nameable):
+class Clock(VariableOwner):
     '''
     An object that holds the simulation time and the time step.
     
@@ -37,100 +39,88 @@ class Clock(Nameable):
     '''
 
     def __init__(self, dt, name='clock*'):
-        self._i = 0
-        #: The internally used dt. Note that right after a change of dt, this
+        # We need a name right away because some devices (e.g. cpp_standalone)
+        # need a name for the object when creating the variables
+        Nameable.__init__(self, name=name)
+        #: Note that right after a change of dt, this
         #: will not equal the new dt (which is stored in `Clock._new_dt`). Call
         #: `Clock._set_t_update_t` to update the internal clock representation.
-        self._dt = float(dt)
         self._new_dt = None
-        Nameable.__init__(self, name=name)
-        logger.debug("Created clock {self.name} with dt={self._dt}".format(self=self))
+        self.variables = Variables(self)
+        self.variables.add_array('timestep', unit=Unit(1), size=1,
+                                 dtype=np.uint64, read_only=True, scalar=True)
+        self.variables.add_array('t', unit=second, size=1,
+                                 dtype=np.double, read_only=True, scalar=True)
+        self.variables.add_array('dt', unit=second, size=1, values=float(dt),
+                                 dtype=np.float, read_only=True, constant=True,
+                                 scalar=True)
+        self.variables.add_constant('N', unit=Unit(1), value=1)
+        self._enable_group_attributes()
+        self.dt = dt
+        logger.debug("Created clock {name} with dt={dt}".format(name=self.name,
+                                                                dt=self.dt))
 
     @check_units(t=second)
-    def _set_t_update_dt(self, t=0*second):
-        dt = self._new_dt if self._new_dt is not None else self._dt
-        t = float(t)
-        if dt != self._dt:
+    def _set_t_update_dt(self, target_t=0*second):
+        new_dt = self._new_dt if self._new_dt is not None else self.dt_
+        old_dt = self.variables['dt'].get_value().item()
+        target_t = float(target_t)
+        if new_dt != old_dt:
             self._new_dt = None  # i.e.: i is up-to-date for the dt
             # Only allow a new dt which allows to correctly set the new time step
-            if t != self.t_:
-                old_t = np.uint64(np.round(t / self._dt)) * self._dt
-                new_t = np.uint64(np.round(t / dt)) * dt
-                error_t = t
+            if target_t != self.t_:
+                old_t = np.uint64(np.round(target_t / old_dt)) * old_dt
+                new_t = np.uint64(np.round(target_t / new_dt)) * new_dt
+                error_t = target_t
             else:
-                old_t = np.uint64(np.round(self.t_ / self._dt)) * self._dt
-                new_t = np.uint64(np.round(self.t_ / dt)) * dt
+                old_t = np.uint64(np.round(self.t_ / old_dt)) * old_dt
+                new_t = np.uint64(np.round(self.t_ / new_dt)) * new_dt
                 error_t = self.t_
             if abs(new_t - old_t) > self.epsilon:
                 raise ValueError(('Cannot set dt from {old} to {new}, the '
                                   'time {t} is not a multiple of '
-                                  '{new}').format(old=self.dt,
-                                                  new=dt*second,
+                                  '{new}').format(old=old_dt*second,
+                                                  new=new_dt*second,
                                                   t=error_t*second))
-            self._dt = dt
+            self.variables['dt'].set_value(new_dt)
 
-        new_i = np.uint64(np.round(t/dt))
-        new_t = new_i*self.dt_
-        if new_t==t or np.abs(new_t-t)<=self.epsilon*np.abs(new_t):
-            self._i = new_i
+        new_i = np.uint64(np.round(target_t/new_dt))
+        new_t = new_i*new_dt
+        if new_t==target_t or np.abs(new_t-target_t)<=self.epsilon*np.abs(new_t):
+            new_timestep = new_i
         else:
-            self._i = np.uint64(np.ceil(t/dt))
-        logger.debug("Setting Clock {self.name} to t={self.t}, dt={self.dt}".format(self=self))
+            new_timestep = np.uint64(np.ceil(target_t/new_dt))
+        # Since these attributes are read-only for normal users, we have to
+        # update them via the variables object directly
+        self.variables['timestep'].set_value(new_timestep)
+        self.variables['t'].set_value(new_timestep * new_dt)
+        logger.debug("Setting Clock {name} to t={t}, dt={dt}".format(name=self.name,
+                                                                     t=self.t,
+                                                                     dt=self.dt))
 
-    def __str__(self):
-        if self._new_dt is None:
-            return 'Clock ' + self.name + ': t = ' + str(self.t) + ', dt = ' + str(self.dt)
-        else:
-            return 'Clock ' + self.name + ': t = ' + str(self.t) + ', (new) dt = ' + str(self._new_dt*second)
-    
     def __repr__(self):
-        return 'Clock(dt=%r, name=%r)' % (self._new_dt*second
-                                          if self._new_dt is not None
-                                          else self.dt,
-                                          self.name)
-
-    def tick(self):
-        '''
-        Advances the clock by one time step.
-        '''
-        self._i += 1
-
-    @check_units(end=second)
-    def _set_t_end(self, end):
-        self._i_end = np.uint64(float(end) / self.dt_)
-
-    @property
-    def t_(self):
-        'The simulation time as a float (in seconds)'
-        return float(self._i*self._dt)
-
-    @property
-    def t(self):
-        'The simulation time in seconds'
-        return self.t_*second
+        return 'Clock(dt=%r, name=%r)' % (self.dt, self.name)
 
     def _get_dt_(self):
         if self._new_dt is None:
-            return self._dt
+            return self.variables['dt'].get_value().item()
         else:
             return self._new_dt
 
     @check_units(dt_=1)
     def _set_dt_(self, dt_):
         self._new_dt = dt_
-    
+
     @check_units(dt=second)
     def _set_dt(self, dt):
         self._new_dt = float(dt)
-    
+
     dt = property(fget=lambda self: Quantity(self.dt_, dim=second.dim),
                   fset=_set_dt,
                   doc='''The time step of the simulation in seconds.''',
                   )
     dt_ = property(fget=_get_dt_, fset=_set_dt_,
                    doc='''The time step of the simulation as a float (in seconds)''')
-    t_end = property(fget=lambda self: self._i_end*self.dt_*second,
-                     doc='The time the simulation will end (in seconds)')
 
     @check_units(start=second, end=second)
     def set_interval(self, start, end):
@@ -143,7 +133,7 @@ class Clock(Nameable):
         possible (using epsilon) or rounding up if not. This assures that
         multiple calls to `Network.run` will not re-run the same time step.      
         '''
-        self._set_t_update_dt(t=start)
+        self._set_t_update_dt(target_t=start)
         end = float(end)
         i_end = np.uint64(np.round(end/self.dt_))
         t_end = i_end*self.dt_
@@ -152,13 +142,41 @@ class Clock(Nameable):
         else:
             self._i_end = np.uint64(np.ceil(end/self.dt_))
 
+    def tick(self):
+        '''
+        Advance the clock by a single time step
+        '''
+        timestep_array = self.variables['timestep'].get_value()
+        # We can assume the runtime device here, standalone will provide it's
+        # own mechanism for advancing the clock. Therefore, we don't have to
+        # update the variable in the general way but just work directly with
+        # the underlying array
+        timestep_array[0] += 1
+        self.variables['t'].get_value()[0] = timestep_array[0] * self.variables['dt'].get_value()[0]
+
     @property
     def running(self):
         '''
         A ``bool`` to indicate whether the current simulation is running.
         '''
-        return self._i < self._i_end
+        return self.timestep < self._i_end
 
     epsilon = 1e-14
 
-defaultclock = Clock(dt=0.1*msecond, name='defaultclock')
+
+class DefaultClockProxy(object):
+    '''
+    Method proxy to access the defaultclock of the currently active device
+    '''
+    def __getattr__(self, name):
+        if name == '_is_proxy':
+            return True
+        from brian2.devices.device import active_device
+        return getattr(active_device.defaultclock, name)
+
+    def __setattr__(self, key, value):
+        from brian2.devices.device import active_device
+        setattr(active_device.defaultclock, key, value)
+
+#: The standard clock, used for objects that do not specify any clock or dt
+defaultclock = DefaultClockProxy()

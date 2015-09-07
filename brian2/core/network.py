@@ -298,7 +298,8 @@ class Network(Nameable):
                                        'temporarily stop it from being run, '
                                        'set its active flag to False instead.'
                                        % obj.name)
-                self.objects.append(obj)
+                if obj not in self.objects:  # Don't include objects twice
+                    self.objects.append(obj)
                 self.add(obj.contained_objects)
             else:
                 try:
@@ -355,7 +356,7 @@ class Network(Nameable):
         clocks = [obj.clock for obj in self.objects]
         # Make sure that all clocks are up to date
         for clock in clocks:
-            clock._set_t_update_dt(t=self.t)
+            clock._set_t_update_dt(target_t=self.t)
 
         for obj in self.objects:
             if hasattr(obj, '_store'):

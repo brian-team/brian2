@@ -4,8 +4,7 @@ import sys
 import numpy
 
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
-                                   AttributeVariable, AuxiliaryVariable,
-                                   Subexpression)
+                                   AuxiliaryVariable, Subexpression)
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.logger import get_logger
 
@@ -138,19 +137,12 @@ class CythonCodeObject(NumpyCodeObject):
             # necessary for resize operations, for example)
             self.namespace['_var_'+name] = var
 
-            # There are two kinds of objects that we have to inject into the
-            # namespace with their current value at each time step:
-            # * non-constant AttributeValue (this might be removed since it only
-            #   applies to "t" currently)
-            # * Dynamic arrays that change in size during runs (i.e. not
-            #   synapses but e.g. the structures used in monitors)
-            if isinstance(var, AttributeVariable) and not var.constant:
-                self.nonconstant_values.append((name, var.get_value))
-                if not var.scalar:
-                    self.nonconstant_values.append(('_num'+name, var.get_len))
-            elif (isinstance(var, DynamicArrayVariable) and
+            # There is one type of objects that we have to inject into the
+            # namespace with their current value at each time step: dynamic
+            # arrays that change in size during runs (i.e. not synapses but
+            # e.g. the structures used in monitors)
+            if (isinstance(var, DynamicArrayVariable) and
                   not var.constant_size):
-                #print name, self.device.get_array_name(var, self.variable), self.generator_class.get_array_name(var, self.variables)
                 self.nonconstant_values.append((self.device.get_array_name(var, True),
                                                 var.get_value))
                 self.nonconstant_values.append(('_num'+name, var.get_len))

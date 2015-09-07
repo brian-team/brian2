@@ -1,4 +1,4 @@
-{# USES_VARIABLES { _spiking_synapses } #}
+{# USES_VARIABLES { spiking_synapses } #}
 import numpy as _numpy
 
 # scalar code
@@ -8,6 +8,6 @@ import numpy as _numpy
 {{scalar_code|autoindent}}
 
 # vector code
-_idx = _spiking_synapses
+_idx = {{spiking_synapses}}
 _vectorisation_idx = _idx
 {{vector_code|autoindent}}

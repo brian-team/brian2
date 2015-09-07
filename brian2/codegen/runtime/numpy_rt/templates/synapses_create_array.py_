@@ -3,7 +3,9 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets,
                  N_incoming, N_outgoing, N,
                  N_pre, N_post, _source_offset, _target_offset }
 #}
-
+{# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post,
+                                   N_incoming, N_outgoing, N}
+#}
 {# This is to show that we don't need to index the sources/targets #}
 {# ITERATE_ALL { _idx } #}
 
@@ -13,7 +15,7 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets,
 import numpy as _numpy
 {{vector_code|autoindent}}
 
-_old_num_synapses = {{N}}[0]
+_old_num_synapses = {{N}}
 _new_num_synapses = _old_num_synapses + len({{sources}})
 {{_dynamic__synaptic_pre}}.resize(_new_num_synapses)
 {{_dynamic__synaptic_post}}.resize(_new_num_synapses)

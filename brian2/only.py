@@ -57,9 +57,9 @@ def restore_initial_state():
     `BrianGlobalPreferences._restore` preferences, and set
     `BrianObject._scope_current_key` back to 0.
     '''
-    defaultclock.dt = 0.1*ms
     prefs._restore()
     BrianObject._scope_current_key = 0
+    defaultclock.dt = 0.1*ms
     gc.collect()
 
 # make the test suite available via brian2.test()

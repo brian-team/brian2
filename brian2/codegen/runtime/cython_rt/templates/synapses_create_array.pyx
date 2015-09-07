@@ -6,8 +6,10 @@
                         N_incoming, N_outgoing, N,
                         N_pre, N_post, _source_offset, _target_offset }
     #}
-    
-    cdef int _old_num_synapses = {{N}}[0]
+    {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post,
+                                       N_incoming, N_outgoing, N}
+    #}
+    cdef int _old_num_synapses = {{N}}
     cdef int _new_num_synapses = _old_num_synapses + _num{{sources}}
 
     {{_dynamic__synaptic_pre}}.resize(_new_num_synapses)

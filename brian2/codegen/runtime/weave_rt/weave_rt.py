@@ -4,7 +4,6 @@ Module providing `WeaveCodeObject`.
 import os
 import sys
 import numpy
-from distutils.ccompiler import get_default_compiler
 
 try:
     from scipy import weave
@@ -18,13 +17,12 @@ except ImportError:
         weave = None
 
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
-                                   AttributeVariable, AuxiliaryVariable,
-                                   Subexpression)
-from brian2.core.preferences import prefs, BrianPreference
+                                   AuxiliaryVariable, Subexpression)
+from brian2.core.preferences import prefs
 from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.utils.logger import std_silent, get_logger
 
-from ...codeobject import CodeObject
+from ...codeobject import CodeObject, constant_or_scalar
 from ...templates import Templater
 from ...generators.cpp_generator import CPPCodeGenerator
 from ...targets import codegen_targets
@@ -71,7 +69,8 @@ class WeaveCodeObject(CodeObject):
     '''
     templater = Templater('brian2.codegen.runtime.weave_rt',
                           env_globals={'c_data_type': weave_data_type,
-                                       'dtype': numpy.dtype})
+                                       'dtype': numpy.dtype,
+                                       'constant_or_scalar': constant_or_scalar})
     generator_class = WeaveCodeGenerator
     class_name = 'weave'
 
@@ -168,8 +167,8 @@ libraries: {self.libraries}
                 self.namespace[self.device.get_array_name(var,
                                                             self.variables)] = value
                 self.namespace['_num'+name] = var.get_len()
-                if var.scalar and var.constant:
-                    self.namespace[name] = value.item()
+                # if var.scalar and var.constant:
+                #     self.namespace[name] = value.item()
             else:
                 self.namespace[name] = value
 
@@ -183,17 +182,11 @@ libraries: {self.libraries}
             # necessary for resize operations, for example)
             self.namespace['_var_'+name] = var
 
-            # There are two kinds of objects that we have to inject into the
-            # namespace with their current value at each time step:
-            # * non-constant AttributeValue (this might be removed since it only
-            #   applies to "t" currently)
-            # * Dynamic arrays that change in size during runs (i.e. not
-            #   synapses but e.g. the structures used in monitors)
-            if isinstance(var, AttributeVariable) and not var.constant:
-                self.nonconstant_values.append((name, var.get_value))
-                if not var.scalar:
-                    self.nonconstant_values.append(('_num'+name, var.get_len))
-            elif (isinstance(var, DynamicArrayVariable) and
+            # There is one type of objects that we have to inject into the
+            # namespace with their current value at each time step: dynamic
+            # arrays that change in size during runs (i.e. not synapses but
+            # e.g. the structures used in monitors)
+            if (isinstance(var, DynamicArrayVariable) and
                   not var.constant_size):
                 self.nonconstant_values.append((self.device.get_array_name(var,
                                                                            self.variables),

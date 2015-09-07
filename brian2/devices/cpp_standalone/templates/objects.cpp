@@ -10,11 +10,6 @@
 #include<iostream>
 #include<fstream>
 
-//////////////// clocks ///////////////////
-{% for clock in clocks | sort(attribute='name') %}
-Clock brian::{{clock.name}}({{clock.dt_}});
-{% endfor %}
-
 //////////////// networks /////////////////
 {% for net in networks | sort(attribute='name') %}
 Network brian::{{net.name}};
@@ -54,9 +49,13 @@ const int brian::_num_{{name}} = {{N}};
 SynapticPathway<double> brian::{{path.name}}(
 		{{dynamic_array_specs[path.variables['delay']]}},
 		{{dynamic_array_specs[path.synapse_sources]}},
-		{{path.source.dt_}},
 		{{path.source.start}}, {{path.source.stop}});
 {% endfor %}
+{% endfor %}
+
+//////////////// clocks ///////////////////
+{% for clock in clocks | sort(attribute='name') %}
+Clock brian::{{clock.name}};  // attributes will be set in run.cpp
 {% endfor %}
 
 // Profiling information for each code object
@@ -137,7 +136,7 @@ void _write_arrays()
 	outfile_{{varname}}.open("{{get_array_filename(var) | replace('\\', '\\\\')}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
-		outfile_{{varname}}.write(reinterpret_cast<char*>({{varname}}), {{var.size}}*sizeof({{varname}}[0]));
+		outfile_{{varname}}.write(reinterpret_cast<char*>({{varname}}), {{var.size}}*sizeof({{get_array_name(var)}}[0]));
 		outfile_{{varname}}.close();
 	} else
 	{

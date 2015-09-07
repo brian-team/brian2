@@ -3,7 +3,7 @@
 {% block maincode %}
     {# USES_VARIABLES { t, _clock_t, _indices } #}
 
-    {{_dynamic_t}}.push_back(_clock_t);
+    {{_dynamic_t}}.push_back({{_clock_t}});
 
     const int _new_size = {{_dynamic_t}}.size();
     // Resize the dynamic arrays

@@ -5,7 +5,7 @@
                     _starts, _ends, _invr0, _invrn, b_plus, b_minus } #}
 {% extends 'common_group.cpp' %}
 {% block maincode %}
-    const double _Ri = {{Ri}}[0];  // Ri is a shared variable
+    const double _Ri = {{Ri}};  // Ri is a shared variable
 
     {% if owner.morphology.type == 'soma' %}
     // Correction for soma (a bit of a hack),
@@ -29,7 +29,7 @@
     // a[i,j]=ab[u+i-j,j]   --  u is the number of upper diagonals = 1
     {{ openmp_pragma('parallel-static') }}
     for (int _i=0; _i<N; _i++)
-        {{ab_star1}}[_i] = (-({{Cm}}[_i] / dt) - {{_invr}}[_i] / {{area}}[_i]);
+        {{ab_star1}}[_i] = (-({{Cm}}[_i] / {{dt}}) - {{_invr}}[_i] / {{area}}[_i]);
     {{ openmp_pragma('parallel-static') }}
     for (int _i=1; _i<N; _i++)
     {

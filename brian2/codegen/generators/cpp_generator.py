@@ -47,6 +47,8 @@ def c_data_type(dtype):
         dtype = 'uint16_t'
     elif dtype == numpy.uint32:
         dtype = 'uint32_t'
+    elif dtype == numpy.uint64:
+        dtype = 'uint64_t'
     elif dtype == numpy.bool_ or dtype is bool:
         dtype = 'char'
     else:

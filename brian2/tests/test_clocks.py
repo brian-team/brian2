@@ -1,5 +1,5 @@
 from brian2 import *
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_raises, assert_equal, assert_array_equal
 from nose import with_setup
 from nose.plugins.attrib import attr
 
@@ -7,12 +7,11 @@ from nose.plugins.attrib import attr
 @with_setup(teardown=restore_initial_state)
 def test_clocks():
     clock = Clock(dt=1*ms)
-    assert_equal(clock.t, 0*second)
+    assert_array_equal(clock.t, 0*second)
+    assert_array_equal(clock.timestep, 0)
     clock.tick()
-    assert_equal(clock.t, 1*ms)
-    assert_equal(clock._i, 1)
-    clock._i = 5
-    assert_equal(clock.t, 5*ms)
+    assert_array_equal(clock.t, 1*ms)
+    assert_array_equal(clock.timestep, 1)
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
@@ -32,13 +31,13 @@ def test_clock_dt_change():
     clock._set_t_update_dt()
 
     clock.dt = 0.05*ms
-    clock._set_t_update_dt(t=0.1*ms)
+    clock._set_t_update_dt(target_t=0.1*ms)
     clock.dt = 0.1*ms
-    clock._set_t_update_dt(t=0.1*ms)
+    clock._set_t_update_dt(target_t=0.1*ms)
     clock.dt = 0.3*ms
-    assert_raises(ValueError, lambda: clock._set_t_update_dt(t=0.1*ms))
+    assert_raises(ValueError, lambda: clock._set_t_update_dt(target_t=0.1*ms))
     clock.dt = 2*ms
-    assert_raises(ValueError, lambda: clock._set_t_update_dt(t=0.1*ms))
+    assert_raises(ValueError, lambda: clock._set_t_update_dt(target_t=0.1*ms))
 
 
 @attr('codegen-independent')

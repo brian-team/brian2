@@ -4,8 +4,7 @@ import numpy as _numpy
 _spikes = {{_spikespace}}[:{{_spikespace}}[-1]]
 # Take subgroups into account
 _spikes = _spikes[(_spikes >= _source_start) & (_spikes < _source_stop)]
-_new_len = {{N}}[0] + 1
+_new_len = {{N}} + 1
 _owner.resize(_new_len)
-# Note that _t refers directly to the underlying array which might have changed
-{{_dynamic_t}}[-1] = _clock_t
-{{_dynamic_rate}}[-1] = 1.0 * len(_spikes) / _clock_dt / _num_source_neurons
+{{_dynamic_t}}[-1] = {{_clock_t}}
+{{_dynamic_rate}}[-1] = 1.0 * len(_spikes) / {{_clock_dt}} / _num_source_neurons

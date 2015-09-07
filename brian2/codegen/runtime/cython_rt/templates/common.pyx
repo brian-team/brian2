@@ -15,6 +15,7 @@ cdef extern from "stdint_compat.h":
     # Actual compile time size used for conversion
     ctypedef signed int int32_t
     ctypedef signed long int64_t
+    ctypedef unsigned long uint64_t
 
 # support code
 {{ support_code | autoindent }}

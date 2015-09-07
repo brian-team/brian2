@@ -10,10 +10,9 @@ import sympy
 import numpy as np
 
 from brian2.utils.stringtools import get_identifiers, word_substitute
-from brian2.units.fundamentalunits import (Quantity, Unit,
+from brian2.units.fundamentalunits import (Quantity, Unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch,
                                            have_same_dimensions)
-from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 
 from .base import weakproxy_with_fallback, device_override
@@ -21,7 +20,6 @@ from .preferences import prefs
 
 __all__ = ['Variable',
            'Constant',
-           'AttributeVariable',
            'ArrayVariable',
            'DynamicArrayVariable',
            'Subexpression',
@@ -158,7 +156,7 @@ class Variable(object):
 
         #: Whether the variable is read-only
         self.read_only = read_only
-        
+
         #: Whether the variable is dynamically sized (only for non-scalars)
         self.dynamic = dynamic
 
@@ -367,71 +365,6 @@ class AuxiliaryVariable(Variable):
 
     def get_value(self):
         raise TypeError('Cannot get the value for an auxiliary variable.')
-
-
-class AttributeVariable(Variable):
-    '''
-    An object providing information about a value saved as an attribute of an
-    object. Instead of saving a reference to the value itself, we save the
-    name of the attribute. This way, we get the correct value if the attribute
-    is overwritten with a new value (e.g. in the case of ``clock.t_``).
-    Most of the time `Variables.add_attribute_variable` should be used instead
-    of instantiating this class directly.
-    
-    The object value has to be accessible by doing ``getattr(obj, attribute)``.
-    Variables of this type are considered read-only.
-    
-    Parameters
-    ----------
-    name : str
-        The name of the variable
-    unit : `Unit`
-        The unit of the variable
-    obj : object
-        The object storing the attribute.
-    attribute : str
-        The name of the attribute storing the variable's value. `attribute` has
-        to be an attribute of `obj`.
-    dtype : `dtype`, optional
-        The dtype used for storing the variable. If none is given, defaults
-        to `core.default_float_dtype`.
-    owner : `Nameable`, optional
-        The object that "owns" this variable, e.g. the `NeuronGroup` to which
-        a ``dt`` value belongs (even if it is the attribute of a `Clock`
-        object). Defaults to ``None``.
-    constant : bool, optional
-        Whether the attribute's value is constant during a run. Defaults to
-        ``False``.
-    scalar : bool, optional
-        Whether the variable is a scalar value (``True``) or vector-valued, e.g.
-        defined for every neuron (``False``). Defaults to ``True``.
-    '''
-    def __init__(self, name, unit, obj, attribute, dtype=None, owner=None,
-                 constant=False,
-                 scalar=True):
-        super(AttributeVariable, self).__init__(unit=unit, owner=owner,
-                                                name=name, dtype=dtype,
-                                                constant=constant,
-                                                scalar=scalar,
-                                                read_only=True)
-
-        #: The object storing the `attribute`
-        self.obj = obj
-
-        #: The name of the attribute storing the variable's value
-        self.attribute = attribute
-
-    def get_value(self):
-        return getattr(self.obj, self.attribute)
-
-    def __repr__(self):
-        description = ('{classname}(unit={unit}, obj=<{obj}>, '
-                       'attribute={attribute}, constant={constant})')
-        return description.format(classname=self.__class__.__name__,
-                                  unit=repr(self.unit),
-                                  obj=self.obj,
-                                  attribute=repr(self.attribute),
-                                  constant=repr(self.constant))
 
 
 class ArrayVariable(Variable):
@@ -1260,13 +1193,23 @@ class VariableView(object):
         if self.unit is None:
             return array
         else:
-            return Quantity.__array_prepare__(self[:], array, context=context)
+            this = self[:]
+            if isinstance(this, Quantity):
+                return Quantity.__array_prepare__(this, array,
+                                                  context=context)
+            else:
+                return array
 
     def __array_wrap__(self, out_arr, context=None):
         if self.unit is None:
             return out_arr
         else:
-            return Quantity.__array_wrap__(self[:], out_arr, context=context)
+            this = self[:]
+            if isinstance(this, Quantity):
+                return Quantity.__array_wrap__(self[:], out_arr,
+                                               context=context)
+            else:
+                return out_arr
 
     def __len__(self):
         return len(self.get_item(slice(None), level=1))
@@ -1385,15 +1328,32 @@ class VariableView(object):
         varname = self.name
         if self.unit is None:
             varname += '_'
-        try:
-            # This will fail for subexpressions that refer to external
-            # parameters
-            values = repr(self[:])
-        except ValueError:
-            values = ('[Subexpression refers to external parameters. Use '
-                      '"group.{var}[:]"]').format(var=self.variable.name)
+
+        if self.variable.scalar:
+            dim = self.unit.dim if self.unit is not None else DIMENSIONLESS
+            values = repr(Quantity(self.variable.get_value().item(),
+                                   dim=dim))
+        else:
+            try:
+                # This will fail for subexpressions that refer to external
+                # parameters
+                values = repr(self[:])
+            except ValueError:
+                values = ('[Subexpression refers to external parameters. Use '
+                          '"group.{var}[:]"]').format(var=self.variable.name)
+
         return '<%s.%s: %s>' % (self.group_name, varname,
                                  values)
+
+    # Get access to some basic properties of the underlying array
+    @property
+    def shape(self):
+        return self.get_item(slice(None), level=1).shape
+
+    @property
+    def dtype(self):
+        return self.get_item(slice(None), level=1).dtype
+
 
 
 class Variables(collections.Mapping):
@@ -1500,14 +1460,19 @@ class Variables(collections.Mapping):
                             read_only=read_only,
                             unique=unique)
         self._add_variable(name, var, index)
-        if values is None:
-            self.device.init_with_zeros(var)
-
-        else:
-            if len(values) != size:
-                raise ValueError(('Size of the provided values does not match '
-                                  'size: %d != %d') % (len(values), size))
-            self.device.init_with_array(var, values)
+        # This could be avoided, but we currently need it so that standalone
+        # allocates the memory
+        self.device.init_with_zeros(var)
+        if values is not None:
+            if scalar:
+                if np.asanyarray(values).shape != ():
+                    raise ValueError('Need a scalar value.')
+                self.device.fill_with_array(var, values)
+            else:
+                if len(values) != size:
+                    raise ValueError(('Size of the provided values does not match '
+                                      'size: %d != %d') % (len(values), size))
+                self.device.fill_with_array(var, values)
 
     def add_dynamic_array(self, name, unit, size, values=None, dtype=None,
                           constant=False, constant_size=True,
@@ -1557,6 +1522,8 @@ class Variables(collections.Mapping):
                                    scalar=scalar,
                                    read_only=read_only, unique=unique)
         self._add_variable(name, var, index)
+        if np.prod(size) > 0:
+            self.device.resize(var, size)
         if values is None and np.prod(size) > 0:
             self.device.init_with_zeros(var)
         elif values is not None:
@@ -1564,7 +1531,7 @@ class Variables(collections.Mapping):
                 raise ValueError(('Size of the provided values does not match '
                                   'size: %d != %d') % (len(values), size))
             if np.prod(size) > 0:
-                self.device.init_with_array(var, values)
+                self.device.fill_with_array(var, values)
 
     def add_arange(self, name, size, start=0, dtype=np.int32, constant=True,
                    read_only=True, unique=True, index=None):
@@ -1600,43 +1567,6 @@ class Variables(collections.Mapping):
                        index=index)
         self.device.init_with_arange(self._variables[name], start)
 
-    def add_attribute_variable(self, name, unit, obj, attribute, dtype=None,
-                               constant=False, scalar=True):
-        '''
-        Add a variable stored as an attribute of an object.
-
-        Parameters
-        ----------
-        name : str
-            The name of the variable
-        unit : `Unit`
-            The unit of the variable
-        obj : object
-            The object storing the attribute.
-        attribute : str
-            The name of the attribute storing the variable's value. `attribute` has
-            to be an attribute of `obj`.
-        dtype : `dtype`, optional
-            The dtype used for storing the variable. If none is given, uses the
-            type of ``obj.attribute`` (which have to exist).
-        constant : bool, optional
-            Whether the attribute's value is constant during a run. Defaults to
-            ``False``.
-        scalar : bool, optional
-            Whether the variable is a scalar value (``True``) or vector-valued, e.g.
-            defined for every neuron (``False``). Defaults to ``True``.
-        '''
-        if dtype is None:
-            value = getattr(obj, attribute, None)
-            if value is None:
-                raise ValueError(('Cannot determine dtype for attribute "%s" '
-                                  'of object "%r"') % (attribute, obj))
-            dtype = get_dtype(value)
-
-        var = AttributeVariable(name=name, unit=unit, owner=self.owner,
-                                obj=obj, attribute=attribute, dtype=dtype,
-                                constant=constant, scalar=scalar)
-        self._add_variable(name, var)
 
     def add_constant(self, name, unit, value):
         '''
@@ -1777,10 +1707,17 @@ class Variables(collections.Mapping):
             The index that should be used for this variable (defaults to
             `Variables.default_index`).
         '''
-        if index is None:
-            index = self.default_index
         if varname is None:
             varname = name
+        if varname not in group.variables:
+            raise KeyError(('Group {group} does not have a variable '
+                            '{name}.').format(group=group.name,
+                                              name=varname))
+        if index is None:
+            if group.variables[varname].scalar:
+                index = '0'
+            else:
+                index = self.default_index
 
         if self.owner is not None and index in self.owner.variables:
             if (not self.owner.variables[index].read_only and
@@ -1827,26 +1764,11 @@ class Variables(collections.Mapping):
         Parameters
         ----------
         clock : `Clock`
-            The clock that should be used for ``t`` and ``dt``. Note that the
-            actual attributes referred to are ``t_`` and ``dt_``, i.e. the
-            unitless values.
+            The clock that should be used for ``t`` and ``dt``.
         prefix : str, optional
             A prefix for the variable names. Used for example in monitors to
             not confuse the dynamic array of recorded times with the current
             time in the recorded group.
         '''
-        for name, is_constant in [('t', False),
-                                  ('dt', True)]:
-            if prefix+name in self._variables:
-                var = self._variables[prefix+name]
-                if not isinstance(var, AttributeVariable):
-                    raise AssertionError(('%s is present in the variables '
-                                          'dictionary but of '
-                                          'type %s') % (prefix+name,
-                                                        type(var)))
-                var.obj = clock # replace the clock object
-            else:
-                self.add_attribute_variable(prefix+name, unit=second, obj=clock,
-                                            attribute=name+'_',
-                                            dtype=np.float64,
-                                            constant=is_constant)
+        for name in ['t', 'dt']:
+            self.add_reference(prefix+name, clock, name)

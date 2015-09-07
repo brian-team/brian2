@@ -6,6 +6,10 @@
 	                    N_incoming, N_outgoing, N,
 	                    N_pre, N_post, _source_offset, _target_offset } #}
 
+    {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post,
+                                       N_incoming, N_outgoing, N}
+    #}
+
     {# Get N_post and N_pre in the correct way, regardless of whether they are
     constants or scalar arrays#}
     const int _N_pre = {{constant_or_scalar('N_pre', variables['N_pre'])}};
@@ -56,5 +60,5 @@
 	{{varname}}.resize(newsize);
 	{% endfor %}
 	// Also update the total number of synapses
-	{{N}}[0] = newsize;
+	{{N}} = newsize;
 {% endblock %}

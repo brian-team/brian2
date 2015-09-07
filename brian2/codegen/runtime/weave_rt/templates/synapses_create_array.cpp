@@ -5,9 +5,11 @@
                     N_incoming, N_outgoing, N,
                     N_pre, N_post, _source_offset, _target_offset }
 #}
-
+{# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post,
+                                   N_incoming, N_outgoing, N}
+#}
 py::tuple _newlen_tuple(1);
-const int _old_num_synapses = {{N}}[0];
+const int _old_num_synapses = {{N}};
 const int _new_num_synapses = _old_num_synapses + _numsources;
 
 _newlen_tuple[0] = _new_num_synapses;

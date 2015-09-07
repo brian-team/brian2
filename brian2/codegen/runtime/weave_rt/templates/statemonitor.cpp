@@ -11,7 +11,7 @@
     // the underlying data
     PyObject_CallMethod(_var_t, "resize", "i", _new_len);
     double *_t_data = (double*)(((PyArrayObject*)(PyObject*){{_dynamic_t}}.attr("data"))->data);
-    _t_data[_new_len - 1] = _clock_t;
+    _t_data[_new_len - 1] = {{_clock_t}};
 
 
     // scalar code

@@ -71,7 +71,7 @@ void Network::run(const double duration, void (*report_func)(const double, const
                 {% endif %}
                 if (elapsed > next_report_time)
                 {
-                    report_func(elapsed, (clock->t_()-t_start)/duration, duration);
+                    report_func(elapsed, (clock->t[0]-t_start)/duration, duration);
                     next_report_time += report_period;
                 }
             }
@@ -117,17 +117,17 @@ Clock* Network::next_clocks()
 	for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
 	{
 		Clock *clock = *i;
-		if(clock->t_()<minclock->t_())
+		if(clock->t[0]<minclock->t[0])
 			minclock = clock;
 	}
     // find set of equal clocks
     curclocks.clear();
 
-    double t = minclock->t_();
+    double t = minclock->t[0];
     for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
     {
         Clock *clock = *i;
-        double s = clock->t_();
+        double s = clock->t[0];
         if(s==t || fabs(s-t)<=Clock_epsilon)
             curclocks.insert(clock);
     }

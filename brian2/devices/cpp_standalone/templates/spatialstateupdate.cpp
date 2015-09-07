@@ -38,7 +38,7 @@
     {
     for(int i=0;i<N;i++)
     {
-		{{v_star}}[i]=-({{Cm}}[i]/dt*{{v}}[i])-{{I0_all}}[i]; // RHS -> v_star (solution)
+		{{v_star}}[i]=-({{Cm}}[i]/{{dt}}*{{v}}[i])-{{I0_all}}[i]; // RHS -> v_star (solution)
 		bi={{ab_star1}}[i]-{{gtot_all}}[i]; // main diagonal
 		if (i<N-1)
 			c[i]={{ab_star0}}[i+1]; // superdiagonal

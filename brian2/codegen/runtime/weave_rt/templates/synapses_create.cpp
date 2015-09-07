@@ -6,6 +6,9 @@
                      N_incoming, N_outgoing, N,
                      N_pre, N_post, _source_offset, _target_offset}
     #}
+    {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post,
+                      N_incoming, N_outgoing, N}
+    #}
     srand((unsigned int)time(NULL));
     const int _buffer_size = 1024;
     int *const _prebuf = new int[_buffer_size];
@@ -14,8 +17,8 @@
 
     // Resize N_incoming and N_outgoing according to the size of the
     // source/target groups
-    PyObject_CallMethod(_var_N_incoming, "resize", "i", N_post + _target_offset);
-    PyObject_CallMethod(_var_N_outgoing, "resize", "i", N_pre + _source_offset);
+    PyObject_CallMethod(_var_N_incoming, "resize", "i", {{constant_or_scalar('N_post', variables['N_post'])}} + _target_offset);
+    PyObject_CallMethod(_var_N_outgoing, "resize", "i", {{constant_or_scalar('N_pre', variables['N_pre'])}} + _source_offset);
     int *_N_incoming = (int *)(((PyArrayObject*)(PyObject*){{_dynamic_N_incoming}}.attr("data"))->data);
     int *_N_outgoing = (int *)(((PyArrayObject*)(PyObject*){{_dynamic_N_outgoing}}.attr("data"))->data);
     // scalar code

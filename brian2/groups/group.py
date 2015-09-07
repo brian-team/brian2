@@ -1,6 +1,9 @@
 '''
-This module defines the `Group` object, a mix-in class for everything that
-saves state variables, e.g. `NeuronGroup` or `StateMonitor`.
+This module defines the `VariableOwner` class, a mix-in class for everything
+that saves state variables, e.g. `Clock` or `NeuronGroup`, the class `Group`
+for objects that in addition to storing state variables also execute code, i.e.
+objects such as `NeuronGroup` or `StateMonitor` but not `Clock`, and finally
+`CodeRunner`, a class to run code in the context of a `Group`.
 '''
 import collections
 from collections import OrderedDict
@@ -9,6 +12,7 @@ import weakref
 import numpy as np
 
 from brian2.core.base import BrianObject
+from brian2.core.names import Nameable
 from brian2.core.preferences import prefs
 from brian2.core.variables import (Variables, Constant, Variable,
                                    ArrayVariable, DynamicArrayVariable,
@@ -26,7 +30,7 @@ from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, SpellChecker
 
-__all__ = ['Group', 'CodeRunner']
+__all__ = ['Group', 'VariableOwner', 'CodeRunner']
 
 logger = get_logger(__name__)
 
@@ -155,8 +159,8 @@ class Indexing(object):
     Object responsible for calculating flat index arrays from arbitrary group-
     specific indices. Stores strong references to the necessary variables so
     that basic indexing (i.e. slicing, integer arrays/values, ...) works even
-    when the respective `Group` no longer exists. Note that this object does
-    not handle string indexing.
+    when the respective `VariableOwner` no longer exists. Note that this object
+    does not handle string indexing.
     '''
     def __init__(self, group, default_index='_idx'):
         self.group = weakref.proxy(group)
@@ -262,20 +266,19 @@ class IndexWrapper(object):
         else:
             return self.indices(item)
 
-
-class Group(BrianObject):
+class VariableOwner(Nameable):
     '''
     Mix-in class for accessing arrays by attribute.
-    
+
     # TODO: Overwrite the __dir__ method to return the state variables
     # (should make autocompletion work)
     '''
-
     def _enable_group_attributes(self):
         if not hasattr(self, 'variables'):
-            raise ValueError('Classes derived from Group need variables attribute.')
+            raise ValueError(('Classes derived from VariableOwner need a '
+                              'variables attribute.'))
         if not 'N' in self.variables:
-            raise ValueError('Each group needs an "N" variable.')
+            raise ValueError('Each VariableOwner needs an "N" variable.')
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
         if not hasattr(self, '_indices'):
@@ -287,9 +290,6 @@ class Group(BrianObject):
         if not hasattr(self, '_stored_clocks'):
             self._stored_clocks = {}
         self._group_attribute_access_active = True
-
-    def __len__(self):
-        return self.variables['N'].get_value()
 
     def state(self, name, use_units=True, level=0):
         '''
@@ -331,7 +331,11 @@ class Group(BrianObject):
             raise AttributeError
         if not '_group_attribute_access_active' in self.__dict__:
             raise AttributeError
-        
+        if (name in self.__getattribute__('__dict__') or
+                    name in self.__getattribute__('__class__').__dict__):
+            # Makes sure that classes can override the "variables" mechanism
+            # with instance/class attributes and properties
+            return object.__getattribute__(self, name)
         # We want to make sure that accessing variables without units is fast
         # because this is what is used during simulations
         # We do not specifically check for len(name) here, we simply assume
@@ -353,6 +357,11 @@ class Group(BrianObject):
         # _enable_group_attributes
         if not hasattr(self, '_group_attribute_access_active') or name in self.__dict__:
             object.__setattr__(self, name, val)
+        elif (name in self.__getattribute__('__dict__') or
+                    name in self.__getattribute__('__class__').__dict__):
+            # Makes sure that classes can override the "variables" mechanism
+            # with instance/class attributes and properties
+            return object.__setattr__(self, name, val)
         elif name in self.variables:
             var = self.variables[name]
             if not isinstance(val, basestring):
@@ -535,7 +544,7 @@ class Group(BrianObject):
             var.set_value(values)
         t, dt = self._stored_clocks[name]
         self.clock.dt_ = dt
-        self.clock._set_t_update_dt(t=t*second)
+        self.clock._set_t_update_dt(target_t=t*second)
         for obj in self._contained_objects:
             if hasattr(obj, '_restore'):
                 obj._restore(name)
@@ -572,6 +581,12 @@ class Group(BrianObject):
                 raise ValueError(('String expression for setting scalar '
                                   'variable %s refers to %s which is not '
                                   'scalar.') % (varname, ref_varname))
+
+    def __len__(self):
+        return self.variables['N'].get_value()
+
+
+class Group(VariableOwner, BrianObject):
 
     def resolve(self, identifier, user_identifier=True,
                 additional_variables=None, run_namespace=None, level=0):
