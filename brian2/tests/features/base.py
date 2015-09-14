@@ -48,6 +48,18 @@ class BaseTest(object):
         '''
         raise NotImplementedError
 
+    def timed_run(self, duration):
+        '''
+        Do a timed run. This means that for RuntimeDevice it will run for defaultclock.dt before running for the
+        rest of the duration. This means total run duration will be duration+defaultclock.dt.
+        For standalone devices, this feature may or may not be implemented.
+        '''
+        if isinstance(brian2.get_device(), brian2.devices.RuntimeDevice):
+            brian2.run(brian2.defaultclock.dt, level=1)
+            brian2.run(duration, level=1)
+        else:
+            brian2.run(duration, level=1)
+
 
 class FeatureTest(BaseTest):
     '''
@@ -118,7 +130,11 @@ class Configuration(object):
     '''
     
     name = None # The name of this configuration
-    
+
+    def __init__(self, maximum_run_time=1e7*brian2.second):
+        maximum_run_time = float(maximum_run_time)*brian2.second
+        self.maximum_run_time = maximum_run_time
+
     def before_run(self):
         pass
     
@@ -132,7 +148,16 @@ class Configuration(object):
         if hasattr(brian2.device, '_last_run_time'):
             return brian2.device._last_run_time
         raise NotImplementedError
-    
+
+    def get_last_run_completed_fraction(self):
+        '''
+        Implement this to overwrite the amount of the last run that was completed (for devices that allow breaking
+        early if the maximum run time is exceeded).
+        '''
+        if hasattr(brian2.device, '_last_run_completed_fraction'):
+            return brian2.device._last_run_completed_fraction
+        return 1.0
+
     
 class DefaultConfiguration(Configuration):
     name = 'Default'
@@ -199,7 +224,7 @@ class CPPStandaloneConfigurationOpenMP(Configuration):
                             with_output=False)
     
     
-def results(configuration, feature, n=None):
+def results(configuration, feature, n=None, maximum_run_time=1e7*brian2.second):
     tempfilename = tempfile.mktemp('exception')
     if n is None:
         init_args = ''
@@ -207,6 +232,7 @@ def results(configuration, feature, n=None):
         init_args = str(n)
     code_string = '''
 __file__ = '{fname}'
+import brian2
 from {config_module} import {config_name}
 from {feature_module} import {feature_name}
 configuration = {config_name}()
@@ -216,6 +242,7 @@ warnings.simplefilter('ignore')
 try:
     start_time = time.time()
     configuration.before_run()
+    brian2.device._set_maximum_run_time({maximum_run_time})
     feature.run()
     configuration.after_run()
     results = feature.results()
@@ -225,6 +252,7 @@ try:
             run_time = configuration.get_last_run_time()
         except NotImplementedError:
             pass
+    run_time = run_time/configuration.get_last_run_completed_fraction()
     f = open(r'{tempfname}', 'wb')
     pickle.dump((None, results, run_time), f, -1)
     f.close()
@@ -241,6 +269,7 @@ except Exception, ex:
                tempfname=tempfilename,
                fname=__file__,
                init_args=init_args,
+               maximum_run_time=float(maximum_run_time),
                )
     args = [sys.executable, '-c',
             code_string]
@@ -269,7 +298,7 @@ def run_single_feature_test(configuration, feature):
 
     
 def run_feature_tests(configurations=None, feature_tests=None,
-                      strict=1e-5, tolerant=0.05, verbose=True):
+                      strict=1e-5, tolerant=0.05, verbose=True, maximum_run_time=1e7*brian2.second):
     if configurations is None:
         # some configurations to attempt to import
         try:
@@ -297,7 +326,7 @@ def run_feature_tests(configurations=None, feature_tests=None,
             txt = 'OK'
             sym = '.'
             exc = None
-            tb, res, runtime = results(configuration, ft)
+            tb, res, runtime = results(configuration, ft, maximum_run_time=maximum_run_time)
             if isinstance(res, Exception):
                 if isinstance(res, NotImplementedError):
                     sym = 'N'
@@ -441,7 +470,7 @@ class FeatureTestResults(object):
 
 
 def run_speed_tests(configurations=None, speed_tests=None, run_twice=True, verbose=True,
-                    n_slice=slice(None)):
+                    n_slice=slice(None), maximum_run_time=1e7*brian2.second):
     if configurations is None:
         # some configurations to attempt to import
         try:
@@ -467,7 +496,7 @@ def run_speed_tests(configurations=None, speed_tests=None, run_twice=True, verbo
             for configuration in configurations:
                 sym = '.'
                 for _ in xrange(1+int(run_twice)):
-                    tb, res, runtime = results(configuration, ft, n)
+                    tb, res, runtime = results(configuration, ft, n, maximum_run_time=maximum_run_time)
                 if isinstance(res, Exception):
                     if isinstance(res, NotImplementedError):
                         sym = 'N'
