@@ -9,6 +9,9 @@
 
 #define Clock_epsilon 1e-14
 
+double Network::_last_run_time = 0.0;
+double Network::_last_run_completed_fraction = 0.0;
+
 Network::Network()
 {
 	t = 0.0;
@@ -56,9 +59,13 @@ void Network::run(const double duration, void (*report_func)(const double, const
 	}
 
 	Clock* clock = next_clocks();
+	double elapsed_realtime;
+	bool did_break_early = false;
 
     while(clock->running())
     {
+        t = clock->t[0];
+
         for(int i=0; i<objects.size(); i++)
         {
             if (report_func)
@@ -86,18 +93,37 @@ void Network::run(const double duration, void (*report_func)(const double, const
         for(std::set<Clock*>::iterator i=curclocks.begin(); i!=curclocks.end(); i++)
             (*i)->tick();
         clock = next_clocks();
-    }
 
-    if (report_func)
-    {
         {% if openmp_pragma('with_openmp') %}
-        report_func(omp_get_wtime() - start, 1.0, duration);
+        elapsed_realtime = omp_get_wtime() - start;
         {% else %}
         current = std::clock();
-        report_func((double)(current - start)/({{ openmp_pragma('get_num_threads') }} * CLOCKS_PER_SEC), 1.0, duration);
+        elapsed_realtime = (double)(current - start)/({{ openmp_pragma('get_num_threads') }} * CLOCKS_PER_SEC);
         {% endif %}
+
+        {% if maximum_run_time is not none %}
+        if(elapsed_realtime>{{maximum_run_time}})
+        {
+            did_break_early = true;
+            break;
+        }
+        {% endif %}
+
     }
-	t = t_end;
+
+    if(!did_break_early) t = t_end;
+
+    _last_run_time = elapsed_realtime;
+    if(duration>0)
+    {
+        _last_run_completed_fraction = (t-t_start)/duration;
+    } else {
+        _last_run_completed_fraction = 1.0;
+    }
+    if (report_func)
+    {
+        report_func(elapsed_realtime, 1.0, duration);
+    }
 }
 
 void Network::compute_clocks()
@@ -156,6 +182,8 @@ class Network
 public:
 	std::vector< std::pair< Clock*, codeobj_func > > objects;
 	double t;
+	static double _last_run_time;
+	static double _last_run_completed_fraction;
 
 	Network();
 	void clear();
