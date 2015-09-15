@@ -137,20 +137,42 @@ public:
 	void push(int32_t *spikes, unsigned int nspikes)
 	{
 		const unsigned int start = static_cast<unsigned int>(distance(spikes, lower_bound(spikes, spikes+nspikes, source_start)));
-		const unsigned int stop = static_cast<unsigned int>(distance(spikes, upper_bound(spikes, spikes+nspikes, source_end-1))); 
-		for(unsigned int idx_spike=start; idx_spike<stop; idx_spike++)
+		const unsigned int stop = static_cast<unsigned int>(distance(spikes, upper_bound(spikes, spikes+nspikes, source_end-1)));
+        const int32_t * __restrict rspikes = spikes;
+		if(scalar_delay)
 		{
-			const unsigned int idx_neuron = spikes[idx_spike] - source_start;
-			vector<int> &cur_indices = synapses[idx_neuron];
-			for(unsigned int idx_indices=0; idx_indices<cur_indices.size(); idx_indices++)
-			{
-				const int synaptic_index = cur_indices[idx_indices];
-				unsigned int delay = scalar_delay ? delays[0] : delays[synaptic_index - openmp_padding];
-				// make sure there is enough space and resize if not
-				ensure_delay(delay);
-				// insert the index into the correct queue
-				queue[(offset+delay)%queue.size()].push_back(synaptic_index);
-			}
+		    ensure_delay(delays[0]);
+    		vector<int32_t> &homog_queue = queue[offset+delays[0]];
+            for(unsigned int idx_spike=start; idx_spike<stop; idx_spike++)
+            {
+                const unsigned int idx_neuron = rspikes[idx_spike] - source_start;
+                const int* __restrict cur_indices = &(synapses[idx_neuron][0]);
+                const unsigned int num_indices = synapses[idx_neuron].size();
+                const unsigned int cur_homog_queue_size = homog_queue.size();
+                homog_queue.resize(cur_homog_queue_size+num_indices);
+                int32_t * __restrict hq = &(homog_queue[cur_homog_queue_size]);
+                for(unsigned int idx_indices=0; idx_indices<num_indices; idx_indices++)
+                {
+                    hq[idx_indices] = cur_indices[idx_indices];
+                }
+            }
+		} else // (!scalar_delay)
+		{
+		    unsigned int * __restrict rdelays = delays-openmp_padding;
+            for(unsigned int idx_spike=start; idx_spike<stop; idx_spike++)
+            {
+                const unsigned int idx_neuron = rspikes[idx_spike] - source_start;
+                const int* __restrict cur_indices = &(synapses[idx_neuron][0]);
+                const unsigned int num_indices = synapses[idx_neuron].size();
+                for(unsigned int idx_indices=0; idx_indices<num_indices; idx_indices++)
+                {
+                    const int synaptic_index = cur_indices[idx_indices];
+                    unsigned int delay = rdelays[synaptic_index];
+                    // make sure there is enough space and resize if not
+                    ensure_delay(delay);
+                    queue[(offset+delay)%queue.size()].push_back(synaptic_index);
+                }
+            }
 		}
 	};
 

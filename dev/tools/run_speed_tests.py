@@ -10,29 +10,30 @@ from brian2.tests.features.speed import *
 # show()
 
 # Quick testing
-res = run_speed_tests(configurations=[NumpyConfiguration,
-                                      WeaveConfiguration,
-                                      #LocalConfiguration,
+res = run_speed_tests(configurations=[#NumpyConfiguration,
+                                      #WeaveConfiguration,
+                                      LocalConfiguration,
                                       CPPStandaloneConfiguration,
                                       #CPPStandaloneConfigurationOpenMP,
 #                                      GeNNConfiguration,
                                       ],
                       speed_tests=[
-                                   LinearNeuronsOnly,
-                                   HHNeuronsOnly,
-                                   CUBAFixedConnectivity,
+                                   # LinearNeuronsOnly,
+                                   # HHNeuronsOnly,
+                                   # CUBAFixedConnectivity,
                                    # VerySparseMediumRateSynapsesOnly,
                                    # SparseMediumRateSynapsesOnly,
-                                   # DenseMediumRateSynapsesOnly,
+                                   DenseMediumRateSynapsesOnly,
                                    # SparseLowRateSynapsesOnly,
                                    # SparseHighRateSynapsesOnly,
                                    ],
                       #n_slice=slice(None, None, 3),
-                      n_slice=slice(None, -1),
+                      #n_slice=slice(None, -1),
                       run_twice=False,
                       maximum_run_time=1*second,
                       )
 res.plot_all_tests()
+res.plot_all_tests(relative=True)
 show()
 
 # Debug
