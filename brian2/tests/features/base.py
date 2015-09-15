@@ -526,18 +526,23 @@ class SpeedTestResults(object):
         confignames, fullnames, n = zip(*L)
         return numpy.array(sorted(list(set(n))))
     
-    def plot_all_tests(self):
+    def plot_all_tests(self, relative=False):
         import pylab
         for st in self.speed_tests:
             fullname = st.fullname()
             pylab.figure()
             ns = self.get_ns(fullname)
+            baseline = None
             for config in self.configurations:
                 configname = config.name
                 runtimes = []
                 for n in ns:
                     runtimes.append(self.full_results[configname, fullname, n])
                 runtimes = numpy.array(runtimes)
+                if relative:
+                    if baseline is None:
+                        baseline = runtimes
+                    runtimes = baseline/runtimes
                 pylab.plot(ns, runtimes, label=configname)
             pylab.title(fullname)
             pylab.legend(loc='best', fontsize='x-small')
@@ -546,7 +551,6 @@ class SpeedTestResults(object):
                 pylab.gca().set_xscale('log')
             if st.time_axis_log:
                 pylab.gca().set_yscale('log')
-
 
 # Code below auto generates restructured text tables, copied from:
 # http://stackoverflow.com/questions/11347505/what-are-some-approaches-to-outputting-a-python-data-structure-to-restructuredte
