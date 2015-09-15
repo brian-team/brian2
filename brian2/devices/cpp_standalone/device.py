@@ -613,8 +613,10 @@ class CPPStandaloneDevice(Device):
             writer.write('code_objects/'+codeobj.name+'.h', codeobj.code.h_file)
         
     def generate_network_source(self, writer, compiler):
-        network_tmp = CPPStandaloneCodeObject.templater.network(None, None,
-                                                                maximum_run_time=float(self._maximum_run_time))
+        maximum_run_time = self._maximum_run_time
+        if maximum_run_time is not None:
+            maximum_run_time = float(maximum_run_time)
+        network_tmp = CPPStandaloneCodeObject.templater.network(None, None, maximum_run_time=maximum_run_time)
         writer.write('network.*', network_tmp)
         
     def generate_synapses_classes_source(self, writer):
