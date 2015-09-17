@@ -3,6 +3,8 @@ from brian2.core.variables import *
 from brian2.codegen.translation import apply_loop_invariant_optimisations
 
 code = '''
+x += y
+x += y*y
 x += exp(y*b)
 '''
 

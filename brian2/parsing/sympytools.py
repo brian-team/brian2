@@ -158,3 +158,35 @@ def replace_constants(sympy_expr, variables=None):
                 sympy_expr = sympy_expr.xreplace({symbol: sympy.Float(float_val)})
 
     return sympy_expr
+
+
+def expression_complexity(expr, complexity=None):
+    '''
+    Returns the complexity of an expression (either string or sympy)
+
+    The complexity is defined as 1 for each arithmetic operation except divide which is 2,
+    and all other operations are 20. This can be overridden using the complexity
+    argument.
+
+    Note: calling this on a statement rather than an expression is likely to lead to errors.
+
+    Parameters
+    ----------
+    expr: `sympy.Expr` or str
+        The expression.
+    complexity: None or dict (optional)
+        A dictionary mapping expression names to their complexity, to overwrite default behaviour.
+
+    Returns
+    -------
+    complexity: int
+        The complexity of the expression.
+    '''
+    subs = {'ADD':1, 'DIV':2, 'MUL':1, 'SUB':1}
+    if complexity is not None:
+        subs.update(complexity)
+    ops = sympy.count_ops(expr, visual=True)
+    for atom in ops.atoms():
+        if hasattr(atom, 'name'):
+            subs[atom.name] = 20 # unknown operations assumed to have a large cost
+    return ops.evalf(subs=subs)

@@ -31,7 +31,7 @@ from brian2.utils.topsort import topsort
 from brian2.units.fundamentalunits import Unit
 from brian2.parsing.statements import parse_statement
 from brian2.parsing.rendering import NodeRenderer
-from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str, expression_complexity
 
 from .statements import Statement
 
@@ -212,7 +212,7 @@ class LIONodeRenderer(NodeRenderer):
     '''
     def __init__(self, variables):
         self.variables = variables
-        self.boolvars = dict((k, v) for k, v in self.variables.iteritems() if v.dtype==bool)
+        self.boolvars = dict((k, v) for k, v in self.variables.iteritems() if hasattr(v, 'dtype') and v.dtype==bool)
         self.optimisations = OrderedDict()
         self.n = 0
         NodeRenderer.__init__(self, use_vectorisation_idx=False)
@@ -228,9 +228,8 @@ class LIONodeRenderer(NodeRenderer):
                 # Do not pull out very simple expressions (including constants
                 # and numbers)
                 sympy_expr = str_to_sympy(expr)
-                # TODO: this is bad because e.g. exp(y), y*y*y don't work
-                # if sympy.count_ops(sympy_expr, visual=False) < 2:
-                #     return expr
+                if expression_complexity(sympy_expr) < 2:
+                    return expr
                 self.n += 1
                 name = '_lio_const_'+str(self.n)
                 self.optimisations[expr] = name
@@ -241,12 +240,15 @@ class LIONodeRenderer(NodeRenderer):
                 expr_1 = word_substitute(expr, {varname: '1.0'})
                 if (is_scalar_expression(expr_0, self.variables) and is_scalar_expression(expr_1, self.variables) and
                         not has_non_float(expr, self.variables)):
+                    # we do this check here because we don't want to apply it to statements, only expressions
+                    if expression_complexity(expr)<=4:
+                        break
                     self.n += 1
                     name_0 = '_lio_const_'+str(self.n)
                     self.n += 1
                     name_1 = '_lio_const_'+str(self.n)
-                    newexpr = '({name_0}*(1-{varname})+{name_1}*{varname})'.format(name_0=name_0, name_1=name_1,
-                                                                                   varname=varname)
+                    newexpr = '({name_0}*(not {varname})+{name_1}*{varname})'.format(name_0=name_0, name_1=name_1,
+                                                                                     varname=varname)
                     self.optimisations[expr_0] = name_0
                     self.optimisations[expr_1] = name_1
                     return newexpr
