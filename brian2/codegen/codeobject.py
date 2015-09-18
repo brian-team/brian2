@@ -267,11 +267,15 @@ def create_runner_codeobj(group, code, template_name,
     # Determine the identifiers that were used
     identifiers = set()
     user_identifiers = set()
+    defined = set()
+    user_defined = set()
     for v, u_v in zip(code.values(), user_code.values()):
-        _, uk, u = analyse_identifiers(v, all_variables, recursive=True)
+        d, uk, u = analyse_identifiers(v, all_variables, recursive=True)
         identifiers |= uk | u
-        _, uk, u = analyse_identifiers(u_v, all_variables, recursive=True)
+        defined |= d
+        d, uk, u = analyse_identifiers(u_v, all_variables, recursive=True)
         user_identifiers |= uk | u
+        user_defined |= d
     # Only pass the variables that are actually used
     variables = group.resolve_all(identifiers,
                                   user_identifiers,

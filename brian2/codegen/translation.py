@@ -243,14 +243,20 @@ class LIONodeRenderer(NodeRenderer):
                     # we do this check here because we don't want to apply it to statements, only expressions
                     if expression_complexity(expr)<=4:
                         break
-                    self.n += 1
-                    name_0 = '_lio_const_'+str(self.n)
-                    self.n += 1
-                    name_1 = '_lio_const_'+str(self.n)
+                    if expr_0 not in self.optimisations:
+                        self.n += 1
+                        name_0 = '_lio_const_'+str(self.n)
+                        self.optimisations[expr_0] = name_0
+                    else:
+                        name_0 = self.optimisations[expr_0]
+                    if expr_1 not in self.optimisations:
+                        self.n += 1
+                        name_1 = '_lio_const_'+str(self.n)
+                        self.optimisations[expr_1] = name_1
+                    else:
+                        name_1 = self.optimisations[expr_1]
                     newexpr = '({name_0}*(not {varname})+{name_1}*{varname})'.format(name_0=name_0, name_1=name_1,
                                                                                      varname=varname)
-                    self.optimisations[expr_0] = name_0
-                    self.optimisations[expr_1] = name_1
                     return newexpr
             return NodeRenderer.render_node(self, node)
 
