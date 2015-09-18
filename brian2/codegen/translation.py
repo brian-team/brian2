@@ -237,7 +237,7 @@ class LIONodeRenderer(NodeRenderer):
         else:
             for varname, var in self.boolvars.iteritems():
                 expr_0 = word_substitute(expr, {varname: '0.0'})
-                expr_1 = word_substitute(expr, {varname: '1.0'})
+                expr_1 = '(%s)-(%s)' % (word_substitute(expr, {varname: '1.0'}), expr_0)
                 if (is_scalar_expression(expr_0, self.variables) and is_scalar_expression(expr_1, self.variables) and
                         not has_non_float(expr, self.variables)):
                     # we do this check here because we don't want to apply it to statements, only expressions
@@ -255,8 +255,8 @@ class LIONodeRenderer(NodeRenderer):
                         self.optimisations[expr_1] = name_1
                     else:
                         name_1 = self.optimisations[expr_1]
-                    newexpr = '({name_0}*(not {varname})+{name_1}*{varname})'.format(name_0=name_0, name_1=name_1,
-                                                                                     varname=varname)
+                    newexpr = '({name_0}+{name_1}*{varname})'.format(name_0=name_0, name_1=name_1,
+                                                                     varname=varname)
                     return newexpr
             return NodeRenderer.render_node(self, node)
 
